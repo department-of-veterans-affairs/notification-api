@@ -1,4 +1,4 @@
-FROM python:3.6-alpine
+FROM python:3.8.5-alpine
 
 RUN apk update && apk add --no-cache ca-certificates && rm -rf /var/cache/apk/*
 COPY ./certs/VA-Internal-S2-RCA1-v1.crt /usr/local/share/ca-certificates/VA-Internal-S2-RCA1-v1.crt
