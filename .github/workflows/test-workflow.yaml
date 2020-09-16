@@ -1,12 +1,10 @@
-name: Test workflow_run
+name: Test workflow
 
 on:
   workflow_run:
     workflows: 
       - Development CI
       - dev-ci.yaml
-    types:
-      - completed
 
 jobs:
   test:
