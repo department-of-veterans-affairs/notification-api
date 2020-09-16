@@ -1,0 +1,15 @@
+name: Test workflow_run
+
+on:
+  workflow_run:
+    workflows: ["Development CI"]
+    branches: [master]
+    types:
+      - completed
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+        echo ${{ toJson(github.event) }}

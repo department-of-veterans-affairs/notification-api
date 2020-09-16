@@ -93,18 +93,6 @@ jobs:
           docker tag $IMAGE_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$IMAGE_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$IMAGE_REPOSITORY:$IMAGE_TAG
 
-      # - name: Build and push to AWS ECR
-      #   uses: kciter/aws-ecr-action@v1
-      #   with:
-      #     access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     account_id: ${{ secrets.AWS_ACCOUNT_ID }}
-      #     repo: notification_api
-      #     region: us-east-2
-      #     tags: ${{ github.sha }}
-      #     create_repo: true
-      #     dockerfile: ci/Dockerfile
-
   create-base-infrastructure:
     runs-on: ubuntu-latest
     needs: [build-and-push]
