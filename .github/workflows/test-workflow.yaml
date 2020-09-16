@@ -5,6 +5,10 @@ on:
     workflows: 
       - Development CI
       - dev-ci.yaml
+    branches: [master, deployments-with-tags]
+    types: 
+      - completed
+      - requested
 
 jobs:
   test:
