@@ -18,13 +18,13 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
 jobs:
-  # test:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: Run tests with docker-compose-test
-  #       run: |
-  #         docker-compose -f ci/docker-compose-test.yml up --build --abort-on-container-exit --force-recreate
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run tests with docker-compose-test
+        run: |
+          docker-compose -f ci/docker-compose-test.yml up --build --abort-on-container-exit --force-recreate
   code-scan:
     runs-on: ubuntu-latest
     steps:
