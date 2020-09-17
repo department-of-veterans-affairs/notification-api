@@ -393,7 +393,19 @@ jobs:
           bash ./scripts/tag_git_dev.sh ${{ github.sha }}
       - name: Tag Docker Image
         run: |
-          bash ./scripts/tag_docker_image.sh ${{ github.sha }} ${{ env.TAG }}
+          bash ./scripts/tag_docker_image.sh ${{ github.sha }} ${{ env.TAG }} us-east-2
+      - name: Configure VAEC AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.VAEC_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.VAEC_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-gov-west-1
+          role-to-assume: ${{ secrets.VAEC_DEPLOY_ROLE }}
+          role-skip-session-tagging: true
+          role-duration-seconds: 300
+      - name: Tag Docker Image in VAEC
+        run: |
+          bash ./scripts/tag_docker_image.sh ${{ github.sha }} ${{ env.TAG }} us-gov-west-1
 
   start-vaec-deployment:
     runs-on: ubuntu-latest
@@ -406,7 +418,7 @@ jobs:
           github.actions.createWorkflowDispatch({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            workflow_id: 'workflow.yaml',
+            workflow_id: 'deployment-trigger.yaml',
             ref: context.ref,
             inputs: {
               environment: 'dev',
