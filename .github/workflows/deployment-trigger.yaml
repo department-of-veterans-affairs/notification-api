@@ -1,8 +1,6 @@
 name: Trigger
 
 on:
-  deployment_status:
-
   workflow_dispatch:
     inputs:
       environment:

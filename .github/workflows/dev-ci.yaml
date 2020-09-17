@@ -383,17 +383,20 @@ jobs:
     runs-on: ubuntu-latest
     needs: user-flows
     if: github.ref == 'refs/heads/master'
+    outputs:
+      tag: ${{ steps.tag-git-commit.outputs.TAG }}
     steps:
       - uses: actions/checkout@v2
         with:
           ssh-key: ${{ secrets.CD_KEY }}
       - name: Tag Git Commit
+        id: tag-git-commit
         run: |
           git fetch --prune --unshallow
           bash ./scripts/tag_git_dev.sh ${{ github.sha }}
       - name: Tag Docker Image
         run: |
-          bash ./scripts/tag_docker_image.sh ${{ github.sha }} ${{ env.TAG }} us-east-2
+          bash ./scripts/tag_docker_image.sh ${{ github.sha }} ${{ steps.tag-git-commit.outputs.TAG }} us-east-2
       - name: Configure VAEC AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -405,23 +408,21 @@ jobs:
           role-duration-seconds: 300
       - name: Tag Docker Image in VAEC
         run: |
-          bash ./scripts/tag_docker_image.sh ${{ github.sha }} ${{ env.TAG }} us-gov-west-1
+          bash ./scripts/tag_docker_image.sh ${{ github.sha }} ${{ steps.tag-git-commit.outputs.TAG }} us-gov-west-1
 
-  start-vaec-deployment:
+  start-vaec-dev-deployment:
     runs-on: ubuntu-latest
-    needs: user-flows
+    needs: build-and-push
     steps:
     - uses: actions/github-script@v3
       with:
         github-token: ${{secrets.GH_ACCESS_TOKEN}}
         script: |
-          github.actions.createWorkflowDispatch({
+          github.repos.createDeployment({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            workflow_id: 'deployment-trigger.yaml',
-            ref: context.ref,
-            inputs: {
-              environment: 'dev',
-              ref: context.sha
-            }
+            ref: 'contex.sha',
+            environment: 'dev',
+            required_contexts: [],
+            auto_merge: false,
           });

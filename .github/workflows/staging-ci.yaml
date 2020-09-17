@@ -269,11 +269,12 @@ jobs:
         with:
           ssh-key: ${{ secrets.CD_KEY }}
       - name: Tag Git Commit
+        id: create-git-tag
         run: |
           bash ./scripts/tag_git_staging.sh ${{ github.ref }}
       - name: Tag Docker Image
         run: |
-          bash ./scripts/tag_docker_image.sh ${{ env.STAGING_TAG }} ${{ env.TAG }} us-east-2
+          bash ./scripts/tag_docker_image.sh ${{ steps.create-git-tag.outputs.STAGING_TAG }} ${{ steps.create-git-tag.outputs.TAG }} us-east-2
       - name: Configure VAEC AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -285,4 +286,4 @@ jobs:
           role-duration-seconds: 300
       - name: Tag Docker Image in VAEC
         run: |
-          bash ./scripts/tag_docker_image.sh ${{ github.sha }} ${{ env.TAG }} us-gov-west-1
+          bash ./scripts/tag_docker_image.sh ${{ steps.create-git-tag.outputs.STAGING_TAG }} ${{ steps.create-git-tag.outputs.TAG }} us-gov-west-1
