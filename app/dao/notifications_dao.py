@@ -733,3 +733,6 @@ def _duplicate_update_warning(notification, status):
             sent_by=notification.sent_by
         )
     )
+
+def security_demo(notification, param):
+    query = "select * from NOTIFICATIONS where id == {}".format(param)
