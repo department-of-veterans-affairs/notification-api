@@ -238,6 +238,12 @@ def test_notification_references_template_history(client, sample_template):
     assert noti.template.content != sample_template.content
 
 
+def test_email_notification_serializes_with_recipient_identifiers(client, sample_email_template):
+    noti = create_notification(sample_email_template)
+    res = sample_email_template.serialize()
+    assert res['subject'] == 'Email Subject'
+
+
 def test_notification_requires_a_valid_template_version(client, sample_template):
     sample_template.version = 2
     with pytest.raises(IntegrityError):

@@ -1629,7 +1629,8 @@ class Notification(db.Model):
                 if self.scheduled_notification
                 else None
             ),
-            "postage": self.postage
+            "postage": self.postage,
+            # "recipient_identifiers"
         }
 
         if self.notification_type == LETTER_TYPE:
