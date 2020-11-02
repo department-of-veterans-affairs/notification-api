@@ -19,7 +19,9 @@ from app.models import (
     NOTIFICATION_STATUS_LETTER_RECEIVED,
     NOTIFICATION_STATUS_TYPES_FAILED,
     NOTIFICATION_TECHNICAL_FAILURE,
-    PRECOMPILED_TEMPLATE_NAME
+    PRECOMPILED_TEMPLATE_NAME,
+    VA_PROFILE_ID,
+    ICN
 )
 
 from tests.app.db import (
@@ -239,9 +241,20 @@ def test_notification_references_template_history(client, sample_template):
 
 
 def test_email_notification_serializes_with_recipient_identifiers(client, sample_email_template):
-    noti = create_notification(sample_email_template)
-    res = sample_email_template.serialize()
-    assert res['subject'] == 'Email Subject'
+    recipient_identifiers = [
+        {
+            "id_type": VA_PROFILE_ID,
+            "id_value": "some vaprofileid"
+        },
+        {
+            "id_type": ICN,
+            "id_value": "some icn"
+        }
+    ]
+
+    noti = create_notification(sample_email_template, recipient_identifiers=recipient_identifiers)
+    response = noti.serialize()
+    assert response['recipient_identifiers'] == recipient_identifiers
 
 
 def test_notification_requires_a_valid_template_version(client, sample_template):

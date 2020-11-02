@@ -58,7 +58,8 @@ from app.models import (
     TemplateFolder,
     LetterBranding,
     Domain,
-    NotificationHistory
+    NotificationHistory,
+    RecipientIdentifier
 )
 
 
@@ -290,10 +291,19 @@ def create_notification(
         'normalised_to': normalised_to,
         'reply_to_text': reply_to_text,
         'created_by_id': created_by_id,
-        'postage': postage,
-        'recipient_identifiers': recipient_identifiers
+        'postage': postage
     }
     notification = Notification(**data)
+
+    if recipient_identifiers:
+        for recipient_identifier in recipient_identifiers:
+            _recipient_identifier = RecipientIdentifier(
+                notification_id=notification.id,
+                id_type=recipient_identifier['id_type'],
+                id_value=recipient_identifier['id_value']
+            )
+            notification.recipient_identifiers.set(_recipient_identifier)
+
     dao_create_notification(notification)
     if scheduled_for:
         scheduled_notification = ScheduledNotification(id=uuid.uuid4(),
