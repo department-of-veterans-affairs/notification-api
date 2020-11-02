@@ -257,6 +257,12 @@ def test_email_notification_serializes_with_recipient_identifiers(client, sample
     assert response['recipient_identifiers'] == recipient_identifiers
 
 
+def test_email_notification_serializes_with_empty_recipient_identifiers(client, sample_email_template):
+    notifcation = create_notification(sample_email_template)
+    response = notifcation.serialize()
+    assert response['recipient_identifiers'] == []
+
+
 def test_notification_requires_a_valid_template_version(client, sample_template):
     sample_template.version = 2
     with pytest.raises(IntegrityError):
