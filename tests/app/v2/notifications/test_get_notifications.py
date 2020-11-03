@@ -12,6 +12,7 @@ from app.models import (
     VA_PROFILE_ID,
 )
 
+
 @pytest.mark.parametrize('billable_units, provider', [
     (1, 'mmg'),
     (0, 'mmg'),
@@ -83,7 +84,7 @@ def test_get_notification_by_id_returns_200(
 
 @pytest.mark.parametrize('recipient_identifiers', [
     None,
-    [{ "id_type": VA_PROFILE_ID, "id_value": "some vaprofileid" }]
+    [{"id_type": VA_PROFILE_ID, "id_value": "some vaprofileid"}]
 ])
 def test_get_notification_by_id_with_placeholders_and_recipient_identifiers_returns_200(
         client, sample_email_template_with_placeholders, recipient_identifiers
