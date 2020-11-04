@@ -813,11 +813,6 @@ def mmg_provider():
 
 
 @pytest.fixture(scope='function')
-def govdelivery_provider():
-    return ProviderDetails.query.filter_by(identifier='govdelivery').one()
-
-
-@pytest.fixture(scope='function')
 def mock_firetext_client(mocker, statsd_client=None):
     client = FiretextClient()
     statsd_client = statsd_client or mocker.Mock()

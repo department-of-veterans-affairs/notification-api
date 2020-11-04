@@ -2,6 +2,7 @@ import re
 from datetime import datetime
 
 import requests
+import app.googleanalytics.pixels as gapixels
 from flask import current_app
 from notifications_utils.recipients import (
     validate_and_format_phone_number,
@@ -89,6 +90,7 @@ def send_email_to_provider(notification):
     # TODO: no else - replace with if statement raising error / logging when not 'created'
     if notification.status == 'created':
         provider = provider_to_use(EMAIL_TYPE, notification.id)
+        gapixels.build_ga_pixel_url(notification, provider)
 
         # TODO: remove that code or extract attachment handling to separate method
         # Extract any file objects from the personalization
