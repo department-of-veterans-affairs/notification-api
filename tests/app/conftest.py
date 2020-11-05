@@ -55,7 +55,7 @@ from app.models import (
     LETTER_TYPE,
     NOTIFICATION_STATUS_TYPES_COMPLETED,
     SERVICE_PERMISSION_TYPES,
-    ServiceEmailReplyTo, User, EmailBranding
+    ServiceEmailReplyTo, User
 )
 from tests import create_authorization_header
 from tests.app.db import (
@@ -1419,6 +1419,7 @@ def mock_email_client(mocker):
     mocker.patch.object(mocked_client, 'send_email', return_value='message id')
     mocker.patch.object(mocked_client, 'get_name', return_value='Fake Email Client')
     mocker.patch('app.delivery.send_to_providers.provider_to_use', return_value=mocked_client)
+    mocker.patch('app.googleanalytics.pixels.build_ga_pixel_url', return_value='url')
     return mocked_client
 
 

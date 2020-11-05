@@ -8,7 +8,6 @@ from flask import current_app
 from notifications_utils.recipients import validate_and_format_phone_number
 from requests import HTTPError
 
-from app.googleanalytics.pixels import build_ga_pixel_url
 import app
 from app import aws_sns_client, mmg_client
 from app.dao import (provider_details_dao, notifications_dao)
@@ -26,7 +25,7 @@ from app.models import (
     BRANDING_BOTH,
     BRANDING_ORG_BANNER
 )
-from tests.app.conftest import sample_notification_model_with_organization
+
 from tests.app.db import (
     create_service,
     create_template,
@@ -882,6 +881,7 @@ def test_notification_can_have_document_attachment_if_mlwr_sid_is_false(
 
 def test_notification_raises_a_retry_exception_if_mlwr_state_is_missing(sample_email_template, mocker):
     mocker.patch('app.aws_ses_client.send_email', return_value='reference')
+    mocker.patch('app.googleanalytics.pixels.build_ga_pixel_url', return_value='url')
     mocker.patch('app.delivery.send_to_providers.check_mlwr', return_value={})
     personalisation = {
         "file": {"document": {"mlwr_sid": "foo", "direct_file_url": "http://foo.bar", "url": "http://foo.bar"}}}
@@ -896,6 +896,7 @@ def test_notification_raises_a_retry_exception_if_mlwr_state_is_missing(sample_e
 
 def test_notification_raises_a_retry_exception_if_mlwr_state_is_not_complete(sample_email_template, mocker):
     mocker.patch('app.aws_ses_client.send_email', return_value='reference')
+    mocker.patch('app.googleanalytics.pixels.build_ga_pixel_url', return_value='url')
     mocker.patch(
         'app.delivery.send_to_providers.check_mlwr',
         return_value={"state": "foo"})
@@ -912,6 +913,7 @@ def test_notification_raises_a_retry_exception_if_mlwr_state_is_not_complete(sam
 
 def test_notification_raises_sets_notification_to_virus_found_if_mlwr_score_is_500(sample_email_template, mocker):
     send_mock = mocker.patch("app.aws_ses_client.send_email", return_value='reference')
+    mocker.patch('app.googleanalytics.pixels.build_ga_pixel_url', return_value='url')
     mocker.patch(
         'app.delivery.send_to_providers.check_mlwr',
         return_value={"state": "completed", "submission": {"max_score": 500}})
@@ -930,6 +932,7 @@ def test_notification_raises_sets_notification_to_virus_found_if_mlwr_score_is_5
 
 def test_notification_raises_sets_notification_to_virus_found_if_mlwr_score_above_500(sample_email_template, mocker):
     send_mock = mocker.patch("app.aws_ses_client.send_email", return_value='reference')
+    mocker.patch('app.googleanalytics.pixels.build_ga_pixel_url', return_value='url')
     mocker.patch(
         'app.delivery.send_to_providers.check_mlwr',
         return_value={"state": "completed", "submission": {"max_score": 501}})
@@ -951,6 +954,7 @@ def test_notification_raises_error_if_message_contains_sin_pii_that_passes_luhn(
         mocker,
         notify_api):
     send_mock = mocker.patch("app.aws_ses_client.send_email", return_value='reference')
+    mocker.patch('app.googleanalytics.pixels.build_ga_pixel_url', return_value='url')
 
     db_notification = create_notification(
         template=sample_email_template_with_html,

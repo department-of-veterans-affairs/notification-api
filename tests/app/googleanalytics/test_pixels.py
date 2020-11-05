@@ -1,9 +1,10 @@
-import urllib
-from urllib.parse import urlunsplit
-from flask import current_app
-import pytest
-from app import GovdeliveryClient
 import app.googleanalytics.pixels as gapixels
+
+import pytest
+import urllib
+
+from flask import current_app
+from app import GovdeliveryClient
 
 
 @pytest.fixture(scope='function')
@@ -40,19 +41,13 @@ def test_build_ga_pixel_url_contains_expected_parameters(
     assert all(parameter in img_src_url for parameter in all_expected_parameters)
 
 
-def test_build_ga_pixel_url_contains_expected_parameters(
-        sample_notification_model_with_organization,
-        govdelivery_client
-):
-    img_src_url = gapixels.build_ga_pixel_url(sample_notification_model_with_organization, govdelivery_client)
-    img_src_url.startswith( current_app.config['GOOGLE_ANALYTICS_URL'])
-    assert True
-
-
 def test_build_ga_pixel_url_is_escaped(sample_notification_model_with_organization, govdelivery_client):
+
     escaped_template_name = urllib.parse.quote(sample_notification_model_with_organization.template.name)
     escaped_service_name = urllib.parse.quote(sample_notification_model_with_organization.service.name)
-    escaped_organization_name = urllib.parse.quote(sample_notification_model_with_organization.service.organisation.name)
+    escaped_organization_name = urllib.parse.quote(
+        sample_notification_model_with_organization.service.organisation.name
+    )
     escaped_subject_name = urllib.parse.quote(sample_notification_model_with_organization.subject)
 
     img_src_url = gapixels.build_ga_pixel_url(sample_notification_model_with_organization, govdelivery_client)
