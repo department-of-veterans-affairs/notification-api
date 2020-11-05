@@ -1,11 +1,13 @@
+import re
+import urllib
 import uuid
-from collections import namedtuple
 from datetime import datetime
-from unittest.mock import ANY
+from urllib.parse import urlunsplit
 
+from flask import current_app
 import pytest
 
-from app import aws_sns_client, mmg_client, GovdeliveryClient
+from app import GovdeliveryClient
 
 from app.models import (
     Notification,
@@ -24,12 +26,11 @@ def create_template_model(
         content='Dear Sir/Madam, Hello. Yours Truly, The Government.',
         reply_to=None,
         hidden=False,
-        archived=False,
         folder=None,
-        postage=None,
         process_type='normal',
 ):
     data = {
+        'id': uuid.uuid4(),
         'name': template_name or '{} Template Name'.format(template_type),
         'template_type': template_type,
         'content': content,
@@ -49,7 +50,7 @@ def create_template_model(
 
 def create_service_model(
         user=None,
-        service_name="Sample service",
+        service_name="Test service",
         restricted=False,
         count_as_live=True,
         research_mode=False,
@@ -77,7 +78,7 @@ def create_service_model(
         go_live_at=go_live_at,
         crown=crown,
         smtp_user=smtp_user,
-        organisation=organisation if organisation else Organisation(id=uuid.uuid4(), name='sample organisation')
+        organisation=organisation if organisation else Organisation(id=uuid.uuid4(), name='sample organization')
     )
     service.active = active
     service.research_mode = research_mode
@@ -185,6 +186,64 @@ def govdelivery_client():
     return email_client
 
 
-def test_build_ga_pixel_url(mocker, sample_notification_model_with_organization, govdelivery_client):
+def test_build_ga_pixel_url_contains_expected_parameters(
+        sample_notification_model_with_organization,
+        govdelivery_client
+):
     img_src_url = gapixels.build_ga_pixel_url(sample_notification_model_with_organization, govdelivery_client)
+
     assert img_src_url is not None
+    all_expected_parameters = [
+        't=',
+        'tid=',
+        'cid=',
+        'aip=',
+        'ec=',
+        'ea=',
+        'el=',
+        'dp=',
+        'dt=',
+        'cn=',
+        'cs=',
+        'cm=',
+        'ci='
+    ]
+
+    assert all(parameter in img_src_url for parameter in all_expected_parameters)
+
+
+def test_build_ga_pixel_url_contains_expected_parameters(
+        sample_notification_model_with_organization,
+        govdelivery_client
+):
+    img_src_url = gapixels.build_ga_pixel_url(sample_notification_model_with_organization, govdelivery_client)
+    img_src_url.startswith( current_app.config['GOOGLE_ANALYTICS_URL'])
+    assert True
+
+
+def test_build_ga_pixel_url_is_escaped(sample_notification_model_with_organization, govdelivery_client):
+    escaped_template_name = urllib.parse.quote(sample_notification_model_with_organization.template.name)
+    escaped_service_name = urllib.parse.quote(sample_notification_model_with_organization.service.name)
+    escaped_organization_name = urllib.parse.quote(sample_notification_model_with_organization.service.organisation.name)
+    escaped_subject_name = urllib.parse.quote(sample_notification_model_with_organization.subject)
+
+    img_src_url = gapixels.build_ga_pixel_url(sample_notification_model_with_organization, govdelivery_client)
+
+    ga_tid = current_app.config['GOOGLE_ANALYTICS_TID']
+    assert 'v=1' in img_src_url
+    assert 't=event' in img_src_url
+    assert f"tid={ga_tid}" in img_src_url
+    assert f"cid={sample_notification_model_with_organization.id}" in img_src_url
+    assert 'aip=1' in img_src_url
+    assert 'ec=email' in img_src_url
+    assert 'ea=open' in img_src_url
+    assert f"el={escaped_template_name}" in img_src_url
+    assert \
+        f"%2F{escaped_organization_name}" \
+        f"%2F{escaped_service_name}" \
+        f"%2F{escaped_template_name}" in img_src_url
+    assert f"dt={escaped_subject_name}" in img_src_url
+    assert f"cn={escaped_template_name}" in img_src_url
+    assert f"cs={govdelivery_client.get_name()}" in img_src_url
+    assert f"cm=email" in img_src_url
+    assert f"ci={sample_notification_model_with_organization.template.id}" in img_src_url

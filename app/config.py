@@ -397,6 +397,10 @@ class Config(object):
     API_MESSAGE_LIMIT_ENABLED = False
     SWITCH_SLOW_SMS_PROVIDER_ENABLED = False
 
+    # Google Analytics
+    GOOGLE_ANALYTICS_URL = os.getenv('GOOGLE_ANALYTICS_TID', 'https://www.google-analytics.com/collect?')
+    GOOGLE_ANALYTICS_TID = os.getenv('GOOGLE_ANALYTICS_TID', 'UA-50123418-17')
+
 
 ######################
 # Config overrides ###
