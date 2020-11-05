@@ -3,7 +3,7 @@ import urllib.parse as url_parser
 from flask import current_app
 
 
-def build_ga_pixel_url(notification, provider, urlencode=None):
+def build_ga_pixel_url(notification, provider):
     url_params = {
         'v': '1',
         't': 'event',
