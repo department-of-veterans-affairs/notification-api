@@ -22,7 +22,7 @@ from app.dao.provider_details_dao import (
 )
 from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import NotificationTechnicalFailureException, MalwarePendingException
-from app.feature_flags import is_provider_enabled
+from app.feature_flags import is_provider_enabled, is_gapixel_enabled
 from app.models import (
     SMS_TYPE,
     KEY_TYPE_TEST,
@@ -90,7 +90,6 @@ def send_email_to_provider(notification):
     # TODO: no else - replace with if statement raising error / logging when not 'created'
     if notification.status == 'created':
         provider = provider_to_use(EMAIL_TYPE, notification.id)
-        gapixels.build_ga_pixel_url(notification, provider)
 
         # TODO: remove that code or extract attachment handling to separate method
         # Extract any file objects from the personalization
@@ -215,7 +214,9 @@ def get_logo_url(base_url, logo_file):
 
 
 def get_html_email_options(notification, provider):
-    options_dict = {'ga_pixel_url': gapixels.build_ga_pixel_url(notification, provider)}
+    options_dict = {}
+    if is_gapixel_enabled(current_app):
+        options_dict.update({'ga_pixel_url': gapixels.build_ga_pixel_url(notification, provider)})
 
     service = notification.service
     if service.email_branding is None:
