@@ -7,18 +7,11 @@ from flask import current_app
 from app import GovdeliveryClient
 
 
-@pytest.fixture(scope='function')
-def govdelivery_client():
-    email_client = GovdeliveryClient()
-    email_client.init_app(None, None, None)
-    return email_client
-
-
 def test_build_ga_pixel_url_contains_expected_parameters(
         sample_notification_model_with_organization,
-        govdelivery_client
+        delivery_client_with_name
 ):
-    img_src_url = gapixels.build_ga_pixel_url(sample_notification_model_with_organization, govdelivery_client)
+    img_src_url = gapixels.build_ga_pixel_url(sample_notification_model_with_organization, delivery_client_with_name)
 
     assert img_src_url is not None
 
@@ -41,7 +34,7 @@ def test_build_ga_pixel_url_contains_expected_parameters(
     assert all(parameter in img_src_url for parameter in all_expected_parameters)
 
 
-def test_build_ga_pixel_url_is_escaped(sample_notification_model_with_organization, govdelivery_client):
+def test_build_ga_pixel_url_is_escaped(sample_notification_model_with_organization, delivery_client_with_name):
 
     escaped_template_name = urllib.parse.quote_plus(sample_notification_model_with_organization.template.name)
     escaped_service_name = urllib.parse.quote_plus(sample_notification_model_with_organization.service.name)
@@ -50,7 +43,7 @@ def test_build_ga_pixel_url_is_escaped(sample_notification_model_with_organizati
     )
     escaped_subject_name = urllib.parse.quote_plus(sample_notification_model_with_organization.subject)
 
-    img_src_url = gapixels.build_ga_pixel_url(sample_notification_model_with_organization, govdelivery_client)
+    img_src_url = gapixels.build_ga_pixel_url(sample_notification_model_with_organization, delivery_client_with_name)
 
     ga_tid = current_app.config['GOOGLE_ANALYTICS_TID']
     assert 'v=1' in img_src_url
@@ -67,7 +60,7 @@ def test_build_ga_pixel_url_is_escaped(sample_notification_model_with_organizati
         f"%2F{escaped_template_name}" in img_src_url
     assert f"dt={escaped_subject_name}" in img_src_url
     assert f"cn={escaped_template_name}" in img_src_url
-    assert f"cs={govdelivery_client.get_name()}" in img_src_url
+    assert f"cs={delivery_client_with_name.get_name()}" in img_src_url
     assert f"cm=email" in img_src_url
     assert f"ci={sample_notification_model_with_organization.template.id}" in img_src_url
 
