@@ -70,3 +70,18 @@ def test_build_ga_pixel_url_is_escaped(sample_notification_model_with_organizati
     assert f"cs={govdelivery_client.get_name()}" in img_src_url
     assert f"cm=email" in img_src_url
     assert f"ci={sample_notification_model_with_organization.template.id}" in img_src_url
+
+
+def test_build_ga_pixel_url_provider_name_contains_space(
+        sample_notification_model_with_organization,
+        delivery_client_with_space_in_name
+):
+
+    escaped_provider_name = urllib.parse.quote_plus(delivery_client_with_space_in_name.get_name())
+
+    img_src_url = gapixels.build_ga_pixel_url(
+        sample_notification_model_with_organization,
+        delivery_client_with_space_in_name
+    )
+
+    assert f"cs={escaped_provider_name}" in img_src_url
