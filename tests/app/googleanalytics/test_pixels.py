@@ -1,10 +1,6 @@
 import app.googleanalytics.pixels as gapixels
-
-import pytest
 import urllib
-
 from flask import current_app
-from app import GovdeliveryClient
 
 
 def test_build_ga_pixel_url_contains_expected_parameters(
