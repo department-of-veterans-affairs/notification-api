@@ -450,10 +450,13 @@ def test_send_email_should_use_service_reply_to_email(
     )
 
 
-def test_get_html_email_renderer_should_return_for_normal_service(sample_notification_model_with_organization):
+def test_get_html_email_renderer_should_return_for_normal_service(
+        sample_notification_model_with_organization,
+        test_email_client
+):
     options = send_to_providers.get_html_email_options(
         sample_notification_model_with_organization,
-        app.govdelivery_client)
+        test_email_client)
     assert options['default_banner'] is True
     assert 'brand_colour' not in options.keys()
     assert 'brand_logo' not in options.keys()
@@ -470,7 +473,9 @@ def test_get_html_email_renderer_should_return_for_normal_service(sample_notific
 def test_get_html_email_renderer_with_branding_details(
         branding_type,
         default_banner,
-        sample_notification_model_with_organization):
+        sample_notification_model_with_organization,
+        test_email_client
+):
 
     email_branding = EmailBranding(
         brand_type=branding_type,
@@ -483,7 +488,7 @@ def test_get_html_email_renderer_with_branding_details(
 
     options = send_to_providers.get_html_email_options(
         sample_notification_model_with_organization,
-        app.govdelivery_client
+        test_email_client
     )
 
     assert options['default_banner'] == default_banner
@@ -498,19 +503,20 @@ def test_get_html_email_renderer_with_branding_details(
 
 
 def test_get_html_email_renderer_with_branding_details_and_render_default_banner_only(
-        sample_notification_model_with_organization
+        sample_notification_model_with_organization,
+        test_email_client
 ):
     sample_notification_model_with_organization.service.email_branding = None
 
     options = send_to_providers.get_html_email_options(
         sample_notification_model_with_organization,
-        app.govdelivery_client
+        test_email_client
     )
 
     assert {'default_banner': True, 'brand_banner': False}.items() <= options.items()
 
 
-def test_get_html_email_renderer_prepends_logo_path(notify_api):
+def test_get_html_email_renderer_prepends_logo_path(notify_api, test_email_client):
     Organisation = namedtuple('Organisation', ['name'])
     Service = namedtuple('Service', ['email_branding', 'name', 'organisation'])
     EmailBranding = namedtuple('EmailBranding', ['brand_type', 'colour', 'name', 'logo', 'text'])
@@ -543,12 +549,12 @@ def test_get_html_email_renderer_prepends_logo_path(notify_api):
         template=template
     )
 
-    renderer = send_to_providers.get_html_email_options(notification, app.govdelivery_client)
+    renderer = send_to_providers.get_html_email_options(notification, test_email_client)
     domain = "https://dev-notifications-va-gov-assets.s3.amazonaws.com"
     assert renderer['brand_logo'] == "{}{}".format(domain, '/justice-league.png')
 
 
-def test_get_html_email_renderer_handles_email_branding_without_logo(notify_api):
+def test_get_html_email_renderer_handles_email_branding_without_logo(notify_api, test_email_client):
     Organisation = namedtuple('Organisation', ['name'])
     Service = namedtuple('Service', ['email_branding', 'name', 'organisation'])
     EmailBranding = namedtuple('EmailBranding', ['brand_type', 'colour', 'name', 'logo', 'text'])
@@ -581,7 +587,7 @@ def test_get_html_email_renderer_handles_email_branding_without_logo(notify_api)
         template=template
     )
 
-    renderer = send_to_providers.get_html_email_options(notification, app.govdelivery_client)
+    renderer = send_to_providers.get_html_email_options(notification, test_email_client)
 
     assert renderer['default_banner'] is False
     assert renderer['brand_banner'] is True

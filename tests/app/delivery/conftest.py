@@ -9,14 +9,12 @@ class TestEmailClient:
     def get_name(self):
         return self.name
 
-
-@pytest.fixture(scope='function')
-def delivery_client_with_space_in_name():
-    email_client = TestEmailClient('name with space')
-    return email_client
+    def send_email(self, *args, **kwargs):
+        # do nothing as it is for testing
+        pass
 
 
 @pytest.fixture(scope='function')
-def delivery_client_with_name():
+def test_email_client():
     email_client = TestEmailClient('testdeliveryclient')
     return email_client
