@@ -43,12 +43,12 @@ def test_build_ga_pixel_url_contains_expected_parameters(
 
 def test_build_ga_pixel_url_is_escaped(sample_notification_model_with_organization, govdelivery_client):
 
-    escaped_template_name = urllib.parse.quote(sample_notification_model_with_organization.template.name)
-    escaped_service_name = urllib.parse.quote(sample_notification_model_with_organization.service.name)
-    escaped_organization_name = urllib.parse.quote(
+    escaped_template_name = urllib.parse.quote_plus(sample_notification_model_with_organization.template.name)
+    escaped_service_name = urllib.parse.quote_plus(sample_notification_model_with_organization.service.name)
+    escaped_organization_name = urllib.parse.quote_plus(
         sample_notification_model_with_organization.service.organisation.name
     )
-    escaped_subject_name = urllib.parse.quote(sample_notification_model_with_organization.subject)
+    escaped_subject_name = urllib.parse.quote_plus(sample_notification_model_with_organization.subject)
 
     img_src_url = gapixels.build_ga_pixel_url(sample_notification_model_with_organization, govdelivery_client)
 
