@@ -216,7 +216,7 @@ def get_logo_url(base_url, logo_file):
 def get_html_email_options(notification, provider):
     options_dict = {}
     if is_gapixel_enabled(current_app):
-        options_dict.update({'ga_pixel_url': gapixels.build_ga_pixel_url(notification, provider)})
+        options_dict['ga_pixel_url'] = gapixels.build_ga_pixel_url(notification, provider)
 
     service = notification.service
     if service.email_branding is None:
