@@ -29,6 +29,6 @@ def build_ga_pixel_url(notification, provider):
     url = f"{url_str}?{url_params}"
 
     current_app.logger.info(
-        f"generated google analytics pixel URL is {url}"
+        f"Generated google analytics pixel URL: {url}"
     )
     return url
