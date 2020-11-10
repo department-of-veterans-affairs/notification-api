@@ -30,7 +30,7 @@ def test_accept_recipient_identifiers_flag(mocker, enabled_string, enabled_boole
     'True',
     'False'
 ])
-def test_accept_recipient_identifiers_flag(mocker, gapixel_enabled):
+def test_accept_gapixel_enabled_flag(mocker, gapixel_enabled):
     current_app = mocker.Mock(config={
         'GOOGLE_ANALYTICS_ENABLED': gapixel_enabled
     })
