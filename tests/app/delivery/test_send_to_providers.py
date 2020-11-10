@@ -1,5 +1,4 @@
 import uuid
-from collections import namedtuple
 from datetime import datetime
 from unittest.mock import ANY
 
@@ -523,13 +522,11 @@ def test_get_html_email_renderer_with_branding_details_and_render_default_banner
     assert {'default_banner': True, 'brand_banner': False}.items() <= options.items()
 
 
-def test_get_html_email_renderer_prepends_logo_path(notify_api, mock_email_client):
-    Organisation = namedtuple('Organisation', ['name'])
-    Service = namedtuple('Service', ['email_branding', 'name', 'organisation'])
-    EmailBranding = namedtuple('EmailBranding', ['brand_type', 'colour', 'name', 'logo', 'text'])
-    Template = namedtuple('Template', ['id', 'name'])
-    Notification = namedtuple('Notification', ['id', 'subject', 'service', 'template'])
-
+def test_get_html_email_renderer_prepends_logo_path(
+        notify_api,
+        sample_notification_model_with_organization,
+        mock_email_client
+):
     email_branding = EmailBranding(
         brand_type=BRANDING_ORG,
         colour='#000000',
@@ -537,37 +534,18 @@ def test_get_html_email_renderer_prepends_logo_path(notify_api, mock_email_clien
         name='Justice League',
         text='League of Justice',
     )
-    organisation = Organisation(
-        name='some org name'
-    )
-    service = Service(
-        email_branding=email_branding,
-        name='some service name',
-        organisation=organisation
-    )
-    template = Template(
-        id='tempid',
-        name='some template name'
-    )
-    notification = Notification(
-        id='notid',
-        subject='email subject',
-        service=service,
-        template=template
-    )
+    sample_notification_model_with_organization.service.email_branding = email_branding
 
-    renderer = send_to_providers.get_html_email_options(notification, mock_email_client)
+    renderer = send_to_providers.get_html_email_options(sample_notification_model_with_organization, mock_email_client)
     domain = "https://dev-notifications-va-gov-assets.s3.amazonaws.com"
     assert renderer['brand_logo'] == "{}{}".format(domain, '/justice-league.png')
 
 
-def test_get_html_email_renderer_handles_email_branding_without_logo(notify_api, mock_email_client):
-    Organisation = namedtuple('Organisation', ['name'])
-    Service = namedtuple('Service', ['email_branding', 'name', 'organisation'])
-    EmailBranding = namedtuple('EmailBranding', ['brand_type', 'colour', 'name', 'logo', 'text'])
-    Template = namedtuple('Template', ['id', 'name'])
-    Notification = namedtuple('Notification', ['id', 'subject', 'service', 'template'])
-
+def test_get_html_email_renderer_handles_email_branding_without_logo(
+        notify_api,
+        sample_notification_model_with_organization,
+        mock_email_client
+):
     email_branding = EmailBranding(
         brand_type=BRANDING_ORG_BANNER,
         colour='#000000',
@@ -575,26 +553,10 @@ def test_get_html_email_renderer_handles_email_branding_without_logo(notify_api,
         name='Justice League',
         text='League of Justice',
     )
-    organisation = Organisation(
-        name='some org name'
-    )
-    service = Service(
-        email_branding=email_branding,
-        name='some service name',
-        organisation=organisation
-    )
-    template = Template(
-        id='tempid',
-        name='some template name'
-    )
-    notification = Notification(
-        id='notid',
-        subject='email subject',
-        service=service,
-        template=template
-    )
 
-    renderer = send_to_providers.get_html_email_options(notification, mock_email_client)
+    sample_notification_model_with_organization.service.email_branding = email_branding
+
+    renderer = send_to_providers.get_html_email_options(sample_notification_model_with_organization, mock_email_client)
 
     assert renderer['default_banner'] is False
     assert renderer['brand_banner'] is True
