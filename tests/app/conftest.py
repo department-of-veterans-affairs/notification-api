@@ -1419,8 +1419,13 @@ def mock_email_client(mocker):
     mocker.patch.object(mocked_client, 'send_email', return_value='message id')
     mocker.patch.object(mocked_client, 'get_name', return_value='Fake Email Client')
     mocker.patch('app.delivery.send_to_providers.provider_to_use', return_value=mocked_client)
-    mocker.patch('app.googleanalytics.pixels.build_ga_pixel_url', return_value='url')
     return mocked_client
+
+
+@pytest.fixture(scope='function')
+def mocked_build_ga_pixel_url(mocker):
+    mocked_builder = mocker.patch('app.googleanalytics.pixels.build_ga_pixel_url', return_value='url')
+    return mocked_builder
 
 
 @pytest.fixture(scope='function')
