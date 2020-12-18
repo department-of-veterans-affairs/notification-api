@@ -1,5 +1,6 @@
 import boto3
 import botocore
+from flask import current_app
 from time import monotonic
 from app.clients.sms import SmsClient, SmsClientResponseException
 
@@ -22,19 +23,18 @@ class AwsPinpointClient(SmsClient):
         self.origination_number = origination_number
         self.statsd_client = statsd_client
 
-    @property
-    def name(self):
+    def get_name(self):
         return self._name
 
-    def send_sms(self, to: str, content, reference, multi=True, sender=None):
-        to_number = str(to)
+    def send_sms(self, to: str, content, reference, multi=True, sender=None) -> str:
+        recipient_number = str(to)
 
         try:
             start_time = monotonic()
 
             message_request_payload = {
                 "Addresses": {
-                    to_number: {
+                    recipient_number: {
                         "ChannelType": "SMS"
                     }
                 },
@@ -48,7 +48,7 @@ class AwsPinpointClient(SmsClient):
             }
 
             response = self._client.send_messages(
-                ApplicationId="",
+                ApplicationId=self.get_application_id(),  # TODO: error handling?
                 MessageRequest=message_request_payload
             )
 
@@ -60,4 +60,12 @@ class AwsPinpointClient(SmsClient):
             self.logger.info(f"AWS Pinpoint SMS request finished in {elapsed_time}")
             self.statsd_client.timing("clients.sms.request-time", elapsed_time)
             self.statsd_client.incr("clients.sms.success")
-            return response['MessageResponse']['Result'][to_number]['MessageId']
+            return response['MessageResponse']['Result'][recipient_number]['MessageId']
+
+    def get_application_id(self) -> str:
+        response = self._client.get_apps()
+        all_apps = response['ApplicationsResponse']['Item']
+
+        for app in all_apps:
+            if app['Name'] == current_app.config['AWS_PINPOINT_APP_NAME']:
+                return app['Id']
