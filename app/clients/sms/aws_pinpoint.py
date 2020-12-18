@@ -8,38 +8,48 @@ class AwsPinpointException(SmsClientResponseException):
     pass
 
 
-class AwsPinpoint(SmsClient):
+class AwsPinpointClient(SmsClient):
     """
-    AwsSns sms client
+    AwsSns pinpoint client
     """
-    def init_app(self, aws_region, statsd_client, logger, *args, **kwargs):
+    def __init__(self):
+        self._name = 'pinpoint'
+
+    def init_app(self, aws_region, origination_number, statsd_client, logger, *args, **kwargs):
         self._client = boto3.client('pinpoint', region_name=aws_region)
-        super(SmsClient, self).__init__(*args, **kwargs)
-        self.logger = logger
-        self.name = 'pinpoint'
+        self.aws_region = aws_region
+        self.logger = logger,
+        self.origination_number = origination_number
         self.statsd_client = statsd_client
 
-    def get_name(self):
-        return self.name
+    @property
+    def name(self):
+        return self._name
 
-    def send_sms(self, to, content, reference, multi=True, sender=None):
+    def send_sms(self, to: str, content, reference, multi=True, sender=None):
+        to_number = str(to)
+
         try:
             start_time = monotonic()
 
-            response = self._client.send_messages(
-                ApplicationId='',  # do this with get_apps()?
-                MessageRequest={
-                    "Addresses": {
-                        to: {"ChannelType": "SMS"}
-                    },
-                    "MessageConfiguration": {
-                        "SMSMessage": {
-                            "Body": content,
-                            "MessageType": "TRANSACTIONAL",
-                            "OriginationNumber": "+12515727927"  # get from config or param store
-                        }
+            message_request_payload = {
+                "Addresses": {
+                    to_number: {
+                        "ChannelType": "SMS"
+                    }
+                },
+                "MessageConfiguration": {
+                    "SMSMessage": {
+                        "Body": content,
+                        "MessageType": "TRANSACTIONAL",
+                        "OriginationNumber": self.origination_number
                     }
                 }
+            }
+
+            response = self._client.send_messages(
+                ApplicationId="",
+                MessageRequest=message_request_payload
             )
 
         except (botocore.exceptions.ClientError, Exception) as e:
@@ -50,4 +60,4 @@ class AwsPinpoint(SmsClient):
             self.logger.info(f"AWS Pinpoint SMS request finished in {elapsed_time}")
             self.statsd_client.timing("clients.sms.request-time", elapsed_time)
             self.statsd_client.incr("clients.sms.success")
-            return response['MessageId']  # figure out what this would be used for
+            return response['MessageResponse']['Result'][to_number]['MessageId']
