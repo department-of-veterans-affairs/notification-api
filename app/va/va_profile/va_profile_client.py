@@ -39,7 +39,7 @@ class VAProfileClient:
         try:
             most_recently_created_bio = self._get_most_recently_created_bio(response)
             self.statsd_client.incr("clients.va-profile.get-telephone.success")
-            return ''
+            return most_recently_created_bio
         except KeyError as e:
             self.statsd_client.incr("clients.va-profile.get-telephone.error")
             raise NoContactInfoException(f"No telephone in response for VA Profile ID {va_profile_id}") from e

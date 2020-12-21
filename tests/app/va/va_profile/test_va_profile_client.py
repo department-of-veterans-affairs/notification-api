@@ -95,7 +95,8 @@ def test_get_telephone_gets_from_correct_url(rmock, test_va_profile_client):
 
     assert rmock.called
 
-    expected_url = f"{MOCK_VA_PROFILE_URL}/contact-information-hub/cuf/contact-information/v1/{va_profile_id}/telephones"
+    expected_url =\
+        f"{MOCK_VA_PROFILE_URL}/contact-information-hub/cuf/contact-information/v1/{va_profile_id}/telephones"
     assert rmock.request_history[0].url == expected_url
 
 
