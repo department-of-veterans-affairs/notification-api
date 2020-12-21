@@ -1,9 +1,7 @@
 import boto3
 import botocore
-from flask import current_app
 from time import monotonic
 from app.clients.sms import SmsClient, SmsClientResponseException
-
 
 class AwsPinpointException(SmsClientResponseException):
     pass
@@ -14,43 +12,25 @@ class AwsPinpointClient(SmsClient):
     AwsSns pinpoint client
     """
     def __init__(self):
-        self._name = 'pinpoint'
+        self.name = 'pinpoint'
 
-    def init_app(self, aws_region, origination_number, statsd_client, logger, *args, **kwargs):
+    def init_app(self, aws_pinpoint_app_id, aws_region, logger, origination_number, statsd_client):
         self._client = boto3.client('pinpoint', region_name=aws_region)
+        self.aws_pinpoint_app_id = aws_pinpoint_app_id
         self.aws_region = aws_region
-        self.logger = logger,
         self.origination_number = origination_number
         self.statsd_client = statsd_client
+        self.logger = logger
 
     def get_name(self):
-        return self._name
+        return self.name
 
-    def send_sms(self, to: str, content, reference, multi=True, sender=None) -> str:
+    def send_sms(self, to: str, content, reference, multi=True, sender=None):
         recipient_number = str(to)
 
         try:
             start_time = monotonic()
-
-            message_request_payload = {
-                "Addresses": {
-                    recipient_number: {
-                        "ChannelType": "SMS"
-                    }
-                },
-                "MessageConfiguration": {
-                    "SMSMessage": {
-                        "Body": content,
-                        "MessageType": "TRANSACTIONAL",
-                        "OriginationNumber": self.origination_number
-                    }
-                }
-            }
-
-            response = self._client.send_messages(
-                ApplicationId=self.get_application_id(),  # TODO: error handling?
-                MessageRequest=message_request_payload
-            )
+            response = self._post_message_request(recipient_number, content)
 
         except (botocore.exceptions.ClientError, Exception) as e:
             self.statsd_client.incr("clients.sms.error")
@@ -62,10 +42,24 @@ class AwsPinpointClient(SmsClient):
             self.statsd_client.incr("clients.sms.success")
             return response['MessageResponse']['Result'][recipient_number]['MessageId']
 
-    def get_application_id(self) -> str:
-        response = self._client.get_apps()
-        all_apps = response['ApplicationsResponse']['Item']
 
-        for app in all_apps:
-            if app['Name'] == current_app.config['AWS_PINPOINT_APP_NAME']:
-                return app['Id']
+    def _post_message_request(self, recipient_number, content):
+        message_request_payload = {
+            "Addresses": {
+                recipient_number: {
+                    "ChannelType": "SMS"
+                }
+            },
+            "MessageConfiguration": {
+                "SMSMessage": {
+                    "Body": content,
+                    "MessageType": "TRANSACTIONAL",
+                    "OriginationNumber": self.origination_number
+                }
+            }
+        }
+
+        return self._client.send_messages(
+            ApplicationId=self.aws_pinpoint_app_id,
+            MessageRequest=message_request_payload
+        )
