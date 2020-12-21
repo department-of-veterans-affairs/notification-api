@@ -3,6 +3,7 @@ import botocore
 from time import monotonic
 from app.clients.sms import SmsClient, SmsClientResponseException
 
+
 class AwsPinpointException(SmsClientResponseException):
     pass
 
@@ -41,7 +42,6 @@ class AwsPinpointClient(SmsClient):
             self.statsd_client.timing("clients.sms.request-time", elapsed_time)
             self.statsd_client.incr("clients.sms.success")
             return response['MessageResponse']['Result'][recipient_number]['MessageId']
-
 
     def _post_message_request(self, recipient_number, content):
         message_request_payload = {

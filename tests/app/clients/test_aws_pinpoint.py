@@ -61,7 +61,6 @@ def test_draft(aws_pinpoint_client, rmock):
     test_reference = 'test notification id'
     test_message_id = 'message-id'
 
-
     response_from_post_message_request = {
         'MessageResponse': {
             'ApplicationId': test_id,
