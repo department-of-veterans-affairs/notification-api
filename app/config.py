@@ -439,7 +439,6 @@ class Development(Config):
 
     ANTIVIRUS_ENABLED = os.getenv('ANTIVIRUS_ENABLED') == '1'
 
-    AWS_PINPOINT_APP_NAME = 'project-dev-notification-api'
     AWS_PINPOINT_ORIGINATION_NUMBER = "+12515727927"
 
     for queue in QueueNames.all_queues():
@@ -492,24 +491,6 @@ class Test(Development):
 
     GOOGLE_ANALYTICS_ENABLED = True
 
-    AWS_PINPOINT_APP_NAME = 'project-test-notification-api'
-
-
-class Staging(Config):
-    SQLALCHEMY_POOL_SIZE = int(os.getenv('SQLALCHEMY_POOL_SIZE', 30))
-    # CSV_UPLOAD_BUCKET_NAME = 'live-notifications-csv-upload'
-    TEST_LETTERS_BUCKET_NAME = 'production-test-letters'
-    DVLA_RESPONSE_BUCKET_NAME = 'notifications.service.gov.uk-ftp'
-    LETTERS_PDF_BUCKET_NAME = 'production-letters-pdf'
-    LETTERS_SCAN_BUCKET_NAME = 'production-letters-scan'
-    INVALID_PDF_BUCKET_NAME = 'production-letters-invalid-pdf'
-    TRANSIENT_UPLOADED_LETTERS = 'production-transient-uploaded-letters'
-    FROM_NUMBER = 'VA.GOV'
-    PERFORMANCE_PLATFORM_ENABLED = False
-    CHECK_PROXY_HEADER = False
-    CRONITOR_ENABLED = False
-    AWS_PINPOINT_APP_NAME = 'project-staging-notification-api'
-
 
 class Production(Config):
     SQLALCHEMY_POOL_SIZE = int(os.getenv('SQLALCHEMY_POOL_SIZE', 30))
@@ -524,12 +505,11 @@ class Production(Config):
     PERFORMANCE_PLATFORM_ENABLED = False
     CHECK_PROXY_HEADER = False
     CRONITOR_ENABLED = False
-    AWS_PINPOINT_APP_NAME = 'project-prod-notification-api'
 
 
 configs = {
     'development': Development,
     'test': Test,
-    'staging': Staging,
+    'staging': Production,
     'production': Production
 }
