@@ -32,6 +32,9 @@ class VAProfileClient:
             self.statsd_client.incr("clients.va-profile.get-email.error")
             raise NoContactInfoException(f"No email in response for VA Profile ID {va_profile_id}") from e
 
+    def get_telephone(self, va_profile_id):
+        pass
+
     def _make_request(self, va_profile_id):
         start_time = monotonic()
         try:
