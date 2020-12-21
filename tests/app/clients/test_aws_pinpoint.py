@@ -1,7 +1,8 @@
 import pytest
 import requests_mock
+from requests_mock import ANY
 
-from app.clients.sms.aws_pinpoint import AwsPinpointClient
+from app.clients.sms.aws_pinpoint import AwsPinpointClient, AwsPinpointException
 
 
 @pytest.fixture(scope='function')
@@ -53,6 +54,23 @@ def test_send_sms_successful_returns_aws_pinpoint_response_messageid(aws_pinpoin
     assert response == test_message_id
 
 
+def test_send_sms_throws_bad_request_exception(aws_pinpoint_client, rmock):
+    test_recipient_number = "+1000"
+    test_content = "test content"
+    test_reference = 'test notification id'
+    exception_response = {
+        "RequestID": "id",
+        "Message": "Bad Syntax Request"
+    }
+    rmock.post(
+        ANY,
+        json=exception_response,
+        status_code=400
+    )
+    with pytest.raises(AwsPinpointException):
+        aws_pinpoint_client.send_sms(test_recipient_number, test_content, test_reference)
+
+
 @pytest.mark.skip
 def test_draft(aws_pinpoint_client, rmock):
     test_id = 'some_id'
@@ -75,12 +93,18 @@ def test_draft(aws_pinpoint_client, rmock):
             }
         }
     }
-
-    rmock.post(
+    rmock.request(
+        'POST',
         requests_mock.ANY,
         json=response_from_post_message_request,
         status_code=200
     )
+
+    # with requests_mock.mock() as mock123:
+    #     mock123.request('POST', ANY, json=response_from_post_message_request, status_code=200)
+    #
+    # response = aws_pinpoint_client.send_sms(test_recipient_number, test_content, test_reference)
+    # assert response == 'boo'
 
     response = aws_pinpoint_client.send_sms(test_recipient_number, test_content, test_reference)
 
