@@ -22,7 +22,7 @@ class VAProfileClient:
 
     def get_email(self, va_profile_id):
         self.logger.info(f"Querying VA Profile with ID {va_profile_id}")
-        response = self._make_request(va_profile_id)
+        response = self._make_request(va_profile_id, 'emails')
 
         try:
             most_recently_created_bio = self._get_most_recently_created_bio(response)
@@ -33,13 +33,22 @@ class VAProfileClient:
             raise NoContactInfoException(f"No email in response for VA Profile ID {va_profile_id}") from e
 
     def get_telephone(self, va_profile_id):
-        pass
+        self.logger.info(f"Querying VA Profile with ID {va_profile_id}")
+        response = self._make_request(va_profile_id, 'telephones')
 
-    def _make_request(self, va_profile_id):
+        try:
+            most_recently_created_bio = self._get_most_recently_created_bio(response)
+            self.statsd_client.incr("clients.va-profile.get-telephone.success")
+            return ''
+        except KeyError as e:
+            self.statsd_client.incr("clients.va-profile.get-telephone.error")
+            raise NoContactInfoException(f"No telephone in response for VA Profile ID {va_profile_id}") from e
+
+    def _make_request(self, va_profile_id, bio_type):
         start_time = monotonic()
         try:
             response = requests.get(
-                f"{self.va_profile_url}/contact-information-hub/cuf/contact-information/v1/{va_profile_id}/emails",
+                f"{self.va_profile_url}/contact-information-hub/cuf/contact-information/v1/{va_profile_id}/{bio_type}",
                 cert=(self.ssl_cert_path, self.ssl_key_path)
             )
             response.raise_for_status()
