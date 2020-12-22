@@ -54,7 +54,7 @@ def test_send_sms_successful_returns_aws_pinpoint_response_messageid(aws_pinpoin
     assert response == TEST_MESSAGE_ID
 
 
-def test_send_sms_with_service_sender_number(aws_pinpoint_client, boto_mock, mocker):
+def test_send_sms_with_service_sender_number(aws_pinpoint_client, boto_mock):
     test_sender = "+12222222222"
 
     boto_mock.send_messages.return_value = {
@@ -89,7 +89,7 @@ def test_send_sms_with_service_sender_number(aws_pinpoint_client, boto_mock, moc
         }
     }
 
-    assert boto_mock.send_messages.assert_called_with(ApplicationId=TEST_ID, MessageRequest=message_request_payload)
+    boto_mock.send_messages.assert_called_with(ApplicationId=TEST_ID, MessageRequest=message_request_payload)
 
 
 def test_send_sms_throws_aws_pinpoint_exception(aws_pinpoint_client, boto_mock):
