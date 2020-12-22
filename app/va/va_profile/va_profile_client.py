@@ -1,3 +1,5 @@
+from enum import Enum
+
 import requests
 import iso8601
 from time import monotonic
@@ -7,6 +9,19 @@ from app.va.va_profile import (
     VAProfileNonRetryableException,
     VAProfileRetryableException
 )
+
+
+class PhoneNumberType(Enum):
+
+    MOBILE = 'MOBILE'
+    HOME = 'HOME'
+    WORK = 'WORK'
+    FAX = 'FAX'
+    TEMPORARY = 'TEMPORARY'
+
+    @staticmethod
+    def values():
+        return list(x.value for x in PhoneNumberType)
 
 
 class VAProfileClient:
@@ -92,7 +107,11 @@ class VAProfileClient:
     @staticmethod
     def _get_mobile_number(response):
         sorted_bios = sorted(
-            list(filter(lambda bio: bio['phoneType'] == 'MOBILE', response.json()['bios'])),
+            list(filter(
+                lambda bio:
+                bio['phoneType'] == PhoneNumberType.MOBILE.value or bio['phoneType'] == PhoneNumberType.HOME.value,
+                response.json()['bios']
+            )),
             key=lambda bio: iso8601.parse_date(bio['createDate']),
             reverse=True
         )
