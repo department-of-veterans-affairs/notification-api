@@ -37,7 +37,7 @@ class VAProfileClient:
         response = self._make_request(va_profile_id, 'telephones')
 
         try:
-            most_recently_created_bio = self._get_most_recently_created_bio(response)
+            most_recently_created_bio = self._get_mobile_number(response)
             self.statsd_client.incr("clients.va-profile.get-telephone.success")
             return most_recently_created_bio
         except KeyError as e:
@@ -80,10 +80,26 @@ class VAProfileClient:
             elapsed_time = monotonic() - start_time
             self.statsd_client.timing("clients.va-profile.request-time", elapsed_time)
 
-    def _get_most_recently_created_bio(self, response):
+    @staticmethod
+    def _get_most_recently_created_bio(response):
         sorted_bios = sorted(
             response.json()['bios'],
             key=lambda bio: iso8601.parse_date(bio['createDate']),
             reverse=True
         )
         return sorted_bios[0]
+
+    @staticmethod
+    def _get_mobile_number(response):
+        # get bio with mobile
+        # build the number
+        #return the number
+        sorted_bios = sorted(
+            list(filter(lambda bio: bio['phoneType'] == 'MOBILE', response.json()['bios'])),
+            key=lambda bio: iso8601.parse_date(bio['createDate']),
+            reverse=True
+        )
+
+        phone_number = f"+{sorted_bios[0]['countryCode']}{sorted_bios[0]['areaCode']}{sorted_bios[0]['phoneNumber']}"
+
+        return phone_number
