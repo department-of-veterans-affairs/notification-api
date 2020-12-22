@@ -91,9 +91,6 @@ class VAProfileClient:
 
     @staticmethod
     def _get_mobile_number(response):
-        # get bio with mobile
-        # build the number
-        #return the number
         sorted_bios = sorted(
             list(filter(lambda bio: bio['phoneType'] == 'MOBILE', response.json()['bios'])),
             key=lambda bio: iso8601.parse_date(bio['createDate']),
