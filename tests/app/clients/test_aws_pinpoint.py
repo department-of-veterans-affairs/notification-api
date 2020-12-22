@@ -1,6 +1,5 @@
 import pytest
-import requests_mock
-from requests_mock import ANY
+import botocore
 
 from app.clients.sms.aws_pinpoint import AwsPinpointClient, AwsPinpointException
 
@@ -54,58 +53,25 @@ def test_send_sms_successful_returns_aws_pinpoint_response_messageid(aws_pinpoin
     assert response == test_message_id
 
 
-def test_send_sms_throws_bad_request_exception(aws_pinpoint_client, rmock):
+def test_send_sms_throws_bad_request_exception(aws_pinpoint_client, boto_mock):
     test_recipient_number = "+1000"
     test_content = "test content"
     test_reference = 'test notification id'
-    exception_response = {
-        "RequestID": "id",
-        "Message": "Bad Syntax Request"
-    }
-    rmock.post(
-        ANY,
-        json=exception_response,
-        status_code=400
-    )
-    with pytest.raises(AwsPinpointException):
-        aws_pinpoint_client.send_sms(test_recipient_number, test_content, test_reference)
 
-
-@pytest.mark.skip
-def test_draft(aws_pinpoint_client, rmock):
-    test_id = 'some_id'
-    test_recipient_number = "+100000000"
-    test_content = "test content"
-    test_reference = 'test notification id'
-    test_message_id = 'message-id'
-
-    response_from_post_message_request = {
-        'MessageResponse': {
-            'ApplicationId': test_id,
-            'RequestId': 'request-id',
-            'Result': {
-                test_recipient_number: {
-                    'DeliveryStatus': 'SUCCESSFUL',
-                    'MessageId': test_message_id,
-                    'StatusCode': 200,
-                    'StatusMessage': f"MessageId: {test_message_id}",
-                }
+    error_response = {
+        'Error': {
+            "Code": 400,
+            'Message': {
+                'RequestID': 'id',
+                'Message': "BadRequestException",
             }
         }
     }
-    rmock.request(
-        'POST',
-        requests_mock.ANY,
-        json=response_from_post_message_request,
-        status_code=200
-    )
 
-    # with requests_mock.mock() as mock123:
-    #     mock123.request('POST', ANY, json=response_from_post_message_request, status_code=200)
-    #
-    # response = aws_pinpoint_client.send_sms(test_recipient_number, test_content, test_reference)
-    # assert response == 'boo'
+    boto_mock.send_messages.side_effect = botocore.exceptions.ClientError(error_response, 'exception')
 
-    response = aws_pinpoint_client.send_sms(test_recipient_number, test_content, test_reference)
+    with pytest.raises(AwsPinpointException) as exception:
+        aws_pinpoint_client.send_sms(test_recipient_number, test_content, test_reference)
 
-    assert response == test_message_id
+    assert f"BadRequestException" in str(exception.value)
+    aws_pinpoint_client.statsd_client.incr.assert_called_with("clients.sms.error")
