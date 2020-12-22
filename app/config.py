@@ -145,6 +145,7 @@ class Config(object):
     AWS_SES_ACCESS_KEY = os.getenv('AWS_SES_ACCESS_KEY')
     AWS_SES_SECRET_KEY = os.getenv('AWS_SES_SECRET_KEY')
     AWS_PINPOINT_APP_ID = os.getenv('AWS_PINPOINT_APP_ID', 'df55c01206b742d2946ef226410af94f')
+    AWS_PINPOINT_ORIGINATION_NUMBER = os.getenv('AWS_PINPOINT_ORIGINATION_NUMBER', '+12515727927')
     CSV_UPLOAD_BUCKET_NAME = os.getenv('CSV_UPLOAD_BUCKET_NAME', 'notification-alpha-canada-ca-csv-upload')
     ASSET_UPLOAD_BUCKET_NAME = os.getenv('ASSET_UPLOAD_BUCKET_NAME', 'dev-notifications-va-gov-assets')
     ASSET_DOMAIN = os.getenv('ASSET_DOMAIN', 's3.amazonaws.com')
@@ -438,8 +439,6 @@ class Development(Config):
     REDIS_URL = 'redis://localhost:6379/0'
 
     ANTIVIRUS_ENABLED = os.getenv('ANTIVIRUS_ENABLED') == '1'
-
-    AWS_PINPOINT_ORIGINATION_NUMBER = "+12515727927"
 
     for queue in QueueNames.all_queues():
         Config.CELERY_SETTINGS['task_queues'].append(
