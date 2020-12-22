@@ -194,6 +194,32 @@ def test_get_telephone_gets_single_work_phone_number(rmock, test_va_profile_clie
         test_va_profile_client.get_telephone('1')
 
 
+def test_get_telephone_gets_no_phone_bio(rmock, test_va_profile_client):
+    response = {
+        "txAuditId": "0e0e53e0-b1f0-404f-a8e1-cc9ab7ef563e",
+        "status": "COMPLETED_SUCCESS",
+        "bios": [
+            {
+                "createDate": "2018-04-17T16:01:13Z",
+                "updateDate": "2019-05-09T15:52:33Z",
+                "txAuditId": "61fc5389-9ef5-4818-97c8-73f6ff3db396",
+                "sourceSystem": "VET360-TEST-PARTNER",
+                "sourceDate": "2019-05-09T15:36:34Z",
+                "originatingSourceSystem": "EBENEFITS  - CADD",
+                "sourceSystemUser": "VAEBENEFITS",
+                "effectiveStartDate": "2019-05-09T14:07:10Z",
+                "vet360Id": 203,
+                "emailId": 121,
+                "emailAddressText": "some@email.com"
+            }
+        ]
+    }
+    rmock.get(ANY, json=response, status_code=200)
+
+    with pytest.raises(NoContactInfoException):
+        test_va_profile_client.get_telephone('1')
+
+
 def test_get_telephone_gets_single_home_phone_number(rmock, test_va_profile_client):
     expected_phone_number = '+15551111111'
     response = {
