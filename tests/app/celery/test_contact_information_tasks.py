@@ -5,7 +5,7 @@ import pytest
 from app.celery.contact_information_tasks import lookup_contact_info
 from app.exceptions import NotificationTechnicalFailureException
 from app.models import Notification, RecipientIdentifier, NOTIFICATION_TECHNICAL_FAILURE, \
-    NOTIFICATION_PERMANENT_FAILURE, EMAIL_TYPE, SMS_TYPE
+    NOTIFICATION_PERMANENT_FAILURE, EMAIL_TYPE, SMS_TYPE, LETTER_TYPE
 from app.va import IdentifierType
 from app.va.va_profile import VAProfileClient, VAProfileNonRetryableException, \
     VAProfileRetryableException, NoContactInfoException
@@ -25,6 +25,7 @@ def notification():
 
     notification = Notification(id=notification_id)
     notification.recipient_identifiers.set(recipient_identifier)
+    notification.notification_type = LETTER_TYPE
 
     return notification
 
@@ -82,6 +83,7 @@ def test_should_get_phone_number_and_update_notification(client, mocker, notific
 
 
 def test_should_not_retry_on_non_retryable_exception(client, mocker, notification):
+    notification.notification_type = EMAIL_TYPE
     mocker.patch(
         'app.celery.contact_information_tasks.get_notification_by_id',
         return_value=notification
@@ -111,6 +113,7 @@ def test_should_not_retry_on_non_retryable_exception(client, mocker, notificatio
 
 
 def test_should_retry_on_retryable_exception(client, mocker, notification):
+    notification.notification_type = EMAIL_TYPE
     mocker.patch(
         'app.celery.contact_information_tasks.get_notification_by_id',
         return_value=notification
@@ -133,6 +136,7 @@ def test_should_retry_on_retryable_exception(client, mocker, notification):
 
 
 def test_should_update_notification_to_technical_failure_on_max_retries(client, mocker, notification):
+    notification.notification_type = EMAIL_TYPE
     mocker.patch(
         'app.celery.contact_information_tasks.get_notification_by_id',
         return_value=notification
@@ -163,6 +167,7 @@ def test_should_update_notification_to_technical_failure_on_max_retries(client, 
 
 
 def test_should_update_notification_to_permanent_failure_on_no_contact_info_exception(client, mocker, notification):
+    notification.notification_type = EMAIL_TYPE
     mocker.patch(
         'app.celery.contact_information_tasks.get_notification_by_id',
         return_value=notification

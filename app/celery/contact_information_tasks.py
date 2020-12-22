@@ -20,12 +20,15 @@ def lookup_contact_info(self, notification_id):
     va_profile_id = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value
 
     try:
+        to = None
         if EMAIL_TYPE == notification.notification_type:
             to = va_profile_client.get_email(va_profile_id)
         elif SMS_TYPE == notification.notification_type:
             to = va_profile_client.get_telephone(va_profile_id)
         else:
-            raise NotImplementedError(f"{notification.notification_type} is not supported")
+            raise NotImplementedError(
+                f"The task lookup_contact_info failed for notification {notification_id}. "
+                f"{notification.notification_type} is not supported")
 
     except VAProfileRetryableException as e:
         current_app.logger.exception(e)
