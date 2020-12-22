@@ -14,7 +14,7 @@ def aws_pinpoint_client(notify_api, mocker):
             aws_pinpoint_app_id='some-app-id',
             aws_region='some-aws-region',
             logger=logger,
-            origination_number='some_number',
+            origination_number='+10000000000',
             statsd_client=statsd_client
         )
         return aws_pinpoint_client
@@ -53,7 +53,50 @@ def test_send_sms_successful_returns_aws_pinpoint_response_messageid(aws_pinpoin
     assert response == test_message_id
 
 
-def test_send_sms_throws_bad_request_exception(aws_pinpoint_client, boto_mock):
+def test_send_sms_with_service_sender_number(aws_pinpoint_client, boto_mock, mocker):
+    test_id = aws_pinpoint_client.aws_pinpoint_app_id
+    test_recipient_number = "+100000000"
+    test_content = "test content"
+    test_reference = 'test notification id'
+    test_message_id = 'message-id'
+    test_sender = "+12222222222"
+
+    boto_mock.send_messages.return_value = {
+        'MessageResponse': {
+            'ApplicationId': test_id,
+            'RequestId': 'request-id',
+            'Result': {
+                test_recipient_number: {
+                    'DeliveryStatus': 'SUCCESSFUL',
+                    'MessageId': test_message_id,
+                    'StatusCode': 200,
+                    'StatusMessage': f"MessageId: {test_message_id}",
+                }
+            }
+        }
+    }
+
+    aws_pinpoint_client.send_sms(test_recipient_number, test_content, test_reference, sender=test_sender)
+
+    message_request_payload = {
+        "Addresses": {
+            test_recipient_number: {
+                "ChannelType": "SMS"
+            }
+        },
+        "MessageConfiguration": {
+            "SMSMessage": {
+                "Body": test_content,
+                "MessageType": "TRANSACTIONAL",
+                "OriginationNumber": test_sender
+            }
+        }
+    }
+
+    assert boto_mock.send_messages.assert_called_with(ApplicationId=test_id, MessageRequest=message_request_payload)
+
+
+def test_send_sms_throws_aws_pinpoint_exception(aws_pinpoint_client, boto_mock):
     test_recipient_number = "+1000"
     test_content = "test content"
     test_reference = 'test notification id'

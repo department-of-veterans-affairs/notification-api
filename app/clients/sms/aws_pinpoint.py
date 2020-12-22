@@ -27,11 +27,12 @@ class AwsPinpointClient(SmsClient):
         return self.name
 
     def send_sms(self, to: str, content, reference, multi=True, sender=None):
+        sender_id = self.origination_number if sender is None else sender
         recipient_number = str(to)
 
         try:
             start_time = monotonic()
-            response = self._post_message_request(recipient_number, content)
+            response = self._post_message_request(recipient_number, content, sender_id)
 
         except (botocore.exceptions.ClientError, Exception) as e:
             self.statsd_client.incr("clients.sms.error")
@@ -43,7 +44,7 @@ class AwsPinpointClient(SmsClient):
             self.statsd_client.incr("clients.sms.success")
             return response['MessageResponse']['Result'][recipient_number]['MessageId']
 
-    def _post_message_request(self, recipient_number, content):
+    def _post_message_request(self, recipient_number, content, sender):
         message_request_payload = {
             "Addresses": {
                 recipient_number: {
@@ -54,7 +55,7 @@ class AwsPinpointClient(SmsClient):
                 "SMSMessage": {
                     "Body": content,
                     "MessageType": "TRANSACTIONAL",
-                    "OriginationNumber": self.origination_number
+                    "OriginationNumber": sender
                 }
             }
         }
