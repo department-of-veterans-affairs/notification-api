@@ -20,8 +20,12 @@ class PhoneNumberType(Enum):
     TEMPORARY = 'TEMPORARY'
 
     @staticmethod
-    def values():
-        return list(x.value for x in PhoneNumberType)
+    def valid_type_values():
+        return [PhoneNumberType.MOBILE.value, PhoneNumberType.HOME.value]
+
+    @staticmethod
+    def invalid_type_values():
+        return [PhoneNumberType.WORK.value, PhoneNumberType.FAX.value, PhoneNumberType.TEMPORARY.value]
 
 
 class VAProfileClient:
@@ -52,9 +56,14 @@ class VAProfileClient:
         response = self._make_request(va_profile_id, 'telephones')
 
         try:
-            most_recently_created_bio = self._get_mobile_number(response)
+            phone_number = self._get_mobile_number(response)
+            if phone_number is None:
+                self.statsd_client.incr("clients.va-profile.get-telephone.no-phone-number")
+                raise NoContactInfoException(
+                    f"No {PhoneNumberType.valid_type_values()} in response for VA Profile ID {va_profile_id}")
+
             self.statsd_client.incr("clients.va-profile.get-telephone.success")
-            return most_recently_created_bio
+            return phone_number
         except KeyError as e:
             self.statsd_client.incr("clients.va-profile.get-telephone.error")
             raise NoContactInfoException(f"No telephone in response for VA Profile ID {va_profile_id}") from e
@@ -106,16 +115,19 @@ class VAProfileClient:
 
     @staticmethod
     def _get_mobile_number(response):
+        phone_number = None
         sorted_bios = sorted(
             list(filter(
                 lambda bio:
-                bio['phoneType'] == PhoneNumberType.MOBILE.value or bio['phoneType'] == PhoneNumberType.HOME.value,
+                bio['phoneType'] in PhoneNumberType.valid_type_values(),
                 response.json()['bios']
             )),
             key=lambda bio: iso8601.parse_date(bio['createDate']),
             reverse=True
         )
 
-        phone_number = f"+{sorted_bios[0]['countryCode']}{sorted_bios[0]['areaCode']}{sorted_bios[0]['phoneNumber']}"
+        if len(sorted_bios) > 0:
+            phone_number =\
+                f"+{sorted_bios[0]['countryCode']}{sorted_bios[0]['areaCode']}{sorted_bios[0]['phoneNumber']}"
 
         return phone_number
