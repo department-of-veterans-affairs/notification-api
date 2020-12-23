@@ -4,8 +4,8 @@ import pytest
 
 from app.celery.contact_information_tasks import lookup_contact_info
 from app.exceptions import NotificationTechnicalFailureException
-from app.models import Notification, RecipientIdentifier, NOTIFICATION_TECHNICAL_FAILURE, \
-    NOTIFICATION_PERMANENT_FAILURE, EMAIL_TYPE, SMS_TYPE, LETTER_TYPE
+from app.models import Notification, RecipientIdentifier, Service, NOTIFICATION_TECHNICAL_FAILURE, \
+    NOTIFICATION_PERMANENT_FAILURE
 from app.va import IdentifierType
 from app.va.va_profile import VAProfileClient, VAProfileNonRetryableException, \
     VAProfileRetryableException, NoContactInfoException

@@ -1,15 +1,13 @@
 import pytest
 from copy import deepcopy
-from app.va import IdentifierType
-from app.models import RecipientIdentifier
 from requests_mock import ANY
 from requests.utils import quote
 
+from app.va.identifier import IdentifierType
 from app.va.mpi import (
     MpiClient,
     MpiNonRetryableException,
     MpiRetryableException,
-    UnsupportedIdentifierException,
     IdentifierNotFound,
     IncorrectNumberOfIdentifiersException,
     MultipleActiveVaProfileIdsException,
@@ -110,6 +108,14 @@ def response_with_deceased_beneficiary():
 
 
 @pytest.fixture
+def notification_with_recipient_identifier(sample_notification_model_with_organization):
+    notification = sample_notification_model_with_organization
+    recipient_identifier = sample_recipient_identifier()
+    notification.recipient_identifiers.set(recipient_identifier)
+    return notification
+
+
+@pytest.fixture
 def mpi_client(mocker):
     mock_logger = mocker.Mock()
     url = 'https://foo.bar'
@@ -126,56 +132,6 @@ def mpi_client(mocker):
         mock_statsd_client
     )
     return mpi_client
-
-
-class TestTransformToFhirFormat:
-    @pytest.mark.parametrize("id_type, id_value, expected_fhir_format", [
-        (IdentifierType.ICN, "1008533405V377263", "1008533405V377263^NI^200M^USVHA"),
-        (IdentifierType.PID, "123456", "123456^PI^200CORP^USVBA"),
-        (IdentifierType.VA_PROFILE_ID, "301", "301^PI^200VETS^USDVA"),
-        (IdentifierType.BIRLSID, "789123", "789123^PI^200BRLS^USVBA")
-    ])
-    def test_should_transform_recipient_identifier_to_mpi_acceptable_format(
-            self,
-            mpi_client,
-            id_type,
-            id_value,
-            expected_fhir_format
-    ):
-        recipient_identifier = RecipientIdentifier(
-            notification_id="123456",
-            id_type=id_type.value,
-            id_value=id_value
-        )
-        actual_fhir_format, actual_id_type, actual_id_value = mpi_client.transform_to_fhir_format(recipient_identifier)
-
-        assert actual_fhir_format == expected_fhir_format
-        assert actual_id_type == id_type
-        assert actual_id_value == id_value
-
-    def test_should_throw_error_when_invalid_type(self, mpi_client):
-        recipient_identifier = RecipientIdentifier(
-            notification_id="123456",
-            id_type="unknown_type",
-            id_value="123"
-        )
-        with pytest.raises(UnsupportedIdentifierException) as e:
-            mpi_client.transform_to_fhir_format(recipient_identifier)
-        assert "No identifier of type" in str(e.value)
-
-    def test_should_throw_error_when_no_mapping_for_type(self, mpi_client, mocker):
-        mock_identifier = mocker.Mock(IdentifierType)
-        mock_identifier.name = "MOCKED_IDENTIFIER"
-        mock_identifier.value = "mocked_value"
-        mocker.patch("app.va.mpi.mpi.IdentifierType", return_value=mock_identifier)
-        recipient_identifier = RecipientIdentifier(
-            notification_id="123456",
-            id_type=mock_identifier.name,
-            id_value=mock_identifier.value
-        )
-        with pytest.raises(UnsupportedIdentifierException) as e:
-            mpi_client.transform_to_fhir_format(recipient_identifier)
-        assert "No mapping for identifier" in str(e.value)
 
 
 class TestGetVaProfileId:
@@ -196,130 +152,100 @@ class TestGetVaProfileId:
             mpi_client.get_va_profile_id(notification)
         assert "Unexpected number of recipient_identifiers" in str(e.value)
 
-    def test_should_make_request_to_mpi_and_return_va_profile_id(
-            self, mpi_client, rmock, sample_notification_model_with_organization
+    def test_should_make_request_to_mpi_using_non_transformed_identifier_and_return_va_profile_id(
+            self, mpi_client, rmock, mocker, sample_notification_model_with_organization
     ):
         notification = sample_notification_model_with_organization
         recipient_identifier = sample_recipient_identifier()
         notification.recipient_identifiers.set(recipient_identifier)
 
-        rmock.request(
-            "GET",
-            ANY,
-            json=response_with_one_active_va_profile_id(),
-            status_code=200
-        )
+        rmock.get(ANY, json=response_with_one_active_va_profile_id(), status_code=200)
 
-        fhir_identifier, _, _ = mpi_client.transform_to_fhir_format(recipient_identifier)
+        mocked_is_fhir_format = mocker.patch('app.va.mpi.mpi.is_fhir_format', return_value=True)
 
         expected_url = (f"{mpi_client.base_url}/psim_webservice/fhir/Patient/"
-                        f"{quote(fhir_identifier)}"
+                        f"{quote(recipient_identifier.id_value)}"
                         f"?-sender={MpiClient.SYSTEM_IDENTIFIER}")
 
         actual_va_profile_id = mpi_client.get_va_profile_id(notification)
 
+        mocked_is_fhir_format.assert_called_with(recipient_identifier.id_value)
+        assert rmock.called
+        assert rmock.request_history[0].url == expected_url
+        assert actual_va_profile_id == EXPECTED_VA_PROFILE_ID
+
+    def test_should_make_request_to_mpi_using_transformed_identifier_and_return_va_profile_id(
+            self, mpi_client, rmock, mocker, sample_notification_model_with_organization
+    ):
+        notification = sample_notification_model_with_organization
+        recipient_identifier = sample_recipient_identifier()
+        notification.recipient_identifiers.set(recipient_identifier)
+
+        rmock.get(ANY, json=response_with_one_active_va_profile_id(), status_code=200)
+
+        mocker.patch('app.va.mpi.mpi.is_fhir_format', return_value=False)
+        mocked_transform_to_fhir_format = mocker.patch(
+            'app.va.mpi.mpi.transform_to_fhir_format',
+            return_value='some-transformed-fhir-identifier'
+        )
+
+        expected_url = (f"{mpi_client.base_url}/psim_webservice/fhir/Patient/"
+                        f"{quote('some-transformed-fhir-identifier')}"
+                        f"?-sender={MpiClient.SYSTEM_IDENTIFIER}")
+
+        actual_va_profile_id = mpi_client.get_va_profile_id(notification)
+
+        mocked_transform_to_fhir_format.assert_called_with(recipient_identifier)
         assert rmock.called
         assert rmock.request_history[0].url == expected_url
         assert actual_va_profile_id == EXPECTED_VA_PROFILE_ID
 
     def test_should_throw_error_when_multiple_active_va_profile_ids_exist(
-            self, mpi_client, rmock, sample_notification_model_with_organization
+            self, mpi_client, rmock, notification_with_recipient_identifier
     ):
-        notification = sample_notification_model_with_organization
-        recipient_identifier = sample_recipient_identifier()
-        notification.recipient_identifiers.set(recipient_identifier)
-
-        rmock.request(
-            "GET",
-            ANY,
-            json=response_with_two_active_va_profile_ids(),
-            status_code=200
-        )
+        rmock.get(ANY, json=response_with_two_active_va_profile_ids(), status_code=200)
 
         with pytest.raises(MultipleActiveVaProfileIdsException):
-            mpi_client.get_va_profile_id(notification)
+            mpi_client.get_va_profile_id(notification_with_recipient_identifier)
 
     def test_should_throw_error_when_no_active_va_profile_id(
-            self, mpi_client, rmock, sample_notification_model_with_organization
+            self, mpi_client, rmock, notification_with_recipient_identifier
     ):
-        notification = sample_notification_model_with_organization
-        recipient_identifier = sample_recipient_identifier()
-        notification.recipient_identifiers.set(recipient_identifier)
-
-        rmock.request(
-            "GET",
-            ANY,
-            json=MPI_RESPONSE_WITH_NO_VA_PROFILE_ID,
-            status_code=200
-        )
+        rmock.get(ANY, json=MPI_RESPONSE_WITH_NO_VA_PROFILE_ID, status_code=200)
 
         with pytest.raises(IdentifierNotFound):
-            mpi_client.get_va_profile_id(notification)
+            mpi_client.get_va_profile_id(notification_with_recipient_identifier)
 
     def test_should_throw_error_when_mpi_returns_error_response(
-            self, mpi_client, rmock, sample_notification_model_with_organization
+            self, mpi_client, rmock, notification_with_recipient_identifier
     ):
-        notification = sample_notification_model_with_organization
-        recipient_identifier = sample_recipient_identifier()
-        notification.recipient_identifiers.set(recipient_identifier)
-
-        rmock.request(
-            "GET",
-            ANY,
-            json=MPI_ERROR_RESPONSE,
-            status_code=200
-        )
+        rmock.get(ANY, json=MPI_ERROR_RESPONSE, status_code=200)
 
         with pytest.raises(MpiNonRetryableException):
-            mpi_client.get_va_profile_id(notification)
+            mpi_client.get_va_profile_id(notification_with_recipient_identifier)
 
     @pytest.mark.parametrize("http_status_code", [429, 500, 502, 503, 504])
     def test_should_throw_mpi_retryable_exception_when_mpi_returns_retryable_http_errors(
-            self, mpi_client, rmock, sample_notification_model_with_organization, http_status_code
+            self, mpi_client, rmock, notification_with_recipient_identifier, http_status_code
     ):
-        notification = sample_notification_model_with_organization
-        recipient_identifier = sample_recipient_identifier()
-        notification.recipient_identifiers.set(recipient_identifier)
-
-        rmock.request(
-            "GET",
-            ANY,
-            status_code=http_status_code
-        )
+        rmock.get(ANY, status_code=http_status_code)
 
         with pytest.raises(MpiRetryableException):
-            mpi_client.get_va_profile_id(notification)
+            mpi_client.get_va_profile_id(notification_with_recipient_identifier)
 
     @pytest.mark.parametrize("http_status_code", [400, 401, 403, 404, 501])
     def test_should_throw_mpi_non_retryable_exception_when_mpi_returns_non_retryable_http_errors(
-            self, mpi_client, rmock, sample_notification_model_with_organization, http_status_code
+            self, mpi_client, rmock, notification_with_recipient_identifier, http_status_code
     ):
-        notification = sample_notification_model_with_organization
-        recipient_identifier = sample_recipient_identifier()
-        notification.recipient_identifiers.set(recipient_identifier)
-
-        rmock.request(
-            "GET",
-            ANY,
-            status_code=http_status_code
-        )
+        rmock.get(ANY, status_code=http_status_code)
 
         with pytest.raises(MpiNonRetryableException):
-            mpi_client.get_va_profile_id(notification)
+            mpi_client.get_va_profile_id(notification_with_recipient_identifier)
 
     def test_should_throw_exception_when_beneficiary_deceased(
-            self, mpi_client, rmock, sample_notification_model_with_organization
+            self, mpi_client, rmock, notification_with_recipient_identifier
     ):
-        notification = sample_notification_model_with_organization
-        recipient_identifier = sample_recipient_identifier()
-        notification.recipient_identifiers.set(recipient_identifier)
-
-        rmock.request(
-            "GET",
-            ANY,
-            json=response_with_deceased_beneficiary(),
-            status_code=200
-        )
+        rmock.get(ANY, json=response_with_deceased_beneficiary(), status_code=200)
 
         with pytest.raises(BeneficiaryDeceasedException):
-            mpi_client.get_va_profile_id(notification)
+            mpi_client.get_va_profile_id(notification_with_recipient_identifier)
