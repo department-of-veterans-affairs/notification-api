@@ -37,10 +37,6 @@ nanoid==2.0.0
 unidecode==1.1.1
 
 
-# PaaS
-awscli-cwlogs==1.4.6
-
-
 # Putting upgrade on hold due to v1.0.0 using sha512 instead of sha1 by default
 itsdangerous==0.24
 
