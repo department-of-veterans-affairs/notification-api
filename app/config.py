@@ -144,6 +144,8 @@ class Config(object):
     AWS_SES_SMTP = os.getenv("AWS_SES_SMTP", "email-smtp.us-east-1.amazonaws.com")
     AWS_SES_ACCESS_KEY = os.getenv('AWS_SES_ACCESS_KEY')
     AWS_SES_SECRET_KEY = os.getenv('AWS_SES_SECRET_KEY')
+    AWS_SES_EMAIL_FROM_DOMAIN = os.getenv('AWS_SES_EMAIL_FROM_DOMAIN', 'notifications.va.gov')
+    AWS_SES_EMAIL_FROM_USER = os.getenv('AWS_SES_EMAIL_FROM_USER', 'do-not-reply')
     AWS_PINPOINT_APP_ID = os.getenv('AWS_PINPOINT_APP_ID', 'df55c01206b742d2946ef226410af94f')
     CSV_UPLOAD_BUCKET_NAME = os.getenv('CSV_UPLOAD_BUCKET_NAME', 'notification-alpha-canada-ca-csv-upload')
     ASSET_UPLOAD_BUCKET_NAME = os.getenv('ASSET_UPLOAD_BUCKET_NAME', 'dev-notifications-va-gov-assets')
@@ -498,6 +500,9 @@ class Test(Development):
     TWILIO_INBOUND_SMS_PASSWORDS = '["password"]'
 
     GOOGLE_ANALYTICS_ENABLED = True
+
+    AWS_SES_EMAIL_FROM_DOMAIN = 'test domain'
+    AWS_SES_EMAIL_FROM_USER = 'test from user'
 
 
 class Staging(Config):

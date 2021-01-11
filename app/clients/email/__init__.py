@@ -18,3 +18,11 @@ class EmailClient(Client):
 
     def get_name(self):
         raise NotImplementedError('TODO Need to implement.')
+
+    @property
+    def email_from_domain(self):
+        pass
+
+    @property
+    def email_from_user(self):
+        pass

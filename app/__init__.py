@@ -107,7 +107,13 @@ def create_app(application):
         statsd_client=statsd_client,
         logger=application.logger
     )
-    aws_ses_client.init_app(application.config['AWS_REGION'], statsd_client=statsd_client)
+    aws_ses_client.init_app(
+        application.config['AWS_REGION'],
+        statsd_client=statsd_client,
+        email_from_domain=application.config['AWS_SES_EMAIL_FROM_DOMAIN'],
+        email_from_user=application.config['AWS_SES_EMAIL_FROM_USER'],
+        logger=application.logger
+    )
     send_grid_client.init_app(application.config['SENDGRID_API_KEY'], statsd_client=statsd_client)
     govdelivery_client.init_app(application.config['GRANICUS_TOKEN'], application.config['GRANICUS_URL'], statsd_client)
     twilio_sms_client.init_app(

@@ -2,7 +2,7 @@ import botocore
 import pytest
 from notifications_utils.recipients import InvalidEmailError
 
-from app import aws_ses_client
+from app import aws_ses_client, config
 from app.clients.email.aws_ses import get_aws_responses, AwsSesClientException
 
 
@@ -127,3 +127,11 @@ def test_send_email_raises_other_errs_as_AwsSesClientException(mocker):
         )
 
     assert 'some error message from amazon' in str(excinfo.value)
+
+
+def test_should_set_email_from_domain_when_it_is_overridden():
+    assert aws_ses_client.email_from_domain == config.Test.AWS_SES_EMAIL_FROM_DOMAIN
+
+
+def test_should_set_email_from_user_when_it_is_overridden():
+    assert aws_ses_client.email_from_user == config.Test.AWS_SES_EMAIL_FROM_USER
