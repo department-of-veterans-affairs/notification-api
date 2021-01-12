@@ -1066,6 +1066,9 @@ components:
         email_from:
           type: string
           format: email
+        email_provider_id:
+          type: string
+          nullable: true
         message_limit:
           type: integer
         name:
@@ -1076,6 +1079,9 @@ components:
           nullable: true
         restricted:
           type: boolean
+        sms_provider_id:
+          type: string
+          nullable: true
         user_id:
           $ref: '#/components/schemas/Id'
       required:
@@ -1118,6 +1124,9 @@ components:
         email_from:
           type: string
           format: email
+        email_provider_id:
+          type: string
+          nullable: true
         go_live_at:
           type: string
           format: datetime
@@ -1183,6 +1192,9 @@ components:
           type: array
           items:
             type: string
+        sms_provider_id:
+          type: string
+          nullable: true
         smtp_user:
           type: string
           nullable: true
