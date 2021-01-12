@@ -39,3 +39,4 @@ def downgrade():
     op.drop_column('services', 'email_provider_id')
     op.drop_column('services', 'sms_provider_id')
     op.drop_column('services_history', 'email_provider_id')
+    op.drop_column('services_history', 'sms_provider_id')
