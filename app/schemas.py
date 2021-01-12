@@ -28,6 +28,8 @@ from app.models import ServicePermission
 from app.dao.permissions_dao import permission_dao
 from app.utils import get_template_instance
 
+DATE_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
+
 
 def _validate_positive_number(value, msg="Not a positive integer"):
     try:
@@ -84,8 +86,8 @@ class BaseSchema(ma.ModelSchema):
 class UserSchema(BaseSchema):
 
     permissions = fields.Method("user_permissions", dump_only=True)
-    password_changed_at = field_for(models.User, 'password_changed_at', format='%Y-%m-%d %H:%M:%S.%f')
-    created_at = field_for(models.User, 'created_at', format='%Y-%m-%d %H:%M:%S.%f')
+    password_changed_at = field_for(models.User, 'password_changed_at', format=DATE_FORMAT)
+    created_at = field_for(models.User, 'created_at', format=DATE_FORMAT)
     auth_type = field_for(models.User, 'auth_type')
 
     def user_permissions(self, usr):
@@ -211,8 +213,8 @@ class ServiceSchema(BaseSchema):
     override_flag = False
     letter_contact_block = fields.Method(serialize="get_letter_contact")
     go_live_at = field_for(models.Service, 'go_live_at', format='%Y-%m-%d %H:%M:%S.%f')
-    email_provider = field_for(models.Service, 'email_provider')
-    sms_provider = field_for(models.Service, 'sms_provider')
+    email_provider_id = field_for(models.Service, 'email_provider_id')
+    sms_provider_id = field_for(models.Service, 'sms_provider_id')
 
     def get_letter_logo_filename(self, service):
         return service.letter_branding and service.letter_branding.filename
@@ -240,6 +242,8 @@ class ServiceSchema(BaseSchema):
             'reply_to_email_addresses',
             'letter_contacts',
             'complaints',
+            'email_provider',
+            'sms_provider'
         )
         strict = True
 
