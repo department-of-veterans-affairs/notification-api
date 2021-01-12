@@ -160,7 +160,7 @@ def test_cannot_create_two_services_with_same_name(notify_db_session):
     assert 'duplicate key value violates unique constraint "services_name_key"' in str(excinfo.value)
 
 
-def test_cannot_create_service_with_non_existent_email_provider(notify_db_session, mocker):
+def test_cannot_create_service_with_non_existent_email_provider(notify_db_session):
     user = create_user()
     dummy_email_provider_details_id = uuid.uuid4()
 
@@ -175,7 +175,25 @@ def test_cannot_create_service_with_non_existent_email_provider(notify_db_sessio
 
     with pytest.raises(IntegrityError) as excinfo:
         dao_create_service(service, user)
-    assert 'duplicate key value violates unique constraint "services_name_key"' in str(excinfo.value)
+    assert 'services_email_provider_id_fkey' in str(excinfo.value)
+
+
+def test_cannot_create_service_with_non_existent_sms_provider(notify_db_session):
+    user = create_user()
+    dummy_sms_provider_details_id = uuid.uuid4()
+
+    service = Service(
+        name="service_name",
+        email_from="email_from1",
+        message_limit=1000,
+        restricted=False,
+        created_by=user,
+        sms_provider_id=dummy_sms_provider_details_id
+    )
+
+    with pytest.raises(IntegrityError) as excinfo:
+        dao_create_service(service, user)
+    assert 'services_sms_provider_id_fkey' in str(excinfo.value)
 
 
 def test_can_create_two_services_with_same_email_from(notify_db_session):
