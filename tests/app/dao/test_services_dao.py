@@ -196,6 +196,70 @@ def test_cannot_create_service_with_non_existent_sms_provider(notify_db_session)
     assert 'services_sms_provider_id_fkey' in str(excinfo.value)
 
 
+def test_can_create_service_with_valid_email_provider(notify_db_session, ses_provider):
+    user = create_user()
+
+    service = Service(
+        name="service_with_email_provider_name",
+        email_from="email_from",
+        message_limit=1000,
+        restricted=False,
+        created_by=user,
+        email_provider=ses_provider
+    )
+
+    try:
+        dao_create_service(service, user)
+    except IntegrityError:
+        pytest.fail("Could not create service with with valid email provider")
+    stored_service = dao_fetch_service_by_id(service.id)
+    assert stored_service is not None
+    assert stored_service.email_provider.id == ses_provider.id
+
+
+def test_can_create_service_with_valid_sms_provider(notify_db_session, firetext_provider):
+    user = create_user()
+
+    service = Service(
+        name="service_with_sms_provider_name",
+        message_limit=1000,
+        restricted=False,
+        created_by=user,
+        sms_provider=firetext_provider
+    )
+
+    try:
+        dao_create_service(service, user)
+    except IntegrityError:
+        pytest.fail("Could not create service with with valid sms provider")
+    stored_service = dao_fetch_service_by_id(service.id)
+    assert stored_service is not None
+    assert stored_service.sms_provider.id == firetext_provider.id
+
+
+def test_can_create_service_with_valid_email_and_sms_providers(notify_db_session, ses_provider, firetext_provider):
+    user = create_user()
+
+    service = Service(
+        name="service_with_sms_provider_name",
+        message_limit=1000,
+        restricted=False,
+        created_by=user,
+        email_provider=ses_provider,
+        sms_provider=firetext_provider
+    )
+
+    try:
+        dao_create_service(service, user)
+    except IntegrityError:
+        pytest.fail("Could not create service with with valid email and sms providers")
+
+    stored_service = dao_fetch_service_by_id(service.id)
+    assert stored_service is not None
+    assert stored_service.email_provider.id == ses_provider.id
+    assert stored_service.sms_provider.id == firetext_provider.id
+
+
 def test_can_create_two_services_with_same_email_from(notify_db_session):
     user = create_user()
     assert Service.query.count() == 0
