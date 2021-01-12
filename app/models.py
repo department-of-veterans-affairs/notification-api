@@ -483,6 +483,11 @@ class Service(db.Model, Versioned):
     sending_domain = db.Column(db.String(255), nullable=True, unique=False)
     smtp_user = db.Column(db.String(255), nullable=True, unique=False)
 
+    email_provider_id = db.Column(UUID(as_uuid=True), db.ForeignKey('provider_details.id'), nullable=True)
+    email_provider = db.relationship('ProviderDetails', foreign_keys=[email_provider_id])
+    sms_provider_id = db.Column(UUID(as_uuid=True), db.ForeignKey('provider_details.id'), nullable=True)
+    sms_provider = db.relationship('ProviderDetails', foreign_keys=[sms_provider_id])
+
     organisation_id = db.Column(UUID(as_uuid=True), db.ForeignKey('organisation.id'), index=True, nullable=True)
     organisation = db.relationship('Organisation', backref='services')
 
@@ -1127,6 +1132,10 @@ class ProviderDetails(db.Model):
     created_by_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), index=True, nullable=True)
     created_by = db.relationship('User')
     supports_international = db.Column(db.Boolean, nullable=False, default=False)
+    services = db.relationship(
+        'Service',
+        secondary='provider_to_service',
+        backref='provider_details')
 
 
 class ProviderDetailsHistory(db.Model, HistoryModel):

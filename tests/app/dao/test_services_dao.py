@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime
-# from unittest import mock
 
 import pytest
 from freezegun import freeze_time
@@ -161,6 +160,24 @@ def test_cannot_create_two_services_with_same_name(notify_db_session):
     assert 'duplicate key value violates unique constraint "services_name_key"' in str(excinfo.value)
 
 
+def test_cannot_create_service_with_non_existent_email_provider(notify_db_session, mocker):
+    user = create_user()
+    dummy_email_provider_details_id = uuid.uuid4()
+
+    service = Service(
+        name="service_name",
+        email_from="email_from1",
+        message_limit=1000,
+        restricted=False,
+        created_by=user,
+        email_provider_id=dummy_email_provider_details_id
+    )
+
+    with pytest.raises(IntegrityError) as excinfo:
+        dao_create_service(service, user)
+    assert 'duplicate key value violates unique constraint "services_name_key"' in str(excinfo.value)
+
+
 def test_can_create_two_services_with_same_email_from(notify_db_session):
     user = create_user()
     assert Service.query.count() == 0
@@ -206,7 +223,7 @@ def test_should_add_user_to_service(notify_db_session):
     new_user = User(
         name='Test User',
         email_address='new_user@digital.cabinet-office.gov.uk',
-        password='password',
+        password='password',  # nosec
         mobile_number='+16502532222'
     )
     save_model_user(new_user)
@@ -275,7 +292,7 @@ def test_should_remove_user_from_service(notify_db_session):
     new_user = User(
         name='Test User',
         email_address='new_user@digital.cabinet-office.gov.uk',
-        password='password',
+        password='password',  # nosec
         mobile_number='+16502532222'
     )
     save_model_user(new_user)
@@ -376,7 +393,7 @@ def test_get_all_user_services_only_returns_services_user_has_access_to(notify_d
     new_user = User(
         name='Test User',
         email_address='new_user@digital.cabinet-office.gov.uk',
-        password='password',
+        password='password',  # nosec
         mobile_number='+16502532222'
     )
     save_model_user(new_user)
@@ -689,7 +706,7 @@ def test_add_existing_user_to_another_service_doesnot_change_old_permissions(not
     other_user = User(
         name='Other Test User',
         email_address='other_user@digital.cabinet-office.gov.uk',
-        password='password',
+        password='password',  # nosec
         mobile_number='+447700900987'
     )
     save_model_user(other_user)
