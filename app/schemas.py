@@ -314,6 +314,7 @@ class NotificationModelSchema(BaseSchema):
 class BaseTemplateSchema(BaseSchema):
     reply_to = fields.Method("get_reply_to", allow_none=True)
     reply_to_text = fields.Method("get_reply_to_text", allow_none=True)
+    provider_id = field_for(models.Template, 'provider_id')
 
     def get_reply_to(self, template):
         return template.reply_to
@@ -323,7 +324,7 @@ class BaseTemplateSchema(BaseSchema):
 
     class Meta:
         model = models.Template
-        exclude = ("service_id", "jobs", "service_letter_contact_id")
+        exclude = ("service_id", "jobs", "service_letter_contact_id", "provider")
         strict = True
 
 
@@ -348,6 +349,7 @@ class TemplateHistorySchema(BaseSchema):
 
     reply_to = fields.Method("get_reply_to", allow_none=True)
     reply_to_text = fields.Method("get_reply_to_text", allow_none=True)
+    provider_id = field_for(models.Template, 'provider_id')
 
     created_by = fields.Nested(UserSchema, only=['id', 'name', 'email_address'], dump_only=True)
     created_at = field_for(models.Template, 'created_at', format='%Y-%m-%d %H:%M:%S.%f')
