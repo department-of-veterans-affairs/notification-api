@@ -83,3 +83,5 @@ fileignoreconfig:
       checksum: 04741fe95ff47c3d04753e9ee7abb1372f1217c35b27fd015cbce546abf8417c
     - filename: tests/app/dao/test_services_dao.py
       checksum: 8e45e9081aabcec8ce66555af127449d0abd78b4faa1260a95a8c3c4563e2e6a
+    - filename: app/models.py
+      checksum: cd38660ab8d5d7672ad5bd141f93d1737ad967e260fafa613df844a2f3225fb1

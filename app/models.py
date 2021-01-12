@@ -438,6 +438,24 @@ class Organisation(db.Model):
         }
 
 
+class ProviderDetails(db.Model):
+    __tablename__ = 'provider_details'
+    NOTIFICATION_TYPE = [EMAIL_TYPE, SMS_TYPE, LETTER_TYPE]
+    notification_types = db.Enum(*NOTIFICATION_TYPE, name='notification_type')
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    display_name = db.Column(db.String, nullable=False)
+    identifier = db.Column(db.String, nullable=False)
+    priority = db.Column(db.Integer, nullable=False)
+    notification_type = db.Column(notification_types, nullable=False)
+    active = db.Column(db.Boolean, default=False, nullable=False)
+    version = db.Column(db.Integer, default=1, nullable=False)
+    updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.datetime.utcnow)
+    created_by_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), index=True, nullable=True)
+    created_by = db.relationship('User')
+    supports_international = db.Column(db.Boolean, nullable=False, default=False)
+
+
 class Service(db.Model, Versioned):
     __tablename__ = 'services'
 
@@ -1105,7 +1123,6 @@ EMAIL_PROVIDERS = [SES_PROVIDER]
 PROVIDERS = SMS_PROVIDERS + EMAIL_PROVIDERS
 
 NOTIFICATION_TYPE = [EMAIL_TYPE, SMS_TYPE, LETTER_TYPE]
-notification_types = db.Enum(*NOTIFICATION_TYPE, name='notification_type')
 
 
 class ProviderRates(db.Model):
@@ -1118,28 +1135,9 @@ class ProviderRates(db.Model):
     provider = db.relationship('ProviderDetails', backref=db.backref('provider_rates', lazy='dynamic'))
 
 
-class ProviderDetails(db.Model):
-    __tablename__ = 'provider_details'
-
-    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    display_name = db.Column(db.String, nullable=False)
-    identifier = db.Column(db.String, nullable=False)
-    priority = db.Column(db.Integer, nullable=False)
-    notification_type = db.Column(notification_types, nullable=False)
-    active = db.Column(db.Boolean, default=False, nullable=False)
-    version = db.Column(db.Integer, default=1, nullable=False)
-    updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.datetime.utcnow)
-    created_by_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), index=True, nullable=True)
-    created_by = db.relationship('User')
-    supports_international = db.Column(db.Boolean, nullable=False, default=False)
-    services = db.relationship(
-        'Service',
-        secondary='provider_to_service',
-        backref='provider_details')
-
-
 class ProviderDetailsHistory(db.Model, HistoryModel):
     __tablename__ = 'provider_details_history'
+    notification_types = db.Enum(*NOTIFICATION_TYPE, name='notification_type')
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, nullable=False)
     display_name = db.Column(db.String, nullable=False)
@@ -1357,6 +1355,8 @@ RESOLVE_POSTAGE_FOR_FILE_NAME = {
     FIRST_CLASS: 1,
     SECOND_CLASS: 2
 }
+
+notification_types = db.Enum(*NOTIFICATION_TYPE, name='notification_type')
 
 
 class NotificationStatusTypes(db.Model):
