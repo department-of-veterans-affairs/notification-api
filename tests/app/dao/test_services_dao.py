@@ -665,7 +665,7 @@ def test_create_service_creates_a_history_record_with_current_data(notify_db_ses
     assert service_from_db.created_by.id == service_history.created_by_id
 
 
-def test_update_service_creates_a_history_record_with_current_data(notify_db_session):
+def test_update_service_creates_a_history_record_with_current_data(notify_db_session, current_sms_provider, ses_provider):
     user = create_user()
     assert Service.query.count() == 0
     assert Service.get_history_model().query.count() == 0
@@ -681,6 +681,7 @@ def test_update_service_creates_a_history_record_with_current_data(notify_db_ses
     assert Service.get_history_model().query.count() == 1
 
     service.name = 'updated_service_name'
+    service.sms_provider = current_sms_provider
     dao_update_service(service)
 
     assert Service.query.count() == 1
@@ -690,8 +691,12 @@ def test_update_service_creates_a_history_record_with_current_data(notify_db_ses
 
     assert service_from_db.version == 2
 
-    assert Service.get_history_model().query.filter_by(name='service_name').one().version == 1
-    assert Service.get_history_model().query.filter_by(name='updated_service_name').one().version == 2
+    service_history = Service.get_history_model().query.filter_by(name='service_name').one()
+    assert service_history.version == 1
+    assert service_history.sms_provider_id is None
+    service_history = Service.get_history_model().query.filter_by(name='updated_service_name').one()
+    assert service_history.version == 2
+    assert service_history.sms_provider_id == current_sms_provider.id
 
 
 def test_update_service_permission_creates_a_history_record_with_current_data(notify_db_session):
