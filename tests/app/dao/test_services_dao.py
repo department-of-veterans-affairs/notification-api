@@ -384,6 +384,23 @@ def test_should_remove_user_from_service(notify_db_session):
     assert new_user not in Service.query.first().users
 
 
+def test_should_remove_provider_from_service(notify_db_session, ses_provider):
+    user = create_user()
+    service = Service(name="service_name",
+                      email_from="email_from",
+                      message_limit=1000,
+                      restricted=False,
+                      created_by=user,
+                      email_provider=ses_provider)
+    dao_create_service(service, user)
+    stored_service = dao_fetch_service_by_id(service.id)
+    stored_service.email_provider = None
+    dao_update_service(service)
+    updated_service = dao_fetch_service_by_id(service.id)
+    assert updated_service.email_provider_id is None
+    assert updated_service.email_provider is None
+
+
 def test_removing_a_user_from_a_service_deletes_their_permissions(sample_user, sample_service):
     assert len(Permission.query.all()) == 8
 
