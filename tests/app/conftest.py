@@ -1441,28 +1441,6 @@ def mock_email_client(mocker):
 
 
 @pytest.fixture(scope='function')
-def test_email_client(mocker):
-    class TestEmailClient(EmailClient):
-
-        def init(self, email_from_domain, email_from_user) -> None:
-            self._email_from_domain = email_from_domain
-            self._email_from_user = email_from_user
-
-        def get_name(self):
-            return 'Fake Email Client'
-
-        @property
-        def email_from_domain(self):
-            return self._email_from_domain
-
-        @property
-        def email_from_user(self):
-            return self._email_from_user
-
-    return TestEmailClient()
-
-
-@pytest.fixture(scope='function')
 def mocked_build_ga_pixel_url(mocker):
     mocked_builder = mocker.patch('app.googleanalytics.pixels.build_ga_pixel_url', return_value='url')
     return mocked_builder

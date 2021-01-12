@@ -21,8 +21,16 @@ class EmailClient(Client):
 
     @property
     def email_from_domain(self):
+        '''
+        Returns None by default.
+        Can be overriden by child class if desired
+        '''
         pass
 
     @property
     def email_from_user(self):
+        '''
+        Returns None by default.
+        Can be overriden by child class if desired
+        '''
         pass
