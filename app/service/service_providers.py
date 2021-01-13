@@ -14,9 +14,8 @@ def update_service(service: Service):
 def is_provider_valid(provider_id: uuid, notification_type: str) -> bool:
     # check if provider exists
     provider_details_array = get_provider_details_by_id(provider_id)
-    if provider_details_array and len(provider_details_array) == 1:
-        # check provider is active
-        # check if provider is of correct type, email or sms
-        return provider_details_array[0].active
-
-    return False
+    return (
+        provider_details_array is not None
+        and provider_details_array[0].active
+        and provider_details_array[0].notification_type == notification_type
+    )
