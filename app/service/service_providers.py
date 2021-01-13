@@ -17,6 +17,6 @@ def is_provider_valid(provider_id: uuid, notification_type: str) -> bool:
     if provider_details_array and len(provider_details_array) == 1:
         # check provider is active
         # check if provider is of correct type, email or sms
-        return True
+        return provider_details_array[0].active
 
     return False
