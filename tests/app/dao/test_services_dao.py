@@ -305,7 +305,7 @@ def test_should_add_user_to_service(notify_db_session):
     new_user = User(
         name='Test User',
         email_address='new_user@digital.cabinet-office.gov.uk',
-        password='password',  # nosec
+        password=' ',
         mobile_number='+16502532222'
     )
     save_model_user(new_user)
@@ -374,7 +374,7 @@ def test_should_remove_user_from_service(notify_db_session):
     new_user = User(
         name='Test User',
         email_address='new_user@digital.cabinet-office.gov.uk',
-        password='password',  # nosec
+        password=' ',
         mobile_number='+16502532222'
     )
     save_model_user(new_user)
@@ -492,7 +492,7 @@ def test_get_all_user_services_only_returns_services_user_has_access_to(notify_d
     new_user = User(
         name='Test User',
         email_address='new_user@digital.cabinet-office.gov.uk',
-        password='password',  # nosec
+        password=' ',
         mobile_number='+16502532222'
     )
     save_model_user(new_user)
@@ -665,7 +665,11 @@ def test_create_service_creates_a_history_record_with_current_data(notify_db_ses
     assert service_from_db.created_by.id == service_history.created_by_id
 
 
-def test_update_service_creates_a_history_record_with_current_data(notify_db_session, current_sms_provider, ses_provider):
+def test_update_service_creates_a_history_record_with_current_data(
+        notify_db_session,
+        current_sms_provider,
+        ses_provider
+):
     user = create_user()
     assert Service.query.count() == 0
     assert Service.get_history_model().query.count() == 0
@@ -810,7 +814,7 @@ def test_add_existing_user_to_another_service_doesnot_change_old_permissions(not
     other_user = User(
         name='Other Test User',
         email_address='other_user@digital.cabinet-office.gov.uk',
-        password='password',  # nosec
+        password=' ',
         mobile_number='+447700900987'
     )
     save_model_user(other_user)
@@ -1066,7 +1070,6 @@ def test_dao_suspend_service_with_no_api_keys(notify_db_session):
     dao_suspend_service(service.id)
     service = Service.query.get(service.id)
     assert not service.active
-    assert service.name == service.name
     assert service.api_keys == []
 
 
@@ -1077,7 +1080,6 @@ def test_dao_suspend_service_marks_service_as_inactive_and_expires_api_keys(noti
     dao_suspend_service(service.id)
     service = Service.query.get(service.id)
     assert not service.active
-    assert service.name == service.name
 
     api_key = ApiKey.query.get(api_key.id)
     assert api_key.expiry_date == datetime(2001, 1, 1, 23, 59, 00)
