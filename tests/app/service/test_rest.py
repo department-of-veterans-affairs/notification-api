@@ -560,6 +560,33 @@ def test_should_not_create_service_with_duplicate_name(notify_api,
             assert "Duplicate service name '{}'".format(sample_service.name) in json_resp['message']['name']
 
 
+# def test_should_not_create_service_with_non_existent_email_provider(notify_api, fake_uuid):
+@pytest.mark.parametrize('notification_type', (
+    EMAIL_TYPE,
+    SMS_TYPE
+))
+def test_should_not_create_service_with_non_existent_provider(
+    admin_request,
+    sample_user,
+    notification_type,
+    fake_uuid
+):
+    data = {
+        'name': 'created service',
+        'user_id': str(sample_user.id),
+        'message_limit': 1000,
+        'restricted': False,
+        'active': False,
+        'email_from': 'created.service',
+        'created_by': str(sample_user.id),
+        f"{notification_type}_provider_id": str(fake_uuid)
+    }
+
+    response = admin_request.post('service.create_service', _data=data, _expected_status=400)
+    assert response['result'] == 'error'
+    assert response['message'] == f"invalid {notification_type}_provider_id"
+
+
 def test_update_service(client, notify_db, sample_service):
     brand = EmailBranding(colour='#000000', logo='justice-league.png', name='Justice League')
     notify_db.session.add(brand)
@@ -1005,8 +1032,8 @@ def test_should_not_update_service_with_duplicate_email_from(notify_api,
             json_resp = resp.json
             assert json_resp['result'] == 'error'
             assert (
-                "Duplicate service name '{}'".format(service_name) in json_resp['message']['name'] or
-                "Duplicate service name '{}'".format(email_from) in json_resp['message']['name']
+                "Duplicate service name '{}'".format(service_name) in json_resp['message']['name']
+                or "Duplicate service name '{}'".format(email_from) in json_resp['message']['name']
             )
 
 
