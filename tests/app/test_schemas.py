@@ -142,8 +142,8 @@ def test_services_schema_includes_providers(
 ):
     from app.schemas import service_schema
 
-    sample_service.email_provider = ses_provider
-    sample_service.sms_provider = current_sms_provider
+    sample_service.email_provider_id = ses_provider.id
+    sample_service.sms_provider_id = current_sms_provider.id
 
     data = service_schema.dump(sample_service).data
     assert data

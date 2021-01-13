@@ -205,7 +205,7 @@ def test_can_create_service_with_valid_email_provider(notify_db_session, ses_pro
         message_limit=1000,
         restricted=False,
         created_by=user,
-        email_provider=ses_provider
+        email_provider_id=ses_provider.id
     )
 
     try:
@@ -214,7 +214,7 @@ def test_can_create_service_with_valid_email_provider(notify_db_session, ses_pro
         pytest.fail("Could not create service with with valid email provider")
     stored_service = dao_fetch_service_by_id(service.id)
     assert stored_service is not None
-    assert stored_service.email_provider.id == ses_provider.id
+    assert stored_service.email_provider_id == ses_provider.id
 
 
 def test_can_create_service_with_valid_sms_provider(notify_db_session, firetext_provider):
@@ -225,7 +225,7 @@ def test_can_create_service_with_valid_sms_provider(notify_db_session, firetext_
         message_limit=1000,
         restricted=False,
         created_by=user,
-        sms_provider=firetext_provider
+        sms_provider_id=firetext_provider.id
     )
 
     try:
@@ -234,7 +234,7 @@ def test_can_create_service_with_valid_sms_provider(notify_db_session, firetext_
         pytest.fail("Could not create service with with valid sms provider")
     stored_service = dao_fetch_service_by_id(service.id)
     assert stored_service is not None
-    assert stored_service.sms_provider.id == firetext_provider.id
+    assert stored_service.sms_provider_id == firetext_provider.id
 
 
 def test_can_create_service_with_valid_email_and_sms_providers(notify_db_session, ses_provider, firetext_provider):
@@ -245,8 +245,8 @@ def test_can_create_service_with_valid_email_and_sms_providers(notify_db_session
         message_limit=1000,
         restricted=False,
         created_by=user,
-        email_provider=ses_provider,
-        sms_provider=firetext_provider
+        email_provider_id=ses_provider.id,
+        sms_provider_id=firetext_provider.id
     )
 
     try:
@@ -256,8 +256,8 @@ def test_can_create_service_with_valid_email_and_sms_providers(notify_db_session
 
     stored_service = dao_fetch_service_by_id(service.id)
     assert stored_service is not None
-    assert stored_service.email_provider.id == ses_provider.id
-    assert stored_service.sms_provider.id == firetext_provider.id
+    assert stored_service.email_provider_id == ses_provider.id
+    assert stored_service.sms_provider_id == firetext_provider.id
 
 
 def test_can_create_two_services_with_same_email_from(notify_db_session):
@@ -391,14 +391,13 @@ def test_should_remove_provider_from_service(notify_db_session, ses_provider):
                       message_limit=1000,
                       restricted=False,
                       created_by=user,
-                      email_provider=ses_provider)
+                      email_provider_id=ses_provider.id)
     dao_create_service(service, user)
     stored_service = dao_fetch_service_by_id(service.id)
-    stored_service.email_provider = None
+    stored_service.email_provider_id = None
     dao_update_service(service)
     updated_service = dao_fetch_service_by_id(service.id)
-    assert updated_service.email_provider_id is None
-    assert updated_service.email_provider is None
+    assert not updated_service.email_provider_id
 
 
 def test_removing_a_user_from_a_service_deletes_their_permissions(sample_user, sample_service):
@@ -685,7 +684,7 @@ def test_update_service_creates_a_history_record_with_current_data(
     assert Service.get_history_model().query.count() == 1
 
     service.name = 'updated_service_name'
-    service.sms_provider = current_sms_provider
+    service.sms_provider_id = current_sms_provider.id
     dao_update_service(service)
 
     assert Service.query.count() == 1
