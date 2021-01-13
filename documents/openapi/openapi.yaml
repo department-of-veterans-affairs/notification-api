@@ -1233,6 +1233,9 @@ components:
           enum:
             - normal
             - priority
+        provider_id:
+          type: string
+          nullable: true
         service:
           $ref: '#/components/schemas/Id'
         subject:
@@ -1284,6 +1287,9 @@ components:
           type: boolean
         id:
           $ref: '#/components/schemas/Id'
+        provider_id:
+          type: string
+          nullable: true
         redact_personalisation:
           type: boolean
         reply_to:
