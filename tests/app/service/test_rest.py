@@ -596,7 +596,6 @@ def test_should_not_create_service_with_duplicate_name(notify_api,
             assert "Duplicate service name '{}'".format(sample_service.name) in json_resp['message']['name']
 
 
-# def test_should_not_create_service_with_non_existent_email_provider(notify_api, fake_uuid):
 @pytest.mark.parametrize('notification_type', (
     EMAIL_TYPE,
     SMS_TYPE
@@ -723,6 +722,29 @@ def test_update_service(client, notify_db, sample_service):
     assert result['data']['email_from'] == 'updated.service.name'
     assert result['data']['email_branding'] == str(brand.id)
     assert result['data']['organisation_type'] == 'other'
+
+
+def test_update_service_with_valid_provider(
+        admin_request, notify_db, sample_service, ses_provider, current_sms_provider
+):
+    data = {
+        'email_provider_id': str(ses_provider.id),
+        'sms_provider_id': str(current_sms_provider.id),
+    }
+
+    resp = admin_request.post(
+        'service.update_service',
+        service_id=sample_service.id,
+        _data=data,
+        _expected_status=200
+    )
+    assert resp['data']['email_provider_id'] == str(ses_provider.id)
+    assert resp['data']['sms_provider_id'] == str(current_sms_provider.id)
+
+    service_db = Service.query.get(resp['data']['id'])
+
+    assert service_db.email_provider_id == ses_provider.id
+    assert service_db.sms_provider_id == current_sms_provider.id
 
 
 def test_cant_update_service_org_type_to_random_value(client, sample_service):
