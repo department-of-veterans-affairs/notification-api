@@ -18,10 +18,9 @@ def create_service(service: Service, user: User):
 
 
 def is_provider_valid(provider_id: uuid, notification_type: str) -> bool:
-    # check if provider exists
-    provider_details_array = get_provider_details_by_id(provider_id)
+    provider_details = get_provider_details_by_id(provider_id)
     return (
-        provider_details_array is not None
-        and provider_details_array[0].active
-        and provider_details_array[0].notification_type == notification_type
+        provider_details is not None
+        and provider_details.active
+        and provider_details.notification_type == notification_type
     )

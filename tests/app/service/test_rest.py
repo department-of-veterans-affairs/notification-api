@@ -26,7 +26,7 @@ from app.models import (
     User,
     KEY_TYPE_NORMAL, KEY_TYPE_TEAM, KEY_TYPE_TEST,
     EMAIL_TYPE, SMS_TYPE, LETTER_TYPE,
-    INTERNATIONAL_SMS_TYPE, INBOUND_SMS_TYPE,
+    INTERNATIONAL_SMS_TYPE, INBOUND_SMS_TYPE, ProviderDetails,
 )
 from tests import create_authorization_header
 from tests.app.db import (
@@ -362,6 +362,42 @@ def test_create_service(
     assert service_sms_senders[0].sms_sender == current_app.config['FROM_NUMBER']
 
 
+def test_create_service_with_valid_provider(
+    admin_request,
+    sample_user,
+    ses_provider,
+    current_sms_provider
+):
+    data = {
+        'name': 'created service',
+        'user_id': str(sample_user.id),
+        'message_limit': 1000,
+        'restricted': False,
+        'active': False,
+        'email_from': 'created.service',
+        'created_by': str(sample_user.id),
+        'email_provider_id': str(ses_provider.id),
+        'sms_provider_id': str(current_sms_provider.id),
+    }
+
+    json_resp = admin_request.post('service.create_service', _data=data, _expected_status=201)
+
+    assert json_resp['data']['email_provider_id'] == str(ses_provider.id)
+    assert json_resp['data']['sms_provider_id'] == str(current_sms_provider.id)
+
+    service_db = Service.query.get(json_resp['data']['id'])
+    assert service_db.name == 'created service'
+
+    json_resp = admin_request.get(
+        'service.get_service_by_id',
+        service_id=json_resp['data']['id'],
+        user_id=sample_user.id
+    )
+
+    assert json_resp['data']['email_provider_id'] == str(ses_provider.id)
+    assert json_resp['data']['sms_provider_id'] == str(current_sms_provider.id)
+
+
 @pytest.mark.parametrize('domain, expected_org', (
     (None, False),
     ('', False),
@@ -581,6 +617,78 @@ def test_should_not_create_service_with_non_existent_provider(
         'created_by': str(sample_user.id),
         f"{notification_type}_provider_id": str(fake_uuid)
     }
+
+    response = admin_request.post('service.create_service', _data=data, _expected_status=400)
+    assert response['result'] == 'error'
+    assert response['message'] == f"invalid {notification_type}_provider_id"
+
+
+@pytest.mark.parametrize('notification_type', (
+    EMAIL_TYPE,
+    SMS_TYPE
+))
+def test_should_not_create_service_with_inactive_provider(
+    admin_request,
+    sample_user,
+    notification_type,
+    fake_uuid,
+    mocker
+):
+    data = {
+        'name': 'created service',
+        'user_id': str(sample_user.id),
+        'message_limit': 1000,
+        'restricted': False,
+        'active': False,
+        'email_from': 'created.service',
+        'created_by': str(sample_user.id),
+        f"{notification_type}_provider_id": str(fake_uuid)
+    }
+
+    mocked_provider_details = mocker.Mock(ProviderDetails)
+    mocked_provider_details.active = False
+    mocked_provider_details.notification_type = notification_type
+    mocked_provider_details.id = fake_uuid
+    mocker.patch(
+        'app.service.rest.service_providers.get_provider_details_by_id',
+        return_value=[mocked_provider_details]
+    )
+
+    response = admin_request.post('service.create_service', _data=data, _expected_status=400)
+    assert response['result'] == 'error'
+    assert response['message'] == f"invalid {notification_type}_provider_id"
+
+
+@pytest.mark.parametrize('notification_type', (
+    EMAIL_TYPE,
+    SMS_TYPE
+))
+def test_should_not_create_service_with_incorrect_provider_notification_type(
+    admin_request,
+    sample_user,
+    notification_type,
+    fake_uuid,
+    mocker
+):
+    data = {
+        'name': 'created service',
+        'user_id': str(sample_user.id),
+        'message_limit': 1000,
+        'restricted': False,
+        'active': False,
+        'email_from': 'created.service',
+        'created_by': str(sample_user.id),
+        f"{notification_type}_provider_id": str(fake_uuid)
+    }
+
+    mocked_provider_details = mocker.Mock(ProviderDetails)
+    mocked_provider_details.active = False
+    mocked_provider_details.notification_type = LETTER_TYPE
+    mocked_provider_details.id = fake_uuid
+    mocker.patch(
+        'app.service.rest.service_providers.get_provider_details_by_id',
+        return_value=[mocked_provider_details]
+    )
 
     response = admin_request.post('service.create_service', _data=data, _expected_status=400)
     assert response['result'] == 'error'
