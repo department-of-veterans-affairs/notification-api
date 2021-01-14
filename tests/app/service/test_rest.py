@@ -649,7 +649,7 @@ def test_should_not_create_service_with_inactive_provider(
     mocked_provider_details.notification_type = notification_type
     mocked_provider_details.id = fake_uuid
     mocker.patch(
-        'app.service.rest.service_providers.get_provider_details_by_id',
+        'app.service.rest.validate_providers.get_provider_details_by_id',
         return_value=mocked_provider_details
     )
 
@@ -685,7 +685,7 @@ def test_should_not_create_service_with_incorrect_provider_notification_type(
     mocked_provider_details.notification_type = LETTER_TYPE
     mocked_provider_details.id = fake_uuid
     mocker.patch(
-        'app.service.rest.service_providers.get_provider_details_by_id',
+        'app.service.rest.validate_providers.get_provider_details_by_id',
         return_value=mocked_provider_details
     )
 
@@ -768,7 +768,7 @@ def test_should_not_update_service_with_inactive_provider(
     mocked_provider_details.notification_type = notification_type
     mocked_provider_details.id = fake_uuid
     mocker.patch(
-        'app.service.rest.service_providers.get_provider_details_by_id',
+        'app.service.rest.validate_providers.get_provider_details_by_id',
         return_value=mocked_provider_details
     )
 
@@ -803,7 +803,7 @@ def test_should_not_update_service_with_incorrect_provider_notification_type(
     mocked_provider_details.notification_type = LETTER_TYPE
     mocked_provider_details.id = fake_uuid
     mocker.patch(
-        'app.service.rest.service_providers.get_provider_details_by_id',
+        'app.service.rest.validate_providers.get_provider_details_by_id',
         return_value=mocked_provider_details
     )
 
