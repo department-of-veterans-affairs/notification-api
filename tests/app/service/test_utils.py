@@ -1,7 +1,7 @@
 import pytest
 
 from app.clients.email import EmailClient
-from app.service.utils import compute_source_email_address, compute_source_email_address_with_display_name
+from app.service.utils import compute_source_email_address
 from tests.conftest import set_config_values
 
 DEFAULT_EMAIL_FROM_VALUES = {
@@ -41,15 +41,5 @@ def test_should_compute_source_email_address(
     mocker.patch.object(mock_email_client, 'email_from_user',
                         new_callable=mocker.PropertyMock(return_value=provider_from_user))
     with set_config_values(notify_api, DEFAULT_EMAIL_FROM_VALUES):
-        assert compute_source_email_address(sample_service, mock_email_client) == expected_source_email_address
-
-
-def test_should_compute_source_email_address_with_display_name(
-        sample_service,
-        notify_api,
-        mocker
-):
-    mocker.patch('app.service.utils.compute_source_email_address', return_value='some@email.com')
-
-    with set_config_values(notify_api, DEFAULT_EMAIL_FROM_VALUES):
-        assert compute_source_email_address_with_display_name(sample_service) == '"Default Name" <some@email.com>'
+        assert compute_source_email_address(sample_service,
+                                            mock_email_client) == f'"Default Name" <{expected_source_email_address}>'

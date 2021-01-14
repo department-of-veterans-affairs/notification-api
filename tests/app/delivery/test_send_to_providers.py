@@ -41,7 +41,7 @@ from tests.conftest import set_config_values
 def mock_source_email_address(mocker):
     source_email_address = '"Some Name" <some-user@some.domain>'
     mock_compute_function = mocker.patch(
-        'app.delivery.send_to_providers.compute_source_email_address_with_display_name',
+        'app.delivery.send_to_providers.compute_source_email_address',
         return_value=source_email_address
     )
     return (source_email_address, mock_compute_function)

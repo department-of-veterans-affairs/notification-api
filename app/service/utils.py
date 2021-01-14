@@ -63,8 +63,4 @@ def compute_source_email_address(service: Service, provider: EmailClient) -> str
         [service.email_from, provider.email_from_user, current_app.config['NOTIFY_EMAIL_FROM_USER']]
         if email is not None)
 
-    return f"{email_from}@{sending_domain}"
-
-
-def compute_source_email_address_with_display_name(service: Service, provider: EmailClient) -> str:
-    return f'"{current_app.config["NOTIFY_EMAIL_FROM_NAME"]}" <{compute_source_email_address(service, provider)}>'
+    return f'"{current_app.config["NOTIFY_EMAIL_FROM_NAME"]}" <{email_from}@{sending_domain}>'
