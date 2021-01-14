@@ -650,7 +650,7 @@ def test_should_not_create_service_with_inactive_provider(
     mocked_provider_details.id = fake_uuid
     mocker.patch(
         'app.service.rest.service_providers.get_provider_details_by_id',
-        return_value=[mocked_provider_details]
+        return_value=mocked_provider_details
     )
 
     response = admin_request.post('service.create_service', _data=data, _expected_status=400)
@@ -686,7 +686,7 @@ def test_should_not_create_service_with_incorrect_provider_notification_type(
     mocked_provider_details.id = fake_uuid
     mocker.patch(
         'app.service.rest.service_providers.get_provider_details_by_id',
-        return_value=[mocked_provider_details]
+        return_value=mocked_provider_details
     )
 
     response = admin_request.post('service.create_service', _data=data, _expected_status=400)
