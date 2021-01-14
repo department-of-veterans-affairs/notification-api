@@ -85,6 +85,8 @@ def test_send_email_encodes_to_address(notify_api, ses_client, boto_mock):
         )
 
     raw_message = boto_mock.send_raw_email.call_args[1]['RawMessage']['Data']
+    # When sending raw emails AWS SES required email addresses to be punycode and MIME encoded using following format:
+    # =?charset?encoding?encoded-text?=
     assert re.findall(r'To: (=\?utf-8.*==\?=)\n',
                       raw_message)[0] == '=?utf-8?b?ZsO4w7jDuMO4QHhuLS1ici15aWFhYWFhLmNvbQ==?='
 
@@ -100,6 +102,8 @@ def test_send_email_encodes_reply_to_address(notify_api, ses_client, boto_mock):
         )
 
     raw_message = boto_mock.send_raw_email.call_args[1]['RawMessage']['Data']
+    # When sending raw emails AWS SES required email addresses to be punycode and MIME encoded using following format:
+    # =?charset?encoding?encoded-text?=
     assert re.findall(r'reply-to: (=\?utf-8.*==\?=)\n',
                       raw_message)[0] == '=?utf-8?b?ZsO4w7jDuMO4QHhuLS1ici15aWFhYWFhLmNvbQ==?='
 
