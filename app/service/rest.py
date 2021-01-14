@@ -239,7 +239,7 @@ def update_service(service_id):
     current_data = dict(service_schema.dump(fetched_service).data.items())
     current_data.update(request.get_json())
 
-    service = service_schema.load(current_data).data
+    service = service_schema.load(current_data, transient=True).data
 
     if 'email_branding' in req_json:
         email_branding_id = req_json['email_branding']
@@ -247,7 +247,7 @@ def update_service(service_id):
     if 'letter_branding' in req_json:
         letter_branding_id = req_json['letter_branding']
         service.letter_branding = None if not letter_branding_id else LetterBranding.query.get(letter_branding_id)
-    dao_update_service(service)
+    service_providers.update_service(service)
 
     if service_going_live:
         send_notification_to_service_users(

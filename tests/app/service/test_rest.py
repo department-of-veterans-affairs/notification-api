@@ -747,6 +747,101 @@ def test_update_service_with_valid_provider(
     assert service_db.sms_provider_id == current_sms_provider.id
 
 
+@pytest.mark.parametrize('notification_type', (
+    EMAIL_TYPE,
+    SMS_TYPE
+))
+def test_should_not_update_service_with_inactive_provider(
+    admin_request,
+    notify_db,
+    notification_type,
+    sample_service,
+    fake_uuid,
+    mocker
+):
+    data = {
+        f"{notification_type}_provider_id": str(fake_uuid)
+    }
+
+    mocked_provider_details = mocker.Mock(ProviderDetails)
+    mocked_provider_details.active = False
+    mocked_provider_details.notification_type = notification_type
+    mocked_provider_details.id = fake_uuid
+    mocker.patch(
+        'app.service.rest.service_providers.get_provider_details_by_id',
+        return_value=mocked_provider_details
+    )
+
+    response = admin_request.post(
+        'service.update_service',
+        service_id=sample_service.id,
+        _data=data,
+        _expected_status=400
+    )
+    assert response['result'] == 'error'
+    assert response['message'] == f"invalid {notification_type}_provider_id"
+
+
+@pytest.mark.parametrize('notification_type', (
+    EMAIL_TYPE,
+    SMS_TYPE
+))
+def test_should_not_update_service_with_incorrect_provider_notification_type(
+        admin_request,
+        notify_db,
+        notification_type,
+        sample_service,
+        fake_uuid,
+        mocker
+):
+    data = {
+        f"{notification_type}_provider_id": str(fake_uuid)
+    }
+
+    mocked_provider_details = mocker.Mock(ProviderDetails)
+    mocked_provider_details.active = False
+    mocked_provider_details.notification_type = LETTER_TYPE
+    mocked_provider_details.id = fake_uuid
+    mocker.patch(
+        'app.service.rest.service_providers.get_provider_details_by_id',
+        return_value=mocked_provider_details
+    )
+
+    response = admin_request.post(
+        'service.update_service',
+        service_id=sample_service.id,
+        _data=data,
+        _expected_status=400
+    )
+    assert response['result'] == 'error'
+    assert response['message'] == f"invalid {notification_type}_provider_id"
+
+
+@pytest.mark.parametrize('notification_type', (
+    EMAIL_TYPE,
+    SMS_TYPE
+))
+def test_should_not_update_service_with_nonexistent_provider(
+        admin_request,
+        notify_db_session,
+        notification_type,
+        sample_service,
+        fake_uuid
+):
+    data = {
+        f"{notification_type}_provider_id": str(fake_uuid)
+    }
+
+    response = admin_request.post(
+        'service.update_service',
+        service_id=sample_service.id,
+        _data=data,
+        _expected_status=400
+    )
+    assert response['result'] == 'error'
+    assert response['message'] == f"invalid {notification_type}_provider_id"
+
+
 def test_cant_update_service_org_type_to_random_value(client, sample_service):
     data = {
         'name': 'updated service name',
