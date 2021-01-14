@@ -83,3 +83,5 @@ fileignoreconfig:
       checksum: f3256160a12644e222cfb6ea5ec1f0dd83a99718adb18c99eaa2b93a4cf97611
     - filename: cd/application-deployment/prod/vaec-celery-beat-task-definition.json
       checksum: b1d460d0dc9a4bf3ffdcb11622c2004b452c11301f7d7886e8fad1ae4ea22712
+    - filename: tests/app/clients/test_aws_ses.py
+      checksum: 78c9b39625b2f491268340f706709654f12cd0b5151ebaf8355846f823144406

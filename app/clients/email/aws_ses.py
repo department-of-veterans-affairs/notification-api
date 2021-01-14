@@ -52,13 +52,15 @@ class AwsSesClient(EmailClient):
     Amazon SES email client.
     '''
 
-    def init_app(self, region, statsd_client, email_from_domain, email_from_user, logger, *args, **kwargs):
+    def init_app(self, region, email_from_domain, email_from_user, default_reply_to,
+                 logger, statsd_client, *args, **kwargs):
         self._client = boto3.client('ses', region_name=region)
         super(AwsSesClient, self).__init__(*args, **kwargs)
         self.name = 'ses'
         self.statsd_client = statsd_client
         self._email_from_domain = email_from_domain
         self._email_from_user = email_from_user
+        self._default_reply_to_address = default_reply_to
         self.logger = logger
 
     def get_name(self):
@@ -85,16 +87,15 @@ class AwsSesClient(EmailClient):
                 to_addresses = [to_addresses]
 
             source = unidecode(source)
-
-            reply_to_addresses = [reply_to_address] if reply_to_address else []
+            reply_to = reply_to_address if reply_to_address else self._default_reply_to_address
 
             multipart_content_subtype = 'alternative' if html_body else 'mixed'
             msg = MIMEMultipart(multipart_content_subtype)
             msg['Subject'] = subject
             msg['From'] = source
             msg['To'] = ",".join([punycode_encode_email(addr) for addr in to_addresses])
-            if reply_to_addresses != []:
-                msg.add_header('reply-to', ",".join([punycode_encode_email(addr) for addr in reply_to_addresses]))
+            if reply_to:
+                msg['reply-to'] = punycode_encode_email(reply_to)
             part = MIMEText(body, 'plain')
             msg.attach(part)
 
