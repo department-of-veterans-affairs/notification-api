@@ -46,6 +46,7 @@ from app.dao.service_sms_sender_dao import (
 )
 from app.dao.services_dao import (
     dao_add_user_to_service,
+    dao_create_service,
     dao_archive_service,
     dao_fetch_all_services,
     dao_fetch_all_services_by_user,
@@ -217,6 +218,8 @@ def create_service():
         raise InvalidRequest(errors, status_code=400)
     data.pop('service_domain', None)
 
+    service_providers.validate_service_providers(data)
+
     # validate json with marshmallow
     service_schema.load(data)
 
@@ -225,7 +228,7 @@ def create_service():
     # unpack valid json into service object
     valid_service = Service.from_json(data)
 
-    service_providers.create_service(valid_service, user)
+    dao_create_service(valid_service, user)
 
     return jsonify(data=service_schema.dump(valid_service).data), 201
 
@@ -233,13 +236,16 @@ def create_service():
 @service_blueprint.route('/<uuid:service_id>', methods=['POST'])
 def update_service(service_id):
     req_json = request.get_json()
+
+    service_providers.validate_service_providers(req_json)
+
     fetched_service = dao_fetch_service_by_id(service_id)
     # Capture the status change here as Marshmallow changes this later
     service_going_live = fetched_service.restricted and not req_json.get('restricted', True)
     current_data = dict(service_schema.dump(fetched_service).data.items())
     current_data.update(request.get_json())
 
-    service = service_schema.load(current_data, transient=True).data
+    service = service_schema.load(current_data).data
 
     if 'email_branding' in req_json:
         email_branding_id = req_json['email_branding']
@@ -247,7 +253,7 @@ def update_service(service_id):
     if 'letter_branding' in req_json:
         letter_branding_id = req_json['letter_branding']
         service.letter_branding = None if not letter_branding_id else LetterBranding.query.get(letter_branding_id)
-    service_providers.update_service(service)
+    dao_update_service(service)
 
     if service_going_live:
         send_notification_to_service_users(

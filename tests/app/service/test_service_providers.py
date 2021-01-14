@@ -6,7 +6,7 @@ from app.service.service_providers import is_provider_valid
 PROVIDER_DETAILS_BY_ID_PATH = 'app.service.service_providers.get_provider_details_by_id'
 
 
-def test_check_provider_exists(notify_db, mocker):
+def test_check_provider_exists(notify_db):
     provider_id = uuid.uuid4()
 
     assert is_provider_valid(provider_id, 'email') is False
