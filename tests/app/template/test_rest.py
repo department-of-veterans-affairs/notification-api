@@ -1135,6 +1135,24 @@ def test_preview_letter_template_by_id_invalid_file_type(
     assert ['file_type must be pdf or png'] == resp['message']['content']
 
 
+def test_should_update_template_with_a_valid_provider(admin_request, sample_email_template, ses_provider):
+    provider_id = str(ses_provider.id)
+    data = {
+        'provider_id': provider_id
+    }
+    json_resp = admin_request.post(
+        'template.update_template',
+        service_id=sample_email_template.service_id,
+        template_id=sample_email_template.id,
+        _data=data,
+        _expected_status=200)
+
+    assert json_resp['data']['provider_id'] == provider_id
+
+    updated_template = dao_get_template_by_id(sample_email_template.id)
+    assert updated_template.provider_id == ses_provider.id
+
+
 @freeze_time('2012-12-12')
 @pytest.mark.parametrize('file_type', ('png', 'pdf'))
 def test_preview_letter_template_by_id_valid_file_type(

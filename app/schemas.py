@@ -356,7 +356,7 @@ class TemplateSchema(BaseTemplateSchema):
                 raise ValidationError('Invalid template subject', 'subject')
         provider_id = data.get('provider_id')
         if provider_id is not None:
-            if not validate_providers.is_provider_valid(provider_id, data.get('notification_type')):
+            if not validate_providers.is_provider_valid(provider_id, data.get('template_type')):
                 raise ValidationError('Invalid provider id ', 'provider_id')
 
 
