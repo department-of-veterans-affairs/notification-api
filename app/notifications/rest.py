@@ -1,3 +1,5 @@
+import uuid
+
 from flask import (
     Blueprint,
     jsonify,
@@ -28,7 +30,7 @@ from app.notifications.validators import (
     check_template_is_for_notification_type,
     check_template_is_active,
     check_rate_limiting,
-    service_has_permission,
+    service_has_permission, check_provider,
 )
 from app.schemas import (
     email_notification_schema,
@@ -109,6 +111,13 @@ def send_notification(notification_type):
     check_template_is_for_notification_type(notification_type, template.template_type)
     check_template_is_active(template)
 
+    determine_provider_to_use(
+        notification_type,
+        template.provider_id,
+        authenticated_service.email_provider_id,
+        authenticated_service.sms_provider_id
+    )
+
     template_object = create_template_object_for_notification(template, notification_form.get('personalisation', {}))
 
     _service_allowed_to_send_to(notification_form, authenticated_service)
@@ -150,6 +159,26 @@ def send_notification(notification_type):
             notification_form,
             template_object)
     ), 201
+
+
+def determine_provider_to_use(
+        notification_type: str,
+        template_provider_id: uuid,
+        service_email_provider_id: uuid,
+        service_sms_provider_id: uuid
+) -> uuid:
+    validated_template_provider_id = check_provider(template_provider_id)
+
+    if validated_template_provider_id:
+        # the provider from template has highest priority, so if it is valid we'll use that one
+        return validated_template_provider_id
+
+    service_provider_id = (
+        check_provider(service_email_provider_id)
+        if notification_type == EMAIL_TYPE
+        else check_provider(service_sms_provider_id)
+    )
+    return service_provider_id
 
 
 def get_notification_return_data(notification_id, notification, template):
@@ -200,8 +229,8 @@ def create_template_object_for_notification(template, personalisation):
         raise InvalidRequest(errors, status_code=400)
 
     if (
-        template_object.template_type == SMS_TYPE and
-        template_object.content_count > SMS_CHAR_COUNT_LIMIT
+        template_object.template_type == SMS_TYPE
+        and template_object.content_count > SMS_CHAR_COUNT_LIMIT
     ):
         message = 'Content has a character count greater than the limit of {}'.format(SMS_CHAR_COUNT_LIMIT)
         errors = {'content': [message]}
