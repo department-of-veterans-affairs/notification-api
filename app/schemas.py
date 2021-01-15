@@ -355,9 +355,8 @@ class TemplateSchema(BaseTemplateSchema):
             if not subject or subject.strip() == '':
                 raise ValidationError('Invalid template subject', 'subject')
         provider_id = data.get('provider_id')
-        if provider_id is not None:
-            if not validate_providers.is_provider_valid(provider_id, data.get('template_type')):
-                raise ValidationError('Invalid provider id ', 'provider_id')
+        if provider_id is not None and not validate_providers.is_provider_valid(provider_id, data.get('template_type')):
+            raise ValidationError(f"Invalid provider id: {provider_id}", 'provider_id')
 
 
 class TemplateHistorySchema(BaseSchema):

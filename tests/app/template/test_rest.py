@@ -1153,6 +1153,72 @@ def test_should_update_template_with_a_valid_provider(admin_request, sample_emai
     assert updated_template.provider_id == ses_provider.id
 
 
+def test_should_not_update_template_with_non_existent_provider(admin_request, sample_email_template, fake_uuid):
+    data = {
+        'provider_id': fake_uuid
+    }
+    admin_request.post(
+        'template.update_template',
+        service_id=sample_email_template.service_id,
+        template_id=sample_email_template.id,
+        _data=data,
+        _expected_status=400)
+
+
+@pytest.mark.parametrize('template_type', (
+    EMAIL_TYPE,
+    SMS_TYPE
+))
+def test_should_not_update_template_with_inactive_provider(
+        mocker, admin_request, sample_email_template, fake_uuid, template_type
+):
+    data = {
+        'provider_id': fake_uuid
+    }
+    mocked_provider_details = mocker.Mock(ProviderDetails)
+    mocked_provider_details.active = False
+    mocked_provider_details.notification_type = template_type
+    mocked_provider_details.id = fake_uuid
+    mocker.patch(
+        'app.schemas.validate_providers.get_provider_details_by_id',
+        return_value=mocked_provider_details
+    )
+
+    json_resp = admin_request.post(
+        'template.update_template',
+        service_id=sample_email_template.service_id,
+        template_id=sample_email_template.id,
+        _data=data,
+        _expected_status=400)
+    assert json_resp['result'] == 'error'
+    assert json_resp['message']['provider_id'][0] == f"Invalid provider id: {fake_uuid}"
+
+
+def test_should_not_update_template_with_incorrect_provider_type(
+        mocker, admin_request, sample_email_template, fake_uuid
+):
+    data = {
+        'provider_id': fake_uuid
+    }
+    mocked_provider_details = mocker.Mock(ProviderDetails)
+    mocked_provider_details.active = True
+    mocked_provider_details.notification_type = SMS_TYPE
+    mocked_provider_details.id = fake_uuid
+    mocker.patch(
+        'app.schemas.validate_providers.get_provider_details_by_id',
+        return_value=mocked_provider_details
+    )
+
+    json_resp = admin_request.post(
+        'template.update_template',
+        service_id=sample_email_template.service_id,
+        template_id=sample_email_template.id,
+        _data=data,
+        _expected_status=400)
+    assert json_resp['result'] == 'error'
+    assert json_resp['message']['provider_id'][0] == f"Invalid provider id: {fake_uuid}"
+
+
 @freeze_time('2012-12-12')
 @pytest.mark.parametrize('file_type', ('png', 'pdf'))
 def test_preview_letter_template_by_id_valid_file_type(
