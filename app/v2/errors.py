@@ -62,6 +62,11 @@ class PDFNotReadyError(BadRequestError):
         super().__init__(message='PDF not available yet, try again later', status_code=400)
 
 
+class InactiveTemplateProviderError(Exception):
+    def __init__(self, message: str):
+        self.message = message
+
+
 def register_errors(blueprint):
     @blueprint.errorhandler(InvalidEmailError)
     def invalid_format(error):

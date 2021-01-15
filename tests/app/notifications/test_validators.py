@@ -4,7 +4,7 @@ from flask import current_app
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
 
 import app
-from app.models import SMS_TYPE, EMAIL_TYPE, LETTER_TYPE
+from app.models import SMS_TYPE, EMAIL_TYPE, LETTER_TYPE, ProviderDetails
 from app.notifications.validators import (
     check_service_over_daily_message_limit,
     check_template_is_for_notification_type,
@@ -16,13 +16,13 @@ from app.notifications.validators import (
     check_service_email_reply_to_id,
     check_service_sms_sender_id,
     check_service_letter_contact_id,
-    check_reply_to,
+    check_reply_to, check_template_provider,
 )
 
 from app.v2.errors import (
     BadRequestError,
     TooManyRequestsError,
-    RateLimitError)
+    RateLimitError, InactiveTemplateProviderError)
 
 from tests.conftest import set_config
 from tests.app.db import (
@@ -499,3 +499,44 @@ def test_check_reply_to_sms_type(sample_service):
 def test_check_reply_to_letter_type(sample_service):
     letter_contact = create_letter_contact(service=sample_service, contact_block='123456')
     assert check_reply_to(sample_service.id, letter_contact.id, LETTER_TYPE) == '123456'
+
+
+def test_check_template_provider_returns_none_if_template_has_no_provider_id(sample_template):
+    assert check_template_provider(sample_template) is None
+
+
+def test_check_template_provider_throws_exception_if_template_provider_id_is_inactive(
+        sample_template, fake_uuid, mocker
+):
+    mocked_provider_details = mocker.Mock(ProviderDetails)
+    mocked_provider_details.active = False
+    mocked_provider_details.notification_type = sample_template.template_type
+    mocked_provider_details.id = fake_uuid
+
+    mocker.patch(
+        'app.notifications.validators.get_provider_details_by_id',
+        return_value=mocked_provider_details
+    )
+
+    sample_template.provider_id = fake_uuid
+
+    with pytest.raises(InactiveTemplateProviderError) as e:
+        check_template_provider(sample_template)
+
+    assert e.value.message == f'provider {str(fake_uuid)} is not active'
+
+
+def test_check_template_provider_returns_provider_id_if_template_provider_is_valid(sample_template, fake_uuid, mocker):
+    mocked_provider_details = mocker.Mock(ProviderDetails)
+    mocked_provider_details.active = True
+    mocked_provider_details.notification_type = sample_template.template_type
+    mocked_provider_details.id = fake_uuid
+
+    mocker.patch(
+        'app.notifications.validators.get_provider_details_by_id',
+        return_value=mocked_provider_details
+    )
+
+    sample_template.provider_id = fake_uuid
+
+    assert check_template_provider(sample_template) == fake_uuid
