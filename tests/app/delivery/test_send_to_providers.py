@@ -12,6 +12,7 @@ from app import aws_sns_client, mmg_client
 from app.dao import (provider_details_dao, notifications_dao)
 from app.dao.provider_details_dao import dao_switch_sms_provider_to_provider_with_identifier
 from app.delivery import send_to_providers
+from app.delivery.send_to_providers import check_provider
 from app.exceptions import NotificationTechnicalFailureException, MalwarePendingException
 
 from app.models import (
@@ -22,8 +23,9 @@ from app.models import (
     KEY_TYPE_TEAM,
     BRANDING_ORG,
     BRANDING_BOTH,
-    BRANDING_ORG_BANNER
+    BRANDING_ORG_BANNER, ProviderDetails, EMAIL_TYPE
 )
+from app.v2.errors import InactiveTemplateProviderError
 
 from tests.app.db import (
     create_service,
@@ -47,20 +49,20 @@ def mock_source_email_address(mocker):
     return source_email_address
 
 
-def test_should_return_highest_priority_active_provider(restore_provider_details):
+def test_should_return_highest_priority_active_provider(restore_provider_details, sample_notification):
     providers = provider_details_dao.get_provider_details_by_notification_type('sms')
 
     first = providers[0]
     second = providers[1]
 
-    assert send_to_providers.provider_to_use('sms', '1234').name == first.identifier
+    assert send_to_providers.provider_to_use('sms', sample_notification).name == first.identifier
 
     first.priority, second.priority = second.priority, first.priority
 
     provider_details_dao.dao_update_provider_details(first)
     provider_details_dao.dao_update_provider_details(second)
 
-    assert send_to_providers.provider_to_use('sms', '1234').name == second.identifier
+    assert send_to_providers.provider_to_use('sms', sample_notification).name == second.identifier
 
     first.priority, second.priority = second.priority, first.priority
     first.active = False
@@ -68,15 +70,15 @@ def test_should_return_highest_priority_active_provider(restore_provider_details
     provider_details_dao.dao_update_provider_details(first)
     provider_details_dao.dao_update_provider_details(second)
 
-    assert send_to_providers.provider_to_use('sms', '1234').name == second.identifier
+    assert send_to_providers.provider_to_use('sms', sample_notification).name == second.identifier
 
     first.active = True
     provider_details_dao.dao_update_provider_details(first)
 
-    assert send_to_providers.provider_to_use('sms', '1234').name == first.identifier
+    assert send_to_providers.provider_to_use('sms', sample_notification).name == first.identifier
 
 
-def test_should_not_use_active_but_disabled_provider(mocker):
+def test_should_not_use_active_but_disabled_provider(mocker, sample_notification):
     active_provider = mocker.Mock(active=True)
     mocker.patch(
         'app.delivery.send_to_providers.get_provider_details_by_notification_type',
@@ -89,7 +91,7 @@ def test_should_not_use_active_but_disabled_provider(mocker):
     )
 
     with pytest.raises(Exception, match="No active email providers"):
-        send_to_providers.provider_to_use('email', '1234')
+        send_to_providers.provider_to_use('email', sample_notification)
 
 
 def test_should_send_personalised_template_to_correct_sms_provider_and_persist(
@@ -910,3 +912,40 @@ def test_notification_passes_if_message_contains_phone_number(
     mock_email_client.send_email.assert_called()
 
     assert Notification.query.get(db_notification.id).status == 'sending'
+
+
+def test_check_provider_returns_none_if_provider_id_is_none():
+    assert check_provider(None) is None
+
+
+def test_check_provider_throws_exception_if_provider_is_inactive(
+        fake_uuid, mocker
+):
+    mocked_provider_details = mocker.Mock(ProviderDetails)
+    mocked_provider_details.active = False
+    mocked_provider_details.notification_type = EMAIL_TYPE
+    mocked_provider_details.id = fake_uuid
+
+    mocker.patch(
+        'app.delivery.send_to_providers.get_provider_details_by_id',
+        return_value=mocked_provider_details
+    )
+
+    with pytest.raises(InactiveTemplateProviderError) as e:
+        check_provider(mocked_provider_details.id)
+
+    assert e.value.message == f'provider {str(fake_uuid)} is not active'
+
+
+def test_check_provider_returns_provider_id_if_provider_is_valid(fake_uuid, mocker):
+    mocked_provider_details = mocker.Mock(ProviderDetails)
+    mocked_provider_details.active = True
+    mocked_provider_details.notification_type = EMAIL_TYPE
+    mocked_provider_details.id = fake_uuid
+
+    mocker.patch(
+        'app.delivery.send_to_providers.get_provider_details_by_id',
+        return_value=mocked_provider_details
+    )
+
+    assert check_provider(fake_uuid) == fake_uuid

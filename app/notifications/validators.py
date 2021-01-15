@@ -1,5 +1,3 @@
-import uuid
-
 from sqlalchemy.orm.exc import NoResultFound
 from flask import current_app
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
@@ -11,14 +9,13 @@ from notifications_utils.recipients import (
 from notifications_utils.clients.redis import rate_limit_cache_key, daily_limit_cache_key
 
 from app.dao import services_dao, templates_dao
-from app.dao.provider_details_dao import get_provider_details_by_id
 from app.dao.service_sms_sender_dao import dao_get_service_sms_senders_by_id
 from app.models import (
     INTERNATIONAL_SMS_TYPE, SMS_TYPE, EMAIL_TYPE, LETTER_TYPE,
     KEY_TYPE_TEST, KEY_TYPE_TEAM, SCHEDULE_NOTIFICATIONS
 )
 from app.service.utils import service_allowed_to_send_to
-from app.v2.errors import TooManyRequestsError, BadRequestError, RateLimitError, InactiveTemplateProviderError
+from app.v2.errors import TooManyRequestsError, BadRequestError, RateLimitError
 from app import redis_store
 from app.notifications.process_notifications import create_content_for_notification
 from app.utils import get_public_notify_type_text
@@ -77,18 +74,6 @@ def check_template_is_active(template):
     if template.archived:
         raise BadRequestError(fields=[{'template': 'Template has been deleted'}],
                               message="Template has been deleted")
-
-
-def check_provider(provider_id: uuid) -> uuid:
-    if not provider_id:
-        return None
-
-    provider_details = get_provider_details_by_id(provider_id)
-    if provider_details is not None:
-        if not provider_details.active:
-            raise InactiveTemplateProviderError(f'provider {provider_id} is not active')
-        else:
-            return provider_id
 
 
 def service_can_send_to_recipient(send_to, key_type, service, allow_whitelisted_recipients=True):

@@ -8,8 +8,7 @@ from freezegun import freeze_time
 from app.dao.notifications_dao import dao_update_notification
 from app.dao.api_key_dao import save_model_api_key
 from app.dao.templates_dao import dao_update_template
-from app.models import ApiKey, KEY_TYPE_NORMAL, KEY_TYPE_TEAM, KEY_TYPE_TEST, ProviderDetails, EMAIL_TYPE, SMS_TYPE
-from app.notifications.rest import determine_provider_to_use
+from app.models import ApiKey, KEY_TYPE_NORMAL, KEY_TYPE_TEAM, KEY_TYPE_TEST
 
 from tests import create_authorization_header
 from tests.app.db import create_notification, create_api_key
@@ -572,80 +571,6 @@ def test_get_notification_selects_correct_template_for_personalisation(client,
 
     assert notis[0]['template_version'] == notis[0]['template']['version']
     assert notis[1]['template_version'] == notis[1]['template']['version']
-
-
-def test_determine_provider_to_use_returns_template_provider_id_when_valid(sample_template, mocker, fake_uuid):
-    mocked_provider_details = mocker.Mock(ProviderDetails)
-    mocked_provider_details.active = True
-    mocked_provider_details.notification_type = EMAIL_TYPE
-    mocked_provider_details.id = fake_uuid
-
-    mocker.patch(
-        'app.notifications.validators.get_provider_details_by_id',
-        return_value=mocked_provider_details
-    )
-
-    sample_template.provider_id = mocked_provider_details.id
-
-    assert determine_provider_to_use(EMAIL_TYPE, sample_template.provider_id, None, None) == fake_uuid
-
-
-def test_determine_provider_to_use_returns_service_email_provider_id_when_valid(mocker):
-    mocked_service_email_provider_details = mocker.Mock(ProviderDetails)
-    mocked_service_email_provider_details.active = True
-    mocked_service_email_provider_details.notification_type = EMAIL_TYPE
-    mocked_service_email_provider_details.id = uuid.uuid4()
-
-    mocked_service_sms_provider_details = mocker.Mock(ProviderDetails)
-    mocked_service_sms_provider_details.active = True
-    mocked_service_sms_provider_details.notification_type = SMS_TYPE
-    mocked_service_sms_provider_details.id = uuid.uuid4()
-
-    mocker.patch(
-        'app.notifications.validators.get_provider_details_by_id',
-        side_effect=[mocked_service_email_provider_details, mocked_service_sms_provider_details]
-    )
-
-    assert (
-        determine_provider_to_use(
-            EMAIL_TYPE,
-            None,
-            mocked_service_email_provider_details.id,
-            mocked_service_sms_provider_details.id
-        )
-        == mocked_service_email_provider_details.id
-    )
-
-
-def test_determine_provider_to_use_returns_service_sms_provider_id_when_valid(mocker):
-    mocked_service_email_provider_details = mocker.Mock(ProviderDetails)
-    mocked_service_email_provider_details.active = True
-    mocked_service_email_provider_details.notification_type = EMAIL_TYPE
-    mocked_service_email_provider_details.id = uuid.uuid4()
-
-    mocked_service_sms_provider_details = mocker.Mock(ProviderDetails)
-    mocked_service_sms_provider_details.active = True
-    mocked_service_sms_provider_details.notification_type = SMS_TYPE
-    mocked_service_sms_provider_details.id = uuid.uuid4()
-
-    mocker.patch(
-        'app.notifications.validators.get_provider_details_by_id',
-        side_effect=[mocked_service_email_provider_details, mocked_service_sms_provider_details]
-    )
-
-    assert (
-        determine_provider_to_use(
-            SMS_TYPE,
-            None,
-            mocked_service_email_provider_details.id,
-            mocked_service_sms_provider_details.id
-        )
-        == mocked_service_sms_provider_details.id
-    )
-
-
-def test_determine_provider_to_use_returns_none_when_all_provider_ids_are_empty():
-    assert determine_provider_to_use(SMS_TYPE, None, None, None) is None
 
 
 def _create_auth_header_from_key(api_key):

@@ -1,4 +1,5 @@
 import re
+import uuid
 from datetime import datetime
 
 import requests
@@ -18,7 +19,7 @@ from app.dao.notifications_dao import (
 )
 from app.dao.provider_details_dao import (
     get_provider_details_by_notification_type,
-    dao_toggle_sms_provider
+    dao_toggle_sms_provider, get_provider_details_by_id
 )
 from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import NotificationTechnicalFailureException, MalwarePendingException
@@ -33,9 +34,10 @@ from app.models import (
     NOTIFICATION_VIRUS_SCAN_FAILED,
     NOTIFICATION_CONTAINS_PII,
     NOTIFICATION_SENT,
-    NOTIFICATION_SENDING
+    NOTIFICATION_SENDING, Notification
 )
 from app.service.utils import compute_source_email_address_with_display_name
+from app.v2.errors import InactiveTemplateProviderError
 
 
 def send_sms_to_provider(notification):
@@ -46,7 +48,7 @@ def send_sms_to_provider(notification):
         return
 
     if notification.status == 'created':
-        provider = provider_to_use(SMS_TYPE, notification.id, notification.international)
+        provider = provider_to_use(SMS_TYPE, notification, notification.international)
 
         template_model = dao_get_template_by_id(notification.template_id, notification.template_version)
 
@@ -93,7 +95,7 @@ def send_email_to_provider(notification):
 
     # TODO: no else - replace with if statement raising error / logging when not 'created'
     if notification.status == 'created':
-        provider = provider_to_use(EMAIL_TYPE, notification.id)
+        provider = provider_to_use(EMAIL_TYPE, notification)
 
         # TODO: remove that code or extract attachment handling to separate method
         # Extract any file objects from the personalization
@@ -107,9 +109,9 @@ def send_email_to_provider(notification):
         for key in file_keys:
 
             # Check if a MLWR sid exists
-            if (current_app.config["MLWR_HOST"] and
-                    'mlwr_sid' in personalisation_data[key]['document'] and
-                    personalisation_data[key]['document']['mlwr_sid'] != "false"):
+            if (current_app.config["MLWR_HOST"]
+                    and 'mlwr_sid' in personalisation_data[key]['document']
+                    and personalisation_data[key]['document']['mlwr_sid'] != "false"):
 
                 mlwr_result = check_mlwr(personalisation_data[key]['document']['mlwr_sid'])
 
@@ -186,14 +188,41 @@ def should_use_provider(provider):
     return provider.active and is_provider_enabled(current_app, provider.identifier)
 
 
-def provider_to_use(notification_type, notification_id, international=False):
+def check_provider(provider_id: uuid) -> uuid:
+    if not provider_id:
+        return None
+
+    provider_details = get_provider_details_by_id(provider_id)
+    if provider_details is not None:
+        if not provider_details.active:
+            raise InactiveTemplateProviderError(f'provider {provider_id} is not active')
+        else:
+            return provider_id
+
+
+def provider_to_use(notification_type, notification: Notification, international=False):
+    validated_template_provider_id = check_provider(notification.template.provider_id)
+
+    if validated_template_provider_id:
+        # the provider from template has highest priority, so if it is valid we'll use that one
+        return clients.get_client_by_name_and_type(validated_template_provider_id, notification_type)
+
+    service_provider_id = (
+        check_provider(notification.service.email_provider_id)
+        if notification_type == EMAIL_TYPE
+        else check_provider(notification.service.sms_provider_id)
+    )
+
+    if service_provider_id:
+        return clients.get_client_by_name_and_type(service_provider_id, notification_type)
+
     active_providers_in_order = [
         p for p in get_provider_details_by_notification_type(notification_type, international) if should_use_provider(p)
     ]
 
     if not active_providers_in_order:
         current_app.logger.error(
-            "{} {} failed as no active providers".format(notification_type, notification_id)
+            "{} {} failed as no active providers".format(notification_type, notification.id)
         )
         raise Exception("No active {} providers".format(notification_type))
 
