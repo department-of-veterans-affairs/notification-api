@@ -16,7 +16,7 @@ from app.notifications.validators import (
     check_service_email_reply_to_id,
     check_service_sms_sender_id,
     check_service_letter_contact_id,
-    check_reply_to, check_template_provider,
+    check_reply_to, check_provider,
 )
 
 from app.v2.errors import (
@@ -501,16 +501,16 @@ def test_check_reply_to_letter_type(sample_service):
     assert check_reply_to(sample_service.id, letter_contact.id, LETTER_TYPE) == '123456'
 
 
-def test_check_template_provider_returns_none_if_template_has_no_provider_id(sample_template):
-    assert check_template_provider(sample_template) is None
+def test_check_provider_returns_none_if_provider_id_is_none():
+    assert check_provider(None) is None
 
 
-def test_check_template_provider_throws_exception_if_template_provider_id_is_inactive(
-        sample_template, fake_uuid, mocker
+def test_check_provider_throws_exception_if_provider_is_inactive(
+        fake_uuid, mocker
 ):
     mocked_provider_details = mocker.Mock(ProviderDetails)
     mocked_provider_details.active = False
-    mocked_provider_details.notification_type = sample_template.template_type
+    mocked_provider_details.notification_type = EMAIL_TYPE
     mocked_provider_details.id = fake_uuid
 
     mocker.patch(
@@ -518,18 +518,16 @@ def test_check_template_provider_throws_exception_if_template_provider_id_is_ina
         return_value=mocked_provider_details
     )
 
-    sample_template.provider_id = fake_uuid
-
     with pytest.raises(InactiveTemplateProviderError) as e:
-        check_template_provider(sample_template)
+        check_provider(mocked_provider_details.id)
 
     assert e.value.message == f'provider {str(fake_uuid)} is not active'
 
 
-def test_check_template_provider_returns_provider_id_if_template_provider_is_valid(sample_template, fake_uuid, mocker):
+def test_check_provider_returns_provider_id_if_provider_is_valid(fake_uuid, mocker):
     mocked_provider_details = mocker.Mock(ProviderDetails)
     mocked_provider_details.active = True
-    mocked_provider_details.notification_type = sample_template.template_type
+    mocked_provider_details.notification_type = EMAIL_TYPE
     mocked_provider_details.id = fake_uuid
 
     mocker.patch(
@@ -537,6 +535,4 @@ def test_check_template_provider_returns_provider_id_if_template_provider_is_val
         return_value=mocked_provider_details
     )
 
-    sample_template.provider_id = fake_uuid
-
-    assert check_template_provider(sample_template) == fake_uuid
+    assert check_provider(fake_uuid) == fake_uuid

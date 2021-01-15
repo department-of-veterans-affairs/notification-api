@@ -15,7 +15,7 @@ from app.dao.provider_details_dao import get_provider_details_by_id
 from app.dao.service_sms_sender_dao import dao_get_service_sms_senders_by_id
 from app.models import (
     INTERNATIONAL_SMS_TYPE, SMS_TYPE, EMAIL_TYPE, LETTER_TYPE,
-    KEY_TYPE_TEST, KEY_TYPE_TEAM, SCHEDULE_NOTIFICATIONS, Template
+    KEY_TYPE_TEST, KEY_TYPE_TEAM, SCHEDULE_NOTIFICATIONS
 )
 from app.service.utils import service_allowed_to_send_to
 from app.v2.errors import TooManyRequestsError, BadRequestError, RateLimitError, InactiveTemplateProviderError
@@ -79,9 +79,7 @@ def check_template_is_active(template):
                               message="Template has been deleted")
 
 
-def check_template_provider(template: Template) -> uuid:
-    provider_id = template.provider_id
-
+def check_provider(provider_id: uuid) -> uuid:
     if not provider_id:
         return None
 
