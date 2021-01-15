@@ -261,15 +261,13 @@ class ServiceSchema(BaseSchema):
 
     @validates('email_provider_id')
     def validate_email_provider_id(self, value):
-        if value:
-            if not validate_providers.is_provider_valid(value, EMAIL_TYPE):
-                raise ValidationError(f"Invalid email_provider_id: {value}")
+        if value and not validate_providers.is_provider_valid(value, EMAIL_TYPE):
+            raise ValidationError(f"Invalid email_provider_id: {value}")
 
     @validates('sms_provider_id')
     def validate_sms_provider_id(self, value):
-        if value:
-            if not validate_providers.is_provider_valid(value, SMS_TYPE):
-                raise ValidationError(f"Invalid sms_provider_id: {value}")
+        if value and not validate_providers.is_provider_valid(value, SMS_TYPE):
+            raise ValidationError(f"Invalid sms_provider_id: {value}")
 
     @pre_load()
     def format_for_data_model(self, in_data):

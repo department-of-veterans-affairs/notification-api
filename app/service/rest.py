@@ -93,7 +93,6 @@ from app.models import (
 from app.notifications.process_notifications import persist_notification, send_notification_to_queue
 from app.schema_validation import validate
 from app.service import statistics
-from app.provider_details import validate_providers
 from app.service.service_data_retention_schema import (
     add_service_data_retention_request,
     update_service_data_retention_request
@@ -219,8 +218,6 @@ def create_service():
         raise InvalidRequest(errors, status_code=400)
     data.pop('service_domain', None)
 
-    # validate_providers.validate_service_providers(data)
-
     # validate json with marshmallow
     service_schema.load(data)
 
@@ -237,8 +234,6 @@ def create_service():
 @service_blueprint.route('/<uuid:service_id>', methods=['POST'])
 def update_service(service_id):
     req_json = request.get_json()
-
-    # validate_providers.validate_service_providers(req_json)
 
     fetched_service = dao_fetch_service_by_id(service_id)
     # Capture the status change here as Marshmallow changes this later

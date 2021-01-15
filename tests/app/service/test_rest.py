@@ -614,12 +614,13 @@ def test_should_not_create_service_with_non_existent_provider(
         'active': False,
         'email_from': 'created.service',
         'created_by': str(sample_user.id),
-        f"{notification_type}_provider_id": str(fake_uuid)
+        f'{notification_type}_provider_id': str(fake_uuid)
     }
 
     response = admin_request.post('service.create_service', _data=data, _expected_status=400)
     assert response['result'] == 'error'
-    assert f"Invalid {notification_type}_provider_id" in response['message']
+    assert (response['message'][f'{notification_type}_provider_id'][0]
+            == f'Invalid {notification_type}_provider_id: {str(fake_uuid)}')
 
 
 @pytest.mark.parametrize('notification_type', (
@@ -641,7 +642,7 @@ def test_should_not_create_service_with_inactive_provider(
         'active': False,
         'email_from': 'created.service',
         'created_by': str(sample_user.id),
-        f"{notification_type}_provider_id": str(fake_uuid)
+        f'{notification_type}_provider_id': str(fake_uuid)
     }
 
     mocked_provider_details = mocker.Mock(ProviderDetails)
@@ -649,13 +650,14 @@ def test_should_not_create_service_with_inactive_provider(
     mocked_provider_details.notification_type = notification_type
     mocked_provider_details.id = fake_uuid
     mocker.patch(
-        'app.service.rest.validate_providers.get_provider_details_by_id',
+        'app.schemas.validate_providers.get_provider_details_by_id',
         return_value=mocked_provider_details
     )
 
     response = admin_request.post('service.create_service', _data=data, _expected_status=400)
     assert response['result'] == 'error'
-    assert response['message'] == f"invalid {notification_type}_provider_id"
+    assert (response['message'][f'{notification_type}_provider_id'][0]
+            == f'Invalid {notification_type}_provider_id: {str(fake_uuid)}')
 
 
 @pytest.mark.parametrize('notification_type', (
@@ -677,7 +679,7 @@ def test_should_not_create_service_with_incorrect_provider_notification_type(
         'active': False,
         'email_from': 'created.service',
         'created_by': str(sample_user.id),
-        f"{notification_type}_provider_id": str(fake_uuid)
+        f'{notification_type}_provider_id': str(fake_uuid)
     }
 
     mocked_provider_details = mocker.Mock(ProviderDetails)
@@ -685,13 +687,14 @@ def test_should_not_create_service_with_incorrect_provider_notification_type(
     mocked_provider_details.notification_type = LETTER_TYPE
     mocked_provider_details.id = fake_uuid
     mocker.patch(
-        'app.service.rest.validate_providers.get_provider_details_by_id',
+        'app.schemas.validate_providers.get_provider_details_by_id',
         return_value=mocked_provider_details
     )
 
     response = admin_request.post('service.create_service', _data=data, _expected_status=400)
     assert response['result'] == 'error'
-    assert response['message'] == f"invalid {notification_type}_provider_id"
+    assert (response['message'][f'{notification_type}_provider_id'][0]
+            == f'Invalid {notification_type}_provider_id: {str(fake_uuid)}')
 
 
 def test_update_service(client, notify_db, sample_service):
@@ -760,7 +763,7 @@ def test_should_not_update_service_with_inactive_provider(
     mocker
 ):
     data = {
-        f"{notification_type}_provider_id": str(fake_uuid)
+        f'{notification_type}_provider_id': str(fake_uuid)
     }
 
     mocked_provider_details = mocker.Mock(ProviderDetails)
@@ -768,7 +771,7 @@ def test_should_not_update_service_with_inactive_provider(
     mocked_provider_details.notification_type = notification_type
     mocked_provider_details.id = fake_uuid
     mocker.patch(
-        'app.service.rest.validate_providers.get_provider_details_by_id',
+        'app.schemas.validate_providers.get_provider_details_by_id',
         return_value=mocked_provider_details
     )
 
@@ -779,7 +782,8 @@ def test_should_not_update_service_with_inactive_provider(
         _expected_status=400
     )
     assert response['result'] == 'error'
-    assert response['message'] == f"invalid {notification_type}_provider_id"
+    assert (response['message'][f'{notification_type}_provider_id'][0]
+            == f'Invalid {notification_type}_provider_id: {str(fake_uuid)}')
 
 
 @pytest.mark.parametrize('notification_type', (
@@ -795,7 +799,7 @@ def test_should_not_update_service_with_incorrect_provider_notification_type(
         mocker
 ):
     data = {
-        f"{notification_type}_provider_id": str(fake_uuid)
+        f'{notification_type}_provider_id': str(fake_uuid)
     }
 
     mocked_provider_details = mocker.Mock(ProviderDetails)
@@ -803,7 +807,7 @@ def test_should_not_update_service_with_incorrect_provider_notification_type(
     mocked_provider_details.notification_type = LETTER_TYPE
     mocked_provider_details.id = fake_uuid
     mocker.patch(
-        'app.service.rest.validate_providers.get_provider_details_by_id',
+        'app.schemas.validate_providers.get_provider_details_by_id',
         return_value=mocked_provider_details
     )
 
@@ -814,7 +818,8 @@ def test_should_not_update_service_with_incorrect_provider_notification_type(
         _expected_status=400
     )
     assert response['result'] == 'error'
-    assert response['message'] == f"invalid {notification_type}_provider_id"
+    assert (response['message'][f'{notification_type}_provider_id'][0]
+            == f'Invalid {notification_type}_provider_id: {str(fake_uuid)}')
 
 
 @pytest.mark.parametrize('notification_type', (
@@ -829,7 +834,7 @@ def test_should_not_update_service_with_nonexistent_provider(
         fake_uuid
 ):
     data = {
-        f"{notification_type}_provider_id": str(fake_uuid)
+        f'{notification_type}_provider_id': str(fake_uuid)
     }
 
     response = admin_request.post(
@@ -839,7 +844,8 @@ def test_should_not_update_service_with_nonexistent_provider(
         _expected_status=400
     )
     assert response['result'] == 'error'
-    assert response['message'] == f"invalid {notification_type}_provider_id"
+    assert (response['message'][f'{notification_type}_provider_id'][0]
+            == f'Invalid {notification_type}_provider_id: {str(fake_uuid)}')
 
 
 def test_cant_update_service_org_type_to_random_value(client, sample_service):
