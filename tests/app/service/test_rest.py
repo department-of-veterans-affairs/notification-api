@@ -619,7 +619,7 @@ def test_should_not_create_service_with_non_existent_provider(
 
     response = admin_request.post('service.create_service', _data=data, _expected_status=400)
     assert response['result'] == 'error'
-    assert response['message'] == f"invalid {notification_type}_provider_id"
+    assert f"Invalid {notification_type}_provider_id" in response['message']
 
 
 @pytest.mark.parametrize('notification_type', (

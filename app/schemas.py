@@ -24,8 +24,9 @@ from notifications_utils.recipients import (
 
 from app import ma
 from app import models
-from app.models import ServicePermission
+from app.models import ServicePermission, EMAIL_TYPE, SMS_TYPE
 from app.dao.permissions_dao import permission_dao
+from app.provider_details import validate_providers
 from app.utils import get_template_instance
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
@@ -258,6 +259,18 @@ class ServiceSchema(BaseSchema):
             duplicates = list(set([x for x in permissions if permissions.count(x) > 1]))
             raise ValidationError('Duplicate Service Permission: {}'.format(duplicates))
 
+    @validates('email_provider_id')
+    def validate_email_provider_id(self, value):
+        if value:
+            if not validate_providers.is_provider_valid(value, EMAIL_TYPE):
+                raise ValidationError(f"Invalid email_provider_id: {value}")
+
+    @validates('sms_provider_id')
+    def validate_sms_provider_id(self, value):
+        if value:
+            if not validate_providers.is_provider_valid(value, SMS_TYPE):
+                raise ValidationError(f"Invalid sms_provider_id: {value}")
+
     @pre_load()
     def format_for_data_model(self, in_data):
         if isinstance(in_data, dict) and 'permissions' in in_data:
@@ -343,6 +356,10 @@ class TemplateSchema(BaseTemplateSchema):
             subject = data.get('subject')
             if not subject or subject.strip() == '':
                 raise ValidationError('Invalid template subject', 'subject')
+        provider_id = data.get('provider_id')
+        if provider_id is not None:
+            if not validate_providers.is_provider_valid(provider_id, data.get('notification_type')):
+                raise ValidationError('Invalid provider id ', 'provider_id')
 
 
 class TemplateHistorySchema(BaseSchema):
