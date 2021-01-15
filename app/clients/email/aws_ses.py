@@ -52,9 +52,9 @@ class AwsSesClient(EmailClient):
     Amazon SES email client.
     '''
 
-    def init_app(self, region, email_from_domain, email_from_user, default_reply_to,
-                 logger, statsd_client, configuration_set=None, *args, **kwargs):
-        self._client = boto3.client('ses', region_name=region)
+    def init_app(self, region, logger, statsd_client, email_from_domain=None, email_from_user=None,
+                 default_reply_to=None, configuration_set=None, endpoint_url=None, *args, **kwargs):
+        self._client = boto3.client('ses', region_name=region, endpoint_url=endpoint_url)
         super(AwsSesClient, self).__init__(*args, **kwargs)
         self.name = 'ses'
         self.statsd_client = statsd_client

@@ -109,12 +109,13 @@ def create_app(application):
     )
     aws_ses_client.init_app(
         application.config['AWS_REGION'],
+        logger=application.logger,
+        statsd_client=statsd_client,
         email_from_domain=application.config['AWS_SES_EMAIL_FROM_DOMAIN'],
         email_from_user=application.config['AWS_SES_EMAIL_FROM_USER'],
         default_reply_to=application.config['AWS_SES_DEFAULT_REPLY_TO'],
-        logger=application.logger,
-        statsd_client=statsd_client,
-        configuration_set=application.config['AWS_SES_CONFIGURATION_SET']
+        configuration_set=application.config['AWS_SES_CONFIGURATION_SET'],
+        endpoint_url=application.config['AWS_SES_ENDPOINT_URL']
     )
     send_grid_client.init_app(application.config['SENDGRID_API_KEY'], statsd_client=statsd_client)
     govdelivery_client.init_app(application.config['GRANICUS_TOKEN'], application.config['GRANICUS_URL'], statsd_client)

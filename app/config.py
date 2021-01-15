@@ -148,6 +148,7 @@ class Config(object):
     AWS_SES_EMAIL_FROM_USER = os.getenv('AWS_SES_EMAIL_FROM_USER')
     AWS_SES_DEFAULT_REPLY_TO = os.getenv('AWS_SES_DEFAULT_REPLY_TO')
     AWS_SES_CONFIGURATION_SET = os.getenv('AWS_SES_CONFIGURATION_SET')
+    AWS_SES_ENDPOINT_URL = os.getenv('AWS_SES_ENDPOINT_URL', 'https://email-fips.us-gov-west-1.amazonaws.com')
     AWS_PINPOINT_APP_ID = os.getenv('AWS_PINPOINT_APP_ID', 'df55c01206b742d2946ef226410af94f')
     CSV_UPLOAD_BUCKET_NAME = os.getenv('CSV_UPLOAD_BUCKET_NAME', 'notification-alpha-canada-ca-csv-upload')
     ASSET_UPLOAD_BUCKET_NAME = os.getenv('ASSET_UPLOAD_BUCKET_NAME', 'dev-notifications-va-gov-assets')
@@ -507,6 +508,7 @@ class Test(Development):
     AWS_SES_EMAIL_FROM_USER = 'test from user'
     AWS_SES_DEFAULT_REPLY_TO = 'default-ses@reply.to'
     AWS_SES_CONFIGURATION_SET = 'test-configuration-set'
+    AWS_SES_ENDPOINT_URL = "https://test.ses.endpoint"
 
 
 class Staging(Config):

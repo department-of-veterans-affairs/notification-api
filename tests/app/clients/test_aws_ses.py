@@ -57,6 +57,24 @@ def test_should_be_none_if_unrecognised_status_code():
     assert '99' in str(e.value)
 
 
+@pytest.mark.parametrize('endpoint_url, expected', [
+    (None, 'https://email.us-gov-west-1.amazonaws.com'),
+    ('https://email-fips.us-gov-west-1.amazonaws.com', 'https://email-fips.us-gov-west-1.amazonaws.com')
+],
+    ids=['default_endpoint_for_region', 'custom_fips_endpoint'])
+def test_should_use_correct_enpdoint_url_in_boto(endpoint_url, expected):
+    aws_ses_client.init_app(
+        config.Test.AWS_REGION,
+        None,
+        None,
+        endpoint_url=endpoint_url)
+    assert aws_ses_client._client._endpoint.host == expected
+
+
+def test_should_use_enpdoint_from_config(notify_api):
+    assert aws_ses_client._client._endpoint.host == config.Test.AWS_SES_ENDPOINT_URL
+
+
 def test_send_email_uses_from_address(notify_api, ses_client, boto_mock):
     from_address = 'from@address.com'
     with notify_api.app_context():
