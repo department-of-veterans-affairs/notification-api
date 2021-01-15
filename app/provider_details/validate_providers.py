@@ -1,5 +1,3 @@
-import uuid
-
 from app.dao.provider_details_dao import get_provider_details_by_id
 from app.errors import InvalidRequest
 from app.models import EMAIL_TYPE, SMS_TYPE
@@ -15,7 +13,7 @@ def validate_service_providers(update_request: dict):
         throw_invalid_request_error('sms')
 
 
-def is_provider_valid(provider_id: uuid, notification_type: str) -> bool:
+def is_provider_valid(provider_id: str, notification_type: str) -> bool:
     provider_details = get_provider_details_by_id(provider_id)
     return (
         provider_details is not None
