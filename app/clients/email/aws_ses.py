@@ -53,7 +53,7 @@ class AwsSesClient(EmailClient):
     '''
 
     def init_app(self, region, email_from_domain, email_from_user, default_reply_to,
-                 logger, statsd_client, *args, **kwargs):
+                 logger, statsd_client, configuration_set=None, *args, **kwargs):
         self._client = boto3.client('ses', region_name=region)
         super(AwsSesClient, self).__init__(*args, **kwargs)
         self.name = 'ses'
@@ -61,6 +61,7 @@ class AwsSesClient(EmailClient):
         self._email_from_domain = email_from_domain
         self._email_from_user = email_from_user
         self._default_reply_to_address = default_reply_to
+        self._configuration_set = configuration_set
         self.logger = logger
 
     def get_name(self):
@@ -111,7 +112,8 @@ class AwsSesClient(EmailClient):
             start_time = monotonic()
             response = self._client.send_raw_email(
                 Source=source,
-                RawMessage={'Data': msg.as_string()}
+                RawMessage={'Data': msg.as_string()},
+                ConfigurationSetName=self._configuration_set
             )
         except botocore.exceptions.ClientError as e:
             self.statsd_client.incr("clients.ses.error")

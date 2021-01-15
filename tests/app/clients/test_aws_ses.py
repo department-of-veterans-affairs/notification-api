@@ -57,6 +57,33 @@ def test_should_be_none_if_unrecognised_status_code():
     assert '99' in str(e.value)
 
 
+def test_send_email_uses_from_address(notify_api, ses_client, boto_mock):
+    from_address = 'from@address.com'
+    with notify_api.app_context():
+        ses_client.send_email(
+            from_address,
+            to_addresses='foo@bar.com',
+            subject='Subject',
+            body='Body',
+        )
+
+    actual = boto_mock.send_raw_email.call_args[1]['Source']
+    assert actual == from_address
+
+
+def test_send_email_uses_configuration_set(notify_api, ses_client, boto_mock):
+    with notify_api.app_context():
+        ses_client.send_email(
+            'from@address.com',
+            to_addresses='foo@bar.com',
+            subject='Subject',
+            body='Body',
+        )
+
+    actual = boto_mock.send_raw_email.call_args[1]['ConfigurationSetName']
+    assert actual == config.Test.AWS_SES_CONFIGURATION_SET
+
+
 @pytest.mark.parametrize('reply_to_address, expected_value', [
     (None, config.Test.AWS_SES_DEFAULT_REPLY_TO),
     ('foo@bar.com', 'foo@bar.com')
