@@ -2,11 +2,30 @@ name: Load test
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'The target environment (dev, staging, ...)'
+        required: true
+        default: 'dev'
+      run_time:
+        description: 'Stop after the specified amount of time, e.g. (300s, 20m, 3h, 1h30m, etc.)'
+        required: true
+        default: '1m'
+      num_users:
+        description: 'Number of concurrent Locust users.'
+        required: true
+        default: '5'
+      spawn_rate:
+        description: 'The rate per second in which users are spawned.'
+        required: true
+        default: '1'
 
 jobs:
   trigger:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+
       - name: Configure VAEC AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -18,21 +37,10 @@ jobs:
           role-duration-seconds: 900
 
       - name: Invoke load test
-        shell: bash {0}
-        run: |
-          INSTANCE_ID=$(aws ssm get-parameter --name /utility/locust/instance | jq '.Parameter.Value' -r)
-          COMMAND_ID=$(aws ssm send-command \
-            --document-name "AWS-RunShellScript" \
-            --instance-ids $INSTANCE_ID \
-            --parameters '{"commands":[
-                "#!/bin/bash",
-                "locust -f notification-api/load_testing/locustfile.py --headless -u 1 -r 1 --host http://dev.api.notifications.va.gov --run-time 5s"
-              ]}' \
-            --output text --query "Command.CommandId")
-          aws ssm wait command-executed --command-id $COMMAND_ID --instance-id $INSTANCE_ID ; \
-          RESULT=$(aws ssm list-command-invocations \
-            --command-id $COMMAND_ID \
-            --details \
-            --query "CommandInvocations[].CommandPlugins[].{Status:Status,StatusDetails:StatusDetails,ResponseCode:ResponseCode,Output:Output}")
-          echo $RESULT
-          exit `jq '.[].ResponseCode' <<< $RESULT`
+        uses: ./.github/actions/run-commands-on-ec2
+        with:
+          instance-id-ssm-parameter-path: /utility/locust/instance
+          commands: >-
+            "su - locust -c \"cd notification-api && git pull\"",
+            "su - locust -c \"locust -f notification-api/load_testing/locustfile.py --headless -u ${{ github.event.inputs.num_users }} -r ${{ github.event.inputs.spawn_rate }} --host https://${{ github.event.inputs.environment }}.api.notifications.va.gov --run-time ${{ github.event.inputs.run_time }} --csv results 2>/dev/null\"",
+            "su - locust -c \"cat results_stats.csv\""

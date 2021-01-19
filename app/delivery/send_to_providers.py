@@ -34,9 +34,10 @@ from app.models import (
     NOTIFICATION_VIRUS_SCAN_FAILED,
     NOTIFICATION_CONTAINS_PII,
     NOTIFICATION_SENT,
-    NOTIFICATION_SENDING, Notification
+    NOTIFICATION_SENDING,
+    Notification
 )
-from app.service.utils import compute_source_email_address_with_display_name
+from app.service.utils import compute_source_email_address
 
 
 def send_sms_to_provider(notification):
@@ -109,8 +110,8 @@ def send_email_to_provider(notification):
 
             # Check if a MLWR sid exists
             if (current_app.config["MLWR_HOST"]
-                    and 'mlwr_sid' in personalisation_data[key]['document']
-                    and personalisation_data[key]['document']['mlwr_sid'] != "false"):
+               and 'mlwr_sid' in personalisation_data[key]['document']
+               and personalisation_data[key]['document']['mlwr_sid'] != "false"):
 
                 mlwr_result = check_mlwr(personalisation_data[key]['document']['mlwr_sid'])
 
@@ -158,7 +159,7 @@ def send_email_to_provider(notification):
             email_reply_to = notification.reply_to_text
 
             reference = provider.send_email(
-                source=compute_source_email_address_with_display_name(service),
+                source=compute_source_email_address(service, provider),
                 to_addresses=validate_and_format_email_address(notification.to),
                 subject=plain_text_email.subject,
                 body=str(plain_text_email),
