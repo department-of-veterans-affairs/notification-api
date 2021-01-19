@@ -913,8 +913,8 @@ def test_notification_passes_if_message_contains_phone_number(
     assert Notification.query.get(db_notification.id).status == 'sending'
 
 
-def test_check_provider_returns_none_if_provider_id_is_none():
-    assert check_provider(None) is None
+def test_check_provider_does_not_raise_exception_if_provider_id_is_none():
+    check_provider(None)
 
 
 def test_check_provider_throws_exception_if_provider_is_inactive(
@@ -930,13 +930,11 @@ def test_check_provider_throws_exception_if_provider_is_inactive(
         return_value=mocked_provider_details
     )
 
-    with pytest.raises(InvalidProviderException) as e:
+    with pytest.raises(InvalidProviderException, match=f'^provider {str(fake_uuid)} is not active$'):
         check_provider(mocked_provider_details.id)
 
-    assert str(e.value) == f'provider {str(fake_uuid)} is not active'
 
-
-def test_check_provider_returns_provider_id_if_provider_is_valid(fake_uuid, mocker):
+def test_check_provider_does_not_raise_exception_if_provider_is_valid(fake_uuid, mocker):
     mocked_provider_details = mocker.Mock(ProviderDetails)
     mocked_provider_details.active = True
     mocked_provider_details.notification_type = EMAIL_TYPE
@@ -947,4 +945,4 @@ def test_check_provider_returns_provider_id_if_provider_is_valid(fake_uuid, mock
         return_value=mocked_provider_details
     )
 
-    assert check_provider(fake_uuid) == fake_uuid
+    check_provider(fake_uuid)
