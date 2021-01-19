@@ -13,7 +13,7 @@ from app.dao import (provider_details_dao, notifications_dao)
 from app.dao.provider_details_dao import dao_switch_sms_provider_to_provider_with_identifier
 from app.delivery import send_to_providers
 from app.delivery.send_to_providers import check_provider
-from app.exceptions import NotificationTechnicalFailureException, MalwarePendingException
+from app.exceptions import NotificationTechnicalFailureException, MalwarePendingException, InvalidProviderException
 
 from app.models import (
     Notification,
@@ -25,7 +25,6 @@ from app.models import (
     BRANDING_BOTH,
     BRANDING_ORG_BANNER, ProviderDetails, EMAIL_TYPE
 )
-from app.v2.errors import InactiveTemplateProviderError
 
 from tests.app.db import (
     create_service,
@@ -931,10 +930,10 @@ def test_check_provider_throws_exception_if_provider_is_inactive(
         return_value=mocked_provider_details
     )
 
-    with pytest.raises(InactiveTemplateProviderError) as e:
+    with pytest.raises(InvalidProviderException) as e:
         check_provider(mocked_provider_details.id)
 
-    assert e.value.message == f'provider {str(fake_uuid)} is not active'
+    assert str(e.value) == f'provider {str(fake_uuid)} is not active'
 
 
 def test_check_provider_returns_provider_id_if_provider_is_valid(fake_uuid, mocker):

@@ -22,7 +22,7 @@ from app.dao.provider_details_dao import (
     dao_toggle_sms_provider, get_provider_details_by_id
 )
 from app.dao.templates_dao import dao_get_template_by_id
-from app.exceptions import NotificationTechnicalFailureException, MalwarePendingException
+from app.exceptions import NotificationTechnicalFailureException, MalwarePendingException, InvalidProviderException
 from app.feature_flags import is_provider_enabled, is_gapixel_enabled
 from app.models import (
     SMS_TYPE,
@@ -37,7 +37,6 @@ from app.models import (
     NOTIFICATION_SENDING, Notification
 )
 from app.service.utils import compute_source_email_address_with_display_name
-from app.v2.errors import InactiveTemplateProviderError
 
 
 def send_sms_to_provider(notification):
@@ -195,7 +194,7 @@ def check_provider(provider_id: uuid) -> uuid:
     provider_details = get_provider_details_by_id(provider_id)
     if provider_details is not None:
         if not provider_details.active:
-            raise InactiveTemplateProviderError(f'provider {provider_id} is not active')
+            raise InvalidProviderException(f'provider {provider_id} is not active')
         else:
             return provider_id
 
