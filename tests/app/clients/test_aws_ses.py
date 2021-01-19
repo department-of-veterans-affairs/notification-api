@@ -4,7 +4,7 @@ import pytest
 from notifications_utils.recipients import InvalidEmailError
 
 from app import aws_ses_client, config
-from app.clients.email.aws_ses import get_aws_responses, AwsSesClientException
+from app.clients.email.aws_ses import get_aws_responses, AwsSesClientException, AwsSesClient
 
 
 @pytest.fixture
@@ -15,7 +15,7 @@ def ses_client(mocker):
 
 @pytest.fixture
 def boto_mock(ses_client, mocker):
-    boto_mock = mocker.patch.object(aws_ses_client, '_client', create=True)
+    boto_mock = mocker.patch.object(ses_client, '_client', create=True)
     return boto_mock
 
 
@@ -63,6 +63,7 @@ def test_should_be_none_if_unrecognised_status_code():
 ],
     ids=['default_endpoint_for_region', 'custom_fips_endpoint'])
 def test_should_use_correct_enpdoint_url_in_boto(endpoint_url, expected):
+    aws_ses_client = AwsSesClient()
     aws_ses_client.init_app(
         config.Test.AWS_REGION,
         None,
