@@ -504,6 +504,7 @@ class Test(Development):
 
     GOOGLE_ANALYTICS_ENABLED = True
 
+    AWS_REGION = "us-gov-west-1"
     AWS_SES_EMAIL_FROM_DOMAIN = 'test domain'
     AWS_SES_EMAIL_FROM_USER = 'test from user'
     AWS_SES_DEFAULT_REPLY_TO = 'default-ses@reply.to'
