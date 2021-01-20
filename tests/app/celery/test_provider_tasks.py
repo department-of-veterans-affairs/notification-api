@@ -88,7 +88,8 @@ def test_should_technical_error_and_not_retry_if_invalid_email(sample_notificati
     mocker.patch('app.delivery.send_to_providers.send_email_to_provider', side_effect=InvalidEmailError('bad email'))
     mocker.patch('app.celery.provider_tasks.deliver_email.retry')
 
-    deliver_email(sample_notification.id)
+    with pytest.raises(NotificationTechnicalFailureException):
+        deliver_email(sample_notification.id)
 
     assert provider_tasks.deliver_email.retry.called is False
     assert sample_notification.status == 'technical-failure'
@@ -101,7 +102,8 @@ def test_should_technical_error_and_not_retry_if_invalid_provider(sample_notific
     )
     mocker.patch('app.celery.provider_tasks.deliver_email.retry')
 
-    deliver_email(sample_notification.id)
+    with pytest.raises(NotificationTechnicalFailureException):
+        deliver_email(sample_notification.id)
 
     assert provider_tasks.deliver_email.retry.called is False
     assert sample_notification.status == 'technical-failure'
