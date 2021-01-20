@@ -3,6 +3,7 @@ from datetime import datetime
 from unittest.mock import ANY
 
 import pytest
+import os
 from flask import current_app
 from notifications_utils.recipients import validate_and_format_phone_number
 from requests import HTTPError
@@ -966,6 +967,7 @@ def test_check_provider_returns_provider_details_if_provider_is_valid(fake_uuid,
 
 
 def test_provider_to_use_should_return_template_provider(fake_uuid, mocker):
+    mocker.patch.dict(os.environ, {'TEMPLATE_SERVICE_PROVIDERS_ENABLED': 'True'})
     client_name = 'template-client'
     mocked_client = mocker.Mock(EmailClient)
     mocker.patch.object(mocked_client, 'get_name', return_value=client_name)
@@ -999,6 +1001,7 @@ def test_provider_to_use_should_return_template_provider(fake_uuid, mocker):
 
 
 def test_provider_to_use_returns_service_provider_if_template_has_no_provider(fake_uuid, mocker):
+    mocker.patch.dict(os.environ, {'TEMPLATE_SERVICE_PROVIDERS_ENABLED': 'True'})
     client_name = 'service-client'
     mocked_client = mocker.Mock(EmailClient)
     mocker.patch.object(mocked_client, 'get_name', return_value=client_name)
@@ -1037,6 +1040,7 @@ def test_provider_to_use_returns_service_provider_if_template_has_no_provider(fa
 
 
 def test_provider_to_use_should_return_template_provider_if_valid_template_and_service_providers(mocker):
+    mocker.patch.dict(os.environ, {'TEMPLATE_SERVICE_PROVIDERS_ENABLED': 'True'})
     client_name = 'template-client'
     mocked_client = mocker.Mock(EmailClient)
     mocker.patch.object(mocked_client, 'get_name', return_value=client_name)
@@ -1089,6 +1093,7 @@ def test_provider_to_use_should_return_template_provider_if_valid_template_and_s
 
 
 def test_provider_to_use_should_use_template_provider_and_raise_exception(mocker):
+    mocker.patch.dict(os.environ, {'TEMPLATE_SERVICE_PROVIDERS_ENABLED': 'True'})
     template_provider_id = uuid.uuid4()
     mocked_template_provider_details = mocker.Mock(ProviderDetails)
     mocked_template_provider_details.active = False
@@ -1130,3 +1135,28 @@ def test_provider_to_use_should_use_template_provider_and_raise_exception(mocker
         send_to_providers.provider_to_use(EMAIL_TYPE, mocked_notification)
 
     mocked_get_client_by_name_and_type.assert_not_called()
+
+
+def test_template_or_service_provider_is_not_used_when_feature_flag_is_off(mocker, fake_uuid):
+    mocker.patch.dict(os.environ, {'TEMPLATE_SERVICE_PROVIDERS_ENABLED': 'False'})
+    mocked_client = mocker.Mock(EmailClient)
+
+    mocker.patch(
+        'app.delivery.send_to_providers.clients.get_client_by_name_and_type',
+        return_value=mocked_client
+    )
+
+    mock_load_provider = mocker.patch(
+        'app.delivery.send_to_providers.load_provider'
+    )
+
+    active_provider = mocker.Mock(active=True)
+    mocker.patch(
+        'app.delivery.send_to_providers.get_provider_details_by_notification_type',
+        return_value=[active_provider]
+    )
+
+    mocked_notification = mocker.Mock(Notification)
+    send_to_providers.provider_to_use(EMAIL_TYPE, mocked_notification)
+
+    mock_load_provider.assert_not_called()

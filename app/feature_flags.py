@@ -9,6 +9,7 @@ PROVIDER_FEATURE_FLAGS = {
 
 class FeatureFlag(Enum):
     ACCEPT_RECIPIENT_IDENTIFIERS_ENABLED = 'ACCEPT_RECIPIENT_IDENTIFIERS_ENABLED'
+    TEMPLATE_SERVICE_PROVIDERS_ENABLED = 'TEMPLATE_SERVICE_PROVIDERS_ENABLED'
 
 
 def is_provider_enabled(current_app, provider_identifier):
@@ -24,6 +25,10 @@ def accept_recipient_identifiers_enabled():
 
 def is_gapixel_enabled(current_app):
     return current_app.config.get('GOOGLE_ANALYTICS_ENABLED')
+
+
+def is_template_service_providers_enabled():
+    return is_feature_enabled(FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED)
 
 
 def is_feature_enabled(feature_flag):

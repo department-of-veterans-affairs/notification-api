@@ -23,7 +23,7 @@ from app.dao.provider_details_dao import (
 )
 from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import NotificationTechnicalFailureException, MalwarePendingException, InvalidProviderException
-from app.feature_flags import is_provider_enabled, is_gapixel_enabled
+from app.feature_flags import is_provider_enabled, is_gapixel_enabled, is_template_service_providers_enabled
 from app.models import (
     SMS_TYPE,
     KEY_TYPE_TEST,
@@ -197,20 +197,21 @@ def load_provider(provider_id: uuid) -> ProviderDetails:
 
 
 def provider_to_use(notification_type, notification: Notification, international=False):
-    provider_id = notification.template.provider_id
+    if is_template_service_providers_enabled():
+        provider_id = notification.template.provider_id
 
-    if provider_id:
-        # the provider from template has highest priority, so if it is valid we'll use that one
-        return clients.get_client_by_name_and_type(load_provider(provider_id).identifier, notification_type)
+        if provider_id:
+            # the provider from template has highest priority, so if it is valid we'll use that one
+            return clients.get_client_by_name_and_type(load_provider(provider_id).identifier, notification_type)
 
-    provider_id = (
-        notification.service.email_provider_id
-        if notification_type == EMAIL_TYPE
-        else notification.service.sms_provider_id
-    )
+        provider_id = (
+            notification.service.email_provider_id
+            if notification_type == EMAIL_TYPE
+            else notification.service.sms_provider_id
+        )
 
-    if provider_id:
-        return clients.get_client_by_name_and_type(load_provider(provider_id).identifier, notification_type)
+        if provider_id:
+            return clients.get_client_by_name_and_type(load_provider(provider_id).identifier, notification_type)
 
     active_providers_in_order = [
         p for p in get_provider_details_by_notification_type(notification_type, international) if should_use_provider(p)
