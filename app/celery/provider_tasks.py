@@ -25,6 +25,7 @@ def deliver_sms(self, notification_id):
     except InvalidProviderException as e:
         current_app.logger.exception(e)
         update_notification_status_by_id(notification_id, 'technical-failure')
+        raise NotificationTechnicalFailureException(str(e))
     except Exception:
         try:
             current_app.logger.exception(
