@@ -22,6 +22,9 @@ def deliver_sms(self, notification_id):
             raise NoResultFound()
         send_to_providers.send_sms_to_provider(notification)
         current_app.logger.info(f"Successfully sent sms for notification id: {notification_id}")
+    except InvalidProviderException as e:
+        current_app.logger.exception(e)
+        update_notification_status_by_id(notification_id, 'technical-failure')
     except Exception:
         try:
             current_app.logger.exception(
