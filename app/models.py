@@ -1633,6 +1633,7 @@ class Notification(db.Model):
             "created_at": self.created_at.strftime(DATETIME_FORMAT),
             "created_by_name": self.get_created_by_name(),
             "sent_at": self.sent_at.strftime(DATETIME_FORMAT) if self.sent_at else None,
+            "sent_by": self.sent_by if self.sent_by else None,
             "completed_at": self.completed_at(),
             "scheduled_for": (
                 convert_local_timezone_to_utc(
