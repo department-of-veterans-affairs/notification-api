@@ -1,6 +1,6 @@
 import re
-import uuid
 from datetime import datetime
+from uuid import UUID
 
 import requests
 import app.googleanalytics.pixels as gapixels
@@ -188,7 +188,7 @@ def should_use_provider(provider):
     return provider.active and is_provider_enabled(current_app, provider.identifier)
 
 
-def load_provider(provider_id: uuid) -> ProviderDetails:
+def load_provider(provider_id: UUID) -> ProviderDetails:
     provider_details = get_provider_details_by_id(provider_id)
     if provider_details is not None and not provider_details.active:
         raise InvalidProviderException(f'provider {provider_id} is not active')
@@ -198,19 +198,14 @@ def load_provider(provider_id: uuid) -> ProviderDetails:
 
 def provider_to_use(notification_type, notification: Notification, international=False):
     if is_template_service_providers_enabled():
-        provider_id = notification.template.provider_id
-
-        if provider_id:
-            # the provider from template has highest priority, so if it is valid we'll use that one
-            return clients.get_client_by_name_and_type(load_provider(provider_id).identifier, notification_type)
-
         provider_id = (
-            notification.service.email_provider_id
-            if notification_type == EMAIL_TYPE
+            notification.template.provider_id if notification.template.provider_id else
+            notification.service.email_provider_id if notification_type == EMAIL_TYPE
             else notification.service.sms_provider_id
         )
 
         if provider_id:
+            # the provider from template has highest priority, so if it is valid we'll use that one
             return clients.get_client_by_name_and_type(load_provider(provider_id).identifier, notification_type)
 
     active_providers_in_order = [
