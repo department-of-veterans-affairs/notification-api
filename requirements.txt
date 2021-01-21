@@ -28,7 +28,7 @@ sentry-sdk[flask]==0.10.2
 validatesns==0.1.1
 cachelib==0.1
 
-newrelic==5.12.0.140
+newrelic==6.0.1.155
 notifications-python-client==5.5.1
 python-dotenv==0.10.3
 pwnedpasswords==2.0.0
@@ -42,7 +42,7 @@ unidecode==1.1.1
 # Putting upgrade on hold due to v1.0.0 using sha512 instead of sha1 by default
 itsdangerous==0.24
 
-git+https://github.com/department-of-veterans-affairs/notification-utils.git@1.0.21#egg=notification-utils==1.0.21
+git+https://github.com/department-of-veterans-affairs/notification-utils.git@1.0.22#egg=notification-utils==1.0.22
 
 # MLWR
 socketio-client==0.5.6
