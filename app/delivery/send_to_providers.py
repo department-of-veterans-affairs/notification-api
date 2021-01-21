@@ -203,14 +203,9 @@ def load_provider(provider_id: UUID) -> ProviderDetails:
 
 def provider_to_use(notification_type, notification: Notification, international=False):
     if is_feature_enabled(FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED):
-        provider_id = (
-            notification.template.provider_id if notification.template.provider_id else
-            notification.service.email_provider_id if notification_type == EMAIL_TYPE
-            else notification.service.sms_provider_id
-        )
+        provider_id = get_provider_id(notification, notification_type)
 
         if provider_id:
-            # the provider from template has highest priority, so if it is valid we'll use that one
             return clients.get_client_by_name_and_type(load_provider(provider_id).identifier, notification_type)
 
     active_providers_in_order = [
@@ -224,6 +219,15 @@ def provider_to_use(notification_type, notification: Notification, international
         raise Exception("No active {} providers".format(notification_type))
 
     return clients.get_client_by_name_and_type(active_providers_in_order[0].identifier, notification_type)
+
+
+def get_provider_id(notification, notification_type):
+    # the provider from template has highest priority, so if it is valid we'll use that one
+    providers = [notification.template.provider_id,
+                 notification.service.email_provider_id if notification_type == EMAIL_TYPE
+                 else notification.service.sms_provider_id]
+
+    return next((provider for provider in providers if provider is not None), None)
 
 
 def get_logo_url(base_url, logo_file):
