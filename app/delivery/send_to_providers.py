@@ -23,7 +23,12 @@ from app.dao.provider_details_dao import (
 )
 from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import NotificationTechnicalFailureException, MalwarePendingException, InvalidProviderException
-from app.feature_flags import is_provider_enabled, is_gapixel_enabled, is_template_service_providers_enabled
+from app.feature_flags import (
+    is_provider_enabled,
+    is_gapixel_enabled,
+    is_feature_enabled,
+    FeatureFlag
+)
 from app.models import (
     SMS_TYPE,
     KEY_TYPE_TEST,
@@ -197,7 +202,7 @@ def load_provider(provider_id: UUID) -> ProviderDetails:
 
 
 def provider_to_use(notification_type, notification: Notification, international=False):
-    if is_template_service_providers_enabled():
+    if is_feature_enabled(FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED):
         provider_id = (
             notification.template.provider_id if notification.template.provider_id else
             notification.service.email_provider_id if notification_type == EMAIL_TYPE

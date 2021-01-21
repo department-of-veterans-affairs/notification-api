@@ -27,10 +27,6 @@ def is_gapixel_enabled(current_app):
     return current_app.config.get('GOOGLE_ANALYTICS_ENABLED')
 
 
-def is_template_service_providers_enabled():
-    return is_feature_enabled(FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED)
-
-
 def is_feature_enabled(feature_flag):
     if isinstance(feature_flag, FeatureFlag):
         return os.getenv(feature_flag.value, 'False') == 'True'
