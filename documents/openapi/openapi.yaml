@@ -1444,6 +1444,10 @@ components:
           type: string
           format: date-time
           nullable: true
+        sent_by:
+          type: string
+          nullable: true
+          description: The provider that sent or tried to send the notification
         status:
           type: string
           enum:
