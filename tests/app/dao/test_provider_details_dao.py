@@ -15,9 +15,10 @@ from app.dao.provider_details_dao import (
     dao_update_provider_details,
     dao_get_provider_stats,
     dao_get_provider_versions,
-    dao_get_sms_provider_with_equal_priority
+    dao_get_sms_provider_with_equal_priority, get_highest_priority_active_provider_by_notification_type
 )
 from app.models import ProviderDetails, ProviderDetailsHistory, ProviderRates
+from app.notifications.notification_type import NotificationType
 from tests.app.db import (
     create_ft_billing,
     create_service,
@@ -204,6 +205,40 @@ def test_can_get_email_providers(setup_provider_details):
     assert len(get_provider_details_by_notification_type('email')) == len(email_providers)
     types = [provider.notification_type for provider in get_provider_details_by_notification_type('email')]
     assert all('email' == notification_type for notification_type in types)
+
+
+def commit_to_db(db_session, *providers):
+    db_session.query(ProviderRates).delete()
+    db_session.query(ProviderDetails).delete()
+
+    for provider in providers:
+        db_session.add(provider)
+
+    db_session.commit()
+
+
+def test_get_highest_priority_active_provider_by_notification_type(db_session):
+    active_provider_with_low_priority = ProviderDetails(**{
+        'display_name': 'foo',
+        'identifier': 'foo',
+        'priority': 10,
+        'notification_type': 'email',
+        'active': True,
+        'supports_international': False,
+    })
+    active_provider_with_high_priority = ProviderDetails(**{
+        'display_name': 'foo',
+        'identifier': 'foo',
+        'priority': 50,
+        'notification_type': 'email',
+        'active': True,
+        'supports_international': False,
+    })
+
+    commit_to_db(db_session, active_provider_with_low_priority, active_provider_with_high_priority)
+
+    actual_provider = get_highest_priority_active_provider_by_notification_type(NotificationType.EMAIL)
+    assert actual_provider == active_provider_with_low_priority
 
 
 def test_should_not_error_if_any_provider_in_code_not_in_database(restore_provider_details):

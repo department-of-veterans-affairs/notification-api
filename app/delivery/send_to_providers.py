@@ -189,6 +189,7 @@ def update_notification_to_sending(notification, provider):
     dao_update_notification(notification)
 
 
+# TODO: remove this when provider strategy implemented
 def should_use_provider(provider):
     return provider.active and is_provider_enabled(current_app, provider.identifier)
 
