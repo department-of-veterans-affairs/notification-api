@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from flask import current_app
 from notifications_utils.timezones import convert_utc_to_local_timezone
@@ -98,7 +99,7 @@ def get_provider_details_by_notification_type(notification_type, supports_intern
 def get_highest_priority_active_provider_by_notification_type(
         notification_type: NotificationType,
         supports_international: bool = False
-):
+) -> Optional[ProviderDetails]:
     filters = [
         ProviderDetails.notification_type == notification_type.value,
         ProviderDetails.active == True # noqa
