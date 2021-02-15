@@ -129,7 +129,7 @@ def test_get_provider_versions_contains_correct_fields(client, notify_db):
     json_resp = json.loads(response.get_data(as_text=True))['data']
     allowed_keys = {
         "id", "created_by", "display_name",
-        "identifier", "priority", 'notification_type',
+        "identifier", "load_balancing_weight", "priority", 'notification_type',
         "active", "version", "updated_at", "supports_international"
     }
     assert allowed_keys == set(json_resp[0].keys())

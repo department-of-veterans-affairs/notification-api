@@ -100,7 +100,7 @@ def get_highest_priority_active_provider_by_notification_type(
         supports_international: bool = False
 ):
     filters = [
-        ProviderDetails.notification_type == notification_type,
+        ProviderDetails.notification_type == notification_type.value,
         ProviderDetails.active == True # noqa
     ]
 
