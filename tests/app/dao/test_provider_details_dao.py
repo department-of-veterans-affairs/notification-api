@@ -217,28 +217,70 @@ def commit_to_db(db_session, *providers):
     db_session.commit()
 
 
-def test_get_highest_priority_active_provider_by_notification_type(db_session):
-    active_provider_with_low_priority = ProviderDetails(**{
-        'display_name': 'foo',
-        'identifier': 'foo',
-        'priority': 10,
-        'notification_type': 'email',
-        'active': True,
-        'supports_international': False,
-    })
-    active_provider_with_high_priority = ProviderDetails(**{
-        'display_name': 'foo',
-        'identifier': 'foo',
-        'priority': 50,
-        'notification_type': 'email',
-        'active': True,
-        'supports_international': False,
-    })
+class TestGetHighestPriorityActiveProviderByNotificationType:
 
-    commit_to_db(db_session, active_provider_with_low_priority, active_provider_with_high_priority)
+    default_type = NotificationType.EMAIL
 
-    actual_provider = get_highest_priority_active_provider_by_notification_type(NotificationType.EMAIL)
-    assert actual_provider == active_provider_with_low_priority
+    @staticmethod
+    def provider_factory(
+            priority: int = 10,
+            notification_type: NotificationType = default_type,
+            active: bool = True,
+            supports_international: bool = True
+    ) -> ProviderDetails:
+        return ProviderDetails(**{
+            'display_name': 'foo',
+            'identifier': 'foo',
+            'priority': priority,
+            'notification_type': notification_type.value,
+            'active': active,
+            'supports_international': supports_international,
+        })
+
+    def test_gets_matching_type(self, db_session):
+        email_provider = self.provider_factory(notification_type=NotificationType.EMAIL)
+        sms_provider = self.provider_factory(notification_type=NotificationType.SMS)
+
+        commit_to_db(db_session, email_provider, sms_provider)
+
+        assert get_highest_priority_active_provider_by_notification_type(NotificationType.EMAIL) == email_provider
+
+        assert get_highest_priority_active_provider_by_notification_type(NotificationType.SMS) == sms_provider
+
+    def test_gets_higher_priority(self, db_session):
+        low_number_priority_provider = self.provider_factory(priority=10)
+        high_number_priority_provider = self.provider_factory(priority=50)
+
+        commit_to_db(db_session, low_number_priority_provider, high_number_priority_provider)
+
+        actual_provider = get_highest_priority_active_provider_by_notification_type(self.default_type)
+        assert actual_provider == low_number_priority_provider
+
+    def test_gets_active(self, db_session):
+        active_provider = self.provider_factory(active=True)
+        inactive_provider = self.provider_factory(active=False)
+
+        commit_to_db(db_session, active_provider, inactive_provider)
+
+        actual_provider = get_highest_priority_active_provider_by_notification_type(self.default_type)
+        assert actual_provider == active_provider
+
+    def test_gets_international(self, db_session):
+        international_provider = self.provider_factory(supports_international=True)
+        non_international_provider = self.provider_factory(supports_international=False)
+
+        commit_to_db(db_session, international_provider, non_international_provider)
+
+        actual_provider = get_highest_priority_active_provider_by_notification_type(self.default_type, True)
+        assert actual_provider == international_provider
+
+    def test_returns_none(self, db_session):
+        email_provider = self.provider_factory(notification_type=NotificationType.EMAIL)
+
+        commit_to_db(db_session, email_provider)
+
+        actual_provider = get_highest_priority_active_provider_by_notification_type(NotificationType.SMS, True)
+        assert actual_provider is None
 
 
 def test_should_not_error_if_any_provider_in_code_not_in_database(restore_provider_details):
