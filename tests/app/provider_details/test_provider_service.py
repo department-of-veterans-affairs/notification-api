@@ -1,17 +1,28 @@
-from app.provider_details.highest_priority_strategy import HighestPriorityStrategy
-from app.provider_details.load_balancing_strategy import LoadBalancingStrategy
-from app.provider_details.provider_service import ProviderService
+import pytest
+
+from app.models import Notification, ProviderDetails
+from app.provider_details.provider_selection_strategy_interface import ProviderSelectionStrategyInterface
+from app.provider_details.provider_service import ProviderService, register_strategy
 
 
-def test_initialises_with_highest_priority_strategy():
+@register_strategy(label='EXAMPLE_STRATEGY')
+class ExampleStrategy(ProviderSelectionStrategyInterface):
+
+    def get_provider(self, notification: Notification) -> ProviderDetails:
+        pass
+
+
+def test_initialises_with_example_strategy():
     provider_service = ProviderService()
-    provider_service.init_app(provider_selection_strategy_name='HighestPriorityStrategy')
+    example_strategy = ExampleStrategy()
 
-    assert type(provider_service.provider_selection_strategy) is HighestPriorityStrategy
+    provider_service.init_app(provider_selection_strategy_label='EXAMPLE_STRATEGY')
+
+    assert provider_service.provider_selection_strategy == example_strategy
 
 
-def test_initialises_with_load_balancing_strategy():
+def test_fails_to_initialises_with_unknown_strategy():
     provider_service = ProviderService()
-    provider_service.init_app(provider_selection_strategy_name='LoadBalancingStrategy')
 
-    assert type(provider_service.provider_selection_strategy) is LoadBalancingStrategy
+    with pytest.raises(Exception):
+        provider_service.init_app(provider_selection_strategy_label='UNKNOWN_STRATEGY')
