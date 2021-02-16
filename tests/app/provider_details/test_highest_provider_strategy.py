@@ -1,30 +1,22 @@
+from app.notifications.notification_type import NotificationType
+from app.provider_details.highest_priority_strategy import HighestPriorityStrategy
 
 
-def test_get_providers_returns_highest_priority_provider(mocker, restore_provider_details, sample_notification):
-    pass
-    # providers = provider_details_dao.get_provider_details_by_notification_type('sms')
-    #
-    # first = providers[0]
-    # second = providers[1]
-    #
-    # assert send_to_providers.provider_to_use('sms', sample_notification).name == first.identifier
-    #
-    # first.priority, second.priority = second.priority, first.priority
-    #
-    # provider_details_dao.dao_update_provider_details(first)
-    # provider_details_dao.dao_update_provider_details(second)
-    #
-    # assert send_to_providers.provider_to_use('sms', sample_notification).name == second.identifier
-    #
-    # first.priority, second.priority = second.priority, first.priority
-    # first.active = False
-    #
-    # provider_details_dao.dao_update_provider_details(first)
-    # provider_details_dao.dao_update_provider_details(second)
-    #
-    # assert send_to_providers.provider_to_use('sms', sample_notification).name == second.identifier
-    #
-    # first.active = True
-    # provider_details_dao.dao_update_provider_details(first)
-    #
-    # assert send_to_providers.provider_to_use('sms', sample_notification).name == first.identifier
+def test_get_provider_returns_highest_priority_provider(mocker):
+    mock_provider = mocker.Mock()
+    mock_dao_get_provider = mocker.patch(
+        'app.provider_details.highest_priority_strategy.get_highest_priority_active_provider_by_notification_type',
+        return_value=mock_provider
+    )
+
+    strategy = HighestPriorityStrategy()
+
+    mock_notification = mocker.Mock(
+        notification_type=NotificationType.EMAIL,
+        international=False
+    )
+
+    provider = strategy.get_provider(mock_notification)
+    assert provider == mock_provider
+
+    mock_dao_get_provider.assert_called_with(NotificationType.EMAIL, False)
