@@ -1,6 +1,4 @@
-from moto.s3.models import Notification
-
-from app.models import ProviderDetails
+from app.models import ProviderDetails, Notification
 
 
 class ProviderSelectionStrategyInterface:
