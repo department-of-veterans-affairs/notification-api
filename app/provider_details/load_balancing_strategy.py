@@ -1,3 +1,5 @@
+from random import choices
+
 from .provider_selection_strategy_interface import ProviderSelectionStrategyInterface
 from app.models import ProviderDetails, Notification
 from app.notifications.notification_type import NotificationType
@@ -16,4 +18,5 @@ class LoadBalancingStrategy(ProviderSelectionStrategyInterface):
             notification.international
         )
 
-        return providers[0]
+        [randomly_chosen_provider] = choices(providers, [provider.load_balancing_weight for provider in providers])
+        return randomly_chosen_provider
