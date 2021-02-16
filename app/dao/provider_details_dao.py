@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from flask import current_app
 from notifications_utils.timezones import convert_utc_to_local_timezone
@@ -109,6 +109,22 @@ def get_highest_priority_active_provider_by_notification_type(
         filters.append(ProviderDetails.supports_international == supports_international)
 
     return ProviderDetails.query.filter(*filters).order_by(asc(ProviderDetails.priority)).first()
+
+
+def get_active_providers_with_weights_by_notification_type(
+        notification_type: NotificationType,
+        supports_international: bool = False
+) -> List[ProviderDetails]:
+    filters = [
+        ProviderDetails.notification_type == notification_type.value,
+        ProviderDetails.load_balancing_weight != None, # noqa
+        ProviderDetails.active == True # noqa
+    ]
+
+    if supports_international:
+        filters.append(ProviderDetails.supports_international == supports_international)
+
+    return ProviderDetails.query.filter(*filters).all()
 
 
 @transactional
