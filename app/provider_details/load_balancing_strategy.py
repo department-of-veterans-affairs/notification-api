@@ -1,4 +1,5 @@
 from random import choices
+from typing import Optional
 
 from .provider_selection_strategy_interface import ProviderSelectionStrategyInterface
 from app.models import ProviderDetails, Notification
@@ -12,11 +13,12 @@ class LoadBalancingStrategy(ProviderSelectionStrategyInterface):
     configured weights stored in provider_details table
     """
 
-    def get_provider(self, notification: Notification) -> ProviderDetails:
+    def get_provider(self, notification: Notification) -> Optional[ProviderDetails]:
         providers = get_active_providers_with_weights_by_notification_type(
             NotificationType(notification.notification_type),
             notification.international
         )
 
-        [randomly_chosen_provider] = choices(providers, [provider.load_balancing_weight for provider in providers])
-        return randomly_chosen_provider
+        if providers:
+            [randomly_chosen_provider] = choices(providers, [provider.load_balancing_weight for provider in providers])
+            return randomly_chosen_provider
