@@ -1,5 +1,7 @@
 import functools
 
+from app.models import Notification
+
 strategy_map = {}
 
 
@@ -18,9 +20,12 @@ class ProviderService:
 
     def init_app(self, provider_selection_strategy_label: str) -> None:
         try:
-            self.provider_selection_strategy = strategy_map[provider_selection_strategy_label]
+            self._provider_selection_strategy = strategy_map[provider_selection_strategy_label]
         except KeyError:
             raise Exception(
                 f"Could not initialise ProviderService with strategy '{provider_selection_strategy_label}' "
                 "- has the strategy been initialised and registered?"
             )
+
+    def get_provider(self, notification: Notification):
+        return self._provider_selection_strategy.get_provider(notification)

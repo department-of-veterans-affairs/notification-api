@@ -12,13 +12,21 @@ class ExampleStrategy(ProviderSelectionStrategyInterface):
         pass
 
 
-def test_initialises_with_example_strategy():
+def test_initialises_and_uses_example_strategy(mocker):
     provider_service = ProviderService()
     example_strategy = ExampleStrategy()
 
     provider_service.init_app(provider_selection_strategy_label='EXAMPLE_STRATEGY')
 
-    assert provider_service.provider_selection_strategy == example_strategy
+    mock_provider = mocker.Mock()
+
+    mocker.patch.object(example_strategy, 'get_provider', return_value=mock_provider)
+
+    assert provider_service._provider_selection_strategy == example_strategy
+
+    actual_provider = provider_service.get_provider(mocker.Mock())
+
+    assert actual_provider == mock_provider
 
 
 def test_fails_to_initialises_with_unknown_strategy():
