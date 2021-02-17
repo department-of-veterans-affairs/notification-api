@@ -935,13 +935,8 @@ def test_notification_passes_if_message_contains_phone_number(
     assert Notification.query.get(db_notification.id).status == 'sending'
 
 
-def test_check_provider_throws_exception_if_provider_is_inactive(
-        fake_uuid, mocker
-):
-    mocked_provider_details = mocker.Mock(ProviderDetails)
-    mocked_provider_details.active = False
-    mocked_provider_details.notification_type = EMAIL_TYPE
-    mocked_provider_details.id = fake_uuid
+def test_load_provider_throws_exception_if_provider_is_inactive(fake_uuid, mocker):
+    mocked_provider_details = mocker.Mock(ProviderDetails, active=False)
 
     mocker.patch(
         'app.delivery.send_to_providers.get_provider_details_by_id',
@@ -949,14 +944,21 @@ def test_check_provider_throws_exception_if_provider_is_inactive(
     )
 
     with pytest.raises(InvalidProviderException, match=f'^provider {str(fake_uuid)} is not active$'):
-        load_provider(mocked_provider_details.id)
+        load_provider(fake_uuid)
 
 
-def test_check_provider_returns_provider_details_if_provider_is_valid(fake_uuid, mocker):
-    mocked_provider_details = mocker.Mock(ProviderDetails)
-    mocked_provider_details.active = True
-    mocked_provider_details.notification_type = EMAIL_TYPE
-    mocked_provider_details.id = fake_uuid
+def test_load_provider_throws_exception_if_provider_is_not_found(fake_uuid, mocker):
+    mocker.patch(
+        'app.delivery.send_to_providers.get_provider_details_by_id',
+        return_value=None
+    )
+
+    with pytest.raises(InvalidProviderException, match=f'^provider {str(fake_uuid)} could not be found'):
+        load_provider(fake_uuid)
+
+
+def test_load_provider_returns_provider_details_if_provider_is_active(fake_uuid, mocker):
+    mocked_provider_details = mocker.Mock(ProviderDetails, active=True)
 
     mocker.patch(
         'app.delivery.send_to_providers.get_provider_details_by_id',
@@ -964,7 +966,7 @@ def test_check_provider_returns_provider_details_if_provider_is_valid(fake_uuid,
     )
 
     provider_details = load_provider(fake_uuid)
-    assert provider_details.id == mocked_provider_details.id
+    assert provider_details == mocked_provider_details
 
 
 def test_provider_to_use_should_return_template_provider(fake_uuid, mocker):

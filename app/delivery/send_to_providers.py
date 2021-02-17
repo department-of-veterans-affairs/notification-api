@@ -196,10 +196,12 @@ def should_use_provider(provider):
 
 def load_provider(provider_id: UUID) -> ProviderDetails:
     provider_details = get_provider_details_by_id(provider_id)
-    if provider_details is not None and not provider_details.active:
+    if provider_details is None:
+        raise InvalidProviderException(f'provider {provider_id} could not be found')
+    elif not provider_details.active:
         raise InvalidProviderException(f'provider {provider_id} is not active')
-
-    return provider_details
+    else:
+        return provider_details
 
 
 def provider_to_use(notification_type, notification: Notification, international=False):

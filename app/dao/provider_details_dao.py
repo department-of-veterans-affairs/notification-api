@@ -16,7 +16,7 @@ from app.models import FactBilling, ProviderDetails, ProviderDetailsHistory, SMS
 from app import db
 
 
-def get_provider_details_by_id(provider_details_id):
+def get_provider_details_by_id(provider_details_id) -> Optional[ProviderDetails]:
     return ProviderDetails.query.get(provider_details_id)
 
 
