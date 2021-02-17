@@ -34,9 +34,17 @@ class ProviderService:
         return self._strategies
 
     def get_provider(self, notification: Notification) -> ProviderDetails:
+        template_or_service_provider_id = self._get_template_or_service_provider_id(notification)
+        if template_or_service_provider_id:
+            return get_provider_details_by_id(template_or_service_provider_id)
+
+        provider_selection_strategy = self._strategies[NotificationType(notification.notification_type)]
+        return provider_selection_strategy.get_provider(notification)
+
+    @staticmethod
+    def _get_template_or_service_provider_id(notification: Notification) -> Optional[str]:
         if notification.template.provider_id:
-            provider_details = get_provider_details_by_id(notification.template.provider_id)
-            return provider_details
+            return notification.template.provider_id
 
         service_provider_id = {
             NotificationType.EMAIL: notification.service.email_provider_id,
@@ -44,8 +52,4 @@ class ProviderService:
         }[NotificationType(notification.notification_type)]
 
         if service_provider_id:
-            provider_details = get_provider_details_by_id(service_provider_id)
-            return provider_details
-
-        provider_selection_strategy = self._strategies[NotificationType(notification.notification_type)]
-        return provider_selection_strategy.get_provider(notification)
+            return service_provider_id
