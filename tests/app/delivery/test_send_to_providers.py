@@ -56,14 +56,14 @@ def test_should_return_highest_priority_active_provider(restore_provider_details
     first = providers[0]
     second = providers[1]
 
-    assert send_to_providers.provider_to_use('sms', sample_notification).name == first.identifier
+    assert send_to_providers.provider_to_use(sample_notification).name == first.identifier
 
     first.priority, second.priority = second.priority, first.priority
 
     provider_details_dao.dao_update_provider_details(first)
     provider_details_dao.dao_update_provider_details(second)
 
-    assert send_to_providers.provider_to_use('sms', sample_notification).name == second.identifier
+    assert send_to_providers.provider_to_use(sample_notification).name == second.identifier
 
     first.priority, second.priority = second.priority, first.priority
     first.active = False
@@ -71,15 +71,15 @@ def test_should_return_highest_priority_active_provider(restore_provider_details
     provider_details_dao.dao_update_provider_details(first)
     provider_details_dao.dao_update_provider_details(second)
 
-    assert send_to_providers.provider_to_use('sms', sample_notification).name == second.identifier
+    assert send_to_providers.provider_to_use(sample_notification).name == second.identifier
 
     first.active = True
     provider_details_dao.dao_update_provider_details(first)
 
-    assert send_to_providers.provider_to_use('sms', sample_notification).name == first.identifier
+    assert send_to_providers.provider_to_use(sample_notification).name == first.identifier
 
 
-def test_should_not_use_active_but_disabled_provider(mocker, sample_notification):
+def test_should_not_use_active_but_disabled_provider(mocker):
     active_provider = mocker.Mock(active=True)
     mocker.patch(
         'app.delivery.send_to_providers.get_provider_details_by_notification_type',
@@ -92,7 +92,7 @@ def test_should_not_use_active_but_disabled_provider(mocker, sample_notification
     )
 
     with pytest.raises(Exception, match="No active email providers"):
-        send_to_providers.provider_to_use('email', sample_notification)
+        send_to_providers.provider_to_use(mocker.Mock(Notification, notification_type=EMAIL_TYPE))
 
 
 def test_should_send_personalised_template_to_correct_sms_provider_and_persist(
@@ -941,7 +941,7 @@ def test_load_provider_throws_exception_if_provider_is_inactive(fake_uuid, mocke
         return_value=mocker.Mock(ProviderDetails, active=False)
     )
 
-    with pytest.raises(InvalidProviderException, match=f'^provider {str(fake_uuid)} is not active$'):
+    with pytest.raises(InvalidProviderException, match=f'^provider {fake_uuid} is not active$'):
         load_provider(fake_uuid)
 
 
@@ -951,7 +951,7 @@ def test_load_provider_throws_exception_if_provider_is_not_found(fake_uuid, mock
         return_value=None
     )
 
-    with pytest.raises(InvalidProviderException, match=f'^provider {str(fake_uuid)} could not be found'):
+    with pytest.raises(InvalidProviderException, match=f'^provider {fake_uuid} could not be found'):
         load_provider(fake_uuid)
 
 
@@ -981,7 +981,8 @@ def test_provider_to_use_should_return_template_provider(mocker):
 
     template_provider_id = uuid.uuid4()
     mocked_template = mocker.Mock(TemplateBase, provider_id=template_provider_id)
-    mocked_notification = mocker.Mock(Notification, template=mocked_template)
+
+    mocked_notification = mocker.Mock(Notification, notification_type=EMAIL_TYPE, template=mocked_template)
 
     mocked_get_provider_details_by_id = mocker.patch(
         'app.delivery.send_to_providers.get_provider_details_by_id',
@@ -992,7 +993,7 @@ def test_provider_to_use_should_return_template_provider(mocker):
         return_value=mocked_client
     )
 
-    client = send_to_providers.provider_to_use(EMAIL_TYPE, mocked_notification)
+    client = send_to_providers.provider_to_use(mocked_notification)
 
     mocked_get_provider_details_by_id.assert_called_once_with(template_provider_id)
     mocked_get_client_by_name_and_type.assert_called_once_with(client_name, EMAIL_TYPE)
@@ -1016,7 +1017,12 @@ def test_provider_to_use_returns_service_provider_if_template_has_no_provider(fa
     service_provider_id = uuid.uuid4()
     mocked_service = mocker.Mock(Service, email_provider_id=service_provider_id)
 
-    mocked_notification = mocker.Mock(Notification, template=mocked_template, service=mocked_service)
+    mocked_notification = mocker.Mock(
+        Notification,
+        notification_type=EMAIL_TYPE,
+        template=mocked_template,
+        service=mocked_service
+    )
 
     mocked_get_provider_details_by_id = mocker.patch(
         'app.delivery.send_to_providers.get_provider_details_by_id',
@@ -1027,7 +1033,7 @@ def test_provider_to_use_returns_service_provider_if_template_has_no_provider(fa
         return_value=mocked_client
     )
 
-    client = send_to_providers.provider_to_use(EMAIL_TYPE, mocked_notification)
+    client = send_to_providers.provider_to_use(mocked_notification)
 
     mocked_get_provider_details_by_id.assert_called_once_with(service_provider_id)
     mocked_get_client_by_name_and_type.assert_called_once_with(client_name, EMAIL_TYPE)
@@ -1051,7 +1057,12 @@ def test_provider_to_use_should_return_template_provider_if_template_and_service
     mocked_template = mocker.Mock(TemplateBase, provider_id=template_provider_id)
     mocked_service = mocker.Mock(Service, email_provider_id=uuid.uuid4())
 
-    mocked_notification = mocker.Mock(Notification, template=mocked_template, service=mocked_service)
+    mocked_notification = mocker.Mock(
+        Notification,
+        notification_type=EMAIL_TYPE,
+        template=mocked_template,
+        service=mocked_service
+    )
 
     mocked_get_provider_details_by_id = mocker.patch(
         'app.delivery.send_to_providers.get_provider_details_by_id',
@@ -1063,7 +1074,7 @@ def test_provider_to_use_should_return_template_provider_if_template_and_service
         return_value=mocked_client
     )
 
-    client = send_to_providers.provider_to_use(EMAIL_TYPE, mocked_notification)
+    client = send_to_providers.provider_to_use(mocked_notification)
 
     mocked_get_provider_details_by_id.assert_called_once_with(template_provider_id)
     mocked_get_client_by_name_and_type.assert_called_once_with(client_name, EMAIL_TYPE)
@@ -1082,7 +1093,12 @@ def test_provider_to_use_should_raise_exception_if_template_provider_is_inactive
     mocked_template = mocker.Mock(TemplateBase, provider_id=template_provider_id)
     mocked_service = mocker.Mock(Service, email_provider_id=uuid.uuid4())
 
-    mocked_notification = mocker.Mock(Notification, template=mocked_template, service=mocked_service)
+    mocked_notification = mocker.Mock(
+        Notification,
+        notification_type=EMAIL_TYPE,
+        template=mocked_template,
+        service=mocked_service
+    )
 
     mocker.patch(
         'app.delivery.send_to_providers.get_provider_details_by_id',
@@ -1094,7 +1110,7 @@ def test_provider_to_use_should_raise_exception_if_template_provider_is_inactive
     )
 
     with pytest.raises(InvalidProviderException, match=f'^provider {str(template_provider_id)} is not active$'):
-        send_to_providers.provider_to_use(EMAIL_TYPE, mocked_notification)
+        send_to_providers.provider_to_use(mocked_notification)
 
     mocked_get_client_by_name_and_type.assert_not_called()
 
@@ -1117,6 +1133,6 @@ def test_template_or_service_provider_is_not_used_when_feature_flag_is_off(mocke
         return_value=[mocker.Mock(ProviderDetails, active=True)]
     )
 
-    send_to_providers.provider_to_use(EMAIL_TYPE, mocker.Mock(Notification))
+    send_to_providers.provider_to_use(mocker.Mock(Notification))
 
     mock_load_provider.assert_not_called()
