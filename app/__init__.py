@@ -163,7 +163,10 @@ def create_app(application):
         email_clients=[aws_ses_client, send_grid_client, govdelivery_client]
     )
 
-    provider_service.init_app('LOAD_BALANCING')
+    provider_service.init_app(
+        email_provider_selection_strategy_label='LOAD_BALANCING',
+        sms_provider_selection_strategy_label='HIGHEST_PRIORITY'
+    )
 
     register_blueprint(application)
     register_v2_blueprints(application)

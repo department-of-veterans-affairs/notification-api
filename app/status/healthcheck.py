@@ -7,6 +7,7 @@ from flask import (
 from app import db, version, provider_service
 from app.dao.services_dao import dao_count_live_services
 from app.dao.organisation_dao import dao_count_organsations_with_live_services
+from app.notifications.notification_type import NotificationType
 
 status = Blueprint('status', __name__)
 
@@ -22,7 +23,8 @@ def show_status():
             travis_commit=version.__travis_commit__,
             travis_build_number=version.__travis_job_number__,
             build_time=version.__time__,
-            strategy=provider_service.strategy.__name__,
+            email_strategy=provider_service.strategies[NotificationType.EMAIL].__name__,
+            sms_strategy=provider_service.strategies[NotificationType.SMS].__name__,
             db_version=get_db_version()), 200
 
 

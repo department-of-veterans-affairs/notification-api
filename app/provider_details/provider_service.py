@@ -1,29 +1,37 @@
+from typing import Type, Dict, Optional
+
 from app.models import Notification, ProviderDetails
+from app.notifications.notification_type import NotificationType
+from app.provider_details.provider_selection_strategy_interface import ProviderSelectionStrategyInterface, \
+    STRATEGY_REGISTRY
 
 
 class ProviderService:
 
-    strategy_registry = {}
-
     def __init__(self):
-        self._provider_selection_strategy = None
+        self._strategies: Dict[NotificationType, Optional[Type[ProviderSelectionStrategyInterface]]] = {
+            notification_type: None for notification_type in NotificationType
+        }
 
-    def init_app(self, provider_selection_strategy_label: str) -> None:
+    def init_app(
+            self,
+            email_provider_selection_strategy_label: str,
+            sms_provider_selection_strategy_label: str
+    ) -> None:
         try:
-            self._provider_selection_strategy = ProviderService.strategy_registry[provider_selection_strategy_label]
-        except KeyError:
+            self._strategies[NotificationType.EMAIL] = STRATEGY_REGISTRY[email_provider_selection_strategy_label]
+            self._strategies[NotificationType.SMS] = STRATEGY_REGISTRY[sms_provider_selection_strategy_label]
+        except KeyError as e:
+            [failed_key] = e.args
             raise Exception(
-                f"Could not initialise ProviderService with strategy '{provider_selection_strategy_label}' "
+                f"Could not initialise ProviderService with strategy '{failed_key}' "
                 "- has the strategy been declared as a subclass of ProviderSelectionStrategyInterface?"
             )
 
-    @staticmethod
-    def register_strategy(cls) -> None:
-        ProviderService.strategy_registry[cls.get_label()] = cls
-
     @property
-    def strategy(self):
-        return self._provider_selection_strategy
+    def strategies(self):
+        return self._strategies
 
     def get_provider(self, notification: Notification) -> ProviderDetails:
-        return self.strategy.get_provider(notification)
+        provider_selection_strategy = self._strategies[NotificationType(notification.notification_type)]
+        return provider_selection_strategy.get_provider(notification)
