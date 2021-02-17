@@ -1,5 +1,6 @@
 from typing import Type, Dict, Optional
 
+from app.dao.provider_details_dao import get_provider_details_by_id
 from app.models import Notification, ProviderDetails
 from app.notifications.notification_type import NotificationType
 from app.provider_details.provider_selection_strategy_interface import ProviderSelectionStrategyInterface, \
@@ -33,5 +34,18 @@ class ProviderService:
         return self._strategies
 
     def get_provider(self, notification: Notification) -> ProviderDetails:
+        if notification.template.provider_id:
+            provider_details = get_provider_details_by_id(notification.template.provider_id)
+            return provider_details
+
+        service_provider_id = {
+            NotificationType.EMAIL: notification.service.email_provider_id,
+            NotificationType.SMS: notification.service.sms_provider_id
+        }[NotificationType(notification.notification_type)]
+
+        if service_provider_id:
+            provider_details = get_provider_details_by_id(service_provider_id)
+            return provider_details
+
         provider_selection_strategy = self._strategies[NotificationType(notification.notification_type)]
         return provider_selection_strategy.get_provider(notification)
