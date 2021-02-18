@@ -1,7 +1,7 @@
 from typing import Type, Dict
 
 from app.models import ProviderDetails, Notification
-
+from app.notifications.notification_type import NotificationType
 
 STRATEGY_REGISTRY: Dict[str, Type['ProviderSelectionStrategyInterface']] = {}
 
@@ -20,6 +20,10 @@ class ProviderSelectionStrategyInterface:
 
     @staticmethod
     def get_label() -> str:
+        raise NotImplementedError()
+
+    @staticmethod
+    def validate(notification_type: NotificationType) -> None:
         raise NotImplementedError()
 
     @staticmethod

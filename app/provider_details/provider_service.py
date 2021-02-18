@@ -11,7 +11,8 @@ class ProviderService:
 
     def __init__(self):
         self._strategies: Dict[NotificationType, Optional[Type[ProviderSelectionStrategyInterface]]] = {
-            notification_type: None for notification_type in NotificationType
+            NotificationType.EMAIL: None,
+            NotificationType.SMS: None
         }
 
     def init_app(
@@ -20,18 +21,27 @@ class ProviderService:
             sms_provider_selection_strategy_label: str
     ) -> None:
         try:
-            self._strategies[NotificationType.EMAIL] = STRATEGY_REGISTRY[email_provider_selection_strategy_label]
-            self._strategies[NotificationType.SMS] = STRATEGY_REGISTRY[sms_provider_selection_strategy_label]
+            email_strategy = STRATEGY_REGISTRY[email_provider_selection_strategy_label]
+            sms_strategy = STRATEGY_REGISTRY[sms_provider_selection_strategy_label]
         except KeyError as e:
             [failed_key] = e.args
             raise Exception(
                 f"Could not initialise ProviderService with strategy '{failed_key}' "
                 "- has the strategy been declared as a subclass of ProviderSelectionStrategyInterface?"
             )
+        else:
+            self._strategies[NotificationType.EMAIL] = email_strategy
+            self._strategies[NotificationType.SMS] = sms_strategy
+
+            self.validate_strategies()
 
     @property
     def strategies(self):
         return self._strategies
+
+    def validate_strategies(self) -> None:
+        for notification_type, strategy in self.strategies.items():
+            strategy.validate(notification_type)
 
     def get_provider(self, notification: Notification) -> ProviderDetails:
         template_or_service_provider_id = self._get_template_or_service_provider_id(notification)

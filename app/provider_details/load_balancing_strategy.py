@@ -18,6 +18,14 @@ class LoadBalancingStrategy(ProviderSelectionStrategyInterface):
         return 'LOAD_BALANCING'
 
     @staticmethod
+    def validate(notification_type: NotificationType):
+        if not get_active_providers_with_weights_by_notification_type(notification_type):
+            raise Exception(
+                f"Load Balancing Strategy cannot be used for {notification_type} notifications "
+                "because there are no matching active providers that have load balancing weights"
+            )
+
+    @staticmethod
     def get_provider(notification: Notification) -> Optional[ProviderDetails]:
         providers = get_active_providers_with_weights_by_notification_type(
             NotificationType(notification.notification_type),
