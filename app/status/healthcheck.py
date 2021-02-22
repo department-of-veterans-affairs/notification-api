@@ -20,8 +20,7 @@ def show_status():
     else:
         return jsonify(
             status="ok",  # This should be considered part of the public API
-            travis_commit=version.__travis_commit__,
-            travis_build_number=version.__travis_job_number__,
+            git_commit=version.__git_commit__,
             build_time=version.__time__,
             email_strategy=provider_service.strategies[NotificationType.EMAIL].__name__,
             sms_strategy=provider_service.strategies[NotificationType.SMS].__name__,
