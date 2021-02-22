@@ -10,7 +10,7 @@ from notifications_utils.recipients import (
 )
 from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate, SMSMessageTemplate
 
-from app import clients, statsd_client, create_uuid
+from app import clients, statsd_client, create_uuid, provider_service
 from app.celery.research_mode_tasks import send_sms_response, send_email_response
 from app.clients.mlwr.mlwr import check_mlwr_score
 from app.dao.notifications_dao import (
@@ -204,6 +204,11 @@ def load_provider(provider_id: str) -> ProviderDetails:
 
 
 def provider_to_use(notification: Notification):
+
+    if is_feature_enabled(FeatureFlag.PROVIDER_STRATEGIES_ENABLED):
+        provider = provider_service.get_provider(notification)
+        return clients.get_client_by_name_and_type(provider.identifier, notification.notification_type)
+
     if is_feature_enabled(FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED):
         provider_id = get_provider_id(notification)
 

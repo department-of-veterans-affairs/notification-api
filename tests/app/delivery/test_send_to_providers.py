@@ -9,13 +9,14 @@ from notifications_utils.recipients import validate_and_format_phone_number
 from requests import HTTPError
 
 import app
-from app import aws_sns_client, mmg_client
+from app import aws_sns_client, mmg_client, ProviderService
 from app.clients.email import EmailClient
 from app.dao import (provider_details_dao, notifications_dao)
 from app.dao.provider_details_dao import dao_switch_sms_provider_to_provider_with_identifier
 from app.delivery import send_to_providers
 from app.delivery.send_to_providers import load_provider
 from app.exceptions import NotificationTechnicalFailureException, MalwarePendingException, InvalidProviderException
+from app.feature_flags import FeatureFlag
 
 from app.models import (
     Notification,
@@ -1001,138 +1002,167 @@ def test_provider_to_use_should_return_template_provider(mocker):
     assert client == mocked_client
 
 
-def test_provider_to_use_returns_service_provider_if_template_has_no_provider(fake_uuid, mocker):
-    mocker.patch.dict(os.environ, {'TEMPLATE_SERVICE_PROVIDERS_ENABLED': 'True'})
-    client_name = 'service-client'
-    mocked_client = mocker.Mock(EmailClient)
-    mocker.patch.object(mocked_client, 'get_name', return_value=client_name)
+class TestProviderToUse:
 
-    mocked_service_provider_details = mocker.Mock(
-        ProviderDetails,
-        active=True,
-        identifier=client_name
-    )
+    @staticmethod
+    def mock_feature_flag(mocker, feature_flag: FeatureFlag, enabled: bool = True):
+        mocker.patch.dict(os.environ, {feature_flag.value: str(enabled)})
 
-    mocked_template = mocker.Mock(TemplateBase, provider_id=None)
-    service_provider_id = uuid.uuid4()
-    mocked_service = mocker.Mock(Service, email_provider_id=service_provider_id)
+    def test_uses_provider_service_if_enabled(self, mocker):
+        self.mock_feature_flag(mocker, FeatureFlag.PROVIDER_STRATEGIES_ENABLED)
 
-    mocked_notification = mocker.Mock(
-        Notification,
-        notification_type=EMAIL_TYPE,
-        template=mocked_template,
-        service=mocked_service
-    )
+        mock_provider_service = mocker.Mock(ProviderService)
+        mock_provider = mocker.Mock(ProviderDetails, identifier='some-identifier')
+        mock_provider_service.get_provider.return_value = mock_provider
+        mocker.patch('app.delivery.send_to_providers.provider_service', new=mock_provider_service)
 
-    mocked_get_provider_details_by_id = mocker.patch(
-        'app.delivery.send_to_providers.get_provider_details_by_id',
-        return_value=mocked_service_provider_details
-    )
-    mocked_get_client_by_name_and_type = mocker.patch(
-        'app.delivery.send_to_providers.clients.get_client_by_name_and_type',
-        return_value=mocked_client
-    )
+        mocked_notification = mocker.Mock(
+            Notification,
+            notification_type=EMAIL_TYPE
+        )
 
-    client = send_to_providers.provider_to_use(mocked_notification)
+        mocked_client = mocker.Mock(EmailClient)
+        mocked_get_client_by_name_and_type = mocker.patch(
+            'app.delivery.send_to_providers.clients.get_client_by_name_and_type',
+            return_value=mocked_client
+        )
 
-    mocked_get_provider_details_by_id.assert_called_once_with(service_provider_id)
-    mocked_get_client_by_name_and_type.assert_called_once_with(client_name, EMAIL_TYPE)
+        client = send_to_providers.provider_to_use(mocked_notification)
 
-    assert client == mocked_client
+        mock_provider_service.get_provider.assert_called_once_with(mocked_notification)
+        mocked_get_client_by_name_and_type.assert_called_once_with(mock_provider.identifier, EMAIL_TYPE)
 
+        assert client == mocked_client
 
-def test_provider_to_use_should_return_template_provider_if_template_and_service_have_providers(mocker):
-    mocker.patch.dict(os.environ, {'TEMPLATE_SERVICE_PROVIDERS_ENABLED': 'True'})
-    client_name = 'template-client'
-    mocked_client = mocker.Mock(EmailClient)
-    mocker.patch.object(mocked_client, 'get_name', return_value=client_name)
+    def test_returns_service_provider_if_template_has_no_provider(self, fake_uuid, mocker):
+        self.mock_feature_flag(mocker, FeatureFlag.PROVIDER_STRATEGIES_ENABLED, False)
+        self.mock_feature_flag(mocker, FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED)
 
-    template_provider_id = uuid.uuid4()
-    mocked_template_provider_details = mocker.Mock(
-        ProviderDetails,
-        active=True,
-        identifier=client_name
-    )
+        mocked_template = mocker.Mock(TemplateBase, provider_id=None)
 
-    mocked_template = mocker.Mock(TemplateBase, provider_id=template_provider_id)
-    mocked_service = mocker.Mock(Service, email_provider_id=uuid.uuid4())
+        service_provider_id = uuid.uuid4()
+        mocked_service = mocker.Mock(Service, email_provider_id=service_provider_id)
 
-    mocked_notification = mocker.Mock(
-        Notification,
-        notification_type=EMAIL_TYPE,
-        template=mocked_template,
-        service=mocked_service
-    )
+        mocked_notification = mocker.Mock(
+            Notification,
+            notification_type=EMAIL_TYPE,
+            template=mocked_template,
+            service=mocked_service
+        )
 
-    mocked_get_provider_details_by_id = mocker.patch(
-        'app.delivery.send_to_providers.get_provider_details_by_id',
-        return_value=mocked_template_provider_details
-    )
+        mock_provider_details = mocker.Mock(
+            ProviderDetails,
+            active=True,
+            identifier='some-identifier'
+        )
+        mocked_get_provider_details_by_id = mocker.patch(
+            'app.delivery.send_to_providers.get_provider_details_by_id',
+            return_value=mock_provider_details
+        )
 
-    mocked_get_client_by_name_and_type = mocker.patch(
-        'app.delivery.send_to_providers.clients.get_client_by_name_and_type',
-        return_value=mocked_client
-    )
+        mocked_client = mocker.Mock(EmailClient)
+        mocked_get_client_by_name_and_type = mocker.patch(
+            'app.delivery.send_to_providers.clients.get_client_by_name_and_type',
+            return_value=mocked_client
+        )
 
-    client = send_to_providers.provider_to_use(mocked_notification)
+        client = send_to_providers.provider_to_use(mocked_notification)
 
-    mocked_get_provider_details_by_id.assert_called_once_with(template_provider_id)
-    mocked_get_client_by_name_and_type.assert_called_once_with(client_name, EMAIL_TYPE)
+        mocked_get_provider_details_by_id.assert_called_once_with(service_provider_id)
+        mocked_get_client_by_name_and_type.assert_called_once_with(mock_provider_details.identifier, EMAIL_TYPE)
 
-    assert client == mocked_client
+        assert client == mocked_client
 
+    def test_should_return_template_provider_if_template_and_service_have_providers(self, mocker):
+        self.mock_feature_flag(mocker, FeatureFlag.PROVIDER_STRATEGIES_ENABLED, False)
+        self.mock_feature_flag(mocker, FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED)
 
-def test_provider_to_use_should_raise_exception_if_template_provider_is_inactive(mocker):
-    mocker.patch.dict(os.environ, {'TEMPLATE_SERVICE_PROVIDERS_ENABLED': 'True'})
-    template_provider_id = uuid.uuid4()
-    mocked_template_provider_details = mocker.Mock(
-        ProviderDetails,
-        active=False
-    )
+        template_provider_id = uuid.uuid4()
+        mocked_template = mocker.Mock(TemplateBase, provider_id=template_provider_id)
+        mocked_service = mocker.Mock(Service, email_provider_id=uuid.uuid4())
 
-    mocked_template = mocker.Mock(TemplateBase, provider_id=template_provider_id)
-    mocked_service = mocker.Mock(Service, email_provider_id=uuid.uuid4())
+        mocked_notification = mocker.Mock(
+            Notification,
+            notification_type=EMAIL_TYPE,
+            template=mocked_template,
+            service=mocked_service
+        )
 
-    mocked_notification = mocker.Mock(
-        Notification,
-        notification_type=EMAIL_TYPE,
-        template=mocked_template,
-        service=mocked_service
-    )
+        mock_provider_details = mocker.Mock(
+            ProviderDetails,
+            active=True,
+            identifier='some-identifier'
+        )
+        mocked_get_provider_details_by_id = mocker.patch(
+            'app.delivery.send_to_providers.get_provider_details_by_id',
+            return_value=mock_provider_details
+        )
 
-    mocker.patch(
-        'app.delivery.send_to_providers.get_provider_details_by_id',
-        return_value=mocked_template_provider_details
-    )
+        mocked_client = mocker.Mock(EmailClient)
+        mocked_get_client_by_name_and_type = mocker.patch(
+            'app.delivery.send_to_providers.clients.get_client_by_name_and_type',
+            return_value=mocked_client
+        )
 
-    mocked_get_client_by_name_and_type = mocker.patch(
-        'app.delivery.send_to_providers.clients.get_client_by_name_and_type'
-    )
+        client = send_to_providers.provider_to_use(mocked_notification)
 
-    with pytest.raises(InvalidProviderException, match=f'^provider {str(template_provider_id)} is not active$'):
-        send_to_providers.provider_to_use(mocked_notification)
+        mocked_get_provider_details_by_id.assert_called_once_with(template_provider_id)
+        mocked_get_client_by_name_and_type.assert_called_once_with(mock_provider_details.identifier, EMAIL_TYPE)
 
-    mocked_get_client_by_name_and_type.assert_not_called()
+        assert client == mocked_client
 
+    def test_should_raise_exception_if_template_provider_is_inactive(self, mocker):
+        self.mock_feature_flag(mocker, FeatureFlag.PROVIDER_STRATEGIES_ENABLED, False)
+        self.mock_feature_flag(mocker, FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED)
+        template_provider_id = uuid.uuid4()
+        mocked_template_provider_details = mocker.Mock(
+            ProviderDetails,
+            active=False
+        )
 
-def test_template_or_service_provider_is_not_used_when_feature_flag_is_off(mocker, fake_uuid):
-    mocker.patch.dict(os.environ, {'TEMPLATE_SERVICE_PROVIDERS_ENABLED': 'False'})
-    mocked_client = mocker.Mock(EmailClient)
+        mocked_template = mocker.Mock(TemplateBase, provider_id=template_provider_id)
+        mocked_service = mocker.Mock(Service, email_provider_id=uuid.uuid4())
 
-    mocker.patch(
-        'app.delivery.send_to_providers.clients.get_client_by_name_and_type',
-        return_value=mocked_client
-    )
+        mocked_notification = mocker.Mock(
+            Notification,
+            notification_type=EMAIL_TYPE,
+            template=mocked_template,
+            service=mocked_service
+        )
 
-    mock_load_provider = mocker.patch(
-        'app.delivery.send_to_providers.load_provider'
-    )
+        mocker.patch(
+            'app.delivery.send_to_providers.get_provider_details_by_id',
+            return_value=mocked_template_provider_details
+        )
 
-    mocker.patch(
-        'app.delivery.send_to_providers.get_provider_details_by_notification_type',
-        return_value=[mocker.Mock(ProviderDetails, active=True)]
-    )
+        mocked_get_client_by_name_and_type = mocker.patch(
+            'app.delivery.send_to_providers.clients.get_client_by_name_and_type'
+        )
 
-    send_to_providers.provider_to_use(mocker.Mock(Notification))
+        with pytest.raises(InvalidProviderException, match=f'^provider {str(template_provider_id)} is not active$'):
+            send_to_providers.provider_to_use(mocked_notification)
 
-    mock_load_provider.assert_not_called()
+        mocked_get_client_by_name_and_type.assert_not_called()
+
+    def test_template_or_service_provider_is_not_used_when_feature_flag_is_off(self, mocker, fake_uuid):
+        self.mock_feature_flag(mocker, FeatureFlag.PROVIDER_STRATEGIES_ENABLED, False)
+        self.mock_feature_flag(mocker, FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED, False)
+        mocked_client = mocker.Mock(EmailClient)
+
+        mocker.patch(
+            'app.delivery.send_to_providers.clients.get_client_by_name_and_type',
+            return_value=mocked_client
+        )
+
+        mock_load_provider = mocker.patch(
+            'app.delivery.send_to_providers.load_provider'
+        )
+
+        mocker.patch(
+            'app.delivery.send_to_providers.get_provider_details_by_notification_type',
+            return_value=[mocker.Mock(ProviderDetails, active=True)]
+        )
+
+        send_to_providers.provider_to_use(mocker.Mock(Notification))
+
+        mock_load_provider.assert_not_called()
