@@ -33,8 +33,6 @@ class ProviderService:
             self._strategies[NotificationType.EMAIL] = email_strategy
             self._strategies[NotificationType.SMS] = sms_strategy
 
-            self.validate_strategies()
-
     @property
     def strategies(self):
         return self._strategies

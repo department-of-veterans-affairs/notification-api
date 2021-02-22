@@ -70,18 +70,6 @@ class TestInitApp:
                 sms_provider_selection_strategy_label='UNKNOWN_SMS_STRATEGY'
             )
 
-    def test_fails_to_initialise_if_any_strategies_are_invalid(self, mocker):
-        provider_service = ProviderService()
-        mock_validate_strategies = mocker.patch.object(ProviderService, 'validate_strategies', side_effect=Exception)
-
-        with pytest.raises(Exception):
-            provider_service.init_app(
-                email_provider_selection_strategy_label='EXAMPLE_STRATEGY_ONE',
-                sms_provider_selection_strategy_label='EXAMPLE_STRATEGY_TWO'
-            )
-
-        mock_validate_strategies.assert_called_once()
-
 
 class TestValidateStrategies:
 
