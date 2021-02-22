@@ -15,6 +15,12 @@ status = Blueprint('status', __name__)
 @status.route('/', methods=['GET'])
 @status.route('/_status', methods=['GET', 'POST'])
 def show_status():
+    try:
+        provider_service.validate_strategies()
+    except Exception as error:
+        msg = getattr(error, 'message', str(error))
+        return jsonify(result='error', message=msg), 503
+
     if request.args.get('simple', None):
         return jsonify(status="ok"), 200
     else:

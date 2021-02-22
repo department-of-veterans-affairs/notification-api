@@ -1,18 +1,50 @@
 import pytest
 from flask import json
 
+from app.notifications.notification_type import NotificationType
 from tests.app.db import create_organisation, create_service
 
 
-@pytest.mark.parametrize('path', ['/', '/_status'])
-def test_get_status_all_ok(client, notify_db_session, path):
-    response = client.get(path)
-    assert response.status_code == 200
-    resp_json = json.loads(response.get_data(as_text=True))
-    assert resp_json['status'] == 'ok'
-    assert resp_json['db_version']
-    assert resp_json['git_commit']
-    assert resp_json['build_time']
+class TestStatus:
+
+    @pytest.fixture
+    def mock_provider_service(self, mocker):
+        provider_service = mocker.Mock()
+        mocker.patch('app.status.healthcheck.provider_service', new=provider_service)
+        return provider_service
+
+    @pytest.mark.parametrize('path', ['/', '/_status'])
+    def test_get_status_all_ok(self, client, notify_db_session, path, mocker, mock_provider_service):
+        mock_strategy_1 = mocker.Mock()
+        type(mock_strategy_1).__name__ = 'MOCK_STRATEGY_1'
+
+        mock_strategy_2 = mocker.Mock()
+        type(mock_strategy_2).__name__ = 'MOCK_STRATEGY_2'
+
+        mock_provider_service.strategies = {
+            NotificationType.EMAIL: type(mock_strategy_1),
+            NotificationType.SMS: type(mock_strategy_2)
+        }
+
+        response = client.get(path)
+        assert response.status_code == 200
+        resp_json = json.loads(response.get_data(as_text=True))
+        assert resp_json['status'] == 'ok'
+        assert resp_json['db_version']
+        assert resp_json['git_commit']
+        assert resp_json['build_time']
+
+        assert resp_json['email_strategy'] == 'MOCK_STRATEGY_1'
+        assert resp_json['sms_strategy'] == 'MOCK_STRATEGY_2'
+
+    def test_validates_provider_service(self, client, notify_db_session, mock_provider_service):
+        mock_provider_service.validate_strategies.side_effect = Exception()
+
+        response = client.get('/')
+
+        assert response.status_code == 503
+
+        mock_provider_service.validate_strategies.assert_called()
 
 
 def test_empty_live_service_and_organisation_counts(admin_request):
