@@ -7,6 +7,7 @@ from flask import (
 from app import db, version, provider_service
 from app.dao.services_dao import dao_count_live_services
 from app.dao.organisation_dao import dao_count_organsations_with_live_services
+from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.notifications.notification_type import NotificationType
 
 status = Blueprint('status', __name__)
@@ -15,11 +16,12 @@ status = Blueprint('status', __name__)
 @status.route('/', methods=['GET'])
 @status.route('/_status', methods=['GET', 'POST'])
 def show_status():
-    try:
-        provider_service.validate_strategies()
-    except Exception as error:
-        msg = getattr(error, 'message', str(error))
-        return jsonify(result='error', message=msg), 503
+    if is_feature_enabled(FeatureFlag.PROVIDER_STRATEGIES_ENABLED):
+        try:
+            provider_service.validate_strategies()
+        except Exception as error:
+            msg = getattr(error, 'message', str(error))
+            return jsonify(result='error', message=msg), 503
 
     if request.args.get('simple', None):
         return jsonify(status="ok"), 200

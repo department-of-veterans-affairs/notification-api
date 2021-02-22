@@ -1,6 +1,7 @@
 import pytest
 from flask import json
 
+from app.feature_flags import FeatureFlag
 from app.notifications.notification_type import NotificationType
 from tests.app.db import create_organisation, create_service
 
@@ -11,21 +12,22 @@ class TestStatus:
     def mock_provider_service(self, mocker):
         provider_service = mocker.Mock()
         mocker.patch('app.status.healthcheck.provider_service', new=provider_service)
-        return provider_service
 
-    @pytest.mark.parametrize('path', ['/', '/_status'])
-    def test_get_status_all_ok(self, client, notify_db_session, path, mocker, mock_provider_service):
         mock_strategy_1 = mocker.Mock()
         type(mock_strategy_1).__name__ = 'MOCK_STRATEGY_1'
 
         mock_strategy_2 = mocker.Mock()
         type(mock_strategy_2).__name__ = 'MOCK_STRATEGY_2'
 
-        mock_provider_service.strategies = {
+        provider_service.strategies = {
             NotificationType.EMAIL: type(mock_strategy_1),
             NotificationType.SMS: type(mock_strategy_2)
         }
 
+        return provider_service
+
+    @pytest.mark.parametrize('path', ['/', '/_status'])
+    def test_get_status_all_ok(self, client, notify_db_session, path, mock_provider_service):
         response = client.get(path)
         assert response.status_code == 200
         resp_json = json.loads(response.get_data(as_text=True))
@@ -37,14 +39,39 @@ class TestStatus:
         assert resp_json['email_strategy'] == 'MOCK_STRATEGY_1'
         assert resp_json['sms_strategy'] == 'MOCK_STRATEGY_2'
 
-    def test_validates_provider_service(self, client, notify_db_session, mock_provider_service):
+    def test_validates_provider_service_if_toggle_enabled(
+            self,
+            client,
+            notify_db_session,
+            mocker,
+            mock_provider_service
+    ):
+        mock_is_feature_enabled = mocker.patch('app.status.healthcheck.is_feature_enabled', return_value=True)
         mock_provider_service.validate_strategies.side_effect = Exception()
 
         response = client.get('/')
 
         assert response.status_code == 503
 
+        mock_is_feature_enabled.assert_called_with(FeatureFlag.PROVIDER_STRATEGIES_ENABLED)
         mock_provider_service.validate_strategies.assert_called()
+
+    def test_does_not_validate_provider_service_if_toggle_not_enabled(
+            self,
+            client,
+            notify_db_session,
+            mocker,
+            mock_provider_service
+    ):
+        mock_is_feature_enabled = mocker.patch('app.status.healthcheck.is_feature_enabled', return_value=False)
+        mock_provider_service.validate_strategies.side_effect = Exception()
+
+        response = client.get('/')
+
+        assert response.status_code == 200
+
+        mock_is_feature_enabled.assert_called_with(FeatureFlag.PROVIDER_STRATEGIES_ENABLED)
+        mock_provider_service.validate_strategies.assert_not_called()
 
 
 def test_empty_live_service_and_organisation_counts(admin_request):
