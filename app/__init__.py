@@ -164,8 +164,8 @@ def create_app(application):
     )
 
     provider_service.init_app(
-        email_provider_selection_strategy_label='LOAD_BALANCING',
-        sms_provider_selection_strategy_label='HIGHEST_PRIORITY'
+        email_provider_selection_strategy_label=application.config['EMAIL_PROVIDER_SELECTION_STRATEGY_LABEL'],
+        sms_provider_selection_strategy_label=application.config['SMS_PROVIDER_SELECTION_STRATEGY_LABEL']
     )
 
     register_blueprint(application)
