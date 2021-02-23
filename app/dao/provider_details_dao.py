@@ -170,6 +170,7 @@ def dao_get_provider_stats():
         ProviderDetails.display_name,
         ProviderDetails.identifier,
         ProviderDetails.priority,
+        ProviderDetails.load_balancing_weight,
         ProviderDetails.notification_type,
         ProviderDetails.active,
         ProviderDetails.updated_at,
