@@ -1,6 +1,7 @@
 import json
 
 from flask import current_app
+from typing import Callable
 from notifications_utils.statsd_decorators import statsd
 from requests import (
     HTTPError,
@@ -10,7 +11,8 @@ from requests import (
 
 from app import (
     notify_celery,
-    encryption
+    encryption,
+    statsd_client
 )
 from app.config import QueueNames
 from app.dao.complaint_dao import fetch_complaint_by_id
@@ -186,3 +188,16 @@ def _check_and_queue_complaint_callback_task(complaint, notification, recipient)
     if service_callback_api:
         complaint_data = create_complaint_callback_data(complaint, notification, service_callback_api, recipient)
         send_complaint_to_service.apply_async([complaint_data], queue=QueueNames.CALLBACKS)
+
+
+def publish_complaint(provider_message: dict,
+                      handler: Callable[[dict], tuple]) -> bool:
+    complaint, notification, recipient_email = handler(provider_message)
+    provider_name = notification.sent_by
+    _check_and_queue_complaint_callback_task(complaint, notification, recipient_email)
+    send_complaint_to_vanotify.apply_async(
+        [str(complaint.id), notification.template.name],
+        queue=QueueNames.NOTIFY
+    )
+    statsd_client.incr(f'callback.{provider_name}.complaint_count')
+    return True

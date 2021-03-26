@@ -14,7 +14,7 @@ def determine_notification_bounce_type(notification_type, ses_message):
     return 'Permanent' if ses_message['bounce']['bounceType'] == 'Permanent' else 'Temporary'
 
 
-def handle_complaint(ses_message):
+def handle_ses_complaint(ses_message: dict):
     recipient_email = remove_emails_from_complaint(ses_message)[0]
     current_app.logger.info(
         "Complaint from SES: \n{}".format(json.dumps(ses_message).replace('{', '(').replace('}', ')')))
