@@ -1,7 +1,7 @@
 import json
 
 from flask import current_app
-from typing import Callable
+from typing import Callable, Tuple
 from notifications_utils.statsd_decorators import statsd
 from requests import (
     HTTPError,
@@ -20,6 +20,7 @@ from app.dao.service_callback_api_dao import (
     get_service_delivery_status_callback_api_for_service,
     get_service_complaint_callback_api_for_service
 )
+from app.models import Complaint, Notification
 
 
 @notify_celery.task(bind=True, name="send-delivery-status", max_retries=5, default_retry_delay=300)
@@ -191,8 +192,8 @@ def _check_and_queue_complaint_callback_task(complaint, notification, recipient)
 
 
 def publish_complaint(provider_message: dict,
-                      handler: Callable[[dict], tuple]) -> bool:
-    complaint, notification, recipient_email = handler(provider_message)
+                      provider_complaint_parser: Callable[[dict], Tuple[Complaint, Notification, str]]) -> bool:
+    complaint, notification, recipient_email = provider_complaint_parser(provider_message)
     provider_name = notification.sent_by
     _check_and_queue_complaint_callback_task(complaint, notification, recipient_email)
     send_complaint_to_vanotify.apply_async(

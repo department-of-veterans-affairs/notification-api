@@ -276,7 +276,7 @@ def test_publish_complaint_results_in_invoking_handler(mocker, notify_api):
     mocker.patch('app.celery.service_callback_tasks._check_and_queue_complaint_callback_task')
     mocker.patch('app.celery.service_callback_tasks.send_complaint_to_vanotify.apply_async')
 
-    assert publish_complaint(provider_message=ses_complaint_callback(), handler=ses_handler)
+    assert publish_complaint(provider_message=ses_complaint_callback(), provider_complaint_parser=ses_handler)
     assert notification_db.call_count == 0
     ses_handler.assert_called_once()
 
@@ -288,7 +288,7 @@ def test_publish_complaint_notifies_vanotify(mocker, notify_api):
                                return_value=(complaint, notification, recipient_email))
     send_complaint = mocker.patch('app.celery.service_callback_tasks.send_complaint_to_vanotify.apply_async')
 
-    publish_complaint(provider_message=ses_complaint_callback(), handler=ses_handler)
+    publish_complaint(provider_message=ses_complaint_callback(), provider_complaint_parser=ses_handler)
 
     send_complaint.assert_called_once_with(
         [str(complaint.id), notification.template.name], queue='notify-internal-tasks'
@@ -302,7 +302,7 @@ def test_ses_callback_should_call_user_complaint_callback_task(mocker, notify_ap
     complaint_callback_task = mocker.patch('app.celery.service_callback_tasks._check_and_queue_complaint_callback_task')
     mocker.patch('app.celery.service_callback_tasks.send_complaint_to_vanotify.apply_async')
 
-    publish_complaint(provider_message=ses_complaint_callback(), handler=ses_handler)
+    publish_complaint(provider_message=ses_complaint_callback(), provider_complaint_parser=ses_handler)
 
     complaint_callback_task.assert_called_once_with(complaint, notification, recipient_email)
 

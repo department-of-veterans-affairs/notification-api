@@ -128,7 +128,7 @@ def test_process_ses_results_call_to_publish_complaint(mocker, notify_api):
 
     publish_complaint.assert_called_once_with(
         provider_message=json.loads(provider_message['Message']),
-        handler=ses_handler)
+        provider_complaint_parser=ses_handler)
 
 
 def test_remove_emails_from_complaint():
