@@ -22,7 +22,7 @@ def test_ses_callback_should_not_set_status_once_status_is_delivered(sample_emai
 
 def test_process_ses_results_in_complaint(sample_email_template):
     notification = create_notification(template=sample_email_template, reference='ref1')
-    handle_ses_complaint('ses', json.loads(ses_complaint_callback()['Message']))
+    handle_ses_complaint(json.loads(ses_complaint_callback()['Message']))
     complaints = Complaint.query.all()
     assert len(complaints) == 1
     assert complaints[0].notification_id == notification.id
