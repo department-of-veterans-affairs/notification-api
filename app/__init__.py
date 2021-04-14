@@ -28,6 +28,7 @@ from app.clients.sms.aws_sns import AwsSnsClient
 from app.clients.sms.twilio import TwilioSMSClient
 from app.clients.sms.aws_pinpoint import AwsPinpointClient
 from app.clients.performance_platform.performance_platform_client import PerformancePlatformClient
+from app.oauth.oauth import oauth
 from app.va.va_profile import VAProfileClient
 from app.va.mpi import MpiClient
 from app.encryption import Encryption
@@ -169,6 +170,8 @@ def create_app(application):
         sms_provider_selection_strategy_label=application.config['SMS_PROVIDER_SELECTION_STRATEGY_LABEL']
     )
 
+    oauth.init_app(application)
+
     register_blueprint(application)
     register_v2_blueprints(application)
 
@@ -207,6 +210,7 @@ def register_blueprint(application):
     from app.platform_stats.rest import platform_stats_blueprint
     from app.template_folder.rest import template_folder_blueprint
     from app.letter_branding.letter_branding_rest import letter_branding_blueprint
+    from app.oauth.rest import oauth_blueprint
 
     service_blueprint.before_request(requires_admin_auth)
     application.register_blueprint(service_blueprint, url_prefix='/service')
@@ -219,6 +223,9 @@ def register_blueprint(application):
 
     status_blueprint.before_request(requires_no_auth)
     application.register_blueprint(status_blueprint)
+
+    oauth_blueprint.before_request(requires_no_auth)
+    application.register_blueprint(oauth_blueprint)
 
     govdelivery_callback_blueprint.before_request(requires_no_auth)
     application.register_blueprint(govdelivery_callback_blueprint)

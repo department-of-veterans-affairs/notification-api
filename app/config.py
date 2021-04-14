@@ -428,6 +428,9 @@ class Config(object):
         RelyingParty(os.getenv('FIDO2_DOMAIN', 'localhost'), 'Notification'),
         verify_origin=lambda x: True)
 
+    GITHUB_CLIENT_ID = os.getenv('GITHUB_CLIENT_ID', '')
+    GITHUB_CLIENT_SECRET = os.getenv('GITHUB_CLIENT_SECRET', '')
+
     # Feature flags
     GOVDELIVERY_EMAIL_CLIENT_ENABLED = True
     API_RATE_LIMIT_ENABLED = False
