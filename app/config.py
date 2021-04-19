@@ -430,6 +430,7 @@ class Config(object):
 
     GITHUB_CLIENT_ID = os.getenv('GITHUB_CLIENT_ID', '')
     GITHUB_CLIENT_SECRET = os.getenv('GITHUB_CLIENT_SECRET', '')
+    TEST_SECRET = os.getenv('TEST_SECRET', '')
 
     # Feature flags
     GOVDELIVERY_EMAIL_CLIENT_ENABLED = True
