@@ -5,6 +5,7 @@ import uuid
 from dotenv import load_dotenv
 
 from flask import _request_ctx_stack, request, g, jsonify, make_response
+from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy as _SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
@@ -80,6 +81,8 @@ va_profile_client = VAProfileClient()
 mpi_client = MpiClient()
 
 clients = Clients()
+
+jwt = JWTManager()
 
 from app.provider_details.provider_service import ProviderService # noqa
 provider_service = ProviderService()
@@ -171,6 +174,8 @@ def create_app(application):
     )
 
     oauth.init_app(application)
+
+    jwt.init_app(application)
 
     register_blueprint(application)
     register_v2_blueprints(application)

@@ -1,8 +1,7 @@
-import os
 import re
 
 from flask import Blueprint, url_for, make_response, redirect
-from authlib.jose import jwt
+from flask_jwt_extended import create_access_token
 
 from app.dao.users_dao import get_user_by_email
 from app.errors import register_errors
@@ -31,18 +30,11 @@ def authorize():
         if re.search("(@thoughtworks.com)", email):
             user = get_user_by_email(email)
 
-    # generate new token to set in cookie, authlib comes with jose module
-    header = {'alg': 'HS256', 'typ': 'JWT'}
-    payload = {
-        'iss': 'Authlib',
-        'sub': '123',
-        'email': user.email_address,
-        'super_person': False
-    }
-    key = os.getenv('TEST_SECRET')
-    test_token = jwt.encode(header, payload, key)
-
     response = make_response(redirect('http://localhost:3000'))
-    response.set_cookie('token', 'hello')
-    response.set_cookie('test_token', test_token)
+    response.set_cookie(
+        'token',
+        create_access_token(
+            identity=user.serialize()
+        )
+    )
     return response
