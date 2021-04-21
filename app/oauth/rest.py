@@ -1,7 +1,10 @@
 import os
+import re
+
 from flask import Blueprint, url_for, make_response, redirect
 from authlib.jose import jwt
 
+from app.dao.users_dao import get_user_by_email
 from app.errors import register_errors
 from app.oauth.oauth import oauth
 
@@ -18,21 +21,24 @@ def login():
 @oauth_blueprint.route('/authorize')
 def authorize():
     github_token = oauth.github.authorize_access_token()
-    resp = oauth.github.get('/user', token=github_token)
+    resp = oauth.github.get('/user/emails', token=github_token)
     resp.raise_for_status()
 
-    # do something with the token and profile
-    # profile = resp.json()
-    # user_url = profile['url']
-    # html_user_url = profile['html_url']
-    # orgs_url = profile['organizations_url']
-
-    # returns empty []
-    # orgs = oauth.github.get(orgs_url, token=github_token).json()
+    # filter for emails only simply for p.o.c. purposes
+    emails = list(result['email'] for result in resp.json())
+    user = None
+    for email in emails:
+        if re.search("(@thoughtworks.com)", email):
+            user = get_user_by_email(email)
 
     # generate new token to set in cookie, authlib comes with jose module
     header = {'alg': 'HS256', 'typ': 'JWT'}
-    payload = {'iss': 'Authlib', 'sub': '123'}
+    payload = {
+        'iss': 'Authlib',
+        'sub': '123',
+        'email': user.email_address,
+        'super_person': False
+    }
     key = os.getenv('TEST_SECRET')
     test_token = jwt.encode(header, payload, key)
 
