@@ -54,7 +54,7 @@ def test_should_not_allow_request_with_no_iss(client, auth_fn):
         'iat': int(time.time())
     }
 
-    token = jwt.encode(payload=claims, key=str(uuid.uuid4()), headers=headers).decode()
+    token = jwt.encode(payload=claims, key=str(uuid.uuid4()), headers=headers)
 
     request.headers = {'Authorization': 'Bearer {}'.format(token)}
     with pytest.raises(AuthError) as exc:
@@ -75,7 +75,7 @@ def test_auth_should_not_allow_request_with_no_iat(client, sample_api_key):
         # 'iat': not provided
     }
 
-    token = jwt.encode(payload=claims, key=str(uuid.uuid4()), headers=headers).decode()
+    token = jwt.encode(payload=claims, key=str(uuid.uuid4()), headers=headers)
 
     request.headers = {'Authorization': 'Bearer {}'.format(token)}
     with pytest.raises(AuthError) as exc:
@@ -97,7 +97,7 @@ def test_admin_auth_should_not_allow_request_with_no_iat(client, sample_api_key)
         # 'iat': not provided
     }
 
-    token = jwt.encode(payload=claims, key=str(uuid.uuid4()), headers=headers).decode()
+    token = jwt.encode(payload=claims, key=str(uuid.uuid4()), headers=headers)
 
     request.headers = {'Authorization': 'Bearer {}'.format(token)}
     with pytest.raises(AuthError) as exc:
@@ -106,7 +106,7 @@ def test_admin_auth_should_not_allow_request_with_no_iat(client, sample_api_key)
 
 
 def test_should_not_allow_invalid_secret(client, sample_api_key):
-    token = create_jwt_token(
+    token = create_jwt_token(  # nosec
         secret="not-so-secret",
         client_id=str(sample_api_key.service_id))
     response = client.get(
