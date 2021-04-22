@@ -26,8 +26,14 @@ api -> api: Verify that user is part of VA organisation
 api -> api: Load or create user profile
 api -> api: Generate new JWT token for user
 
-api -> ui: Redirect to UI\n(including newly generated JWT token in cookie)
+api -> ui: Redirect to UI\n(set HTTP-only cookie for API domain with newly generated JWT token)\n(UI can't access the cookie because it's for a different domain)
+deactivate api
 
+ui -> api: ""GET <api>/redeem-token""\nbrowser automatically includes cookie (because it's for the API domain)
+activate api
+api -> api: Validate CORS\nso that only the UI can hit this endpoint
+api-> api: Validate token in cookies
+api -> ui: Respond with the token in body
 ui -> ui: Store token in application memory
 
 ui -> api: Get user info\n(including JWT token in header)
