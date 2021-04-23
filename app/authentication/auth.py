@@ -1,5 +1,5 @@
 from flask import request, _request_ctx_stack, current_app, g
-from flask_jwt_extended import verify_jwt_in_request, get_jwt
+from flask_jwt_extended import verify_jwt_in_request, current_user
 from flask_jwt_extended.config import config
 from notifications_python_client.authentication import decode_jwt_token, get_token_issuer
 from notifications_python_client.errors import TokenDecodeError, TokenExpiredError, TokenIssuerError
@@ -77,11 +77,8 @@ def requires_admin_auth_or_permission_for_service(permission: str):
         try:
             service_id = request.view_args.get('service_id')
             verify_jwt_in_request()
-            claims = get_jwt()
-            sub = claims["sub"]
-            sub_permissions = sub["permissions"]
-            service_permissions = sub_permissions.get(str(service_id), [])
-            if permission in service_permissions:
+            user_permissions = current_user.get_permissions(service_id)
+            if permission in user_permissions:
                 pass
             else:
                 current_app.logger.info(f'{permission} not in permissions for service {service_id}')

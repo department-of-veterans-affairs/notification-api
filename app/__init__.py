@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 
 from flask import _request_ctx_stack, request, g, jsonify, make_response
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy as _SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
@@ -83,7 +82,7 @@ mpi_client = MpiClient()
 
 clients = Clients()
 
-jwt = JWTManager()
+from app.oauth.jwt_manager import jwt  # noqa
 
 from app.provider_details.provider_service import ProviderService # noqa
 provider_service = ProviderService()
