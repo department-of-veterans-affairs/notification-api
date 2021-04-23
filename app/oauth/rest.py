@@ -52,7 +52,7 @@ def redeem_token():
         response = make_response('', 204)
     else:
         cookie = request.cookies.get(current_app.config['JWT_ACCESS_COOKIE_NAME'])
-        response = make_response(jsonify(cookie))
+        response = make_response(jsonify({'data': cookie}))
 
     cors_options = {'origins': current_app.config['UI_HOST_NAME'], 'supports_credentials': True}
     set_cors_headers(response, get_cors_options(current_app, cors_options))
