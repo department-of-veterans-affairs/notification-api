@@ -432,6 +432,9 @@ class Config(object):
     GITHUB_CLIENT_SECRET = os.getenv('GITHUB_CLIENT_SECRET', '')
     TEST_SECRET = os.getenv('TEST_SECRET', '')
 
+    JWT_ACCESS_COOKIE_NAME = 'vanotify_api_access_token'
+    UI_HOST_NAME = 'http://dev.notifications.local:3000'
+
     # Feature flags
     GOVDELIVERY_EMAIL_CLIENT_ENABLED = True
     API_RATE_LIMIT_ENABLED = False

@@ -5,6 +5,7 @@ import uuid
 from dotenv import load_dotenv
 
 from flask import _request_ctx_stack, request, g, jsonify, make_response
+from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy as _SQLAlchemy
 from flask_marshmallow import Marshmallow
@@ -184,6 +185,8 @@ def create_app(application):
     from app.commands import setup_commands
     setup_commands(application)
 
+    CORS(application)
+
     return application
 
 
@@ -336,13 +339,6 @@ def init_app(app):
     def record_request_details():
         g.start = monotonic()
         g.endpoint = request.endpoint
-
-    @app.after_request
-    def after_request(response):
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
-        return response
 
     @app.errorhandler(Exception)
     def exception(error):

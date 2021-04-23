@@ -1,7 +1,10 @@
 import re
 
-from flask import Blueprint, url_for, make_response, redirect
-from flask_jwt_extended import create_access_token
+from flask import Blueprint, url_for, make_response, redirect, jsonify, current_app, request
+from flask_cors.core import get_cors_options, set_cors_headers
+from flask_jwt_extended import create_access_token, verify_jwt_in_request
+from flask_jwt_extended.exceptions import NoAuthorizationError
+from jwt import ExpiredSignatureError
 
 from app.dao.users_dao import get_user_by_email
 from app.errors import register_errors
@@ -30,11 +33,28 @@ def authorize():
         if re.search("(@thoughtworks.com)", email):
             user = get_user_by_email(email)
 
-    response = make_response(redirect('http://localhost:3000'))
+    response = make_response(redirect(current_app.config['UI_HOST_NAME']))
     response.set_cookie(
-        'token',
+        current_app.config['JWT_ACCESS_COOKIE_NAME'],
         create_access_token(
             identity=user.serialize()
-        )
+        ),
+        httponly=True
     )
+    return response
+
+
+@oauth_blueprint.route('/redeem-token', methods=['GET'])
+def redeem_token():
+    try:
+        verify_jwt_in_request(locations='cookies')
+    except (NoAuthorizationError, ExpiredSignatureError):
+        response = make_response('', 204)
+    else:
+        cookie = request.cookies.get(current_app.config['JWT_ACCESS_COOKIE_NAME'])
+        response = make_response(jsonify(cookie))
+
+    cors_options = {'origins': current_app.config['UI_HOST_NAME'], 'supports_credentials': True}
+    set_cors_headers(response, get_cors_options(current_app, cors_options))
+
     return response
