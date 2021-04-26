@@ -39,7 +39,8 @@ def authorize():
         create_access_token(
             identity=user
         ),
-        httponly=True
+        httponly=True,
+        secure=current_app.config['SESSION_COOKIE_SECURE']
     )
     return response
 
