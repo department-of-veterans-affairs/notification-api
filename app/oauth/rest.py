@@ -50,7 +50,7 @@ def redeem_token():
     try:
         verify_jwt_in_request(locations='cookies')
     except (NoAuthorizationError, ExpiredSignatureError):
-        response = make_response('', 204)
+        response = make_response('', 401)
     else:
         cookie = request.cookies.get(current_app.config['JWT_ACCESS_COOKIE_NAME'])
         response = make_response(jsonify({'data': cookie}))
