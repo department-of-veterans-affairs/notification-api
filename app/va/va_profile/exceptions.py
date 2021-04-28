@@ -3,12 +3,12 @@ class VAProfileException(Exception):
 
 
 class VAProfileRetryableException(VAProfileException):
-    pass
+    failure_reason = 'Retryable VAProfile error occurred'
 
 
 class VAProfileNonRetryableException(VAProfileException):
-    pass
+    failure_reason = 'Non-retryable VAProfile error occurred'
 
 
 class NoContactInfoException(VAProfileNonRetryableException):
-    pass
+    failure_reason = 'No contact info found from VA Profile'

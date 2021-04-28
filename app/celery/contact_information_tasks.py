@@ -34,25 +34,38 @@ def lookup_contact_info(self, notification_id):
         try:
             self.retry(queue=QueueNames.RETRY)
         except self.MaxRetriesExceededError:
-            message = "RETRY FAILED: Max retries reached. " \
-                      f"The task lookup_contact_info failed for notification {notification_id}. " \
-                      "Notification has been updated to technical-failure"
-            update_notification_status_by_id(notification_id, NOTIFICATION_TECHNICAL_FAILURE)
+            message = (
+                'RETRY FAILED: Max retries reached. '
+                f'The task lookup_contact_info failed for notification {notification_id}. '
+                'Notification has been updated to technical-failure'
+            )
+
+            update_notification_status_by_id(
+                notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason=e.failure_reason
+            )
             raise NotificationTechnicalFailureException(message) from e
 
     except NoContactInfoException as e:
-        message = f"{e.__class__.__name__} - {str(e)}: " \
-                  f"Can't proceed after querying VA Profile for contact information for {notification_id}. " \
-                  "Stopping execution of following tasks. Notification has been updated to permanent-failure."
-        current_app.logger.warning(message)
+        message = (
+            f'Can\'t proceed after querying VA Profile for contact information for {notification_id}. '
+            'Stopping execution of following tasks. Notification has been updated to permanent-failure.'
+        )
+        current_app.logger.warning(f'{e.__class__.__name__} - {str(e)}: ' + message)
         self.request.chain = None
-        update_notification_status_by_id(notification_id, NOTIFICATION_PERMANENT_FAILURE)
+
+        update_notification_status_by_id(
+            notification_id, NOTIFICATION_PERMANENT_FAILURE, status_reason=e.failure_reason
+        )
 
     except VAProfileNonRetryableException as e:
         current_app.logger.exception(e)
-        message = f"The task lookup_contact_info failed for notification {notification_id}. " \
-                  "Notification has been updated to technical-failure"
-        update_notification_status_by_id(notification_id, NOTIFICATION_TECHNICAL_FAILURE)
+        message = (
+            f'The task lookup_contact_info failed for notification {notification_id}. '
+            'Notification has been updated to technical-failure'
+        )
+        update_notification_status_by_id(
+            notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason=e.failure_reason
+        )
         raise NotificationTechnicalFailureException(message) from e
 
     else:

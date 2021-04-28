@@ -1,5 +1,6 @@
 import functools
 import string
+import uuid
 from datetime import (
     datetime,
     timedelta,
@@ -27,6 +28,7 @@ from app import db, create_uuid
 from app.aws.s3 import remove_s3_object, get_s3_bucket_objects
 from app.dao.dao_utils import transactional
 from app.errors import InvalidRequest
+from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.letters.utils import LETTERS_PDF_FILE_LOCATION_STRUCTURE
 from app.models import (
     Notification,
@@ -50,6 +52,15 @@ from app.models import (
 )
 from app.utils import get_local_timezone_midnight_in_utc
 from app.utils import midnight_n_days_ago, escape_special_characters
+
+TRANSIENT_NOTIFICATION_STATUSES = {
+    NOTIFICATION_CREATED,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_PENDING,
+    NOTIFICATION_SENT,
+    NOTIFICATION_PENDING_VIRUS_CHECK,
+    NOTIFICATION_TEMPORARY_FAILURE
+}
 
 
 @statsd(namespace="dao")
@@ -101,7 +112,9 @@ def _update_notification_status(notification, status):
 
 @statsd(namespace="dao")
 @transactional
-def update_notification_status_by_id(notification_id, status, sent_by=None):
+def update_notification_status_by_id(
+        notification_id: uuid, status: str, sent_by: str = None, status_reason: str = None
+) -> Notification:
     notification = Notification.query.with_for_update().filter(Notification.id == notification_id).first()
 
     if not notification:
@@ -111,14 +124,7 @@ def update_notification_status_by_id(notification_id, status, sent_by=None):
         ))
         return None
 
-    if notification.status not in {
-        NOTIFICATION_CREATED,
-        NOTIFICATION_SENDING,
-        NOTIFICATION_PENDING,
-        NOTIFICATION_SENT,
-        NOTIFICATION_PENDING_VIRUS_CHECK,
-        NOTIFICATION_TEMPORARY_FAILURE
-    }:
+    if notification.status not in TRANSIENT_NOTIFICATION_STATUSES:
         duplicate_update_warning(notification, status)
         return None
 
@@ -126,6 +132,10 @@ def update_notification_status_by_id(notification_id, status, sent_by=None):
         return None
     if not notification.sent_by and sent_by:
         notification.sent_by = sent_by
+
+    if is_feature_enabled(FeatureFlag.NOTIFICATION_FAILURE_REASON_ENABLED) and status_reason:
+        notification.status_reason = status_reason
+
     return _update_notification_status(
         notification=notification,
         status=status

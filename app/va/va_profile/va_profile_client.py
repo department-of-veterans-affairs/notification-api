@@ -3,6 +3,7 @@ from enum import Enum
 import requests
 import iso8601
 from time import monotonic
+from http.client import responses
 
 from app.va.va_profile import (
     NoContactInfoException,
@@ -75,24 +76,47 @@ class VAProfileClient:
         except requests.HTTPError as e:
             self.logger.exception(e)
             self.statsd_client.incr(f"clients.va-profile.error.{e.response.status_code}")
+
+            failure_reason = (
+                f'Received {responses[e.response.status_code]} HTTP error ({e.response.status_code}) while making a '
+                'request to obtain contact info from VA Profile'
+            )
+
             if e.response.status_code in [429, 500, 502, 503, 504]:
-                raise VAProfileRetryableException(str(e)) from e
+                exception = VAProfileRetryableException(str(e))
+                exception.failure_reason = failure_reason
+
+                raise exception from e
             else:
-                raise VAProfileNonRetryableException(str(e)) from e
+                exception = VAProfileNonRetryableException(str(e))
+                exception.failure_reason = failure_reason
+
+                raise exception from e
 
         except requests.RequestException as e:
             self.statsd_client.incr(f"clients.va-profile.error.request_exception")
-            raise VAProfileRetryableException(f"VA Profile returned {str(e)} while querying for VA Profile ID") from e
+
+            failure_message = f'VA Profile returned RequestException while querying for VA Profile ID'
+
+            exception = VAProfileRetryableException(failure_message)
+            exception.failure_reason = failure_message
+
+            raise exception from e
 
         else:
             response_json = response.json()
             response_status = response_json['status']
             if response_status != self.SUCCESS_STATUS:
                 self.statsd_client.incr(f"clients.va-profile.error.{response_status}")
-                raise VAProfileNonRetryableException(
-                    f"Response status was {response_status} for VA Profile ID {va_profile_id} "
-                    f"with AuditId {response_json.get(self.TX_AUDIT_ID)}"
+
+                message = (
+                    f'Response status was {response_status} for VA Profile ID {va_profile_id} '
+                    f'with AuditId {response_json.get(self.TX_AUDIT_ID)}'
                 )
+
+                exception = VAProfileNonRetryableException(message)
+                exception.failure_reason = message
+                raise exception
             self._validate_response(response_json, va_profile_id, bio_type)
 
             self.statsd_client.incr("clients.va-profile.success")

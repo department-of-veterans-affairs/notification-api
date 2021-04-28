@@ -50,7 +50,9 @@ from app.models import (
     KEY_TYPE_TEAM,
     KEY_TYPE_TEST,
     JOB_STATUS_IN_PROGRESS,
-    RecipientIdentifier)
+    RecipientIdentifier,
+    NOTIFICATION_PERMANENT_FAILURE,
+)
 from app.notifications.process_notifications import persist_notification
 from app.va.identifier import IdentifierType
 from tests.app.db import (
@@ -1572,3 +1574,17 @@ def test_notifications_not_yet_sent_return_no_rows(sample_service, notification_
 
     results = notifications_not_yet_sent(older_than, notification_type)
     assert len(results) == 0
+
+
+def test_update_notification_status_updates_failure_reason(sample_job, mocker):
+    mocker.patch('app.dao.notifications_dao.is_feature_enabled', return_value=True)
+    notification = create_notification(
+        template=sample_job.template, status=NOTIFICATION_SENT, reference='reference', job=sample_job
+    )
+
+    failure_message = 'some failure'
+    updated_notification = update_notification_status_by_id(
+        notification.id, NOTIFICATION_PERMANENT_FAILURE, status_reason=failure_message
+    )
+
+    assert updated_notification.status_reason == failure_message

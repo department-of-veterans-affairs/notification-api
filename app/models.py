@@ -1424,6 +1424,7 @@ class Notification(db.Model):
     created_by_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=True)
 
     reply_to_text = db.Column(db.String, nullable=True)
+    status_reason = db.Column(db.String, nullable=True)
 
     postage = db.Column(db.String, nullable=True)
     CheckConstraint("""
@@ -1624,6 +1625,7 @@ class Notification(db.Model):
             "postcode": None,
             "type": self.notification_type,
             "status": self.get_letter_status() if self.notification_type == LETTER_TYPE else self.status,
+            "status_reason": self.status_reason,
             "template": template_dict,
             "body": self.content,
             "subject": self.subject,
@@ -1705,6 +1707,7 @@ class NotificationHistory(db.Model, HistoryModel):
     created_by_id = db.Column(UUID(as_uuid=True), nullable=True)
 
     postage = db.Column(db.String, nullable=True)
+    status_reason = db.Column(db.String, nullable=True)
     CheckConstraint("""
         CASE WHEN notification_type = 'letter' THEN
             postage is not null and postage in ('first', 'second')

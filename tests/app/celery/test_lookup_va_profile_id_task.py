@@ -6,8 +6,14 @@ from app.exceptions import NotificationTechnicalFailureException
 from app.models import Notification, NOTIFICATION_TECHNICAL_FAILURE, NOTIFICATION_PERMANENT_FAILURE
 from app.celery.lookup_va_profile_id_task import lookup_va_profile_id
 from app.va.identifier import IdentifierType, UnsupportedIdentifierException
-from app.va.mpi import IdentifierNotFound, MpiRetryableException, \
-    BeneficiaryDeceasedException, MultipleActiveVaProfileIdsException, IncorrectNumberOfIdentifiersException
+from app.va.mpi import (
+    IdentifierNotFound,
+    MpiRetryableException,
+    BeneficiaryDeceasedException,
+    MultipleActiveVaProfileIdsException,
+    IncorrectNumberOfIdentifiersException,
+    MpiNonRetryableException
+)
 
 
 @pytest.fixture(scope='function')
@@ -47,18 +53,19 @@ def test_should_call_mpi_client_and_save_va_profile_id(notify_api, mocker, notif
 
 
 @pytest.mark.parametrize(
-    "exception",
+    "exception, reason",
     [
-        UnsupportedIdentifierException('some error'),
-        IncorrectNumberOfIdentifiersException('some error'),
-        Exception('some error')
+        (UnsupportedIdentifierException('some error'), UnsupportedIdentifierException.failure_reason),
+        (IncorrectNumberOfIdentifiersException('some error'), IncorrectNumberOfIdentifiersException.failure_reason),
+        (Exception('some error'), 'Unknown error from MPI')
     ]
 )
 def test_should_not_retry_on_other_exception_and_should_update_to_technical_failure(
         client,
         mocker,
         notification,
-        exception
+        exception,
+        reason
 ):
     mocked_get_notification_by_id = mocker.patch(
         'app.celery.lookup_va_profile_id_task.notifications_dao.get_notification_by_id',
@@ -88,7 +95,9 @@ def test_should_not_retry_on_other_exception_and_should_update_to_technical_fail
     mocked_get_notification_by_id.assert_called()
     mocked_lookup_contact_info.assert_not_called()
 
-    mocked_update_notification_status_by_id.assert_called_with(notification.id, NOTIFICATION_TECHNICAL_FAILURE)
+    mocked_update_notification_status_by_id.assert_called_with(
+        notification.id, NOTIFICATION_TECHNICAL_FAILURE, status_reason=reason
+    )
     mocked_retry.assert_not_called()
 
 
@@ -138,20 +147,25 @@ def test_should_update_notification_to_technical_failure_on_max_retries(client, 
     with pytest.raises(NotificationTechnicalFailureException):
         lookup_va_profile_id(notification.id)
 
-    mocked_update_notification_status_by_id.assert_called_with(notification.id, NOTIFICATION_TECHNICAL_FAILURE)
+    mocked_update_notification_status_by_id.assert_called_with(
+        notification.id, NOTIFICATION_TECHNICAL_FAILURE, status_reason='Retryable MPI error occurred'
+    )
 
 
 @pytest.mark.parametrize(
-    "exception",
-    [BeneficiaryDeceasedException('some error'),
-     IdentifierNotFound('some error'),
-     MultipleActiveVaProfileIdsException('some error')]
+    "exception, reason",
+    [
+        (BeneficiaryDeceasedException('some error'), BeneficiaryDeceasedException.failure_reason),
+        (IdentifierNotFound('some error'), IdentifierNotFound.failure_reason),
+        (MultipleActiveVaProfileIdsException('some error'), MultipleActiveVaProfileIdsException.failure_reason)
+    ]
 )
 def test_should_permanently_fail_and_clear_chain_when_permanent_failure_exception(
         client,
         mocker,
         notification,
-        exception
+        exception,
+        reason
 ):
     mocker.patch(
         'app.celery.lookup_va_profile_id_task.notifications_dao.get_notification_by_id',
@@ -180,6 +194,83 @@ def test_should_permanently_fail_and_clear_chain_when_permanent_failure_exceptio
 
     lookup_va_profile_id(notification.id)
 
-    mocked_update_notification_status_by_id.assert_called_with(notification.id, NOTIFICATION_PERMANENT_FAILURE)
+    mocked_update_notification_status_by_id.assert_called_with(
+        notification.id, NOTIFICATION_PERMANENT_FAILURE, status_reason=reason
+    )
 
     mocked_chain.assert_called_with(None)
+
+
+@pytest.mark.parametrize(
+    'exception, notification_status, failure_reason, raises_exception', [
+        (
+            MpiRetryableException('some error'),
+            NOTIFICATION_TECHNICAL_FAILURE,
+            MpiRetryableException.failure_reason,
+            True
+        ),
+        (
+            MpiNonRetryableException,
+            NOTIFICATION_TECHNICAL_FAILURE,
+            MpiNonRetryableException.failure_reason,
+            True
+        ),
+        (
+            IncorrectNumberOfIdentifiersException,
+            NOTIFICATION_TECHNICAL_FAILURE,
+            IncorrectNumberOfIdentifiersException.failure_reason,
+            True
+        ),
+        (
+            IdentifierNotFound,
+            NOTIFICATION_PERMANENT_FAILURE,
+            IdentifierNotFound.failure_reason,
+            False
+        ),
+        (
+            MultipleActiveVaProfileIdsException,
+            NOTIFICATION_PERMANENT_FAILURE,
+            MultipleActiveVaProfileIdsException.failure_reason,
+            False
+        ),
+        (
+            BeneficiaryDeceasedException,
+            NOTIFICATION_PERMANENT_FAILURE,
+            BeneficiaryDeceasedException.failure_reason,
+            False
+        )
+    ]
+)
+def test_caught_exceptions_should_set_status_reason_on_notification(
+        client, mocker, notification, exception, notification_status, failure_reason, raises_exception
+):
+    mocker.patch(
+        'app.celery.lookup_va_profile_id_task.notifications_dao.get_notification_by_id',
+        return_value=notification
+    )
+
+    mocked_mpi_client = mocker.Mock()
+    mocked_mpi_client.get_va_profile_id = mocker.Mock(side_effect=exception)
+    mocker.patch(
+        'app.celery.lookup_va_profile_id_task.mpi_client',
+        new=mocked_mpi_client
+    )
+
+    mocked_update_notification_status_by_id = mocker.patch(
+        'app.celery.lookup_va_profile_id_task.notifications_dao.update_notification_status_by_id'
+    )
+
+    mocker.patch(
+        'app.celery.lookup_va_profile_id_task.lookup_va_profile_id.retry',
+        side_effect=lookup_va_profile_id.MaxRetriesExceededError
+    )
+
+    if raises_exception:
+        with pytest.raises(NotificationTechnicalFailureException):
+            lookup_va_profile_id(notification.id)
+    else:
+        lookup_va_profile_id(notification.id)
+
+    mocked_update_notification_status_by_id.assert_called_with(
+        notification.id, notification_status, status_reason=failure_reason
+    )

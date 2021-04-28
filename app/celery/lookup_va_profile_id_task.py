@@ -39,7 +39,10 @@ def lookup_va_profile_id(self, notification_id):
             message = "RETRY FAILED: Max retries reached. " \
                       f"The task lookup_va_profile_id failed for notification {notification_id}. " \
                       "Notification has been updated to technical-failure"
-            notifications_dao.update_notification_status_by_id(notification_id, NOTIFICATION_TECHNICAL_FAILURE)
+
+            notifications_dao.update_notification_status_by_id(
+                notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason=e.failure_reason
+            )
             raise NotificationTechnicalFailureException(message) from e
 
     except (BeneficiaryDeceasedException, IdentifierNotFound, MultipleActiveVaProfileIdsException) as e:
@@ -48,11 +51,17 @@ def lookup_va_profile_id(self, notification_id):
                   "Stopping execution of following tasks. Notification has been updated to permanent-failure."
         current_app.logger.warning(message)
         self.request.chain = None
-        notifications_dao.update_notification_status_by_id(notification_id, NOTIFICATION_PERMANENT_FAILURE)
+        notifications_dao.update_notification_status_by_id(
+            notification_id, NOTIFICATION_PERMANENT_FAILURE, status_reason=e.failure_reason
+        )
 
     except Exception as e:
         message = f"Failed to retrieve VA Profile ID from MPI for notification: {notification_id} " \
                   "Notification has been updated to technical-failure"
         current_app.logger.exception(message)
-        notifications_dao.update_notification_status_by_id(notification_id, NOTIFICATION_TECHNICAL_FAILURE)
+
+        status_reason = e.failure_reason if hasattr(e, 'failure_reason') else 'Unknown error from MPI'
+        notifications_dao.update_notification_status_by_id(
+            notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason=status_reason
+        )
         raise NotificationTechnicalFailureException(message) from e
