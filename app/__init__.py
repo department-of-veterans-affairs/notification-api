@@ -29,7 +29,7 @@ from app.clients.sms.aws_sns import AwsSnsClient
 from app.clients.sms.twilio import TwilioSMSClient
 from app.clients.sms.aws_pinpoint import AwsPinpointClient
 from app.clients.performance_platform.performance_platform_client import PerformancePlatformClient
-from app.oauth.oauth import oauth
+from app.oauth.registry import oauth_registry
 from app.va.va_profile import VAProfileClient
 from app.va.mpi import MpiClient
 from app.encryption import Encryption
@@ -173,7 +173,7 @@ def create_app(application):
         sms_provider_selection_strategy_label=application.config['SMS_PROVIDER_SELECTION_STRATEGY_LABEL']
     )
 
-    oauth.init_app(application)
+    oauth_registry.init_app(application)
 
     jwt.init_app(application)
 
