@@ -104,7 +104,7 @@ PyYAML==5.4.1
 redis==3.5.3
 requests==2.25.1
 requests-file==1.5.1
-rsa==4.5
+rsa==4.7.2
 s3transfer==0.3.4
 six==1.15.0
 smartypants==2.0.1
