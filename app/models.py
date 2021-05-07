@@ -194,7 +194,8 @@ class User(db.Model):
             'services': [x.id for x in self.services if x.active],
             'state': self.state,
             'blocked': self.blocked,
-            'additional_information': self.additional_information
+            'additional_information': self.additional_information,
+            'identity_provider_user_id': self.identity_provider_user_id
         }
 
     def serialize_for_users_list(self):
@@ -769,6 +770,7 @@ class ServiceCallbackApi(db.Model, Versioned):
     updated_at = db.Column(db.DateTime, nullable=True)
     updated_by = db.relationship('User')
     updated_by_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), index=True, nullable=False)
+    notification_statuses = db.Column(db.String(), nullable=False)
 
     __table_args__ = (
         UniqueConstraint('service_id', 'callback_type', name='uix_service_callback_type'),
