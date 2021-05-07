@@ -20,7 +20,7 @@ def test_save_service_callback_api(sample_service):
         url="https://some_service/callback_endpoint",
         bearer_token="some_unique_string",
         updated_by_id=sample_service.users[0].id,
-        notification_statuses=str(notification_statuses)
+        notification_statuses=notification_statuses
     )
 
     save_service_callback_api(service_callback_api)
@@ -35,6 +35,7 @@ def test_save_service_callback_api(sample_service):
     assert callback_api.bearer_token == "some_unique_string"
     assert callback_api._bearer_token != "some_unique_string"
     assert callback_api.updated_at is None
+    assert callback_api.notification_statuses == notification_statuses
 
     versioned = ServiceCallbackApi.get_history_model().query.filter_by(id=callback_api.id).one()
     assert versioned.id == callback_api.id

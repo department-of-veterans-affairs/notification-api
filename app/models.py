@@ -1,6 +1,8 @@
 import itertools
 import uuid
 import datetime
+from ast import literal_eval
+
 from flask import url_for, current_app
 
 from sqlalchemy.ext.declarative import declared_attr
@@ -770,7 +772,7 @@ class ServiceCallbackApi(db.Model, Versioned):
     updated_at = db.Column(db.DateTime, nullable=True)
     updated_by = db.relationship('User')
     updated_by_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), index=True, nullable=False)
-    notification_statuses = db.Column(db.String(), nullable=False)
+    _notification_statuses = db.Column('notification_statuses', db.String(), nullable=False)
 
     __table_args__ = (
         UniqueConstraint('service_id', 'callback_type', name='uix_service_callback_type'),
@@ -786,6 +788,14 @@ class ServiceCallbackApi(db.Model, Versioned):
     def bearer_token(self, bearer_token):
         if bearer_token:
             self._bearer_token = encryption.encrypt(str(bearer_token))
+
+    @property
+    def notification_statuses(self):
+        return list(literal_eval(self._notification_statuses))
+
+    @notification_statuses.setter
+    def notification_statuses(self, notification_statuses):
+        self._notification_statuses = str(notification_statuses)
 
     def serialize(self):
         return {
