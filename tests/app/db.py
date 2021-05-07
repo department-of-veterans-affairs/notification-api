@@ -61,7 +61,7 @@ from app.models import (
     LetterBranding,
     Domain,
     NotificationHistory,
-    RecipientIdentifier
+    RecipientIdentifier, NOTIFICATION_FAILED
 )
 
 
@@ -483,11 +483,13 @@ def create_service_callback_api(  # nosec
         bearer_token="some_super_secret",
         callback_type="delivery_status"
 ):
+    notification_statuses = [NOTIFICATION_FAILED]
     service_callback_api = ServiceCallbackApi(service_id=service.id,
                                               url=url,
                                               bearer_token=bearer_token,
                                               updated_by_id=service.users[0].id,
-                                              callback_type=callback_type
+                                              callback_type=callback_type,
+                                              notification_statuses=notification_statuses
                                               )
     save_service_callback_api(service_callback_api)
     return service_callback_api
