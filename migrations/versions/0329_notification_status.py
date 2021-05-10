@@ -7,6 +7,7 @@ Create Date: 2021-05-07
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.models import NOTIFICATION_STATUS_TYPES_COMPLETED
 
@@ -16,10 +17,10 @@ down_revision = '0328_identity_provider_user_id'
 
 def upgrade():
     op.add_column('service_callback_api', sa.Column(
-        'notification_statuses', sa.String(length=255), nullable=False, default=str(NOTIFICATION_STATUS_TYPES_COMPLETED)
+        'notification_statuses', JSONB, nullable=False, default=str(NOTIFICATION_STATUS_TYPES_COMPLETED)
     ))
     op.add_column('service_callback_api_history', sa.Column(
-        'notification_statuses', sa.String(length=255), nullable=True
+        'notification_statuses', JSONB, nullable=True
     ))
 
 
