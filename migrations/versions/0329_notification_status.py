@@ -20,7 +20,7 @@ down_revision = '0328_identity_provider_user_id'
 
 def upgrade():
     json_dump = json.dumps({'statuses': NOTIFICATION_STATUS_TYPES_COMPLETED})
-    json_text = "'{}'::jsonb"
+    json_text = f"'{json_dump}'::jsonb"
     op.add_column('service_callback_api', sa.Column(
         'notification_statuses', JSONB(astext_type=sa.Text()), nullable=False,
         default=text(json_text), server_default=text(json_text)
