@@ -66,7 +66,7 @@ def test_update_service_inbound_api_updates_url(admin_request, sample_service):
 
 
 def test_update_service_inbound_api_updates_bearer_token(admin_request, sample_service):
-    service_inbound_api = create_service_inbound_api(service=sample_service,
+    service_inbound_api = create_service_inbound_api(service=sample_service,  # nosec
                                                      bearer_token="some_super_secret")
     data = {
         "bearer_token": "different_token",
@@ -110,6 +110,7 @@ def test_create_service_callback_api(admin_request, sample_service):
     data = {
         "url": "https://some_service/delivery-receipt-endpoint",
         "bearer_token": "some-unique-string",
+        "notification_statuses": ["failed"],
         "updated_by_id": str(sample_service.users[0].id)
     }
 
@@ -129,10 +130,29 @@ def test_create_service_callback_api(admin_request, sample_service):
     assert not resp_json["updated_at"]
 
 
+def test_create_service_callback_api_raises_400_when_no_status_in_request(admin_request, sample_service):
+    data = {
+        "url": "https://some_service/delivery-receipt-endpoint",
+        "bearer_token": "some-unique-string",
+        "updated_by_id": str(sample_service.users[0].id)
+    }
+
+    resp_json = admin_request.post(
+        'service_callback.create_service_callback_api',
+        service_id=sample_service.id,
+        _data=data,
+        _expected_status=400
+    )
+
+    assert resp_json['errors'][0]['error'] == 'ValidationError'
+    assert resp_json['errors'][0]['message'] == 'notification_statuses is a required property'
+
+
 def test_set_service_callback_api_raises_404_when_service_does_not_exist(admin_request, notify_db_session):
     data = {
         "url": "https://some_service/delivery-receipt-endpoint",
         "bearer_token": "some-unique-string",
+        "notification_statuses": ["failed"],
         "updated_by_id": str(uuid.uuid4())
     }
 
@@ -165,7 +185,7 @@ def test_update_service_callback_api_updates_url(admin_request, sample_service):
 
 
 def test_update_service_callback_api_updates_bearer_token(admin_request, sample_service):
-    service_callback_api = create_service_callback_api(service=sample_service,
+    service_callback_api = create_service_callback_api(service=sample_service,  # nosec
                                                        bearer_token="some_super_secret")
     data = {
         "bearer_token": "different_token",

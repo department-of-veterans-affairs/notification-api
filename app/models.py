@@ -802,6 +802,7 @@ class ServiceCallbackApi(db.Model, Versioned):
             "id": str(self.id),
             "service_id": str(self.service_id),
             "url": self.url,
+            "notification_statuses": self.notification_statuses,
             "updated_by_id": str(self.updated_by_id),
             "created_at": self.created_at.strftime(DATETIME_FORMAT),
             "updated_at": self.updated_at.strftime(DATETIME_FORMAT) if self.updated_at else None

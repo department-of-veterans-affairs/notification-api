@@ -17,7 +17,7 @@ from app.models import (
 from app.schema_validation import validate
 from app.service.service_callback_api_schema import (
     create_service_callback_api_schema,
-    update_service_callback_api_schema
+    update_service_callback_api_schema, create_service_inbound_api_schema
 )
 from app.dao.service_inbound_api_dao import (
     save_service_inbound_api,
@@ -40,7 +40,7 @@ register_errors(service_callback_blueprint)
 @service_callback_blueprint.route('/inbound-api', methods=['POST'])
 def create_service_inbound_api(service_id):
     data = request.get_json()
-    validate(data, create_service_callback_api_schema)
+    validate(data, create_service_inbound_api_schema)
     data["service_id"] = service_id
     inbound_api = ServiceInboundApi(**data)
     try:
