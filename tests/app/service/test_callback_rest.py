@@ -166,10 +166,11 @@ def test_create_service_callback_api_raises_404_when_service_does_not_exist(admi
 
 
 def test_create_service_callback_api_raises_400_when_validation_failed(admin_request, notify_db_session):
+    non_existent_status = 'nonexistent_failed'
     data = {
         "url": "https://some_service/delivery-receipt-endpoint",
         "bearer_token": "some-unique-string",
-        "notification_statuses": ["nonexistent_failed"],
+        "notification_statuses": [non_existent_status],
         "updated_by_id": str(uuid.uuid4())
     }
 
@@ -181,7 +182,7 @@ def test_create_service_callback_api_raises_400_when_validation_failed(admin_req
     )
 
     assert resp_json['errors'][0]['error'] == 'ValidationError'
-    assert resp_json['errors'][0]['message'] == 'Invalid notification_statuses'
+    assert f'{non_existent_status} is not one of' in resp_json['errors'][0]['message']
 
 
 def test_update_service_callback_api_updates_url(admin_request, sample_service):
