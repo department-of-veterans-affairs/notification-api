@@ -12,6 +12,7 @@ from app.celery.research_mode_tasks import (
 )
 from app.celery.service_callback_tasks import create_delivery_status_callback_data
 from app.dao.notifications_dao import get_notification_by_id
+from app.dao.service_callback_api_dao import get_service_delivery_status_callback_api_for_service
 from app.models import Complaint, Notification, Service, Template, User
 from app.notifications.notifications_ses_callback import remove_emails_from_complaint, remove_emails_from_bounce
 
@@ -176,6 +177,9 @@ def test_ses_callback_should_update_notification_status(
         )
         statsd_client.incr.assert_any_call("callback.ses.delivered")
         updated_notification = Notification.query.get(notification.id)
+        callback_api = get_service_delivery_status_callback_api_for_service(
+            service_id=notification.service_id, notification_status=notification.status
+        )
         encrypted_data = create_delivery_status_callback_data(updated_notification, callback_api)
         send_mock.assert_called_once_with([str(notification.id), encrypted_data], queue="service-callbacks")
 
