@@ -166,8 +166,7 @@ def test_ses_callback_should_update_notification_status(
             status='sending',
             reference='ref',
         )
-        callback_api = create_service_callback_api(service=sample_email_template.service,
-                                                   url="https://original_url.com")
+        create_service_callback_api(service=sample_email_template.service, url="https://original_url.com")
         assert get_notification_by_id(notification.id).status == 'sending'
 
         assert process_ses_receipts_tasks.process_ses_results(ses_notification_callback(reference='ref'))
