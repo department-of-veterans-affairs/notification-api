@@ -8,7 +8,7 @@ from app.dao.service_callback_api_dao import (
     save_service_callback_api,
     reset_service_callback_api,
     get_service_callback_api,
-    get_service_delivery_status_callback_api_for_service, get_service_delivery_status_callback_api_for_service2)
+    get_service_delivery_status_callback_api_for_service)
 from app.models import ServiceCallbackApi, NOTIFICATION_FAILED, NOTIFICATION_TEMPORARY_FAILURE, \
     NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_STATUS_TYPES_COMPLETED, NOTIFICATION_SENT, NOTIFICATION_DELIVERED
 from tests.app.db import create_service_callback_api
@@ -199,7 +199,7 @@ def test_existing_service_delivery_status_callback_api_by_status(sample_service,
     )
 
     for notification_status in notification_statuses:
-        result = get_service_delivery_status_callback_api_for_service2(
+        result = get_service_delivery_status_callback_api_for_service(
             sample_service.id,
             notification_status=notification_status
         )
@@ -232,7 +232,7 @@ def test_no_service_delivery_status_callback_api_by_status(
         service=sample_service, notification_statuses=saved_notification_statuses
     )
     for notification_status in query_notification_statuses:
-        result = get_service_delivery_status_callback_api_for_service2(
+        result = get_service_delivery_status_callback_api_for_service(
             sample_service.id,
             notification_status=notification_status
         )
