@@ -139,3 +139,5 @@ fileignoreconfig:
       checksum: 0fadc7598f1dcb1b99766e6be295d07280a9fab43787f9f3db73c7f681e0d2c1
     - filename: app/dao/users_dao.py
       checksum: 62f1bbaa6ff7edf14fcf74576a76f4fd775b66d4b70e588959af8069f789e565
+    - filename: app/celery/nightly_tasks.py
+      checksum: 1ec5706d92e97741cc19a4daaeb88a4462f99fd56565c83486c25bdf96d87fa4

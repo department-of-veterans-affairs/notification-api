@@ -148,7 +148,7 @@ def test_create_service_callback_api_raises_400_when_no_status_in_request(admin_
     assert resp_json['errors'][0]['message'] == 'notification_statuses is a required property'
 
 
-def test_set_service_callback_api_raises_404_when_service_does_not_exist(admin_request, notify_db_session):
+def test_create_service_callback_api_raises_404_when_service_does_not_exist(admin_request, notify_db_session):
     data = {
         "url": "https://some_service/delivery-receipt-endpoint",
         "bearer_token": "some-unique-string",
@@ -163,6 +163,25 @@ def test_set_service_callback_api_raises_404_when_service_does_not_exist(admin_r
         _expected_status=404
     )
     assert resp_json['message'] == 'No result found'
+
+
+def test_create_service_callback_api_raises_400_when_validation_failed(admin_request, notify_db_session):
+    data = {
+        "url": "https://some_service/delivery-receipt-endpoint",
+        "bearer_token": "some-unique-string",
+        "notification_statuses": ["nonexistent_failed"],
+        "updated_by_id": str(uuid.uuid4())
+    }
+
+    resp_json = admin_request.post(
+        'service_callback.create_service_callback_api',
+        service_id=uuid.uuid4(),
+        _data=data,
+        _expected_status=400
+    )
+
+    assert resp_json['errors'][0]['error'] == 'ValidationError'
+    assert resp_json['errors'][0]['message'] == 'Invalid notification_statuses'
 
 
 def test_update_service_callback_api_updates_url(admin_request, sample_service):
