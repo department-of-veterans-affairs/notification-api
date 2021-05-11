@@ -9,7 +9,8 @@ from app.dao.service_callback_api_dao import (
     reset_service_callback_api,
     get_service_callback_api,
     get_service_delivery_status_callback_api_for_service, get_service_delivery_status_callback_api_for_service2)
-from app.models import ServiceCallbackApi, NOTIFICATION_FAILED
+from app.models import ServiceCallbackApi, NOTIFICATION_FAILED, NOTIFICATION_TEMPORARY_FAILURE, \
+    NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_STATUS_TYPES_COMPLETED, NOTIFICATION_SENT, NOTIFICATION_DELIVERED
 from tests.app.db import create_service_callback_api
 
 
@@ -187,15 +188,52 @@ def test_get_service_delivery_status_callback_api_for_service(sample_service):
     assert result.updated_by_id == service_callback_api.updated_by_id
 
 
-def test_get_service_delivery_status_callback_api_by_status(sample_service):
-    service_callback_api = create_service_callback_api(service=sample_service)
-    result = get_service_delivery_status_callback_api_for_service2(
-        sample_service.id,
-        notification_statuses=['failed']
+@pytest.mark.parametrize('notification_statuses', [
+    [NOTIFICATION_FAILED],
+    [NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_FAILED, NOTIFICATION_TEMPORARY_FAILURE],
+    [NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_FAILED],
+])
+def test_existing_service_delivery_status_callback_api_by_status(sample_service, notification_statuses):
+    service_callback_api = create_service_callback_api(
+        service=sample_service, notification_statuses=notification_statuses
     )
-    assert result.id == service_callback_api.id
-    assert result.url == service_callback_api.url
-    assert result.bearer_token == service_callback_api.bearer_token
-    assert result.created_at == service_callback_api.created_at
-    assert result.updated_at == service_callback_api.updated_at
-    assert result.updated_by_id == service_callback_api.updated_by_id
+
+    for notification_status in notification_statuses:
+        result = get_service_delivery_status_callback_api_for_service2(
+            sample_service.id,
+            notification_status=notification_status
+        )
+        assert result.id == service_callback_api.id
+        assert result.url == service_callback_api.url
+        assert result.bearer_token == service_callback_api.bearer_token
+        assert result.created_at == service_callback_api.created_at
+        assert result.updated_at == service_callback_api.updated_at
+        assert result.updated_by_id == service_callback_api.updated_by_id
+
+
+@pytest.mark.parametrize('saved_notification_statuses, query_notification_statuses', [
+    (
+        [NOTIFICATION_FAILED],
+        list(filter(lambda status: status != NOTIFICATION_FAILED, NOTIFICATION_STATUS_TYPES_COMPLETED))
+    ),
+    (
+        [NOTIFICATION_SENT, NOTIFICATION_DELIVERED],
+        [NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_FAILED]
+    ),
+    (
+        [NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_FAILED],
+        [NOTIFICATION_SENT, NOTIFICATION_DELIVERED]
+    ),
+])
+def test_no_service_delivery_status_callback_api_by_status(
+        sample_service, saved_notification_statuses, query_notification_statuses
+):
+    create_service_callback_api(
+        service=sample_service, notification_statuses=saved_notification_statuses
+    )
+    for notification_status in query_notification_statuses:
+        result = get_service_delivery_status_callback_api_for_service2(
+            sample_service.id,
+            notification_status=notification_status
+        )
+        assert result is None

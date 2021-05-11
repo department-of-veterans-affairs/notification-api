@@ -481,9 +481,9 @@ def create_service_callback_api(  # nosec
         service,
         url="https://something.com",
         bearer_token="some_super_secret",
-        callback_type="delivery_status"
+        callback_type="delivery_status",
+        notification_statuses=[NOTIFICATION_FAILED]
 ):
-    notification_statuses = [NOTIFICATION_FAILED]
     service_callback_api = ServiceCallbackApi(service_id=service.id,
                                               url=url,
                                               bearer_token=bearer_token,
