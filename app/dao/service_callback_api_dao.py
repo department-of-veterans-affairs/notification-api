@@ -39,6 +39,14 @@ def get_service_delivery_status_callback_api_for_service(service_id):
     ).first()
 
 
+def get_service_delivery_status_callback_api_for_service2(service_id, notification_statuses):
+    return db.session.query(ServiceCallbackApi).filter(
+        ServiceCallbackApi.notification_statuses.contains(notification_statuses),
+        ServiceCallbackApi.service_id == service_id,
+        ServiceCallbackApi.callback_type == DELIVERY_STATUS_CALLBACK_TYPE
+    ).first()
+
+
 def get_service_complaint_callback_api_for_service(service_id):
     return ServiceCallbackApi.query.filter_by(
         service_id=service_id,

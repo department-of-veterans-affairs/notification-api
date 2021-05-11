@@ -8,7 +8,7 @@ from app.dao.service_callback_api_dao import (
     save_service_callback_api,
     reset_service_callback_api,
     get_service_callback_api,
-    get_service_delivery_status_callback_api_for_service)
+    get_service_delivery_status_callback_api_for_service, get_service_delivery_status_callback_api_for_service2)
 from app.models import ServiceCallbackApi, NOTIFICATION_FAILED
 from tests.app.db import create_service_callback_api
 
@@ -179,6 +179,20 @@ def test_get_service_callback_api(sample_service):
 def test_get_service_delivery_status_callback_api_for_service(sample_service):
     service_callback_api = create_service_callback_api(service=sample_service)
     result = get_service_delivery_status_callback_api_for_service(sample_service.id)
+    assert result.id == service_callback_api.id
+    assert result.url == service_callback_api.url
+    assert result.bearer_token == service_callback_api.bearer_token
+    assert result.created_at == service_callback_api.created_at
+    assert result.updated_at == service_callback_api.updated_at
+    assert result.updated_by_id == service_callback_api.updated_by_id
+
+
+def test_get_service_delivery_status_callback_api_by_status(sample_service):
+    service_callback_api = create_service_callback_api(service=sample_service)
+    result = get_service_delivery_status_callback_api_for_service2(
+        sample_service.id,
+        notification_statuses=['failed']
+    )
     assert result.id == service_callback_api.id
     assert result.url == service_callback_api.url
     assert result.bearer_token == service_callback_api.bearer_token
