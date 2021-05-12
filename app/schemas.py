@@ -282,6 +282,24 @@ class ServiceSchema(BaseSchema):
             in_data['permissions'] = permissions
 
 
+class ServiceCallbackApiSchema(BaseSchema):
+    # bearer_token = field_for(models.ServiceCallbackApi, '_bearer_token', dump_only=True)
+
+    class Meta:
+        model = models.ServiceCallbackApi
+        fields = (
+            'id',
+            'service_id',
+            'url',
+            'notification_statuses',
+            'updated_by_id',
+            'created_at',
+            'updated_at',
+            'bearer_token'
+        )
+        dump_only = ['_bearer_token']
+
+
 class DetailedServiceSchema(BaseSchema):
     statistics = fields.Dict()
     organisation_type = field_for(models.Service, 'organisation_type')
@@ -760,3 +778,4 @@ provider_details_schema = ProviderDetailsSchema()
 provider_details_history_schema = ProviderDetailsHistorySchema()
 day_schema = DaySchema()
 unarchived_template_schema = UnarchivedTemplateSchema()
+service_callback_api_schema = ServiceCallbackApiSchema()

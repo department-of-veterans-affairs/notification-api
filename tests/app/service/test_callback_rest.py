@@ -185,6 +185,24 @@ def test_create_service_callback_api_raises_400_when_validation_failed(admin_req
     assert f'{non_existent_status} is not one of' in resp_json['errors'][0]['message']
 
 
+def test_update_service_callback_api_updates_notification_statuses(admin_request, sample_service):
+    service_callback_api = create_service_callback_api(service=sample_service,
+                                                       notification_statuses=['cancelled'])
+
+    data = {
+        "notification_statuses": ["delivered"],
+        "updated_by_id": str(sample_service.users[0].id)
+    }
+
+    resp_json = admin_request.post(
+        'service_callback.update_service_callback_api',
+        service_id=sample_service.id,
+        callback_api_id=service_callback_api.id,
+        _data=data
+    )
+    assert resp_json["data"]["notification_statuses"] == ["delivered"]
+
+
 def test_update_service_callback_api_updates_url(admin_request, sample_service):
     service_callback_api = create_service_callback_api(service=sample_service,
                                                        url="https://original_url.com")
@@ -218,6 +236,7 @@ def test_update_service_callback_api_updates_bearer_token(admin_request, sample_
         callback_api_id=service_callback_api.id,
         _data=data
     )
+
     assert service_callback_api.bearer_token == "different_token"
 
 

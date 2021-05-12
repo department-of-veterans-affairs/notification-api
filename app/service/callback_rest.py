@@ -15,6 +15,7 @@ from app.models import (
     DELIVERY_STATUS_CALLBACK_TYPE,
 )
 from app.schema_validation import validate
+from app.schemas import service_callback_api_schema
 from app.service.service_callback_api_schema import (
     create_service_callback_api_schema,
     update_service_callback_api_schema, create_service_inbound_api_schema
@@ -28,8 +29,7 @@ from app.dao.service_inbound_api_dao import (
 from app.dao.service_callback_api_dao import (
     save_service_callback_api,
     get_service_callback_api,
-    reset_service_callback_api,
-    delete_service_callback_api,
+    delete_service_callback_api, store_service_callback_api,
 )
 
 service_callback_blueprint = Blueprint('service_callback', __name__, url_prefix='/service/<uuid:service_id>')
@@ -101,16 +101,16 @@ def create_service_callback_api(service_id):
 
 @service_callback_blueprint.route('/delivery-receipt-api/<uuid:callback_api_id>', methods=['POST'])
 def update_service_callback_api(service_id, callback_api_id):
-    data = request.get_json()
-    validate(data, update_service_callback_api_schema)
+    request_json = request.get_json()
+    # validate(data, update_service_callback_api_schema)
+    current_service_callback_api = get_service_callback_api(callback_api_id, service_id)
+    current_data = dict(service_callback_api_schema.dump(current_service_callback_api).data.items())
+    current_data.update(request_json)
 
-    to_update = get_service_callback_api(callback_api_id, service_id)
+    updated_service_callback_api = service_callback_api_schema.load(current_data).data
+    store_service_callback_api(updated_service_callback_api)
 
-    reset_service_callback_api(service_callback_api=to_update,
-                               updated_by_id=data["updated_by_id"],
-                               url=data.get("url", None),
-                               bearer_token=data.get("bearer_token", None))
-    return jsonify(data=to_update.serialize()), 200
+    return jsonify(data=service_callback_api_schema.dump(updated_service_callback_api).data), 200
 
 
 @service_callback_blueprint.route('/delivery-receipt-api/<uuid:callback_api_id>', methods=["GET"])

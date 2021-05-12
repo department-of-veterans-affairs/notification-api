@@ -28,6 +28,13 @@ def reset_service_callback_api(service_callback_api, updated_by_id, url=None, be
     db.session.add(service_callback_api)
 
 
+@transactional
+@version_class(ServiceCallbackApi)
+def store_service_callback_api(service_callback_api):
+    service_callback_api.updated_at = datetime.utcnow()
+    db.session.add(service_callback_api)
+
+
 def get_service_callback_api(service_callback_api_id, service_id):
     return ServiceCallbackApi.query.filter_by(id=service_callback_api_id, service_id=service_id).first()
 
