@@ -198,9 +198,29 @@ def test_update_service_callback_api_updates_notification_statuses(admin_request
         'service_callback.update_service_callback_api',
         service_id=sample_service.id,
         callback_api_id=service_callback_api.id,
-        _data=data
+        _data=data,
+        _expected_status=200
     )
     assert resp_json["data"]["notification_statuses"] == ["delivered"]
+
+
+def test_update_service_callback_api_raises_400_when_invalid_status(admin_request, sample_service):
+    service_callback_api = create_service_callback_api(service=sample_service,
+                                                       notification_statuses=['technical-failure'])
+
+    data = {
+        "notification_statuses": ["nonexistent-status"],
+        "updated_by_id": str(sample_service.users[0].id)
+    }
+
+    resp_json = admin_request.post(
+        'service_callback.update_service_callback_api',
+        service_id=sample_service.id,
+        callback_api_id=service_callback_api.id,
+        _data=data,
+        _expected_status=400
+    )
+    assert resp_json['errors'][0]['error'] == 'ValidationError'
 
 
 def test_update_service_callback_api_updates_url(admin_request, sample_service):

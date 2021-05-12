@@ -10,7 +10,7 @@ from marshmallow import (
     validates_schema,
     pre_load,
     pre_dump,
-    post_dump
+    post_dump, validate
 )
 from marshmallow_sqlalchemy import field_for
 
@@ -24,7 +24,7 @@ from notifications_utils.recipients import (
 
 from app import ma
 from app import models
-from app.models import ServicePermission, EMAIL_TYPE, SMS_TYPE
+from app.models import ServicePermission, EMAIL_TYPE, SMS_TYPE, NOTIFICATION_STATUS_TYPES_COMPLETED
 from app.dao.permissions_dao import permission_dao
 from app.provider_details import validate_providers
 from app.utils import get_template_instance
@@ -298,6 +298,14 @@ class ServiceCallbackApiSchema(BaseSchema):
             'bearer_token'
         )
         dump_only = ['_bearer_token']
+
+    @validates('notification_statuses')
+    def validate_notification_statuses(self, value):
+        try:
+            validator = validate.ContainsOnly(NOTIFICATION_STATUS_TYPES_COMPLETED)
+            validator(value)
+        except ValidationError as error:
+            raise ValidationError('Invalid notification status: {}'.format(error))
 
 
 class DetailedServiceSchema(BaseSchema):
