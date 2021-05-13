@@ -104,7 +104,7 @@ def update_service_callback_api(service_id, callback_api_id):
     request_json = request.get_json()
     # validate(data, update_service_callback_api_schema)
     current_service_callback_api = get_service_callback_api(callback_api_id, service_id)
-    current_data = dict(service_callback_api_schema.dump(current_service_callback_api).data.items())
+    current_data = service_callback_api_schema.dump(current_service_callback_api).data
     current_data.update(request_json)
 
     updated_service_callback_api = service_callback_api_schema.load(current_data).data

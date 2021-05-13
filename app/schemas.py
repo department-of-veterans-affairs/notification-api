@@ -283,7 +283,6 @@ class ServiceSchema(BaseSchema):
 
 
 class ServiceCallbackApiSchema(BaseSchema):
-    # bearer_token = field_for(models.ServiceCallbackApi, '_bearer_token', dump_only=True)
 
     class Meta:
         model = models.ServiceCallbackApi
@@ -298,14 +297,15 @@ class ServiceCallbackApiSchema(BaseSchema):
             'bearer_token'
         )
         dump_only = ['_bearer_token']
+        strict = True
 
     @validates('notification_statuses')
     def validate_notification_statuses(self, value):
-        try:
-            validator = validate.ContainsOnly(NOTIFICATION_STATUS_TYPES_COMPLETED)
-            validator(value)
-        except ValidationError as error:
-            raise ValidationError('Invalid notification status: {}'.format(error))
+        validator = validate.ContainsOnly(
+            choices=NOTIFICATION_STATUS_TYPES_COMPLETED,
+            error="Invalid notification statuses"
+        )
+        validator(value)
 
 
 class DetailedServiceSchema(BaseSchema):
