@@ -14,7 +14,7 @@ from app.models import (
     DELIVERY_STATUS_CALLBACK_TYPE,
 )
 from app.schema_validation import validate
-from app.schemas import service_callback_api_schema
+from app.schemas import create_service_callback_api_schema, update_service_callback_api_schema
 from app.service.service_callback_api_schema import (
     update_service_inbound_api_schema, create_service_inbound_api_schema
 )
@@ -88,14 +88,14 @@ def create_service_callback_api(service_id):
 
     data["service_id"] = service_id
     data["callback_type"] = DELIVERY_STATUS_CALLBACK_TYPE
-    new_service_callback_api = service_callback_api_schema.load(data).data
+    new_service_callback_api = create_service_callback_api_schema.load(data).data
 
     try:
         save_service_callback_api(new_service_callback_api)
     except SQLAlchemyError as e:
         return handle_sql_error(e, 'service_callback_api')
 
-    return jsonify(data=service_callback_api_schema.dump(new_service_callback_api).data), 201
+    return jsonify(data=create_service_callback_api_schema.dump(new_service_callback_api).data), 201
 
 
 @service_callback_blueprint.route('/delivery-receipt-api/<uuid:callback_api_id>', methods=['POST'])
@@ -103,20 +103,20 @@ def update_service_callback_api(service_id, callback_api_id):
     request_json = request.get_json()
 
     current_service_callback_api = get_service_callback_api(callback_api_id, service_id)
-    current_data = service_callback_api_schema.dump(current_service_callback_api).data
+    current_data = update_service_callback_api_schema.dump(current_service_callback_api).data
     current_data.update(request_json)
 
-    updated_service_callback_api = service_callback_api_schema.load(current_data).data
+    updated_service_callback_api = update_service_callback_api_schema.load(current_data).data
     store_service_callback_api(updated_service_callback_api)
 
-    return jsonify(data=service_callback_api_schema.dump(updated_service_callback_api).data), 200
+    return jsonify(data=update_service_callback_api_schema.dump(updated_service_callback_api).data), 200
 
 
 @service_callback_blueprint.route('/delivery-receipt-api/<uuid:callback_api_id>', methods=["GET"])
 def fetch_service_callback_api(service_id, callback_api_id):
     service_callback_api = get_service_callback_api(callback_api_id, service_id)
 
-    return jsonify(data=service_callback_api_schema.dump(service_callback_api).data), 200
+    return jsonify(data=create_service_callback_api_schema.dump(service_callback_api).data), 200
 
 
 @service_callback_blueprint.route('/delivery-receipt-api/<uuid:callback_api_id>', methods=['DELETE'])

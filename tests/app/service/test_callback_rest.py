@@ -131,6 +131,7 @@ def test_create_service_callback_api(admin_request, sample_service):
     assert resp_json["updated_by_id"] == str(sample_service.users[0].id)
     assert resp_json["created_at"]
     assert not resp_json["updated_at"]
+    assert resp_json.get("bearer_token") is None
 
 
 def test_create_service_callback_api_raises_400_when_no_status_in_request(admin_request, sample_service):
@@ -267,6 +268,7 @@ def test_update_service_callback_api_updates_notification_statuses(admin_request
         _expected_status=200
     )
     assert resp_json["data"]["notification_statuses"] == ["delivered"]
+    assert resp_json.get("bearer_token") is None
 
 
 def test_update_service_callback_api_raises_400_when_invalid_status(admin_request, sample_service):

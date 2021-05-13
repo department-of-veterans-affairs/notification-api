@@ -285,6 +285,10 @@ class ServiceSchema(BaseSchema):
 class ServiceCallbackApiSchema(BaseSchema):
     created_at = field_for(models.ServiceCallbackApi, 'created_at', format=DATE_FORMAT)
 
+    def __init__(self, is_create_schema=False):
+        super().__init__()
+        self._is_create_schema = is_create_schema
+
     class Meta:
         model = models.ServiceCallbackApi
         fields = (
@@ -322,6 +326,11 @@ class ServiceCallbackApiSchema(BaseSchema):
     def validate_bearer_token(self, value):
         validator = validate.Length(min=10, error="Invalid bearer token.")
         validator(value)
+
+    @validates_schema()
+    def validate_data(self, data):
+        if self._is_create_schema and data.get('bearer_token') is None:
+            raise ValidationError('Missing data for required field.', 'bearer_token')
 
 
 class DetailedServiceSchema(BaseSchema):
@@ -802,4 +811,5 @@ provider_details_schema = ProviderDetailsSchema()
 provider_details_history_schema = ProviderDetailsHistorySchema()
 day_schema = DaySchema()
 unarchived_template_schema = UnarchivedTemplateSchema()
-service_callback_api_schema = ServiceCallbackApiSchema()
+create_service_callback_api_schema = ServiceCallbackApiSchema(True)
+update_service_callback_api_schema = ServiceCallbackApiSchema()
