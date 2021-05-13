@@ -283,6 +283,7 @@ class ServiceSchema(BaseSchema):
 
 
 class ServiceCallbackApiSchema(BaseSchema):
+    created_at = field_for(models.ServiceCallbackApi, 'created_at', format=DATE_FORMAT)
 
     class Meta:
         model = models.ServiceCallbackApi
@@ -296,7 +297,7 @@ class ServiceCallbackApiSchema(BaseSchema):
             'updated_at',
             'bearer_token'
         )
-        dump_only = ['_bearer_token']
+        load_only = ['_bearer_token', 'bearer_token']
         strict = True
 
     @validates('notification_statuses')
@@ -305,6 +306,21 @@ class ServiceCallbackApiSchema(BaseSchema):
             choices=NOTIFICATION_STATUS_TYPES_COMPLETED,
             error="Invalid notification statuses"
         )
+        validator(value)
+
+    @validates('url')
+    def validate_url(self, value):
+        validator = validate.URL(
+            relative=False,
+            error="Invalid URL.",
+            schemes={'https'},
+            require_tld=False
+        )
+        validator(value)
+
+    @validates('bearer_token')
+    def validate_bearer_token(self, value):
+        validator = validate.Length(min=10, error="Invalid bearer token.")
         validator(value)
 
 
