@@ -271,6 +271,30 @@ def test_update_service_callback_api_updates_notification_statuses(admin_request
     assert resp_json.get("bearer_token") is None
 
 
+@pytest.mark.parametrize(
+    'request_data', [
+        {
+            "notifications_statuses": ["nonexistent-status"]
+        },
+        {
+        }
+    ]
+)
+def test_update_service_callback_api_raises_400_when_wrong_request(admin_request, sample_service, request_data):
+    service_callback_api = create_service_callback_api(service=sample_service,
+                                                       notification_statuses=['technical-failure'])
+
+    resp_json = admin_request.post(
+        'service_callback.update_service_callback_api',
+        service_id=sample_service.id,
+        callback_api_id=service_callback_api.id,
+        _data=request_data,
+        _expected_status=400
+    )
+    assert resp_json['result'] == 'error'
+    assert resp_json['message']['notification_statuses'][0] == 'Invalid notification statuses'
+
+
 def test_update_service_callback_api_raises_400_when_invalid_status(admin_request, sample_service):
     service_callback_api = create_service_callback_api(service=sample_service,
                                                        notification_statuses=['technical-failure'])
