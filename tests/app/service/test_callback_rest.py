@@ -274,7 +274,7 @@ def test_update_service_callback_api_updates_notification_statuses(admin_request
 @pytest.mark.parametrize(
     'request_data', [
         {
-            "notifications_statuses": ["nonexistent-status"],
+            "invalid_parameter": ["failed"],
             "updated_by_id": "6ce466d0-fd6a-11e5-82f5-e0accb9d11a6"
         },
         {
