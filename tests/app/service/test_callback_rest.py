@@ -3,6 +3,7 @@ import uuid
 import pytest
 from freezegun import freeze_time
 
+from tests.app.conftest import fake_uuid
 from tests.app.db import (
     create_service_inbound_api,
     create_service_callback_api
@@ -274,7 +275,8 @@ def test_update_service_callback_api_updates_notification_statuses(admin_request
 @pytest.mark.parametrize(
     'request_data', [
         {
-            "notifications_statuses": ["nonexistent-status"]
+            "notifications_statuses": ["nonexistent-status"],
+            "updated_by_id": fake_uuid
         },
         {
         }
