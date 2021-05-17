@@ -33,7 +33,7 @@ update_service_inbound_api_schema = {
     "required": ["updated_by_id"]
 }
 
-update_service_callback_api_schema_old = {
+update_service_callback_api_request_schema = {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "description": "POST service callback/inbound api schema",
     "type": "object",
@@ -50,5 +50,9 @@ update_service_callback_api_schema_old = {
         "updated_by_id": uuid
     },
     "required": ["updated_by_id"],
-    "anyOf": ["url", "bearer_token", "notification_statuses"]
+    "anyOf": [
+        {"required": ["url"]},
+        {"required": ["bearer_token"]},
+        {"required": ["notification_statuses"]}
+    ]
 }
