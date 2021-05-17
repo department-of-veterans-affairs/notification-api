@@ -313,8 +313,8 @@ def test_update_service_callback_api_raises_400_when_invalid_status(admin_reques
         _data=data,
         _expected_status=400
     )
-    assert resp_json['result'] == 'error'
-    assert resp_json['message']['notification_statuses'][0] == 'Invalid notification statuses'
+    assert resp_json['errors'][0]['error'] == 'ValidationError'
+    assert 'notification_statuses nonexistent-status is not one of' in resp_json['errors'][0]['message']
 
 
 def test_update_service_callback_api_updates_url(admin_request, sample_service):
