@@ -130,13 +130,10 @@ def get_user_by_identity_provider_user_id(identity_provider_user_id):
 @transactional
 def update_user_identity_provider_user_id(email, identity_provider_user_id):
     email_matches_condition = func.lower(User.email_address) == func.lower(email)
-    id_matches_condition = func.lower(User.identity_provider_user_id) == func.lower(identity_provider_user_id)
+    id_matches_condition = func.lower(User.identity_provider_user_id) == func.lower(str(identity_provider_user_id))
     user = User.query.filter(or_(email_matches_condition, id_matches_condition)).one()
-    if user.identity_provider_user_id != identity_provider_user_id:
+    if user.identity_provider_user_id is None:
         user.identity_provider_user_id = identity_provider_user_id
-        db.session.add(user)
-    elif user.email_address != email:
-        user.email_address = email
         db.session.add(user)
 
     return user
@@ -144,7 +141,7 @@ def update_user_identity_provider_user_id(email, identity_provider_user_id):
 
 def create_or_update_user(email_address, identity_provider_user_id, name):
     try:
-        update_user_identity_provider_user_id(email_address, identity_provider_user_id)
+        return update_user_identity_provider_user_id(email_address, identity_provider_user_id)
     except sqlalchemy.orm.exc.NoResultFound:
         data = {
             'email_address': email_address,
@@ -153,6 +150,8 @@ def create_or_update_user(email_address, identity_provider_user_id, name):
         }
         user = User(**data)
         save_model_user(user)
+
+        return user
 
 
 def increment_failed_login_count(user):

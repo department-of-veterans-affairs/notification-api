@@ -1,6 +1,11 @@
+import functools
+from typing import Callable
+
 from flask import request, _request_ctx_stack, current_app, g
 from flask_jwt_extended import verify_jwt_in_request, current_user
 from flask_jwt_extended.config import config
+from flask_jwt_extended.exceptions import NoAuthorizationError, InvalidHeaderError, JWTDecodeError
+from jwt import InvalidSignatureError
 from notifications_python_client.authentication import decode_jwt_token, get_token_issuer
 from notifications_python_client.errors import TokenDecodeError, TokenExpiredError, TokenIssuerError
 from notifications_utils import request_helper
@@ -46,11 +51,11 @@ def get_auth_token(req):
     return auth_header[7:]
 
 
-def requires_no_auth():
+def do_not_validate_auth():
     pass
 
 
-def requires_admin_auth():
+def validate_admin_auth():
     request_helper.check_proxy_header_before_request()
 
     auth_token = get_auth_token(request)
@@ -63,9 +68,9 @@ def requires_admin_auth():
         raise AuthError('Unauthorized, admin authentication token required', 401)
 
 
-def requires_admin_auth_or_permission_for_service(permission: str):
+def create_validator_for_user_in_service(required_permission: str = None) -> Callable:
 
-    def _requires_admin_auth_or_permission_for_service():
+    def _validate_user_in_service():
 
         # when fetching data, the browser may send a pre-flight OPTIONS request.
         # the W3 spec for CORS pre-flight requests states that user credentials should be excluded.
@@ -77,20 +82,69 @@ def requires_admin_auth_or_permission_for_service(permission: str):
         try:
             service_id = request.view_args.get('service_id')
             verify_jwt_in_request()
-            user_permissions = current_user.get_permissions(service_id)
-            if permission in user_permissions:
-                pass
-            else:
-                current_app.logger.info(f'{permission} not in permissions for service {service_id}')
-                requires_admin_auth()
-        except Exception as e:
-            current_app.logger.info(f'could not read claims from token: {e}')
-            requires_admin_auth()
 
-    return _requires_admin_auth_or_permission_for_service
+        except (NoAuthorizationError, InvalidHeaderError, JWTDecodeError, InvalidSignatureError) as e:
+            raise AuthError('Could not decode valid JWT', 403) from e
+
+        else:
+            if not any(service.id == service_id for service in current_user.services):
+                raise AuthError('User is not a member of the specified service', 403, service_id=service_id)
+
+            if required_permission:
+                user_permissions = current_user.get_permissions(service_id)
+                if required_permission not in user_permissions:
+                    raise AuthError(f'User does not have permission {required_permission}', 403, service_id=service_id)
+
+    return _validate_user_in_service
 
 
-def requires_auth():
+def create_validator_for_admin_auth_or_user_in_service(required_permission: str = None) -> Callable:
+
+    def _validate_admin_auth_or_user_in_service():
+        try:
+            validate = create_validator_for_user_in_service(required_permission)
+            validate()
+        except AuthError:
+            validate_admin_auth()
+
+    return _validate_admin_auth_or_user_in_service
+
+
+def requires_user_in_service(required_permission: str = None):
+    def decorator(function):
+        @functools.wraps(function)
+        def wrapper(*args, **kwargs):
+            validate = create_validator_for_user_in_service(required_permission)
+            validate()
+
+            return function(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def requires_admin_auth_or_user_in_service(required_permission: str = None):
+    def decorator(function):
+        @functools.wraps(function)
+        def wrapper(*args, **kwargs):
+            validate = create_validator_for_admin_auth_or_user_in_service(required_permission)
+            validate()
+
+            return function(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def requires_admin_auth():
+    def decorator(function):
+        @functools.wraps(function)
+        def wrapper(*args, **kwargs):
+            validate_admin_auth()
+            return function(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def validate_service_api_key_auth():
     request_helper.check_proxy_header_before_request()
 
     auth_token = get_auth_token(request)
