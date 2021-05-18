@@ -11,7 +11,7 @@ from app.dao.service_callback_api_dao import (
     get_service_delivery_status_callback_api_for_service)
 from app.models import ServiceCallbackApi, NOTIFICATION_FAILED, NOTIFICATION_TEMPORARY_FAILURE, \
     NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_STATUS_TYPES_COMPLETED, NOTIFICATION_SENT, NOTIFICATION_DELIVERED
-from app.schemas import create_service_callback_api_schema
+from app.schemas import service_callback_api_schema
 from tests.app.db import create_service_callback_api
 
 
@@ -109,11 +109,11 @@ def test_update_service_callback_can_add_two_api_of_different_types(sample_servi
     results = ServiceCallbackApi.query.order_by(ServiceCallbackApi.callback_type).all()
     assert len(results) == 2
 
-    results0_dump = create_service_callback_api_schema.dump(results[0]).data
-    results1_dump = create_service_callback_api_schema.dump(results[1]).data
+    results0_dump = service_callback_api_schema.dump(results[0]).data
+    results1_dump = service_callback_api_schema.dump(results[1]).data
 
-    assert results0_dump == create_service_callback_api_schema.dump(complaint).data
-    assert results1_dump == create_service_callback_api_schema.dump(delivery_status).data
+    assert results0_dump == service_callback_api_schema.dump(complaint).data
+    assert results1_dump == service_callback_api_schema.dump(delivery_status).data
 
 
 def test_update_service_callback_api(sample_service):
