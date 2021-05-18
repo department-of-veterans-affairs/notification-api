@@ -215,7 +215,7 @@ class ServiceSchema(BaseSchema):
     organisation = field_for(models.Service, 'organisation')
     override_flag = False
     letter_contact_block = fields.Method(serialize="get_letter_contact")
-    go_live_at = field_for(models.Service, 'go_live_at', format='%Y-%m-%d %H:%M:%S.%f')
+    go_live_at = field_for(models.Service, 'go_live_at', format=DATE_FORMAT)
     email_provider_id = field_for(models.Service, 'email_provider_id')
     sms_provider_id = field_for(models.Service, 'sms_provider_id')
 
@@ -287,10 +287,6 @@ class ServiceSchema(BaseSchema):
 class ServiceCallbackApiSchema(BaseSchema):
     created_at = field_for(models.ServiceCallbackApi, 'created_at', format=DATE_FORMAT)
 
-    def __init__(self, is_create_schema=False):
-        super().__init__()
-        self._is_create_schema = is_create_schema
-
     class Meta:
         model = models.ServiceCallbackApi
         fields = (
@@ -328,11 +324,6 @@ class ServiceCallbackApiSchema(BaseSchema):
     def validate_bearer_token(self, value):
         validator = validate.Length(min=10, error="Invalid bearer token.")
         validator(value)
-
-    @validates_schema()
-    def validate_data(self, data):
-        if self._is_create_schema and data.get('bearer_token') is None:
-            raise ValidationError('Missing data for required field.', 'bearer_token')
 
 
 class DetailedServiceSchema(BaseSchema):
@@ -420,7 +411,7 @@ class TemplateHistorySchema(BaseSchema):
     provider_id = field_for(models.Template, 'provider_id')
 
     created_by = fields.Nested(UserSchema, only=['id', 'name', 'email_address'], dump_only=True)
-    created_at = field_for(models.Template, 'created_at', format='%Y-%m-%d %H:%M:%S.%f')
+    created_at = field_for(models.Template, 'created_at', format=DATE_FORMAT)
 
     def get_reply_to(self, template):
         return template.reply_to
@@ -813,5 +804,4 @@ provider_details_schema = ProviderDetailsSchema()
 provider_details_history_schema = ProviderDetailsHistorySchema()
 day_schema = DaySchema()
 unarchived_template_schema = UnarchivedTemplateSchema()
-create_service_callback_api_schema = ServiceCallbackApiSchema(True)
-update_service_callback_api_schema = ServiceCallbackApiSchema()
+service_callback_api_schema = ServiceCallbackApiSchema()

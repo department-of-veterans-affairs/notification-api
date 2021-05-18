@@ -177,9 +177,9 @@ def test_create_service_callback_api_raises_400_when_notification_status_validat
 @pytest.mark.parametrize(
     'add_url, url, expected_response',
     [
-        (False, None, 'Missing data for required field.'),
-        (True, None, 'Field may not be null.'),
-        (True, 'broken.url', 'Invalid URL.')
+        (False, None, 'url is a required property'),
+        (True, None, 'url is not a valid https url'),
+        (True, 'broken.url', 'url is not a valid https url')
     ]
 )
 def test_create_service_callback_api_raises_400_when_url_validation_failed(
@@ -200,8 +200,8 @@ def test_create_service_callback_api_raises_400_when_url_validation_failed(
         _expected_status=400
     )
 
-    assert resp_json['result'] == 'error'
-    assert resp_json['message']['url'][0] == expected_response
+    assert resp_json['errors'][0]['error'] == 'ValidationError'
+    assert resp_json['errors'][0]['message'] == expected_response
 
 
 def test_create_service_callback_api_raises_404_when_service_does_not_exist(admin_request, notify_db_session):
@@ -224,9 +224,9 @@ def test_create_service_callback_api_raises_404_when_service_does_not_exist(admi
 @pytest.mark.parametrize(
     'add_bearer_token, bearer_token, expected_response',
     [
-        (False, None, 'Missing data for required field.'),
-        (True, None, 'Field may not be null.'),
-        (True, 'too-short', 'Invalid bearer token.')
+        (False, None, 'bearer_token is a required property'),
+        (True, None, 'bearer_token None is not of type string'),
+        (True, 'too-short', 'bearer_token too-short is too short')
     ]
 )
 def test_create_service_callback_api_raises_400_when_bearer_token_validation_failed(
@@ -247,8 +247,8 @@ def test_create_service_callback_api_raises_400_when_bearer_token_validation_fai
         _expected_status=400
     )
 
-    assert resp_json['result'] == 'error'
-    assert resp_json['message']['bearer_token'][0] == expected_response
+    assert resp_json['errors'][0]['error'] == 'ValidationError'
+    assert resp_json['errors'][0]['message'] == expected_response
 
 
 def test_update_service_callback_api_updates_notification_statuses(admin_request, sample_service):
