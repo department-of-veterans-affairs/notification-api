@@ -33,7 +33,7 @@ def test_create_service_inbound_api(admin_request, sample_service):
     assert not resp_json["updated_at"]
 
 
-def test_set_service_inbound_api_raises_404_when_service_does_not_exist(admin_request):
+def test_set_service_inbound_api_raises_404_when_service_does_not_exist(notify_db, admin_request):
     data = {
         "url": "https://some.service/inbound-sms",
         "bearer_token": "some-unique-string",
