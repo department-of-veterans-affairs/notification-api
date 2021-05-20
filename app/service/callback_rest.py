@@ -16,7 +16,8 @@ from app.models import (
 from app.schema_validation import validate
 from app.schemas import service_callback_api_schema
 from app.service.service_callback_api_schema import (
-    update_service_inbound_api_schema, create_service_inbound_api_schema, update_service_callback_api_request_schema
+    update_service_inbound_api_schema, create_service_inbound_api_schema, update_service_callback_api_request_schema,
+    create_service_callback_api_request_schema
 )
 from app.dao.service_inbound_api_dao import (
     save_service_inbound_api,
@@ -86,7 +87,7 @@ def remove_service_inbound_api(service_id, inbound_api_id):
 def create_service_callback_api(service_id):
     data = request.get_json()
 
-    validate(data, create_service_inbound_api_schema)
+    validate(data, create_service_callback_api_request_schema)
 
     data["service_id"] = service_id
     data["callback_type"] = DELIVERY_STATUS_CALLBACK_TYPE

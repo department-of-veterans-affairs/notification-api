@@ -141,15 +141,12 @@ def test_create_service_callback_api_raises_400_when_no_status_in_request(admin_
         "updated_by_id": str(sample_service.users[0].id)
     }
 
-    resp_json = admin_request.post(
+    admin_request.post(
         'service_callback.create_service_callback_api',
         service_id=sample_service.id,
         _data=data,
         _expected_status=400
     )
-
-    assert resp_json['result'] == 'error'
-    assert resp_json['message']['notification_statuses'][0] == 'Missing data for required field.'
 
 
 def test_create_service_callback_api_raises_400_when_notification_status_validation_failed(
@@ -163,15 +160,12 @@ def test_create_service_callback_api_raises_400_when_notification_status_validat
         "updated_by_id": str(uuid.uuid4())
     }
 
-    resp_json = admin_request.post(
+    admin_request.post(
         'service_callback.create_service_callback_api',
         service_id=uuid.uuid4(),
         _data=data,
         _expected_status=400
     )
-
-    assert resp_json['result'] == 'error'
-    assert resp_json['message']['notification_statuses'][0] == 'Invalid notification statuses'
 
 
 @pytest.mark.parametrize(
