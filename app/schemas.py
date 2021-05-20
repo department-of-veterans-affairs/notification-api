@@ -3,6 +3,7 @@ from datetime import (
     date,
     timedelta)
 from flask_marshmallow.fields import fields
+from flask_marshmallow.sqla import DummySession
 from marshmallow import (
     post_load,
     ValidationError,
@@ -71,6 +72,9 @@ class BaseSchema(ma.ModelSchema):
     def __init__(self, load_json=False, *args, **kwargs):
         self.load_json = load_json
         super(BaseSchema, self).__init__(*args, **kwargs)
+        if isinstance(self.session, DummySession):
+            from app import db
+            self.session = db.session
 
     @post_load
     def make_instance(self, data):
