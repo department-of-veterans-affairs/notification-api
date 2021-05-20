@@ -106,10 +106,10 @@ def update_service_callback_api(service_id, callback_api_id):
     validate(request_json, update_service_callback_api_request_schema)
 
     current_service_callback_api = get_service_callback_api(callback_api_id, service_id)
-    current_data = service_callback_api_schema.dump(current_service_callback_api).data
-    current_data.update(request_json)
 
-    updated_service_callback_api = service_callback_api_schema.load(current_data).data
+    updated_service_callback_api = service_callback_api_schema.load(
+        request_json, instance=current_service_callback_api, transient=True, partial=True
+    ).data
     store_service_callback_api(updated_service_callback_api)
 
     return jsonify(data=service_callback_api_schema.dump(updated_service_callback_api).data), 200
