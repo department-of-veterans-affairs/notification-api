@@ -59,51 +59,6 @@ def test_create_service_callback_api_schema_validate_succeeds():
     assert validated == under_test
 
 
-@pytest.mark.parametrize('key, value', [
-    ("url", "https://some_url.for_service"),
-    ("bearer_token", "something_ten_chars"),
-    ("notification_statuses", ["failed"]),
-    ("updated_by_id", str(uuid.uuid4())),
-    (None, None)
-])
-def test_create_service_callback_api_schema_validate_fails_when_missing_properties(key, value):
-    under_test = {key: value}
-
-    with pytest.raises(ValidationError) as e:
-        validate(under_test, create_service_callback_api_request_schema)
-
-    errors = json.loads(str(e.value)).get('errors')
-    assert len(errors) > 1
-    for message in errors:
-        assert message['error'] == 'ValidationError'
-        assert 'is a required property' in message['message']
-
-
-@pytest.mark.parametrize('key, wrong_key, value', [
-    ("url", "urls", "https://some_url.for_service"),
-    ("bearer_token", "bearers_token", "something_ten_chars"),
-    ("notification_statuses", "notifications_statuses", ["failed"]),
-    ("updated_by_id", "update_by_id", str(uuid.uuid4()))
-])
-def test_create_service_callback_api_schema_validate_fails_with_misspelled_keys(key, wrong_key, value):
-    under_test = {
-        "url": "https://some_url.for_service",
-        "bearer_token": "something_ten_chars",
-        "notification_statuses": ["failed"],
-        "updated_by_id": str(uuid.uuid4())
-    }
-    del under_test[key]
-    under_test[wrong_key] = value
-
-    with pytest.raises(ValidationError) as e:
-        validate(under_test, create_service_callback_api_request_schema)
-
-    errors = json.loads(str(e.value)).get('errors')
-    assert len(errors) == 1
-    assert errors[0]['error'] == 'ValidationError'
-    assert errors[0]['message'] == f"{key} is a required property"
-
-
 def test_update_service_callback_api_schema_validate_succeeds():
     under_test = {
         "url": "https://some_url.for_service",
