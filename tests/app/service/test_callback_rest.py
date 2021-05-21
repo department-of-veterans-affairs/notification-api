@@ -8,7 +8,7 @@ from tests.app.db import (
     create_service_callback_api
 )
 
-from app.models import ServiceInboundApi, ServiceCallbackApi
+from app.models import ServiceInboundApi, ServiceCallbackApi, DELIVERY_STATUS_CALLBACK_TYPE
 
 
 def test_create_service_inbound_api(admin_request, sample_service):
@@ -109,7 +109,7 @@ def test_delete_service_inbound_api(admin_request, sample_service):
     assert ServiceInboundApi.query.count() == 0
 
 
-def test_create_service_callback_api(admin_request, sample_service):
+def test_create_service_callback_api(notify_db, admin_request, sample_service):
     data = {
         "url": "https://some.service/delivery-receipt-endpoint",
         "bearer_token": "some-unique-string",
@@ -132,6 +132,9 @@ def test_create_service_callback_api(admin_request, sample_service):
     assert resp_json["created_at"]
     assert not resp_json["updated_at"]
     assert resp_json.get("bearer_token") is None
+    from app.dao.service_callback_api_dao import get_service_callback_api
+    created_service_callback_api = get_service_callback_api(resp_json["id"], resp_json["service_id"])
+    assert created_service_callback_api.callback_type == DELIVERY_STATUS_CALLBACK_TYPE
 
 
 def test_create_service_callback_api_raises_400_when_no_status_in_request(admin_request, sample_service):

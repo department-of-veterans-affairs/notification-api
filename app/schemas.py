@@ -301,9 +301,10 @@ class ServiceCallbackApiSchema(BaseSchema):
             'updated_by_id',
             'created_at',
             'updated_at',
-            'bearer_token'
+            'bearer_token',
+            'callback_type'
         )
-        load_only = ['_bearer_token', 'bearer_token']
+        load_only = ['_bearer_token', 'bearer_token', 'callback_type']
         strict = True
 
     @validates('notification_statuses')
