@@ -1,6 +1,7 @@
 import os
 
 import pytest
+from authlib.integrations.base_client import OAuthError
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from jwt import ExpiredSignatureError
 from requests import Response
@@ -8,7 +9,7 @@ from requests.exceptions import HTTPError
 
 from app.feature_flags import FeatureFlag
 from app.models import User
-from app.oauth.exceptions import OAuthException
+from app.oauth.exceptions import OAuthException, IncorrectGithubIdException
 from app.oauth.rest import make_github_get_request
 from tests.conftest import set_config_values
 
@@ -208,6 +209,40 @@ class TestAuthorize:
         )
         mock_logger.assert_called_once()
 
+    def test_should_redirect_to_login_failure_if_incorrect_github_id(
+            self, client, notify_api, toggle_enabled, mocker, cookie_config, github_data
+    ):
+        mocker.patch('app.oauth.rest.oauth_registry.github.authorize_access_token')
+        mocker.patch('app.oauth.rest.create_access_token', return_value='some-access-token-value')
+        mocker.patch('app.oauth.rest.create_or_retrieve_user', side_effect=IncorrectGithubIdException)
+        mock_logger = mocker.patch('app.oauth.rest.current_app.logger.error')
+
+        with set_config_values(notify_api, cookie_config):
+            response = client.get('/authorize')
+
+        assert response.status_code == 302
+        assert f"{cookie_config['UI_HOST_NAME']}/login/failure" in response.location
+        assert not any(
+            cookie.name == cookie_config['JWT_ACCESS_COOKIE_NAME'] for cookie in client.cookie_jar
+        )
+        mock_logger.assert_called_once()
+
+    def test_should_redirect_to_login_denied_if_user_denies_access(
+            self, client, notify_api, toggle_enabled, mocker, cookie_config, github_data
+    ):
+        mocker.patch('app.oauth.rest.oauth_registry.github.authorize_access_token', side_effect=OAuthError)
+        mock_logger = mocker.patch('app.oauth.rest.current_app.logger.error')
+
+        with set_config_values(notify_api, cookie_config):
+            response = client.get('/authorize')
+
+        assert response.status_code == 302
+        assert f"{cookie_config['UI_HOST_NAME']}/login/failure?denied_authorization" in response.location
+        assert not any(
+            cookie.name == cookie_config['JWT_ACCESS_COOKIE_NAME'] for cookie in client.cookie_jar
+        )
+        mock_logger.assert_called_once()
+
     def test_should_raise_exception_if_304_from_github_get(
             self, client, notify_api, toggle_enabled, mocker
     ):
@@ -234,16 +269,17 @@ class TestAuthorize:
             return_value=github_get_user_resp,
         )
 
-        github_get_user_resp.raise_for_status.side_effect = HTTPError
-
-        with pytest.raises(HTTPError):
+        with pytest.raises(OAuthException) as e:
             make_github_get_request('/user', github_access_token)
+
+        assert e.value.status_code == 401
+        assert e.value.message == 'User Account not found.'
 
     def test_should_redirect_to_ui_if_user_is_member_of_va_organization(
             self, client, notify_api, toggle_enabled, mocker, cookie_config, github_data
     ):
         found_user = User()
-        mocker.patch('app.oauth.rest.create_or_update_user', return_value=found_user)
+        mocker.patch('app.oauth.rest.create_or_retrieve_user', return_value=found_user)
         create_access_token = mocker.patch('app.oauth.rest.create_access_token', return_value='some-access-token-value')
 
         with set_config_values(notify_api, cookie_config):
@@ -252,7 +288,7 @@ class TestAuthorize:
         create_access_token.assert_called_with(identity=found_user)
 
         assert response.status_code == 302
-        assert cookie_config['UI_HOST_NAME'] in response.location
+        assert response.location == f"{cookie_config['UI_HOST_NAME']}/login/success"
 
         assert any(
             cookie.name == cookie_config['JWT_ACCESS_COOKIE_NAME']
@@ -271,14 +307,16 @@ class TestAuthorize:
             identity_provider_user_id=identity_provider_user_id,
             name=expected_name
         )
-        create_or_update_user = mocker.patch('app.oauth.rest.create_or_update_user', return_value=found_user)
+        create_or_retrieve_user = mocker.patch(
+            'app.oauth.rest.create_or_retrieve_user', return_value=found_user
+        )
 
         mocker.patch('app.oauth.rest.create_access_token', return_value='some-access-token-value')
 
         with set_config_values(notify_api, cookie_config):
             client.get('/authorize')
 
-        create_or_update_user.assert_called_with(
+        create_or_retrieve_user.assert_called_with(
             email_address=expected_email,
             identity_provider_user_id=expected_user_id,
             name=expected_name)

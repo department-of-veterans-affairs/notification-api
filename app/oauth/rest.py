@@ -1,6 +1,7 @@
 import json
 from typing import Tuple
 
+from authlib.integrations.base_client import OAuthError
 from flask import Blueprint, url_for, make_response, redirect, jsonify, current_app, request
 from flask_cors.core import get_cors_options, set_cors_headers
 from flask_jwt_extended import create_access_token, verify_jwt_in_request
@@ -8,10 +9,11 @@ from flask_jwt_extended.exceptions import NoAuthorizationError
 from jwt import ExpiredSignatureError
 from requests.exceptions import HTTPError
 
-from app.dao.users_dao import create_or_update_user
+from app import statsd_client
+from app.dao.users_dao import create_or_retrieve_user
 from app.errors import register_errors
 from app.feature_flags import is_feature_enabled, FeatureFlag
-from app.oauth.exceptions import OAuthException
+from app.oauth.exceptions import OAuthException, IncorrectGithubIdException
 from app.oauth.registry import oauth_registry
 
 oauth_blueprint = Blueprint('oauth', __name__, url_prefix='')
@@ -34,25 +36,32 @@ def login():
 
 @oauth_blueprint.route('/authorize')
 def authorize():
-    github_token = oauth_registry.github.authorize_access_token()
-
     try:
+        github_token = oauth_registry.github.authorize_access_token()
         make_github_get_request('/user/memberships/orgs/department-of-veterans-affairs', github_token)
         email_resp = make_github_get_request('/user/emails', github_token)
         user_resp = make_github_get_request('/user', github_token)
 
         verified_email, verified_user_id, verified_name = _extract_github_user_info(email_resp, user_resp)
 
-        user = create_or_update_user(
+        user = create_or_retrieve_user(
             email_address=verified_email,
             identity_provider_user_id=verified_user_id,
             name=verified_name)
-
+    except OAuthError as e:
+        current_app.logger.error(f'User denied authorization: {e}')
+        statsd_client.incr('oauth.authorization.denied')
+        return make_response(redirect(f"{current_app.config['UI_HOST_NAME']}/login/failure?denied_authorization"))
     except (OAuthException, HTTPError) as e:
         current_app.logger.error(f"Authorization exception raised:\n{e}\n")
+        statsd_client.incr('oauth.authorization.failure')
+        return make_response(redirect(f"{current_app.config['UI_HOST_NAME']}/login/failure"))
+    except IncorrectGithubIdException as e:
+        current_app.logger.error(e)
+        statsd_client.incr('oauth.authorization.github_id_mismatch')
         return make_response(redirect(f"{current_app.config['UI_HOST_NAME']}/login/failure"))
     else:
-        response = make_response(redirect(current_app.config['UI_HOST_NAME']))
+        response = make_response(redirect(f"{current_app.config['UI_HOST_NAME']}/login/success"))
         response.set_cookie(
             current_app.config['JWT_ACCESS_COOKIE_NAME'],
             create_access_token(
@@ -62,6 +71,7 @@ def authorize():
             secure=current_app.config['SESSION_COOKIE_SECURE'],
             samesite=current_app.config['SESSION_COOKIE_SAMESITE']
         )
+        statsd_client.incr('oauth.authorization.success')
         return response
 
 
@@ -70,10 +80,16 @@ def make_github_get_request(endpoint: str, github_token) -> json:
         endpoint,
         token=github_token
     )
-    resp.raise_for_status()
+    if resp.status_code in [403, 404]:
+        exception = OAuthException
+        exception.status_code = 401
+        exception.message = "User Account not found."
+        raise exception
 
     if resp.status_code == 304:
         raise OAuthException(Exception("Fail to retrieve required information to complete authorization"))
+
+    resp.raise_for_status()
 
     return resp
 
