@@ -2,6 +2,11 @@ name: Perf Deploy Trigger
 
 on:
   workflow_dispatch:
+    inputs:
+      branch_sha:
+        description: 'Git commit SHA if you do not want to use the latest branch commit'
+        required: false
+        default: ${{ github.sha }}
 
 jobs:
   build-and-push:
@@ -9,7 +14,7 @@ jobs:
     if: github.ref != 'refs/heads/master'
     env:
       IMAGE_REPOSITORY: "notification_api_perf"
-      IMAGE_TAG: ${{ github.sha }}
+      IMAGE_TAG: ${{ github.events.inputs.branch_sha }}
     steps:
       - uses: actions/checkout@v2
       - name: Build docker image
