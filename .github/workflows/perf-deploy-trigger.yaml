@@ -20,7 +20,7 @@ jobs:
           script: |
             const setRef = (inputSha) => inputSha ? inputSha : context.sha;
             const inputCommit = context.payload.inputs.ref;
-            const ref = setImageTag(inputCommit);
+            const ref = setRef(inputCommit);
             core.setOutput('ref', ref);
 
       - uses: actions/checkout@v2
