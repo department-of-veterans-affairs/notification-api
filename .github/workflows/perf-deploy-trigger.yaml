@@ -1,22 +1,26 @@
-name: Perf Deploy Trigger
+name: Performance Build and Deploy
 
 on:
   workflow_dispatch:
     inputs:
+      branch_name:
+        description: 'Branch name being deployed to perf environment'
+        required: true
       branch_sha:
-        description: 'Git commit SHA if you do not want to use the latest branch commit'
+        description: "Git commit SHA if not using the branch's latest commit"
         required: false
-        default: ${{ github.sha }}
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    if: github.ref != 'refs/heads/master'
     env:
       IMAGE_REPOSITORY: "notification_api_perf"
-      IMAGE_TAG: ${{ github.events.inputs.branch_sha }}
+      IMAGE_TAG: ${{ github.events.inputs.branch_sha || github.sha }}
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.events.inputs.branch_name }}
+
       - name: Build docker image
         run: |
           docker build -t $IMAGE_REPOSITORY:$IMAGE_TAG -f ci/Dockerfile .
