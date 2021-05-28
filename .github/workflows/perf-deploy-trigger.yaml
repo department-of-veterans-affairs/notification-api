@@ -21,8 +21,8 @@ jobs:
         uses: actions/github-script@v3
         with:
           script: |
-            const setImageTag = (inputSha) => inputSha ? inputSha : github.sha;
-            const inputCommit = github.events.inputs.branch_sha;
+            const setImageTag = (inputSha) => inputSha ? inputSha : context.sha;
+            const inputCommit = context.payload.inputs.branch_sha;
             const imageTag = setImageTag(inputCommit);
             core.setOutput('image-tag', imageTag);
 
