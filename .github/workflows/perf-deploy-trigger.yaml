@@ -5,7 +5,7 @@ on:
     inputs:
       ref:
         description: "Git commit SHA (full length is required) if not using the branch's latest commit"
-        required: true
+        required: false
 
 jobs:
   build-and-push:
