@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "Git commit SHA if not using the branch's latest commit"
-        required: false
+        description: "Git commit SHA (full length is required) if not using the branch's latest commit"
+        required: true
 
 jobs:
   build-and-push:
@@ -71,3 +71,5 @@ jobs:
             "STATUS_CODE=$?",
             "docker image prune -a -f 1>/dev/null",
             "exit $STATUS_CODE"
+
+  # TODO:// create deployment, with image repo name passed as payload
