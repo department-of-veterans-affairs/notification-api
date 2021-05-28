@@ -6,33 +6,34 @@ on:
       branch_name:
         description: 'Branch name being deployed to perf environment'
         required: true
-      branch_sha:
+      ref:
         description: "Git commit SHA if not using the branch's latest commit"
         required: false
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    if: github.ref == format('refs/heads/{0}', github.events.inputs.branch_name)
     env:
       IMAGE_REPOSITORY: "notification_api_perf"
     steps:
-      - name: Set image tag
-        id: set-image-tag
+      - name: Set environment
+        id: set-env
         uses: actions/github-script@v3
         with:
           script: |
-            const setImageTag = (inputSha) => inputSha ? inputSha : context.sha;
-            const inputCommit = context.payload.inputs.branch_sha;
-            const imageTag = setImageTag(inputCommit);
-            core.setOutput('image-tag', imageTag);
+            const setRef = (inputSha) => inputSha ? inputSha : context.sha;
+            const inputCommit = context.payload.inputs.ref;
+            const ref = setImageTag(inputCommit);
+            core.setOutput('ref', ref);
 
       - uses: actions/checkout@v2
         with:
-          ref: ${{ github.events.inputs.branch_name }}
+          ref: ${{ steps.set-env.outputs.ref }}
 
       - name: Build docker image
         env:
-          IMAGE_TAG: ${{ steps.set-image-tag.outputs.image-tag }}
+          IMAGE_TAG: ${{ steps.set-env.outputs.ref }}
         run: |
           docker build -t $IMAGE_REPOSITORY:$IMAGE_TAG -f ci/Dockerfile .
 
@@ -53,7 +54,7 @@ jobs:
       - name: Publish to VAEC ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr-vaec.outputs.registry }}
-          IMAGE_TAG: ${{ steps.set-image-tag.outputs.image-tag }}
+          IMAGE_TAG: ${{ steps.set-env.outputs.ref }}
         run: |
           docker tag $IMAGE_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$IMAGE_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$IMAGE_REPOSITORY:$IMAGE_TAG
@@ -62,7 +63,7 @@ jobs:
         uses: ./.github/actions/run-commands-on-ec2
         env:
           ECR_REGISTRY: ${{ steps.login-ecr-vaec.outputs.registry }}
-          IMAGE_TAG: ${{ steps.set-image-tag.outputs.image-tag }}
+          IMAGE_TAG: ${{ steps.set-env.outputs.ref }}
         with:
           instance-id-ssm-parameter-path: /utility/twistlock/instance
           commands: >-
