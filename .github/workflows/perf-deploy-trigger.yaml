@@ -3,9 +3,6 @@ name: Performance Build and Deploy
 on:
   workflow_dispatch:
     inputs:
-      branch_name:
-        description: 'Branch name being deployed to perf environment'
-        required: true
       ref:
         description: "Git commit SHA if not using the branch's latest commit"
         required: false
@@ -13,7 +10,6 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    if: github.ref == format('refs/heads/{0}', github.events.inputs.branch_name)
     env:
       IMAGE_REPOSITORY: "notification_api_perf"
     steps:
