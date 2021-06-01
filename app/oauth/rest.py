@@ -8,34 +8,60 @@ from flask_jwt_extended import create_access_token, verify_jwt_in_request
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from jwt import ExpiredSignatureError
 from requests.exceptions import HTTPError
+from sqlalchemy.orm.exc import NoResultFound
 
 from app import statsd_client
-from app.dao.users_dao import create_or_retrieve_user
+from app.dao.users_dao import create_or_retrieve_user, get_user_by_email
 from app.errors import register_errors
 from app.feature_flags import is_feature_enabled, FeatureFlag
-from app.oauth.exceptions import OAuthException, IncorrectGithubIdException
+from .exceptions import OAuthException, IncorrectGithubIdException, LoginWithPasswordException
 from app.oauth.registry import oauth_registry
+from app.schema_validation import validate
+from .auth_schema import password_login_request
 
 oauth_blueprint = Blueprint('oauth', __name__, url_prefix='')
 register_errors(oauth_blueprint)
 
 
-def _assert_toggle_enabled():
+def _assert_github_login_toggle_enabled():
     if not is_feature_enabled(FeatureFlag.GITHUB_LOGIN_ENABLED):
-        return jsonify(result='error', message="Not Implemented"), 501
-
-
-oauth_blueprint.before_request(_assert_toggle_enabled)
+        raise LoginWithPasswordException(message='Not Implemented', status_code=501)
 
 
 @oauth_blueprint.route('/login', methods=['GET'])
 def login():
+    _assert_github_login_toggle_enabled()
     redirect_uri = url_for('oauth.authorize', _external=True)
     return oauth_registry.github.authorize_redirect(redirect_uri)
 
 
+@oauth_blueprint.route('/login', methods=['POST'])
+def login_with_password():
+    if not is_feature_enabled(FeatureFlag.EMAIL_PASSWORD_LOGIN_ENABLED):
+        return jsonify(result='error', message="Not Implemented"), 501
+
+    request_json = request.get_json()
+    validate(request_json, password_login_request)
+
+    try:
+        fetched_user = get_user_by_email(request_json['email_address'])
+    except NoResultFound:
+        current_app.logger.info(f"No user was found with email address: {request_json['email_address']}")
+    else:
+        if fetched_user.check_password(request_json['password']):
+            jwt_token = create_access_token(
+                identity=fetched_user
+            )
+            return jsonify(result='success', token=jwt_token), 200
+        else:
+            current_app.logger.info(f"wrong password for: {request_json['email_address']}")
+
+    return jsonify(result='error', message='Failed to login'), 401
+
+
 @oauth_blueprint.route('/authorize')
 def authorize():
+    _assert_github_login_toggle_enabled()
     try:
         github_token = oauth_registry.github.authorize_access_token()
         make_github_get_request('/user/memberships/orgs/department-of-veterans-affairs', github_token)
@@ -106,6 +132,7 @@ def _extract_github_user_info(email_resp: json, user_resp: json) -> Tuple[str, s
 
 @oauth_blueprint.route('/redeem-token', methods=['GET'])
 def redeem_token():
+    _assert_github_login_toggle_enabled()
     try:
         verify_jwt_in_request(locations='cookies')
     except (NoAuthorizationError, ExpiredSignatureError):
@@ -117,4 +144,14 @@ def redeem_token():
     cors_options = {'origins': current_app.config['UI_HOST_NAME'], 'supports_credentials': True}
     set_cors_headers(response, get_cors_options(current_app, cors_options))
 
+    return response
+
+
+@oauth_blueprint.route('/logout', methods=['GET'])
+def logout():
+    _assert_github_login_toggle_enabled()
+
+    response = make_response(redirect(f"{current_app.config['UI_HOST_NAME']}"))
+    response.delete_cookie(current_app.config['JWT_ACCESS_COOKIE_NAME'])
+    statsd_client.incr('oauth.logout.success')
     return response
