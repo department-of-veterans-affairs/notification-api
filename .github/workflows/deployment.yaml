@@ -18,6 +18,7 @@ jobs:
         uses: actions/github-script@v3
         with:
           script: |
+            console.log(`\n****** JSON.stringify(context) ******\n`);
             const inputRepo = context.payload.deployment.payload.imageRepository;
             const setImageRepo = (inputRepo) => {
               return context.payload.deployment.environment == 'perf' && inputRepo ? inputRepo : 'notification_api';
