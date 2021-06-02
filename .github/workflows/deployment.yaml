@@ -20,7 +20,7 @@ jobs:
           script: |
             const inputRepo = github.event.deployment.payload.imageRepository;
             const setImageRepo = (inputRepo) => {
-              return github.event.deployment.environment == 'perf' ? inputRepo : 'notification_api';
+              return github.event.deployment.environment == 'perf' && inputRepo ? inputRepo : 'notification_api';
             };
             const imageRepo = setImageRepo(inputRepo);
             core.setOutput('image-repo', imageRepo);
