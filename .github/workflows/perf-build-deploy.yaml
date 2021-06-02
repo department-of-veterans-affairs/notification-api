@@ -12,14 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IMAGE_REPOSITORY: "notification_api_perf"
+      IMAGE_TAG: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v2
         with:
           ref: ${{ github.event.inputs.ref }}
 
       - name: Build docker image
-        env:
-          IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $IMAGE_REPOSITORY:$IMAGE_TAG -f ci/Dockerfile .
 
@@ -40,7 +39,6 @@ jobs:
       - name: Publish to VAEC ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr-vaec.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
         run: |
           docker tag $IMAGE_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$IMAGE_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$IMAGE_REPOSITORY:$IMAGE_TAG
@@ -49,7 +47,6 @@ jobs:
         uses: ./.github/actions/run-commands-on-ec2
         env:
           ECR_REGISTRY: ${{ steps.login-ecr-vaec.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
         with:
           instance-id-ssm-parameter-path: /utility/twistlock/instance
           commands: >-
@@ -70,7 +67,7 @@ jobs:
         with:
           github-token: ${{secrets.GH_ACCESS_TOKEN}}
           script: |
-            const payload = toJSON({'imageRepository': 'notification_api_perf'})
+            const payload = ${{ toJSON({'imageRepository': 'notification_api_perf'}) }}
             github.repos.createDeployment({
               owner: context.repo.owner,
               repo: context.repo.repo,
