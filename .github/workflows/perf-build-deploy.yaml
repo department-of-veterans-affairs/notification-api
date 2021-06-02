@@ -67,7 +67,7 @@ jobs:
         with:
           github-token: ${{secrets.GH_ACCESS_TOKEN}}
           script: |
-            const payload = ${{ toJSON({'imageRepository': 'notification_api_perf'}) }}
+            const payload = ${{ toJSON("{'imageRepository': 'notification_api_perf'}") }}
             github.repos.createDeployment({
               owner: context.repo.owner,
               repo: context.repo.repo,
