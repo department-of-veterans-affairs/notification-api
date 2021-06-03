@@ -14,15 +14,17 @@ jobs:
       IMAGE_REPOSITORY: "notification_api_perf"
     steps:
       - uses: actions/checkout@v2
-        id: checkout
         with:
           ref: ${{ github.event.inputs.ref }}
+
+      - name: Set image tag
+        id: set-image-tag
         run: |
           echo "::set-output name=image-tag::$(git rev-parse HEAD)"
 
       - name: Build docker image
         env:
-          IMAGE_TAG: ${{ steps.checkout.outputs.image-tag }}
+          IMAGE_TAG: ${{ steps.set-image-tag.outputs.image-tag }}
         run: |
           docker build -t $IMAGE_REPOSITORY:$IMAGE_TAG -f ci/Dockerfile .
 
@@ -43,7 +45,7 @@ jobs:
       - name: Publish to VAEC ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr-vaec.outputs.registry }}
-          IMAGE_TAG: ${{ steps.checkout.outputs.image-tag }}
+          IMAGE_TAG: ${{ steps.set-image-tag.outputs.image-tag }}
         run: |
           docker tag $IMAGE_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$IMAGE_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$IMAGE_REPOSITORY:$IMAGE_TAG
@@ -52,7 +54,7 @@ jobs:
         uses: ./.github/actions/run-commands-on-ec2
         env:
           ECR_REGISTRY: ${{ steps.login-ecr-vaec.outputs.registry }}
-          IMAGE_TAG: ${{ steps.checkout.outputs.image-tag }}
+          IMAGE_TAG: ${{ steps.set-image-tag.outputs.image-tag }}
         with:
           instance-id-ssm-parameter-path: /utility/twistlock/instance
           commands: >-
