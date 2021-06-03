@@ -12,14 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IMAGE_REPOSITORY: "notification_api_perf"
-      IMAGE_TAG: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v2
         id: checkout
         with:
           ref: ${{ github.event.inputs.ref }}
-          run: |
-            echo "::set-output name=image-tag::$(git rev-parse HEAD)"
+        run: |
+          echo "::set-output name=image-tag::$(git rev-parse HEAD)"
 
       - name: Build docker image
         env:
