@@ -18,6 +18,7 @@ jobs:
         uses: actions/github-script@v3
         with:
           script: |
+            console.log(github.event.deployment);
             const inputRepo = ${{ github.event.deployment.payload.imageRepository }};
             const setImageRepo = (inputRepo) => {
               return ${{ github.event.deployment.environment }} == 'perf' && inputRepo ? inputRepo : 'notification_api';
