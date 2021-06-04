@@ -19,7 +19,7 @@ jobs:
         with:
           script: |
             console.log("hi guys");
-            console.log(github.event.deployment);
+            console.log(${{ github.event.deployment }});
 #            const inputRepo = ${{ github.event.deployment.payload.imageRepository }};
 #            const setImageRepo = (inputRepo) => {
 #              return ${{ github.event.deployment.environment }} == 'perf' && inputRepo ? inputRepo : 'notification_api';
