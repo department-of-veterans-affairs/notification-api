@@ -19,8 +19,8 @@ jobs:
         with:
           script: |
             const getDeploymentInfo = () => {
-            console.log(JSON.stringify(${{ github.event }});
-            console.log(JSON.stringify(${{ github.event.deployment }});
+            console.log(JSON.stringify(${{ github.event }}));
+            console.log(JSON.stringify(${{ github.event.deployment }}));
               return JSON.stringify(${{ github.event.deployment }});
             }
 
