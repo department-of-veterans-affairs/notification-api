@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{ github.event.deployment.ref }}
-      - uses: hmarr/debug-action@v2
+
       - name: Set image repository
         id: set-image-repo
         uses: actions/github-script@v3
