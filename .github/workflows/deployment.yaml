@@ -19,7 +19,7 @@ jobs:
         with:
           script: |
             const getDeploymentInfo = () => {
-              return ${{ github.event.deployment }};
+              return ${{ github.event.deployment.payload["imageRepository"] }};
             }
 
             getDeploymentInfo()
