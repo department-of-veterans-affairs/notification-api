@@ -18,17 +18,12 @@ jobs:
         uses: actions/github-script@v3
         with:
           script: |
-            const getDeploymentInfo = () => {
-              return "${{ github.event.deployment.payload.imageRepository }}" == "notification_api_perf";
-            }
-
-            getDeploymentInfo()
-#            const inputRepo = ${{ github.event.deployment.payload.imageRepository }};
-#            const setImageRepo = (inputRepo) => {
-#              return ${{ github.event.deployment.environment }} == 'perf' && inputRepo ? inputRepo : 'notification_api';
-#            };
-#            const imageRepo = setImageRepo(inputRepo);
-#            core.setOutput('image-repo', imageRepo);
+            const inputRepo = '${{ github.event.deployment.payload.imageRepository }}';
+            const setImageRepo = (inputRepo) => {
+              return ${{ github.event.deployment.environment }} == 'perf' && inputRepo ? inputRepo : 'notification_api';
+            };
+            const imageRepo = setImageRepo(inputRepo);
+            core.setOutput('image-repo', imageRepo);
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
