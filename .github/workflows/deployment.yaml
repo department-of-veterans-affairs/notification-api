@@ -9,6 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       ${{ 'dev' == github.event.deployment.environment || 'staging' == github.event.deployment.environment || 'perf' == github.event.deployment.environment || 'prod' == github.event.deployment.environment }}
+    outputs:
+      image-tag: ${{ steps.set-image-tag.outputs.image-tag }}
+      ecr-registry: ${{ steps.set-ecr-registry.outputs.ecr-registry }}
     steps:
       - uses: actions/checkout@v2
         with:
