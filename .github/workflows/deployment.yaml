@@ -11,7 +11,7 @@ jobs:
       - shell: bash {0}
         run: |
           ENVS=(dev staging perf prod)
-          INPUT="${{github.event.deployment.environment}}"
+          INPUT="${{ github.event.deployment.environment }}"
           APPROVED=false
 
           for env in ${ENVS[@]}; do
@@ -21,7 +21,7 @@ jobs:
               fi
           done
 
-          if [[ $APPROVED ]]; then
+          if [[ $APPROVED == true ]]; then
             echo -e "$INPUT is a valid environment"
             exit 0
           else
