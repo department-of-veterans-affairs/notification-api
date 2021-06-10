@@ -32,7 +32,7 @@ jobs:
   set-env-vars:
     name: Set environment variables
     needs: validate-env
-    if: ${{ failure() }}
+    if: ${{ success() }}
     runs-on: ubuntu-latest
     outputs:
       image-tag: ${{ steps.set-image-tag.outputs.image-tag }}
