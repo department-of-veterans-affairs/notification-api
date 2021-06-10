@@ -41,6 +41,10 @@ jobs:
       ECR_REGISTRY: ${{ needs.set-env-vars.outputs.ecr-registry }}
       IMAGE_TAG: ${{ needs.set-env-vars.outputs.image-tag }}
     steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.deployment.ref }}
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
