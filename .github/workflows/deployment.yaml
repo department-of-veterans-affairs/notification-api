@@ -4,11 +4,35 @@ on:
   deployment:
 
 jobs:
+  validate-env:
+    name: Check environment
+    runs-on: ubuntu-latest
+    steps:
+      - shell: bash {0}
+        run: |
+          ENVS=(dev staging perf prod)
+          INPUT="${{github.event.deployment.environment}}"
+          APPROVED=false
+
+          for env in $ENVS; do
+              if [[ "$env" == "$INPUT" ]]; then
+                APPROVED=true
+                break
+              fi
+          done
+
+          if [[ $APPROVED ]]; then
+            echo -e "$INPUT is a valid environment"
+            exit 0
+          else
+            echo -e "$INPUT is not a valid environment"
+            exit 1
+          fi
+
   set-env-vars:
     name: Set environment variables
+    if: ${{ failure() }}
     runs-on: ubuntu-latest
-    if: |
-      ${{ 'dev' == github.event.deployment.environment || 'staging' == github.event.deployment.environment || 'perf' == github.event.deployment.environment || 'prod' == github.event.deployment.environment }}
     outputs:
       image-tag: ${{ steps.set-image-tag.outputs.image-tag }}
       ecr-registry: ${{ steps.set-ecr-registry.outputs.ecr-registry }}
@@ -255,7 +279,7 @@ jobs:
 
   deployment-status:
     runs-on: ubuntu-latest
-    needs: [set-env-vars, run-migrations, deploy-api, deploy-celery, deploy-celery-beat, run-user-flows, deploy-lambdas]
+    needs: [validate-env, set-env-vars, run-migrations, deploy-api, deploy-celery, deploy-celery-beat, run-user-flows, deploy-lambdas]
     if: always()
     steps:
       - uses: actions/github-script@v3
