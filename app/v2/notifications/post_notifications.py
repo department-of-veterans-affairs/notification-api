@@ -222,23 +222,6 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
     )
 
     recipient_identifier = form.get('recipient_identifier')
-    if (
-            recipient_identifier
-            and is_feature_enabled(FeatureFlag.CHECK_RECIPIENT_COMMUNICATION_PERMISSIONS_ENABLED)
-            and template.communication_item_id):
-        lookup_recipient_communication_permissions.apply_async(
-            [
-                recipient_identifier['id_type'],
-                recipient_identifier['id_value'],
-                str(notification.id),
-                notification_type,
-                template.communication_item_id
-            ],
-            queue=QueueNames.COMMUNICATION_ITEM_PERMISSIONS
-        )
-
-        if notification.status == NOTIFICATION_PREFERENCES_DECLINED:  # TODO: will not ever get here bc of queue stuff
-            return notification
 
     scheduled_for = form.get("scheduled_for", None)
     if scheduled_for:
@@ -251,8 +234,10 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
             send_notification_to_queue(
                 notification=notification,
                 research_mode=service.research_mode,
-                queue=queue_name
-            )
+                queue=queue_name,
+                recipient_id_type=recipient_identifier['id_type'],
+                recipient_id_value=recipient_identifier['id_value']
+            ) #TODO:// add tests with recipient identifiers change
 
     return notification
 

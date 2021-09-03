@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from freezegun import freeze_time
 from collections import namedtuple
 
+from app.celery import letters_pdf_tasks
 from app.celery.lookup_recipient_communication_permissions_task import lookup_recipient_communication_permissions
 from app.celery.contact_information_tasks import lookup_contact_info
 from app.celery.lookup_va_profile_id_task import lookup_va_profile_id
@@ -251,21 +252,21 @@ def test_persist_notification_increments_cache_if_key_exists(sample_template, sa
 
 
 @pytest.mark.parametrize((
-    'research_mode, requested_queue, notification_type, key_type, expected_queue, expected_task'
+    'research_mode, requested_queue, notification_type, key_type, expected_queue, expected_tasks'
 ), [
-    (True, None, 'sms', 'normal', 'research-mode-tasks', 'provider_tasks.deliver_sms'),
-    (True, None, 'email', 'normal', 'research-mode-tasks', 'provider_tasks.deliver_email'),
-    (True, None, 'email', 'team', 'research-mode-tasks', 'provider_tasks.deliver_email'),
-    (True, None, 'letter', 'normal', 'research-mode-tasks', 'letters_pdf_tasks.create_letters_pdf'),
-    (False, None, 'sms', 'normal', 'send-sms-tasks', 'provider_tasks.deliver_sms'),
-    (False, None, 'email', 'normal', 'send-email-tasks', 'provider_tasks.deliver_email'),
-    (False, None, 'sms', 'team', 'send-sms-tasks', 'provider_tasks.deliver_sms'),
-    (False, None, 'letter', 'normal', 'create-letters-pdf-tasks', 'letters_pdf_tasks.create_letters_pdf'),
-    (False, None, 'sms', 'test', 'research-mode-tasks', 'provider_tasks.deliver_sms'),
-    (True, 'notify-internal-tasks', 'email', 'normal', 'research-mode-tasks', 'provider_tasks.deliver_email'),
-    (False, 'notify-internal-tasks', 'sms', 'normal', 'notify-internal-tasks', 'provider_tasks.deliver_sms'),
-    (False, 'notify-internal-tasks', 'email', 'normal', 'notify-internal-tasks', 'provider_tasks.deliver_email'),
-    (False, 'notify-internal-tasks', 'sms', 'test', 'research-mode-tasks', 'provider_tasks.deliver_sms'),
+    (True, None, 'sms', 'normal', 'research-mode-tasks', [deliver_sms]),
+    (True, None, 'email', 'normal', 'research-mode-tasks', [deliver_email]),
+    (True, None, 'email', 'team', 'research-mode-tasks', [deliver_email]),
+    (True, None, 'letter', 'normal', 'research-mode-tasks', [letters_pdf_tasks.create_letters_pdf]),
+    (False, None, 'sms', 'normal', 'send-sms-tasks', [deliver_sms]),
+    (False, None, 'email', 'normal', 'send-email-tasks', [deliver_email]),
+    (False, None, 'sms', 'team', 'send-sms-tasks', [deliver_sms]),
+    (False, None, 'letter', 'normal', 'create-letters-pdf-tasks', [letters_pdf_tasks.create_letters_pdf]),
+    (False, None, 'sms', 'test', 'research-mode-tasks', [deliver_sms]),
+    (True, 'notify-internal-tasks', 'email', 'normal', 'research-mode-tasks', [deliver_email]),
+    (False, 'notify-internal-tasks', 'sms', 'normal', 'notify-internal-tasks', [deliver_sms]),
+    (False, 'notify-internal-tasks', 'email', 'normal', 'notify-internal-tasks', [deliver_email]),
+    (False, 'notify-internal-tasks', 'sms', 'test', 'research-mode-tasks', [deliver_sms]),
 ])
 def test_send_notification_to_queue(
     notify_db,
@@ -275,21 +276,28 @@ def test_send_notification_to_queue(
     notification_type,
     key_type,
     expected_queue,
-    expected_task,
+    expected_tasks,
     mocker,
+    sample_email_template,
+    sample_sms_template_with_html,
 ):
-    mocked = mocker.patch('app.celery.{}.apply_async'.format(expected_task))
-    Notification = namedtuple('Notification', ['id', 'key_type', 'notification_type', 'created_at'])
+    mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
+    template = sample_email_template if notification_type else sample_sms_template_with_html
+    Notification = namedtuple('Notification', ['id', 'key_type', 'notification_type', 'created_at', 'template'])
     notification = Notification(
         id=uuid.uuid4(),
         key_type=key_type,
         notification_type=notification_type,
         created_at=datetime.datetime(2016, 11, 11, 16, 8, 18),
+        template=template
     )
 
     send_notification_to_queue(notification=notification, research_mode=research_mode, queue=requested_queue)
 
-    mocked.assert_called_once_with([str(notification.id)], queue=expected_queue)
+    args, _ = mocked_chain.call_args
+    for called_task, expected_task in zip(args, expected_tasks):
+        assert called_task.name == expected_task.name
+        # TODO:// want to assert other args
 
 
 def test_send_notification_to_queue_throws_exception_deletes_notification(sample_notification, mocker):

@@ -137,11 +137,31 @@ def persist_notification(
     return notification
 
 
-def send_notification_to_queue(notification, research_mode, queue=None):
+# TODO:// add tests
+def send_notification_to_queue(notification, research_mode, queue=None, recipient_id_type: str = None, recipient_id_value: str = None):
     deliver_task, queue = _get_delivery_task(notification, research_mode, queue)
 
+    communication_item_id = notification.template.communication_item_id
+
     try:
-        deliver_task.apply_async([str(notification.id)], queue=queue)
+        tasks = [deliver_task.si(str(notification.id)).set(queue=queue)]
+        if (recipient_id_type
+            and recipient_id_value
+            and is_feature_enabled(FeatureFlag.CHECK_RECIPIENT_COMMUNICATION_PERMISSIONS_ENABLED)
+            and communication_item_id):
+                tasks.insert(
+                    0,
+                    lookup_recipient_communication_permissions
+                        .si(recipient_id_type,
+                        recipient_id_value,
+                        str(notification.id),
+                        notification.notification_type,
+                        communication_item_id)
+                        .set(queue=QueueNames.COMMUNICATION_ITEM_PERMISSIONS)
+                )
+
+        chain(*tasks).apply_async()
+        
     except Exception:
         dao_delete_notification_by_id(notification.id)
         raise
