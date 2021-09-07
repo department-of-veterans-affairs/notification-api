@@ -437,11 +437,10 @@ def test_send_notification_to_queue_with_recipient_identifiers(
     sample_sms_template_with_html,
 ):
     mocker.patch(
-        'app.v2.notifications.post_notifications.accept_recipient_identifiers_enabled',
+        'app.notifications.process_notifications.is_feature_enabled',
         return_value=True
     )
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
-    
     template = sample_email_template if notification_type else sample_sms_template_with_html
     Notification = namedtuple('Notification', ['id', 'key_type', 'notification_type', 'created_at', 'template'])
     notification = Notification(
@@ -462,17 +461,25 @@ def test_send_notification_to_queue_with_recipient_identifiers(
     args, _ = mocked_chain.call_args
     for called_task, expected_task in zip(args, expected_tasks):
         assert called_task.name == expected_task.name
-        # TODO: check args to task and want to assert when lookup task with recipient id stuff
         called_task_args = args[0]
         assert request_recipient_id_type == called_task_args.args[0]
         assert request_recipient_id_value == called_task_args.args[1]
 
 
 def test_send_notification_to_queue_throws_exception_deletes_notification(sample_notification, mocker):
-    mocked = mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async', side_effect=Boto3Error("EXPECTED"))
+    mocker.patch(
+        'app.notifications.process_notifications.is_feature_enabled',
+        return_value=False
+    )
+    mocked_chain = mocker.patch('app.notifications.process_notifications.chain', side_effect=Boto3Error("EXPECTED"))
+    # mocked = mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async', side_effect=Boto3Error("EXPECTED"))
     with pytest.raises(Boto3Error):
         send_notification_to_queue(sample_notification, False)
-    mocked.assert_called_once_with([(str(sample_notification.id))], queue='send-sms-tasks')
+    # mocked.assert_called_once_with([(str(sample_notification.id))], queue='send-sms-tasks')
+    args, _ = mocked_chain.call_args
+    for called_task, expected_task in zip(args, ['send-sms-tasks']):
+        assert called_task.args[0] == str(sample_notification.id)
+        assert called_task.options['queue'] == expected_task
 
     assert Notification.query.count() == 0
     assert NotificationHistory.query.count() == 0
