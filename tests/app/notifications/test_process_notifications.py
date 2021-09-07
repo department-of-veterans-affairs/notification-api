@@ -442,21 +442,25 @@ def test_send_notification_to_queue_with_recipient_identifiers(
     )
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
     template = sample_email_template if notification_type else sample_sms_template_with_html
-    Notification = namedtuple('Notification', ['id', 'key_type', 'notification_type', 'created_at', 'template'])
+    Notification = namedtuple('Notification', ['id', 'key_type', 'notification_type', 'created_at', 'template', 'recipient_identifiers'])
+    id = uuid.uuid4()
     notification = Notification(
-        id=uuid.uuid4(),
+        id=id,
         key_type=key_type,
         notification_type=notification_type,
         created_at=datetime.datetime(2016, 11, 11, 16, 8, 18),
-        template=template
-    )
+        template=template,
+        recipient_identifiers=[RecipientIdentifier(
+            notification_id=id,
+            id_type=request_recipient_id_type,
+            id_value=request_recipient_id_value
+        )])
 
     send_notification_to_queue(
         notification=notification,
         research_mode=research_mode,
         queue=requested_queue,
-        recipient_id_type=request_recipient_id_type,
-        recipient_id_value=request_recipient_id_value)
+        recipient_id_type=request_recipient_id_type)
 
     args, _ = mocked_chain.call_args
     for called_task, expected_task in zip(args, expected_tasks):
@@ -472,14 +476,28 @@ def test_send_notification_to_queue_throws_exception_deletes_notification(sample
         return_value=False
     )
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain', side_effect=Boto3Error("EXPECTED"))
-    # mocked = mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async', side_effect=Boto3Error("EXPECTED"))
     with pytest.raises(Boto3Error):
         send_notification_to_queue(sample_notification, False)
-    # mocked.assert_called_once_with([(str(sample_notification.id))], queue='send-sms-tasks')
     args, _ = mocked_chain.call_args
     for called_task, expected_task in zip(args, ['send-sms-tasks']):
         assert called_task.args[0] == str(sample_notification.id)
         assert called_task.options['queue'] == expected_task
+
+    assert Notification.query.count() == 0
+    assert NotificationHistory.query.count() == 0
+
+
+def test_send_notification_to_queue_throws_exception_deletes_notification_when_recipient_identifier_not_found(sample_notification, mocker):
+    mocker.patch(
+        'app.notifications.process_notifications.is_feature_enabled',
+        return_value=True
+    )
+    mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
+    notification_no_recipient_id = sample_notification
+    with pytest.raises(Exception):
+        send_notification_to_queue(notification=notification_no_recipient_id, research_mode=False, recipient_id_type='rid')
+    
+    mocked_chain.assert_not_called()
 
     assert Notification.query.count() == 0
     assert NotificationHistory.query.count() == 0

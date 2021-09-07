@@ -137,8 +137,7 @@ def persist_notification(
     return notification
 
 
-# TODO:// add tests
-def send_notification_to_queue(notification, research_mode, queue=None, recipient_id_type: str = None, recipient_id_value: str = None):
+def send_notification_to_queue(notification, research_mode, queue=None, recipient_id_type: str = None):
     deliver_task, queue = _get_delivery_task(notification, research_mode, queue)
 
     communication_item_id = notification.template.communication_item_id
@@ -146,9 +145,9 @@ def send_notification_to_queue(notification, research_mode, queue=None, recipien
     try:
         tasks = [deliver_task.si(str(notification.id)).set(queue=queue)]
         if (recipient_id_type
-            and recipient_id_value
             and is_feature_enabled(FeatureFlag.CHECK_RECIPIENT_COMMUNICATION_PERMISSIONS_ENABLED)
             and communication_item_id):
+                recipient_id_value = _get_recipient_identifier_value(notification.recipient_identifiers, recipient_id_type)
                 tasks.insert(
                     0,
                     lookup_recipient_communication_permissions
@@ -170,6 +169,14 @@ def send_notification_to_queue(notification, research_mode, queue=None, recipien
         "{} {} sent to the {} queue for delivery".format(notification.notification_type,
                                                          notification.id,
                                                          queue))
+
+
+def _get_recipient_identifier_value(notification_recipient_identifiers: list, recipient_id_type: str) -> str:
+    for recipient_identifier in notification_recipient_identifiers:
+        if recipient_identifier.id_type == recipient_id_type:
+            return recipient_identifier.id_value
+    
+    raise Exception('Recipient identifier not found')
 
 
 def _get_delivery_task(notification, research_mode=False, queue=None):
