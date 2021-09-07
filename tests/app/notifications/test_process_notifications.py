@@ -302,32 +302,124 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
 
 
 @pytest.mark.parametrize((
-    'research_mode, requested_queue, notification_type, key_type, expected_queue,\
-    request_recipient_id_type, request_recipient_id_value, expected_tasks'
+    'research_mode, '
+    'requested_queue, '
+    'notification_type, '
+    'key_type, '
+    'expected_queue, '
+    'request_recipient_id_type, '
+    'request_recipient_id_value, '
+    'expected_tasks'
 ), [
-    (True, None, 'sms', 'normal', 'research-mode-tasks',
+    (
+        True,
+        None,
+        'sms',
+        'normal',
+        'research-mode-tasks',
         IdentifierType.VA_PROFILE_ID.value, 'some va profile id',
-        [deliver_sms, lookup_recipient_communication_permissions]),
-    (True, None, 'email', 'normal', 'research-mode-tasks',
-        IdentifierType.PID.value, 'some pid', [deliver_email, lookup_recipient_communication_permissions]),
-    (True, None, 'email', 'team', 'research-mode-tasks',
-        IdentifierType.ICN.value, 'some icn',[deliver_email, lookup_recipient_communication_permissions]),
-    (True, 'notify-internal-tasks', 'email', 'normal', 'research-mode-tasks',
-        IdentifierType.VA_PROFILE_ID.value, 'some va profile id', [deliver_email, lookup_recipient_communication_permissions]),
-    (False, None, 'sms', 'normal', 'send-sms-tasks',
-        IdentifierType.PID.value, 'some pid', [deliver_sms, lookup_recipient_communication_permissions]),
-    (False, None, 'email', 'normal', 'send-email-tasks',
-        IdentifierType.ICN.value, 'some icn', [deliver_email, lookup_recipient_communication_permissions]),
-    (False, None, 'sms', 'team', 'send-sms-tasks',
-         IdentifierType.VA_PROFILE_ID.value, 'some va profile id', [deliver_sms, lookup_recipient_communication_permissions]),
-    (False, None, 'sms', 'test', 'research-mode-tasks',
-        IdentifierType.PID.value, 'some pid', [deliver_sms, lookup_recipient_communication_permissions]),
-    (False, 'notify-internal-tasks', 'sms', 'normal', 'notify-internal-tasks',
-         IdentifierType.ICN.value, 'some icn', [deliver_sms, lookup_recipient_communication_permissions]),
-    (False, 'notify-internal-tasks', 'email', 'normal', 'notify-internal-tasks',
-        IdentifierType.VA_PROFILE_ID.value, 'some va profile id', [deliver_email, lookup_recipient_communication_permissions]),
-    (False, 'notify-internal-tasks', 'sms', 'test', 'research-mode-tasks',
-        IdentifierType.PID.value, 'some pid', [deliver_sms, lookup_recipient_communication_permissions]),
+        [lookup_recipient_communication_permissions, deliver_sms]
+    ),
+    (
+        True,
+        None,
+        'email',
+        'normal',
+        'research-mode-tasks',
+        IdentifierType.PID.value,
+        'some pid',
+        [lookup_recipient_communication_permissions, deliver_email]
+    ),
+    (
+        True,
+        None,
+        'email',
+        'team',
+        'research-mode-tasks',
+        IdentifierType.ICN.value,
+        'some icn',
+        [lookup_recipient_communication_permissions, deliver_email]
+    ),
+    (
+        True,
+        'notify-internal-tasks',
+        'email',
+        'normal',
+        'research-mode-tasks',
+        IdentifierType.VA_PROFILE_ID.value,
+        'some va profile id',
+        [lookup_recipient_communication_permissions, deliver_email]
+    ),
+    (
+        False,
+        None,
+        'sms',
+        'normal',
+        'send-sms-tasks',
+        IdentifierType.PID.value,
+        'some pid',
+        [lookup_recipient_communication_permissions, deliver_sms]
+    ),
+    (
+        False,
+        None,
+        'email',
+        'normal',
+        'send-email-tasks',
+        IdentifierType.ICN.value,
+        'some icn',
+        [lookup_recipient_communication_permissions, deliver_email]
+    ),
+    (
+        False,
+        None,
+        'sms',
+        'team',
+        'send-sms-tasks',
+        IdentifierType.VA_PROFILE_ID.value,
+        'some va profile id',
+        [lookup_recipient_communication_permissions, deliver_sms]
+    ),
+    (
+        False,
+        None,
+        'sms',
+        'test',
+        'research-mode-tasks',
+        IdentifierType.PID.value,
+        'some pid',
+        [lookup_recipient_communication_permissions, deliver_sms]
+    ),
+    (
+        False,
+        'notify-internal-tasks',
+        'sms',
+        'normal',
+        'notify-internal-tasks',
+        IdentifierType.ICN.value,
+        'some icn',
+        [lookup_recipient_communication_permissions, deliver_sms]
+    ),
+    (
+        False,
+        'notify-internal-tasks',
+        'email',
+        'normal',
+        'notify-internal-tasks',
+        IdentifierType.VA_PROFILE_ID.value,
+        'some va profile id',
+        [lookup_recipient_communication_permissions, deliver_email]
+    ),
+    (
+        False,
+        'notify-internal-tasks',
+        'sms',
+        'test',
+        'research-mode-tasks',
+        IdentifierType.PID.value,
+        'some pid',
+        [lookup_recipient_communication_permissions, deliver_sms]
+    ),
 ])
 def test_send_notification_to_queue_with_recipient_identifiers(
     notify_db,
@@ -371,8 +463,9 @@ def test_send_notification_to_queue_with_recipient_identifiers(
     for called_task, expected_task in zip(args, expected_tasks):
         assert called_task.name == expected_task.name
         # TODO: check args to task and want to assert when lookup task with recipient id stuff
-        called_task_notification_arg = args[0].args[0]
-        assert request_recipient_id_type == called_task_notification_arg
+        called_task_args = args[0]
+        assert request_recipient_id_type == called_task_args.args[0]
+        assert request_recipient_id_value == called_task_args.args[1]
 
 
 def test_send_notification_to_queue_throws_exception_deletes_notification(sample_notification, mocker):
