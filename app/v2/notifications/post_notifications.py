@@ -12,7 +12,7 @@ from app.clients.document_download import DocumentDownloadError
 from app.config import QueueNames, TaskNames
 from app.dao.notifications_dao import update_notification_status_by_reference
 from app.dao.templates_dao import get_precompiled_letter_template
-from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
+from app.feature_flags import accept_recipient_identifiers_enabled
 from app.letters.utils import upload_letter_pdf
 from app.models import (
     SMS_TYPE,
@@ -25,8 +25,7 @@ from app.models import (
     NOTIFICATION_CREATED,
     NOTIFICATION_SENDING,
     NOTIFICATION_DELIVERED,
-    NOTIFICATION_PENDING_VIRUS_CHECK,
-    NOTIFICATION_PREFERENCES_DECLINED
+    NOTIFICATION_PENDING_VIRUS_CHECK
 )
 from app.notifications.process_letter_notifications import (
     create_letter_notification
@@ -59,9 +58,6 @@ from app.v2.notifications.notification_schemas import (
     post_email_request,
     post_letter_request,
     post_precompiled_letter_request
-)
-from app.celery.lookup_recipient_communication_permissions_task import (
-    lookup_recipient_communication_permissions
 )
 
 
@@ -235,9 +231,8 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
                 notification=notification,
                 research_mode=service.research_mode,
                 queue=queue_name,
-                recipient_id_type=recipient_identifier['id_type'],
-                recipient_id_value=recipient_identifier['id_value']
-            ) #TODO:// add tests with recipient identifiers change
+                recipient_id_type=recipient_identifier['id_type']
+            )  # TODO:// add tests with recipient identifiers change
 
     return notification
 

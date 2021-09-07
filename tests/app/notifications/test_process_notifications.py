@@ -21,6 +21,7 @@ from app.models import (
     EMAIL_TYPE,
     SMS_TYPE,
     RecipientIdentifier)
+from app.notifications.exceptions import RecipientIdentifierNotFoundException
 from app.notifications.process_notifications import (
     create_content_for_notification,
     persist_notification,
@@ -442,16 +443,18 @@ def test_send_notification_to_queue_with_recipient_identifiers(
     )
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
     template = sample_email_template if notification_type else sample_sms_template_with_html
-    Notification = namedtuple('Notification', ['id', 'key_type', 'notification_type', 'created_at', 'template', 'recipient_identifiers'])
-    id = uuid.uuid4()
-    notification = Notification(
-        id=id,
+    TestNotification = namedtuple(
+        'Notification', ['id', 'key_type', 'notification_type', 'created_at', 'template', 'recipient_identifiers']
+    )
+    notification_id = uuid.uuid4()
+    notification = TestNotification(
+        id=notification_id,
         key_type=key_type,
         notification_type=notification_type,
         created_at=datetime.datetime(2016, 11, 11, 16, 8, 18),
         template=template,
         recipient_identifiers=[RecipientIdentifier(
-            notification_id=id,
+            notification_id=notification_id,
             id_type=request_recipient_id_type,
             id_value=request_recipient_id_value
         )])
@@ -487,16 +490,20 @@ def test_send_notification_to_queue_throws_exception_deletes_notification(sample
     assert NotificationHistory.query.count() == 0
 
 
-def test_send_notification_to_queue_throws_exception_deletes_notification_when_recipient_identifier_not_found(sample_notification, mocker):
+def test_send_notification_to_queue_throws_exception_deletes_notification_when_recipient_identifier_not_found(
+        sample_notification, mocker
+):
     mocker.patch(
         'app.notifications.process_notifications.is_feature_enabled',
         return_value=True
     )
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
     notification_no_recipient_id = sample_notification
-    with pytest.raises(Exception):
-        send_notification_to_queue(notification=notification_no_recipient_id, research_mode=False, recipient_id_type='rid')
-    
+    with pytest.raises(RecipientIdentifierNotFoundException):
+        send_notification_to_queue(
+            notification=notification_no_recipient_id, research_mode=False, recipient_id_type='rid'
+        )
+
     mocked_chain.assert_not_called()
 
     assert Notification.query.count() == 0
