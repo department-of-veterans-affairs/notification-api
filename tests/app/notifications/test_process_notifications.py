@@ -268,7 +268,7 @@ def test_persist_notification_increments_cache_if_key_exists(sample_template, sa
     (False, 'notify-internal-tasks', 'email', 'normal', 'notify-internal-tasks', [deliver_email]),
     (False, 'notify-internal-tasks', 'sms', 'test', 'research-mode-tasks', [deliver_sms]),
 ])
-def test_send_notification_to_queue(
+def test_send_notification_to_queue_with_no_recipient_identifiers(
     notify_db,
     notify_db_session,
     research_mode,
@@ -297,7 +297,82 @@ def test_send_notification_to_queue(
     args, _ = mocked_chain.call_args
     for called_task, expected_task in zip(args, expected_tasks):
         assert called_task.name == expected_task.name
-        # TODO:// want to assert other args
+        called_task_notification_arg = args[0].args[0]
+        assert called_task_notification_arg == str(notification.id)
+
+
+@pytest.mark.parametrize((
+    'research_mode, requested_queue, notification_type, key_type, expected_queue,\
+    request_recipient_id_type, request_recipient_id_value, expected_tasks'
+), [
+    (True, None, 'sms', 'normal', 'research-mode-tasks',
+        IdentifierType.VA_PROFILE_ID.value, 'some va profile id',
+        [deliver_sms, lookup_recipient_communication_permissions]),
+    (True, None, 'email', 'normal', 'research-mode-tasks',
+        IdentifierType.PID.value, 'some pid', [deliver_email, lookup_recipient_communication_permissions]),
+    (True, None, 'email', 'team', 'research-mode-tasks',
+        IdentifierType.ICN.value, 'some icn',[deliver_email, lookup_recipient_communication_permissions]),
+    (True, 'notify-internal-tasks', 'email', 'normal', 'research-mode-tasks',
+        IdentifierType.VA_PROFILE_ID.value, 'some va profile id', [deliver_email, lookup_recipient_communication_permissions]),
+    (False, None, 'sms', 'normal', 'send-sms-tasks',
+        IdentifierType.PID.value, 'some pid', [deliver_sms, lookup_recipient_communication_permissions]),
+    (False, None, 'email', 'normal', 'send-email-tasks',
+        IdentifierType.ICN.value, 'some icn', [deliver_email, lookup_recipient_communication_permissions]),
+    (False, None, 'sms', 'team', 'send-sms-tasks',
+         IdentifierType.VA_PROFILE_ID.value, 'some va profile id', [deliver_sms, lookup_recipient_communication_permissions]),
+    (False, None, 'sms', 'test', 'research-mode-tasks',
+        IdentifierType.PID.value, 'some pid', [deliver_sms, lookup_recipient_communication_permissions]),
+    (False, 'notify-internal-tasks', 'sms', 'normal', 'notify-internal-tasks',
+         IdentifierType.ICN.value, 'some icn', [deliver_sms, lookup_recipient_communication_permissions]),
+    (False, 'notify-internal-tasks', 'email', 'normal', 'notify-internal-tasks',
+        IdentifierType.VA_PROFILE_ID.value, 'some va profile id', [deliver_email, lookup_recipient_communication_permissions]),
+    (False, 'notify-internal-tasks', 'sms', 'test', 'research-mode-tasks',
+        IdentifierType.PID.value, 'some pid', [deliver_sms, lookup_recipient_communication_permissions]),
+])
+def test_send_notification_to_queue_with_recipient_identifiers(
+    notify_db,
+    notify_db_session,
+    research_mode,
+    requested_queue,
+    notification_type,
+    key_type,
+    expected_queue,
+    request_recipient_id_type,
+    request_recipient_id_value,
+    expected_tasks,
+    mocker,
+    sample_email_template,
+    sample_sms_template_with_html,
+):
+    mocker.patch(
+        'app.v2.notifications.post_notifications.accept_recipient_identifiers_enabled',
+        return_value=True
+    )
+    mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
+    
+    template = sample_email_template if notification_type else sample_sms_template_with_html
+    Notification = namedtuple('Notification', ['id', 'key_type', 'notification_type', 'created_at', 'template'])
+    notification = Notification(
+        id=uuid.uuid4(),
+        key_type=key_type,
+        notification_type=notification_type,
+        created_at=datetime.datetime(2016, 11, 11, 16, 8, 18),
+        template=template
+    )
+
+    send_notification_to_queue(
+        notification=notification,
+        research_mode=research_mode,
+        queue=requested_queue,
+        recipient_id_type=request_recipient_id_type,
+        recipient_id_value=request_recipient_id_value)
+
+    args, _ = mocked_chain.call_args
+    for called_task, expected_task in zip(args, expected_tasks):
+        assert called_task.name == expected_task.name
+        # TODO: check args to task and want to assert when lookup task with recipient id stuff
+        called_task_notification_arg = args[0].args[0]
+        assert request_recipient_id_type == called_task_notification_arg
 
 
 def test_send_notification_to_queue_throws_exception_deletes_notification(sample_notification, mocker):
