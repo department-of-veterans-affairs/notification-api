@@ -201,6 +201,8 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
 
     personalisation = process_document_uploads(form.get('personalisation'), service, simulated=simulated)
 
+    recipient_identifier = form.get('recipient_identifier', None)
+
     notification = persist_notification(
         template_id=template.id,
         template_version=template.version,
@@ -213,11 +215,9 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
         client_reference=form.get('reference', None),
         simulated=simulated,
         reply_to_text=reply_to_text,
-        recipient_identifier=form.get('recipient_identifier', None),
+        recipient_identifier=recipient_identifier,
         billing_code=form.get('billing_code', None)
     )
-
-    recipient_identifier = form.get('recipient_identifier')
 
     scheduled_for = form.get("scheduled_for", None)
     if scheduled_for:
@@ -227,12 +227,13 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
             current_app.logger.debug("POST simulated notification for id: {}".format(notification.id))
         else:
             queue_name = QueueNames.PRIORITY if template.process_type == PRIORITY else None
+            recipient_id_type = recipient_identifier.get('id_type') if recipient_identifier else None
             send_notification_to_queue(
                 notification=notification,
                 research_mode=service.research_mode,
                 queue=queue_name,
-                recipient_id_type=recipient_identifier['id_type']
-            )  # TODO:// add tests with recipient identifiers change
+                recipient_id_type=recipient_id_type
+            )
 
     return notification
 

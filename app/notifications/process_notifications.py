@@ -174,9 +174,9 @@ def send_notification_to_queue(notification, research_mode, queue=None, recipien
                                                          queue))
 
 
-def _get_recipient_identifier_value(notification_recipient_identifiers: list, recipient_id_type: str) -> str:
-    for recipient_identifier in notification_recipient_identifiers:
-        if recipient_identifier.id_type == recipient_id_type:
+def _get_recipient_identifier_value(notification_recipient_identifiers: dict, expected_recipient_id_type: str) -> str:
+    for id_type, recipient_identifier in notification_recipient_identifiers.items():
+        if id_type == expected_recipient_id_type:
             return recipient_identifier.id_value
 
     raise RecipientIdentifierNotFoundException
@@ -220,7 +220,7 @@ def send_to_queue_for_recipient_info_based_on_recipient_identifier(
             )
 
     else:
-        # TODO: use va profile id so we don't hit mpi multiple times?
+        # TODO: pass va profile id to lookup comms prefs task, to prevent another lookup on MPI side under the hood
         tasks = [
             lookup_va_profile_id.si(notification.id).set(queue=QueueNames.LOOKUP_VA_PROFILE_ID),
             lookup_contact_info.si(notification.id).set(queue=QueueNames.LOOKUP_CONTACT_INFO),
