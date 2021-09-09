@@ -5,7 +5,6 @@ from freezegun import freeze_time
 
 from app.dao.service_sms_sender_dao import dao_update_service_sms_sender
 from app.models import (
-    NOTIFICATION_PREFERENCES_DECLINED,
     ScheduledNotification,
     EMAIL_TYPE,
     NOTIFICATION_CREATED,
@@ -1048,66 +1047,6 @@ def test_should_post_notification_successfully_with_recipient_identifier_and_con
                                         notification.template.communication_item_id)
         else:
             assert called_task.args[0] == str(notification.id)
-
-
-@pytest.mark.skip(reason="wip in test setup")
-@pytest.mark.parametrize('notification_type', ["email", "sms"])
-def test_post_notification_updates_notification_status_when_recipient_declines_communications(
-        client,
-        mocker,
-        enable_accept_recipient_identifiers_enabled_feature_flag,
-        check_recipient_communication_permissions_enabled,
-        sample_email_template,
-        sample_sms_template_with_html,
-        notification_type
-):
-    mocked_chain = mocker.patch('app.notifications.process_notifications.chain.apply_async', return_value=False)
-    # mocker.patch('app.celery.lookup_recipient_communication_permissions_task.recipient_has_given_permission',
-    # return_value=False)
-
-    expected_id_type = IdentifierType.VA_PROFILE_ID.value
-    expected_id_value = 'some va profile id'
-
-    template = (sample_email_template if notification_type == 'email' else sample_sms_template_with_html)
-
-    if notification_type == "email":
-        data = {
-            "template_id": template.id,
-            "email_address": "some-email@test.com",
-            "recipient_identifier": {
-                'id_type': expected_id_type,
-                'id_value': expected_id_value
-            }
-        }
-
-    else:
-        data = {
-            "template_id": template.id,
-            "phone_number": "+16502532222",
-            "recipient_identifier": {
-                'id_type': expected_id_type,
-                'id_value': expected_id_value
-            },
-            "personalisation": {
-                "Name": "Flowers"
-            }
-        }
-
-    auth_header = create_authorization_header(
-        service_id=template.service_id,
-    )
-    response = client.post(
-        path=f"v2/notifications/{notification_type}",
-        data=json.dumps(data),
-        headers=[('Content-Type', 'application/json'), auth_header])
-
-    mocked_chain.assert_called_once()
-
-    assert response.status_code == 201
-    assert Notification.query.count() == 1
-    notification = Notification.query.one()
-    assert notification.status == NOTIFICATION_PREFERENCES_DECLINED
-    # assert that delivery task was not called
 
 
 def test_post_notification_returns_501_when_recipient_identifiers_present_and_feature_flag_disabled(
