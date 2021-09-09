@@ -330,10 +330,17 @@ def test_replay_created_notifications(notify_db_session, sample_service, mocker)
                         status='created')
 
     replay_created_notifications()
-    email_delivery_queue.assert_called_once_with([str(old_email.id)],
-                                                 queue='send-email-tasks')
-    sms_delivery_queue.assert_called_once_with([str(old_sms.id)],
-                                               queue="send-sms-tasks")
+
+    for notification_type in ["email", "sms"]:
+        mocked = {"email": email_delivery_queue, "sms": sms_delivery_queue}
+        notification = (old_email if notification_type == "email" else old_sms)
+
+        result_notification_id, result_queue = mocked[f'{notification_type}'].call_args
+        result_id, *rest = result_notification_id[0]
+        assert result_id == str(notification.id)
+
+        assert result_queue['queue'] == f'send-{notification_type}-tasks'
+        mocked[f'{notification_type}'].assert_called_once()
 
 
 def test_check_job_status_task_does_not_raise_error(sample_template):
