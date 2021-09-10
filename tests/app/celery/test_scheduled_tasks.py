@@ -168,7 +168,7 @@ def test_switch_providers_on_slow_delivery_does_nothing_if_toggle_is_off(
 
 @freeze_time("2017-05-01 14:00:00")
 def test_should_send_all_scheduled_notifications_to_deliver_queue(sample_template, mocker):
-    mocked = mocker.patch('app.celery.provider_tasks.deliver_sms')
+    mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
     message_to_deliver = create_notification(template=sample_template, scheduled_for="2017-05-01 13:15")
     create_notification(template=sample_template, scheduled_for="2017-05-01 10:15", status='delivered')
     create_notification(template=sample_template)
@@ -179,7 +179,11 @@ def test_should_send_all_scheduled_notifications_to_deliver_queue(sample_templat
 
     send_scheduled_notifications()
 
-    mocked.apply_async.assert_called_once_with([str(message_to_deliver.id)], queue='send-sms-tasks')
+    args, _ = mocked_chain.call_args
+    for called_task, expected_task in zip(args, ['send-sms-tasks']):
+        assert called_task.options['queue'] == expected_task
+        assert called_task.args[0] == str(message_to_deliver.id)
+
     scheduled_notifications = dao_get_scheduled_notifications()
     assert not scheduled_notifications
 
