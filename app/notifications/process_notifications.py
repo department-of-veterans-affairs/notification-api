@@ -154,16 +154,11 @@ def send_notification_to_queue(notification, research_mode, queue=None, recipien
                 and is_feature_enabled(FeatureFlag.CHECK_RECIPIENT_COMMUNICATION_PERMISSIONS_ENABLED)
                 and communication_item_id
         ):
-            recipient_id_value = _get_recipient_identifier_value(notification.recipient_identifiers, recipient_id_type)
             tasks.insert(
                 0,
-                lookup_recipient_communication_permissions.si(
-                    recipient_id_type,
-                    recipient_id_value,
-                    str(notification.id),
-                    notification.notification_type,
-                    communication_item_id
-                ).set(queue=QueueNames.COMMUNICATION_ITEM_PERMISSIONS)
+                lookup_recipient_communication_permissions
+                .si(str(notification.id))
+                .set(queue=QueueNames.COMMUNICATION_ITEM_PERMISSIONS)
             )
 
             if recipient_id_type != IdentifierType.VA_PROFILE_ID.value:
@@ -229,9 +224,9 @@ def send_to_queue_for_recipient_info_based_on_recipient_identifier(
         if is_feature_enabled(FeatureFlag.CHECK_RECIPIENT_COMMUNICATION_PERMISSIONS_ENABLED) and communication_item_id:
             tasks.insert(
                 1,
-                lookup_recipient_communication_permissions.si(
-                    id_type, id_value, notification.id, notification.notification_type, communication_item_id
-                ).set(queue=QueueNames.COMMUNICATION_ITEM_PERMISSIONS)
+                lookup_recipient_communication_permissions
+                .si(notification.id)
+                .set(queue=QueueNames.COMMUNICATION_ITEM_PERMISSIONS)
             )
 
     else:
@@ -244,11 +239,9 @@ def send_to_queue_for_recipient_info_based_on_recipient_identifier(
         if is_feature_enabled(FeatureFlag.CHECK_RECIPIENT_COMMUNICATION_PERMISSIONS_ENABLED) and communication_item_id:
             tasks.insert(
                 2,
-                lookup_recipient_communication_permissions.si(
-                    id_type,
-                    id_value, notification.id,
-                    notification.notification_type, communication_item_id
-                ).set(queue=QueueNames.COMMUNICATION_ITEM_PERMISSIONS)
+                lookup_recipient_communication_permissions
+                .si(notification.id)
+                .set(queue=QueueNames.COMMUNICATION_ITEM_PERMISSIONS)
             )
 
     chain(*tasks).apply_async()

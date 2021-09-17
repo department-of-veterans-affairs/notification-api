@@ -23,9 +23,12 @@ def mock_communication_item(mocker):
 def mock_notification_with_vaprofile_id(mocker) -> Notification:
     id = uuid.uuid4()
     Notification = namedtuple('Notification', ['id', 'notification_type', 'recipient_identifiers'])
+    MockTemplate = namedtuple('MockTemplate', ['communication_item_id'])
+    template = MockTemplate(communication_item_id=1)
     return Notification(
         id=id,
         notification_type=SMS_TYPE,
+        template=template,
         recipient_identifiers={
             f"{IdentifierType.VA_PROFILE_ID.value}": RecipientIdentifier(
                 notification_id=id,
@@ -48,9 +51,8 @@ def test_lookup_recipient_communication_permissions_should_not_update_notificati
         'app.celery.lookup_recipient_communication_permissions_task.update_notification_status_by_id'
     )
 
-    lookup_recipient_communication_permissions(
-        'VAPROFILEID', '1', str(mock_notification_with_vaprofile_id.id), SMS_TYPE, 'some-communication-item-id'
-    )
+    lookup_recipient_communication_permissions(mock_notification_with_vaprofile_id.id)
+
     update_notification.assert_not_called()
 
 
@@ -67,9 +69,7 @@ def test_lookup_recipient_communication_permissions_should_not_send_if_recipient
         'app.celery.lookup_recipient_communication_permissions_task.update_notification_status_by_id'
     )
 
-    lookup_recipient_communication_permissions(
-        'VAPROFILEID', '1', str(mock_notification_with_vaprofile_id.id), SMS_TYPE, 'some-communication-item-id'
-    )
+    lookup_recipient_communication_permissions(mock_notification_with_vaprofile_id.id)
 
     update_notification.assert_called_once_with(
         str(mock_notification_with_vaprofile_id.id),
@@ -133,20 +133,6 @@ def test_recipient_has_given_permission_is_called_with_va_profile_id(
         return_value=mock_notification_with_vaprofile_id
     )
 
-    lookup_recipient_communication_permissions(
-        non_va_profile_id_type,
-        non_va_profile_id_value,
-        str(mock_notification_with_vaprofile_id.id),
-        notification_type,
-        communication_item_id
-    )
+    lookup_recipient_communication_permissions(str(mock_notification_with_vaprofile_id.id))
 
-    id_value = mock_notification_with_vaprofile_id.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value
-
-    mock.assert_called_once_with(
-        lookup_recipient_communication_permissions,
-        IdentifierType.VA_PROFILE_ID.value,
-        id_value,
-        str(mock_notification_with_vaprofile_id.id),
-        notification_type,
-        communication_item_id)
+    mock.assert_called_once_with(str(mock_notification_with_vaprofile_id.id))
