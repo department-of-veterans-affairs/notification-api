@@ -35,7 +35,6 @@ from app.dao.notifications_dao import (
     dao_create_notification,
     dao_delete_notification_by_id,
     dao_created_scheduled_notification)
-from app.notifications.exceptions import RecipientIdentifierNotFoundException
 
 from app.v2.errors import BadRequestError
 from app.utils import get_template_instance
@@ -174,15 +173,6 @@ def send_notification_to_queue(notification, research_mode, queue=None, recipien
         "{} {} sent to the {} queue for delivery".format(notification.notification_type,
                                                          notification.id,
                                                          queue))
-
-
-def _get_recipient_identifier_value(notification_recipient_identifiers: dict, expected_recipient_id_type: str) -> str:
-    try:
-        if notification_recipient_identifiers[expected_recipient_id_type]:
-            return notification_recipient_identifiers[expected_recipient_id_type].id_value
-
-    except Exception:
-        raise RecipientIdentifierNotFoundException
 
 
 def _get_delivery_task(notification, research_mode=False, queue=None):
