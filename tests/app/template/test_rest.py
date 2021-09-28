@@ -240,6 +240,39 @@ def test_should_not_create_template_with_incorrect_provider_type(
     assert json_resp['message'] == f"invalid {template_type}_provider_id"
 
 
+def test_should_create_template_with_created_by_email_passed(
+        client, sample_user, mocker
+):
+    mock_user = mocker.Mock()
+    mock_user.id = uuid.uuid4()
+    mocker.patch('app.template.rest.get_user_by_email', return_value=mock_user)
+
+    service = create_service(service_permissions=[SMS_TYPE])
+    data = {
+        'name': 'my template',
+        'template_type': SMS_TYPE,
+        'content': 'template <b>content</b>',
+        'service': str(service.id),
+        'created_by': None,
+        'created_by_email': 'created@by.email'
+    }
+    data = json.dumps(data)
+    auth_header = create_authorization_header()
+
+    response = client.post(
+        '/service/{}/template'.format(service.id),
+        headers=[('Content-Type', 'application/json'), auth_header],
+        data=data
+    )
+    assert response.status_code == 201
+    json_resp = json.loads(response.get_data(as_text=True))
+    assert json_resp['data']['created_by'] == mock_user.id
+
+    template = Template.query.get(json_resp['data']['id'])
+    from app.schemas import template_schema
+    assert sorted(json_resp['data']) == sorted(template_schema.dump(template).data)
+
+
 def test_create_a_new_template_for_a_service_adds_folder_relationship(
     client, sample_service
 ):

@@ -31,6 +31,7 @@ from app.dao.templates_dao import (
     dao_get_template_by_id,
     get_precompiled_letter_template,
 )
+from app.dao.users_dao import get_user_by_email
 from app.errors import (
     register_errors,
     InvalidRequest
@@ -75,6 +76,11 @@ def create_template(service_id):
     fetched_service = dao_fetch_service_by_id(service_id=service_id)
     # permissions needs to be placed here otherwise marshmallow will interfere with versioning
     permissions = fetched_service.permissions
+
+    request_body = request.get_json()
+    if ('created_by' not in request_body or request_body['created_by'] is None) and 'created_by_email' in request_body:
+        request_body['created_by'] = str(get_user_by_email(request_body['created_by_email']).id)
+
     template_json = validate(request.get_json(), post_create_template_schema)
 
     validate_communication_items.validate_communication_item_id(template_json)
