@@ -15,13 +15,13 @@ from freezegun import freeze_time
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
 from notifications_utils.template import HTMLEmailTemplate
 
-
+from app.dao.permissions_dao import permission_dao
 from app.models import (
     EMAIL_TYPE,
     LETTER_TYPE,
     SMS_TYPE,
     Template,
-    TemplateHistory, ProviderDetails
+    TemplateHistory, ProviderDetails, Permission, EDIT_TEMPLATES
 )
 from app.dao.templates_dao import dao_get_template_by_id, dao_redact_template
 from app.dao.service_permissions_dao import dao_add_service_permission
@@ -240,33 +240,37 @@ def test_should_not_create_template_with_incorrect_provider_type(
     assert json_resp['message'] == f"invalid {template_type}_provider_id"
 
 
-def test_should_create_template_with_created_by_email_passed(
-        client, sample_user, mocker
-):
-    mock_user = mocker.Mock()
-    mock_user.id = uuid.uuid4()
-    mocker.patch('app.template.rest.get_user_by_email', return_value=mock_user)
+def test_should_create_template_without_created_by_using_current_user_id(
+        client, sample_service_full_permissions):
+    sample_service = sample_service_full_permissions
+    user = sample_service.users[0]
+    permission_dao.set_user_service_permission(
+        user,
+        sample_service,
+        [Permission(
+            service_id=sample_service.id,
+            user_id=user.id,
+            permission=EDIT_TEMPLATES
+        )])
 
-    service = create_service(service_permissions=[SMS_TYPE])
     data = {
         'name': 'my template',
         'template_type': SMS_TYPE,
         'content': 'template <b>content</b>',
-        'service': str(service.id),
-        'created_by': None,
-        'created_by_email': 'created@by.email'
+        'service': str(sample_service.id),
+        'created_by': None
     }
     data = json.dumps(data)
-    auth_header = create_authorization_header()
 
     response = client.post(
-        '/service/{}/template'.format(service.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
+        '/service/{}/template'.format(sample_service.id),
+        headers=[('Content-Type', 'application/json'),
+                 ('Authorization', f'Bearer {create_access_token(user)}')],
         data=data
     )
     assert response.status_code == 201
     json_resp = json.loads(response.get_data(as_text=True))
-    assert json_resp['data']['created_by'] == mock_user.id
+    assert json_resp['data']['created_by'] == str(user.id)
 
     template = Template.query.get(json_resp['data']['id'])
     from app.schemas import template_schema
