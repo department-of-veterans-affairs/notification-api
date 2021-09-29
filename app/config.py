@@ -47,6 +47,7 @@ class QueueNames(object):
     REPORTING = 'reporting-tasks'
     JOBS = 'job-tasks'
     RETRY = 'retry-tasks'
+    RATE_LIMIT_RETRY = 'rate-limit-retry-tasks'
     NOTIFY = 'notify-internal-tasks'
     PROCESS_FTP = 'process-ftp-tasks'
     CREATE_LETTERS_PDF = 'create-letters-pdf-tasks'
@@ -70,6 +71,7 @@ class QueueNames(object):
             QueueNames.REPORTING,
             QueueNames.JOBS,
             QueueNames.RETRY,
+            QueueNames.RATE_LIMIT_RETRY,
             QueueNames.NOTIFY,
             # QueueNames.CREATE_LETTERS_PDF,
             QueueNames.CALLBACKS,
@@ -463,7 +465,7 @@ class Config(object):
     GOOGLE_ANALYTICS_URL = os.getenv('GOOGLE_ANALYTICS_URL', 'https://www.google-analytics.com/collect')
     GOOGLE_ANALYTICS_TID = os.getenv('GOOGLE_ANALYTICS_TID', 'UA-50123418-17')
 
-    CHECK_USER_COMMUNICATION_PERMISSIONS_ENABLED = True
+    CHECK_RECIPIENT_COMMUNICATION_PERMISSIONS_ENABLED = True
 
 ######################
 # Config overrides ###

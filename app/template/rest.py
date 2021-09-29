@@ -8,6 +8,7 @@ from flask import (
     current_app,
     jsonify,
     request)
+from flask_jwt_extended import current_user
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
 from notifications_utils.pdf import extract_page_from_pdf
 from notifications_utils.template import SMSMessageTemplate
@@ -15,7 +16,7 @@ from requests import post as requests_post
 from sqlalchemy.orm.exc import NoResultFound
 from notifications_utils.template import HTMLEmailTemplate
 
-from app.authentication.auth import requires_admin_auth_or_user_in_service
+from app.authentication.auth import requires_admin_auth_or_user_in_service, requires_user_in_service_or_admin
 from app.communication_item import validate_communication_items
 from app.dao.notifications_dao import get_notification_by_id
 from app.dao.services_dao import dao_fetch_service_by_id
@@ -75,7 +76,12 @@ def create_template(service_id):
     fetched_service = dao_fetch_service_by_id(service_id=service_id)
     # permissions needs to be placed here otherwise marshmallow will interfere with versioning
     permissions = fetched_service.permissions
-    template_json = validate(request.get_json(), post_create_template_schema)
+
+    request_body = request.get_json()
+    if current_user:
+        request_body['created_by'] = str(current_user.id)
+
+    template_json = validate(request_body, post_create_template_schema)
 
     validate_communication_items.validate_communication_item_id(template_json)
     validate_providers.validate_template_providers(template_json)
@@ -206,6 +212,23 @@ def get_html_template(service_id, template_id):
     )
 
     return jsonify(previewContent=str(html_email))
+
+
+@template_blueprint.route("/preview", methods=['POST'])
+@requires_user_in_service_or_admin(required_permission='manage_templates')
+def generate_html_preview_for_content(service_id):
+    data = request.get_json()
+
+    html_email = HTMLEmailTemplate(
+        {
+            'content': data['content'],
+            'subject': ''
+        },
+        values={},
+        preview_mode=True
+    )
+
+    return str(html_email), 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 
 @template_blueprint.route('/<uuid:template_id>/version/<int:version>')

@@ -8,7 +8,6 @@ from notifications_utils.recipients import try_validate_and_format_phone_number
 from app import api_user, authenticated_service, notify_celery, document_download_client
 from app.celery.letters_pdf_tasks import create_letters_pdf, process_virus_scan_passed
 from app.celery.research_mode_tasks import create_fake_letter_response_file
-from app.celery.communication_item_tasks import process_communication_item_request
 from app.clients.document_download import DocumentDownloadError
 from app.config import QueueNames, TaskNames
 from app.dao.notifications_dao import update_notification_status_by_reference
@@ -35,7 +34,7 @@ from app.notifications.process_notifications import (
     persist_notification,
     persist_scheduled_notification,
     send_notification_to_queue,
-    simulated_recipient
+    simulated_recipient, send_to_queue_for_recipient_info_based_on_recipient_identifier
 )
 from app.notifications.validators import (
     validate_and_format_recipient,
@@ -202,6 +201,8 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
 
     personalisation = process_document_uploads(form.get('personalisation'), service, simulated=simulated)
 
+    recipient_identifier = form.get('recipient_identifier', None)
+
     notification = persist_notification(
         template_id=template.id,
         template_version=template.version,
@@ -214,7 +215,7 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
         client_reference=form.get('reference', None),
         simulated=simulated,
         reply_to_text=reply_to_text,
-        recipient_identifier=form.get('recipient_identifier', None),
+        recipient_identifier=recipient_identifier,
         billing_code=form.get('billing_code', None)
     )
 
@@ -226,10 +227,12 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
             current_app.logger.debug("POST simulated notification for id: {}".format(notification.id))
         else:
             queue_name = QueueNames.PRIORITY if template.process_type == PRIORITY else None
+            recipient_id_type = recipient_identifier.get('id_type') if recipient_identifier else None
             send_notification_to_queue(
                 notification=notification,
                 research_mode=service.research_mode,
-                queue=queue_name
+                queue=queue_name,
+                recipient_id_type=recipient_id_type
             )
 
     return notification
@@ -249,17 +252,15 @@ def process_notification_with_recipient_identifier(*, form, notification_type, a
         key_type=api_key.key_type,
         client_reference=form.get('reference', None),
         reply_to_text=reply_to_text,
-        recipient_identifier=form.get('recipient_identifier', None)
+        recipient_identifier=form.get('recipient_identifier', None),
+        billing_code=form.get('billing_code', None)
     )
 
-    process_communication_item_request.apply_async(
-        [
-            form['recipient_identifier']['id_type'],
-            form['recipient_identifier']['id_value'],
-            template.id,
-            notification.id
-        ],
-        queue=QueueNames.COMMUNICATION_ITEM_PERMISSIONS
+    send_to_queue_for_recipient_info_based_on_recipient_identifier(
+        notification=notification,
+        id_type=form['recipient_identifier']['id_type'],
+        id_value=form['recipient_identifier']['id_value'],
+        communication_item_id=template.communication_item_id
     )
 
     return notification

@@ -47,6 +47,11 @@ SMS_TYPE = 'sms'
 EMAIL_TYPE = 'email'
 LETTER_TYPE = 'letter'
 
+VA_NOTIFY_TO_VA_PROFILE_NOTIFICATION_TYPES = {
+    EMAIL_TYPE: 'Email',
+    SMS_TYPE: 'Text'
+}
+
 TEMPLATE_TYPES = [SMS_TYPE, EMAIL_TYPE, LETTER_TYPE]
 
 template_types = db.Enum(*TEMPLATE_TYPES, name='template_type')
@@ -668,6 +673,7 @@ class ServiceSmsSender(db.Model):
     inbound_number = db.relationship(InboundNumber, backref=db.backref("inbound_number", uselist=False))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.datetime.utcnow)
+    rate_limit = db.Column(db.Integer, nullable=True)
 
     def get_reply_to_text(self):
         return try_validate_and_format_phone_number(self.sms_sender)
@@ -682,6 +688,7 @@ class ServiceSmsSender(db.Model):
             "inbound_number_id": str(self.inbound_number_id) if self.inbound_number_id else None,
             "created_at": self.created_at.strftime(DATETIME_FORMAT),
             "updated_at": self.updated_at.strftime(DATETIME_FORMAT) if self.updated_at else None,
+            "rate_limit": self.rate_limit if self.rate_limit else None
         }
 
 

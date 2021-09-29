@@ -8,7 +8,7 @@ from app.va.va_profile import (
     VAProfileRetryableException,
     VAProfileNonRetryableException
 )
-from app.models import RecipientIdentifier
+from app.models import RecipientIdentifier, SMS_TYPE
 from app.va.va_profile.va_profile_client import CommunicationItemNotFoundException
 
 MOCK_VA_PROFILE_URL = 'http://mock.vaprofile.va.gov/'
@@ -592,32 +592,16 @@ class TestCommunicationPermissions:
         response = {
             "txAuditId": "b8c82dd0-65d9-4e50-bd3e-cd83a4844ff0",
             "status": "COMPLETED_SUCCESS",
-            "bios": [
-                {
-                    "createDate": "2021-08-02T17:22:27Z",
-                    "updateDate": "2021-08-02T17:22:27Z",
-                    "txAuditId": "59bde0dc-a9c1-4066-bec1-f54ad1282b33",
-                    "sourceSystem": "VAPROFILE-TEST-PARTNER",
-                    "sourceDate": "2021-08-02T17:11:16Z",
-                    "originatingSourceSystem": "release testing",
-                    "sourceSystemUser": "Dwight Snoot",
-                    "communicationPermissionId": 2481,
-                    "vaProfileId": 1,
-                    "communicationChannelId": 1,
-                    "communicationItemId": 1,
-                    "communicationChannelName": "Text",
-                    "communicationItemCommonName": "Board of Veterans' Appeals hearing reminder",
-                    "allowed": True,
-                    "confirmationDate": "2021-08-02T17:11:16Z"
-                }
-            ]
+            "bios": []
         }
         rmock.get(ANY, json=response, status_code=200)
 
         recipient_identifier = RecipientIdentifier(id_type='VAPROFILEID', id_value='1')
 
         with pytest.raises(CommunicationItemNotFoundException):
-            test_va_profile_client.get_is_communication_allowed(recipient_identifier, 'some-id')
+            test_va_profile_client.get_is_communication_allowed(
+                recipient_identifier, 'some-id', 'some-notification-id', SMS_TYPE
+            )
 
     def test_get_is_communication_allowed_should_return_false_if_communication_item_is_not_allowed_on_user(
             self, test_va_profile_client, rmock
@@ -649,9 +633,46 @@ class TestCommunicationPermissions:
 
         recipient_identifier = RecipientIdentifier(id_type='VAPROFILEID', id_value='1')
 
-        assert not test_va_profile_client.get_is_communication_allowed(recipient_identifier, 'some-valid-id')
+        assert not test_va_profile_client.get_is_communication_allowed(
+            recipient_identifier, 'some-valid-id', 'some-notification-id', SMS_TYPE
+        )
 
-    def test_get_is_communication_allowed_should_return_true_if_user_has_no_permissions(
+    def test_get_is_communication_allowed_should_return_false_if_communication_item_channel_is_not_of_notification_type(
+            self, test_va_profile_client, rmock
+    ):
+        response = {
+            "txAuditId": "b8c82dd0-65d9-4e50-bd3e-cd83a4844ff0",
+            "status": "COMPLETED_SUCCESS",
+            "bios": [
+                {
+                    "createDate": "2021-08-02T17:22:27Z",
+                    "updateDate": "2021-08-02T17:22:27Z",
+                    "txAuditId": "59bde0dc-a9c1-4066-bec1-f54ad1282b33",
+                    "sourceSystem": "VAPROFILE-TEST-PARTNER",
+                    "sourceDate": "2021-08-02T17:11:16Z",
+                    "originatingSourceSystem": "release testing",
+                    "sourceSystemUser": "Dwight Snoot",
+                    "communicationPermissionId": 1,
+                    "vaProfileId": 1,
+                    "communicationChannelId": 1,
+                    "communicationItemId": 'some-valid-id',
+                    "communicationChannelName": "Email",
+                    "communicationItemCommonName": "Board of Veterans' Appeals hearing reminder",
+                    "allowed": False,
+                    "confirmationDate": "2021-08-02T17:11:16Z"
+                }
+            ]
+        }
+        rmock.get(ANY, json=response, status_code=200)
+
+        recipient_identifier = RecipientIdentifier(id_type='VAPROFILEID', id_value='1')
+
+        with pytest.raises(CommunicationItemNotFoundException):
+            test_va_profile_client.get_is_communication_allowed(
+                recipient_identifier, 'some-valid-id', 'some-notification-id', SMS_TYPE
+            )
+
+    def test_get_is_communication_allowed_should_raise_exception_if_recipient_has_no_permissions(
             self, test_va_profile_client, rmock
     ):
         # TODO: Note that this behavior will change once we starting using default communication item permissions
@@ -671,7 +692,10 @@ class TestCommunicationPermissions:
 
         recipient_identifier = RecipientIdentifier(id_type='VAPROFILEID', id_value='1')
 
-        assert test_va_profile_client.get_is_communication_allowed(recipient_identifier, 'some-random-id')
+        with pytest.raises(CommunicationItemNotFoundException):
+            test_va_profile_client.get_is_communication_allowed(
+                recipient_identifier, 'some-random-id', 'some-notification-id', SMS_TYPE
+            )
 
     def test_get_is_communication_allowed_should_return_true_if_user_allows_communication_item(
             self, test_va_profile_client, rmock
@@ -734,4 +758,6 @@ class TestCommunicationPermissions:
 
         recipient_identifier = RecipientIdentifier(id_type='VAPROFILEID', id_value='1')
 
-        assert test_va_profile_client.get_is_communication_allowed(recipient_identifier, 'some-valid-id')
+        assert test_va_profile_client.get_is_communication_allowed(
+            recipient_identifier, 'some-valid-id', 'some-notification-id', SMS_TYPE
+        )

@@ -25,7 +25,11 @@
           "value": "run_celery_beat.py"
         },
         {
-          "name": "CHECK_USER_COMMUNICATION_PERMISSIONS_ENABLED",
+          "name": "SMS_SENDER_RATE_LIMIT_ENABLED",
+          "value": "False"
+        },
+        {
+          "name": "CHECK_RECIPIENT_COMMUNICATION_PERMISSIONS_ENABLED",
           "value": "False"
         },
         {
@@ -113,6 +117,10 @@
           "value": "True"
         },
         {
+          "name": "REDIS_ENABLED",
+          "value": "True"
+        },
+        {
           "name": "UI_HOST_NAME",
           "value": "https://notifications.va.gov"
         }
@@ -161,6 +169,10 @@
         {
           "name": "GITHUB_CLIENT_SECRET",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/prod/notification-api/github-client-secret"
+        },
+        {
+          "name": "REDIS_URL",
+          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/prod/notification-api/redis/url"
         }
       ],
       "command": [

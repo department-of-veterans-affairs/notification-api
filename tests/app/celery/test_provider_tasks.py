@@ -1,3 +1,6 @@
+import uuid
+from collections import namedtuple
+
 import pytest
 from botocore.exceptions import ClientError
 from celery.exceptions import MaxRetriesExceededError
@@ -6,10 +9,12 @@ from notifications_utils.recipients import InvalidEmailError
 import app
 from app.celery import provider_tasks
 from app.celery.exceptions import NonRetryableException
-from app.celery.provider_tasks import deliver_sms, deliver_email
+from app.celery.provider_tasks import deliver_sms, deliver_email, deliver_sms_with_rate_limiting
 from app.clients.email.aws_ses import AwsSesClientException, AwsSesClientThrottlingSendRateException
+from app.config import QueueNames
 from app.exceptions import NotificationTechnicalFailureException, InvalidProviderException
 from app.models import NOTIFICATION_PERMANENT_FAILURE
+from app.v2.errors import RateLimitError
 
 
 def test_should_have_decorated_tasks_functions():
@@ -167,3 +172,39 @@ def test_send_sms_should_not_switch_providers_on_non_provider_failure(
     deliver_sms(sample_notification.id)
 
     assert switch_provider_mock.called is False
+
+
+def test_deliver_sms_with_rate_limiting_should_deliver_if_rate_limit_not_exceeded(sample_notification, mocker):
+    MockSmsSender = namedtuple('ServiceSmsSender', ['id', 'rate_limit', 'sms_sender'])
+    sms_sender = MockSmsSender(id=uuid.uuid4(), rate_limit=50, sms_sender='+11111111111')
+
+    mocker.patch(
+        'app.notifications.validators.check_sms_sender_over_rate_limit'
+    )
+    send_to_provider = mocker.patch('app.delivery.send_to_providers.send_sms_to_provider')
+    mocker.patch('app.celery.provider_tasks.dao_get_sms_sender_by_service_id_and_number', return_value=sms_sender)
+
+    deliver_sms_with_rate_limiting(sample_notification.id)
+
+    send_to_provider.assert_called_once_with(sample_notification)
+
+
+def test_deliver_sms_with_rate_limiting_should_retry_if_rate_limit_exceeded(sample_notification, mocker):
+    MockSmsSender = namedtuple('ServiceSmsSender', ['id', 'rate_limit'])
+    sms_sender = MockSmsSender(id=uuid.uuid4(), rate_limit=50)
+
+    mocker.patch(
+        'app.notifications.validators.check_sms_sender_over_rate_limit',
+        side_effect=RateLimitError('Non Provider Exception', sms_sender.rate_limit)
+    )
+
+    mocker.patch('app.delivery.send_to_providers.send_sms_to_provider')
+    mocker.patch('app.celery.provider_tasks.dao_get_sms_sender_by_service_id_and_number', return_value=sms_sender)
+
+    retry = mocker.patch('app.celery.provider_tasks.deliver_sms_with_rate_limiting.retry')
+
+    deliver_sms_with_rate_limiting(sample_notification.id)
+
+    retry.assert_called_once_with(
+        queue=QueueNames.RATE_LIMIT_RETRY, max_retries=None, countdown=60 / sms_sender.rate_limit
+    )

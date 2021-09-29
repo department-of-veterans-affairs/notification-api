@@ -45,7 +45,7 @@
           "value": "True"
         },
         {
-          "name": "CHECK_USER_COMMUNICATION_PERMISSIONS_ENABLED",
+          "name": "CHECK_RECIPIENT_COMMUNICATION_PERMISSIONS_ENABLED",
           "value": "True"
         },
         {
@@ -115,6 +115,10 @@
         {
           "name": "SMS_PROVIDER_SELECTION_STRATEGY_LABEL",
           "value": "HIGHEST_PRIORITY"
+        },
+        {
+          "name": "SMS_SENDER_RATE_LIMIT_ENABLED",
+          "value": "True"
         },
         {
           "name": "STATSD_HOST",

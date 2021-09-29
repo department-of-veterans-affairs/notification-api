@@ -17,6 +17,10 @@
       },
       "environment": [
         {
+          "name": "SMS_SENDER_RATE_LIMIT_ENABLED",
+          "value": "True"
+        },
+        {
           "name": "NOTIFY_ENVIRONMENT",
           "value": "production"
         },
@@ -101,12 +105,12 @@
           "value": "False"
         },
         {
-          "name": "CHECK_USER_COMMUNICATION_PERMISSIONS_ENABLED",
+          "name": "CHECK_RECIPIENT_COMMUNICATION_PERMISSIONS_ENABLED",
           "value": "False"
         },
         {
           "name": "REDIS_ENABLED",
-          "value": "False"
+          "value": "True"
         }
       ],
       "secrets": [

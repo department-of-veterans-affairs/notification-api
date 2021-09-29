@@ -27,8 +27,12 @@
           "value": "staging"
         },
         {
-          "name": "CHECK_USER_COMMUNICATION_PERMISSIONS_ENABLED",
-          "value": "False"
+          "name": "CHECK_RECIPIENT_COMMUNICATION_PERMISSIONS_ENABLED",
+          "value": "True"
+        },
+        {
+          "name": "SMS_SENDER_RATE_LIMIT_ENABLED",
+          "value": "True"
         },
         {
           "name": "FLASK_APP",
