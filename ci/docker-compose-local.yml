@@ -5,6 +5,8 @@ services:
       context: ..
       dockerfile: ci/Dockerfile.local
     image: notification_api
+    volumes:
+      - "../:/app:ro"
     ports:
       - 6011:6011
     env_file:
