@@ -304,7 +304,7 @@ First, open `ci/.docker-env.example`, fill in values as desired, and save as `ci
 
 Follow these steps to run the app locally for development.  The resulting container will have your local notification-api directory mounted, and Flask will run in development mode.  Changes you make to the code should trigger Flask to restart on the container.
 
-Start by building the Docker local image: `docker-compose -f ci/docker-compose-local.yml build app`.
+Start by building the Docker local image: `docker-compose -f ci/docker-compose-local.yml build app`.  Repeating this step is only necessary when Dockerfile.local changes.
 
 To run the app, and its ecosystem, locally, run `docker-compose -f ci/docker-compose-local.yml up`.  To see useful flags that you might want to use with the `up` subcommand, run `docker-compose up --help`.
 
