@@ -96,6 +96,28 @@ def test_update_template(sample_service, sample_user):
     assert dao_get_all_templates_for_service(sample_service.id)[0].name == 'new name'
 
 
+def test_update_template_with_reply_to_email(sample_service, sample_user):
+    data = {
+        'name': 'Sample Template',
+        'template_type': "sms",
+        'content': "Template content",
+        'service': sample_service,
+        'created_by': sample_user,
+        'reply_to_email': "some@one.com"
+    }
+    template = Template(**data)
+    dao_create_template(template)
+    created = dao_get_all_templates_for_service(sample_service.id)[0]
+    assert created.name == 'Sample Template'
+    assert created.reply_to_email == "some@one.com"
+
+    created.name = 'new name'
+    created.reply_to_email = "testing@change.com"
+    dao_update_template(created)
+    assert dao_get_all_templates_for_service(sample_service.id)[0].name == 'new name'
+    assert dao_get_all_templates_for_service(sample_service.id)[0].reply_to_email == "testing@change.com"
+
+
 def test_update_template_in_a_folder_to_archived(sample_service, sample_user):
     template_data = {
         'name': 'Sample Template',
