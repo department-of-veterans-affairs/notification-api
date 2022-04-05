@@ -32,7 +32,6 @@ from app.dao.templates_dao import (
     dao_get_template_versions,
     dao_update_template_reply_to,
     dao_get_template_by_id,
-    dao_update_template_reply_to_email,
     get_precompiled_letter_template,
 )
 from app.errors import (
@@ -142,10 +141,6 @@ def update_template(service_id, template_id):
     # if redacting, don't update anything else
     if data.get('redact_personalisation') is True:
         return redact_template(fetched_template, data)
-
-    if "reply_to_email" in data:
-        updated = dao_update_template_reply_to_email(template_id=template_id, reply_to_email=data.get("reply_to_email"))
-        return jsonify(data=template_schema.dump(updated).data), 200
 
     if "reply_to" in data:
         check_reply_to(service_id, data.get("reply_to"), fetched_template.template_type)
@@ -283,7 +278,7 @@ def _template_has_not_changed(current_data, updated_template):
     return all(
         current_data[key] == updated_template[key]
         for key in (
-            'name', 'content', 'subject', 'archived', 'process_type', 'postage', 'provider_id', 'communication_item_id'
+            'name', 'content', 'subject', 'archived', 'process_type', 'postage', 'provider_id', 'communication_item_id', 'reply_to_email'
         )
     )
 
