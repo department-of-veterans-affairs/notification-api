@@ -110,6 +110,7 @@ def authorize():
                 statsd_client.incr('oauth.authorization.github_id_mismatch')
                 return make_response(redirect(f"{current_app.config['UI_HOST_NAME']}/login/failure"))
 
+
 @oauth_blueprint.route('/my-services/<uuid:user_id>', methods=['GET'])
 def get_services_by_user(user_id):
     only_active = request.args.get('only_active') == 'True'
@@ -118,6 +119,7 @@ def get_services_by_user(user_id):
         services = dao_fetch_all_services_by_user(user_id, only_active)
     data = service_schema.dump(services, many=True).data
     return jsonify(data=data)
+
 
 @oauth_blueprint.route('/callback')
 def callback():
