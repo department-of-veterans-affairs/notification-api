@@ -664,3 +664,13 @@ class TestCallback:
         assert response.status_code == 401
         assert response.json == {"error": "Unauthorized", "description": "Authentication failure"}
         assert mock_statsd.incr.called_with('oauth.authorization.failure')
+
+
+class TestGetServicesByUser:
+    def test_should_return_200(self, client, mocker):
+        result = [{"id": '12345', "name": 'Test'}]
+        mocker.patch('app.dao.services_dao.dao_fetch_all_services_by_user', return_value=result)
+        response = client.get('/auth/my-services/12345')
+
+        assert response.status_code == 200
+        assert response.data == [{id: '12345', "name": 'Test'}]
