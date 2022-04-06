@@ -668,6 +668,6 @@ class TestCallback:
 
 class TestGetServicesByUser:
     def test_should_return_200(self, client, sample_user):
-        json_resp = client.get('/auth/my-services/{}'.format(str(sample_user.id)))
+        json_resp = client.get('/auth/my-services/{}'.format(sample_user.id))
 
         assert json_resp.status_code == 200
