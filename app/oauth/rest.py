@@ -115,8 +115,7 @@ def authorize():
 def get_services_by_user(user_id):
     only_active = request.args.get('only_active') == 'True'
 
-    if user_id:
-        services = dao_fetch_all_services_by_user(user_id, only_active)
+    services = dao_fetch_all_services_by_user(user_id, only_active)
     data = service_schema.dump(services, many=True).data
     return jsonify(data=data)
 

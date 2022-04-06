@@ -668,9 +668,9 @@ class TestCallback:
 
 class TestGetServicesByUser:
     def test_should_return_200(self, client, mocker):
-        result = [{"id": '12345', "name": 'Test'}]
+        result = [{"id": '4bba25d4-fc93-4cc0-8d47-8e1d67151b67', "name": 'Test'}]
         mocker.patch('app.dao.services_dao.dao_fetch_all_services_by_user', return_value=result)
-        response = client.get('/auth/my-services/12345')
+        response = client.get('/auth/my-services/4bba25d4-fc93-4cc0-8d47-8e1d67151b67')
 
         assert response.status_code == 200
-        assert response.data == [{id: '12345', "name": 'Test'}]
+        assert response.data == [{"id": '4bba25d4-fc93-4cc0-8d47-8e1d67151b67', "name": 'Test'}]
