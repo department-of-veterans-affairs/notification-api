@@ -87,7 +87,7 @@ phonenumbers==8.12.12
 pyasn1==0.4.8
 pycparser==2.21
 pyparsing==3.0.6
-PyPDF2==1.26.0
+PyPDF2==1.27.5
 pyrsistent==0.18.0
 PySocks==1.7.1
 python-dateutil==2.8.2
