@@ -15,7 +15,12 @@ services:
       - migrations
       - localstack
   db:
-    image: postgres:11.8
+    build:
+      context: ..
+      dockerfile: ci/Dockerfile.db
+    image: notification_api_db
+    volumes:
+      - "../sql:/sql:ro"
     restart: unless-stopped
     ports:
       - 5432:5432
