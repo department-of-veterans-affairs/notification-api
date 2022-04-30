@@ -31,8 +31,9 @@ Contains:
 - [Maintaining Docker Images](#maintaining-docker-images)
     - [Versions and Support Dates](#versions-and-support-dates)
     - [How to Update](#how-to-update)
-- [Running in Docker](#running-in-docker)
-    - [Local Development](#local-development)
+- [Local Development with Docker](#local-development)
+    - [Run the local Docker containers](#running-in-docker)
+    - [Creating Database Migrations](#migrations)
     - [Testing](#testing)
     - [Production](#production)
 - [AWS Configuration](#aws-configuration)
@@ -309,7 +310,7 @@ This application defines Docker images for production, testing, and development 
 |------------|----------------|-------|-----------------------|
 | Python 3.8 | 14 October 2024 | | Dockerfile, Dockerfile.local, Dockerfile.test, Dockerfile.userflow |
 | Alpine Linux 3.15 | 1 November 2023 | | Dockerfile, Dockerfile.local, Dockerfile.test, Dockerfile.db |
-| Postgres 11 | [9 November 2023](https://www.postgresql.org/support/versioning/) | | Dockerfile.db |
+| Postgres 11 | [9 November 2023](https://www.postgresql.org/support/versioning/) | | docker-compose.yml, docker-compose-local.yml, docker-compose-local-migrate.yml, docker-compose-test.yml |
 | localstack | None given.  The YAML files specifies v0.12.3.  As of March 2022, v0.14.1 is available. | As of March 2022, localstack requires Python 3.6-3.9. | docker-compose-local.yml |
 | bbyars/mountebank 2.4.0 | None given. | Newer versions are available. | docker-compose-local.yml |
 | redis | | No version specified. | docker-compose-local.yml |
@@ -320,19 +321,15 @@ To update the images, change the `FROM` directive at the top of Dockerfiles and 
 
 ## Local Development with Docker
 
-First, open `ci/.docker-env.example`, fill in values as desired, and save as `ci/.docker-env`.  Then build Docker images "notification_api" and "notification_api_db".
+First, open `ci/.docker-env.example`, fill in values as desired, and save as `ci/.docker-env`.  Then build the "notification_api" Docker image by running this command:
 
-### Build the notification_api Docker image
+```
+docker-compose -f ci/docker-compose-local.yml build app
+```
 
-Run this command: `docker-compose -f ci/docker-compose-local.yml build app`
+**Rebuild notification_api whenever Dockerfile.local changes or when dependencies change.**
 
-The resulting container will have your local notification-api/ directory mounted in read-only mode, and Flask will run in development mode.  Changes you make to the code should trigger Flask to restart on the container.  **Repeat this step whenever Dockerfile.local changes**.
-
-### Build the notification_api_db Docker image
-
-Run this command: `docker-compose -f ci/docker-compose-local.yml build db`
-
-The resulting container will have your local notification-api/sql/ directory mounted in read-only mode.  **Repeat this step whenever Dockerfile.db changes**.
+The associated container will have your local notification-api/ directory mounted in read-only mode, and Flask will run in development mode.  Changes you make to the code should trigger Flask to restart on the container.
 
 ### Run the local Docker containers
 
@@ -347,16 +344,6 @@ aws ses verify-email-identity --email-address stage-notifications@notifications.
 ```
 
 To support running locally, the repository includes a default `app/version.py` file, which must be present at runtime to avoid raising ImportError.  The production container build process overwrites this file with current values.
-
-### Initializing stored procedures
-
-Stored procedures are stored on a database server.  **With the local containers running and migrations complete** (i.e. the ci_migraitons_1 container exited with return code 0), run this command:
-
-```
-docker exec ci_db_1 psql -U postgres -d notification_api -f /sql/va_profile_opt_in_out.sql
-```
-
-**Repeat this step whenever the contents of the sql/ folder change.**
 
 ### Creating Database Migrations
 

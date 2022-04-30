@@ -1,5 +1,0 @@
-# Postgres 11 is supported until 9 November 2023.
-FROM postgres:11
-
-# Bind the projects's "sql" directory to the image.  See also docker-compose-local.yml.
-VOLUME /sql

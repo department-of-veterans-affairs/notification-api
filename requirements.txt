@@ -28,8 +28,6 @@ sentry-sdk[flask]==0.10.2
 validatesns==0.1.1
 cachelib==0.1
 Authlib==0.15.3
-flask-jwt-extended==4.1.0
-flask-cors==3.0.10
 
 notifications-python-client==5.7.1
 python-dotenv==0.10.3
@@ -46,7 +44,8 @@ itsdangerous==0.24
 git+https://github.com/department-of-veterans-affairs/notification-utils.git@1.0.66#egg=notification-utils==1.0.66
 
 ## The following requirements were added by pip freeze:
-alembic==1.7.5
+alembic==1.7.7
+alembic_utils==0.7.7
 amqp==2.6.1
 asn1crypto==1.4.0
 attrs==21.2.0

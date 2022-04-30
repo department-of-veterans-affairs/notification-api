@@ -15,10 +15,7 @@ services:
       - migrations
       - localstack
   db:
-    build:
-      context: ..
-      dockerfile: ci/Dockerfile.db
-    image: notification_api_db
+    image: postgres:11
     volumes:
       - "../sql:/sql:ro"
     restart: unless-stopped

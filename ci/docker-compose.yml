@@ -16,7 +16,7 @@ services:
     depends_on:
       - db
   db:
-    image: notification_api_db
+    image: postgres:11
     restart: unless-stopped
     ports:
       - 5432:5432
