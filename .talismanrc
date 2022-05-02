@@ -328,4 +328,4 @@ fileignoreconfig:
     - filename: sql/va_profile_opt_in_out.sql
       checksum: 9584f62cf0635ce57696c9c520a3c671b504ed2dcba7fafe50b9727ff2d2ce58
     - filename: migrations/env.py
-      checksum: 2af05b49d4b9a9839266514f4397f24c44bb86e1fc031bf7178e92a87d2c67f9
+      checksum: 2dd4f14a2d88a892182c9f3b32a5ff058691066982e71a72a6aa5a0856db1cd6

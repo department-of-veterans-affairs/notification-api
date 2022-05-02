@@ -37,7 +37,7 @@ va_profile_opt_in = PGFunction(
   definition="""\
 RETURNS void
 LANGUAGE sql AS $$
-    INSERT INTO va_profile_local_cache (mpi_icn, va_profile_id, communication_item_id, communication_channel_name)
+    INSERT INTO va_profile_local_cache(mpi_icn, va_profile_id, communication_item_id, communication_channel_name)
     VALUES (_mpi_icn, _va_profile_id, _communication_item_id, _communication_channel_name)
     ON CONFLICT DO NOTHING;
 $$;"""
@@ -45,7 +45,7 @@ $$;"""
 
 va_profile_opt_out = PGFunction(
   schema="public",
-  signature="va_profile_opt_out (_va_profile_id integer, _communication_item_id integer, _communication_channel_name varchar(255))",
+  signature="va_profile_opt_out(_va_profile_id integer, _communication_item_id integer, _communication_channel_name varchar(255))",
   definition="""\
 RETURNS void
 LANGUAGE sql AS $$
