@@ -80,7 +80,7 @@ jobs:
       IMAGE_TAG: ${{ github.sha }}
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1.6.0
+        uses: docker/setup-buildx-action@v1.7.0
 
       - name: Configure VAEC AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
