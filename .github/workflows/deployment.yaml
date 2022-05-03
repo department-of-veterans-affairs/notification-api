@@ -50,7 +50,7 @@ jobs:
 
       - name: Set ECR registry
         id: set-ecr-registry
-        uses: actions/github-script@v4.1
+        uses: actions/github-script@v6
         with:
           script: |
             const inputRepo = '${{ github.event.deployment.payload.imageRepository }}';
@@ -231,7 +231,7 @@ jobs:
           role-duration-seconds: 1800
 
       - name: Set Python version
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: "3.8"
 
@@ -319,7 +319,7 @@ jobs:
       ]
     if: always()
     steps:
-      - uses: actions/github-script@v4.1
+      - uses: actions/github-script@v6
         with:
           github-token: ${{secrets.GH_ACCESS_TOKEN}}
           previews: "flash-preview,ant-man-preview"

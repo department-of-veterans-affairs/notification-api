@@ -35,9 +35,9 @@ jobs:
           role-duration-seconds: 900
 
       - name: Set Python version
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
-          python-version: "3.6"
+          python-version: "3.8"
 
       - name: Install and package dependencies
         run: |
@@ -73,7 +73,7 @@ jobs:
           role-duration-seconds: 900
 
       - name: Set Python version
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: "3.8"
 
