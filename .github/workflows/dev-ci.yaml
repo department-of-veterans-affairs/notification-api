@@ -1,19 +1,21 @@
 name: Development CI
 
 on:
-  push:
-    tags-ignore:
-      - "**"
-    branches-ignore:
-      - "dependabot/**"
-    paths-ignore:
-      - "user_flows/**.py"
-      - "lambda_functions/user_flows/*"
-      - "lambda_functions/vetext_incoming_forwarder_lambda/*"
-      - ".github/workflows/lambda-functions.yaml"
-  pull_request:
-    branches:
-      - master
+  workflow_dispatch:
+
+  # push:
+  #   tags-ignore:
+  #     - "**"
+  #   branches-ignore:
+  #     - "dependabot/**"
+  #   paths-ignore:
+  #     - "user_flows/**.py"
+  #     - "lambda_functions/user_flows/*"
+  #     - "lambda_functions/vetext_incoming_forwarder_lambda/*"
+  #     - ".github/workflows/lambda-functions.yaml"
+  # pull_request:
+  #   branches:
+  #     - master
 
 jobs:
   test:
@@ -32,7 +34,7 @@ jobs:
       - name: Install libcurl
         run: sudo apt-get update && sudo apt-get install libssl-dev libcurl4-openssl-dev
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
@@ -57,7 +59,7 @@ jobs:
   code-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
         with:
           python-version: "3.8"
@@ -66,7 +68,7 @@ jobs:
   dependency-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
         with:
           python-version: "3.8"
@@ -106,7 +108,7 @@ jobs:
           cache-from: type=gha,scope=api
           cache-to: type=gha,scope=api
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Perform twistlock scan
         uses: ./.github/actions/run-commands-on-ec2

@@ -1,4 +1,4 @@
-name:  Application deployment
+name: Application deployment
 concurrency: ${{ github.event.deployment.environment }}
 
 on:
@@ -39,7 +39,7 @@ jobs:
       image-tag: ${{ steps.set-image-tag.outputs.image-tag }}
       ecr-registry: ${{ steps.set-ecr-registry.outputs.ecr-registry }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
@@ -67,7 +67,7 @@ jobs:
       ECR_REGISTRY: ${{ needs.set-env-vars.outputs.ecr-registry }}
       IMAGE_TAG: ${{ needs.set-env-vars.outputs.image-tag }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
@@ -105,7 +105,7 @@ jobs:
       ECR_REGISTRY: ${{ needs.set-env-vars.outputs.ecr-registry }}
       IMAGE_TAG: ${{ needs.set-env-vars.outputs.image-tag }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
@@ -142,7 +142,7 @@ jobs:
       ECR_REGISTRY: ${{ needs.set-env-vars.outputs.ecr-registry }}
       IMAGE_TAG: ${{ needs.set-env-vars.outputs.image-tag }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
@@ -174,12 +174,12 @@ jobs:
 
   deploy-celery-beat:
     runs-on: ubuntu-latest
-    needs: [ set-env-vars, run-migrations ]
+    needs: [set-env-vars, run-migrations]
     env:
       ECR_REGISTRY: ${{ needs.set-env-vars.outputs.ecr-registry }}
       IMAGE_TAG: ${{ needs.set-env-vars.outputs.image-tag }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
@@ -213,10 +213,10 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: './lambda_functions'
+        working-directory: "./lambda_functions"
     needs: [run-migrations]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
@@ -233,7 +233,7 @@ jobs:
       - name: Set Python version
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: "3.8"
 
       - name: Package and deploy SES Callback lambda function
         run: |
@@ -270,10 +270,17 @@ jobs:
 
   run-user-flows:
     runs-on: ubuntu-latest
-    needs: [run-migrations, deploy-api, deploy-celery, deploy-celery-beat, deploy-lambdas]
+    needs:
+      [
+        run-migrations,
+        deploy-api,
+        deploy-celery,
+        deploy-celery-beat,
+        deploy-lambdas,
+      ]
     if: ${{ 'dev' == github.event.deployment.environment }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
@@ -299,13 +306,23 @@ jobs:
 
   deployment-status:
     runs-on: ubuntu-latest
-    needs: [validate-env, set-env-vars, run-migrations, deploy-api, deploy-celery, deploy-celery-beat, run-user-flows, deploy-lambdas]
+    needs:
+      [
+        validate-env,
+        set-env-vars,
+        run-migrations,
+        deploy-api,
+        deploy-celery,
+        deploy-celery-beat,
+        run-user-flows,
+        deploy-lambdas,
+      ]
     if: always()
     steps:
       - uses: actions/github-script@v4.1
         with:
           github-token: ${{secrets.GH_ACCESS_TOKEN}}
-          previews: 'flash-preview,ant-man-preview'
+          previews: "flash-preview,ant-man-preview"
           script: |
             const needs = ${{ toJson(needs) }};
             let deploymentState = Object.entries(needs).reduce((state, jobEntry) => {
