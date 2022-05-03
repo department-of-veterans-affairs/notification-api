@@ -3,7 +3,7 @@
 
 alembic_utils==0.7.7
 cffi==1.14.0
-celery[sqs]==4.4.0  # pyup: ignore 42498
+celery[sqs]==5.1.2  # pyup: ignore 42498
 docopt==0.6.2
 fido2==0.7.0
 Flask-Bcrypt==0.7.1
