@@ -50,7 +50,7 @@ jobs:
 
       - name: Set ECR registry
         id: set-ecr-registry
-        uses: actions/github-script@v4.1
+        uses: actions/github-script@v6
         with:
           script: |
             const inputRepo = '${{ github.event.deployment.payload.imageRepository }}';
@@ -302,7 +302,7 @@ jobs:
     needs: [validate-env, set-env-vars, run-migrations, deploy-api, deploy-celery, deploy-celery-beat, run-user-flows, deploy-lambdas]
     if: always()
     steps:
-      - uses: actions/github-script@v4.1
+      - uses: actions/github-script@v6
         with:
           github-token: ${{secrets.GH_ACCESS_TOKEN}}
           previews: 'flash-preview,ant-man-preview'
