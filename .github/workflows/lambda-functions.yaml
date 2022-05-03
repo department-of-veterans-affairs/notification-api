@@ -22,7 +22,7 @@ jobs:
       run:
         working-directory: "./lambda_functions/user_flows"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
@@ -60,7 +60,7 @@ jobs:
       run:
         working-directory: "./lambda_functions/vetext_incoming_forwarder_lambda"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 

@@ -39,7 +39,7 @@ jobs:
       image-tag: ${{ steps.set-image-tag.outputs.image-tag }}
       ecr-registry: ${{ steps.set-ecr-registry.outputs.ecr-registry }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
@@ -67,7 +67,7 @@ jobs:
       ECR_REGISTRY: ${{ needs.set-env-vars.outputs.ecr-registry }}
       IMAGE_TAG: ${{ needs.set-env-vars.outputs.image-tag }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
@@ -105,7 +105,7 @@ jobs:
       ECR_REGISTRY: ${{ needs.set-env-vars.outputs.ecr-registry }}
       IMAGE_TAG: ${{ needs.set-env-vars.outputs.image-tag }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
@@ -142,7 +142,7 @@ jobs:
       ECR_REGISTRY: ${{ needs.set-env-vars.outputs.ecr-registry }}
       IMAGE_TAG: ${{ needs.set-env-vars.outputs.image-tag }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
@@ -179,7 +179,7 @@ jobs:
       ECR_REGISTRY: ${{ needs.set-env-vars.outputs.ecr-registry }}
       IMAGE_TAG: ${{ needs.set-env-vars.outputs.image-tag }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
@@ -216,7 +216,7 @@ jobs:
         working-directory: './lambda_functions'
     needs: [run-migrations]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
@@ -273,7 +273,7 @@ jobs:
     needs: [run-migrations, deploy-api, deploy-celery, deploy-celery-beat, deploy-lambdas]
     if: ${{ 'dev' == github.event.deployment.environment }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.deployment.ref }}
 
