@@ -1,14 +1,14 @@
-name: Trigger
+name: Production Deployment Trigger
 
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to provision (dev|staging|perf|prod)'
+        description: "Environment to provision (dev|staging|perf|prod)"
         required: true
-        default: 'dev'
+        default: "dev"
       ref:
-        description: 'Git and docker tag (can be a commit SHA).'
+        description: "Git and docker tag (can be a commit SHA)."
         required: true
 
 jobs:
