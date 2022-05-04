@@ -75,7 +75,7 @@ def authorize():
     _assert_toggle_enabled(FeatureFlag.GITHUB_LOGIN_ENABLED)
     try:
         github_token = oauth_registry.github.authorize_access_token()
-        # make_github_get_request('/user/memberships/orgs/department-of-veterans-affairs', github_token)
+        make_github_get_request('/user/memberships/orgs/department-of-veterans-affairs', github_token)
         email_resp = make_github_get_request('/user/emails', github_token)
         user_resp = make_github_get_request('/user', github_token)
         verified_email, verified_user_id, verified_name = _extract_github_user_info(email_resp, user_resp)
