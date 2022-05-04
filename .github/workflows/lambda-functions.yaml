@@ -6,8 +6,7 @@ on:
       - master
     paths:
       - "user_flows/**.py"
-      - "lambda_functions/user_flows/*"
-      - "lambda_functions/vetext_incoming_forwarder_lambda/*"
+      - "lambda_functions/*"
       - ".github/workflows/lambda-functions.yaml"
 
 env:
