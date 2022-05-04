@@ -9,7 +9,6 @@ from flask_jwt_extended import create_access_token, verify_jwt_in_request
 from requests import Response as RequestsResponse
 from requests.exceptions import HTTPError
 from sqlalchemy.orm.exc import NoResultFound
-from yaml import serialize
 
 from app import statsd_client
 from app.dao.permissions_dao import permission_dao
