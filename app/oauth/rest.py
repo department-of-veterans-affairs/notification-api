@@ -9,8 +9,10 @@ from flask_jwt_extended import create_access_token, verify_jwt_in_request
 from requests import Response as RequestsResponse
 from requests.exceptions import HTTPError
 from sqlalchemy.orm.exc import NoResultFound
+from yaml import serialize
 
 from app import statsd_client
+from app.dao.permissions_dao import permission_dao
 from app.model import User
 from app.dao.users_dao import create_or_retrieve_user, get_user_by_email, retrieve_match_or_create_user
 from app.errors import register_errors
@@ -73,7 +75,7 @@ def authorize():
     _assert_toggle_enabled(FeatureFlag.GITHUB_LOGIN_ENABLED)
     try:
         github_token = oauth_registry.github.authorize_access_token()
-        make_github_get_request('/user/memberships/orgs/department-of-veterans-affairs', github_token)
+        # make_github_get_request('/user/memberships/orgs/department-of-veterans-affairs', github_token)
         email_resp = make_github_get_request('/user/emails', github_token)
         user_resp = make_github_get_request('/user', github_token)
         verified_email, verified_user_id, verified_name = _extract_github_user_info(email_resp, user_resp)
@@ -116,7 +118,18 @@ def get_services_by_user(user_id):
     only_active = request.args.get('only_active') == 'True'
 
     services = dao_fetch_all_services_by_user(user_id, only_active)
-    data = service_schema.dump(services, many=True).data
+    permissions = permission_dao.get_permissions_by_user_id(user_id)
+
+    retval = {}
+    for x in permissions:
+        service_id = str(x.service_id)
+        if service_id not in retval:
+            retval[service_id] = []
+        retval[service_id].append(x.permission)
+    data = {
+        "services": service_schema.dump(services, many=True).data,
+        "permissions": retval
+    }
     return jsonify(data=data)
 
 
