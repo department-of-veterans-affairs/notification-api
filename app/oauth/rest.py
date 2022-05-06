@@ -119,15 +119,15 @@ def get_services_by_user(user_id):
     services = dao_fetch_all_services_by_user(user_id, only_active)
     permissions = permission_dao.get_permissions_by_user_id(user_id)
 
-    retval = {}
-    for x in permissions:
-        service_id = str(x.service_id)
-        if service_id not in retval:
-            retval[service_id] = []
-        retval[service_id].append(x.permission)
+    permissions_by_service = {}
+    for user_permission in permissions:
+        service_id = str(user_permission.service_id)
+        if service_id not in permissions_by_service:
+            permissions_by_service[service_id] = []
+        permissions_by_service[service_id].append(user_permission.permission)
     data = {
         "services": service_schema.dump(services, many=True).data,
-        "permissions": retval
+        "permissions": permissions_by_service
     }
     return jsonify(data=data)
 

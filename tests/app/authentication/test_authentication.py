@@ -424,6 +424,7 @@ class TestRequiresUserInService:
 
         user = create_user()
         service = create_service(service_name='some-service')
+        # The requires_user_in_service_or_admin middleware requires this.
         dao_add_user_to_service(
             service,
             user,
