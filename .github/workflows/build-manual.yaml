@@ -47,11 +47,13 @@ jobs:
         id: set-image-tag
         run: echo "::set-output name=image-tag""$(git rev-parse HEAD)"
 
-      - name: Build Image
-        env:
-          IMAGE_TAG: ${{ steps.set-image-tag.outputs.image-tag }}
-        run: |
-          docker build -t $IMAGE_REPOSITORY:${{ github.event.inputs.environment }}-$IMAGE_TAG -f ci/Dockerfile .
+      - name: Docker Build
+        uses: docker/build-push-action@v2
+        with:
+          file: ci/Dockerfile
+          context: .
+          load: true
+          tags: $IMAGE_REPOSITORY:${{ github.event.inputs.environment }}-$IMAGE_TAG
 
       - name: Configure VAEC AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
