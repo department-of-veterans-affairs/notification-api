@@ -17,7 +17,26 @@ jobs:
       IMAGE_REPOSITORY: "notification_api"
     steps:
       - name: Validate environment
+        shell: bash {0}
         run: |
+          ENVS=(dev staging perf)
+          INPUT="${{ github.event.deployment.environment }}"
+          APPROVED=false
+
+          for env in ${ENVS[@]}; do
+              if [[ "$env" == "$INPUT" ]]; then
+                APPROVED=true
+                break
+              fi
+          done
+
+          if [[ $APPROVED == true ]]; then
+            echo -e "$INPUT is a valid environment"
+            exit 0
+          else
+            echo -e "$INPUT is not a valid environment"
+            exit 1
+          fi
 
       - name: Checkout Repo
         uses: actions/checkout@v3

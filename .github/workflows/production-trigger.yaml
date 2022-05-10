@@ -1,12 +1,14 @@
 name: Production Deployment Trigger
 
+# This is now to deploy specifically to production using an existing container tag up in ECR.
+# To deploy, go into ECR and find the tag SHA or hash that you wish to deploy.
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Environment to provision (dev|staging|perf|prod)"
+        description: "This is now to deploy specifically to production using an existing container tag up in ECR. "
         required: true
-        default: "dev"
+        default: "prod"
       ref:
         description: "Git and docker tag (can be a commit SHA)."
         required: true
