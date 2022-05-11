@@ -9,6 +9,11 @@ on:
       branch:
         description: "Brach to deploy from"
         required: true
+    paths-ignore:
+      - "user_flows/**.py"
+      - "lambda_functions/user_flows/*"
+      - "lambda_functions/vetext_incoming_forwarder_lambda/*"
+      - ".github/workflows/lambda-functions.yaml"
 
 jobs:
   build-container:
