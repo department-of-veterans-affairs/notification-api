@@ -47,13 +47,7 @@ jobs:
         id: set-image-tag
         run: echo "::set-output name=image-tag""$(git rev-parse HEAD)"
 
-      - name: Docker Build
-        uses: docker/build-push-action@v2
-        with:
-          file: ci/Dockerfile
-          context: .
-          load: true
-          tags: $IMAGE_REPOSITORY:${{ github.event.inputs.environment }}-$IMAGE_TAG
+     
 
       - name: Configure VAEC AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -69,13 +63,17 @@ jobs:
         id: login-ecr-vaec
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Publish to ECR
+      - name: Docker Build
+        uses: docker/build-push-action@v2
         env:
           ECR_REGISTRY: ${{ steps.login-ecr-vaec.outputs.registry }}
           IMAGE_TAG: ${{ steps.set-image-tag.outputs.image-tag }}
-        run: |
-          docker tag $IMAGE_REPOSITORY:${{ github.event.inputs.branch }}-$IMAGE_TAG $ECR_REGISTRY/$IMAGE_REPOSITORY:${{ github.event.inputs.branch }}-$IMAGE_TAG
-          docker push $ECR_REGISTRY/$IMAGE_REPOSITORY:${{ github.event.inputs.branch }}-$IMAGE_TAG
+        with:
+          file: ci/Dockerfile
+          context: .
+          push: true
+          load: true
+          tags: $ECR_REGISTRY/$IMAGE_REPOSITORY:${{ github.event.inputs.branch }}-$IMAGE_TAG
 
   start-deployment:
     runs-on: ubuntu-latest
