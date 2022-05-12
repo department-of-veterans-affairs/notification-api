@@ -77,7 +77,6 @@ jobs:
           file: ci/Dockerfile
           context: .
           push: true
-          load: true
           tags: $ECR_REGISTRY/$IMAGE_REPOSITORY:${{ github.event.inputs.branch }}-$IMAGE_TAG
 
   start-deployment:
