@@ -1,6 +1,9 @@
 name: Create Git and Docker tags
 
-on: deployment_status
+on: 
+  #deployment_status
+  workflow_dispatch:
+    
 
 jobs:
   create-staging-tags:

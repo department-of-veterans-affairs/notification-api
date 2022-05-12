@@ -10,7 +10,7 @@ on:
         required: true
         default: "prod"
       ref:
-        description: "Git and docker tag (can be a commit SHA)."
+        description: "Docker tag (can be a commit SHA)."
         required: true
 
 jobs:
