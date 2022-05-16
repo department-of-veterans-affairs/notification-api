@@ -14,15 +14,8 @@ on:
       - "user_flows/**.py"
       - "lambda_functions/*"
       - ".github/workflows/lambda-functions.yaml"
-
     
-  # push:
-  #   branches:
-  #     - master
-  #   paths:
-  #     - "user_flows/**.py"
-  #     - "lambda_functions/*"
-  #     - ".github/workflows/lambda-functions.yaml"
+
 
 env:
   tf_version: 0.12.29

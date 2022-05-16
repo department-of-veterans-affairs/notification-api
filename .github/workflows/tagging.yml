@@ -1,7 +1,6 @@
 name: Create Git and Docker tags
 
 on: 
-  #deployment_status
   workflow_dispatch:
     
 

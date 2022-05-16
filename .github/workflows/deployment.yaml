@@ -256,7 +256,6 @@ jobs:
         deploy-celery,
         deploy-celery-beat,
         run-user-flows,
-        deploy-lambdas,
       ]
     if: always()
     steps:

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       imageTag:
-        description: "Docker image tag to scna"
+        description: "Docker image tag to scan"
         required: true
 
 jobs:
