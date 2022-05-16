@@ -217,7 +217,6 @@ jobs:
         deploy-api,
         deploy-celery,
         deploy-celery-beat,
-        deploy-lambdas,
       ]
     if: ${{ 'dev' == github.event.deployment.environment }}
     steps:
