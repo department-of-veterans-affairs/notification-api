@@ -3,20 +3,6 @@ name: Development CI
 on:
   workflow_dispatch:
 
-  # push:
-  #   tags-ignore:
-  #     - "**"
-  #   branches-ignore:
-  #     - "dependabot/**"
-  #   paths-ignore:
-  #     - "user_flows/**.py"
-  #     - "lambda_functions/user_flows/*"
-  #     - "lambda_functions/vetext_incoming_forwarder_lambda/*"
-  #     - ".github/workflows/lambda-functions.yaml"
-  # pull_request:
-  #   branches:
-  #     - master
-
 jobs:
   test:
     runs-on: ubuntu-latest
