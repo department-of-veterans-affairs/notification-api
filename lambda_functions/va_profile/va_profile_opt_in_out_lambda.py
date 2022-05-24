@@ -14,16 +14,27 @@ if NOTIFICATION_API_DB_URI is None:
     logging.error("The database URI is not set.")
     sys.exit("Couldn't connect to the database.")
 
-# https://www.psycopg.org/docs/module.html#exceptions
-try:
-    connection = psycopg2.connect(NOTIFICATION_API_DB_URI)
-except psycopg2.Warning as e:
-    logging.warning(e)
-except psycopg2.Error as e:
-    logging.exception(e)
 
-    # https://www.psycopg.org/docs/errorcodes.html
-    sys.exit(e.pgcode)
+def make_connection():
+    """
+    Return a connection to the database, or return None.
+    """
+
+    connection = None
+
+    # https://www.psycopg.org/docs/module.html#exceptions
+    try:
+        connection = psycopg2.connect(NOTIFICATION_API_DB_URI)
+    except psycopg2.Warning as e:
+        logging.warning(e)
+    except psycopg2.Error as e:
+        logging.exception(e)
+        logging.error(e.pgcode)
+
+    return connection
+
+
+db_connection = None
 
 
 def va_profile_opt_in_out_lambda_handler(event: dict, context) -> dict:
@@ -69,6 +80,13 @@ def va_profile_opt_in_out_lambda_handler(event: dict, context) -> dict:
                 record["allowed"],                 #     _allowed
                 record["sourceDate"],              #     _source_datetime
             )
+
+            if db_connection is None or db_connection.status != 0:
+                # Attempt to (re-)establish a database connection
+                db_connection = make_connection()
+
+            if db_connection is None:
+                raise RuntimeError("No database connection.")
 
             # Execute the appropriate stored function.
             with connection.cursor() as c:
