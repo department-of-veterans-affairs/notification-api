@@ -12,7 +12,7 @@ from json import dumps
 
 OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s);"""
 NOTIFICATION_API_DB_URI = os.getenv("notification_api_db_uri")
-VA_PROFILE_DOMAIN = "https://api.va.gov"
+VA_PROFILE_DOMAIN = os.getenv("va_profile_domain")
 VA_PROFILE_PATH_BASE = "/communication-hub/communication/v1/status/changelog/"
 
 
@@ -53,13 +53,13 @@ def va_profile_opt_in_out_lambda_handler(event: dict, context) -> dict:
             ...
             "bios": [
                 {
-                "txAuditId": "string",
-                "sourceDate": "2022-03-07T19:37:59.320Z",
-                "vaProfileId": 0,
-                "communicationChannelId": 0,
-                "communicationItemId": 0,
-                "allowed": true,
-                ...
+                    "txAuditId": "string",
+                    "sourceDate": "2022-03-07T19:37:59.320Z",
+                    "vaProfileId": 0,
+                    "communicationChannelId": 0,
+                    "communicationItemId": 0,
+                    "allowed": true,
+                    ...
                 }
             ]
         }
@@ -70,10 +70,10 @@ def va_profile_opt_in_out_lambda_handler(event: dict, context) -> dict:
         https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-concepts.html#gettingstarted-concepts-event
     """
 
+    logging.debug(event)
+
     if "txAuditId" not in event or "bios" not in event or not isinstance(event["bios"], list):
-        # A required top level attribute is missing from the request.
-        logging.debug(event)
-        return { "statusCode": 400 }
+        return { "statusCode": 400, "body": "A required top level attribute is missing from the request or has the wrong type." }
 
     response = { "statusCode": 200 }
 
@@ -82,26 +82,21 @@ def va_profile_opt_in_out_lambda_handler(event: dict, context) -> dict:
         "bios": [],
     }
 
-    problem_detected = False
-
+    # Process the preference updates.
     for record in event["bios"]:
-        sufficient_for_put = True
+        put_record = {
+            "vaProfileId": record.get("vaProfileId", "unknown"),
+            "communicationChannelId": record.get("communicationChannelId", "unknown"),
+            "communicationItemId": record.get("communicationItemId", "unknown"),
+        }
 
-        # Ensure that the record has the necessary fields to PUT to VA Profile.
-        try:
-            if record.get("txAuditId", '') != event["txAuditId"]:
-                raise KeyError
+        if record.get("txAuditId", '') != event["txAuditId"]:
+            # Do not query the database in response to this record.
+            put_record["status"] = "COMPLETED_FAILURE"
+            put_record["info"] = "The record's txAuditId, {}, does not match the event's txAuditId, {}.".format(record.get('txAuditId', '<unknown>'), event["txAuditId"])
+            put_request_body["bios"].append(put_record)
+            continue
 
-            put_record = {
-                "vaProfileId": record["vaProfileId"],
-                "communicationChannelId": record["communicationChannelId"],
-                "communicationItemId": record["communicationItemId"],
-            }
-        except KeyError:
-            problem_detected = True
-            sufficient_for_put = False
-
-        # Process the possible preference update.
         try:
             params = (                             # Stored function parameters:
                 record["VaProfileId"],             #     _va_profile_id
@@ -122,25 +117,18 @@ def va_profile_opt_in_out_lambda_handler(event: dict, context) -> dict:
             with db_connection.cursor() as c:
                 put_record["status"] = "COMPLETED_SUCCESS" if c.execute(OPT_IN_OUT_QUERY, params) else "COMPLETED_NOOP"
         except KeyError as e:
-            # Bad Request
+            # Bad Request.  Required attributes are missing.
             response["statusCode"] = 400
             put_record["status"] = "COMPLETED_FAILURE"
-            problem_detected = True
             logging.exception(e)
         except Exception as e:
             # Internal Server Error.  Prefer to return 400 if multiple records raise exceptions.
             if response["statusCode"] != 400:
                 response["statusCode"] = 500
             put_record["status"] = "COMPLETED_FAILURE"
-            problem_detected = True
             logging.exception(e)
-
-        if sufficient_for_put:
-            # Include the status of processing this record in the PUT to VA Profile.
+        finally:
             put_request_body["bios"].append(put_record)
-
-    if response["statusCode"] != 200 or problem_detected:
-        logging.debug(event)
 
     if len(put_request_body["bios"]) > 0 and VA_PROFILE_DOMAIN is not None:
         try:
@@ -154,7 +142,7 @@ def va_profile_opt_in_out_lambda_handler(event: dict, context) -> dict:
             )
             put_response = https_connection.response()
             if put_response.status != 200:
-                logging.info("VA Profile responded with %d.", put_response.status)
+                logging.info("VA Profile responded with HTTP status %d.", put_response.status)
         except ConnectionError as e:
             logging.error("The PUT request to VA Profile failed.")
             logging.exception(e)
