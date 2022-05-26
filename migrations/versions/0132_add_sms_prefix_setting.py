@@ -15,7 +15,7 @@ down_revision = '0131_user_auth_types'
 
 def upgrade():
     op.add_column('services', sa.Column('prefix_sms', sa.Boolean(), nullable=True))
-    op.add_column('services_history', sa.Column('prefix_sms', sa.Boolean(), nullable=True))
+    op.add_column('services_history', sa.Column('prefix_sms', sa.Boolean(), nullable=True, server_default='t'))
 
 
 def downgrade():
