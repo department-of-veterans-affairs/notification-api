@@ -75,8 +75,6 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.login-ecr-vaec.outputs.registry }}/${{ env.IMAGE_REPOSITORY}}:${{ steps.set-image-tag.outputs.image-tag }}
-          cache-from: type=gha,scope=api
-          cache-to: type=gha,scope=api
 
   start-deployment:
     runs-on: ubuntu-latest
