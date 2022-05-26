@@ -76,7 +76,7 @@ jobs:
           file: ci/Dockerfile
           context: .
           push: true
-          tags: $ECR_REGISTRY/$IMAGE_REPOSITORY:$IMAGE_TAG
+          tags: ${{ env.ECR_REGISTRY}}/${{ env.IMAGE_REPOSITORY}}:${{ env.IMAGE_TAG }}
 
   start-deployment:
     runs-on: ubuntu-latest
