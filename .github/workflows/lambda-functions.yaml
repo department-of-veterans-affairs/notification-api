@@ -51,7 +51,7 @@ jobs:
           pip install -r ../../requirements_for_user_flows.txt
           deactivate
           cat va-internal-cert-chain.pem >> ./venv/lib/python3.8/site-packages/certifi/cacert.pem
-          cd venv/lib/python3.6/site-packages
+          cd venv/lib/python3.8/site-packages
           zip -r9 ../../../../user_flows_lambda.zip .
 
       - name: Package and deploy lambda function
