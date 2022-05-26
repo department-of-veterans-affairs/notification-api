@@ -51,8 +51,6 @@ jobs:
         id: set-image-tag
         run: echo "::set-output name=image-tag""$(git rev-parse HEAD)"
 
-     
-
       - name: Configure VAEC AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -76,7 +74,9 @@ jobs:
           file: ci/Dockerfile
           context: .
           push: true
-          tags: ${{ env.ECR_REGISTRY}}/${{ env.IMAGE_REPOSITORY}}:${{ env.IMAGE_TAG }}
+          tags: ${{ steps.login-ecr-vaec.outputs.registry }}/${{ env.IMAGE_REPOSITORY}}:${{ steps.set-image-tag.outputs.image-tag }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api
 
   start-deployment:
     runs-on: ubuntu-latest
