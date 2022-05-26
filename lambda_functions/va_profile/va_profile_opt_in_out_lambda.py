@@ -20,6 +20,9 @@ if NOTIFICATION_API_DB_URI is None:
     logging.error("The database URI is not set.")
     sys.exit("Couldn't connect to the database.")
 
+if VA_PROFILE_DOMAIN is None:
+    logging.error("Could not get the domain for VA Profile.")
+
 
 def make_connection():
     """
