@@ -15,8 +15,6 @@ on:
       - "lambda_functions/*"
       - ".github/workflows/lambda-functions.yaml"
     
-
-
 env:
   tf_version: 0.12.29
   AWS_ACCESS_KEY_ID: ${{ secrets.VAEC_AWS_ACCESS_KEY_ID }}
@@ -52,6 +50,7 @@ jobs:
           source venv/bin/activate
           pip install -r ../../requirements_for_user_flows.txt
           deactivate
+          pwd
           cat va-internal-cert-chain.pem >> ./venv/lib/python3.6/site-packages/certifi/cacert.pem
           cd venv/lib/python3.6/site-packages
           zip -r9 ../../../../user_flows_lambda.zip .
