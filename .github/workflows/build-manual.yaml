@@ -4,7 +4,7 @@ on:
     inputs:
       environment:
         description: "Environment to provision (dev|staging|perf)"
-        required: false
+        required: true
         default: "dev"
       branch:
         description: "Branch to deploy from"
@@ -76,7 +76,7 @@ jobs:
           file: ci/Dockerfile
           context: .
           push: true
-          tags: $ECR_REGISTRY/$IMAGE_REPOSITORY:${{ github.event.inputs.branch }}$IMAGE_TAG
+          tags: $ECR_REGISTRY/$IMAGE_REPOSITORY:$IMAGE_TAG
 
   start-deployment:
     runs-on: ubuntu-latest
