@@ -6,10 +6,7 @@ Create Date: 2022-06-01 17:44:13.237873
 
 """
 from alembic import op
-import sqlalchemy as sa
 from alembic_utils.pg_function import PGFunction
-from sqlalchemy import text as sql_text
-from sqlalchemy.dialects import postgresql
 
 revision = '0348_updated_stored_function'
 down_revision = '0347_modify_table_and_function'
