@@ -8,10 +8,12 @@ import psycopg2
 import sys
 from http.client import ConnectionError, HTTPSConnection
 from json import dumps
+from ssl import SSLContext, SSLError
 
 
 OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s);"""
 NOTIFICATION_API_DB_URI = os.getenv("notification_api_db_uri")
+NOTIFICATION_PEM = os.getenv("va_notify_certificate_pem")
 VA_PROFILE_DOMAIN = os.getenv("va_profile_domain")
 VA_PROFILE_PATH_BASE = "/communication-hub/communication/v1/status/changelog/"
 
@@ -19,6 +21,9 @@ VA_PROFILE_PATH_BASE = "/communication-hub/communication/v1/status/changelog/"
 if NOTIFICATION_API_DB_URI is None:
     logging.error("The database URI is not set.")
     sys.exit("Couldn't connect to the database.")
+
+if NOTIFICATION_PEM is None:
+    logging.error("The Notification pem is not set.")
 
 if VA_PROFILE_DOMAIN is None:
     logging.error("Could not get the domain for VA Profile.")
@@ -133,23 +138,31 @@ def va_profile_opt_in_out_lambda_handler(event: dict, context) -> dict:
         finally:
             put_request_body["bios"].append(put_record)
 
-    if len(put_request_body["bios"]) > 0 and VA_PROFILE_DOMAIN is not None:
+    if len(put_request_body["bios"]) > 0 and NOTIFICATION_PEM is not None and VA_PROFILE_DOMAIN is not None:
+        context = SSLContext()
+
         try:
-            # Make a PUT request to VA Profile.
-            https_connection = HTTPSConnection(VA_PROFILE_DOMAIN)
-            https_connection.request(
-                "PUT",
-                VA_PROFILE_PATH_BASE + event["txAuditId"],
-                dumps(put_request_body),
-                { "Content-Type": "application/json" }
-            )
-            put_response = https_connection.response()
-            if put_response.status != 200:
-                logging.info("VA Profile responded with HTTP status %d.", put_response.status)
-        except ConnectionError as e:
-            logging.error("The PUT request to VA Profile failed.")
+            # Get the PEM contents for the certificate used for VA Notify.  This is necessary for 2-way TLS.
+            context.load_pem_chain(NOTIFICATION_PEM)
+
+            try:
+                # Make a PUT request to VA Profile.
+                https_connection = HTTPSConnection(VA_PROFILE_DOMAIN, context=context)
+                https_connection.request(
+                    "PUT",
+                    VA_PROFILE_PATH_BASE + event["txAuditId"],
+                    dumps(put_request_body),
+                    { "Content-Type": "application/json" }
+                )
+                put_response = https_connection.response()
+                if put_response.status != 200:
+                    logging.info("VA Profile responded with HTTP status %d.", put_response.status)
+            except ConnectionError as e:
+                logging.error("The PUT request to VA Profile failed.")
+                logging.exception(e)
+            finally:
+                https_connection.close()
+        except SSLError as e:
             logging.exception(e)
-        finally:
-            https_connection.close()
 
     return response
