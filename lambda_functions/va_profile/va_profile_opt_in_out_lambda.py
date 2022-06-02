@@ -2,6 +2,7 @@
 #   https://docs.aws.amazon.com/lambda/latest/dg/services-rds-tutorial.html
 # https://www.psycopg.org/docs/usage.html
 
+import boto3
 import logging
 import os
 import psycopg2
@@ -12,8 +13,9 @@ from ssl import SSLContext, SSLError
 
 
 OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s);"""
+NOTIFY_ENVIRONMENT = os.getenv("notify_environment")
 NOTIFICATION_API_DB_URI = os.getenv("notification_api_db_uri")
-NOTIFICATION_PEM = os.getenv("va_notify_certificate_pem")
+PEM = None
 VA_PROFILE_DOMAIN = os.getenv("va_profile_domain")
 VA_PROFILE_PATH_BASE = "/communication-hub/communication/v1/status/changelog/"
 
@@ -22,8 +24,23 @@ if NOTIFICATION_API_DB_URI is None:
     logging.error("The database URI is not set.")
     sys.exit("Couldn't connect to the database.")
 
-if NOTIFICATION_PEM is None:
-    logging.error("The Notification pem is not set.")
+if NOTIFY_ENVIRONMENT is None:
+    logging.error("Couldn't get the Notify environment.  This is necessary to retrieve the .pem file.")
+else:
+    # Read a .pem file from AWS Parameter Store.
+
+    ssm_client = boto3.client("ssm")
+
+    response = ssm_client.get_parameter(
+        Name=f"/{NOTIFY_ENVIRONMENT}/notification-api/profile-integration-pem",
+        WithDecryption=True
+    )
+
+    PEM = response.get("Parameter", {}).get("Value", None)
+
+    if PEM is None:
+        logging.error("Couldn't get the .pem file from SSM.")
+        logging.debug(response)
 
 if VA_PROFILE_DOMAIN is None:
     logging.error("Could not get the domain for VA Profile.")
@@ -138,12 +155,12 @@ def va_profile_opt_in_out_lambda_handler(event: dict, context) -> dict:
         finally:
             put_request_body["bios"].append(put_record)
 
-    if len(put_request_body["bios"]) > 0 and NOTIFICATION_PEM is not None and VA_PROFILE_DOMAIN is not None:
+    if len(put_request_body["bios"]) > 0 and PEM is not None and VA_PROFILE_DOMAIN is not None:
         context = SSLContext()
 
         try:
-            # Get the PEM contents for the certificate used for VA Notify.  This is necessary for 2-way TLS.
-            context.load_pem_chain(NOTIFICATION_PEM)
+            # Load the PEM contents for the certificate used for VA Notify.  This is necessary for 2-way TLS.
+            context.load_pem_chain(PEM)
 
             try:
                 # Make a PUT request to VA Profile.
@@ -157,6 +174,7 @@ def va_profile_opt_in_out_lambda_handler(event: dict, context) -> dict:
                 put_response = https_connection.response()
                 if put_response.status != 200:
                     logging.info("VA Profile responded with HTTP status %d.", put_response.status)
+                    logging.debug(put_response)
             except ConnectionError as e:
                 logging.error("The PUT request to VA Profile failed.")
                 logging.exception(e)
