@@ -31,7 +31,6 @@ jobs:
 
       - name: Start VAEC deployment
         uses: actions/github-script@v6
-        if: ${{ steps.choose-environment.outputs.environment }}
         with:
           github-token: ${{secrets.GH_ACCESS_TOKEN}}
           script: |
