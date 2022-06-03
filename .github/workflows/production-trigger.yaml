@@ -23,11 +23,11 @@ jobs:
         with:
           script: |
             const mapEventToEnvironment = () => {
-            if (${{ github.event.inputs.environment }} == 'prod') return { "environment": ${{ github.event.inputs.environment }}, "ref": ${{ github.event.inputs.ref }} };
+            if (context.payload.inputs.environment == 'prod') return { "environment": context.payload.inputs.environment, "ref": context.payload.inputs.ref };
+            };
             const { environment, ref } = mapEventToEnvironment();
             core.setOutput('environment', environment);
             core.setOutput('ref', ref);
-            }
 
       - name: Start VAEC deployment
         uses: actions/github-script@v6
