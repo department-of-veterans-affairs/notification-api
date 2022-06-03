@@ -9,8 +9,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
   PORT=6011 \
   GIT_SHA=${GIT_SHA}
 
-COPY ./certs/VA-Internal-S2-RCA1-v1.crt /usr/local/share/ca-certificates/VA-Internal-S2-RCA1-v1.crt
-COPY ./certs/VA-Internal-S2-ICA4.crt /usr/local/share/ca-certificates/VA-Internal-S2-ICA4.crt
 COPY ./certs/* /usr/local/share/ca-certificates/
 
 RUN apk add --no-cache ca-certificates \
