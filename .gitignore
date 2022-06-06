@@ -88,3 +88,6 @@ celerybeat-schedule
 
 # AWS Lambda function outfile
 user_flows_exit_code.txt
+
+# This gets written in the notification_api directory if you run bash commands on a container with read-write access.
+.bash_history
