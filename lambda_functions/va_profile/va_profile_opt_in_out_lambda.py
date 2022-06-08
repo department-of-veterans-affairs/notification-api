@@ -141,6 +141,10 @@ def va_profile_opt_in_out_lambda_handler(event: dict, context) -> dict:
             # Execute the stored function.
             with db_connection.cursor() as c:
                 put_record["status"] = "COMPLETED_SUCCESS" if c.execute(OPT_IN_OUT_QUERY, params) else "COMPLETED_NOOP"
+
+            if record.get("communicationItemId", '-1') != 5:
+                put_record["status"] = "COMPLETED_NOOP"
+
         except KeyError as e:
             # Bad Request.  Required attributes are missing.
             response["statusCode"] = 400
