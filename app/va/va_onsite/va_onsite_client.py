@@ -1,0 +1,61 @@
+import requests
+import jwt
+import time
+
+
+class VAOnsiteClient:
+    __VA_ONSITE_USER = 'va_notify'
+
+    def init_app(self, logger, url: str, va_onsite_secret: str):
+        self.logger = logger
+        self.url_base = url
+        self.va_onsite_secret = va_onsite_secret
+
+    def post_onsite_notification(self, data: dict):
+        """Returns the JSON that is retrieved from the `POST` request sent to onsite_notifications
+
+        :param data: The dict onsite_notifications is expecting to see
+        """
+        self.logger.info(f"Calling VAOnsiteClient.post_onsite_notification")
+        self.logger.info(f"Sending this data with POST request to onsite_notifications: {data}")
+
+        response = None
+
+        try:
+            response = requests.post(url=f'{ self.url_base }/v0/onsite_notifications',
+                                     data=data,
+                                     headers=self._build_header()).json()
+        except Exception as e:
+            self.logger.exception(e)
+
+        self.logger.info(f"onsite_notifications POST response: {response}")
+
+        return response
+
+    def _build_header(self) -> dict:
+        """Returns the dict of the header to be sent with the JWT"""
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {self._encode_jwt(self.__VA_ONSITE_USER, self.va_onsite_secret)}'
+        }
+
+    def _encode_jwt(self, user: str, secret_key: str, algo: str = 'ES256'):
+        """Returns the JWT encoded using the given algorithm
+
+        :param user: string that will be used for the `user` value in the `data` dict
+        :param secret_key: key to use in the authentication section of the JWT
+        :param algo: algorithm used to encrypt the JWT
+        """
+        header = {'typ': 'JWT', 'alg': algo}
+        combo = {}
+        current_timestamp = int(time.time())
+        data = {
+            'user': user,
+            'iat': current_timestamp,
+            'exp': current_timestamp + 60
+        }
+
+        combo.update(data)
+        combo.update(header)
+
+        return jwt.encode(combo, secret_key, algorithm=algo)
