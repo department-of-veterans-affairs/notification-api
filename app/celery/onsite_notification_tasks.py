@@ -12,7 +12,7 @@ def send_va_onsite_notification_task(va_profile_id: str, template_id: str, onsit
         current_app.logger.info(f'Onsite activate send hack using dev template id: {template_id}')
 
     current_app.logger.info(f'Calling va_onsite_notification_task with va_profile_id: {va_profile_id} | ' +
-                            'Template onsite_notification set to: {onsite_enabled}')
+                            f'Template onsite_notification set to: {onsite_enabled}')
 
     if onsite_enabled and va_profile_id:
         data = {"template_id": template_id, "va_profile_id": va_profile_id}
