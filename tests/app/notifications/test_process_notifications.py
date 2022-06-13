@@ -11,6 +11,7 @@ from app.celery import letters_pdf_tasks
 from app.celery.lookup_recipient_communication_permissions_task import lookup_recipient_communication_permissions
 from app.celery.contact_information_tasks import lookup_contact_info
 from app.celery.lookup_va_profile_id_task import lookup_va_profile_id
+from app.celery.onsite_notification_tasks import send_va_onsite_notification_task
 from app.celery.provider_tasks import deliver_email, deliver_sms
 from app.feature_flags import FeatureFlag
 from app.models import (
@@ -352,7 +353,12 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
         'research-mode-tasks',
         IdentifierType.PID.value,
         'some pid',
-        [lookup_va_profile_id, lookup_recipient_communication_permissions, deliver_email]
+        [
+            lookup_va_profile_id,
+            send_va_onsite_notification_task,
+            lookup_recipient_communication_permissions,
+            deliver_email
+        ]
     ),
     (
         True,
@@ -362,7 +368,12 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
         'research-mode-tasks',
         IdentifierType.ICN.value,
         'some icn',
-        [lookup_va_profile_id, lookup_recipient_communication_permissions, deliver_email]
+        [
+            lookup_va_profile_id,
+            send_va_onsite_notification_task,
+            lookup_recipient_communication_permissions,
+            deliver_email
+        ]
     ),
     (
         True,
