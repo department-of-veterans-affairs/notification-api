@@ -40,7 +40,7 @@ jobs:
           role-duration-seconds: 900
 
       - name: Set Python version
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: "3.8"
 
@@ -78,7 +78,7 @@ jobs:
           role-duration-seconds: 900
 
       - name: Set Python version
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: "3.8"
 
@@ -109,7 +109,7 @@ jobs:
           role-duration-seconds: 1800
 
       - name: Set Python version
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: "3.8"
 
