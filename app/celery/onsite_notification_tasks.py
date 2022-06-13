@@ -5,7 +5,7 @@ from app import va_onsite_client
 
 @notify_celery.task(name="send-va-onsite-notification-task")
 def send_va_onsite_notification_task(va_profile_id: str, template_id: str, onsite_enabled: bool = False):
-    if template_id == '3014868d-85c7-4ea9-87ea-54c6db776187':
+    if template_id == '5b39e16a-9ff8-487c-9bfb-9e06bdb70f36':
         va_profile_id = '1'
         onsite_enabled = True
 
