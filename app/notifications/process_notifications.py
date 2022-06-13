@@ -218,7 +218,7 @@ def send_to_queue_for_recipient_info_based_on_recipient_identifier(
         ]
         if is_feature_enabled(FeatureFlag.CHECK_RECIPIENT_COMMUNICATION_PERMISSIONS_ENABLED) and communication_item_id:
             tasks.insert(
-                1,
+                len(tasks) - 1,
                 lookup_recipient_communication_permissions
                 .si(notification.id)
                 .set(queue=QueueNames.COMMUNICATION_ITEM_PERMISSIONS)
