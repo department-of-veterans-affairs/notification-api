@@ -1,6 +1,7 @@
 import requests
 import jwt
 import time
+import json
 
 
 class VAOnsiteClient:
@@ -23,7 +24,7 @@ class VAOnsiteClient:
 
         try:
             response = requests.post(url=f'{ self.url_base }/v0/onsite_notifications',
-                                     data=data,
+                                     data=json.dumps(data),
                                      headers=self._build_header()).json()
         except Exception as e:
             self.logger.exception(f'Exception in post_onsite_notification: {e}')
