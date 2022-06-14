@@ -16,7 +16,7 @@ def send_va_onsite_notification_task(va_profile_id: str, template_id: str, onsit
                             f'Template onsite_notification set to: {onsite_enabled}')
 
     if onsite_enabled and va_profile_id:
-        data = {"template_id": template_id, "va_profile_id": va_profile_id}
+        data = {'onsite_notification': {"template_id": template_id, "va_profile_id": va_profile_id}}
         response = va_onsite_client.post_onsite_notification(data)
 
         current_app.logger.info(f'Response from onsite: {response}')

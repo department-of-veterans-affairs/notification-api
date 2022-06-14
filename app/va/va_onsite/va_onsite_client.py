@@ -46,8 +46,6 @@ class VAOnsiteClient:
         :param secret_key: key to use in the authentication section of the JWT
         :param algo: algorithm used to encrypt the JWT
         """
-        header = {'typ': 'JWT', 'alg': algo}
-        combo = {}
         current_timestamp = int(time.time())
         data = {
             'user': user,
@@ -55,7 +53,4 @@ class VAOnsiteClient:
             'exp': current_timestamp + 60
         }
 
-        combo.update(data)
-        combo.update(header)
-
-        return jwt.encode(combo, secret_key, algorithm=algo)
+        return jwt.encode(data, secret_key, algorithm=algo)
