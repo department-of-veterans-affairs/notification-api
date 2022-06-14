@@ -26,7 +26,7 @@ class VAOnsiteClient:
                                      data=data,
                                      headers=self._build_header()).json()
         except Exception as e:
-            self.logger.exception(e)
+            self.logger.exception(f'Exception in post_onsite_notification: {e}')
 
         self.logger.info(f"onsite_notifications POST response: {response}")
 
