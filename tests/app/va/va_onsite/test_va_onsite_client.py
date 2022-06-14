@@ -1,5 +1,6 @@
 import pytest
 import re
+import requests
 
 from app.va.va_onsite import VAOnsiteClient
 
@@ -26,8 +27,22 @@ def test_va_onsite_client(mocker):
 
 
 def test_post_onsite_notification_returns_200(rmock, test_va_onsite_client):
-    # TODO: update with realistic response data
-    resp = {'status_code': 200, 'id': '1'}
+    resp = {
+        'data':
+        {
+            'id': '1',
+            'type': 'onsite_notifications',
+            'attributes':
+            {
+                'template_id': 'some-templat-id',
+                'va_profile_id': '1',
+                'dismissed': False,
+                'created_at': '2022-06-14T18:00:57.036Z',
+                'updated_at': '2022-06-14T18:00:57.036Z'
+            }
+        }
+    }
+
     rmock.post(f'{MOCK_VA_ONSITE_URL}/v0/onsite_notifications', json=resp, status_code=200)
 
     response = test_va_onsite_client.post_onsite_notification(
@@ -38,7 +53,11 @@ def test_post_onsite_notification_returns_200(rmock, test_va_onsite_client):
 
     assert rmock.called
 
-    assert response['status_code'] == 200
+    assert response.status_code == requests.codes.ok
+
+    response_json = response.json()
+    assert response_json['data']['type'] == 'onsite_notifications'
+    assert response_json['data']['attributes']['va_profile_id'] == '1'
 
     request = rmock.request_history[0]
     expected_url = f'{MOCK_VA_ONSITE_URL}/v0/onsite_notifications'

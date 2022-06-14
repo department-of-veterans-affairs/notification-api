@@ -25,11 +25,12 @@ class VAOnsiteClient:
         try:
             response = requests.post(url=f'{ self.url_base }/v0/onsite_notifications',
                                      data=json.dumps(data),
-                                     headers=self._build_header()).json()
+                                     headers=self._build_header())
         except Exception as e:
             self.logger.exception(f'Exception in post_onsite_notification: {e}')
 
-        self.logger.info(f"onsite_notifications POST response: {response}")
+        self.logger.info(f'onsite_notifications POST response: status_code={response.status_code}, ' +
+                         f'json={response.json()}')
 
         return response
 
