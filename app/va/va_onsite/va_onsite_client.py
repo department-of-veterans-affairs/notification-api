@@ -8,6 +8,12 @@ class VAOnsiteClient:
     __VA_ONSITE_USER = 'va_notify'
 
     def init_app(self, logger, url: str, va_onsite_secret: str):
+        """Initializes the VAOnsiteClient with appropriate data.
+
+        :param logger: the application logger
+        :param url: the url to send the information to in a string format
+        :param va_onsite_secret: the secret key in string format used to validate the connection
+        """
         self.logger = logger
         self.url_base = url
         self.va_onsite_secret = va_onsite_secret
