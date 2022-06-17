@@ -3,8 +3,9 @@ notify_db and notify_db_session are fixtures in tests/conftest.py.
 
 https://docs.sqlalchemy.org/en/13/core/connections.html
 
-Truncating the va_profile_local_cache table at the beginning and end of some tests is necessary because the database
-side effects of executing the VA Profile lambda function are not rolled back at the conclusion of a test.
+Test the stored function va_profile_opt_in_out by calling it directly, and test the lambda function associated
+with VA Profile integration calls this stored function.  The stored function should return True if any row was
+created or updated; otherwise, False.
 """
 
 import os
@@ -22,44 +23,65 @@ FROM va_profile_local_cache
 WHERE va_profile_id=:va_profile_id AND communication_item_id=:communication_item_id AND communication_channel_id=:communication_channel_id;""")
 
 
+def verify_opt_in_status(identifier: int, opted_in: bool, connection):
+    """
+    Use this helper function to verify that a row's opt-in/out value has been set as expected.
+    """
+
+    va_profile_test = VA_PROFILE_TEST.bindparams(
+        va_profile_id=identifier,
+        communication_item_id=identifier,
+        communication_channel_id=identifier
+    )
+
+    profile_test_queryset = connection.execute(va_profile_test)
+    stored_preference = profile_test_queryset.fetchone()[0]
+    assert stored_preference == opted_in, "The user opted {}.  (allowed={})".format("in" if opted_in else "out", opted_in)
+
+
+def setup_db(connection):
+    """
+    Using the given connection, truncate the VA Profile local cache, and call the stored procedure to add a specific row.
+    This establishes a known state for testing.
+
+    Truncating is necessary because the database side effects of executing the VA Profile lambda function are not rolled
+    back at the conclusion of a test.
+    """
+
+    connection.execute("truncate va_profile_local_cache;")
+
+    # Sanity check
+    count_queryset = connection.execute(COUNT)
+    assert count_queryset.fetchone()[0] == 0, "The cache should be empty at the start."
+
+    opt_in_out = OPT_IN_OUT.bindparams(
+        va_profile_id=0,
+        communication_item_id=0,
+        communication_channel_id=0,
+        allowed=False,
+        source_datetime="2022-03-07T19:37:59.320Z"
+    )
+
+    in_out_queryset = connection.execute(opt_in_out)
+    assert in_out_queryset.fetchone()[0], "The stored function should return True."
+
+    count_queryset = connection.execute(COUNT)
+    assert count_queryset.fetchone()[0] == 1, "The stored function should have created a new row."
+
+    verify_opt_in_status(0, False, connection)
+
+
 def test_va_profile_cache_exists(notify_db):
     assert notify_db.engine.has_table("va_profile_local_cache")
 
 
-def test_va_profile_opt_in_out(notify_db_session):
+def test_va_profile_stored_function_older_date(notify_db_session):
     """
-    Test the stored function va_profile_opt_in_out by calling it directly.  The lambda function associated with
-    VA Profile integration calls this stored function.  The stored function should return True if any row was
-    created or updated; otherwise, False.
+    If the given date is older than the existing date, no update should occur.
     """
 
     with notify_db_session.engine.begin() as connection:
-        # Begin with a sanity check.
-        result = connection.execute(COUNT)
-        assert result.fetchone()[0] == 0, "The cache should be empty at the start."
-
-        opt_in_out = OPT_IN_OUT.bindparams(
-            va_profile_id=0,
-            communication_item_id=0,
-            communication_channel_id=0,
-            allowed=False,
-            source_datetime="2022-03-07T19:37:59.320Z"
-        )
-
-        va_profile_test = VA_PROFILE_TEST.bindparams(
-            va_profile_id=0,
-            communication_item_id=0,
-            communication_channel_id=0
-        )
-
-        result = connection.execute(opt_in_out)
-        assert result.fetchone()[0], "The stored function should return True."
-
-        result = connection.execute(COUNT)
-        assert result.fetchone()[0] == 1, "The stored function should have created a new row."
-
-        result = connection.execute(va_profile_test)
-        assert not result.fetchone()[0], "The user opted out.  (allowed=False)"
+        setup_db(connection)
 
         opt_in_out = OPT_IN_OUT.bindparams(
             va_profile_id=0,
@@ -69,14 +91,22 @@ def test_va_profile_opt_in_out(notify_db_session):
             source_datetime="2022-02-07T19:37:59.320Z"  # Older date
         )
 
-        result = connection.execute(opt_in_out)
-        assert not result.fetchone()[0], "The date is older than the existing entry."
+        in_out_queryset = connection.execute(opt_in_out)
+        assert not in_out_queryset.fetchone()[0], "The date is older than the existing entry."
 
-        result = connection.execute(COUNT)
-        assert result.fetchone()[0] == 1, "The stored function should not have created a new row."
+        count_queryset = connection.execute(COUNT)
+        assert count_queryset.fetchone()[0] == 1, "The stored function should not have created a new row."
 
-        result = connection.execute(va_profile_test)
-        assert not result.fetchone()[0], "The user should still be opted out.  (allowed=False)"
+        verify_opt_in_status(0, False, connection)
+
+
+def test_va_profile_stored_function_newer_date(notify_db_session):
+    """
+    If the given date is newer than the existing date, an update should occur.
+    """
+
+    with notify_db_session.engine.begin() as connection:
+        setup_db(connection)
 
         opt_in_out = OPT_IN_OUT.bindparams(
             va_profile_id=0,
@@ -86,14 +116,22 @@ def test_va_profile_opt_in_out(notify_db_session):
             source_datetime="2022-04-07T19:37:59.320Z"  # Newer date
         )
 
-        result = connection.execute(opt_in_out)
-        assert result.fetchone()[0], "The date is newer than the existing entry."
+        in_out_queryset = connection.execute(opt_in_out)
+        assert in_out_queryset.fetchone()[0], "The date is newer than the existing entry."
 
-        result = connection.execute(COUNT)
-        assert result.fetchone()[0] == 1, "An existing entry should have been updated."
+        count_queryset = connection.execute(COUNT)
+        assert count_queryset.fetchone()[0] == 1, "An existing entry should have been updated."
 
-        result = connection.execute(va_profile_test)
-        assert result.fetchone()[0], "The user should be opted in.  (allowed=True)"
+        verify_opt_in_status(0, True, connection)
+
+
+def test_va_profile_stored_function_new_row(notify_db_session):
+    """
+    Create a new row for a combination of identifiers not already in the database.
+    """
+
+    with notify_db_session.engine.begin() as connection:
+        setup_db(connection)
 
         opt_in_out = OPT_IN_OUT.bindparams(
             va_profile_id=1,
@@ -103,23 +141,16 @@ def test_va_profile_opt_in_out(notify_db_session):
             source_datetime="2022-02-07T19:37:59.320Z"
         )
 
-        va_profile_test = VA_PROFILE_TEST.bindparams(
-            va_profile_id=1,
-            communication_item_id=1,
-            communication_channel_id=1
-        )
+        in_out_queryset = connection.execute(opt_in_out)
+        assert in_out_queryset.fetchone()[0], "The stored function should have created a new row."
 
-        result = connection.execute(opt_in_out)
-        assert result.fetchone()[0], "The stored function should have created a new row."
+        count_queryset = connection.execute(COUNT)
+        assert count_queryset.fetchone()[0] == 2, "The stored function should have created a new row."
 
-        result = connection.execute(COUNT)
-        assert result.fetchone()[0] == 2, "The stored function should have created a new row."
-
-        result = connection.execute(va_profile_test)
-        assert result.fetchone()[0], "The user should be opted in.  (allowed=True)"
+        verify_opt_in_status(1, True, connection)
 
 
-def test_handler_va_profile_opt_in_out_lambda_missing_attribute():
+def test_va_profile_opt_in_out_lambda_handler_missing_attribute():
     """
     Test the VA Profile integration lambda by sending a bad request (missing top level attribute).
     """
@@ -132,94 +163,77 @@ def test_handler_va_profile_opt_in_out_lambda_missing_attribute():
     assert response["body"] == "A required top level attribute is missing from the request or has the wrong type."
 
 
-def test_handler_va_profile_opt_in_out_lambda_valid_requests(notify_db, worker_id):
+def test_va_profile_opt_in_out_lambda_handler_new_row(notify_db, worker_id):
     """
-    Test the VA Profile integration lambda by sending valid requests that do not result in a PUT
-    request to VA Profile (because the .pem chain is None in the lambda code).    
+    Test the VA Profile integration lambda by sending a valid request that should create
+    a new row in the database.
     """
 
     with notify_db.engine.begin() as connection:
-        connection.execute("truncate va_profile_local_cache;")
-
-        # Begin with a sanity check.
-        result = connection.execute(COUNT)
-        assert result.fetchone()[0] == 0, "The cache should be empty at the start."
+        setup_db(connection)
 
     # Send a request that should result in a new row.
-    event = create_event("txAuditId", "txAuditId", "2022-03-07T19:37:59.320Z", 0, 0, 0, True)
-    response = va_profile_opt_in_out_lambda_handler(event, None, worker_id)
-    assert isinstance(response, dict)
-    assert response["statusCode"] == 200
-
-    va_profile_test = VA_PROFILE_TEST.bindparams(
-        va_profile_id=0,
-        communication_item_id=0,
-        communication_channel_id=0
-    )
-
-    with notify_db.engine.begin() as connection:
-        result = connection.execute(COUNT)
-        assert result.fetchone()[0] == 1, "A new row should have been created."
-
-        result = connection.execute(va_profile_test)
-        assert result.fetchone()[0], "The user opted in.  (allowed=True)"
-
-    # Send a request that should not affect the database (older date).
-    event = create_event("txAuditId", "txAuditId", "2022-02-07T19:37:59.320Z", 0, 0, 0, False)
-    response = va_profile_opt_in_out_lambda_handler(event, None, worker_id)
-    assert isinstance(response, dict)
-    assert response["statusCode"] == 200
-
-    with notify_db.engine.begin() as connection:
-        result = connection.execute(COUNT)
-        assert result.fetchone()[0] == 1, "A new row should not have been created."
-
-        result = connection.execute(va_profile_test)
-        assert result.fetchone()[0], "The user should remain opted in.  (allowed=True)"
-
-
-    # Send a request that should update the database (newer date).
-    event = create_event("txAuditId", "txAuditId", "2022-04-07T19:37:59.320Z", 0, 0, 0, False)
-    response = va_profile_opt_in_out_lambda_handler(event, None, worker_id)
-    assert isinstance(response, dict)
-    assert response["statusCode"] == 200
-
-    with notify_db.engine.begin() as connection:
-        result = connection.execute(COUNT)
-        assert result.fetchone()[0] == 1, "A new row should not have been created."
-
-        result = connection.execute(va_profile_test)
-        assert not result.fetchone()[0], "The user opted out.  (allowed=False)"
-
-    # Send another request that should result in a new row.
     event = create_event("txAuditId", "txAuditId", "2022-03-07T19:37:59.320Z", 1, 1, 1, True)
     response = va_profile_opt_in_out_lambda_handler(event, None, worker_id)
     assert isinstance(response, dict)
     assert response["statusCode"] == 200
 
-    va_profile_test = VA_PROFILE_TEST.bindparams(
-        va_profile_id=1,
-        communication_item_id=1,
-        communication_channel_id=1
-    )
+    with notify_db.engine.begin() as connection:
+        count_queryset = connection.execute(COUNT)
+        assert count_queryset.fetchone()[0] == 2, "A new row should have been created."
+
+        verify_opt_in_status(1, True, connection)
+
+
+def test_va_profile_opt_in_out_lambda_handler_older_date(notify_db, worker_id):
+    """
+    Test the VA Profile integration lambda by sending a valid request with an older date.
+    No database update should occur.
+    """
 
     with notify_db.engine.begin() as connection:
-        result = connection.execute(COUNT)
-        assert result.fetchone()[0] == 2, "A new row should have been created."
+        setup_db(connection)
 
-        result = connection.execute(va_profile_test)
-        assert result.fetchone()[0], "The user opted in.  (allowed=True)"
+    event = create_event("txAuditId", "txAuditId", "2022-02-07T19:37:59.320Z", 0, 0, 0, True)
+    response = va_profile_opt_in_out_lambda_handler(event, None, worker_id)
+    assert isinstance(response, dict)
+    assert response["statusCode"] == 200
 
-        connection.execute("truncate va_profile_local_cache;")
+    with notify_db.engine.begin() as connection:
+        count_queryset = connection.execute(COUNT)
+        assert count_queryset.fetchone()[0] == 1, "A new row should not have been created."
+
+        verify_opt_in_status(0, False, connection)
 
 
-def test_handler_va_profile_opt_in_out_lambda_PUT():
+def test_va_profile_opt_in_out_lambda_handler_newer_date(notify_db, worker_id):
+    """
+    Test the VA Profile integration lambda by sending a valid request with a newer date.
+    A database update should occur.
+    """
+
+    with notify_db.engine.begin() as connection:
+        setup_db(connection)
+
+    event = create_event("txAuditId", "txAuditId", "2022-04-07T19:37:59.320Z", 0, 0, 0, True)
+    response = va_profile_opt_in_out_lambda_handler(event, None, worker_id)
+    assert isinstance(response, dict)
+    assert response["statusCode"] == 200
+
+    with notify_db.engine.begin() as connection:
+        count_queryset = connection.execute(COUNT)
+        assert count_queryset.fetchone()[0] == 1, "A new row should not have been created."
+
+        verify_opt_in_status(0, True, connection)
+
+
+def test_va_profile_opt_in_out_lambda_handler_PUT():
     """
     Test the VA Profile integration lambda by inspecting the PUT request is initiates to
     VA Profile in response to a request.
     """
 
-    pass
+    pass  # TODO
 
 
 def create_event(master_tx_audit_id: str, tx_audit_id: str, source_date: str, va_profile_id: int, communication_channel_id: int, communication_item_id: int, is_allowed: bool) -> dict:

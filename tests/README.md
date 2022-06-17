@@ -4,7 +4,7 @@ You can run specific test directories or files rather than the entire suite as f
 
 ## Setting Environment Variables
 
-The docker-compose command used to run the full test suite sets environment variables.  Step 3 above references the file env_vars for the same purpose.
+The docker-compose command used to run the full test suite sets environment variables.  Step 3 below references the file env_vars for the same purpose.
 
 ## Setup
 

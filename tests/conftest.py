@@ -75,7 +75,7 @@ def notify_db(notify_api, worker_id):
 
     # Create a database for this worker thread.
     from flask import current_app
-    current_app.config['SQLALCHEMY_DATABASE_URI'] += '_' + str(worker_id)
+    current_app.config['SQLALCHEMY_DATABASE_URI'] += f"_{worker_id}"
     create_test_db(current_app.config['SQLALCHEMY_DATABASE_URI'])
 
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
