@@ -33,7 +33,8 @@ def make_connection(worker_id):
 
 
 def va_profile_remove_old_opt_outs_handler(event, context, worker_id=None):
-    """This function deletes any va_profile cache records that are opted out."""
+    """This function deletes any va_profile cache records that
+    are opted out and greater than 24 hours old."""
 
     if db_connection is None or db_connection.status != 0:
         # Attempt to (re-)establish a database connection
