@@ -30,7 +30,7 @@ def setup_db(connection):
 
 
 def insert_values_into_database(connection):
-    '''Inserts values into database for testing.'''
+    """Inserts values into database for testing."""
 
     expired_datetime = (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%dT%H:%M:%S%z')
     active_datetime = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%S%z')
@@ -70,8 +70,8 @@ def insert_values_into_database(connection):
 
 
 def test_remove_opted_out_records_query(notify_db_session):
-    '''If the difference between the current time and source_datetime
-    is greater than 24 hours, the stored function should delete the records.'''
+    """If the difference between the current time and source_datetime
+    is greater than 24 hours, the stored function should delete the records."""
     
     with notify_db_session.engine.begin() as connection:
         setup_db(connection)
