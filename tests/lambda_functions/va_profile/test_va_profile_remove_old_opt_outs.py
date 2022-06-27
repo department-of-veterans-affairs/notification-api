@@ -15,10 +15,11 @@ COUNT = r"""SELECT COUNT(*) FROM va_profile_local_cache;"""
 
 def setup_db(connection):
     """
-    Using the given connection, truncate the VA Profile local cache, and call the stored procedure to add a specific row.
-    This establishes a known state for testing.
-    Truncating is necessary because the database side effects of executing the VA Profile lambda function are not rolled
-    back at the conclusion of a test.
+    Using the given connection, truncate the VA Profile local cache, and call
+    the stored procedure to add a specific row. This establishes a known state
+    for testing. Truncating is necessary because the database side effects of
+    executing the VA Profile lambda function are not rolled back at the
+    conclusion of a test.
     """
 
     connection.execute("truncate va_profile_local_cache;")
