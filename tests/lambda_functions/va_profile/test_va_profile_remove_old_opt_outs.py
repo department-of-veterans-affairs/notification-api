@@ -44,6 +44,7 @@ def insert_values_into_database(connection):
     )
 
     connection.execute(insert_expired_record_opt_out)
+
     insert_expired_record_opt_in = INSERT_OPT_IN_OUT_RECORD.bindparams(
         va_profile_id=2,
         communication_item_id=3,
