@@ -37,7 +37,7 @@ def setup_db(connection):
 
     insert_expired_record_opt_out = INSERT_OPT_IN_OUT_RECORD.bindparams(
         va_profile_id=0,
-        communication_item_id=0,
+        communication_item_id=5,
         communication_channel_id=0,
         allowed=False,
         source_datetime=expired_datetime
@@ -47,7 +47,7 @@ def setup_db(connection):
 
     insert_expired_record_opt_in = INSERT_OPT_IN_OUT_RECORD.bindparams(
         va_profile_id=2,
-        communication_item_id=3,
+        communication_item_id=5,
         communication_channel_id=4,
         allowed=True,
         source_datetime=expired_datetime
@@ -57,7 +57,7 @@ def setup_db(connection):
 
     insert_active_record_opt_out = INSERT_OPT_IN_OUT_RECORD.bindparams(
         va_profile_id=1,
-        communication_item_id=2,
+        communication_item_id=5,
         communication_channel_id=3,
         allowed=False,
         source_datetime=datetime.now().strftime('%Y-%m-%dT%H:%M:%S%z')
@@ -70,22 +70,6 @@ def setup_db(connection):
         "There should only be three records in the database."
 
 
-def test_count_opted_out_records_query(notify_db_session):
-    """
-    If the value is opted out and the source_datetime
-    is older than 24 hours, it should be selected.
-    """
-
-    with notify_db_session.engine.begin() as connection:
-        setup_db(connection)
-
-        connection.execute(COUNT_OPTED_OUT_RECORD_QUERY)
-
-        count_opted_out_record = connection.execute(COUNT_OPTED_OUT_RECORD_QUERY)
-        assert count_opted_out_record.fetchone()[0] == 1, \
-            "The stored function should have removed one record that is opted out."
-
-
 def test_remove_opted_out_records_query(notify_db_session):
     """
     If the difference between the current time and source_datetime
@@ -95,6 +79,10 @@ def test_remove_opted_out_records_query(notify_db_session):
     with notify_db_session.engine.begin() as connection:
         setup_db(connection)
 
+        count_opted_out_record = connection.execute(COUNT_OPTED_OUT_RECORD_QUERY)
+        assert count_opted_out_record.fetchone()[0] == 1, \
+            "The stored function should have removed one record that is opted out."
+      
         connection.execute(REMOVE_OPTED_OUT_RECORDS_QUERY)
 
         count_queryset = connection.execute(COUNT)
