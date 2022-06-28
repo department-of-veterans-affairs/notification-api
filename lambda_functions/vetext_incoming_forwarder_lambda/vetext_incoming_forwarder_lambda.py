@@ -49,7 +49,7 @@ def vetext_incoming_forwarder_lambda_handler(event: any, context: any):
             response = make_vetext_request(event_body)
 
             if response.status != 200:
-                push_to_sqs(event["body"])
+                push_to_sqs(event_body)
 
             logger.debug(response.read().decode())
 
