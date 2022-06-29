@@ -11,7 +11,7 @@ if SQLALCHEMY_DATABASE_URI is None:
     sys.exit("Couldn't connect to the database.")
 
 
-def va_profile_remove_old_opt_outs_handler(event, context, worker_id=None):
+def va_profile_remove_old_opt_outs_handler(event=None, context=None, worker_id=None):
     """
     This function deletes any va_profile cache records that
     are opted out and greater than 24 hours old.
