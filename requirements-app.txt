@@ -45,7 +45,7 @@ jsonschema>=4.5.1
 
 # 5 May 2022: Celery depends on this package, and the Docker image build failed with the newest version.
 # Ignoring security vulnerability 42497 in Makefile.  The vulnerability is fixed in kombu>=5.2.1.
-kombu < 5.0
+kombu < 6.0
 
 # 3 May 2022:  Flask 1.1.4 depends on this package but does not support more recent versions.
 MarkupSafe==2.0.1
