@@ -50,9 +50,7 @@ def vetext_incoming_forwarder_lambda_handler(event: any, context: any):
 
             if response.status != 200:
                 push_to_sqs(event_body)
-
-            logger.debug(response.read().decode())
-
+            
             responses.append(response)
 
         logger.debug(responses)
@@ -61,6 +59,7 @@ def vetext_incoming_forwarder_lambda_handler(event: any, context: any):
             'statusCode': 200
         }
     except KeyError as e:
+        logger.info("Key Error")
         logger.exception(e)
         # Place request on SQS for processing after environment variable issue is resolved
         push_to_sqs(event["body"])
@@ -69,6 +68,7 @@ def vetext_incoming_forwarder_lambda_handler(event: any, context: any):
             'statusCode': 424
         }
     except http.client.HTTPException as e:
+        logger.info("HttpException")
         logger.exception(e)
         # Place request on SQS for processing after environment variable issue is resolved
         push_to_sqs(event["body"])
@@ -77,6 +77,7 @@ def vetext_incoming_forwarder_lambda_handler(event: any, context: any):
             'statusCode':503
         }
     except Exception as e:
+        logger.info("General Exception")
         logger.exception(e)        
         # Place request on dead letter queue so that it can be analyzed 
         #   for potential processing at a later time
@@ -137,8 +138,6 @@ def make_vetext_request(request_body):
     # Authorization is basic token authentication that is stored in environment.
     authToken = read_from_ssm(os.environ.get('vetext_api_auth_ssm_path'))
 
-    logger.info(f'ssm key: {authToken}')
-
     headers = {
         'Content-type': 'application/json',
         'Authorization': 'Basic ' + authToken
@@ -156,13 +155,20 @@ def make_vetext_request(request_body):
 
     json_data = json.dumps(body)
 
+    logger.info("Making POST Request to VeText using: " + os.environ.get('vetext_api_endpoint_domain') + os.environ.get('vetext_api_endpoint_path'))
+    logger.info("Payload: " + json_data)
+    logger.info("Headers: " + json.dumps(headers))
+
     connection.request(
         'POST',
         os.environ.get('vetext_api_endpoint_path'),
         json_data,
         headers)
-
+    
     response = connection.getresponse()
+    
+    logger.info("VeText call complete, with response: " + str(response.status))
+    logger.info(response.read().decode())
 
     return response    
 
