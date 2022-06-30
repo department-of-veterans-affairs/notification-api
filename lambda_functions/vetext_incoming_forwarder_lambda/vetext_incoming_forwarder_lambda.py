@@ -66,7 +66,7 @@ def vetext_incoming_forwarder_lambda_handler(event: any, context: any):
 
         return {
             'statusCode': 424
-        }
+        }   
     except http.client.HTTPException as e:
         logger.info("HttpException")
         logger.exception(e)
@@ -128,7 +128,7 @@ def read_from_ssm(key: str) -> str:
         WithDecryption=True
     )
 
-    logger.info(response)
+    logger.info("Successfully retrieved SSM Parameter")
 
     return response.get("Parameter", {}).get("Value", '')
 
@@ -136,11 +136,11 @@ def make_vetext_request(request_body):
     connection = http.client.HTTPSConnection(os.environ.get('vetext_api_endpoint_domain'),  context = ssl._create_unverified_context())
 
     # Authorization is basic token authentication that is stored in environment.
-    authToken = read_from_ssm(os.environ.get('vetext_api_auth_ssm_path'))
+    auth_token = read_from_ssm(os.environ.get('vetext_api_auth_ssm_path'))
 
     headers = {
         'Content-type': 'application/json',
-        'Authorization': 'Basic ' + authToken
+        'Authorization': 'Basic ' + auth_token
     }
 
     body = {
@@ -156,9 +156,7 @@ def make_vetext_request(request_body):
     json_data = json.dumps(body)
 
     logger.info("Making POST Request to VeText using: " + os.environ.get('vetext_api_endpoint_domain') + os.environ.get('vetext_api_endpoint_path'))
-    logger.info("Payload: " + json_data)
-    logger.info("Headers: " + json.dumps(headers))
-
+    
     connection.request(
         'POST',
         os.environ.get('vetext_api_endpoint_path'),
