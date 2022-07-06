@@ -37,7 +37,6 @@ class VETextClient:
             "personalization": formatted_personalization
         }
 
-
         try:
             start_time = monotonic()
             response = requests.post(
@@ -46,7 +45,7 @@ class VETextClient:
                 json=payload,
                 timeout=self.TIMEOUT
             )
-            self.logger.info(f'VEText Payload information: {payload}\nWith response:\n{response.json()}')
+            self.logger.info(f'VEText Payload information: {payload}\nWith response:{response}')
             response.raise_for_status()
         except requests.HTTPError as e:
             self.logger.exception(e)
