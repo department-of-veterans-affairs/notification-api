@@ -162,7 +162,7 @@ def send_notification_to_queue(notification, research_mode, queue=None, recipien
 
             if recipient_id_type != IdentifierType.VA_PROFILE_ID.value:
                 tasks.insert(0, lookup_va_profile_id.si(notification.id).set(queue=QueueNames.LOOKUP_VA_PROFILE_ID))
-                tasks.insert(1, send_va_onsite_notification_task.si(notification.template.id, onsite_enabled)
+                tasks.insert(1, send_va_onsite_notification_task.s(notification.template.id, onsite_enabled)
                                                                 .set(queue=QueueNames.SEND_ONSITE_NOTIFICATION))
 
         chain(*tasks).apply_async()
