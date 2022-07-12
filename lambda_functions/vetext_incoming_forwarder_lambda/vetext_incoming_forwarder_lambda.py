@@ -45,13 +45,24 @@ def vetext_incoming_forwarder_lambda_handler(event: any, context: any):
 
         responses = []
 
-        for event_body in event_bodies:            
-            response = make_vetext_request(event_body)
+        for event_body in event_bodies:       
+            try:      
+                response = make_vetext_request(event_body)
 
-            if response.status != 200:
+                if response.status != 200:
+                    push_to_sqs(event_body)
+                
+                responses.append(response)
+            except http.client.HTTPException as e:
+                logger.info("HttpException With Call To VeText")
+                logger.info(json.dumps(event_body))
+                logger.exception(e)                                
                 push_to_sqs(event_body)
-            
-            responses.append(response)
+            except Exception as e:
+                logger.info("General Exception With Call to VeText")
+                logger.info(json.dumps(event_body))
+                logger.exception(e)                        
+                push_to_sqs(event_body)
 
         logger.debug(responses)
         
@@ -60,29 +71,17 @@ def vetext_incoming_forwarder_lambda_handler(event: any, context: any):
         }
     except KeyError as e:
         logger.info("Key Error")
+        logger.info(json.dumps(event))
         logger.exception(e)
-        # Place request on SQS for processing after environment variable issue is resolved
-        push_to_sqs(event["body"])
-
+        
         return {
             'statusCode': 424
         }   
-    except http.client.HTTPException as e:
-        logger.info("HttpException")
-        logger.exception(e)
-        # Place request on SQS for processing after environment variable issue is resolved
-        push_to_sqs(event["body"])
-
-        return{
-            'statusCode':503
-        }
     except Exception as e:
         logger.info("General Exception")
+        logger.info(json.dumps(event))
         logger.exception(e)        
-        # Place request on dead letter queue so that it can be analyzed 
-        #   for potential processing at a later time
-        push_to_sqs(event["body"])
-
+        
         return{
             'statusCode':500
         }
@@ -138,6 +137,8 @@ def make_vetext_request(request_body):
     # Authorization is basic token authentication that is stored in environment.
     auth_token = read_from_ssm(os.environ.get('vetext_api_auth_ssm_path'))
 
+    logger.info("Successfully retrieved Auth Token")
+    
     headers = {
         'Content-type': 'application/json',
         'Authorization': 'Basic ' + auth_token
@@ -166,7 +167,7 @@ def make_vetext_request(request_body):
     response = connection.getresponse()
     
     logger.info("VeText call complete, with response: " + str(response.status))
-    logger.info(response.read().decode())
+    logger.debug(response.read().decode())
 
     return response    
 
