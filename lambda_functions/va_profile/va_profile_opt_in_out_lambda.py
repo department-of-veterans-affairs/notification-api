@@ -234,7 +234,7 @@ def va_profile_opt_in_out_lambda_handler(event: dict, context, worker_id=None) -
         va_root_pem = get_va_root_pem()
         requested_va_root_pem = True
 
-    if va_root_pem is not None and len(put_request_body["bios"]) > 0:
+    if va_root_pem is not None and put_request_body["bios"]:
         try:
             if ssl_context is None:
                 # Use the VA root .pem to authenticate VA Profile's server.
