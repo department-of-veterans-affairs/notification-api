@@ -85,7 +85,7 @@ def get_va_root_pem() -> str:
         # TODO - "get_parameters" could be used to get the VA root pem and the db URI
         # in one call.
         response = ssm_client.get_parameter(
-            Name=f"/{NOTIFY_ENVIRONMENT}/notification-api/va-profile/pem",
+            Name=f"/{NOTIFY_ENVIRONMENT}/notification-api/va-profile/va-root-pem",
             WithDecryption=True
         )
 
