@@ -12,7 +12,7 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
-from datetime import datetime
+from datetime import datetime, timedelta
 from lambda_functions.va_profile.va_profile_opt_in_out_lambda import jwt_is_valid, va_profile_opt_in_out_lambda_handler
 from sqlalchemy import text
 
@@ -42,12 +42,41 @@ def private_key():
 
 @pytest.fixture(scope="module")
 def jwt_encoded(private_key):
+    """ This is a valid JWT encoding. """
+
+    iat = datetime.now()
+    exp = iat + timedelta(minutes=15)
+    return jwt.encode({"some": "payload", "exp": exp, "iat": iat}, private_key, algorithm="RS256")
+
+
+@pytest.fixture()
+def jwt_encoded_missing_exp(private_key):
     return jwt.encode({"some": "payload", "iat": datetime.now()}, private_key, algorithm="RS256")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def jwt_encoded_missing_iat(private_key):
-    return jwt.encode({"some": "payload"}, private_key, algorithm="RS256")
+    return jwt.encode({"some": "payload", "exp": datetime.now()}, private_key, algorithm="RS256")
+
+
+@pytest.fixture()
+def jwt_encoded_expired(private_key):
+    """ This is an invalid JWT encoding because it is expired. """
+
+    iat = datetime.now() - timedelta(minutes=20)
+    exp = iat + timedelta(minutes=15)
+    return jwt.encode({"some": "payload", "exp": exp, "iat": iat}, private_key, algorithm="RS256")
+
+
+@pytest.fixture()
+def jwt_encoded_reversed(private_key):
+    """
+    This JWT encoding has an issue time later than the expiration time.  Both times are in the future.
+    """
+
+    exp = datetime.now() + timedelta(days=1)
+    iat = exp + timedelta(minutes=15)
+    return jwt.encode({"some": "payload", "exp": exp, "iat": iat}, private_key, algorithm="RS256")
 
 
 def verify_opt_in_status(identifier: int, opted_in: bool, connection):
@@ -186,13 +215,17 @@ def test_jwt_is_valid(jwt_encoded):
     assert jwt_is_valid(f"Bearer {jwt_encoded}")
 
 
-def test_jwt_invalid_without_iat_claim(jwt_encoded_missing_iat):
+@pytest.mark.parametrize("invalid_jwt", [jwt_encoded_missing_exp, jwt_encoded_missing_iat, jwt_encoded_expired, jwt_encoded_reversed])
+def test_jwt_invalid(invalid_jwt):
     """
-    Test the helper function used to determine if the JWT has a valid signature.
-    The Issued at Time claim must be present.
+    Any JWT that does not meet this criteria should be invalid:
+        - Contains exp claim
+        - Contains iat claim
+        - exp is not expired
+        - exp is after iat
     """
 
-    assert not jwt_is_valid(f"Bearer {jwt_encoded_missing_iat}")
+    assert not jwt_is_valid(f"Bearer {invalid_jwt}")
 
 
 def test_jwt_is_valid_malformed_authorization_header_value(jwt_encoded):

@@ -51,7 +51,7 @@ try:
     va_profile_public_cert = load_pem_x509_certificate(VA_PROFILE_PUBLIC_KEY.encode()).public_key()
 except ValueError as e:
     logger.exception(e)
-    logger.debug("VA_PROFILE_PUBLIC_KEY =\n", VA_PROFILE_PUBLIC_KEY)
+    logger.debug("VA_PROFILE_PUBLIC_KEY =\n%s", VA_PROFILE_PUBLIC_KEY)
     sys.exit("Unable to verify JWTs in POST requests.")
 
 
@@ -287,11 +287,16 @@ def jwt_is_valid(auth_header_value: str) -> bool:
         logger.debug("Malformed Authorization header value: ", auth_header_value)
         return False
 
+    options = {
+        "require": ["exp", "iat"],
+        "verify_exp": "verify_signature",
+    }
+
     try:
         # This returns the claims as a dictionary, but we aren't using them.  Require the
         # Issued at Time (iat) claim to ensure the JWT varies with each request.  Otherwise,
         # an attacker could replay the static Bearer value.
-        jwt.decode(token, va_profile_public_cert, algorithms=["RS256"], options={"require": ["iat"]})
+        jwt.decode(token, va_profile_public_cert, algorithms=["RS256"], options=options)
         return True
     except jwt.exceptions.InvalidTokenError as e:
         logger.exception(e)
