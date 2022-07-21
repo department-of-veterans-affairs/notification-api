@@ -8,7 +8,6 @@ AWS_SESSION_TOKEN=test
 AWS_SECURITY_TOKEN=test
 AWS_REGION=us-east-1
 VA_PROFILE_DOMAIN=int.vaprofile.va.gov
-VA_PROFILE_PUBLIC_KEY=test
 
 # Docker does not currently support multiline environment files, and this variable does not parse correctly as a single line.
 # Therefore, directly running VA Profile integration tests (not with Docker-compose) that use this value will error.
