@@ -534,6 +534,7 @@ class ServiceSmsSender(db.Model):
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     sms_sender = db.Column(db.String(12), nullable=False)
+    sms_sender_service_id = db.Column(db.JSON())
     service_id = db.Column(UUID(as_uuid=True), db.ForeignKey('services.id'), index=True, nullable=False, unique=False)
     service = db.relationship(Service, backref=db.backref("service_sms_senders", uselist=True))
     is_default = db.Column(db.Boolean, nullable=False, default=True)
