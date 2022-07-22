@@ -13,8 +13,8 @@ down_revision = '0349_delete_old_opt_out_function'
 
 
 def upgrade():
-    op.add_column('service_sms_senders', sa.Column('sms_sender_service_id', sa.JSON(), nullable=True))
+    op.add_column('service_sms_senders', sa.Column('sms_sender_specifics', sa.JSON(), nullable=True))
 
 
 def downgrade():
-    op.drop_column('service_sms_senders', 'sms_sender_service_id')
+    op.drop_column('service_sms_senders', 'sms_sender_specifics')
