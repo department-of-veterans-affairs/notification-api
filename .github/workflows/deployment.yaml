@@ -1,13 +1,15 @@
-name: Application deployment
+name: api deploy
 
 on:
   workflow_call:
     inputss:
       environment:
         required: true
+        default: "dev"
         type: string
       ref:
         required: true
+        default: "master"
         type: string
 
 jobs:
@@ -52,9 +54,6 @@ jobs:
   deploy-api:
     runs-on: ubuntu-latest
     needs: [run-migrations]
-    env:
-      ECR_REGISTRY: ${{ needs.set-env-vars.outputs.ecr-registry }}
-      IMAGE_TAG: ${{ needs.set-env-vars.outputs.image-tag }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -93,9 +92,6 @@ jobs:
   deploy-celery:
     runs-on: ubuntu-latest
     needs: [set-env-vars, run-migrations]
-    env:
-      ECR_REGISTRY: ${{ needs.set-env-vars.outputs.ecr-registry }}
-      IMAGE_TAG: ${{ needs.set-env-vars.outputs.image-tag }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -134,9 +130,6 @@ jobs:
   deploy-celery-beat:
     runs-on: ubuntu-latest
     needs: [set-env-vars, run-migrations]
-    env:
-      ECR_REGISTRY: ${{ needs.set-env-vars.outputs.ecr-registry }}
-      IMAGE_TAG: ${{ needs.set-env-vars.outputs.image-tag }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -171,33 +164,3 @@ jobs:
           service: ${{ inputs.environment }}-notification-celery-beat-service
           cluster: ${{ inputs.environment }}-notification-cluster
           wait-for-service-stability: true
-
-  run-user-flows:
-    runs-on: ubuntu-latest
-    needs: [run-migrations, deploy-api, deploy-celery, deploy-celery-beat]
-    if: ${{ 'dev' == inputs.environment }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ inputs.ref }}
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.VAEC_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.VAEC_AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-gov-west-1
-          role-to-assume: ${{ secrets.VAEC_DEPLOY_ROLE }}
-          role-skip-session-tagging: true
-          role-duration-seconds: 1800
-
-      - name: Invoke user flows lambda function
-        shell: bash {0}
-        run: |
-          RESULT=$(aws --cli-read-timeout 300 lambda invoke --invocation-type RequestResponse --function-name project-user-flows-lambda --cli-binary-format raw-in-base64-out --payload '{"environment": "${{inputs.environment}}"}' --log-type Tail user_flows_exit_code.txt)
-          echo $RESULT | jq '.LogResult' -r | base64 --decode
-          if [ `jq '.StatusCode' <<< $RESULT` -ne 200 ]; then echo -e "Handler Response: $RESULT" && exit 1; fi
-          EXIT_CODE=$(cat user_flows_exit_code.txt)
-          echo -e "User Flows Tests Exit Code: $EXIT_CODE"
-          if [ $EXIT_CODE -ne 0 ]; then exit 1; else exit $EXIT_CODE; fi
-

@@ -1,0 +1,55 @@
+name: Dev Deployment
+on: 
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deploy to dev"
+        default: dev
+        required: true
+      ref:
+        description: "Branch or Commit"
+        default: master
+        required: true
+  
+jobs:
+  setup-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      container-tag: ${{ steps.set-tag.outputs.commit-hash }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Set tags
+        id: set-tag
+        run: echo "::set-output name=commit-hash::"$(git rev-parse HEAD)""
+  
+  run-build:
+    needs: [setup-environment]
+    uses: ./github/workflows/build.yml
+    with:
+      environment: "${{ github.event.inputs.environment }}"
+      ref: "${{ needs.setup-environment.container-tag }}"
+  
+  run-deployment:
+    needs: [setup-environment, run-build]
+    uses: ./github/workflows/deployment.yml
+    with:
+      environment: "${{ github.event.inputs.environment }}"
+      ref: "${{ needs.setup-environment.container-tag }}"
+  
+  run-lambda-deploy:
+    needs: [setup-environment]
+    uses: ./github/workflows/lambda-functions.yml
+    with:
+      environment: "${{ github.event.inputs.environment }}"
+      ref: "${{ needs.setup-environment.container-tag }}"
+
+  run-user-flows:
+    if: ${{ github.event.inputs.environment }} == "dev" || ${{ github.event.inputs.environment }} == "perf"
+    needs: [run-deployment, run-lambda-deploy]
+    uses: ./github/workflows/user_flows.yml
+    with:
+      environment: "${{ github.event.inputs.environment }}"
