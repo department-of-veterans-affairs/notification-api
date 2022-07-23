@@ -25,6 +25,11 @@ jobs:
       - name: Set tags
         id: set-tag
         run: echo "::set-output name=commit-hash::"$(git rev-parse HEAD)""
+
+      - name: Env Values
+        run: |
+          echo The environment is ${{ github.event.inputs.environment }}
+          echo The commit branch/hash/tag is ${{ steps.set-tag.outputs.commit-hash }}
   
   run-build:
     needs: [setup-environment]

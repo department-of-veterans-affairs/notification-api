@@ -17,6 +17,11 @@ jobs:
       - name: Check Tag
         run: echo ${{steps.tag.outputs.tag}}
 
+      - name: Env Values
+        run: |
+          echo The environment is Perf
+          echo The commit branch/hash/tag is ${{ steps.tag.outputs.tag }}
+
       - name: Build Changelog
         id: github_release
         uses: mikepenz/release-changelog-builder-action@v3

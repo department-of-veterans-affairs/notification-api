@@ -25,6 +25,11 @@ jobs:
       - name: Get the version
         id: tag
         run: echo ::set-output name=version::${GITHUB_REF/refs\/tags\//}
+
+      - name: Env Values
+        run: |
+          echo The environment is ${{ steps.setup.outputs.environment }}
+          echo The commit branch/hash/tag is ${{ steps.tag.outputs.version }}
   
   run-build:
     needs: [setup-release]
