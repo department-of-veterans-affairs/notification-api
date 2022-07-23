@@ -1,0 +1,67 @@
+name: Tag push to Perf
+on:
+  release:
+    types: [prereleased, released]
+
+jobs:
+  setup-release:
+    runs-on: ubuntu-latest
+    outputs:
+      git-tag: ${{ steps.tag.outputs.version }}
+      env: ${{ steps.setup.outputs.environment }}
+    steps:
+      - name: Setup Environment
+        id: setup
+        uses: actions/github-script@v6
+        with: 
+          script: | 
+            if ('${{ github.event.action }}' === 'prereleased') {
+              core.setOutput('environment', 'perf')
+            }
+            if ('${{ github.event.action }}' === 'released') {
+              core.setOutput('environment', 'perf')
+            }
+      
+      - name: Get the version
+        id: tag
+        run: echo ::set-output name=version::${GITHUB_REF/refs\/tags\//}
+  
+  run-build:
+    needs: [setup-release]
+    uses: ./github/workflows/build.yml
+    with:
+      environment: "${{ needs.setup-release.outputs.env }}"
+      ref: "${{ needs.setup-release.outputs.git-tag }}"
+    secrets: inherit
+  
+  run-twistlock:
+    needs: [run-build]
+    if: ${{ github.event.inputs.environment }} == "dev" || ${{ github.event.inputs.environment }} == "perf"
+    uses: ./github/workflows/twistlock.yml
+    with:
+      ref: "${{ needs.setup-release.outputs.git-tag }}"
+    secrets: inherit
+
+  run-deployment:
+    needs: [setup-release, run-build, run-twistlock]
+    uses: ./github/workflows/deployment.yml
+    with:
+      environment: "${{ needs.setup-release.outputs.env }}"
+      ref: "${{ needs.setup-release.outputs.git-tag }}"
+    secrets: inherit
+  
+  run-lambda-deploy:
+    needs: [setup-release]
+    uses: ./github/workflows/lambda-functions.yml
+    with:
+      environment: "${{ needs.setup-release.outputs.env }}"
+      ref: "${{ needs.setup-release.outputs.git-tag }}"
+    secrets: inherit
+
+  run-user-flows:
+    if: ${{ github.event.inputs.environment }} == "dev" || ${{ github.event.inputs.environment }} == "perf"
+    needs: [run-deployment, run-lambda-deploy]
+    uses: ./github/workflows/user_flows.yml
+    with:
+      environment: "${{ needs.setup-release.outputs.env }}"
+    secrets: inherit

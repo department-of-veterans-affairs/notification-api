@@ -15,7 +15,7 @@ jobs:
   setup-environment:
     runs-on: ubuntu-latest
     outputs:
-      container-tag: ${{ steps.set-tag.outputs.commit-hash }}
+      git-tag: ${{ steps.set-tag.outputs.commit-hash }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -31,7 +31,7 @@ jobs:
     uses: ./github/workflows/build.yml
     with:
       environment: "${{ github.event.inputs.environment }}"
-      ref: "${{ needs.setup-environment.container-tag }}"
+      ref: "${{ needs.setup-environment.git-tag }}"
     secrets: inherit
   
   run-twistlock:
@@ -39,15 +39,15 @@ jobs:
     if: ${{ github.event.inputs.environment }} == "dev" || ${{ github.event.inputs.environment }} == "perf"
     uses: ./github/workflows/twistlock.yml
     with:
-      imageTag: "${{ needs.setup-environment.container-tag }}"
+      ref: "${{ needs.setup-environment.git-tag }}"
     secrets: inherit
 
   run-deployment:
-    needs: [setup-environment, run-build]
+    needs: [setup-environment, run-build, run-twistlock]
     uses: ./github/workflows/deployment.yml
     with:
       environment: "${{ github.event.inputs.environment }}"
-      ref: "${{ needs.setup-environment.container-tag }}"
+      ref: "${{ needs.setup-environment.git-tag }}"
     secrets: inherit
   
   run-lambda-deploy:
@@ -55,7 +55,7 @@ jobs:
     uses: ./github/workflows/lambda-functions.yml
     with:
       environment: "${{ github.event.inputs.environment }}"
-      ref: "${{ needs.setup-environment.container-tag }}"
+      ref: "${{ needs.setup-environment.git-tag }}"
     secrets: inherit
 
   run-user-flows:
