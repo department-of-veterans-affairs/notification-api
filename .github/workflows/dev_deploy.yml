@@ -32,13 +32,23 @@ jobs:
     with:
       environment: "${{ github.event.inputs.environment }}"
       ref: "${{ needs.setup-environment.container-tag }}"
+    secrets: inherit
   
+  run-twistlock:
+    needs: [setup-environment, run-build]
+    if: ${{ github.event.inputs.environment }} == "dev" || ${{ github.event.inputs.environment }} == "perf"
+    uses: ./github/workflows/twistlock.yml
+    with:
+      imageTag: "${{ needs.setup-environment.container-tag }}"
+    secrets: inherit
+
   run-deployment:
     needs: [setup-environment, run-build]
     uses: ./github/workflows/deployment.yml
     with:
       environment: "${{ github.event.inputs.environment }}"
       ref: "${{ needs.setup-environment.container-tag }}"
+    secrets: inherit
   
   run-lambda-deploy:
     needs: [setup-environment]
@@ -46,6 +56,7 @@ jobs:
     with:
       environment: "${{ github.event.inputs.environment }}"
       ref: "${{ needs.setup-environment.container-tag }}"
+    secrets: inherit
 
   run-user-flows:
     if: ${{ github.event.inputs.environment }} == "dev" || ${{ github.event.inputs.environment }} == "perf"
@@ -53,3 +64,4 @@ jobs:
     uses: ./github/workflows/user_flows.yml
     with:
       environment: "${{ github.event.inputs.environment }}"
+    secrets: inherit
