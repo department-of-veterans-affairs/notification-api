@@ -1,6 +1,6 @@
 ## Rate Limiting for SMS Sender
 Users can set different rate limits and rate limit intervals for each SMS sender. Rate limit is defined as the number
-of messages that can be sent by the SMS sender within the rate limit interval.
+of messages that can be sent by the SMS sender within the rate limit interval. Access to the API using a key is limited to 3000 requests per minute.
 
 When a user wants to send a notification, we check to see if the SMS sender associated with the notification has a rate
 limit. If they do, we have a specific task that attempts to deliver a text. The task will still go on the `send-sms`
