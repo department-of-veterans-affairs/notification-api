@@ -1,6 +1,6 @@
 ## Rate Limiting for SMS Sender
 Users can set different rate limits and rate limit intervals for each SMS sender. Rate limit is defined as the number
-of messages that can be sent by the SMS sender within the rate limit interval. Access to the API using a key is limited to 3000 requests per minute.
+of messages that can be sent by the SMS sender within the rate limit interval. 
 
 When a user wants to send a notification, we check to see if the SMS sender associated with the notification has a rate
 limit. If they do, we have a specific task that attempts to deliver a text. The task will still go on the `send-sms`
@@ -29,3 +29,6 @@ needs to be queried to get older stats. As a result, the `get_specific_template_
 `template/rest.py` relies on a method, `fetch_template_usage_for_service_with_given_template()`, that first
 queries the `ft_notification_status` table and then the `notifications` table if the user needs to get stats
 from today.
+
+## Definition of message_limit
+The service message_limit field defines the limit of the number of messages the user can send per day. In the POST request above, it is set to 100. The service called "BVA" was created in the staging environment to update the message_limit of all services from 1000 to 100. The service is called, the message limit is checked, and the service is sent. This service was created in Postman, and the daily message limit is required when creating a service, so now the default message_limit is 100.
