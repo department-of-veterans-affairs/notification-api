@@ -190,6 +190,8 @@ def make_vetext_request(request_body):
     logger.info(f"Making POST Request to VeText using: ${domain}${path}")
     logger.debug(f"json dumps: {json_data}")
 
+    connection = None
+
     try:
         connection = http.client.HTTPSConnection(domain,  context = ssl._create_unverified_context())
         logger.info("generated connection to VeText")
@@ -216,7 +218,8 @@ def make_vetext_request(request_body):
         logger.error("General Exception With Call to VeText")                
         logger.exception(e)                                                
     finally:
-        connection.close()
+        if connection:
+            connection.close()
 
     return None
 
