@@ -1,4 +1,4 @@
-name: Dev Deployment
+name: API Deploy to Dev
 on: 
   workflow_dispatch:
     inputs:
@@ -15,28 +15,28 @@ jobs:
   setup-environment:
     runs-on: ubuntu-latest
     outputs:
-      git-tag: ${{ steps.set-tag.outputs.commit-hash }}
+      git-hash: ${{ steps.set-hash.outputs.commit-hash }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.inputs.branch }}
+          ref: ${{ github.event.inputs.ref }}
 
       - name: Set tags
-        id: set-tag
+        id: set-hash
         run: echo "::set-output name=commit-hash::"$(git rev-parse HEAD)""
 
       - name: Env Values
         run: |
           echo The environment is ${{ github.event.inputs.environment }}
-          echo The commit branch/hash/tag is ${{ steps.set-tag.outputs.commit-hash }}
+          echo The commit branch/hash/tag is ${{ steps.set-hash.outputs.commit-hash }}
   
   run-build:
     needs: [setup-environment]
     uses: ./github/workflows/build.yml
     with:
       environment: "${{ github.event.inputs.environment }}"
-      ref: "${{ needs.setup-environment.git-tag }}"
+      ref: "${{ needs.setup-environment.git-hash }}"
     secrets: inherit
   
   run-twistlock:
@@ -44,7 +44,7 @@ jobs:
     if: ${{ github.event.inputs.environment }} == "dev" || ${{ github.event.inputs.environment }} == "perf"
     uses: ./github/workflows/twistlock.yml
     with:
-      ref: "${{ needs.setup-environment.git-tag }}"
+      ref: "${{ needs.setup-environment.git-hash }}"
     secrets: inherit
 
   run-deployment:
@@ -52,7 +52,7 @@ jobs:
     uses: ./github/workflows/deployment.yml
     with:
       environment: "${{ github.event.inputs.environment }}"
-      ref: "${{ needs.setup-environment.git-tag }}"
+      ref: "${{ needs.setup-environment.git-hash }}"
     secrets: inherit
   
   run-lambda-deploy:
@@ -60,7 +60,7 @@ jobs:
     uses: ./github/workflows/lambda-functions.yml
     with:
       environment: "${{ github.event.inputs.environment }}"
-      ref: "${{ needs.setup-environment.git-tag }}"
+      ref: "${{ needs.setup-environment.git-hash }}"
     secrets: inherit
 
   run-user-flows:

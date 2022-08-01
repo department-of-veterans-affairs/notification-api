@@ -38,14 +38,6 @@ jobs:
       environment: "${{ needs.setup-release.outputs.env }}"
       ref: "${{ needs.setup-release.outputs.git-tag }}"
     secrets: inherit
-  
-  run-twistlock:
-    needs: [run-build]
-    if: ${{ github.event.inputs.environment }} == "dev" || ${{ github.event.inputs.environment }} == "perf"
-    uses: ./github/workflows/twistlock.yml
-    with:
-      ref: "${{ needs.setup-release.outputs.git-tag }}"
-    secrets: inherit
 
   run-deployment:
     needs: [setup-release, run-build, run-twistlock]
