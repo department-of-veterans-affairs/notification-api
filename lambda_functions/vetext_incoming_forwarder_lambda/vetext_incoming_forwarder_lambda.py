@@ -33,6 +33,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
         else:
             logger.error("Invalid Event. Expecting the source of an invocation to be from alb or sqs")
             logger.debug(event)
+            push_to_dead_letter_sqs(event, "vetext_incoming_forwarder_lambda_handler")
 
             return{
                 'statusCode': 400
@@ -49,7 +50,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
             response = make_vetext_request(event_body)                
             
             if response is None:
-                push_to_sqs(event_body)
+                push_to_retry_sqs(event_body)
             
             responses.append(response)          
 
@@ -57,18 +58,12 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
         
         return {
             'statusCode': 200
-        }
-    except KeyError as e:
-        logger.error(event)
-        logger.exception(e)
-        
-        return {
-            'statusCode': 424
-        }   
+        }    
     except Exception as e:        
         logger.error(event)
         logger.exception(e)
-        
+        push_to_dead_letter_sqs(event, "vetext_incoming_forwarder_lambda_handler")
+
         return{
             'statusCode':500
         }
@@ -102,7 +97,7 @@ def process_body_from_sqs_invocation(event):
         except Exception as e:
             logger.error("Failed to load event from sqs")
             logger.exception(e)        
-            push_to_sqs(event_body)
+            push_to_dead_letter_sqs(event_body, "process_body_from_sqs_invocation")
     
     return event_bodies
 
@@ -227,10 +222,19 @@ def make_vetext_request(request_body):
 
     return None
 
-def push_to_sqs(event_body):
+def push_to_retry_sqs(event_body):
     """Places event body dictionary on queue to be retried at a later time"""
     logger.info("Placing event_body on retry queue")
-    logger.debug(f"Preparing for SQS: {event_body}")
+    logger.debug(f"Preparing for Retry SQS: {event_body}")
+
+    queue_url = os.getenv('vetext_request_drop_sqs_url')
+
+    if queue_url is None:
+        logger.error("Unable to retrieve vetext_request_drop_sqs_url from env variables")
+        logger.error(event_body)
+        return None    
+
+    logger.debug(f"Retrieved queue_url: {queue_url}")
 
     queue_url = os.getenv('vetext_request_drop_sqs_url')
 
@@ -258,7 +262,7 @@ def push_to_sqs(event_body):
         
         logger.info("Completed enqueue of message to retry queue")
     except Exception as e:
-        logger.error("Push to SQS Exception")
+        logger.error("Push to Retry SQS Exception")
         logger.error(event_body)
         logger.exception(e)        
         push_to_dead_letter_sqs(event_body, "push_to_retry_sqs")

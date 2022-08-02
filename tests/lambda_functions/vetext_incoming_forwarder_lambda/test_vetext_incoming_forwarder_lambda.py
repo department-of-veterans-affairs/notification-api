@@ -60,6 +60,14 @@ def missing_ssm_path_env_param(monkeypatch):
     monkeypatch.setenv('vetext_api_endpoint_domain', "some.domain")
     monkeypatch.setenv('vetext_api_endpoint_path', "/some/path")
 
+@pytest.fixture
+def all_path_env_param_set(monkeypatch):    
+    monkeypatch.setenv('vetext_api_endpoint_domain', "some.domain")
+    monkeypatch.setenv('vetext_api_endpoint_path', "/some/path")
+    monkeypatch.setenv('vetext_api_auth_ssm_path', 'ssm')
+    monkeypatch.setenv('vetext_request_drop_sqs_url', "someurl")
+    monkeypatch.setenv('vetext_request_dead_letter_sqs_url', "someurl")
+
 LAMBDA_MODULE = "lambda_functions.vetext_incoming_forwarder_lambda.vetext_incoming_forwarder_lambda"
 
 @pytest.mark.parametrize('event', [(albInvokedWithoutAddOn), (albInvokeWithAddOn)])
@@ -128,15 +136,6 @@ def test_failed_alb_invocation_call_throws_general_exception_goes_to_retry_sqs(m
     response = vetext_incoming_forwarder_lambda_handler(event, None)
 
     assert response['statusCode'] == 500
-    sqs_mock.assert_not_called()
-
-@pytest.mark.parametrize('event', [(albInvokedWithoutAddOn), (albInvokeWithAddOn)])
-def test_failed_alb_invocation_call_throws_key_error_exception(mocker, event):
-    sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
-    mocker.patch(f'{LAMBDA_MODULE}.process_body_from_alb_invocation', side_effect=KeyError)
-    response = vetext_incoming_forwarder_lambda_handler(event, None)
-
-    assert response['statusCode'] == 424
     sqs_mock.assert_not_called()
 
 @pytest.mark.parametrize('event', [(albInvokedWithoutAddOn), (albInvokeWithAddOn), (sqsInvokedWithAddOn)])
