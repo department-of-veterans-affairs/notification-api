@@ -24,6 +24,8 @@ def va_profile_remove_old_opt_outs_handler(event=None, context=None, worker_id=N
 
     # https://www.psycopg.org/docs/module.html#exceptions
     try:
+        logger.debug(f"check db uri: {SQLALCHEMY_DATABASE_URI}")
+
         connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI + ('' if worker_id is None else f"_{worker_id}"))
 
         logger.debug(f"--- Connected to db: {SQLALCHEMY_DATABASE_URI}")
