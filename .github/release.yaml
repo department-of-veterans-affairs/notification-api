@@ -8,6 +8,9 @@ changelog:
     - title: Breaking Changes 🛠
       labels:
         - breaking-change
+    - title: Lambda Functions
+      labels:
+        - lambda
     - title: Exciting New Features 🎉
       labels:
         - enhancement

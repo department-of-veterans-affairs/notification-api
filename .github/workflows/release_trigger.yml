@@ -1,4 +1,4 @@
-name: Tag push to Perf
+name: Release Trigger
 on:
   release:
     types: [prereleased, released]
@@ -24,12 +24,13 @@ jobs:
       
       - name: Get the version
         id: tag
-        run: echo ::set-output name=version::${GITHUB_REF/refs\/tags\//}
+        run: |
+          echo "::set-output name=version::"${GITHUB_REF/refs\/tags\//}""
 
       - name: Env Values
         run: |
-          echo The environment is ${{ steps.setup.outputs.environment }}
-          echo The commit branch/hash/tag is ${{ steps.tag.outputs.version }}
+          echo "The environment is ${{ steps.setup.outputs.environment }}"
+          echo "The commit branch/hash/tag is ${{ steps.tag.outputs.version }}"
   
   run-build:
     needs: [setup-release]
@@ -39,14 +40,6 @@ jobs:
       ref: "${{ needs.setup-release.outputs.git-tag }}"
     secrets: inherit
 
-  run-deployment:
-    needs: [setup-release, run-build, run-twistlock]
-    uses: ./github/workflows/deployment.yml
-    with:
-      environment: "${{ needs.setup-release.outputs.env }}"
-      ref: "${{ needs.setup-release.outputs.git-tag }}"
-    secrets: inherit
-  
   run-lambda-deploy:
     needs: [setup-release]
     uses: ./github/workflows/lambda-functions.yml
@@ -55,10 +48,10 @@ jobs:
       ref: "${{ needs.setup-release.outputs.git-tag }}"
     secrets: inherit
 
-  run-user-flows:
-    if: ${{ github.event.inputs.environment }} == "dev" || ${{ github.event.inputs.environment }} == "perf"
-    needs: [run-deployment, run-lambda-deploy]
-    uses: ./github/workflows/user_flows.yml
+  run-deployment:
+    needs: [run-build]
+    uses: ./github/workflows/deployment.yml
     with:
       environment: "${{ needs.setup-release.outputs.env }}"
+      ref: "${{ needs.setup-release.outputs.git-tag }}"
     secrets: inherit

@@ -2,7 +2,7 @@ name: api deploy
 
 on:
   workflow_call:
-    inputss:
+    inputs:
       environment:
         required: true
         default: "dev"
@@ -91,7 +91,7 @@ jobs:
 
   deploy-celery:
     runs-on: ubuntu-latest
-    needs: [set-env-vars, run-migrations]
+    needs: [run-migrations]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -129,7 +129,7 @@ jobs:
 
   deploy-celery-beat:
     runs-on: ubuntu-latest
-    needs: [set-env-vars, run-migrations]
+    needs: [run-migrations]
     steps:
       - uses: actions/checkout@v3
         with:

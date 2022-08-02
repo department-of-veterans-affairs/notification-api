@@ -8,25 +8,17 @@ jobs:
   setup-env:
     runs-on: ubuntu-latest
     outputs: 
-      git-tag: ${{ steps.tag.outputs.tag }}
+      git-tag: ${{ steps.tag.outputs.version }}
     steps:
-      - name: Get tag
+      - name: Get the version
         id: tag
-        uses: dawidd6/action-get-tag@v1
-
-      - name: Check Tag
-        run: echo ${{steps.tag.outputs.tag}}
+        run: |
+          echo "::set-output name=version::"${GITHUB_REF/refs\/tags\//}""
 
       - name: Env Values
         run: |
-          echo The environment is Perf
-          echo The commit branch/hash/tag is ${{ steps.tag.outputs.tag }}
-
-      - name: Build Changelog
-        id: github_release
-        uses: mikepenz/release-changelog-builder-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "The environment is Perf"
+          echo "The commit branch/hash/tag is ${{ steps.tag.outputs.version }}"
   
   run-build:
     needs: [setup-environment]
@@ -35,22 +27,7 @@ jobs:
       environment: "perf"
       ref: "${{ needs.setup-env.outputs.git-tag }}"
     secrets: inherit
-  
-  run-twistlock:
-    needs: [setup-environment, run-build]
-    uses: ./github/workflows/twistlock.yml
-    with:
-      ref: "${{ needs.setup-env.outputs.git-tag }}"
-    secrets: inherit
 
-  run-deployment:
-    needs: [setup-environment, run-build, run-twistlock]
-    uses: ./github/workflows/deployment.yml
-    with:
-      environment: "perf"
-      ref: "${{ needs.setup-env.outputs.git-tag }}"
-    secrets: inherit
-  
   run-lambda-deploy:
     needs: [setup-environment]
     uses: ./github/workflows/lambda-functions.yml
@@ -58,11 +35,18 @@ jobs:
       environment: "perf"
       ref: "${{ needs.setup-env.outputs.git-tag }}"
     secrets: inherit
+  
+  run-twistlock:
+    needs: [run-build]
+    uses: ./github/workflows/twistlock.yml
+    with:
+      ref: "${{ needs.setup-env.outputs.git-tag }}"
+    secrets: inherit
 
-  run-user-flows:
-    if: ${{ github.event.inputs.environment }} == "dev" || ${{ github.event.inputs.environment }} == "perf"
-    needs: [run-deployment, run-lambda-deploy]
-    uses: ./github/workflows/user_flows.yml
+  run-deployment:
+    needs: [run-twistlock]
+    uses: ./github/workflows/deployment.yml
     with:
       environment: "perf"
+      ref: "${{ needs.setup-env.outputs.git-tag }}"
     secrets: inherit
