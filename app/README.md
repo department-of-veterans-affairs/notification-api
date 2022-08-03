@@ -31,4 +31,4 @@ queries the `ft_notification_status` table and then the `notifications` table if
 from today.
 
 ## message_limit default
-The service called "BVA" was created in the staging environment to update the message_limit of all services from 1000 to 100.
+The service called "BVA" was created in the Dev environment to update the message_limit of all services from 1000 to 100.
