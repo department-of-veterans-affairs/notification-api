@@ -34,7 +34,7 @@ jobs:
   
   run-build:
     needs: [setup-release]
-    uses: ./github/workflows/build.yml
+    uses: ./.github/workflows/build.yml
     with:
       environment: "${{ needs.setup-release.outputs.env }}"
       ref: "${{ needs.setup-release.outputs.git-tag }}"
@@ -42,7 +42,7 @@ jobs:
 
   run-lambda-deploy:
     needs: [setup-release]
-    uses: ./github/workflows/lambda-functions.yml
+    uses: ./.github/workflows/lambda-functions.yml
     with:
       environment: "${{ needs.setup-release.outputs.env }}"
       ref: "${{ needs.setup-release.outputs.git-tag }}"
@@ -50,7 +50,7 @@ jobs:
 
   run-deployment:
     needs: [run-build]
-    uses: ./github/workflows/deployment.yml
+    uses: ./.github/workflows/deployment.yml
     with:
       environment: "${{ needs.setup-release.outputs.env }}"
       ref: "${{ needs.setup-release.outputs.git-tag }}"

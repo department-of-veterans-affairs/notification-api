@@ -22,7 +22,7 @@ jobs:
   
   run-build:
     needs: [setup-environment]
-    uses: ./github/workflows/build.yml
+    uses: ./.github/workflows/build.yml
     with:
       environment: "perf"
       ref: "${{ needs.setup-env.outputs.git-tag }}"
@@ -30,7 +30,7 @@ jobs:
 
   run-lambda-deploy:
     needs: [setup-environment]
-    uses: ./github/workflows/lambda-functions.yml
+    uses: ./.github/workflows/lambda-functions.yml
     with:
       environment: "perf"
       ref: "${{ needs.setup-env.outputs.git-tag }}"
@@ -38,14 +38,14 @@ jobs:
   
   run-twistlock:
     needs: [run-build]
-    uses: ./github/workflows/twistlock.yml
+    uses: ./.github/workflows/twistlock.yml
     with:
       ref: "${{ needs.setup-env.outputs.git-tag }}"
     secrets: inherit
 
   run-deployment:
     needs: [run-twistlock]
-    uses: ./github/workflows/deployment.yml
+    uses: ./.github/workflows/deployment.yml
     with:
       environment: "perf"
       ref: "${{ needs.setup-env.outputs.git-tag }}"
