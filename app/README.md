@@ -30,5 +30,5 @@ needs to be queried to get older stats. As a result, the `get_specific_template_
 queries the `ft_notification_status` table and then the `notifications` table if the user needs to get stats
 from today.
 
-## Definition of message_limit
-The service message_limit field defines the limit of the number of messages the user can send per day. In the POST request above, it is set to 100. The service called "BVA" was created in the staging environment to update the message_limit of all services from 1000 to 100. The service is called, the message limit is checked, and the service is sent. This service was created in Postman, and the daily message limit is required when creating a service, so now the default message_limit is 100.
+## message_limit default
+The service called "BVA" was created in the staging environment to update the message_limit of all services from 1000 to 100.
