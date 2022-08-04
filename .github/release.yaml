@@ -8,12 +8,12 @@ changelog:
     - title: Breaking Changes 🛠
       labels:
         - breaking-change
-    - title: Lambda Functions
-      labels:
-        - lambda
     - title: Exciting New Features 🎉
       labels:
         - enhancement
+    - title: Lambda Functions
+      labels:
+        - lambda
     - title: Bug Fixes 🐜
       labels:
         - bug
@@ -22,6 +22,10 @@ changelog:
       labels:
         - cve
         - security
+    - title: DevOps
+      labels:
+        - actions
+        - devops
     - title: Other Changes 🧑‍💻
       labels:
         - "*"
