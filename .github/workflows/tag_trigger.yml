@@ -50,3 +50,10 @@ jobs:
       environment: "perf"
       ref: "${{ needs.setup-env.outputs.git-tag }}"
     secrets: inherit
+
+  run-user-flows:
+    needs: [run-deployment, run-lambda-deploy]
+    uses: ./.github/workflows/user_flows.yml
+    with:
+      environment: "${{ github.event.inputs.environment }}"
+    secrets: inherit

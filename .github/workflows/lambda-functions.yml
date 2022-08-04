@@ -72,7 +72,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.deployment.ref }}
+          ref: ${{ inputs.branch_name }}
 
       - name: Configure VAEC AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -90,7 +90,7 @@ jobs:
       - name: Package and deploy lambda function
         run: |
           zip -ug vetext_incoming_forwarder_lambda.zip vetext_incoming_forwarder_lambda.py
-          aws lambda update-function-code --function-name project-${{ github.event.inputs.environment }}-vetext-incoming-forwarder-lambda --zip-file fileb://vetext_incoming_forwarder_lambda.zip
+          aws lambda update-function-code --function-name project-${{ inputs.environment }}-vetext-incoming-forwarder-lambda --zip-file fileb://vetext_incoming_forwarder_lambda.zip
 
   deploy-other-lambdas:
     runs-on: ubuntu-latest
