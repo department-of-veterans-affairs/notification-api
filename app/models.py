@@ -2150,7 +2150,7 @@ class VAProfileLocalCache(db.Model):
 class UserServiceRoles(db.Model):
     __tablename__ = "user_service_roles"
 
-    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), unique=False, index=True, nullable=False)
     role = db.Column(db.String(255), nullable=False, index=False, unique=False)
     service_id = db.Column(UUID(as_uuid=True), db.ForeignKey('services.id'), unique=False, index=True, nullable=False)
