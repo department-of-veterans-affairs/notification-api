@@ -2146,6 +2146,7 @@ class VAProfileLocalCache(db.Model):
         UniqueConstraint('va_profile_id', 'communication_item_id', 'communication_channel_id', name='uix_veteran_id'),
     )
 
+
 class UserServiceRoles(db.Model):
     __tablename__ = "user_service_roles"
 
