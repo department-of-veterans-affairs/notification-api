@@ -18,9 +18,9 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
         @param: context -  contains information regarding information
             regarding what triggered the lambda (context.invoked_function_arn).
     """
-
+    
     twilio_response = create_twilio_response()
-
+    
     try:
         logger.debug(event)
         # Determine if the invoker of the lambda is SQS or ALB
