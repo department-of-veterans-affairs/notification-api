@@ -19,6 +19,8 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
             regarding what triggered the lambda (context.invoked_function_arn).
     """
 
+    twilio_response = create_twilio_response()
+
     try:
         logger.debug(event)
         # Determine if the invoker of the lambda is SQS or ALB
@@ -35,9 +37,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
             logger.debug(event)
             push_to_dead_letter_sqs(event, "vetext_incoming_forwarder_lambda_handler")
 
-            return{
-                'statusCode': 400
-            }
+            return twilio_response
 
         logger.info("Successfully processed event to event_bodies")
         logger.debug(event_bodies)
@@ -56,17 +56,27 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
 
         logger.debug(responses)
         
-        return {
-            'statusCode': 200
-        }    
+        return twilio_response
     except Exception as e:        
         logger.error(event)
         logger.exception(e)
         push_to_dead_letter_sqs(event, "vetext_incoming_forwarder_lambda_handler")
 
-        return{
-            'statusCode':500
-        }
+        return twilio_response
+
+def create_twilio_response():
+    twiml_response = '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
+    
+    response = {
+        "statusCode": 200,
+        "isBase64Encoded": False,
+        "headers": {
+            "Content-Type": "text/xml"
+        },
+        "body": twiml_response
+    }
+
+    return response
 
 def process_body_from_sqs_invocation(event):
     event_bodies = []
