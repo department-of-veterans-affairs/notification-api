@@ -35,7 +35,6 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
             logger.debug(event)
             push_to_dead_letter_sqs(event, "vetext_incoming_forwarder_lambda_handler")
 
-
             return create_twilio_response(400)
 
         logger.info("Successfully processed event to event_bodies")
