@@ -9,7 +9,7 @@ on:
       ref:
         description: Branch to Downgrade
         required: true
-        default: dev
+        default: master
 jobs:
   run-downgrade:
     runs-on: ubuntu-latest
