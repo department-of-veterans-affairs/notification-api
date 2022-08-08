@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     iputs:
       environment:
-        description: Where to downgrade from
+        description: Deployment environment in which to downgrade the database.
         required: true
         default: dev
       ref:
