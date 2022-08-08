@@ -36,7 +36,7 @@ jobs:
         id: render
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: ./cd/application-deployment/${{ github.event.inputs.environment }}/vaec-db-migrations-task-definition.json
+          task-definition: ./cd/application-deployment/${{ github.event.inputs.environment }}/vaec-db-downgrade-task-definition.json
           container-name: ${{ github.event.inputs.environment }}-notification-api-db-migrations
           image: ${{ steps.login-ecr-vaec.outputs.registry }}/notification_api:${{ github.event.inputs.ref }}_${{ github.event.inputs.environment}}
 
