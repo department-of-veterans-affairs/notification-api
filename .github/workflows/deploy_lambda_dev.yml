@@ -1,0 +1,23 @@
+name: Deploy Lambda to Dev
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch to deploy
+        required: true
+        default: master
+
+jobs:
+  setup-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.ref }}
+
+  build_deploy_lambda:
+    uses: ./.github/workflows/lambda-functions.yml
+    with:
+      environment: "dev"
+      ref: ${{ github.event.inputs.ref }}
