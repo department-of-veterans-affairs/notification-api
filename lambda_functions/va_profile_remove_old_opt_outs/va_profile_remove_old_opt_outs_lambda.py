@@ -14,6 +14,8 @@ if SQLALCHEMY_DATABASE_URI is None:
     logger.error("The database URI is not set.")
     sys.exit("Couldn't connect to the database.")
 
+logger.info('Execution environment prepared...')
+
 
 def va_profile_remove_old_opt_outs_handler(event=None, context=None, worker_id=None):
     """
