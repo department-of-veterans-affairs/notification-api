@@ -19,7 +19,7 @@ from app.models import (
     NOTIFICATION_STATUS_LETTER_RECEIVED,
     NOTIFICATION_STATUS_TYPES_FAILED,
     NOTIFICATION_TECHNICAL_FAILURE,
-    PRECOMPILED_TEMPLATE_NAME, ServiceCallback, COMPLAINT_CALLBACK_TYPE, QUEUE_CHANNEL_TYPE, WEBHOOK_CHANNEL_TYPE
+    PRECOMPILED_TEMPLATE_NAME, ServiceCallback, COMPLAINT_CALLBACK_TYPE, QUEUE_CHANNEL_TYPE, WEBHOOK_CHANNEL_TYPE, UserServiceRoles
 )
 from app.va.identifier import IdentifierType
 
@@ -228,10 +228,10 @@ def test_letter_notification_serializes_with_subject(client, sample_letter_templ
 
 
 def test_user_service_role_serializes(client, sample_user_service_role):
-    res = sample_user_service_role.serialize()
-    assert res['role'] == sample_user_service_role.role
-    assert res['service'] == sample_user_service_role.service.id
-    assert res['user'] == sample_user_service_role.user.id
+    res = UserServiceRoles()
+    res.role = "admin"
+    assert res['role'] == "admin"
+    assert res[id] != None
 
 
 def test_notification_references_template_history(client, sample_template):
