@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import final
 import psycopg2
 import sys
 
@@ -20,12 +21,17 @@ def va_profile_remove_old_opt_outs_handler(event=None, context=None, worker_id=N
     are opted out and greater than 24 hours old.
     """
 
+    connection = None
     # https://www.psycopg.org/docs/module.html#exceptions
     try:
+        logger.info('Connecting to database...')
         connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI + ('' if worker_id is None else f"_{worker_id}"))
         with connection.cursor() as c:
+            logger.info('Executing remove opt out function...')
             c.execute(REMOVE_OPTED_OUT_RECORDS_QUERY)
+            logger.info('Committing to database...')
             connection.commit()
+            logger.info('Commit to database...')
     except psycopg2.Warning as e:
         logger.warning(e)
     except psycopg2.Error as e:
@@ -33,3 +39,7 @@ def va_profile_remove_old_opt_outs_handler(event=None, context=None, worker_id=N
         logger.error(e.pgcode)
     except Exception as e:
         logger.exception(e)
+    finally:
+        if connection:
+            connection.close()
+            logger.info('Connection to database closed...')
