@@ -232,7 +232,7 @@ def test_letter_notification_serializes_with_subject(client, sample_letter_templ
     assert res['subject'] == 'Template subject'
 
 
-def test_user_service_role_serializes(client, sample_user_service_role):
+def test_user_service_role_serializes(client):
     res = UserServiceRoles()
     res.role = "admin"
     assert res['role'] == "admin"
