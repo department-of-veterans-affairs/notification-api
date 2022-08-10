@@ -8,7 +8,7 @@ on:
         default: master
 
 jobs:
-  setup-job:
+  setup_job:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -17,7 +17,7 @@ jobs:
           ref: ${{ github.event.inputs.ref }}
 
   build_deploy_lambda:
-    needs: [setup-job]
+    needs: [setup_job]
     uses: ./.github/workflows/lambda-functions.yml
     with:
       environment: "dev"
