@@ -22,3 +22,4 @@ jobs:
     with:
       environment: "dev"
       ref: ${{ github.event.inputs.ref }}
+    secrets: inherit
