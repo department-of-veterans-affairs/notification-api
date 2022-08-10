@@ -26,8 +26,8 @@ def va_profile_remove_old_opt_outs_handler(event=None, context=None, worker_id=N
     connection = None
     # https://www.psycopg.org/docs/module.html#exceptions
     try:
-        logger.info('Connecting to database...')
-        connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI + ('' if worker_id is None else f"_{worker_id}"))
+        connection = make_connetion(worker_id)
+        logger.info('Connected to database...')
         with connection.cursor() as c:
             logger.info('Executing remove opt out function...')
             c.execute(REMOVE_OPTED_OUT_RECORDS_QUERY)
@@ -45,3 +45,7 @@ def va_profile_remove_old_opt_outs_handler(event=None, context=None, worker_id=N
         if connection:
             connection.close()
             logger.info('Connection to database closed...')
+
+def make_connetion(worker_id):
+    logger.info('Connecting to database...')
+    return psycopg2.connect(SQLALCHEMY_DATABASE_URI + ('' if worker_id is None else f"_{worker_id}"))
