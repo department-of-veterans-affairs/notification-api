@@ -1,4 +1,4 @@
-name: Deploy Lambda to Dev
+name: Deploy Lambdas to Dev
 on:
   workflow_dispatch:
     inputs:
@@ -17,6 +17,7 @@ jobs:
           ref: ${{ github.event.inputs.ref }}
 
   build_deploy_lambda:
+    needs: [setup-job]
     uses: ./.github/workflows/lambda-functions.yml
     with:
       environment: "dev"
