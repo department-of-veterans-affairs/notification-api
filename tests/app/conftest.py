@@ -131,8 +131,9 @@ def sample_user_service_role(sample_user, sample_service):
         created_at=datetime.utcnow(),
     )
 
+
 @pytest.fixture(scope='function')
-def sample_user_service_role_udpated_at(sample_user, sample_service):
+def sample_service_role_udpated_at(sample_user, sample_service):
     return UserServiceRoles(
         user_id=sample_user.id,
         service_id=sample_service.id,
