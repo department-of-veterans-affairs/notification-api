@@ -231,7 +231,7 @@ def test_letter_notification_serializes_with_subject(client, sample_letter_templ
     assert res['subject'] == 'Template subject'
 
 
-def test_user_service_role_serializes_without_updated_at(client, sample_user_service_role, sample_user, sample_service):
+def test_user_service_role_serializes_without_updated(client, sample_user_service_role, sample_user, sample_service):
     res = sample_user_service_role.serialize()
     assert res['id'] is not None
     assert res['role'] == "admin"
@@ -240,13 +240,13 @@ def test_user_service_role_serializes_without_updated_at(client, sample_user_ser
     assert res['updated_at'] is None
 
 
-def test_user_service_role_serializes_with_updated_at(client, sample_service_role_udpated_at, sample_user, sample_service):
-    res = sample_service_role_udpated_at.serialize()
+def test_user_service_role_serializes_with_updated(client, sample_service_role_udpated, sample_user, sample_service):
+    res = sample_service_role_udpated.serialize()
     assert res['id'] is not None
     assert res['role'] == "admin"
     assert res['user_id'] == str(sample_user.id)
     assert res['service_id'] == str(sample_service.id)
-    assert res['updated_at'] == sample_service_role_udpated_at.updated_at.isoformat()
+    assert res['updated_at'] == sample_service_role_udpated.updated_at.isoformat()
 
 
 def test_notification_references_template_history(client, sample_template):
