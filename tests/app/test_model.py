@@ -23,8 +23,7 @@ from app.models import (
     ServiceCallback,
     COMPLAINT_CALLBACK_TYPE,
     QUEUE_CHANNEL_TYPE,
-    WEBHOOK_CHANNEL_TYPE,
-    UserServiceRoles
+    WEBHOOK_CHANNEL_TYPE
 )
 from app.va.identifier import IdentifierType
 
