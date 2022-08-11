@@ -6,7 +6,7 @@ import sys
 # Set globals
 REMOVE_OPTED_OUT_RECORDS_QUERY = """SELECT va_profile_remove_old_opt_outs();"""
 SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
-logger = logging.getLogger()
+logger = logging.getLogger('va_profile_remove_old_opt_outs')
 logger.setLevel(logging.INFO)
 
 # Verify environment is setup correctly
