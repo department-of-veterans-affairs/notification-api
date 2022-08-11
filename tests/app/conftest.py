@@ -125,8 +125,8 @@ def sample_user(notify_db_session):
 @pytest.fixture(scope='function')
 def sample_user_service_role(sample_user, sample_service):
     return UserServiceRoles(
-        user=sample_user,
-        service=sample_service,
+        user_id=sample_user.id,
+        service_id=sample_service.id,
         role=SERVICE_PERMISSION_TYPES.admin
     )
 
