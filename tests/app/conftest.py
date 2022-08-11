@@ -138,6 +138,7 @@ def sample_service_role_udpated(sample_user, sample_service):
         user_id=sample_user.id,
         service_id=sample_service.id,
         role="admin",
+        created_at=datetime_in_past(days=3),
         updated_at=datetime_in_past(days=1),
     )
 
