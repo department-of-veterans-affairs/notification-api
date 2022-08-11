@@ -231,10 +231,12 @@ def test_letter_notification_serializes_with_subject(client, sample_letter_templ
     assert res['subject'] == 'Template subject'
 
 
-def test_user_service_role_serializes(client, sample_user_service_role):
+def test_user_service_role_serializes(client, sample_user_service_role, sample_user, sample_service):
     res = sample_user_service_role.serialize()
     assert res['id'] is not None
-
+    assert res['role'] == "admin"
+    assert res['user_id'] == str(sample_user.id)
+    assert res['service_id'] == str(sample_service.id)
 
 def test_notification_references_template_history(client, sample_template):
     noti = create_notification(sample_template)
