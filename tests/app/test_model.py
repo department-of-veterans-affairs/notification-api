@@ -238,6 +238,7 @@ def test_user_service_role_serializes(client, sample_user_service_role, sample_u
     assert res['user_id'] == str(sample_user.id)
     assert res['service_id'] == str(sample_service.id)
 
+
 def test_notification_references_template_history(client, sample_template):
     noti = create_notification(sample_template)
     sample_template.version = 3
