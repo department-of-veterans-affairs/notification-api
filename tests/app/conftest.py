@@ -56,7 +56,8 @@ from app.models import (
     LETTER_TYPE,
     NOTIFICATION_STATUS_TYPES_COMPLETED,
     SERVICE_PERMISSION_TYPES,
-    ServiceEmailReplyTo, CommunicationItem
+    ServiceEmailReplyTo, CommunicationItem,
+    UserServiceRoles,
 )
 from app.model import User
 from tests import create_authorization_header
@@ -119,6 +120,15 @@ def service_factory(notify_db, notify_db_session):
 @pytest.fixture(scope='function')
 def sample_user(notify_db_session):
     return create_user()
+
+
+@pytest.fixture(scope='function')
+def sample_user_service_role(sample_user, sample_service):
+    return UserServiceRoles(
+        user=sample_user,
+        service=sample_service,
+        role=SERVICE_PERMISSION_TYPES.admin
+    )
 
 
 @pytest.fixture(scope='function')

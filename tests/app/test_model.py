@@ -232,9 +232,8 @@ def test_letter_notification_serializes_with_subject(client, sample_letter_templ
     assert res['subject'] == 'Template subject'
 
 
-def test_user_service_role_serializes(client):
-    user_service_role = UserServiceRoles(role='admin')
-    res = user_service_role.serialize()
+def test_user_service_role_serializes(client, sample_user_service_role):
+    res = sample_user_service_role.serialize()
     assert res['id'] is not None
 
 
