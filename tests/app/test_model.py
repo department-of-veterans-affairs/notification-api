@@ -233,7 +233,7 @@ def test_letter_notification_serializes_with_subject(client, sample_letter_templ
 
 
 def test_user_service_role_serializes(client):
-    res = UserServiceRoles.serialize()
+    res = UserServiceRoles().serialize()
     assert res[id] is not None
 
 
