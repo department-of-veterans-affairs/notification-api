@@ -234,8 +234,8 @@ def test_letter_notification_serializes_with_subject(client, sample_letter_templ
 def test_user_service_role_serializes(client, sample_user_service_role, sample_user, sample_service):
     res = sample_user_service_role.serialize()
     assert res['id'] is not None
-    assert res['user_id'] == sample_user.id
-    assert res['service_id'] == sample_service.id
+    assert res['user_id'] == sample_user.id.to_string()
+    assert res['service_id'] == sample_service.id.to_string()
 
 
 def test_notification_references_template_history(client, sample_template):
