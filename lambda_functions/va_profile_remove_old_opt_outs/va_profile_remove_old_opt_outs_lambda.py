@@ -48,6 +48,7 @@ def make_connection(worker_id):
     connection = None
 
     try:
+        logger.info('Connecting to database...')
         connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI + ('' if worker_id is None else f"_{worker_id}"))
         logger.info('Connected to database...')
     except psycopg2.Warning as e:
