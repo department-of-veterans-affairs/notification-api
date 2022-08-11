@@ -46,3 +46,4 @@ def va_profile_remove_old_opt_outs_handler(event=None, context=None, worker_id=N
     finally:
         if connection:
             connection.close()
+            logger.info('Connection closed...')
