@@ -127,7 +127,8 @@ def sample_user_service_role(sample_user, sample_service):
     return UserServiceRoles(
         user_id=sample_user.id,
         service_id=sample_service.id,
-        role="admin"
+        role="admin",
+        created_at=datetime.utcnow(),
     )
 
 
