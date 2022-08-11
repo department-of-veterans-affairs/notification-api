@@ -2162,6 +2162,7 @@ class UserServiceRoles(db.Model):
             'id': str(self.id),
             'user_id': str(self.user_id),
             'role': self.role,
+            'service_id': str(self.service_id),
             'created_at': self.created_at.strftime(DATETIME_FORMAT),
             'updated_at': self.updated_at.strftime(DATETIME_FORMAT) if self.updated_at else None
         }
