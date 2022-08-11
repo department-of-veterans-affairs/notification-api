@@ -3,7 +3,7 @@ import pytest
 from freezegun import freeze_time
 from sqlalchemy.exc import IntegrityError
 
-from app import encryption
+from app import DATE_FORMAT, encryption
 from app.models import (
     ServiceWhitelist,
     Notification,
@@ -246,7 +246,7 @@ def test_user_service_role_serializes_with_updated(client, sample_service_role_u
     assert res['role'] == "admin"
     assert res['user_id'] == str(sample_user.id)
     assert res['service_id'] == str(sample_service.id)
-    assert res['updated_at'] == sample_service_role_udpated.updated_at.isoformat()
+    assert res['updated_at'] == sample_service_role_udpated.updated_at.strftime(DATE_FORMAT)
 
 
 def test_notification_references_template_history(client, sample_template):
