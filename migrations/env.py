@@ -90,8 +90,14 @@ def run_migrations_offline():
     script output.
 
     """
+    def include_object(object, name, type_, reflected, compare_to):
+        return not (type_ == "index" or type_== "table" and reflected and compare_to is None)
+
     url = config.get_main_option("sqlalchemy.url")
-    context.configure(url=url)
+    context.configure(
+        url=url,
+        include_object=include_object,
+        target_metadata=target_metadata,)
 
     with context.begin_transaction():
         context.run_migrations()
@@ -103,6 +109,9 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
+    def include_object(object, name, type_, reflected, compare_to):
+        return not (type_ == "index" or type_== "table" and reflected and compare_to is None)
+
     engine = engine_from_config(
                 config.get_section(config.config_ini_section),
                 prefix='sqlalchemy.',
@@ -112,7 +121,8 @@ def run_migrations_online():
     context.configure(
                 connection=connection,
                 target_metadata=target_metadata,
-                compare_type=True
+                include_object=include_object,
+                compare_type=True,
                 )
 
     try:
