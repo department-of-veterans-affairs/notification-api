@@ -143,10 +143,14 @@ def read_from_ssm(key: str) -> str:
     try:
         ssm_client = boto3.client('ssm')
 
+        logger.info("Generated ssm_client")
+
         response = ssm_client.get_parameter(
             Name=key,
             WithDecryption=True
         )
+
+        logger.info("received ssm parameter")
 
         return response.get("Parameter", {}).get("Value", '')
     except Exception as e:
