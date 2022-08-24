@@ -206,7 +206,7 @@ def make_vetext_request(request_body):
     connection = None
 
     try:
-        connection = http.client.HTTPSConnection(domain, context=ssl._create_unverified_context())
+        connection = http.client.HTTPSConnection(domain, timeout=6, context=ssl._create_unverified_context())
         logger.info("generated connection to VeText")
 
         connection.request(
