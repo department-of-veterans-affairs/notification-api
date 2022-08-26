@@ -270,7 +270,7 @@ When a pre-release is created, the release action will trigger and this will pul
 
 When a tag is ready to be moved to prodution, complete the following steps.
 
-- Login to GitHub and go to the notification-portal repo. On the right side click on `Releases`
+- Login to GitHub and go to the notification-api repo. On the right side click on `Releases`
 
 - Select the pre-release tag to be updated and click on the penciel ✏️ icon in the upper right of the pre-release to edit
 
