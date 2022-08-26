@@ -241,6 +241,8 @@ The API releases are managed by tags in the GitHub repo.
 
 To create a new release, the user will create a new version tag in the git repository. This can be for the current `HEAD` or for a specific commit from a PR. The tag format will be `v(Major).(Minor).(Hotfix)` format. The Portal uses a similar method, so for version one of the Portal we created `v1.0.0` and with a single hotfix a new tag was created for `v1.0.1`.
 
+
+Example commands for tagging:
 ```cli
 git tag v2.0.0
 git push origin v2.0.0
