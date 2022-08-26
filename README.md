@@ -254,7 +254,7 @@ When a new tag is created with a `v` prefix and pushed to the repository, the ta
 
 After a tag has been deployed and the code is validated in perf, we create a `pre-release` for our staging environment.
 
-- Login to GitHub and go to the notification-portal repo. On the right side click on `Releases`
+- Login to GitHub and go to the notification-api repo. On the right side click on `Releases`
 
 - Click on `Draft a new release`
 
