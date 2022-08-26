@@ -235,7 +235,7 @@ If the PR does not fit into these categories, then don't add a tag.
 
 ## Release Process
 
-The portal releases are managed by tags in the GitHub repo.
+The API releases are managed by tags in the GitHub repo.
 
 ### Create a release for Perf
 
