@@ -209,11 +209,17 @@ def make_vetext_request(request_body):
             timeout=HTTPTIMEOUT,
             headers=headers
         )
-
+        response.raise_for_status()
+        
+        response_content = response.content
+        
         logger.info(f'VeText call complete with response: { response.status_code }')
-        # logger.debug(f"VeText response: {response.json()}")
+        logger.debug(f"VeText response: {response_content}")
     except requests.HTTPError as e:
-        logger.error("HttpException With Call To VeText")
+        logger.error("HTTPError With Call To VeText")
+        logger.exception(e)
+    except requests.RequestException as e:
+        logger.error("RequestException With Call To VeText")
         logger.exception(e)
     except Exception as e:
         logger.error("General Exception With Call to VeText")
