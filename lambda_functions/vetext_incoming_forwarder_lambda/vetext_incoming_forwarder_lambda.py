@@ -2,7 +2,6 @@
 
 import json
 import requests
-import ssl
 import os
 import logging
 from urllib.parse import parse_qsl
@@ -206,6 +205,8 @@ def make_vetext_request(request_body):
 
     try:
         # setting verify to false at the direction of VeText
+        response_json = None
+
         response = requests.post(
             endpoint_uri,
             verify=False,
@@ -215,10 +216,11 @@ def make_vetext_request(request_body):
         )
         response.raise_for_status()
         
-        response_content = response.content
+        if response.ok:
+            response_json = response.json()
         
         logger.info(f'VeText call complete with response: { response.status_code }')
-        logger.debug(f"VeText response: {response_content}")
+        logger.debug(f"VeText response: {response_json}")
     except requests.HTTPError as e:
         logger.error("HTTPError With Call To VeText")
         logger.exception(e)
@@ -229,9 +231,7 @@ def make_vetext_request(request_body):
         logger.error("General Exception With Call to VeText")
         logger.exception(e)
 
-    return_value = response if response.status_code == 200 else None
-
-    return return_value
+    return response_json
 
 
 def push_to_retry_sqs(event_body):
