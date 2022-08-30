@@ -201,13 +201,15 @@ def make_vetext_request(request_body):
         "body": request_body.get("Body", "")
     }
 
-    logger.info(f"Making POST Request to VeText using: {domain}{path}")
+    endpoint_uri = f"https://{domain}{path}"
+
+    logger.info(f"Making POST Request to VeText using: {endpoint_uri}")
     logger.debug(f"json dumps: {json.dumps(body)}")
 
     try:
         # setting verify to false at the direction of VeText
         response = requests.post(
-            f"https://{domain}{path}",
+            endpoint_uri,
             verify=False,
             json=body,
             timeout=HTTPTIMEOUT,
@@ -215,12 +217,7 @@ def make_vetext_request(request_body):
         )
 
         logger.info(f'VeText call complete with response: { response.status_code }')
-        logger.debug(f"VeText response: {response.json()}")
-
-        if response.status_code == 200:
-            return response
-
-        logger.error("VeText call failed.")
+        # logger.debug(f"VeText response: {response.json()}")
     except requests.HTTPError as e:
         logger.error("HttpException With Call To VeText")
         logger.exception(e)
@@ -228,7 +225,9 @@ def make_vetext_request(request_body):
         logger.error("General Exception With Call to VeText")
         logger.exception(e)
 
-    return None
+    return_value = response if response.status_code == 200 else None
+
+    return return_value
 
 
 def push_to_retry_sqs(event_body):
