@@ -225,7 +225,7 @@ def make_vetext_request(request_body):
             return response
 
         logger.error("VeText call failed.")
-    except http.client.HTTPException as e:
+    except  requests.HTTPError as e:
         logger.error("HttpException With Call To VeText")
         logger.exception(e)
     except Exception as e:
