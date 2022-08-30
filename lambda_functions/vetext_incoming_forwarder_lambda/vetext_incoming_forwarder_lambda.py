@@ -213,7 +213,7 @@ def make_vetext_request(request_body):
         response = requests.post(
             f"https://{domain}{path}",
             verify=False,
-            json=json_data,
+            data=json_data,
             timeout=HTTPTIMEOUT,
             headers=headers
         )
