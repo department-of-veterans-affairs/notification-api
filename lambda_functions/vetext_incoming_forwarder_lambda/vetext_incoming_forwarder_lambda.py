@@ -203,7 +203,7 @@ def make_vetext_request(request_body):
 
     json_data = json.dumps(body)
 
-    logger.info(f"Making POST Request to VeText using: ${domain}${path}")
+    logger.info(f"Making POST Request to VeText using: {domain}{path}")
     logger.debug(f"json dumps: {json_data}")
 
     connection = None
@@ -211,7 +211,7 @@ def make_vetext_request(request_body):
     try:
          # setting verify to false at the direction of VeText 
         response = requests.post(
-                f"{domain}{path}",
+                f"https://{domain}{path}",
                 verify=False,
                 json=json_data,
                 timeout=HTTPTIMEOUT,
