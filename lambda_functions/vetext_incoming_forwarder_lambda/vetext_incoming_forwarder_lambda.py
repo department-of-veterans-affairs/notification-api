@@ -44,8 +44,6 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
         logger.info("Successfully processed event to event_bodies")
         logger.debug(event_bodies)
 
-        responses = []
-
         for event_body in event_bodies:
             logger.debug(f"Processing event_body: {event_body}")
 
@@ -53,10 +51,6 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
 
             if response is None:
                 push_to_retry_sqs(event_body)
-
-            responses.append(response)
-
-        logger.debug(responses)
 
         return create_twilio_response(200)
     except Exception as e:
