@@ -156,9 +156,6 @@ def read_from_ssm(key: str) -> str:
 
 
 def make_vetext_request(request_body):
-    # We have been directed by the VeText team to ignore SSL validation
-    #   that is why we use the ssl._create_unverified_context method
-
     ssm_path = os.getenv('vetext_api_auth_ssm_path')
     if ssm_path is None:
         logger.error("Unable to retrieve vetext_api_auth_ssm_path from env variables")
