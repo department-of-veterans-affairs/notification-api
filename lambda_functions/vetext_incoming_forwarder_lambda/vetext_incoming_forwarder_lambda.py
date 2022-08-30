@@ -230,10 +230,7 @@ def make_vetext_request(request_body):
         logger.exception(e)
     except Exception as e:
         logger.error("General Exception With Call to VeText")
-        logger.exception(e)
-    finally:
-        if connection:
-            connection.close()
+        logger.exception(e)   
 
     return None
 
