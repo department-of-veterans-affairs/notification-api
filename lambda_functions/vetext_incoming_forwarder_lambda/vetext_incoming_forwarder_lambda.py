@@ -201,19 +201,15 @@ def make_vetext_request(request_body):
         "body": request_body.get("Body", "")
     }
 
-    json_data = json.dumps(body)
-
     logger.info(f"Making POST Request to VeText using: {domain}{path}")
-    logger.debug(f"json dumps: {json_data}")
-
-    connection = None
+    logger.debug(f"json dumps: {json.dumps(body)}")
 
     try:
         # setting verify to false at the direction of VeText
         response = requests.post(
             f"https://{domain}{path}",
             verify=False,
-            data=json_data,
+            json=body,
             timeout=HTTPTIMEOUT,
             headers=headers
         )
@@ -230,7 +226,7 @@ def make_vetext_request(request_body):
         logger.exception(e)
     except Exception as e:
         logger.error("General Exception With Call to VeText")
-        logger.exception(e)   
+        logger.exception(e)
 
     return None
 
