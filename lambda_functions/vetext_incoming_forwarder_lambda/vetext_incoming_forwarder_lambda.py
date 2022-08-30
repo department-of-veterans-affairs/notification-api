@@ -209,23 +209,23 @@ def make_vetext_request(request_body):
     connection = None
 
     try:
-         # setting verify to false at the direction of VeText 
+        # setting verify to false at the direction of VeText
         response = requests.post(
-                f"https://{domain}{path}",
-                verify=False,
-                json=json_data,
-                timeout=HTTPTIMEOUT,
-                headers=headers
-            )
+            f"https://{domain}{path}",
+            verify=False,
+            json=json_data,
+            timeout=HTTPTIMEOUT,
+            headers=headers
+        )
 
-        logger.info(f'VeText call complete with response: { response.status_code }')        
+        logger.info(f'VeText call complete with response: { response.status_code }')
         logger.debug(f"VeText response: {response.json()}")
 
         if response.status_code == 200:
             return response
 
         logger.error("VeText call failed.")
-    except  requests.HTTPError as e:
+    except requests.HTTPError as e:
         logger.error("HttpException With Call To VeText")
         logger.exception(e)
     except Exception as e:
