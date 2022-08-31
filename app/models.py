@@ -1306,6 +1306,7 @@ class Notification(db.Model):
     key_type = db.Column(db.String, db.ForeignKey('key_types.name'), index=True, unique=False, nullable=False)
     billable_units = db.Column(db.Integer, nullable=False, default=0)
     notification_type = db.Column(notification_types, index=True, nullable=False)
+    message_service_sid = db.Column(db.String(34), nullable=True)
     created_at = db.Column(
         db.DateTime,
         index=True,

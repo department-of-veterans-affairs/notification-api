@@ -20,7 +20,7 @@ from app.celery.lookup_va_profile_id_task import lookup_va_profile_id
 from app.celery.onsite_notification_tasks import send_va_onsite_notification_task
 from app.celery.letters_pdf_tasks import create_letters_pdf
 from app.config import QueueNames
-from app.dao.service_sms_sender_dao import dao_get_sms_sender_by_service_id_and_number
+from app.dao.service_sms_sender_dao import dao_get_service_sms_sender_by_service_id_and_number
 from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
 
 from app.models import (
@@ -79,11 +79,14 @@ def persist_notification(
         postage=None,
         template_postage=None,
         recipient_identifier=None,
-        billing_code=None
+        billing_code=None,
+        message_service_sid=None
 ):
     notification_created_at = created_at or datetime.utcnow()
+
     if not notification_id:
         notification_id = uuid.uuid4()
+
     notification = Notification(
         id=notification_id,
         template_id=template_id,
@@ -104,14 +107,17 @@ def persist_notification(
         status=status,
         reply_to_text=reply_to_text,
         billable_units=billable_units,
-        billing_code=billing_code
+        billing_code=billing_code,
+        message_service_sid=message_service_sid
     )
+
     if accept_recipient_identifiers_enabled() and recipient_identifier:
         _recipient_identifier = RecipientIdentifier(
             notification_id=notification_id,
             id_type=recipient_identifier['id_type'],
             id_value=recipient_identifier['id_value']
         )
+
         notification.recipient_identifiers.set(_recipient_identifier)
 
     if notification_type == SMS_TYPE and notification.to:
@@ -126,8 +132,8 @@ def persist_notification(
     elif notification_type == LETTER_TYPE:
         notification.postage = postage or template_postage
 
-    # if simulated create a Notification model to return but do not persist the Notification to the dB
     if not simulated:
+        # Persist the Notification in the database.
         dao_create_notification(notification)
         if key_type != KEY_TYPE_TEST:
             if redis_store.get(redis.daily_limit_cache_key(service.id)):
@@ -136,10 +142,12 @@ def persist_notification(
         current_app.logger.info(
             "{} {} created at {}".format(notification_type, notification_id, notification_created_at)
         )
+
     return notification
 
 
 def send_notification_to_queue(notification, research_mode, queue=None, recipient_id_type: str = None):
+    # "delivery_task" is a function.
     deliver_task, queue = _get_delivery_task(notification, research_mode, queue)
 
     template = notification.template
@@ -148,6 +156,7 @@ def send_notification_to_queue(notification, research_mode, queue=None, recipien
         communication_item_id = template.communication_item_id
 
     try:
+        # https://docs.celeryq.dev/en/v4.4.7/userguide/canvas.html#immutability
         tasks = [deliver_task.si(str(notification.id)).set(queue=queue)]
         if (recipient_id_type and communication_item_id and
            is_feature_enabled(FeatureFlag.CHECK_RECIPIENT_COMMUNICATION_PERMISSIONS_ENABLED)):
@@ -162,6 +171,8 @@ def send_notification_to_queue(notification, research_mode, queue=None, recipien
             if recipient_id_type != IdentifierType.VA_PROFILE_ID.value:
                 tasks.insert(0, lookup_va_profile_id.si(notification.id).set(queue=QueueNames.LOOKUP_VA_PROFILE_ID))
 
+        # This executes the task list.  Each task calls a function that makes a request to
+        # the backend provider.
         chain(*tasks).apply_async()
 
     except Exception:
@@ -175,6 +186,10 @@ def send_notification_to_queue(notification, research_mode, queue=None, recipien
 
 
 def _get_delivery_task(notification, research_mode=False, queue=None):
+    """
+    The return value "deliver_task" is a function decorated to be a Celery task.
+    """
+
     if research_mode or notification.key_type == KEY_TYPE_TEST:
         queue = QueueNames.RESEARCH_MODE
 
@@ -182,10 +197,17 @@ def _get_delivery_task(notification, research_mode=False, queue=None):
         if not queue:
             queue = QueueNames.SEND_SMS
 
-        sms_sender = dao_get_sms_sender_by_service_id_and_number(notification.service_id,
-                                                                 notification.reply_to_text)
+        # This is an instance of ServiceSmsSender or None.
+        service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
+            notification.service_id,
+            notification.reply_to_text
+        )
 
-        if is_feature_enabled(FeatureFlag.SMS_SENDER_RATE_LIMIT_ENABLED) and sms_sender and sms_sender.rate_limit:
+        if (
+            is_feature_enabled(FeatureFlag.SMS_SENDER_RATE_LIMIT_ENABLED)
+            and service_sms_sender is not None
+            and service_sms_sender.rate_limit
+        ):
             deliver_task = provider_tasks.deliver_sms_with_rate_limiting
         else:
             deliver_task = provider_tasks.deliver_sms
