@@ -110,22 +110,7 @@ valid_phone_number_json = {
     "template_id": str(uuid.uuid4())
 }
 
-valid_phone_number_and_message_service_sid_json = {
-    "message_service_sid": "MG20f5e875aab3c829110351f457c7c563",
-    "phone_number": "6502532222",
-    "template_id": str(uuid.uuid4()),
-}
-
 valid_recipient_identifier_json = {
-    "recipient_identifier": {
-        "id_type": IdentifierType.VA_PROFILE_ID.value,
-        "id_value": "bar"
-    },
-    "template_id": str(uuid.uuid4())
-}
-
-valid_recipient_identifier_and_message_service_sid_json_json = {
-    "message_service_sid": "MG20f5e875aab3c829110351f457c7c563",
     "recipient_identifier": {
         "id_type": IdentifierType.VA_PROFILE_ID.value,
         "id_value": "bar"
@@ -156,8 +141,6 @@ valid_json_with_optionals = {
     valid_recipient_identifier_json,
     valid_phone_number_and_recipient_identifier_json,
     valid_json_with_optionals,
-    valid_phone_number_and_message_service_sid_json,
-    valid_recipient_identifier_and_message_service_sid_json_json,
 ])
 def test_post_sms_schema_is_valid(data):
     assert validate(data, post_sms_request_schema) == data

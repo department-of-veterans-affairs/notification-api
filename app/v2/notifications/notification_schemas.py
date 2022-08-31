@@ -166,13 +166,13 @@ post_sms_request = {
         "template_id": uuid,
         "personalisation": personalisation,
         "scheduled_for": {"type": ["string", "null"], "format": "datetime_within_next_day"},
+        # TODO - This doesn't seem to be used.  Remove it?
         "sms_sender_id": uuid,
         "billing_code": {"type": ["string", "null"], "maxLength": 256},
-        # This field, if present, and if Twilio is the SMS provider,
-        # will replace the phone number contained in the template.
-        "message_service_sid": {"type": "string"},
     },
+    # This is necessary to get the content of the message and who it's from.
     "required": ["template_id"],
+    # These attributes define who will receive the message.
     "anyOf": [
         {"required": ["phone_number"]},
         {"required": ["recipient_identifier"]}
