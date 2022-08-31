@@ -13,7 +13,6 @@ from app import attachment_store
 from app import clients, statsd_client, create_uuid, provider_service
 from app.attachments.types import UploadedAttachmentMetadata
 from app.celery.research_mode_tasks import send_sms_response, send_email_response
-from app.clients.sms.twilio import TwilioSMSClient
 from app.dao.notifications_dao import (
     dao_update_notification
 )
@@ -49,7 +48,7 @@ def send_sms_to_provider(notification):
     """
     Send an HTTP request to an SMS backend provider to initiate an SMS message to a veteran.
 
-    When the backend provider is Twilio, use message_service_sid, if available, for the sender's
+    When the backend provider has sms_sender_specifics, use message_service_sid, if available, for the sender's
     identity instead of the sender's phone number.
     """
 
@@ -81,18 +80,15 @@ def send_sms_to_provider(notification):
 
     else:
         message_service_sid = None
-        is_twilio = isinstance(provider, TwilioSMSClient)
 
         try:
-            if is_twilio:
-                # This is an instance of ServiceSmsSender or None.
-                service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-                    notification.service_id,
-                    notification.reply_to_text
-                )
+            # This is an instance of ServiceSmsSender or None.
+            service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
+                notification.service_id,
+                notification.reply_to_text
+            )
 
-                assert isinstance(service_sms_sender.sms_sender_specifics, dict), \
-                    type(service_sms_sender.sms_sender_specifics)
+            if service_sms_sender and service_sms_sender.sms_sender_specifics:
                 message_service_sid = service_sms_sender.sms_sender_specifics.get("message_service_sid")
 
             if message_service_sid is None:
@@ -105,7 +101,6 @@ def send_sms_to_provider(notification):
                 )
             else:
                 # Send a SMS message using the "message_service_sid" attribute to specify the recipient.
-                assert is_twilio, "This is specific to Twilio."
                 reference = provider.send_sms(
                     to=validate_and_format_phone_number(notification.to, international=notification.international),
                     content=str(template),

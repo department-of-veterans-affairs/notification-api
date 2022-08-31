@@ -89,7 +89,7 @@ def send_email(notification_url: str, service_jwt: str, payload: str) -> Respons
     return post_authenticated_request(f"{notification_url}/v2/notifications/email", service_jwt, payload)
 
 
-def send_sms(notification_url: str, service_jwt: str, payload: str) -> Response:
+def send_sms(notification_url: str, service_jwt: str, payload: str, **kwargs) -> Response:
     return post_authenticated_request(f"{notification_url}/v2/notifications/sms", service_jwt, payload)
 
 
