@@ -21,6 +21,7 @@ from app.dao.provider_details_dao import (
     get_provider_details_by_notification_type,
     dao_toggle_sms_provider, get_provider_details_by_id
 )
+from app.dao.service_sms_sender_dao import dao_get_service_sms_sender_by_service_id_and_number
 from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import NotificationTechnicalFailureException, InvalidProviderException
 from app.feature_flags import (
@@ -48,8 +49,8 @@ def send_sms_to_provider(notification):
     """
     Send an HTTP request to an SMS backend provider to initiate an SMS message to a veteran.
 
-    When the backend provider is Twilio, use notification.message_service_sid, if available,
-    for the sender's identity instead of the sender's phone number.
+    When the backend provider is Twilio, use message_service_sid, if available, for the sender's
+    identity instead of the sender's phone number.
     """
 
     service = notification.service
@@ -79,26 +80,38 @@ def send_sms_to_provider(notification):
         send_sms_response(provider.get_name(), str(notification.id), notification.to, notification.reference)
 
     else:
+        message_service_sid = None
         is_twilio = isinstance(provider, TwilioSMSClient)
-        is_message_service_sid = is_twilio and notification.message_service_sid is not None
-        the_sender = notification.message_service_sid if is_message_service_sid else notification.reply_to_text
+
+        if is_twilio:
+            # This is an instance of ServiceSmsSender or None.
+            service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
+                notification.service_id,
+                notification.reply_to_text
+            )
+
+            assert isinstance(service_sms_sender.sms_sender_specifics, dict), \
+                type(service_sms_sender.sms_sender_specifics)
+            message_service_sid = service_sms_sender.sms_sender_specifics.get("message_service_sid")
 
         try:
-            if is_message_service_sid:
+            if message_service_sid is None:
+                # Send a SMS message using the "to" attribute to specify the recipient.
                 reference = provider.send_sms(
                     to=validate_and_format_phone_number(notification.to, international=notification.international),
                     content=str(template),
                     reference=str(notification.id),
-                    sender=the_sender,
-                    is_message_service_sid=is_message_service_sid
+                    sender=notification.reply_to_text
                 )
             else:
-                # Non-Twilio providers don't take the is_message_service_sid parameter.
+                # Send a SMS message using the "message_service_sid" attribute to specify the recipient.
+                assert is_twilio, "This is specific to Twilio."
                 reference = provider.send_sms(
                     to=validate_and_format_phone_number(notification.to, international=notification.international),
                     content=str(template),
                     reference=str(notification.id),
-                    sender=the_sender
+                    sender=notification.reply_to_text,
+                    message_service_sid=message_service_sid
                 )
         except Exception as e:
             notification.billable_units = template.fragment_count

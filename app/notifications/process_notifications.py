@@ -107,8 +107,7 @@ def persist_notification(
         status=status,
         reply_to_text=reply_to_text,
         billable_units=billable_units,
-        billing_code=billing_code,
-        message_service_sid=message_service_sid
+        billing_code=billing_code
     )
 
     if accept_recipient_identifiers_enabled() and recipient_identifier:
@@ -147,6 +146,10 @@ def persist_notification(
 
 
 def send_notification_to_queue(notification, research_mode, queue=None, recipient_id_type: str = None):
+    """
+    Create, enqueue, and asynchronously execute a Celery task to send a notification.
+    """
+
     # "delivery_task" is a function.
     deliver_task, queue = _get_delivery_task(notification, research_mode, queue)
 

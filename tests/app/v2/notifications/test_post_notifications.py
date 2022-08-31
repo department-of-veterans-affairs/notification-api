@@ -84,7 +84,6 @@ def mock_deliver_sms(mocker):
 @pytest.mark.parametrize("reference", [None, "reference_from_client"])
 @pytest.mark.parametrize("data", [
     {"phone_number": "+16502532222"},
-    {"phone_number": "+16502532222", "message_service_sid": "MG20f5e875aab3c829110351f457c7c563"},
     # TODO - Testing recipient_identifier requires an active feature flag that is not
     # active in the testing environment.
     # {"recipient_identifier": {"id_type": IdentifierType.VA_PROFILE_ID.value, "id_value": "bar"}},

@@ -213,7 +213,7 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
     #
     # TODO (tech debt) - This value is computed using a predetermined list of e-mail addresses defined
     # to be for simulation.  A better approach might be to pass "simulated" as a parameter to
-    # process_sms_or_email_notification or to mock the undesired side-effects.
+    # process_sms_or_email_notification or to mock the undesired side-effects in test code.
     simulated: bool = simulated_recipient(send_to, notification_type)
 
     personalisation = process_document_uploads(form.get('personalisation'), service, simulated=simulated)
@@ -233,8 +233,7 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
         simulated=simulated,
         reply_to_text=reply_to_text,
         recipient_identifier=recipient_identifier,
-        billing_code=form.get("billing_code"),
-        message_service_sid=form.get("message_service_sid")
+        billing_code=form.get("billing_code")
     )
 
     if "scheduled_for" in form:
@@ -270,8 +269,7 @@ def process_notification_with_recipient_identifier(*, form, notification_type, a
         client_reference=form.get("reference"),
         reply_to_text=reply_to_text,
         recipient_identifier=form.get("recipient_identifier"),
-        billing_code=form.get("billing_code"),
-        message_service_sid=form.get("message_service_sid")
+        billing_code=form.get("billing_code")
     )
 
     send_to_queue_for_recipient_info_based_on_recipient_identifier(
