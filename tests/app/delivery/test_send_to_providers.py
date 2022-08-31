@@ -356,6 +356,33 @@ def test_send_sms_should_use_service_sms_sender(
     )
 
 
+def test_send_sms_should_use_service_sms_sender_specifics(
+        sample_service,
+        sample_template,
+        mock_sms_client):
+
+    sms_sender = create_service_sms_sender(
+        service=sample_service,
+        sms_sender='123456',
+        is_default=False,
+        sms_sender_specifics={"message_service_sid": "test-service-sid-123"},
+    )
+
+    db_notification = create_notification(template=sample_template, reply_to_text=sms_sender.sms_sender)
+
+    send_to_providers.send_sms_to_provider(
+        db_notification,
+    )
+
+    mock_sms_client.send_sms.assert_called_once_with(
+        to=ANY,
+        content=ANY,
+        reference=ANY,
+        sender=sms_sender.sms_sender,
+        message_service_sid="test-service-sid-123"
+    )
+
+
 @pytest.mark.parametrize('research_mode,key_type', [
     (True, KEY_TYPE_NORMAL),
     (False, KEY_TYPE_TEST)
