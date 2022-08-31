@@ -191,7 +191,7 @@ def check_service_email_reply_to_id(service_id, reply_to_id, notification_type):
 
 
 def check_service_sms_sender_id(service_id, sms_sender_id, notification_type):
-    if sms_sender_id:
+    if sms_sender_id is not None:
         try:
             return dao_get_service_sms_sender_by_id(service_id, sms_sender_id).sms_sender
         except NoResultFound:

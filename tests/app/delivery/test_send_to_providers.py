@@ -711,7 +711,7 @@ def test_should_handle_sms_sender_and_prefix_message(
         content=expected_content,
         sender=expected_sender,
         to=ANY,
-        reference=ANY,
+        reference=ANY
     )
 
 

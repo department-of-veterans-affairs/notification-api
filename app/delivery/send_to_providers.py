@@ -13,6 +13,7 @@ from app import attachment_store
 from app import clients, statsd_client, create_uuid, provider_service
 from app.attachments.types import UploadedAttachmentMetadata
 from app.celery.research_mode_tasks import send_sms_response, send_email_response
+from app.clients.sms.twilio import TwilioSMSClient
 from app.dao.notifications_dao import (
     dao_update_notification
 )
@@ -44,50 +45,74 @@ from app.service.utils import compute_source_email_address
 
 
 def send_sms_to_provider(notification):
+    """
+    Send an HTTP request to an SMS backend provider to initiate an SMS message to a veteran.
+
+    When the backend provider is Twilio, use notification.message_service_sid, if available,
+    for the sender's identity instead of the sender's phone number.
+    """
+
     service = notification.service
 
     if not service.active:
         technical_failure(notification=notification)
         return
 
-    if notification.status == 'created':
-        provider = provider_to_use(notification)
+    if notification.status != "created":
+        return
 
-        template_model = dao_get_template_by_id(notification.template_id, notification.template_version)
+    # This is an instance of one of the classes defined in app/clients/.
+    provider = provider_to_use(notification)
 
-        template = SMSMessageTemplate(
-            template_model.__dict__,
-            values=notification.personalisation,
-            prefix=service.name,
-            show_prefix=service.prefix_sms,
-        )
+    template_model = dao_get_template_by_id(notification.template_id, notification.template_version)
 
-        if service.research_mode or notification.key_type == KEY_TYPE_TEST:
-            notification.reference = create_uuid()
-            update_notification_to_sending(notification, provider)
-            send_sms_response(provider.get_name(), str(notification.id), notification.to, notification.reference)
+    template = SMSMessageTemplate(
+        template_model.__dict__,
+        values=notification.personalisation,
+        prefix=service.name,
+        show_prefix=service.prefix_sms,
+    )
 
-        else:
-            try:
+    if service.research_mode or notification.key_type == KEY_TYPE_TEST:
+        notification.reference = create_uuid()
+        update_notification_to_sending(notification, provider)
+        send_sms_response(provider.get_name(), str(notification.id), notification.to, notification.reference)
+
+    else:
+        is_twilio = isinstance(provider, TwilioSMSClient)
+        is_message_service_sid = is_twilio and notification.message_service_sid is not None
+        the_sender = notification.message_service_sid if is_message_service_sid else notification.reply_to_text
+
+        try:
+            if is_message_service_sid:
                 reference = provider.send_sms(
                     to=validate_and_format_phone_number(notification.to, international=notification.international),
                     content=str(template),
                     reference=str(notification.id),
-                    sender=notification.reply_to_text
+                    sender=the_sender,
+                    is_message_service_sid=is_message_service_sid
                 )
-            except Exception as e:
-                notification.billable_units = template.fragment_count
-                dao_update_notification(notification)
-                dao_toggle_sms_provider(provider.name)
-                raise e
             else:
-                notification.billable_units = template.fragment_count
-                notification.reference = reference
-                update_notification_to_sending(notification, provider)
-                current_app.logger.info(f"Saved provider reference: {reference} for notification id: {notification.id}")
+                # Non-Twilio providers don't take the is_message_service_sid parameter.
+                reference = provider.send_sms(
+                    to=validate_and_format_phone_number(notification.to, international=notification.international),
+                    content=str(template),
+                    reference=str(notification.id),
+                    sender=the_sender
+                )
+        except Exception as e:
+            notification.billable_units = template.fragment_count
+            dao_update_notification(notification)
+            dao_toggle_sms_provider(provider.name)
+            raise e
+        else:
+            notification.billable_units = template.fragment_count
+            notification.reference = reference
+            update_notification_to_sending(notification, provider)
+            current_app.logger.info(f"Saved provider reference: {reference} for notification id: {notification.id}")
 
-        delta_milliseconds = (datetime.utcnow() - notification.created_at).total_seconds() * 1000
-        statsd_client.timing("sms.total-time", delta_milliseconds)
+    delta_milliseconds = (datetime.utcnow() - notification.created_at).total_seconds() * 1000
+    statsd_client.timing("sms.total-time", delta_milliseconds)
 
 
 def send_email_to_provider(notification):
@@ -203,6 +228,7 @@ def provider_to_use(notification: Notification):
                 notification.notification_type
             )
 
+    # This is a list of ProviderDetails instances sorted by their "priority" attribute.
     active_providers_in_order = [
         p for p in get_provider_details_by_notification_type(notification.notification_type, notification.international)
         if should_use_provider(p)
@@ -214,6 +240,7 @@ def provider_to_use(notification: Notification):
         )
         raise Exception("No active {} providers".format(notification.notification_type))
 
+    # This returns an instance of one of the classes defined in app/clients/.
     return clients.get_client_by_name_and_type(active_providers_in_order[0].identifier, notification.notification_type)
 
 

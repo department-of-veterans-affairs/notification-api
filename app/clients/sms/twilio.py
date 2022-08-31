@@ -41,7 +41,15 @@ class TwilioSMSClient(SmsClient):
     def get_name(self):
         return self.name
 
-    def send_sms(self, to, content, reference, sender=None):
+    def send_sms(self, to, content, reference, sender=None, is_message_service_sid=False):
+        """
+        Twilio supports sending messages with a sender phone number or message_service_sid.
+        If is_message_service_sid is True, the "sender" parameter holds the message service
+        sid.
+
+        https://www.twilio.com/docs/messaging/services
+        """
+
         # could potentially select from potential numbers like this
         # from_number = random.choice(self._client.incoming_phone_numbers.list()).phone_number
 
@@ -50,12 +58,22 @@ class TwilioSMSClient(SmsClient):
         callback_url = "{}/notifications/sms/twilio/{}".format(
             self._callback_notify_url_host, reference) if self._callback_notify_url_host else ""
         try:
-            message = self._client.messages.create(
-                to=to,
-                from_=from_number,
-                body=content,
-                status_callback=callback_url,
-            )
+            if is_message_service_sid:
+                # Make a request using the message service sid.
+                message = self._client.messages.create(
+                    to=to,
+                    message_service_sid=sender,
+                    body=content,
+                    status_callback=callback_url,
+                )
+            else:
+                # Make a request using a sender phone number.
+                message = self._client.messages.create(
+                    to=to,
+                    from_=from_number,
+                    body=content,
+                    status_callback=callback_url,
+                )
 
             self.logger.info("Twilio send SMS request for {} succeeded: {}".format(reference, message.sid))
         except Exception as e:

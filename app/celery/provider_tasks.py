@@ -10,7 +10,7 @@ from app.clients.email.aws_ses import AwsSesClientThrottlingSendRateException
 from app.config import QueueNames
 from app.dao import notifications_dao
 from app.dao.notifications_dao import update_notification_status_by_id
-from app.dao.service_sms_sender_dao import dao_get_sms_sender_by_service_id_and_number
+from app.dao.service_sms_sender_dao import dao_get_service_sms_sender_by_service_id_and_number
 from app.delivery import send_to_providers
 from app.exceptions import NotificationTechnicalFailureException, MalwarePendingException, InvalidProviderException
 from app.models import NOTIFICATION_TECHNICAL_FAILURE, NOTIFICATION_PERMANENT_FAILURE
@@ -63,8 +63,8 @@ def deliver_sms_with_rate_limiting(self, notification_id):
         notification = notifications_dao.get_notification_by_id(notification_id)
         if not notification:
             raise NoResultFound()
-        sms_sender = dao_get_sms_sender_by_service_id_and_number(notification.service_id,
-                                                                 notification.reply_to_text)
+        sms_sender = dao_get_service_sms_sender_by_service_id_and_number(notification.service_id,
+                                                                         notification.reply_to_text)
         check_sms_sender_over_rate_limit(notification.service_id, sms_sender.id)
         send_to_providers.send_sms_to_provider(notification)
         current_app.logger.info(f'Successfully sent sms with rate limiting for notification id: {notification_id}')
