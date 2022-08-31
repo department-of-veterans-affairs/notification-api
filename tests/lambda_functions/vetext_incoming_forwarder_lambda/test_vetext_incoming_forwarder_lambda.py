@@ -17,8 +17,8 @@ albInvokedWithoutAddOn = {'requestContext': {'elb': {'targetGroupArn': 'arn:aws-
 sqsInvokedWithAddOn = {'Records': [{'messageId': '143555b0-a74b-4793-8421-15cfeeaa487d', 'receiptHandle': 'AQEBfoQLBPET91yTrBH2AEToheRAt2X8vrQddfzr8CG4haD0LT+leMdW7uiDW9AEvr6YMbTVBgYNSBUegTU/g3KQ6deY1NqQxba+2j0KnHiiSrnzuotJAcSItGGjKh2kr4mxU/zg+WMmD1949uCS+og+x9Ayxy0762PtFiQ//vT1fiMVvCXtArDQHnj6p0ywENGq99TE/71UYXPn2WuuQcGgGvEi4kOYzz0u4/iQxH8kWz5u7Qroumob/4EVe7uAu6FCzSYylY+6yCHnDMCtqVKKndr1RP/hUiGkp/Cy8nZew2yh7lJvIIvi9hZjMi8/HQs8725HV1/83hOukYq8IrWIT0tDjDI49Xn/cOjzMGpbRmchr5tk4JOBM8Btg0JkkuM8Js7an5PiuvRS0sqeX1INTZQDCl7nOqNbPjqx0FKgDzg=', 'body': '{"ToCountry": "US", "SmsMessageSid": "SM031265e1d5c5e56c6243509a1eafc7e8", "NumMedia": "0", "FromZip": "74344", "SmsSid": "SM031265e1d5c5e56c6243509a1eafc7e8", "FromState": "OK", "SmsStatus": "received", "FromCity": "GROVE", "Body": "Y1", "FromCountry": "US", "To": "53079", "MessagingServiceSid": "MGbe6bb27a9ca15de276c5b86f0d9e9c2e", "NumSegments": "1", "ReferralNumMedia": "0", "MessageSid": "SM031265e1d5c5e56c6243509a1eafc7e8", "AccountSid": "AC551fc6086f93a83492466fc604c68af4", "From": "+19188015777", "ApiVersion": "2010-04-01"}',
                                     'attributes': {'ApproximateReceiveCount': '1', 'SentTimestamp': '1658165878744', 'SenderId': 'AROASQBEVZJB7JNKLLQIY:project-prod-vetext-incoming-forwarder-lambda', 'ApproximateFirstReceiveTimestamp': '1658245723375'}, 'messageAttributes': {'source': {'stringValue': 'twilio', 'stringListValues': [], 'binaryListValues': [], 'dataType': 'String'}}, 'md5OfMessageAttributes': '54818a2ef8e5363fbdb8d318121ef7c4', 'md5OfBody': '63d3b9430c4741f41a20554ed655db1f', 'eventSource': 'aws:sqs', 'eventSourceARN': 'arn:aws-us-gov:sqs:us-gov-west-1:171875617347:prod-vetext-failed-request-queue', 'awsRegion': 'us-gov-west-1'}]}
 
-vetext_uri_path = "/some/path"
-vetext_domain = "some.domain"
+VETEXT_URI_PATH = "/some/path" 
+VETEXT_DOMAIN = "some.domain"
 
 # This method will be used by the mock to replace requests.post
 class MockResponse:
@@ -40,26 +40,26 @@ def mocked_requests_httperror_exception():
 
 @pytest.fixture
 def missing_domain_env_param(monkeypatch):
-    monkeypatch.setenv('vetext_api_endpoint_path', vetext_uri_path)
+    monkeypatch.setenv('vetext_api_endpoint_path', VETEXT_URI_PATH)
     monkeypatch.setenv('vetext_api_auth_ssm_path', 'ssm')
 
 
 @pytest.fixture
 def missing_api_endpoint_path_env_param(monkeypatch):
-    monkeypatch.setenv('vetext_api_endpoint_domain', vetext_domain)
+    monkeypatch.setenv('vetext_api_endpoint_domain', VETEXT_DOMAIN)
     monkeypatch.setenv('vetext_api_auth_ssm_path', 'ssm')
 
 
 @pytest.fixture
 def missing_ssm_path_env_param(monkeypatch):
-    monkeypatch.setenv('vetext_api_endpoint_domain', vetext_domain)
-    monkeypatch.setenv('vetext_api_endpoint_path', vetext_uri_path)
+    monkeypatch.setenv('vetext_api_endpoint_domain', VETEXT_DOMAIN)
+    monkeypatch.setenv('vetext_api_endpoint_path', VETEXT_URI_PATH)
 
 
 @pytest.fixture
 def all_path_env_param_set(monkeypatch):
-    monkeypatch.setenv('vetext_api_endpoint_domain', vetext_domain)
-    monkeypatch.setenv('vetext_api_endpoint_path', vetext_uri_path)
+    monkeypatch.setenv('vetext_api_endpoint_domain', VETEXT_DOMAIN)
+    monkeypatch.setenv('vetext_api_endpoint_path', VETEXT_URI_PATH)
     monkeypatch.setenv('vetext_api_auth_ssm_path', 'ssm')
     monkeypatch.setenv('vetext_request_drop_sqs_url', "someurl")
     monkeypatch.setenv('vetext_request_dead_letter_sqs_url', "someurl")

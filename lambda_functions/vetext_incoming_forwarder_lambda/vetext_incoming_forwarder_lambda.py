@@ -222,9 +222,7 @@ def make_vetext_request(request_body):
         logger.error("General Exception With Call to VeText")
         logger.exception(e)
 
-    return_value = response.content if response.ok else None
-
-    return return_value
+    return response.content if response.ok else None
 
 
 def push_to_retry_sqs(event_body):
