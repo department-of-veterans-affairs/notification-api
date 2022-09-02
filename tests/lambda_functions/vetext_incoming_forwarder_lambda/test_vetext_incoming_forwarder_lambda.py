@@ -22,15 +22,16 @@ VETEXT_DOMAIN = "some.domain"
 
 # This method will be used by the mock to replace requests.post
 class MockResponse:
-    def __init__(self, json_data, status_code):
+    def __init__(self, json_data, status_code, content=None):
         self.json_data = json_data
         self.status_code = status_code
+        self.content = content
 
     def json(self):
         return self.json_data
 
 def mocked_requests_post_success(*args, **kwargs):
-    return MockResponse({}, 200)
+    return MockResponse({}, 200, '<?xml version="1.0" encoding="UTF-8"?><Response></Response>')
 
 def mocked_requests_post_404(*args, **kwargs):
     return MockResponse({}, 404)
@@ -85,7 +86,7 @@ def test_request_makes_vetext_call(mocker, all_path_env_param_set, event):
     response = vetext_incoming_forwarder_lambda_handler(event, None)
 
     assert response['statusCode'] == 200
-    assert response['body'] == '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
+    assert response['content'] == '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
     sqs_mock.assert_not_called()
 
 
