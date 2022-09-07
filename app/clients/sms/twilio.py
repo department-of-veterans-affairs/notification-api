@@ -54,9 +54,20 @@ class TwilioSMSClient(SmsClient):
         callback_url = "{}/notifications/sms/twilio/{}".format(
             self._callback_notify_url_host, reference) if self._callback_notify_url_host else ""
         try:
-            message_service_sid = kwargs.get("message_service_sid")
+            # Importing inline to resolve a circular import error when importing at the top of the file
+            from app.dao.service_sms_sender_dao import dao_get_service_sms_sender_by_service_id_and_number
+            messaging_service_sid = None
 
-            if message_service_sid is None:
+            # This is an instance of ServiceSmsSender or None.
+            service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
+                kwargs.get("service_id"),
+                kwargs.get("sender")
+            )
+
+            if service_sms_sender and service_sms_sender.sms_sender_specifics:
+                messaging_service_sid = service_sms_sender.sms_sender_specifics.get("messaging_service_sid")
+
+            if messaging_service_sid is None:
                 # Make a request using a sender phone number.
                 message = self._client.messages.create(
                     to=to,
@@ -69,7 +80,7 @@ class TwilioSMSClient(SmsClient):
                 #    https://www.twilio.com/docs/messaging/services
                 message = self._client.messages.create(
                     to=to,
-                    message_service_sid=message_service_sid,
+                    messaging_service_sid=messaging_service_sid,
                     body=content,
                     status_callback=callback_url,
                 )
