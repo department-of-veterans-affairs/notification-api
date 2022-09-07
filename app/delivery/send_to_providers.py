@@ -20,7 +20,6 @@ from app.dao.provider_details_dao import (
     get_provider_details_by_notification_type,
     dao_toggle_sms_provider, get_provider_details_by_id
 )
-from app.dao.service_sms_sender_dao import dao_get_service_sms_sender_by_service_id_and_number
 from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import NotificationTechnicalFailureException, InvalidProviderException
 from app.feature_flags import (
@@ -79,35 +78,15 @@ def send_sms_to_provider(notification):
         send_sms_response(provider.get_name(), str(notification.id), notification.to, notification.reference)
 
     else:
-        message_service_sid = None
-
         try:
-            # This is an instance of ServiceSmsSender or None.
-            service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-                notification.service_id,
-                notification.reply_to_text
+            # Send a SMS message using the "to" attribute to specify the recipient.
+            reference = provider.send_sms(
+                to=validate_and_format_phone_number(notification.to, international=notification.international),
+                content=str(template),
+                reference=str(notification.id),
+                sender=notification.reply_to_text,
+                service_id=notification.service_id
             )
-
-            if service_sms_sender and service_sms_sender.sms_sender_specifics:
-                message_service_sid = service_sms_sender.sms_sender_specifics.get("message_service_sid")
-
-            if message_service_sid is None:
-                # Send a SMS message using the "to" attribute to specify the recipient.
-                reference = provider.send_sms(
-                    to=validate_and_format_phone_number(notification.to, international=notification.international),
-                    content=str(template),
-                    reference=str(notification.id),
-                    sender=notification.reply_to_text
-                )
-            else:
-                # Send a SMS message using the "message_service_sid" attribute to specify the recipient.
-                reference = provider.send_sms(
-                    to=validate_and_format_phone_number(notification.to, international=notification.international),
-                    content=str(template),
-                    reference=str(notification.id),
-                    sender=notification.reply_to_text,
-                    message_service_sid=message_service_sid
-                )
         except Exception as e:
             notification.billable_units = template.fragment_count
             dao_update_notification(notification)
