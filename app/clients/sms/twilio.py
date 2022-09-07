@@ -67,6 +67,9 @@ class TwilioSMSClient(SmsClient):
             if service_sms_sender and service_sms_sender.sms_sender_specifics:
                 messaging_service_sid = service_sms_sender.sms_sender_specifics.get("messaging_service_sid")
 
+                self.logger.info(f"Twilio sender has sms_sender_specifics "
+                                 "value: {service_sms_sender.sms_sender_specifics}")
+
             if messaging_service_sid is None:
                 # Make a request using a sender phone number.
                 message = self._client.messages.create(
@@ -75,6 +78,8 @@ class TwilioSMSClient(SmsClient):
                     body=content,
                     status_callback=callback_url,
                 )
+
+                self.logger.info(f"Twilio message created using from_number")
             else:
                 # Make a request using the message service sid.
                 #    https://www.twilio.com/docs/messaging/services
@@ -84,6 +89,8 @@ class TwilioSMSClient(SmsClient):
                     body=content,
                     status_callback=callback_url,
                 )
+
+                self.logger.info(f"Twilio message created using messaging_service_sid")
 
             self.logger.info("Twilio send SMS request for {} succeeded: {}".format(reference, message.sid))
         except Exception as e:
