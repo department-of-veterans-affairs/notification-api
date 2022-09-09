@@ -67,8 +67,9 @@ class TwilioSMSClient(SmsClient):
             if service_sms_sender and service_sms_sender.sms_sender_specifics:
                 messaging_service_sid = service_sms_sender.sms_sender_specifics.get("messaging_service_sid")
 
-                self.logger.info(f"Twilio sender has sms_sender_specifics "
-                                 "value: {service_sms_sender.sms_sender_specifics}")
+                self.logger.info("Twilio sender has sms_sender_specifics "
+                                 f"value: {service_sms_sender.sms_sender_specifics} "
+                                 f"type: {type(service_sms_sender.sms_sender_specifics)}")
 
             if messaging_service_sid is None:
                 # Make a request using a sender phone number.
