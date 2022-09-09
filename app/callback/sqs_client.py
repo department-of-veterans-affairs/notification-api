@@ -23,10 +23,10 @@ class SQSClient:
         message_attributes["ContentType"] = {"StringValue": "application/json", "DataType": "String"}
         try:
             response = self._client.send_message(
-                QueueUrl=url, 
-                MessageBody=json.dumps(message_body), 
+                QueueUrl=url,
+                MessageBody=json.dumps(message_body),
                 MessageAttributes=message_attributes,
-                # if SQS is .fifo then
+                # if SQS is fifo then
                 MessageGroupId=url if 'fifo' in url else None
             )
         except ClientError as e:
