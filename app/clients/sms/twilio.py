@@ -64,6 +64,11 @@ class TwilioSMSClient(SmsClient):
                 kwargs.get("sender")
             )
 
+            # temporary logging
+            self.logger.info(f"Twilio service_sms_sender: {service_sms_sender}")
+            self.logger.info("Twilio sms_sender_specifics: "
+                             f"{service_sms_sender.sms_sender_specifics if service_sms_sender else 'None'}")
+
             if service_sms_sender and service_sms_sender.sms_sender_specifics:
                 messaging_service_sid = service_sms_sender.sms_sender_specifics.get("messaging_service_sid")
 
