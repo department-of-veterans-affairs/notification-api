@@ -29,7 +29,7 @@ def test_should_call_send_sms_to_provider_from_deliver_sms_task(
     mocker.patch('app.delivery.send_to_providers.send_sms_to_provider')
 
     deliver_sms(sample_notification.id)
-    app.delivery.send_to_providers.send_sms_to_provider.assert_called_with(sample_notification)
+    app.delivery.send_to_providers.send_sms_to_provider.assert_called_with(sample_notification, None)
 
 
 def test_should_add_to_retry_queue_if_notification_not_found_in_deliver_sms_task(
@@ -191,7 +191,7 @@ def test_deliver_sms_with_rate_limiting_should_deliver_if_rate_limit_not_exceede
 
     deliver_sms_with_rate_limiting(sample_notification.id)
 
-    send_to_provider.assert_called_once_with(sample_notification)
+    send_to_provider.assert_called_once_with(sample_notification, None)
 
 
 def test_deliver_sms_with_rate_limiting_should_retry_if_rate_limit_exceeded(sample_notification, mocker):

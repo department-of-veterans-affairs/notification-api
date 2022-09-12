@@ -20,7 +20,10 @@ from app.celery.lookup_va_profile_id_task import lookup_va_profile_id
 from app.celery.onsite_notification_tasks import send_va_onsite_notification_task
 from app.celery.letters_pdf_tasks import create_letters_pdf
 from app.config import QueueNames
-from app.dao.service_sms_sender_dao import dao_get_service_sms_sender_by_service_id_and_number
+from app.dao.service_sms_sender_dao import (
+    dao_get_service_sms_sender_by_id,
+    dao_get_service_sms_sender_by_service_id_and_number
+)
 from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
 
 from app.models import (
@@ -145,13 +148,20 @@ def persist_notification(
     return notification
 
 
-def send_notification_to_queue(notification, research_mode, queue=None, recipient_id_type: str = None):
+def send_notification_to_queue(
+        notification,
+        research_mode,
+        queue=None,
+        recipient_id_type: str = None,
+        sms_sender_id=None
+):
     """
     Create, enqueue, and asynchronously execute a Celery task to send a notification.
     """
+    # NOTES: need to get sms_sender_id here and provide correct sms_sender
 
     # "delivery_task" is a function.
-    deliver_task, queue = _get_delivery_task(notification, research_mode, queue)
+    deliver_task, queue = _get_delivery_task(notification, research_mode, queue, sms_sender_id)
 
     template = notification.template
 
@@ -159,8 +169,9 @@ def send_notification_to_queue(notification, research_mode, queue=None, recipien
         communication_item_id = template.communication_item_id
 
     try:
+        # Including sms_sender_id is necessary so the correct sender can be chosen
         # https://docs.celeryq.dev/en/v4.4.7/userguide/canvas.html#immutability
-        tasks = [deliver_task.si(str(notification.id)).set(queue=queue)]
+        tasks = [deliver_task.si(str(notification.id), sms_sender_id).set(queue=queue)]
         if (recipient_id_type and communication_item_id and
            is_feature_enabled(FeatureFlag.CHECK_RECIPIENT_COMMUNICATION_PERMISSIONS_ENABLED)):
 
@@ -188,7 +199,7 @@ def send_notification_to_queue(notification, research_mode, queue=None, recipien
                                                          queue))
 
 
-def _get_delivery_task(notification, research_mode=False, queue=None):
+def _get_delivery_task(notification, research_mode=False, queue=None, sms_sender_id=None):
     """
     The return value "deliver_task" is a function decorated to be a Celery task.
     """
@@ -200,11 +211,21 @@ def _get_delivery_task(notification, research_mode=False, queue=None):
         if not queue:
             queue = QueueNames.SEND_SMS
 
-        # This is an instance of ServiceSmsSender or None.
-        service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-            notification.service_id,
-            notification.reply_to_text
-        )
+        service_sms_sender = None
+
+        # get the specific service_sms_sender if sms_sender_id is provided, otherwise get the first one from the service
+        if sms_sender_id:
+            # This is an instance of ServiceSmsSender or None.
+            service_sms_sender = dao_get_service_sms_sender_by_id(
+                notification.service_id,
+                sms_sender_id
+            )
+        else:
+            # This is an instance of ServiceSmsSender or None.
+            service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
+                notification.service_id,
+                notification.reply_to_text
+            )
 
         if (
             is_feature_enabled(FeatureFlag.SMS_SENDER_RATE_LIMIT_ENABLED)

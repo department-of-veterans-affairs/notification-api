@@ -43,7 +43,7 @@ from app.models import (
 from app.service.utils import compute_source_email_address
 
 
-def send_sms_to_provider(notification):
+def send_sms_to_provider(notification, sms_sender_id=None):
     """
     Send an HTTP request to an SMS backend provider to initiate an SMS message to a veteran.
 
@@ -85,7 +85,8 @@ def send_sms_to_provider(notification):
                 content=str(template),
                 reference=str(notification.id),
                 sender=notification.reply_to_text,
-                service_id=notification.service_id
+                service_id=notification.service_id,
+                sms_sender_id=sms_sender_id,
             )
         except Exception as e:
             notification.billable_units = template.fragment_count
