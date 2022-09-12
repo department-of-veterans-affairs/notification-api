@@ -52,7 +52,10 @@ def test_send_message_successful_returns_response_body(sqs_stub, sqs_client, mes
     response = sqs_client.send_message(url, body, message_attributes)
     assert response['MessageId'] == message_id
 
-def test_send_message_successful_returns_response_body(sqs_stub, sqs_client, message_attributes, expected_attributes):
+
+def test_send_message_successful_with_fifo_returns_response_body(
+        sqs_stub, sqs_client, message_attributes, expected_attributes
+):
     url = 'http://some_url/sample_notification_url.fifo'
     body = {"message": "hello"}
     message_attributes = message_attributes
@@ -70,6 +73,7 @@ def test_send_message_successful_returns_response_body(sqs_stub, sqs_client, mes
 
     response = sqs_client.send_message(url, body, message_attributes)
     assert response['MessageId'] == message_id
+
 
 def test_send_message_raises_client_error_on_client_exception(sqs_stub, sqs_client):
     url = 'http://some_url'
