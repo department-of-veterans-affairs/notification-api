@@ -117,6 +117,7 @@ def test_should_send_personalised_template_to_correct_sms_provider_and_persist(
         reference=str(db_notification.id),
         sender=current_app.config['FROM_NUMBER'],
         service_id=ANY,
+        sms_sender_id=ANY,
     )
 
     notification = Notification.query.filter_by(id=db_notification.id).one()
@@ -239,7 +240,8 @@ def test_send_sms_should_use_template_version_from_notification_not_latest(
         content="Sample service: This is a template:\nwith a newline",
         reference=str(db_notification.id),
         sender=current_app.config['FROM_NUMBER'],
-        service_id=ANY
+        service_id=ANY,
+        sms_sender_id=ANY,
     )
 
     persisted_notification = notifications_dao.get_notification_by_id(db_notification.id)
@@ -337,6 +339,7 @@ def test_should_send_sms_with_downgraded_content(notify_db_session, mock_sms_cli
         reference=ANY,
         sender=ANY,
         service_id=ANY,
+        sms_sender_id=ANY,
     )
 
 
@@ -357,6 +360,7 @@ def test_send_sms_should_use_service_sms_sender(
         reference=ANY,
         sender=sms_sender.sms_sender,
         service_id=ANY,
+        sms_sender_id=ANY,
     )
 
 
@@ -665,7 +669,8 @@ def test_should_send_sms_to_international_providers(
         to="16135555555",
         content=ANY,
         reference=str(db_notification_uk.id),
-        sender=current_app.config['FROM_NUMBER']
+        sender=current_app.config['FROM_NUMBER'],
+        sms_sender_id=ANY,
     )
 
     send_to_providers.send_sms_to_provider(
@@ -676,7 +681,8 @@ def test_should_send_sms_to_international_providers(
         to="601117224412",
         content=ANY,
         reference=str(db_notification_international.id),
-        sender=current_app.config['FROM_NUMBER']
+        sender=current_app.config['FROM_NUMBER'],
+        sms_sender_id=ANY,
     )
 
     notification_uk = Notification.query.filter_by(id=db_notification_uk.id).one()
@@ -717,6 +723,7 @@ def test_should_handle_sms_sender_and_prefix_message(
         to=ANY,
         reference=ANY,
         service_id=ANY,
+        sms_sender_id=ANY,
     )
 
 

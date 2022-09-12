@@ -55,14 +55,25 @@ class TwilioSMSClient(SmsClient):
             self._callback_notify_url_host, reference) if self._callback_notify_url_host else ""
         try:
             # Importing inline to resolve a circular import error when importing at the top of the file
-            from app.dao.service_sms_sender_dao import dao_get_service_sms_sender_by_service_id_and_number
-            messaging_service_sid = None
-
-            # This is an instance of ServiceSmsSender or None.
-            service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-                kwargs.get("service_id"),
-                kwargs.get("sender")
+            from app.dao.service_sms_sender_dao import (
+                dao_get_service_sms_sender_by_service_id_and_number,
+                dao_get_service_sms_sender_by_id
             )
+            messaging_service_sid = None
+            sms_sender_id = kwargs.get("sms_sender_id")
+
+            if sms_sender_id:
+                # This is an instance of ServiceSmsSender or None.
+                service_sms_sender = dao_get_service_sms_sender_by_id(
+                    kwargs.get("service_id"),
+                    sms_sender_id
+                )
+            else:
+                # This is an instance of ServiceSmsSender or None.
+                service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
+                    kwargs.get("service_id"),
+                    kwargs.get("sender")
+                )
 
             # temporary logging
             self.logger.info(f"Twilio service_sms_sender: {service_sms_sender}")
