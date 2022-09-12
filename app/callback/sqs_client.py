@@ -23,7 +23,6 @@ class SQSClient:
             message_attributes = {}
         message_attributes["ContentType"] = {"StringValue": "application/json", "DataType": "String"}
         try:
-            response = NONE
             # if SQS is fifo then
             if 'fifo' in url:
                 response = self._client.send_message(
