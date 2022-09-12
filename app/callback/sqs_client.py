@@ -1,5 +1,4 @@
 import json
-from pickle import NONE
 
 import boto3
 from botocore.exceptions import ClientError
