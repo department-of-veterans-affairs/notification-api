@@ -53,6 +53,11 @@ def test_send_message_successful_returns_response_body(sqs_stub, sqs_client, mes
     assert response['MessageId'] == message_id
 
 
+@pytest.mark.parametrize(['message_attributes', 'expected_attributes'],
+                         [({"CallbackType": {"DataType": "String", "StringValue": "foo"}},
+                           {"CallbackType": {"DataType": "String", "StringValue": "foo"},
+                            "ContentType": {"StringValue": "application/json", "DataType": "String"}}),
+                             (None, {"ContentType": {"StringValue": "application/json", "DataType": "String"}})])
 def test_send_message_successful_with_fifo_returns_response_body(
         sqs_stub, sqs_client, message_attributes, expected_attributes
 ):
