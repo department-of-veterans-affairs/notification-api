@@ -23,7 +23,7 @@ class AwsSnsClient(SmsClient):
     def get_name(self):
         return self.name
 
-    def send_sms(self, to, content, reference, multi=True, sender=None):
+    def send_sms(self, to, content, reference, multi=True, sender=None, **kwargs):
         try:
             start_time = monotonic()
             response = self._client.publish(
