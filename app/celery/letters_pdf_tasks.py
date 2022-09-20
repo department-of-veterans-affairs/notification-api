@@ -55,7 +55,7 @@ from json import JSONDecodeError
 # Including sms_sender_id is necessary in case it's passed in when being called
 @notify_celery.task(bind=True, name="create-letters-pdf", max_retries=15, default_retry_delay=300)
 @statsd(namespace="tasks")
-def create_letters_pdf(self, notification_id, sms_sender_id=None):
+def create_letters_pdf(self, notification_id):
     try:
         notification = get_notification_by_id(notification_id, _raise=True)
         pdf_data, billable_units = get_letters_pdf(

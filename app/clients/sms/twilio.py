@@ -24,7 +24,7 @@ class TwilioSMSClient(SmsClient):
                  auth_token=None,
                  from_number=None,
                  *args, **kwargs):
-        super(TwilioSMSClient, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._account_sid = account_sid
         self._auth_token = auth_token
         self._from_number = from_number

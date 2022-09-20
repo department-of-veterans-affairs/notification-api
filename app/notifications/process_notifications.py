@@ -157,9 +157,6 @@ def send_notification_to_queue(
     """
     Create, enqueue, and asynchronously execute a Celery task to send a notification.
     """
-    # NOTES: need to get sms_sender_id here and provide correct sms_sender
-
-    # "delivery_task" is a function.
     deliver_task, queue = _get_delivery_task(notification, research_mode, queue, sms_sender_id)
 
     template = notification.template
@@ -213,7 +210,7 @@ def _get_delivery_task(notification, research_mode=False, queue=None, sms_sender
         service_sms_sender = None
 
         # get the specific service_sms_sender if sms_sender_id is provided, otherwise get the first one from the service
-        if sms_sender_id:
+        if sms_sender_id is not None:
             # This is an instance of ServiceSmsSender or None.
             service_sms_sender = dao_get_service_sms_sender_by_id(
                 notification.service_id,
