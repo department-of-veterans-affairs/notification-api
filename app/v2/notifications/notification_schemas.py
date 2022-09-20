@@ -166,7 +166,6 @@ post_sms_request = {
         "template_id": uuid,
         "personalisation": personalisation,
         "scheduled_for": {"type": ["string", "null"], "format": "datetime_within_next_day"},
-        # TODO - This doesn't seem to be used.  Remove it?
         "sms_sender_id": uuid,
         "billing_code": {"type": ["string", "null"], "maxLength": 256},
     },

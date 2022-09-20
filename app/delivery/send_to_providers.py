@@ -93,11 +93,11 @@ def send_sms_to_provider(notification, sms_sender_id=None):
             dao_update_notification(notification)
             dao_toggle_sms_provider(provider.name)
             raise e
-        else:
-            notification.billable_units = template.fragment_count
-            notification.reference = reference
-            update_notification_to_sending(notification, provider)
-            current_app.logger.info(f"Saved provider reference: {reference} for notification id: {notification.id}")
+
+        notification.billable_units = template.fragment_count
+        notification.reference = reference
+        update_notification_to_sending(notification, provider)
+        current_app.logger.info(f"Saved provider reference: {reference} for notification id: {notification.id}")
 
     delta_milliseconds = (datetime.utcnow() - notification.created_at).total_seconds() * 1000
     statsd_client.timing("sms.total-time", delta_milliseconds)

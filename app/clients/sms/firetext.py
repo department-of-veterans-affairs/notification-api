@@ -40,11 +40,11 @@ class FiretextClient(SmsClient):
     '''
     FireText sms client.
     '''
-    def __init__(self) -> None:
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.name = 'firetext'
 
-    def init_app(self, current_app, statsd_client, *args, **kwargs):
-        super(SmsClient, self).__init__(*args, **kwargs)
+    def init_app(self, current_app, statsd_client):
         self.current_app = current_app
         self.api_key = current_app.config.get('FIRETEXT_API_KEY')
         self.from_number = current_app.config.get('FROM_NUMBER')

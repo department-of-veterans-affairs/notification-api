@@ -15,7 +15,7 @@ def read_from_ssm(key: str) -> str:
 @click.command()
 @click.option('--count', default=1, help='Number of messages to send.')
 @click.option('--phone', help='Phone number to send messages to')
-def send_sms(count, phone, **kwargs):
+def send_sms(count, phone):
     sms_template_id = read_from_ssm('sms_template_id')
     service_id = read_from_ssm('service_id')
     sms_sender_id = read_from_ssm('sms_sender_id')

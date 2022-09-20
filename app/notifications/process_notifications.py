@@ -86,7 +86,7 @@ def persist_notification(
 ):
     notification_created_at = created_at or datetime.utcnow()
 
-    if not notification_id:
+    if notification_id is None:
         notification_id = uuid.uuid4()
 
     notification = Notification(

@@ -10,7 +10,7 @@ from tests.app.db import create_service_sms_sender
 
 
 class MockSmsSenderObject():
-    sms_sender_specifics = dict()
+    sms_sender_specifics = {}
 
 
 def make_twilio_message_response_dict():
@@ -111,12 +111,10 @@ def test_send_sms_call_with_sender_id_and_specifics(sample_service, notify_api, 
     with requests_mock.Mocker() as request_mock:
         request_mock.post("https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json",
                           json=response_dict, status_code=200)
-        if sms_sender_id:
-            # used when sms_sender_id has a value
+        if sms_sender_id is not None:
             mocker.patch('app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_id',
                          return_value=sms_sender_with_specifics)
         else:
-            # used when sms_sender_id does not have a value
             mocker.patch('app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_service_id_and_number',
                          return_value=sms_sender_with_specifics)
 
@@ -135,7 +133,6 @@ def test_send_sms_call_with_sender_id_and_specifics(sample_service, notify_api, 
     assert req.method == "POST"
 
     d = dict(parse_qsl(req.text))
-    print(d)
 
     assert d["To"] == "+61412345678"
     assert d["Body"] == "my message"
