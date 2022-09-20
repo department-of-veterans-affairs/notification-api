@@ -10,6 +10,7 @@ from tests.app.db import create_service_sms_sender
 
 
 class MockSmsSenderObject():
+    sms_sender = ""
     sms_sender_specifics = {}
 
 
@@ -107,6 +108,7 @@ def test_send_sms_call_with_sender_id_and_specifics(sample_service, notify_api, 
     response_dict = make_twilio_message_response_dict()
     sms_sender_with_specifics = MockSmsSenderObject()
     sms_sender_with_specifics.sms_sender_specifics = sms_sender_specifics_info
+    sms_sender_with_specifics.sms_sender = "+18194120710"
 
     with requests_mock.Mocker() as request_mock:
         request_mock.post("https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json",
@@ -146,9 +148,14 @@ def test_send_sms_sends_from_hardcoded_number(notify_api, mocker):
 
     response_dict = make_twilio_message_response_dict()
 
+    sms_sender_mock = MockSmsSenderObject()
+    sms_sender_mock.sms_sender = "+18194120710"
+
     with requests_mock.Mocker() as request_mock:
         request_mock.post('https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json',
                           json=response_dict, status_code=200)
+        mocker.patch('app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_service_id_and_number',
+                     return_value=sms_sender_mock)
         twilio_sms_client.send_sms(to, content, reference)
 
     req = request_mock.request_history[0]

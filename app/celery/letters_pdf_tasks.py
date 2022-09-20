@@ -52,7 +52,6 @@ from app.cronitor import cronitor
 from json import JSONDecodeError
 
 
-# Including sms_sender_id is necessary in case it's passed in when being called
 @notify_celery.task(bind=True, name="create-letters-pdf", max_retries=15, default_retry_delay=300)
 @statsd(namespace="tasks")
 def create_letters_pdf(self, notification_id):
