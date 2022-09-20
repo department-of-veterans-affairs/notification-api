@@ -91,7 +91,7 @@ def test_send_sms_calls_twilio_correctly(notify_api, mocker):
     assert d["Body"] == "my message"
 
 
-@pytest.mark.parametrize('sms_sender_id', ['test_sender_id', None])
+@pytest.mark.parametrize("sms_sender_id", ["test_sender_id", None], ids=["has sender id", "no sender id"])
 def test_send_sms_call_with_sender_id_and_specifics(sample_service, notify_api, mocker, sms_sender_id):
     to = "+61412345678"
     content = "my message"
@@ -114,10 +114,10 @@ def test_send_sms_call_with_sender_id_and_specifics(sample_service, notify_api, 
         request_mock.post("https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json",
                           json=response_dict, status_code=200)
         if sms_sender_id is not None:
-            mocker.patch('app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_id',
+            mocker.patch("app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_id",
                          return_value=sms_sender_with_specifics)
         else:
-            mocker.patch('app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_service_id_and_number',
+            mocker.patch("app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_service_id_and_number",
                          return_value=sms_sender_with_specifics)
 
         twilio_sms_client.send_sms(

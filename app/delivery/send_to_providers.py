@@ -224,9 +224,9 @@ def provider_to_use(notification: Notification):
 
     if not active_providers_in_order:
         current_app.logger.error(
-            "{} {} failed as no active providers".format(notification.notification_type, notification.id)
+            f"{notification.notification_type} {notification.id} failed as no active providers"
         )
-        raise Exception("No active {} providers".format(notification.notification_type))
+        raise Exception(f"No active {notification.notification_type} providers")
 
     # This returns an instance of one of the classes defined in app/clients/.
     return clients.get_client_by_name_and_type(active_providers_in_order[0].identifier, notification.notification_type)

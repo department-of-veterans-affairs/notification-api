@@ -153,7 +153,9 @@ def test_post_sms_schema_is_valid(data):
     "\t2ebe4da8-17be-49fe-b02f-dff2760261a0",
     "4da8-17be-49fe-b02f-dff2760261a0",
     "bad_uuid",
-])
+],
+    ids=["new line", "trailing space", "return", "tab indent", "too few chars", "string not uuid"]
+)
 def test_post_sms_json_schema_bad_uuid(template_id):
     j = {
         "template_id": template_id,
@@ -226,7 +228,7 @@ def test_post_sms_json_schema_bad_uuid_and_missing_phone_number_and_recipient_id
     assert error.get('status_code') == 400
     assert len(error.get('errors')) == 2
     assert {'error': 'ValidationError',
-            'message': "Please provide either a phone number or recipient identifier."} in error['errors']
+            'message': "Please provide either a phone number or recipient identifier."} in error.get('errors')
     assert {'error': 'ValidationError',
             'message': "template_id is not a valid UUID"} in error['errors']
 

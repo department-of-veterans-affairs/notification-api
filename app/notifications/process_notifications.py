@@ -141,7 +141,7 @@ def persist_notification(
                 redis_store.incr(redis.daily_limit_cache_key(service.id))
 
         current_app.logger.info(
-            "{} {} created at {}".format(notification_type, notification_id, notification_created_at)
+            f"{notification_type} {notification_id} created at {notification_created_at}"
         )
 
     return notification
