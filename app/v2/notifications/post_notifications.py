@@ -249,7 +249,7 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
                 research_mode=service.research_mode,
                 queue=queue_name,
                 recipient_id_type=recipient_id_type,
-                sms_sender_id=form.get("sms_sender_id"),
+                sms_sender_id=form.get("sms_sender_id")
             )
 
     return notification

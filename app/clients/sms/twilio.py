@@ -65,22 +65,20 @@ class TwilioSMSClient(SmsClient):
             if sms_sender_id:
                 # This is an instance of ServiceSmsSender or None.
                 service_sms_sender = dao_get_service_sms_sender_by_id(
-                    kwargs.get("service_id"),
-                    sms_sender_id
+                    service_id=kwargs.get("service_id"),
+                    service_sms_sender_id=sms_sender_id
                 )
             else:
                 # This is an instance of ServiceSmsSender or None.
                 service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-                    kwargs.get("service_id"),
-                    kwargs.get("sender")
+                    service_id=kwargs.get("service_id"),
+                    number=kwargs.get("sender")
                 )
 
             if service_sms_sender and service_sms_sender.sms_sender_specifics:
                 messaging_service_sid = service_sms_sender.sms_sender_specifics.get("messaging_service_sid")
 
-                self.logger.info("Twilio sender has sms_sender_specifics "
-                                 f"value: {service_sms_sender.sms_sender_specifics} "
-                                 f"type: {type(service_sms_sender.sms_sender_specifics)}")
+                self.logger.info("Twilio sender has sms_sender_specifics")
 
             if messaging_service_sid is None:
                 # Make a request using a sender phone number.

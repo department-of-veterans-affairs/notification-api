@@ -82,8 +82,7 @@ def persist_notification(
         postage=None,
         template_postage=None,
         recipient_identifier=None,
-        billing_code=None,
-        messaging_service_sid=None
+        billing_code=None
 ):
     notification_created_at = created_at or datetime.utcnow()
 

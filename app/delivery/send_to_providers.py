@@ -54,8 +54,8 @@ def send_sms_to_provider(notification, sms_sender_id=None):
     service = notification.service
 
     if not service.active:
+        # always raises NotificationTechnicalFailureException
         technical_failure(notification=notification)
-        return
 
     if notification.status != "created":
         return
