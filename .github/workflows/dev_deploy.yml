@@ -1,5 +1,5 @@
 name: Deploy to Dev
-on: 
+on:
   workflow_dispatch:
     inputs:
       environment:
@@ -10,7 +10,7 @@ on:
         description: "Branch or Commit"
         default: master
         required: true
-  
+
 jobs:
   setup-environment:
     runs-on: ubuntu-latest
@@ -32,7 +32,7 @@ jobs:
           echo "The environment is ${{ github.event.inputs.environment }}"
           echo "The branch/tag is ${{ github.event.inputs.ref }}"
           echo "The commit hash is ${{ steps.set-hash.outputs.commit-hash }}"
-  
+
   run-build:
     needs: [setup-environment]
     uses: ./.github/workflows/build.yml
@@ -41,14 +41,6 @@ jobs:
       ref: "${{ needs.setup-environment.outputs.git-hash }}"
     secrets: inherit
 
-  run-lambda-deploy:
-    needs: [setup-environment]
-    uses: ./.github/workflows/lambda-functions.yml
-    with:
-      environment: "${{ github.event.inputs.environment }}"
-      ref: "${{ needs.setup-environment.outputs.git-hash }}"
-    secrets: inherit
-  
   run-twistlock:
     needs: [setup-environment, run-build]
     if: ${{ github.event.inputs.environment }} == "dev" || ${{ github.event.inputs.environment }} == "perf"

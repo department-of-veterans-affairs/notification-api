@@ -16,6 +16,16 @@ on:
         required: true
         default: master
         type: string
+      lambdaName:
+        description: "Branch to deploy from"
+        required: false
+        default: master
+        type: string
+      deployAll:
+        description: Deploy All Lambda Functions
+        required: false
+        default: "true"
+        type: string
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.VAEC_AWS_ACCESS_KEY_ID }}

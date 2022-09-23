@@ -6,6 +6,25 @@ on:
         description: Branch to deploy
         required: true
         default: master
+      deployAll:
+        type: boolean
+        required: true
+        description: Deploy all lambda to dev
+        default: true
+      choice:
+        type: choice
+        description: Make a choice
+        required: true
+        options:
+          - UserFlows
+          - VetTextIncomingForwarder
+          - SESCallback
+          - TwoWaySMS
+          - PinPointCallback
+          - PinPointInboundSMS
+          - ProfileOptInOut
+          - ProfileRemoveOldOptOuts
+          - NightBigQueryUpload
 
 jobs:
   setup_job:
@@ -16,8 +35,24 @@ jobs:
         with:
           ref: ${{ github.event.inputs.ref }}
 
+      - name: Env Values
+        run: |
+          echo "The environment is ${{ github.event.inputs.environment }}"
+          echo "The branch/tag is ${{ github.event.inputs.ref }}"
+          echo "The Lambda Deployment is ${{ github.event.inputs.choice }}"
+
+  build_deploy_all_lambdas:
+    needs: [setup_job]
+    if: ${{ inputs.deployAll }}
+    uses: ./.github/workflows/lambda-functions.yml
+    with:
+      environment: "dev"
+      ref: ${{ github.event.inputs.ref }}
+    secrets: inherit
+
   build_deploy_lambda:
     needs: [setup_job]
+    if: ${{ !inputs.deployAll }}
     uses: ./.github/workflows/lambda-functions.yml
     with:
       environment: "dev"
