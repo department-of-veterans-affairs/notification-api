@@ -19,12 +19,12 @@ on:
       lambdaName:
         description: "Branch to deploy from"
         required: false
-        default: master
+        default: all
         type: string
       deployAll:
         description: Deploy All Lambda Functions
         required: false
-        default: "true"
+        default: "false"
         type: string
 
 env:
@@ -34,6 +34,7 @@ env:
 jobs:
   deploy-user-flows-lambda:
     runs-on: ubuntu-latest
+    if: ${{ (inputs.lambdaName === 'UserFlows') || (inputs.deployAll) }}
     defaults:
       run:
         working-directory: "./lambda_functions/user_flows"
@@ -72,6 +73,7 @@ jobs:
 
   deploy-vetext-incoming-forwarder-lambda:
     runs-on: ubuntu-latest
+    if: ${{ (inputs.lambdaName === 'VetTextIncomingForwarder') || (inputs.deployAll) }}
     defaults:
       run:
         working-directory: "./lambda_functions/vetext_incoming_forwarder_lambda"
@@ -131,26 +133,31 @@ jobs:
           python-version: "3.8"
 
       - name: Package and deploy SES Callback lambda function
+        if: ${{ (inputs.lambdaName === 'SESCallback') || (inputs.deployAll) }}
         run: |
           zip -j ses_callback_lambda ses_callback/ses_callback_lambda.py
           aws lambda update-function-code --function-name project-${{ inputs.environment }}-ses-callback-lambda --zip-file fileb://ses_callback_lambda.zip
 
       - name: Package and deploy Two Way SMS lambda function
+        if: ${{ (inputs.lambdaName === 'TwoWaySMS') || (inputs.deployAll) }}
         run: |
           zip -j two_way_sms_lambda two_way_sms/two_way_sms_lambda.py
           aws lambda update-function-code --function-name project-${{ inputs.environment }}-two-way-sms-lambda --zip-file fileb://two_way_sms_lambda.zip
 
       - name: Package and deploy pinpoint callback lambda function
+        if: ${{ (inputs.lambdaName === 'PinPointCallback') || (inputs.deployAll) }}
         run: |
           zip -j pinpoint_callback_lambda pinpoint_callback/pinpoint_callback_lambda.py
           aws lambda update-function-code --function-name project-${{ inputs.environment }}-pinpoint-callback-lambda --zip-file fileb://pinpoint_callback_lambda.zip
 
       - name: Package and deploy pinpoint inbound sms lambda function
+        if: ${{ (inputs.lambdaName === 'PinPointInboundSMS') || (inputs.deployAll) }}
         run: |
           zip -j pinpoint_inbound_sms_lambda pinpoint_inbound_sms/pinpoint_inbound_sms_lambda.py
           aws lambda update-function-code --function-name project-${{ inputs.environment }}-pinpoint-inbound-sms-lambda --zip-file fileb://pinpoint_inbound_sms_lambda.zip
 
       - name: Package and deploy VA Profile opt-in/out lambda function
+        if: ${{ (inputs.lambdaName === 'ProfileOptInOut') || (inputs.deployAll) }}
         run: |
           cd va_profile/
           python3 -m venv venv
@@ -164,6 +171,7 @@ jobs:
           aws lambda update-function-code --function-name project-${{ inputs.environment }}-va-profile-opt-in-out-lambda --zip-file fileb://va_profile_opt_in_out_lambda.zip
 
       - name: Package and deploy VA Profile remove old opt-outs lambda function
+        if: ${{ (inputs.lambdaName === 'ProfileRemoveOldOptOuts') || (inputs.deployAll) }}
         run: |
           cd va_profile_remove_old_opt_outs/
           python3 -m venv venv
@@ -177,6 +185,7 @@ jobs:
           aws lambda update-function-code --function-name project-${{ inputs.environment }}-va-profile-remove-old-opt-outs-lambda --zip-file fileb://va_profile_remove_old_opt_outs_lambda.zip
 
       - name: Package and deploy nightly stats bigquery upload lambda function
+        if: ${{ (inputs.lambdaName === 'NightBigQueryUpload') || (inputs.deployAll) }}
         run: |
           cd nightly_stats_bigquery_upload/
           python3 -m venv venv

@@ -6,15 +6,6 @@ on:
         description: Branch to deploy
         required: true
         default: master
-      deployAll:
-        type: boolean
-        required: true
-        description: Deploy all lambda to dev
-        default: true
-      environment:
-        description: Where to deploy
-        type: environment
-        required: false
       choice:
         type: choice
         description: Make a choice
@@ -29,6 +20,11 @@ on:
           - ProfileOptInOut
           - ProfileRemoveOldOptOuts
           - NightBigQueryUpload
+      deployAll:
+        type: boolean
+        required: true
+        description: Deploy all lambda to dev
+        default: false
 
 jobs:
   setup_job:
@@ -46,18 +42,20 @@ jobs:
 
   build_deploy_all_lambdas:
     needs: [setup_job]
-    if: ${{ inputs.deployAll }}
+    if: ${{ github.event.inputs.deployAll }}
     uses: ./.github/workflows/lambda-functions.yml
     with:
       environment: "dev"
       ref: ${{ github.event.inputs.ref }}
+      deployAll: ${{ github.event.inputs.deployAll }}
     secrets: inherit
 
   build_deploy_lambda:
     needs: [setup_job]
-    if: ${{ !inputs.deployAll }}
+    if: ${{ !github.event.inputs.deployAll }}
     uses: ./.github/workflows/lambda-functions.yml
     with:
       environment: "dev"
       ref: ${{ github.event.inputs.ref }}
+      lambdaName: ${{ github.event.inputs.choice }}
     secrets: inherit

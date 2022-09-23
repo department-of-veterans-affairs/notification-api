@@ -34,6 +34,7 @@ jobs:
     with:
       environment: "perf"
       ref: "${{ needs.setup-env.outputs.git-tag }}"
+      deployAll: "true"
     secrets: inherit
 
   run-twistlock:
