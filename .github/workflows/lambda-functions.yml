@@ -34,7 +34,7 @@ env:
 jobs:
   deploy-user-flows-lambda:
     runs-on: ubuntu-latest
-    if: ${{ (inputs.lambdaName == UserFlows) || (inputs.deployAll == 'true') }}
+    if: ${{ (inputs.lambdaName == 'UserFlows') || (inputs.deployAll == 'true') }}
     defaults:
       run:
         working-directory: "./lambda_functions/user_flows"
