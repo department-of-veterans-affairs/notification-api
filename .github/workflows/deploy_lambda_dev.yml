@@ -11,6 +11,7 @@ on:
         description: Make a choice
         required: true
         options:
+          - All
           - UserFlows
           - VetTextIncomingForwarder
           - SESCallback
@@ -20,11 +21,6 @@ on:
           - ProfileOptInOut
           - ProfileRemoveOldOptOuts
           - NightBigQueryUpload
-      deployAll:
-        type: boolean
-        required: true
-        description: Deploy all lambda to dev
-        default: false
 
 jobs:
   setup_job:
@@ -47,5 +43,4 @@ jobs:
       environment: "dev"
       ref: ${{ github.event.inputs.ref }}
       lambdaName: ${{ github.event.inputs.choice }}
-      deployAll: ${{ github.event.inputs.deployAll }}
     secrets: inherit
