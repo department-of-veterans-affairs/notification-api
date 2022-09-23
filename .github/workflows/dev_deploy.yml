@@ -60,7 +60,7 @@ jobs:
     secrets: inherit
 
   run-user-flows:
-    needs: [run-deployment, run-lambda-deploy]
+    needs: [run-deployment]
     if: ${{ github.event.inputs.environment }} == "dev" || ${{ github.event.inputs.environment }} == "perf"
     uses: ./.github/workflows/user_flows.yml
     with:
