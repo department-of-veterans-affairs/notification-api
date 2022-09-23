@@ -34,7 +34,7 @@ jobs:
     with:
       environment: "perf"
       ref: "${{ needs.setup-env.outputs.git-tag }}"
-      deployAll: "true"
+      lambdaName: "All"
     secrets: inherit
 
   run-twistlock:
