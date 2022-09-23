@@ -41,7 +41,6 @@ jobs:
 
       - name: Env Values
         run: |
-          echo "The environment is ${{ github.event.inputs.environment }}"
           echo "The branch/tag is ${{ github.event.inputs.ref }}"
           echo "The Lambda Deployment is ${{ github.event.inputs.choice }}"
 

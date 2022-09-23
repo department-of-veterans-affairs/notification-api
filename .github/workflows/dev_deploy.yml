@@ -5,6 +5,7 @@ on:
       environment:
         description: "Deploy to dev"
         default: dev
+        type: environment
         required: true
       ref:
         description: "Branch or Commit"
