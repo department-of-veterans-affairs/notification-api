@@ -46,7 +46,7 @@ jobs:
     with:
       environment: "${{ needs.setup-release.outputs.env }}"
       ref: "${{ needs.setup-release.outputs.git-tag }}"
-      deployAll: "true"
+      lambdaName: "All"
     secrets: inherit
 
   run-deployment:

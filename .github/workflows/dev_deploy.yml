@@ -11,6 +11,11 @@ on:
         description: "Branch or Commit"
         default: master
         required: true
+      lambdaDeploy:
+        description: "Include Lambda in deployment?"
+        default: false
+        required: false
+        type: boolean
 
 jobs:
   setup-environment:
@@ -41,6 +46,16 @@ jobs:
     with:
       environment: "${{ github.event.inputs.environment }}"
       ref: "${{ needs.setup-environment.outputs.git-hash }}"
+    secrets: inherit
+
+  run-lambda-deploy:
+    if: ${{ github.event.inputs.lambdaDeploy }}
+    needs: [setup-environment]
+    uses: ./.github/workflows/lambda-functions.yml
+    with:
+      environment: "${{ github.event.inputs.environment }}"
+      ref: "${{ needs.setup-environment.outputs.git-hash }}"
+      lambdaName: "All"
     secrets: inherit
 
   run-twistlock:
