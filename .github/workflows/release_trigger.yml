@@ -15,10 +15,10 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            if ('${{ github.event.action }}' == 'prereleased') {
+            if ('${{ github.event.action }}' === 'prereleased') {
               core.setOutput('environment', 'staging')
             }
-            if ('${{ github.event.action }}' == 'released') {
+            if ('${{ github.event.action }}' === 'released') {
               core.setOutput('environment', 'prod')
             }
 
