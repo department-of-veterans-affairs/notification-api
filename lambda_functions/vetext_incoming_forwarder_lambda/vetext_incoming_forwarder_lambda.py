@@ -57,7 +57,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
         logger.exception(e)
         push_to_dead_letter_sqs(event, "vetext_incoming_forwarder_lambda_handler")
 
-        return create_twilio_response()
+        return create_twilio_response(500)
 
 
 def create_twilio_response(status_code: int = 200):
