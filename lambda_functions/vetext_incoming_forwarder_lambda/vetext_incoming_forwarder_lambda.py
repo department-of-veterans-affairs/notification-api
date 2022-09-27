@@ -6,6 +6,7 @@ import os
 import logging
 from urllib.parse import parse_qsl
 from base64 import b64decode
+from functools import lru_cache
 import boto3
 
 logger = logging.getLogger("vetext_incoming_forwarder_lambda")
@@ -134,7 +135,7 @@ def process_body_from_alb_invocation(event):
 
     return [event_body]
 
-
+@lru_cache(maxsize=None)
 def read_from_ssm(key: str) -> str:
     try:
         ssm_client = boto3.client('ssm')
