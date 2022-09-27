@@ -29,8 +29,12 @@ class MockResponse:
         self.status_code = status_code
         self.content = content
 
+    def raise_for_status(self):
+        return {}
+
     def json(self):
         return self.json_data
+
 
 def mocked_requests_post_success(*args, **kwargs):
     return MockResponse({}, 200, '<?xml version="1.0" encoding="UTF-8"?><Response></Response>')
@@ -79,12 +83,13 @@ def test_verify_parsing_of_twilio_message(event):
     assert 'AddOns' not in response
 
 
+
 @pytest.mark.parametrize('event', [(albInvokedWithoutAddOn), (albInvokeWithAddOn), (sqsInvokedWithAddOn)])
 def test_request_makes_vetext_call(mocker, all_path_env_param_set, event):
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_retry_sqs')
     mocker.patch(f'{LAMBDA_MODULE}.read_from_ssm', return_value="ssm")
     mocker.patch(f'{LAMBDA_MODULE}.requests.post',
-                  return_value=mocked_requests_post_success)
+                  return_value=mocked_requests_post_success())
     response = vetext_incoming_forwarder_lambda_handler(event, None)
 
     assert response['statusCode'] == 200
@@ -97,7 +102,7 @@ def test_failed_vetext_call_goes_to_retry_sqs(mocker, event):
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_retry_sqs')
     mocker.patch(f'{LAMBDA_MODULE}.read_from_ssm', return_value="ssm")
     mocker.patch(f'{LAMBDA_MODULE}.requests.post',
-                 return_value=mocked_requests_post_404)
+                 return_value=mocked_requests_post_404())
 
     response = vetext_incoming_forwarder_lambda_handler(event, None)
 
@@ -110,7 +115,7 @@ def test_failed_vetext_call_throws_http_exception_goes_to_retry_sqs(mocker, even
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_retry_sqs')
     mocker.patch(f'{LAMBDA_MODULE}.read_from_ssm', return_value="ssm")    
     mocker.patch(f'{LAMBDA_MODULE}.requests.post',
-                 return_value=mocked_requests_httperror_exception)
+                 return_value=mocked_requests_httperror_exception())
 
     response = vetext_incoming_forwarder_lambda_handler(event, None)
 
