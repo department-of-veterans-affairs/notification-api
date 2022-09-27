@@ -77,17 +77,17 @@ def test_verify_parsing_of_twilio_message(event):
     assert 'AddOns' not in response
 
 
-# @pytest.mark.parametrize('event', [(albInvokedWithoutAddOn), (albInvokeWithAddOn), (sqsInvokedWithAddOn)])
-# def test_request_makes_vetext_call(mocker, all_path_env_param_set, event):
-#     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_retry_sqs')
-#     mocker.patch(f'{LAMBDA_MODULE}.read_from_ssm', return_value="ssm")
-#     mocker.patch(f'{LAMBDA_MODULE}.requests.post',
-#                  return_value=mocked_requests_post_success)
-#     response = vetext_incoming_forwarder_lambda_handler(event, None)
+@pytest.mark.parametrize('event', [(albInvokedWithoutAddOn), (albInvokeWithAddOn), (sqsInvokedWithAddOn)])
+def test_request_makes_vetext_call(mocker, all_path_env_param_set, event):
+    sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_retry_sqs')
+    mocker.patch(f'{LAMBDA_MODULE}.read_from_ssm', return_value="ssm")
+    mocker.patch(f'{LAMBDA_MODULE}.requests.post',
+                  return_value=mocked_requests_post_success)
+    response = vetext_incoming_forwarder_lambda_handler(event, None)
 
-#     assert response['statusCode'] == 200
-#     assert response['content'] == '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
-#     sqs_mock.assert_not_called()
+    assert response['statusCode'] == 200
+    assert response['body'] == '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
+    sqs_mock.assert_not_called()
 
 
 @pytest.mark.parametrize('event', [(albInvokedWithoutAddOn), (albInvokeWithAddOn), (sqsInvokedWithAddOn)])
