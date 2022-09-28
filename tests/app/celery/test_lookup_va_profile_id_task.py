@@ -269,3 +269,48 @@ def test_caught_exceptions_should_set_status_reason_on_notification(
     mocked_update_notification_status_by_id.assert_called_with(
         notification.id, notification_status, status_reason=failure_reason
     )
+
+
+@pytest.mark.parametrize(
+    "exception, reason",
+    [
+        (BeneficiaryDeceasedException('some error'), BeneficiaryDeceasedException.failure_reason),
+        (IdentifierNotFound('some error'), IdentifierNotFound.failure_reason),
+        (MultipleActiveVaProfileIdsException('some error'), MultipleActiveVaProfileIdsException.failure_reason)
+    ]
+)
+def test_should_call_callback_on_permanent_failure_exception(
+    client,
+    mocker,
+    notification,
+    exception,
+    reason
+):
+    mocker.patch(
+        'app.celery.lookup_va_profile_id_task.notifications_dao.get_notification_by_id',
+        return_value=notification
+    )
+
+    mocked_check_and_queue_callback_task = mocker.patch(
+        'app.celery.lookup_va_profile_id_task.check_and_queue_callback_task',
+    )
+
+    mocked_mpi_client = mocker.Mock()
+    mocked_mpi_client.get_va_profile_id = mocker.Mock(side_effect=exception)
+    mocker.patch(
+        'app.celery.lookup_va_profile_id_task.mpi_client',
+        new=mocked_mpi_client
+    )
+
+    mocked_update_notification_status_by_id = mocker.patch(
+        'app.celery.lookup_va_profile_id_task.notifications_dao.update_notification_status_by_id'
+    )
+
+    with pytest.raises(NotificationPermanentFailureException):
+        lookup_va_profile_id(notification.id)
+
+    mocked_update_notification_status_by_id.assert_called_with(
+        notification.id, NOTIFICATION_PERMANENT_FAILURE, status_reason=reason
+    )
+
+    mocked_check_and_queue_callback_task.assert_called_once_with(notification)
