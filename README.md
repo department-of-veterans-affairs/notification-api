@@ -26,14 +26,14 @@ We currently do not:
 
 ## Table of Contents
 
-- [Local Development](#local-development)
+- [Local Development Using Docker](#local-development)
   - [Pre-commit hooks](#pre-commit-hooks)
-  - [Installation for local development](#local-installation-instruction)
   - [Run the local Docker containers](#run-the-local-docker-containers)
   - [Creating database migrations](#creating-database-migrations)
   - [Unit testing](#unit-testing)
   - [Building the production application container](#building-the-production-application-container)
   - [Using Localstack](#using-localstack)
+- [Local development without docker](#local-development-without-docker)
 - [Maintaining Docker Images](#maintaining-docker-images)
 - [Deployment Workflow](#deployment-workflow)
   - [Update requirements.txt](#update-requirementstxt)
@@ -52,7 +52,7 @@ We currently do not:
 
 ---
 
-## Local Development
+## Local Development Using Docker
 
 [Docker](https://www.docker.com/) is the prefered development environment.  Ensure you have Docker Engine installed or otherwise can run containers.
 
@@ -66,13 +66,76 @@ docker-compose -f ci/docker-compose-local.yml build app
 
 The associated container will have your local notification-api/ directory mounted in read-only mode, and Flask will run in development mode.  Changes you make to the code should trigger Flask to restart on the container.
 
+### Run the local Docker containers
+
+To run the app, and its ecosystem, locally, run:
+
+```bash
+docker-compose -f ci/docker-compose-local.yml up
+```
+
+This also applies all migrations to the database container, ci_db_1.  To see useful flags that you might want to use with the `up` subcommand, run `docker-compose up --help`.  This docker-compose command creates the container ci_app_1, among others.
+
+If AWS SES is enabled as a provider, you may need to run the following command to give the (simulated) SES permission to (pretend to) send e-mails:
+
+```bash
+aws ses verify-email-identity --email-address stage-notifications@notifications.va.gov --endpoint-url=http://localhost:4566
+```
+
+To support running locally, the repository includes a default `app/version.py` file, which must be present at runtime to avoid raising ImportError.  The production container build process overwrites this file with current values.
+
+### Creating database migrations
+
+Running `flask db migrate` on the container ci_app_1 errors because the files in the migrations folder are read-only.  Follow this procedure to create a database migration using Flask:
+
+1. Ensure all containers are stopped.
+2. Run `docker-compose -f ci/docker-compose-local-migrate.yml up`.  This creates the container ci_app_migrate with your local notification-api directory mounted in read-write mode.  The container runs `flask db migrate` and exits.
+3. Press Ctrl-C to stop the containers, and identify the new file in migrations/versions.  (Running `git status` is a quick way to do this.)  Rename and edit the new file as desired.
+
+### Unit testing
+
+Build the "ci_test" Docker image by running this command:
+
+```bash
+docker-compose -f ci/docker-compose-test.yml build test
+```
+
+**Rebuild ci_test whenever Dockerfile.test, requirements_for_test.txt, or the notification_api image changes.**
+
+To run all unit tests:
+
+```bash
+docker-compose -f ci/docker-compose-test.yml up --abort-on-container-exit
+```
+
+The Github workflow also runs these tests when you push code.  Instructions for running a subset of tests are located in tests/README.md.
+
 ### Pre-commit hooks
 
 This repository uses [pre-commit](https://pre-commit.com/) and [talisman](https://github.com/thoughtworks/talisman) to scan changes for keys and secrets.  To set it up, install the required dependencies `pre-commit` and `go`.
 
 OSX users can run `brew bundle` and then `pre-commit install` to register the git hooks.  The configuration is stored in .pre-commit-config.yaml.
 
-### Local installation instruction
+### Building the production application container
+
+To verify that the production application container build should succeed during deployment, run:
+
+```bash
+docker-compose -f ci/docker-compose.yml up --build --abort-on-container-exit
+```
+
+Note that the production infrastructure does not use docker-compose.yml.
+
+### Using Localstack
+
+TODO
+
+---
+
+
+## Local Development without docker
+
+### Prerequisite installation
 
  On OS X:
 
@@ -83,18 +146,15 @@ OSX users can run `brew bundle` and then `pre-commit install` to register the gi
  2. Install Python 3.6.10 (or whatever version is specified in .python-version)
  Then follow from instructions for rest of pyenv setup, [see step 3 here](https://github.com/pyenv/pyenv#basic-github-checkout)
 
+ Note: For MacOS devs who are using Big Sur, Monterey, standard pyenv python installation will be failed in most case. I found [this solution](https://github.com/pyenv/pyenv/issues/2143#issuecomment-1070640288) so only 3.7.13, 3.8.13, 3.9.11 and 3.10.3 works fine.
+
  `pyenv install 3.6.10`
 
  3. If you expect no conflicts, set `3.6.10` as you default
 
  `pyenv global 3.6.10`
 
- Note:
-
-- if md5 hash issue, may be related to openssl version. `brew upgrade openssl && brew switch openssl`
-
-- problem: if can't find virtualenv.sh in current python version
- `echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.bash_profile`
+Upgrade the versions of `pip` and `virtualenvwrapper`
 
  ```bash
  pip install --upgrade pip
@@ -175,66 +235,6 @@ OSX users can run `brew bundle` and then `pre-commit install` to register the gi
  14. Run the service
 
  `flask run -p 6011 --host=0.0.0.0`
-
-### Run the local Docker containers
-
-To run the app, and its ecosystem, locally, run:
-
-```bash
-docker-compose -f ci/docker-compose-local.yml up
-```
-
-This also applies all migrations to the database container, ci_db_1.  To see useful flags that you might want to use with the `up` subcommand, run `docker-compose up --help`.  This docker-compose command creates the container ci_app_1, among others.
-
-If AWS SES is enabled as a provider, you may need to run the following command to give the (simulated) SES permission to (pretend to) send e-mails:
-
-```bash
-aws ses verify-email-identity --email-address stage-notifications@notifications.va.gov --endpoint-url=http://localhost:4566
-```
-
-To support running locally, the repository includes a default `app/version.py` file, which must be present at runtime to avoid raising ImportError.  The production container build process overwrites this file with current values.
-
-### Creating database migrations
-
-Running `flask db migrate` on the container ci_app_1 errors because the files in the migrations folder are read-only.  Follow this procedure to create a database migration using Flask:
-
-1. Ensure all containers are stopped.
-2. Run `docker-compose -f ci/docker-compose-local-migrate.yml up`.  This creates the container ci_app_migrate with your local notification-api directory mounted in read-write mode.  The container runs `flask db migrate` and exits.
-3. Press Ctrl-C to stop the containers, and identify the new file in migrations/versions.  (Running `git status` is a quick way to do this.)  Rename and edit the new file as desired.
-
-### Unit testing
-
-Build the "ci_test" Docker image by running this command:
-
-```bash
-docker-compose -f ci/docker-compose-test.yml build test
-```
-
-**Rebuild ci_test whenever Dockerfile.test, requirements_for_test.txt, or the notification_api image changes.**
-
-To run all unit tests:
-
-```bash
-docker-compose -f ci/docker-compose-test.yml up --abort-on-container-exit
-```
-
-The Github workflow also runs these tests when you push code.  Instructions for running a subset of tests are located in tests/README.md.
-
-### Building the production application container
-
-To verify that the production application container build should succeed during deployment, run:
-
-```bash
-docker-compose -f ci/docker-compose.yml up --build --abort-on-container-exit
-```
-
-Note that the production infrastructure does not use docker-compose.yml.
-
-### Using Localstack
-
-TODO
-
----
 
 ## Maintaining Docker Images
 
