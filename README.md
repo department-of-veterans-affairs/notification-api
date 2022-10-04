@@ -150,7 +150,7 @@ TODO
 
  `pyenv install 3.8.13`
 
- 3. If you expect no conflicts, set `3.8.13` as you default
+ 3. If you expect no conflicts, set `3.8.13` as your default
 
  `pyenv global 3.8.13`
 
