@@ -258,7 +258,7 @@ fileignoreconfig:
     - filename: tests/app/notifications/test_validators.py
       checksum: efce5afc3015a7bdcae7e027da762acf1fefe782b30a5a92855b253cad6c3050
     - filename: app/notifications/validators.py
-      checksum: e123e979ce7dade95661aa63dabab7011ac117704e599d3202c5b480682527e5
+      checksum: 287471c6886726505175dbfcd65a85e891faa37ba8d1a5f86d9efe089ac6b7f1
     - filename: requirements-app.txt
       checksum: 45aba00528f1e77c2324c4af006a6f6f8a4e93a2f053b940e2d7c3d680cbe0cb
     - filename: tests/app/notifications/test_validators.py
