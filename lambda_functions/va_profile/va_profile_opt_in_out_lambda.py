@@ -376,6 +376,7 @@ def get_integration_testing_public_cert() -> Certificate:
     try:
         with open("/opt/Notify_integration_testing_public.pem", "rb") as f:
             return load_pem_x509_certificate(f.read()).public_key()
-    except (OSError, ValueError) as e:
+    except Exception as e:
         logger.exception(e)
-        sys.exit("The integration testing public certificate is missing or invalid.  Cannot authenticate POST requests.")
+
+    sys.exit("The integration testing public certificate is missing or invalid.  Cannot authenticate POST requests.")
