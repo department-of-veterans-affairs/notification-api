@@ -92,7 +92,7 @@ jobs:
 
       - name: Package and deploy lambda function
         run: |
-          python3 -m venv venv
+          python3 -m venv vetext_incoming_forwarder
           source venv/bin/activate
           pip install -r requirements-lambda.txt
           deactivate
@@ -155,7 +155,7 @@ jobs:
         if: ${{ (inputs.lambdaName == 'ProfileOptInOut') || (inputs.lambdaName == 'All') }}
         run: |
           cd va_profile/
-          python3 -m venv venv
+          python3 -m venv va_profile_opt_in_out
           source venv/bin/activate
           pip install -r requirements-lambda.txt
           deactivate
@@ -169,7 +169,7 @@ jobs:
         if: ${{ (inputs.lambdaName == 'ProfileRemoveOldOptOuts') || (inputs.lambdaName == 'All') }}
         run: |
           cd va_profile_remove_old_opt_outs/
-          python3 -m venv venv
+          python3 -m venv va_profile_remove_old_opt_outs
           source venv/bin/activate
           pip install -r requirements-lambda.txt
           deactivate
@@ -183,7 +183,7 @@ jobs:
         if: ${{ (inputs.lambdaName == 'NightBigQueryUpload') || (inputs.lambdaName == 'All') }}
         run: |
           cd nightly_stats_bigquery_upload/
-          python3 -m venv venv
+          python3 -m venv nightly_stats_bigquery_upload
           source venv/bin/activate
           pip install -r requirements-lambda.txt
           deactivate
