@@ -8,17 +8,17 @@ jobs:
   setup-env:
     runs-on: ubuntu-latest
     outputs:
-      git-tag: ${{ steps.tag.outputs.version }}
+      git-tag: ${{ env.version }}
     steps:
       - name: Get the version
         id: tag
         run: |
-          echo "version="${GITHUB_REF/refs\/tags\//}"" >> $GITHUB_OUTPUT
+          echo "version="${GITHUB_REF/refs\/tags\//}"" >> $GITHUB_ENV
 
       - name: Env Values
         run: |
           echo "The environment is Perf"
-          echo "The commit tag is ${{ steps.tag.outputs.version }}"
+          echo "The commit tag is ${{ env.version }}"
 
   run-build:
     needs: [setup-env]

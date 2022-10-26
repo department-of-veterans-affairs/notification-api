@@ -10,5 +10,5 @@ create_git_tag () {
 
 create_git_tag "$1"
 
-echo "STAGING_TAG=$removed_refs" >> $GITHUB_OUTPUT
-echo "TAG=$version" >> $GITHUB_OUTPUT
+echo "STAGING_TAG=$removed_refs" >> $GITHUB_ENV
+echo "TAG=$version" >> $GITHUB_ENV
