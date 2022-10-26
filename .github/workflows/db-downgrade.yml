@@ -41,8 +41,8 @@ jobs:
       - name: Register migration task definition
         id: register
         run: |
-          echo "arn=$(aws ecs register-task-definition --cli-input-json file://${{ steps.render.outputs.task-definition}} | jq -r '.taskDefinition.taskDefinitionArn')" >> $GITHUB_OUTPUT
+          echo "arn=$(aws ecs register-task-definition --cli-input-json file://${{ steps.render.outputs.task-definition}} | jq -r '.taskDefinition.taskDefinitionArn')" >> $GITHUB_ENV
 
       - name: Run migration task
         run: |
-          bash ./scripts/run_ci_migrations.sh -c ${{ github.event.inputs.environment }}-notification-cluster -e ${{ github.event.inputs.environment }} -t ${{ steps.register.outputs.arn }}
+          bash ./scripts/run_ci_migrations.sh -c ${{ github.event.inputs.environment }}-notification-cluster -e ${{ github.event.inputs.environment }} -t ${{ env.arn }}
