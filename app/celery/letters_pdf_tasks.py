@@ -86,7 +86,7 @@ def create_letters_pdf(self, notification_id):
             )
             update_notification_status_by_id(
                 notification_id, 'technical-failure',
-                status_reason="create_letters_pdf - ERROR: MaxRetriesExceededError"
+                status_reason="ERROR: MaxRetriesExceededError - 48 retries attempted but still failed to send"
             )
 
 
@@ -271,7 +271,8 @@ def process_virus_scan_passed(self, filename):
         update_notification_status_by_id(
             notification.id,
             NOTIFICATION_TECHNICAL_FAILURE,
-            status_reason="process_virus_scan_passed - ERROR: BotoClientError"
+            status_reason="ERROR: BotoClientError - "
+                          f"Error uploading letter to live pdf bucket for notification-id: {notification.id}"
         )
 
 
@@ -291,7 +292,8 @@ def _move_invalid_letter_and_update_status(notification, filename, scan_pdf_obje
         update_notification_status_by_id(
             notification.id,
             NOTIFICATION_TECHNICAL_FAILURE,
-            status_reason="_move_invalid_letter_and_update_status - ERROR: BotoClientError"
+            status_reason="ERROR: BotoClientError - "
+                          f"Error when moving letter with notification-id {notification.id} to invalid PDF bucket"
         )
 
 
