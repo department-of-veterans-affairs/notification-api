@@ -58,11 +58,31 @@ def _create_slow_delivery_notification(template, provider='sns'):
     )
 
 
+def _create_slow_delivery_notification_with_null_updated_at(template, provider='sns'):
+    now = datetime.utcnow()
+
+    create_notification(
+        template=template,
+        status='delivered',
+        sent_by=provider,
+        updated_at=None,
+        sent_at=now,
+    )
+
+
 @pytest.fixture(scope='function')
 def prepare_current_provider(restore_provider_details):
     initial_provider = get_current_provider('sms')
     dao_update_provider_details(initial_provider)
     initial_provider.updated_at = datetime.utcnow() - timedelta(minutes=30)
+    db.session.commit()
+
+
+@pytest.fixture(scope='function')
+def prepare_current_null_provider(restore_provider_details):
+    initial_provider = get_current_provider('sms')
+    dao_update_provider_details(initial_provider)
+    initial_provider.updated_at = None
     db.session.commit()
 
 
@@ -164,6 +184,28 @@ def test_switch_providers_on_slow_delivery_does_nothing_if_toggle_is_off(
 
     new_provider = get_current_provider('sms')
     assert new_provider.identifier == starting_provider.identifier
+
+
+def test_switch_providers_on_slow_delivery_does_not_fail_with_null_updated_at(
+    notify_api,
+    mocker,
+    prepare_current_null_provider,
+    sample_user,
+    sample_template
+):
+    mocker.patch('app.provider_details.switch_providers.get_user_by_id', return_value=sample_user)
+    starting_provider = get_current_provider('sms')
+
+    _create_slow_delivery_notification_with_null_updated_at(sample_template, starting_provider.identifier)
+    _create_slow_delivery_notification(sample_template, starting_provider.identifier)
+
+    with set_config_values(notify_api, {
+        'SWITCH_SLOW_SMS_PROVIDER_ENABLED': True
+    }):
+        switch_current_sms_provider_on_slow_delivery()
+
+    new_provider = get_current_provider('sms')
+    assert new_provider.updated_at is not None
 
 
 @freeze_time("2017-05-01 14:00:00")
