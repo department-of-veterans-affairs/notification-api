@@ -32,7 +32,7 @@ git+https://github.com/department-of-veterans-affairs/notification-utils.git@1.0
 
 # 5 May 2022: Requiring Flask-SQLAlchemy version 2.3.2, 2.5, or 3.0 causes test failures via database
 # errors about foreign key constraint violations.
-git+https://github.com/mitsuhiko/flask-sqlalchemy.git@500e732dd1b975a56ab06a46bd1a20a21e682262#egg=Flask-SQLAlchemy==2.3.2.dev20190108
+git+https://github.com/mitsuhiko/flask-sqlalchemy.git@500e732dd1b975a56ab06a46bd1a20a21e682262#egg=Flask-SQLAlchemy==2.5.1
 
 # The production image defined by Dockerfile uses Gunicorn.  The development image defined by Dockerfile.local
 # runs the application with the Flask development server by default.
