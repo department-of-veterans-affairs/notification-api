@@ -31,5 +31,5 @@ create_git_tag () {
 
 current_version_tag=$(get_latest_version_tag)
 incremented_tag=$(increase_patch_number $current_version_tag)
-echo "TAG=$incremented_tag" >> $GITHUB_ENV
+echo "TAG=$incremented_tag" >> $GITHUB_OUTPUT
 create_git_tag "$incremented_tag" "$1"
