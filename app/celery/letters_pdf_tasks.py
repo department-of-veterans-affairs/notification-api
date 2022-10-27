@@ -77,15 +77,17 @@ def create_letters_pdf(self, notification_id):
     except (RequestException, BotoClientError):
         try:
             current_app.logger.exception(
-                "Letters PDF notification creation for id: {} failed".format(notification_id)
+                f"Letters PDF notification creation for id: {notification_id} failed"
             )
             self.retry(queue=QueueNames.RETRY)
         except MaxRetriesExceededError:
             current_app.logger.error(
-                "RETRY FAILED: task create_letters_pdf failed for notification {}".format(notification_id),
+                f"RETRY FAILED: task create_letters_pdf failed for notification {notification_id}",
             )
             update_notification_status_by_id(
-                notification_id, 'technical-failure', status_reason="call from letters_pdf_tasks0")
+                notification_id, 'technical-failure',
+                status_reason="create_letters_pdf - ERROR: MaxRetriesExceededError"
+            )
 
 
 def get_letters_pdf(template, contact_block, filename, values):
@@ -264,10 +266,13 @@ def process_virus_scan_passed(self, filename):
         scan_pdf_object.delete()
     except BotoClientError:
         current_app.logger.exception(
-            "Error uploading letter to live pdf bucket for notification: {}".format(notification.id)
+            f"Error uploading letter to live pdf bucket for notification: {notification.id}"
         )
         update_notification_status_by_id(
-            notification.id, NOTIFICATION_TECHNICAL_FAILURE, status_reason="call from letters_pdf_tasks1")
+            notification.id,
+            NOTIFICATION_TECHNICAL_FAILURE,
+            status_reason="process_virus_scan_passed - ERROR: BotoClientError"
+        )
 
 
 def _move_invalid_letter_and_update_status(notification, filename, scan_pdf_object):
@@ -281,10 +286,13 @@ def _move_invalid_letter_and_update_status(notification, filename, scan_pdf_obje
             billable_units=0)
     except BotoClientError:
         current_app.logger.exception(
-            "Error when moving letter with id {} to invalid PDF bucket".format(notification.id)
+            f"Error when moving letter with id {notification.id} to invalid PDF bucket"
         )
         update_notification_status_by_id(
-            notification.id, NOTIFICATION_TECHNICAL_FAILURE, status_reason="call from letters_pdf_tasks2")
+            notification.id,
+            NOTIFICATION_TECHNICAL_FAILURE,
+            status_reason="_move_invalid_letter_and_update_status - ERROR: BotoClientError"
+        )
 
 
 def _upload_pdf_to_test_or_live_pdf_bucket(pdf_data, filename, is_test_letter):
