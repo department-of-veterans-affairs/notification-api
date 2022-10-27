@@ -83,7 +83,7 @@ def _process_for_status(notification_status, client_name, provider_reference):
         notification_id=provider_reference,
         status=notification_status,
         sent_by=client_name.lower(),
-        status_reason="call from process_client"
+        status_reason="call from process_client, no exception"
     )
     if not notification:
         return
