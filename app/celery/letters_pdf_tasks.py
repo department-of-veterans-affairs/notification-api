@@ -84,7 +84,8 @@ def create_letters_pdf(self, notification_id):
             current_app.logger.error(
                 "RETRY FAILED: task create_letters_pdf failed for notification {}".format(notification_id),
             )
-            update_notification_status_by_id(notification_id, 'technical-failure')
+            update_notification_status_by_id(
+                notification_id, 'technical-failure', status_reason="call from letters_pdf_tasks0")
 
 
 def get_letters_pdf(template, contact_block, filename, values):
@@ -169,8 +170,8 @@ def group_letters(letter_pdfs):
     for letter in letter_pdfs:
         if letter['Key'].lower().endswith('.pdf') and letter_in_created_state(letter['Key']):
             if (
-                running_filesize + letter['Size'] > current_app.config['MAX_LETTER_PDF_ZIP_FILESIZE'] or
-                len(list_of_files) >= current_app.config['MAX_LETTER_PDF_COUNT_PER_ZIP']
+                running_filesize + letter['Size'] > current_app.config['MAX_LETTER_PDF_ZIP_FILESIZE']
+                or len(list_of_files) >= current_app.config['MAX_LETTER_PDF_COUNT_PER_ZIP']
             ):
                 yield list_of_files
                 running_filesize = 0
@@ -265,7 +266,8 @@ def process_virus_scan_passed(self, filename):
         current_app.logger.exception(
             "Error uploading letter to live pdf bucket for notification: {}".format(notification.id)
         )
-        update_notification_status_by_id(notification.id, NOTIFICATION_TECHNICAL_FAILURE)
+        update_notification_status_by_id(
+            notification.id, NOTIFICATION_TECHNICAL_FAILURE, status_reason="call from letters_pdf_tasks1")
 
 
 def _move_invalid_letter_and_update_status(notification, filename, scan_pdf_object):
@@ -281,7 +283,8 @@ def _move_invalid_letter_and_update_status(notification, filename, scan_pdf_obje
         current_app.logger.exception(
             "Error when moving letter with id {} to invalid PDF bucket".format(notification.id)
         )
-        update_notification_status_by_id(notification.id, NOTIFICATION_TECHNICAL_FAILURE)
+        update_notification_status_by_id(
+            notification.id, NOTIFICATION_TECHNICAL_FAILURE, status_reason="call from letters_pdf_tasks2")
 
 
 def _upload_pdf_to_test_or_live_pdf_bucket(pdf_data, filename, is_test_letter):

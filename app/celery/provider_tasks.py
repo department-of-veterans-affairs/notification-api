@@ -30,13 +30,15 @@ def deliver_sms(self, notification_id, sms_sender_id=None):
         current_app.logger.info(f"Successfully sent sms for notification id: {notification_id}")
     except InvalidProviderException as e:
         current_app.logger.exception(e)
-        update_notification_status_by_id(notification_id, NOTIFICATION_TECHNICAL_FAILURE)
+        update_notification_status_by_id(
+            notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason="call from provider_tasks0")
         raise NotificationTechnicalFailureException(str(e))
     except NonRetryableException:
         current_app.logger.exception(
             f'SMS notification delivery for id: {notification_id} failed. Not retrying.'
         )
-        update_notification_status_by_id(notification_id, NOTIFICATION_PERMANENT_FAILURE)
+        update_notification_status_by_id(
+            notification_id, NOTIFICATION_PERMANENT_FAILURE, status_reason="call from provider_tasks1")
         notification = notifications_dao.get_notification_by_id(notification_id)
         check_and_queue_callback_task(notification)
     except Exception:
@@ -51,7 +53,8 @@ def deliver_sms(self, notification_id, sms_sender_id=None):
         except self.MaxRetriesExceededError:
             message = "RETRY FAILED: Max retries reached. The task send_sms_to_provider failed for notification {}. " \
                       "Notification has been updated to technical-failure".format(notification_id)
-            update_notification_status_by_id(notification_id, NOTIFICATION_TECHNICAL_FAILURE)
+            update_notification_status_by_id(
+                notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason="call from provider_tasks2")
             raise NotificationTechnicalFailureException(message)
 
 
@@ -72,13 +75,15 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
         current_app.logger.info(f'Successfully sent sms with rate limiting for notification id: {notification_id}')
     except InvalidProviderException as e:
         current_app.logger.exception(e)
-        update_notification_status_by_id(notification_id, NOTIFICATION_TECHNICAL_FAILURE)
+        update_notification_status_by_id(
+            notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason="call from provider_tasks3")
         raise NotificationTechnicalFailureException(str(e))
     except NonRetryableException:
         current_app.logger.exception(
             f'SMS notification delivery for id: {notification_id} failed. Not retrying.'
         )
-        update_notification_status_by_id(notification_id, NOTIFICATION_PERMANENT_FAILURE)
+        update_notification_status_by_id(
+            notification_id, NOTIFICATION_PERMANENT_FAILURE, status_reason="call from provider_tasks4")
         notification = notifications_dao.get_notification_by_id(notification_id)
         check_and_queue_callback_task(notification)
     except RateLimitError:
@@ -103,7 +108,8 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
                 'RETRY FAILED: Max retries reached. The task send_sms_to_provider failed for '
                 f'notification {notification_id}. Notification has been updated to technical-failure'
             )
-            update_notification_status_by_id(notification_id, NOTIFICATION_TECHNICAL_FAILURE)
+            update_notification_status_by_id(
+                notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason="call from provider_tasks5")
             raise NotificationTechnicalFailureException(message)
 
 
@@ -120,7 +126,8 @@ def deliver_email(self, notification_id, sms_sender_id=None):
         current_app.logger.info(f"Successfully sent email for notification id: {notification_id}")
     except InvalidEmailError as e:
         current_app.logger.exception(f"Email notification {notification_id} failed: {str(e)}")
-        update_notification_status_by_id(notification_id, NOTIFICATION_TECHNICAL_FAILURE)
+        update_notification_status_by_id(
+            notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason="call from provider_tasks6")
         raise NotificationTechnicalFailureException(str(e))
     except MalwarePendingException:
         current_app.logger.info(
@@ -128,7 +135,8 @@ def deliver_email(self, notification_id, sms_sender_id=None):
         self.retry(queue=QueueNames.RETRY, countdown=60)
     except InvalidProviderException as e:
         current_app.logger.exception(f"Invalid provider for {notification_id}: {str(e)}")
-        update_notification_status_by_id(notification_id, NOTIFICATION_TECHNICAL_FAILURE)
+        update_notification_status_by_id(
+            notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason="call from provider_tasks7")
         raise NotificationTechnicalFailureException(str(e))
     except Exception as e:
         try:
@@ -145,5 +153,6 @@ def deliver_email(self, notification_id, sms_sender_id=None):
             message = "RETRY FAILED: Max retries reached. " \
                       "The task send_email_to_provider failed for notification {}. " \
                       "Notification has been updated to technical-failure".format(notification_id)
-            update_notification_status_by_id(notification_id, NOTIFICATION_TECHNICAL_FAILURE)
+            update_notification_status_by_id(
+                notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason="call from provider_tasks9")
             raise NotificationTechnicalFailureException(message)

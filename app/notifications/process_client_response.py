@@ -82,7 +82,8 @@ def _process_for_status(notification_status, client_name, provider_reference):
     notification = notifications_dao.update_notification_status_by_id(
         notification_id=provider_reference,
         status=notification_status,
-        sent_by=client_name.lower()
+        sent_by=client_name.lower(),
+        status_reason="call from process_client"
     )
     if not notification:
         return
