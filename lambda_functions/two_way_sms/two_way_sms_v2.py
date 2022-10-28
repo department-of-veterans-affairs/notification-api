@@ -1,12 +1,15 @@
 # imports
+from datetime import datetime
 import logging
 import psycopg2
 
 # Global Variables
 TWO_WAY_SMS_TABLE_DICT = {}
-START_TYPES = []
-STOP_TYPES = []
-HELP_TYPES = []
+
+# seed values, will be confirmed with UX/product
+START_TYPES = ('START', 'BEGIN', 'RESTART', 'OPTIN',)  
+STOP_TYPES = ('STOP', 'OPTOUT',)
+HELP_TYPES = ('HELP',)
 logger = None
 
 # Handle all intitialization of the lambda execution environemnt and logic
@@ -15,13 +18,17 @@ logger = None
 def two_way_v2_handler(event: dict, context, worker_id=None):
     global TWO_WAY_SMS_TABLE_DICT, logger
     initialize_invocation()
+    event_data = get_event_data(event)
+    two_way_record = TWO_WAY_SMS_TABLE_DICT[event_data['originationNumber']]
+
     try:
-        aws_number = event['originationNumber']
-        if not TWO_WAY_SMS_TABLE_DICT[aws_number]['service_managed']:
-            process_message()
+        # If the number is not self-managed, look for key words
+        if not two_way_record['service_managed']:
+            process_message(event_data['messageBody'])
     except Exception as e:
         logger.exception(e)
-    pass
+
+    
 
 def initialize_invocation() -> None:
     """
@@ -35,6 +42,17 @@ def initialize_invocation() -> None:
     validate_event()
     set_service_two_way_sms_table()
     pass
+
+def get_event_data(event: dict) -> dict:
+    """
+    Parses the event to obtain sns data and put it into usable form
+    """
+    event_data = {}
+
+    # Set dateRecevied if not reprocessing from SQS
+    if 'dateRecevied' not in event_data:
+        event_data['dateRecevied'] = datetime.utcnow()
+    return event_data
 
 def validate_event() -> None:
     """
@@ -57,7 +75,9 @@ def process_message(message: str):
     """
     Parses the string to look for start, stop, or help key words and handles those.
     """
-    pass
+    try:
+        message = message.lower()
+        if message.startswith(
 
 def make_database_connection(worker_id:int = None) -> psycopg2.connection:
     """
