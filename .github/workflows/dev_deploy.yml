@@ -49,7 +49,7 @@ jobs:
     secrets: inherit
 
   run-lambda-deploy:
-    if: ${{ github.event.inputs.lambdaDeploy }}
+    if: ${{ inputs.lambdaDeploy }}
     needs: [setup-environment]
     uses: ./.github/workflows/lambda-functions.yml
     with:
