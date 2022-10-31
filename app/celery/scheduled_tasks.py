@@ -106,10 +106,9 @@ def switch_current_sms_provider_on_slow_delivery():
         current_app.logger.info("Feature SWITCH_SLOW_SMS_PROVIDER is Diabled.")
         return
     current_provider = get_current_provider('sms')
-    if current_provider.updated_at is not None:
-        if current_provider.updated_at > datetime.utcnow() - timedelta(minutes=10):
-            current_app.logger.info("Slow delivery notifications provider switched less than 10 minutes ago.")
-            return
+    if current_provider.updated_at > datetime.utcnow() - timedelta(minutes=10):
+        current_app.logger.info("Slow delivery notifications provider switched less than 10 minutes ago.")
+        return
     slow_delivery_notifications = is_delivery_slow_for_provider(
         provider=current_provider.identifier,
         threshold=0.3,
