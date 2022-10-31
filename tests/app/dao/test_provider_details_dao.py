@@ -366,7 +366,7 @@ def test_update_adds_history(restore_provider_details):
 
     assert ses.version == 1
     assert ses_history.version == 1
-    assert ses.updated_at is None
+    assert ses.updated_at is not None
 
     ses.active = False
 
@@ -383,7 +383,7 @@ def test_update_adds_history(restore_provider_details):
 
     assert ses_history[0].active
     assert ses_history[0].version == 1
-    assert ses_history[0].updated_at is None
+    assert ses_history[0].updated_at is not None
 
     assert not ses_history[1].active
     assert ses_history[1].version == 2
