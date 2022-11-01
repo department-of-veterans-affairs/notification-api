@@ -1,4 +1,5 @@
 # imports
+from curses import keyname
 from datetime import datetime
 import logging
 import psycopg2
@@ -10,6 +11,9 @@ TWO_WAY_SMS_TABLE_DICT = {}
 START_TYPES = ('START', 'BEGIN', 'RESTART', 'OPTIN',)  
 STOP_TYPES = ('STOP', 'OPTOUT',)
 HELP_TYPES = ('HELP',)
+START_TEXT = "Message service resumed, reply \"STOP\" to stop receiving messages."
+STOP_TEXT = "Message service stopped, reply \"START\" to start receiving messages."
+HELP_TEXT = "Some help text"
 logger = None
 
 # Handle all intitialization of the lambda execution environemnt and logic
@@ -76,8 +80,18 @@ def process_message(message: str):
     Parses the string to look for start, stop, or help key words and handles those.
     """
     try:
-        message = message.lower()
-        if message.startswith(
+        message = message.upper()
+        if message.startswith(START_TYPES):
+            process_keyword(START_TEXT)
+        elif message.startswith(STOP_TYPES):
+            process_keyword(STOP_TEXT)
+        elif message.startswith(HELP_TEXT):
+            process_keyword(HELP_TEXT)
+    except Exception as e:
+        logger.exception(e)
+
+def process_keyword(reply_message: str) -> None:
+    pass
 
 def make_database_connection(worker_id:int = None) -> psycopg2.connection:
     """
