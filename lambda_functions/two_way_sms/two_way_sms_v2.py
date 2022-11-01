@@ -1,4 +1,5 @@
-import boto3
+# imports
+from curses import keyname
 from datetime import datetime
 import json
 import logging
@@ -12,29 +13,9 @@ import requests
 START_TYPES = ('START', 'BEGIN', 'RESTART', 'OPTIN', 'OPT-IN',)
 STOP_TYPES = ('STOP', 'OPTOUT', 'OPT-OUT',)
 HELP_TYPES = ('HELP',)
-START_TEXT = 'Message service resumed, reply "STOP" to stop receiving messages.'
-STOP_TEXT = 'Message service stopped, reply "START" to start receiving messages.'
-HELP_TEXT = 'Some help text'
-INBOUND_NUMBERS_QUERY = """SELECT number, service_id, url_endpoint, self_managed FROM inbound_numbers;"""
-# Validation set
-EXPECTED_SNS_FIELDS = set({'originationNumber',
-                           'destinationNumber',
-                           'messageKeyword',
-                           'messageBody',
-                           'inboundMessageId',
-                           'previousPublishedMessageId',
-                           })
-
-# Pre-defined env variables
-AWS_PINPOINT_APP_ID = ''
-AWS_REGION = ''
-DEAD_LETTER_SQS_URL = ''
-LOG_LEVEL = 'INFO'
-RETRY_SQS_URL = ''
-SQLALCHEMY_DATABASE_URI = ''
-TIMEOUT = 3
-
-# Set within lambda
+START_TEXT = "Message service resumed, reply \"STOP\" to stop receiving messages."
+STOP_TEXT = "Message service stopped, reply \"START\" to start receiving messages."
+HELP_TEXT = "Some help text"
 logger = None
 aws_pinpoint_client = None
 aws_sqs_client = None
@@ -72,10 +53,18 @@ def set_logger() -> None:
     """
     global logger
     try:
-        logger = logging.getLogger('TwoWaySMSv2')
-        logger.setLevel(logging.getLevelName(LOG_LEVEL))
+        message = message.upper()
+        if message.startswith(START_TYPES):
+            process_keyword(START_TEXT)
+        elif message.startswith(STOP_TYPES):
+            process_keyword(STOP_TEXT)
+        elif message.startswith(HELP_TEXT):
+            process_keyword(HELP_TEXT)
     except Exception as e:
-        sys.exit('Logger failed to setup properly')
+        logger.exception(e)
+
+def process_keyword(reply_message: str) -> None:
+    pass
 
 
 def make_database_connection() -> psycopg2.connection:
