@@ -158,8 +158,8 @@ jobs:
           cd va_profile/
           python3 -m venv venv_va_profile_opt_in_out
           source venv_va_profile_opt_in_out/bin/activate
-          pip install -r requirements-lambda.txt
-          pip uninstall -y psycopg2-binary
+          pip install PyJWT~=2.6.0
+          pip install cryptography~=37.0.4
           deactivate
           cd venv_va_profile_opt_in_out/lib/python3.8/site-packages
           zip -r9 ../../../../va_profile_opt_in_out_lambda.zip .
