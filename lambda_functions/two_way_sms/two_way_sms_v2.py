@@ -1,4 +1,3 @@
-# imports
 from curses import keyname
 from datetime import datetime
 import logging
@@ -79,16 +78,15 @@ def process_message(message: str):
     """
     Parses the string to look for start, stop, or help key words and handles those.
     """
-    try:
-        message = message.upper()
-        if message.startswith(START_TYPES):
-            process_keyword(START_TEXT)
-        elif message.startswith(STOP_TYPES):
-            process_keyword(STOP_TEXT)
-        elif message.startswith(HELP_TEXT):
-            process_keyword(HELP_TEXT)
-    except Exception as e:
-        logger.exception(e)
+    message = message.upper()
+    if message.startswith(START_TYPES):
+        process_keyword(START_TEXT)
+    elif message.startswith(STOP_TYPES):
+        process_keyword(STOP_TEXT)
+    elif message.startswith(HELP_TEXT):
+        process_keyword(HELP_TEXT)
+    else:
+        logger.info('No keywords detected...')
 
 def process_keyword(reply_message: str) -> None:
     pass
