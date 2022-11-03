@@ -326,6 +326,9 @@ fileignoreconfig:
     - filename: lambda_functions/va_profile/va_profile_opt_in_out_lambda.py
       checksum: 76ce0c9109e51795a6e1d61e070ea335703707f390861fe134a3638b4ea9c828
     - filename: tests/lambda_functions/va_profile/test_va_profile_integration.py
+      checksum: 689a27fc1319888d900055c52d460b23b6c2b1dea97f4ec078a0e22ff631ae01
+    - filename: lambda_functions/user_flows/conftest.py
+      checksum: 219fc865da3b73e4196366d15b992e605297d6cd10b7d4c5128ffb2460d2efad
       checksum: 7647fdd36c40ee8c76ee95423685b9aafe567ebea0317fb8ab823100b60466d7
     - filename: app/celery/letters_pdf_tasks.py
       checksum: 17817004fe9477d2a748f4a9a6d63e87c25e60c92f3ccf2362bf6f32d542f1e1
