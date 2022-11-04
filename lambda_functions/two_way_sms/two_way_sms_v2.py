@@ -1,6 +1,7 @@
-from curses import keyname
 from datetime import datetime
 import logging
+from os import sys
+
 import psycopg2
 
 # Global Variables
@@ -39,8 +40,11 @@ def initialize_invocation() -> None:
     Also calls validation for the event.
     """
     global logger
-    logger = logging.getLogger("TwoWaySMSv2")
-    logger.setLevel(logging.INFO)
+    try:
+        logger = logging.getLogger("TwoWaySMSv2")
+        logger.setLevel(logging.INFO)
+    except Exception as e:
+        sys.exit()
 
     validate_event()
     set_service_two_way_sms_table()
@@ -78,17 +82,25 @@ def process_message(message: str):
     """
     Parses the string to look for start, stop, or help key words and handles those.
     """
+    logger.debug(f'Message: {message}')
+
     message = message.upper()
     if message.startswith(START_TYPES):
-        process_keyword(START_TEXT)
+        process_keyword(START_TEXT, "START")
     elif message.startswith(STOP_TYPES):
-        process_keyword(STOP_TEXT)
+        process_keyword(STOP_TEXT, "STOP")
     elif message.startswith(HELP_TEXT):
-        process_keyword(HELP_TEXT)
+        process_keyword(HELP_TEXT, "HELP")
     else:
         logger.info('No keywords detected...')
 
-def process_keyword(reply_message: str) -> None:
+def process_keyword(reply_message: str, keyword_type: str) -> None:
+    """
+    Identification of a key word warrants sending a a message back to the sender. This method sends the correct
+    message based on what was found in the user's message.
+    """
+    logger.info(f'Processing {keyword_type} from message...')
+    # Not sure exactly how we will do that at the moment
     pass
 
 def make_database_connection(worker_id:int = None) -> psycopg2.connection:
