@@ -329,5 +329,3 @@ fileignoreconfig:
       checksum: 7647fdd36c40ee8c76ee95423685b9aafe567ebea0317fb8ab823100b60466d7
     - filename: app/celery/letters_pdf_tasks.py
       checksum: 17817004fe9477d2a748f4a9a6d63e87c25e60c92f3ccf2362bf6f32d542f1e1
-    - filename: migrations/versions/0352_default_value_added_to_updated_at.py
-      checksum: 51fecffe517b8123c9fad4bd56e6c926c8ecfab13594f7c0967c21b16b9fcc5e
