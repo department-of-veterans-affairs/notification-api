@@ -842,9 +842,6 @@ def test_fetch_notification_statuses_per_service_and_template_for_date(notify_db
         [test_service.id, 'service', test_template.id, 'template', NOTIFICATION_TECHNICAL_FAILURE, '', 5, 'sms']
     ]
 
-    print(results)
-    print(notification_param_lists)
-
     for param_list in notification_param_lists:
         matches = [x for x in results if x == tuple(param_list)]
         assert len(matches) == 1
