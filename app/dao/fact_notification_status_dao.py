@@ -574,7 +574,7 @@ def fetch_notification_statuses_per_service_and_template_for_date(date):
         FactNotificationStatus.notification_status.label('status'),
         FactNotificationStatus.status_reason.label('status_reason'),
         FactNotificationStatus.notification_count.label('count'),
-        Template.template_type.label('template_type')
+        Template.template_type.label('channel_type')
     ).join(
         Template, FactNotificationStatus.template_id == Template.id
     ).join(
