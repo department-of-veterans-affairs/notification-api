@@ -18,10 +18,10 @@ def pytest_runtest_logreport(report):
             if entry.reprfuncargs is not None:
                 args = entry.reprfuncargs.args
                 for idx, (name, value) in enumerate(args):
-                    if name == "service_api_key":
+                    if name == "service_test_api_key":
                         args[idx] = (name, "********")
             if entry.reprlocals is not None:
                 lines = entry.reprlocals.lines
                 for idx, line in enumerate(lines):
-                    if line.startswith("service_api_key"):
-                        lines[idx] = "service_api_key          = '*********'"
+                    if line.startswith("service_test_api_key"):
+                        lines[idx] = "service_test_api_key          = '*********'"
