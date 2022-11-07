@@ -333,3 +333,6 @@ fileignoreconfig:
       checksum: 17817004fe9477d2a748f4a9a6d63e87c25e60c92f3ccf2362bf6f32d542f1e1
     - filename: app/notifications/rest.py
       checksum: d22b6350a68e06c1c71893ca41b2217eb8cd61a21408baba79ca77b0bc0a37db
+      checksum: 689a27fc1319888d900055c52d460b23b6c2b1dea97f4ec078a0e22ff631ae01
+    - filename: lambda_functions/user_flows/conftest.py
+      checksum: 219fc865da3b73e4196366d15b992e605297d6cd10b7d4c5128ffb2460d2efad

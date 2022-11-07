@@ -17,8 +17,10 @@ def pytest_runtest_logreport(report):
         for entry in tb_repr.reprentries:
             if entry.reprfuncargs is not None:
                 args = entry.reprfuncargs.args
+                print(f"args->{args}")
                 for idx, (name, value) in enumerate(args):
-                    if name == "service_test_api_key":
+                    print("name:{}---value:{}".format(name, value))
+                    if "service_test_api_key" in name:
                         args[idx] = (name, "********")
             if entry.reprlocals is not None:
                 lines = entry.reprlocals.lines
