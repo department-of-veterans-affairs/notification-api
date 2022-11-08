@@ -1,4 +1,7 @@
 
+import pytest 
+
+
 def pytest_addoption(parser):
     parser.addoption("--environment", action="store", default="some env")
 
@@ -9,6 +12,7 @@ def pytest_generate_tests(metafunc):
     option_value = metafunc.config.option.environment
     if 'environment' in metafunc.fixturenames and option_value is not None:
         metafunc.parametrize("environment", [option_value],  scope="session")
+
 
 def pytest_runtest_logreport(report):
     if report.longrepr is None:
@@ -27,3 +31,11 @@ def pytest_runtest_logreport(report):
                 for idx, line in enumerate(lines):
                     if line.startswith("service_test_api_key"):
                         lines[idx] = "service_test_api_key          = '*********'"
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    out = yield
+    report = out.get_result()
+    print("$"*10)
+    print(report)
