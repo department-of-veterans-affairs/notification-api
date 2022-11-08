@@ -11,30 +11,40 @@ TWO_WAY_SMS_TABLE_DICT = {}
 START_TYPES = ('START', 'BEGIN', 'RESTART', 'OPTIN',)  
 STOP_TYPES = ('STOP', 'OPTOUT',)
 HELP_TYPES = ('HELP',)
-START_TEXT = "Message service resumed, reply \"STOP\" to stop receiving messages."
-STOP_TEXT = "Message service stopped, reply \"START\" to start receiving messages."
-HELP_TEXT = "Some help text"
+START_TEXT = 'Message service resumed, reply "STOP" to stop receiving messages.'
+STOP_TEXT = 'Message service stopped, reply "START" to start receiving messages.'
+HELP_TEXT = 'Some help text'
+
+EXPECTED_SNS_FIELDS = set({''})
 logger = None
+
+
 
 # Handle all intitialization of the lambda execution environemnt and logic
 
 
 def two_way_v2_handler(event: dict, context, worker_id=None):
-    global TWO_WAY_SMS_TABLE_DICT, logger
-    initialize_invocation()
-    event_data = get_event_data(event)
-    two_way_record = TWO_WAY_SMS_TABLE_DICT[event_data['originationNumber']]
+    if not initialize_invocation():
+        # push events to SQS
+        return handler_response(500, 'Failed to initialize')
+    
 
-    try:
-        # If the number is not self-managed, look for key words
-        if not two_way_record['service_managed']:
-            process_message(event_data['messageBody'])
-    except Exception as e:
-        logger.exception(e)
+    event_data = get_event_data(event)
+
+    for event in event_data:
+        # Catch each attempt
+        try:
+            two_way_record = TWO_WAY_SMS_TABLE_DICT[event['originationNumber']]
+
+            # If the number is not self-managed, look for key words
+            if not two_way_record['service_managed']:
+                process_message(event_data['messageBody'])
+        except Exception as e:
+            logger.exception(e)
 
     
 
-def initialize_invocation() -> None:
+def initialize_invocation() -> bool:
     """
     Sets and checks anything that could not be set/checked during the invocation environment. 
     Also calls validation for the event.
@@ -46,36 +56,45 @@ def initialize_invocation() -> None:
     except Exception as e:
         sys.exit()
 
-    validate_event()
-    set_service_two_way_sms_table()
-    pass
+    if not validate_event():
+        return False
 
-def get_event_data(event: dict) -> dict:
+    set_service_two_way_sms_table()
+    return True
+
+def get_event_data(event_data: dict) -> dict:
     """
     Parses the event to obtain sns data and put it into usable form
     """
-    event_data = {}
+    for event in event_data:
+        # Set dateReceived if not reprocessing from SQS
+        if 'dateReceived' not in event:
+            logger.info('Processing SNS event...')
+            event['dateReceived'] = datetime.utcnow()
+        else:
+            logger.info('Processing SQS event...')
+        logger.debug(f'Event: {event}')
 
-    # Set dateRecevied if not reprocessing from SQS
-    if 'dateRecevied' not in event_data:
-        event_data['dateRecevied'] = datetime.utcnow()
     return event_data
 
-def validate_event() -> None:
+def validate_event(event_data: dict) -> bool:
     """
     Ensure the event has all the necessary fields
     """
-    
-    pass
+
+    for event in event_data:
+        if not EXPECTED_SNS_FIELDS.issubset(event):
+            return False
+    return True
 
 def set_service_two_way_sms_table() -> None:
     """
     Sets the TWO_WAY_SMS_TABLE_DICT if it is not set by opening a connection to the DB and 
     querying the table.
     """
-    global TWO_WAY_SMS_TABLE_DICT
     # format for dict should be set to {'number':{'service_id': <value>, 'destination_url': <value>, 'service_managed': <value> }}
     db_connection = make_database_connection()
+    # do stuff
     pass
 
 def process_message(message: str):
@@ -125,3 +144,7 @@ def make_database_connection(worker_id:int = None) -> psycopg2.connection:
 
     return connection
 
+def handler_response(status_code: int = 200, response: str = '') -> dict:
+    if status_code < 300:
+        logger.info(f'Responding with {{{status_code}: {response}}}')
+    pass
