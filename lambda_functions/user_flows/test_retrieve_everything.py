@@ -228,7 +228,7 @@ def test_send_text_with_profile_id(notification_url, service_test_api_key, servi
     )
 
     assert notification_status_response['status'] == desired_status
-    assert notification_status_response['phone_number'] is not None
+    assert notification_status_response['phone_number'] is None
     assert notification_status_response['sent_by'] is not None
 
 
