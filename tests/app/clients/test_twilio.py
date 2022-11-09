@@ -8,10 +8,22 @@ from twilio.base.exceptions import TwilioRestException
 
 from tests.app.db import create_service_sms_sender
 
+import uuid
+from app.models import Notification
+
 
 class MockSmsSenderObject():
     sms_sender = ""
     sms_sender_specifics = {}
+
+
+def create_mock_notification(mocker):
+    notification = mocker.Mock(Notification)
+    notification.id = uuid.uuid4()
+    notification.service_id = uuid.uuid4()
+    notification.reference = "my reference"
+    notification.provider_reference = {}
+    return notification
 
 
 def make_twilio_message_response_dict():
@@ -110,9 +122,24 @@ def test_send_sms_call_with_sender_id_and_specifics(sample_service, notify_api, 
     sms_sender_with_specifics.sms_sender_specifics = sms_sender_specifics_info
     sms_sender_with_specifics.sms_sender = "+18194120710"
 
+    notification = create_mock_notification(mocker)
+    mocker.patch(
+        "app.dao.notifications_dao.dao_get_notification_by_reference",
+        return_value=notification
+    )
+
+    # add the twilio response message to the notification
+    # for assert later to make sure it's added in twilio.send_sms()
+    notification.provider_reference = response_dict
+
+    mocked_dao_update_notification = mocker.patch(
+        'app.celery.lookup_va_profile_id_task.notifications_dao.dao_update_notification'
+    )
+
     with requests_mock.Mocker() as request_mock:
         request_mock.post("https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json",
                           json=response_dict, status_code=200)
+
         if sms_sender_id is not None:
             mocker.patch("app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_id",
                          return_value=sms_sender_with_specifics)
@@ -128,6 +155,8 @@ def test_send_sms_call_with_sender_id_and_specifics(sample_service, notify_api, 
             sender="test_sender",
             sms_sender_id=sms_sender_id
         )
+
+    assert mocked_dao_update_notification.called_once_with(notification)
 
     assert request_mock.call_count == 1
     req = request_mock.request_history[0]

@@ -45,8 +45,10 @@ class TwilioSMSClient(SmsClient):
         """
 
         start_time = monotonic()
-        callback_url = "{}/notifications/sms/twilio/{}".format(
-            self._callback_notify_url_host, reference) if self._callback_notify_url_host else ""
+        callback_url = ""
+        if self._callback_notify_url_host:
+            callback_url = f"{self._callback_notify_url_host}/notifications/sms/twilio/{reference}"
+
         try:
             # Importing inline to resolve a circular import error when importing at the top of the file
             from app.dao.service_sms_sender_dao import (
@@ -57,6 +59,8 @@ class TwilioSMSClient(SmsClient):
             messaging_service_sid = None
             sms_sender_id = kwargs.get("sms_sender_id")
 
+            # If sms_sender_id is available, get the specified sender.
+            # Otherwise, get the first sender for the service.
             if sms_sender_id is not None:
                 # This is an instance of ServiceSmsSender or None.
                 service_sms_sender = dao_get_service_sms_sender_by_id(
@@ -99,6 +103,13 @@ class TwilioSMSClient(SmsClient):
                 )
 
                 self.logger.info(f"Twilio message created using messaging_service_sid")
+
+                # Importing inline to resolve a circular import error
+                from app.dao.notifications_dao import dao_get_notification_by_reference, dao_update_notification
+
+                notification = dao_get_notification_by_reference(reference)
+                notification.provider_reference = message
+                dao_update_notification(notification)
 
             self.logger.info(f"Twilio send SMS request for {reference} succeeded: {message.sid}")
         except Exception as e:
