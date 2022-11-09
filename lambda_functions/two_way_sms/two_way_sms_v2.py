@@ -9,7 +9,7 @@ import requests
 
 # Global Variables
 # Immutable
-START_TYPES = ('START', 'BEGIN', 'RESTART', 'OPTIN', 'OPT-IN',)  
+START_TYPES = ('START', 'BEGIN', 'RESTART', 'OPTIN', 'OPT-IN',)
 STOP_TYPES = ('STOP', 'OPTOUT', 'OPT-OUT',)
 HELP_TYPES = ('HELP',)
 START_TEXT = 'Message service resumed, reply "STOP" to stop receiving messages.'
@@ -23,7 +23,7 @@ EXPECTED_SNS_FIELDS = set({'originationNumber',
                            'messageBody',
                            'inboundMessageId',
                            'previousPublishedMessageId',
-                            })
+                           })
 
 # Pre-Configurable
 AWS_PINPOINT_APP_ID = ''
@@ -53,6 +53,7 @@ def set_env_variables() -> None:
     except KeyError as e:
         sys.exit(f'Failed to find env variable: {e}')
 
+
 def set_logger() -> None:
     global logger
     try:
@@ -61,7 +62,8 @@ def set_logger() -> None:
     except Exception as e:
         sys.exit('Logger failed to setup properly')
 
-def make_database_connection(worker_id:int = None) -> psycopg2.connection:
+
+def make_database_connection(worker_id: int = None) -> psycopg2.connection:
     """
     Return a connection to the database, or return None.
 
@@ -82,6 +84,7 @@ def make_database_connection(worker_id:int = None) -> psycopg2.connection:
 
     return connection
 
+
 def set_service_two_way_sms_table() -> None:
     """
     Sets the TWO_WAY_SMS_TABLE_DICT if it is not set by opening a connection to the DB and 
@@ -99,8 +102,8 @@ def set_service_two_way_sms_table() -> None:
             logger.debug(f'Data returned from query: {data}')
         db_connection.close()
 
-        TWO_WAY_SMS_TABLE_DICT = {n: {'service_id': s, 
-                                      'url_endpoint': u, 
+        TWO_WAY_SMS_TABLE_DICT = {n: {'service_id': s,
+                                      'url_endpoint': u,
                                       'self_managed': True if sm == 't' else False} for n, s, u, sm in data}
         logger.info('TWO_WAY_SMS_TABLE_DICT set...')
         logger.debug(f'Two way table as a dictionary with numbers as keys: {TWO_WAY_SMS_TABLE_DICT}')
@@ -110,21 +113,25 @@ def set_service_two_way_sms_table() -> None:
             db_connection.close()
         sys.exit('Unable to load inbound_numbers table into dictionary')
 
+
 def init_execution_environment() -> None:
     set_env_variables()
     set_logger()
     set_service_two_way_sms_table()
     logger.info('Execution environment setup...')
 
+
 init_execution_environment()
 # ------------------------------------ End Execution Environment Setup ------------------------------------
 
 # ------------------------------------------- Begin Invocation --------------------------------------------
+
+
 def two_way_sms_v2_handler(event: dict, context, worker_id=None):
     if not valid_event():
         push_to_dead_letter(event)
         return 500, 'Unrecognized event'
-    
+
     if not set_aws_pinpoint():
         push_to_sqs(event)
         return 400, 'Failed to setup Pinpoint client'
@@ -163,6 +170,7 @@ def two_way_sms_v2_handler(event: dict, context, worker_id=None):
             push_to_sqs(inbound_sms)
     return 200, 'Success'
 
+
 def valid_event(event_data: dict) -> bool:
     """
     Ensure the event has all the necessary fields
@@ -173,8 +181,9 @@ def valid_event(event_data: dict) -> bool:
             if not inbound_sms or not EXPECTED_SNS_FIELDS.issubset(inbound_sms):
                 logger.critical(f'Failed to detect critical fields in event: {event}')
                 return False
-        
+
     return True
+
 
 def detected_keyword(message: str) -> str:
     """
@@ -196,6 +205,7 @@ def detected_keyword(message: str) -> str:
         logger.info('No keywords detected...')
         return ''
 
+
 def set_aws_pinpoint():
     global AWS_PINPOINT
     if AWS_PINPOINT is not None:
@@ -206,6 +216,7 @@ def set_aws_pinpoint():
     except Exception as e:
         logger.critical(f'Unable to set pinpoint client: {e}')
         return False
+
 
 def send_message(recipient_number: str, sender: str, message: str) -> dict:
     try:
@@ -233,6 +244,7 @@ def send_message(recipient_number: str, sender: str, message: str) -> dict:
         logger.exception(e)
         logger.critical(f'Failed to send message: {message} to {recipient_number} from {sender}')
 
+
 def send_to_service(inbound_sms: dict, url: str) -> None:
     try:
         logger.debug(f'Connecting to {url}, sending: {inbound_sms}')
@@ -244,6 +256,7 @@ def send_to_service(inbound_sms: dict, url: str) -> None:
         logger.error(f'Failed to connect to {url}')
         raise
 
+
 def push_to_sqs(inbound_sms: dict) -> None:
     try:
         logger.warn(f'Pushing event to SQS')
@@ -252,6 +265,7 @@ def push_to_sqs(inbound_sms: dict) -> None:
     except Exception as e:
         logger.critical(f'Failed to push event to SQS: {inbound_sms}')
         push_to_dead_letter(inbound_sms)
+
 
 def push_to_dead_letter(inbound_sms: dict) -> None:
     pass
