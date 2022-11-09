@@ -21,8 +21,7 @@ def create_mock_notification(mocker):
     notification = mocker.Mock(Notification)
     notification.id = uuid.uuid4()
     notification.service_id = uuid.uuid4()
-    notification.reference = "my reference"
-    notification.provider_reference = {}
+    notification.reference = ""
     return notification
 
 
@@ -130,7 +129,7 @@ def test_send_sms_call_with_sender_id_and_specifics(sample_service, notify_api, 
 
     # add the twilio response message to the notification
     # for assert later to make sure it's added in twilio.send_sms()
-    notification.provider_reference = response_dict
+    notification.reference = response_dict['sid']
 
     mocked_dao_update_notification = mocker.patch(
         'app.celery.lookup_va_profile_id_task.notifications_dao.dao_update_notification'

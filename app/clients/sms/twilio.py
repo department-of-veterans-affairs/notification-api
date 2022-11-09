@@ -108,7 +108,7 @@ class TwilioSMSClient(SmsClient):
                 from app.dao.notifications_dao import dao_get_notification_by_reference, dao_update_notification
 
                 notification = dao_get_notification_by_reference(reference)
-                notification.provider_reference = message
+                notification.reference = message.sid
                 dao_update_notification(notification)
 
             self.logger.info(f"Twilio send SMS request for {reference} succeeded: {message.sid}")
