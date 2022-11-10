@@ -46,8 +46,8 @@ def set_env_variables() -> None:
     """
     Attempt to get environmental variables. Abort execution environment on failure.
     """
-    global AWS_PINPOINT_APP_ID,AWS_REGION,DEAD_LETTER_SQS_URL
-    global LOG_LEVEL,RETRY_SQS_URL,SQLALCHEMY_DATABASE_URI,TIMEOUT
+    global AWS_PINPOINT_APP_ID, AWS_REGION, DEAD_LETTER_SQS_URL
+    global LOG_LEVEL, RETRY_SQS_URL, SQLALCHEMY_DATABASE_URI, TIMEOUT
 
     try:
         AWS_PINPOINT_APP_ID = environ['aws_pinpoint_app_id']
@@ -59,6 +59,7 @@ def set_env_variables() -> None:
         TIMEOUT = environ['timeout']
     except KeyError as e:
         sys.exit(f'Failed to find env variable: {e}')
+
 
 def set_logger() -> None:
     """
@@ -121,6 +122,25 @@ def set_service_two_way_sms_table() -> None:
         if db_connection:
             db_connection.close()
         sys.exit('Unable to load inbound_numbers table into dictionary')
+
+
+def set_aws_clients():
+    global aws_pinpoint_client, aws_sqs_client
+    if aws_pinpoint_client is not None and aws_sqs_client is not None:
+        return True
+    try:
+        logger.info('Setting aws_pinpoint_client...')
+        aws_pinpoint_client = boto3.client('pinpoint', region_name=AWS_REGION)
+        logger.info('aws_pinpoint_client set...')
+
+        logger.info('Setting aws_sqs_client...')
+        aws_sqs_client = boto3.client('sqs', region_name=AWS_REGION)
+        logger.info('aws_sqs_client set...')
+
+        return True
+    except Exception as e:
+        logger.critical(f'Unable to set pinpoint client: {e}')
+        return False
 
 
 def init_execution_environment() -> None:
@@ -191,6 +211,7 @@ def two_way_sms_v2_handler(event: dict, context, worker_id=None):
             push_to_sqs(inbound_sms, False, is_sns)
     return 200, 'Success'
 
+
 def valid_event(event_data: dict) -> bool:
     """
     Ensure the event has all the necessary fields
@@ -207,6 +228,7 @@ def valid_event(event_data: dict) -> bool:
     except Exception as e:
         logger.critical(f'Failed to parse event_data')
         return False
+
 
 def detected_keyword(message: str) -> str:
     """
@@ -227,25 +249,6 @@ def detected_keyword(message: str) -> str:
     else:
         logger.info('No keywords detected...')
         return ''
-
-
-def set_aws_clients():
-    global aws_pinpoint_client, aws_sqs_client
-    if aws_pinpoint_client is not None and aws_sqs_client is not None:
-        return True
-    try:
-        logger.info('Setting aws_pinpoint_client...')
-        aws_pinpoint_client = boto3.client('pinpoint', region_name=AWS_REGION)
-        logger.info('aws_pinpoint_client set...')
-        
-        logger.info('Setting aws_sqs_client...')
-        aws_sqs_client = boto3.client('sqs', region_name=AWS_REGION)
-        logger.info('aws_sqs_client set...')
-
-        return True
-    except Exception as e:
-        logger.critical(f'Unable to set pinpoint client: {e}')
-        return False
 
 
 def send_message(recipient_number: str, sender: str, message: str) -> dict:
@@ -293,6 +296,7 @@ def forward_to_service(inbound_sms: dict, url: str) -> None:
         logger.error(f'Failed to connect to {url}')
         raise
 
+
 def push_to_sqs(inbound_sms: dict, is_retry: bool, is_sns: bool = 'unknown') -> None:
     """
     Pushes an inbound sms or entire event to SQS. Sends to RETRY or DEAD LETTER queue dependent
@@ -303,7 +307,7 @@ def push_to_sqs(inbound_sms: dict, is_retry: bool, is_sns: bool = 'unknown') -> 
     try:
         logger.warning(f'Pushing event to {"RETRY" if is_retry else "DEAD LETTER"} queue')
         logger.debug(f'Event: {inbound_sms}')
-        
+
         queue_msg = json.dumps(inbound_sms)
         queue_msg_attrs = {
             'source': {
