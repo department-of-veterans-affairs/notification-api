@@ -260,20 +260,10 @@ def send_message(recipient_number: str, sender: str, message: str) -> dict:
         # Should probably be smsv2
         response = aws_pinpoint_client.send_messages(
             ApplicationId=AWS_PINPOINT_APP_ID,
-            MessageRequest={
-                'Addresses': {
-                    recipient_number: {
-                        'ChannelType': 'SMS'
-                    }
-                },
-                'MessageConfiguration': {
-                    'SMSMessage': {
-                        'Body': message,
-                        'MessageType': 'TRANSACTIONAL',
-                        'OriginationNumber': sender
-                    }
-                }
-            }
+            MessageRequest={'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
+                            'MessageConfiguration': {'SMSMessage': {'Body': message,
+                                                                    'MessageType': 'TRANSACTIONAL',
+                                                                    'OriginationNumber': sender}}}
         )
         aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
         logging.info(f'Message sent, reference: {aws_reference}')
@@ -309,12 +299,8 @@ def push_to_sqs(inbound_sms: dict, is_retry: bool, is_sns: bool = 'unknown') -> 
         logger.debug(f'Event: {inbound_sms}')
 
         queue_msg = json.dumps(inbound_sms)
-        queue_msg_attrs = {
-            'source': {
-                'DataType': 'String',
-                'StringValue': is_sns
-            }
-        }
+        queue_msg_attrs = {'source': {'DataType': 'String',
+                                      'StringValue': is_sns}}
 
         aws_sqs_client.send_message(QueueUrl=RETRY_SQS_URL if is_retry else DEAD_LETTER_SQS_URL,
                                     MessageAttributes=queue_msg_attrs,
