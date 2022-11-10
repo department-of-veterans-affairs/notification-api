@@ -123,7 +123,7 @@ def test_send_sms_call_with_sender_id_and_specifics(sample_service, notify_api, 
 
     notification = create_mock_notification(mocker)
     mocker.patch(
-        "app.dao.notifications_dao.dao_get_notification_by_reference",
+        "app.dao.notifications_dao.get_notification_by_id",
         return_value=notification
     )
 
