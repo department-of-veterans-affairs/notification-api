@@ -39,9 +39,11 @@ class TwilioSMSClient(SmsClient):
     def get_name(self):
         return self.name
 
-    def send_sms(self, to, content, reference, **kwargs):
+    def send_sms(self, to, content, reference, **kwargs) -> str:
         """
         Twilio supports sending messages with a sender phone number or messaging_service_sid.
+
+        Return: a string containing the Twilio message.sid
         """
 
         start_time = monotonic()
@@ -104,9 +106,9 @@ class TwilioSMSClient(SmsClient):
 
                 self.logger.info(f"Twilio message created using messaging_service_sid")
 
-                return message.sid
-
             self.logger.info(f"Twilio send SMS request for {reference} succeeded: {message.sid}")
+
+            return message.sid
         except Exception as e:
             self.logger.error(f"Twilio send SMS request for {reference} failed")
             raise e
