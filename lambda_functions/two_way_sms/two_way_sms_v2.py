@@ -145,15 +145,18 @@ def two_way_sms_v2_handler(event: dict, context, worker_id=None):
     """
     Handler for inbound messages from SNS.
     """
-    if not valid_event():
+    if not valid_event(event):
         logger.critical(f'Logging entire event: {event}')
         # Deadletter
         push_to_sqs(event, False)
         return 500, 'Unrecognized event'
 
+    # Both SNS and SQS seem to contain 'Records', will confirm.
     for event_data in event.get('Records'):
         try:
             inbound_sms = event_data.get('Sns')
+            # This is where it gets fuzzy. I have seen multiple versions of what is in the SNS. Need to test.
+            # Will derive logic for sns vs sqs messages when I can test them
             is_sns = 'dateReceived' not in inbound_sms
 
             # Update and log SNS or SQS inbound_sms
@@ -295,6 +298,8 @@ def push_to_sqs(inbound_sms: dict, is_retry: bool, is_sns: bool = 'unknown') -> 
     Pushes an inbound sms or entire event to SQS. Sends to RETRY or DEAD LETTER queue dependent
     on is_retry variable. Also identifies the source (sns, sqs, or unknown).
     """
+    # NOTE: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
+    # Need to ensure none of those unicode characters are in the message or it's gone
     try:
         logger.warning(f'Pushing event to {"RETRY" if is_retry else "DEAD LETTER"} queue')
         logger.debug(f'Event: {inbound_sms}')
