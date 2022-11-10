@@ -19,7 +19,6 @@ def upgrade():
     op.alter_column('users', 'auth_type', nullable=True, server_default=None)
 
     op.add_column('users', sa.Column('identity_provider_user_id', sa.String(), nullable=True))
-    op.create_unique_constraint('users_identity_provider_user_id', 'users', ['identity_provider_user_id'])
 
     op.drop_constraint('ck_users_mobile_or_email_auth', 'users')
 
@@ -46,7 +45,6 @@ def downgrade():
     op.alter_column('users', 'auth_type', nullable=False, server_default='sms_auth')
 
     op.drop_column('users', 'identity_provider_user_id')
-    op.drop_constraint('users_identity_provider_user_id', 'users')
 
     op.drop_constraint('ck_users_mobile_number_if_sms_auth', 'users')
     op.drop_constraint('ck_users_password_or_identity_provider_user_id', 'users')
