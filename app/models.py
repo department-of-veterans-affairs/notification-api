@@ -656,7 +656,6 @@ class ServiceCallback(db.Model, Versioned):
 
     __table_args__ = (
         UniqueConstraint('service_id', 'callback_type', name='uix_service_callback_type'),
-        UniqueConstraint('service_id', 'callback_channel', name='uix_service_callback_channel'),
     )
 
     @property
