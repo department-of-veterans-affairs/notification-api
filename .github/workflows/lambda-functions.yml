@@ -192,12 +192,12 @@ jobs:
         if: ${{ (inputs.lambdaName == 'TwoWaySMS') || (inputs.lambdaName == 'All') }}
         run: |
           cd two_way_sms/
-          python3 -m venv venv_two_way_sms_v2
-          source venv_two_way_sms_v2/bin/activate
+          python3 -m venv venv_two_way_sms
+          source venv_two_way_sms/bin/activate
           pip install requests
           deactivate
-          cd venv_two_way_sms_v2/lib/python3.8/site-packages
-          zip -r9 ../../../../two_way_sms_v2.zip .
+          cd venv_two_way_sms/lib/python3.8/site-packages
+          zip -r9 ../../../../two_way_sms.zip .
           cd ../../../../
-          zip -ugj two_way_sms_v2 two_way_sms_v2.py
-          aws lambda update-function-code --function-name project-${{ inputs.environment }}-notify-incoming-sms-lambda --zip-file fileb://two_way_sms_v2.zip
+          zip -ugj two_way_sms two_way_sms_v2.py
+          aws lambda update-function-code --function-name project-${{ inputs.environment }}-notify-incoming-sms-lambda --zip-file fileb://two_way_sms.zip
