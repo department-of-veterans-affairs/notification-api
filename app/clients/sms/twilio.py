@@ -104,19 +104,7 @@ class TwilioSMSClient(SmsClient):
 
                 self.logger.info(f"Twilio message created using messaging_service_sid")
 
-                # Importing inline to resolve a circular import error
-                from app.dao.notifications_dao import get_notification_by_id, dao_update_notification
-
-                notification = get_notification_by_id(reference)
-
-                # test logging - remove before merging to master
-                self.logger.info(f'got twilio notification:\n{notification}')
-                notification.reference = message.sid
-                # test logging - remove before merging to master
-                self.logger.info(f'twilio notification updated:\n{notification}')
-
-                dao_update_notification(notification)
-                self.logger.info('twilio notification update sent to database')
+                return message.sid
 
             self.logger.info(f"Twilio send SMS request for {reference} succeeded: {message.sid}")
         except Exception as e:
