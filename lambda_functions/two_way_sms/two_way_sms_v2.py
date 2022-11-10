@@ -1,5 +1,4 @@
 import boto3
-from botocore.client import BaseClient
 from datetime import datetime
 import json
 import logging
