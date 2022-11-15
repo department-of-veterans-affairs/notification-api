@@ -567,7 +567,13 @@ def create_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None):
     return api_key
 
 
-def create_inbound_number(number, provider='mmg', active=True, service_id=None, url_endpoint: str = None, self_managed=False):
+def create_inbound_number(
+    number, provider='mmg',
+    active=True,
+    service_id=None,
+    url_endpoint: str = None,
+    self_managed=False
+):
     inbound_number = InboundNumber(
         id=uuid.uuid4(),
         number=number,
