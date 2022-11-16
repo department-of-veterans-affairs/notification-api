@@ -1024,7 +1024,7 @@ paths:
                   billing_code: string
                   email_reply_to_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   email: "test@notification.com"
-              recipient_identifier_example:
+              recipient_identifier:
                 value:
                   reference: string
                   template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
