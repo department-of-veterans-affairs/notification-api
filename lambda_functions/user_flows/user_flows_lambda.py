@@ -7,6 +7,7 @@ def user_flows_handler(event, context):
     return pytest.main([
         "-p", "no:cacheprovider",
         "-s", "--verbose",
+        "--tb=short",
         "--environment", environment,
         "./test_retrieve_everything.py"
     ])
