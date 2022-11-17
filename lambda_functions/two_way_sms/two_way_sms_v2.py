@@ -30,8 +30,8 @@ AWS_PINPOINT_APP_ID = ''
 AWS_REGION = ''
 DEAD_LETTER_SQS_URL = ''
 LOG_LEVEL = 'INFO'
-SQLALCHEMY_DATABASE_URI = ''
 RETRY_SQS_URL = ''
+SQLALCHEMY_DATABASE_URI = ''
 TIMEOUT = 3
 
 # Set within lambda
@@ -56,8 +56,14 @@ def set_env_variables() -> None:
         RETRY_SQS_URL = environ['retry_sqs_url']
         SQLALCHEMY_DATABASE_URI = environ['sql_alchemy_database_uri']
         TIMEOUT = environ['timeout']
+        if isinstance(TIMEOUT, list):
+            TIMEOUT = tuple(TIMEOUT)
+        else:
+            TIMEOUT = int(TIMEOUT)
     except KeyError as e:
         sys.exit(f'Failed to find env variable: {e}')
+    except Exception as e:
+        sys.exit(f'Failed to convert TIMEOUT: {e}')
 
 
 def set_logger() -> None:
@@ -72,7 +78,7 @@ def set_logger() -> None:
         sys.exit('Logger failed to setup properly')
 
 
-def make_database_connection(worker_id: int = None) -> psycopg2.connection:
+def make_database_connection() -> psycopg2.connection:
     """
     Return a connection to the database, or return None.
 
@@ -81,7 +87,7 @@ def make_database_connection(worker_id: int = None) -> psycopg2.connection:
     """
     try:
         logger.debug('Connecting to the database . . .')
-        connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI + ('' if worker_id is None else f'_{worker_id}'))
+        connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
         logger.info('. . . Connected to the database.')
     except psycopg2.Warning as e:
         logger.warning(e)
@@ -160,7 +166,7 @@ init_execution_environment()
 # ------------------------------------------- Begin Invocation --------------------------------------------
 
 
-def two_way_sms_v2_handler(event: dict, context, worker_id=None):
+def two_way_sms_v2_handler(event: dict, context):
     """
     Handler for inbound messages from SNS.
     """
