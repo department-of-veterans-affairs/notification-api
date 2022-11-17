@@ -2027,7 +2027,7 @@ class Complaint(db.Model):
     __tablename__ = 'complaints'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    notification_id = db.Column(UUID(as_uuid=True), db.ForeignKey('notification_history.id'),
+    notification_id = db.Column(UUID(as_uuid=True),
                                 index=True, nullable=False)
     service_id = db.Column(UUID(as_uuid=True), db.ForeignKey('services.id'), unique=False, index=True, nullable=False)
     service = db.relationship(Service, backref=db.backref('complaints'))

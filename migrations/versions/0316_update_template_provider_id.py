@@ -24,7 +24,13 @@ def upgrade():
         remote_cols=['id']
     )
     op.add_column('templates_history', sa.Column('provider_id', postgresql.UUID, nullable=True))
-
+    op.create_foreign_key(
+        constraint_name='templates_history_provider_id_fkey',
+        source_table='templates_history',
+        referent_table='provider_details',
+        local_cols=['provider_id'],
+        remote_cols=['id']
+    )
 
 def downgrade():
     op.drop_column('templates', 'provider_id')
