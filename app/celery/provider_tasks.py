@@ -131,7 +131,7 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
             raise NotificationTechnicalFailureException(message)
 
 
-# Including sms_sender_id is necessary in case it's passed in when being called
+# Including sms_sender_id is necessary in case it's passed in when being called.
 @notify_celery.task(bind=True, name="deliver_email", max_retries=48, default_retry_delay=300)
 @statsd(namespace="tasks")
 def deliver_email(self, notification_id, sms_sender_id=None):

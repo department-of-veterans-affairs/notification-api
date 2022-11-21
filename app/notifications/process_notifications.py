@@ -209,7 +209,8 @@ def _get_delivery_task(notification, research_mode=False, queue=None, sms_sender
 
         service_sms_sender = None
 
-        # get the specific service_sms_sender if sms_sender_id is provided, otherwise get the first one from the service
+        # Get the specific service_sms_sender if sms_sender_id is provided.
+        # Otherwise, get the first one from the service.
         if sms_sender_id is not None:
             # This is an instance of ServiceSmsSender or None.
             service_sms_sender = dao_get_service_sms_sender_by_id(
@@ -231,14 +232,16 @@ def _get_delivery_task(notification, research_mode=False, queue=None, sms_sender
             deliver_task = provider_tasks.deliver_sms_with_rate_limiting
         else:
             deliver_task = provider_tasks.deliver_sms
-    if notification.notification_type == EMAIL_TYPE:
+    elif notification.notification_type == EMAIL_TYPE:
         if not queue:
             queue = QueueNames.SEND_EMAIL
         deliver_task = provider_tasks.deliver_email
-    if notification.notification_type == LETTER_TYPE:
+    elif notification.notification_type == LETTER_TYPE:
         if not queue:
             queue = QueueNames.CREATE_LETTERS_PDF
         deliver_task = create_letters_pdf
+    else:
+        current_app.logger.error(f"Unrecognized notification type: {notification.notification_type}")
 
     return deliver_task, queue
 

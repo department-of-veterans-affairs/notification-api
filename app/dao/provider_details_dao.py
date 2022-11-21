@@ -97,12 +97,12 @@ def dao_switch_sms_provider_to_provider_with_identifier(identifier):
 
 def get_provider_details_by_notification_type(notification_type, supports_international=False):
 
-    filters = [ProviderDetails.notification_type == notification_type]
+    q = ProviderDetails.query.filter_by(notification_type=notification_type)
 
     if supports_international:
-        filters.append(ProviderDetails.supports_international == supports_international)
+        q = q.filter_by(supports_international=supports_international)
 
-    return ProviderDetails.query.filter(*filters).order_by(asc(ProviderDetails.priority)).all()
+    return q.order_by(asc(ProviderDetails.priority)).all()
 
 
 def get_highest_priority_active_provider_by_notification_type(

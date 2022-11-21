@@ -1,14 +1,12 @@
+import app.googleanalytics.pixels as gapixels
 import re
 from datetime import datetime
-
-import app.googleanalytics.pixels as gapixels
 from flask import current_app
 from notifications_utils.recipients import (
     validate_and_format_phone_number,
     validate_and_format_email_address
 )
 from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate, SMSMessageTemplate
-
 from app import attachment_store
 from app import clients, statsd_client, create_uuid, provider_service
 from app.attachments.types import UploadedAttachmentMetadata
@@ -37,7 +35,8 @@ from app.models import (
     NOTIFICATION_VIRUS_SCAN_FAILED,
     NOTIFICATION_CONTAINS_PII,
     NOTIFICATION_SENDING,
-    Notification, ProviderDetails
+    Notification,
+    ProviderDetails,
 )
 from app.service.utils import compute_source_email_address
 
