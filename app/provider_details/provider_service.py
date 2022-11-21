@@ -7,11 +7,10 @@ from app.provider_details.provider_selection_strategy_interface import (
     ProviderSelectionStrategyInterface,
     STRATEGY_REGISTRY,
 )
-from flask import current_app
 from typing import Type, Dict, Optional
 
 logging.basicConfig(format="%(levelname)s %(asctime)s %(pathname)s:%(lineno)d: %(message)s")
-logger = logging.getLogger(current_app.name + ".provider_switching")
+logger = logging.getLogger("notification-api.provider_switching")
 logger.setLevel(logging.DEBUG)
 
 
@@ -115,5 +114,5 @@ class ProviderService:
 
         # TODO - What about letters?  That is the 3rd enumerated value in NotificationType
         # and Notification.notification_type.
-        current_app.logger.critical(f"Unanticipated notification type: {notification.notification_type}")
+        logger.critical(f"Unanticipated notification type: {notification.notification_type}")
         return None
