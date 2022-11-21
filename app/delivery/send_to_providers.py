@@ -104,80 +104,83 @@ def send_sms_to_provider(notification, sms_sender_id=None):
     statsd_client.timing("sms.total-time", delta_milliseconds)
 
 
-def send_email_to_provider(notification):
+def send_email_to_provider(notification: Notification):
+    # This is a relationship to a Service instance.
     service = notification.service
+
     if not service.active:
         technical_failure(notification=notification)
         return
 
-    # TODO: no else - replace with if statement raising error / logging when not 'created'
-    if notification.status == 'created':
-        provider = provider_to_use(notification)
+    if notification.status != 'created':
+        raise RuntimeError(f"notification.status = {notification.status}")
 
-        # TODO: remove that code or extract attachment handling to separate method
-        # Extract any file objects from the personalization
-        file_keys = [
-            k for k, v in (notification.personalisation or {}).items() if isinstance(v, dict) and 'file_name' in v
-        ]
-        attachments = []
+    provider = provider_to_use(notification)
 
-        personalisation_data = notification.personalisation.copy()
+    # TODO: remove that code or extract attachment handling to separate method
+    # Extract any file objects from the personalization
+    file_keys = [
+        k for k, v in (notification.personalisation or {}).items() if isinstance(v, dict) and 'file_name' in v
+    ]
+    attachments = []
 
-        for key in file_keys:
-            uploaded_attachment_metadata: UploadedAttachmentMetadata = personalisation_data[key]
-            if uploaded_attachment_metadata['sending_method'] == 'attach':
-                file_data = attachment_store.get(
-                    service_id=service.id,
-                    attachment_id=uploaded_attachment_metadata['id'],
-                    decryption_key=uploaded_attachment_metadata['encryption_key'],
-                    sending_method=uploaded_attachment_metadata['sending_method']
-                )
-                attachments.append({
-                    "name": uploaded_attachment_metadata['file_name'],
-                    "data": file_data
-                })
-                del personalisation_data[key]
-            else:
-                personalisation_data[key] = personalisation_data[key]['url']
+    personalisation_data = notification.personalisation.copy()
 
-        template_dict = dao_get_template_by_id(notification.template_id, notification.template_version).__dict__
-
-        html_email = HTMLEmailTemplate(
-            template_dict,
-            values=personalisation_data,
-            **get_html_email_options(notification, provider)
-        )
-
-        plain_text_email = PlainTextEmailTemplate(
-            template_dict,
-            values=personalisation_data
-        )
-
-        if current_app.config["SCAN_FOR_PII"]:
-            contains_pii(notification, str(plain_text_email))
-
-        if service.research_mode or notification.key_type == KEY_TYPE_TEST:
-            notification.reference = str(create_uuid())
-            update_notification_to_sending(notification, provider)
-            send_email_response(notification.reference, notification.to)
-        else:
-            email_reply_to = notification.reply_to_text
-
-            reference = provider.send_email(
-                source=compute_source_email_address(service, provider),
-                to_addresses=validate_and_format_email_address(notification.to),
-                subject=plain_text_email.subject,
-                body=str(plain_text_email),
-                html_body=str(html_email),
-                reply_to_address=validate_and_format_email_address(email_reply_to) if email_reply_to else None,
-                attachments=attachments
+    for key in file_keys:
+        uploaded_attachment_metadata: UploadedAttachmentMetadata = personalisation_data[key]
+        if uploaded_attachment_metadata['sending_method'] == 'attach':
+            file_data = attachment_store.get(
+                service_id=service.id,
+                attachment_id=uploaded_attachment_metadata['id'],
+                decryption_key=uploaded_attachment_metadata['encryption_key'],
+                sending_method=uploaded_attachment_metadata['sending_method']
             )
-            notification.reference = reference
-            update_notification_to_sending(notification, provider)
-            current_app.logger.info(f"Saved provider reference: {reference} for notification id: {notification.id}")
+            attachments.append({
+                "name": uploaded_attachment_metadata['file_name'],
+                "data": file_data
+            })
+            del personalisation_data[key]
+        else:
+            personalisation_data[key] = personalisation_data[key]['url']
 
-        delta_milliseconds = (datetime.utcnow() - notification.created_at).total_seconds() * 1000
-        statsd_client.timing("email.total-time", delta_milliseconds)
+    template_dict = dao_get_template_by_id(notification.template_id, notification.template_version).__dict__
+
+    html_email = HTMLEmailTemplate(
+        template_dict,
+        values=personalisation_data,
+        **get_html_email_options(notification, provider)
+    )
+
+    plain_text_email = PlainTextEmailTemplate(
+        template_dict,
+        values=personalisation_data
+    )
+
+    if current_app.config["SCAN_FOR_PII"]:
+        contains_pii(notification, str(plain_text_email))
+
+    if service.research_mode or notification.key_type == KEY_TYPE_TEST:
+        notification.reference = str(create_uuid())
+        update_notification_to_sending(notification, provider)
+        send_email_response(notification.reference, notification.to)
+    else:
+        email_reply_to = notification.reply_to_text
+
+        reference = provider.send_email(
+            source=compute_source_email_address(service, provider),
+            to_addresses=validate_and_format_email_address(notification.to),
+            subject=plain_text_email.subject,
+            body=str(plain_text_email),
+            html_body=str(html_email),
+            reply_to_address=validate_and_format_email_address(email_reply_to) if email_reply_to else None,
+            attachments=attachments
+        )
+        notification.reference = reference
+        update_notification_to_sending(notification, provider)
+        current_app.logger.info(f"Saved provider reference: {reference} for notification id: {notification.id}")
+
+    delta_milliseconds = (datetime.utcnow() - notification.created_at).total_seconds() * 1000
+    statsd_client.timing("email.total-time", delta_milliseconds)
 
 
 def update_notification_to_sending(notification, provider):
@@ -203,6 +206,10 @@ def load_provider(provider_id: str) -> ProviderDetails:
 
 
 def provider_to_use(notification: Notification):
+    """
+    Return a subclass of Client to process a notification.
+    TODO - This should be named "client_to_use".
+    """
 
     if is_feature_enabled(FeatureFlag.PROVIDER_STRATEGIES_ENABLED):
         provider = provider_service.get_provider(notification)

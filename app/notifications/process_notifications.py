@@ -83,7 +83,7 @@ def persist_notification(
         template_postage=None,
         recipient_identifier=None,
         billing_code=None
-):
+) -> Notification:
     notification_created_at = created_at or datetime.utcnow()
 
     if notification_id is None:
@@ -157,15 +157,18 @@ def send_notification_to_queue(
     """
     Create, enqueue, and asynchronously execute a Celery task to send a notification.
     """
+
     deliver_task, queue = _get_delivery_task(notification, research_mode, queue, sms_sender_id)
 
+    # This is a relationship to a TemplateHistory instance.
     template = notification.template
 
-    if template:
+    if template is not None:
+        # This is a nullable foreign key reference to a CommunicationItem instance UUID.
         communication_item_id = template.communication_item_id
 
     try:
-        # Including sms_sender_id is necessary so the correct sender can be chosen
+        # Including sms_sender_id is necessary so the correct sender can be chosen.
         # https://docs.celeryq.dev/en/v4.4.7/userguide/canvas.html#immutability
         tasks = [deliver_task.si(str(notification.id), sms_sender_id).set(queue=queue)]
         if (recipient_id_type and communication_item_id and
@@ -241,7 +244,9 @@ def _get_delivery_task(notification, research_mode=False, queue=None, sms_sender
             queue = QueueNames.CREATE_LETTERS_PDF
         deliver_task = create_letters_pdf
     else:
-        current_app.logger.error(f"Unrecognized notification type: {notification.notification_type}")
+        error_message = f"Unrecognized notification type: {notification.notification_type}"
+        current_app.logger.error(error_message)
+        raise RuntimeError(error_message)
 
     return deliver_task, queue
 

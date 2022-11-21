@@ -100,7 +100,7 @@ def get_provider_details_by_notification_type(notification_type, supports_intern
     q = ProviderDetails.query.filter_by(notification_type=notification_type)
 
     if supports_international:
-        q = q.filter_by(supports_international=supports_international)
+        q = q.filter_by(supports_international=True)
 
     return q.order_by(asc(ProviderDetails.priority)).all()
 

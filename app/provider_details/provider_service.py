@@ -46,7 +46,7 @@ class ProviderService:
 
     def get_provider(self, notification: Notification) -> ProviderDetails:
         """
-        Return an instance of ProviderDetails.
+        Return an instance of ProviderDetails that is appropriate for the given notification.
         """
 
         # This is a UUID (ProviderDetails primary key) or None.
@@ -81,14 +81,14 @@ class ProviderService:
     @staticmethod
     def _get_template_or_service_provider_id(notification: Notification) -> Optional[str]:
         """
-        Return a primary key for an instance of ProviderDetails using this criteria:
+        Return a primary key (UUID) for an instance of ProviderDetails using this criteria:
             1. Use the notification template's provider_id first.
             2. Use the notification service's provider_id if the template's provider_id is null.
 
         The return value, if not None, is a UUID.
         """
 
-        # The template provider_id is nullable.
+        # The template provider_id is nullable foreign key (UUID).
         if notification.template.provider_id is not None:
             return notification.template.provider_id
 
