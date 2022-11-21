@@ -163,7 +163,7 @@ def send_notification_to_queue(
     # This is a relationship to a TemplateHistory instance.
     template = notification.template
 
-    if template is not None:
+    if template:
         # This is a nullable foreign key reference to a CommunicationItem instance UUID.
         communication_item_id = template.communication_item_id
 

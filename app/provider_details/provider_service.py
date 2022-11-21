@@ -38,6 +38,7 @@ class ProviderService:
 
     @property
     def strategies(self):
+        """ This is a dictionary with notification types as the keys. """
         return self._strategies
 
     def validate_strategies(self) -> None:
@@ -49,17 +50,20 @@ class ProviderService:
         Return an instance of ProviderDetails that is appropriate for the given notification.
         """
 
-        # This is a UUID (ProviderDetails primary key) or None.
+        # This is a UUID (ProviderDetails primary key).
         provider_id = self._get_template_or_service_provider_id(notification)
 
-        if provider_id is None:
+        # TODO - The field is nullable, but what does SQLAlchemy return?  An empty string?
+        # Testing for None broke a user flows test.
+        if provider_id:
             if notification.notification_type == NotificationType.SMS:
                 # Do not use any other criteria to determine the provider.  See notification-api#944.
                 provider = None
                 provider_selection_strategy = None
             else:
-                provider_selection_strategy = self._strategies[NotificationType(notification.notification_type)]
-                provider = provider_selection_strategy.get_provider(notification)
+                provider_selection_strategy = self._strategies.get(NotificationType(notification.notification_type))
+                provider = None if (provider_selection_strategy is None) \
+                    else provider_selection_strategy.get_provider(notification)
 
             if provider is None:
                 exception_message = "could not find a suitable provider"
@@ -89,7 +93,9 @@ class ProviderService:
         """
 
         # The template provider_id is nullable foreign key (UUID).
-        if notification.template.provider_id is not None:
+        # TODO - The field is nullable, but what does SQLAlchemy return?  An empty string?
+        # Testing for None broke a user flows test.
+        if notification.template.provider_id:
             return notification.template.provider_id
 
         # A template provider_id is not available.  Try using a service provider_id, which might also be None.
