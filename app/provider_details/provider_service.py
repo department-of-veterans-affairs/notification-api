@@ -74,7 +74,9 @@ class ProviderService:
                     f"Could not determine a provider using strategy {provider_selection_strategy.get_label()}."
                 )
         else:
-            # Do not use any other criteria to determine the provider.  See issue 944.
+            # Do not use any other criteria to determine the provider for SMS notifications.
+            # Unlike e-mail providers, which are basically fungible, SMS providers have more specific
+            # limitations that should preclude selecting different ones in an ad-hoc manner.
             provider = None
 
         if provider is None:

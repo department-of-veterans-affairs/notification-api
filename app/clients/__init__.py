@@ -2,16 +2,16 @@ from typing import Optional
 
 
 class ClientException(Exception):
-    '''
-    Base Exceptions for sending notifications that fail
-    '''
+    """
+    Base Exceptions for sending notifications that fail.
+    """
     pass
 
 
-class Client(object):
-    '''
+class Client:
+    """
     Base client for sending notifications.
-    '''
+    """
     pass
 
 
@@ -20,7 +20,7 @@ STATISTICS_DELIVERED = 'delivered'
 STATISTICS_FAILURE = 'failure'
 
 
-class Clients(object):
+class Clients:
     sms_clients = {}
     email_clients = {}
 
@@ -45,4 +45,4 @@ class Clients(object):
         elif notification_type == 'sms':
             return self.get_sms_client(name)
 
-        raise RuntimeError(f"Unrecognized notification type: {notification_type}")
+        raise ValueError(f"Unrecognized notification type: {notification_type}")

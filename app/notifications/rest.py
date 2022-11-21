@@ -125,8 +125,8 @@ def send_notification(notification_type):
     # Do not persist or send the notification to the queue if the recipient is simulated.
     simulated = simulated_recipient(notification_form['to'], notification_type)
 
-    # TODO - This is a confusing name.  "persist_notitifation" takes a "simulated" parameter which,
-    # if False, precludes the function from actually persisting the notification.
+    # The name not withstanding, "persist_notitifation" only persists a notification if
+    # the "simulated" parameter is True.
     notification_model = persist_notification(
         template_id=template.id,
         template_version=template.version,

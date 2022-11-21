@@ -45,7 +45,8 @@ from app.service.utils import compute_source_email_address
 
 def send_sms_to_provider(notification, sms_sender_id=None):
     """
-    Send an HTTP request to an SMS backend provider to initiate an SMS message to a veteran.
+    Send an HTTP request to an SMS backend provider to initiate an SMS message to a veteran.  Do not attempt to
+    switch providers if one fails.
 
     When the backend provider has sms_sender_specifics, use messaging_service_sid, if available, for the sender's
     identity instead of the sender's phone number.
@@ -61,7 +62,7 @@ def send_sms_to_provider(notification, sms_sender_id=None):
         return
 
     # This is an instance of one of the classes defined in app/clients/.
-    provider = provider_to_use(notification)
+    client = client_to_use(notification)
 
     template_model = dao_get_template_by_id(notification.template_id, notification.template_version)
 
@@ -74,13 +75,13 @@ def send_sms_to_provider(notification, sms_sender_id=None):
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
         notification.reference = create_uuid()
-        update_notification_to_sending(notification, provider)
-        send_sms_response(provider.get_name(), str(notification.id), notification.to, notification.reference)
+        update_notification_to_sending(notification, client)
+        send_sms_response(client.get_name(), str(notification.id), notification.to, notification.reference)
 
     else:
         try:
             # Send a SMS message using the "to" attribute to specify the recipient.
-            reference = provider.send_sms(
+            reference = client.send_sms(
                 to=validate_and_format_phone_number(notification.to, international=notification.international),
                 content=str(template),
                 reference=str(notification.id),
@@ -91,15 +92,11 @@ def send_sms_to_provider(notification, sms_sender_id=None):
         except Exception as e:
             notification.billable_units = template.fragment_count
             dao_update_notification(notification)
-
-            # Do not do this.  See notification-api#944.
-            # TODO - Delete this?
-            # dao_toggle_sms_provider(provider.name)
             raise e
 
         notification.billable_units = template.fragment_count
         notification.reference = reference
-        update_notification_to_sending(notification, provider)
+        update_notification_to_sending(notification, client)
         current_app.logger.info(f"Saved provider reference: {reference} for notification id: {notification.id}")
 
     delta_milliseconds = (datetime.utcnow() - notification.created_at).total_seconds() * 1000
@@ -111,13 +108,13 @@ def send_email_to_provider(notification: Notification):
     service = notification.service
 
     if not service.active:
+        # This raises an exception.
         technical_failure(notification=notification)
-        return
 
     if notification.status != 'created':
         raise RuntimeError(f"notification.status = {notification.status}")
 
-    provider = provider_to_use(notification)
+    client = client_to_use(notification)
 
     # TODO: remove that code or extract attachment handling to separate method
     # Extract any file objects from the personalization
@@ -150,7 +147,7 @@ def send_email_to_provider(notification: Notification):
     html_email = HTMLEmailTemplate(
         template_dict,
         values=personalisation_data,
-        **get_html_email_options(notification, provider)
+        **get_html_email_options(notification, client)
     )
 
     plain_text_email = PlainTextEmailTemplate(
@@ -163,13 +160,13 @@ def send_email_to_provider(notification: Notification):
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
         notification.reference = str(create_uuid())
-        update_notification_to_sending(notification, provider)
+        update_notification_to_sending(notification, client)
         send_email_response(notification.reference, notification.to)
     else:
         email_reply_to = notification.reply_to_text
 
-        reference = provider.send_email(
-            source=compute_source_email_address(service, provider),
+        reference = client.send_email(
+            source=compute_source_email_address(service, client),
             to_addresses=validate_and_format_email_address(notification.to),
             subject=plain_text_email.subject,
             body=str(plain_text_email),
@@ -178,16 +175,16 @@ def send_email_to_provider(notification: Notification):
             attachments=attachments
         )
         notification.reference = reference
-        update_notification_to_sending(notification, provider)
+        update_notification_to_sending(notification, client)
         current_app.logger.info(f"Saved provider reference: {reference} for notification id: {notification.id}")
 
     delta_milliseconds = (datetime.utcnow() - notification.created_at).total_seconds() * 1000
     statsd_client.timing("email.total-time", delta_milliseconds)
 
 
-def update_notification_to_sending(notification, provider):
+def update_notification_to_sending(notification, client):
     notification.sent_at = datetime.utcnow()
-    notification.sent_by = provider.get_name()
+    notification.sent_by = client.get_name()
     notification.status = NOTIFICATION_SENDING
     dao_update_notification(notification)
 
@@ -207,39 +204,49 @@ def load_provider(provider_id: str) -> ProviderDetails:
         return provider_details
 
 
-def provider_to_use(notification: Notification):
+def client_to_use(notification: Notification):
     """
     Return a subclass of Client to process a notification.
-    TODO - This should be named "client_to_use".
     """
 
-    if is_feature_enabled(FeatureFlag.PROVIDER_STRATEGIES_ENABLED):
-        provider = provider_service.get_provider(notification)
-        return clients.get_client_by_name_and_type(provider.identifier, notification.notification_type)
+    try:
+        if is_feature_enabled(FeatureFlag.PROVIDER_STRATEGIES_ENABLED):
+            provider = provider_service.get_provider(notification)
+            return clients.get_client_by_name_and_type(provider.identifier, notification.notification_type)
 
-    if is_feature_enabled(FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED):
-        provider_id = get_provider_id(notification)
+        if is_feature_enabled(FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED):
+            provider_id = get_provider_id(notification)
 
-        if provider_id:
-            return clients.get_client_by_name_and_type(
-                load_provider(provider_id).identifier,
-                notification.notification_type
+            if provider_id:
+                return clients.get_client_by_name_and_type(
+                    load_provider(provider_id).identifier,
+                    notification.notification_type
+                )
+
+        # This is a list of ProviderDetails instances sorted by their "priority" attribute.
+        active_providers_in_order = [
+            p for p in get_provider_details_by_notification_type(
+                notification.notification_type,
+                notification.international
             )
+            if should_use_provider(p)
+        ]
 
-    # This is a list of ProviderDetails instances sorted by their "priority" attribute.
-    active_providers_in_order = [
-        p for p in get_provider_details_by_notification_type(notification.notification_type, notification.international)
-        if should_use_provider(p)
-    ]
+        if not active_providers_in_order:
+            current_app.logger.error(
+                f"{notification.notification_type} {notification.id} failed as no active providers"
+            )
+            raise RuntimeError(f"No active {notification.notification_type} providers")
 
-    if not active_providers_in_order:
-        current_app.logger.error(
-            f"{notification.notification_type} {notification.id} failed as no active providers"
+        # This returns an instance of one of the classes defined in app/clients/.
+        return clients.get_client_by_name_and_type(
+            active_providers_in_order[0].identifier,
+            notification.notification_type
         )
-        raise Exception(f"No active {notification.notification_type} providers")
-
-    # This returns an instance of one of the classes defined in app/clients/.
-    return clients.get_client_by_name_and_type(active_providers_in_order[0].identifier, notification.notification_type)
+    except ValueError as e:
+        current_app.logger.error("Couldn't retrieve a client for the given provider.")
+        current_app.logger.exception(e)
+        raise
 
 
 def get_provider_id(notification: Notification) -> str:
