@@ -30,7 +30,10 @@ def get_alternative_sms_provider(identifier: str) -> Optional[ProviderDetails]:
     Return the highest priority SMS provider that doesn't match the given
     identifier.
 
-    TODO - This should be a method on the ProviderDetails model.
+    TODO - This would be more elegant as a method on a custom query class for the ProviderDetails model.
+    https://stackoverflow.com/questions/15936111/sqlalchemy-can-you-add-custom-methods-to-the-query-object
+
+    TODO - Should this be deleted?  See notification-api#944.
     """
 
     return ProviderDetails.query.filter_by(

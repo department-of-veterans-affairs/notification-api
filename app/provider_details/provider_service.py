@@ -50,7 +50,7 @@ class ProviderService:
         """
 
         # This is a UUID (ProviderDetails primary key) or None.
-        provider_id: Optional[str] = self._get_template_or_service_provider_id(notification)
+        provider_id = self._get_template_or_service_provider_id(notification)
 
         if provider_id is None:
             if notification.notification_type == NotificationType.SMS:
