@@ -172,13 +172,13 @@ def set_primary_sms_provider(identifier):
 
 def test_can_get_sms_all_providers(restore_provider_details):
     sms_providers = get_provider_details_by_notification_type('sms', False)
-    assert len(sms_providers) == 6
+    assert len(sms_providers) >= 1
     assert all(prov.notification_type == 'sms' for prov in sms_providers)
 
 
 def test_can_get_sms_international_providers(restore_provider_details):
     sms_providers = get_provider_details_by_notification_type('sms', True)
-    assert len(sms_providers) == 1
+    assert len(sms_providers) >= 1
     assert all(prov.notification_type == 'sms' for prov in sms_providers)
     assert all(prov.supports_international for prov in sms_providers)
 

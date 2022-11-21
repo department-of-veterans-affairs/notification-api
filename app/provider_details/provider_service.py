@@ -100,7 +100,7 @@ class ProviderService:
         """
 
         # The template provider_id is nullable foreign key (UUID).
-        # TODO - The field is nullable, but what does SQLAlchemy return?  An empty string?
+        # TODO #957 - The field is nullable, but what does SQLAlchemy return?  An empty string?
         # Testing for None broke a user flows test.
         if notification.template.provider_id:
             logger.debug("Found template provider ID %s", notification.template.provider_id)
@@ -114,7 +114,7 @@ class ProviderService:
             logger.debug("Service provider SMS ID %s", notification.service.sms_provider_id)
             return notification.service.sms_provider_id
 
-        # TODO - What about letters?  That is the 3rd enumerated value in NotificationType
+        # TODO #957 - What about letters?  That is the 3rd enumerated value in NotificationType
         # and Notification.notification_type.
         logger.critical(f"Unanticipated notification type: {notification.notification_type}")
         return None

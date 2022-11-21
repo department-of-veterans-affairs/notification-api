@@ -75,17 +75,21 @@ def template_id(get_templates_response) -> str:
     """
 
     for template in get_templates_response.json()['data']:
-        if template['template_type'] == 'email':
-            return first_email_template["id"]
+        if template.get('template_type') == 'email':
+            return template.get('id')
 
     raise RuntimeError("Couldn't find an e-mail template ID associated with User Flows Test Service.")
 
 
 @pytest.fixture(scope="session")
 def sms_template_id(get_templates_response) -> str:
+    """
+    Return the UUID for the first sms template associated with the User Flows Test Service.
+    """
+
     for template in get_templates_response.json()['data']:
-        if template['template_type'] == 'sms':
-            return first_sms_template["id"]
+        if template.get('template_type') == 'sms':
+            return template.get('id')
 
     raise RuntimeError("Couldn't find an SMS template ID associated with User Flows Test Service.")
 
