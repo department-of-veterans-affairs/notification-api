@@ -13,7 +13,9 @@ from app.attachments.types import UploadedAttachmentMetadata
 from app.celery.research_mode_tasks import send_sms_response, send_email_response
 from app.dao.notifications_dao import dao_update_notification
 from app.dao.provider_details_dao import (
-    # dao_toggle_sms_provider,
+    # This function isn't used in this module, but importing it here is still necessary because
+    # a unit test patches it.
+    dao_toggle_sms_provider,
     get_provider_details_by_id,
     get_provider_details_by_notification_type,
 )
