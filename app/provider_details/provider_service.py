@@ -53,32 +53,29 @@ class ProviderService:
         # This is a UUID (ProviderDetails primary key).
         provider_id = self._get_template_or_service_provider_id(notification)
 
-        # TODO - The field is nullable, but what does SQLAlchemy return?  An empty string?
-        # Testing for None broke a user flows test.
         if provider_id:
-            if notification.notification_type == NotificationType.SMS:
-                # Do not use any other criteria to determine the provider.  See notification-api#944.
-                provider = None
-                provider_selection_strategy = None
-            else:
-                provider_selection_strategy = self._strategies.get(NotificationType(notification.notification_type))
-                provider = None if (provider_selection_strategy is None) \
-                    else provider_selection_strategy.get_provider(notification)
-
-            if provider is None:
-                exception_message = "could not find a suitable provider"
-
-                if provider_selection_strategy is not None:
-                    exception_message = provider_selection_strategy.get_label() + ' ' + exception_message
-
-                raise InvalidProviderException(exception_message)
-        else:
             provider = get_provider_details_by_id(provider_id)
+        elif notification.notification_type != NotificationType.SMS:
+            # Use an alternative strategy to determine the provider.
+            provider_selection_strategy = self._strategies.get(NotificationType(notification.notification_type))
+            provider = None if (provider_selection_strategy is None) \
+                else provider_selection_strategy.get_provider(notification)
 
-            if provider is None:
-                raise InvalidProviderException(f'provider {provider_id} could not be found')
-            elif not provider.active:
-                raise InvalidProviderException(f'provider {provider_id} is not active')
+            if provider is None and provider_selection_strategy is not None:
+                # This exception message is more detailed than the messages below.
+                raise InvalidProviderException(
+                    f"Could not determine a provider using strategy {provider_selection_strategy.get_label()}."
+                )
+        else:
+            # Do not use any other criteria to determine the provider.  See notification-api#944.
+            provider = None
+
+        if provider is None:
+            if provider_id:
+                raise InvalidProviderException(f"The provider {provider_id} could not be found.")
+            raise InvalidProviderException("Could not determine a provider.")
+        elif not provider.active:
+            raise InvalidProviderException(f"The provider {provider.display_name} is not active.")
 
         return provider
 

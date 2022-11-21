@@ -211,7 +211,47 @@ class TestGetProvider:
         assert provider_service.get_provider(notification) == provider
         ExampleStrategyOne.get_provider.assert_called_with(notification)
 
-    def test_uses_strategy_for_notification_type_when_no_template_or_service_providers_sms(
+    @pytest.mark.parametrize(
+        "notification_type, template_provider_id, service_provider_id, expected_id", [
+            (NotificationType.SMS, "t_id", "s_id", "t_id"),
+            (NotificationType.SMS, "t_id", None, "t_id"),
+            (NotificationType.SMS, None, "s_id", "s_id"),
+            (NotificationType.SMS, None, None, None),
+            (NotificationType.EMAIL, "t_id", "s_id", "t_id"),
+            (NotificationType.EMAIL, "t_id", None, "t_id"),
+            (NotificationType.EMAIL, None, "s_id", "s_id"),
+            (NotificationType.EMAIL, None, None, None),
+        ]
+    )
+    def test_get_template_or_service_provider_id(
+        self,
+        mocker,
+        notification_type,
+        template_provider_id,
+        service_provider_id,
+        expected_id
+    ):
+        """
+        Test the static method ProviderService._get_template_or_service_provider_id.
+        """
+
+        template_mock = mocker.Mock(Template, provider_id=template_provider_id)
+
+        service_mock = mocker.Mock(
+            Service,
+            email_provider_id=service_provider_id,
+            sms_provider_id=service_provider_id
+        )
+
+        notification = mocker.Mock(
+            notification_type=notification_type,
+            template=template_mock,
+            service=service_mock
+        )
+
+        assert ProviderService._get_template_or_service_provider_id(notification) == expected_id
+
+    def test_no_strategy_for_notification_type_when_no_template_or_service_providers_sms(
             self,
             mocker,
             provider_service
