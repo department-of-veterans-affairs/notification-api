@@ -1,3 +1,4 @@
+import logging
 from app.dao.provider_details_dao import get_provider_details_by_id
 from app.exceptions import InvalidProviderException
 from app.models import Notification, ProviderDetails
@@ -96,8 +97,8 @@ class ProviderService:
             return notification.service.email_provider_id
         elif notification.notification_type == NotificationType.SMS:
             return notification.service.sms_provider_id
+
         # TODO - What about letters?  That is the 3rd enumerated value in NotificationType
         # and Notification.notification_type.
-
-        assert False, f"Unanticipated notification type: {notification.notification_type}"
+        logging.critical(f"Unanticipated notification type: {notification.notification_type}")
         return None
