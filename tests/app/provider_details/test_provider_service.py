@@ -186,33 +186,52 @@ class TestGetProvider:
 
         mock_get_provider_details.assert_called_with(expected_provider_id)
 
-    @pytest.mark.parametrize(
-        'notification_type, expected_strategy', [
-            (NotificationType.EMAIL, ExampleStrategyOne),
-            (NotificationType.SMS, ExampleStrategyTwo)
-        ]
-    )
-    def test_uses_strategy_for_notification_type_when_no_template_or_service_providers(
+    def test_uses_strategy_for_notification_type_when_no_template_or_service_providers_email(
             self,
             mocker,
-            provider_service,
-            notification_type,
-            expected_strategy
+            provider_service
     ):
+        """
+        For e-mail notifications that do not have a provider_id associated with the template or
+        the service, ensure the fallback logic executes.
+        """
+
         template_without_provider = mocker.Mock(Template, provider_id=None)
         service_without_providers = mocker.Mock(Service, email_provider_id=None, sms_provider_id=None)
 
         provider = mocker.Mock()
-        mocker.patch.object(expected_strategy, 'get_provider', return_value=provider)
+        mocker.patch.object(ExampleStrategyOne, 'get_provider', return_value=provider)
 
         notification = mocker.Mock(
-            notification_type=notification_type,
+            notification_type=NotificationType.EMAIL,
             template=template_without_provider,
             service=service_without_providers
         )
 
         assert provider_service.get_provider(notification) == provider
-        expected_strategy.get_provider.assert_called_with(notification)
+        ExampleStrategyOne.get_provider.assert_called_with(notification)
+
+    def test_uses_strategy_for_notification_type_when_no_template_or_service_providers_sms(
+            self,
+            mocker,
+            provider_service
+    ):
+        """
+        For SMS messages, there is no fallback method if neither the notification's template
+        nor the notification's service has an associated provider_id.
+        """
+
+        template_without_provider = mocker.Mock(Template, provider_id=None)
+        service_without_providers = mocker.Mock(Service, email_provider_id=None, sms_provider_id=None)
+
+        notification = mocker.Mock(
+            notification_type=NotificationType.SMS,
+            template=template_without_provider,
+            service=service_without_providers
+        )
+
+        with pytest.raises(InvalidProviderException):
+            provider_service.get_provider(notification)
 
     @pytest.mark.parametrize('notification_type', [NotificationType.EMAIL, NotificationType.SMS])
     def test_raises_exception_when_strategy_cannot_find_suitable_provider(

@@ -1,11 +1,12 @@
-from typing import Type, Dict, Optional
-
 from app.dao.provider_details_dao import get_provider_details_by_id
 from app.exceptions import InvalidProviderException
 from app.models import Notification, ProviderDetails
 from app.notifications.notification_type import NotificationType
-from app.provider_details.provider_selection_strategy_interface import ProviderSelectionStrategyInterface, \
-    STRATEGY_REGISTRY
+from app.provider_details.provider_selection_strategy_interface import (
+    ProviderSelectionStrategyInterface,
+    STRATEGY_REGISTRY,
+)
+from typing import Type, Dict, Optional
 
 
 class ProviderService:
@@ -43,35 +44,60 @@ class ProviderService:
             strategy.validate(notification_type)
 
     def get_provider(self, notification: Notification) -> ProviderDetails:
-        template_or_service_provider_id = self._get_template_or_service_provider_id(notification)
-        if template_or_service_provider_id:
-            provider = get_provider_details_by_id(template_or_service_provider_id)
+        """
+        Return an instance of ProviderDetails.
+        """
+
+        # This is a UUID (ProviderDetails primary key) or None.
+        provider_id: Optional[str] = self._get_template_or_service_provider_id(notification)
+
+        if provider_id is None:
+            if notification.notification_type == NotificationType.SMS:
+                # Do not use any other criteria to determine the provider.  See notification-api#944.
+                provider = None
+                provider_selection_strategy = None
+            else:
+                provider_selection_strategy = self._strategies[NotificationType(notification.notification_type)]
+                provider = provider_selection_strategy.get_provider(notification)
 
             if provider is None:
-                raise InvalidProviderException(f'provider {template_or_service_provider_id} could not be found')
-            elif not provider.active:
-                raise InvalidProviderException(f'provider {template_or_service_provider_id} is not active')
+                exception_message = "could not find a suitable provider"
 
+                if provider_selection_strategy is not None:
+                    exception_message = provider_selection_strategy.get_label() + ' ' + exception_message
+
+                raise InvalidProviderException(exception_message)
         else:
-            provider_selection_strategy = self._strategies[NotificationType(notification.notification_type)]
-            provider = provider_selection_strategy.get_provider(notification)
+            provider = get_provider_details_by_id(provider_id)
 
             if provider is None:
-                raise InvalidProviderException(
-                    f'provider strategy {provider_selection_strategy.get_label()} could not find a suitable provider'
-                )
+                raise InvalidProviderException(f'provider {provider_id} could not be found')
+            elif not provider.active:
+                raise InvalidProviderException(f'provider {provider_id} is not active')
 
         return provider
 
     @staticmethod
     def _get_template_or_service_provider_id(notification: Notification) -> Optional[str]:
-        if notification.template.provider_id:
+        """
+        Return a primary key for an instance of ProviderDetails using this criteria:
+            1. Use the notification template's provider_id first.
+            2. Use the notification service's provider_id if the template's provider_id is null.
+
+        The return value, if not None, is a UUID.
+        """
+
+        # The template provider_id is nullable.
+        if notification.template.provider_id is not None:
             return notification.template.provider_id
 
-        service_provider_id = {
-            NotificationType.EMAIL: notification.service.email_provider_id,
-            NotificationType.SMS: notification.service.sms_provider_id
-        }[NotificationType(notification.notification_type)]
+        # A template provider_id is not available.  Try using a service provider_id, which might also be None.
+        if notification.notification_type == NotificationType.EMAIL:
+            return notification.service.email_provider_id
+        elif notification.notification_type == NotificationType.SMS:
+            return notification.service.sms_provider_id
+        # TODO - What about letters?  That is the 3rd enumerated value in NotificationType
+        # and Notification.notification_type.
 
-        if service_provider_id:
-            return service_provider_id
+        assert False, f"Unanticipated notification type: {notification.notification_type}"
+        return None
