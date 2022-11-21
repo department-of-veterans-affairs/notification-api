@@ -94,7 +94,7 @@ class ProviderService:
             1. Use the notification template's provider_id first.
             2. Use the notification service's provider_id if the template's provider_id is null.
 
-        The return value, if not None, is a UUID.
+        Return None if neither criterion yields a provider ID.
         """
 
         # The template provider_id is nullable foreign key (UUID).
@@ -105,10 +105,10 @@ class ProviderService:
             return notification.template.provider_id
 
         # A template provider_id is not available.  Try using a service provider_id, which might also be None.
-        if notification.notification_type == NotificationType.EMAIL:
+        if notification.notification_type == NotificationType.EMAIL.value:
             logger.debug("Service provider e-mail ID %s", notification.service.email_provider_id)
             return notification.service.email_provider_id
-        elif notification.notification_type == NotificationType.SMS:
+        elif notification.notification_type == NotificationType.SMS.value:
             logger.debug("Service provider SMS ID %s", notification.service.sms_provider_id)
             return notification.service.sms_provider_id
 

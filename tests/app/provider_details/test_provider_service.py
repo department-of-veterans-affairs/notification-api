@@ -150,8 +150,8 @@ class TestGetProvider:
 
     @pytest.mark.parametrize(
         'notification_type, expected_provider_id', [
-            (NotificationType.EMAIL, 'email-provider-id'),
-            (NotificationType.SMS, 'sms-provider-id')
+            (NotificationType.EMAIL.value, 'email-provider-id'),
+            (NotificationType.SMS.value, 'sms-provider-id')
         ]
     )
     def test_returns_service_provider_for_notification_type_if_no_template_provider(
@@ -213,14 +213,14 @@ class TestGetProvider:
 
     @pytest.mark.parametrize(
         "notification_type, template_provider_id, service_provider_id, expected_id", [
-            (NotificationType.SMS, "t_id", "s_id", "t_id"),
-            (NotificationType.SMS, "t_id", None, "t_id"),
-            (NotificationType.SMS, None, "s_id", "s_id"),
-            (NotificationType.SMS, None, None, None),
-            (NotificationType.EMAIL, "t_id", "s_id", "t_id"),
-            (NotificationType.EMAIL, "t_id", None, "t_id"),
-            (NotificationType.EMAIL, None, "s_id", "s_id"),
-            (NotificationType.EMAIL, None, None, None),
+            (NotificationType.SMS.value, "t_id", "s_id", "t_id"),
+            (NotificationType.SMS.value, "t_id", None, "t_id"),
+            (NotificationType.SMS.value, None, "s_id", "s_id"),
+            (NotificationType.SMS.value, None, None, None),
+            (NotificationType.EMAIL.value, "t_id", "s_id", "t_id"),
+            (NotificationType.EMAIL.value, "t_id", None, "t_id"),
+            (NotificationType.EMAIL.value, None, "s_id", "s_id"),
+            (NotificationType.EMAIL.value, None, None, None),
         ]
     )
     def test_get_template_or_service_provider_id(
