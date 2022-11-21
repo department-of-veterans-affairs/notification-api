@@ -616,8 +616,12 @@ def test_should_set_notification_billable_units_if_sending_to_provider_fails(
     sample_notification,
     mocker,
 ):
+    """
+    TODO - See notification-api#944.
+    """
+
     mocker.patch('app.aws_sns_client.send_sms', side_effect=Exception())
-    mock_toggle_provider = mocker.patch('app.delivery.send_to_providers.dao_toggle_sms_provider')
+    # mock_toggle_provider = mocker.patch('app.delivery.send_to_providers.dao_toggle_sms_provider')
 
     sample_notification.billable_units = 0
     assert sample_notification.sent_by is None
@@ -626,7 +630,7 @@ def test_should_set_notification_billable_units_if_sending_to_provider_fails(
         send_to_providers.send_sms_to_provider(sample_notification)
 
     assert sample_notification.billable_units == 1
-    assert mock_toggle_provider.called
+    # assert mock_toggle_provider.called
 
 
 @pytest.mark.skip(reason="Currently not supporting international providers")

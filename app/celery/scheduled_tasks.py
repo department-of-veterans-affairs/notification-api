@@ -101,7 +101,10 @@ def switch_current_sms_provider_on_slow_delivery():
     """
     Switch providers if at least 30% of notifications took more than four minutes to be delivered
     in the last ten minutes. Search from the time we last switched to the current provider.
+
+    TODO - See notification-api#944.  Should this task be deleted?  It is disabled in app/config.py.
     """
+
     if not current_app.config['SWITCH_SLOW_SMS_PROVIDER_ENABLED']:
         current_app.logger.info("Feature SWITCH_SLOW_SMS_PROVIDER is Diabled.")
         return

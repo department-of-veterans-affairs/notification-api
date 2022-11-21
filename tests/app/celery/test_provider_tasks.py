@@ -160,6 +160,7 @@ def test_should_retry_and_log_exception(sample_notification, mocker):
     assert sample_notification.status == 'created'
 
 
+@pytest.mark.xfail(reason="notification-api#944")
 def test_send_sms_should_not_switch_providers_on_non_provider_failure(
     sample_notification,
     mocker

@@ -25,7 +25,14 @@ def get_provider_details_by_identifier(identifier):
     return ProviderDetails.query.filter_by(identifier=identifier).one()
 
 
-def get_alternative_sms_provider(identifier):
+def get_alternative_sms_provider(identifier: str) -> Optional[ProviderDetails]:
+    """
+    Return the highest priority SMS provider that doesn't match the given
+    identifier.
+
+    TODO - This should be a method on the ProviderDetails model.
+    """
+
     return ProviderDetails.query.filter_by(
         notification_type=SMS_TYPE,
         active=True
@@ -56,12 +63,10 @@ def dao_get_provider_versions(provider_id):
 @transactional
 def dao_toggle_sms_provider(identifier):
     alternate_provider = get_alternative_sms_provider(identifier)
-    if alternate_provider:
+    if alternate_provider is not None:
         dao_switch_sms_provider_to_provider_with_identifier(alternate_provider.identifier)
     else:
-        current_app.logger.warning('Cancelling switch from {} as there is no alternative provider'.format(
-            identifier,
-        ))
+        current_app.logger.warning(f'Cancelling switch from {identifier} as there is no alternative provider.')
 
 
 @transactional

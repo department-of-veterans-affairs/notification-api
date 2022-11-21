@@ -13,12 +13,11 @@ from app import attachment_store
 from app import clients, statsd_client, create_uuid, provider_service
 from app.attachments.types import UploadedAttachmentMetadata
 from app.celery.research_mode_tasks import send_sms_response, send_email_response
-from app.dao.notifications_dao import (
-    dao_update_notification
-)
+from app.dao.notifications_dao import dao_update_notification
 from app.dao.provider_details_dao import (
+    # dao_toggle_sms_provider,
+    get_provider_details_by_id,
     get_provider_details_by_notification_type,
-    dao_toggle_sms_provider, get_provider_details_by_id
 )
 from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import NotificationTechnicalFailureException, InvalidProviderException
@@ -91,7 +90,10 @@ def send_sms_to_provider(notification, sms_sender_id=None):
         except Exception as e:
             notification.billable_units = template.fragment_count
             dao_update_notification(notification)
-            dao_toggle_sms_provider(provider.name)
+
+            # Do not do this.  See notification-api#944.
+            # TODO - Delete this?
+            # dao_toggle_sms_provider(provider.name)
             raise e
 
         notification.billable_units = template.fragment_count
