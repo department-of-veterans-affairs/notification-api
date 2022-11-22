@@ -25,15 +25,15 @@ def get_provider_details_by_identifier(identifier):
     return ProviderDetails.query.filter_by(identifier=identifier).one()
 
 
+# TODO #962 - Should this be deleted? sms provider swap code
 def get_alternative_sms_provider(identifier: str) -> Optional[ProviderDetails]:
     """
     Return the highest priority SMS provider that doesn't match the given
     identifier.
 
-    TODO - This would be more elegant as a method on a custom query class for the ProviderDetails model.
+    If this function is deleted, we don't have to worry about the below.
+    TODO #957 - This would be more elegant as a method on a custom query class for the ProviderDetails model.
     https://stackoverflow.com/questions/15936111/sqlalchemy-can-you-add-custom-methods-to-the-query-object
-
-    TODO - Should this be deleted?  See notification-api#944.
     """
 
     return ProviderDetails.query.filter_by(
@@ -62,7 +62,7 @@ def dao_get_provider_versions(provider_id):
         desc(ProviderDetailsHistory.version)
     ).all()
 
-
+# TODO #962 - Should this be deleted? sms provider swap code
 @transactional
 def dao_toggle_sms_provider(identifier):
     alternate_provider = get_alternative_sms_provider(identifier)
@@ -71,7 +71,7 @@ def dao_toggle_sms_provider(identifier):
     else:
         current_app.logger.warning(f'Cancelling switch from {identifier} as there is no alternative provider.')
 
-
+# TODO #962 - Should this be deleted? sms provider swap code
 @transactional
 def dao_switch_sms_provider_to_provider_with_identifier(identifier):
     new_provider = get_provider_details_by_identifier(identifier)
@@ -97,12 +97,12 @@ def dao_switch_sms_provider_to_provider_with_identifier(identifier):
 
 def get_provider_details_by_notification_type(notification_type, supports_international=False):
 
-    q = ProviderDetails.query.filter_by(notification_type=notification_type)
+    filters = [ProviderDetails.notification_type == notification_type]
 
     if supports_international:
-        q = q.filter_by(supports_international=True)
+        filters.append(ProviderDetails.supports_international == supports_international)
 
-    return q.order_by(asc(ProviderDetails.priority)).all()
+    return ProviderDetails.query.filter(*filters).order_by(asc(ProviderDetails.priority)).all()
 
 
 def get_highest_priority_active_provider_by_notification_type(
@@ -145,6 +145,7 @@ def dao_update_provider_details(provider_details):
     db.session.add(history)
 
 
+# TODO #962 - Should this be deleted? sms provider swap code
 def dao_get_sms_provider_with_equal_priority(identifier, priority):
     provider = db.session.query(ProviderDetails).filter(
         ProviderDetails.identifier != identifier,
