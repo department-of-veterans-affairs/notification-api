@@ -116,7 +116,7 @@ def send_email_to_provider(notification: Notification):
 
     client = client_to_use(notification)
 
-    # TODO: remove that code or extract attachment handling to separate method
+    # TODO: #883 remove that code or extract attachment handling to separate method
     # Extract any file objects from the personalization
     file_keys = [
         k for k, v in (notification.personalisation or {}).items() if isinstance(v, dict) and 'file_name' in v
