@@ -86,7 +86,7 @@ class ProviderService:
         elif not provider.active:
             raise InvalidProviderException(f"The provider {provider.display_name} is not active.")
 
-        logger.debug("Returning provider: %s", "None" if (provider is None) else provider.display_name)
+        logger.debug("Returning provider: %s", None if provider is None else provider.display_name)
         return provider
 
     @staticmethod

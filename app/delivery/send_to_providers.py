@@ -245,7 +245,7 @@ def client_to_use(notification: Notification):
         )
     except ValueError as e:
         current_app.logger.error("Couldn't retrieve a client for the given provider.")
-        current_app.logger.exception(e)
+        current_app.logger.exception("%s", e)
         raise
 
 
