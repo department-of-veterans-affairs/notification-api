@@ -116,5 +116,5 @@ class ProviderService:
 
         # TODO #957 - What about letters?  That is the 3rd enumerated value in NotificationType
         # and Notification.notification_type.
-        logger.critical(f"Unanticipated notification type: {notification.notification_type}")
+        logger.critical("Unanticipated notification type: %s", notification.notification_type)
         return None

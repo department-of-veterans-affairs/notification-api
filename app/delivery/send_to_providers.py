@@ -176,7 +176,7 @@ def send_email_to_provider(notification: Notification):
         )
         notification.reference = reference
         update_notification_to_sending(notification, client)
-        current_app.logger.info(f"Saved provider reference: {reference} for notification id: {notification.id}")
+        current_app.logger.info("Saved provider reference: %s for notification id: %s", reference, notification.id)
 
     delta_milliseconds = (datetime.utcnow() - notification.created_at).total_seconds() * 1000
     statsd_client.timing("email.total-time", delta_milliseconds)
@@ -234,7 +234,7 @@ def client_to_use(notification: Notification):
 
         if not active_providers_in_order:
             current_app.logger.error(
-                f"{notification.notification_type} {notification.id} failed as no active providers"
+                "%s %s failed as no active providers", notification.notification_type, notification.id
             )
             raise RuntimeError(f"No active {notification.notification_type} providers")
 

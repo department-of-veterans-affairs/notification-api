@@ -69,7 +69,7 @@ def dao_toggle_sms_provider(identifier):
     if alternate_provider is not None:
         dao_switch_sms_provider_to_provider_with_identifier(alternate_provider.identifier)
     else:
-        current_app.logger.warning(f'Cancelling switch from {identifier} as there is no alternative provider.')
+        current_app.logger.warning('Cancelling switch from %s as there is no alternative provider.', identifier)
 
 # TODO #962 - Should this be deleted? sms provider swap code
 @transactional
