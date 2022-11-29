@@ -166,7 +166,7 @@ init_execution_environment()
 # ------------------------------------------- Begin Invocation --------------------------------------------
 
 
-def two_way_sms_v2_handler(event: dict, context):
+def notify_incoming_sms_handler(event: dict, context):
     """
     Handler for inbound messages from SNS.
     """
