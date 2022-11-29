@@ -1,5 +1,3 @@
-import pytest
-
 
 def pytest_addoption(parser):
     parser.addoption("--environment", action="store", default="some env")
@@ -28,10 +26,4 @@ def pytest_runtest_logreport(report):
                 for idx, line in enumerate(lines):
                     if line.startswith("service_test_api_key"):
                         lines[idx] = "service_test_api_key          = '*********'"
-
-
-@pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_makereport(item, call):
-    out = yield
-    report = out.get_result()
 
