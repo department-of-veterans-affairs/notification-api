@@ -65,10 +65,11 @@ class AwsPinpointClient(SmsClient):
             }
         }
 
-        return self._client.send_messages(
-            ApplicationId=self.aws_pinpoint_app_id,
-            MessageRequest=message_request_payload
-        )
+        # return self._client.send_messages(
+        #     ApplicationId=self.aws_pinpoint_app_id,
+        #     MessageRequest=message_request_payload
+        # )
+        return 'KWM'
 
     def _validate_response(self, result: dict) -> None:
         # documentation of possible delivery statuses from Pinpoint can be found here:
