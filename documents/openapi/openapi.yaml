@@ -3,13 +3,19 @@ info:
   title: VA Notify API Documentation
   version: 1.0.1
   description: |
-    "<p>This documents the API schemas for consumption by internal VA developers.</p>
+    <p>This documents the API schemas for consumption by internal VA developers.</p>
     <h1>Authorization header</h1>
     <p>You must include an authorization header that is encoded using JSON Web Tokens.  JSON Web Tokens have a standard header and a payload. The header consists of:</p>
-    <code>{ &quot;type&quot;: &quot;JWT&quot;, &quot;alg&quot;: &quot;HS256&quot; }</code>
+    <pre><code>{
+        &quot;type&quot;: &quot;JWT&quot;,
+        &quot;alg&quot;: &quot;HS256&quot;
+    }</code></pre>
     <p>The payload consists of `iss` and `iat`. `iss` is the `service_id` that is sending the notification, and `iat` is the 'Issued At' timestamp in seconds since Unix epoch. Here is an example payload:</p>
-    <code>{ &quot;iss&quot;: &quot;26785a09-ab16-4eb0-8407-a37497a57506&quot;, &quot;iat&quot;: 1568818578 }</code>
-    <p>Refer to the <a href='https://jwt.io/' target='_blank'>JSON Web Tokens website</a> for more information on encoding your authorization header.</p>"
+    <pre><code>{
+        &quot;iss&quot;: &quot;26785a09-ab16-4eb0-8407-a37497a57506&quot;,
+        &quot;iat&quot;: 1568818578
+    }</code></pre>
+    <p>Refer to the <a href='https://jwt.io/' target='_blank'>JSON Web Tokens website</a> for more information on encoding your authorization header.</p>
   contact:
     name: VA Notify team
 servers:
@@ -1105,9 +1111,6 @@ paths:
           $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
-
-
-
   /v2/notifications/{notification_id}:
     get:
       summary: Get notification status and details
@@ -1135,7 +1138,6 @@ paths:
   /inbound-number:
     get:
       summary: Retrieve an inbound number
-      parameters: {} # TODO
       responses:
         "200":
           description: OK
@@ -1151,7 +1153,6 @@ paths:
           $ref: "#/components/responses/ServiceUnavailable"
     post:
       summary: Create an inbound number
-      parameters: {} # TODO
       responses:
         "201":
           description: Created
@@ -1170,25 +1171,50 @@ paths:
   /inbound-number/available:
     get:
       summary: Retrieve available inbound numbers
-      parameters: {} # TODO
-      responses: {} # TODO
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json: {} # TODO
   /inbound-number/{inbound_number_id}:
     post:
       summary: Update an inbound number
-      parameters: {} # TODO
-      responses: {} # TODO
-  /inbound-number/{inbound_number_id}/off:  # TODO - Can this not be accomplished with the previous endpoint?
+      parameters:
+        - $ref: "#/components/parameters/InboundNumberId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json: {} # TODO
+  /inbound-number/{inbound_number_id}/off:
     post:
       summary: Set the inbound number as off
-      parameters: {} # TODO
-      responses: {} # TODO
+      parameters:
+        - $ref: "#/components/parameters/InboundNumberId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json: {} # TODO
   /inbound-number/service/{service_id}:
     get:
       summary:  Get inbound numbers for a service
-      parameters: {} # TODO
-      responses: {} # TODO
+      parameters:
+        - $ref: "#/components/parameters/ServiceId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json: {} # TODO
 components:
   parameters:
+    InboundNumberId:
+      name: inbound_number_id
+      in: path
+      schema:
+        $ref: '#/components/schemas/Id'
+      required: true
+      description: Inbound number identifier
     OrganisationId:
       name: organisation_id
       in: path
