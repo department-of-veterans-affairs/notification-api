@@ -1142,7 +1142,7 @@ paths:
         "200":
           description: OK
           content:
-            application/json: {} # TODO
+            application/json: {} # TODO (issue 965)
         "401":
           $ref: "#/components/responses/Unauthorized"
         "500":
@@ -1175,7 +1175,7 @@ paths:
         "200":
           description: OK
           content:
-            application/json: {} # TODO
+            application/json: {} # TODO (issue 965)
   /inbound-number/{inbound_number_id}:
     post:
       summary: Update an inbound number
@@ -1185,7 +1185,7 @@ paths:
         "200":
           description: OK
           content:
-            application/json: {} # TODO
+            application/json: {} # TODO (issue 965)
   /inbound-number/{inbound_number_id}/off:
     post:
       summary: Set the inbound number as off
@@ -1195,7 +1195,7 @@ paths:
         "200":
           description: OK
           content:
-            application/json: {} # TODO
+            application/json: {} # TODO (issue 965)
   /inbound-number/service/{service_id}:
     get:
       summary:  Get inbound numbers for a service
@@ -1205,7 +1205,7 @@ paths:
         "200":
           description: OK
           content:
-            application/json: {} # TODO
+            application/json: {} # TODO (issue 965)
 components:
   parameters:
     InboundNumberId:
@@ -2018,7 +2018,7 @@ components:
         - template_id
     InboundNumberCreateResponse:
       type: object
-      properties: {} # TODO
+      properties: {} # TODO (issue 965)
     Notification:
       type: object
       properties:
