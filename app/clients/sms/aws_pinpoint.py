@@ -40,8 +40,9 @@ class AwsPinpointClient(SmsClient):
             self.statsd_client.incr("clients.pinpoint.error")
             raise AwsPinpointException(str(e))
         else:
-            self._validate_response(response['MessageResponse']['Result'][recipient_number])
-            aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
+            # self._validate_response(response['MessageResponse']['Result'][recipient_number])
+            # aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
+            aws_reference = response
             elapsed_time = monotonic() - start_time
             self.logger.info(f"AWS Pinpoint SMS request finished in {elapsed_time} for notificationId:{reference}"
                              f" and reference:{aws_reference}")
