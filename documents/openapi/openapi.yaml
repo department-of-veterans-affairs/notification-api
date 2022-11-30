@@ -1211,9 +1211,7 @@ paths:
                     postage: string
                     postcode: string
                     provider_reference: egsqaoi2hjok3mi0mlelijfk3i8ckalt5tsu6s00
-                    recipient_identifiers:
-                      id_type: VAPROFILEID
-                      id_value: string
+                    recipient_identifiers: []
                     reference: string
                     scheduled_for: string
                     sent_at: string
@@ -1246,9 +1244,7 @@ paths:
                     postage: string
                     postcode: string
                     provider_reference: egsqaoi2hjok3mi0mlelijfk3i8ckalt5tsu6s00
-                    recipient_identifiers:
-                      id_type: VAPROFILEID
-                      id_value: string
+                    recipient_identifiers: []
                     reference: string
                     scheduled_for: string
                     sent_at: string
