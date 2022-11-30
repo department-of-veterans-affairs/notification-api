@@ -40,7 +40,7 @@ class TestGetAvailableInboundNumbers:
         assert len(res) == 1
         assert res[0] == inbound_number
         assert hasattr(res[0], "url_endpoint")
-        assert hasattr(res[0], "self_managed")
+        assert hasattr(res[0], "self_managed") and isinstance(res[0].self_managed, bool) and res[0].self_managed
 
     def test_after_setting_service_id_that_inbound_number_is_unavailable(
             self, notify_db, notify_db_session, sample_inbound_numbers

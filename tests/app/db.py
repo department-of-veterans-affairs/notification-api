@@ -569,10 +569,10 @@ def create_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None):
 
 def create_inbound_number(
     number,
-    provider='mmg',
+    provider="ses",
     active=True,
     service_id=None,
-    url_endpoint: str = None,
+    url_endpoint=None,
     self_managed=False
 ):
     inbound_number = InboundNumber(
