@@ -24,7 +24,7 @@ class VAOnsiteClient:
         :param data: The dict onsite_notifications is expecting to see
         """
         self.logger.info(f"Calling VAOnsiteClient.post_onsite_notification")
-        self.logger.info(f"Sending this data with POST request to onsite_notifications: %s", data)
+        self.logger.info("Sending this data with POST request to onsite_notifications: %s", data)
 
         response = None
 
@@ -33,7 +33,7 @@ class VAOnsiteClient:
                                      data=json.dumps(data),
                                      headers=self._build_header())
 
-            self.logger.info("onsite_notifications POST response: status_code=%i, json=%s",
+            self.logger.info("onsite_notifications POST response: status_code=%s, json=%s",
                              response.status_code, response.json())
 
         except Exception as e:
