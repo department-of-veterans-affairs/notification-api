@@ -33,7 +33,8 @@ class VAOnsiteClient:
                                      data=json.dumps(data),
                                      headers=self._build_header())
 
-            self.logger.info("onsite_notifications POST response: status_code=%i, json=%s", response.status_code, response.json())
+            self.logger.info("onsite_notifications POST response: status_code=%i, json=%s",
+                             response.status_code, response.json())
 
         except Exception as e:
             self.logger.exception(e)
