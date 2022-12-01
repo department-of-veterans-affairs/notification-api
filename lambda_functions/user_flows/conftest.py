@@ -10,6 +10,8 @@ def pytest_generate_tests(metafunc):
     if 'environment' in metafunc.fixturenames and option_value is not None:
         metafunc.parametrize("environment", [option_value],  scope="session")
 
+# running list of substrings of secrets to mask in function below
+sensitive_words = ["key, bearer, token, secret"]
 
 def pytest_runtest_logreport(report):
     if report.longrepr is None:
@@ -19,10 +21,12 @@ def pytest_runtest_logreport(report):
             if entry.reprfuncargs is not None:
                 args = entry.reprfuncargs.args
                 for idx, (name, value) in enumerate(args):
-                    if "api_key" in name:
-                        args[idx] = (name, "********")
+                    for keyword in sensitive_words:
+                        if keyword in name:
+                            args[idx] = (name, "********")
             if entry.reprlocals is not None:
                 lines = entry.reprlocals.lines
                 for idx, line in enumerate(lines):
-                    if "api_key" in line:
-                        lines[idx] = "api key          = '*********'"
+                    for keyword in sensitive_words:
+                        if keyword in line:
+                            lines[idx] = "sensitive          = '*********'"
