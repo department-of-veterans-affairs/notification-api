@@ -26,4 +26,6 @@ def pytest_runtest_logreport(report):
                 for idx, line in enumerate(lines):
                     if line.startswith("service_test_api_key"):
                         lines[idx] = "service_test_api_key          = '*********'"
+                    if line.startswith("service_api_key"):
+                        lines[idx] = "service_api_key          = '*********'"
 
