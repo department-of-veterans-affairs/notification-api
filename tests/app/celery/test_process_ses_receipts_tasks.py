@@ -331,6 +331,7 @@ def test_ses_callback_should_set_status_to_permanent_failure(client,
     assert get_notification_by_id(notification.id).status == 'sending'
     assert process_ses_receipts_tasks.process_ses_results(ses_hard_bounce_callback(reference='ref'))
     assert get_notification_by_id(notification.id).status == 'permanent-failure'
+    assert 'Failed' in get_notification_by_id(notification.id).status_reason
     assert send_mock.called
 
 

@@ -86,8 +86,7 @@ def process_pinpoint_results(self, response):
 
         update_notification_status_by_id(
             notification_id=notification.id,
-            status=notification_status,
-            status_reason="process-pinpoint-result failure" if "failure" in notification_status else ""
+            status=notification_status
         )
 
         current_app.logger.info(
