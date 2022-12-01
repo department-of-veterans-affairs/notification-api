@@ -84,7 +84,11 @@ def process_pinpoint_results(self, response):
         if should_exit:
             return
 
-        update_notification_status_by_id(notification.id, notification_status)
+        update_notification_status_by_id(
+            notification_id=notification.id,
+            status=notification_status,
+            status_reason="process-pinpoint-result failure" if "failure" in notification_status else ""
+        )
 
         current_app.logger.info(
             f"Pinpoint callback return status of {notification_status} for notification: {notification.id}"

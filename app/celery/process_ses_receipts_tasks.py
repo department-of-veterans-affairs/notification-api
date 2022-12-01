@@ -187,6 +187,9 @@ def process_ses_results(self, response):
 
         if notification.status not in {NOTIFICATION_SENDING, NOTIFICATION_PENDING}:
             notifications_dao.duplicate_update_warning(notification, notification_status)
+            # update status reason here?
+            notification.status_reason = "process-ses-result failure" if "failure" in notification_status else ""
+            notifications_dao.dao_update_notification(notification)
             return
 
         notifications_dao._update_notification_status(notification=notification, status=notification_status)
