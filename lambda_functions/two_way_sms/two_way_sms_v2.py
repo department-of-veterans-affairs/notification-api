@@ -104,7 +104,7 @@ def set_service_two_way_sms_table() -> None:
             '+16506288615': {
                 'service_id': 'some_service_id',
                 'url_endpoint': 'https://eou9ebpdvxw3lva.m.pipedream.net',
-                'self_managed': False
+                'self_managed': True
             }
         }
 
