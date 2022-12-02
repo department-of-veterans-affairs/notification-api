@@ -100,7 +100,8 @@ def make_database_connection() -> psycopg2.connection:
     return connection
 
 
-def set_service_two_way_sms_table() -> None:
+# TODO: set return type to NONE when removing the return
+def set_service_two_way_sms_table() -> dict:
     """
     Sets the two_way_sms_table_dict if it is not set by opening a connection to the DB and 
     querying the table. This table should be small (a few dozen records at most).
@@ -108,6 +109,15 @@ def set_service_two_way_sms_table() -> None:
     # format for dict should be: {'number':{'service_id': <value>, 'url_endpoint': <value>, 'self_managed': <value> }}
     global two_way_sms_table_dict
     try:
+        # TODO: remove this return
+        return {
+            '+16506288615': {
+                'service_id': 'some_service_id',
+                'url_endpoint': 'https://eou9ebpdvxw3lva.m.pipedream.net',
+                'self_managed': False
+            }
+        }
+
         db_connection = make_database_connection()
         data = {}
         with db_connection.cursor() as c:
@@ -168,52 +178,54 @@ init_execution_environment()
 
 def notify_incoming_sms_handler(event: dict, context):
     """
-    Handler for inbound messages from SNS.
+    Handler for inbound messages from SQS.
     """
     if not valid_event(event):
         logger.critical(f'Logging entire event: {event}')
         # Deadletter
+        # we should either push to dead letter queue explicitly or return 500 so that after the specified # of times, the message gets moved to 
+        #   dead letter. Returning non 200 will re-enqueue the message on to the feeder queue.  Returning 200 removes the item from the queue
         push_to_sqs(event, False)
-        return 500, 'Unrecognized event'
+        # return 500, 'Unrecognized event'
+        return 200, 'Success'
 
-    # Both SNS and SQS seem to contain 'Records', will confirm.
+    # Both SNS and SQS contain 'Records'
     for event_data in event.get('Records'):
         try:
-            inbound_sms = event_data.get('Sns')
-            # This is where it gets fuzzy. I have seen multiple versions of what is in the SNS. Need to test.
-            # Will derive logic for sns vs sqs messages when I can test them
-            is_sns = 'dateReceived' not in inbound_sms
+            logger.info('Processing SQS inbound_sms...')
 
-            # Update and log SNS or SQS inbound_sms
-            if is_sns:
-                logger.info('Processing SNS inbound_sms...')
-                inbound_sms['dateReceived'] = datetime.utcnow()
-            else:
-                logger.info('Processing SQS inbound_sms...')
+            inbound_sms = event_data.get('body', '')
+            inbound_sms = json.loads(inbound_sms)
+
+            logger.info('SQS body retrieved')
+            # TODO: REMOVE
+            logger.info(inbound_sms)
 
             # Unsafe lookup intentional to catch missing record
-            two_way_record = two_way_sms_table_dict[inbound_sms.get('originationNumber')]
+            # destinationNumber is the number the end user responded to (the 10DLC pinpoint number)
+            # originationNumber is the veteran number 
+            two_way_record = two_way_sms_table_dict[inbound_sms.get('destinationNumber')]
 
             # If the number is not self-managed, look for key words
             if not two_way_record.get('self_managed'):
                 logger.info('Service is not self-managed')
                 keyword_phrase = detected_keyword(inbound_sms.get('messageBody', ''))
                 if keyword_phrase:
-                    send_message(two_way_record.get('destinationNumber', ''),
-                                 two_way_record.get('originationNumber', ''),
+                    send_message(two_way_record.get('originationNumber', ''),
+                                 two_way_record.get('destinationNumber', ''),                                 
                                  keyword_phrase)
 
             # Forward inbound_sms to associated service
             logger.info(f'Forwarding inbound SMS to service: {two_way_record.get("service_id")}')
-            forward_to_service(inbound_sms)
+            forward_to_service(inbound_sms, two_way_record.get('url_endpoint'))
         except KeyError as e:
             logger.exception(e)
-            logger.critical(f'Unable to find two_way_record for: {inbound_sms.get("originationNumber")}')
-            push_to_sqs(inbound_sms, True, is_sns)
+            logger.critical(f'Unable to find two_way_record for: {inbound_sms.get("destinationNumber")}')
+            push_to_sqs(inbound_sms, True, False)
         except Exception as e:
             logger.exception(e)
             # Deadletter
-            push_to_sqs(inbound_sms, False, is_sns)
+            push_to_sqs(inbound_sms, False, False)
     return 200, 'Success'
 
 
@@ -224,8 +236,9 @@ def valid_event(event_data: dict) -> bool:
     try:
         if 'Records' in event_data:
             for record in event_data.get('Records'):
-                inbound_sms = record.get('Sns')
-                if not inbound_sms or not EXPECTED_SNS_FIELDS.issubset(inbound_sms):
+                inbound_sms = record.get('body', "")
+
+                if not inbound_sms:
                     # Log specific record causing issues
                     logger.critical(f'Failed to detect critical fields in record: {record}')
                     return False
