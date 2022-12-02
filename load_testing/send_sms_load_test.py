@@ -47,8 +47,10 @@ class SendSms(HttpUser):
 
     @task
     def send(self):
+        encoded_jwt = self._get_jwt()
         headers = {
-            'Authorization': f"Bearer {self._get_jwt().decode('utf-8')}"
+            'Content-Type': 'application/json',
+            'Authorization': f"Bearer {encoded_jwt}"
         }
         payload = {
             'template_id': self.sms_template_id,
