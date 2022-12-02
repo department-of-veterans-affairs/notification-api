@@ -65,7 +65,6 @@ def set_env_variables() -> None:
     except Exception as e:
         sys.exit(f'Failed to convert TIMEOUT: {e}')
 
-
 def set_logger() -> None:
     """
     Sets custom logger for the lambda.
@@ -77,31 +76,7 @@ def set_logger() -> None:
     except Exception as e:
         sys.exit('Logger failed to setup properly')
 
-
-def make_database_connection() -> psycopg2.connection:
-    """
-    Return a connection to the database, or return None.
-
-    https://www.psycopg.org/docs/module.html#psycopg2.connect
-    https://www.psycopg.org/docs/module.html#exceptions
-    """
-    try:
-        logger.debug('Connecting to the database . . .')
-        connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
-        logger.info('. . . Connected to the database.')
-    except psycopg2.Warning as e:
-        logger.warning(e)
-        raise
-    except psycopg2.Error as e:
-        logger.exception(e)
-        logger.error(e.pgcode)
-        raise
-
-    return connection
-
-
-# TODO: set return type to NONE when removing the return
-def set_service_two_way_sms_table() -> dict:
+def set_service_two_way_sms_table() -> None:
     """
     Sets the two_way_sms_table_dict if it is not set by opening a connection to the DB and 
     querying the table. This table should be small (a few dozen records at most).
@@ -109,8 +84,23 @@ def set_service_two_way_sms_table() -> dict:
     # format for dict should be: {'number':{'service_id': <value>, 'url_endpoint': <value>, 'self_managed': <value> }}
     global two_way_sms_table_dict
     try:
+        logger.debug('Connecting to the database . . .')
+        db_connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI)        
+        logger.info('. . . Connected to the database.')        
+        
+        data = {}
+
+        with db_connection.cursor() as c:
+            logger.info('executing retrieval query')
+            # https://www.psycopg.org/docs/cursor.html#cursor.execute
+            c.execute(INBOUND_NUMBERS_QUERY)
+            data = c.fetchall()
+            logger.debug(f'Data returned from query: {data}')
+
+        db_connection.close()
+
         # TODO: remove this return
-        return {
+        two_way_sms_table_dict = {
             '+16506288615': {
                 'service_id': 'some_service_id',
                 'url_endpoint': 'https://eou9ebpdvxw3lva.m.pipedream.net',
@@ -118,26 +108,23 @@ def set_service_two_way_sms_table() -> dict:
             }
         }
 
-        db_connection = make_database_connection()
-        data = {}
-        with db_connection.cursor() as c:
-            # https://www.psycopg.org/docs/cursor.html#cursor.execute
-            c.execute(INBOUND_NUMBERS_QUERY)
-            data = c.fetchall()
-            logger.debug(f'Data returned from query: {data}')
-        db_connection.close()
-
-        two_way_sms_table_dict = {n: {'service_id': s,
-                                      'url_endpoint': u,
-                                      'self_managed': True if sm == 't' else False} for n, s, u, sm in data}
-        logger.info('two_way_sms_table_dict set...')
-        logger.debug(f'Two way table as a dictionary with numbers as keys: {two_way_sms_table_dict}')
+        # two_way_sms_table_dict = {n: {'service_id': s,
+        #                              'url_endpoint': u,
+        #                              'self_managed': True if sm == 't' else False} for n, s, u, sm in data}
+        # logger.info('two_way_sms_table_dict set...')
+        # logger.debug(f'Two way table as a dictionary with numbers as keys: {two_way_sms_table_dict}')
+    except psycopg2.Warning as e:
+        logger.warning(e)
+        raise
+    except psycopg2.Error as e:
+        logger.exception(e)
+        logger.error(e.pgcode)
+        raise
     except Exception as e:
         logger.critical(f'Failed to query database: {e}')
         if db_connection:
             db_connection.close()
         sys.exit('Unable to load inbound_numbers table into dictionary')
-
 
 def set_aws_clients():
     global aws_pinpoint_client, aws_sqs_client
@@ -157,7 +144,6 @@ def set_aws_clients():
         logger.critical(f'Unable to set pinpoint client: {e}')
         return False
 
-
 def init_execution_environment() -> None:
     """
     Collects environmental variables, sets up the logger, populates the two_way_sms_table_dict,
@@ -169,27 +155,24 @@ def init_execution_environment() -> None:
     set_aws_clients()
     logger.info('Execution environment setup...')
 
-
 init_execution_environment()
 # ------------------------------------ End Execution Environment Setup ------------------------------------
 
 # ------------------------------------------- Begin Invocation --------------------------------------------
-
-
-def notify_incoming_sms_handler(event: dict, context):
+def notify_incoming_sms_handler(event: dict):
     """
     Handler for inbound messages from SQS.
     """
     if not valid_event(event):
         logger.critical(f'Logging entire event: {event}')
         # Deadletter
-        # we should either push to dead letter queue explicitly or return 500 so that after the specified # of times, the message gets moved to 
+        # we should either push to dead letter queue explicitly or return 500 so that after the specified # of times, the message gets moved to
         #   dead letter. Returning non 200 will re-enqueue the message on to the feeder queue.  Returning 200 removes the item from the queue
         push_to_sqs(event, False)
         # return 500, 'Unrecognized event'
         return 200, 'Success'
 
-    # Both SNS and SQS contain 'Records'
+    # SQS events contain 'Records'
     for event_data in event.get('Records'):
         try:
             logger.info('Processing SQS inbound_sms...')
@@ -209,7 +192,7 @@ def notify_incoming_sms_handler(event: dict, context):
 
             # Unsafe lookup intentional to catch missing record
             # destinationNumber is the number the end user responded to (the 10DLC pinpoint number)
-            # originationNumber is the veteran number 
+            # originationNumber is the veteran number
             two_way_record = two_way_sms_table_dict[inbound_sms.get('destinationNumber')]
 
             # If the number is not self-managed, look for key words
@@ -218,7 +201,7 @@ def notify_incoming_sms_handler(event: dict, context):
                 keyword_phrase = detected_keyword(inbound_sms.get('messageBody', ''))
                 if keyword_phrase:
                     send_message(two_way_record.get('originationNumber', ''),
-                                 two_way_record.get('destinationNumber', ''),                                 
+                                 two_way_record.get('destinationNumber', ''),
                                  keyword_phrase)
 
             # Forward inbound_sms to associated service
@@ -234,6 +217,7 @@ def notify_incoming_sms_handler(event: dict, context):
             push_to_sqs(inbound_sms, False, False)
     return 200, 'Success'
 
+
 def valid_event_body(event_data: dict) -> bool:
     if event_data.get('destinationNumber') is None:
         return False
@@ -241,8 +225,9 @@ def valid_event_body(event_data: dict) -> bool:
         return False
     if event_data.get('messageBody') is None:
         return False
-    
+
     return True
+
 
 def valid_event(event_data: dict) -> bool:
     """
