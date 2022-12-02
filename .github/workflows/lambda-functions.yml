@@ -199,7 +199,7 @@ jobs:
           cd two_way_sms/
           python3 -m venv venv_two_way_sms
           source venv_two_way_sms/bin/activate
-          pip install requests
+          pip install -r requirements-lambda.txt
           deactivate
           cd venv_two_way_sms/lib/python3.8/site-packages
           zip -r9 ../../../../two_way_sms.zip .
