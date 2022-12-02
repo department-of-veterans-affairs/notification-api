@@ -190,7 +190,7 @@ def process_ses_results(self, response):
             notification.status_reason = "Temporarily failed to deliver email due to soft bounce"
             notifications_dao.dao_update_notification(notification)
             current_app.logger.info(
-                "temprary-failure - soft bounce - in process_ses_results for notification %s",
+                "temporary-failure - soft bounce - in process_ses_results for notification %s",
                 notification.id
             )
         elif 'permanent-failure' in notification_status:
