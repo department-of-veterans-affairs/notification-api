@@ -201,6 +201,12 @@ def notify_incoming_sms_handler(event: dict, context):
             # TODO: REMOVE
             logger.info(inbound_sms)
 
+            if not valid_event_body(inbound_sms):
+                logger.critical(f'Event Body is invalid.  Logging entire event: {inbound_sms}')
+                push_to_sqs(event, False)
+                # return 500, 'Unrecognized event'
+                return 200, 'Success'
+
             # Unsafe lookup intentional to catch missing record
             # destinationNumber is the number the end user responded to (the 10DLC pinpoint number)
             # originationNumber is the veteran number 
@@ -217,7 +223,7 @@ def notify_incoming_sms_handler(event: dict, context):
 
             # Forward inbound_sms to associated service
             logger.info(f'Forwarding inbound SMS to service: {two_way_record.get("service_id")}')
-            forward_to_service(inbound_sms, two_way_record.get('url_endpoint'))
+            forward_to_service(inbound_sms, two_way_record.get('url_endpoint', ''))
         except KeyError as e:
             logger.exception(e)
             logger.critical(f'Unable to find two_way_record for: {inbound_sms.get("destinationNumber")}')
@@ -228,6 +234,15 @@ def notify_incoming_sms_handler(event: dict, context):
             push_to_sqs(inbound_sms, False, False)
     return 200, 'Success'
 
+def valid_event_body(event_data: dict) -> bool:
+    if event_data.get('destinationNumber') is None:
+        return False
+    if event_data.get('originationNumber') is None:
+        return False
+    if event_data.get('messageBody') is None:
+        return False
+    
+    return True
 
 def valid_event(event_data: dict) -> bool:
     """
@@ -236,11 +251,9 @@ def valid_event(event_data: dict) -> bool:
     try:
         if 'Records' in event_data:
             for record in event_data.get('Records'):
-                inbound_sms = record.get('body', "")
-
-                if not inbound_sms:
+                if record.get('body') is None:
                     # Log specific record causing issues
-                    logger.critical(f'Failed to detect critical fields in record: {record}')
+                    logger.critical(f'Failed to retrieve body in record: {record}')
                     return False
         return True
     except Exception as e:
