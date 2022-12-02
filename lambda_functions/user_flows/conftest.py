@@ -11,7 +11,7 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("environment", [option_value],  scope="session")
 
 # running list of substrings of secrets to mask in function below
-sensitive_words = ["key, bearer, token, secret"]
+sensitive_words = ["bearer", "key", "token", "secret"]
 
 def pytest_runtest_logreport(report):
     if report.longrepr is None:
