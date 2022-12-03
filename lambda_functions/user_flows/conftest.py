@@ -10,10 +10,10 @@ def pytest_generate_tests(metafunc):
     if 'environment' in metafunc.fixturenames and option_value is not None:
         metafunc.parametrize("environment", [option_value],  scope="session")
 
-# running list of substrings of secrets to mask in function below
-sensitive_words = ["key", "token"]
 
 def pytest_runtest_logreport(report):
+    sensitive_words = ["key", "token"]
+    
     if report.longrepr is None:
         return
     for tb_repr, *_ in report.longrepr.chain:
