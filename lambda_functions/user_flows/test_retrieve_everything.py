@@ -155,7 +155,7 @@ def test_send_email(notification_url, service_id, service_api_key, template_id):
     assert email_response.status_code == 201
     notification_id = get_notification_id(email_response)
 
-    desired_status = 'sending'
+    desired_status = 'foobar'
     notification_status_response = wait_for_status(
         notification_id,
         notification_url,
