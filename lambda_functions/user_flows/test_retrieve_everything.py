@@ -127,7 +127,7 @@ def test_api_healthy(notification_url):
 
 def test_get_organizations(notification_url, admin_jwt_token):
     organizations = get_authenticated_request(f"{notification_url}/organisations", admin_jwt_token)
-    assert organizations.status_code == 500
+    assert organizations.status_code == 200
 
 
 def test_get_users(get_users_response):
@@ -177,7 +177,7 @@ def test_send_email_with_va_profile_id(notification_url, service_id, service_tes
     assert email_response.status_code == 201
     notification_id = get_notification_id(email_response)
 
-    desired_status = 'delivered'
+    desired_status = 'foobar'
     notification_status_response = wait_for_status(
         notification_id,
         notification_url,
@@ -246,7 +246,7 @@ def test_send_text_with_profile_id(notification_url, service_test_api_key, servi
     assert sms_response.status_code == 201
     notification_id = get_notification_id(sms_response)
 
-    desired_status = 'delivered'
+    desired_status = 'foobar'
     notification_status_response = wait_for_status(
         notification_id,
         notification_url,
