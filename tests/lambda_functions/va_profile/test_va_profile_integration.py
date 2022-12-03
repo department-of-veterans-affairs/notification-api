@@ -273,6 +273,7 @@ def test_jwt_is_valid(jwt_encoded, public_key):
 
     assert jwt_is_valid(f"Bearer {jwt_encoded}", public_key)
 
+
 @pytest.mark.parametrize("invalid_jwt", [
     jwt_encoded_missing_exp, jwt_encoded_missing_iat, jwt_encoded_expired, jwt_encoded_reversed
 ])
