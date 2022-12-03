@@ -167,7 +167,7 @@ def test_send_email(notification_url, service_id, service_api_key, template_id):
     assert notification_status_response['status'] == desired_status
     assert notification_status_response['email_address'] is not None
     # below changed to "ses" per David
-    assert notification_status_response['sent_by'] == 'foobar'
+    assert notification_status_response['sent_by'] == 'ses'
 
 
 def test_send_email_with_va_profile_id(notification_url, service_id, service_test_api_key, template_id):
