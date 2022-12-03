@@ -177,7 +177,7 @@ def test_send_email_with_va_profile_id(notification_url, service_id, service_tes
     assert email_response.status_code == 201
     notification_id = get_notification_id(email_response)
 
-    desired_status = 'foobar'
+    desired_status = 'delivered'
     notification_status_response = wait_for_status(
         notification_id,
         notification_url,
