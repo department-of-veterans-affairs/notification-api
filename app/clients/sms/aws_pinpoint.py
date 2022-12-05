@@ -34,14 +34,15 @@ class AwsPinpointClient(SmsClient):
 
         try:
             start_time = monotonic()
-            response = self._post_message_request(recipient_number, content, sender_id)
+            # response = self._post_message_request(recipient_number, content, sender_id)
+            aws_reference = self._post_message_request(recipient_number, content, sender_id)
 
         except (botocore.exceptions.ClientError, Exception) as e:
             self.statsd_client.incr("clients.pinpoint.error")
             raise AwsPinpointException(str(e))
         else:
-            self._validate_response(response['MessageResponse']['Result'][recipient_number])
-            aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
+            # self._validate_response(response['MessageResponse']['Result'][recipient_number])
+            # aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
             elapsed_time = monotonic() - start_time
             self.logger.info(f"AWS Pinpoint SMS request finished in {elapsed_time} for notificationId:{reference}"
                              f" and reference:{aws_reference}")
@@ -65,10 +66,11 @@ class AwsPinpointClient(SmsClient):
             }
         }
 
-        return self._client.send_messages(
-            ApplicationId=self.aws_pinpoint_app_id,
-            MessageRequest=message_request_payload
-        )
+        # return self._client.send_messages(
+        #     ApplicationId=self.aws_pinpoint_app_id,
+        #     MessageRequest=message_request_payload
+        # )
+        return 'KWM - Locust Load Test'
 
     def _validate_response(self, result: dict) -> None:
         # documentation of possible delivery statuses from Pinpoint can be found here:
