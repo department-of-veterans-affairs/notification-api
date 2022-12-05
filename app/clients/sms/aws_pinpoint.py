@@ -70,7 +70,7 @@ class AwsPinpointClient(SmsClient):
         #     ApplicationId=self.aws_pinpoint_app_id,
         #     MessageRequest=message_request_payload
         # )
-        return 'KWM - Locust Load Test'
+        return 'KWM - Locust Load Test-2'
 
     def _validate_response(self, result: dict) -> None:
         # documentation of possible delivery statuses from Pinpoint can be found here:
