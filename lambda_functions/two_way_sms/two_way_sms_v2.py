@@ -56,7 +56,7 @@ def set_env_variables() -> None:
         RETRY_SQS_URL = environ['RETRY_SQS_URL']
         
         TIMEOUT = environ['TIMEOUT']
-                
+
         if isinstance(TIMEOUT, list):
             TIMEOUT = tuple(TIMEOUT)
         else:
@@ -171,8 +171,8 @@ def init_execution_environment() -> None:
     Collects environmental variables, sets up the logger, populates the two_way_sms_table_dict,
     and sets up the aws pinpoint and sqs clients.
     """
-    set_env_variables()
     set_logger()
+    set_env_variables()    
     set_service_two_way_sms_table()
     set_aws_clients()
     logger.info('Execution environment setup...')
