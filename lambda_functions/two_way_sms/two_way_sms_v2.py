@@ -50,12 +50,27 @@ def set_env_variables() -> None:
 
     try:
         AWS_PINPOINT_APP_ID = environ['aws_pinpoint_app_id']
-        AWS_REGION = environ['aws_region']
+        AWS_REGION = 'us-gov-west-1'
         DEAD_LETTER_SQS_URL = environ['dead_letter_sqs_url']
         LOG_LEVEL = environ['log_level']
         RETRY_SQS_URL = environ['retry_sqs_url']
-        SQLALCHEMY_DATABASE_URI = environ['sql_alchemy_database_uri']
+        database_uri_path = environ['database_uri_path']
+
+        if database_uri_path is None:
+            # Without this value, this code cannot know the path to the required
+            # SSM Parameter Store resource.
+            sys.exit("DATABASE_URI_PATH is not set.  Check the Lambda console.")
+
+        logger.debug("Getting the database URI from SSM Parameter Store . . .")
+        ssm_client = boto3.client("ssm")
+        ssm_response: dict = ssm_client.get_parameter(
+            Name=database_uri_path,
+            WithDecryption=True
+        )
+        logger.debug(". . . Retrieved the database URI from SSM Parameter Store.")
+        SQLALCHEMY_DATABASE_URI = ssm_response.get("Parameter", {}).get("Value")
         TIMEOUT = environ['timeout']
+        
         if isinstance(TIMEOUT, list):
             TIMEOUT = tuple(TIMEOUT)
         else:
@@ -64,6 +79,7 @@ def set_env_variables() -> None:
         sys.exit(f'Failed to find env variable: {e}')
     except Exception as e:
         sys.exit(f'Failed to convert TIMEOUT: {e}')
+
 
 def set_logger() -> None:
     """
@@ -76,6 +92,7 @@ def set_logger() -> None:
     except Exception as e:
         sys.exit('Logger failed to setup properly')
 
+
 def set_service_two_way_sms_table() -> None:
     """
     Sets the two_way_sms_table_dict if it is not set by opening a connection to the DB and 
@@ -85,9 +102,9 @@ def set_service_two_way_sms_table() -> None:
     global two_way_sms_table_dict
     try:
         logger.debug('Connecting to the database . . .')
-        db_connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI)        
-        logger.info('. . . Connected to the database.')        
-        
+        db_connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
+        logger.info('. . . Connected to the database.')
+
         data = {}
 
         with db_connection.cursor() as c:
@@ -126,6 +143,7 @@ def set_service_two_way_sms_table() -> None:
             db_connection.close()
         sys.exit('Unable to load inbound_numbers table into dictionary')
 
+
 def set_aws_clients():
     global aws_pinpoint_client, aws_sqs_client
     if aws_pinpoint_client is not None and aws_sqs_client is not None:
@@ -144,6 +162,7 @@ def set_aws_clients():
         logger.critical(f'Unable to set pinpoint client: {e}')
         return False
 
+
 def init_execution_environment() -> None:
     """
     Collects environmental variables, sets up the logger, populates the two_way_sms_table_dict,
@@ -155,10 +174,13 @@ def init_execution_environment() -> None:
     set_aws_clients()
     logger.info('Execution environment setup...')
 
+
 init_execution_environment()
 # ------------------------------------ End Execution Environment Setup ------------------------------------
 
 # ------------------------------------------- Begin Invocation --------------------------------------------
+
+
 def notify_incoming_sms_handler(event: dict):
     """
     Handler for inbound messages from SQS.
