@@ -49,12 +49,20 @@ def set_env_variables() -> None:
     global LOG_LEVEL, RETRY_SQS_URL, SQLALCHEMY_DATABASE_URI, TIMEOUT
 
     try:
-        AWS_PINPOINT_APP_ID = environ['aws_pinpoint_app_id']
+        AWS_PINPOINT_APP_ID = environ['AWS_PINPOINT_APP_ID']
         AWS_REGION = 'us-gov-west-1'
-        DEAD_LETTER_SQS_URL = environ['dead_letter_sqs_url']
-        LOG_LEVEL = environ['log_level']
-        RETRY_SQS_URL = environ['retry_sqs_url']
-        database_uri_path = environ['database_uri_path']
+        DEAD_LETTER_SQS_URL = environ['DEAD_LETTER_SQS_URL']
+        LOG_LEVEL = environ['LOG_LEVEL']
+        RETRY_SQS_URL = environ['RETRY_SQS_URL']
+        
+        TIMEOUT = environ['TIMEOUT']
+                
+        if isinstance(TIMEOUT, list):
+            TIMEOUT = tuple(TIMEOUT)
+        else:
+            TIMEOUT = int(TIMEOUT)
+
+        database_uri_path = environ['DATABASE_URI_PATH']
 
         if database_uri_path is None:
             # Without this value, this code cannot know the path to the required
@@ -69,12 +77,7 @@ def set_env_variables() -> None:
         )
         logger.debug(". . . Retrieved the database URI from SSM Parameter Store.")
         SQLALCHEMY_DATABASE_URI = ssm_response.get("Parameter", {}).get("Value")
-        TIMEOUT = environ['timeout']
         
-        if isinstance(TIMEOUT, list):
-            TIMEOUT = tuple(TIMEOUT)
-        else:
-            TIMEOUT = int(TIMEOUT)
     except KeyError as e:
         sys.exit(f'Failed to find env variable: {e}')
     except Exception as e:
