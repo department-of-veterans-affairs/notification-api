@@ -83,9 +83,7 @@ def set_logger() -> None:
     global logger
     try:
         logger = logging.getLogger('TwoWaySMSv2')
-        # TODO: uncomment next line and remove the hard code to debug
-        # logger.setLevel(logging.getLevelName(LOG_LEVEL))
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.getLevelName(LOG_LEVEL))        
     except Exception as e:
         sys.exit('Logger failed to setup properly')
 
@@ -97,35 +95,35 @@ def set_service_two_way_sms_table() -> None:
     # format for dict should be: {'number':{'service_id': <value>, 'url_endpoint': <value>, 'self_managed': <value> }}
     global two_way_sms_table_dict
     try:
-        # TODO: remove this return.  it is hard coding the return of a single service number.  replace it with the commented code after this that sets the dict from the db results
-        two_way_sms_table_dict = {
-            '+16506288615': {
-                'service_id': 'some_service_id',
-                'url_endpoint': 'https://eou9ebpdvxw3lva.m.pipedream.net',
-                'self_managed': True
-            }
-        }
+        # TODO: remove this assignment.  it is used during testing to bypass data retrieval from the database
+        #two_way_sms_table_dict = {
+        #    '+16506288615': {
+        #        'service_id': 'some_service_id',
+        #        'url_endpoint': 'https://eou9ebpdvxw3lva.m.pipedream.net',
+        #        'self_managed': True
+        #    }
+        #}
 
-        # logger.debug('Connecting to the database . . .')
-        # db_connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
-        # logger.info('. . . Connected to the database.')
+        logger.debug('Connecting to the database . . .')
+        db_connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
+        logger.info('. . . Connected to the database.')
 
-        # data = {}
+        data = {}
 
-        # with db_connection.cursor() as c:
-        #    logger.info('executing retrieval query')
-        #    # https://www.psycopg.org/docs/cursor.html#cursor.execute
-        #    c.execute(INBOUND_NUMBERS_QUERY)
-        #    data = c.fetchall()
-        #    logger.debug(f'Data returned from query: {data}')
+        with db_connection.cursor() as c:
+           logger.info('executing retrieval query')
+           # https://www.psycopg.org/docs/cursor.html#cursor.execute
+           c.execute(INBOUND_NUMBERS_QUERY)
+           data = c.fetchall()
+           logger.debug(f'Data returned from query: {data}')
 
-        # db_connection.close()
+        db_connection.close()
 
-        # two_way_sms_table_dict = {n: {'service_id': s,
-        #                              'url_endpoint': u,
-        #                              'self_managed': True if sm == 't' else False} for n, s, u, sm in data}
-        # logger.info('two_way_sms_table_dict set...')
-        # logger.debug(f'Two way table as a dictionary with numbers as keys: {two_way_sms_table_dict}')
+        two_way_sms_table_dict = {n: {'service_id': s,
+                                      'url_endpoint': u,
+                                      'self_managed': True if sm == 't' else False} for n, s, u, sm in data}
+        logger.info('two_way_sms_table_dict set...')
+        logger.debug(f'Two way table as a dictionary with numbers as keys: {two_way_sms_table_dict}')
     except psycopg2.Warning as e:
         logger.warning(e)
         raise
@@ -135,9 +133,8 @@ def set_service_two_way_sms_table() -> None:
         raise
     except Exception as e:
         logger.critical(f'Failed to query database: {e}')
-        # TODO: Uncomment these db connection comments
-        # if db_connection:
-        #    db_connection.close()
+        if db_connection:
+           db_connection.close()
         sys.exit('Unable to load inbound_numbers table into dictionary')
 
 def set_aws_clients():
@@ -166,10 +163,10 @@ def set_database() -> None:
         logger.info("Getting the database URI from SSM Parameter Store . . .")
         logger.info(DATABASE_URI_PATH)
 
-        SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI') 
+        # TODO Remove this commented out line.  It is used during debugging to bypass the SSM store from testing
+        # SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI') 
         
-        # TODO: Go back to retrieving database uri from ssm
-        # read_from_ssm(DATABASE_URI_PATH)
+        SQLALCHEMY_DATABASE_URI = read_from_ssm(DATABASE_URI_PATH)
 
         logger.info("Retrieved DB configuration")
     except Exception as e:
