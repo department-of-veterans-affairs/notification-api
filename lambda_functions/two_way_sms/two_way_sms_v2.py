@@ -98,21 +98,6 @@ def set_service_two_way_sms_table() -> None:
     # format for dict should be: {'number':{'service_id': <value>, 'url_endpoint': <value>, 'self_managed': <value> }}
     global two_way_sms_table_dict
     try:
-        logger.debug('Connecting to the database . . .')
-        db_connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
-        logger.info('. . . Connected to the database.')
-
-        data = {}
-
-        with db_connection.cursor() as c:
-            logger.info('executing retrieval query')
-            # https://www.psycopg.org/docs/cursor.html#cursor.execute
-            c.execute(INBOUND_NUMBERS_QUERY)
-            data = c.fetchall()
-            logger.debug(f'Data returned from query: {data}')
-
-        db_connection.close()
-
         # TODO: remove this return.  it is hard coding the return of a single service number.  replace it with the commented code after this that sets the dict from the db results
         two_way_sms_table_dict = {
             '+16506288615': {
@@ -121,6 +106,21 @@ def set_service_two_way_sms_table() -> None:
                 'self_managed': True
             }
         }
+
+        # logger.debug('Connecting to the database . . .')
+        # db_connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
+        # logger.info('. . . Connected to the database.')
+
+        # data = {}
+
+        # with db_connection.cursor() as c:
+        #    logger.info('executing retrieval query')
+        #    # https://www.psycopg.org/docs/cursor.html#cursor.execute
+        #    c.execute(INBOUND_NUMBERS_QUERY)
+        #    data = c.fetchall()
+        #    logger.debug(f'Data returned from query: {data}')
+
+        # db_connection.close()
 
         # two_way_sms_table_dict = {n: {'service_id': s,
         #                              'url_endpoint': u,
@@ -136,8 +136,9 @@ def set_service_two_way_sms_table() -> None:
         raise
     except Exception as e:
         logger.critical(f'Failed to query database: {e}')
-        if db_connection:
-            db_connection.close()
+        # TODO: Uncomment these db connection comments
+        # if db_connection:
+        #    db_connection.close()
         sys.exit('Unable to load inbound_numbers table into dictionary')
 
 def set_aws_clients():
