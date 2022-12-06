@@ -76,7 +76,6 @@ def set_env_variables() -> None:
     except Exception as e:
         sys.exit(f'Failed to convert TIMEOUT: {e}')
 
-
 def set_logger() -> None:
     """
     Sets custom logger for the lambda.
@@ -197,7 +196,6 @@ def read_from_ssm(key: str) -> str:
         logger.exception(e)
         return ''
 
-
 def init_execution_environment() -> None:
     """
     Collects environmental variables, sets up the logger, populates the two_way_sms_table_dict,
@@ -216,13 +214,10 @@ def init_execution_environment() -> None:
 
     logger.info('Execution environment setup...')
 
-
 init_execution_environment()
 # ------------------------------------ End Execution Environment Setup ------------------------------------
 
 # ------------------------------------------- Begin Invocation --------------------------------------------
-
-
 def notify_incoming_sms_handler(event: dict, context: any):
     """
     Handler for inbound messages from SQS.
@@ -244,14 +239,11 @@ def notify_incoming_sms_handler(event: dict, context: any):
             event_body = event_data.get('body', '')
             event_body = json.loads(event_body)
             logger.info("Retrieved event body")
-            logger.debug(event_body)
-
-
+            
             inbound_sms = event_body.get('Message', '')
             inbound_sms = json.loads(inbound_sms)
             logger.info("Retrieved message")
-            logger.debug(inbound_sms)
-
+            
             if not valid_event_body(inbound_sms):
                 logger.critical(f'Event Body is invalid.  Logging entire event: {inbound_sms}')
                 push_to_sqs(event, False)
@@ -261,10 +253,8 @@ def notify_incoming_sms_handler(event: dict, context: any):
             # Unsafe lookup intentional to catch missing record
             # destinationNumber is the number the end user responded to (the 10DLC pinpoint number)
             # originationNumber is the veteran number
-            logger.debug(two_way_sms_table_dict)
             two_way_record = two_way_sms_table_dict[inbound_sms.get('destinationNumber')]
-            logger.debug(two_way_record)
-
+            
             # If the number is not self-managed, look for key words
             if not two_way_record.get('self_managed'):
                 logger.info('Service is not self-managed')
@@ -275,9 +265,13 @@ def notify_incoming_sms_handler(event: dict, context: any):
                                  keyword_phrase)
 
             # Forward inbound_sms to associated service
-            logger.info(f'Forwarding inbound SMS to service: {two_way_record.get("service_id")}')
-            logger.info(f'UrlEndpoint: {two_way_record.get("url_endpoint")}')
-            forward_to_service(inbound_sms, two_way_record.get('url_endpoint', ''))
+            logger.info(f'Forwarding inbound SMS to service: {two_way_record.get("service_id")} . UrlEndpoint: {two_way_record.get("url_endpoint")}')
+            result_of_forwarding = forward_to_service(inbound_sms, two_way_record.get('url_endpoint', ''))
+
+            if not result_of_forwarding:
+                logger.info('failed to make request.  Placing request back on retry')
+                push_to_sqs(inbound_sms, True, False)
+
         except KeyError as e:
             logger.exception(e)
             logger.critical(f'Unable to find two_way_record for: {inbound_sms.get("destinationNumber")}')
@@ -286,6 +280,7 @@ def notify_incoming_sms_handler(event: dict, context: any):
             logger.exception(e)
             # Deadletter
             push_to_sqs(inbound_sms, False, False)
+
     return 200, 'Success'
 
 
@@ -359,7 +354,7 @@ def send_message(recipient_number: str, sender: str, message: str) -> dict:
         logger.critical(f'Failed to send message: {message} to {recipient_number} from {sender}')
 
 
-def forward_to_service(inbound_sms: dict, url: str) -> None:
+def forward_to_service(inbound_sms: dict, url: str) -> bool:
     """
     Forwards inbound SMS to the service that has 2-way SMS setup.
     """
@@ -368,10 +363,19 @@ def forward_to_service(inbound_sms: dict, url: str) -> None:
         response = requests.post(url, data=inbound_sms, timeout=TIMEOUT)
         # If we cannot get the json, raise and push it to SQS
         logger.info(f'Response successful: {response.json()}')
-    except Exception as e:
+
+        return True
+    except requests.HTTPError as e:
+        logger.error("HTTPError With Http Request")
         logger.exception(e)
-        logger.error(f'Failed to connect to {url}')
-        raise
+    except requests.RequestException as e:
+        logger.error("RequestException With Http Request")
+        logger.exception(e)
+    except Exception as e:
+        logger.error("General Exception With Http Request")
+        logger.exception(e)
+    
+    return False
 
 
 def push_to_sqs(inbound_sms: dict, is_retry: bool, is_sns: bool = 'unknown') -> None:
