@@ -131,15 +131,10 @@ def set_service_two_way_sms_table() -> None:
                                       'self_managed': True if sm == 't' else False} for n, s, u, sm in data}
         logger.info('two_way_sms_table_dict set...')
         logger.debug(f'Two way table as a dictionary with numbers as keys: {two_way_sms_table_dict}')
-    except psycopg2.Warning as e:
-        logger.warning(e)        
     except psycopg2.OperationalError as e:        
         logger.info("Unable to connect to database")
         logger.exception(e)
         sys.exit('Unable to load inbound_numbers table into dictionary')
-    except psycopg2.Error as e:
-        logger.exception(e)
-        logger.error(e.pgcode)        
     except Exception as e:
         logger.critical(f'Failed to query database: {e}')
         if db_connection:
@@ -218,8 +213,8 @@ def init_execution_environment() -> None:
     logger.info("Env vars set")
     set_database()
     logger.info("Database configured")
-    set_service_two_way_sms_table()
-    logger.info("Services loaded from database")
+    # set_service_two_way_sms_table()
+    # logger.info("Services loaded from database")
     set_aws_clients()
     logger.info("Pinpoint and SQS clients configured")
 
@@ -248,6 +243,10 @@ def notify_incoming_sms_handler(event: dict, context: any):
         # return 500, 'Unrecognized event'
         return create_response(200)
 
+    logger.info("Retreiving connections")
+    set_service_two_way_sms_table()
+    logger.info("Retrieval complete")
+    
     # SQS events contain 'Records'
     for event_data in event.get('Records'):
         try:
