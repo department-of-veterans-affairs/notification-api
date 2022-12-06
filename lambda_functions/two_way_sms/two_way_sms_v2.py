@@ -245,8 +245,8 @@ def notify_incoming_sms_handler(event: dict, context: any):
             logger.info("Retrieved message")
             
             if not valid_event_body(inbound_sms):
-                logger.critical(f'Event Body is invalid.  Logging entire event: {inbound_sms}')
-                push_to_sqs(event, False)
+                logger.critical(f'Event Body is invalid.  Logging event body: {event_body}')
+                push_to_sqs(event_body, False)
                 # return 500, 'Unrecognized event'
                 return 200, 'Success'
 
@@ -270,16 +270,16 @@ def notify_incoming_sms_handler(event: dict, context: any):
 
             if not result_of_forwarding:
                 logger.info('failed to make request.  Placing request back on retry')
-                push_to_sqs(inbound_sms, True, False)
+                push_to_sqs(event_body, True, False)
 
         except KeyError as e:
             logger.exception(e)
             logger.critical(f'Unable to find two_way_record for: {inbound_sms.get("destinationNumber")}')
-            push_to_sqs(inbound_sms, True, False)
+            push_to_sqs(event_body, True, False)
         except Exception as e:
             logger.exception(e)
             # Deadletter
-            push_to_sqs(inbound_sms, False, False)
+            push_to_sqs(event_body, False, False)
 
     return 200, 'Success'
 
@@ -378,7 +378,7 @@ def forward_to_service(inbound_sms: dict, url: str) -> bool:
     return False
 
 
-def push_to_sqs(inbound_sms: dict, is_retry: bool, is_sns: bool = 'unknown') -> None:
+def push_to_sqs(inbound_sms: dict, is_retry: bool, is_sns: bool = False) -> None:
     """
     Pushes an inbound sms or entire event to SQS. Sends to RETRY or DEAD LETTER queue dependent
     on is_retry variable. Also identifies the source (sns, sqs, or unknown).
@@ -390,8 +390,8 @@ def push_to_sqs(inbound_sms: dict, is_retry: bool, is_sns: bool = 'unknown') -> 
         logger.debug(f'Event: {inbound_sms}')
 
         queue_msg = json.dumps(inbound_sms)
-        queue_msg_attrs = {'source': {'DataType': 'String',
-                                      'StringValue': is_sns}}
+        queue_msg_attrs = {'source_is_sns': {'DataType': 'String',
+                                      'StringValue': str(is_sns)}}
 
         aws_sqs_client.send_message(QueueUrl=RETRY_SQS_URL if is_retry else DEAD_LETTER_SQS_URL,
                                     MessageAttributes=queue_msg_attrs,
