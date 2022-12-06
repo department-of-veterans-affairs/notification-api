@@ -242,8 +242,10 @@ def notify_incoming_sms_handler(event: dict, context: any):
             logger.info('Processing SQS inbound_sms...')
 
             event_body = event_data.get('body', '')
+            event_body = json.loads(event_body)
             logger.info("Retrieved event body")
             logger.debug(event_body)
+
 
             inbound_sms = event_body.get('Message', '')
             inbound_sms = json.loads(inbound_sms)
