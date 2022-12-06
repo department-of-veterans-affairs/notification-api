@@ -32,6 +32,7 @@ DEAD_LETTER_SQS_URL = ''
 LOG_LEVEL = 'INFO'
 RETRY_SQS_URL = ''
 SQLALCHEMY_DATABASE_URI = ''
+DATABASE_URI_PATH = ''
 TIMEOUT = 3
 
 # Set within lambda
@@ -46,7 +47,7 @@ def set_env_variables() -> None:
     Attempt to get environmental variables. Abort execution environment on failure.
     """
     global AWS_PINPOINT_APP_ID, AWS_REGION, DEAD_LETTER_SQS_URL
-    global LOG_LEVEL, RETRY_SQS_URL, SQLALCHEMY_DATABASE_URI, TIMEOUT
+    global LOG_LEVEL, RETRY_SQS_URL, DATABASE_URI_PATH, TIMEOUT
 
     try:
         AWS_PINPOINT_APP_ID = environ['AWS_PINPOINT_APP_ID']
@@ -62,22 +63,12 @@ def set_env_variables() -> None:
         else:
             TIMEOUT = int(TIMEOUT)
 
-        database_uri_path = environ['DATABASE_URI_PATH']
+        DATABASE_URI_PATH = environ['DATABASE_URI_PATH']
 
-        if database_uri_path is None:
+        if DATABASE_URI_PATH is None:
             # Without this value, this code cannot know the path to the required
             # SSM Parameter Store resource.
             sys.exit("DATABASE_URI_PATH is not set.  Check the Lambda console.")
-
-        logger.debug("Getting the database URI from SSM Parameter Store . . .")
-        ssm_client = boto3.client("ssm")
-        ssm_response: dict = ssm_client.get_parameter(
-            Name=database_uri_path,
-            WithDecryption=True
-        )
-        logger.debug(". . . Retrieved the database URI from SSM Parameter Store.")
-        SQLALCHEMY_DATABASE_URI = ssm_response.get("Parameter", {}).get("Value")
-        
     except KeyError as e:
         sys.exit(f'Failed to find env variable: {e}')
     except Exception as e:
@@ -119,7 +110,7 @@ def set_service_two_way_sms_table() -> None:
 
         db_connection.close()
 
-        # TODO: remove this return
+        # TODO: remove this return.  it is hard coding the return of a single service number.  replace it with the commented code after this that sets the dict from the db results
         two_way_sms_table_dict = {
             '+16506288615': {
                 'service_id': 'some_service_id',
@@ -146,9 +137,9 @@ def set_service_two_way_sms_table() -> None:
             db_connection.close()
         sys.exit('Unable to load inbound_numbers table into dictionary')
 
-
 def set_aws_clients():
     global aws_pinpoint_client, aws_sqs_client
+
     if aws_pinpoint_client is not None and aws_sqs_client is not None:
         return True
     try:
@@ -165,6 +156,17 @@ def set_aws_clients():
         logger.critical(f'Unable to set pinpoint client: {e}')
         return False
 
+def set_database() -> None:
+    global SQLALCHEMY_DATABASE_URI
+
+    logger.debug("Getting the database URI from SSM Parameter Store . . .")
+    ssm_client = boto3.client("ssm")
+    ssm_response: dict = ssm_client.get_parameter(
+        Name=DATABASE_URI_PATH,
+        WithDecryption=True
+    )
+    logger.debug(". . . Retrieved the database URI from SSM Parameter Store.")
+    SQLALCHEMY_DATABASE_URI = ssm_response.get("Parameter", {}).get("Value")
 
 def init_execution_environment() -> None:
     """
@@ -172,9 +174,16 @@ def init_execution_environment() -> None:
     and sets up the aws pinpoint and sqs clients.
     """
     set_logger()
+    logger.info("Logger configured")
     set_env_variables()    
+    logger.info("Env vars set")
+    set_database()
+    logger.info("Database configured")
     set_service_two_way_sms_table()
+    logger.info("Services loaded from database")
     set_aws_clients()
+    logger.info("Pinpoint and SQS clients configured")
+
     logger.info('Execution environment setup...')
 
 
@@ -206,7 +215,7 @@ def notify_incoming_sms_handler(event: dict):
             inbound_sms = json.loads(inbound_sms)
 
             logger.info('SQS body retrieved')
-            # TODO: REMOVE
+            # TODO: REMOVE the logger.info.  may contain sensitive information in production so remove it from logging
             logger.info(inbound_sms)
 
             if not valid_event_body(inbound_sms):
