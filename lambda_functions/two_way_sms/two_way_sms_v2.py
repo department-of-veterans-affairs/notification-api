@@ -84,7 +84,9 @@ def set_logger() -> None:
     global logger
     try:
         logger = logging.getLogger('TwoWaySMSv2')
-        logger.setLevel(logging.getLevelName(LOG_LEVEL))
+        logger.setLevel(logging.DEBUG)
+        # TODO uncomment the below line
+        #logger.setLevel(logging.getLevelName(LOG_LEVEL))
     except Exception as e:
         sys.exit('Logger failed to setup properly')
 
@@ -95,6 +97,8 @@ def set_service_two_way_sms_table() -> None:
     querying the table. This table should be small (a few dozen records at most).
     """
     # format for dict should be: {'number':{'service_id': <value>, 'url_endpoint': <value>, 'self_managed': <value> }}
+    logger.info("Beginning retrieval of 10DLC to URL mapping")
+
     global two_way_sms_table_dict
     try:
         # TODO: remove this assignment.  it is used during testing to bypass data retrieval from the database
@@ -106,7 +110,7 @@ def set_service_two_way_sms_table() -> None:
         #    }
         # }
 
-        logger.debug('Connecting to the database . . .')
+        logger.info('Connecting to the database . . .')
         db_connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
         logger.info('. . . Connected to the database.')
 
@@ -117,7 +121,8 @@ def set_service_two_way_sms_table() -> None:
             # https://www.psycopg.org/docs/cursor.html#cursor.execute
             c.execute(INBOUND_NUMBERS_QUERY)
             data = c.fetchall()
-            logger.debug(f'Data returned from query: {data}')
+            # TODO change the log statement to debug
+            logger.info(f'Data returned from query: {data}')
 
         db_connection.close()
 
@@ -127,12 +132,16 @@ def set_service_two_way_sms_table() -> None:
         logger.info('two_way_sms_table_dict set...')
         logger.debug(f'Two way table as a dictionary with numbers as keys: {two_way_sms_table_dict}')
     except psycopg2.Warning as e:
-        logger.warning(e)
-        raise
+        logger.warning(e)        
+        if db_connection:
+            db_connection.close()
+        sys.exit('Unable to load inbound_numbers table into dictionary')        
     except psycopg2.Error as e:
         logger.exception(e)
-        logger.error(e.pgcode)
-        raise
+        logger.error(e.pgcode)        
+        if db_connection:
+            db_connection.close()
+        sys.exit('Unable to load inbound_numbers table into dictionary')
     except Exception as e:
         logger.critical(f'Failed to query database: {e}')
         if db_connection:
