@@ -111,7 +111,7 @@ def set_service_two_way_sms_table() -> None:
 
         logger.info('Connecting to the database . . .')
         logger.info('EMPTY DATABASE URI' if len(SQLALCHEMY_DATABASE_URI) == 0 else SQLALCHEMY_DATABASE_URI[0:5])
-        db_connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
+        db_connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI, connect_timeout=10)
         logger.info('. . . Connected to the database.')
 
         data = {}
@@ -133,6 +133,10 @@ def set_service_two_way_sms_table() -> None:
         logger.debug(f'Two way table as a dictionary with numbers as keys: {two_way_sms_table_dict}')
     except psycopg2.Warning as e:
         logger.warning(e)        
+    except psycopg2.OperationalError as e:        
+        logger.info("Unable to connect to database")
+        logger.exception(e)
+        sys.exit('Unable to load inbound_numbers table into dictionary')
     except psycopg2.Error as e:
         logger.exception(e)
         logger.error(e.pgcode)        
