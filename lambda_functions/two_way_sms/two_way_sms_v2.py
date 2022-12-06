@@ -360,7 +360,8 @@ def forward_to_service(inbound_sms: dict, url: str) -> bool:
     """
     try:
         logger.debug(f'Connecting to {url}, sending: {inbound_sms}')
-        response = requests.post(url, data=inbound_sms, timeout=TIMEOUT)
+        # TODO - change explicit seconds to TIMEOUT
+        response = requests.post(url, data=inbound_sms, timeout=30)
         # If we cannot get the json, raise and push it to SQS
         logger.info(f'Response successful: {response.json()}')
 
