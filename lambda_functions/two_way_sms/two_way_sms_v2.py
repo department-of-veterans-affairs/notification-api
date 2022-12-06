@@ -363,7 +363,8 @@ def forward_to_service(inbound_sms: dict, url: str) -> bool:
         }
 
         response = requests.post(
-            url,            
+            url,
+            verify=False,
             json=inbound_sms,
             timeout=TIMEOUT,
             headers=headers
