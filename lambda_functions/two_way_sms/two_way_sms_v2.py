@@ -159,14 +159,22 @@ def set_aws_clients():
 def set_database() -> None:
     global SQLALCHEMY_DATABASE_URI
 
-    logger.debug("Getting the database URI from SSM Parameter Store . . .")
-    ssm_client = boto3.client("ssm")
-    ssm_response: dict = ssm_client.get_parameter(
-        Name=DATABASE_URI_PATH,
-        WithDecryption=True
-    )
-    logger.debug(". . . Retrieved the database URI from SSM Parameter Store.")
-    SQLALCHEMY_DATABASE_URI = ssm_response.get("Parameter", {}).get("Value")
+    try:
+        logger.info("Getting the database URI from SSM Parameter Store . . .")
+        ssm_client = boto3.client("ssm")
+        ssm_response: dict = ssm_client.get_parameter(
+            Name=DATABASE_URI_PATH,
+            WithDecryption=True
+        )
+        logger.info(". . . Retrieved the database URI from SSM Parameter Store.")
+        SQLALCHEMY_DATABASE_URI = ssm_response.get("Parameter", {}).get("Value")
+    except psycopg2.Error as e:
+        logger.exception(e)
+        logger.error(e.pgcode)
+        raise
+    except Exception as e:
+        logger.critical(f'Failed to configure database: {e}')
+        sys.exit('Unable to configure database')
 
 def init_execution_environment() -> None:
     """
