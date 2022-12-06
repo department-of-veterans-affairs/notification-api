@@ -166,10 +166,11 @@ def set_database() -> None:
         logger.info("Getting the database URI from SSM Parameter Store . . .")
         logger.info(DATABASE_URI_PATH)
 
-        SQLALCHEMY_DATABASE_URI = read_from_ssm(DATABASE_URI_PATH)
+        SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI') 
+        
+        # TODO: Go back to retrieving database uri from ssm
+        # read_from_ssm(DATABASE_URI_PATH)
 
-        # TODO: remove the next logging statement
-        logger.info(SQLALCHEMY_DATABASE_URI)
         logger.info("Retrieved DB configuration")
     except Exception as e:
         logger.info(f'Failed to configure database: {e}')
