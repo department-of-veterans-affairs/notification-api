@@ -110,6 +110,7 @@ def set_service_two_way_sms_table() -> None:
         # }
 
         logger.info('Connecting to the database . . .')
+        logger.info('EMPTY DATABASE URI' if len(SQLALCHEMY_DATABASE_URI) == 0 else SQLALCHEMY_DATABASE_URI[0:5])
         db_connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
         logger.info('. . . Connected to the database.')
 
