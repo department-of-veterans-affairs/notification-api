@@ -241,12 +241,14 @@ def notify_incoming_sms_handler(event: dict, context: any):
         try:
             logger.info('Processing SQS inbound_sms...')
 
-            inbound_sms = event_data.get('body', '')
-            inbound_sms = json.loads(inbound_sms)
+            event_body = event_data.get('body', '')
+            logger.info("Retrieved event body")
+            logger.debug(event_body)
 
-            logger.info('SQS body retrieved')
-            # TODO: REMOVE the logger.info.  may contain sensitive information in production so remove it from logging
-            logger.info(inbound_sms)
+            inbound_sms = event_body.get('Message', '')
+            inbound_sms = json.loads(inbound_sms)
+            logger.info("Retrieved message")
+            logger.debug(inbound_sms)
 
             if not valid_event_body(inbound_sms):
                 logger.critical(f'Event Body is invalid.  Logging entire event: {inbound_sms}')
@@ -257,7 +259,9 @@ def notify_incoming_sms_handler(event: dict, context: any):
             # Unsafe lookup intentional to catch missing record
             # destinationNumber is the number the end user responded to (the 10DLC pinpoint number)
             # originationNumber is the veteran number
+            logger.debug(two_way_sms_table_dict)
             two_way_record = two_way_sms_table_dict[inbound_sms.get('destinationNumber')]
+            logger.debug(two_way_record)
 
             # If the number is not self-managed, look for key words
             if not two_way_record.get('self_managed'):
@@ -270,6 +274,7 @@ def notify_incoming_sms_handler(event: dict, context: any):
 
             # Forward inbound_sms to associated service
             logger.info(f'Forwarding inbound SMS to service: {two_way_record.get("service_id")}')
+            logger.info(f'UrlEndpoint: {two_way_record.get("url_endpoint")}')
             forward_to_service(inbound_sms, two_way_record.get('url_endpoint', ''))
         except KeyError as e:
             logger.exception(e)
