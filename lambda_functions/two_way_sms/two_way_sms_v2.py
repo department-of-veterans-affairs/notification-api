@@ -96,34 +96,34 @@ def set_service_two_way_sms_table() -> None:
     global two_way_sms_table_dict
     try:
         # TODO: remove this assignment.  it is used during testing to bypass data retrieval from the database
-        #two_way_sms_table_dict = {
-        #    '+16506288615': {
-        #        'service_id': 'some_service_id',
-        #        'url_endpoint': 'https://eou9ebpdvxw3lva.m.pipedream.net',
-        #        'self_managed': True
-        #    }
-        #}
+        two_way_sms_table_dict = {
+            '+16506288615': {
+                'service_id': 'some_service_id',
+                'url_endpoint': 'https://eou9ebpdvxw3lva.m.pipedream.net',
+                'self_managed': True
+            }
+        }
 
-        logger.debug('Connecting to the database . . .')
-        db_connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
-        logger.info('. . . Connected to the database.')
+        # logger.debug('Connecting to the database . . .')
+        # db_connection = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
+        # logger.info('. . . Connected to the database.')
 
-        data = {}
+        # data = {}
 
-        with db_connection.cursor() as c:
-           logger.info('executing retrieval query')
-           # https://www.psycopg.org/docs/cursor.html#cursor.execute
-           c.execute(INBOUND_NUMBERS_QUERY)
-           data = c.fetchall()
-           logger.debug(f'Data returned from query: {data}')
+        # with db_connection.cursor() as c:
+           # logger.info('executing retrieval query')
+           # # https://www.psycopg.org/docs/cursor.html#cursor.execute
+           # c.execute(INBOUND_NUMBERS_QUERY)
+           # data = c.fetchall()
+           # logger.debug(f'Data returned from query: {data}')
 
-        db_connection.close()
+        # db_connection.close()
 
-        two_way_sms_table_dict = {n: {'service_id': s,
-                                      'url_endpoint': u,
-                                      'self_managed': True if sm == 't' else False} for n, s, u, sm in data}
-        logger.info('two_way_sms_table_dict set...')
-        logger.debug(f'Two way table as a dictionary with numbers as keys: {two_way_sms_table_dict}')
+        # two_way_sms_table_dict = {n: {'service_id': s,
+                                      # 'url_endpoint': u,
+                                      # 'self_managed': True if sm == 't' else False} for n, s, u, sm in data}
+        # logger.info('two_way_sms_table_dict set...')
+        # logger.debug(f'Two way table as a dictionary with numbers as keys: {two_way_sms_table_dict}')
     except psycopg2.Warning as e:
         logger.warning(e)
         raise
