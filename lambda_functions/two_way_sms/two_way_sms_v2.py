@@ -223,7 +223,7 @@ init_execution_environment()
 # ------------------------------------------- Begin Invocation --------------------------------------------
 
 
-def notify_incoming_sms_handler(event: dict):
+def notify_incoming_sms_handler(event: dict, context: any):
     """
     Handler for inbound messages from SQS.
     """
