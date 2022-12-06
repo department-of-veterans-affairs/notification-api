@@ -6,6 +6,7 @@ import os
 import psycopg2
 import requests
 import sys
+from functools import lru_cache
 
 
 # Global Variables
@@ -165,21 +166,35 @@ def set_database() -> None:
         logger.info("Getting the database URI from SSM Parameter Store . . .")
         logger.info(DATABASE_URI_PATH)
 
-        ssm_client = boto3.client("ssm")
-        logger.info("loaded ssm client")
+        SQLALCHEMY_DATABASE_URI = read_from_ssm(DATABASE_URI_PATH)
 
-        ssm_response: dict = ssm_client.get_parameter(
-            Name=DATABASE_URI_PATH,
+        # TODO: remove the next logging statement
+        logger.info(SQLALCHEMY_DATABASE_URI)
+        logger.info("Retrieved DB configuration")
+    except Exception as e:
+        logger.info(f'Failed to configure database: {e}')
+        sys.exit('Unable to configure database')
+
+@lru_cache(maxsize=None)
+def read_from_ssm(key: str) -> str:
+    try:
+        ssm_client = boto3.client('ssm')
+
+        logger.info("Generated ssm_client")
+
+        response = ssm_client.get_parameter(
+            Name=key,
             WithDecryption=True
         )
 
-        logger.info(". . . Retrieved the database URI from SSM Parameter Store.")
-        SQLALCHEMY_DATABASE_URI = ssm_response.get("Parameter", {}).get("Value")
-        # TODO: remove the next logging statement
-        logger.info(SQLALCHEMY_DATABASE_URI)
+        logger.info("received ssm parameter")
+
+        return response.get("Parameter", {}).get("Value", '')
     except Exception as e:
-        logger.debug(f'Failed to configure database: {e}')
-        sys.exit('Unable to configure database')
+        logger.error("General Exception With Call to VeText")
+        logger.exception(e)
+        return ''
+
 
 def init_execution_environment() -> None:
     """
