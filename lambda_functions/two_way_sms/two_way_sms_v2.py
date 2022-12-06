@@ -2,9 +2,10 @@ import boto3
 from datetime import datetime
 import json
 import logging
-from os import sys, environ
+import os
 import psycopg2
 import requests
+import sys
 
 
 # Global Variables
@@ -50,20 +51,20 @@ def set_env_variables() -> None:
     global LOG_LEVEL, RETRY_SQS_URL, DATABASE_URI_PATH, TIMEOUT
 
     try:
-        AWS_PINPOINT_APP_ID = environ['AWS_PINPOINT_APP_ID']
+        AWS_PINPOINT_APP_ID = os.getenv('AWS_PINPOINT_APP_ID')
         AWS_REGION = 'us-gov-west-1'
-        DEAD_LETTER_SQS_URL = environ['DEAD_LETTER_SQS_URL']
-        LOG_LEVEL = environ['LOG_LEVEL']
-        RETRY_SQS_URL = environ['RETRY_SQS_URL']
+        DEAD_LETTER_SQS_URL = os.getenv('DEAD_LETTER_SQS_URL')
+        LOG_LEVEL = os.getenv('LOG_LEVEL')
+        RETRY_SQS_URL = os.getenv('RETRY_SQS_URL')
         
-        TIMEOUT = environ['TIMEOUT']
+        TIMEOUT = os.getenv('TIMEOUT')
 
         if isinstance(TIMEOUT, list):
             TIMEOUT = tuple(TIMEOUT)
         else:
             TIMEOUT = int(TIMEOUT)
 
-        DATABASE_URI_PATH = environ['DATABASE_URI_PATH']
+        DATABASE_URI_PATH = os.getenv('DATABASE_URI_PATH')
 
         if DATABASE_URI_PATH is None:
             # Without this value, this code cannot know the path to the required
@@ -82,10 +83,11 @@ def set_logger() -> None:
     global logger
     try:
         logger = logging.getLogger('TwoWaySMSv2')
-        logger.setLevel(logging.getLevelName(LOG_LEVEL))
+        # TODO: uncomment next line and remove the hard code to debug
+        # logger.setLevel(logging.getLevelName(LOG_LEVEL))
+        logger.setLevel(logging.DEBUG)
     except Exception as e:
         sys.exit('Logger failed to setup properly')
-
 
 def set_service_two_way_sms_table() -> None:
     """
@@ -161,19 +163,22 @@ def set_database() -> None:
 
     try:
         logger.info("Getting the database URI from SSM Parameter Store . . .")
+        logger.info(DATABASE_URI_PATH)
+
         ssm_client = boto3.client("ssm")
+        logger.info("loaded ssm client")
+
         ssm_response: dict = ssm_client.get_parameter(
             Name=DATABASE_URI_PATH,
             WithDecryption=True
         )
+
         logger.info(". . . Retrieved the database URI from SSM Parameter Store.")
         SQLALCHEMY_DATABASE_URI = ssm_response.get("Parameter", {}).get("Value")
-    except psycopg2.Error as e:
-        logger.exception(e)
-        logger.error(e.pgcode)
-        raise
+        # TODO: remove the next logging statement
+        logger.info(SQLALCHEMY_DATABASE_URI)
     except Exception as e:
-        logger.critical(f'Failed to configure database: {e}')
+        logger.debug(f'Failed to configure database: {e}')
         sys.exit('Unable to configure database')
 
 def init_execution_environment() -> None:
