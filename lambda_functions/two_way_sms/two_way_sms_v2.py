@@ -232,7 +232,7 @@ def notify_incoming_sms_handler(event: dict, context: any):
 
             inbound_sms = event_body.get('Message', '')
             inbound_sms = json.loads(inbound_sms)
-            logger.info("Retrieved message")
+            logger.info("Retrieved phone message")
 
             if not valid_event_body(inbound_sms):
                 logger.critical(f'Event Body is invalid.  Logging event body: {event_body}')
@@ -246,14 +246,16 @@ def notify_incoming_sms_handler(event: dict, context: any):
             # originationNumber is the veteran number
             two_way_record = two_way_sms_table_dict[inbound_sms.get('destinationNumber')]
 
+            # **Note** - Commenting out this code for self managed checking because right now we are relying on AWS to manage opt out/in functionality.  
+            # **Note** - Eventually we will migrate to self-managed for everything and the config determination will be whether Notify is handling the functionality or if the business line is
             # If the number is not self-managed, look for key words
-            if not two_way_record.get('self_managed'):
-                logger.info('Service is not self-managed')
-                keyword_phrase = detected_keyword(inbound_sms.get('messageBody', ''))
-                if keyword_phrase:
-                    send_message(two_way_record.get('originationNumber', ''),
-                                 two_way_record.get('destinationNumber', ''),
-                                 keyword_phrase)
+            #if not two_way_record.get('self_managed'):
+            #    logger.info('Service is not self-managed')
+            #    keyword_phrase = detected_keyword(inbound_sms.get('messageBody', ''))
+            #    if keyword_phrase:
+            #        send_message(two_way_record.get('originationNumber', ''),
+            #                     two_way_record.get('destinationNumber', ''),
+            #                     keyword_phrase)
 
             # Forward inbound_sms to associated service
             logger.info(
@@ -322,45 +324,47 @@ def valid_event(event_data: dict) -> bool:
         logger.critical(f'Failed to parse event_data')
         return False
 
-def detected_keyword(message: str) -> str:
-    """
-    Parses the string to look for start, stop, or help key words and handles those.
-    """
-    logger.debug(f'Message: {message}')
+# **Note** - Commented out because it wont be necessary in this initial release
+#def detected_keyword(message: str) -> str:
+#    """
+#    Parses the string to look for start, stop, or help key words and handles those.
+#    """
+#    logger.debug(f'Message: {message}')
 
-    message = message.upper()
-    if message.startswith(START_TYPES):
-        logger.info('Detected a START_TYPE keyword')
-        return START_TEXT
-    elif message.startswith(STOP_TYPES):
-        logger.info('Detected a STOP_TYPE keyword')
-        return STOP_TEXT
-    elif message.startswith(HELP_TEXT):
-        logger.info('Detected a HELP_TYPE keyword')
-        return HELP_TEXT
-    else:
-        logger.info('No keywords detected...')
-        return ''
+#    message = message.upper()
+#    if message.startswith(START_TYPES):
+#        logger.info('Detected a START_TYPE keyword')
+#        return START_TEXT
+#    elif message.startswith(STOP_TYPES):
+#        logger.info('Detected a STOP_TYPE keyword')
+#        return STOP_TEXT
+#    elif message.startswith(HELP_TEXT):
+#        logger.info('Detected a HELP_TYPE keyword')
+#        return HELP_TEXT
+#    else:
+#        logger.info('No keywords detected...')
+#        return ''
 
-def send_message(recipient_number: str, sender: str, message: str) -> dict:
-    """
-    Called when we are monitoring for keywords and one was detected. This sends the 
-    appropriate response to the phone number that requested a message via keyword.
-    """
-    try:
-        # Should probably be smsv2
-        response = aws_pinpoint_client.send_messages(
-            ApplicationId=AWS_PINPOINT_APP_ID,
-            MessageRequest={'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
-                            'MessageConfiguration': {'SMSMessage': {'Body': message,
-                                                                    'MessageType': 'TRANSACTIONAL',
-                                                                    'OriginationNumber': sender}}}
-        )
-        aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
-        logging.info(f'Message sent, reference: {aws_reference}')
-    except Exception as e:
-        logger.critical(f'Failed to send message: {message} to {recipient_number} from {sender}')
-        logger.exception(e)
+# **Note** - Commented out because it wont be necessary in this initial release
+#def send_message(recipient_number: str, sender: str, message: str) -> dict:
+#    """
+#    Called when we are monitoring for keywords and one was detected. This sends the 
+#    appropriate response to the phone number that requested a message via keyword.
+#    """
+#    try:
+#        # Should probably be smsv2
+#        response = aws_pinpoint_client.send_messages(
+#            ApplicationId=AWS_PINPOINT_APP_ID,
+#            MessageRequest={'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
+#                            'MessageConfiguration': {'SMSMessage': {'Body': message,
+#                                                                    'MessageType': 'TRANSACTIONAL',
+#                                                                    'OriginationNumber': sender}}}
+#        )
+#        aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
+#        logging.info(f'Message sent, reference: {aws_reference}')
+#    except Exception as e:
+#        logger.critical(f'Failed to send message: {message} to {recipient_number} from {sender}')
+#        logger.exception(e)
 
 def forward_to_service(inbound_sms: dict, url: str) -> bool:
     """
