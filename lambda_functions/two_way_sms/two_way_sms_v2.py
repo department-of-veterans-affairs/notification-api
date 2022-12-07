@@ -324,48 +324,6 @@ def valid_event(event_data: dict) -> bool:
         logger.critical(f'Failed to parse event_data')
         return False
 
-# **Note** - Commented out because it wont be necessary in this initial release
-#def detected_keyword(message: str) -> str:
-#    """
-#    Parses the string to look for start, stop, or help key words and handles those.
-#    """
-#    logger.debug(f'Message: {message}')
-
-#    message = message.upper()
-#    if message.startswith(START_TYPES):
-#        logger.info('Detected a START_TYPE keyword')
-#        return START_TEXT
-#    elif message.startswith(STOP_TYPES):
-#        logger.info('Detected a STOP_TYPE keyword')
-#        return STOP_TEXT
-#    elif message.startswith(HELP_TEXT):
-#        logger.info('Detected a HELP_TYPE keyword')
-#        return HELP_TEXT
-#    else:
-#        logger.info('No keywords detected...')
-#        return ''
-
-# **Note** - Commented out because it wont be necessary in this initial release
-#def send_message(recipient_number: str, sender: str, message: str) -> dict:
-#    """
-#    Called when we are monitoring for keywords and one was detected. This sends the 
-#    appropriate response to the phone number that requested a message via keyword.
-#    """
-#    try:
-#        # Should probably be smsv2
-#        response = aws_pinpoint_client.send_messages(
-#            ApplicationId=AWS_PINPOINT_APP_ID,
-#            MessageRequest={'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
-#                            'MessageConfiguration': {'SMSMessage': {'Body': message,
-#                                                                    'MessageType': 'TRANSACTIONAL',
-#                                                                    'OriginationNumber': sender}}}
-#        )
-#        aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
-#        logging.info(f'Message sent, reference: {aws_reference}')
-#    except Exception as e:
-#        logger.critical(f'Failed to send message: {message} to {recipient_number} from {sender}')
-#        logger.exception(e)
-
 def forward_to_service(inbound_sms: dict, url: str) -> bool:
     """
     Forwards inbound SMS to the service that has 2-way SMS setup.
@@ -431,3 +389,45 @@ def push_to_sqs(inbound_sms: dict, is_retry: bool) -> None:
             push_to_sqs(inbound_sms, False)
         else:
             logger.critical(f'Attempt to enqueue to DEAD LETTER failed')
+
+# **Note** - Commented out because it wont be necessary in this initial release
+#def detected_keyword(message: str) -> str:
+#    """
+#    Parses the string to look for start, stop, or help key words and handles those.
+#    """
+#    logger.debug(f'Message: {message}')
+
+#    message = message.upper()
+#    if message.startswith(START_TYPES):
+#        logger.info('Detected a START_TYPE keyword')
+#        return START_TEXT
+#    elif message.startswith(STOP_TYPES):
+#        logger.info('Detected a STOP_TYPE keyword')
+#        return STOP_TEXT
+#    elif message.startswith(HELP_TEXT):
+#        logger.info('Detected a HELP_TYPE keyword')
+#        return HELP_TEXT
+#    else:
+#        logger.info('No keywords detected...')
+#        return ''
+
+# **Note** - Commented out because it wont be necessary in this initial release
+#def send_message(recipient_number: str, sender: str, message: str) -> dict:
+#    """
+#    Called when we are monitoring for keywords and one was detected. This sends the 
+#    appropriate response to the phone number that requested a message via keyword.
+#    """
+#    try:
+#        # Should probably be smsv2
+#        response = aws_pinpoint_client.send_messages(
+#            ApplicationId=AWS_PINPOINT_APP_ID,
+#            MessageRequest={'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
+#                            'MessageConfiguration': {'SMSMessage': {'Body': message,
+#                                                                    'MessageType': 'TRANSACTIONAL',
+#                                                                    'OriginationNumber': sender}}}
+#        )
+#        aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
+#        logging.info(f'Message sent, reference: {aws_reference}')
+#    except Exception as e:
+#        logger.critical(f'Failed to send message: {message} to {recipient_number} from {sender}')
+#        logger.exception(e)
