@@ -6,7 +6,6 @@ import os
 import psycopg2
 import requests
 import sys
-from functools import lru_cache
 
 # Global Variables
 # Constants
@@ -164,11 +163,10 @@ def set_database() -> None:
         logger.info(f'Failed to configure database: {e}')
         sys.exit('Unable to configure database')
 
-@lru_cache(maxsize=None)
+
 def read_from_ssm(key: str) -> str:
     """
-    Read parameter from SSM store.  If same key is passed in after it has been retrieved already, 
-        then use lru_cache to immediately return that value instead of querying SSM store again.
+    Read parameter from SSM store.
     """
     try:
         ssm_client = boto3.client('ssm')
