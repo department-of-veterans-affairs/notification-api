@@ -51,7 +51,7 @@ kombu < 5.0
 MarkupSafe==2.0.1
 
 marshmallow==2.20.5
-marshmallow-sqlalchemy==0.22.2
+marshmallow-sqlalchemy==0.28.1
 nanoid>=2.0.0
 notifications-python-client>=6.4.1
 psycopg2-binary>=2.9.5
