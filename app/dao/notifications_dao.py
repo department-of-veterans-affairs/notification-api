@@ -1,4 +1,5 @@
 import functools
+import os
 import string
 import uuid
 from datetime import (
@@ -118,10 +119,11 @@ def update_notification_status_by_id(
     notification = Notification.query.with_for_update().filter(Notification.id == notification_id).first()
 
     if not notification:
-        current_app.logger.info('notification not found for id {} (update to status {})'.format(
+        current_app.logger.info(
+            'notification not found for id %s (update to status %s)',
             notification_id,
             status
-        ))
+        )
         return None
 
     if notification.status not in TRANSIENT_NOTIFICATION_STATUSES:
@@ -133,8 +135,20 @@ def update_notification_status_by_id(
     if not notification.sent_by and sent_by:
         notification.sent_by = sent_by
 
+    # TODO: remove before merging
+    # extra prints for output / logs for cloudwatch to see what's happening
+    print(f'feature_flag value: {os.getenv(FeatureFlag.NOTIFICATION_FAILURE_REASON_ENABLED.value)}')
+    print(f'status_reason value: "{status_reason}"')
+
+    current_app.logger.info(
+        'notification reason feature_flag value: %s\nstatus_reason value: %s',
+        os.getenv(FeatureFlag.NOTIFICATION_FAILURE_REASON_ENABLED.value),
+        status_reason
+    )
+
     if is_feature_enabled(FeatureFlag.NOTIFICATION_FAILURE_REASON_ENABLED) and status_reason:
         notification.status_reason = status_reason
+        current_app.logger.info('notification status_reason set to: %s', status_reason)
 
     return _update_notification_status(
         notification=notification,
