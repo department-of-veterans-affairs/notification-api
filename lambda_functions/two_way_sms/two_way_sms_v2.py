@@ -220,7 +220,7 @@ def notify_incoming_sms_handler(event: dict, context: any):
         try:
             logger.info('Processing SQS inbound_sms...')
 
-            messageId = event_data.get('messageId', '')
+            message_id = event_data.get('messageId', '')
 
             event_body = event_data.get('body', '')
             event_body = json.loads(event_body)
@@ -262,7 +262,7 @@ def notify_incoming_sms_handler(event: dict, context: any):
             if not result_of_forwarding:
                 logger.info('failed to make request.  Placing request back on retry')
                 # return 400 to have message put back on feeder queue with a visibility timeout to delay re-processing
-                batch_item_failures.append({"itemIdentifier": messageId})
+                batch_item_failures.append({"itemIdentifier": message_id})
 
         except KeyError as e:
             logger.critical('Unable to find two_way_record for: %s', inbound_sms.get("destinationNumber"))
