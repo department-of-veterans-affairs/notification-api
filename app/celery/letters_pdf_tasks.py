@@ -71,7 +71,7 @@ def create_letters_pdf(self, notification_id):
             dao_update_notification(notification)
 
         current_app.logger.info(
-            'Letter notification reference %s: billable units set to %s', str(notification.reference), billable_units
+            'Letter notification reference %s: billable units set to %d', str(notification.reference), billable_units
         )
 
     except (RequestException, BotoClientError):

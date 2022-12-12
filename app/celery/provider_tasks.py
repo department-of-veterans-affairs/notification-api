@@ -104,7 +104,7 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
         retry_time = sms_sender.rate_limit_interval / sms_sender.rate_limit
         current_app.logger.info(
             'SMS notification delivery for id: %s failed due to rate limit being exceeded. '
-            'Will retry in %s seconds.', notification_id, retry_time
+            'Will retry in %d seconds.', notification_id, retry_time
         )
 
         self.retry(queue=QueueNames.RATE_LIMIT_RETRY, max_retries=None, countdown=retry_time)
@@ -166,12 +166,12 @@ def deliver_email(self, notification_id: str, sms_sender_id=None):
         try:
             if isinstance(e, AwsSesClientThrottlingSendRateException):
                 current_app.logger.warning(
-                    "RETRY number %s: Email notification %s was rate limited by SES",
+                    "RETRY number %d: Email notification %s was rate limited by SES",
                     self.request.retries, notification_id
                 )
             else:
                 current_app.logger.exception(
-                    "RETRY number %s: Email notification %s failed", self.request.retries, notification_id
+                    "RETRY number %d: Email notification %s failed", self.request.retries, notification_id
                 )
             self.retry(queue=QueueNames.RETRY)
         except self.MaxRetriesExceededError:
