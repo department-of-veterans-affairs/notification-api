@@ -1,3 +1,4 @@
+import os
 import uuid
 from collections import namedtuple
 
@@ -70,6 +71,7 @@ def test_should_add_to_retry_queue_if_notification_not_found_in_deliver_email_ta
 def test_should_go_into_technical_error_if_exceeds_retries_on_deliver_sms_task(sample_notification, mocker):
     mocker.patch('app.delivery.send_to_providers.send_sms_to_provider', side_effect=Exception("EXPECTED"))
     mocker.patch('app.celery.provider_tasks.deliver_sms.retry', side_effect=MaxRetriesExceededError())
+    mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
 
     with pytest.raises(NotificationTechnicalFailureException) as e:
         deliver_sms(sample_notification.id)
@@ -84,6 +86,7 @@ def test_should_go_into_technical_error_if_exceeds_retries_on_deliver_sms_task(s
 def test_should_technical_error_and_not_retry_if_invalid_email(sample_notification, mocker):
     mocker.patch('app.delivery.send_to_providers.send_email_to_provider', side_effect=InvalidEmailError('bad email'))
     mocker.patch('app.celery.provider_tasks.deliver_email.retry')
+    mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
 
     with pytest.raises(NotificationTechnicalFailureException):
         deliver_email(sample_notification.id)
@@ -121,6 +124,7 @@ def test_should_go_into_technical_error_if_exceeds_retries_on_deliver_email_task
 ):
     mocker.patch('app.delivery.send_to_providers.send_email_to_provider', side_effect=exception_class())
     mocker.patch('app.celery.provider_tasks.deliver_email.retry', side_effect=MaxRetriesExceededError())
+    mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
 
     with pytest.raises(NotificationTechnicalFailureException) as e:
         deliver_email(sample_notification.id)
@@ -137,6 +141,7 @@ def test_should_technical_error_and_not_retry_if_invalid_email_provider(sample_n
         side_effect=InvalidProviderException('invalid provider')
     )
     mocker.patch('app.celery.provider_tasks.deliver_email.retry')
+    mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
 
     with pytest.raises(NotificationTechnicalFailureException):
         deliver_email(sample_notification.id)
@@ -152,6 +157,7 @@ def test_should_technical_error_and_not_retry_if_invalid_sms_provider(sample_not
         side_effect=InvalidProviderException('invalid provider')
     )
     mocker.patch('app.celery.provider_tasks.deliver_sms.retry')
+    mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
 
     with pytest.raises(NotificationTechnicalFailureException):
         deliver_sms(sample_notification.id)
