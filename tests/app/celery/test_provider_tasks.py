@@ -78,7 +78,6 @@ def test_should_go_into_technical_error_if_exceeds_retries_on_deliver_sms_task(s
     provider_tasks.deliver_sms.retry.assert_called_with(queue="retry-tasks", countdown=0)
 
     assert sample_notification.status == 'technical-failure'
-    assert sample_notification.status_reason == 'Retries exceeded'
 
 
 def test_should_technical_error_and_not_retry_if_invalid_email(sample_notification, mocker):
@@ -90,7 +89,6 @@ def test_should_technical_error_and_not_retry_if_invalid_email(sample_notificati
 
     assert provider_tasks.deliver_email.retry.called is False
     assert sample_notification.status == 'technical-failure'
-    assert sample_notification.status_reason == 'Email address is in invalid format'
 
 
 def test_should_queue_callback_task_if_non_retryable_exception_is_thrown(sample_notification, mocker):
@@ -128,10 +126,9 @@ def test_should_go_into_technical_error_if_exceeds_retries_on_deliver_email_task
 
     provider_tasks.deliver_email.retry.assert_called_with(queue="retry-tasks")
     assert sample_notification.status == 'technical-failure'
-    assert sample_notification.status_reason == 'Retries exceeded'
 
 
-def test_should_technical_error_and_not_retry_if_invalid_email_provider(sample_notification, mocker):
+def test_should_technical_error_and_not_retry_if_invalid_provider(sample_notification, mocker):
     mocker.patch(
         'app.delivery.send_to_providers.send_email_to_provider',
         side_effect=InvalidProviderException('invalid provider')
@@ -143,22 +140,6 @@ def test_should_technical_error_and_not_retry_if_invalid_email_provider(sample_n
 
     assert provider_tasks.deliver_email.retry.called is False
     assert sample_notification.status == 'technical-failure'
-    assert sample_notification.status_reason == 'Email provider configuration invalid'
-
-
-def test_should_technical_error_and_not_retry_if_invalid_sms_provider(sample_notification, mocker):
-    mocker.patch(
-        'app.delivery.send_to_providers.send_sms_to_provider',
-        side_effect=InvalidProviderException('invalid provider')
-    )
-    mocker.patch('app.celery.provider_tasks.deliver_sms.retry')
-
-    with pytest.raises(NotificationTechnicalFailureException):
-        deliver_sms(sample_notification.id)
-
-    assert provider_tasks.deliver_sms.retry.called is False
-    assert sample_notification.status == 'technical-failure'
-    assert sample_notification.status_reason == 'SMS provider configuration invalid'
 
 
 def test_should_retry_and_log_exception(sample_notification, mocker):
