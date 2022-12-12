@@ -135,26 +135,27 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
 @statsd(namespace="tasks")
 def deliver_email(self, notification_id: str, sms_sender_id=None):
     try:
-        current_app.logger.info("Start sending email for notification id: {}".format(notification_id))
+        current_app.logger.info("Start sending email for notification id: %s", notification_id)
         notification = notifications_dao.get_notification_by_id(notification_id)
         if not notification:
             raise NoResultFound()
         send_to_providers.send_email_to_provider(notification)
-        current_app.logger.info(f"Successfully sent email for notification id: {notification_id}")
+        current_app.logger.info("Successfully sent email for notification id: %s", notification_id)
     except InvalidEmailError as e:
-        current_app.logger.exception(f"Email notification {notification_id} failed: {str(e)}")
+        current_app.logger.exception("Email notification %s failed: %s", notification_id, str(e))
         update_notification_status_by_id(
             notification_id,
             NOTIFICATION_TECHNICAL_FAILURE,
-            status_reason=f"Email address is in invalid format"
+            status_reason="Email address is in invalid format"
         )
         raise NotificationTechnicalFailureException(str(e))
     except MalwarePendingException:
         current_app.logger.info(
-            f"RETRY number {self.request.retries}: Email notification {notification_id} is pending malware scans")
+            "RETRY number %s: Email notification %s is pending malware scans", self.request.retries, notification_id
+        )
         self.retry(queue=QueueNames.RETRY, countdown=60)
     except InvalidProviderException as e:
-        current_app.logger.exception(f"Invalid provider for {notification_id}: {str(e)}")
+        current_app.logger.exception("Invalid provider for %s: %s", notification_id, str(e))
         update_notification_status_by_id(
             notification_id,
             NOTIFICATION_TECHNICAL_FAILURE,
@@ -165,11 +166,12 @@ def deliver_email(self, notification_id: str, sms_sender_id=None):
         try:
             if isinstance(e, AwsSesClientThrottlingSendRateException):
                 current_app.logger.warning(
-                    f"RETRY number {self.request.retries}: Email notification {notification_id} was rate limited by SES"
+                    "RETRY number %s: Email notification %s was rate limited by SES",
+                    self.request.retries, notification_id
                 )
             else:
                 current_app.logger.exception(
-                    f"RETRY number {self.request.retries}: Email notification {notification_id} failed"
+                    "RETRY number %s: Email notification %s failed", self.request.retries, notification_id
                 )
             self.retry(queue=QueueNames.RETRY)
         except self.MaxRetriesExceededError:

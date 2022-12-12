@@ -637,7 +637,7 @@ def test_process_virus_scan_passed_logs_error_and_sets_tech_failure_if_s3_error_
 
     assert sample_letter_notification.status == NOTIFICATION_TECHNICAL_FAILURE
     mock_logger.assert_called_once_with(
-        'Error uploading letter to live pdf bucket for notification: {}'.format(sample_letter_notification.id)
+        'Error uploading letter to live pdf bucket for notification: %s', sample_letter_notification.id
     )
 
 
@@ -660,7 +660,7 @@ def test_move_invalid_letter_and_update_status_logs_error_and_sets_tech_failure_
 
     assert sample_letter_notification.status == NOTIFICATION_TECHNICAL_FAILURE
     mock_logger.assert_called_once_with(
-        'Error when moving letter with id {} to invalid PDF bucket'.format(sample_letter_notification.id)
+        'Error when moving letter with id %s to invalid PDF bucket', sample_letter_notification.id
     )
 
 
