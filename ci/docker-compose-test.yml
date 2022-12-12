@@ -18,6 +18,7 @@ services:
       - AWS_SECURITY_TOKEN=test
       - AWS_REGION=us-east-1
       - VA_PROFILE_DOMAIN=int.vaprofile.va.gov
+      - NOTIFICATION_FAILURE_REASON_ENABLED=True
     depends_on:
       - db
   db:

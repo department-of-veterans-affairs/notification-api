@@ -148,7 +148,7 @@ def update_notification_status_by_id(
 
     if is_feature_enabled(FeatureFlag.NOTIFICATION_FAILURE_REASON_ENABLED) and status_reason:
         notification.status_reason = status_reason
-        current_app.logger.info('notification status_reason set to: %s', status_reason)
+        current_app.logger.info('notification status_reason set to: %s', status_reason)  # TODO remove before merging
 
     return _update_notification_status(
         notification=notification,
