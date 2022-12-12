@@ -32,8 +32,10 @@ SQLALCHEMY_DATABASE_URI = ''
 DATABASE_URI_PATH = ''
 TIMEOUT = 3
 
+logger = logging.getLogger('TwoWaySMSv2')
+logger.setLevel(logging.getLevelName(LOG_LEVEL))
+
 # Set within lambda
-logger = None
 aws_pinpoint_client = None
 aws_sqs_client = None
 two_way_sms_table_dict = {}
@@ -70,20 +72,6 @@ def set_env_variables() -> None:
         sys.exit('Failed to find env variable: %s', e)
     except Exception as e:
         sys.exit('Failed to convert TIMEOUT: %s', e)
-
-def set_logger() -> None:
-    """
-    Sets custom logger for the lambda.
-    """
-    global logger
-
-    logger.info("Configuring logger...")
-    
-    try:
-        logger = logging.getLogger('TwoWaySMSv2')
-        logger.setLevel(logging.getLevelName(LOG_LEVEL))
-    except Exception as e:
-        sys.exit('Logger failed to setup properly')
 
 def set_service_two_way_sms_table() -> None:
     """
@@ -192,8 +180,6 @@ def init_execution_environment() -> None:
     Collects environmental variables, sets up the logger, populates the two_way_sms_table_dict,
     and sets up the aws pinpoint and sqs clients.
     """
-    set_logger()
-    logger.info("Logger configured")
     set_env_variables()
     logger.info("Env vars set")
     set_database()
@@ -307,7 +293,7 @@ def valid_event(event_data: dict) -> bool:
     try:
         if event_data is None: 
             return False
-            
+
         if 'Records' in event_data:
             for record in event_data.get('Records'):
                 if record.get('body') is None:
