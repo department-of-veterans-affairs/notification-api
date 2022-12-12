@@ -17,12 +17,9 @@ STOP_TEXT = 'Message service stopped, reply "START" to start receiving messages.
 HELP_TEXT = 'Some help text'
 INBOUND_NUMBERS_QUERY = """SELECT number, service_id, url_endpoint, self_managed FROM inbound_numbers;"""
 # Validation set
-EXPECTED_SNS_FIELDS = set({'originationNumber',
+EXPECTED_PINPOINT_FIELDS = set({'originationNumber',
                            'destinationNumber',
-                           'messageKeyword',
-                           'messageBody',
-                           'inboundMessageId',
-                           'previousPublishedMessageId',
+                           'messageBody'
                            })
 
 # Pre-defined env variables
@@ -78,9 +75,10 @@ def set_logger() -> None:
     """
     Sets custom logger for the lambda.
     """
-    logger.info("Configuring logger...")
-
     global logger
+
+    logger.info("Configuring logger...")
+    
     try:
         logger = logging.getLogger('TwoWaySMSv2')
         logger.setLevel(logging.getLevelName(LOG_LEVEL))
@@ -93,9 +91,9 @@ def set_service_two_way_sms_table() -> None:
     querying the table. This table should be small (a few dozen records at most).
     """
     # format for dict should be: {'number':{'service_id': <value>, 'url_endpoint': <value>, 'self_managed': <value> }}
-    logger.info("Beginning retrieval of 10DLC to URL mapping")
-
     global two_way_sms_table_dict
+
+    logger.info("Beginning retrieval of 10DLC to URL mapping")
     
     try:
         logger.info('Connecting to the database . . .')
@@ -300,20 +298,16 @@ def valid_event_body(event_data: dict) -> bool:
     Verify that the event body's message that comes in, contains the following 3 keys.  
     If any are missing then processing should fail
     """
-    if event_data.get('destinationNumber') is None:
-        return False
-    if event_data.get('originationNumber') is None:
-        return False
-    if event_data.get('messageBody') is None:
-        return False
-
-    return True
+    return EXPECTED_PINPOINT_FIELDS.issubset(event_data)
 
 def valid_event(event_data: dict) -> bool:
     """
     Ensure the event has all the necessary fields
     """
     try:
+        if event_data is None: 
+            return False
+            
         if 'Records' in event_data:
             for record in event_data.get('Records'):
                 if record.get('body') is None:
