@@ -83,25 +83,41 @@ def test_forward_to_service_failed_on_general_exception(mocker):
         result = forward_to_service({}, 'https://someurl.com')
 
 # Test Handler
-def test_notify_incoming_sms_handler_invalid_event(mocker):
+def test_notify_incoming_sms_handler_invalid_event(mocker, env_vars):
     # verify 200 response when event is not valid_event
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
+    mocker.patch(f'{LAMBDA_MODULE}.set_service_two_way_sms_table', returnValue=None)
+    mocker.patch(f'{LAMBDA_MODULE}.two_way_sms_table_dict', return_value={
+                                    DESTINATION_NUMBER: {
+                                        'service_id': 'someserviceid',
+                                        'url_endpoint': 'https://someurl.com',
+                                        'self_managed': False 
+                                    }
+                                    })
 
     response = notify_incoming_sms_handler(INVALID_EVENT, None)
 
     assert response['statusCode'] == 200
     sqs_mock.assert_called_once()
 
-def test_notify_incoming_sms_handler_invalid_event_body(mocker):
+def test_notify_incoming_sms_handler_invalid_event_body(mocker, env_vars):
     # verify 200 response when event is not valid_event body
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
+    mocker.patch(f'{LAMBDA_MODULE}.set_service_two_way_sms_table', returnValue=None)
+    mocker.patch(f'{LAMBDA_MODULE}.two_way_sms_table_dict', return_value={
+                                    DESTINATION_NUMBER: {
+                                        'service_id': 'someserviceid',
+                                        'url_endpoint': 'https://someurl.com',
+                                        'self_managed': False 
+                                    }
+                                    })
 
     response = notify_incoming_sms_handler(INVALID_EVENT_BODY, None)
 
     assert response['statusCode'] == 200
     sqs_mock.assert_called_once()
 
-def test_notify_incoming_sms_handler_failed_request(mocker):
+def test_notify_incoming_sms_handler_failed_request(mocker, env_vars):
     # verify when forward_to_service return False and response 400
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
     mocker.patch(f'{LAMBDA_MODULE}.requests.post', side_effect=requests.exceptions.HTTPError('http://example.com', 500, 'Error message', {}, None))
@@ -118,7 +134,7 @@ def test_notify_incoming_sms_handler_failed_request(mocker):
     assert response['statusCode'] == 400
     sqs_mock.assert_not_called()
 
-def test_notify_incoming_sms_handler_phonenumber_not_found(mocker):
+def test_notify_incoming_sms_handler_phonenumber_not_found(mocker, env_vars):
     # verify push_to_sqs is called once when KeyError is thrown and response 200
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
     # trigger the key not existing
@@ -135,7 +151,7 @@ def test_notify_incoming_sms_handler_phonenumber_not_found(mocker):
     assert response['statusCode'] == 200
     sqs_mock.assert_called_once()
     
-def test_notify_incoming_sms_handler_phonenumber_not_found(mocker):
+def test_notify_incoming_sms_handler_phonenumber_not_found(mocker, env_vars):
     # verify push_to_sqs is called when General Exception is thrown and response 200
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
     mocker.patch(f'{LAMBDA_MODULE}.two_way_sms_table_dict', {

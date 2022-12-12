@@ -39,6 +39,7 @@ logger.setLevel(logging.getLevelName(LOG_LEVEL))
 aws_pinpoint_client = None
 aws_sqs_client = None
 two_way_sms_table_dict = {}
+initialized = False
 
 
 def set_env_variables() -> None:
@@ -69,9 +70,9 @@ def set_env_variables() -> None:
             # SSM Parameter Store resource.
             sys.exit("DATABASE_URI_PATH is not set.  Check the Lambda console.")
     except KeyError as e:
-        sys.exit('Failed to find env variable: %s', e)
+        sys.exit(e)
     except Exception as e:
-        sys.exit('Failed to convert TIMEOUT: %s', e)
+        sys.exit(e)
 
 def set_service_two_way_sms_table() -> None:
     """
@@ -152,7 +153,6 @@ def set_database() -> None:
         logger.info('Failed to configure database: %s', e)
         sys.exit('Unable to configure database')
 
-
 def read_from_ssm(key: str) -> str:
     """
     Read parameter from SSM store.
@@ -191,7 +191,7 @@ def init_execution_environment() -> None:
 
     logger.info('Execution environment setup...')
 
-init_execution_environment()
+# init_execution_environment()
 # ------------------------------------ End Execution Environment Setup ------------------------------------
 
 # ------------------------------------------- Begin Invocation --------------------------------------------
@@ -199,6 +199,12 @@ def notify_incoming_sms_handler(event: dict, context: any):
     """
     Handler for inbound messages from SQS.
     """
+    global initialized
+
+    if not initialized:
+        init_execution_environment()
+        initialized = True
+
     if not valid_event(event):
         logger.critical('Logging entire event: %s', event)
         # push message to dead letter
