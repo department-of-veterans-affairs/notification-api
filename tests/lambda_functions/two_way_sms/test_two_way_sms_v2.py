@@ -125,7 +125,7 @@ def test_notify_incoming_sms_handler_failed_request(mocker):
     response = notify_incoming_sms_handler(VALID_EVENT, None)
 
     assert response['statusCode'] == 400
-    sqs_mock.assert_not_called()
+    sqs_mock.assert_called_once()
 
 def test_notify_incoming_sms_handler_phonenumber_not_found(mocker):
     # verify push_to_sqs is called once when KeyError is thrown and response 200
