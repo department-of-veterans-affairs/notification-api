@@ -252,6 +252,8 @@ def forward_to_service(inbound_sms: dict, url: str) -> bool:
             timeout=TIMEOUT,
             headers=headers
         )
+        logger.info('POST to service complete')
+        response.raise_for_status()
 
         logger.info('Response Status: %d', response.status_code)
         logger.debug('Response Content: %s', response.content)
