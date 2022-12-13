@@ -34,7 +34,7 @@ fileignoreconfig:
     - filename: lambda_functions/user_flows/va-internal-cert-chain.pem
       checksum: b275bb504d07e20888d222c31f12246b79aa554bea84c4d3028f110b0f9d473c
     - filename: ci/docker-compose-test.yml
-      checksum: 2a18b2897becf05d4456b2c987f448eeb5a276741ec62cc4e554b439abe1e925
+      checksum: 6661566787728fca90a9a633644989c4b3ff05f1db576652076f439cebb1a485
     - filename: load_testing/.envrc.example
       checksum: bd6d379824dd3a828fa4689a1a8b7fa77d37abe880a4b16e1b68b4d93954ab3d
     - filename: tests/app/notifications/test_receive_notification.py
@@ -333,3 +333,9 @@ fileignoreconfig:
       checksum: d22b6350a68e06c1c71893ca41b2217eb8cd61a21408baba79ca77b0bc0a37db
     - filename: .github/workflows/dev_deploy.yml
       checksum: 217b1dbca27958380523fce8c4e3c56af5e73e3ae914a2117a2574739f7d15a7
+    - filename: tests/env_vars
+      checksum: 67d98b2079d4386763f63ffc06469a9ea3ae6bfd295726adb69fc1c0b4bab4ec
+    - filename: lambda_functions/two_way_sms/two_way_sms_v2.py
+      checksum: 61d09192b22c8829d6c973a84dfde8780ec629516e9cd2598e217f4bbdfc8f43
+    - filename: .github/workflows/tests.yaml
+      checksum: 28dce5ff36a2c6d71ca5cc4e1346c18609c4315df5eb6e6c15e9c50829da84fc
