@@ -185,7 +185,8 @@ def notify_incoming_sms_handler(event: dict, context: any):
 
         if not result_of_forwarding:
             logger.info("Failed to make an HTTP request.  Placing the request back on retry.")
-            # return 400 to have message put back on feeder queue with a visibility timeout to delay re-processing.
+            # put back on replay queue
+            push_to_sqs(record, True)
             batch_item_failures.append({"itemIdentifier": record_body.get("messageId", '')})
 
     # Return an array of message Ids that failed so that they get re-enqueued.
