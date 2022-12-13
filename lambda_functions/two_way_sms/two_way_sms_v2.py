@@ -16,6 +16,7 @@ START_TEXT = 'Message service resumed, reply "STOP" to stop receiving messages.'
 STOP_TEXT = 'Message service stopped, reply "START" to start receiving messages.'
 HELP_TEXT = 'Some help text'
 INBOUND_NUMBERS_QUERY = """SELECT number, service_id, url_endpoint, self_managed FROM inbound_numbers;"""
+SQS_DELAY_SECONDS = 120
 
 # Validation set.  Valid event data must have these attributes.
 EXPECTED_PINPOINT_FIELDS = frozenset(('originationNumber', 'destinationNumber', 'messageBody'))
@@ -294,8 +295,11 @@ def push_to_sqs(inbound_sms: dict, is_retry: bool) -> None:
 
         queue_msg = json.dumps(inbound_sms)
 
-        aws_sqs_client.send_message(QueueUrl=RETRY_SQS_URL if is_retry else DEAD_LETTER_SQS_URL,
-                                    MessageBody=queue_msg)
+        aws_sqs_client.send_message(
+            QueueUrl=RETRY_SQS_URL if is_retry else DEAD_LETTER_SQS_URL,
+            MessageBody=queue_msg,
+            DelaySeconds=SQS_DELAY_SECONDS
+        )
 
         logger.info('Completed enqueue of message')
     except Exception as e:
