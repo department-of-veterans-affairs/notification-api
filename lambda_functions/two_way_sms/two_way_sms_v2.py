@@ -23,10 +23,17 @@ EXPECTED_PINPOINT_FIELDS = frozenset(('originationNumber', 'destinationNumber', 
 # Environment variables set by the lambda infrastructure
 AWS_PINPOINT_APP_ID = os.getenv("AWS_PINPOINT_APP_ID")
 DEAD_LETTER_SQS_URL = os.getenv("DEAD_LETTER_SQS_URL")
-LOG_LEVEL = os.getenv('LOG_LEVEL')
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 RETRY_SQS_URL = os.getenv('RETRY_SQS_URL')
+TIMEOUT = os.getenv('TIMEOUT', '3')
 
-TIMEOUT = os.getenv('TIMEOUT')
+if (
+    AWS_PINPOINT_APP_ID is None or
+    DEAD_LETTER_SQS_URL is None or
+    RETRY_SQS_URL is None
+):
+    sys.exit("A required environment variable is not set.")
+
 TIMEOUT = tuple(TIMEOUT) if isinstance(TIMEOUT, list) else int(TIMEOUT)
 
 logger = logging.getLogger('TwoWaySMSv2')
