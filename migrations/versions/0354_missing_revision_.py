@@ -1,16 +1,16 @@
 """
 
-Revision ID: 0353_missing_revision
-Revises: 0352_updated_at_default
-Create Date: 2022-12-12 22:29:53.057988
+Revision ID: 0354_missing_revision
+Revises: 0353_inbound_number_add_fields
+Create Date: 2022-12-13 02:20:09.063937
 
 """
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-revision = '0353_missing_revision'
-down_revision = '0352_updated_at_default'
+revision = '0354_missing_revision'
+down_revision = '0353_inbound_number_add_fields'
 
 
 def upgrade():
