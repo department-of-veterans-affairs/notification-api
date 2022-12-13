@@ -92,8 +92,8 @@ class HistoryModel:
 
 class ServiceUser(db.Model):
     __tablename__ = 'user_to_service'
-    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), primary_key=True, nullable=True)
-    service_id = db.Column(UUID(as_uuid=True), db.ForeignKey('services.id'), primary_key=True, nullable=True)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), primary_key=True)
+    service_id = db.Column(UUID(as_uuid=True), db.ForeignKey('services.id'), primary_key=True)
 
     __table_args__ = (
         UniqueConstraint('user_id', 'service_id', name='uix_user_to_service'),
@@ -397,8 +397,8 @@ class Service(db.Model, Versioned):
     go_live_user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=True)
     go_live_user = db.relationship('User', foreign_keys=[go_live_user_id])
     go_live_at = db.Column(db.DateTime, nullable=True)
-    sending_domain = db.Column(db.Text(255), nullable=True, unique=False)
-    smtp_user = db.Column(db.Text(255), nullable=True, unique=False)
+    sending_domain = db.Column(db.Text(255))
+    smtp_user = db.Column(db.Text(255))
 
     email_provider_id = db.Column(UUID(as_uuid=True), db.ForeignKey('provider_details.id'), nullable=True)
     sms_provider_id = db.Column(UUID(as_uuid=True), db.ForeignKey('provider_details.id'), nullable=True)
@@ -646,7 +646,7 @@ class ServiceCallback(db.Model, Versioned):
     service = db.relationship('Service', backref='service_callback')
     url = db.Column(db.String(), nullable=False)
     callback_type = db.Column(db.String(), db.ForeignKey('service_callback_type.name'), nullable=True)
-    _bearer_token = db.Column("bearer_token", db.String(), nullable=True)
+    _bearer_token = db.Column("bearer_token", db.String(), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, nullable=True)
     updated_by = db.relationship('User')
@@ -656,6 +656,7 @@ class ServiceCallback(db.Model, Versioned):
 
     __table_args__ = (
         UniqueConstraint('service_id', 'callback_type', name='uix_service_callback_type'),
+        UniqueConstraint('service_id', 'callback_channel', name='uix_service_callback_channel'),
     )
 
     @property
@@ -1335,7 +1336,7 @@ class Notification(db.Model):
         onupdate=datetime.datetime.utcnow)
     status = db.Column(
         'notification_status',
-        db.Text,
+        db.Text(255),
         db.ForeignKey('notification_status_types.name'),
         index=True,
         nullable=True,
@@ -1989,16 +1990,16 @@ class DateTimeDimension(db.Model):
     bst_date = db.Column(db.Date, nullable=False, primary_key=True, index=True)
     year = db.Column(db.Integer(), nullable=False)
     month = db.Column(db.Integer(), nullable=False)
-    month_name = db.Column(db.String(), nullable=False)
+    month_name = db.Column(db.String(20), nullable=False)
     day = db.Column(db.Integer(), nullable=False)
     bst_day = db.Column(db.Integer(), nullable=False)
     day_of_year = db.Column(db.Integer(), nullable=False)
-    week_day_name = db.Column(db.String(), nullable=False)
+    week_day_name = db.Column(db.String(20), nullable=False)
     calendar_week = db.Column(db.Integer(), nullable=False)
-    quartal = db.Column(db.String(), nullable=False)
-    year_quartal = db.Column(db.String(), nullable=False)
-    year_month = db.Column(db.String(), nullable=False)
-    year_calendar_week = db.Column(db.String(), nullable=False)
+    quartal = db.Column(db.String(20), nullable=False)
+    year_quartal = db.Column(db.String(20), nullable=False)
+    year_month = db.Column(db.String(20), nullable=False)
+    year_calendar_week = db.Column(db.String(20), nullable=False)
     financial_year = db.Column(db.Integer(), nullable=False)
     utc_daytime_start = db.Column(db.DateTime, nullable=False)
     utc_daytime_end = db.Column(db.DateTime, nullable=False)
@@ -2133,7 +2134,7 @@ class CommunicationItem(db.Model):
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     va_profile_item_id = db.Column(db.Integer, nullable=False)
-    name = db.Column(db.String(), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
 
 
 class VAProfileLocalCache(db.Model):
@@ -2146,7 +2147,7 @@ class VAProfileLocalCache(db.Model):
     va_profile_id = db.Column(db.Integer, nullable=False)
     communication_item_id = db.Column(db.Integer, nullable=False)
     communication_channel_id = db.Column(db.Integer, nullable=False)
-    source_datetime = db.Column(db.DateTime, nullable=True)
+    source_datetime = db.Column(db.DateTime)
 
     __table_args__ = (
         UniqueConstraint('va_profile_id', 'communication_item_id', 'communication_channel_id', name='uix_veteran_id'),
