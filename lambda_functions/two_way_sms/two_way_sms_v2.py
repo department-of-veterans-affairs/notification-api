@@ -92,6 +92,7 @@ else:
 if os.getenv("NOTIFY_ENVIRONMENT") == "test":
     two_way_sms_table_dict = {}
 else:
+    db_connection = None
     try:
         logger.info("Retrieving the 10DLC-to-URL mapping from the database . . .")
         db_connection = psycopg2.connect(sqlalchemy_database_uri)
@@ -112,7 +113,7 @@ else:
         logger.exception(e)
         sys.exit("Unable to retrieve the 10DLC-to-URL mapping from the database.")
     finally:
-        if not db_connection.closed:
+        if db_connection is not None and not db_connection.closed:
             db_connection.close()
 
     # Create the mapping table with a generator expression.
