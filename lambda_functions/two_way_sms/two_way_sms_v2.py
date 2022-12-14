@@ -104,15 +104,16 @@ else:
             mapping_data = c.fetchall()
             logger.debug("Data returned from query: %s", mapping_data)
 
-        db_connection.close()
         logger.info(". . . Retrieved the 10DLC-to-URL mapping from the database.")
     except psycopg2.Warning as e:
         logger.warning(e)
-    except psycopg2.OperationalError as e:        
+    except psycopg2.OperationalError as e:
+        # This exception is raised if a database connection is not established.
         logger.exception(e)
         sys.exit("Unable to retrieve the 10DLC-to-URL mapping from the database.")
     finally:
-        db_connection.close()
+        if not db_connection.closed:
+            db_connection.close()
 
     # Create the mapping table with a generator expression.
     two_way_sms_table_dict = {
