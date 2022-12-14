@@ -22,23 +22,35 @@ SQS_DELAY_SECONDS = 120
 EXPECTED_PINPOINT_FIELDS = frozenset(('originationNumber', 'destinationNumber', 'messageBody'))
 
 # Environment variables set by the lambda infrastructure
-AWS_PINPOINT_APP_ID = os.getenv("AWS_PINPOINT_APP_ID")
+# TODO - Uncomment this line when the code commented-out at the end is restored.
+# AWS_PINPOINT_APP_ID = os.getenv("AWS_PINPOINT_APP_ID")
 DEAD_LETTER_SQS_URL = os.getenv("DEAD_LETTER_SQS_URL")
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 RETRY_SQS_URL = os.getenv('RETRY_SQS_URL')
 TIMEOUT = os.getenv('TIMEOUT', '3')
 
 if (
-    AWS_PINPOINT_APP_ID is None or
+    # TODO - Uncomment this line when the code commented-out at the end is restored.
+    # AWS_PINPOINT_APP_ID is None or
     DEAD_LETTER_SQS_URL is None or
     RETRY_SQS_URL is None
 ):
     sys.exit("A required environment variable is not set.")
 
-TIMEOUT = tuple(TIMEOUT) if isinstance(TIMEOUT, list) else int(TIMEOUT)
-
 logger = logging.getLogger('TwoWaySMSv2')
-logger.setLevel(logging.getLevelName(LOG_LEVEL))
+
+try:
+    logger.setLevel(LOG_LEVEL)
+except ValueError:
+    logger.setLevel("INFO")
+    logger.warning("Invalid log level specified.  Defaulting to INFO.")
+
+try:
+    TIMEOUT = tuple(TIMEOUT) if isinstance(TIMEOUT, list) else int(TIMEOUT)
+except (TypeError, ValueError):
+    TIMEOUT = 3
+    logger.warning("Invalid TIMEOUT value specified.  Defaulting to 3 seconds.")
+
 
 ################################################################################################
 # Get the database URI from SSM Parameter Store.
@@ -69,7 +81,7 @@ else:
 # Use the database URI to get a 10DLC-to-URL mapping from the database.
 # The format should be:
 #    {
-#        'number': {
+#        <phone number>: {
 #            'service_id': <value>,
 #            'url_endpoint': <value>,
 #            'self_managed': <value>,
@@ -99,13 +111,15 @@ else:
     except psycopg2.OperationalError as e:        
         logger.exception(e)
         sys.exit("Unable to retrieve the 10DLC-to-URL mapping from the database.")
+    finally:
+        db_connection.close()
 
     # Create the mapping table with a generator expression.
     two_way_sms_table_dict = {
         n: {
             'service_id': s,
             'url_endpoint': u,
-            'self_managed': False if sm == None else sm,
+            'self_managed': sm,
         } for n, s, u, sm in mapping_data
     }
 
