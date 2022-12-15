@@ -182,7 +182,7 @@ def notify_incoming_sms_handler(event: dict, context: any):
         two_way_record = two_way_sms_table_dict.get(inbound_sms["destinationNumber"])
         if two_way_record is None:
             # Dead letter
-            logger.error("Unable to find a two_way_record for %s.", inbound_sms["destinationNumber"])
+            logger.error("Unable to find a two_way_record for %s.", inbound_sms.get("destinationNumber", "unknown"))
             push_to_sqs(record_body, False)
             continue
 
@@ -208,7 +208,7 @@ def notify_incoming_sms_handler(event: dict, context: any):
         try:
             result_of_forwarding = forward_to_service(inbound_sms, two_way_record.get("url_endpoint"))
         except Exception as e:
-            # Dead letter.  This excaption was re-raised and has already been logged.
+            # Dead letter.  This exception was re-raised and has already been logged.
             push_to_sqs(record_body, False)
             continue
 
