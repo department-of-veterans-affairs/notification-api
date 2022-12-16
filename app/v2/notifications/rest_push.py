@@ -1,5 +1,5 @@
 
-from flask import request, jsonify, current_app
+from flask import request, jsonify
 
 from app import authenticated_service, vetext_client
 from app.feature_flags import is_feature_enabled, FeatureFlag
