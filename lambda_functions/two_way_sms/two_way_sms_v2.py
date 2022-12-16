@@ -60,6 +60,7 @@ except (TypeError, ValueError):
 
 if os.getenv("NOTIFY_ENVIRONMENT") == "test":
     sqlalchemy_database_uri = os.getenv("SQLALCHEMY_DATABASE_URI")
+    vetext_auth_token = os.getenv("VETEXT_API_AUTH_SSM_PATH")
 else:
     database_uri_path = os.getenv("DATABASE_URI_PATH")
     if database_uri_path is None:
