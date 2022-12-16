@@ -19,7 +19,9 @@ from app.dao.fact_billing_dao import (
     get_rates_for_billing,
     fetch_sms_free_allowance_remainder,
     fetch_sms_billing_for_all_services,
-    fetch_letter_costs_for_all_services, fetch_letter_line_items_for_all_services)
+    fetch_sms_billing_per_sms_use_case,
+    fetch_letter_costs_for_all_services,
+    fetch_letter_line_items_for_all_services)
 from app.dao.organisation_dao import dao_add_service_to_organisation
 from app.models import (
     FactBilling,
@@ -121,6 +123,27 @@ def test_fetch_billing_data_for_today_includes_data_with_the_right_date(notify_d
     results = fetch_billing_data_for_day(day_under_test)
     assert len(results) == 1
     assert results[0].notifications_sent == 2
+
+
+@freeze_time('2018-04-02 06:20:00')
+# This test assumes the local timezone is EST
+def test_fetch_sms_billing_per_sms_use_case(notify_db_session):
+    process_day = datetime(2018, 4, 1, 13, 30, 0)
+    service = create_service()
+    template = create_template(service=service, template_type="sms")
+    create_notification(template=template, status='delivered', created_at=process_day)
+    create_notification(template=template, status='delivered', created_at=datetime(2018, 4, 1, 4, 23, 23))
+
+    create_notification(template=template, status='delivered', created_at=datetime(2018, 3, 31, 20, 23, 23))
+    create_notification(template=template, status='sending', created_at=process_day + timedelta(days=1))
+
+    day_under_test = convert_utc_to_local_timezone(process_day)
+    results = fetch_sms_billing_per_sms_use_case(day_under_test)
+
+    print(f'results: {results}')  # TODO remove this line
+
+    assert len(results) == 1
+    assert results[0].count == 2
 
 
 def test_fetch_billing_data_for_day_is_grouped_by_template_and_notification_type(notify_db_session):

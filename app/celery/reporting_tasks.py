@@ -22,7 +22,7 @@ from app.dao.fact_notification_status_dao import (
     fetch_notification_statuses_per_service_and_template_for_date)
 from app.feature_flags import is_feature_enabled, FeatureFlag
 
-
+# nightly billing stats section
 @notify_celery.task(name="create-nightly-billing")
 @cronitor("create-nightly-billing")
 @statsd(namespace="tasks")
@@ -39,13 +39,19 @@ def create_nightly_billing(day_start=None):
 
         if is_feature_enabled(FeatureFlag.NIGHTLY_NOTIF_CSV_ENABLED):
             tasks = [
+                # the proper (correct?) way of handling #971
+                # fix the query and table being used here to aggregate the data we need
                 create_nightly_billing_for_day.si(
                     process_day.isoformat()
                 ).set(queue=QueueNames.REPORTING),
+
+                # the quick and dirty way of handling #971
+                # get the query called from this task to give use the aggregate data we need
                 generate_daily_billing_sms_per_use_case_csv_report.si(
                     process_day.isoformat()
                 ).set(queue=QueueNames.REPORTING)
             ]
+
             chain(*tasks).apply_async()
 
         else:
@@ -85,15 +91,15 @@ def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
 
     writer = csv.writer(buff, dialect='excel', delimiter=',')
     header = [
-        "date", "service name", "service id", "channel type" "template name", "template id", "sender", "sender id",
-        "billing code", "count",
+        "date", "service name", "service id", "template name", "template id", "sender",  # "sender id",
+        "billing code", "count", "channel type"
     ]
     writer.writerow(header)
     writer.writerows((process_day,) + row for row in transit_data)
 
     csv_key = f'{process_day_string}.csv'
     client = boto3.client('s3', endpoint_url=current_app.config['AWS_S3_ENDPOINT_URL'])
-    client.put_object(Body=buff.getvalue(), Bucket=current_app.config['DAILY_STATS_BUCKET_NAME'], Key=csv_key)
+    client.put_object(Body=buff.getvalue(), Bucket=current_app.config['DAILY_BILLING_STATS_BUCKET_NAME'], Key=csv_key)
     buff.close()
 
     current_app.logger.info(
@@ -102,7 +108,7 @@ def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
         )
     )
 
-
+# nightly notification stats section
 @notify_celery.task(name="create-nightly-notification-status")
 @cronitor("create-nightly-notification-status")
 @statsd(namespace="tasks")
