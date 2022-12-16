@@ -32,15 +32,6 @@ invalid_event_missing_messageBody = {'originationNumber': '+11111111111', 'desti
 
 @pytest.mark.parametrize('event', [(invalid_event_body_empty_body), (invalid_event_missing_destinationNumber), (invalid_event_missing_originationNumber), (invalid_event_missing_messageBody)])
 def test_validate_event_body(mocker, event):
-    mocker.patch.dict(os.environ, {
-        'AWS_PINPOINT_APP_ID': 'AWS_PINPOINT_APP_ID',
-        'DEAD_LETTER_SQS_URL': 'DEAD_LETTER_SQS_URL',
-        'LOG_LEVEL': 'DEBUG',
-        'RETRY_SQS_URL': 'RETRY_SQS_URL',
-        'TIMEOUT': '10',
-        'DATABASE_URI_PATH': 'DATABASE_URI_PATH',
-        'VETEXT_API_AUTH_SSM_PATH': 'VETEXT_API_AUTH_SSM_PATH'
-        })
     response = valid_message_body(event)
     
     assert response == False
