@@ -129,6 +129,8 @@ def fetch_sms_billing_per_sms_use_case(process_day):
     ).select_from(
         Service
     ).join(
+        FactBilling, FactBilling.service_id == Service.id,
+    ).join(
         Notification, Service.id == Notification.service_id
     ).join(
         Template, Service.id == Template.service_id
