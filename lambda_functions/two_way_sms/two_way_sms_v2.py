@@ -80,6 +80,8 @@ else:
     if sqlalchemy_database_uri is None:
         sys.exit("Can't get the database URI from SSM Parameter Store.")
 
+
+    logger.info("Getting the VeText AuthToken from SSM Parameter Store . . .")
     ssm_vetext_authtoken_path_response: dict = ssm_client.get_parameter(
         Name=VETEXT_API_AUTH_SSM_PATH,
         WithDecryption=True
@@ -88,7 +90,7 @@ else:
     vetext_auth_token = ssm_vetext_authtoken_path_response.get("Parameter", {}).get("Value")
 
     if vetext_auth_token is None:
-        sys.exit("Can't get the VeText AuthToken from SSM Param Store")
+        sys.exit("Can't get the VeText AuthToken from SSM Parameter Store")
 
 ################################################################################################
 # Use the database URI to get a 10DLC-to-URL mapping from the database.
