@@ -141,7 +141,12 @@ def fetch_sms_billing_per_sms_use_case(process_day):
         Notification.notification_type == SMS_TYPE,
     ).group_by(
         FactBilling.bst_date,
+        Service.name,
+        Service.id,
+        Template.name,
         Template.id,
+        Notification.sent_by,
+        ServiceSmsSender.id,
         Notification.billing_code
     )
 
