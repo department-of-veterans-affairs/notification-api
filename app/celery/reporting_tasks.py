@@ -36,29 +36,20 @@ def create_nightly_billing(day_start=None):
         day_start = datetime.strptime(day_start, "%Y-%m-%d").date()
     for i in range(0, 4):
         process_day = day_start - timedelta(days=i)
+        tasks = [
+            create_nightly_billing_for_day.si(
+                process_day.isoformat()
+            ).set(queue=QueueNames.REPORTING)
+        ]
 
         if is_feature_enabled(FeatureFlag.NIGHTLY_NOTIF_CSV_ENABLED):
-            tasks = [
-                # the proper (correct?) way of handling #971
-                # fix the query and table being used here to aggregate the data we need
-                create_nightly_billing_for_day.si(
-                    process_day.isoformat()
-                ).set(queue=QueueNames.REPORTING),
-
-                # the quick and dirty way of handling #971
-                # get the query called from this task to give use the aggregate data we need
+            tasks.append(
                 generate_daily_billing_sms_per_use_case_csv_report.si(
                     process_day.isoformat()
                 ).set(queue=QueueNames.REPORTING)
-            ]
-
-            chain(*tasks).apply_async()
-
-        else:
-            create_nightly_billing_for_day.apply_async(
-                kwargs={'process_day': process_day.isoformat()},
-                queue=QueueNames.REPORTING
             )
+
+        chain(*tasks).apply_async()
 
 
 @notify_celery.task(name="create-nightly-billing-for-day")
@@ -91,11 +82,24 @@ def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
 
     writer = csv.writer(buff, dialect='excel', delimiter=',')
     header = [
-        "date", "service name", "service id", "template name", "template id", "sender",  # "sender id",
+        "date", "service name", "service id", "template name", "template id", "sender", "sender id",
         "billing code", "count", "channel type"
     ]
     writer.writerow(header)
-    writer.writerows((process_day,) + row for row in transit_data)
+    # writer.writerows((process_day,) + row for row in transit_data)
+    for row in transit_data:
+        writer.writerows(
+            (process_day,)
+            + row.get("service_name")
+            + row.get("service_id")
+            + row.get("template_name")
+            + row.get("template_id")
+            + row.get("sender")  # will be null for now, and when getting email
+            + row.get("sender_id")  # will be null for now, and when getting email
+            + row.get("billing_code")
+            + row.get("count")
+            + row.get("channel_type")
+        )
 
     csv_key = f'{process_day_string}.csv'
     client = boto3.client('s3', endpoint_url=current_app.config['AWS_S3_ENDPOINT_URL'])

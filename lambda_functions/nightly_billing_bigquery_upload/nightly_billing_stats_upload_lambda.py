@@ -1,7 +1,5 @@
 import os
 import urllib
-import io
-import csv
 import six
 from typing import Dict
 
@@ -77,7 +75,7 @@ def lambda_handler(event, _context):
 
     bigquery_client = bigquery.Client(credentials=credentials)
 
-    table_id = f'vsp-analytics-and-insights.platform_vanotify.dev-billing'
+    table_id = f'vsp-analytics-and-insights.platform_vanotify.{os.getenv("ENVIRONMENT")}-billing'
 
     bucket_name = get_bucket_name(event)
     object_key = get_object_key(event)

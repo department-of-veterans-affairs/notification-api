@@ -114,76 +114,35 @@ def fetch_sms_billing_for_all_services(start_date, end_date):
     return query.all()
 
 
-# group by: template-id, billing-code
 def fetch_sms_billing_per_sms_use_case(process_day):
-    # Trevor's query
-    # query = db.session.query(
-    #     Service.name.label("service_name"),
-    #     Service.id.label("service_id"),
-    #     Notification.notification_type.label("channel_type"),
-    #     Template.name.label("template_name"),
-    #     Notification.template_id.label("template_id"),
-    #     Template.reply_to_text.label("sender"),
-    #     ServiceSmsSender.id.label("sender_id"),
-    #     Notification.billing_code.label("billing_code"),
-    #     func.count(FactBilling.bst_date).label("count"),
-    # ).select_from(
-    #     Service
-    # ).join(
-    #     FactBilling, FactBilling.service_id == Service.id,
-    # ).join(
-    #     Notification, Service.id == Notification.service_id
-    # ).join(
-    #     Template, Service.id == Template.service_id
-    # ).join(
-    #     ServiceSmsSender, Service.id == ServiceSmsSender.service_id,
-    # ).filter(
-    #     FactBilling.bst_date == process_day,
-    #     Notification.notification_type == SMS_TYPE,
-    # ).group_by(
-    #     Service.name,
-    #     Service.id,
-    #     Template.name,
-    #     Notification.template_id,
-    #     Notification.notification_type,
-    #     Notification.billing_code
-    # )
-
-    # quick and dirty way of getting the data we need?
-    # we still need to figure out how to get the sms_sender though...
     start_date = convert_local_timezone_to_utc(datetime.combine(process_day, time.min))
     end_date = convert_local_timezone_to_utc(datetime.combine(process_day + timedelta(days=1), time.min))
     billable_type_list = {
         SMS_TYPE: NOTIFICATION_STATUS_TYPES_BILLABLE
     }
-    # header = [
-    #     "date", "service name", "service id", "template name", "template id", "sender",  # "sender id",
-    #     "billing code", "count", "channel type"
-    # ]
+
     query = db.session.query(
         Service.name.label('service_name'),
-        Notification.service_id,
-        Template.name,
-        Notification.template_id,
-        # figure out how to include sender, sms_sender not notification.sent_by
-        Notification.sent_by,  # should be sms_sender value
-        # and sender id
-        # Notification.id,  # should be sms_sender_id value
-        Notification.billing_code,
+        Notification.service_id.label('service_id'),
+        Template.name.label('template_name'),
+        Notification.template_id.label('template_id'),
+        # sender needs to be added to notification, not notification.sent_by (provider)
+        # .label('sender')
+        # .label('sender_id')
+        Notification.billing_code.label('billing_code'),
         func.count().label('count'),
-        Notification.notification_type,
+        Notification.notification_type.label('channel_type'),
     ).filter(
         Notification.status.in_(billable_type_list[SMS_TYPE]),
         Notification.key_type != KEY_TYPE_TEST,
         Notification.created_at >= start_date,
         Notification.created_at < end_date,
-        Notification.notification_type == SMS_TYPE
     ).group_by(
+        # need to group by sender_id as well
         Service.name,
         Notification.service_id,
         Template.name,
         Notification.template_id,
-        Notification.sent_by,
         Notification.billing_code,
         Notification.notification_type
     ).join(
