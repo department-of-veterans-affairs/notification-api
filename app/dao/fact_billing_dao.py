@@ -15,6 +15,8 @@ from app.models import (
     FactBilling,
     Notification,
     Service,
+    Template,
+    ServiceSmsSender,
     KEY_TYPE_TEST,
     LETTER_TYPE,
     SMS_TYPE,
@@ -107,6 +109,36 @@ def fetch_sms_billing_for_all_services(start_date, end_date):
     ).order_by(
         Organisation.name,
         Service.name
+    )
+
+    return query.all()
+
+
+def fetch_sms_billing_per_sms_use_case(start_date, end_date):
+    query = db.session.query(
+        Service.name.label("service_name"),
+        Service.id.label("service_id"),
+        Notification.notification_type.label("channel_type"),
+        Template.name.label("template_name"),
+        Notification.template_id.label("template_id"),
+        Notification.send_by.label("sender"),
+        ServiceSmsSender.id.label("sender_id"),
+        Notification.billing_code.label("billing_code"),
+    ).select_from(
+        Service
+    ).join(
+        Notification, Service.id == Notification.service_id
+    ).join(
+        Template, Service.id == Template.service_id
+    ).join(
+        ServiceSmsSender, Service.service_id == ServiceSmsSender.service_id,
+    ).filter(
+        FactBilling.bst_date >= start_date,
+        FactBilling.bst_date <= end_date,
+        Notification.notification_type == SMS_TYPE,
+    ).group_by(
+        Template.id,
+        Notification.billing_code
     )
 
     return query.all()
