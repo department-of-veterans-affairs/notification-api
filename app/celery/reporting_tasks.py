@@ -37,10 +37,22 @@ def create_nightly_billing(day_start=None):
     for i in range(0, 4):
         process_day = day_start - timedelta(days=i)
 
-        create_nightly_billing_for_day.apply_async(
-            kwargs={'process_day': process_day.isoformat()},
-            queue=QueueNames.REPORTING
-        )
+        if is_feature_enabled(FeatureFlag.NIGHTLY_NOTIF_CSV_ENABLED):
+            tasks = [
+                create_nightly_billing_for_day.si(
+                    process_day.isoformat()
+                ).set(queue=QueueNames.REPORTING),
+                generate_daily_billing_sms_per_use_case_csv_report.si(
+                    process_day.isoformat()
+                ).set(queue=QueueNames.REPORTING)
+            ]
+            chain(*tasks).apply_async()
+
+        else:
+            create_nightly_billing_for_day.apply_async(
+                kwargs={'process_day': process_day.isoformat()},
+                queue=QueueNames.REPORTING
+            )
 
 
 @notify_celery.task(name="create-nightly-billing-for-day")
@@ -61,6 +73,33 @@ def create_nightly_billing_for_day(process_day):
 
     current_app.logger.info(
         "create-nightly-billing-for-day task complete. %s rows updated for day: %s" % (len(transit_data), process_day)
+    )
+
+
+@notify_celery.task(name="generate-daily-billing-sms-per-use-case-csv-report")
+@statsd(namespace="tasks")
+def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
+    process_day = datetime.strptime(process_day_string, "%Y-%m-%d").date()
+    transit_data = fetch_sms_billing_per_sms_use_case(process_day)
+    buff = io.StringIO()
+
+    writer = csv.writer(buff, dialect='excel', delimiter=',')
+    header = [
+        "date", "service name", "service id", "channel type" "template name", "template id", "sender", "sender id",
+        "billing code", "count",
+    ]
+    writer.writerow(header)
+    writer.writerows((process_day,) + row for row in transit_data)
+
+    csv_key = f'{process_day_string}.csv'
+    client = boto3.client('s3', endpoint_url=current_app.config['AWS_S3_ENDPOINT_URL'])
+    client.put_object(Body=buff.getvalue(), Bucket=current_app.config['DAILY_STATS_BUCKET_NAME'], Key=csv_key)
+    buff.close()
+
+    current_app.logger.info(
+        "generate-daily-billing-sms-per-use-case-csv-report complete: %s rows updated for day: %s" % (
+            len(transit_data), process_day
+        )
     )
 
 
@@ -140,33 +179,6 @@ def generate_daily_notification_status_csv_report(process_day_string):
 
     current_app.logger.info(
         "generate-daily-notification-status-csv-report complete: %s rows written for day: %s" % (
-            len(transit_data), process_day
-        )
-    )
-
-
-@notify_celery.task(name="generate-daily-billing-sms-per-use-case-csv-report")
-@statsd(namespace="tasks")
-def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
-    process_day = datetime.strptime(process_day_string, "%Y-%m-%d").date()
-    transit_data = fetch_sms_billing_per_sms_use_case(process_day)
-    buff = io.StringIO()
-
-    writer = csv.writer(buff, dialect='excel', delimiter=',')
-    header = [
-        "date", "service name", "service id", "channel type" "template name", "template id", "sender", "sender id",
-        "billing code", "count",
-    ]
-    writer.writerow(header)
-    writer.writerows((process_day,) + row for row in transit_data)
-
-    csv_key = f'{process_day_string}.csv'
-    client = boto3.client('s3', endpoint_url=current_app.config['AWS_S3_ENDPOINT_URL'])
-    client.put_object(Body=buff.getvalue(), Bucket=current_app.config['DAILY_STATS_BUCKET_NAME'], Key=csv_key)
-    buff.close()
-
-    current_app.logger.info(
-        "generate-daily-billing-sms-per-use-case-csv-report complete: %s rows updated for day: %s" % (
             len(transit_data), process_day
         )
     )
