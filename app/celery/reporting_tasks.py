@@ -86,24 +86,24 @@ def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
 
     writer = csv.writer(buff, dialect='excel', delimiter=',')
     header = [
-        "date", "service name", "service id", "template name", "template id", "sender", "sender id",
-        "billing code", "count", "channel type"
+        "date", "service name", "service id", "template name", "template id",
+        "billing code", "count", "channel type", "sender", "sender id"
     ]
     writer.writerow(header)
-    # writer.writerows((process_day,) + row for row in transit_data)
-    for row in transit_data:
-        writer.writerows(
-            process_day,
-            row[0],  # "service_name"
-            row[1],  # "service_id"
-            row[2],  # "template_name"
-            row[3],  # "template_id"
-            None,  # "sender"  # will be null for now, and when getting email
-            None,  # "sender_id"  # will be null for now, and when getting email
-            row[4],  # "billing_code"
-            row[5],  # "count"
-            row[6]  # "channel_type"
-        )
+    writer.writerows((process_day,) + row for row in transit_data)
+    # for row in transit_data:
+    #     writer.writerows(
+    #         process_day,
+    #         row[0],  # "service_name"
+    #         row[1],  # "service_id"
+    #         row[2],  # "template_name"
+    #         row[3],  # "template_id"
+    #         None,  # "sender"  # will be null for now, and when getting email
+    #         None,  # "sender_id"  # will be null for now, and when getting email
+    #         row[4],  # "billing_code"
+    #         row[5],  # "count"
+    #         row[6]  # "channel_type"
+    #     )
 
     csv_key = f'{process_day_string}.csv'
     client = boto3.client('s3', endpoint_url=current_app.config['AWS_S3_ENDPOINT_URL'])

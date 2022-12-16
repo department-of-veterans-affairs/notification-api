@@ -126,12 +126,12 @@ def fetch_sms_billing_per_sms_use_case(process_day):
         Notification.service_id.label('service_id'),
         Template.name.label('template_name'),
         Notification.template_id.label('template_id'),
+        Notification.billing_code.label('billing_code'),
+        func.count().label('count'),
+        Notification.notification_type.label('channel_type')
         # sender needs to be added to notification, not notification.sent_by (provider)
         # .label('sender')
         # .label('sender_id')
-        Notification.billing_code.label('billing_code'),
-        func.count().label('count'),
-        Notification.notification_type.label('channel_type'),
     ).filter(
         Notification.status.in_(billable_type_list[SMS_TYPE]),
         Notification.key_type != KEY_TYPE_TEST,
