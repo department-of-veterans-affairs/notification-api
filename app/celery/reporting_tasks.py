@@ -90,7 +90,7 @@ def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
         "billing code", "count", "channel type"
     ]
     writer.writerow(header)
-    writer.writerows((process_day,) + row for row in transit_data)
+    # writer.writerows((process_day,) + row for row in transit_data)
     for row in transit_data:
         writer.writerows(
             process_day,
