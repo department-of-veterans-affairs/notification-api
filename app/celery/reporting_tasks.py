@@ -12,14 +12,13 @@ from app import notify_celery
 from app.config import QueueNames
 from app.cronitor import cronitor
 from app.dao.fact_billing_dao import (
+    fetch_sms_billing_per_sms_use_case,
     fetch_billing_data_for_day,
     update_fact_billing
 )
 from app.dao.fact_notification_status_dao import (
-    fetch_sms_billing_per_sms_use_case,
     fetch_notification_status_for_day,
     update_fact_notification_status,
-    update_dev_billing,
     fetch_notification_statuses_per_service_and_template_for_date)
 from app.feature_flags import is_feature_enabled, FeatureFlag
 
@@ -150,7 +149,7 @@ def generate_daily_notification_status_csv_report(process_day_string):
 @statsd(namespace="tasks")
 def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
     process_day = datetime.strptime(process_day_string, "%Y-%m-%d").date()
-    transit_data = fetch_sms_billing_per_sms_use_case(start_day=process_day, end_date=process_day)
+    transit_data = fetch_sms_billing_per_sms_use_case(process_day)
     buff = io.StringIO()
 
     writer = csv.writer(buff, dialect='excel', delimiter=',')
