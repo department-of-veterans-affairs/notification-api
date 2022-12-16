@@ -141,8 +141,11 @@ def generate_daily_notification_status_csv_report(process_day_string):
     client.put_object(Body=buff.getvalue(), Bucket=current_app.config['DAILY_STATS_BUCKET_NAME'], Key=csv_key)
     buff.close()
 
-    current_app.logger.info(f"generate-daily-notification-status-csv-report complete: "
-                            f"{len(transit_data)} rows written for day: {process_day}")
+    current_app.logger.info(
+        "generate-daily-notification-status-csv-report complete: {} rows written for day: {}".format(
+            len(transit_data), process_day
+        )
+    )
 
 
 @notify_celery.task(name="generate-daily-billing-sms-per-use-case-csv-report")
@@ -165,5 +168,8 @@ def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
     client.put_object(Body=buff.getvalue(), Bucket=current_app.config['DAILY_STATS_BUCKET_NAME'], Key=csv_key)
     buff.close()
 
-    current_app.logger.info(f"generate-daily-billing-sms-per-use-case-csv-report complete: "
-                            f"{len(transit_data)} rows written for day: {process_day}")
+    current_app.logger.info(
+        "generate-daily-billing-sms-per-use-case-csv-report complete: {} rows updated for day: {}".format(
+            len(transit_data), process_day
+        )
+    )
