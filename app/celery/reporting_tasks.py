@@ -154,7 +154,8 @@ def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
 
     writer = csv.writer(buff, dialect='excel', delimiter=',')
     header = [
-        "date", "service name", "service id", "channel type" "template name", "template id", "sender", "sender id", "billing code", "count",
+        "date", "service name", "service id", "channel type" "template name", "template id", "sender", "sender id",
+        "billing code", "count",
     ]
     writer.writerow(header)
     writer.writerows((process_day,) + row for row in transit_data)
