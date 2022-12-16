@@ -143,8 +143,9 @@ def fetch_sms_billing_per_sms_use_case(process_day):
         FactBilling.bst_date,
         Service.name,
         Service.id,
+        Notification.notification_type,
         Template.name,
-        Template.id,
+        Notification.template_id,
         Notification.sent_by,
         ServiceSmsSender.id,
         Notification.billing_code
