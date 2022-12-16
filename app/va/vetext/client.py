@@ -15,7 +15,7 @@ class Credentials(TypedDict):
 
 class VETextClient:
     STATSD_KEY = "clients.vetext"
-    TIMEOUT = (3.05, 1)
+    TIMEOUT = 3.05
 
     def init_app(self, url: str, credentials: Credentials, logger: Logger, statsd: StatsdClient):
         self.base_url = url
