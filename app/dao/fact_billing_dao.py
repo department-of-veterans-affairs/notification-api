@@ -122,7 +122,7 @@ def fetch_sms_billing_per_sms_use_case(process_day):
         Notification.notification_type.label("channel_type"),
         Template.name.label("template_name"),
         Notification.template_id.label("template_id"),
-        Notification.send_by.label("sender"),
+        Notification.sent_by.label("sender"),
         ServiceSmsSender.id.label("sender_id"),
         Notification.billing_code.label("billing_code"),
         func.count(FactBilling.bst_date).label("count"),
@@ -133,7 +133,7 @@ def fetch_sms_billing_per_sms_use_case(process_day):
     ).join(
         Template, Service.id == Template.service_id
     ).join(
-        ServiceSmsSender, Service.service_id == ServiceSmsSender.service_id,
+        ServiceSmsSender, Service.id == ServiceSmsSender.service_id,
     ).filter(
         FactBilling.bst_date == process_day,
         Notification.notification_type == SMS_TYPE,
