@@ -60,7 +60,7 @@ if __name__ == "__main__":
         '--task-name',
         dest='task_name',
         type=str,
-        default="generate_daily_billing_sms_per_use_case_csv_report"
+        default="generate-daily-notification-status-csv-report"
     )
     parser.add_argument('--queue-prefix', dest='queue_prefix', type=str, default="dev-notification-")
     parser.add_argument('--routing-key', dest='routing_key', type=str, default="delivery-receipts")
