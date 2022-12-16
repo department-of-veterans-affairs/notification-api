@@ -114,8 +114,9 @@ def fetch_sms_billing_for_all_services(start_date, end_date):
     return query.all()
 
 
-def fetch_sms_billing_per_sms_use_case(start_date, end_date):
+def fetch_sms_billing_per_sms_use_case(process_day):
     query = db.session.query(
+        FactBilling.bst_date.label("date"),
         Service.name.label("service_name"),
         Service.id.label("service_id"),
         Notification.notification_type.label("channel_type"),
@@ -124,6 +125,7 @@ def fetch_sms_billing_per_sms_use_case(start_date, end_date):
         Notification.send_by.label("sender"),
         ServiceSmsSender.id.label("sender_id"),
         Notification.billing_code.label("billing_code"),
+        func.count(FactBilling.bst_date).label("count"),
     ).select_from(
         Service
     ).join(
@@ -133,10 +135,10 @@ def fetch_sms_billing_per_sms_use_case(start_date, end_date):
     ).join(
         ServiceSmsSender, Service.service_id == ServiceSmsSender.service_id,
     ).filter(
-        FactBilling.bst_date >= start_date,
-        FactBilling.bst_date <= end_date,
+        FactBilling.bst_date == process_day,
         Notification.notification_type == SMS_TYPE,
     ).group_by(
+        FactBilling.bst_date,
         Template.id,
         Notification.billing_code
     )
