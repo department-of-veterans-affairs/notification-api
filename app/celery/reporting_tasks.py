@@ -52,19 +52,15 @@ def create_nightly_billing_for_day(process_day):
     transit_data = fetch_billing_data_for_day(process_day=process_day)
     end = datetime.utcnow()
 
-    current_app.logger.info('create-nightly-billing-for-day {} fetched in {} seconds'.format(
-        process_day,
-        (end - start).seconds)
+    current_app.logger.info(
+        'create-nightly-billing-for-day %s fetched in %s seconds' % (process_day, (end - start).seconds)
     )
 
     for data in transit_data:
         update_fact_billing(data, process_day)
 
     current_app.logger.info(
-        "create-nightly-billing-for-day task complete. {} rows updated for day: {}".format(
-            len(transit_data),
-            process_day
-        )
+        "create-nightly-billing-for-day task complete. %s rows updated for day: %s" % (len(transit_data), process_day)
     )
 
 
@@ -107,15 +103,16 @@ def create_nightly_notification_status_for_day(process_day):
     start = datetime.utcnow()
     transit_data = fetch_notification_status_for_day(process_day=process_day)
     end = datetime.utcnow()
-    current_app.logger.info('create-nightly-notification-status-for-day {} fetched in {} seconds'.format(
-        process_day,
-        (end - start).seconds)
+    current_app.logger.info(
+        'create-nightly-notification-status-for-day %s fetched in %s seconds' % (
+            process_day, (end - start).seconds
+        )
     )
 
     update_fact_notification_status(transit_data, process_day)
 
     current_app.logger.info(
-        "create-nightly-notification-status-for-day task complete: {} rows updated for day: {}".format(
+        "create-nightly-notification-status-for-day task complete: %s rows updated for day: %s" % (
             len(transit_data), process_day
         )
     )
@@ -142,7 +139,7 @@ def generate_daily_notification_status_csv_report(process_day_string):
     buff.close()
 
     current_app.logger.info(
-        "generate-daily-notification-status-csv-report complete: {} rows written for day: {}".format(
+        "generate-daily-notification-status-csv-report complete: %s rows written for day: %s" % (
             len(transit_data), process_day
         )
     )
@@ -169,7 +166,7 @@ def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
     buff.close()
 
     current_app.logger.info(
-        "generate-daily-billing-sms-per-use-case-csv-report complete: {} rows updated for day: {}".format(
+        "generate-daily-billing-sms-per-use-case-csv-report complete: %s rows updated for day: %s" % (
             len(transit_data), process_day
         )
     )
