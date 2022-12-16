@@ -36,20 +36,24 @@ def create_nightly_billing(day_start=None):
         day_start = datetime.strptime(day_start, "%Y-%m-%d").date()
     for i in range(0, 4):
         process_day = day_start - timedelta(days=i)
-        tasks = [
-            create_nightly_billing_for_day.si(
-                process_day.isoformat()
-            ).set(queue=QueueNames.REPORTING)
-        ]
 
         if is_feature_enabled(FeatureFlag.NIGHTLY_NOTIF_CSV_ENABLED):
-            tasks.append(
+            tasks = [
+                create_nightly_billing_for_day.si(
+                    process_day.isoformat()
+                ).set(queue=QueueNames.REPORTING),
                 generate_daily_billing_sms_per_use_case_csv_report.si(
                     process_day.isoformat()
                 ).set(queue=QueueNames.REPORTING)
-            )
+            ]
 
-        chain(*tasks).apply_async()
+            chain(*tasks).apply_async()
+
+        else:
+            create_nightly_billing_for_day.apply_async(
+                kwargs={'process_day': process_day.isoformat()},
+                queue=QueueNames.REPORTING
+            )
 
 
 @notify_celery.task(name="create-nightly-billing-for-day")
