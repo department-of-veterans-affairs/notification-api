@@ -130,7 +130,13 @@ def test_fetch_billing_data_for_today_includes_data_with_the_right_date(notify_d
 def test_fetch_sms_billing_per_sms_use_case(notify_db_session):
     process_day = datetime(2018, 4, 1, 13, 30, 0)
     service = create_service()
-    template = create_template(service=service, template_type="sms")
+    template = create_template(template_name="test_sms_template", service=service, template_type="sms")
+    template_email = create_template(template_name="test_email_template", service=service, template_type="email")
+    # header = [
+    #     "date", "service name", "service id", "template name", "template id", "sender", "sender id",
+    #     "billing code", "count", "channel type"
+    # ]
+    create_notification(created_at=process_day, template=template_email, billing_code='', status='delivered')
     create_notification(template=template, status='delivered', created_at=process_day)
     create_notification(template=template, status='delivered', created_at=datetime(2018, 4, 1, 4, 23, 23))
 
@@ -140,10 +146,11 @@ def test_fetch_sms_billing_per_sms_use_case(notify_db_session):
     day_under_test = convert_utc_to_local_timezone(process_day)
     results = fetch_sms_billing_per_sms_use_case(day_under_test)
 
-    print(f'results: {results}')  # TODO remove this line
+    print('fetch billing results:')  # TODO remove this line
+    print(results)
 
     assert len(results) == 1
-    assert results[0].count == 2
+    assert results[0].get('count') == 2
 
 
 def test_fetch_billing_data_for_day_is_grouped_by_template_and_notification_type(notify_db_session):

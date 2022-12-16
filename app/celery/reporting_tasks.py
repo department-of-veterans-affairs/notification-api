@@ -90,19 +90,19 @@ def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
         "billing code", "count", "channel type"
     ]
     writer.writerow(header)
-    # writer.writerows((process_day,) + row for row in transit_data)
+    writer.writerows((process_day,) + row for row in transit_data)
     for row in transit_data:
         writer.writerows(
-            (process_day,)
-            + row.get("service_name")
-            + row.get("service_id")
-            + row.get("template_name")
-            + row.get("template_id")
-            + row.get("sender")  # will be null for now, and when getting email
-            + row.get("sender_id")  # will be null for now, and when getting email
-            + row.get("billing_code")
-            + row.get("count")
-            + row.get("channel_type")
+            process_day,
+            row[0],  # "service_name"
+            row[1],  # "service_id"
+            row[2],  # "template_name"
+            row[3],  # "template_id"
+            None,  # "sender"  # will be null for now, and when getting email
+            None,  # "sender_id"  # will be null for now, and when getting email
+            row[4],  # "billing_code"
+            row[5],  # "count"
+            row[6]  # "channel_type"
         )
 
     csv_key = f'{process_day_string}.csv'
