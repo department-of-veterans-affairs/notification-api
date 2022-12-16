@@ -49,17 +49,3 @@ def send_push_notification():
         return jsonify(result='error', message="Invalid response from downstream service"), 502
     else:
         return jsonify(result='success'), 201
-
-KWM_DELAY = False
-@v2_notification_blueprint.route('/push/test', methods=['GET'])
-def sleepy_test():
-    from time import sleep
-    global KWM_DELAY
-    current_app.logger.info('Delayed?\n%s', KWM_DELAY)
-    if (KWM_DELAY):
-        KWM_DELAY = False
-        sleep(5)
-        return jsonify(result='success'), 201
-    else:
-        KWM_DELAY = True
-        return jsonify(result='success'), 201
