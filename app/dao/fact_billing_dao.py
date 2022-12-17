@@ -137,6 +137,7 @@ def fetch_sms_billing_per_sms_use_case(process_day):
         Notification.key_type != KEY_TYPE_TEST,
         Notification.created_at >= start_date,
         Notification.created_at < end_date,
+        Notification.notification_type == SMS_TYPE
     ).group_by(
         # need to group by sender_id as well
         Service.name,

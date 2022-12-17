@@ -149,8 +149,8 @@ def test_fetch_sms_billing_per_sms_use_case(notify_db_session):
     print('fetch billing results:')  # TODO remove this line
     print(results)
 
-    assert len(results) == 2
-    assert results[1].count == 2
+    assert len(results) == 1
+    assert results[0].count == 2
 
 
 def test_fetch_billing_data_for_day_is_grouped_by_template_and_notification_type(notify_db_session):
