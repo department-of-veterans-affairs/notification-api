@@ -292,7 +292,7 @@ class Config(object):
             },
             'create-nightly-billing': {
                 'task': 'create-nightly-billing',
-                'schedule': crontab(hour=22, minute=10),  # TODO make sure this is (hour=0, minute=15) before merging
+                'schedule': crontab(hour=22, minute=30),  # TODO make sure this is (hour=0, minute=15) before merging
                 'options': {'queue': QueueNames.REPORTING}
             },
             'create-nightly-notification-status': {

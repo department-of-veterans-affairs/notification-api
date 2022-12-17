@@ -90,20 +90,21 @@ def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
         "billing code", "count", "channel type"
     ]
     writer.writerow(header)
-    # writer.writerows((process_day,) + row for row in transit_data)
+    # doesn't add enough commas to data if last two columns are not present
+    # writer.writerows((process_day,) + row for row in transit_data)  # TODO remove this line before merging
     for row in transit_data:
         writer.writerow(  # requires an iterable
             [
                 process_day,  # "date"
-                row[0],  # "service_name"
-                row[1],  # "service_id"
-                row[2],  # "template_name"
-                row[3],  # "template_id"
-                None,    # "sender"  # will be null for now, and when getting "email" type
-                None,    # "sender_id"  # will be null for now, and when getting "email" type
-                row[4],  # "billing_code"
-                row[5],  # "count"
-                row[6]   # "channel_type"
+                row[0],       # "service_name"
+                row[1],       # "service_id"
+                row[2],       # "template_name"
+                row[3],       # "template_id"
+                None,         # "sender"     # will be null for now, and when getting "email" type
+                None,         # "sender_id"  # will be null for now, and when getting "email" type
+                row[4],       # "billing_code"
+                row[5],       # "count"
+                row[6]        # "channel_type"
             ]
         )
 
