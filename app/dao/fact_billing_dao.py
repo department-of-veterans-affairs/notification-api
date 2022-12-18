@@ -16,7 +16,7 @@ from app.models import (
     Notification,
     Service,
     Template,
-    # ServiceSmsSender,  # TODO figure out how this gets included
+    # ServiceSmsSender,  # TODO 1022 - uncomment
     KEY_TYPE_TEST,
     LETTER_TYPE,
     SMS_TYPE,
@@ -114,7 +114,7 @@ def fetch_sms_billing_for_all_services(start_date, end_date):
     return query.all()
 
 
-def fetch_sms_billing_per_sms_use_case(process_day):
+def fetch_nightly_billing_counts(process_day):
     start_date = convert_local_timezone_to_utc(datetime.combine(process_day, time.min))
     end_date = convert_local_timezone_to_utc(datetime.combine(process_day + timedelta(days=1), time.min))
     billable_type_list = {
@@ -126,12 +126,12 @@ def fetch_sms_billing_per_sms_use_case(process_day):
         Notification.service_id.label('service_id'),
         Template.name.label('template_name'),
         Notification.template_id.label('template_id'),
+        # TODO #1022 - after sender is added to notification it needs to be retrieved here
+        # ServiceSmsSender.sms_sender.label('sender'),
+        # Notification.sms_sender_id.label('sender_id'),
         Notification.billing_code.label('billing_code'),
         func.count().label('count'),
         Notification.notification_type.label('channel_type')
-        # sender needs to be added to notification, not notification.sent_by (provider)
-        # .label('sender')
-        # .label('sender_id')
     ).filter(
         Notification.status.in_(billable_type_list[SMS_TYPE]),
         Notification.key_type != KEY_TYPE_TEST,
@@ -139,11 +139,13 @@ def fetch_sms_billing_per_sms_use_case(process_day):
         Notification.created_at < end_date,
         Notification.notification_type == SMS_TYPE
     ).group_by(
-        # need to group by sender_id as well
         Service.name,
         Notification.service_id,
         Template.name,
         Notification.template_id,
+        # TODO #1022 - group by sms_sender and id as well
+        # ServiceSmsSender.sms_sender
+        # Notification.sms_sender_id
         Notification.billing_code,
         Notification.notification_type
     ).join(
@@ -151,6 +153,10 @@ def fetch_sms_billing_per_sms_use_case(process_day):
     ).join(
         Template, Notification.template_id == Template.id
     )
+    # TODO #1022 - join ServiceSmsSender
+    # .join(
+    #     ServiceSmsSender, Notification.sms_sender_id == ServiceSmsSender.id
+    # )
 
     return query.all()
 

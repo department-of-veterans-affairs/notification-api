@@ -12,7 +12,7 @@ from app import notify_celery
 from app.config import QueueNames
 from app.cronitor import cronitor
 from app.dao.fact_billing_dao import (
-    fetch_sms_billing_per_sms_use_case,
+    fetch_nightly_billing_counts,
     fetch_billing_data_for_day,
     update_fact_billing
 )
@@ -42,13 +42,12 @@ def create_nightly_billing(day_start=None):
                 create_nightly_billing_for_day.si(
                     process_day.isoformat()
                 ).set(queue=QueueNames.REPORTING),
-                generate_daily_billing_sms_per_use_case_csv_report.si(
+                generate_nightly_billing_csv_report.si(
                     process_day.isoformat()
                 ).set(queue=QueueNames.REPORTING)
             ]
 
             chain(*tasks).apply_async()
-
         else:
             create_nightly_billing_for_day.apply_async(
                 kwargs={'process_day': process_day.isoformat()},
@@ -77,11 +76,11 @@ def create_nightly_billing_for_day(process_day):
     )
 
 
-@notify_celery.task(name="generate-daily-billing-sms-per-use-case-csv-report")
+@notify_celery.task(name="generate-nightly-billing-csv-report")
 @statsd(namespace="tasks")
-def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
+def generate_nightly_billing_csv_report(process_day_string):
     process_day = datetime.strptime(process_day_string, "%Y-%m-%d").date()
-    transit_data = fetch_sms_billing_per_sms_use_case(process_day)
+    transit_data = fetch_nightly_billing_counts(process_day)
     buff = io.StringIO()
 
     writer = csv.writer(buff, dialect='excel', delimiter=',')
@@ -90,8 +89,6 @@ def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
         "billing code", "count", "channel type"
     ]
     writer.writerow(header)
-    # doesn't add enough commas to data if last two columns are not present
-    # writer.writerows((process_day,) + row for row in transit_data)  # TODO remove this line before merging
     for row in transit_data:
         writer.writerow(  # requires an iterable
             [
@@ -100,12 +97,39 @@ def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
                 row[1],       # "service_id"
                 row[2],       # "template_name"
                 row[3],       # "template_id"
-                None,         # "sender"     # will be null for now, and when getting "email" type
-                None,         # "sender_id"  # will be null for now, and when getting "email" type
+                None,         # "sender"     # will be null for now
+                None,         # "sender_id"  # will be null for now
                 row[4],       # "billing_code"
                 row[5],       # "count"
                 row[6]        # "channel_type"
             ]
+            # TODO #1022 - repace above with this
+            # [
+            #     process_day,  # "date"
+            #     row[0],       # "service_name"
+            #     row[1],       # "service_id"
+            #     row[2],       # "template_name"
+            #     row[3],       # "template_id"
+            #     row[4],       # "sender"
+            #     row[5],       # "sender_id"
+            #     row[6],       # "billing_code"
+            #     row[7],       # "count"
+            #     row[8]        # "channel_type"
+            # ]
+            # or, the below could be worth testing. It would be more clear
+            # see test_fetch_nightly_billing_counts_retrieves_correct_data_within_process_day for example
+            # [
+            #     process_day,  # "date"
+            #     row.service_name,
+            #     row.service_id,
+            #     row.template_name,
+            #     row.template_id,
+            #     row.sender,
+            #     row.sender_id,
+            #     row.billing_code,
+            #     row.count,
+            #     row.channel_type
+            # ]
         )
 
     csv_key = f'{process_day_string}.csv'
@@ -114,7 +138,7 @@ def generate_daily_billing_sms_per_use_case_csv_report(process_day_string):
     buff.close()
 
     current_app.logger.info(
-        "generate-daily-billing-sms-per-use-case-csv-report complete: %s rows updated for day: %s" % (
+        "generate-nightly-billing-csv-report complete: %s rows updated for day: %s" % (
             len(transit_data), process_day
         )
     )
