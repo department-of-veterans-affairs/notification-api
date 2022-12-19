@@ -65,7 +65,7 @@ psycopg2-binary==2.9.5
 pwnedpasswords==2.0.0
 pyasn1==0.4.8
 pycparser==2.21
-pycurl==7.43.0.5
+pycurl==7.45.2
 PyJWT==2.6.0
 PyPDF2==1.28.6
 pyrsistent==0.19.2
