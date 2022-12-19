@@ -16,7 +16,7 @@ from app.models import (
     Notification,
     Service,
     Template,
-    # ServiceSmsSender,  # TODO 1022 - uncomment
+    # ServiceSmsSender,  # TODO #1022 - uncomment
     KEY_TYPE_TEST,
     LETTER_TYPE,
     SMS_TYPE,

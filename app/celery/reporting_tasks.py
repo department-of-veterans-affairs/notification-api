@@ -89,6 +89,8 @@ def generate_nightly_billing_csv_report(process_day_string):
         "billing code", "count", "channel type"
     ]
     writer.writerow(header)
+    # TODO #1022 - repace the for loop below with this
+    # writer.writerows((process_day,) + row for row in transit_data)
     for row in transit_data:
         writer.writerow(  # requires an iterable
             [
@@ -103,33 +105,6 @@ def generate_nightly_billing_csv_report(process_day_string):
                 row[5],       # "count"
                 row[6]        # "channel_type"
             ]
-            # TODO #1022 - repace above with this
-            # [
-            #     process_day,  # "date"
-            #     row[0],       # "service_name"
-            #     row[1],       # "service_id"
-            #     row[2],       # "template_name"
-            #     row[3],       # "template_id"
-            #     row[4],       # "sender"
-            #     row[5],       # "sender_id"
-            #     row[6],       # "billing_code"
-            #     row[7],       # "count"
-            #     row[8]        # "channel_type"
-            # ]
-            # or, the below could be worth testing. It would be more clear
-            # see test_fetch_nightly_billing_counts_retrieves_correct_data_within_process_day for example
-            # [
-            #     process_day,  # "date"
-            #     row.service_name,
-            #     row.service_id,
-            #     row.template_name,
-            #     row.template_id,
-            #     row.sender,
-            #     row.sender_id,
-            #     row.billing_code,
-            #     row.count,
-            #     row.channel_type
-            # ]
         )
 
     csv_key = f'{process_day_string}.csv'
