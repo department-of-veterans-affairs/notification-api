@@ -1,4 +1,4 @@
-alembic==1.8.1
+alembic==1.9.1
 alembic-utils==0.7.8
 amqp==2.6.1
 asn1crypto==1.5.1
