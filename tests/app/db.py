@@ -257,7 +257,8 @@ def create_notification(
         created_by_id=None,
         postage=None,
         recipient_identifiers=None,
-        billing_code=None
+        billing_code=None,
+        sms_sender_id=None
 ):
     assert job or template
     if job:
@@ -313,7 +314,8 @@ def create_notification(
         'reply_to_text': reply_to_text,
         'created_by_id': created_by_id,
         'postage': postage,
-        'billing_code': billing_code
+        'billing_code': billing_code,
+        'sms_sender_id': sms_sender_id,
     }
     notification = Notification(**data)
 
