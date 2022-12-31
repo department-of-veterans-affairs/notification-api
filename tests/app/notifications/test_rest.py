@@ -1,3 +1,7 @@
+"""
+This module tests GET requests to /notificaitons endpoints.
+"""
+
 import pytest
 import uuid
 from app.dao.notifications_dao import dao_update_notification

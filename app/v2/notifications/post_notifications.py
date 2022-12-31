@@ -157,6 +157,8 @@ def post_notification(notification_type):
                 reply_to_text=reply_to
             )
         else:
+            # This execution path uses a given recipient identifier to lookup the
+            # recipient's e-mail address or phone number.
             if accept_recipient_identifiers_enabled():
                 notification = process_notification_with_recipient_identifier(
                     form=form,
@@ -219,7 +221,6 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
     personalisation = process_document_uploads(form.get('personalisation'), service, simulated=simulated)
 
     recipient_identifier = form.get("recipient_identifier")
-
     notification = persist_notification(
         template_id=template.id,
         template_version=template.version,
@@ -233,7 +234,8 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
         simulated=simulated,
         reply_to_text=reply_to_text,
         recipient_identifier=recipient_identifier,
-        billing_code=form.get("billing_code")
+        billing_code=form.get("billing_code"),
+        sms_sender_id=form.get("sms_sender_id")
     )
 
     if "scheduled_for" in form:

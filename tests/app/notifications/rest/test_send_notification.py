@@ -1,25 +1,28 @@
+import app
+import pytest
 import random
 import string
-import pytest
-
+from app.dao import notifications_dao
+from app.dao.api_key_dao import save_model_api_key
+from app.errors import InvalidRequest
+from app.models import (
+    ApiKey,
+    EMAIL_TYPE,
+    KEY_TYPE_NORMAL,
+    KEY_TYPE_TEAM,
+    KEY_TYPE_TEST,
+    Notification,
+    NotificationHistory,
+    SMS_TYPE,
+    Template,
+)
+from app.dao.services_dao import dao_update_service
+from app.dao.templates_dao import dao_get_all_templates_for_service, dao_update_template
+from app.v2.errors import RateLimitError, TooManyRequestsError
 from flask import (json, current_app)
 from freezegun import freeze_time
 from notifications_python_client.authentication import create_jwt_token
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
-
-import app
-from app.dao import notifications_dao
-from app.models import (
-    SMS_TYPE, EMAIL_TYPE,
-    ApiKey, KEY_TYPE_NORMAL, KEY_TYPE_TEAM, KEY_TYPE_TEST, Notification, NotificationHistory
-)
-from app.dao.templates_dao import dao_get_all_templates_for_service, dao_update_template
-from app.dao.services_dao import dao_update_service
-from app.dao.api_key_dao import save_model_api_key
-from app.errors import InvalidRequest
-from app.models import Template
-from app.v2.errors import RateLimitError, TooManyRequestsError
-
 from tests import create_authorization_header
 from tests.app.db import (
     create_api_key,
@@ -31,27 +34,30 @@ from tests.app.db import (
 )
 
 
-@pytest.mark.parametrize('template_type',
-                         [SMS_TYPE, EMAIL_TYPE])
-def test_create_notification_should_reject_if_missing_required_fields(notify_api,
-                                                                      sample_api_key, mocker, template_type):
+@pytest.mark.parametrize("template_type", [SMS_TYPE, EMAIL_TYPE])
+def test_create_notification_should_reject_if_missing_required_fields(
+    notify_api,
+    sample_api_key,
+    mocker,
+    template_type
+):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             mocked = mocker.patch('app.celery.provider_tasks.deliver_{}.apply_async'.format(template_type))
-            data = {}
             auth_header = create_authorization_header(service_id=sample_api_key.service_id)
 
             response = client.post(
                 path='/notifications/{}'.format(template_type),
-                data=json.dumps(data),
-                headers=[('Content-Type', 'application/json'), auth_header])
+                data="{}",
+                headers=[('Content-Type', 'application/json'), auth_header]
+            )
 
-            json_resp = json.loads(response.get_data(as_text=True))
+            assert response.status_code == 400
             mocked.assert_not_called()
+            json_resp = response.get_json()
             assert json_resp['result'] == 'error'
             assert 'Missing data for required field.' in json_resp['message']['to'][0]
             assert 'Missing data for required field.' in json_resp['message']['template'][0]
-            assert response.status_code == 400
 
 
 def test_should_reject_bad_phone_numbers(notify_api, sample_template, mocker):
@@ -70,17 +76,18 @@ def test_should_reject_bad_phone_numbers(notify_api, sample_template, mocker):
                 data=json.dumps(data),
                 headers=[('Content-Type', 'application/json'), auth_header])
 
-            json_resp = json.loads(response.get_data(as_text=True))
+            assert response.status_code == 400
             mocked.assert_not_called()
+            json_resp = response.get_json()
             assert json_resp['result'] == 'error'
             assert len(json_resp['message'].keys()) == 1
             assert 'Invalid phone number: Not a valid international number' in json_resp['message']['to']
-            assert response.status_code == 400
 
 
-@pytest.mark.parametrize('template_type, to',
-                         [(SMS_TYPE, '+16502532222'),
-                          (EMAIL_TYPE, 'ok@ok.com')])
+@pytest.mark.parametrize("template_type, to", [
+    (SMS_TYPE, '+16502532222'),
+    (EMAIL_TYPE, 'ok@ok.com')
+])
 def test_send_notification_invalid_template_id(notify_api, sample_template, mocker, fake_uuid, template_type, to):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
@@ -97,9 +104,9 @@ def test_send_notification_invalid_template_id(notify_api, sample_template, mock
                 data=json.dumps(data),
                 headers=[('Content-Type', 'application/json'), auth_header])
 
-            json_resp = json.loads(response.get_data(as_text=True))
             mocked.assert_not_called()
             assert response.status_code == 404
+            json_resp = response.get_json()
             test_string = 'No result found'
             assert test_string in json_resp['message']
 
@@ -124,7 +131,7 @@ def test_send_notification_with_placeholders_replaced(notify_api, sample_email_t
                 data=json.dumps(data),
                 headers=[('Content-Type', 'application/json'), auth_header])
 
-            response_data = json.loads(response.data)['data']
+            response_data = response.get_json()['data']
             notification_id = response_data['notification']['id']
             data.update({"template_version": sample_email_template_with_placeholders.version})
 
@@ -195,7 +202,7 @@ def test_send_notification_with_placeholders_replaced_with_unusual_types(
     )
 
     assert response.status_code == 201
-    response_data = json.loads(response.data)['data']
+    response_data = response.get_json()['data']
     assert response_data['body'] == expected_body
     assert response_data['subject'] == expected_subject
 
@@ -216,19 +223,22 @@ def test_should_not_send_notification_for_archived_template(notify_api, sample_t
                 data=json_data,
                 headers=[('Content-Type', 'application/json'), auth_header])
             assert resp.status_code == 400
-            json_resp = json.loads(resp.get_data(as_text=True))
+            json_resp = resp.get_json()
             assert 'Template has been deleted' in json_resp['message']
 
 
-@pytest.mark.parametrize('template_type, to',
-                         [(SMS_TYPE, '+16502532223'),
-                          (EMAIL_TYPE, 'not-someone-we-trust@email-address.com')])
-def test_should_not_send_notification_if_restricted_and_not_a_service_user(notify_api,
-                                                                           sample_template,
-                                                                           sample_email_template,
-                                                                           mocker,
-                                                                           template_type,
-                                                                           to):
+@pytest.mark.parametrize('template_type, to', [
+    (SMS_TYPE, '+16502532223'),
+    (EMAIL_TYPE, 'not-someone-we-trust@email-address.com')
+])
+def test_should_not_send_notification_if_restricted_and_not_a_service_user(
+    notify_api,
+    sample_template,
+    sample_email_template,
+    mocker,
+    template_type,
+    to
+):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             mocked = mocker.patch('app.celery.provider_tasks.deliver_{}.apply_async'.format(template_type))
@@ -247,23 +257,24 @@ def test_should_not_send_notification_if_restricted_and_not_a_service_user(notif
                 data=json.dumps(data),
                 headers=[('Content-Type', 'application/json'), auth_header])
 
-            json_resp = json.loads(response.get_data(as_text=True))
-            mocked.assert_not_called()
-
             assert response.status_code == 400
-            assert [(
+            json_resp = response.get_json()
+            mocked.assert_not_called()
+            assert json_resp['message']['to'] == [(
                 'Can’t send to this recipient when service is in trial mode '
                 '– see https://www.notifications.service.gov.uk/trial-mode'
-            )] == json_resp['message']['to']
+            )]
 
 
-@pytest.mark.parametrize('template_type',
-                         [SMS_TYPE, EMAIL_TYPE])
-def test_should_send_notification_if_restricted_and_a_service_user(notify_api,
-                                                                   sample_template,
-                                                                   sample_email_template,
-                                                                   template_type,
-                                                                   mocker):
+@pytest.mark.parametrize("template_type", [SMS_TYPE, EMAIL_TYPE])
+def test_should_send_notification_if_restricted_and_a_service_user(
+    notify_api,
+    sample_template,
+    sample_email_template,
+    template_type,
+    mocker,
+    sample_sms_sender
+):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             mocked = mocker.patch('app.celery.provider_tasks.deliver_{}.apply_async'.format(template_type))
@@ -273,10 +284,14 @@ def test_should_send_notification_if_restricted_and_a_service_user(notify_api,
                 else template.service.created_by.email_address
             template.service.restricted = True
             dao_update_service(template.service)
+
             data = {
                 'to': to,
                 'template': template.id
             }
+
+            if template_type == SMS_TYPE:
+                data["sms_sender_id"] = sample_sms_sender.id
 
             auth_header = create_authorization_header(service_id=template.service_id)
 
@@ -288,14 +303,18 @@ def test_should_send_notification_if_restricted_and_a_service_user(notify_api,
             assert mocked.called == 1
             assert response.status_code == 201
 
+            if template_type == SMS_TYPE:
+                assert response.get_json()["data"]["notification"]["sms_sender_id"] == str(sample_sms_sender.id)
 
-@pytest.mark.parametrize('template_type',
-                         [SMS_TYPE, EMAIL_TYPE])
-def test_should_not_allow_template_from_another_service(notify_api,
-                                                        service_factory,
-                                                        sample_user,
-                                                        mocker,
-                                                        template_type):
+
+@pytest.mark.parametrize("template_type", [SMS_TYPE, EMAIL_TYPE])
+def test_should_not_allow_template_from_another_service(
+    notify_api,
+    service_factory,
+    sample_user,
+    mocker,
+    template_type
+):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             mocked = mocker.patch('app.celery.provider_tasks.deliver_{}.apply_async'.format(template_type))

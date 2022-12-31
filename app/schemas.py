@@ -498,6 +498,7 @@ class NotificationSchema(ma.Schema):
 
 class SmsNotificationSchema(NotificationSchema):
     to = fields.Str(required=True)
+    sms_sender_id = fields.UUID(required=True)
 
     @validates('to')
     def validate_to(self, value):
