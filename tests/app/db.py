@@ -84,12 +84,12 @@ def create_user(
         'mobile_number': mobile_number,
         'state': state,
         'blocked': blocked,
-        'platform_admin': platform_admin
+        'platform_admin': platform_admin,
     }
     user = User.query.filter_by(email_address=email).first()
-    if not user:
+    if user is None:
         user = User(**data)
-    save_model_user(user)
+        save_model_user(user)
     return user
 
 

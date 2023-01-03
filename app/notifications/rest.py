@@ -116,7 +116,7 @@ def send_notification(notification_type):
     check_template_is_for_notification_type(notification_type, template.template_type)
     check_template_is_active(template)
 
-    # This is the template populated with specific data.
+    # This is the template populated with specific, personalized data.
     template_object = create_template_object_for_notification(template, notification_form.get('personalisation', {}))
 
     _service_allowed_to_send_to(notification_form, authenticated_service)
