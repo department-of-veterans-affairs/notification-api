@@ -898,7 +898,7 @@ class TemplateBase(db.Model):
         else:
             raise ValueError('Unable to set sender for {} template'.format(self.template_type))
 
-    def get_reply_to_text(self):
+    def get_reply_to_text(self) -> str:
         if self.template_type == LETTER_TYPE:
             return self.service_letter_contact.contact_block if self.service_letter_contact else None
         elif self.template_type == EMAIL_TYPE:
