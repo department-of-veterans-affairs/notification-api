@@ -184,6 +184,7 @@ def test_post_sms_notification_returns_201_with_sms_sender_id(
     sms_sender_id
 ):
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
+    assert sample_template_with_placeholders.template_type == SMS_TYPE
 
     data = {
         'phone_number': '+16502532222',
@@ -194,7 +195,7 @@ def test_post_sms_notification_returns_201_with_sms_sender_id(
     if sms_sender_id is None:
         data["sms_sender_id"] = None
     elif sms_sender_id == "user provided":
-        # Simulate that user specified an sms_sender_id.
+        # Simulate that the user specified an sms_sender_id.
         sms_sender = create_service_sms_sender(service=sample_template_with_placeholders.service, sms_sender='123456')
         data["sms_sender_id"] = str(sms_sender.id)
     else:
@@ -212,11 +213,19 @@ def test_post_sms_notification_returns_201_with_sms_sender_id(
     if sms_sender_id == "user provided":
         assert resp_json['content']['from_number'] == sms_sender.sms_sender
         assert notifications[0].reply_to_text == sms_sender.sms_sender
+        assert notifications[0].sms_sender_id == sms_sender.id
     else:
         # The user did not provide an sms_sender_id.  The template default should have been used.
         default_sms_sender = sample_template_with_placeholders.get_reply_to_text()
         assert resp_json['content']['from_number'] == default_sms_sender
         assert notifications[0].reply_to_text == default_sms_sender
+
+        for sender in sample_template_with_placeholders.service.service_sms_senders:
+            if sender.is_default:
+                assert notifications[0].sms_sender_id == sender.id
+                break
+        else:
+            assert False, "The template's service does not have a default sms_sender."
 
     mocked_chain.assert_called_once()
     args, _ = mocked_chain.call_args

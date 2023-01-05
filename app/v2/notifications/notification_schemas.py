@@ -1,11 +1,13 @@
+from app.mobile_app import MobileAppType
 from app.models import (
     NOTIFICATION_STATUS_TYPES,
     NOTIFICATION_STATUS_LETTER_ACCEPTED,
     NOTIFICATION_STATUS_LETTER_RECEIVED,
-    TEMPLATE_TYPES)
-from app.schema_validation.definitions import (nullable_uuid, uuid, personalisation, letter_personalisation)
+    TEMPLATE_TYPES,
+)
+from app.schema_validation.definitions import nullable_uuid, uuid, personalisation, letter_personalisation
 from app.va.identifier import IdentifierType
-from app.mobile_app import MobileAppType
+
 
 template = {
     "$schema": "http://json-schema.org/draft-04/schema#",
