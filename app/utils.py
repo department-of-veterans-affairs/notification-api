@@ -1,5 +1,5 @@
-# TODO - This file contains multiple functions that contain import statements?  Is this to avoid a circular
-# dependency?  If not, import only at the beginning of the file.
+# TODO - This file contains multiple functions that contain import statements.  Is this to avoid a circular
+# dependency?  If not, import only at the beginning of the file.  See issue #1044.
 import os
 import pytz
 from datetime import datetime, timedelta
