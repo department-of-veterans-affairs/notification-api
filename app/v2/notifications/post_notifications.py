@@ -105,7 +105,7 @@ def post_precompiled_letter_notification():
 
 
 @v2_notification_blueprint.route('/<notification_type>', methods=['POST'])
-def post_notification(notification_type):
+def post_notification(notification_type):  # noqa: C901
     try:
         request_json = request.get_json()
     except werkzeug.exceptions.BadRequest as e:
@@ -115,6 +115,17 @@ def post_notification(notification_type):
         form = validate(request_json, post_email_request)
     elif notification_type == SMS_TYPE:
         form = validate(request_json, post_sms_request)
+
+        if form.get("sms_sender_id") is None:
+            # Use the service's default sms_sender.
+            for sender in authenticated_service.service_sms_senders:
+                if sender.is_default:
+                    form["sms_sender_id"] = sender.id
+                    break
+            else:
+                raise BadRequestError(
+                    message="You must supply a value for sms_sender_id, or the service must have a default."
+                )
     elif notification_type == LETTER_TYPE:
         form = validate(request_json, post_letter_request)
     else:
@@ -220,17 +231,6 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
 
     personalisation = process_document_uploads(form.get('personalisation'), service, simulated=simulated)
 
-    if notification_type == SMS_TYPE and form.get("sms_sender_id") is None:
-        # Use the service's default sms_sender.
-        for sender in service.service_sms_senders:
-            if sender.is_default:
-                form["sms_sender_id"] = sender.id
-                break
-        else:
-            raise BadRequestError(
-                message="You must supply a value for sms_sender_id, or the service must have a default."
-            )
-
     recipient_identifier = form.get("recipient_identifier")
     notification = persist_notification(
         template_id=template.id,
@@ -271,17 +271,6 @@ def process_sms_or_email_notification(*, form, notification_type, api_key, templ
 def process_notification_with_recipient_identifier(*, form, notification_type, api_key, template, service,
                                                    reply_to_text=None, onsite_enabled: bool = False):
     personalisation = process_document_uploads(form.get('personalisation'), service)
-
-    if notification_type == SMS_TYPE and form.get("sms_sender_id") is None:
-        # Use the service's default sms_sender.
-        for sender in service.service_sms_senders:
-            if sender.is_default:
-                form["sms_sender_id"] = sender.id
-                break
-        else:
-            raise BadRequestError(
-                message="You must supply a value for sms_sender_id, or the service must have a default."
-            )
 
     notification = persist_notification(
         template_id=template.id,
