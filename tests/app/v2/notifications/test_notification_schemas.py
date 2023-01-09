@@ -251,14 +251,18 @@ def test_post_sms_schema_with_personalisation_that_is_not_a_dict():
 
 
 @pytest.mark.parametrize('invalid_phone_number, err_msg', [
-    ('08515111111', (
-        'phone_number Field contains an invalid number due to either formatting or '
-        'an impossible combination of area code and/or telephone prefix.'
+    (
+        '08515111111',
+        (
+            'phone_number Field contains an invalid number due to either formatting or '
+            'an impossible combination of area code and/or telephone prefix.'
         )
     ),
-    ('07515111*11', (
-        'phone_number Field contains an invalid number due to either formatting or '
-        'an impossible combination of area code and/or telephone prefix.'
+    (
+        '07515111*11',
+        (
+            'phone_number Field contains an invalid number due to either formatting or '
+            'an impossible combination of area code and/or telephone prefix.'
         )
     ),
     ('notaphoneumber', 'phone_number Not a valid number'),
@@ -289,9 +293,9 @@ def test_post_sms_request_schema_invalid_phone_number_and_missing_template():
         "error": "ValidationError",
         "message": (
             "phone_number Field contains an invalid number due to either formatting or "
-             "an impossible combination of area code and/or telephone prefix."
-            )
-        } in errors
+            "an impossible combination of area code and/or telephone prefix."
+        )
+    } in errors
     assert {"error": "ValidationError", "message": "template_id is a required property"} in errors
 
 
