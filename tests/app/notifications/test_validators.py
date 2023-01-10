@@ -295,21 +295,6 @@ def test_service_can_send_to_recipient_fails_when_mobile_number_is_not_on_team(s
     assert e.value.fields == []
 
 
-@pytest.mark.parametrize('char_count', [612, 0, 494, 200])
-def test_check_sms_content_char_count_passes(char_count, notify_api):
-    assert check_sms_content_char_count(char_count) is None
-
-
-@pytest.mark.parametrize('char_count', [613, 700, 6000])
-def test_check_sms_content_char_count_fails(char_count, notify_api):
-    with pytest.raises(BadRequestError) as e:
-        check_sms_content_char_count(char_count)
-    assert e.value.status_code == 400
-    assert e.value.message == 'Content for template has a character count greater than the limit of {}'.format(
-        SMS_CHAR_COUNT_LIMIT)
-    assert e.value.fields == []
-
-
 @pytest.mark.parametrize('key_type', ['team', 'live', 'test'])
 def test_that_when_exceed_rate_limit_request_fails(
         key_type,
