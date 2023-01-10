@@ -1233,7 +1233,12 @@ def test_should_post_notification_successfully_with_recipient_identifier_and_con
             },
             "billing_code": "TESTCODE"
         }
-    service = sample_email_template.service if notification_type == EMAIL_TYPE else sample_sms_template_with_html.service
+
+    if notification_type == EMAIL_TYPE:
+        service = sample_email_template.service
+    else:
+        service = sample_sms_template_with_html.service
+
     auth_header = create_authorization_header(service_id=service.id)
     response = client.post(
         path=f"v2/notifications/{notification_type}",

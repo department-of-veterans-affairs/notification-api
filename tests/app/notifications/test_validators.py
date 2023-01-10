@@ -3,7 +3,6 @@ from collections import namedtuple
 import pytest
 from freezegun import freeze_time
 from flask import current_app
-from notifications_utils import SMS_CHAR_COUNT_LIMIT
 
 import app
 from app.feature_flags import FeatureFlag
@@ -13,7 +12,6 @@ from app.notifications.validators import (
     check_template_is_for_notification_type,
     check_template_is_active,
     service_can_send_to_recipient,
-    check_sms_content_char_count,
     check_service_over_api_rate_limit,
     validate_and_format_recipient,
     check_service_email_reply_to_id,
