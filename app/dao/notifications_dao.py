@@ -150,7 +150,7 @@ def update_notification_status_by_reference(reference, status):
     notification = Notification.query.filter(Notification.reference == reference).first()
 
     if not notification:
-        current_app.logger.error('notification not found for reference {} (update to {})'.format(reference, status))
+        current_app.logger.error(f'notification not found for reference {reference} (update to {status})')
         return None
 
     if notification.status not in {
