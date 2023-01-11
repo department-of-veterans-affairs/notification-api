@@ -50,7 +50,7 @@ class TwilioSMSClient(SmsClient):
         callback_url = ""
         # TODO: Following two lines are commented out because the callback url points to an internal url.  
         # TODO (cont): When reverse proxy endpoint is created, we can assign that to callback_url and uncomment.
-        #if self._callback_notify_url_host:
+        # if self._callback_notify_url_host:
         #    callback_url = f"{self._callback_notify_url_host}/notifications/sms/twilio/{reference}"
 
         try:
