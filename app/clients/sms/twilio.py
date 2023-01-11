@@ -48,8 +48,9 @@ class TwilioSMSClient(SmsClient):
 
         start_time = monotonic()
         callback_url = ""
-        if self._callback_notify_url_host:
-            callback_url = f"{self._callback_notify_url_host}/notifications/sms/twilio/{reference}"
+        # TODO: Following two lines are commented out because the callback url points to an internal url.  When reverse proxy endpoint is created, we can assign that to callback_url and uncomment.
+        #if self._callback_notify_url_host:
+        #    callback_url = f"{self._callback_notify_url_host}/notifications/sms/twilio/{reference}"
 
         try:
             # Importing inline to resolve a circular import error when importing at the top of the file
