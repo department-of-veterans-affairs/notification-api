@@ -48,10 +48,8 @@ class TwilioSMSClient(SmsClient):
 
         start_time = monotonic()
         callback_url = ""
-        # TODO: Following two lines are commented out because the callback url points to an internal url.
-        # TODO (cont): When reverse proxy endpoint is created, we can assign that to callback_url and uncomment.
-        # if self._callback_notify_url_host:
-        #    callback_url = f"{self._callback_notify_url_host}/notifications/sms/twilio/{reference}"
+        if self._callback_notify_url_host:
+            callback_url = f"{self._callback_notify_url_host}/notifications/sms/twilio/{reference}"
 
         try:
             # Importing inline to resolve a circular import error when importing at the top of the file
@@ -88,22 +86,22 @@ class TwilioSMSClient(SmsClient):
 
             if messaging_service_sid is None:
                 # Make a request using a sender phone number.
+                # TODO: add 'status_callback=callback_url,' back to parameter list for messages.create
                 message = self._client.messages.create(
                     to=to,
                     from_=from_number,
                     body=content,
-                    status_callback=callback_url,
                 )
 
                 self.logger.info(f"Twilio message created using from_number")
             else:
                 # Make a request using the messaging service sid.
                 #    https://www.twilio.com/docs/messaging/services
+                # TODO: add 'status_callback=callback_url,' back to parameter list for messages.create
                 message = self._client.messages.create(
                     to=to,
                     messaging_service_sid=messaging_service_sid,
                     body=content,
-                    status_callback=callback_url,
                 )
 
                 self.logger.info(f"Twilio message created using messaging_service_sid")
