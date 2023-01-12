@@ -47,9 +47,14 @@ class TwilioSMSClient(SmsClient):
         """
 
         start_time = monotonic()
-        callback_url = ""
-        if self._callback_notify_url_host:
-            callback_url = f"{self._callback_notify_url_host}/notifications/sms/twilio/{reference}"
+        # TODO: Following three lines are commented out and 'status_callback' property of messages.create is removed 
+        # TODO (cont): because the callback url points to an internal url.
+        # TODO (cont): When Reverse Proxy ticket: https://github.com/department-of-veterans-affairs/vanotify-team/issues/716 
+        # TODO (cont): is complete, we can assign that to callback_url and uncomment the next 
+        # TODO (cont): three lines and add status_callback back to both messages.create methods.
+        # callback_url = ""
+        # if self._callback_notify_url_host:
+        #    callback_url = f"{self._callback_notify_url_host}/notifications/sms/twilio/{reference}"
 
         try:
             # Importing inline to resolve a circular import error when importing at the top of the file
@@ -86,7 +91,7 @@ class TwilioSMSClient(SmsClient):
 
             if messaging_service_sid is None:
                 # Make a request using a sender phone number.
-                # TODO: add 'status_callback=callback_url,' back to parameter list for messages.create
+                # TODO: add 'status_callback=callback_url,' back to parameter list for messages.create when ticket 716 is completed
                 message = self._client.messages.create(
                     to=to,
                     from_=from_number,
@@ -97,7 +102,7 @@ class TwilioSMSClient(SmsClient):
             else:
                 # Make a request using the messaging service sid.
                 #    https://www.twilio.com/docs/messaging/services
-                # TODO: add 'status_callback=callback_url,' back to parameter list for messages.create
+                # TODO: add 'status_callback=callback_url,' back to parameter list for messages.create when ticket 716 is completed
                 message = self._client.messages.create(
                     to=to,
                     messaging_service_sid=messaging_service_sid,
