@@ -161,7 +161,7 @@ def validate_template(template_id, personalisation, service, notification_type):
     template_with_content = create_content_for_notification(template, personalisation)
     if template.template_type == SMS_TYPE and template_with_content.content_count > SMS_CHAR_COUNT_LIMIT:
         current_app.logger.warning("The personalized message length is %s, which exceeds the 4 segments length of %s.", 
-        template_with_content.content_count, SMS_CHAR_COUNT_LIMIT)
+                                   template_with_content.content_count, SMS_CHAR_COUNT_LIMIT)
     return template, template_with_content
 
 
