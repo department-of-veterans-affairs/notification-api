@@ -106,7 +106,7 @@ def process_pinpoint_results(self, response):
         pinpoint_price = pinpoint_message["metrics"]["price_in_millicents_usd"]
         assert isinstance(pinpoint_price, float), type(pinpoint_price)
         if pinpoint_price > 0.0:
-            notification.status=notification_status
+            notification.status = notification_status
             notification.segments_count += 1
             notification.cost_in_millicents += pinpoint_price
             dao_update_notification(notification)
