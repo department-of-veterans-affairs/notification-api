@@ -136,8 +136,6 @@ def test_process_pinpoint_results_segments_and_price_accumulation(
     sample_template
 ):
     mocker.patch('app.celery.process_pinpoint_receipt_tasks.is_feature_enabled', return_value=True)
-    mock_callback = mocker.patch('app.celery.process_pinpoint_receipt_tasks.check_and_queue_callback_task')
-
     test_reference = 'sms-reference-1'
     create_notification(sample_template, reference=test_reference, sent_at=datetime.datetime.utcnow(), status='sending')
     notification = notifications_dao.dao_get_notification_by_reference(test_reference)
