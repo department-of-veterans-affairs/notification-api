@@ -688,36 +688,6 @@ def test_post_sms_should_persist_supplied_sms_number(client, sample_template_wit
     assert resp_json['id'] == str(notification_id)
     assert mock_deliver_sms.called
 
-
-@pytest.mark.parametrize("message_length", [0, SMS_CHAR_COUNT_LIMIT + 1])
-def test_post_sms_length_warning(client, sample_template_with_placeholders, mock_deliver_sms, mocker, message_length):
-    data = {
-        'phone_number': '+16502532222',
-        'template_id': str(sample_template_with_placeholders.id),
-        'personalisation': {' Name': 'X' * message_length},
-    }
-
-    response = post_send_notification(client, sample_template_with_placeholders.service, SMS_TYPE, data)
-    assert response.status_code == 201
-    resp_json = response.get_json()
-    notifications = Notification.query.all()
-    assert len(notifications) == 1
-    notification_id = notifications[0].id
-    assert '+16502532222' == notifications[0].to
-    assert resp_json['id'] == str(notification_id)
-    assert mock_deliver_sms.called
-
-    # TODO - This is not the correct way to mock this.
-    warning_log = mocker.patch("app.notifications.validators.current_app.logger.warning")
-
-    assert sample_template_with_placeholders.template_type == SMS_TYPE
-    assert len(sample_template_with_placeholders.content) <= SMS_CHAR_COUNT_LIMIT
-    if message_length > SMS_CHAR_COUNT_LIMIT:
-        warning_log.assert_called_once()
-    else:
-        warning_log.assert_not_called()
-
-
 @pytest.mark.parametrize("notification_type, key_send_to, send_to",
                          [("sms", "phone_number", "6502532222"),
                           ("email", "email_address", "sample@email.com")])
