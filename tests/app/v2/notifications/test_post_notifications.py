@@ -24,7 +24,6 @@ from app.v2.notifications.notification_schemas import post_sms_response, post_em
 from app.va.identifier import IdentifierType
 from flask import json, current_app
 from freezegun import freeze_time
-from notifications_utils import SMS_CHAR_COUNT_LIMIT
 from tests import create_authorization_header
 from tests.app.db import (
     create_api_key,
@@ -687,6 +686,7 @@ def test_post_sms_should_persist_supplied_sms_number(client, sample_template_wit
     assert '+16502532222' == notifications[0].to
     assert resp_json['id'] == str(notification_id)
     assert mock_deliver_sms.called
+
 
 @pytest.mark.parametrize("notification_type, key_send_to, send_to",
                          [("sms", "phone_number", "6502532222"),
