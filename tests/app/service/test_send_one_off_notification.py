@@ -2,7 +2,6 @@ import uuid
 from unittest.mock import Mock
 
 import pytest
-from notifications_utils import SMS_CHAR_COUNT_LIMIT
 from notifications_utils.recipients import InvalidPhoneError
 
 from app.v2.errors import BadRequestError, TooManyRequestsError
