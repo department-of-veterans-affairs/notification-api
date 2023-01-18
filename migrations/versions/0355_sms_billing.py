@@ -12,10 +12,10 @@ down_revision = '0354_notification_sms_sender_id'
 
 
 def upgrade():
-    op.add_column('notifications', sa.Column('segments_count', sa.Integer(), nullable=False, server_default=0))
-    op.add_column('notifications', sa.Column('cost_in_millicents', sa.Float(), nullable=False, server_default=0.0))
-    op.add_column('notification_history', sa.Column('segments_count', sa.Integer(), nullable=False, server_default=0))
-    op.add_column('notification_history', sa.Column('cost_in_millicents', sa.Float(), nullable=False, server_default=0.0))
+    op.add_column('notifications', sa.Column('segments_count', sa.Integer(), nullable=False, server_default='0'))
+    op.add_column('notifications', sa.Column('cost_in_millicents', sa.Float(), nullable=False, server_default="0.0"))
+    op.add_column('notification_history', sa.Column('segments_count', sa.Integer(), nullable=False, server_default='0'))
+    op.add_column('notification_history', sa.Column('cost_in_millicents', sa.Float(), nullable=False, server_default="0.0"))
 
 
 def downgrade():
