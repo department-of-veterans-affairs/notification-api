@@ -414,6 +414,7 @@ def make_PUT_request(tx_audit_id: str, body: dict):
     except ssl.SSLCertVerificationError as e:
         logger.error("The PUT request to VA Profile failed with a SSLCertVerificationError.")
         logger.debug("Loaded CA certificates: %s", ssl_context.get_ca_certs())
+        logger.debug("CA directory contents: %s", os.listdir(CA_PATH))
         logger.exception(e)
     except Exception as e:
         # TODO - Make this more specific.  Is it a timeout?
