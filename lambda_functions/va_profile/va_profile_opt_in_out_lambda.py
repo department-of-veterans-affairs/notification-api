@@ -429,7 +429,7 @@ def get_integration_testing_public_cert() -> Certificate:
     assert NOTIFY_ENVIRONMENT != "test"
 
     try:
-        with open("/opt/Notify_integration_testing_public.pem", "rb") as f:
+        with open("/opt/jwt/Notify_integration_testing_public.pem", "rb") as f:
             return load_pem_x509_certificate(f.read()).public_key()
     except Exception as e:
         logger.exception(e)
