@@ -122,7 +122,7 @@ elif NOTIFY_ENVIRONMENT != "test":
         logger.debug(". . . Retrieved the ALB private key from SSM Parameter Store.")
 
         # Include all VA CA certificates in the default SSL environment.
-        ssl_context = ssl.create_default_context(capath=CAPATH)
+        ssl_context = ssl.create_default_context(capath=CA_PATH)
 
         with NamedTemporaryFile() as f:
             f.write(acm_response["Certificate"].encode())
