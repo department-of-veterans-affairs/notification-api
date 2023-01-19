@@ -122,7 +122,9 @@ elif NOTIFY_ENVIRONMENT != "test":
         logger.debug(". . . Retrieved the ALB private key from SSM Parameter Store.")
 
         # Include all VA CA certificates in the default SSL environment.
-        ssl_context = ssl.create_default_context(capath=CA_PATH)
+        # ssl_context = ssl.create_default_context(capath=CA_PATH)
+        # TODO - This is a workaround.  The capath approach doesn't seem to load anything.
+        ssl_context = ssl.create_default_context(cafile=f"{CA_PATH}VA-Internal-S2-ICA11.cer")
 
         with NamedTemporaryFile() as f:
             f.write(acm_response["Certificate"].encode())
