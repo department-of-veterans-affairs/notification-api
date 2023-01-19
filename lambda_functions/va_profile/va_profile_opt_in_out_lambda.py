@@ -409,7 +409,10 @@ def make_PUT_request(tx_audit_id: str, body: dict):
         if put_response.status != 200:
             logger.debug(put_response)
     except ConnectionError as e:
-        logger.error("The PUT request to VA Profile failed.")
+        logger.error("The PUT request to VA Profile failed with a ConnectionError.")
+        logger.exception(e)
+    except ssl.SSLCertVerificationError as e:
+        logger.error("The PUT request to VA Profile failed with a SSLCertVerificationError.")
         logger.debug("Loaded CA certificates: %s", ssl_context.get_ca_certs())
         logger.exception(e)
     except Exception as e:
