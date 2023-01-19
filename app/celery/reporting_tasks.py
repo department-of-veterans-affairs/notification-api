@@ -83,10 +83,6 @@ def generate_nightly_billing_csv_report(process_day_string):
     transit_data = fetch_nightly_billing_counts(process_day)
     buff = io.StringIO()
 
-    for row in transit_data:
-        current_app.logger.info(
-            "%s", row
-        )
     writer = csv.writer(buff, dialect='excel', delimiter=',')
     header = [
         "date", "service name", "service id", "template name", "template id", "sender", "sender id",

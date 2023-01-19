@@ -184,14 +184,6 @@ def test_fetch_nightly_billing_counts_retrieves_correct_data_within_process_day(
     assert results[0].sender == service.service_sms_senders[0].sms_sender
     assert results[0].sender_id == service.service_sms_senders[0].id
 
-    # testing service info
-    print('\nevan test - results:')
-    print(f'service info: Name={service.name} '
-          f'Sender={service.service_sms_senders[0].sms_sender} '
-          f'ID={service.service_sms_senders[0].id}')
-    print(results[0])
-    print(results[1], end='\n\n')
-
     assert results[1].billing_code == 'test_code'
     assert results[1].template_name == 'test_sms_template2'
     assert results[1].sender == service.service_sms_senders[0].sms_sender

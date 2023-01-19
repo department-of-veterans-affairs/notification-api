@@ -148,9 +148,6 @@ def fetch_nightly_billing_counts(process_day):
         ServiceSmsSender, Notification.sms_sender_id == ServiceSmsSender.id
     )
 
-    print('the query:')
-    print(query)
-
     return query.all()
 
 
