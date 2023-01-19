@@ -135,57 +135,75 @@ def test_process_pinpoint_results_segments_and_price_accumulation(
     db_session,
     sample_template
 ):
+    """
+    Test process a Pinpoint SMS stream event.  Messages long enough to require multiple segments only
+    result in one event that contains the aggregate cost.
+    """
+
     mocker.patch('app.celery.process_pinpoint_receipt_tasks.is_feature_enabled', return_value=True)
     test_reference = 'sms-reference-1'
     create_notification(sample_template, reference=test_reference, sent_at=datetime.datetime.utcnow(), status='sending')
     notification = notifications_dao.dao_get_notification_by_reference(test_reference)
-    assert notification.segments_count == 0
-    assert notification.cost_in_millicents == 0.0
+    assert notification.segments_count == 0, "This is the default."
+    assert notification.cost_in_millicents == 0.0, "This is the default."
 
-    process_pinpoint_receipt_tasks.process_pinpoint_results(
-        response=pinpoint_notification_callback_record(
-            reference=test_reference,
-            event_type='_SMS.SUCCESS',
-            record_status='DELIVERED',
-            price=17.0
-        )
-    )
-
-    notification = notifications_dao.dao_get_notification_by_reference(test_reference)
-    assert notification.segments_count == 1
-    assert notification.cost_in_millicents == 17.0
-
-    process_pinpoint_receipt_tasks.process_pinpoint_results(
-        response=pinpoint_notification_callback_record(
-            reference=test_reference,
-            event_type='_SMS.SUCCESS',
-            record_status='DELIVERED',
-            price=5.2
-        )
-    )
-
-    notification = notifications_dao.dao_get_notification_by_reference(test_reference)
-    # assert notification.segments_count == 2
-    # assert notification.cost_in_millicents == 22.2
+    # Receiving a _SMS.BUFFERED+SUCCESSFUL event first should update the notification.
 
     process_pinpoint_receipt_tasks.process_pinpoint_results(
         response=pinpoint_notification_callback_record(
             reference=test_reference,
             event_type='_SMS.BUFFERED',
             record_status='SUCCESSFUL',
-            price=0.0
+            number_of_message_parts=6,
+            price=4986.0
         )
     )
 
     notification = notifications_dao.dao_get_notification_by_reference(test_reference)
-    # assert notification.segments_count == 2, "Only count segments for which the VA is billed."
-    # assert notification.cost_in_millicents == 22.2
+    assert notification.segments_count == 6
+    assert notification.cost_in_millicents == 4986.0
+
+    # A subsequent _SMS.SUCCESS+DELIVERED event should not alter the segments and price columns.
+
+    process_pinpoint_receipt_tasks.process_pinpoint_results(
+        response=pinpoint_notification_callback_record(
+            reference=test_reference,
+            event_type='_SMS.SUCCESS',
+            record_status='DELIVERED',
+            number_of_message_parts=6,
+            price=4986.0
+        )
+    )
+
+    notification = notifications_dao.dao_get_notification_by_reference(test_reference)
+    assert notification.segments_count == 6
+    assert notification.cost_in_millicents == 4986.0
+
+    # Receiving a _SMS.SUCCESS+DELIVERED without any preceeding _SMS.BUFFERED event
+    # should update the notification.
+
+    test_reference = 'sms-reference-2'
+
+    process_pinpoint_receipt_tasks.process_pinpoint_results(
+        response=pinpoint_notification_callback_record(
+            reference=test_reference,
+            event_type='_SMS.SUCCESS',
+            record_status='DELIVERED',
+            number_of_message_parts=4,
+            price=2986.0
+        )
+    )
+
+    notification = notifications_dao.dao_get_notification_by_reference(test_reference)
+    assert notification.segments_count == 4
+    assert notification.cost_in_millicents == 2986.0
 
 
 def pinpoint_notification_callback_record(
     reference,
     event_type='_SMS.SUCCESS',
     record_status='DELIVERED',
+    number_of_message_parts=1,
     price=645.0
 ):
     pinpoint_message = {
@@ -212,7 +230,7 @@ def pinpoint_notification_callback_record(
             "record_status": record_status,
             "iso_country_code": "US",
             "treatment_id": "0",
-            "number_of_message_parts": "1",
+            "number_of_message_parts": number_of_message_parts,
             "message_id": reference,
             "message_type": "Transactional",
             "campaign_id": "12345"
