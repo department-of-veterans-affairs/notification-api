@@ -1,19 +1,16 @@
+import base64
 import json
 import uuid
-from datetime import (datetime, timedelta)
-from urllib.parse import urlencode
-import base64
 import pickle  # nosec
-import requests
-from requests.auth import HTTPBasicAuth
-
-from fido2 import cbor
-from fido2.client import ClientData
-from fido2.ctap2 import AuthenticatorData
 import pwnedpasswords
-
+import requests
+from datetime import (datetime, timedelta)
+from fido2 import cbor
+from fido2.webauthn import AuthenticatorData, CollectedClientData
 from flask import (jsonify, request, Blueprint, current_app, abort)
+from requests.auth import HTTPBasicAuth
 from sqlalchemy.exc import IntegrityError
+from urllib.parse import urlencode
 
 from app.config import QueueNames, Config
 from app.dao.fido2_key_dao import (
@@ -22,11 +19,11 @@ from app.dao.fido2_key_dao import (
     delete_fido2_key,
     decode_and_register,
     create_fido2_session,
-    get_fido2_session
+    get_fido2_session,
 )
 from app.dao.login_event_dao import (
     list_login_events,
-    save_login_event
+    save_login_event,
 )
 from app.dao.users_dao import (
     get_user_by_id,
@@ -44,7 +41,7 @@ from app.dao.users_dao import (
     count_user_verify_codes,
     get_user_and_accounts,
     dao_archive_user,
-    verify_within_time
+    verify_within_time,
 )
 from app.dao.permissions_dao import permission_dao
 from app.dao.service_user_dao import dao_get_service_user, dao_update_service_user
@@ -52,10 +49,7 @@ from app.dao.services_dao import dao_fetch_service_by_id
 from app.dao.templates_dao import dao_get_template_by_id
 from app.dao.template_folder_dao import dao_get_template_folder_by_id_and_service_id
 from app.models import KEY_TYPE_NORMAL, Fido2Key, LoginEvent, Permission, Service, SMS_TYPE, EMAIL_TYPE
-from app.notifications.process_notifications import (
-    persist_notification,
-    send_notification_to_queue
-)
+from app.notifications.process_notifications import persist_notification, send_notification_to_queue
 from app.schemas import (
     email_data_request_schema,
     support_email_data_schema,
@@ -65,22 +59,16 @@ from app.schemas import (
     user_update_schema_load_json,
     user_update_password_schema_load_json,
 )
-from app.errors import (
-    register_errors,
-    InvalidRequest
-)
-
-from app.utils import (update_dct_to_str)
-
-from app.utils import url_with_token
+from app.errors import InvalidRequest, register_errors
+from app.schema_validation import validate
 from app.user.users_schema import (
     post_verify_code_schema,
     post_send_user_sms_code_schema,
     post_send_user_email_code_schema,
     post_set_permissions_schema,
-    fido2_key_schema
+    fido2_key_schema,
 )
-from app.schema_validation import validate
+from app.utils import update_dct_to_str, url_with_token
 
 user_blueprint = Blueprint('user', __name__)
 register_errors(user_blueprint)
@@ -679,7 +667,7 @@ def fido2_keys_user_validate(user_id):
     cbor_data = cbor.decode(base64.b64decode(data["payload"]))
 
     credential_id = cbor_data['credentialId']
-    client_data = ClientData(cbor_data['clientDataJSON'])
+    client_data = CollectedClientData(cbor_data['clientDataJSON'])
     auth_data = AuthenticatorData(cbor_data['authenticatorData'])
     signature = cbor_data['signature']
 
