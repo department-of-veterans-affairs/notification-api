@@ -130,7 +130,7 @@ def test_process_pinpoint_results_should_not_update_notification_status_if_statu
     mock_callback.assert_not_called()
 
 
-def test_process_pinpoint_results_segments_and_price1(
+def test_process_pinpoint_results_segments_and_price_1(
     mocker,
     db_session,
     sample_template
@@ -180,7 +180,7 @@ def test_process_pinpoint_results_segments_and_price1(
     assert notification.cost_in_millicents == 4986.0
 
 
-def test_process_pinpoint_results_segments_and_price2(
+def test_process_pinpoint_results_segments_and_price_2(
     mocker,
     db_session,
     sample_template
