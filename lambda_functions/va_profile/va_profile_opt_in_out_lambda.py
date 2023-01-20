@@ -123,7 +123,7 @@ elif NOTIFY_ENVIRONMENT != "test":
 
         # Include all VA CA certificates in the default SSL environment.
         # ssl_context = ssl.create_default_context(capath=CA_PATH)
-        # TODO - This is a workaround.  The capath approach doesn't seem to load anything.
+        # TODO - This is a workaround.  The capath approach doesn't seem to load anything.  See issue #1063.
         ssl_context = ssl.create_default_context(cafile=f"{CA_PATH}VA-Internal-S2-ICA11.cer")
         ssl_context.load_verify_locations(cafile=f"{CA_PATH}VA-Internal-S2-RCA2.cer")
 
