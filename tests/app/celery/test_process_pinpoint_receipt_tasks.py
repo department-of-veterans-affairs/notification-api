@@ -130,7 +130,7 @@ def test_process_pinpoint_results_should_not_update_notification_status_if_statu
     mock_callback.assert_not_called()
 
 
-def test_process_pinpoint_results_segments_and_price_accumulation(
+def test_process_pinpoint_results_segments_and_price1(
     mocker,
     db_session,
     sample_template
@@ -179,10 +179,23 @@ def test_process_pinpoint_results_segments_and_price_accumulation(
     assert notification.segments_count == 6
     assert notification.cost_in_millicents == 4986.0
 
-    # Receiving a _SMS.SUCCESS+DELIVERED without any preceeding _SMS.BUFFERED event
-    # should update the notification.
 
-    test_reference = 'sms-reference-2'
+def test_process_pinpoint_results_segments_and_price2(
+    mocker,
+    db_session,
+    sample_template
+):
+    """
+    Test process a Pinpoint SMS stream event.  Messages long enough to require multiple segments only
+    result in one event that contains the aggregate cost.
+
+    Receiving a _SMS.SUCCESS+DELIVERED without any preceeding _SMS.BUFFERED event should update the
+    notification.
+    """
+
+    mocker.patch('app.celery.process_pinpoint_receipt_tasks.is_feature_enabled', return_value=True)
+    test_reference = 'sms-reference-1'
+    create_notification(sample_template, reference=test_reference, sent_at=datetime.datetime.utcnow(), status='sending')
 
     process_pinpoint_receipt_tasks.process_pinpoint_results(
         response=pinpoint_notification_callback_record(

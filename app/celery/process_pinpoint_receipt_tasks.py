@@ -104,18 +104,20 @@ def process_pinpoint_results(self, response):
         if should_exit:
             return
 
-        pinpoint_price = pinpoint_message["metrics"]["price_in_millicents_usd"]
-        assert isinstance(pinpoint_price, float), type(pinpoint_price)
-        if pinpoint_price > 0.0:
+        assert notification is not None
+
+        if price_in_millicents_usd > 0.0:
             notification.status = notification_status
-            notification.segments_count += 1
-            notification.cost_in_millicents += pinpoint_price
+            notification.segments_count = number_of_message_parts
+            notification.cost_in_millicents = price_in_millicents_usd
             dao_update_notification(notification)
+            print("Here 1")
         else:
             update_notification_status_by_id(
                 notification_id=notification.id,
                 status=notification_status
             )
+            print("Here 2")
 
         current_app.logger.info(
             "Pinpoint callback return status of %s for notification: %s",
