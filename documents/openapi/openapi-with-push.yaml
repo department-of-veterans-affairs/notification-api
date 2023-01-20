@@ -2014,6 +2014,8 @@ components:
           type: string
           format: date-time
           nullable: true
+        cost_in_millicents:
+          type: number
         created_at:
           type: string
           format: date-time
@@ -2063,6 +2065,8 @@ components:
           type: string
           format: date-time
           nullable: true
+        segments_count:
+          type: integer
         sent_at:
           type: string
           format: date-time

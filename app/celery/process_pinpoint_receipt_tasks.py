@@ -66,7 +66,7 @@ def process_pinpoint_results(self, response):
 
     try:
         pinpoint_message = json.loads(base64.b64decode(response['Message']))
-    except (json.decoder.JSONDecodeError, ValueError, TypeError) as e:
+    except (json.decoder.JSONDecodeError, ValueError, TypeError, KeyError) as e:
         current_app.logger.exception(e)
         self.retry(queue=QueueNames.RETRY)
         return None
