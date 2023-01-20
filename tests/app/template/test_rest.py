@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, date
 import botocore
 import pytest
 import requests_mock
-from PyPDF2.utils import PdfReadError
+from PyPDF2.errors import PdfReadError
 from flask import url_for
 from flask_jwt_extended import create_access_token
 from freezegun import freeze_time
