@@ -1,7 +1,4 @@
-from datetime import (
-    datetime,
-    date,
-    timedelta)
+from datetime import date, datetime, timedelta
 from flask_marshmallow.fields import fields
 from marshmallow import (
     post_load,
@@ -10,7 +7,8 @@ from marshmallow import (
     validates_schema,
     pre_load,
     pre_dump,
-    post_dump, validate
+    post_dump,
+    validate,
 )
 from marshmallow_sqlalchemy import field_for
 
@@ -70,7 +68,7 @@ def _validate_datetime_not_in_past(dte, msg="Date cannot be in the past"):
         raise ValidationError(msg)
 
 
-class BaseSchema(ma.ModelSchema):
+class BaseSchema(ma.SQLAlchemyAutoSchema):
 
     def __init__(self, load_json=False, *args, **kwargs):
         self.load_json = load_json
