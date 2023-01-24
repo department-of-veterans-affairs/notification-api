@@ -331,22 +331,22 @@ def register_v2_blueprints(application):
     from app.authentication.auth import validate_service_api_key_auth
 
     post_notifications.before_request(validate_service_api_key_auth)
-    # application.register_blueprint(post_notifications)
+    application.register_blueprint(post_notifications, name=f"{post_notifications.name}_Flask2")
 
     get_notifications.before_request(validate_service_api_key_auth)
-    # application.register_blueprint(get_notifications)
+    application.register_blueprint(get_notifications, name=f"{get_notifications.name}_Flask2")
 
     get_templates.before_request(validate_service_api_key_auth)
-    # application.register_blueprint(get_templates)
+    application.register_blueprint(get_templates, name=f"{get_templates.name}_Flask2")
 
     get_template.before_request(validate_service_api_key_auth)
-    # application.register_blueprint(get_template)
+    application.register_blueprint(get_template, name=f"{get_template.name}_Flask2")
 
     post_template.before_request(validate_service_api_key_auth)
-    # application.register_blueprint(post_template)
+    application.register_blueprint(post_template, name=f"{post_template.name}_Flask2")
 
     get_inbound_sms.before_request(validate_service_api_key_auth)
-    # application.register_blueprint(get_inbound_sms)
+    application.register_blueprint(get_inbound_sms, name=f"{get_inbound_sms.name}_Flask2")
 
 
 def init_app(app):
