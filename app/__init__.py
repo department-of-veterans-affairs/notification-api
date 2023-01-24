@@ -365,22 +365,22 @@ def register_v2_blueprints(application):
     from app.authentication.auth import validate_service_api_key_auth
 
     post_notifications.before_request(validate_service_api_key_auth)
-    application.register_blueprint(post_notifications)
+    # application.register_blueprint(post_notifications)
 
     get_notifications.before_request(validate_service_api_key_auth)
-    application.register_blueprint(get_notifications)
+    # application.register_blueprint(get_notifications)
 
     get_templates.before_request(validate_service_api_key_auth)
-    application.register_blueprint(get_templates)
+    # application.register_blueprint(get_templates)
 
     get_template.before_request(validate_service_api_key_auth)
-    application.register_blueprint(get_template)
+    # application.register_blueprint(get_template)
 
     post_template.before_request(validate_service_api_key_auth)
-    application.register_blueprint(post_template)
+    # application.register_blueprint(post_template)
 
     get_inbound_sms.before_request(validate_service_api_key_auth)
-    application.register_blueprint(get_inbound_sms)
+    # application.register_blueprint(get_inbound_sms)
 
 
 def init_app(app):
