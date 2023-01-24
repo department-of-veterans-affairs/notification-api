@@ -323,30 +323,22 @@ def register_blueprint(application):
 
 def register_v2_blueprints(application):
     from app.v2.inbound_sms.get_inbound_sms import v2_inbound_sms_blueprint as get_inbound_sms
-    from app.v2.notifications.post_notifications import v2_notification_blueprint as post_notifications
-    from app.v2.notifications.get_notifications import v2_notification_blueprint as get_notifications
-    from app.v2.template.get_template import v2_template_blueprint as get_template
+    from app.v2.notifications.post_notifications import v2_notification_blueprint as v2_notifications  # Get is the same
     from app.v2.templates.get_templates import v2_templates_blueprint as get_templates
     from app.v2.template.post_template import v2_template_blueprint as post_template
     from app.authentication.auth import validate_service_api_key_auth
 
-    post_notifications.before_request(validate_service_api_key_auth)
-    application.register_blueprint(post_notifications, name=f"{post_notifications.name}_Flask_0")
-
-    get_notifications.before_request(validate_service_api_key_auth)
-    application.register_blueprint(get_notifications, name=f"{get_notifications.name}_Flask_1")
+    v2_notifications.before_request(validate_service_api_key_auth)
+    application.register_blueprint(v2_notifications)
 
     get_templates.before_request(validate_service_api_key_auth)
-    application.register_blueprint(get_templates, name=f"{get_templates.name}_Flask_2")
-
-    get_template.before_request(validate_service_api_key_auth)
-    application.register_blueprint(get_template, name=f"{get_template.name}_Flask_3")
+    application.register_blueprint(get_templates)
 
     post_template.before_request(validate_service_api_key_auth)
-    application.register_blueprint(post_template, name=f"{post_template.name}_Flask_4")
+    application.register_blueprint(post_template)
 
     get_inbound_sms.before_request(validate_service_api_key_auth)
-    application.register_blueprint(get_inbound_sms, name=f"{get_inbound_sms.name}_Flask_5")
+    application.register_blueprint(get_inbound_sms)
 
 
 def init_app(app):
