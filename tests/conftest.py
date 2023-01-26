@@ -5,7 +5,7 @@ from alembic.command import upgrade
 from alembic.config import Config
 from app import create_app, db, schemas
 from contextlib import contextmanager
-from flask import Flask
+from flask import current_app, Flask
 
 
 @pytest.fixture(scope='session')
@@ -44,6 +44,8 @@ def client(notify_api):
 
 
 def create_test_db(database_uri):
+    current_app.logger.info("Called %s::create_test_db with database URI %s.", __file__, database_uri)
+
     db_uri_parts = database_uri.split('/')
     postgres_db_uri = '/'.join(db_uri_parts[:-1] + ['postgres'])
 
@@ -71,10 +73,9 @@ def notify_db(notify_api, worker_id):
         https://flask-sqlalchemy.palletsprojects.com/en/2.x/api/#flask_sqlalchemy.SQLAlchemy
     """
 
-    assert "test_notification_api" in db.engine.url.database, "Don't run tests against main db."
+    assert "test_notification_api" in db.engine.url.database, "Don't run tests against the main database."
 
     # Create a database for this worker thread.
-    from flask import current_app
     current_app.config['SQLALCHEMY_DATABASE_URI'] += f"_{worker_id}"
     create_test_db(current_app.config['SQLALCHEMY_DATABASE_URI'])
 
