@@ -45,6 +45,7 @@ jsonschema>=4.17.3
 
 # 5 May 2022: Celery depends on this package, and the Docker image build failed with the newest version.
 # Ignoring security vulnerability 42497 in Makefile.  The vulnerability is fixed in kombu>=5.2.1.
+# Kombu is a top-level package too.
 kombu < 5.0
 
 marshmallow==2.20.5
