@@ -459,6 +459,7 @@ class ApiKeySchema(BaseSchema):
         model = models.ApiKey
         exclude = ("service", "_secret")
         strict = True
+        load_instance = True
 
 
 class JobSchema(BaseSchema):
