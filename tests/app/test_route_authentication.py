@@ -4,7 +4,7 @@ from flask import url_for
 from werkzeug.routing import UUIDConverter, UnicodeConverter, IntegerConverter, PathConverter
 
 
-def test_all_routes_have_authentication(client, db_session):
+def test_all_routes_have_authentication(client, notify_db_session):
     routes_without_authentication = set()
 
     for rule in client.application.url_map.iter_rules():

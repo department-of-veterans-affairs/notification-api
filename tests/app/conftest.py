@@ -1346,11 +1346,11 @@ def notify_service(notify_db, notify_db_session):
 
 
 @pytest.fixture(scope='function')
-def sample_service_whitelist(db_session):
+def sample_service_whitelist(notify_db_session):
     service = create_service(check_if_service_exists=True)
     whitelisted_user = service_whitelist.a_service_whitelist(service_id=service.id)
-    db_session.add(whitelisted_user)
-    db_session.commit()
+    notify_db_session.session.add(whitelisted_user)
+    notify_db_session.session.commit()
     return whitelisted_user
 
 
@@ -1405,7 +1405,7 @@ def sample_login_event(notify_db, notify_db_session):
 
 
 @pytest.fixture
-def restore_provider_details(notify_db, notify_db_session):
+def restore_provider_details(notify_db_session):
     """
     We view ProviderDetails as a static in notify_db_session, since we don't modify it... except we do, we updated
     priority. This fixture is designed to be used in tests that will knowingly touch provider details, to restore them
@@ -1428,10 +1428,10 @@ def restore_provider_details(notify_db, notify_db_session):
     ProviderRates.query.delete()
     ProviderDetails.query.delete()
     ProviderDetailsHistory.query.delete()
-    notify_db.session.commit()
-    notify_db.session.add_all(existing_provider_details)
-    notify_db.session.add_all(existing_provider_details_history)
-    notify_db.session.commit()
+    notify_db_session.session.commit()
+    notify_db_session.session.add_all(existing_provider_details)
+    notify_db_session.session.add_all(existing_provider_details_history)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture
