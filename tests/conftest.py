@@ -105,10 +105,6 @@ def notify_db_session(notify_db):
     """
     This is the notify_db fixture with additional teardown code that
     deletes a subset of tables.
-
-    TODO - Can the database fixtures be replaced by the fixtures provided
-    by flask-sqlalchemy (one of our test dependencies)?
-        https://pypi.org/project/pytest-flask-sqlalchemy/
     """
 
     yield notify_db
@@ -151,12 +147,6 @@ def pytest_generate_tests(metafunc):
         argnames, testdata = idparametrize.args
         ids, argvalues = zip(*sorted(testdata.items()))
         metafunc.parametrize(argnames, argvalues, ids=ids)
-
-
-# this is necessary for using https://github.com/jeancochrane/pytest-flask-sqlalchemy
-@pytest.fixture(scope='session')
-def _db(notify_db):
-    return notify_db
 
 
 @contextmanager
