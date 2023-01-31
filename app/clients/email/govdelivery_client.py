@@ -1,13 +1,15 @@
-from app.models import (NOTIFICATION_CANCELLED, NOTIFICATION_DELIVERED, NOTIFICATION_PERMANENT_FAILURE,
-                        NOTIFICATION_SENDING, NOTIFICATION_TEMPORARY_FAILURE)
-from time import monotonic
-
 import requests
+from app.clients.email import EmailClient, EmailClientException
+from app.models import (
+    NOTIFICATION_CANCELLED,
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_TEMPORARY_FAILURE,
+)
 from flask import current_app
 from notifications_utils.recipients import InvalidEmailError
-from requests import HTTPError
-
-from app.clients.email import EmailClient, EmailClientException
+from time import monotonic
 
 govdelivery_status_map = {
     'sending': NOTIFICATION_SENDING,
@@ -24,9 +26,7 @@ class GovdeliveryClientException(EmailClientException):
 
 
 class GovdeliveryClient(EmailClient):
-    '''
-    Govdelivery email client.
-    '''
+    """ Govdelivery email client """
 
     def init_app(self, token, url, statsd_client, *args, **kwargs):
         self.name = 'govdelivery'
@@ -76,7 +76,7 @@ class GovdeliveryClient(EmailClient):
             )
             response.raise_for_status()
 
-        except HTTPError as e:
+        except requests.HTTPError as e:
             self.statsd_client.incr("clients.govdelivery.error")
             if e.response.status_code == 422:
                 raise InvalidEmailError(str(e))
