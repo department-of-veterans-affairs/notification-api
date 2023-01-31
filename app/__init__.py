@@ -88,17 +88,25 @@ api_user = LocalProxy(lambda: g.api_user)
 authenticated_service = LocalProxy(lambda: g.authenticated_service)
 
 
-def create_app(application):
+def create_app(application, worker_id=None):
     from app.config import configs
 
     notify_environment = os.getenv("NOTIFY_ENVIRONMENT", "development")
 
     application.config.from_object(configs[notify_environment])
+    if notify_environment == "test":
+        assert worker_id is not None
+        application.config["SQLALCHEMY_DATABASE_URI"] += f"_{worker_id}"
+        assert "test_notification_api" in application.config["SQLALCHEMY_DATABASE_URI"], \
+            "Don't run tests against the main database."
 
     application.config["NOTIFY_APP_NAME"] = application.name
     init_app(application)
     request_helper.init_app(application)
+
+    # https://flask-sqlalchemy.palletsprojects.com/en/3.0.x/api/#flask_sqlalchemy.SQLAlchemy.init_app
     db.init_app(application)
+
     migrate.init_app(application, db=db)
     ma.init_app(application)
     zendesk_client.init_app(application)
