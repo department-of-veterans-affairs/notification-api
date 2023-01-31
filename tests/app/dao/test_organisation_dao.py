@@ -139,10 +139,10 @@ def test_update_organisation_does_not_update_the_service_org_type_if_org_type_is
 
 
 @pytest.fixture(scope="function")
-def setup_org_type(db_session):
+def setup_org_type(notify_db_session):
     org_type = OrganisationTypes(name='some other', annual_free_sms_fragment_limit=25000)
-    db_session.add(org_type)
-    db_session.commit()
+    notify_db_session.session.add(org_type)
+    notify_db_session.session.commit()
     return org_type
 
 
