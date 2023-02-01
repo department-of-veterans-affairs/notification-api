@@ -65,7 +65,7 @@ def create_test_db(database_uri):
         result = postgres_db.execute(sqlalchemy.sql.text('CREATE DATABASE {}'.format(db_uri_parts[-1])))
         result.close()
     except sqlalchemy.exc.ProgrammingError:
-        # The database "test_notification_api_master" already exists.
+        # The database "test_notification_api" already exists.
         pass
     finally:
         postgres_db.dispose()
