@@ -95,7 +95,7 @@ def notify_db(notify_api):
     yield db
 
     db.session.remove()
-    db.get_engine(notify_api).dispose()
+    db.engine.dispose()
 
     # TODO - Properly delete the database after all workers finish?
 
