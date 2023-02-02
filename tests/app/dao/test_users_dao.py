@@ -376,13 +376,12 @@ def test_get_user_by_identity_provider_user_id(notify_db_session):
     assert user == user_from_db
 
 
-@pytest.mark.parametrize('initial_id_provider, expected_id_provider',
-                         [
-                             (None, "test-id"),
-                             ("old-id", "old-id")
-                         ])
+@pytest.mark.parametrize('initial_id_provider, expected_id_provider', [
+    (None, "test-id"),
+    ("old-id", "old-id"),
+])
 def test_update_user_identity_provider_user_id_for_identity_provider_when_none(
-        db_session, initial_id_provider, expected_id_provider
+        notify_db_session, initial_id_provider, expected_id_provider
 ):
     user = create_user(identity_provider_user_id=initial_id_provider)
 
