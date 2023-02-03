@@ -1744,7 +1744,8 @@ class InvitedUser(db.Model):
         index=False,
         unique=False,
         nullable=False,
-        default=datetime.datetime.utcnow)
+        default=datetime.datetime.utcnow
+    )
     status = db.Column(
         db.Enum(*INVITED_USER_STATUS_TYPES, name='invited_users_status_types'), nullable=False, default=INVITE_PENDING)
     permissions = db.Column(db.String, nullable=False)

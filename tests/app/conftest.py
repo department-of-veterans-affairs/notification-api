@@ -961,10 +961,12 @@ def mock_encryption(mocker):
 
 
 @pytest.fixture(scope='function')
-def sample_invited_user(notify_db,
-                        notify_db_session,
-                        service=None,
-                        to_email_address=None):
+def sample_invited_user(
+    notify_db,
+    notify_db_session,
+    service=None,
+    to_email_address=None
+):
     if service is None:
         service = create_service(check_if_service_exists=True)
     if to_email_address is None:
