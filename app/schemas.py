@@ -1,3 +1,23 @@
+"""
+This file declares marshmallow-sqlalchemy schemas used to serialize and deserialize objects.
+
+https://marshmallow-sqlalchemy.readthedocs.io/en/latest/index.html#generate-marshmallow-schemas
+"""
+
+from app import ma, models
+from app.dao.communication_item_dao import get_communication_item
+from app.dao.permissions_dao import permission_dao
+from app.model import User
+from app.models import (
+    ServicePermission,
+    EMAIL_TYPE,
+    SMS_TYPE,
+    NOTIFICATION_STATUS_TYPES_COMPLETED,
+    DELIVERY_STATUS_CALLBACK_TYPE,
+    CALLBACK_CHANNEL_TYPES,
+)
+from app.provider_details import validate_providers
+from app.utils import get_template_instance
 from datetime import date, datetime, timedelta
 from flask_marshmallow.fields import fields
 from marshmallow import (
@@ -11,25 +31,14 @@ from marshmallow import (
     validate,
 )
 from marshmallow_sqlalchemy import field_for
-
 from notifications_utils.recipients import (
     validate_email_address,
     InvalidEmailError,
     validate_phone_number,
     InvalidPhoneError,
-    validate_and_format_phone_number
+    validate_and_format_phone_number,
 )
 from sqlalchemy.orm.exc import NoResultFound
-
-from app import ma
-from app import models
-from app.model import User
-from app.dao.communication_item_dao import get_communication_item
-from app.models import ServicePermission, EMAIL_TYPE, SMS_TYPE, NOTIFICATION_STATUS_TYPES_COMPLETED, \
-    DELIVERY_STATUS_CALLBACK_TYPE, CALLBACK_CHANNEL_TYPES
-from app.dao.permissions_dao import permission_dao
-from app.provider_details import validate_providers
-from app.utils import get_template_instance
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
 
@@ -69,18 +78,19 @@ def _validate_datetime_not_in_past(dte, msg="Date cannot be in the past"):
 
 
 class BaseSchema(ma.SQLAlchemyAutoSchema):
-
     def __init__(self, load_json=False, *args, **kwargs):
         self.load_json = load_json
         super(BaseSchema, self).__init__(*args, **kwargs)
 
     @post_load
     def make_instance(self, data):
-        """Deserialize data to an instance of the model. Update an existing row
+        """
+        Deserialize data to an instance of the model. Update an existing row
         if specified in `self.instance` or loaded by primary key(s) in the data;
         else create a new row.
         :param data: Data to deserialize.
         """
+
         if self.load_json:
             return data
         return super(BaseSchema, self).make_instance(data)
@@ -623,6 +633,7 @@ class InvitedUserSchema(BaseSchema):
     class Meta:
         model = models.InvitedUser
         strict = True
+        include_relationships = True
 
     @validates('email_address')
     def validate_to(self, value):
