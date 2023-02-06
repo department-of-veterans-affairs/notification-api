@@ -1414,17 +1414,19 @@ def restore_provider_details(notify_db_session):
     to previous state.
 
     Note: This doesn't technically require notify_db_session (only notify_db), but kept as a requirement to encourage
-    good usage - if you're modifying ProviderDetails' state then it's good to clear down the rest of the DB too
+    good usage.  If you're modifying ProviderDetails's state then it's good to clear down the rest of the DB too.
     """
+
     existing_provider_details = ProviderDetails.query.all()
     existing_provider_details_history = ProviderDetailsHistory.query.all()
-    # make transient removes the objects from the session - since we'll want to delete them later
+
+    # make_transient removes the objects from the session (because we will delete them later).
     for epd in existing_provider_details:
         make_transient(epd)
     for epdh in existing_provider_details_history:
         make_transient(epdh)
 
-    yield
+    yield notify_db_session
 
     # also delete these as they depend on provider_details
     ProviderRates.query.delete()
