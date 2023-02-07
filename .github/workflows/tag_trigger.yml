@@ -16,6 +16,10 @@ jobs:
     outputs:
       git-tag: ${{ steps.tag.outputs.version }}
     steps:
+      - uses: actions/checkout@v3
+
+      - run: mkdir -p path/to/artifact
+
       - name: Get the version
         id: tag
         run: |
