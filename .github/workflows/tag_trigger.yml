@@ -1,6 +1,12 @@
 name: Tag push to Perf
+#on:
+  #push:
+    #tags:
+      #- "v*"
 on:
   push:
+    branches:
+      - trigger-testing
     tags:
       - "v*"
 
@@ -13,42 +19,51 @@ jobs:
       - name: Get the version
         id: tag
         run: |
-          echo "version=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
+          echo "version=${GITHUB_REF/refs\/tags\//}" | tee $GITHUB_OUTPUT >> path/to/artifact/output.txt
 
       - name: Env Values
         run: |
-          echo "The environment is Perf"
-          echo "The commit tag is ${{ steps.tag.outputs.version }}"
+          echo "The environment is Perf" >> path/to/artifact/environment.txt
+          echo "The outputs.version is ${{ steps.tag.outputs.version }}" >> path/to/artifact/version.txt
+          echo "The outputs.tag is ${{ steps.tag.outputs.tag }}" >> path/to/artifact/tag.txt
 
-  run-build:
-    needs: [setup-env]
-    uses: ./.github/workflows/build.yml
-    with:
-      environment: "perf"
-      ref: "${{ needs.setup-env.outputs.git-tag }}"
-    secrets: inherit
+      - uses: actions/upload-artifact@v3
+        with:
+          name: my-artifacts
+          path: |
+            path/to/artifact/environment.txt
+            path/to/artifact/version.txt
+            path/to/artifact/tag.txt
 
-  run-lambda-deploy:
-    needs: [setup-env]
-    uses: ./.github/workflows/lambda-functions.yml
-    with:
-      environment: "perf"
-      ref: "${{ needs.setup-env.outputs.git-tag }}"
-      lambdaName: "All"
-    secrets: inherit
+  #run-build:
+    #needs: [setup-env]
+    #uses: ./.github/workflows/build.yml
+    #with:
+      #environment: "perf"
+      #ref: "${{ needs.setup-env.outputs.git-tag }}"
+    #secrets: inherit
 
-  run-twistlock:
-    needs: [setup-env, run-build]
-    uses: ./.github/workflows/twistlock.yml
-    with:
-      environment: "perf"
-      ref: "${{ needs.setup-env.outputs.git-tag }}"
-    secrets: inherit
+  #run-lambda-deploy:
+    #needs: [setup-env]
+    #uses: ./.github/workflows/lambda-functions.yml
+    #with:
+      #environment: "perf"
+      #ref: "${{ needs.setup-env.outputs.git-tag }}"
+      #lambdaName: "All"
+    #secrets: inherit
 
-  run-deployment:
-    needs: [setup-env, run-twistlock]
-    uses: ./.github/workflows/deployment.yml
-    with:
-      environment: "perf"
-      ref: "${{ needs.setup-env.outputs.git-tag }}"
-    secrets: inherit
+  #run-twistlock:
+    #needs: [setup-env, run-build]
+    #uses: ./.github/workflows/twistlock.yml
+    #with:
+      #environment: "perf"
+      #ref: "${{ needs.setup-env.outputs.git-tag }}"
+    #secrets: inherit
+
+  #run-deployment:
+    #needs: [setup-env, run-twistlock]
+    #uses: ./.github/workflows/deployment.yml
+    #with:
+      #environment: "perf"
+      #ref: "${{ needs.setup-env.outputs.git-tag }}"
+    #secrets: inherit
