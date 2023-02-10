@@ -2092,6 +2092,11 @@ class Complaint(db.Model):
 
 
 class ServiceDataRetention(db.Model):
+    """
+    For a unique combination of a service and a notification type, record the number of days to retain
+    a notification.
+    """
+
     __tablename__ = 'service_data_retention'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

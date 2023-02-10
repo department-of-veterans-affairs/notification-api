@@ -16,10 +16,11 @@ from notifications_utils.recipients import (
 )
 from notifications_utils.statsd_decorators import statsd
 from notifications_utils.timezones import convert_local_timezone_to_utc, convert_utc_to_local_timezone
-from sqlalchemy import (desc, func, asc)
+from sqlalchemy import asc, desc, func, select
+from sqlalchemy.engine.row import Row
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.sql import functions
+from sqlalchemy.sql import functions, text
 from sqlalchemy.sql.expression import case
 from sqlalchemy.dialects.postgresql import insert
 from werkzeug.datastructures import MultiDict
@@ -294,6 +295,11 @@ def _filter_query(query, filter_dict=None):
 
 @statsd(namespace="dao")
 def delete_notifications_older_than_retention_by_type(notification_type, qry_limit=10000):
+    """
+    TODO - This seems unnecessarily complicated.  It can probably be reduced to a single "delete"
+    query with a "join" and a compound "where" clause.
+    """
+
     current_app.logger.info(
         'Deleting %s notifications for services with flexible data retention', notification_type
     )
@@ -301,7 +307,9 @@ def delete_notifications_older_than_retention_by_type(notification_type, qry_lim
     flexible_data_retention = ServiceDataRetention.query.filter(
         ServiceDataRetention.notification_type == notification_type
     ).all()
+
     deleted = 0
+
     for f in flexible_data_retention:
         days_of_retention = get_local_timezone_midnight_in_utc(
             convert_utc_to_local_timezone(datetime.utcnow()).date()) - timedelta(days=f.days_of_retention)
@@ -341,6 +349,9 @@ def delete_notifications_older_than_retention_by_type(notification_type, qry_lim
 
 
 def _delete_notifications(notification_type, date_to_delete_from, service_id, query_limit):
+    if isinstance(service_id, Row):
+        service_id = str(service_id[0])
+
     subquery = db.session.query(
         Notification.id
     ).join(NotificationHistory, NotificationHistory.id == Notification.id).filter(
@@ -379,14 +390,16 @@ def _delete_for_query(subquery):
 
 
 def insert_update_notification_history(notification_type, date_to_delete_from, service_id):
-    notifications = db.session.query(
-        *[x.name for x in NotificationHistory.__table__.c]
-    ).filter(
+    if isinstance(service_id, Row):
+        service_id = str(service_id[0])
+
+    notifications = select(*[text(x.name) for x in NotificationHistory.__table__.c]).where(
         Notification.notification_type == notification_type,
         Notification.service_id == service_id,
         Notification.created_at < date_to_delete_from,
         Notification.key_type != KEY_TYPE_TEST
     )
+
     stmt = insert(NotificationHistory).from_select(
         NotificationHistory.__table__.c,
         notifications
@@ -403,13 +416,17 @@ def insert_update_notification_history(notification_type, date_to_delete_from, s
               "sent_by": stmt.excluded.sent_by
               }
     )
+
     db.session.connection().execute(stmt)
     db.session.commit()
 
 
 def _delete_letters_from_s3(
-        notification_type, service_id, date_to_delete_from, query_limit
+    notification_type, service_id, date_to_delete_from, query_limit
 ):
+    if isinstance(service_id, Row):
+        service_id = str(service_id[0])
+
     letters_to_delete_from_s3 = db.session.query(
         Notification
     ).filter(

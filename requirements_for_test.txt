@@ -17,6 +17,8 @@ pytest-cov~=4.0.0
 pytest-env~=0.8.1
 pytest-mock~=3.10.0
 pytest-xdist~=3.1.0
+
+# Mock out responses from the "requests" package
 requests-mock~=1.10.0
 
 # Used for testing nightly_stats_bigquery_upload_lambda

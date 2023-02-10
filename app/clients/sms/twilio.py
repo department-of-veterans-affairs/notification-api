@@ -1,5 +1,5 @@
-from monotonic import monotonic
 from app.clients.sms import SmsClient
+from monotonic import monotonic
 from twilio.rest import Client
 
 twilio_response_map = {
@@ -10,7 +10,7 @@ twilio_response_map = {
     'delivered': 'delivered',
     'undelivered': 'permanent-failure',
     'failed': 'technical-failure',
-    'received': 'received'
+    'received': 'received',
 }
 
 
@@ -19,10 +19,7 @@ def get_twilio_responses(status):
 
 
 class TwilioSMSClient(SmsClient):
-    def __init__(self,
-                 account_sid=None,
-                 auth_token=None,
-                 *args, **kwargs):
+    def __init__(self, account_sid=None, auth_token=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._account_sid = account_sid
         self._auth_token = auth_token
