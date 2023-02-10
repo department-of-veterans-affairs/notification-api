@@ -971,7 +971,7 @@ def test_uses_provider_service_if_enabled(mocker, monkeypatch):
     assert client == mocked_client
 
 
-def test_returns_service_provider_if_template_has_no_provider(self, fake_uuid, mocker, monkeypatch):
+def test_returns_service_provider_if_template_has_no_provider(fake_uuid, mocker, monkeypatch):
     monkeypatch.setenv(FeatureFlag.PROVIDER_STRATEGIES_ENABLED.value, "False")
     monkeypatch.setenv(FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED.value, "True")
 
@@ -1011,7 +1011,7 @@ def test_returns_service_provider_if_template_has_no_provider(self, fake_uuid, m
     assert client == mocked_client
 
 
-def test_should_return_template_provider_if_template_and_service_have_providers(self, mocker, monkeypatch):
+def test_should_return_template_provider_if_template_and_service_have_providers(mocker, monkeypatch):
     monkeypatch.setenv(FeatureFlag.PROVIDER_STRATEGIES_ENABLED.value, "False")
     monkeypatch.setenv(FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED.value, "True")
 
@@ -1050,7 +1050,7 @@ def test_should_return_template_provider_if_template_and_service_have_providers(
     assert client == mocked_client
 
 
-def test_should_raise_exception_if_template_provider_is_inactive(self, mocker, monkeypatch):
+def test_should_raise_exception_if_template_provider_is_inactive(mocker, monkeypatch):
     monkeypatch.setenv(FeatureFlag.PROVIDER_STRATEGIES_ENABLED.value, "False")
     monkeypatch.setenv(FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED.value, "True")
 
@@ -1085,7 +1085,7 @@ def test_should_raise_exception_if_template_provider_is_inactive(self, mocker, m
     mocked_get_client_by_name_and_type.assert_not_called()
 
 
-def test_template_or_service_provider_is_not_used_when_feature_flag_is_off(self, mocker, monkeypatch, fake_uuid):
+def test_template_or_service_provider_is_not_used_when_feature_flag_is_off(mocker, monkeypatch, fake_uuid):
     monkeypatch.setenv(FeatureFlag.PROVIDER_STRATEGIES_ENABLED.value, "False")
     monkeypatch.setenv(FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED.value, "False")
     mocked_client = mocker.Mock(EmailClient)
