@@ -1,12 +1,13 @@
-from datetime import datetime, timedelta
 from app import db
-
 from app.models import InvitedUser
+from datetime import datetime, timedelta
 
 
-def save_invited_user(invited_user):
-    db.session.add(invited_user)
+def save_invited_user(invited_user: dict):
+    invited_user_instance = InvitedUser(**invited_user)
+    db.session.add(invited_user_instance)
     db.session.commit()
+    return invited_user_instance
 
 
 def get_invited_user(service_id, invited_user_id):

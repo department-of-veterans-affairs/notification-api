@@ -25,7 +25,7 @@ register_errors(invite)
 def create_invited_user(service_id):
     request_json = request.get_json()
     invited_user, errors = invited_user_schema.load(request_json)
-    save_invited_user(invited_user)
+    invited_user_instance = save_invited_user(invited_user)
 
     template = dao_get_template_by_id(current_app.config['INVITATION_EMAIL_TEMPLATE_ID'])
     service = Service.query.get(current_app.config['NOTIFY_SERVICE_ID'])
@@ -33,25 +33,27 @@ def create_invited_user(service_id):
     saved_notification = persist_notification(
         template_id=template.id,
         template_version=template.version,
-        recipient=invited_user.email_address,
+        recipient=invited_user["email_address"],
         service=service,
         personalisation={
-            'user_name': invited_user.from_user.name,
-            'service_name': invited_user.service.name,
+            'user_name': invited_user["from_user"].name,
+            'service_name': invited_user["service"].name,
             'url': invited_user_url(
-                invited_user.id,
+                invited_user_instance.id,
                 request_json.get('invite_link_host'),
             ),
         },
         notification_type=EMAIL_TYPE,
         api_key_id=None,
         key_type=KEY_TYPE_NORMAL,
-        reply_to_text=invited_user.from_user.email_address
+        reply_to_text=invited_user["from_user"].email_address
     )
 
     send_notification_to_queue(saved_notification, False, queue=QueueNames.NOTIFY)
 
-    return jsonify(data=invited_user_schema.dump(invited_user).data), 201
+    invited_user_data = invited_user_schema.dump(invited_user).data
+    invited_user_data["id"] = invited_user_instance.id
+    return jsonify(data=invited_user_data), 201
 
 
 @invite.route('', methods=['GET'])
