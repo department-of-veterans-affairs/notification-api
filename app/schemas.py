@@ -742,7 +742,7 @@ class NotificationsFilterSchema(ma.Schema):
         if 'template_type' in in_data:
             in_data['template_type'] = [x.template_type for x in in_data['template_type']]
         if 'status' in in_data:
-            in_data['status'] = [x.status for x in in_data['status']]
+            in_data['status'] = [x["status"] for x in in_data['status']]
         return in_data
 
     @validates('page')
