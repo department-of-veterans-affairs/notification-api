@@ -1,24 +1,19 @@
-from datetime import (
-    datetime,
-    date,
-    timedelta
-)
 import pytest
-from flask import current_app
-from freezegun import freeze_time
-
 from app.dao.notifications_dao import (
     delete_notifications_older_than_retention_by_type,
-    insert_update_notification_history
+    insert_update_notification_history,
 )
 from app.models import Notification, NotificationHistory, RecipientIdentifier, SMS_TYPE, EMAIL_TYPE
 from app.notifications.process_notifications import persist_notification
 from app.va.identifier import IdentifierType
+from datetime import date, datetime, timedelta
+from flask import current_app
+from freezegun import freeze_time
 from tests.app.db import (
     create_template,
     create_notification,
     create_service_data_retention,
-    create_service
+    create_service,
 )
 
 
@@ -56,27 +51,29 @@ def _create_templates(sample_service):
     return email_template, letter_template, sms_template
 
 
-@pytest.mark.parametrize('month, delete_run_time',
-                         [(4, '2016-04-10 23:40'), (1, '2016-01-11 00:40')])
-@pytest.mark.parametrize(
-    'notification_type, expected_sms_count, expected_email_count, expected_letter_count',
-    [('sms', 7, 10, 10),
-     ('email', 10, 7, 10),
-     ('letter', 10, 10, 7)]
-)
+@pytest.mark.parametrize('month, delete_run_time', [
+    (4, '2016-04-10 23:40'),
+    (1, '2016-01-11 00:40'),
+])
+@pytest.mark.parametrize('notification_type, expected_sms_count, expected_email_count, expected_letter_count', [
+    ('email', 10, 7, 10),
+    ('letter', 10, 10, 7),
+    ('sms', 7, 10, 10),
+])
 def test_should_delete_notifications_by_type_after_seven_days(
-        sample_service,
-        mocker,
-        month,
-        delete_run_time,
-        notification_type,
-        expected_sms_count,
-        expected_email_count,
-        expected_letter_count
+    sample_service,
+    mocker,
+    month,
+    delete_run_time,
+    notification_type,
+    expected_sms_count,
+    expected_email_count,
+    expected_letter_count
 ):
     mocker.patch("app.dao.notifications_dao.get_s3_bucket_objects")
     email_template, letter_template, sms_template = _create_templates(sample_service)
-    # create one notification a day between 1st and 10th from 11:00 to 19:00 of each type
+
+    # For each notification type, create one notification a day between the 1st and 10th from 11:00 to 19:00.
     for i in range(1, 11):
         past_date = '2016-0{0}-{1:02d}  {1:02d}:00:00.000000'.format(month, i)
         with freeze_time(past_date):
@@ -85,7 +82,7 @@ def test_should_delete_notifications_by_type_after_seven_days(
             create_notification(template=letter_template, created_at=datetime.utcnow(), status="temporary-failure")
     assert Notification.query.count() == 30
 
-    # Records from before 3rd should be deleted
+    # Records from before the 3rd should be deleted.
     with freeze_time(delete_run_time):
         delete_notifications_older_than_retention_by_type(notification_type)
 
@@ -98,33 +95,37 @@ def test_should_delete_notifications_by_type_after_seven_days(
 
     if notification_type == 'sms':
         notifications_to_check = remaining_sms_notifications
-    if notification_type == 'email':
+    elif notification_type == 'email':
         notifications_to_check = remaining_email_notifications
-    if notification_type == 'letter':
+    elif notification_type == 'letter':
         notifications_to_check = remaining_letter_notifications
+
     for notification in notifications_to_check:
         assert notification.created_at.date() >= date(2016, month, 3)
 
-@pytest.mark.parametrize('month, delete_run_time',
-                         [(4, '2016-04-10 23:40'), (1, '2016-01-11 00:40')])
-@pytest.mark.parametrize(
-    'notification_type, expected_count',
-    [(SMS_TYPE, 7),
-     (EMAIL_TYPE, 7)]
-)
+
+@pytest.mark.parametrize('month, delete_run_time', [
+    (4, '2016-04-10 23:40'),
+    (1, '2016-01-11 00:40'),
+])
+@pytest.mark.parametrize('notification_type, expected_count', [
+    (EMAIL_TYPE, 7),
+    (SMS_TYPE, 7),
+])
 def test_should_delete_notification_and_recipient_identifiers_when_bulk_deleting(
-        month,
-        delete_run_time,
-        notification_type,
-        expected_count,
-        sample_job,
-        sample_api_key,
-        mocker
+    month,
+    delete_run_time,
+    notification_type,
+    expected_count,
+    sample_job,
+    sample_api_key,
+    mocker
 ):
     mocker.patch(
         'app.notifications.process_notifications.accept_recipient_identifiers_enabled',
         return_value=True
     )
+
     # create one notification a day between 1st and 10th from 11:00 to 19:00 of each type
     for i in range(1, 11):
         past_date = '2016-0{0}-{1:02d}  {1:02d}:00:00.000000'.format(month, i)
