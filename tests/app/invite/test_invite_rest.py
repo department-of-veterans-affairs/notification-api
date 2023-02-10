@@ -1,8 +1,7 @@
 import json
 import pytest
-
-from app.models import Notification
 from app.model import EMAIL_AUTH_TYPE
+from app.models import Notification
 from tests import create_authorization_header
 from tests.app.db import create_invited_user
 
