@@ -35,7 +35,8 @@ create_service_callback_api_request_schema = {
             }
         },
         "callback_type": {"enum": SERVICE_CALLBACK_TYPES},
-        "callback_channel": {"enum": CALLBACK_CHANNEL_TYPES}
+        "callback_channel": {"enum": CALLBACK_CHANNEL_TYPES},
+        "include_provider_payload": {"type": "boolean"}
     },
     "required": ["url", "callback_channel", "callback_type"]
 }

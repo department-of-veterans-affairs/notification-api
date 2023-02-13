@@ -43,7 +43,8 @@ class TestFetchServiceCallback:
             "updated_at": service_callback_api.updated_at,
             "notification_statuses": service_callback_api.notification_statuses,
             "callback_type": service_callback_api.callback_type,
-            "callback_channel": service_callback_api.callback_channel
+            "callback_channel": service_callback_api.callback_channel,
+            "include_provider_payload": service_callback_api.include_provider_payload
         }
 
     def test_fetch_service_callback_works_with_platform_admin(self, db_session, client, sample_service):
