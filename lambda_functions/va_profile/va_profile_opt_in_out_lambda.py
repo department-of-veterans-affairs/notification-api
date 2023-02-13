@@ -64,6 +64,9 @@ else:
 try:
     with open(jwt_certificate_path, "rb") as f:
         va_profile_public_cert = load_pem_x509_certificate(f.read()).public_key()
+        f.seek(0)
+        logger.debug("Read the public JWT certificate from the lambda layer.")
+        logger.debug(f.read())
 except (OSError, ValueError) as e:
     logger.exception(e)
     sys.exit("The JWT public certificate is missing or invalid.  Cannot authenticate POST requests.")
