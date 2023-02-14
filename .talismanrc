@@ -292,7 +292,7 @@ fileignoreconfig:
     - filename: tests/app/oauth/test_rest.py
       checksum: 4e7acd2db507c6cbc5aeb1912a7c98bd03892f4b63970d6475cb20edbd7edc20
     - filename: tests/app/notifications/test_rest.py
-      checksum: 71627fd26309bf42955fc8f26aad5b66e07a4ec1cc11fa509d125bd18aae417c
+      checksum: ec555c89226d015256bb3186aefa7763282eac14cadbc63f37fe8ff5c9efeef0
     - filename: app/dao/fact_notification_status_dao.py
       checksum: 1503b15fb58257b12b4857659323a5ca9b97784b2344148097298c70d69d4eca
     - filename: app/celery/reporting_tasks.py

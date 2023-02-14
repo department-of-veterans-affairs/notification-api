@@ -604,6 +604,7 @@ class NotificationWithPersonalisationSchema(NotificationWithTemplateSchema):
             'sent_at', 'sent_by', 'updated_at', 'status', 'reference', 'personalisation', 'service', 'job', 'api_key',
             'template_history', 'sms_sender_id'
         )
+        include_relationships = True
 
     @pre_dump
     def handle_personalisation_property(self, in_data):
@@ -740,7 +741,7 @@ class NotificationsFilterSchema(ma.Schema):
     @post_load
     def convert_schema_object_to_field(self, in_data):
         if 'template_type' in in_data:
-            in_data['template_type'] = [x.template_type for x in in_data['template_type']]
+            in_data["template_type"] = [x["template_type"] for x in in_data["template_type"]]
         if 'status' in in_data:
             in_data['status'] = [x["status"] for x in in_data['status']]
         return in_data
