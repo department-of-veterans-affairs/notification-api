@@ -63,8 +63,6 @@ update_service_callback_api_request_schema = {
         {"required": ["url"]},
         {"required": ["bearer_token"]},
         {"required": ["notification_statuses"]},
-        {"required": ["callback_type"]},
-        {"required": ["callback_channel"]},
         {"required": ["include_provider_payload"]}
     ]
 }
