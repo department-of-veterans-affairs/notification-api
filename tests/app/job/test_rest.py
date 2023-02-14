@@ -533,10 +533,10 @@ def test_get_all_notifications_for_job_in_order_of_job_number(admin_request, sam
     ]
 )
 def test_get_all_notifications_for_job_filtered_by_status(
-        admin_request,
-        sample_job,
-        expected_notification_count,
-        status_args
+    admin_request,
+    sample_job,
+    expected_notification_count,
+    status_args
 ):
     create_notification(job=sample_job, to_field="1", status='created')
 
