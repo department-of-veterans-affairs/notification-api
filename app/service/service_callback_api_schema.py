@@ -56,11 +56,15 @@ update_service_callback_api_request_schema = {
             }
         },
         "callback_type": {"enum": SERVICE_CALLBACK_TYPES},
-        "callback_channel": {"enum": CALLBACK_CHANNEL_TYPES}
+        "callback_channel": {"enum": CALLBACK_CHANNEL_TYPES},
+        "include_provider_payload": {"type": "boolean"}
     },
     "anyOf": [
         {"required": ["url"]},
         {"required": ["bearer_token"]},
-        {"required": ["notification_statuses"]}
+        {"required": ["notification_statuses"]},
+        {"required": ["callback_type"]},
+        {"required": ["callback_channel"]},
+        {"required": ["include_provider_payload"]}
     ]
 }
