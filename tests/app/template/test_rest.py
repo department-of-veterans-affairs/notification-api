@@ -242,43 +242,6 @@ def test_should_not_create_template_with_incorrect_provider_type(
     assert json_resp['message'] == f"invalid {template_type}_provider_id"
 
 
-def test_should_create_template_without_created_by_using_current_user_id(
-        client, sample_service_full_permissions):
-    sample_service = sample_service_full_permissions
-    user = sample_service.users[0]
-    permission_dao.set_user_service_permission(
-        user,
-        sample_service,
-        [Permission(
-            service_id=sample_service.id,
-            user_id=user.id,
-            permission=EDIT_TEMPLATES
-        )])
-
-    data = {
-        'name': 'my template',
-        'template_type': SMS_TYPE,
-        'content': 'template <b>content</b>',
-        'service': str(sample_service.id),
-        'created_by': None
-    }
-    data = json.dumps(data)
-
-    response = client.post(
-        '/service/{}/template'.format(sample_service.id),
-        headers=[('Content-Type', 'application/json'),
-                 ('Authorization', f'Bearer {create_access_token(user)}')],
-        data=data
-    )
-    assert response.status_code == 201
-    json_resp = json.loads(response.get_data(as_text=True))
-    assert json_resp['data']['created_by'] == str(user.id)
-
-    template = Template.query.get(json_resp['data']['id'])
-    from app.schemas import template_schema
-    assert sorted(json_resp['data']) == sorted(template_schema.dump(template).data)
-
-
 def test_create_a_new_template_for_a_service_adds_folder_relationship(
     client, sample_service
 ):
@@ -1686,6 +1649,43 @@ def test_preview_letter_template_precompiled_png_template_preview_pdf_error(
 
             assert request['message'] == "Error extracting requested page from PDF file for notification_id {} type " \
                                          "{} {}".format(notification.id, type(PdfReadError()), error_message)
+
+
+def test_should_create_template_without_created_by_using_current_user_id(
+        client, sample_service_full_permissions):
+    sample_service = sample_service_full_permissions
+    user = sample_service.users[0]
+    permission_dao.set_user_service_permission(
+        user,
+        sample_service,
+        [Permission(
+            service_id=sample_service.id,
+            user_id=user.id,
+            permission=EDIT_TEMPLATES
+        )])
+
+    data = {
+        'name': 'my template',
+        'template_type': SMS_TYPE,
+        'content': 'template <b>content</b>',
+        'service': str(sample_service.id),
+        'created_by': None
+    }
+    data = json.dumps(data)
+
+    response = client.post(
+        '/service/{}/template'.format(sample_service.id),
+        headers=[('Content-Type', 'application/json'),
+                 ('Authorization', f'Bearer {create_access_token(user)}')],
+        data=data
+    )
+    assert response.status_code == 201
+    json_resp = json.loads(response.get_data(as_text=True))
+    assert json_resp['data']['created_by'] == str(user.id)
+
+    template = Template.query.get(json_resp['data']['id'])
+    from app.schemas import template_schema
+    assert sorted(json_resp['data']) == sorted(template_schema.dump(template).data)
 
 
 class TestGenerateHtmlPreviewForContent:
