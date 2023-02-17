@@ -89,12 +89,14 @@ def handle_integrity_error(exc):
 
 @user_blueprint.route('', methods=['POST'])
 def create_user():
-    user_to_create, errors = create_user_schema.load(request.get_json())
     req_json = request.get_json()
+    user_to_create, errors = create_user_schema.load(req_json)
+    print("type user_to_create = ", type(user_to_create))  # TODO
+    identity_provider_user_id = req_json.get("identity_provider_user_id")
+    password = req_json.get("password")
 
-    identity_provider_user_id = req_json.get('identity_provider_user_id', None)
-    password = req_json.get('password', None)
-
+    # These blocks cover instances of None and the empty string.  Not testing explicitly
+    # for "None" is intentional.
     if not password and not identity_provider_user_id:
         errors.update({'password': ['Missing data for required field.']})
         raise InvalidRequest(errors, status_code=400)
@@ -104,7 +106,7 @@ def create_user():
             errors.update({'password': ['Password is blacklisted.']})
             raise InvalidRequest(errors, status_code=400)
 
-    save_model_user(user_to_create, pwd=req_json.get('password'))
+    save_model_user(user_to_create, pwd=password)
     result = user_to_create.serialize()
     return jsonify(data=result), 201
 

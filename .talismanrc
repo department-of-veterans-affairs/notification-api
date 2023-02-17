@@ -92,15 +92,11 @@ fileignoreconfig:
     - filename: tests/app/db.py
       checksum: d70585d41f55ef8bf1beb238ab2e7237520398ac96b115f3805e4001124dabbd
     - filename: app/dao/users_dao.py
-      checksum: 125f785d08395bdb0508cf640ac51dff0500626890e387dcda9aca4bb64cbeb6
+      checksum: 4390eda112d75f139910700ff2f094099510aefa16f33d47cf3387c7876fbc77
     - filename: tests/app/dao/test_users_dao.py
       checksum: 365fe1fe22c7418f9f49be963c4695a4bd0e0bc894da08e38c55ce91026202b3
-    - filename: app/dao/users_dao.py
-      checksum: e90d0f72c47dea3aa4d68948c90829a9556a8db3e9368c5c4dc02eeb1dc5de4e
     - filename: tests/app/dao/test_users_dao.py
       checksum: 0fadc7598f1dcb1b99766e6be295d07280a9fab43787f9f3db73c7f681e0d2c1
-    - filename: app/dao/users_dao.py
-      checksum: 62f1bbaa6ff7edf14fcf74576a76f4fd775b66d4b70e588959af8069f789e565
     - filename: .github/workflows/dev-ci.yaml
       checksum: f60538b9b8d488e44a54ddc62750b03fe543919949abc1ac516b98b2ef83f760
     - filename: app/celery/nightly_tasks.py
@@ -349,3 +345,5 @@ fileignoreconfig:
       checksum: 3cef32b214b5aa8d21c47493049aed0a9cbf8340fe6dab2ffa8461f7216fce8b
     - filename: app/dao/fact_billing_dao.py
       checksum: ee78cb3f234ca6b2fb28a2941ec4a44104d6866b8bb274c195847b8f609a8c88
+    - filename: app/user/rest.py
+      checksum: d04d6378dd6ce8b0046d6dc2c106ca87cf93ee555e03821e7970570c4b132450
