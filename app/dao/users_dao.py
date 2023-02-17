@@ -38,16 +38,21 @@ def save_user_attribute(usr, update_dict={}):
 
 
 def save_model_user(usr, update_dict={}, pwd=None):
-    if pwd:
-        # The password is neither None nor the empty string.
-        usr.password = pwd
-        usr.password_changed_at = datetime.utcnow()
-
     if update_dict:
         _remove_values_for_keys_if_present(update_dict, ['id', 'password_changed_at'])
-        db.session.query(User).filter_by(id=usr.id).update(update_dict)
+        user_id = usr["id"] if isinstance(usr, dict) else usr.id
+        db.session.query(User).filter_by(id=user_id).update(update_dict)
     else:
-        db.session.add(usr)
+        if isinstance(usr, dict):
+            if pwd:
+                usr["password"] = pwd
+                usr["password_changed_at"] = datetime.utcnow()
+            db.session.add(User(**usr))
+        elif isinstance(usr, User):
+            if pwd:
+                usr.password = pwd
+                usr.password_changed_at = datetime.utcnow()
+            db.session.add(usr)
 
     db.session.commit()
 
