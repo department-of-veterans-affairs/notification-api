@@ -47,10 +47,17 @@ def dao_create_template(template):
     VersionOptions(Template, history_class=TemplateHistory)
 )
 def dao_update_template(template):
-    if template.archived:
-        template.folder = None
-
-    db.session.add(template)
+    if isinstance(template, dict):
+        if template["archived"]:
+            template["folder"] = None
+        new_template = Template(**template)
+        db.session.add(new_template)
+    elif isinstance(template, Template):
+        if template.archived:
+            template.folder = None
+        db.session.add(template)
+    else:
+        raise TypeError
 
 
 @transactional
