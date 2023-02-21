@@ -15,6 +15,7 @@ from app.models import (
     NOTIFICATION_STATUS_TYPES_COMPLETED,
     DELIVERY_STATUS_CALLBACK_TYPE,
     CALLBACK_CHANNEL_TYPES,
+    EMAIL_AUTH_TYPE
 )
 from app.provider_details import validate_providers
 from app.utils import get_template_instance
@@ -631,7 +632,7 @@ class NotificationWithPersonalisationSchema(NotificationWithTemplateSchema):
 
 
 class InvitedUserSchema(BaseSchema):
-    auth_type = field_for(models.InvitedUser, 'auth_type')
+    auth_type = field_for(models.InvitedUser, 'auth_type', default=EMAIL_AUTH_TYPE)
 
     class Meta:
         model = models.InvitedUser
