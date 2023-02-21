@@ -67,11 +67,10 @@ def get_invited_users_by_service(service_id):
 @invite.route('/<invited_user_id>', methods=['POST'])
 def update_invited_user(service_id, invited_user_id):
     fetched = get_invited_user(service_id=service_id, invited_user_id=invited_user_id)
-
     current_data = dict(invited_user_schema.dump(fetched).data.items())
     current_data.update(request.get_json())
-    update_dict = invited_user_schema.load(current_data).data
-    save_invited_user(update_dict)
+    fetched.status = current_data["status"]
+    save_invited_user(fetched)
     return jsonify(data=invited_user_schema.dump(fetched).data), 200
 
 
