@@ -260,6 +260,7 @@ class ServiceSchema(BaseSchema):
             'inbound_sms'
         )
         strict = True
+        load_instance = True
 
     @validates('permissions')
     def validate_permissions(self, value):
