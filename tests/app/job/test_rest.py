@@ -195,6 +195,7 @@ def test_create_unscheduled_job_with_sender_id_in_metadata(client, sample_templa
 
 @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
 @freeze_time("2016-01-01 12:00:00.000000")
+@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
 def test_create_scheduled_job(client, sample_template, mocker, fake_uuid):
     scheduled_date = (datetime.utcnow() + timedelta(hours=95, minutes=59)).isoformat()
     mocker.patch('app.celery.tasks.process_job.apply_async')
