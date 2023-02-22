@@ -315,6 +315,7 @@ class ServiceCallbackSchema(BaseSchema):
         )
         load_only = ['_bearer_token', 'bearer_token']
         strict = True
+        load_instance = True
 
     @validates_schema
     def validate_schema(self, data):
