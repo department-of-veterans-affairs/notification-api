@@ -21,6 +21,8 @@ invite = Blueprint('invite', __name__, url_prefix='/service/<service_id>/invite'
 register_errors(invite)
 
 
+# TODO - This function takes a "service_id" because it's part of the associated URL, but "service_id" is not used.
+# This probably indiciates that the URL should be different.
 @invite.route('', methods=['POST'])
 def create_invited_user(service_id):
     request_json = request.get_json()
