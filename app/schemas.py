@@ -262,6 +262,7 @@ class ServiceSchema(BaseSchema):
         )
         strict = True
         load_instance = True
+        include_relationships = True
 
     @validates('permissions')
     def validate_permissions(self, value):
