@@ -190,6 +190,7 @@ def test_update_invited_user_for_wrong_service_returns_404(client, sample_invite
     json_response = json.loads(response.get_data(as_text=True))['message']
     assert json_response == 'No result found'
 
+
 @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
 def test_update_invited_user_for_invalid_data_returns_400(client, sample_invited_user):
     data = {'status': 'garbage'}
