@@ -578,17 +578,15 @@ def dao_get_notifications_by_to_field(service_id, search_term, notification_type
     if notification_type == SMS_TYPE:
         normalised = try_validate_and_format_phone_number(search_term)
 
-        for character in {'(', ')', ' ', '-'}:
+        for character in "() -":
             normalised = normalised.replace(character, '')
 
         normalised = normalised.lstrip('+0')
-
     elif notification_type == EMAIL_TYPE:
         try:
             normalised = validate_and_format_email_address(search_term)
         except InvalidEmailError:
             normalised = search_term.lower()
-
     else:
         raise InvalidRequest("Only email and SMS can use search by recipient", 400)
 
@@ -596,7 +594,7 @@ def dao_get_notifications_by_to_field(service_id, search_term, notification_type
 
     filters = [
         Notification.service_id == service_id,
-        Notification.normalised_to.like("%{}%".format(normalised)),
+        Notification.normalised_to.like(f"%{normalised}%"),
         Notification.key_type != KEY_TYPE_TEST,
     ]
 
@@ -605,8 +603,7 @@ def dao_get_notifications_by_to_field(service_id, search_term, notification_type
     if notification_type:
         filters.append(Notification.notification_type == notification_type)
 
-    results = db.session.query(Notification).filter(*filters).order_by(desc(Notification.created_at)).all()
-    return results
+    return db.session.query(Notification).filter(*filters).order_by(desc(Notification.created_at)).all()
 
 
 @statsd(namespace="dao")
