@@ -17,7 +17,7 @@ click-datetime>=0.2
 docopt>=0.6.2
 
 # 10 May 2022: Newer versions--even 0.30.3--cause import errors.  Versions < 0.31.0 have
-# security vulnerabilities 40416 and 40399, which are ignored in Makefile.
+# security vulnerability 40416, which is ignored in Makefile.
 eventlet==0.30.2
 
 # This is for hardware based authentication schemes.  (i.e. 2FA)
