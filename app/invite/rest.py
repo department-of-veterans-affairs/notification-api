@@ -22,7 +22,7 @@ register_errors(invite)
 
 
 # TODO - This function takes a "service_id" because it's part of the associated URL, but "service_id" is not used.
-# This probably indiciates that the URL should be different.
+# This probably indicates that the URL should be different.  See #1103.
 @invite.route('', methods=['POST'])
 def create_invited_user(service_id):
     request_json = request.get_json()

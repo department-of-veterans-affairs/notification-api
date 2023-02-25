@@ -27,7 +27,7 @@ def receive_mmg_sms():
         "Number": "40604",
         "Message": "some+uri+encoded+message%3A",
         "ID": "SOME-MMG-SPECIFIC-ID",
-        "DateRecieved": "2017-05-21+11%3A56%3A11"
+        "DateReceived": "2017-05-21+11%3A56%3A11"
     }
     """
 
@@ -59,7 +59,7 @@ def receive_mmg_sms():
         notify_number=inbound_number,
         from_number=post_data['MSISDN'],
         provider_ref=post_data["ID"],
-        date_received=format_mmg_datetime(post_data.get('DateRecieved')),
+        date_received=format_mmg_datetime(post_data.get('DateReceived')),
         provider_name="mmg"
     )
 
