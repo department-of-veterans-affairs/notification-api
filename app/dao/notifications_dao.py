@@ -297,7 +297,7 @@ def _filter_query(query, filter_dict=None):
 def delete_notifications_older_than_retention_by_type(notification_type, qry_limit=10000):
     """
     TODO - This seems unnecessarily complicated.  It can probably be reduced to a single "delete"
-    query with a "join" and a compound "where" clause.
+    query with a "join" and a compound "where" clause.  See #1102.
     """
 
     current_app.logger.info(
