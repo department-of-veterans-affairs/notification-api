@@ -1,6 +1,6 @@
 """
 TODO - This file has multiple uses of using the notify_db_session fixture only for the
-side-effect of clearing tables after the test.
+side-effect of clearing tables after the test.  See #1106.
 """
 
 import datetime
