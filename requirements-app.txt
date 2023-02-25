@@ -35,7 +35,6 @@ git+https://github.com/department-of-veterans-affairs/notification-utils.git
 
 # The production image defined by Dockerfile uses Gunicorn.  The development image defined by Dockerfile.local
 # runs the application with the Flask development server by default.
-# TODO - Should we remove this from this file and install it individually in the Dockerfile?
 # 9 May 2022: Newer versions cause build or runtime issues.
 gunicorn[eventlet] < 20.1.0
 
