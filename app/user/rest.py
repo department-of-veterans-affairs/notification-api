@@ -489,8 +489,8 @@ def get_user(user_id=None):
 
 @user_blueprint.route('/<uuid:user_id>/service/<uuid:service_id>/permission', methods=['POST'])
 def set_permissions(user_id, service_id):
-    # TODO - Fix security hole.  How do we verify that the user
-    # who is making this request has permission to make the request?
+    """ This route requires admin authorization.  This is setup in app/__init__.py. """
+
     service_user = dao_get_service_user(user_id, service_id)
     user = service_user.user
     service = dao_fetch_service_by_id(service_id=service_id)
