@@ -126,17 +126,18 @@ get_parameter_value() {
 }
 
 run_task () {
+    echo "Running private_subnets..."
     local private_subnets
     private_subnets=$($AWS_CLI ssm get-parameter --name /$ENVIRONMENT/shared/subnets/private | jq -r '.Parameter.Value')
-
+    echo "Running security_group_access_db..."
     local security_group_access_db
     security_group_access_db=$(get_parameter_value $ENVIRONMENT security-group/access-db)
-
+    echo "Running security_group_access_outbound..."
     local security_group_access_outbound
     security_group_access_outbound=$(get_parameter_value $ENVIRONMENT security-group/access-outbound)
-
+    echo "Running network_configuration..."
     local network_configuration="awsvpcConfiguration={subnets=[$private_subnets],securityGroups=[$security_group_access_db,$security_group_access_outbound],assignPublicIp=DISABLED}"
-
+    echo "Running run_result..."
     local run_result
     run_result=$($AWS_ECS run-task \
                           --cluster $CLUSTER \
