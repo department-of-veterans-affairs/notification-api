@@ -22,7 +22,10 @@ if (DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER is None):
     sys.exit("A required environment variable is not set. Please set DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER")
 
 if (CELERY_TASK is None):
-    sys.exit("A required environment variable is not set. Please set CELERY_TASK")
+    sys.exit("A required environment variable is not set. Please set CELERY_TASK_NAME")
+
+if (ROUTING_KEY is None):
+    sys.exit("A required environment variable is not set. Please set ROUTING_KEY")
 
 sqs_client = boto3.client('sqs', region_name='us-gov-west-1')
 
