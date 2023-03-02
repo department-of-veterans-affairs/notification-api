@@ -146,7 +146,7 @@ def test_fetch_nightly_billing_counts_retrieves_correct_data_within_process_day(
         billing_code='test_code',
         sms_sender_id=service.service_sms_senders[0].id,
         segments_count=3,
-        cost_in_millicents=.001
+        cost_in_millicents=1234.5
     )
     create_notification(
         template=template,
@@ -154,7 +154,7 @@ def test_fetch_nightly_billing_counts_retrieves_correct_data_within_process_day(
         created_at=process_day,
         sms_sender_id=service.service_sms_senders[0].id,
         segments_count=5,
-        cost_in_millicents=.0003
+        cost_in_millicents=55.5
     )
     create_notification(
         template=template,
@@ -162,7 +162,7 @@ def test_fetch_nightly_billing_counts_retrieves_correct_data_within_process_day(
         created_at=datetime(2018, 4, 1, 4, 23, 23),
         sms_sender_id=service.service_sms_senders[0].id,
         segments_count=4,
-        cost_in_millicents=.0003
+        cost_in_millicents=44.4
     )
 
     # Create 2 SMS notifications not for the given process date.
@@ -190,7 +190,7 @@ def test_fetch_nightly_billing_counts_retrieves_correct_data_within_process_day(
     # count is total segments, not number of notifications
     assert results[0].count == 2
     assert results[0].total_message_parts == 9
-    assert results[0].total_cost == .0027
+    assert results[0].total_cost == 99.9
 
     assert results[0].service_name == 'Sample service'
     assert results[0].service_name == service.name

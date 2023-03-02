@@ -126,7 +126,7 @@ def fetch_nightly_billing_counts(process_day):
         func.count().label('count'),
         Notification.notification_type.label('channel_type'),
         func.sum(Notification.segments_count).label('total_message_parts'),
-        func.sum(Notification.segments_count * Notification.cost_in_millicents).label('total_cost')
+        func.sum(Notification.cost_in_millicents).label('total_cost')
     ).filter(
         Notification.status.in_(billable_type_list[SMS_TYPE]),
         Notification.key_type != KEY_TYPE_TEST,
