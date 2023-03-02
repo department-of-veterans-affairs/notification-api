@@ -161,7 +161,7 @@ def test_fetch_nightly_billing_counts_retrieves_correct_data_within_process_day(
         status='delivered',
         created_at=datetime(2018, 4, 1, 4, 23, 23),
         sms_sender_id=service.service_sms_senders[0].id,
-        segments_count=1,
+        segments_count=4,
         cost_in_millicents=.0003
     )
 
@@ -186,11 +186,11 @@ def test_fetch_nightly_billing_counts_retrieves_correct_data_within_process_day(
     day_under_test = convert_utc_to_local_timezone(process_day)
     results = fetch_nightly_billing_counts(day_under_test)
 
-    print(results)
     assert len(results) == 2
     # count is total segments, not number of notifications
-    assert results[0].count == 6
-    assert results[0].total_cost == .0018
+    assert results[0].count == 2
+    assert results[0].total_message_parts == 9
+    assert results[0].total_cost == .0027
 
     assert results[0].service_name == 'Sample service'
     assert results[0].service_name == service.name

@@ -46,7 +46,6 @@ def delete_existing_rows_for_date(bigquery_client: bigquery.Client, table_id: st
 
 def add_updated_rows_for_date(bigquery_client: bigquery.Client, table_id: str, nightly_stats: bytes) -> None:
     job_config = bigquery.LoadJobConfig(
-        # TODO 1050 - update schema
         schema=[
             bigquery.SchemaField("date", "DATE"),
             bigquery.SchemaField("service_name", "STRING"),
@@ -57,7 +56,9 @@ def add_updated_rows_for_date(bigquery_client: bigquery.Client, table_id: str, n
             bigquery.SchemaField("sender_id", "STRING"),
             bigquery.SchemaField("billing_code", "STRING"),
             bigquery.SchemaField("count", "INTEGER"),
-            bigquery.SchemaField("channel_type", "STRING")
+            bigquery.SchemaField("channel_type", "STRING"),
+            bigquery.SchemaField("total_message_parts", "INTEGER"),
+            bigquery.SchemaField("total_cost", "FLOAT")
         ],
         skip_leading_rows=1
     )
