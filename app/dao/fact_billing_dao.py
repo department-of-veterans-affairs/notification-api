@@ -123,8 +123,9 @@ def fetch_nightly_billing_counts(process_day):
         ServiceSmsSender.sms_sender.label('sender'),
         Notification.sms_sender_id.label('sender_id'),
         Notification.billing_code.label('billing_code'),
-        func.count().label('count'),
-        Notification.notification_type.label('channel_type')
+        func.sum(Notification.segments_count).label('count'),
+        Notification.notification_type.label('channel_type'),
+        func.sum(Notification.segments_count * Notification.cost_in_millicents).label('total_cost')
     ).filter(
         Notification.status.in_(billable_type_list[SMS_TYPE]),
         Notification.key_type != KEY_TYPE_TEST,
@@ -147,6 +148,10 @@ def fetch_nightly_billing_counts(process_day):
     ).join(
         ServiceSmsSender, Notification.sms_sender_id == ServiceSmsSender.id
     )
+
+    # TODO evan remove before merging
+    print('nightly_billing_query:')
+    print(query)
 
     return query.all()
 
