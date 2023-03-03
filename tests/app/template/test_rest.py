@@ -702,7 +702,7 @@ def test_should_get_a_single_template(
     template = create_template(sample_service, template_type=template_type, subject=subject, content=content)
 
     response = client.get(
-        '/service/{}/template/{}'.format(sample_service.id, template.id),
+        f'/service/{sample_service.id}/template/{template.id}',
         headers=[create_authorization_header()]
     )
 
@@ -712,7 +712,11 @@ def test_should_get_a_single_template(
     assert data['content'] == content
     assert data['subject'] == subject
     assert data['process_type'] == 'normal'
+    assert data['service'] == str(sample_service.id)
     assert not data['redact_personalisation']
+    assert "folder" in data
+    assert "service_letter_contact" in data
+    assert "template_redacted" in data
 
 
 @pytest.mark.parametrize(
