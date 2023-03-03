@@ -34,10 +34,7 @@ from app.dao.templates_dao import (
     dao_get_template_by_id,
     get_precompiled_letter_template,
 )
-from app.errors import (
-    register_errors,
-    InvalidRequest
-)
+from app.errors import InvalidRequest, register_errors
 from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.letters.utils import get_letter_pdf
 from app.models import SMS_TYPE, Template, SECOND_CLASS, LETTER_TYPE

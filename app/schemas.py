@@ -418,6 +418,7 @@ class BaseTemplateSchema(BaseSchema):
         model = models.Template
         exclude = ("service_id", "jobs", "service_letter_contact_id", "provider")
         strict = True
+        include_relationships = True
 
 
 class TemplateSchema(BaseTemplateSchema):
