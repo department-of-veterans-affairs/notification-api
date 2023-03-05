@@ -1,25 +1,21 @@
-from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
-    delivery_status_processor_lambda_handler,
-    valid_event,
-    event_to_celery_body_mapping,
-    celery_body_to_celery_task,
-    push_to_sqs
-)
-
 import pytest
 import base64
+import os
 import json
 
-LAMBDA_MODULE = "lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda"
 
-
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def all_path_env_param_set(monkeypatch):
-    monkeypatch.setenv("DELIVERY_STATUS_RESULT_TASK_QUEUE", "SOMEVALUE")
-    monkeypatch.setenv("DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER", "SOMEVALUE")
+    monkeypatch.setenv("DELIVERY_STATUS_RESULT_TASK_QUEUE",
+                       "DELIVERY_STATUS_RESULT_TASK_QUEUE")
+    monkeypatch.setenv("DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER",
+                       "DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER")
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
-    monkeypatch.setenv("CELERY_TASK_NAME", "SOMEVALUE")
-    monkeypatch.setenv("ROUTING_KEY", "SOMEVALUE")
+    monkeypatch.setenv("CELERY_TASK_NAME", "CELERY_TASK_NAME")
+    monkeypatch.setenv("ROUTING_KEY", "ROUTING_KEY")
+
+
+LAMBDA_MODULE = "lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda"
 
 
 @pytest.fixture(scope="function")
@@ -56,17 +52,30 @@ def event():
         'isBase64Encoded': True
     }
 
+
 def test_sys_exit_with_unset_queue_env_var(monkeypatch, all_path_env_param_set):
+    monkeypatch.delenv("DELIVERY_STATUS_RESULT_TASK_QUEUE")
+
     with pytest.raises(SystemExit):
-        monkeypatch.delenv("DELIVERY_STATUS_RESULT_TASK_QUEUE")
-        delivery_status_processor_lambda_handler(None, None)
+        from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+            delivery_status_processor_lambda_handler
+        )
+
 
 def test_sys_exit_with_unset_deadletter_queue_env_var(monkeypatch, all_path_env_param_set):
+    monkeypatch.delenv("DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER")
+
     with pytest.raises(SystemExit):
-        monkeypatch.delenv("DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER")
-        delivery_status_processor_lambda_handler(None, None)
+        from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+            delivery_status_processor_lambda_handler
+        )
+
 
 def test_invalid_event_event_none(mocker, all_path_env_param_set):
+    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+        delivery_status_processor_lambda_handler
+    )
+
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
 
     # Test a event is None
@@ -76,6 +85,9 @@ def test_invalid_event_event_none(mocker, all_path_env_param_set):
 
 
 def test_invalid_event_body_none(mocker, event, all_path_env_param_set):
+    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+        delivery_status_processor_lambda_handler
+    )
     # Test body not in event
     event.pop("body")
 
@@ -88,6 +100,9 @@ def test_invalid_event_body_none(mocker, event, all_path_env_param_set):
 
 
 def test_invalid_event_request_context_none(mocker, event, all_path_env_param_set):
+    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+        delivery_status_processor_lambda_handler
+    )
     # Test requestContext is not in event
     event.pop("requestContext")
 
@@ -100,6 +115,10 @@ def test_invalid_event_request_context_none(mocker, event, all_path_env_param_se
 
 
 def test_invalid_event_headers_none(mocker, event, all_path_env_param_set):
+    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+        delivery_status_processor_lambda_handler
+    )
+
     # Test headers not in event["requestContext"]
     event.pop("headers")
 
@@ -112,6 +131,10 @@ def test_invalid_event_headers_none(mocker, event, all_path_env_param_set):
 
 
 def test_invalid_event_user_agent_none(mocker, event, all_path_env_param_set):
+    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+        delivery_status_processor_lambda_handler
+    )
+
     # Test user-agent not in event["requestContext"]["headers"]
     event["headers"].pop("user-agent")
 
@@ -124,6 +147,9 @@ def test_invalid_event_user_agent_none(mocker, event, all_path_env_param_set):
 
 
 def test_invalid_event_elb_none(mocker, event, all_path_env_param_set):
+    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+        delivery_status_processor_lambda_handler
+    )
     # Test elb not in  event["requestContext"]
     event["requestContext"].pop("elb")
 
@@ -136,6 +162,9 @@ def test_invalid_event_elb_none(mocker, event, all_path_env_param_set):
 
 
 def test_valid_event(event, all_path_env_param_set):
+    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+        valid_event
+    )
     # Test valid event
     assert valid_event(event) == True
 
@@ -143,6 +172,10 @@ def test_valid_event(event, all_path_env_param_set):
 
 
 def test_event_to_celery_body_mapping_twilio_provider(event, all_path_env_param_set):
+    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+        event_to_celery_body_mapping
+    )
+
     mapping_test = event_to_celery_body_mapping(event)
 
     assert "body" in mapping_test
@@ -151,6 +184,10 @@ def test_event_to_celery_body_mapping_twilio_provider(event, all_path_env_param_
 
 
 def test_event_to_celery_body_mapping_non_twilio(event, all_path_env_param_set):
+    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+        event_to_celery_body_mapping
+    )
+
     # Test non twilio user-agent
     event["headers"]["user-agent"] = "NON TWILIO USER AGENT"
 
@@ -160,31 +197,43 @@ def test_event_to_celery_body_mapping_non_twilio(event, all_path_env_param_set):
 
 
 def test_delivery_status_processor_lambda_handler_non_twilio_event(mocker, event, all_path_env_param_set):
+    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+        delivery_status_processor_lambda_handler
+    )
+
     event["headers"]["user-agent"] = "NON TWILIO USER AGENT"
 
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
-    
+
     # Test a event is None
     delivery_status_processor_lambda_handler(event, None)
 
     sqs_mock.assert_called_once()
 
 # TEST: celery_body_to_celery_task() returns a dict with an envelope that has a body = base 64 encoded task and that base 64 encoded task  contains Message key with the task_message
+
+
 def test_celery_body_to_celery_task_twilio_provider(event, all_path_env_param_set):
+    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+        event_to_celery_body_mapping,
+        celery_body_to_celery_task
+    )
+
     celery_body = event_to_celery_body_mapping(event)
     celery_task = celery_body_to_celery_task(celery_body)
 
     assert "body" in celery_task
-    assert celery_task["properties"]["delivery_info"]["routing_key"] == "delivery-status-result-tasks"
+    assert celery_task["properties"]["delivery_info"]["routing_key"] == os.getenv(
+        'ROUTING_KEY')
 
-    decoded_body = json.loads(base64.b64decode(celery_task["body"]).decode("utf-8"))
+    decoded_body = json.loads(base64.b64decode(
+        celery_task["body"]).decode("utf-8"))
 
     print(decoded_body)
 
-    assert decoded_body["task"] == "process-delivery-status-result"
-    
+    assert decoded_body["task"] == os.getenv('CELERY_TASK_NAME')
+
     assert "args" in decoded_body
     assert len(decoded_body["args"]) == 1
     assert "Message" in decoded_body["args"][0]
     assert "task" in decoded_body
-   
