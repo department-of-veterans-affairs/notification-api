@@ -8,10 +8,11 @@ import uuid
 import base64
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+CELERY_TASK = os.getenv("CELERY_TASK_NAME", "process-delivery-status-result")
+ROUTING_KEY = os.getenv("ROUTING_KEY", "delivery-status-result-tasks")
 DELIVERY_STATUS_RESULT_TASK_QUEUE = os.getenv("DELIVERY_STATUS_RESULT_TASK_QUEUE")
 DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER = os.getenv("DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER")
-CELERY_TASK = os.getenv("CELERY_TASK_NAME")
-ROUTING_KEY = os.getenv("ROUTING_KEY")
+
 
 SQS_DELAY_SECONDS = 10
 
@@ -20,12 +21,6 @@ if (DELIVERY_STATUS_RESULT_TASK_QUEUE is None):
 
 if (DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER is None):
     sys.exit("A required environment variable is not set. Please set DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER")
-
-if (CELERY_TASK is None):
-    sys.exit("A required environment variable is not set. Please set CELERY_TASK_NAME")
-
-if (ROUTING_KEY is None):
-    sys.exit("A required environment variable is not set. Please set ROUTING_KEY")
 
 sqs_client = boto3.client('sqs', region_name='us-gov-west-1')
 
