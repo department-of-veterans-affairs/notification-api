@@ -74,20 +74,27 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
     except Exception as e:
         # Place request on dead letter queue so that it can be analyzed 
         #   for potential processing at a later time
-        logger.error(f'Unknown Failure: {e}')
+        logger.critical(f'Unknown Failure: {e}')
         push_to_sqs(event, DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER, False)
     
 def valid_event(event: dict) -> bool:
     """
-    Ensure that event data is from the ALB
+    Ensure that event data is from the ALB and that it contains 
+    a user-agent field in the headers
     """
 
-    if event is None or "requestContext" not in event or "body" not in event or "elb" not in event["requestContext"] or "headers" not in event or "user-agent" not in event["headers"]:
-        return False
+    if event is None:
+      logger.error('event is None: %s', event)
+    elif "body" not in event or "headers" not in event :
+      logger.error('Missing from event object: %s', event)
+    elif "user-agent" not in event["headers"]:
+      logger.error('Missing "user-agent" from: %s', event.get('headers'))
+    else:
+      return True
+    
+    return False
 
-    return True
-
-def event_to_celery_body_mapping(event:dict) -> str:
+def event_to_celery_body_mapping(event:dict) -> dict | None:
     """
     Determines which SQS queue to send the message to based on the message type
     """
@@ -97,6 +104,11 @@ def event_to_celery_body_mapping(event:dict) -> str:
         return None
 
 def celery_body_to_celery_task(task_message: dict) -> dict:
+    """
+    A celery task is created.  
+    The envelope has a generic schema that can be consumed by before it routes to a task
+    The task is used to route the message to the proper method in the app
+    """
     task = {
         "task": CELERY_TASK,
         "id": str(uuid.uuid4()),
@@ -146,18 +158,23 @@ def push_to_sqs(push_data: dict, queue_url: str, encode: bool) -> None:
     on is_retry variable. 
     """
 
-    logger.warning("Pushing to the %s queue . . .", queue_url)
-    logger.debug("SQS push data of type %s: %s", type(push_data), push_data)
+    logger.info("Pushing to the %s queue . . .", queue_url)
+    logger.debug("SQS push data: %s", push_data)
 
     try:
-        if (encode):
+        if encode:
             queue_msg = base64.b64encode(bytes(json.dumps(push_data), 'utf-8')).decode("utf-8")
         else:
             queue_msg = json.dumps(push_data)
     except TypeError as e:
         # Unable enqueue the data in any queue.  Don't try sending it to the dead letter queue.
         logger.exception(e)
-        logger.critical(". . . The data is being dropped: %s", push_data)
+        logger.critical(". . . Unable to generate queue_msg. The data is being dropped: %s", push_data)
+        return
+    except Exception as e:
+        # Unable enqueue the data in any queue.  Don't try sending it to the dead letter queue.
+        logger.exception(e)
+        logger.critical(". . . Unable to generate queue_msg. The data is being dropped: %s", push_data)
         return
 
     # NOTE: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
@@ -169,7 +186,7 @@ def push_to_sqs(push_data: dict, queue_url: str, encode: bool) -> None:
             DelaySeconds=SQS_DELAY_SECONDS
         )
 
-        logger.warning(". . . Completed the SQS push.")
+        logger.info(". . . Completed the SQS push.")
     except Exception as e:
         logger.exception(e)
         logger.critical(". . . Failed to push to SQS with data: %s", push_data)
