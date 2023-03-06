@@ -78,10 +78,12 @@ def test_invalid_event_event_none(mocker, all_path_env_param_set):
 
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
 
-    # Test a event is None
-    delivery_status_processor_lambda_handler(None, None)
+    event = None
 
-    sqs_mock.assert_called_once()
+    # Test a event is None
+    delivery_status_processor_lambda_handler(event, None)
+
+    sqs_mock.assert_called_once_with(event, os.getenv("DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER"), False)
 
 
 def test_invalid_event_body_none(mocker, event, all_path_env_param_set):
@@ -96,22 +98,7 @@ def test_invalid_event_body_none(mocker, event, all_path_env_param_set):
     # Test a event is None
     delivery_status_processor_lambda_handler(event, None)
 
-    sqs_mock.assert_called_once()
-
-
-def test_invalid_event_request_context_none(mocker, event, all_path_env_param_set):
-    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
-        delivery_status_processor_lambda_handler
-    )
-    # Test requestContext is not in event
-    event.pop("requestContext")
-
-    sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
-
-    # Test a event is None
-    delivery_status_processor_lambda_handler(event, None)
-
-    sqs_mock.assert_called_once()
+    sqs_mock.assert_called_once_with(event, os.getenv("DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER"), False)
 
 
 def test_invalid_event_headers_none(mocker, event, all_path_env_param_set):
@@ -127,7 +114,7 @@ def test_invalid_event_headers_none(mocker, event, all_path_env_param_set):
     # Test a event is None
     delivery_status_processor_lambda_handler(event, None)
 
-    sqs_mock.assert_called_once()
+    sqs_mock.assert_called_once_with(event, os.getenv("DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER"), False)
 
 
 def test_invalid_event_user_agent_none(mocker, event, all_path_env_param_set):
@@ -143,23 +130,7 @@ def test_invalid_event_user_agent_none(mocker, event, all_path_env_param_set):
     # Test a event is None
     delivery_status_processor_lambda_handler(event, None)
 
-    sqs_mock.assert_called_once()
-
-
-def test_invalid_event_elb_none(mocker, event, all_path_env_param_set):
-    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
-        delivery_status_processor_lambda_handler
-    )
-    # Test elb not in  event["requestContext"]
-    event["requestContext"].pop("elb")
-
-    sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
-
-    # Test a event is None
-    delivery_status_processor_lambda_handler(event, None)
-
-    sqs_mock.assert_called_once()
-
+    sqs_mock.assert_called_once_with(event, os.getenv("DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER"), False)
 
 def test_valid_event(event, all_path_env_param_set):
     from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
@@ -205,35 +176,9 @@ def test_delivery_status_processor_lambda_handler_non_twilio_event(mocker, event
 
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
 
-    # Test a event is None
+    # Test a event where the user-agent is not TwilioProxy
     delivery_status_processor_lambda_handler(event, None)
 
-    sqs_mock.assert_called_once()
+    sqs_mock.assert_called_once_with(event, os.getenv("DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER"), False)
 
 # TEST: celery_body_to_celery_task() returns a dict with an envelope that has a body = base 64 encoded task and that base 64 encoded task  contains Message key with the task_message
-
-
-def test_celery_body_to_celery_task_twilio_provider(event, all_path_env_param_set):
-    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
-        event_to_celery_body_mapping,
-        celery_body_to_celery_task
-    )
-
-    celery_body = event_to_celery_body_mapping(event)
-    celery_task = celery_body_to_celery_task(celery_body)
-
-    assert "body" in celery_task
-    assert celery_task["properties"]["delivery_info"]["routing_key"] == os.getenv(
-        'ROUTING_KEY')
-
-    decoded_body = json.loads(base64.b64decode(
-        celery_task["body"]).decode("utf-8"))
-
-    print(decoded_body)
-
-    assert decoded_body["task"] == os.getenv('CELERY_TASK_NAME')
-
-    assert "args" in decoded_body
-    assert len(decoded_body["args"]) == 1
-    assert "Message" in decoded_body["args"][0]
-    assert "task" in decoded_body

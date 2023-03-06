@@ -161,6 +161,10 @@ def push_to_sqs(push_data: dict, queue_url: str, encode: bool) -> None:
     logger.info("Pushing to the %s queue . . .", queue_url)
     logger.debug("SQS push data: %s", push_data)
 
+    if (push_data is None):
+        logger.critical("Unable to push data to SQS.  The data is being dropped: %s", push_data)
+        return
+
     try:
         if encode:
             queue_msg = base64.b64encode(bytes(json.dumps(push_data), 'utf-8')).decode("utf-8")
