@@ -137,7 +137,7 @@ def test_valid_event(event, all_path_env_param_set):
         valid_event
     )
     # Test valid event
-    assert valid_event(event) == True
+    assert valid_event(event)
 
 # TEST: event_to_celery_body_mapping() returns a dict with body and provider if headers.user-agent contains TwilioProxy
 

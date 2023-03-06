@@ -16,10 +16,10 @@ DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER = os.getenv("DELIVERY_STATUS_RESUL
 
 SQS_DELAY_SECONDS = 10
 
-if (DELIVERY_STATUS_RESULT_TASK_QUEUE is None):
+if DELIVERY_STATUS_RESULT_TASK_QUEUE is None:
     sys.exit("A required environment variable is not set. Please set DELIVERY_STATUS_RESULT_TASK_QUEUE")
 
-if (DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER is None):
+if DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER is None:
     sys.exit("A required environment variable is not set. Please set DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER")
 
 sqs_client = boto3.client('sqs', region_name='us-gov-west-1')
@@ -31,6 +31,7 @@ try:
 except ValueError:
     logger.setLevel("INFO")
     logger.warning("Invalid log level specified, defaulting to INFO")
+
 
 def delivery_status_processor_lambda_handler(event: any, context: any):
     """this method takes in an event passed in by either an alb.
@@ -74,9 +75,10 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
     except Exception as e:
         # Place request on dead letter queue so that it can be analyzed 
         #   for potential processing at a later time
-        logger.critical(f'Unknown Failure: {e}')
+        logger.critical("Unknown Failure: %s", e)
         push_to_sqs(event, DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER, False)
-    
+
+
 def valid_event(event: dict) -> bool:
     """
     Ensure that event data is from the ALB and that it contains 
@@ -85,7 +87,7 @@ def valid_event(event: dict) -> bool:
 
     if event is None:
       logger.error('event is None: %s', event)
-    elif "body" not in event or "headers" not in event :
+    elif "body" not in event or "headers" not in event:
       logger.error('Missing from event object: %s', event)
     elif "user-agent" not in event["headers"]:
       logger.error('Missing "user-agent" from: %s', event.get('headers'))
@@ -94,14 +96,16 @@ def valid_event(event: dict) -> bool:
     
     return False
 
-def event_to_celery_body_mapping(event:dict) -> dict | None:
+
+def event_to_celery_body_mapping(event: dict) -> dict | None:
     """
     Determines which SQS queue to send the message to based on the message type
     """
     if 'TwilioProxy' in event["headers"]["user-agent"]:
-        return { "body": event["body"], "provider": "twilio" }
+        return {"body": event["body"], "provider": "twilio"}
     else:
         return None
+
 
 def celery_body_to_celery_task(task_message: dict) -> dict:
     """
@@ -152,6 +156,7 @@ def celery_body_to_celery_task(task_message: dict) -> dict:
 
     return envelope
 
+
 def push_to_sqs(push_data: dict, queue_url: str, encode: bool) -> None:
     """
     Pushes an inbound sms or entire event to SQS. Sends to RETRY or DEAD LETTER queue dependent
@@ -161,7 +166,7 @@ def push_to_sqs(push_data: dict, queue_url: str, encode: bool) -> None:
     logger.info("Pushing to the %s queue . . .", queue_url)
     logger.debug("SQS push data: %s", push_data)
 
-    if (push_data is None):
+    if push_data is None:
         logger.critical("Unable to push data to SQS.  The data is being dropped: %s", push_data)
         return
 
@@ -170,11 +175,13 @@ def push_to_sqs(push_data: dict, queue_url: str, encode: bool) -> None:
             queue_msg = base64.b64encode(bytes(json.dumps(push_data), 'utf-8')).decode("utf-8")
         else:
             queue_msg = json.dumps(push_data)
+
     except TypeError as e:
         # Unable enqueue the data in any queue.  Don't try sending it to the dead letter queue.
         logger.exception(e)
         logger.critical(". . . Unable to generate queue_msg. The data is being dropped: %s", push_data)
         return
+    
     except Exception as e:
         # Unable enqueue the data in any queue.  Don't try sending it to the dead letter queue.
         logger.exception(e)
@@ -191,6 +198,7 @@ def push_to_sqs(push_data: dict, queue_url: str, encode: bool) -> None:
         )
 
         logger.info(". . . Completed the SQS push.")
+
     except Exception as e:
         logger.exception(e)
         logger.critical(". . . Failed to push to SQS with data: %s", push_data)
