@@ -6,6 +6,7 @@ import os
 import sys
 import uuid
 import base64
+from typing import Optional
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 CELERY_TASK = os.getenv("CELERY_TASK_NAME", "process-delivery-status-result")
@@ -97,7 +98,7 @@ def valid_event(event: dict) -> bool:
     return False
 
 
-def event_to_celery_body_mapping(event: dict) -> dict | None:
+def event_to_celery_body_mapping(event: dict) -> Optional[dict]:
     """
     Determines which SQS queue to send the message to based on the message type
     """
