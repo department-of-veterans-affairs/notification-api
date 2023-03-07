@@ -1,7 +1,5 @@
 import pytest
-import base64
 import os
-import json
 
 
 @pytest.fixture
