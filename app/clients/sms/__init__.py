@@ -25,8 +25,5 @@ class SmsClient(Client):
     def get_name(self):
         raise NotImplementedError('TODO Need to implement.')
     
-    def translate_delivery_status(self):
-        raise NotImplementedError('TODO Need to implement.')
-    
-    def should_retry_or_exit(self):
+    def translate_delivery_status(self) -> dict:
         raise NotImplementedError('TODO Need to implement.')

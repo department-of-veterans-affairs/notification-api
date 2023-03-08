@@ -1,6 +1,9 @@
 from monotonic import monotonic
 from app.clients.sms import SmsClient
 from twilio.rest import Client
+import base64
+import json
+from urllib.parse import parse_qs
 
 twilio_response_map = {
     'accepted': 'created',
@@ -13,6 +16,25 @@ twilio_response_map = {
     'received': 'received'
 }
 
+from app.models import (
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_TECHNICAL_FAILURE,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_SENT
+)
+
+twilio_notify_status_map ={
+  'accepted': NOTIFICATION_SENDING,
+  'scheduled': NOTIFICATION_SENDING,
+  'queued': NOTIFICATION_SENDING,
+  'sending': NOTIFICATION_SENDING,
+  'sent': NOTIFICATION_SENT,  
+  'delivered': NOTIFICATION_DELIVERED,
+  'undelivered': NOTIFICATION_PERMANENT_FAILURE,
+  'failed': NOTIFICATION_TECHNICAL_FAILURE,    
+  'canceled': NOTIFICATION_TECHNICAL_FAILURE
+}
 
 def get_twilio_responses(status):
     return twilio_response_map[status]
@@ -119,3 +141,12 @@ class TwilioSMSClient(SmsClient):
         finally:
             elapsed_time = monotonic() - start_time
             self.logger.info(f"Twilio send SMS request for {reference} finished in {elapsed_time}")
+
+    def translate_delivery_status(self, twilio_delivery_status_message) -> dict:
+        parsed_dict = parse_qs(twilio_delivery_status_message)
+        delivery_status = parsed_dict['MessageStatus'][0]
+
+        if delivery_status not in twilio_notify_status_map:
+            raise Exception(f"Invalid Twilio delivery status: {delivery_status}")
+        
+        return twilio_notify_status_map[delivery_status]
