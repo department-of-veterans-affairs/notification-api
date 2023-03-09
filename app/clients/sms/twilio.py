@@ -1,9 +1,15 @@
+import base64
 from monotonic import monotonic
 from app.clients.sms import SmsClient
 from twilio.rest import Client
-import base64
-import json
 from urllib.parse import parse_qs
+from app.models import (
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_TECHNICAL_FAILURE,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_SENT
+)
 
 twilio_response_map = {
     'accepted': 'created',
@@ -15,14 +21,6 @@ twilio_response_map = {
     'failed': 'technical-failure',
     'received': 'received'
 }
-
-from app.models import (
-    NOTIFICATION_DELIVERED,
-    NOTIFICATION_TECHNICAL_FAILURE,
-    NOTIFICATION_SENDING,
-    NOTIFICATION_PERMANENT_FAILURE,
-    NOTIFICATION_SENT
-)
 
 twilio_notify_status_map ={
   'accepted': NOTIFICATION_SENDING,
@@ -36,9 +34,21 @@ twilio_notify_status_map ={
   'canceled': NOTIFICATION_TECHNICAL_FAILURE
 }
 
+twilio_error_code_map = {
+    '30001': NOTIFICATION_TECHNICAL_FAILURE,
+    '30002': NOTIFICATION_PERMANENT_FAILURE,
+    '30003': NOTIFICATION_PERMANENT_FAILURE,
+    '30004': NOTIFICATION_PERMANENT_FAILURE,
+    '30005': NOTIFICATION_PERMANENT_FAILURE,
+    '30006': NOTIFICATION_PERMANENT_FAILURE,
+    '30007': NOTIFICATION_PERMANENT_FAILURE,
+    '30008': NOTIFICATION_TECHNICAL_FAILURE,
+    '30009': NOTIFICATION_TECHNICAL_FAILURE,
+    '30010': NOTIFICATION_TECHNICAL_FAILURE
+}
+
 def get_twilio_responses(status):
     return twilio_response_map[status]
-
 
 class TwilioSMSClient(SmsClient):
     def __init__(self,
@@ -142,11 +152,37 @@ class TwilioSMSClient(SmsClient):
             elapsed_time = monotonic() - start_time
             self.logger.info(f"Twilio send SMS request for {reference} finished in {elapsed_time}")
 
-    def translate_delivery_status(self, twilio_delivery_status_message) -> dict:
-        parsed_dict = parse_qs(twilio_delivery_status_message)
-        delivery_status = parsed_dict['MessageStatus'][0]
-
-        if delivery_status not in twilio_notify_status_map:
-            raise Exception(f"Invalid Twilio delivery status: {delivery_status}")
+    @staticmethod
+    def translate_delivery_status(twilio_delivery_status_message) -> dict:
+        if not twilio_delivery_status_message:
+            raise Exception("Twilio delivery status message is empty")
         
-        return twilio_notify_status_map[delivery_status]
+        decoded_msg = base64.b64decode(twilio_delivery_status_message).decode()
+
+        parsed_dict = parse_qs(decoded_msg)
+        
+        if 'MessageStatus' not in parsed_dict:
+            raise Exception("Twilio delivery status message is missing MessageStatus")
+
+        twilio_delivery_status = parsed_dict['MessageStatus'][0]
+
+        if twilio_delivery_status not in twilio_notify_status_map:
+            raise Exception("Invalid Twilio delivery status: %s", twilio_delivery_status)
+        
+        if 'ErrorCode' in parsed_dict and (twilio_delivery_status == 'failed' or twilio_delivery_status == 'undelivered'):
+            error_code = parsed_dict['ErrorCode'][0]
+
+            print("Error code: " + error_code)
+
+            if error_code in twilio_error_code_map:
+                notify_delivery_status = twilio_error_code_map[error_code]
+        else:
+            notify_delivery_status = twilio_notify_status_map[twilio_delivery_status]
+
+        translation = {
+            "attributes": parsed_dict,
+            "reference": parsed_dict['MessageSid'][0],
+            "record_status": notify_delivery_status
+        }
+
+        return translation
