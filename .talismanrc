@@ -347,3 +347,5 @@ fileignoreconfig:
       checksum: ee78cb3f234ca6b2fb28a2941ec4a44104d6866b8bb274c195847b8f609a8c88
     - filename: app/user/rest.py
       checksum: d04d6378dd6ce8b0046d6dc2c106ca87cf93ee555e03821e7970570c4b132450
+    - filename: tests/app/service/test_api_key_endpoints.py
+      checksum: 1ac2f66bdf3a93a8c0c71ea97a3f464fc885f98034012b5c85de05d883b324c0
