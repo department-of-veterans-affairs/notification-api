@@ -172,10 +172,10 @@ class TwilioSMSClient(SmsClient):
         if 'ErrorCode' in parsed_dict and (twilio_delivery_status == 'failed' or twilio_delivery_status == 'undelivered'):
             error_code = parsed_dict['ErrorCode'][0]
 
-            print("Error code: " + error_code)
-
             if error_code in twilio_error_code_map:
                 notify_delivery_status = twilio_error_code_map[error_code]
+            else:
+                notify_delivery_status = twilio_notify_status_map[twilio_delivery_status]
         else:
             notify_delivery_status = twilio_notify_status_map[twilio_delivery_status]
 

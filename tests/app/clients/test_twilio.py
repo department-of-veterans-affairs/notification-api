@@ -22,7 +22,6 @@ class MockSmsSenderObject():
     sms_sender_specifics = {}
 
 
-
 message_body_with_accepted_status = {
     "twilio_status": NOTIFICATION_SENDING,
     "message": "UmF3RmxvYXRJbmRlckRhdG09MjMwMzA5MjAyMSZTbXNTaWQ9UzJlNzAyOGMwZTBhNmYzZjY0YWM3N2E4YWY0OWVkZmY3JlNtc1N0YXR1cz1hY2NlcHRlZCZNZXNzYWdlU3RhdHVzPWFjY2VwdGVkJlRvPSUyQjE3MDM5MzI3OTY5Jk1lc3NhZ2VTaWQ9UzJlNzAyOGMwZTBhNmYzZjY0YWM3N2E4YWY0OWVkZmY3JkFjY291bnRTaWQ9QUMzNTIxNjg0NTBjM2EwOGM5ZTFiMWQ2OGM1NDc4ZGZmYw==",
@@ -125,6 +124,21 @@ message_body_with_failed_status_and_error_code_30010 = {
     "message": "eyJhcmdzIjogW3siTWVzc2FnZSI6IHsiYm9keSI6ICJSYXdEbHJEb25lRGF0ZT0yMzAzMDkyMDIxJkVycm9yQ29kZT0zMDAxMCZTbXNTaWQ9U014eHgmU21zU3RhdHVzPWZhaWxlZCZNZXNzYWdlU3RhdHVzPWZhaWxlZCZUbz0lMkIxMTExMTExMTExMSZNZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enomRnJvbT0lMkIxMjIyMjIyMjIyMiZBcGlWZXJzaW9uPTIwMTAtMDQtMDEiLCAicHJvdmlkZXIiOiAidHdpbGlvIn19XX0=",
 }
 
+message_body_with_failed_status_and_invalid_error_code = {
+    "twilio_status": NOTIFICATION_TECHNICAL_FAILURE,
+    "message": "eyJhcmdzIjogW3siTWVzc2FnZSI6IHsiYm9keSI6ICJSYXdEbHJEb25lRGF0ZT0yMzAzMDkyMDIxJkVycm9yQ29kZT0zMDAxMSZTbXNTaWQ9U014eHgmU21zU3RhdHVzPWZhaWxlZCZNZXNzYWdlU3RhdHVzPWZhaWxlZCZUbz0lMkIxMTExMTExMTExMSZNZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enomRnJvbT0lMkIxMjIyMjIyMjIyMiZBcGlWZXJzaW9uPTIwMTAtMDQtMDEiLCAicHJvdmlkZXIiOiAidHdpbGlvIn19XX0=",
+}
+
+message_body_with_no_message_status = {
+    "twilio_status": None,
+    "message": "eyJhcmdzIjogW3siTWVzc2FnZSI6IHsiYm9keSI6ICJSYXdEbHJEb25lRGF0ZT0yMzAzMDkyMDIxJkVycm9yQ29kZT0zMDAxMSZTbXNTaWQ9U014eHgmU21zU3RhdHVzPWZhaWxlZCZUbz0lMkIxMTExMTExMTExMSZNZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enomRnJvbT0lMkIxMjIyMjIyMjIyMiZBcGlWZXJzaW9uPTIwMTAtMDQtMDEiLCAicHJvdmlkZXIiOiAidHdpbGlvIn19XX0=",
+}
+
+message_body_with_invalid_message_status = {
+    "twilio_status": None,
+    "message": "eyJhcmdzIjogW3siTWVzc2FnZSI6IHsiYm9keSI6ICJSYXdEbHJEb25lRGF0ZT0yMzAzMDkyMDIxJkVycm9yQ29kZT0zMDAxMSZTbXNTaWQ9U014eHgmU21zU3RhdHVzPWZhaWxlZCZNZXNzYWdlU3RhdHVzPWludmFsaWQmVG89JTJCMTExMTExMTExMTEmTWVzc2FnZVNpZD1TTXl5eSZBY2NvdW50U2lkPUFDenp6JkZyb209JTJCMTIyMjIyMjIyMjImQXBpVmVyc2lvbj0yMDEwLTA0LTAxIiwgInByb3ZpZGVyIjogInR3aWxpbyJ9fV19",
+}
+
 @pytest.mark.parametrize(
     "event",
     [
@@ -160,6 +174,7 @@ def test_notification_mapping(event):
         (message_body_with_failed_status_and_error_code_30008),
         (message_body_with_failed_status_and_error_code_30009),
         (message_body_with_failed_status_and_error_code_30010),
+        (message_body_with_failed_status_and_invalid_error_code)
     ],
 )
 def test_error_code_mapping(event):
@@ -170,6 +185,20 @@ def test_error_code_mapping(event):
     assert "record_status" in translation
     assert translation["record_status"] == event["twilio_status"]
 
+def test_exception_on_empty_twilio_status_message():
+    with pytest.raises(Exception):
+        TwilioSMSClient.translate_delivery_status(None)
+
+def test_exception_on_missing_twilio_message_status():
+    with pytest.raises(Exception):
+        TwilioSMSClient.translate_delivery_status(message_body_with_no_message_status)
+
+def test_exception_on_invalid_twilio_status():
+    with pytest.raises(Exception):
+        TwilioSMSClient.translate_delivery_status(message_body_with_invalid_message_status)
+
+
+## SMS SENDING TESTS
 def make_twilio_message_response_dict():
     return {
         "account_sid": "TWILIO_TEST_ACCOUNT_SID_XXX",
