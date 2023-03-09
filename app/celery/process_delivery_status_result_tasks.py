@@ -38,22 +38,17 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
 
     # next parse the information into variables
     try:
-        provider_message = sqs_message['message']
-        provider_name = sqs_message['name']
-        provider_level_name = sqs_message['levelname']
-        provider_pathname = sqs_message['pathname']
-        provider_lineno = sqs_message['lineno']
-        provider_time = sqs_message['time']
-        provider_request_id = sqs_message['requestId']
-        provider_application = sqs_message['application']
-        provider_log_type = sqs_message['logType']
+        provider_name = sqs_message.get('provider')
+        body = sqs_message.get('body')
+        provider = SMSClient.get_provider_client(provider_name)
+        notification_platform_status = provider.translate_deliver_status(body)
+        provider.should_retry_or_exit()
     except KeyError as e:
         current_app.logger.error("The event stream message data is missing expected attributes.")
         current_app.logger.exception(e)
         current_app.logger.debug(sqs_message)
         self.retry(queue=QueueNames.RETRY)
         return None
-
 
     return True
 
