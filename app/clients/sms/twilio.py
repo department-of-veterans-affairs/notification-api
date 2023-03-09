@@ -8,53 +8,52 @@ from app.models import (
     NOTIFICATION_TECHNICAL_FAILURE,
     NOTIFICATION_SENDING,
     NOTIFICATION_PERMANENT_FAILURE,
-    NOTIFICATION_SENT
+    NOTIFICATION_SENT,
 )
 
 twilio_response_map = {
-    'accepted': 'created',
-    'queued': 'sending',
-    'sending': 'sending',
-    'sent': 'sent',
-    'delivered': 'delivered',
-    'undelivered': 'permanent-failure',
-    'failed': 'technical-failure',
-    'received': 'received'
+    "accepted": "created",
+    "queued": "sending",
+    "sending": "sending",
+    "sent": "sent",
+    "delivered": "delivered",
+    "undelivered": "permanent-failure",
+    "failed": "technical-failure",
+    "received": "received",
 }
 
-twilio_notify_status_map ={
-  'accepted': NOTIFICATION_SENDING,
-  'scheduled': NOTIFICATION_SENDING,
-  'queued': NOTIFICATION_SENDING,
-  'sending': NOTIFICATION_SENDING,
-  'sent': NOTIFICATION_SENT,  
-  'delivered': NOTIFICATION_DELIVERED,
-  'undelivered': NOTIFICATION_PERMANENT_FAILURE,
-  'failed': NOTIFICATION_TECHNICAL_FAILURE,    
-  'canceled': NOTIFICATION_TECHNICAL_FAILURE
+twilio_notify_status_map = {
+    "accepted": NOTIFICATION_SENDING,
+    "scheduled": NOTIFICATION_SENDING,
+    "queued": NOTIFICATION_SENDING,
+    "sending": NOTIFICATION_SENDING,
+    "sent": NOTIFICATION_SENT,
+    "delivered": NOTIFICATION_DELIVERED,
+    "undelivered": NOTIFICATION_PERMANENT_FAILURE,
+    "failed": NOTIFICATION_TECHNICAL_FAILURE,
+    "canceled": NOTIFICATION_TECHNICAL_FAILURE,
 }
 
 twilio_error_code_map = {
-    '30001': NOTIFICATION_TECHNICAL_FAILURE,
-    '30002': NOTIFICATION_PERMANENT_FAILURE,
-    '30003': NOTIFICATION_PERMANENT_FAILURE,
-    '30004': NOTIFICATION_PERMANENT_FAILURE,
-    '30005': NOTIFICATION_PERMANENT_FAILURE,
-    '30006': NOTIFICATION_PERMANENT_FAILURE,
-    '30007': NOTIFICATION_PERMANENT_FAILURE,
-    '30008': NOTIFICATION_TECHNICAL_FAILURE,
-    '30009': NOTIFICATION_TECHNICAL_FAILURE,
-    '30010': NOTIFICATION_TECHNICAL_FAILURE
+    "30001": NOTIFICATION_TECHNICAL_FAILURE,
+    "30002": NOTIFICATION_PERMANENT_FAILURE,
+    "30003": NOTIFICATION_PERMANENT_FAILURE,
+    "30004": NOTIFICATION_PERMANENT_FAILURE,
+    "30005": NOTIFICATION_PERMANENT_FAILURE,
+    "30006": NOTIFICATION_PERMANENT_FAILURE,
+    "30007": NOTIFICATION_PERMANENT_FAILURE,
+    "30008": NOTIFICATION_TECHNICAL_FAILURE,
+    "30009": NOTIFICATION_TECHNICAL_FAILURE,
+    "30010": NOTIFICATION_TECHNICAL_FAILURE,
 }
+
 
 def get_twilio_responses(status):
     return twilio_response_map[status]
 
+
 class TwilioSMSClient(SmsClient):
-    def __init__(self,
-                 account_sid=None,
-                 auth_token=None,
-                 *args, **kwargs):
+    def __init__(self, account_sid=None, auth_token=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._account_sid = account_sid
         self._auth_token = auth_token
@@ -66,7 +65,7 @@ class TwilioSMSClient(SmsClient):
 
     @property
     def name(self):
-        return 'twilio'
+        return "twilio"
 
     def get_name(self):
         return self.name
@@ -91,8 +90,9 @@ class TwilioSMSClient(SmsClient):
             # Importing inline to resolve a circular import error when importing at the top of the file
             from app.dao.service_sms_sender_dao import (
                 dao_get_service_sms_sender_by_service_id_and_number,
-                dao_get_service_sms_sender_by_id
+                dao_get_service_sms_sender_by_id,
             )
+
             from_number = None
             messaging_service_sid = None
             sms_sender_id = kwargs.get("sms_sender_id")
@@ -103,20 +103,23 @@ class TwilioSMSClient(SmsClient):
                 # This is an instance of ServiceSmsSender or None.
                 service_sms_sender = dao_get_service_sms_sender_by_id(
                     service_id=kwargs.get("service_id"),
-                    service_sms_sender_id=sms_sender_id
+                    service_sms_sender_id=sms_sender_id,
                 )
             else:
                 # This is an instance of ServiceSmsSender or None.
-                service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-                    service_id=kwargs.get("service_id"),
-                    number=kwargs.get("sender")
+                service_sms_sender = (
+                    dao_get_service_sms_sender_by_service_id_and_number(
+                        service_id=kwargs.get("service_id"), number=kwargs.get("sender")
+                    )
                 )
 
             if service_sms_sender is not None:
                 from_number = service_sms_sender.sms_sender
 
                 if service_sms_sender.sms_sender_specifics is not None:
-                    messaging_service_sid = service_sms_sender.sms_sender_specifics.get("messaging_service_sid")
+                    messaging_service_sid = service_sms_sender.sms_sender_specifics.get(
+                        "messaging_service_sid"
+                    )
 
                     self.logger.info("Twilio sender has sms_sender_specifics")
 
@@ -142,7 +145,9 @@ class TwilioSMSClient(SmsClient):
 
                 self.logger.info(f"Twilio message created using messaging_service_sid")
 
-            self.logger.info(f"Twilio send SMS request for {reference} succeeded: {message.sid}")
+            self.logger.info(
+                f"Twilio send SMS request for {reference} succeeded: {message.sid}"
+            )
 
             return message.sid
         except Exception as e:
@@ -150,39 +155,48 @@ class TwilioSMSClient(SmsClient):
             raise e
         finally:
             elapsed_time = monotonic() - start_time
-            self.logger.info(f"Twilio send SMS request for {reference} finished in {elapsed_time}")
+            self.logger.info(
+                f"Twilio send SMS request for {reference} finished in {elapsed_time}"
+            )
 
     @staticmethod
     def translate_delivery_status(twilio_delivery_status_message) -> dict:
         if not twilio_delivery_status_message:
             raise Exception("Twilio delivery status message is empty")
-        
+
         decoded_msg = base64.b64decode(twilio_delivery_status_message).decode()
 
         parsed_dict = parse_qs(decoded_msg)
-        
-        if 'MessageStatus' not in parsed_dict:
+
+        if "MessageStatus" not in parsed_dict:
             raise Exception("Twilio delivery status message is missing MessageStatus")
 
-        twilio_delivery_status = parsed_dict['MessageStatus'][0]
+        twilio_delivery_status = parsed_dict["MessageStatus"][0]
 
         if twilio_delivery_status not in twilio_notify_status_map:
-            raise Exception("Invalid Twilio delivery status: %s", twilio_delivery_status)
-        
-        if 'ErrorCode' in parsed_dict and (twilio_delivery_status == 'failed' or twilio_delivery_status == 'undelivered'):
-            error_code = parsed_dict['ErrorCode'][0]
+            raise Exception(
+                "Invalid Twilio delivery status: %s", twilio_delivery_status
+            )
+
+        if "ErrorCode" in parsed_dict and (
+            twilio_delivery_status == "failed"
+            or twilio_delivery_status == "undelivered"
+        ):
+            error_code = parsed_dict["ErrorCode"][0]
 
             if error_code in twilio_error_code_map:
                 notify_delivery_status = twilio_error_code_map[error_code]
             else:
-                notify_delivery_status = twilio_notify_status_map[twilio_delivery_status]
+                notify_delivery_status = twilio_notify_status_map[
+                    twilio_delivery_status
+                ]
         else:
             notify_delivery_status = twilio_notify_status_map[twilio_delivery_status]
 
         translation = {
             "attributes": parsed_dict,
-            "reference": parsed_dict['MessageSid'][0],
-            "record_status": notify_delivery_status
+            "reference": parsed_dict["MessageSid"][0],
+            "record_status": notify_delivery_status,
         }
 
         return translation

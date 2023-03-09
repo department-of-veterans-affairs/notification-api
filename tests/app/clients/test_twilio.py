@@ -12,12 +12,12 @@ from app.models import (
     NOTIFICATION_TECHNICAL_FAILURE,
     NOTIFICATION_SENDING,
     NOTIFICATION_PERMANENT_FAILURE,
-    NOTIFICATION_SENT
+    NOTIFICATION_SENT,
 )
 from app.clients.sms.twilio import TwilioSMSClient
 
 
-class MockSmsSenderObject():
+class MockSmsSenderObject:
     sms_sender = ""
     sms_sender_specifics = {}
 
@@ -139,6 +139,7 @@ message_body_with_invalid_message_status = {
     "message": "eyJhcmdzIjogW3siTWVzc2FnZSI6IHsiYm9keSI6ICJSYXdEbHJEb25lRGF0ZT0yMzAzMDkyMDIxJkVycm9yQ29kZT0zMDAxMSZTbXNTaWQ9U014eHgmU21zU3RhdHVzPWZhaWxlZCZNZXNzYWdlU3RhdHVzPWludmFsaWQmVG89JTJCMTExMTExMTExMTEmTWVzc2FnZVNpZD1TTXl5eSZBY2NvdW50U2lkPUFDenp6JkZyb209JTJCMTIyMjIyMjIyMjImQXBpVmVyc2lvbj0yMDEwLTA0LTAxIiwgInByb3ZpZGVyIjogInR3aWxpbyJ9fV19",
 }
 
+
 @pytest.mark.parametrize(
     "event",
     [
@@ -161,6 +162,7 @@ def test_notification_mapping(event):
     assert "record_status" in translation
     assert translation["record_status"] == event["twilio_status"]
 
+
 @pytest.mark.parametrize(
     "event",
     [
@@ -174,7 +176,7 @@ def test_notification_mapping(event):
         (message_body_with_failed_status_and_error_code_30008),
         (message_body_with_failed_status_and_error_code_30009),
         (message_body_with_failed_status_and_error_code_30010),
-        (message_body_with_failed_status_and_invalid_error_code)
+        (message_body_with_failed_status_and_invalid_error_code),
     ],
 )
 def test_error_code_mapping(event):
@@ -185,17 +187,22 @@ def test_error_code_mapping(event):
     assert "record_status" in translation
     assert translation["record_status"] == event["twilio_status"]
 
+
 def test_exception_on_empty_twilio_status_message():
     with pytest.raises(Exception):
         TwilioSMSClient.translate_delivery_status(None)
+
 
 def test_exception_on_missing_twilio_message_status():
     with pytest.raises(Exception):
         TwilioSMSClient.translate_delivery_status(message_body_with_no_message_status)
 
+
 def test_exception_on_invalid_twilio_status():
     with pytest.raises(Exception):
-        TwilioSMSClient.translate_delivery_status(message_body_with_invalid_message_status)
+        TwilioSMSClient.translate_delivery_status(
+            message_body_with_invalid_message_status
+        )
 
 
 ## SMS SENDING TESTS
@@ -220,64 +227,74 @@ def make_twilio_message_response_dict():
         "status": "sent",
         "subresource_uris": {
             "media": "/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages"
-                     "/SMXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/Media.json"
+            "/SMXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/Media.json"
         },
         "to": "+14155552345",
         "uri": "/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages/SMXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.json",
     }
 
 
-@pytest.mark.parametrize('status', ['queued', 'sending'])
+@pytest.mark.parametrize("status", ["queued", "sending"])
 def test_should_return_correct_details_for_sending(status):
-    assert get_twilio_responses(status) == 'sending'
+    assert get_twilio_responses(status) == "sending"
 
 
 def test_should_return_correct_details_for_sent():
-    assert get_twilio_responses('sent') == 'sent'
+    assert get_twilio_responses("sent") == "sent"
 
 
 def test_should_return_correct_details_for_delivery():
-    assert get_twilio_responses('delivered') == 'delivered'
+    assert get_twilio_responses("delivered") == "delivered"
 
 
 def test_should_return_correct_details_for_bounce():
-    assert get_twilio_responses('undelivered') == 'permanent-failure'
+    assert get_twilio_responses("undelivered") == "permanent-failure"
 
 
 def test_should_return_correct_details_for_technical_failure():
-    assert get_twilio_responses('failed') == 'technical-failure'
+    assert get_twilio_responses("failed") == "technical-failure"
 
 
 def test_should_be_raise_if_unrecognised_status_code():
     with pytest.raises(KeyError) as e:
-        get_twilio_responses('unknown_status')
-    assert 'unknown_status' in str(e.value)
+        get_twilio_responses("unknown_status")
+    assert "unknown_status" in str(e.value)
 
 
 def test_send_sms_calls_twilio_correctly(notify_api, mocker):
-    to = '+61412345678'
-    content = 'my message'
-    reference = 'my reference'
+    to = "+61412345678"
+    content = "my message"
+    reference = "my reference"
 
     response_dict = make_twilio_message_response_dict()
 
     with requests_mock.Mocker() as request_mock:
-        request_mock.post('https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json',
-                          json=response_dict, status_code=200)
+        request_mock.post(
+            "https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json",
+            json=response_dict,
+            status_code=200,
+        )
         twilio_sms_client.send_sms(to, content, reference)
 
     assert request_mock.call_count == 1
     req = request_mock.request_history[0]
-    assert req.url == 'https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json'
-    assert req.method == 'POST'
+    assert (
+        req.url
+        == "https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json"
+    )
+    assert req.method == "POST"
 
     d = dict(parse_qsl(req.text))
     assert d["To"] == "+61412345678"
     assert d["Body"] == "my message"
 
 
-@pytest.mark.parametrize("sms_sender_id", ["test_sender_id", None], ids=["has sender id", "no sender id"])
-def test_send_sms_call_with_sender_id_and_specifics(sample_service, notify_api, mocker, sms_sender_id):
+@pytest.mark.parametrize(
+    "sms_sender_id", ["test_sender_id", None], ids=["has sender id", "no sender id"]
+)
+def test_send_sms_call_with_sender_id_and_specifics(
+    sample_service, notify_api, mocker, sms_sender_id
+):
     to = "+61412345678"
     content = "my message"
     reference = "my reference"
@@ -296,15 +313,22 @@ def test_send_sms_call_with_sender_id_and_specifics(sample_service, notify_api, 
     sms_sender_with_specifics.sms_sender = "+18194120710"
 
     with requests_mock.Mocker() as request_mock:
-        request_mock.post("https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json",
-                          json=response_dict, status_code=200)
+        request_mock.post(
+            "https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json",
+            json=response_dict,
+            status_code=200,
+        )
 
         if sms_sender_id is not None:
-            mocker.patch("app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_id",
-                         return_value=sms_sender_with_specifics)
+            mocker.patch(
+                "app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_id",
+                return_value=sms_sender_with_specifics,
+            )
         else:
-            mocker.patch("app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_service_id_and_number",
-                         return_value=sms_sender_with_specifics)
+            mocker.patch(
+                "app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_service_id_and_number",
+                return_value=sms_sender_with_specifics,
+            )
 
         twilio_sid = twilio_sms_client.send_sms(
             to,
@@ -312,14 +336,17 @@ def test_send_sms_call_with_sender_id_and_specifics(sample_service, notify_api, 
             reference,
             service_id="test_service_id",
             sender="test_sender",
-            sms_sender_id=sms_sender_id
+            sms_sender_id=sms_sender_id,
         )
 
-    assert response_dict['sid'] == twilio_sid
+    assert response_dict["sid"] == twilio_sid
 
     assert request_mock.call_count == 1
     req = request_mock.request_history[0]
-    assert req.url == "https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json"
+    assert (
+        req.url
+        == "https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json"
+    )
     assert req.method == "POST"
 
     d = dict(parse_qsl(req.text))
@@ -330,9 +357,9 @@ def test_send_sms_call_with_sender_id_and_specifics(sample_service, notify_api, 
 
 
 def test_send_sms_sends_from_hardcoded_number(notify_api, mocker):
-    to = '+61412345678'
-    content = 'my message'
-    reference = 'my reference'
+    to = "+61412345678"
+    content = "my message"
+    reference = "my reference"
 
     response_dict = make_twilio_message_response_dict()
 
@@ -340,10 +367,15 @@ def test_send_sms_sends_from_hardcoded_number(notify_api, mocker):
     sms_sender_mock.sms_sender = "+18194120710"
 
     with requests_mock.Mocker() as request_mock:
-        request_mock.post('https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json',
-                          json=response_dict, status_code=200)
-        mocker.patch('app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_service_id_and_number',
-                     return_value=sms_sender_mock)
+        request_mock.post(
+            "https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json",
+            json=response_dict,
+            status_code=200,
+        )
+        mocker.patch(
+            "app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_service_id_and_number",
+            return_value=sms_sender_mock,
+        )
         twilio_sms_client.send_sms(to, content, reference)
 
     req = request_mock.request_history[0]
@@ -353,18 +385,20 @@ def test_send_sms_sends_from_hardcoded_number(notify_api, mocker):
 
 
 def test_send_sms_raises_if_twilio_rejects(notify_api, mocker):
-    to = '+61412345678'
-    content = 'my message'
-    reference = 'my reference'
+    to = "+61412345678"
+    content = "my message"
+    reference = "my reference"
 
-    response_dict = {
-        'code': 60082,
-        'message': 'it did not work'
-    }
+    response_dict = {"code": 60082, "message": "it did not work"}
 
-    with pytest.raises(TwilioRestException) as exc, requests_mock.Mocker() as request_mock:
-        request_mock.post('https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json',
-                          json=response_dict, status_code=400)
+    with pytest.raises(
+        TwilioRestException
+    ) as exc, requests_mock.Mocker() as request_mock:
+        request_mock.post(
+            "https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json",
+            json=response_dict,
+            status_code=400,
+        )
         twilio_sms_client.send_sms(to, content, reference)
 
     assert exc.value.status == 400
@@ -373,13 +407,16 @@ def test_send_sms_raises_if_twilio_rejects(notify_api, mocker):
 
 
 def test_send_sms_raises_if_twilio_fails_to_return_json(notify_api, mocker):
-    to = '+61412345678'
-    content = 'my message'
-    reference = 'my reference'
+    to = "+61412345678"
+    content = "my message"
+    reference = "my reference"
 
-    response_dict = 'not JSON'
+    response_dict = "not JSON"
 
     with pytest.raises(ValueError), requests_mock.Mocker() as request_mock:
-        request_mock.post('https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json',
-                          text=response_dict, status_code=200)
+        request_mock.post(
+            "https://api.twilio.com/2010-04-01/Accounts/TWILIO_TEST_ACCOUNT_SID_XXX/Messages.json",
+            text=response_dict,
+            status_code=200,
+        )
         twilio_sms_client.send_sms(to, content, reference)
