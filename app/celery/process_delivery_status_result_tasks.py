@@ -6,11 +6,11 @@ from app.config import QueueNames
 from app.celery.process_pinpoint_inbound_sms import CeleryEvent
 from app.celery.process_pinpoint_receipt_tasks import attempt_to_get_notification
 import json
-
+import datetime
 
 # Create SQS Queue for Process Deliver Status.
 @notify_celery.task(bind=True, name="process-delivery-status-result", max_retries=48, default_retry_delay=300)
-def process_delivery_status(self, event: CeleryEvent) -> bool:
+def process_delivery_status(self, event: CeleryEvent):
 
     # log that we are processing the delivery status
     current_app.logger.info('processing delivery status: %s', event)
@@ -21,7 +21,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     except (json.decoder.JSONDecodeError, ValueError, TypeError, KeyError) as e:
         current_app.logger.exception(e)
         self.retry(queue=QueueNames.RETRY)
-        return False
+        return None
 
     # next parse the information into variables
     try:
@@ -30,27 +30,35 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         if provider_name == 'twilio':
             notification_platform_status = TwilioSMSClient.translate_delivery_status(body)
         else:
-            raise Exception('Unknown provider: %s', provider_name)
+            raise Exception("Unknown Provider: %s", provider_name)
+
+        reference = notification_platform_status.get("reference")
+        notification_status = notification_platform_status.get("record_status")
+        number_of_message_parts = notification_platform_status.get("number_of_message_parts", 0)
+        price_in_millicents_usd = notification_platform_status.get("price_in_millicents_usd", 0.0)
 
     except KeyError as e:
         current_app.logger.error("The event stream message data is missing expected attributes.")
         current_app.logger.exception(e)
         current_app.logger.debug(sqs_message)
         self.retry(queue=QueueNames.RETRY)
-        return False
+        return None
+
+    current_app.logger.info(
+        "Processing Notification Delivery Status. | reference=%s | notification_status=%s | "
+        "number_of_message_parts=%s | price_in_millicents_usd=%s",
+        reference, notification_status, number_of_message_parts, price_in_millicents_usd
+    )
 
     try:
         ###############################################################################
         # retrieves the inbound message for this provider
         # we are updating the status of the outbound message
         ###############################################################################
-        notification, should_retry, should_exit = attempt_to_get_notification(
-            notification_platform_status.reference,
-            notification_platform_status.record_status,
-            # notification_platform_status.event_timestamp
-            datetime.datetime.utcnow()
-            # python get current date pinpoint_message['event_timestamp']
+        notification, should_retry, should_exit = app.celery.process_pinpoint_receipt_tasks.attempt_to_get_notification(
+            reference, notification_status, datetime.datetime.now()
         )
+
         ######################################################################
         # the race condition scenario
         # if we got the delivery status before we actually record the sms
@@ -59,7 +67,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
             self.retry(queue=QueueNames.RETRY)
 
         if should_exit:
-            return False
+            return
 
         assert notification is not None
 
@@ -79,20 +87,19 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
             )
 
         current_app.logger.info(
-            "SQS Delivery callback return status of %s for notification: %s",
+            "Delivery Status callback return status of %s for notification: %s",
             notification_status, notification.id
         )
 
         # todo: get with kyle / lucas on statsd equivalent twilio
         # statsd - metric tracking of # of messages sent
-        statsd_client.incr(f"callback.[sqs_delivery_name].{notification_status}")
+        statsd_client.incr(f"callback.{provider_name}.{notification_status}")
 
         if notification.sent_at:
             statsd_client.timing_with_dates(
-                'callback.[sqs_delivery_name].elapsed-time', datetime.datetime.utcnow(), notification.sent_at)
+                'callback.{provider_name}.elapsed-time', datetime.datetime.utcnow(), notification.sent_at)
 
         check_and_queue_callback_task(notification)
-
         return True
 
     except Retry:
@@ -104,13 +111,3 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         self.retry(queue=QueueNames.RETRY)
 
     return False
-
-    # GET THE twilio client
-    # provider = SMSClient.get_provider_client(message.get('provider'))
-
-    # using twilio client
-    # provider.translate_delivery_status()
-    # provider.should_retry_or_exit()
-    # update_notification()
-    # check_and_queue_callback_task(notification)
-
