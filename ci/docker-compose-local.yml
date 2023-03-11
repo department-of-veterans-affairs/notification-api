@@ -3,7 +3,7 @@ services:
   datadog:
     build:
       context: ..
-      dockerfile: ci/Dockerfile.local
+      dockerfile: ci/Dockerfile.datadog
     image: datadog_agent
     volumes:
       - "../:/app:ro"
