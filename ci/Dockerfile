@@ -8,6 +8,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
   REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
   PORT=6011 \
   GIT_SHA=${GIT_SHA}
+  DD_ENV=${DD_ENV} \
+  DD_SERVICE=${DD_SERVICE} \
+  DD_VERSION=${DD_VERSION}
 
 COPY ./certs/* /usr/local/share/ca-certificates/
 
