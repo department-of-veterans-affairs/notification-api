@@ -5,6 +5,15 @@ services:
       context: ..
       dockerfile: ci/Dockerfile.datadog
     image: datadog_agent
+    environment:
+      - DD_API_KEY=5e9b74cd7bd488772ad4353d6dcc6ad1
+      - DD_SITE=datadoghq.com
+      - DD_LOGS_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DD_PROCESS_AGENT_ENABLED=true
+      - DD_DOCKER_LABELS_AS_TAGS={"my.custom.label.team":"team"}
+      - DD_TAGS='env:dd101-dev'
+      - DD_HOSTNAME=dd101-dev-host
     volumes:
       - "../:/app:ro"
         #the following volumes mount the files on the host filesystem into the container. This gives the Agent the ability to query the Docker Daemon for data about the Docker environment, as well as process data from the host itself.
