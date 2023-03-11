@@ -6,7 +6,8 @@ services:
       dockerfile: ci/Dockerfile.datadog
     image: datadog_agent
     environment:
-      - GOV_DATADOG_API_KEY
+      #- GOV_DATADOG_API_KEY
+      - DD_API_KEY
       - DD_SITE
       - DD_TAGS='env:dd101-local-dev,user:$USER'
       - DD_HOSTNAME='dd101-local-dev-host-$USER'
