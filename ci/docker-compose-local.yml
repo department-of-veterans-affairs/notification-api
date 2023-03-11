@@ -7,11 +7,10 @@ services:
     image: datadog_agent
     environment:
       #- GOV_DATADOG_API_KEY
-      #- DD_API_KEY=5e9b74cd7bd488772ad4353d6dcc6ad1
       - DD_API_KEY
-      - DD_SITE=datadoghq.com
-      - DD_TAGS='env:dd101-local-dev-gov'
-      - DD_HOSTNAME='dd101-local-dev-host-gov'
+      - DD_SITE
+      - DD_TAGS='env:dd101-local-dev-gov-pre'
+      - DD_HOSTNAME='dd101-local-dev-host-gov-pre'
       - DD_LOGS_ENABLED=true
       - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
       - DD_PROCESS_AGENT_ENABLED=true
