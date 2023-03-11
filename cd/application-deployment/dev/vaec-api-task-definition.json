@@ -35,14 +35,6 @@
           "value": "True"
         },
         {
-          "name": "DD_ENV",
-          "value": "dev"
-        },
-        {
-          "name": "DD_SERVICE",
-          "value": "notification-api"
-        },
-        {
           "name": "API_MESSAGE_LIMIT_ENABLED",
           "value": "True"
         },
