@@ -41,20 +41,23 @@ RUN apk add --no-cache make \
 USER vanotify
 
 ENV PORT=6011
+#I'm pretty sure these two lines are doing nothing right now
+#Because our Github Actions build.yml does not declare GIT_SHA
+#
 ARG GIT_SHA
 ENV GIT_SHA ${GIT_SHA}
 
 # These ARGs are used to set the labels on the image, specifically for Datadog
 # They are declared either by docker-compose grabbing them from the shell OR Github Actions Workflow
-ARG ENV
-ARG SERVICE
+ENV ENV
+ENV SERVICE
 # VERSION is the $(git rev-parse HEAD) of the repo
-ARG VERSION
+ENV VERSION
 
 # Set the labels on the image, specifically for Datadog
-LABEL "com.datadoghq.tags.env"="${ENV}"
-LABEL "com.datadoghq.tags.service"="${SERVICE}"
-LABEL "com.datadoghq.tags.version"="${VERSION}"
+LABEL "com.datadoghq.tags.env"="$ENV"
+LABEL "com.datadoghq.tags.service"="$SERVICE"
+LABEL "com.datadoghq.tags.version"="$VERSION"
 LABEL "my.custom.label.team"="team-test-custom-label"
 
 ENTRYPOINT ["./scripts/save_certificate.sh"]
