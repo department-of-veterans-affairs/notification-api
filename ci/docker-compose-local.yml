@@ -8,12 +8,6 @@ services:
     environment:
       - DD_API_KEY
       - DD_SITE
-      - DD_TAGS='env:dd101-dev2'
-      - DD_HOSTNAME='dd101-dev-host2'
-      - DD_LOGS_ENABLED=true
-      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
-      - DD_PROCESS_AGENT_ENABLED=true
-      - DD_DOCKER_LABELS_AS_TAGS={"my.custom.label.team":"team"}
     volumes:
       - "../:/app:ro"
         #the following volumes mount the files on the host filesystem into the container. This gives the Agent the ability to query the Docker Daemon for data about the Docker environment, as well as process data from the host itself.

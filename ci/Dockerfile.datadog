@@ -12,8 +12,10 @@ RUN /usr/sbin/update-ca-certificates
 COPY ./scripts/datadog_expose_task_arn.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+#ARGS will be set by either docker-compose or the github actions workflow environment variables
 ARG DD_API_KEY
 ARG DD_SITE
+
 ENV DD_TAGS='env:dd101-dev2'
 ENV DD_HOSTNAME='dd101-dev-host2'
 ENV DD_LOGS_ENABLED=true
