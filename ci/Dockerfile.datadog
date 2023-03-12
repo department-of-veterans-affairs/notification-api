@@ -13,8 +13,8 @@ COPY ./scripts/datadog_expose_task_arn.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 #These ENV will be set by either docker-compose or the github actions workflow environment variables
-ENV DD_API_KEY
-ENV DD_SITE
+ENV DD_API_KEY=$DD_API_KEY
+ENV DD_SITE=$DD_SITE
 
 ENV DD_TAGS='env:dd101-dev2'
 ENV DD_HOSTNAME='dd101-dev-host2'
