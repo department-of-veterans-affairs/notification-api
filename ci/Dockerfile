@@ -44,5 +44,16 @@ ENV PORT=6011
 ARG GIT_SHA
 ENV GIT_SHA ${GIT_SHA}
 
+# These ARGs are used to set the labels on the image, specifically for Datadog
+ARG ENV
+ARG SERVICE
+ARG VERSION
+
+# Set the labels on the image, specifically for Datadog
+LABEL "com.datadoghq.tags.env"="${ENV}"
+LABEL "com.datadoghq.tags.service"="${SERVICE}"
+LABEL "com.datadoghq.tags.version"="${VERSION}"
+LABEL "my.custom.label.team"="team-test-custom-label"
+
 ENTRYPOINT ["./scripts/save_certificate.sh"]
 CMD ["sh", "-c", "gunicorn -c gunicorn_config.py application"]
