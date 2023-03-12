@@ -51,7 +51,7 @@ ENV GIT_SHA ${GIT_SHA}
 # They are declared either by docker-compose grabbing them from the shell OR Github Actions Workflow
 ENV ENV=$ENV
 ENV SERVICE=$SERVICE
-# VERSION is the $(git rev-parse HEAD) of the repo
+# VERSION is the $(git rev-parse HEAD) of the repo (SHA-1 hash)
 ENV VERSION=$VERSION
 
 # Set the labels on the image, specifically for Datadog

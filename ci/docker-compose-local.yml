@@ -5,9 +5,6 @@ services:
       context: ..
       dockerfile: ci/Dockerfile.datadog
     image: datadog_agent
-    environment:
-      - DD_API_KEY
-      - DD_SITE
     volumes:
       - "../:/app:ro"
         #the following volumes mount the files on the host filesystem into the container. This gives the Agent the ability to query the Docker Daemon for data about the Docker environment, as well as process data from the host itself.
@@ -19,10 +16,6 @@ services:
       context: ..
       dockerfile: ci/Dockerfile.local
     image: notification_api
-    environment:
-      - ENV
-      - SERVICE
-      - VERSION
     volumes:
       - "../:/app:ro"
     ports:
