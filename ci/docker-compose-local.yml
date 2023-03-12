@@ -19,6 +19,10 @@ services:
       context: ..
       dockerfile: ci/Dockerfile.local
     image: notification_api
+    environment:
+      - ENV
+      - SERVICE
+      - VERSION
     volumes:
       - "../:/app:ro"
     ports:

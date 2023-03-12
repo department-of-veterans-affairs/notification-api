@@ -45,7 +45,7 @@ ARG GIT_SHA
 ENV GIT_SHA ${GIT_SHA}
 
 # These ARGs are used to set the labels on the image, specifically for Datadog
-# They are declared either by the shell or Github Actions Workflow
+# They are declared either by docker-compose grabbing them from the shell OR Github Actions Workflow
 ARG ENV
 ARG SERVICE
 # VERSION is the $(git rev-parse HEAD) of the repo
