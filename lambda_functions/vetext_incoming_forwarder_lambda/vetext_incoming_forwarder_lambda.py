@@ -63,6 +63,10 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
 
 def create_twilio_response(status_code: int = 200):
     response = {
+        "headers": {
+            "Content-Type": "text/xml"
+        },
+        "body": "<Response />",
         "statusCode": status_code
     }
 
