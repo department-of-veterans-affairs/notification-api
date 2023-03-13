@@ -35,10 +35,6 @@ jobs:
 
       - name: Docker Build
         uses: docker/build-push-action@v3
-        env:
-          DD_ENV: ${{ inputs.environment }}
-          DD_SERVICE: notification-api
-          DD_VERSION: ${{ inputs.ref }}
         with:
           file: ci/Dockerfile
           context: .

@@ -3,17 +3,11 @@
 FROM python:3.8-alpine3.15
 
 ARG GIT_SHA
-ARG DD_ENV
-ARG DD_SERVICE
-ARG DD_VERSION
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
   REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
   PORT=6011 \
-  GIT_SHA=${GIT_SHA}\
-  DD_ENV=${DD_ENV} \
-  DD_SERVICE=${DD_SERVICE} \
-  DD_VERSION=${DD_VERSION}
+  GIT_SHA=${GIT_SHA}
 
 COPY ./certs/* /usr/local/share/ca-certificates/
 

@@ -30,12 +30,6 @@ create_app(application)
 # this starts the ddtrace tracer and configures it to the right port and URL
 patch_all()
 #This starts the Datadog profiler
-#I chose to add the environment variables to the dockerfile, 
-#for optimal reporting on the Datadog side, 
-#such as seeing performance distinguisment between environments and app versions
-prof = Profiler(
-    env=os.environ.get("DD_ENV"),  # use the DD_ENV environment variable, or None if it's not set
-    service=os.environ.get("DD_SERVICE"),  # use the DD_SERVICE environment variable, or None if it's not set
-    version=os.environ.get("DD_VERSION"),  # use the DD_VERSION environment variable, or None if it's not set
-)
-prof.start()  # Should be as early as possible, eg before other imports, to ensure everything is profiled
+# Should be as early as possible, eg before other imports, to ensure everything is profiled
+prof = Profiler()
+prof.start()  
