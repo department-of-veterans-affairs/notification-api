@@ -3,6 +3,9 @@
 FROM python:3.8-alpine3.15
 
 ARG GIT_SHA
+ARG DD_ENV
+ARG DD_SERVICE
+ARG DD_VERSION
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
   REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
