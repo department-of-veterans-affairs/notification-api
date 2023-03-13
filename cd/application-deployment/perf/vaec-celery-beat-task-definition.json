@@ -41,6 +41,14 @@
           "value": "True"
         },
         {
+          "name": "DD_ENV",
+          "value": "perf"
+        },
+        {
+          "name": "DD_SERVICE",
+          "value": "celery-beat"
+        },
+        {
           "name": "NOTIFICATION_QUEUE_PREFIX",
           "value": "perf-notification-"
         },

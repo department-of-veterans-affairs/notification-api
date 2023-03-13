@@ -45,6 +45,14 @@
           "value": "True"
         },
         {
+          "name": "DD_ENV",
+          "value": "staging"
+        },
+        {
+          "name": "DD_SERVICE",
+          "value": "celery-beat"
+        },
+        {
           "name": "NOTIFICATION_QUEUE_PREFIX",
           "value": "staging-notification-"
         },

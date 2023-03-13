@@ -41,6 +41,14 @@
           "value": "True"
         },
         {
+          "name": "DD_ENV",
+          "value": "staging"
+        },
+        {
+          "name": "DD_SERVICE",
+          "value": "celery"
+        },
+        {
           "name": "SMS_SENDER_RATE_LIMIT_ENABLED",
           "value": "True"
         },

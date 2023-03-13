@@ -45,6 +45,14 @@
           "value": "True"
         },
         {
+          "name": "DD_ENV",
+          "value": "prod"
+        },
+        {
+          "name": "DD_SERVICE",
+          "value": "celery"
+        },
+        {
           "name": "NOTIFICATION_QUEUE_PREFIX",
           "value": "prod-notification-"
         },
