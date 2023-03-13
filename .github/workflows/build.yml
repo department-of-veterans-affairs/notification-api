@@ -33,18 +33,12 @@ jobs:
         id: login-ecr-vaec
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Get Latest Git Tag
-        id: get-latest-tag
-        run: |
-          TAG=$(git describe --tags --abbrev=0)
-          echo "tag=$TAG" >> $GITHUB_ENV
-
       - name: Docker Build
         uses: docker/build-push-action@v3
         env:
-          DD_ENV: ${{ inputs.ref }}
+          DD_ENV: ${{ inputs.environment }}
           DD_SERVICE: notification-api
-          DD_VERSION: ${{ env.TAG }}
+          DD_VERSION: ${{ inputs.ref }}
         with:
           file: ci/Dockerfile
           context: .
