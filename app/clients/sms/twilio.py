@@ -138,7 +138,7 @@ class TwilioSMSClient(SmsClient):
                     status_callback=callback_url,
                 )
 
-                self.logger.info(f"Twilio message created using from_number")
+                self.logger.info("Twilio message created using from_number")
             else:
                 # Make a request using the messaging service sid.
                 #    https://www.twilio.com/docs/messaging/services
@@ -152,20 +152,27 @@ class TwilioSMSClient(SmsClient):
                 self.logger.info(f"Twilio message created using messaging_service_sid")
 
             self.logger.info(
-                f"Twilio send SMS request for {reference} succeeded: {message.sid}"
+                "Twilio send SMS request for %s succeeded: %s", reference, message.sid
             )
 
             return message.sid
         except Exception as e:
-            self.logger.error(f"Twilio send SMS request for {reference} failed")
+            self.logger.error("Twilio send SMS request for %s failed", reference)
             raise e
         finally:
             elapsed_time = monotonic() - start_time
             self.logger.info(
-                f"Twilio send SMS request for {reference} finished in {elapsed_time}"
+                "Twilio send SMS request for %s  finished in %s", reference, elapsed_time
             )
 
     def translate_delivery_status(self, twilio_delivery_status_message) -> dict:
+        """
+        Parses the base64 encoded delivery status message from Twilio and returns a dictionary.
+        The dictionary contains the following keys:
+        - record_status: the convereted twilio to notification platform status 
+        - reference: the message id of the twilio message
+        - payload: the original payload from twilio
+        """
         if not twilio_delivery_status_message:
             raise Exception("Twilio delivery status message is empty")
 
@@ -201,5 +208,7 @@ class TwilioSMSClient(SmsClient):
             "reference": parsed_dict["MessageSid"][0],
             "record_status": notify_delivery_status,
         }
+
+        self.logger.debug("Twilio delivery status translation: %s", translation)
 
         return translation
