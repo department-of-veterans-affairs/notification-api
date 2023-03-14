@@ -1,16 +1,12 @@
-import uuid
-from datetime import datetime, timedelta, date
-from decimal import Decimal
-
 import pytest
-from freezegun import freeze_time
-from notifications_utils.timezones import convert_utc_to_local_timezone
-
+import uuid
 from app.celery.reporting_tasks import (
     create_nightly_billing,
     create_nightly_notification_status,
     create_nightly_billing_for_day,
-    create_nightly_notification_status_for_day, generate_daily_notification_status_csv_report,
+    create_nightly_notification_status_for_day,
+    generate_daily_notification_status_csv_report,
+    generate_nightly_billing_csv_report,
 )
 from app.dao.fact_billing_dao import get_rate
 from app.feature_flags import FeatureFlag
@@ -19,8 +15,14 @@ from app.models import (
     Notification,
     LETTER_TYPE,
     EMAIL_TYPE,
-    SMS_TYPE, FactNotificationStatus
+    SMS_TYPE,
+    FactNotificationStatus,
 )
+from datetime import datetime, timedelta, date
+from decimal import Decimal
+from flask import current_app
+from freezegun import freeze_time
+from notifications_utils.timezones import convert_utc_to_local_timezone
 from tests.app.db import create_service, create_template, create_notification, create_rate, create_letter_rate
 from tests.app.factories.feature_flag import mock_feature_flag
 
@@ -517,7 +519,33 @@ def test_generate_daily_notification_status_csv_report(notify_api, mocker):
     mock_boto.client.return_value.put_object.assert_called_once()
     _, kwargs = mock_boto.client.return_value.put_object.call_args
     assert kwargs['Key'] == '2021-12-16.csv'
-    assert kwargs['Body'] == 'date,service id,service name,template id,template name,status,status reason,count,' \
-                             'channel_type\r\n' \
-                             f'2021-12-16,{service_id},foo,{template_id},bar,delivered,,1,email\r\n' \
-                             f'2021-12-16,{service_id},foo,{template_id},bar,delivered,baz,1,sms\r\n'
+    assert kwargs['Body'] == \
+        'date,service id,service name,template id,template name,status,status reason,count,' \
+        'channel_type\r\n' \
+        f'2021-12-16,{service_id},foo,{template_id},bar,delivered,,1,email\r\n' \
+        f'2021-12-16,{service_id},foo,{template_id},bar,delivered,baz,1,sms\r\n'
+
+
+def test_generate_nightly_billing_csv_report(notify_db_session, mocker, sample_notification):
+    """
+    generate_nightly_billing_csv_report creates a CSV and saves it in AWS S3.  This test checks
+    that the appropriate CSV is created and precludes the Boto3 calls to S3.
+    """
+
+    expected_csv = \
+        'date,service name,service id,template name,template id,sender,sender id,' \
+        'billing code,count,channel type\r\n' \
+        f'2023-03-10,{sample_notification.service.name},{sample_notification.service.id},' \
+        f'{sample_notification.template.name},{sample_notification.template.id},' \
+        f'{sample_notification.sms_sender.sms_sender},{sample_notification.sms_sender.id},' \
+        f'{sample_notification.billing_code},{sample_notification.billable_units},{SMS_TYPE}'
+    print("generate created_at = ", sample_notification.created_at)  # TODO
+    process_day_string = str(sample_notification.created_at.date())
+
+    mock_boto = mocker.patch('app.celery.reporting_tasks.boto3')
+    generate_nightly_billing_csv_report(process_day_string)
+    mock_boto.client.return_value.put_object.assert_called_once_with(
+        Body=expected_csv,
+        Bucket=current_app.config['DAILY_BILLING_STATS_BUCKET_NAME'],
+        Key=f"{process_day_string}.csv"
+    )
