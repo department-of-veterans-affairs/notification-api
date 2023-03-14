@@ -14,9 +14,11 @@ from flask import current_app
 from notifications_utils.recipients import InvalidEmailError
 from notifications_utils.statsd_decorators import statsd
 from sqlalchemy.orm.exc import NoResultFound
+from ddtrace import tracer
 
 
 # Including sms_sender_id is necessary in case it's passed in when being called
+@tracer.wrap(service="deliver_sms", resource="deliver_sms_resource")
 @notify_celery.task(bind=True, name="deliver_sms", max_retries=48, default_retry_delay=300)
 @statsd(namespace="tasks")
 def deliver_sms(self, notification_id, sms_sender_id=None):
