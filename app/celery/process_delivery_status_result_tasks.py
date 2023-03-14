@@ -8,6 +8,7 @@ from app.celery.process_pinpoint_receipt_tasks import attempt_to_get_notificatio
 import json
 import datetime
 
+
 # Create SQS Queue for Process Deliver Status.
 @notify_celery.task(bind=True, name="process-delivery-status-result", max_retries=48, default_retry_delay=300)
 def process_delivery_status(self, event: CeleryEvent):
@@ -27,11 +28,13 @@ def process_delivery_status(self, event: CeleryEvent):
     try:
         provider_name = sqs_message.get('provider')
         body = sqs_message.get('body')
+
         if provider_name == 'twilio':
             notification_platform_status = TwilioSMSClient.translate_delivery_status(body)
         else:
             raise Exception("Unknown Provider: %s", provider_name)
 
+        payload = notification_platform_status.get("payload")
         reference = notification_platform_status.get("reference")
         notification_status = notification_platform_status.get("record_status")
         number_of_message_parts = notification_platform_status.get("number_of_message_parts", 0)
@@ -70,7 +73,11 @@ def process_delivery_status(self, event: CeleryEvent):
             return
 
         assert notification is not None
-
+        ###############################################
+        # separate method for pricing
+        # in the method it would receive the provider
+        # if twilio we skip twilio and ignore aws
+        ################################################
         if price_in_millicents_usd > 0.0:
             notification.status = notification_status
             notification.segments_count = number_of_message_parts
@@ -99,7 +106,10 @@ def process_delivery_status(self, event: CeleryEvent):
             statsd_client.timing_with_dates(
                 'callback.{provider_name}.elapsed-time', datetime.datetime.utcnow(), notification.sent_at)
 
-        check_and_queue_callback_task(notification)
+        # todo: create method for getting the boolean value of "include_provider_payload"
+        # this can be found in the notification table
+
+        check_and_queue_callback_task(notification, payload)
         return True
 
     except Retry:

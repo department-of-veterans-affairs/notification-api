@@ -26,6 +26,7 @@ def send_delivery_status_to_service(
     self, service_callback_id, notification_id, encrypted_status_update
 ):
     service_callback = get_service_callback(service_callback_id)
+    # create_delivery_status_callback
     status_update = encryption.decrypt(encrypted_status_update)
 
     payload = {
@@ -36,16 +37,22 @@ def send_delivery_status_to_service(
         "created_at": status_update['notification_created_at'],
         "completed_at": status_update['notification_updated_at'],
         "sent_at": status_update['notification_sent_at'],
-        "notification_type": status_update['notification_type']
+        "notification_type": status_update['notification_type'],
+        "provider": status_update['provider'],
+        "status_reason": status_update['status_reason']
     }
+
+    # if the provider payload is found in the status_update object
+    if 'provider_payload' in status_update:
+        payload['provider_payload'] = status_update['provider_payload']
+
     logging_tags = {
         "notification_id": str(notification_id)
     }
+
     try:
-        service_callback.send(
-            payload=payload,
-            logging_tags=logging_tags
-        )
+        # calls the webhook / sqs callback to transmit message
+        service_callback.send(payload=payload, logging_tags=logging_tags)
     except RetryableException as e:
         try:
             current_app.logger.warning(
@@ -191,7 +198,9 @@ def send_inbound_sms_to_service(self, inbound_sms_id, service_id):
         raise e
 
 
-def create_delivery_status_callback_data(notification, service_callback_api):
+# todo: add documentation/docstrings and more comments
+# do not include the params in the docstrings
+def create_delivery_status_callback_data(notification, service_callback_api, provider_payload):
     from app import DATETIME_FORMAT, encryption
     data = {
         "notification_id": str(notification.id),
@@ -205,7 +214,17 @@ def create_delivery_status_callback_data(notification, service_callback_api):
         "notification_type": notification.notification_type,
         "service_callback_api_url": service_callback_api.url,
         "service_callback_api_bearer_token": service_callback_api.bearer_token,
+        "provider": notification.sent_by,
+        "status_reason": notification.status_reason,
     }
+
+    ######################################################
+    # if the provider payload is not an empty dictionary
+    # add the property 'provider_payload
+    ######################################################
+    if provider_payload:
+        data['provider_payload'] = provider_payload
+
     return encryption.encrypt(data)
 
 
@@ -223,12 +242,18 @@ def create_complaint_callback_data(complaint, notification, service_callback_api
     return encryption.encrypt(data)
 
 
-def check_and_queue_callback_task(notification):
+def check_and_queue_callback_task(notification, payload=None):
+    if payload is None:
+        payload = dict()
     # queue callback task only if the service_callback_api exists
+
     service_callback_api = get_service_delivery_status_callback_api_for_service(
         service_id=notification.service_id, notification_status=notification.status
     )
+
+    # if a row of info is found
     if service_callback_api:
+        # build dictionary for notification
         notification_data = create_delivery_status_callback_data(notification, service_callback_api)
         send_delivery_status_to_service.apply_async([service_callback_api.id, str(notification.id), notification_data],
                                                     queue=QueueNames.CALLBACKS)
