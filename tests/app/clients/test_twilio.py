@@ -182,9 +182,10 @@ message_body_with_invalid_message_status = {
     "JCMTIyMjIyMjIyMjImQXBpVmVyc2lvbj0yMDEwLTA0LTAxIiwgInByb3ZpZGVyIjogInR3aWxpbyJ9fV19",
 }
 
+
 @pytest.fixture
 def twilio_sms_client():
-    return TwilioSMSClient("CREDS","CREDS")
+    return TwilioSMSClient("CREDS", "CREDS")
 
 
 @pytest.mark.parametrize(
@@ -208,6 +209,7 @@ def test_notification_mapping(event, twilio_sms_client):
     assert "reference" in translation
     assert "record_status" in translation
     assert translation["record_status"] == event["twilio_status"]
+
 
 @pytest.mark.parametrize(
     "event",
