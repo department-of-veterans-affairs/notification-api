@@ -3,13 +3,7 @@ from monotonic import monotonic
 from app.clients.sms import SmsClient
 from twilio.rest import Client
 from urllib.parse import parse_qs
-from app.models import (
-    NOTIFICATION_DELIVERED,
-    NOTIFICATION_TECHNICAL_FAILURE,
-    NOTIFICATION_SENDING,
-    NOTIFICATION_PERMANENT_FAILURE,
-    NOTIFICATION_SENT,
-)
+
 
 twilio_response_map = {
     "accepted": "created",
@@ -20,31 +14,6 @@ twilio_response_map = {
     "undelivered": "permanent-failure",
     "failed": "technical-failure",
     "received": "received",
-}
-
-twilio_notify_status_map = {
-    "accepted": NOTIFICATION_SENDING,
-    "scheduled": NOTIFICATION_SENDING,
-    "queued": NOTIFICATION_SENDING,
-    "sending": NOTIFICATION_SENDING,
-    "sent": NOTIFICATION_SENT,
-    "delivered": NOTIFICATION_DELIVERED,
-    "undelivered": NOTIFICATION_PERMANENT_FAILURE,
-    "failed": NOTIFICATION_TECHNICAL_FAILURE,
-    "canceled": NOTIFICATION_TECHNICAL_FAILURE,
-}
-
-twilio_error_code_map = {
-    "30001": NOTIFICATION_TECHNICAL_FAILURE,
-    "30002": NOTIFICATION_PERMANENT_FAILURE,
-    "30003": NOTIFICATION_PERMANENT_FAILURE,
-    "30004": NOTIFICATION_PERMANENT_FAILURE,
-    "30005": NOTIFICATION_PERMANENT_FAILURE,
-    "30006": NOTIFICATION_PERMANENT_FAILURE,
-    "30007": NOTIFICATION_PERMANENT_FAILURE,
-    "30008": NOTIFICATION_TECHNICAL_FAILURE,
-    "30009": NOTIFICATION_TECHNICAL_FAILURE,
-    "30010": NOTIFICATION_TECHNICAL_FAILURE,
 }
 
 
@@ -58,6 +27,43 @@ class TwilioSMSClient(SmsClient):
         self._account_sid = account_sid
         self._auth_token = auth_token
         self._client = Client(account_sid, auth_token)
+
+        # Importing inline to resolve a circular import error when importing at the top of the file
+        from app.models import (
+            NOTIFICATION_DELIVERED,
+            NOTIFICATION_TECHNICAL_FAILURE,
+            NOTIFICATION_SENDING,
+            NOTIFICATION_PERMANENT_FAILURE,
+            NOTIFICATION_SENT,
+        )
+
+        global twilio_error_code_map
+        global twilio_notify_status_map
+
+        twilio_error_code_map = {
+            "30001": NOTIFICATION_TECHNICAL_FAILURE,
+            "30002": NOTIFICATION_PERMANENT_FAILURE,
+            "30003": NOTIFICATION_PERMANENT_FAILURE,
+            "30004": NOTIFICATION_PERMANENT_FAILURE,
+            "30005": NOTIFICATION_PERMANENT_FAILURE,
+            "30006": NOTIFICATION_PERMANENT_FAILURE,
+            "30007": NOTIFICATION_PERMANENT_FAILURE,
+            "30008": NOTIFICATION_TECHNICAL_FAILURE,
+            "30009": NOTIFICATION_TECHNICAL_FAILURE,
+            "30010": NOTIFICATION_TECHNICAL_FAILURE,
+        }
+
+        twilio_notify_status_map = {
+            "accepted": NOTIFICATION_SENDING,
+            "scheduled": NOTIFICATION_SENDING,
+            "queued": NOTIFICATION_SENDING,
+            "sending": NOTIFICATION_SENDING,
+            "sent": NOTIFICATION_SENT,
+            "delivered": NOTIFICATION_DELIVERED,
+            "undelivered": NOTIFICATION_PERMANENT_FAILURE,
+            "failed": NOTIFICATION_TECHNICAL_FAILURE,
+            "canceled": NOTIFICATION_TECHNICAL_FAILURE,
+        }
 
     def init_app(self, logger, callback_notify_url_host, *args, **kwargs):
         self.logger = logger
@@ -159,8 +165,7 @@ class TwilioSMSClient(SmsClient):
                 f"Twilio send SMS request for {reference} finished in {elapsed_time}"
             )
 
-    @staticmethod
-    def translate_delivery_status(twilio_delivery_status_message) -> dict:
+    def translate_delivery_status(self, twilio_delivery_status_message) -> dict:
         if not twilio_delivery_status_message:
             raise Exception("Twilio delivery status message is empty")
 
@@ -174,9 +179,7 @@ class TwilioSMSClient(SmsClient):
         twilio_delivery_status = parsed_dict["MessageStatus"][0]
 
         if twilio_delivery_status not in twilio_notify_status_map:
-            raise Exception(
-                "Invalid Twilio delivery status: %s", twilio_delivery_status
-            )
+            raise Exception("Invalid Twilio delivery status:", twilio_delivery_status)
 
         if "ErrorCode" in parsed_dict and (
             twilio_delivery_status == "failed"
