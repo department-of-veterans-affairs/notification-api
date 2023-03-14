@@ -23,7 +23,14 @@ from decimal import Decimal
 from flask import current_app
 from freezegun import freeze_time
 from notifications_utils.timezones import convert_utc_to_local_timezone
-from tests.app.db import create_service, create_template, create_notification, create_rate, create_letter_rate
+from tests.app.db import (
+    create_service,
+    create_service_with_defined_sms_sender,
+    create_template,
+    create_notification,
+    create_rate,
+    create_letter_rate
+)
 from tests.app.factories.feature_flag import mock_feature_flag
 
 
@@ -526,19 +533,32 @@ def test_generate_daily_notification_status_csv_report(notify_api, mocker):
         f'2021-12-16,{service_id},foo,{template_id},bar,delivered,baz,1,sms\r\n'
 
 
-def test_generate_nightly_billing_csv_report(notify_db_session, mocker, sample_notification):
+@freeze_time('2022-05-08T7:30')
+def test_generate_nightly_billing_csv_report(notify_db_session, mocker):
     """
     generate_nightly_billing_csv_report creates a CSV and saves it in AWS S3.  This test checks
     that the appropriate CSV is created and precludes the Boto3 calls to S3.
     """
 
+    process_day = datetime(2022, 5, 8, 7, 30, 0)
+    service = create_service_with_defined_sms_sender()
+    template = create_template(template_name='test_sms_template', service=service, template_type=SMS_TYPE)
+
+    sample_notification = create_notification(
+        template=template,
+        status='delivered',
+        created_at=process_day,
+        billing_code='test_code',
+        sms_sender_id=service.service_sms_senders[0].id
+    )
+
     expected_csv = \
         'date,service name,service id,template name,template id,sender,sender id,' \
         'billing code,count,channel type\r\n' \
-        f'2023-03-10,{sample_notification.service.name},{sample_notification.service.id},' \
+        f'2022-05-08,{sample_notification.service.name},{sample_notification.service.id},' \
         f'{sample_notification.template.name},{sample_notification.template.id},' \
         f'{sample_notification.sms_sender.sms_sender},{sample_notification.sms_sender.id},' \
-        f'{sample_notification.billing_code},{sample_notification.billable_units},{SMS_TYPE}'
+        f'{sample_notification.billing_code},{sample_notification.billable_units},{SMS_TYPE}\r\n'
     print("generate created_at = ", sample_notification.created_at)  # TODO
     process_day_string = str(sample_notification.created_at.date())
 
