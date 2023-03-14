@@ -162,14 +162,16 @@ class TwilioSMSClient(SmsClient):
         finally:
             elapsed_time = monotonic() - start_time
             self.logger.info(
-                "Twilio send SMS request for %s  finished in %s", reference, elapsed_time
+                "Twilio send SMS request for %s  finished in %s",
+                reference,
+                elapsed_time,
             )
 
     def translate_delivery_status(self, twilio_delivery_status_message) -> dict:
         """
         Parses the base64 encoded delivery status message from Twilio and returns a dictionary.
         The dictionary contains the following keys:
-        - record_status: the convereted twilio to notification platform status 
+        - record_status: the convereted twilio to notification platform status
         - reference: the message id of the twilio message
         - payload: the original payload from twilio
         """
