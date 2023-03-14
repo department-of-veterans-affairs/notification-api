@@ -178,7 +178,7 @@ def test_fetch_nightly_billing_counts_retrieves_correct_data_within_process_day(
     day_under_test = convert_utc_to_local_timezone(process_day)
     results = fetch_nightly_billing_counts(day_under_test)
     assert len(results) == 2
-    assert isinstance(results[0], Row), "fetch_nightly_billing_counts should return a cursor to SQLAchemy Row instances."
+    assert isinstance(results[0], Row), "fetch_nightly_billing_counts should return a cursor to SQLAchemy Row instances"
     assert results[0].count == 2
 
     assert results[0].service_name == 'Sample service'
