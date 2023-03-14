@@ -176,19 +176,19 @@ class TwilioSMSClient(SmsClient):
         - payload: the original payload from twilio
         """
         if not twilio_delivery_status_message:
-            raise Exception("Twilio delivery status message is empty")
+            raise ValueError("Twilio delivery status message is empty")
 
         decoded_msg = base64.b64decode(twilio_delivery_status_message).decode()
 
         parsed_dict = parse_qs(decoded_msg)
 
         if "MessageStatus" not in parsed_dict:
-            raise Exception("Twilio delivery status message is missing MessageStatus")
+            raise KeyError("Twilio delivery status message is missing MessageStatus")
 
         twilio_delivery_status = parsed_dict["MessageStatus"][0]
 
         if twilio_delivery_status not in twilio_notify_status_map:
-            raise Exception("Invalid Twilio delivery status:", twilio_delivery_status)
+            raise KeyError("Invalid Twilio delivery status:", twilio_delivery_status)
 
         if "ErrorCode" in parsed_dict and (
             twilio_delivery_status == "failed"

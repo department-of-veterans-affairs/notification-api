@@ -237,17 +237,17 @@ def test_error_code_mapping(event, twilio_sms_client):
 
 
 def test_exception_on_empty_twilio_status_message(twilio_sms_client):
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         twilio_sms_client.translate_delivery_status(None)
 
 
 def test_exception_on_missing_twilio_message_status(twilio_sms_client):
-    with pytest.raises(Exception):
+    with pytest.raises(KeyError):
         twilio_sms_client.translate_delivery_status(message_body_with_no_message_status)
 
 
 def test_exception_on_invalid_twilio_status(twilio_sms_client):
-    with pytest.raises(Exception):
+    with pytest.raises(KeyError):
         twilio_sms_client.translate_delivery_status(
             message_body_with_invalid_message_status
         )
