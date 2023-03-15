@@ -9,5 +9,5 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     current_app.logger.info('processing delivery status: %s', event)
     from app import clients
     provider = clients.get_sms_client('twilio')
-    provider.translate_delivery_status(event['Message']['body'])
+    current_app.logger.info('Translated message: %s', provider.translate_delivery_status(event['Message']['body']))
     return True
