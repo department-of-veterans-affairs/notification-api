@@ -176,8 +176,8 @@ class TwilioSMSClient(SmsClient):
         - payload: the original payload from twilio
         """
         self.logger.info('Translating Twilio delivery status')
-        self.logger.debug(twilio_delivery_status)
-        
+        self.logger.debug(twilio_delivery_status_message)
+
         if not twilio_delivery_status_message:
             raise ValueError("Twilio delivery status message is empty")
 
