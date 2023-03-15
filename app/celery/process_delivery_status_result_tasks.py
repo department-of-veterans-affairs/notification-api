@@ -1,4 +1,5 @@
 import base64
+
 from flask import current_app
 from app import notify_celery
 from typing_extensions import TypedDict
@@ -7,6 +8,10 @@ from app.celery.process_pinpoint_inbound_sms import CeleryEvent
 from app.celery.process_pinpoint_receipt_tasks import attempt_to_get_notification
 import json
 import datetime
+from app.dao.service_callback import (dao_get_include_status)
+
+# import the clients instance from the app
+from app import clients
 
 
 # Create SQS Queue for Process Deliver Status.
@@ -26,14 +31,13 @@ def process_delivery_status(self, event: CeleryEvent):
 
     # next parse the information into variables
     try:
+        # get the provider
         provider_name = sqs_message.get('provider')
+        provider = clients.get_sms_client(provider_name)
         body = sqs_message.get('body')
 
-        if provider_name == 'twilio':
-            notification_platform_status = TwilioSMSClient.translate_delivery_status(body)
-        else:
-            raise Exception("Unknown Provider: %s", provider_name)
-
+        # get parameters from notification platform status
+        notification_platform_status = provider.translate_delivery_status(body)
         payload = notification_platform_status.get("payload")
         reference = notification_platform_status.get("reference")
         notification_status = notification_platform_status.get("record_status")
@@ -106,8 +110,9 @@ def process_delivery_status(self, event: CeleryEvent):
             statsd_client.timing_with_dates(
                 'callback.{provider_name}.elapsed-time', datetime.datetime.utcnow(), notification.sent_at)
 
-        # todo: create method for getting the boolean value of "include_provider_payload"
-        # this can be found in the notification table
+        # check if payload is to be include in
+        if dao_get_include_status(None):
+            payload = dict()
 
         check_and_queue_callback_task(notification, payload)
         return True
