@@ -184,8 +184,14 @@ message_body_with_invalid_message_status = {
 
 
 @pytest.fixture
-def twilio_sms_client():
-    return TwilioSMSClient("CREDS", "CREDS")
+def twilio_sms_client(mocker):
+    client = TwilioSMSClient("CREDS", "CREDS")
+
+    logger = mocker.Mock()
+
+    client.init_app(logger, "")
+
+    return client
 
 
 @pytest.mark.parametrize(
@@ -243,11 +249,13 @@ def test_exception_on_empty_twilio_status_message(twilio_sms_client):
 
 def test_exception_on_missing_twilio_message_status(twilio_sms_client):
     with pytest.raises(KeyError):
-        twilio_sms_client.translate_delivery_status(message_body_with_no_message_status)
+        twilio_sms_client.translate_delivery_status(
+            message_body_with_no_message_status["message"]
+        )
 
 
 def test_exception_on_invalid_twilio_status(twilio_sms_client):
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         twilio_sms_client.translate_delivery_status(
-            message_body_with_invalid_message_status
+            message_body_with_invalid_message_status["message"]
         )

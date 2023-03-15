@@ -188,7 +188,8 @@ class TwilioSMSClient(SmsClient):
         twilio_delivery_status = parsed_dict["MessageStatus"][0]
 
         if twilio_delivery_status not in twilio_notify_status_map:
-            raise KeyError("Invalid Twilio delivery status:", twilio_delivery_status)
+            valueError = "Invalid Twilio delivery status: %s", twilio_delivery_status
+            raise ValueError(valueError)
 
         if "ErrorCode" in parsed_dict and (
             twilio_delivery_status == "failed"
