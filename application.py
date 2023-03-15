@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
-from ddtrace import patch_all
+# from ddtrace import patch_all
 import os
 
 import sentry_sdk
@@ -27,4 +27,4 @@ create_app(application)
 
 
 # this starts the ddtrace tracer and configures it to the right port and URL
-patch_all()
+# patch_all()
