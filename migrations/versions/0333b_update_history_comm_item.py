@@ -14,6 +14,13 @@ down_revision = '0333a_update_template_comm_item'
 
 def upgrade():
     op.add_column('templates_history', sa.Column('communication_item_id', postgresql.UUID, nullable=True))
+    op.create_foreign_key(
+        constraint_name='templates_history_communication_item_id_fkey',
+        source_table='templates_history',
+        referent_table='communication_items',
+        local_cols=['communication_item_id'],
+        remote_cols=['id']
+    )
 
 
 def downgrade():

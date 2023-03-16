@@ -29,8 +29,22 @@ def upgrade():
         nullable=False,
     )
 
+    op.alter_column(
+        'services_history',
+        'prefix_sms',
+        existing_type=sa.BOOLEAN(),
+        nullable=False,
+    )
+
 
 def downgrade():
+
+    op.alter_column(
+        'services_history',
+        'prefix_sms',
+        existing_type=sa.BOOLEAN(),
+        nullable=True,
+    )
 
     op.alter_column(
         'services',

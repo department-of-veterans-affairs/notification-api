@@ -397,8 +397,8 @@ class Service(db.Model, Versioned):
     go_live_user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=True)
     go_live_user = db.relationship('User', foreign_keys=[go_live_user_id])
     go_live_at = db.Column(db.DateTime, nullable=True)
-    sending_domain = db.Column(db.String(255), nullable=True, unique=False)
-    smtp_user = db.Column(db.String(255), nullable=True, unique=False)
+    sending_domain = db.Column(db.Text(255))
+    smtp_user = db.Column(db.Text(255))
 
     email_provider_id = db.Column(UUID(as_uuid=True), db.ForeignKey('provider_details.id'), nullable=True)
     sms_provider_id = db.Column(UUID(as_uuid=True), db.ForeignKey('provider_details.id'), nullable=True)
@@ -1341,7 +1341,7 @@ class Notification(db.Model):
         onupdate=datetime.datetime.utcnow)
     status = db.Column(
         'notification_status',
-        db.String,
+        db.Text(255),
         db.ForeignKey('notification_status_types.name'),
         index=True,
         nullable=True,
@@ -1356,9 +1356,9 @@ class Notification(db.Model):
 
     client_reference = db.Column(db.String, index=True, nullable=True)
 
-    international = db.Column(db.Boolean, nullable=False, default=False)
+    international = db.Column(db.Boolean, nullable=True, default=False)
     phone_prefix = db.Column(db.String, nullable=True)
-    rate_multiplier = db.Column(db.Float(asdecimal=False), nullable=True)
+    rate_multiplier = db.Column(db.Numeric(asdecimal=False), nullable=True)
 
     created_by = db.relationship('User')
     created_by_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=True)
@@ -1643,7 +1643,7 @@ class NotificationHistory(db.Model, HistoryModel):
     updated_at = db.Column(db.DateTime, index=False, unique=False, nullable=True, onupdate=datetime.datetime.utcnow)
     status = db.Column(
         'notification_status',
-        db.String,
+        db.Text,
         db.ForeignKey('notification_status_types.name'),
         index=True,
         nullable=True,
@@ -1653,9 +1653,9 @@ class NotificationHistory(db.Model, HistoryModel):
     reference = db.Column(db.String, nullable=True, index=True)
     client_reference = db.Column(db.String, nullable=True)
 
-    international = db.Column(db.Boolean, nullable=False, default=False)
+    international = db.Column(db.Boolean, nullable=True, default=False)
     phone_prefix = db.Column(db.String, nullable=True)
-    rate_multiplier = db.Column(db.Float(asdecimal=False), nullable=True)
+    rate_multiplier = db.Column(db.Numeric(asdecimal=False), nullable=True)
 
     created_by = db.relationship('User')
     created_by_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=True)
@@ -1863,7 +1863,7 @@ class Rate(db.Model):
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     valid_from = db.Column(db.DateTime, nullable=False)
-    rate = db.Column(db.Float(asdecimal=False), nullable=False)
+    rate = db.Column(db.Numeric(asdecimal=False), nullable=False)
     notification_type = db.Column(notification_types, index=True, nullable=False)
 
     def __str__(self):
@@ -2014,16 +2014,16 @@ class DateTimeDimension(db.Model):
     bst_date = db.Column(db.Date, nullable=False, primary_key=True, index=True)
     year = db.Column(db.Integer(), nullable=False)
     month = db.Column(db.Integer(), nullable=False)
-    month_name = db.Column(db.Text(), nullable=False)
+    month_name = db.Column(db.String(20), nullable=False)
     day = db.Column(db.Integer(), nullable=False)
     bst_day = db.Column(db.Integer(), nullable=False)
     day_of_year = db.Column(db.Integer(), nullable=False)
-    week_day_name = db.Column(db.Text(), nullable=False)
+    week_day_name = db.Column(db.String(20), nullable=False)
     calendar_week = db.Column(db.Integer(), nullable=False)
-    quartal = db.Column(db.Text(), nullable=False)
-    year_quartal = db.Column(db.Text(), nullable=False)
-    year_month = db.Column(db.Text(), nullable=False)
-    year_calendar_week = db.Column(db.Text(), nullable=False)
+    quartal = db.Column(db.String(20), nullable=False)
+    year_quartal = db.Column(db.String(20), nullable=False)
+    year_month = db.Column(db.String(20), nullable=False)
+    year_calendar_week = db.Column(db.String(20), nullable=False)
     financial_year = db.Column(db.Integer(), nullable=False)
     utc_daytime_start = db.Column(db.DateTime, nullable=False)
     utc_daytime_end = db.Column(db.DateTime, nullable=False)
@@ -2052,7 +2052,7 @@ class Complaint(db.Model):
     __tablename__ = 'complaints'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    notification_id = db.Column(UUID(as_uuid=True), db.ForeignKey('notification_history.id'),
+    notification_id = db.Column(UUID(as_uuid=True),
                                 index=True, nullable=False)
     service_id = db.Column(UUID(as_uuid=True), db.ForeignKey('services.id'), unique=False, index=True, nullable=False)
     service = db.relationship(Service, backref=db.backref('complaints'))
@@ -2158,7 +2158,7 @@ class CommunicationItem(db.Model):
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     va_profile_item_id = db.Column(db.Integer, nullable=False)
-    name = db.Column(db.Text(), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
 
 
 class VAProfileLocalCache(db.Model):
@@ -2171,7 +2171,7 @@ class VAProfileLocalCache(db.Model):
     va_profile_id = db.Column(db.Integer, nullable=False)
     communication_item_id = db.Column(db.Integer, nullable=False)
     communication_channel_id = db.Column(db.Integer, nullable=False)
-    source_datetime = db.Column(db.DateTime, nullable=False)
+    source_datetime = db.Column(db.DateTime)
 
     __table_args__ = (
         UniqueConstraint('va_profile_id', 'communication_item_id', 'communication_channel_id', name='uix_veteran_id'),
