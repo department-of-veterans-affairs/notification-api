@@ -1,21 +1,25 @@
-import base64
-
-from flask import current_app
-from app import notify_celery
-from typing_extensions import TypedDict
-from app.config import QueueNames
-from app.celery.process_pinpoint_inbound_sms import CeleryEvent
-from app.celery.process_pinpoint_receipt_tasks import attempt_to_get_notification
 import json
-import datetime
-from app.dao.service_callback import (dao_get_include_status)
-
+from datetime import datetime
+from celery.exceptions import Retry
+from flask import current_app
 # import the clients instance from the app
-from app import clients
+from notifications_utils.statsd_decorators import statsd
+from app import notify_celery, statsd_client, clients, DATETIME_FORMAT
+from app.config import QueueNames
+from app.dao.notifications_dao import (
+    dao_update_notification,
+    update_notification_status_by_id,
+)
+from app.celery.process_pinpoint_inbound_sms import CeleryEvent
+from app.dao.service_callback import (dao_get_include_status)
+from app.celery.service_callback_tasks import check_and_queue_callback_task
+from app.celery.process_pinpoint_receipt_tasks import attempt_to_get_notification
+import time
 
 
 # Create SQS Queue for Process Deliver Status.
 @notify_celery.task(bind=True, name="process-delivery-status-result", max_retries=48, default_retry_delay=300)
+@statsd(namespace="tasks")
 def process_delivery_status(self, event: CeleryEvent):
 
     # log that we are processing the delivery status
@@ -62,8 +66,8 @@ def process_delivery_status(self, event: CeleryEvent):
         # retrieves the inbound message for this provider
         # we are updating the status of the outbound message
         ###############################################################################
-        notification, should_retry, should_exit = app.celery.process_pinpoint_receipt_tasks.attempt_to_get_notification(
-            reference, notification_status, datetime.datetime.now()
+        notification, should_retry, should_exit = attempt_to_get_notification(
+            reference, notification_status, str(time.time() * 1000)
         )
 
         ######################################################################
@@ -108,10 +112,13 @@ def process_delivery_status(self, event: CeleryEvent):
 
         if notification.sent_at:
             statsd_client.timing_with_dates(
-                'callback.{provider_name}.elapsed-time', datetime.datetime.utcnow(), notification.sent_at)
+                'callback.{provider_name}.elapsed-time',
+                datetime.utcnow().strftime(DATETIME_FORMAT),
+                notification.sent_at)
 
         # check if payload is to be include in
-        if dao_get_include_status(None):
+        # cardinal set in the service callback is (service_id, callback_type)
+        if dao_get_include_status(notification.service_id, notification.notification_type):
             payload = dict()
 
         check_and_queue_callback_task(notification, payload)
