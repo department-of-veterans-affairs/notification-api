@@ -24,12 +24,12 @@ from flask import current_app
 from freezegun import freeze_time
 from notifications_utils.timezones import convert_utc_to_local_timezone
 from tests.app.db import (
+    create_letter_rate,
+    create_notification,
+    create_rate,
     create_service,
     create_service_with_defined_sms_sender,
     create_template,
-    create_notification,
-    create_rate,
-    create_letter_rate
 )
 from tests.app.factories.feature_flag import mock_feature_flag
 
@@ -554,12 +554,12 @@ def test_generate_nightly_billing_csv_report(notify_db_session, mocker):
 
     expected_csv = \
         'date,service name,service id,template name,template id,sender,sender id,' \
-        'billing code,count,channel type\r\n' \
+        'billing code,count,channel type,total message parts,total cost\r\n' \
         f'2022-05-08,{sample_notification.service.name},{sample_notification.service.id},' \
         f'{sample_notification.template.name},{sample_notification.template.id},' \
         f'{sample_notification.sms_sender.sms_sender},{sample_notification.sms_sender.id},' \
-        f'{sample_notification.billing_code},{sample_notification.billable_units},{SMS_TYPE}\r\n'
-    print("generate created_at = ", sample_notification.created_at)  # TODO
+        f'{sample_notification.billing_code},{sample_notification.billable_units},{SMS_TYPE},' \
+        f'{sample_notification.segments_count},{sample_notification.cost_in_millicents}\r\n'
     process_day_string = str(sample_notification.created_at.date())
 
     mock_boto = mocker.patch('app.celery.reporting_tasks.boto3')
