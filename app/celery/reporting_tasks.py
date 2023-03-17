@@ -80,15 +80,13 @@ def create_nightly_billing_for_day(process_day):
 @statsd(namespace="tasks")
 def generate_nightly_billing_csv_report(process_day_string: str):
     process_day = datetime.strptime(process_day_string, "%Y-%m-%d").date()
-    print("generate process_day =", process_day)  # TODO
     transit_data = fetch_nightly_billing_counts(process_day)
-    print("generate transit data =", transit_data)  # TODO
     buff = io.StringIO()
 
     writer = csv.writer(buff, dialect='excel', delimiter=',')
     header = [
         "date", "service name", "service id", "template name", "template id", "sender", "sender id",
-        "billing code", "count", "channel type", "total_message_parts", "total_cost"
+        "billing code", "count", "channel type", "total message parts", "total cost"
     ]
     writer.writerow(header)
     writer.writerows((process_day,) + tuple(map(str, row)) for row in transit_data)
