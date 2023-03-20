@@ -23,7 +23,7 @@ docopt>=0.6.2
 # security vulnerabilities 40399 and 40416, which are ignored in Makefile.  The ImportError
 # traceback begins in Gunicorn code, which does not properly use newer eventlet versions.
 #     https://github.com/benoitc/gunicorn/issues?q=is%3Aissue+is%3Aopen+ALREADY_HANDLED
-eventlet!=0.33.3
+eventlet~=0.33.3
 
 # 9 June 2022: Flask raises ImportError with higher versions.
 fido2 < 1.0.0
