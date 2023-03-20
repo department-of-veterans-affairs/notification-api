@@ -327,7 +327,7 @@
   "requiresCompatibilities": [
     "FARGATE"
   ],
-  "cpu": "2048",
+  "cpu": "1024",
   "memory": "4096",
   "tags": [
     {
