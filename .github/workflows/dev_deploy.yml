@@ -39,7 +39,6 @@ jobs:
           echo "The environment is ${{ inputs.environment }}"
           echo "The branch/tag is ${{ inputs.ref }}"
           echo "The commit hash is ${{ steps.set-hash.outputs.commit-hash }}"
-    cache: pizza
 
   run-build:
     needs: [setup-environment]
@@ -48,7 +47,6 @@ jobs:
       environment: "${{ inputs.environment }}"
       ref: "${{ needs.setup-environment.outputs.git-hash }}"
     secrets: inherit
-    cache: pizza2
 
   run-lambda-deploy:
     if: ${{ inputs.lambdaDeploy }}
@@ -67,7 +65,6 @@ jobs:
       environment: "${{ inputs.environment }}"
       ref: "${{ needs.setup-environment.outputs.git-hash }}"
     secrets: inherit
-    cache: pizza3
 
   run-user-flows:
     needs: [run-deployment]
