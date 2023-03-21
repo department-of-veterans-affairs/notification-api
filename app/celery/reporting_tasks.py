@@ -168,7 +168,7 @@ def generate_daily_notification_status_csv_report(process_day_string):
         "channel_type"
     ]
     writer.writerow(header)
-    writer.writerows((process_day,) + row for row in transit_data)
+    writer.writerows((process_day,) + tuple(map(str, row)) for row in transit_data)
 
     csv_key = f'{process_day_string}.csv'
     client = boto3.client('s3', endpoint_url=current_app.config['AWS_S3_ENDPOINT_URL'])
