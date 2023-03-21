@@ -4,7 +4,7 @@ from app.models import (ServiceCallback)
 import types
 
 @statsd(namespace="dao")
-def dao_get_include_status(service_id, service_callback_type):
+def dao_get_callback_include_payload_status(service_id, service_callback_type):
 
     ############################################################
     # assume that you are not to include the provider payload
@@ -34,17 +34,5 @@ def dao_get_include_status(service_id, service_callback_type):
 
     if not isinstance(include_provider_payload, bool):
         raise TypeError
-
-    return include_provider_payload
-
-###
-# Not to be used in rest controllers where we need to operate within a service user has permissions for
-###
-def query_service_callback(service_id, service_callback_type):
-    include_provider_payload = ServiceCallback\
-        .query(ServiceCallback.include_provider_payload)\
-        .filter(ServiceCallback.service_id == service_id) \
-        .filter(ServiceCallback.service_id == service_callback_type) \
-        .first().include_provider_payload
 
     return include_provider_payload

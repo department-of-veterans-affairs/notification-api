@@ -1,5 +1,5 @@
 from app.dao.service_callback_api_dao import (save_service_callback_api)
-from app.dao.service_callback import (dao_get_include_status)
+from app.dao.service_callback import (dao_get_callback_include_payload_status)
 from app.models import ServiceCallback, WEBHOOK_CHANNEL_TYPE, \
     NOTIFICATION_SENT, DELIVERY_STATUS_CALLBACK_TYPE
 
@@ -18,7 +18,7 @@ def test_dao_service_callback(sample_service):
     )
 
     save_service_callback_api(service_callback_api)
-    include_payload_status = dao_get_include_status(
+    include_payload_status = dao_get_callback_include_payload_status(
         service_id=service_callback_api.service_id,
         service_callback_type=DELIVERY_STATUS_CALLBACK_TYPE)
     assert isinstance(include_payload_status, bool)
