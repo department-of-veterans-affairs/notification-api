@@ -1,20 +1,12 @@
 from notifications_utils.statsd_decorators import statsd
 from sqlalchemy.orm.exc import NoResultFound
 from app.models import (ServiceCallback)
-import types
+
 
 @statsd(namespace="dao")
 def dao_get_callback_include_payload_status(service_id, service_callback_type):
 
-    ############################################################
-    # assume that you are not to include the provider payload
-    # unless explicitly told to do so
-    ############################################################
-    include_provider_payload = False
-
-    ################################################
     # Throw error is you return 0 or more than 1 row
-    ################################################
     try:
         row = ServiceCallback\
             .query.filter_by(service_id=service_id)\
@@ -23,10 +15,7 @@ def dao_get_callback_include_payload_status(service_id, service_callback_type):
     except NoResultFound as e:
         raise e
 
-    ################################################
     # Attempt to get the include payload property
-    ################################################
-
     try:
         include_provider_payload = row.include_provider_payload
     except Exception as e:
