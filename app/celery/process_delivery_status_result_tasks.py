@@ -95,10 +95,8 @@ def process_delivery_status(self, event: CeleryEvent):
             return
 
         assert notification is not None
-        ##########################################################################
-        # separate method for pricing in the method it would receive the provider
-        # if twilio we skip twilio and ignore aws
-        ##########################################################################
+
+        # calculate pricing
         if price_in_millicents_usd > 0.0:
             notification.status = notification_status
             notification.segments_count = number_of_message_parts
