@@ -1,6 +1,16 @@
 import json
-from typing import Tuple
+import time
 import datetime
+from app.celery.service_callback_tasks import check_and_queue_callback_task
+from app.celery.process_pinpoint_inbound_sms import CeleryEvent
+
+from app.dao.notifications_dao import (
+    dao_get_notification_by_reference,
+    dao_update_notification,
+    update_notification_status_by_id,
+)
+
+from typing import Tuple
 from celery.exceptions import Retry
 from flask import current_app
 # import the clients instance from the app
@@ -8,17 +18,17 @@ from notifications_utils.statsd_decorators import statsd
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from app import notify_celery, statsd_client, clients, DATETIME_FORMAT
 from app.config import QueueNames
-from app.dao.notifications_dao import (
-    dao_get_notification_by_reference,
-    dao_update_notification,
-    update_notification_status_by_id,
-)
+from app.dao.service_callback import dao_get_callback_include_payload_status
 from app.feature_flags import FeatureFlag, is_feature_enabled
-from app.models import (Notification)
-from app.celery.process_pinpoint_inbound_sms import CeleryEvent
-from app.dao.service_callback import (dao_get_callback_include_payload_status)
-from app.celery.service_callback_tasks import check_and_queue_callback_task
-import time
+
+from app.models import (
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_TECHNICAL_FAILURE,
+    NOTIFICATION_PERMANENT_FAILURE,
+    Notification, NOTIFICATION_PREFERENCES_DECLINED
+)
+FINAL_STATUS_STATES = [NOTIFICATION_DELIVERED, NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_TECHNICAL_FAILURE,
+                       NOTIFICATION_PREFERENCES_DECLINED]
 
 
 # Create SQS Queue for Process Deliver Status.
@@ -49,9 +59,7 @@ def process_delivery_status(self, event: CeleryEvent):
         provider = clients.get_sms_client(provider_name)
         body = sqs_message.get('body')
 
-        ###################################################
         # get parameters from notification platform status
-        ###################################################
         notification_platform_status = provider.translate_delivery_status(body)
         payload = notification_platform_status.get("payload")
         reference = notification_platform_status.get("reference")
@@ -73,16 +81,13 @@ def process_delivery_status(self, event: CeleryEvent):
     )
 
     try:
-        #####################################################################################################
+
         # retrieves the inbound message for this provider we are updating the status of the outbound message
-        #####################################################################################################
         notification, should_retry, should_exit = attempt_to_get_notification(
             reference, notification_status, str(time.time() * 1000)
         )
 
-        ##############################################################################################
         # the race condition scenario if we got the delivery status before we actually record the sms
-        ##############################################################################################
         if should_retry:
             self.retry(queue=QueueNames.RETRY)
 
@@ -114,9 +119,7 @@ def process_delivery_status(self, event: CeleryEvent):
             notification_status, notification.id
         )
 
-        ################################################
         # statsd - metric tracking of # of messages sent
-        ################################################
         statsd_client.incr(f"callback.{provider_name}.{notification_status}")
 
         if notification.sent_at:
