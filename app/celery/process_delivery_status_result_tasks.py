@@ -67,7 +67,7 @@ def process_delivery_status(self, event: CeleryEvent):
         number_of_message_parts = notification_platform_status.get("number_of_message_parts", 0)
         price_in_millicents_usd = notification_platform_status.get("price_in_millicents_usd", 0.0)
 
-    except KeyError as e:
+    except AttributeError as e:
         current_app.logger.error("The event stream message data is missing expected attributes.")
         current_app.logger.exception(e)
         current_app.logger.debug(sqs_message)
