@@ -5,7 +5,6 @@ asn1crypto==1.5.1
 async-timeout==4.0.2
 attrs==22.2.0
 Authlib==1.2.0
-awscli==1.27.95
 bcrypt==4.0.1
 billiard==3.6.4.0
 bleach==6.0.0
@@ -24,7 +23,7 @@ click-datetime==0.2
 cryptography==39.0.2
 ddsketch==2.0.4
 ddtrace==1.8.0
-dnspython==1.16.0
+dnspython==2.3.0
 docopt==0.6.2
 envier==0.4.0
 eventlet==0.33.3
