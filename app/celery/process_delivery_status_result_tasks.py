@@ -1,3 +1,4 @@
+import math
 import json
 import time
 import datetime
@@ -34,8 +35,17 @@ FINAL_STATUS_STATES = [NOTIFICATION_DELIVERED, NOTIFICATION_PERMANENT_FAILURE, N
 # Create SQS Queue for Process Deliver Status.
 @notify_celery.task(bind=True, name="process-delivery-status-result", max_retries=48, default_retry_delay=300)
 @statsd(namespace="tasks")
-def process_delivery_status(self, event: CeleryEvent):
+def process_delivery_status(self, event: CeleryEvent) -> bool:
     """ Celery task for updating the delivery status of a notification """
+
+    # preset variables to address "unbounded local variable"
+    payload = {}
+    sqs_message = None
+    provider_name = None
+    reference = ''
+    notification_status = ''
+    number_of_message_parts = 1
+    price_in_millicents_usd = 0
 
     if not is_feature_enabled(FeatureFlag.PROCESS_DELIVERY_STATUS_ENABLED):
         current_app.logger.info('Process Delivery Status toggle is disabled.  Skipping callback task.')
@@ -50,13 +60,19 @@ def process_delivery_status(self, event: CeleryEvent):
     except (json.decoder.JSONDecodeError, ValueError, TypeError, KeyError) as e:
         current_app.logger.exception(e)
         self.retry(queue=QueueNames.RETRY)
-        return
 
     # next parse the information into variables
     try:
         # get the provider
         provider_name = sqs_message.get('provider')
         provider = clients.get_sms_client(provider_name)
+
+        # provider cannot None
+        if not provider:
+            current_app.logger.error("Provider cannot be None")
+            current_app.logger.debug(sqs_message)
+            self.retry(queue=QueueNames.RETRY)
+
         body = sqs_message.get('body')
 
         # get parameters from notification platform status
@@ -64,7 +80,7 @@ def process_delivery_status(self, event: CeleryEvent):
         payload = notification_platform_status.get("payload")
         reference = notification_platform_status.get("reference")
         notification_status = notification_platform_status.get("record_status")
-        number_of_message_parts = notification_platform_status.get("number_of_message_parts", 0)
+        number_of_message_parts = notification_platform_status.get("number_of_message_parts", 1)
         price_in_millicents_usd = notification_platform_status.get("price_in_millicents_usd", 0.0)
 
     except AttributeError as e:
@@ -72,7 +88,6 @@ def process_delivery_status(self, event: CeleryEvent):
         current_app.logger.exception(e)
         current_app.logger.debug(sqs_message)
         self.retry(queue=QueueNames.RETRY)
-        return
 
     current_app.logger.info(
         "Processing Notification Delivery Status. | reference=%s | notification_status=%s | "
@@ -81,7 +96,6 @@ def process_delivery_status(self, event: CeleryEvent):
     )
 
     try:
-
         # retrieves the inbound message for this provider we are updating the status of the outbound message
         notification, should_retry, should_exit = attempt_to_get_notification(
             reference, notification_status, str(time.time() * 1000)
@@ -92,7 +106,7 @@ def process_delivery_status(self, event: CeleryEvent):
             self.retry(queue=QueueNames.RETRY)
 
         if should_exit:
-            return
+            return False
 
         assert notification is not None
 
@@ -103,10 +117,8 @@ def process_delivery_status(self, event: CeleryEvent):
             notification.cost_in_millicents = price_in_millicents_usd
             dao_update_notification(notification)
         else:
-            ######################################################################
             # notification_id -  is the UID in the database for the notification
             # status - is the notification platform status generated earlier
-            ######################################################################
             update_notification_status_by_id(
                 notification_id=notification.id,
                 status=notification_status
@@ -122,31 +134,26 @@ def process_delivery_status(self, event: CeleryEvent):
 
         if notification.sent_at:
             statsd_client.timing_with_dates(
-                'callback.{provider_name}.elapsed-time',
+                f"callback.{provider_name}.elapsed-time",
                 datetime.datetime.utcnow().strftime(DATETIME_FORMAT),
                 notification.sent_at)
 
-        #######################################################################
-        # check if payload is to be include in
-        # cardinal set in the service callback is (service_id, callback_type)
-        #######################################################################
-        if dao_get_callback_include_payload_status(notification.service_id, notification.notification_type):
-            payload = dict()
+        # check if payload is to be include in cardinal set in the service callback is (service_id, callback_type)
+        if not dao_get_callback_include_payload_status(notification.service_id, notification.notification_type):
+            payload = {}
 
         check_and_queue_callback_task(notification, payload)
         return True
 
     except Retry:
-        ###########################################################################################
         # This block exists to preempt executing the "Exception" logic below.  A better approach is
         # to catch specific exceptions where they might occur.
-        ###########################################################################################
         raise
     except Exception as e:
         current_app.logger.exception(e)
         self.retry(queue=QueueNames.RETRY)
 
-    return
+    return True
 
 
 def attempt_to_get_notification(reference: str, notification_status: str, event_timestamp_in_ms: str) \
@@ -154,12 +161,11 @@ def attempt_to_get_notification(reference: str, notification_status: str, event_
 
     should_retry = False
     notification = None
-
     try:
         notification = dao_get_notification_by_reference(reference)
         should_exit = check_notification_status(notification, notification_status)
     except NoResultFound:
-        message_time = datetime.datetime.fromtimestamp(int(event_timestamp_in_ms) / 1000)
+        message_time = datetime.datetime.fromtimestamp(math.floor(float(event_timestamp_in_ms) / 1000))
         if datetime.datetime.utcnow() - message_time < datetime.timedelta(minutes=5):
             current_app.logger.info(
                 'Delivery Status callback event for reference %s was received less than five minutes ago.', reference
