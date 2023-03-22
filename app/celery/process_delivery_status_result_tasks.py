@@ -39,13 +39,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     """ Celery task for updating the delivery status of a notification """
 
     # preset variables to address "unbounded local variable"
-    payload = {}
     sqs_message = None
-    provider_name = None
-    reference = ''
-    notification_status = ''
-    number_of_message_parts = 1
-    price_in_millicents_usd = 0
 
     if not is_feature_enabled(FeatureFlag.PROCESS_DELIVERY_STATUS_ENABLED):
         current_app.logger.info('Process Delivery Status toggle is disabled.  Skipping callback task.')
@@ -61,33 +55,39 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         current_app.logger.exception(e)
         self.retry(queue=QueueNames.RETRY)
 
-    # next parse the information into variables
-    try:
-        # get the provider
-        provider_name = sqs_message.get('provider')
-        provider = clients.get_sms_client(provider_name)
+    # get the provider
+    provider_name = sqs_message.get('provider')
+    provider = clients.get_sms_client(provider_name)
 
-        # provider cannot None
-        if not provider:
-            current_app.logger.error("Provider cannot be None")
-            current_app.logger.debug(sqs_message)
+    # provider cannot None
+    if not provider:
+        current_app.logger.error("Provider cannot be None")
+        current_app.logger.debug(sqs_message)
+        self.retry(queue=QueueNames.RETRY)
+
+    body = sqs_message.get('body')
+        
+    try:
+        notification_platform_status = provider.translate_delivery_status(body)
+        # notification_platform_status cannot be None
+        if not notification_platform_status:
+            current_app.logger.error("Notification Platform Status cannot be None")
+            current_app.logger.debug(body)
             self.retry(queue=QueueNames.RETRY)
 
-        body = sqs_message.get('body')
-
-        # get parameters from notification platform status
-        notification_platform_status = provider.translate_delivery_status(body)
-        payload = notification_platform_status.get("payload")
-        reference = notification_platform_status.get("reference")
-        notification_status = notification_platform_status.get("record_status")
-        number_of_message_parts = notification_platform_status.get("number_of_message_parts", 1)
-        price_in_millicents_usd = notification_platform_status.get("price_in_millicents_usd", 0.0)
-
-    except AttributeError as e:
-        current_app.logger.error("The event stream message data is missing expected attributes.")
+    except (ValueError, KeyError) as e:
+        current_app.logger.error("The event stream body could not be translated.")
         current_app.logger.exception(e)
         current_app.logger.debug(sqs_message)
         self.retry(queue=QueueNames.RETRY)
+
+
+    # get parameters from notification platform status
+    payload = notification_platform_status.get("payload")
+    reference = notification_platform_status.get("reference")
+    notification_status = notification_platform_status.get("record_status")
+    number_of_message_parts = notification_platform_status.get("number_of_message_parts", 1)
+    price_in_millicents_usd = notification_platform_status.get("price_in_millicents_usd", 0.0)
 
     current_app.logger.info(
         "Processing Notification Delivery Status. | reference=%s | notification_status=%s | "
@@ -100,7 +100,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         notification, should_retry, should_exit = attempt_to_get_notification(
             reference, notification_status, str(time.time() * 1000)
         )
-
+        
         # the race condition scenario if we got the delivery status before we actually record the sms
         if should_retry:
             self.retry(queue=QueueNames.RETRY)
@@ -139,8 +139,18 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
                 notification.sent_at)
 
         # check if payload is to be include in cardinal set in the service callback is (service_id, callback_type)
-        if not dao_get_callback_include_payload_status(notification.service_id, notification.notification_type):
+        try:
+            if not dao_get_callback_include_payload_status(notification.service_id, notification.notification_type):
+                payload = {}
+        except NoResultFound as e:
+            current_app.logger.info("ServiceCallback include_payload for notification is unavailable or false")
+            current_app.logger.debug(notification)
             payload = {}
+        except (AttributeError, TypeError) as e:
+            current_app.logger.error("Could not determine include_payload property for ServiceCallback.")
+            current_app.logger.exception(e)
+            current_app.logger.debug(notification)
+            self.retry(queue=QueueNames.RETRY)
 
         check_and_queue_callback_task(notification, payload)
         return True
