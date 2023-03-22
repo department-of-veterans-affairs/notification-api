@@ -6,7 +6,6 @@ from app.dao import notifications_dao
 from app.feature_flags import FeatureFlag
 from tests.app.db import create_notification
 from celery.exceptions import Retry
-from app.dao.service_callback_api_dao import (save_service_callback_api)
 from app.models import ServiceCallback, WEBHOOK_CHANNEL_TYPE, NOTIFICATION_SENT, DELIVERY_STATUS_CALLBACK_TYPE
 
 
