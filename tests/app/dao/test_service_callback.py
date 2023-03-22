@@ -4,7 +4,6 @@ from app.models import ServiceCallback, WEBHOOK_CHANNEL_TYPE, \
     NOTIFICATION_SENT, DELIVERY_STATUS_CALLBACK_TYPE
 
 
-
 def test_dao_service_callback(sample_service):
     service_callback_api = ServiceCallback(
         service_id=sample_service.id,

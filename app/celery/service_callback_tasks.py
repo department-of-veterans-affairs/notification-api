@@ -254,7 +254,7 @@ def check_and_queue_callback_task(notification, payload=None):
     # if a row of info is found
     if service_callback_api:
         # build dictionary for notification
-        notification_data = create_delivery_status_callback_data(notification, service_callback_api)
+        notification_data = create_delivery_status_callback_data(notification, service_callback_api, payload)
         send_delivery_status_to_service.apply_async([service_callback_api.id, str(notification.id), notification_data],
                                                     queue=QueueNames.CALLBACKS)
 

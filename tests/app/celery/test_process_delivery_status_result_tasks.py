@@ -7,8 +7,7 @@ from app.feature_flags import FeatureFlag
 from tests.app.db import create_notification
 from celery.exceptions import Retry
 from app.dao.service_callback_api_dao import (save_service_callback_api)
-from app.models import ServiceCallback, WEBHOOK_CHANNEL_TYPE, \
-    NOTIFICATION_SENT, DELIVERY_STATUS_CALLBACK_TYPE
+from app.models import ServiceCallback, WEBHOOK_CHANNEL_TYPE, NOTIFICATION_SENT, DELIVERY_STATUS_CALLBACK_TYPE
 
 
 # confirm that sqs task will not run when sqs messaging is disabled
@@ -88,15 +87,13 @@ def test_with_correct_provider_name(mocker, db_session, sample_template, sample_
     message = {'Message': bytes(json.dumps(process_delivery_status_result_task_message), 'utf-8')}
 
     # make sure process delivery status results enabled
-    mock_toggle = mocker.patch('app.celery.process_delivery_status_result_tasks.is_feature_enabled', return_value=True)
-    mocker.patch('app.dao.service_callback_dao.dao_get_callback_include_payload_status', return_value=True)
+    mocker.patch('app.celery.process_delivery_status_result_tasks.is_feature_enabled', return_value=True)
 
     # create a notification
-    notification = create_notification(
+    create_notification(
         template=sample_template, reference=test_reference,
         sent_at=datetime.datetime.utcnow(), status='sending'
     )
 
     process_delivery_status_result_tasks.process_delivery_status(event=message)
-
     assert True

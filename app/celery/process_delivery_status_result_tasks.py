@@ -40,6 +40,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
 
     # preset variables to address "unbounded local variable"
     sqs_message = None
+    notification_platform_status = None
 
     if not is_feature_enabled(FeatureFlag.PROCESS_DELIVERY_STATUS_ENABLED):
         current_app.logger.info('Process Delivery Status toggle is disabled.  Skipping callback task.')
@@ -80,7 +81,6 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         current_app.logger.exception(e)
         current_app.logger.debug(sqs_message)
         self.retry(queue=QueueNames.RETRY)
-
 
     # get parameters from notification platform status
     payload = notification_platform_status.get("payload")
@@ -142,7 +142,8 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         try:
             if not dao_get_callback_include_payload_status(notification.service_id, notification.notification_type):
                 payload = {}
-        except NoResultFound as e:
+        except NoResultFound:
+            # It is acceptable for this exception to happen
             current_app.logger.info("ServiceCallback include_payload for notification is unavailable or false")
             current_app.logger.debug(notification)
             payload = {}
