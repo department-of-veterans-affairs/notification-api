@@ -97,7 +97,6 @@ def test_with_correct_provider_name(mocker, db_session, sample_template, sample_
         sent_at=datetime.datetime.utcnow(), status='sending'
     )
 
-    import pdb; pdb.set_trace()
     process_delivery_status_result_tasks.process_delivery_status(event=message)
 
     assert True
