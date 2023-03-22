@@ -47,7 +47,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
 
     # first attempt to process the incoming event
     try:
-        sqs_message = json.loads(event['Message'])
+        sqs_message = event['message']
     except (json.decoder.JSONDecodeError, ValueError, TypeError, KeyError) as e:
         current_app.logger.exception(e)
         self.retry(queue=QueueNames.RETRY)
@@ -63,9 +63,11 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         self.retry(queue=QueueNames.RETRY)
 
     body = sqs_message.get('body')
+    current_app.logger.info('retrieved delivery status body: %s', body)
         
     try:
         notification_platform_status = provider.translate_delivery_status(body)
+        current_app.logger.info('retrieved delivery status: %s', notification_platform_status)
         # notification_platform_status cannot be None
         if not notification_platform_status:
             current_app.logger.error("Notification Platform Status cannot be None")
