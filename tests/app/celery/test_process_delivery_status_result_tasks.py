@@ -1,13 +1,17 @@
 import datetime
 import json
-
+import pytest
 from app.celery import process_delivery_status_result_tasks
 from app.dao import notifications_dao
 from app.feature_flags import FeatureFlag
 from tests.app.db import create_notification
+from celery.exceptions import Retry
+from app.dao.service_callback_api_dao import (save_service_callback_api)
+from app.models import ServiceCallback, WEBHOOK_CHANNEL_TYPE, \
+    NOTIFICATION_SENT, DELIVERY_STATUS_CALLBACK_TYPE
 
 
-# db session variable is required parameter even though it is not used
+# confirm that sqs task will not run when sqs messaging is disabled
 def test_passes_if_toggle_disabled(mocker, db_session):
     # set is_feature_enabled = False
     mock_toggle = mocker.patch('app.celery.process_delivery_status_result_tasks.is_feature_enabled', return_value=False)
@@ -32,6 +36,7 @@ def test_passes_if_toggle_disabled(mocker, db_session):
     mock_update_notification_status_by_id.assert_not_called()
 
 
+# test that celery will start processing event when sqs messaging is enabled
 def test_create_notification(mocker, db_session, sample_template):
     # make sure process delivery status results enabled
     mocker.patch('app.celery.process_delivery_status_result_tasks.is_feature_enabled', return_value=True)
@@ -43,42 +48,64 @@ def test_create_notification(mocker, db_session, sample_template):
     assert notification.status == 'sending'
 
 
-def test_event_message(mocker, db_session, sample_template):
-    # make sure process delivery status results enabled
-    mocker.patch('app.celery.process_delivery_status_result_tasks.is_feature_enabled', return_value=True)
-    mock_dao_get_notification_by_reference = mocker.patch(
-        'app.celery.process_delivery_status_result_tasks.dao_get_notification_by_reference'
-    )
-    # create a notification
-    test_reference = 'sms-reference-1'
-    create_notification(sample_template, reference=test_reference, sent_at=datetime.datetime.utcnow(), status='sending')
-    process_delivery_status_result_tasks.process_delivery_status(
-        event=pdsr_notification_callback_record(
-            reference='reference-1',
-            provider='twilio',
-            record_status='DELIVERED'
-        )
-    )
-
-
-def pdsr_notification_callback_record(
-        reference,
-        provider='twilio',
-        record_status='delivered',
-):
+# we want to test that celery task will retry when invalid provider is given
+def test_retry_with_invalid_provider_name(mocker, db_session, sample_template):
     process_delivery_status_result_task_message = {
-        "provider": provider,
+        "provider": 't',
         "body": {
             "payload": "Hello! 👍",
-            "reference": reference,
-            "record_status": record_status,
+            "reference": 'sms-reference-1',
+            "record_status": 'delivered',
             "number_of_message_parts": 0,
             "price_in_millicents_usd": 0
         }
     }
+    message = {'Message': bytes(json.dumps(process_delivery_status_result_task_message), 'utf-8')}
 
-    return {
-        'Message':
-            bytes(json.dumps(process_delivery_status_result_task_message), 'utf-8')
+    # make sure process delivery status results enabled
+    mocker.patch('app.celery.process_delivery_status_result_tasks.is_feature_enabled', return_value=True)
 
+    # create a notification
+    test_reference = 'sms-reference-1'
+    create_notification(sample_template, reference=test_reference, sent_at=datetime.datetime.utcnow(), status='sending')
+    with pytest.raises(Retry):
+        process_delivery_status_result_tasks.process_delivery_status(event=message)
+
+
+# we want to test that celery task will fail when invalid provider is given
+def test_with_correct_provider_name(mocker, db_session, sample_template, sample_service):
+    test_reference = 'sms-reference-1'
+    # create a service callback
+    service_callback_api = ServiceCallback(
+        service_id=sample_service.id,
+        url="https://some_service/callback_endpoint",
+        bearer_token="some_unique_string",
+        updated_by_id=sample_service.users[0].id,
+        callback_type=DELIVERY_STATUS_CALLBACK_TYPE,
+        notification_statuses=NOTIFICATION_SENT,
+        callback_channel=WEBHOOK_CHANNEL_TYPE,
+        include_provider_payload=True
+    )
+
+    save_service_callback_api(service_callback_api)
+
+    process_delivery_status_result_task_message = {
+        "provider": 'twilio',
+        "body": {
+            "payload": "Hello! 👍",
+            "reference": test_reference,
+            "record_status": 'delivered',
+            "number_of_message_parts": 1,
+            "price_in_millicents_usd": 0
+        }
     }
+    message = {'Message': bytes(json.dumps(process_delivery_status_result_task_message), 'utf-8')}
+
+    # make sure process delivery status results enabled
+    mocker.patch('app.celery.process_delivery_status_result_tasks.is_feature_enabled', return_value=True)
+
+    # create a notification
+    create_notification(sample_template, reference=test_reference, sent_at=datetime.datetime.utcnow(), status='sending')
+    process_delivery_status_result_tasks.process_delivery_status(event=message)
+
+    assert True
