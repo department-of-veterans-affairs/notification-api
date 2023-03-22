@@ -244,7 +244,7 @@ def create_complaint_callback_data(complaint, notification, service_callback_api
 
 def check_and_queue_callback_task(notification, payload=None):
     if payload is None:
-        payload = dict()
+        payload = {}
     # queue callback task only if the service_callback_api exists
 
     service_callback_api = get_service_delivery_status_callback_api_for_service(
