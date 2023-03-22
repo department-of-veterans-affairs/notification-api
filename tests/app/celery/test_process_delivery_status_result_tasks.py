@@ -6,9 +6,7 @@ from app.dao import notifications_dao
 from app.feature_flags import FeatureFlag
 from tests.app.db import create_notification
 from celery.exceptions import Retry
-from app.dao.service_callback_api_dao import (save_service_callback_api)
-from app.models import ServiceCallback, WEBHOOK_CHANNEL_TYPE, \
-    NOTIFICATION_SENT, DELIVERY_STATUS_CALLBACK_TYPE
+from app.models import ServiceCallback, WEBHOOK_CHANNEL_TYPE, NOTIFICATION_SENT, DELIVERY_STATUS_CALLBACK_TYPE
 
 
 # confirm that sqs task will not run when sqs messaging is disabled
@@ -75,20 +73,6 @@ def test_retry_with_invalid_provider_name(mocker, db_session, sample_template):
 # we want to test that celery task will fail when invalid provider is given
 def test_with_correct_provider_name(mocker, db_session, sample_template, sample_service):
     test_reference = 'sms-reference-1'
-    # create a service callback
-    service_callback_api = ServiceCallback(
-        service_id=sample_service.id,
-        url="https://some_service/callback_endpoint",
-        bearer_token="some_unique_string",
-        updated_by_id=sample_service.users[0].id,
-        callback_type=DELIVERY_STATUS_CALLBACK_TYPE,
-        notification_statuses=NOTIFICATION_SENT,
-        callback_channel=WEBHOOK_CHANNEL_TYPE,
-        include_provider_payload=True
-    )
-
-    save_service_callback_api(service_callback_api)
-
     process_delivery_status_result_task_message = {
         "provider": 'twilio',
         "body": {
@@ -105,7 +89,10 @@ def test_with_correct_provider_name(mocker, db_session, sample_template, sample_
     mocker.patch('app.celery.process_delivery_status_result_tasks.is_feature_enabled', return_value=True)
 
     # create a notification
-    create_notification(sample_template, reference=test_reference, sent_at=datetime.datetime.utcnow(), status='sending')
-    process_delivery_status_result_tasks.process_delivery_status(event=message)
+    create_notification(
+        template=sample_template, reference=test_reference,
+        sent_at=datetime.datetime.utcnow(), status='sending'
+    )
 
+    process_delivery_status_result_tasks.process_delivery_status(event=message)
     assert True
