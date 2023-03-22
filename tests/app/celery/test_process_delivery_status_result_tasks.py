@@ -75,20 +75,6 @@ def test_retry_with_invalid_provider_name(mocker, db_session, sample_template):
 # we want to test that celery task will fail when invalid provider is given
 def test_with_correct_provider_name(mocker, db_session, sample_template, sample_service):
     test_reference = 'sms-reference-1'
-    # create a service callback
-    service_callback_api = ServiceCallback(
-        service_id=sample_service.id,
-        url="https://some_service/callback_endpoint",
-        bearer_token="some_unique_string",
-        updated_by_id=sample_service.users[0].id,
-        callback_type=DELIVERY_STATUS_CALLBACK_TYPE,
-        notification_statuses=NOTIFICATION_SENT,
-        callback_channel=WEBHOOK_CHANNEL_TYPE,
-        include_provider_payload=True
-    )
-
-    save_service_callback_api(service_callback_api)
-
     process_delivery_status_result_task_message = {
         "provider": 'twilio',
         "body": {
@@ -102,10 +88,16 @@ def test_with_correct_provider_name(mocker, db_session, sample_template, sample_
     message = {'Message': bytes(json.dumps(process_delivery_status_result_task_message), 'utf-8')}
 
     # make sure process delivery status results enabled
-    mocker.patch('app.celery.process_delivery_status_result_tasks.is_feature_enabled', return_value=True)
+    mock_toggle = mocker.patch('app.celery.process_delivery_status_result_tasks.is_feature_enabled', return_value=True)
+    mocker.patch('app.dao.service_callback_dao.dao_get_callback_include_payload_status', return_value=True)
 
     # create a notification
-    create_notification(sample_template, reference=test_reference, sent_at=datetime.datetime.utcnow(), status='sending')
+    notification = create_notification(
+        template=sample_template, reference=test_reference,
+        sent_at=datetime.datetime.utcnow(), status='sending'
+    )
+
+    import pdb; pdb.set_trace()
     process_delivery_status_result_tasks.process_delivery_status(event=message)
 
     assert True
