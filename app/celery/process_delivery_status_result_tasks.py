@@ -42,10 +42,6 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     sqs_message = None
     notification_platform_status = None
 
-    if not is_feature_enabled(FeatureFlag.PROCESS_DELIVERY_STATUS_ENABLED):
-        current_app.logger.info('Process Delivery Status toggle is disabled.  Skipping callback task.')
-        return True
-
     # log that we are processing the delivery status
     current_app.logger.info('processing delivery status: %s', event)
 
