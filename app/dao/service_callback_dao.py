@@ -10,17 +10,15 @@ def dao_get_callback_include_payload_status(service_id, service_callback_type):
         row = ServiceCallback\
             .query.filter_by(service_id=service_id)\
             .filter_by(callback_type=service_callback_type) \
+            .filter_by(include_provider_payload=True) \
             .one()
 
-    except NoResultFound as e:
-        raise e
-
-    # Attempt to get the include payload property
-    try:
         include_provider_payload = row.include_provider_payload
-    except Exception as e:
+
+    except (NoResultFound, AttributeError) as e:
         raise e
 
+    # make sure include_provider_payload is boolean
     if not isinstance(include_provider_payload, bool):
         raise TypeError
 
