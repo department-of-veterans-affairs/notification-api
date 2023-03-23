@@ -20,7 +20,7 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from app import notify_celery, statsd_client, clients, DATETIME_FORMAT
 from app.config import QueueNames
 from app.dao.service_callback_dao import dao_get_callback_include_payload_status
-from app.feature_flags import FeatureFlag, is_feature_enabled
+
 
 from app.models import (
     NOTIFICATION_DELIVERED,
@@ -53,6 +53,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         self.retry(queue=QueueNames.RETRY)
 
     # get the provider
+
     provider_name = sqs_message.get('provider')
     provider = clients.get_sms_client(provider_name)
 
@@ -86,7 +87,6 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     notification_status = notification_platform_status.get("record_status")
     number_of_message_parts = notification_platform_status.get("number_of_message_parts", 1)
     price_in_millicents_usd = notification_platform_status.get("price_in_millicents_usd", 0.0)
-
     current_app.logger.info(
         "Processing Notification Delivery Status. | reference=%s | notification_status=%s | "
         "number_of_message_parts=%s | price_in_millicents_usd=%s",
@@ -98,7 +98,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         notification, should_retry, should_exit = attempt_to_get_notification(
             reference, notification_status, str(time.time() * 1000)
         )
-        
+
         # the race condition scenario if we got the delivery status before we actually record the sms
         if should_retry:
             self.retry(queue=QueueNames.RETRY)

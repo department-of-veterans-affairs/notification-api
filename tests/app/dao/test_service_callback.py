@@ -1,5 +1,7 @@
 from app.dao.service_callback_api_dao import (save_service_callback_api)
 from app.dao.service_callback_dao import (dao_get_callback_include_payload_status)
+from app.models import ServiceCallback, WEBHOOK_CHANNEL_TYPE, \
+    NOTIFICATION_SENT, DELIVERY_STATUS_CALLBACK_TYPE
 
 
 def test_dao_service_callback(sample_service):
