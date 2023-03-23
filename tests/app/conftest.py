@@ -1389,6 +1389,28 @@ def sample_fido2_key(notify_db, notify_db_session):
 
 
 @pytest.fixture
+def sample_translate_return_value():
+    return {
+        "payload": "eyJhcmdzIjogW3siTWVzc2FnZSI6IHsiYm9keSI6ICJSYXdEbHJEb25lRGF0ZT0yMzAzMDkyMDI",
+        "reference": "MessageSID",
+        "record_status": "sent",
+    }
+
+
+@pytest.fixture
+def sample_delivery_status_result_message():
+    return {
+        'message': {
+            'body': 'UmF3RGxyRG9uZURhdGU9MjMwMzIyMjMzOCZTbXNTaWQ9U014eHgmU21zU3RhdHV'
+                    'zPWRlbGl2ZXJlZCZNZXNzYWdlU3RhdHVzPWRlbGl2ZXJlZCZUbz0lMkIxMTExMTExMTExMSZ'
+                    'NZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enomRnJvbT0lMkIxMjIyMzMzNDQ0NCZB'
+                    'cGlWZXJzaW9uPTIwMTAtMDQtMDE=',
+            'provider': 'twilio'
+        }
+    }
+
+
+@pytest.fixture
 def aws_credentials():
     os.environ['AWS_ACCESS_KEY_ID'] = "testing"
     os.environ['AWS_SECRET_ACCESS_KEY'] = "testing"
@@ -1542,3 +1564,5 @@ def datetime_in_past(days=0, seconds=0):
 @pytest.fixture(scope='function')
 def sample_sms_sender(sample_service):
     return dao_add_sms_sender_for_service(sample_service.id, "+12025555555", True)
+
+

@@ -9,88 +9,74 @@ from app.dao.service_callback_api_dao import (save_service_callback_api)
 from app.models import ServiceCallback, WEBHOOK_CHANNEL_TYPE, NOTIFICATION_SENT, DELIVERY_STATUS_CALLBACK_TYPE
 
 
-# test that celery will start processing event when sqs messaging is enabled
-def test_create_notification(mocker, db_session, sample_template):
-    # create a notification
-    test_reference = 'sms-reference-1'
-    create_notification(sample_template, reference=test_reference, sent_at=datetime.datetime.utcnow(), status='sending')
-    notification = notifications_dao.dao_get_notification_by_reference(test_reference)
-    assert notification.status == 'sending'
-
-
-# we want to test that celery task will fail when invalid provider is given
-def test_with_correct_data(mocker, db_session, sample_template, sample_service, sample_notification):
-    translate_return_value = {
-        "payload": "eyJhcmdzIjogW3siTWVzc2FnZSI6IHsiYm9keSI6ICJSYXdEbHJEb25lRGF0ZT0yMzAzMDkyMDI",
-        "reference": "MessageSID",
-        "record_status": "sent",
-    }
-    message = {'message': {
-        'body': 'UmF3RGxyRG9uZURhdGU9MjMwMzIyMjMzOCZTbXNTaWQ9U014eHgmU21zU3RhdHV'
-                'zPWRlbGl2ZXJlZCZNZXNzYWdlU3RhdHVzPWRlbGl2ZXJlZCZUbz0lMkIxMTExMTExMTExMSZ'
-                'NZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enomRnJvbT0lMkIxMjIyMzMzNDQ0NCZB'
-                'cGlWZXJzaW9uPTIwMTAtMDQtMDE=',
-        'provider': 'twilio'}}
-
-    mocker.patch('app.clients')
-    mocker.patch('app.clients.sms.SmsClient')
-    mocker.patch('app.clients.sms.twilio.TwilioSMSClient.translate_delivery_status',
-                                             return_value=translate_return_value)
-    mocker.patch(
-        'app.celery.process_delivery_status_result_tasks.attempt_to_get_notification',
-        return_value=(sample_notification, False, False)
-    )
-
-    assert process_delivery_status_result_tasks.process_delivery_status(event=message)
-
 # Test if message doesnt exist then self.retry is called
-def test_without_message(mocker, db_session, sample_template, sample_service, sample_notification):
-    translate_return_value = {
-        "payload": "eyJhcmdzIjogW3siTWVzc2FnZSI6IHsiYm9keSI6ICJSYXdEbHJEb25lRGF0ZT0yMzAzMDkyMDI",
-        "reference": "MessageSID",
-        "record_status": "sent",
-    }
-    message = {'messag': {
-        'body': 'UmF3RGxyRG9uZURhdGU9MjMwMzIyMjMzOCZTbXNTaWQ9U014eHgmU21zU3RhdHV'
-                'zPWRlbGl2ZXJlZCZNZXNzYWdlU3RhdHVzPWRlbGl2ZXJlZCZUbz0lMkIxMTExMTExMTExMSZ'
-                'NZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enomRnJvbT0lMkIxMjIyMzMzNDQ0NCZB'
-                'cGlWZXJzaW9uPTIwMTAtMDQtMDE=',
-        'provider': 'twilio'}}
+def test_without_message(mocker, db_session,sample_delivery_status_result_message,
+                          sample_translate_return_value, sample_notification):
 
+    # remove message (key) from the sample_delivery_status_result_message
+    sample_delivery_status_result_message.pop('message')
     mocker.patch('app.clients')
     mocker.patch('app.clients.sms.SmsClient')
     mocker.patch('app.clients.sms.twilio.TwilioSMSClient.translate_delivery_status',
-                                             return_value=translate_return_value)
+                 return_value=sample_translate_return_value)
     mocker.patch(
         'app.celery.process_delivery_status_result_tasks.attempt_to_get_notification',
         return_value=(sample_notification, False, False)
     )
 
     with pytest.raises(Retry):
-        process_delivery_status_result_tasks.process_delivery_status(event=message)
+        process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
+
 
 # Test if provider doesnt exist then self.retry is called
-def test_without_provider(mocker, db_session, sample_template, sample_service, sample_notification):
-    translate_return_value = {
-        "payload": "eyJhcmdzIjogW3siTWVzc2FnZSI6IHsiYm9keSI6ICJSYXdEbHJEb25lRGF0ZT0yMzAzMDkyMDI",
-        "reference": "MessageSID",
-        "record_status": "sent",
-    }
-    message = {'message': {
-        'body': 'UmF3RGxyRG9uZURhdGU9MjMwMzIyMjMzOCZTbXNTaWQ9U014eHgmU21zU3RhdHV'
-                'zPWRlbGl2ZXJlZCZNZXNzYWdlU3RhdHVzPWRlbGl2ZXJlZCZUbz0lMkIxMTExMTExMTExMSZ'
-                'NZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enomRnJvbT0lMkIxMjIyMzMzNDQ0NCZB'
-                'cGlWZXJzaW9uPTIwMTAtMDQtMDE=',
-        'provider': 'twili'}}
+def test_without_provider(mocker, db_session,sample_delivery_status_result_message,
+                          sample_translate_return_value, sample_notification):
 
+    # change message['provider'] to invalid provider name
+    sample_delivery_status_result_message['message']['provider'] = 'abc'
     mocker.patch('app.clients')
     mocker.patch('app.clients.sms.SmsClient')
     mocker.patch('app.clients.sms.twilio.TwilioSMSClient.translate_delivery_status',
-                                             return_value=translate_return_value)
+                 return_value=sample_translate_return_value)
     mocker.patch(
         'app.celery.process_delivery_status_result_tasks.attempt_to_get_notification',
         return_value=(sample_notification, False, False)
     )
 
     with pytest.raises(Retry):
-        process_delivery_status_result_tasks.process_delivery_status(event=message)
+        process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
+
+
+# * verify that if translate_delivery_status throws an valueerror then self.retry is called
+def test_with_incorrect_data(mocker, db_session,sample_delivery_status_result_message, sample_translate_return_value, sample_notification):
+
+    mocker.patch('app.clients')
+    mocker.patch('app.clients.sms.SmsClient')
+    mocker.patch('app.clients.sms.twilio.TwilioSMSClient.translate_delivery_status',
+                 return_value=sample_translate_return_value)
+    mocker.patch(
+        'app.celery.process_delivery_status_result_tasks.attempt_to_get_notification',
+        return_value=(sample_notification, False, False)
+    )
+
+    assert process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
+
+
+# we want to test that celery task will succeed when correct data is given
+def test_with_correct_data(mocker, db_session,sample_delivery_status_result_message,
+                          sample_translate_return_value, sample_notification):
+
+    mocker.patch('app.clients')
+    mocker.patch('app.clients.sms.SmsClient')
+    mocker.patch('app.clients.sms.twilio.TwilioSMSClient.translate_delivery_status',
+                 return_value=sample_translate_return_value)
+    mocker.patch(
+        'app.celery.process_delivery_status_result_tasks.attempt_to_get_notification',
+        return_value=(sample_notification, False, False)
+    )
+
+    assert process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
+
+
+# * verify that if translate_delivery_status throws an keyerror then self.retry is called
+# * verify that if translate_delivery_status returns None then self.retry is called
