@@ -8,7 +8,6 @@ from datetime import (datetime, timedelta)
 from fido2 import cbor
 from fido2.webauthn import AuthenticatorData, CollectedClientData
 from flask import (jsonify, request, Blueprint, current_app, abort)
-from requests.auth import HTTPBasicAuth
 from sqlalchemy.exc import IntegrityError
 from urllib.parse import urlencode
 

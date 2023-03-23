@@ -92,7 +92,7 @@ fileignoreconfig:
     - filename: tests/app/db.py
       checksum: d70585d41f55ef8bf1beb238ab2e7237520398ac96b115f3805e4001124dabbd
     - filename: app/dao/users_dao.py
-      checksum: 4390eda112d75f139910700ff2f094099510aefa16f33d47cf3387c7876fbc77
+      checksum: 7ed5f1ae556df8ea932fb2b58adda4a8b8c54809371a07aa976120ddb14a72bd
     - filename: tests/app/dao/test_users_dao.py
       checksum: 365fe1fe22c7418f9f49be963c4695a4bd0e0bc894da08e38c55ce91026202b3
     - filename: tests/app/dao/test_users_dao.py
