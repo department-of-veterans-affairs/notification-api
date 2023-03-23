@@ -104,15 +104,6 @@ class UserSchema(BaseSchema):
     auth_type = field_for(User, 'auth_type')
     identity_provider_user_id = fields.String(required=False)
 
-    def user_permissions(self, usr):
-        retval = {}
-        for x in permission_dao.get_permissions_by_user_id(usr.id):
-            service_id = str(x.service_id)
-            if service_id not in retval:
-                retval[service_id] = []
-            retval[service_id].append(x.permission)
-        return retval
-
     class Meta:
         model = User
         exclude = (
@@ -125,6 +116,16 @@ class UserSchema(BaseSchema):
             "_identity_provider_user_id"
         )
         strict = True
+        load_instance = True
+
+    def user_permissions(self, usr):
+        retval = {}
+        for x in permission_dao.get_permissions_by_user_id(usr.id):
+            service_id = str(x.service_id)
+            if service_id not in retval:
+                retval[service_id] = []
+            retval[service_id].append(x.permission)
+        return retval
 
     @validates('name')
     def validate_name(self, value):
