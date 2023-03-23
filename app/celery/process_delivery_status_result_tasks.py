@@ -14,7 +14,7 @@ from app.dao.notifications_dao import (
 from typing import Tuple
 from celery.exceptions import Retry
 from flask import current_app
-# import the clients instance from the app
+
 from notifications_utils.statsd_decorators import statsd
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from app import notify_celery, statsd_client, clients, DATETIME_FORMAT
@@ -48,7 +48,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     # first attempt to process the incoming event
     try:
         sqs_message = event['message']
-    except (json.decoder.JSONDecodeError, ValueError, TypeError, KeyError) as e:
+    except (TypeError, KeyError) as e:
         current_app.logger.exception(e)
         self.retry(queue=QueueNames.RETRY)
 
@@ -64,7 +64,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
 
     body = sqs_message.get('body')
     current_app.logger.info('retrieved delivery status body: %s', body)
-        
+
     try:
         notification_platform_status = provider.translate_delivery_status(body)
         current_app.logger.info('retrieved delivery status: %s', notification_platform_status)
