@@ -53,7 +53,6 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         self.retry(queue=QueueNames.RETRY)
 
     # get the provider
-
     provider_name = sqs_message.get('provider')
     provider = clients.get_sms_client(provider_name)
 
