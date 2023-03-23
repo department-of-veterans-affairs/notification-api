@@ -84,7 +84,7 @@ def test_with_should_retry(mocker, db_session, sample_delivery_status_result_mes
 
 
 # we want to test that celery task will exit when should_exit=True
-def test_with_should_retry(mocker, db_session, sample_delivery_status_result_message,
+def test_with_should_exit(mocker, db_session, sample_delivery_status_result_message,
                            sample_translate_return_value, sample_notification):
     mocker.patch('app.clients')
     mocker.patch('app.clients.sms.SmsClient')
