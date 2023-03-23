@@ -57,7 +57,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     provider = clients.get_sms_client(provider_name)
 
     # provider cannot None
-    if not provider:
+    if provider is None:
         current_app.logger.error("Provider cannot be None")
         current_app.logger.debug(sqs_message)
         self.retry(queue=QueueNames.RETRY)
@@ -69,7 +69,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         notification_platform_status = provider.translate_delivery_status(body)
         current_app.logger.info('retrieved delivery status: %s', notification_platform_status)
         # notification_platform_status cannot be None
-        if not notification_platform_status:
+        if notification_platform_status is None:
             current_app.logger.error("Notification Platform Status cannot be None")
             current_app.logger.debug(body)
             self.retry(queue=QueueNames.RETRY)
@@ -137,7 +137,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
 
         # check if payload is to be include in cardinal set in the service callback is (service_id, callback_type)
         try:
-            if not dao_get_callback_include_payload_status(notification.service_id, notification.notification_type):
+            if dao_get_callback_include_payload_status(notification.service_id, notification.notification_type) is None:
                 payload = {}
         except NoResultFound:
             # It is acceptable for this exception to happen

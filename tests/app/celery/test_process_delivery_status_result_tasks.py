@@ -1,12 +1,6 @@
-import datetime
 import pytest
 from app.celery import process_delivery_status_result_tasks
-from app.dao import notifications_dao
-from app.clients.sms.twilio import TwilioSMSClient
-from tests.app.db import create_notification
 from celery.exceptions import Retry
-from app.dao.service_callback_api_dao import (save_service_callback_api)
-from app.models import ServiceCallback, WEBHOOK_CHANNEL_TYPE, NOTIFICATION_SENT, DELIVERY_STATUS_CALLBACK_TYPE
 
 
 @pytest.fixture
@@ -83,9 +77,25 @@ def test_with_should_retry(mocker, db_session, sample_delivery_status_result_mes
         process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
 
 
+# we want to test that attempt_to_get_notification triggers a celery retry when None
+def test_attempt_to_get_notification_none(mocker, db_session, sample_delivery_status_result_message,
+                                          sample_translate_return_value, sample_notification):
+    mocker.patch('app.clients')
+    mocker.patch('app.clients.sms.SmsClient')
+    mocker.patch('app.clients.sms.twilio.TwilioSMSClient.translate_delivery_status',
+                 return_value=sample_translate_return_value)
+    mocker.patch(
+        'app.celery.process_delivery_status_result_tasks.attempt_to_get_notification',
+        return_value=None
+    )
+
+    with pytest.raises(Retry):
+        process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
+
+
 # we want to test that celery task will exit when should_exit=True
 def test_with_should_exit(mocker, db_session, sample_delivery_status_result_message,
-                           sample_translate_return_value, sample_notification):
+                          sample_translate_return_value, sample_notification):
     mocker.patch('app.clients')
     mocker.patch('app.clients.sms.SmsClient')
     mocker.patch('app.clients.sms.twilio.TwilioSMSClient.translate_delivery_status',
@@ -113,5 +123,18 @@ def test_with_correct_data(mocker, db_session, sample_delivery_status_result_mes
 
     assert process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
 
-# * verify that if translate_delivery_status throws an keyerror then self.retry is called
-# * verify that if translate_delivery_status returns None then self.retry is called
+
+# verify that payload remain valid when dao_get_callback_include_payload_status is not None
+def test_dao_get_callback_include_payload_status_none(mocker, db_session, sample_delivery_status_result_message,
+                                                      sample_translate_return_value, sample_notification):
+    mocker.patch('app.clients')
+    mocker.patch('app.clients.sms.SmsClient')
+    mocker.patch('app.clients.sms.twilio.TwilioSMSClient.translate_delivery_status',
+                 return_value=sample_translate_return_value)
+    mocker.patch(
+        'app.celery.process_delivery_status_result_tasks.attempt_to_get_notification',
+        return_value=(sample_notification, False, False)
+    )
+
+    mocker.patch('app.dao.service_callback_dao.dao_get_callback_include_payload_status', return_value=None)
+    process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
