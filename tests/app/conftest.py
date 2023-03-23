@@ -1542,5 +1542,3 @@ def datetime_in_past(days=0, seconds=0):
 @pytest.fixture(scope='function')
 def sample_sms_sender(sample_service):
     return dao_add_sms_sender_for_service(sample_service.id, "+12025555555", True)
-
-
