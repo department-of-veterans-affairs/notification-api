@@ -2,8 +2,8 @@
 alembic_utils>=0.8.1
 
 Authlib>=1.2.0
-boto3>=1.26.95
-botocore>=1.29.95
+boto3>=1.26.97
+botocore>=1.29.97
 cachelib>=0.10.2
 
 # 5 May 2022: Ignoring security vulnerabilities 42498 and 43738 in Makefile.
@@ -70,6 +70,6 @@ sentry-sdk[flask]~=1.17.0
 # 10 December 2022: Ignoring security vulnerability 51668 in Makefile.  It is fixed in >=2.0.0b1.
 SQLAlchemy~=1.4.47
 
-twilio>=7.16.5
+twilio>=7.17.0
 Unidecode>=1.3.6
 validatesns>=0.1.1
