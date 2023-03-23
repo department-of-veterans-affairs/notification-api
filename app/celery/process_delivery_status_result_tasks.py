@@ -1,5 +1,4 @@
 import math
-import json
 import time
 import datetime
 from app.celery.service_callback_tasks import check_and_queue_callback_task
