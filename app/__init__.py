@@ -118,7 +118,8 @@ def create_app(application):
     govdelivery_client.init_app(application.config['GRANICUS_TOKEN'], application.config['GRANICUS_URL'], statsd_client)
     twilio_sms_client.init_app(
         logger=application.logger,
-        callback_notify_url_host=application.config["API_HOST_NAME"]
+        callback_notify_url_host=application.config["API_HOST_NAME"],
+        environment=notify_environment
     )
     aws_pinpoint_client.init_app(
         application.config['AWS_PINPOINT_APP_ID'],

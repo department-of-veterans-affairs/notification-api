@@ -28,9 +28,10 @@ class TwilioSMSClient(SmsClient):
         self._auth_token = auth_token
         self._client = Client(account_sid, auth_token)
 
-    def init_app(self, logger, callback_notify_url_host, *args, **kwargs):
+    def init_app(self, logger, callback_notify_url_host, environment, *args, **kwargs):
         self.logger = logger
         self._callback_notify_url_host = callback_notify_url_host
+        self.environment = environment
 
     @property
     def name(self):
@@ -47,14 +48,18 @@ class TwilioSMSClient(SmsClient):
         """
 
         start_time = monotonic()
-        # TODO: Following two lines are commented out
-        # TODO (cont): because the callback url points to an internal url.
-        # TODO (cont): When Reverse Proxy ticket(#716)
-        # TODO (cont): is complete, we can assign that to callback_url and uncomment
-        callback_url = ""
-        # if self._callback_notify_url_host:
-        #    callback_url = f"{self._callback_notify_url_host}/notifications/sms/twilio/{reference}"
 
+        prefix = ""
+
+        if self.environment == "staging":
+            prefix = "staging-"
+        elif self.environment == "performance":
+            prefix = "perf-"
+        elif self.environment == "development":
+            prefix = "dev-"
+
+        callback_url = "https://{prefix}api.va.gov/vanotify/sms/deliverystatus"
+       
         try:
             # Importing inline to resolve a circular import error when importing at the top of the file
             from app.dao.service_sms_sender_dao import (
