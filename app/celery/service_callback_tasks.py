@@ -25,6 +25,7 @@ from app.models import Complaint, Notification
 def send_delivery_status_to_service(
     self, service_callback_id, notification_id, encrypted_status_update
 ):
+
     service_callback = get_service_callback(service_callback_id)
     # create_delivery_status_callback
     status_update = encryption.decrypt(encrypted_status_update)
@@ -38,9 +39,13 @@ def send_delivery_status_to_service(
         "completed_at": status_update['notification_updated_at'],
         "sent_at": status_update['notification_sent_at'],
         "notification_type": status_update['notification_type'],
-        "provider": status_update['provider'],
-        "status_reason": status_update['status_reason']
     }
+
+    if "status_reason" in status_update:
+        payload['status_reason'] = status_update
+
+    if 'provider' in status_update:
+        payload['provider'] = status_update['provider']
 
     # if the provider payload is found in the status_update object
     if 'provider_payload' in status_update:
@@ -198,10 +203,14 @@ def send_inbound_sms_to_service(self, inbound_sms_id, service_id):
         raise e
 
 
-# todo: add documentation/docstrings and more comments
-# do not include the params in the docstrings
-def create_delivery_status_callback_data(notification, service_callback_api, provider_payload):
+def create_delivery_status_callback_data(notification, service_callback_api, provider_payload=None):
     from app import DATETIME_FORMAT, encryption
+    """ Encrypt delivery status message  """
+
+    # set provider_payload to empty dictionary
+    if provider_payload is None:
+        provider_payload = {}
+
     data = {
         "notification_id": str(notification.id),
         "notification_client_reference": notification.client_reference,
@@ -218,11 +227,8 @@ def create_delivery_status_callback_data(notification, service_callback_api, pro
         "status_reason": notification.status_reason,
     }
 
-    ######################################################
-    # if the provider payload is not an empty dictionary
-    # add the property 'provider_payload
-    ######################################################
-    if provider_payload:
+    # add the property 'provider_payload when provider payload is not an empty dictionary
+    if not provider_payload:
         data['provider_payload'] = provider_payload
 
     return encryption.encrypt(data)
