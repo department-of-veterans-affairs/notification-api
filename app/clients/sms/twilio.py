@@ -31,7 +31,17 @@ class TwilioSMSClient(SmsClient):
     def init_app(self, logger, callback_notify_url_host, environment, *args, **kwargs):
         self.logger = logger
         self._callback_notify_url_host = callback_notify_url_host
-        self.environment = environment
+        
+        prefix = "dev-"
+
+        if environment == "staging":
+            prefix = "staging-"
+        elif environment == "performance":
+            prefix = "sandbox-"
+        elif environment == "production":
+            prefix = ""
+
+        self.callback_url = f"https://{prefix}api.va.gov/vanotify/sms/deliverystatus"
 
     @property
     def name(self):
@@ -49,17 +59,6 @@ class TwilioSMSClient(SmsClient):
 
         start_time = monotonic()
 
-        prefix = ""
-
-        if self.environment == "staging":
-            prefix = "staging-"
-        elif self.environment == "performance":
-            prefix = "perf-"
-        elif self.environment == "development":
-            prefix = "dev-"
-
-        callback_url = "https://{prefix}api.va.gov/vanotify/sms/deliverystatus"
-       
         try:
             # Importing inline to resolve a circular import error when importing at the top of the file
             from app.dao.service_sms_sender_dao import (
@@ -99,7 +98,7 @@ class TwilioSMSClient(SmsClient):
                     to=to,
                     from_=from_number,
                     body=content,
-                    status_callback=callback_url,
+                    status_callback=self.callback_url,
                 )
 
                 self.logger.info(f"Twilio message created using from_number")
@@ -110,7 +109,7 @@ class TwilioSMSClient(SmsClient):
                     to=to,
                     messaging_service_sid=messaging_service_sid,
                     body=content,
-                    status_callback=callback_url,
+                    status_callback=self.callback_url,
                 )
 
                 self.logger.info(f"Twilio message created using messaging_service_sid")
