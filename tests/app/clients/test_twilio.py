@@ -42,6 +42,53 @@ def make_twilio_message_response_dict():
     }
 
 
+@pytest.fixture
+def service_sms_sender():
+    class ServiceSmsSender:
+        def __init__(self):
+            self.sms_sender = "Test Sender"
+            self.sms_sender_specifics = {"messaging_service_sid": "test_messaging_service_sid"}
+
+    return ServiceSmsSender()
+
+@pytest.mark.parametrize("environment, expected_prefix", [
+    ("staging", "staging-"),
+    ("performance", "sandbox-"),
+    ("production", ""),
+    ("development", "dev-")
+])
+def test_send_sms_callback_url(mocker, service_sms_sender, environment, expected_prefix):
+    to = "+1234567890"
+    content = "Test message"
+    reference = "test_reference"
+    callback_notify_url_host = "https://api.va.gov"
+    logger = mocker.Mock()
+
+    # Mock the Twilio client
+    twilio_client_mock = mocker.Mock(spec=Client)
+    message_mock = mocker.Mock()
+    message_mock.sid = "test_sid"
+    twilio_client_mock.messages.create.return_value = message_mock
+
+    mocker.patch("app.clients.sms.twilio.Client", return_value=twilio_client_mock)
+
+    # Mock the dao functions
+    mocker.patch("app.clients.sms.twilio.dao_get_service_sms_sender_by_service_id_and_number",
+                 return_value=service_sms_sender)
+    mocker.patch("app.clients.sms.twilio.dao_get_service_sms_sender_by_id",
+                 return_value=service_sms_sender)
+
+    twilio_sms_client.init_app(logger, callback_notify_url_host, environment)
+
+    twilio_sms_client.send_sms(to, content, reference)
+
+    twilio_client_mock.messages.create.assert_called_once_with(
+        to=to,
+        messaging_service_sid=service_sms_sender.sms_sender_specifics["messaging_service_sid"],
+        body=content,
+        status_callback=f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus"
+    )
+
 @pytest.mark.parametrize('status', ['queued', 'sending'])
 def test_should_return_correct_details_for_sending(status):
     assert get_twilio_responses(status) == 'sending'
@@ -67,6 +114,8 @@ def test_should_be_raise_if_unrecognised_status_code():
     with pytest.raises(KeyError) as e:
         get_twilio_responses('unknown_status')
     assert 'unknown_status' in str(e.value)
+
+
 
 
 def test_send_sms_calls_twilio_correctly(notify_api, mocker):
