@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
-# from ddtrace import patch_all
+from ddtrace import patch_all
 import os
 
 import sentry_sdk
