@@ -116,15 +116,15 @@ class TwilioSMSClient(SmsClient):
                 self.logger.info("Twilio message created using messaging_service_sid")
 
             self.logger.info(
-                f"Twilio send SMS request for {reference} succeeded: {message.sid}"
+                "Twilio send SMS request for %s succeeded: %s", reference, message.sid
             )
 
             return message.sid
         except Exception as e:
-            self.logger.error(f"Twilio send SMS request for {reference} failed")
+            self.logger.error("Twilio send SMS request for %s failed", reference)
             raise e
         finally:
             elapsed_time = monotonic() - start_time
             self.logger.info(
-                f"Twilio send SMS request for {reference} finished in {elapsed_time}"
+                "Twilio send SMS request for %s finished in %s", reference, elapsed_time
             )
