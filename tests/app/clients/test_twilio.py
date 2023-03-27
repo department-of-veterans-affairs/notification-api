@@ -248,3 +248,56 @@ def test_send_sms_callback_url(
         client.callback_url
         == f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus"
     )
+
+@pytest.mark.parametrize("environment, expected_prefix", [
+    ("staging", "staging-"),
+    ("performance", "sandbox-"),
+    ("production", ""),
+    ("development", "dev-")
+])
+def test_send_sms_callback_url(mocker, service_sms_sender, environment, expected_prefix):
+    account_sid = "test_account_sid"
+    auth_token = "test_auth_token"
+    to = "+1234567890"
+    content = "Test message"
+    reference = "test_reference"
+    callback_notify_url_host = "https://api.va.gov"
+    logger = mocker.Mock()
+
+    twilio_sms_client = TwilioSMSClient(account_sid, auth_token)
+    twilio_sms_client.init_app(logger, callback_notify_url_host, environment)
+
+    response_dict = {
+        "sid": "test_sid",
+        "to": to,
+        "from": service_sms_sender.sms_sender,
+        "body": content,
+        "status": "sent",
+        "status_callback": f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus"
+    }
+
+    with requests_mock.Mocker() as request_mock:
+        request_mock.post(
+            f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json",
+            json=response_dict,
+            status_code=200,
+        )
+
+        # Patch the relevant DAO functions
+        mocker.patch(
+            "app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_service_id_and_number",
+            return_value=service_sms_sender,
+        )
+
+        twilio_sid = twilio_sms_client.send_sms(
+            to,
+            content,
+            reference,
+            service_id="test_service_id",
+            sender="test_sender",
+        )
+
+        # Assert the correct callback URL is used in the request
+        assert request_mock.request_history[0].json()["status_callback"] == f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus"
+        # Assert the expected Twilio SID is returned
+        assert response_dict["sid"] == twilio_sid
