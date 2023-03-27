@@ -335,6 +335,7 @@ def test_send_sms_twilio_callback_with_message_service_id(
         # Assert the expected Twilio SID is returned
         assert response_dict["sid"] == twilio_sid
 
+
 @pytest.mark.parametrize(
     "environment, expected_prefix",
     [
