@@ -102,7 +102,7 @@ class TwilioSMSClient(SmsClient):
                     status_callback=self.callback_url,
                 )
 
-                self.logger.info(f"Twilio message created using from_number")
+                self.logger.info("Twilio message created using from_number")
             else:
                 # Make a request using the messaging service sid.
                 #    https://www.twilio.com/docs/messaging/services
@@ -113,7 +113,7 @@ class TwilioSMSClient(SmsClient):
                     status_callback=self.callback_url,
                 )
 
-                self.logger.info(f"Twilio message created using messaging_service_sid")
+                self.logger.info("Twilio message created using messaging_service_sid")
 
             self.logger.info(
                 f"Twilio send SMS request for {reference} succeeded: {message.sid}"

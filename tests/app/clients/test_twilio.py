@@ -41,6 +41,18 @@ def make_twilio_message_response_dict():
     }
 
 
+@pytest.fixture
+def service_sms_sender():
+    class ServiceSmsSender:
+        def __init__(self):
+            self.sms_sender = "Test Sender"
+            self.sms_sender_specifics = {
+                "messaging_service_sid": "test_messaging_service_sid"
+            }
+
+    return ServiceSmsSender()
+
+
 @pytest.mark.parametrize("status", ["queued", "sending"])
 def test_should_return_correct_details_for_sending(status):
     assert get_twilio_responses(status) == "sending"
@@ -228,6 +240,7 @@ def test_send_sms_raises_if_twilio_fails_to_return_json(notify_api, mocker):
         )
         twilio_sms_client.send_sms(to, content, reference)
 
+
 @pytest.mark.parametrize(
     "environment, expected_prefix",
     [
@@ -237,7 +250,7 @@ def test_send_sms_raises_if_twilio_fails_to_return_json(notify_api, mocker):
         ("development", "dev-"),
     ],
 )
-def test_send_sms_callback_url(
+def test_send_sms_twilio_callback_url(
     environment, expected_prefix
 ):
     client = TwilioSMSClient("creds", "creds")
@@ -249,13 +262,14 @@ def test_send_sms_callback_url(
         == f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus"
     )
 
+
 @pytest.mark.parametrize("environment, expected_prefix", [
     ("staging", "staging-"),
     ("performance", "sandbox-"),
     ("production", ""),
     ("development", "dev-")
 ])
-def test_send_sms_callback_url(mocker, service_sms_sender, environment, expected_prefix):
+def test_send_sms_twilio_callback(mocker, service_sms_sender, environment, expected_prefix):
     account_sid = "test_account_sid"
     auth_token = "test_auth_token"
     to = "+1234567890"
@@ -297,7 +311,12 @@ def test_send_sms_callback_url(mocker, service_sms_sender, environment, expected
             sender="test_sender",
         )
 
+        print(f'evan twilio_sid = {twilio_sid}')
+
+        req = request_mock.request_history[0]
+        d = dict(parse_qsl(req.text))
+
         # Assert the correct callback URL is used in the request
-        assert request_mock.request_history[0].json()["status_callback"] == f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus"
+        assert d["StatusCallback"] == f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus"
         # Assert the expected Twilio SID is returned
         assert response_dict["sid"] == twilio_sid
