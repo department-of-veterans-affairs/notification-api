@@ -3,9 +3,8 @@ import requests_mock
 from urllib.parse import parse_qsl
 
 from app import twilio_sms_client
-from app.clients.sms.twilio import get_twilio_responses
+from app.clients.sms.twilio import get_twilio_responses, TwilioSMSClient
 from twilio.base.exceptions import TwilioRestException
-
 from tests.app.db import create_service_sms_sender
 
 
@@ -228,3 +227,24 @@ def test_send_sms_raises_if_twilio_fails_to_return_json(notify_api, mocker):
             status_code=200,
         )
         twilio_sms_client.send_sms(to, content, reference)
+
+@pytest.mark.parametrize(
+    "environment, expected_prefix",
+    [
+        ("staging", "staging-"),
+        ("performance", "sandbox-"),
+        ("production", ""),
+        ("development", "dev-"),
+    ],
+)
+def test_send_sms_callback_url(
+    environment, expected_prefix
+):
+    client = TwilioSMSClient("creds", "creds")
+
+    # Test with environment set to "staging"
+    client.init_app(None, None, environment)
+    assert (
+        client.callback_url
+        == f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus"
+    )
