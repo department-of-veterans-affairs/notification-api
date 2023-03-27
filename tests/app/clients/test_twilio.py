@@ -42,13 +42,23 @@ def make_twilio_message_response_dict():
 
 
 @pytest.fixture
-def service_sms_sender():
+def service_sms_sender_with_message_service_sid():
     class ServiceSmsSender:
         def __init__(self):
             self.sms_sender = "Test Sender"
             self.sms_sender_specifics = {
                 "messaging_service_sid": "test_messaging_service_sid"
             }
+
+    return ServiceSmsSender()
+
+
+@pytest.fixture
+def service_sms_sender_without_message_service_sid():
+    class ServiceSmsSender:
+        def __init__(self):
+            self.sms_sender = "Test Sender"
+            self.sms_sender_specifics = {"messaging_service_sid": None}
 
     return ServiceSmsSender()
 
@@ -250,9 +260,7 @@ def test_send_sms_raises_if_twilio_fails_to_return_json(notify_api, mocker):
         ("development", "dev-"),
     ],
 )
-def test_send_sms_twilio_callback_url(
-    environment, expected_prefix
-):
+def test_send_sms_twilio_callback_url(environment, expected_prefix):
     client = TwilioSMSClient("creds", "creds")
 
     # Test with environment set to "staging"
@@ -263,13 +271,18 @@ def test_send_sms_twilio_callback_url(
     )
 
 
-@pytest.mark.parametrize("environment, expected_prefix", [
-    ("staging", "staging-"),
-    ("performance", "sandbox-"),
-    ("production", ""),
-    ("development", "dev-")
-])
-def test_send_sms_twilio_callback(mocker, service_sms_sender, environment, expected_prefix):
+@pytest.mark.parametrize(
+    "environment, expected_prefix",
+    [
+        ("staging", "staging-"),
+        ("performance", "sandbox-"),
+        ("production", ""),
+        ("development", "dev-"),
+    ],
+)
+def test_send_sms_twilio_callback_with_message_service_id(
+    mocker, service_sms_sender_with_message_service_sid, environment, expected_prefix
+):
     account_sid = "test_account_sid"
     auth_token = "test_auth_token"
     to = "+1234567890"
@@ -284,10 +297,10 @@ def test_send_sms_twilio_callback(mocker, service_sms_sender, environment, expec
     response_dict = {
         "sid": "test_sid",
         "to": to,
-        "from": service_sms_sender.sms_sender,
+        "from": service_sms_sender_with_message_service_sid.sms_sender,
         "body": content,
         "status": "sent",
-        "status_callback": f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus"
+        "status_callback": f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus",
     }
 
     with requests_mock.Mocker() as request_mock:
@@ -300,7 +313,7 @@ def test_send_sms_twilio_callback(mocker, service_sms_sender, environment, expec
         # Patch the relevant DAO functions
         mocker.patch(
             "app.dao.service_sms_sender_dao.dao_get_service_sms_sender_by_service_id_and_number",
-            return_value=service_sms_sender,
+            return_value=service_sms_sender_with_message_service_sid,
         )
 
         twilio_sid = twilio_sms_client.send_sms(
@@ -311,12 +324,13 @@ def test_send_sms_twilio_callback(mocker, service_sms_sender, environment, expec
             sender="test_sender",
         )
 
-        print(f'evan twilio_sid = {twilio_sid}')
-
         req = request_mock.request_history[0]
         d = dict(parse_qsl(req.text))
 
         # Assert the correct callback URL is used in the request
-        assert d["StatusCallback"] == f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus"
+        assert (
+            d["StatusCallback"]
+            == f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus"
+        )
         # Assert the expected Twilio SID is returned
         assert response_dict["sid"] == twilio_sid
