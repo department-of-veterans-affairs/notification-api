@@ -117,9 +117,10 @@ class TwilioSMSClient(SmsClient):
                 )
             else:
                 # This is an instance of ServiceSmsSender or None.
-                service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-                    service_id=kwargs.get("service_id"),
-                    number=kwargs.get("sender")
+                service_sms_sender = (
+                    dao_get_service_sms_sender_by_service_id_and_number(
+                        service_id=kwargs.get("service_id"), number=kwargs.get("sender")
+                    )
                 )
 
             if service_sms_sender is not None:
@@ -164,4 +165,60 @@ class TwilioSMSClient(SmsClient):
             raise e
         finally:
             elapsed_time = monotonic() - start_time
-            self.logger.info(f"Twilio send SMS request for {reference} finished in {elapsed_time}")
+            self.logger.info(
+                "Twilio send SMS request for %s  finished in %s",
+                reference,
+                elapsed_time,
+            )
+
+    def translate_delivery_status(self, twilio_delivery_status_message) -> dict:
+        """
+        Parses the base64 encoded delivery status message from Twilio and returns a dictionary.
+        The dictionary contains the following keys:
+        - record_status: the convereted twilio to notification platform status
+        - reference: the message id of the twilio message
+        - payload: the original payload from twilio
+        """
+        self.logger.info("Translating Twilio delivery status")
+        self.logger.debug(twilio_delivery_status_message)
+
+        if not twilio_delivery_status_message:
+            raise ValueError("Twilio delivery status message is empty")
+
+        decoded_msg = base64.b64decode(twilio_delivery_status_message).decode()
+
+        parsed_dict = parse_qs(decoded_msg)
+
+        if "MessageStatus" not in parsed_dict:
+            raise KeyError("Twilio delivery status message is missing MessageStatus")
+
+        twilio_delivery_status = parsed_dict["MessageStatus"][0]
+
+        if twilio_delivery_status not in twilio_notify_status_map:
+            valueError = "Invalid Twilio delivery status: %s", twilio_delivery_status
+            raise ValueError(valueError)
+
+        if "ErrorCode" in parsed_dict and (
+            twilio_delivery_status == "failed"
+            or twilio_delivery_status == "undelivered"
+        ):
+            error_code = parsed_dict["ErrorCode"][0]
+
+            if error_code in twilio_error_code_map:
+                notify_delivery_status = twilio_error_code_map[error_code]
+            else:
+                notify_delivery_status = twilio_notify_status_map[
+                    twilio_delivery_status
+                ]
+        else:
+            notify_delivery_status = twilio_notify_status_map[twilio_delivery_status]
+
+        translation = {
+            "payload": twilio_delivery_status_message,
+            "reference": parsed_dict["MessageSid"][0],
+            "record_status": notify_delivery_status,
+        }
+
+        self.logger.debug("Twilio delivery status translation: %s", translation)
+
+        return translation
