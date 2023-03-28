@@ -166,7 +166,7 @@ def check_notification_status(notification: Notification, notification_status: s
         current_app.logger.info(
             "SQS callback received the same status of %s for notification %s)",
             notification_status,
-            notification_status,
+            notification.id,
         )
         return True
 
