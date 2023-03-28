@@ -275,8 +275,8 @@ def test_send_sms_twilio_callback_url(environment, expected_prefix):
 @pytest.mark.parametrize(
     "service_sms_sender",
     [
-        (service_sms_sender_with_message_service_sid),
-        (service_sms_sender_without_message_service_sid),
+        "service_sms_sender_with_message_service_sid",
+        "service_sms_sender_without_message_service_sid",
     ],
 )
 def test_send_sms_twilio_callback(
