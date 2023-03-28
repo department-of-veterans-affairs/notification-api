@@ -41,6 +41,14 @@ def make_twilio_message_response_dict():
     }
 
 
+ENV_LIST = [
+    ("staging", "staging-"),
+    ("performance", "sandbox-"),
+    ("production", ""),
+    ("development", "dev-"),
+]
+
+
 @pytest.fixture
 def service_sms_sender_with_message_service_sid():
     class ServiceSmsSender:
@@ -251,15 +259,7 @@ def test_send_sms_raises_if_twilio_fails_to_return_json(notify_api, mocker):
         twilio_sms_client.send_sms(to, content, reference)
 
 
-@pytest.mark.parametrize(
-    "environment, expected_prefix",
-    [
-        ("staging", "staging-"),
-        ("performance", "sandbox-"),
-        ("production", ""),
-        ("development", "dev-"),
-    ],
-)
+@pytest.mark.parametrize("environment, expected_prefix", ENV_LIST)
 def test_send_sms_twilio_callback_url(environment, expected_prefix):
     client = TwilioSMSClient("creds", "creds")
 
@@ -271,15 +271,7 @@ def test_send_sms_twilio_callback_url(environment, expected_prefix):
     )
 
 
-@pytest.mark.parametrize(
-    "environment, expected_prefix",
-    [
-        ("staging", "staging-"),
-        ("performance", "sandbox-"),
-        ("production", ""),
-        ("development", "dev-"),
-    ],
-)
+@pytest.mark.parametrize("environment, expected_prefix", ENV_LIST)
 def test_send_sms_twilio_callback_with_message_service_id(
     mocker, service_sms_sender_with_message_service_sid, environment, expected_prefix
 ):
@@ -336,15 +328,7 @@ def test_send_sms_twilio_callback_with_message_service_id(
         assert response_dict["sid"] == twilio_sid
 
 
-@pytest.mark.parametrize(
-    "environment, expected_prefix",
-    [
-        ("staging", "staging-"),
-        ("performance", "sandbox-"),
-        ("production", ""),
-        ("development", "dev-"),
-    ],
-)
+@pytest.mark.parametrize("environment, expected_prefix", ENV_LIST)
 def test_send_sms_twilio_callback_without_message_service_id(
     mocker, service_sms_sender_without_message_service_sid, environment, expected_prefix
 ):
