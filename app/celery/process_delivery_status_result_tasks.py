@@ -40,6 +40,7 @@ FINAL_STATUS_STATES = [
 @notify_celery.task(bind=True, name="process-delivery-status-result", max_retries=48, default_retry_delay=300, )
 @statsd(namespace="tasks")
 def process_delivery_status(self, event: CeleryEvent) -> bool:
+
     """Celery task for updating the delivery status of a notification"""
 
     # preset variables to address "unbounded local variable"
