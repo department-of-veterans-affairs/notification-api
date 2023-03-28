@@ -66,6 +66,7 @@ class ServiceSmsSender:
 def service_sms_sender(request):
     return ServiceSmsSender(request.param)
 
+
 message_body_with_accepted_status = {
     "twilio_status": NOTIFICATION_SENDING,
     "message": "UmF3RmxvYXRJbmRlckRhdG09MjMwMzA5MjAyMSZTbXNTaWQ9UzJlNzAyOGMwZTBhNmYzZjY0YWM3N2E4YWY0OWVkZmY3JlNtc1N0Y"
@@ -242,12 +243,12 @@ message_body_with_invalid_message_status = {
 
 
 @pytest.fixture
-def twilio_sms_client(mocker):
+def twilio_sms_client_mock(mocker):
     client = TwilioSMSClient("CREDS", "CREDS")
 
     logger = mocker.Mock()
 
-    client.init_app(logger, "")
+    client.init_app(logger, "", "")
 
     return client
 
@@ -266,8 +267,8 @@ def twilio_sms_client(mocker):
         (message_body_with_canceled_status),
     ],
 )
-def test_notification_mapping(event, twilio_sms_client):
-    translation = twilio_sms_client.translate_delivery_status(event["message"])
+def test_notification_mapping(event, twilio_sms_client_mock):
+    translation = twilio_sms_client_mock.translate_delivery_status(event["message"])
 
     assert "payload" in translation
     assert "reference" in translation
@@ -291,8 +292,8 @@ def test_notification_mapping(event, twilio_sms_client):
         (message_body_with_failed_status_and_invalid_error_code),
     ],
 )
-def test_error_code_mapping(event, twilio_sms_client):
-    translation = twilio_sms_client.translate_delivery_status(event["message"])
+def test_error_code_mapping(event, twilio_sms_client_mock):
+    translation = twilio_sms_client_mock.translate_delivery_status(event["message"])
 
     assert "payload" in translation
     assert "reference" in translation
@@ -300,21 +301,21 @@ def test_error_code_mapping(event, twilio_sms_client):
     assert translation["record_status"] == event["twilio_status"]
 
 
-def test_exception_on_empty_twilio_status_message(twilio_sms_client):
+def test_exception_on_empty_twilio_status_message(twilio_sms_client_mock):
     with pytest.raises(ValueError):
-        twilio_sms_client.translate_delivery_status(None)
+        twilio_sms_client_mock.translate_delivery_status(None)
 
 
-def test_exception_on_missing_twilio_message_status(twilio_sms_client):
+def test_exception_on_missing_twilio_message_status(twilio_sms_client_mock):
     with pytest.raises(KeyError):
-        twilio_sms_client.translate_delivery_status(
+        twilio_sms_client_mock.translate_delivery_status(
             message_body_with_no_message_status["message"]
         )
 
 
-def test_exception_on_invalid_twilio_status(twilio_sms_client):
+def test_exception_on_invalid_twilio_status(twilio_sms_client_mock):
     with pytest.raises(ValueError):
-        twilio_sms_client.translate_delivery_status(
+        twilio_sms_client_mock.translate_delivery_status(
             message_body_with_invalid_message_status["message"]
         )
 
