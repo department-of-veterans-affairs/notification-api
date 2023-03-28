@@ -49,26 +49,15 @@ ENV_LIST = [
 ]
 
 
-@pytest.fixture
-def service_sms_sender_with_message_service_sid():
-    class ServiceSmsSender:
-        def __init__(self):
-            self.sms_sender = "Test Sender"
-            self.sms_sender_specifics = {
-                "messaging_service_sid": "test_messaging_service_sid"
-            }
-
-    return ServiceSmsSender()
+class ServiceSmsSender:
+    def __init__(self, message_service_id):
+        self.sms_sender = "Test Sender"
+        self.sms_sender_specifics = {"messaging_service_sid": message_service_id}
 
 
 @pytest.fixture
-def service_sms_sender_without_message_service_sid():
-    class ServiceSmsSender:
-        def __init__(self):
-            self.sms_sender = "Test Sender"
-            self.sms_sender_specifics = {"messaging_service_sid": None}
-
-    return ServiceSmsSender()
+def service_sms_sender(request):
+    return ServiceSmsSender(request.param)
 
 
 @pytest.mark.parametrize("status", ["queued", "sending"])
@@ -273,11 +262,7 @@ def test_send_sms_twilio_callback_url(environment, expected_prefix):
 
 @pytest.mark.parametrize("environment, expected_prefix", ENV_LIST)
 @pytest.mark.parametrize(
-    "service_sms_sender",
-    [
-        "service_sms_sender_with_message_service_sid",
-        "service_sms_sender_without_message_service_sid",
-    ],
+    "service_sms_sender", ["message-service-id", None], indirect=True
 )
 def test_send_sms_twilio_callback(
     mocker, service_sms_sender, environment, expected_prefix
