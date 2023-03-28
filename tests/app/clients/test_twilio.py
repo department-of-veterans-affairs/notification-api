@@ -279,7 +279,7 @@ def test_send_sms_twilio_callback_url(environment, expected_prefix):
         (service_sms_sender_without_message_service_sid),
     ],
 )
-def test_send_sms_twilio_callback_with_message_service_id(
+def test_send_sms_twilio_callback(
     mocker, service_sms_sender, environment, expected_prefix
 ):
     account_sid = "test_account_sid"
