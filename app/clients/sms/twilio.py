@@ -28,7 +28,8 @@ class TwilioSMSClient(SmsClient):
         self._auth_token = auth_token
         self._client = Client(account_sid, auth_token)
 
-        # Importing inline to resolve a circular import error when importing at the top of the file
+        # Importing inline to resolve a circular import error when importing
+        # at the top of the file
         from app.models import (
             NOTIFICATION_DELIVERED,
             NOTIFICATION_TECHNICAL_FAILURE,
@@ -37,10 +38,7 @@ class TwilioSMSClient(SmsClient):
             NOTIFICATION_SENT,
         )
 
-        global twilio_error_code_map
-        global twilio_notify_status_map
-
-        twilio_error_code_map = {
+        self.twilio_error_code_map = {
             "30001": NOTIFICATION_TECHNICAL_FAILURE,
             "30002": NOTIFICATION_PERMANENT_FAILURE,
             "30003": NOTIFICATION_PERMANENT_FAILURE,
@@ -53,7 +51,7 @@ class TwilioSMSClient(SmsClient):
             "30010": NOTIFICATION_TECHNICAL_FAILURE,
         }
 
-        twilio_notify_status_map = {
+        self.twilio_notify_status_map = {
             "accepted": NOTIFICATION_SENDING,
             "scheduled": NOTIFICATION_SENDING,
             "queued": NOTIFICATION_SENDING,
@@ -89,7 +87,8 @@ class TwilioSMSClient(SmsClient):
 
     def send_sms(self, to, content, reference, **kwargs) -> str:
         """
-        Twilio supports sending messages with a sender phone number or messaging_service_sid.
+        Twilio supports sending messages with a sender phone number
+        or messaging_service_sid.
 
         Return: a string containing the Twilio message.sid
         """
@@ -97,7 +96,8 @@ class TwilioSMSClient(SmsClient):
         start_time = monotonic()
 
         try:
-            # Importing inline to resolve a circular import error when importing at the top of the file
+            # Importing inline to resolve a circular import error when
+            # importing at the top of the file
             from app.dao.service_sms_sender_dao import (
                 dao_get_service_sms_sender_by_service_id_and_number,
                 dao_get_service_sms_sender_by_id,
@@ -166,18 +166,19 @@ class TwilioSMSClient(SmsClient):
         finally:
             elapsed_time = monotonic() - start_time
             self.logger.info(
-                "Twilio send SMS request for %s  finished in %s",
+                "Twilio send SMS request for %s  finished in %f",
                 reference,
                 elapsed_time,
             )
 
-    def translate_delivery_status(self, twilio_delivery_status_message) -> dict:
+    def translate_delivery_status(self, twilio_delivery_status_message: str) -> dict:
         """
         Parses the base64 encoded delivery status message from Twilio and returns a dictionary.
         The dictionary contains the following keys:
         - record_status: the convereted twilio to notification platform status
         - reference: the message id of the twilio message
         - payload: the original payload from twilio
+        https://github.com/department-of-veterans-affairs/vanotify-team/blob/master/Engineering/SPIKES/SMS-Delivery-Status.md#twilio-implementation-of-delivery-statuses
         """
         self.logger.info("Translating Twilio delivery status")
         self.logger.debug(twilio_delivery_status_message)
@@ -189,14 +190,11 @@ class TwilioSMSClient(SmsClient):
 
         parsed_dict = parse_qs(decoded_msg)
 
-        if "MessageStatus" not in parsed_dict:
-            raise KeyError("Twilio delivery status message is missing MessageStatus")
-
         twilio_delivery_status = parsed_dict["MessageStatus"][0]
 
-        if twilio_delivery_status not in twilio_notify_status_map:
-            valueError = "Invalid Twilio delivery status: %s", twilio_delivery_status
-            raise ValueError(valueError)
+        if twilio_delivery_status not in self.twilio_notify_status_map:
+            value_error = f"Invalid Twilio delivery status:  {twilio_delivery_status}"
+            raise ValueError(value_error)
 
         if "ErrorCode" in parsed_dict and (
             twilio_delivery_status == "failed"
@@ -204,14 +202,16 @@ class TwilioSMSClient(SmsClient):
         ):
             error_code = parsed_dict["ErrorCode"][0]
 
-            if error_code in twilio_error_code_map:
-                notify_delivery_status = twilio_error_code_map[error_code]
+            if error_code in self.twilio_error_code_map:
+                notify_delivery_status = self.twilio_error_code_map[error_code]
             else:
-                notify_delivery_status = twilio_notify_status_map[
+                notify_delivery_status = self.twilio_notify_status_map[
                     twilio_delivery_status
                 ]
         else:
-            notify_delivery_status = twilio_notify_status_map[twilio_delivery_status]
+            notify_delivery_status = self.twilio_notify_status_map[
+                twilio_delivery_status
+            ]
 
         translation = {
             "payload": twilio_delivery_status_message,
