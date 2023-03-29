@@ -37,7 +37,7 @@ FINAL_STATUS_STATES = [
 
 
 # Create SQS Queue for Process Deliver Status.
-@notify_celery.task(bind=True, name="process-delivery-status-result", max_retries=48, default_retry_delay=300, )
+@notify_celery.task(bind=True, name="process-delivery-status-result", max_retries=48, default_retry_delay=300)
 @statsd(namespace="tasks")
 def process_delivery_status(self, event: CeleryEvent) -> bool:
     """Celery task for updating the delivery status of a notification"""
@@ -62,17 +62,12 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     notification_platform_status = _get_notification_platform_status(self, provider, body, sqs_message)
 
     # get parameters from notification platform status
+    current_app.logger.info("Get Notification Parameters")
     (payload, reference, notification_status,
      number_of_message_parts, price_in_millicents_usd) = _get_notification_parameters(notification_platform_status)
 
     # retrieves the inbound message for this provider we are updating the status of the outbound message
     notification, should_retry, should_exit = attempt_to_get_notification(reference, notification_status)
-
-    current_app.logger.info(
-        "Delivery Status callback return status of %s for notification: %s",
-        notification_status,
-        notification.id,
-    )
 
     # the race condition scenario if we got the delivery status before we actually record the sms
     if should_retry or (notification is None):
@@ -85,9 +80,17 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
 
     try:
         # calculate pricing
+        current_app.logger.info(
+            "Notification ID (%s) - Calculate Pricing: %s and notification_status: %s with number_of_message_parts",
+            notification.id, provider_name, notification_status, number_of_message_parts,
+        )
         _calculate_pricing(price_in_millicents_usd, notification, notification_status, number_of_message_parts)
 
         # statsd - metric tracking of # of messages sent
+        current_app.logger.info(
+            "Increment statsd on provider_name: %s and notification_status: %s",
+            provider_name, notification_status
+        )
         _increment_statsd(notification, provider_name, notification_status)
 
         # check if payload is to be include in cardinal set in the service callback is (service_id, callback_type)
@@ -117,6 +120,11 @@ def attempt_to_get_notification(reference: str, notification_status: str) -> Tup
     try:
         notification = dao_get_notification_by_reference(reference)
         should_exit = check_notification_status(notification, notification_status)
+        current_app.logger.info(
+            "Delivery Status callback return status of %s for notification: %s",
+            notification_status,
+            notification.id
+        )
     except NoResultFound:
         message_time = datetime.datetime.fromtimestamp(math.floor(float(event_timestamp_in_ms) / 1000))
         if datetime.datetime.utcnow() - message_time < datetime.timedelta(minutes=5):
@@ -147,7 +155,7 @@ def log_notification_status_warning(notification: Notification, status: str) -> 
         time_diff,
         notification.status,
         notification.notification_type,
-        notification.sent_by,
+        notification.sent_by
     )
 
 
@@ -180,7 +188,7 @@ def _get_notification_parameters(notification_platform_status: dict) -> Tuple[st
         reference,
         notification_status,
         number_of_message_parts,
-        price_in_millicents_usd,
+        price_in_millicents_usd
     )
     return payload, reference, notification_status, number_of_message_parts, price_in_millicents_usd
 
@@ -189,6 +197,7 @@ def _calculate_pricing(price_in_millicents_usd: float, notification: Notificatio
                        number_of_message_parts: int):
 
     """ Calculate pricing """
+    current_app.logger.info("Calculate Pricing")
     if price_in_millicents_usd > 0.0:
         notification.status = notification_status
         notification.segments_count = number_of_message_parts
@@ -202,6 +211,8 @@ def _calculate_pricing(price_in_millicents_usd: float, notification: Notificatio
 
 def _get_notification_platform_status(self, provider: any, body: str, sqs_message: dict) -> dict:
     """ Performs a translation on the body """
+
+    current_app.logger.info("Get Notification Platform Status")
     notification_platform_status = None
     try:
         notification_platform_status = provider.translate_delivery_status(body)
@@ -223,9 +234,9 @@ def _get_notification_platform_status(self, provider: any, body: str, sqs_messag
 
 
 def _get_include_payload_status(self, notification: Notification) -> bool:
-    """ Determines where payload should be included in delivery status callback data"""
+    """ Determines whether payload should be included in delivery status callback data"""
     include_payload_status = False
-
+    current_app.logger.info("Determine if payload should be included")
     # this was updated to no longer need the "No Result Found" exception
 
     try:
@@ -252,7 +263,7 @@ def _increment_statsd(notification: Notification, provider_name: str, notificati
         statsd_client.timing_with_dates(
             f"callback.{provider_name}.elapsed-time",
             datetime.datetime.utcnow().strftime(DATETIME_FORMAT),
-            notification.sent_at,
+            notification.sent_at
         )
 
 
@@ -260,6 +271,7 @@ def _increment_statsd(notification: Notification, provider_name: str, notificati
 def _get_sqs_message(self, event: CeleryEvent) -> dict:
     """ Gets the sms message from the CeleryEvent """
     sqs_message = None
+    current_app.logger.info("Get SQS message")
     try:
         sqs_message = event["message"]
     except (TypeError, KeyError) as e:
@@ -272,6 +284,7 @@ def _get_sqs_message(self, event: CeleryEvent) -> dict:
 
 def _get_provider_info(self, sqs_message: dict) -> Tuple[str, any]:
     """ Gets the provider_name and provider object """
+    current_app.logger.info("Get provider Information")
     provider_name = sqs_message.get("provider")
     provider = clients.get_sms_client(provider_name)
 
