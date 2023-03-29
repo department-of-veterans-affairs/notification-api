@@ -207,7 +207,9 @@ def create_delivery_status_callback_data(notification, service_callback_api, pro
     from app import DATETIME_FORMAT, encryption
     """ Encrypt delivery status message  """
 
-    # set provider_payload to empty dictionary
+    # https://peps.python.org/pep-0557/#mutable-default-values
+    # do not want to have a mutable type in definition so we set provider_payload to empty dictionary
+    # when one was not provided by the caller
     if provider_payload is None:
         provider_payload = {}
 
@@ -249,10 +251,14 @@ def create_complaint_callback_data(complaint, notification, service_callback_api
 
 
 def check_and_queue_callback_task(notification, payload=None):
+
+    # https://peps.python.org/pep-0557/#mutable-default-values
+    # do not want to have mutable type in definition so we set provider_payload to empty dictionary
+    # when one was not provided by the caller
     if payload is None:
         payload = {}
-    # queue callback task only if the service_callback_api exists
 
+    # queue callback task only if the service_callback_api exists
     service_callback_api = get_service_delivery_status_callback_api_for_service(
         service_id=notification.service_id, notification_status=notification.status
     )
