@@ -113,6 +113,7 @@ def attempt_to_get_notification(reference: str, notification_status: str) -> Tup
     event_timestamp_in_ms = str(time.time() * 1000)
     should_retry = False
     notification = None
+    should_exit = False
     try:
         notification = dao_get_notification_by_reference(reference)
         should_exit = check_notification_status(notification, notification_status)
