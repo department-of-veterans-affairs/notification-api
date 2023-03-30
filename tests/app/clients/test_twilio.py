@@ -48,6 +48,9 @@ def make_twilio_message_response_dict():
     }
 
 
+# First parameter is the environment value passed to the task definition
+# second parameter is the prefix for the reverse proxy endpoint for that 
+# environment
 ENV_LIST = [
     ("staging", "staging-"),
     ("performance", "sandbox-"),
