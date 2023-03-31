@@ -41,11 +41,8 @@ def send_delivery_status_to_service(
         "notification_type": status_update['notification_type'],
     }
 
-    if "status_reason" in status_update:
-        payload['status_reason'] = status_update['status_reason']
-
-    if 'provider' in status_update:
-        payload['provider'] = status_update['provider']
+    payload['status_reason'] = status_update.get('status_reason')
+    payload['provider'] = status_update.get('provider', 'pinpoint')
 
     # if the provider payload is found in the status_update object
     if 'provider_payload' in status_update:
