@@ -91,7 +91,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
             "Increment statsd on provider_name: %s and notification_status: %s",
             provider_name, notification_status
         )
-        # _increment_statsd(notification, provider_name, notification_status)
+        _increment_statsd(notification, provider_name, notification_status)
 
         # check if payload is to be include in cardinal set in the service callback is (service_id, callback_type)
         if not _get_include_payload_status(self, notification):
@@ -262,7 +262,7 @@ def _increment_statsd(notification: Notification, provider_name: str, notificati
     if notification.sent_at:
         statsd_client.timing_with_dates(
             f"callback.{provider_name}.elapsed-time",
-            datetime.datetime.utcnow().strftime(DATETIME_FORMAT),
+            datetime.datetime.utcnow(),
             notification.sent_at
         )
 
