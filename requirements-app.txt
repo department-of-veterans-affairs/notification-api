@@ -2,8 +2,8 @@
 alembic_utils>=0.8.1
 
 Authlib>=1.2.0
-boto3>=1.26.97
-botocore>=1.29.97
+boto3>=1.26.102
+botocore>=1.29.102
 cachelib>=0.10.2
 
 # 5 May 2022: Ignoring security vulnerabilities 42498 and 43738 in Makefile.
@@ -15,7 +15,7 @@ celery[sqs]>=4.4.7
 click-datetime>=0.2
 
 # Datadog Tracer
-ddtrace~=1.8.0
+ddtrace~=1.8.1
 
 docopt>=0.6.2
 
@@ -49,6 +49,7 @@ jsonschema>=4.17.3
 # Kombu is a top-level package too.
 kombu < 5.0
 
+# 31 March 2023: marshmallow 2.x has not been supported since 18 August 2020.
 marshmallow==2.20.5
 marshmallow-sqlalchemy==0.22.2
 nanoid>=2.0.0

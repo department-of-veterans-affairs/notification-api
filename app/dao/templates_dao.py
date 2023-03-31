@@ -1,23 +1,21 @@
-from datetime import datetime
 import uuid
-
-from flask import current_app
-from sqlalchemy import asc, desc
-
 from app import db
-from app.models import (
-    LETTER_TYPE,
-    SECOND_CLASS,
-    Template,
-    TemplateHistory,
-    TemplateRedacted
-)
 from app.dao.dao_utils import (
     transactional,
     version_class,
     VersionOptions,
 )
 from app.dao.users_dao import get_user_by_id
+from app.models import (
+    LETTER_TYPE,
+    SECOND_CLASS,
+    Template,
+    TemplateHistory,
+    TemplateRedacted,
+)
+from datetime import datetime
+from flask import current_app
+from sqlalchemy import asc, desc
 
 
 @transactional
@@ -47,17 +45,9 @@ def dao_create_template(template):
     VersionOptions(Template, history_class=TemplateHistory)
 )
 def dao_update_template(template):
-    if isinstance(template, dict):
-        if template["archived"]:
-            template["folder"] = None
-        new_template = Template(**template)
-        db.session.add(new_template)
-    elif isinstance(template, Template):
-        if template.archived:
-            template.folder = None
-        db.session.add(template)
-    else:
-        raise TypeError
+    if template.archived:
+        template.folder = None
+    db.session.add(template)
 
 
 @transactional

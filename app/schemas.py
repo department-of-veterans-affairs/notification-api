@@ -397,6 +397,7 @@ class DetailedServiceSchema(BaseSchema):
 class NotificationModelSchema(BaseSchema):
     class Meta:
         model = models.Notification
+        load_instance = True
         strict = True
         exclude = ('_personalisation', 'job', 'service', 'template', 'api_key',)
 
@@ -420,6 +421,7 @@ class BaseTemplateSchema(BaseSchema):
         exclude = ("service_id", "jobs", "service_letter_contact_id", "provider")
         strict = True
         include_relationships = True
+        load_instance = True
 
 
 class TemplateSchema(BaseTemplateSchema):
@@ -745,11 +747,11 @@ class NotificationsFilterSchema(ma.Schema):
         return out_data
 
     @post_load
-    def convert_schema_object_to_field(self, in_data):
+    def convert_schema_object_to_field(self, in_data: dict) -> dict:
         if 'template_type' in in_data:
-            in_data["template_type"] = [x["template_type"] for x in in_data["template_type"]]
+            in_data["template_type"] = [x.template_type for x in in_data["template_type"]]
         if 'status' in in_data:
-            in_data['status'] = [x["status"] for x in in_data['status']]
+            in_data['status'] = [x.status for x in in_data['status']]
         return in_data
 
     @validates('page')

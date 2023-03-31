@@ -136,8 +136,8 @@ def update_template(service_id, template_id):
 
     data = request.get_json()
 
-    # if redacting, don't update anything else
     if data.get('redact_personalisation') is True:
+        # Don't update anything else.
         return redact_template(fetched_template, data)
 
     if "reply_to" in data:
@@ -169,7 +169,6 @@ def update_template(service_id, template_id):
         raise InvalidRequest(errors, status_code=400)
 
     update_dict = template_schema.load(updated_template).data
-
     dao_update_template(update_dict)
     return jsonify(data=template_schema.dump(update_dict).data), 200
 
