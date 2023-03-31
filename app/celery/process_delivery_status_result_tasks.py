@@ -91,7 +91,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
             "Increment statsd on provider_name: %s and notification_status: %s",
             provider_name, notification_status
         )
-        _increment_statsd(notification, provider_name, notification_status)
+        # _increment_statsd(notification, provider_name, notification_status)
 
         # check if payload is to be include in cardinal set in the service callback is (service_id, callback_type)
         if not _get_include_payload_status(self, notification):
