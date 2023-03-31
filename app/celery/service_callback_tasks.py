@@ -42,7 +42,7 @@ def send_delivery_status_to_service(
     }
 
     if "status_reason" in status_update:
-        payload['status_reason'] = status_update
+        payload['status_reason'] = status_update['status_reason']
 
     if 'provider' in status_update:
         payload['provider'] = status_update['provider']
