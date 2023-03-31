@@ -16,7 +16,7 @@ from flask import current_app
 
 from notifications_utils.statsd_decorators import statsd
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-from app import notify_celery, statsd_client, clients, DATETIME_FORMAT
+from app import notify_celery, statsd_client, clients
 from app.config import QueueNames
 from app.dao.service_callback_dao import dao_get_callback_include_payload_status
 
