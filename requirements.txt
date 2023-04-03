@@ -5,7 +5,7 @@ asn1crypto==1.5.1
 async-timeout==4.0.2
 attrs==22.2.0
 Authlib==1.2.0
-awscli==1.27.95
+awscli==1.27.104
 bcrypt==4.0.1
 billiard==3.6.4.0
 bleach==6.0.0
