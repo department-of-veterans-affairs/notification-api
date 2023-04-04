@@ -118,10 +118,6 @@ def fetch_nightly_billing_counts(process_day: date):
     start_date = convert_local_timezone_to_utc(datetime.combine(process_day, time.min))
     end_date = convert_local_timezone_to_utc(datetime.combine(process_day + timedelta(days=1), time.min))
 
-    print("fetch process_day =", process_day)  # TODO
-    print("fetch start_date =", start_date)  # TODO
-    print("fetch end_date =", end_date)  # TODO
-
     billable_type_list = {
         SMS_TYPE: NOTIFICATION_STATUS_TYPES_BILLABLE
     }
