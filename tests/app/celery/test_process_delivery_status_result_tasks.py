@@ -200,7 +200,6 @@ def test_should_exit(
     )
 
 
-# we want to test that celery task will succeed when correct data is given
 def test_with_correct_data(
     mocker,
     db_session,
