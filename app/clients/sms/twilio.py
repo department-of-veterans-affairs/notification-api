@@ -191,6 +191,10 @@ class TwilioSMSClient(SmsClient):
         parsed_dict = parse_qs(decoded_msg)
 
         twilio_delivery_status = parsed_dict["MessageStatus"][0]
+        twilio_message_sid = parsed_dict["MessageSid"][0]
+
+        self.logger.info("Twilio message sid: %s", twilio_message_sid)
+        self.logger.info("Twilio delivery status: %s", twilio_delivery_status)
 
         if twilio_delivery_status not in self.twilio_notify_status_map:
             value_error = f"Invalid Twilio delivery status:  {twilio_delivery_status}"
@@ -215,10 +219,10 @@ class TwilioSMSClient(SmsClient):
 
         translation = {
             "payload": twilio_delivery_status_message,
-            "reference": parsed_dict["MessageSid"][0],
+            "reference": twilio_message_sid,
             "record_status": notify_delivery_status,
         }
 
-        self.logger.debug("Twilio delivery status translation: %s", translation)
+        self.logger.info("Twilio delivery status translation: %s", translation)
 
         return translation
