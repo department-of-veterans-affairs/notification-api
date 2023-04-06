@@ -245,6 +245,8 @@ def _get_include_payload_status(self, notification: Notification) -> bool:
             notification.notification_type
         )
 
+        current_app.logger.info("Payload should be included: %s", include_payload_status)
+
     except (AttributeError, TypeError) as e:
         current_app.logger.error("Could not determine include_payload property for ServiceCallback.")
         current_app.logger.exception(e)
