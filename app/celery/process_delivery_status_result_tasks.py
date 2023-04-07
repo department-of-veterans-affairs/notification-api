@@ -122,7 +122,7 @@ def attempt_to_get_notification(reference: str, notification_status: str) -> Tup
         notification = dao_get_notification_by_reference(reference)
         should_exit = check_notification_status(notification, notification_status)
         current_app.logger.info(
-            "Delivery Status callback return status of %s for notification: %s",
+            "Delivery Status callback return status of %s for notification:  %s",
             notification_status,
             notification.id
         )
