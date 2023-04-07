@@ -150,14 +150,14 @@ def send_complaint_to_vanotify(self, complaint_id: str, complaint_template_name:
         )
         current_app.logger.info(
             'Successfully sent complaint email to va-notify. notification_id: %s',
-            complaint.notification_id
+            complaint_id
         )
 
     except Exception as e:
         current_app.logger.exception(
             'Problem sending complaint to va-notify for notification %s: %s',
-            str(complaint.notification_id),
-            e
+            complaint_id,
+            str(e)
         )
 
 
