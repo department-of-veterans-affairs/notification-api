@@ -30,6 +30,10 @@ def send_delivery_status_to_service(
     # create_delivery_status_callback
     status_update = encryption.decrypt(encrypted_status_update)
 
+    current_app.logger.info(
+        "Send Delivery Status To Service. status_update: %s", status_update
+    )
+
     payload = {
         "id": str(notification_id),
         "reference": status_update["notification_client_reference"],
@@ -51,6 +55,10 @@ def send_delivery_status_to_service(
         payload["provider_payload"] = status_update["provider_payload"]
 
     logging_tags = {"notification_id": str(notification_id)}
+
+    current_app.logger.info(
+        "Send Delivery Status To Service. payload object: %s", payload
+    )
 
     try:
         # calls the webhook / sqs callback to transmit message
@@ -224,12 +232,20 @@ def create_delivery_status_callback_data(
     from app import DATETIME_FORMAT, encryption
 
     """ Encrypt delivery status message  """
+    current_app.logger.info(
+        "Create Delivery Status Callback Data pre-payload: %s", provider_payload
+    )
 
     # https://peps.python.org/pep-0557/#mutable-default-values
     # do not want to have a mutable type in definition so we set provider_payload to empty dictionary
     # when one was not provided by the caller
     if provider_payload is None:
         provider_payload = {}
+
+    current_app.logger.info(
+        "Create Delivery Status Callback Data ppost-none-check-payload: %s",
+        provider_payload,
+    )
 
     data = {
         "notification_id": str(notification.id),
@@ -255,7 +271,9 @@ def create_delivery_status_callback_data(
         data["provider_payload"] = provider_payload
 
     current_app.logger.info(
-        "Callback Notification Data: %s - payload: %s", data, provider_payload
+        "Create Delivery Status Callback Data post-assembly-check-payload: %s - full data: %s",
+        provider_payload,
+        data,
     )
 
     return encryption.encrypt(data)
@@ -293,7 +311,7 @@ def check_and_queue_callback_task(notification, payload=None):
 
     # if a row of info is found
     if service_callback_api:
-        current_app.logger.info("Service Callback Exists")
+        current_app.logger.info("Service Callback Exists, payload: %s", payload)
 
         # build dictionary for notification
         notification_data = create_delivery_status_callback_data(
