@@ -1,7 +1,7 @@
 import math
 import time
 import datetime
-from app.models import DELIVERY_STATUS_CALLBACK_TYPE 
+from app.models import DELIVERY_STATUS_CALLBACK_TYPE
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.celery.process_pinpoint_inbound_sms import CeleryEvent
 
