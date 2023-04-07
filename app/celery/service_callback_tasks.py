@@ -267,7 +267,7 @@ def create_delivery_status_callback_data(
     }
 
     # add the property 'provider_payload when provider payload is not an empty dictionary
-    if not provider_payload:
+    if provider_payload:
         data["provider_payload"] = provider_payload
 
     current_app.logger.info(
