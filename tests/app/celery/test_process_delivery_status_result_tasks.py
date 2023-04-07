@@ -50,11 +50,11 @@ def sample_sqs_message():
 
 # integration test cases: incoming message does not contain a message property
 def test_event_message_invalid_message(
-        mocker,
-        notify_db_session,
-        sample_delivery_status_result_message,
-        sample_translate_return_value,
-        sample_notification
+    mocker,
+    notify_db_session,
+    sample_delivery_status_result_message,
+    sample_translate_return_value,
+    sample_notification,
 ):
     """Test that celery will retry the task if "message" is missing from the CeleryEvent message"""
 
@@ -69,18 +69,18 @@ def test_event_message_invalid_message(
         return_value=sample_translate_return_value,
     )
 
-    with pytest.raises(KeyError, match="'message'"):
-        process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
+    with pytest.raises(Retry):
+        process_delivery_status_result_tasks.process_delivery_status(
+            event=sample_delivery_status_result_message
+        )
 
 
-# integration test cases: incoming message did not contain a valid provider
-def test_with_invalid_provider(
-        mocker,
-        notify_db_session,
-        sample_delivery_status_result_message,
-        sample_translate_return_value,
-        sample_notification,
-        sample_template
+def test_without_provider(
+    mocker,
+    notify_db_session,
+    sample_delivery_status_result_message,
+    sample_translate_return_value,
+    sample_notification,
 ):
     """Test that celery will retry the task if provider doesnt exist then self.retry is called"""
 
@@ -94,17 +94,19 @@ def test_with_invalid_provider(
         sent_at=datetime.datetime.utcnow(), status='sending'
     )
 
-    with pytest.raises(ValueError, match="Provider cannot be None"):
-        process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
+    with pytest.raises(Retry):
+        process_delivery_status_result_tasks.process_delivery_status(
+            event=sample_delivery_status_result_message
+        )
 
 
 # integration test: attempt_to_get_notification says that we must retry
 def test_attempt_get_notification_triggers_should_retry(
-        mocker,
-        notify_db_session,
-        sample_delivery_status_result_message,
-        sample_translate_return_value,
-        sample_notification, sample_template
+    mocker,
+    notify_db_session,
+    sample_delivery_status_result_message,
+    sample_translate_return_value,
+    sample_notification,
 ):
     """
     Test scenario for when attempt_to_get_notification could not find the record
@@ -116,16 +118,18 @@ def test_attempt_get_notification_triggers_should_retry(
     )
 
     with pytest.raises(Retry):
-        process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
+        process_delivery_status_result_tasks.process_delivery_status(
+            event=sample_delivery_status_result_message
+        )
 
 
 # integration test: attempt_to_get_notification says do not retry but the notification object is None
 def test_attempt_to_get_notification_none(
-        mocker,
-        notify_db_session,
-        sample_delivery_status_result_message,
-        sample_translate_return_value,
-        sample_notification, sample_template
+    mocker,
+    notify_db_session,
+    sample_delivery_status_result_message,
+    sample_translate_return_value,
+    sample_notification,
 ):
     """We want to test that attempt_to_get_notification triggers a celery Retry when None"""
 
@@ -135,31 +139,35 @@ def test_attempt_to_get_notification_none(
     )
 
     with pytest.raises(Retry):
-        process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
+        process_delivery_status_result_tasks.process_delivery_status(
+            event=sample_delivery_status_result_message
+        )
 
 
 # integration test: body is missing from the incoming message
 def test_missing_body_triggers_retry(
-        notify_db_session,
-        sample_delivery_status_result_message,
-        sample_translate_return_value,
-        sample_notification, sample_template
+    notify_db_session,
+    sample_delivery_status_result_message,
+    sample_translate_return_value,
+    sample_notification,
 ):
     """Verify that retry is triggered if translate_delivery_status is given a body does not exist"""
     # change message['body'] to invalid body
     sample_delivery_status_result_message["message"].pop("body")
+    with pytest.raises(Retry):
+        process_delivery_status_result_tasks.process_delivery_status(
+            event=sample_delivery_status_result_message
+        )
 
-    with pytest.raises(ValueError, match="Twilio delivery status message is empty"):
-        process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
 
 
 # integration test case: translation of delivery status returned a None object
 def test_none_notification_platform_status_triggers_retry(
-        mocker,
-        notify_db_session,
-        sample_delivery_status_result_message,
-        sample_translate_return_value,
-        sample_notification
+    mocker,
+    notify_db_session,
+    sample_delivery_status_result_message,
+    sample_translate_return_value,
+    sample_notification,
 ):
     """verify that retry is triggered if translate_delivery_status is returns a None"""
 
@@ -176,10 +184,10 @@ def test_none_notification_platform_status_triggers_retry(
 
 # integration translate_delivery_status shou
 def test_invalid_body_triggers_retry(
-        notify_db_session,
-        sample_delivery_status_result_message,
-        sample_translate_return_value,
-        sample_notification
+    notify_db_session,
+    sample_delivery_status_result_message,
+    sample_translate_return_value,
+    sample_notification,
 ):
     """
     verify that retry is triggered if translate_delivery_status is given a body is missing properties
@@ -187,12 +195,15 @@ def test_invalid_body_triggers_retry(
 
     # change message['body'] to invalid body
     sample_delivery_status_result_message["message"]["body"] = ""
-    # todo: should this really say "Twilio"
-    with pytest.raises(ValueError, match="Twilio delivery status message is empty"):
-        process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
+    with pytest.raises(Retry):
+        process_delivery_status_result_tasks.process_delivery_status(
+            event=sample_delivery_status_result_message
+        )
 
 
-def test_should_exit(mocker, notify_db_session, sample_delivery_status_result_message, sample_notification):
+def test_should_exit(
+    mocker, notify_db_session, sample_delivery_status_result_message, sample_notification
+):
     """Test that celery task will "exit" if multiple notifications were found"""
     mocker.patch(
         "app.celery.process_delivery_status_result_tasks.attempt_to_get_notification",
@@ -205,12 +216,11 @@ def test_should_exit(mocker, notify_db_session, sample_delivery_status_result_me
 
 
 def test_with_correct_data(
-        mocker,
-        notify_db_session,
-        sample_delivery_status_result_message,
-        sample_translate_return_value,
-        sample_notification,
-        sample_template
+    mocker,
+    notify_db_session,
+    sample_delivery_status_result_message,
+    sample_translate_return_value,
+    sample_notification,
 ):
     """Test that celery task will complete if correct data is provided"""
 
