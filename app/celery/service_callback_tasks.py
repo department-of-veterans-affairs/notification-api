@@ -25,7 +25,6 @@ from app.models import Complaint, Notification
 def send_delivery_status_to_service(
     self, service_callback_id, notification_id, encrypted_status_update
 ):
-
     service_callback = get_service_callback(service_callback_id)
     # create_delivery_status_callback
     status_update = encryption.decrypt(encrypted_status_update)
@@ -107,20 +106,29 @@ def send_complaint_to_service(self, service_callback_id, complaint_data):
     except RetryableException as e:
         try:
             current_app.logger.warning(
-                f"Retrying: {self.name} failed for {logging_tags}, url {service_callback.url}. "
-                f"exc: {e}"
+                "Retrying: %s failed for %s, url %s. exc: %s",
+                self.name,
+                logging_tags,
+                service_callback.url,
+                e,
             )
             self.retry(queue=QueueNames.RETRY)
         except self.MaxRetriesExceededError:
             current_app.logger.error(
-                f"Retry: {self.name} has retried the max num of times for {logging_tags}, url "
-                f"{service_callback.url}. exc: {e}"
+                "Retry: %s has retried the max num of times for %s, url %s. exc: %s",
+                self.name,
+                logging_tags,
+                service_callback.url,
+                e,
             )
             raise e
     except NonRetryableException as e:
         current_app.logger.error(
-            f"Not retrying: {self.name} failed for {logging_tags}, url: {service_callback.url}. "
-            f"exc: {e}"
+            "Not retrying: %s failed for %s, url: %s. exc: %s",
+            self.name,
+            logging_tags,
+            service_callback.url,
+            e,
         )
         raise e
 
@@ -150,12 +158,15 @@ def send_complaint_to_vanotify(
             },
         )
         current_app.logger.info(
-            f"Successfully sent complaint email to va-notify. notification_id: {complaint.notification_id}"
+            "Successfully sent complaint email to va-notify. notification_id: %s",
+            complaint.notification_id,
         )
 
     except Exception as e:
         current_app.logger.exception(
-            f"Problem sending complaint to va-notify for notification {complaint.notification_id}: {e}"
+            "Problem sending complaint to va-notify for notification %s: %s",
+            complaint.notification_id,
+            e,
         )
 
 
@@ -198,20 +209,29 @@ def send_inbound_sms_to_service(self, inbound_sms_id, service_id):
     except RetryableException as e:
         try:
             current_app.logger.warning(
-                f"Retrying: {self.name} failed for {logging_tags}, url {service_callback.url}. "
-                f"exc: {e}"
+                "Retrying: %s failed for %s, url %s. exc: %s",
+                self.name,
+                logging_tags,
+                service_callback.url,
+                e,
             )
             self.retry(queue=QueueNames.RETRY)
         except self.MaxRetriesExceededError:
             current_app.logger.error(
-                f"Retry: {self.name} has retried the max num of times for {logging_tags}, url "
-                f"{service_callback.url}. exc: {e}"
+                "Retry: %s has retried the max num of times for %s, url %s. exc: %s",
+                self.name,
+                logging_tags,
+                service_callback.url,
+                e,
             )
             raise e
     except NonRetryableException as e:
         current_app.logger.error(
-            f"Not retrying: {self.name} failed for {logging_tags}, url: {service_callback.url}. "
-            f"exc: {e}"
+            "Not retrying: %s failed for %s, url: %s. exc: %s",
+            self.name,
+            logging_tags,
+            service_callback.url,
+            e,
         )
         raise e
 
@@ -266,7 +286,6 @@ def create_complaint_callback_data(
 
 
 def check_and_queue_callback_task(notification, payload=None):
-
     # https://peps.python.org/pep-0557/#mutable-default-values
     # do not want to have mutable type in definition so we set provider_payload to empty dictionary
     # when one was not provided by the caller
