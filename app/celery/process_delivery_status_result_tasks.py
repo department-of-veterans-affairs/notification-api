@@ -1,6 +1,7 @@
 import math
 import time
 import datetime
+from app.models import DELIVERY_STATUS_CALLBACK_TYPE
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.celery.process_pinpoint_inbound_sms import CeleryEvent
 
@@ -305,7 +306,7 @@ def _get_include_payload_status(self, notification: Notification) -> bool:
 
     try:
         include_payload_status = dao_get_callback_include_payload_status(
-            notification.service_id, "delivery_status"
+            notification.service_id, DELIVERY_STATUS_CALLBACK_TYPE
         )
 
         current_app.logger.info(
