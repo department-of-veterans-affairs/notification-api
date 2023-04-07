@@ -120,6 +120,11 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         # check if payload is to be include in cardinal set in the service callback is (service_id, callback_type)
         if not _get_include_payload_status(self, notification):
             payload = {}
+
+        current_app.logger.info(
+            "Payload: %s",
+            payload,
+        )
         check_and_queue_callback_task(notification, payload)
         return True
 
