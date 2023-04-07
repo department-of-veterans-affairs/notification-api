@@ -1,6 +1,7 @@
 import math
 import time
 import datetime
+from app.models import DELIVERY_STATUS_CALLBACK_TYPE
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.celery.process_pinpoint_inbound_sms import CeleryEvent
 
@@ -131,7 +132,7 @@ def attempt_to_get_notification(reference: str, notification_status: str) -> Tup
         notification = dao_get_notification_by_reference(reference)
         should_exit = check_notification_status(notification, notification_status)
         current_app.logger.info(
-            "Delivery Status callback return status of %s for notification: %s",
+            "Delivery Status callback return status of %s for notification:  %s",
             notification_status,
             notification.id
         )
@@ -252,7 +253,7 @@ def _get_include_payload_status(self, notification: Notification) -> bool:
     try:
         return dao_get_callback_include_payload_status(
             notification.service_id,
-            notification.notification_type
+            DELIVERY_STATUS_CALLBACK_TYPE
         )
 
     except (AttributeError, TypeError) as e:
