@@ -46,6 +46,10 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     sqs_message = None
     notification_platform_status = None
 
+    # avoids "might referencing before assignment" concerns
+    provider_name = None
+    provider = None
+
     current_app.logger.info("processing delivery status")
     current_app.logger.debug(event)
 
@@ -53,14 +57,16 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     sqs_message = _get_sqs_message(self, event)
 
     # get the provider
-    (provider_name, provider) = _get_provider_info(self, sqs_message)
+    try:
+        (provider_name, provider) = _get_provider_info(sqs_message)
+    except ValueError:
+        self.retry(queue=QueueNames.RETRY, exc=ValueError("Provider cannot be None"))
 
     body = sqs_message.get("body")
     current_app.logger.info("retrieved delivery status body: %s", body)
 
     # get notification_platform_status
     notification_platform_status = _get_notification_platform_status(self, provider, body, sqs_message)
-
     # get parameters from notification platform status
     current_app.logger.info("Get Notification Parameters")
     (payload, reference, notification_status,
@@ -78,26 +84,30 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         current_app.logger.critical(event)
         return False
 
+    current_app.logger.info(
+        "Notification ID (%s) - Calculate Pricing: %s and notification_status: %s with number_of_message_parts: %s",
+        notification.id, provider_name, notification_status, number_of_message_parts,
+    )
+    # calculate pricing
     try:
-        # calculate pricing
-        current_app.logger.info(
-            "Notification ID (%s) - Calculate Pricing: %s and notification_status: %s with number_of_message_parts: %s",
-            notification.id, provider_name, notification_status, number_of_message_parts,
-        )
+
         _calculate_pricing(price_in_millicents_usd, notification, notification_status, number_of_message_parts)
+    except Exception as e:
+        raise e
 
-        # statsd - metric tracking of # of messages sent
-        current_app.logger.info(
-            "Increment statsd on provider_name: %s and notification_status: %s",
-            provider_name, notification_status
-        )
-        _increment_statsd(notification, provider_name, notification_status)
+    # statsd - metric tracking of # of messages sent
+    current_app.logger.info(
+        "Increment statsd on provider_name: %s and notification_status: %s",
+        provider_name, notification_status
+    )
+    _increment_statsd(notification, provider_name, notification_status)
 
-        # check if payload is to be include in cardinal set in the service callback is (service_id, callback_type)
-        if not _get_include_payload_status(self, notification):
-            payload = {}
+    # check if payload is to be include in cardinal set in the service callback is (service_id, callback_type)
+    if not _get_include_payload_status(self, notification):
+        payload = {}
+
+    try:
         check_and_queue_callback_task(notification, payload)
-        return True
 
     except Retry:
         # This block exists to preempt executing the "Exception" logic below.  A better approach is
@@ -106,7 +116,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     except Exception as e:
         # why are we here logging.warning indicate the step that was being performed
         current_app.logger.exception(e)
-        self.retry(queue=QueueNames.RETRY)
+        self.retry(queue=QueueNames.RETRY, exc=e)
 
     return True
 
@@ -125,6 +135,7 @@ def attempt_to_get_notification(reference: str, notification_status: str) -> Tup
             notification_status,
             notification.id
         )
+
     except NoResultFound:
         message_time = datetime.datetime.fromtimestamp(math.floor(float(event_timestamp_in_ms) / 1000))
         if datetime.datetime.utcnow() - message_time < datetime.timedelta(minutes=5):
@@ -190,12 +201,12 @@ def _get_notification_parameters(notification_platform_status: dict) -> Tuple[st
         number_of_message_parts,
         price_in_millicents_usd
     )
+
     return payload, reference, notification_status, number_of_message_parts, price_in_millicents_usd
 
 
 def _calculate_pricing(price_in_millicents_usd: float, notification: Notification, notification_status: str,
                        number_of_message_parts: int):
-
     """ Calculate pricing """
     current_app.logger.info("Calculate Pricing")
     if price_in_millicents_usd > 0.0:
@@ -220,7 +231,7 @@ def _get_notification_platform_status(self, provider: any, body: str, sqs_messag
         current_app.logger.error("The event stream body could not be translated.")
         current_app.logger.exception(e)
         current_app.logger.debug(sqs_message)
-        self.retry(queue=QueueNames.RETRY)
+        self.retry(queue=QueueNames.RETRY, exc=e)
 
     current_app.logger.info("retrieved delivery status: %s", notification_platform_status)
 
@@ -228,19 +239,18 @@ def _get_notification_platform_status(self, provider: any, body: str, sqs_messag
     if notification_platform_status is None:
         current_app.logger.error("Notification Platform Status cannot be None")
         current_app.logger.debug(body)
-        self.retry(queue=QueueNames.RETRY)
+        self.retry(queue=QueueNames.RETRY, exc=ValueError("Notification Platform Status cannot be None"))
 
     return notification_platform_status
 
 
 def _get_include_payload_status(self, notification: Notification) -> bool:
     """ Determines whether payload should be included in delivery status callback data"""
-    include_payload_status = False
     current_app.logger.info("Determine if payload should be included")
     # this was updated to no longer need the "No Result Found" exception
 
     try:
-        include_payload_status = dao_get_callback_include_payload_status(
+        return dao_get_callback_include_payload_status(
             notification.service_id,
             notification.notification_type
         )
@@ -249,9 +259,9 @@ def _get_include_payload_status(self, notification: Notification) -> bool:
         current_app.logger.error("Could not determine include_payload property for ServiceCallback.")
         current_app.logger.exception(e)
         current_app.logger.debug(notification)
-        self.retry(queue=QueueNames.RETRY)
+        self.retry(queue=QueueNames.RETRY, exc=e)
 
-    return include_payload_status
+    return False
 
 
 def _increment_statsd(notification: Notification, provider_name: str, notification_status: str) -> None:
@@ -277,12 +287,12 @@ def _get_sqs_message(self, event: CeleryEvent) -> dict:
     except (TypeError, KeyError) as e:
         current_app.logger.exception(e)
         # same thing here regarding logging
-        self.retry(queue=QueueNames.RETRY)
+        self.retry(queue=QueueNames.RETRY, exc=e)
 
     return sqs_message
 
 
-def _get_provider_info(self, sqs_message: dict) -> Tuple[str, any]:
+def _get_provider_info(sqs_message: dict) -> Tuple[str, any]:
     """ Gets the provider_name and provider object """
     current_app.logger.info("Get provider Information")
     provider_name = sqs_message.get("provider")
@@ -292,6 +302,6 @@ def _get_provider_info(self, sqs_message: dict) -> Tuple[str, any]:
     if provider is None:
         current_app.logger.error("Provider cannot be None")
         current_app.logger.debug(sqs_message)
-        self.retry(queue=QueueNames.RETRY)
+        raise ValueError
 
     return provider_name, provider
