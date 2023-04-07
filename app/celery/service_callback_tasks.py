@@ -227,14 +227,9 @@ def send_inbound_sms_to_service(self, inbound_sms_id, service_id):
 
 
 def create_delivery_status_callback_data(notification, service_callback_api, provider_payload=None):
-    from app import DATETIME_FORMAT, encryption
-    """ Encrypt delivery status message  """
+    """ Encrypt and return the delivery status message. """
 
-    # https://peps.python.org/pep-0557/#mutable-default-values
-    # do not want to have a mutable type in definition so we set provider_payload to empty dictionary
-    # when one was not provided by the caller
-    if provider_payload is None:
-        provider_payload = {}
+    from app import DATETIME_FORMAT, encryption
 
     data = {
         "notification_id": str(notification.id),
@@ -252,9 +247,7 @@ def create_delivery_status_callback_data(notification, service_callback_api, pro
         "status_reason": notification.status_reason,
     }
 
-    # add the property 'provider_payload when provider payload is not an empty dictionary
-    if provider_payload:
-        data['provider_payload'] = provider_payload
+    data['provider_payload'] = {} if provider_payload is None else provider_payload
 
     return encryption.encrypt(data)
 
