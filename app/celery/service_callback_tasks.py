@@ -44,6 +44,8 @@ def send_delivery_status_to_service(
     payload["status_reason"] = status_update.get("status_reason")
     payload["provider"] = status_update.get("provider", "pinpoint")
 
+    current_app.logger.info("Service Callback With Payload: %s", status_update)
+
     # if the provider payload is found in the status_update object
     if "provider_payload" in status_update:
         payload["provider_payload"] = status_update["provider_payload"]
@@ -252,6 +254,10 @@ def create_delivery_status_callback_data(
     if not provider_payload:
         data["provider_payload"] = provider_payload
 
+    current_app.logger.info(
+        "Callback Notification Data: %s - payload: %s", data, provider_payload
+    )
+
     return encryption.encrypt(data)
 
 
@@ -285,17 +291,14 @@ def check_and_queue_callback_task(notification, payload=None):
         service_id=notification.service_id, notification_status=notification.status
     )
 
-    current_app.logger.info("Service Callback Api: %s", service_callback_api)
-
     # if a row of info is found
     if service_callback_api:
+        current_app.logger.info("Service Callback Exists")
+
         # build dictionary for notification
         notification_data = create_delivery_status_callback_data(
             notification, service_callback_api, payload
         )
-
-        current_app.logger.info("Callback Notification Data: %s", notification_data)
-
         send_delivery_status_to_service.apply_async(
             [service_callback_api.id, str(notification.id), notification_data],
             queue=QueueNames.CALLBACKS,
