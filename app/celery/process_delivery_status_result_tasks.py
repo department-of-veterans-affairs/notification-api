@@ -304,14 +304,8 @@ def _get_include_payload_status(self, notification: Notification) -> bool:
     # this was updated to no longer need the "No Result Found" exception
 
     try:
-        current_app.logger.info(
-            "Notification service id: %s - Notification Type: %s",
-            notification.service_id,
-            notification.notification_type,
-        )
-
         include_payload_status = dao_get_callback_include_payload_status(
-            notification.service_id, notification.notification_type
+            notification.service_id, "delivery_status"
         )
 
         current_app.logger.info(
