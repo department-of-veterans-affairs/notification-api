@@ -229,7 +229,7 @@ def create_delivery_status_callback_data(notification, service_callback_api, pro
     }
 
     # add the property 'provider_payload when provider payload is not an empty dictionary
-    if not provider_payload:
+    if provider_payload:
         data['provider_payload'] = provider_payload
 
     return encryption.encrypt(data)
