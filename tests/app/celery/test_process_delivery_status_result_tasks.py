@@ -132,7 +132,7 @@ def test_celery_event_with_invalid_body_attribute(notify_db_session, sample_deli
 def test_parse_celery_event_with_valid_sqs_message(notify_db_session, sample_delivery_status_result_message):
     """Test that celery event can be parsed"""
 
-    sqs_message, provider_name, body = process_delivery_status_result_tasks._parse_celery_event(
+    sqs_message, provider_name, body = process_delivery_status_result_tasks._parse_delivery_status_celery_event(
         event=sample_delivery_status_result_message)
 
     # check datatypes

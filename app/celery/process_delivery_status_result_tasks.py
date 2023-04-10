@@ -43,51 +43,17 @@ FINAL_STATUS_STATES = [
 def process_delivery_status(self, event: CeleryEvent) -> bool:
     """Celery task for updating the delivery status of a notification"""
 
-    # preset variables to address "unbounded local variable"
-    sqs_message = None
-    notification_platform_status = None
-
     current_app.logger.info("processing delivery status")
     current_app.logger.debug(event)
 
-    # todo: I would like to remove this block of code
-    # # first attempt to process the incoming event
-    # sqs_message = _get_sqs_message(self, event)
-    #
-    # # get the provider
-    # (provider_name, provider) = _get_provider_info(self, sqs_message)
-    #
-    # body = sqs_message.get("body")
-    # current_app.logger.info("retrieved delivery status body: %s", body)
+    # first attempt to process the incoming event
+    # dict         str          str
+    sqs_message, provider_name, body = _parse_delivery_status_celery_event(event)
 
-    # todo: replace the above code with either _parse_celery_event() or the below code
-    sqs_message, provider_name, body = _parse_celery_event(event)
-    # using _parse_celery_event will allow for easy unit testing + reduce this function down by
-    # parse the celery event 6-8 lines
-    # current_app.logger.info("Get SQS message")
-    # sqs_message = event.get("message")
-    # # retrieve sqs_message from celery event
-    if sqs_message is None:
-        current_app.logger.error("SQS Message cannot be None")
-        current_app.logger.debug(sqs_message)
+    if (not sqs_message) or (not provider_name) or (not body):
+        current_app.logger.error("Retrying because event is missing data")
         self.retry(queue=QueueNames.RETRY)
 
-    # # get provider and provider name
-    # current_app.logger.info("Get provider Information")
-    # provider_name = sqs_message.get("provider")
-    if provider_name is None:
-        current_app.logger.error("provider_name cannot be None")
-        current_app.logger.debug(provider_name)
-        self.retry(queue=QueueNames.RETRY)
-    #
-    # # get the body of the celery event
-    # body = sqs_message.get("body")
-    if body is None:
-        current_app.logger.error("Body of delivery status results cannot be None")
-        current_app.logger.debug(body)
-        self.retry(queue=QueueNames.RETRY)
-
-    # current_app.logger.info("retrieved delivery status body: %s", body)
     # get the provider
     provider = clients.get_sms_client(provider_name)
     if provider is None:
@@ -97,7 +63,6 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
 
     # get notification_platform_status
     current_app.logger.info("Get Notification Platform Status")
-    notification_platform_status = None
 
     try:
         notification_platform_status = provider.translate_delivery_status(body)
@@ -109,10 +74,8 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
 
     current_app.logger.info("retrieved delivery status: %s", notification_platform_status)
 
-    # notification_platform_status cannot be None
     if notification_platform_status is None:
         current_app.logger.error("Notification Platform Status cannot be None")
-        current_app.logger.debug(body)
         self.retry(queue=QueueNames.RETRY)
 
     # get parameters from notification platform status
@@ -257,11 +220,12 @@ def check_notification_status(notification: Notification, notification_status: s
     return False
 
 
-def _get_notification_parameters(notification_platform_status: dict) -> Tuple[str, str, str, int, float]:
+# todo: check with kyle about the fact i am defaulting these values
+def _get_notification_parameters(notification_platform_status: dict) -> Tuple[dict, str, str, int, float]:
     """ Get the payload, notification reference, notification status, etc from the notification_platform_status """
-    payload = notification_platform_status.get("payload")
-    reference = notification_platform_status.get("reference")
-    notification_status = notification_platform_status.get("record_status")
+    payload = notification_platform_status.get("payload", "")
+    reference = notification_platform_status.get("reference", "")
+    notification_status = notification_platform_status.get("record_status", "")
     number_of_message_parts = notification_platform_status.get("number_of_message_parts", 1)
     price_in_millicents_usd = notification_platform_status.get("price_in_millicents_usd", 0.0)
     current_app.logger.info(
@@ -347,16 +311,17 @@ def _calculate_pricing(price_in_millicents_usd: float, notification: Notificatio
 #         )
 
 
-def _parse_celery_event(event: CeleryEvent) -> Tuple[str, str, str]:
+# sqs will be a dictionary
+def _parse_delivery_status_celery_event(event: CeleryEvent) -> Tuple[dict, str, str]:
     """ returns parts of the sqs message """
     current_app.logger.info("Parse Celery Event")
-    sqs_message = event.get("message")
+    sqs_message = event.get("message", {})
 
     # get provider and provider name
     current_app.logger.info("Get provider Information")
-    provider_name = sqs_message.get("provider")
+    provider_name = sqs_message.get("provider", "")
 
-    body = sqs_message.get("body")
+    body = sqs_message.get("body", "")
     current_app.logger.info("retrieved delivery status body: %s", body)
 
     return sqs_message, provider_name, body
