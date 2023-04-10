@@ -66,7 +66,7 @@ python-magic>=0.4.27
 # https://python-jsonschema.readthedocs.io/en/latest/validate/?highlight=date-time#validating-formats
 rfc3339-validator>=0.1.4
 
-sentry-sdk[flask]~=1.17.0
+sentry-sdk[flask]~=1.19.1
 
 # 10 December 2022: Ignoring security vulnerability 51668 in Makefile.  It is fixed in >=2.0.0b1.
 SQLAlchemy~=1.4.47
