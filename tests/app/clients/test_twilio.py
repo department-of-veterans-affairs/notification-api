@@ -317,7 +317,7 @@ def test_error_code_mapping(event, twilio_sms_client_mock):
     assert "reference" in translation
     assert "record_status" in translation
     assert translation["record_status"] == event["twilio_status"]
-    
+
 
 @pytest.mark.parametrize(
     "event",
