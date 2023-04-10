@@ -47,27 +47,74 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     sqs_message = None
     notification_platform_status = None
 
-    # avoids "might referencing before assignment" concerns
-    provider_name = None
-    provider = None
-
     current_app.logger.info("processing delivery status")
     current_app.logger.debug(event)
 
-    # first attempt to process the incoming event
-    sqs_message = _get_sqs_message(self, event)
+    # todo: I would like to remove this block of code
+    # # first attempt to process the incoming event
+    # sqs_message = _get_sqs_message(self, event)
+    #
+    # # get the provider
+    # (provider_name, provider) = _get_provider_info(self, sqs_message)
+    #
+    # body = sqs_message.get("body")
+    # current_app.logger.info("retrieved delivery status body: %s", body)
 
+    # todo: replace the above code with either _parse_celery_event() or the below code
+    sqs_message, provider_name, body = _parse_celery_event(event)
+    # using _parse_celery_event will allow for easy unit testing + reduce this function down by
+    # parse the celery event 6-8 lines
+    # current_app.logger.info("Get SQS message")
+    # sqs_message = event.get("message")
+    # # retrieve sqs_message from celery event
+    if sqs_message is None:
+        current_app.logger.error("SQS Message cannot be None")
+        current_app.logger.debug(sqs_message)
+        self.retry(queue=QueueNames.RETRY)
+
+    # # get provider and provider name
+    # current_app.logger.info("Get provider Information")
+    # provider_name = sqs_message.get("provider")
+    if provider_name is None:
+        current_app.logger.error("provider_name cannot be None")
+        current_app.logger.debug(provider_name)
+        self.retry(queue=QueueNames.RETRY)
+    #
+    # # get the body of the celery event
+    # body = sqs_message.get("body")
+    if body is None:
+        current_app.logger.error("Body of delivery status results cannot be None")
+        current_app.logger.debug(body)
+        self.retry(queue=QueueNames.RETRY)
+
+    # current_app.logger.info("retrieved delivery status body: %s", body)
     # get the provider
-    try:
-        (provider_name, provider) = _get_provider_info(sqs_message)
-    except ValueError:
-        self.retry(queue=QueueNames.RETRY, exc=ValueError("Provider cannot be None"))
-
-    body = sqs_message.get("body")
-    current_app.logger.info("retrieved delivery status body: %s", body)
+    provider = clients.get_sms_client(provider_name)
+    if provider is None:
+        current_app.logger.error("Provider cannot be None")
+        current_app.logger.debug(sqs_message)
+        self.retry(queue=QueueNames.RETRY)
 
     # get notification_platform_status
-    notification_platform_status = _get_notification_platform_status(self, provider, body, sqs_message)
+    current_app.logger.info("Get Notification Platform Status")
+    notification_platform_status = None
+
+    try:
+        notification_platform_status = provider.translate_delivery_status(body)
+    except (ValueError, KeyError) as e:
+        current_app.logger.error("The event stream body could not be translated.")
+        current_app.logger.exception(e)
+        current_app.logger.debug(sqs_message)
+        self.retry(queue=QueueNames.RETRY)
+
+    current_app.logger.info("retrieved delivery status: %s", notification_platform_status)
+
+    # notification_platform_status cannot be None
+    if notification_platform_status is None:
+        current_app.logger.error("Notification Platform Status cannot be None")
+        current_app.logger.debug(body)
+        self.retry(queue=QueueNames.RETRY)
+
     # get parameters from notification platform status
     current_app.logger.info("Get Notification Parameters")
     (payload, reference, notification_status,
@@ -89,26 +136,50 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         "Notification ID (%s) - Calculate Pricing: %s and notification_status: %s with number_of_message_parts: %s",
         notification.id, provider_name, notification_status, number_of_message_parts,
     )
-    # calculate pricing
-    try:
 
-        _calculate_pricing(price_in_millicents_usd, notification, notification_status, number_of_message_parts)
-    except Exception as e:
-        raise e
+    # calculate pricing
+    _calculate_pricing(price_in_millicents_usd, notification, notification_status, number_of_message_parts)
 
     # statsd - metric tracking of # of messages sent
     current_app.logger.info(
         "Increment statsd on provider_name: %s and notification_status: %s",
         provider_name, notification_status
     )
-    _increment_statsd(notification, provider_name, notification_status)
 
-    # check if payload is to be include in cardinal set in the service callback is (service_id, callback_type)
-    if not _get_include_payload_status(self, notification):
+    statsd_client.incr(f"callback.{provider_name}.{notification_status}")
+    if notification.sent_at:
+        statsd_client.timing_with_dates(
+            f"callback.{provider_name}.elapsed-time",
+            datetime.datetime.utcnow(),
+            notification.sent_at
+        )
+
+    # todo: reduce this try catch block
+
+    current_app.logger.info("Determine if payload should be included")
+    try:
+        include_payload_status = dao_get_callback_include_payload_status(
+            notification.service_id,
+            DELIVERY_STATUS_CALLBACK_TYPE
+        )
+
+    except (AttributeError, TypeError) as e:
+        current_app.logger.error("Could not determine include_payload property for ServiceCallback.")
+        current_app.logger.exception(e)
+        current_app.logger.debug(notification)
+        self.retry(queue=QueueNames.RETRY)
+
+    # log the decision made on whether to include/not include payload
+    if include_payload_status is True:
+        current_app.logger.info("Payload should be included")
+    else:
+        current_app.logger.info("Payload should not be included")
         payload = {}
 
     try:
+        # check if payload is to be include in cardinal set in the service callback is (service_id, callback_type)
         check_and_queue_callback_task(notification, payload)
+        return True
 
     except Retry:
         # This block exists to preempt executing the "Exception" logic below.  A better approach is
@@ -117,7 +188,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     except Exception as e:
         # why are we here logging.warning indicate the step that was being performed
         current_app.logger.exception(e)
-        self.retry(queue=QueueNames.RETRY, exc=e)
+        self.retry(queue=QueueNames.RETRY)
 
     return True
 
@@ -136,7 +207,6 @@ def attempt_to_get_notification(reference: str, notification_status: str) -> Tup
             notification_status,
             notification.id
         )
-
     except NoResultFound:
         message_time = datetime.datetime.fromtimestamp(math.floor(float(event_timestamp_in_ms) / 1000))
         if datetime.datetime.utcnow() - message_time < datetime.timedelta(minutes=5):
@@ -202,12 +272,12 @@ def _get_notification_parameters(notification_platform_status: dict) -> Tuple[st
         number_of_message_parts,
         price_in_millicents_usd
     )
-
     return payload, reference, notification_status, number_of_message_parts, price_in_millicents_usd
 
 
 def _calculate_pricing(price_in_millicents_usd: float, notification: Notification, notification_status: str,
                        number_of_message_parts: int):
+
     """ Calculate pricing """
     current_app.logger.info("Calculate Pricing")
     if price_in_millicents_usd > 0.0:
@@ -221,88 +291,102 @@ def _calculate_pricing(price_in_millicents_usd: float, notification: Notificatio
         update_notification_status_by_id(notification_id=notification.id, status=notification_status)
 
 
-def _get_notification_platform_status(self, provider: any, body: str, sqs_message: dict) -> dict:
-    """ Performs a translation on the body """
-
-    current_app.logger.info("Get Notification Platform Status")
-    notification_platform_status = None
-    try:
-        notification_platform_status = provider.translate_delivery_status(body)
-    except (ValueError, KeyError) as e:
-        current_app.logger.error("The event stream body could not be translated.")
-        current_app.logger.exception(e)
-        current_app.logger.debug(sqs_message)
-        self.retry(queue=QueueNames.RETRY, exc=e)
-
-    current_app.logger.info("retrieved delivery status: %s", notification_platform_status)
-
-    # notification_platform_status cannot be None
-    if notification_platform_status is None:
-        current_app.logger.error("Notification Platform Status cannot be None")
-        current_app.logger.debug(body)
-        self.retry(queue=QueueNames.RETRY, exc=ValueError("Notification Platform Status cannot be None"))
-
-    return notification_platform_status
-
-
-def _get_include_payload_status(self, notification: Notification) -> bool:
-    """ Determines whether payload should be included in delivery status callback data"""
-    current_app.logger.info("Determine if payload should be included")
-    # this was updated to no longer need the "No Result Found" exception
-
-    try:
-        return dao_get_callback_include_payload_status(
-            notification.service_id,
-            DELIVERY_STATUS_CALLBACK_TYPE
-        )
-
-    except (AttributeError, TypeError) as e:
-        current_app.logger.error("Could not determine include_payload property for ServiceCallback.")
-        current_app.logger.exception(e)
-        current_app.logger.debug(notification)
-        self.retry(queue=QueueNames.RETRY, exc=e)
-
-    return False
+# def _get_notification_platform_status(self, provider: any, body: str, sqs_message: dict) -> dict:
+#     """ Performs a translation on the body """
+#
+#     current_app.logger.info("Get Notification Platform Status")
+#     notification_platform_status = None
+#     try:
+#         notification_platform_status = provider.translate_delivery_status(body)
+#     except (ValueError, KeyError) as e:
+#         current_app.logger.error("The event stream body could not be translated.")
+#         current_app.logger.exception(e)
+#         current_app.logger.debug(sqs_message)
+#         self.retry(queue=QueueNames.RETRY)
+#
+#     current_app.logger.info("retrieved delivery status: %s", notification_platform_status)
+#
+#     # notification_platform_status cannot be None
+#     if notification_platform_status is None:
+#         current_app.logger.error("Notification Platform Status cannot be None")
+#         current_app.logger.debug(body)
+#         self.retry(queue=QueueNames.RETRY)
+#
+#     return notification_platform_status
 
 
-def _increment_statsd(notification: Notification, provider_name: str, notification_status: str) -> None:
-    """ increment statsd client"""
-    # Small docstring + annotations please.
+# def _get_include_payload_status(self, notification: Notification) -> bool:
+#     """ Determines whether payload should be included in delivery status callback data"""
+#     include_payload_status = False
+#     current_app.logger.info("Determine if payload should be included")
+#     # this was updated to no longer need the "No Result Found" exception
+#
+#     try:
+#         return dao_get_callback_include_payload_status(
+#             notification.service_id,
+#             notification.notification_type
+#         )
+#     except (AttributeError, TypeError) as e:
+#         current_app.logger.error("Could not determine include_payload property for ServiceCallback.")
+#         current_app.logger.exception(e)
+#         current_app.logger.debug(notification)
+#         self.retry(queue=QueueNames.RETRY, exc=e)
+#
+#     return False
 
-    statsd_client.incr(f"callback.{provider_name}.{notification_status}")
-    if notification.sent_at:
-        statsd_client.timing_with_dates(
-            f"callback.{provider_name}.elapsed-time",
-            datetime.datetime.utcnow(),
-            notification.sent_at
-        )
+# def _increment_statsd(notification: Notification, provider_name: str, notification_status: str) -> None:
+#     """ increment statsd client"""
+#     # Small docstring + annotations please.
+#
+#     statsd_client.incr(f"callback.{provider_name}.{notification_status}")
+#     if notification.sent_at:
+#         statsd_client.timing_with_dates(
+#             f"callback.{provider_name}.elapsed-time",
+#             datetime.datetime.utcnow(),
+#             notification.sent_at
+#         )
+
+
+def _parse_celery_event(event: CeleryEvent) -> Tuple[str, str, str]:
+    """ returns parts of the sqs message """
+    current_app.logger.info("Parse Celery Event")
+    sqs_message = event.get("message")
+
+    # get provider and provider name
+    current_app.logger.info("Get provider Information")
+    provider_name = sqs_message.get("provider")
+
+    body = sqs_message.get("body")
+    current_app.logger.info("retrieved delivery status body: %s", body)
+
+    return sqs_message, provider_name, body
 
 
 # Annotations please
-def _get_sqs_message(self, event: CeleryEvent) -> dict:
-    """ Gets the sms message from the CeleryEvent """
-    sqs_message = None
-    current_app.logger.info("Get SQS message")
-    try:
-        sqs_message = event["message"]
-    except (TypeError, KeyError) as e:
-        current_app.logger.exception(e)
-        # same thing here regarding logging
-        self.retry(queue=QueueNames.RETRY, exc=e)
-
-    return sqs_message
-
-
-def _get_provider_info(sqs_message: dict) -> Tuple[str, any]:
-    """ Gets the provider_name and provider object """
-    current_app.logger.info("Get provider Information")
-    provider_name = sqs_message.get("provider")
-    provider = clients.get_sms_client(provider_name)
-
-    # provider cannot None
-    if provider is None:
-        current_app.logger.error("Provider cannot be None")
-        current_app.logger.debug(sqs_message)
-        raise ValueError
-
-    return provider_name, provider
+# def _get_sqs_message(self, event: CeleryEvent) -> dict:
+#     """ Gets the sms message from the CeleryEvent """
+#     sqs_message = None
+#     current_app.logger.info("Get SQS message")
+#     try:
+#         sqs_message = event["message"]
+#     except (TypeError, KeyError) as e:
+#         current_app.logger.exception(e)
+#         # same thing here regarding logging
+#         self.retry(queue=QueueNames.RETRY)
+#
+#     return sqs_message
+#
+#
+# def _get_provider_info(self, sqs_message: dict) -> Tuple[str, any]:
+#     """ Gets the provider_name and provider object """
+#     current_app.logger.info("Get provider Information")
+#     provider_name = sqs_message.get("provider")
+#     provider = clients.get_sms_client(provider_name)
+#
+#     # provider cannot None
+#     if provider is None:
+#         current_app.logger.error("Provider cannot be None")
+#         current_app.logger.debug(sqs_message)
+#         self.retry(queue=QueueNames.RETRY)
+#
+#     return provider_name, provider
