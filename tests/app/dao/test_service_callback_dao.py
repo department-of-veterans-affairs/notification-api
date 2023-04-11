@@ -32,6 +32,3 @@ def test_dao_get_callback_include_payload_status(sample_service, include_provide
     # confirm payload is boolean and that it matches what was built in the service callback
     assert isinstance(include_payload_status, bool)
     assert include_payload_status is include_provider_payload
-
-
-

@@ -165,8 +165,6 @@ def test_get_provider_info_with_no_provider(
         process_delivery_status_result_tasks._get_provider_info(mock_celery_task, sample_sqs_message_without_provider)
 
 
-
-# here we test invalid provider name
 def test_get_provider_info_with_invalid_provider(
         notify_db_session,
         sample_sqs_message
