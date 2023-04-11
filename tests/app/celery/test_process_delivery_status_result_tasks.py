@@ -154,17 +154,16 @@ def test_celery_event_with_invalid_body_attribute(notify_db_session, sample_deli
 
 # test get_provider_info when no provider is given by the celery event
 def test_get_provider_info_with_no_provider(
-        notify_db_session, sample_notification_platform_status, sample_sqs_message_without_provider,
-        provider_name):
+        notify_db_session,
+        sample_notification_platform_status,
+        sample_sqs_message_without_provider
+):
     mock_celery_task = MockCeleryTask()
 
     # now supply the sample to the function we want to test
-    provider_name_output, provider = process_delivery_status_result_tasks._get_provider_info(mock_celery_task,
-                                                                                             sqs_message=sample_sqs_message_without_provider)
+    with pytest.raises(Retry):
+        process_delivery_status_result_tasks._get_provider_info(mock_celery_task, sample_sqs_message_without_provider)
 
-    # parameterized provider_name should match the output from _get_provider_info
-    # and it should also match the provider.name
-    assert provider_name == provider_name_output == provider.name
 
 
 # here we test invalid provider name
@@ -186,7 +185,12 @@ def test_get_provider_info_with_invalid_provider(
 # here we test all valid provider names
 @pytest.mark.parametrize('provider_name', ['twilio'])
 def test_get_provider_info_with_valid_provider(
-        notify_db_session, sample_notification_platform_status, sample_sqs_message, provider_name):
+        notify_db_session,
+        sample_notification_platform_status,
+        sample_sqs_message,
+        provider_name
+):
+
     """Test that _get_provider_info() will return  a celery retry when sqs message has an invalid provider"""
     # default provider_name to current parameterized value
     sample_sqs_message['provider'] = provider_name
@@ -206,7 +210,10 @@ def test_get_provider_info_with_valid_provider(
 
 
 def test_attempt_to_get_notification_with_good_data(
-        notify_db_session, sample_notification_platform_status, sample_template):
+        notify_db_session,
+        sample_notification_platform_status,
+        sample_template
+):
     notification_status = 'delivered'
     reference = 'SMyyy'
 
@@ -236,7 +243,10 @@ def test_attempt_to_get_notification_with_good_data(
 
 
 def test_attempt_to_get_notification_duplicate_notification(
-        notify_db_session, sample_notification_platform_status, sample_template):
+        notify_db_session,
+        sample_notification_platform_status,
+        sample_template
+):
 
     """Test that duplicate notifications will make notification = None, should_retry=False, should_exit=True"""
 
@@ -350,7 +360,8 @@ def test_should_retry_preempts_exit(
         mocker,
         notify_db_session,
         sample_delivery_status_result_message,
-        sample_notification):
+        sample_notification
+):
     """Test that celery task will protects against race condition"""
     mocker.patch(
         "app.celery.process_delivery_status_result_tasks.attempt_to_get_notification",
@@ -358,9 +369,8 @@ def test_should_retry_preempts_exit(
     )
 
     # celery task should retry whenever attempt_to_get_notification() return true on both retry and exit
-    assert not process_delivery_status_result_tasks.process_delivery_status(
-        event=sample_delivery_status_result_message
-    )
+    with pytest.raises(Retry):
+        process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
 
 
 def test_with_correct_data(
