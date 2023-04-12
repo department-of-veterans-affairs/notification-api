@@ -6,14 +6,24 @@ import datetime
 from app.models import Notification
 
 
-# here we make a fake Celery Task to support the use of self
 class MockCeleryTask:
+    """
+        A class to represent a CeleryTask.
+
+        Methods
+        -------
+        retry(queue=None):
+            returns celery.exception.retry()
+        """
+
     def retry(self, queue=None):
+        """ mocks the response from celery.exception.Retry() """
         raise Retry()
 
 
 @pytest.fixture
 def sample_translate_return_value():
+    """ sample response from translate_delivery_status() """
     return {
         "payload": "eyJhcmdzIjogW3siTWVzc2FnZSI6IHsiYm9keSI6ICJSYXdEbHJEb25lRGF0ZT0yMzAzMDkyMDI",
         "reference": "MessageSID",
@@ -23,6 +33,7 @@ def sample_translate_return_value():
 
 @pytest.fixture
 def sample_delivery_status_result_message():
+    """ sample celery event for process_delivery_status() task """
     return {
         "message": {
             "body": "UmF3RGxyRG9uZURhdGU9MjMwMzIyMjMzOCZTbXNTaWQ9U014eHgmU21zU3RhdHV"
@@ -36,6 +47,7 @@ def sample_delivery_status_result_message():
 
 @pytest.fixture()
 def sample_notification_platform_status():
+    """ sample response notification_platform_status """
     return {
         "payload": "UmF3RGxyRG9uZURhdGU9MjMwMzIyMjMzOCZTbXNTaWQ9U014eHgmU21zU3RhdHVzPWRlbGl2ZXJlZCZNZXNzYWdlU"
                    "3RhdHVzPWRlbGl2ZXJlZCZUbz0lMkIxMTExMTExMTExMSZNZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enom"
@@ -46,16 +58,20 @@ def sample_notification_platform_status():
 
 
 @pytest.fixture()
-def sample_sqs_message():
+def sample_sqs_message_with_provider():
+    """ sample of valid sqs_message after extraction from celery event """
     return {
         "body": "UmF3RGxyRG9uZURhdGU9MjMwMzIyMjMzOCZTbXNTaWQ9U014eHgmU21zU3RhdHVzPWRlbGl2ZXJlZCZNZXNzYWdlU3RhdHV"
                 "zPWRlbGl2ZXJlZCZUbz0lMkIxMTExMTExMTExMSZNZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enomRnJvbT0lMkIx"
-                "MjIyMzMzNDQ0NCZBcGlWZXJzaW9uPTIwMTAtMDQtMDE="
+                "MjIyMzMzNDQ0NCZBcGlWZXJzaW9uPTIwMTAtMDQtMDE=",
+        "provider": "sms"
+
     }
 
 
 @pytest.fixture()
 def sample_sqs_message_with_twilio_provider():
+    """ sample of twilio sqs_message after extraction from celery event """
     return {
         "body": "UmF3RGxyRG9uZURhdGU9MjMwMzIyMjMzOCZTbXNTaWQ9U014eHgmU21zU3RhdHVzPWRlbGl2ZXJlZCZNZXNzYWdlU3RhdHV"
                 "zPWRlbGl2ZXJlZCZUbz0lMkIxMTExMTExMTExMSZNZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enomRnJvbT0lMkIx"
@@ -66,6 +82,7 @@ def sample_sqs_message_with_twilio_provider():
 
 @pytest.fixture()
 def sample_sqs_message_without_provider():
+    """ sample of invalid sqs_message after extraction from celery event """
     return {
         "body": "UmF3RGxyRG9uZURhdGU9MjMwMzIyMjMzOCZTbXNTaWQ9U014eHgmU21zU3RhdHVzPWRlbGl2ZXJlZCZNZXNzYWdlU3RhdHV"
                 "zPWRlbGl2ZXJlZCZUbz0lMkIxMTExMTExMTExMSZNZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enomRnJvbT0lMkIx"
@@ -73,36 +90,21 @@ def sample_sqs_message_without_provider():
     }
 
 
-# confirmed: all below test case are dependent on valid fixtures
-def test_fixture_has_required_attributes(notify_db_session, sample_delivery_status_result_message):
-    """Test that celery event contains "message" """
-    message = sample_delivery_status_result_message.get("message")
-    provider_name = message.get("provider")
-    body = message.get("body")
-
-    assert message is not None
-    assert provider_name is not None
-    assert body is not None
-
-
-# confirmed: task should retry when incoming message does not contain a message attribute
 def test_celery_event_with_missing_message_attribute(notify_db_session, sample_delivery_status_result_message):
     """Test that celery will retry the task if "message" is missing from the CeleryEvent message"""
 
     # remove message (key) from the sample_delivery_status_result_message
-    sample_delivery_status_result_message.pop("message")
+    del sample_delivery_status_result_message["message"]
 
     with pytest.raises(Retry):
         process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
 
 
-# confirmed: task should retry when incoming message does not contain provider attribute
-# todo: make sure this is still true
 def test_celery_event_with_missing_provider_attribute(notify_db_session, sample_delivery_status_result_message):
     """Test that celery will retry the task if "message" is missing from the CeleryEvent message"""
 
     # remove provider (key) from the sample_delivery_status_result_message
-    sample_delivery_status_result_message.get("message").pop("provider")
+    del sample_delivery_status_result_message["message"]["provider"]
 
     with pytest.raises(Retry):
         process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
@@ -113,7 +115,7 @@ def test_celery_event_with_missing_body_attribute(notify_db_session, sample_deli
     """Test that celery will retry the task if "message" is missing from the CeleryEvent message"""
 
     # remove body (key) from the sample_delivery_status_result_message
-    sample_delivery_status_result_message.get("message").pop("body")
+    del sample_delivery_status_result_message["message"]["body"]
 
     with pytest.raises(Retry):
         process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
@@ -130,34 +132,33 @@ def test_celery_event_with_invalid_message_attribute(notify_db_session, sample_d
         process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
 
 
-# confirmed: task should retry when incoming message has invalid provider attribute
 def test_celery_event_with_invalid_provider_attribute(notify_db_session, sample_delivery_status_result_message):
     """Test that celery will retry the task if "message" is invalid from the CeleryEvent message"""
 
     # remove provider (key) from the sample_delivery_status_result_message
-    sample_delivery_status_result_message.get("message")["provider"] = "abc123"
+    sample_delivery_status_result_message["message"]["provider"] = "abc123"
 
     with pytest.raises(Retry):
         process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
 
 
-# confirm: task should retry when incoming message does not contain body attribute
 def test_celery_event_with_invalid_body_attribute(notify_db_session, sample_delivery_status_result_message):
     """Test that celery will retry the task if "message" is missing from the CeleryEvent message"""
 
     # remove body (key) from the sample_delivery_status_result_message
-    sample_delivery_status_result_message.get("message")["body"] = "body"
+    sample_delivery_status_result_message["message"]["body"] = "body"
 
     with pytest.raises(Retry):
         process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
 
 
-# test get_provider_info when no provider is given by the celery event
+
 def test_get_provider_info_with_no_provider(
         notify_db_session,
         sample_notification_platform_status,
         sample_sqs_message_without_provider
 ):
+    """ Test get_provider_info() raises celery.exception.retry() when no provider is given by the celery event """
     mock_celery_task = MockCeleryTask()
 
     # now supply the sample to the function we want to test
@@ -167,17 +168,17 @@ def test_get_provider_info_with_no_provider(
 
 def test_get_provider_info_with_invalid_provider(
         notify_db_session,
-        sample_sqs_message
+        sample_sqs_message_with_provider
 ):
     """Test that _get_provider_info() will raise a celery retry when sqs message has an invalid provider"""
 
     # mock the celery task event
     mock_celery_task = MockCeleryTask()
-    sample_sqs_message['provider'] = "abc"
+    sample_sqs_message_with_provider['provider'] = "abc"
 
     # now supply the sample to the function we want to test with the expectation of failure
     with pytest.raises(Retry):
-        process_delivery_status_result_tasks._get_provider_info(mock_celery_task, sample_sqs_message)
+        process_delivery_status_result_tasks._get_provider_info(mock_celery_task, sample_sqs_message_with_provider)
 
 
 # here we test all valid provider names
@@ -185,13 +186,13 @@ def test_get_provider_info_with_invalid_provider(
 def test_get_provider_info_with_valid_provider(
         notify_db_session,
         sample_notification_platform_status,
-        sample_sqs_message,
+        sample_sqs_message_with_provider,
         provider_name
 ):
 
     """Test that _get_provider_info() will return  a celery retry when sqs message has an invalid provider"""
     # default provider_name to current parameterized value
-    sample_sqs_message['provider'] = provider_name
+    sample_sqs_message_with_provider['provider'] = provider_name
 
     # mock the celery task event
     mock_celery_task = MockCeleryTask()
@@ -199,7 +200,7 @@ def test_get_provider_info_with_valid_provider(
     # now supply the sample to the function we want to test
     provider_name_output, provider = process_delivery_status_result_tasks._get_provider_info(
         mock_celery_task,
-        sample_sqs_message
+        sample_sqs_message_with_provider
     )
 
     # parameterized provider_name should match the output from _get_provider_info
@@ -212,10 +213,10 @@ def test_attempt_to_get_notification_with_good_data(
         sample_notification_platform_status,
         sample_template
 ):
+    """Test that we will exit the celery task when sqs message matches what has already been reported in the database"""
+
     notification_status = 'delivered'
     reference = 'SMyyy'
-
-    """Test that we will exit the celery task when sqs message matches what has already been reported in the database"""
 
     # create notification object
     create_notification(
@@ -311,11 +312,7 @@ def test_none_notification_platform_status_triggers_retry(
     """verify that retry is triggered if translate_delivery_status is returns a None"""
 
     mocker.patch("app.clients")
-    mocker.patch("app.clients.sms.SmsClient")
-    mocker.patch(
-        "app.clients.sms.twilio.TwilioSMSClient.translate_delivery_status",
-        return_value=None
-    )
+    mocker.patch("app.clients.sms.twilio.TwilioSMSClient.translate_delivery_status", return_value=None)
 
     with pytest.raises(Retry):
         process_delivery_status_result_tasks.process_delivery_status(event=sample_delivery_status_result_message)
@@ -328,9 +325,7 @@ def test_attempt_get_notification_triggers_should_retry(
         sample_translate_return_value,
         sample_notification, sample_template
 ):
-    """
-    Celery Task should retry whenever attempt_to_get_notification() could not find a matching notification
-    """
+    """Celery Task should retry whenever attempt_to_get_notification() could not find a matching notification"""
 
     mocker.patch(
         "app.celery.process_delivery_status_result_tasks.attempt_to_get_notification",
