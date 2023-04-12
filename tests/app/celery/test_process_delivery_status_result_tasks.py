@@ -14,17 +14,9 @@ from app.models import Notification
 
 
 class MockCeleryTask:
-    """
-        A class to represent a CeleryTask.
-
-        Methods
-        -------
-        retry(queue=None):
-            returns celery.exception.retry()
-        """
+    """A class to represent a CeleryTask """
 
     def retry(self, queue=None):
-        """ mocks the response from celery.exception.Retry() """
         raise Retry()
 
 
@@ -100,7 +92,6 @@ def sample_sqs_message_without_provider():
 def test_celery_event_with_missing_message_attribute(notify_db_session, sample_delivery_status_result_message):
     """Test that celery will retry the task if "message" is missing from the CeleryEvent message"""
 
-    # remove message (key) from the sample_delivery_status_result_message
     del sample_delivery_status_result_message["message"]
 
     with pytest.raises(Retry):
@@ -110,18 +101,15 @@ def test_celery_event_with_missing_message_attribute(notify_db_session, sample_d
 def test_celery_event_with_missing_provider_attribute(notify_db_session, sample_delivery_status_result_message):
     """Test that celery will retry the task if "message" is missing from the CeleryEvent message"""
 
-    # remove provider (key) from the sample_delivery_status_result_message
     del sample_delivery_status_result_message["message"]["provider"]
 
     with pytest.raises(Retry):
         process_delivery_status(event=sample_delivery_status_result_message)
 
 
-# confirm: task should retry when incoming message does not contain body attribute
 def test_celery_event_with_missing_body_attribute(notify_db_session, sample_delivery_status_result_message):
     """Test that celery will retry the task if "message" is missing from the CeleryEvent message"""
 
-    # remove body (key) from the sample_delivery_status_result_message
     del sample_delivery_status_result_message["message"]["body"]
 
     with pytest.raises(Retry):
@@ -131,7 +119,6 @@ def test_celery_event_with_missing_body_attribute(notify_db_session, sample_deli
 def test_celery_event_with_invalid_provider_attribute(notify_db_session, sample_delivery_status_result_message):
     """Test that celery will retry the task if "message" is invalid from the CeleryEvent message"""
 
-    # remove provider (key) from the sample_delivery_status_result_message
     sample_delivery_status_result_message["message"]["provider"] = "abc123"
 
     with pytest.raises(Retry):
@@ -141,7 +128,6 @@ def test_celery_event_with_invalid_provider_attribute(notify_db_session, sample_
 def test_celery_event_with_invalid_body_attribute(notify_db_session, sample_delivery_status_result_message):
     """Test that celery will retry the task if "message" is missing from the CeleryEvent message"""
 
-    # remove body (key) from the sample_delivery_status_result_message
     sample_delivery_status_result_message["message"]["body"] = "body"
 
     with pytest.raises(Retry):
@@ -177,7 +163,6 @@ def test_get_provider_info_with_twilio(
         sample_notification_platform_status,
         sample_sqs_message_with_provider
 ):
-    # default provider_name to current parameterized value
     sample_sqs_message_with_provider['provider'] = 'twilio'
 
     # now supply the sample to the function we want to test
@@ -186,7 +171,6 @@ def test_get_provider_info_with_twilio(
         sample_sqs_message_with_provider
     )
 
-    # and it should also match the provider.name
     assert provider.name == 'twilio'
     assert provider_name_output == 'twilio'
 
@@ -251,13 +235,12 @@ def test_attempt_to_get_notification_duplicate_notification(
         status=notification_status
     )
 
-    # we should trigger a "MultipleResultsFound" when we attempt to get the notification object
+    # should trigger a "MultipleResultsFound" when we attempt to get the notification object
     notification, should_retry, should_exit = attempt_to_get_notification(
         reference, notification_status
     )
 
-    # exception which will make notification = None
-    # important the Remember: celery task will trigger a retry when notification = None
+    # Remember: celery task will trigger a retry when notification = None
     assert notification is None
 
     # should_exit=True because of the "MultipleResultsFound" exception
