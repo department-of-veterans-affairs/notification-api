@@ -22,7 +22,6 @@ class MockCeleryTask:
 
 @pytest.fixture
 def sample_translate_return_value():
-    """ sample response from translate_delivery_status() """
     return {
         "payload": "eyJhcmdzIjogW3siTWVzc2FnZSI6IHsiYm9keSI6ICJSYXdEbHJEb25lRGF0ZT0yMzAzMDkyMDI",
         "reference": "MessageSID",
@@ -32,7 +31,6 @@ def sample_translate_return_value():
 
 @pytest.fixture
 def sample_delivery_status_result_message():
-    """ sample celery event for process_delivery_status() task """
     return {
         "message": {
             "body": "UmF3RGxyRG9uZURhdGU9MjMwMzIyMjMzOCZTbXNTaWQ9U014eHgmU21zU3RhdHV"
@@ -46,7 +44,6 @@ def sample_delivery_status_result_message():
 
 @pytest.fixture()
 def sample_notification_platform_status():
-    """ sample response notification_platform_status """
     return {
         "payload": "UmF3RGxyRG9uZURhdGU9MjMwMzIyMjMzOCZTbXNTaWQ9U014eHgmU21zU3RhdHVzPWRlbGl2ZXJlZCZNZXNzYWdlU"
                    "3RhdHVzPWRlbGl2ZXJlZCZUbz0lMkIxMTExMTExMTExMSZNZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enom"
@@ -58,7 +55,6 @@ def sample_notification_platform_status():
 
 @pytest.fixture()
 def sample_sqs_message_with_provider():
-    """ sample of valid sqs_message after extraction from celery event """
     return {
         "body": "UmF3RGxyRG9uZURhdGU9MjMwMzIyMjMzOCZTbXNTaWQ9U014eHgmU21zU3RhdHVzPWRlbGl2ZXJlZCZNZXNzYWdlU3RhdHV"
                 "zPWRlbGl2ZXJlZCZUbz0lMkIxMTExMTExMTExMSZNZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enomRnJvbT0lMkIx"
@@ -70,7 +66,6 @@ def sample_sqs_message_with_provider():
 
 @pytest.fixture()
 def sample_sqs_message_with_twilio_provider():
-    """ sample of twilio sqs_message after extraction from celery event """
     return {
         "body": "UmF3RGxyRG9uZURhdGU9MjMwMzIyMjMzOCZTbXNTaWQ9U014eHgmU21zU3RhdHVzPWRlbGl2ZXJlZCZNZXNzYWdlU3RhdHV"
                 "zPWRlbGl2ZXJlZCZUbz0lMkIxMTExMTExMTExMSZNZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enomRnJvbT0lMkIx"
@@ -81,7 +76,6 @@ def sample_sqs_message_with_twilio_provider():
 
 @pytest.fixture()
 def sample_sqs_message_without_provider():
-    """ sample of invalid sqs_message after extraction from celery event """
     return {
         "body": "UmF3RGxyRG9uZURhdGU9MjMwMzIyMjMzOCZTbXNTaWQ9U014eHgmU21zU3RhdHVzPWRlbGl2ZXJlZCZNZXNzYWdlU3RhdHV"
                 "zPWRlbGl2ZXJlZCZUbz0lMkIxMTExMTExMTExMSZNZXNzYWdlU2lkPVNNeXl5JkFjY291bnRTaWQ9QUN6enomRnJvbT0lMkIx"
