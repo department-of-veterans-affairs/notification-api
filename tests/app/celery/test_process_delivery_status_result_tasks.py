@@ -93,7 +93,6 @@ def test_celery_event_with_missing_message_attribute(notify_db_session, sample_d
     """Test that celery will retry the task if "message" is missing from the CeleryEvent message"""
 
     del sample_delivery_status_result_message["message"]
-
     with pytest.raises(Retry):
         process_delivery_status(event=sample_delivery_status_result_message)
 
@@ -102,7 +101,6 @@ def test_celery_event_with_missing_provider_attribute(notify_db_session, sample_
     """Test that celery will retry the task if "message" is missing from the CeleryEvent message"""
 
     del sample_delivery_status_result_message["message"]["provider"]
-
     with pytest.raises(Retry):
         process_delivery_status(event=sample_delivery_status_result_message)
 
@@ -111,7 +109,6 @@ def test_celery_event_with_missing_body_attribute(notify_db_session, sample_deli
     """Test that celery will retry the task if "message" is missing from the CeleryEvent message"""
 
     del sample_delivery_status_result_message["message"]["body"]
-
     with pytest.raises(Retry):
         process_delivery_status(event=sample_delivery_status_result_message)
 
@@ -120,7 +117,6 @@ def test_celery_event_with_invalid_provider_attribute(notify_db_session, sample_
     """Test that celery will retry the task if "message" is invalid from the CeleryEvent message"""
 
     sample_delivery_status_result_message["message"]["provider"] = "abc123"
-
     with pytest.raises(Retry):
         process_delivery_status(event=sample_delivery_status_result_message)
 
@@ -129,14 +125,12 @@ def test_celery_event_with_invalid_body_attribute(notify_db_session, sample_deli
     """Test that celery will retry the task if "message" is missing from the CeleryEvent message"""
 
     sample_delivery_status_result_message["message"]["body"] = "body"
-
     with pytest.raises(Retry):
         process_delivery_status(event=sample_delivery_status_result_message)
 
 
 def test_get_provider_info_with_no_provider_raises_retry(
         notify_db_session,
-        sample_notification_platform_status,
         sample_sqs_message_without_provider
 ):
     """ Test get_provider_info() raises celery.exception.retry() when no provider is given by the celery event """
@@ -160,16 +154,12 @@ def test_get_provider_info_with_invalid_provider_raises_retry(
 
 def test_get_provider_info_with_twilio(
         notify_db_session,
-        sample_notification_platform_status,
         sample_sqs_message_with_provider
 ):
     sample_sqs_message_with_provider['provider'] = 'twilio'
 
     # now supply the sample to the function we want to test
-    provider_name_output, provider = _get_provider_info(
-        MockCeleryTask(),
-        sample_sqs_message_with_provider
-    )
+    provider_name_output, provider = _get_provider_info(MockCeleryTask(), sample_sqs_message_with_provider)
 
     assert provider.name == 'twilio'
     assert provider_name_output == 'twilio'
@@ -177,7 +167,6 @@ def test_get_provider_info_with_twilio(
 
 def test_attempt_to_get_notification_with_good_data(
         notify_db_session,
-        sample_notification_platform_status,
         sample_template
 ):
     """Test that we will exit the celery task when sqs message matches what has already been reported in the database"""
@@ -260,9 +249,7 @@ def test_process_delivery_status_with_invalid_notification_raises_retry(
 def test_none_notification_platform_status_triggers_retry(
         mocker,
         notify_db_session,
-        sample_delivery_status_result_message,
-        sample_translate_return_value,
-        sample_notification
+        sample_delivery_status_result_message
 ):
     """Verify that retry is triggered if translate_delivery_status returns None"""
 
@@ -273,12 +260,9 @@ def test_none_notification_platform_status_triggers_retry(
         process_delivery_status(event=sample_delivery_status_result_message)
 
 
-@freeze_time('1900-06-13 13:00')
 @pytest.mark.xfail(reason="Celery Task cannot properly determine time the message was originally received", run=False)
 def test_attempt_to_get_notification_older_than_five_minutes(
-        notify_db_session,
-        sample_delivery_status_result_message,
-        sample_template
+        notify_db_session
 ):
     """Celery Task should retry whenever attempt_to_get_notification() could not find a matching notification"""
 
@@ -300,7 +284,6 @@ def test_process_delivery_status_with_valid_message_with_no_payload(
         mocker,
         notify_db_session,
         sample_delivery_status_result_message,
-        sample_translate_return_value,
         sample_template
 ):
     """Test that celery task will complete if correct data is provided"""
@@ -322,12 +305,11 @@ def test_process_delivery_status_with_valid_message_with_payload(
         mocker,
         notify_db_session,
         sample_delivery_status_result_message,
-        sample_translate_return_value,
         sample_template
 ):
     """Test that celery task will complete if correct data is provided"""
 
-    notification = create_notification(
+    create_notification(
         sample_template,
         reference='SMyyy',
         sent_at=datetime.datetime.utcnow(),
