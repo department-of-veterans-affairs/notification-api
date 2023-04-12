@@ -1,5 +1,4 @@
 import pytest
-from freezegun import freeze_time
 from app.celery.process_delivery_status_result_tasks import (
     process_delivery_status,
     attempt_to_get_notification,
