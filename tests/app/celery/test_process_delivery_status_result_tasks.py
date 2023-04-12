@@ -304,50 +304,57 @@ def test_attempt_to_get_notification_older_than_five_minutes(
     assert should_exit
 
 
-def test_should_retry_preempts_exit(
-        mocker,
+def test_process_delivery_status_should_retry_preempts_exit(
         notify_db_session,
-        sample_delivery_status_result_message,
-        sample_notification
+        sample_delivery_status_result_message
 ):
-    """Test that celery task will protects against race condition"""
-    mocker.patch(
-        "app.celery.process_delivery_status_result_tasks.attempt_to_get_notification",
-        return_value=(sample_notification, True, True),
-    )
-
-    # celery task should retry whenever attempt_to_get_notification() return true on both retry and exit
     with pytest.raises(Retry):
         process_delivery_status(event=sample_delivery_status_result_message)
 
 
-def test_with_correct_data(
+def test_process_delivery_status_with_valid_message_with_no_payload(
         mocker,
         notify_db_session,
         sample_delivery_status_result_message,
         sample_translate_return_value,
-        sample_notification,
         sample_template
 ):
     """Test that celery task will complete if correct data is provided"""
 
-    mocker.patch("app.clients")
-    mocker.patch("app.clients.sms.SmsClient")
-    mocker.patch(
-        "app.clients.sms.twilio.TwilioSMSClient.translate_delivery_status",
-        return_value=sample_translate_return_value,
+    notification = create_notification(
+        sample_template,
+        reference='SMyyy',
+        sent_at=datetime.datetime.utcnow(),
+        status='sent',
+
     )
 
-    mocker.patch(
-        "app.celery.process_delivery_status_result_tasks.attempt_to_get_notification",
-        return_value=(sample_notification, False, False),
+    callback_mock = mocker.patch("app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task")
+    assert process_delivery_status(event=sample_delivery_status_result_message)
+    callback_mock.assert_called_once_with(notification, {})
+
+
+def test_process_delivery_status_with_valid_message_with_payload(
+        mocker,
+        notify_db_session,
+        sample_delivery_status_result_message,
+        sample_translate_return_value,
+        sample_template
+):
+    """Test that celery task will complete if correct data is provided"""
+
+    notification = create_notification(
+        sample_template,
+        reference='SMyyy',
+        sent_at=datetime.datetime.utcnow(),
+        status='sent',
+
     )
 
-    assert process_delivery_status(
-        event=sample_delivery_status_result_message
-    )
-
-    # TODO: a way to confirm that check_and_queue_callback_task() was called
+    mocker.patch("app.celery.process_delivery_status_result_tasks._get_include_payload_status", returns=True)
+    callback_mock = mocker.patch("app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task")
+    assert process_delivery_status(event=sample_delivery_status_result_message)
+    callback_mock.assert_called_once()
 
 
 def test_get_notification_parameters(notify_db_session, sample_notification_platform_status):
@@ -361,8 +368,8 @@ def test_get_notification_parameters(notify_db_session, sample_notification_plat
 
     """Test our ability to get parameters such as payload or reference from notification_platform_status"""
 
-    assert notification_status == 'delivered', 'notification_status should have been delivered'
-    assert reference == 'SMyyy', 'reference is not SMyyy'
-    assert number_of_message_parts == 1, 'number of parts should be 1 '
-    assert price_in_millicents_usd >= 0, 'price_in_millicents_usd should be >= 0 '
-    assert isinstance(payload, str), 'payload should have been a string'
+    assert notification_status == 'delivered'
+    assert reference == 'SMyyy'
+    assert number_of_message_parts == 1
+    assert price_in_millicents_usd >= 0
+    assert isinstance(payload, str)
