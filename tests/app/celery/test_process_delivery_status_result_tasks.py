@@ -253,7 +253,7 @@ def test_none_notification_platform_status_triggers_retry(
         process_delivery_status(event=sample_delivery_status_result_message)
 
 
-@pytest.mark.xfail(reason="#1217: Celery Task cannot properly determine time the message was originally received", run=False)
+@pytest.mark.xfail(reason="#1217: Celery Task cannot determine time the message was originally received", run=False)
 def test_attempt_to_get_notification_older_than_five_minutes(
         notify_db_session
 ):
