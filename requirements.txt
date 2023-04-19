@@ -64,7 +64,8 @@ mistune==0.8.4
 monotonic==1.6
 multidict==6.0.4
 nanoid==2.0.0
-notification-utils @ git+https://github.com/department-of-veterans-affairs/notification-utils.git@aff06f864c0881563582960380ff08ac19a625dc
+# This hash is for a commit on an unmerged branch in notification-utils.  Change this once it gets merged.
+notification-utils @ git+https://github.com/department-of-veterans-affairs/notification-utils.git@efd654498c6a996ae8749803779f60bfc03ae078
 notifications-python-client==8.0.0
 opentelemetry-api==1.17.0
 orderedset==2.0.3
