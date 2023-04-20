@@ -444,3 +444,9 @@ class TestSendInboundSmsToService:
             send_inbound_sms_to_service(inbound_sms_id=uuid.uuid4(), service_id=sample_service.id)
 
         assert mock_send.call_count == 0
+    
+    def test_send_delivery_status_to_service_include_provider_payload_when_true(self):
+        pass
+
+    def test_send_delivery_status_to_service_include_provider_payload_when_false(self):
+        pass
