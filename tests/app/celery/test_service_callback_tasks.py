@@ -451,7 +451,7 @@ class TestSendInboundSmsToService:
         assert mock_send.call_count == 0
 
 
-def test_create_delivery_status_callback_data(sample_notification):
+def test_create_delivery_status_callback_provider_payload(sample_notification):
 
     # callback_api
     callback_api = create_service_callback_api(
