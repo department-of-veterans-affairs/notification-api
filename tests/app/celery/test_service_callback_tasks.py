@@ -251,9 +251,14 @@ def test_send_email_complaint_to_vanotify_fails(notify_db_session, mocker, compl
 def test_check_and_queue_callback_task_does_not_queue_task_if_service_callback_api_does_not_exist(mocker):
     mock_notification = create_mock_notification(mocker)
     mocker.patch(
-        'app.celery.service_callback_tasks.get_service_delivery_status_callback_api_for_service', return_value=None)
+        'app.celery.service_callback_tasks.get_service_delivery_status_callback_api_for_service',
+        return_value=None
+    )
+
     mock_send_delivery_status = mocker.patch(
-        'app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
+        'app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async'
+    )
+
     check_and_queue_callback_task(mock_notification)
     mock_send_delivery_status.assert_not_called()
 
