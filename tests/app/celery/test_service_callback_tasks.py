@@ -22,8 +22,13 @@ from app.celery.service_callback_tasks import (
 from app.config import QueueNames
 from app.exceptions import NotificationTechnicalFailureException
 from app.models import (
-    Notification, ServiceCallback, Complaint,
-    Service, Template, INBOUND_SMS_CALLBACK_TYPE, NOTIFICATION_STATUS_TYPES
+    Notification,
+    ServiceCallback,
+    Complaint,
+    Service,
+    Template,
+    INBOUND_SMS_CALLBACK_TYPE,
+    NOTIFICATION_STATUS_TYPES
 )
 
 from app.model import User
@@ -451,8 +456,8 @@ class TestSendInboundSmsToService:
         assert mock_send.call_count == 0
 
 
-def test_create_delivery_status_callback_provider_payload(sample_notification):
-
+@pytest.mark.parametrize("payload", [None, {}, {'key': 'value'}])
+def test_create_delivery_status_callback_provider_payload(sample_notification, payload):
     # callback_api
     callback_api = create_service_callback_api(
         service=sample_notification.service,
@@ -460,20 +465,11 @@ def test_create_delivery_status_callback_provider_payload(sample_notification):
         notification_statuses=NOTIFICATION_STATUS_TYPES
     )
 
-    # test for when payload is None
-    payload_is_none = None
-    encrypted_message = create_delivery_status_callback_data(sample_notification, callback_api, payload_is_none)
+    encrypted_message = create_delivery_status_callback_data(sample_notification, callback_api, payload)
     decrypted_message = encryption.decrypt(encrypted_message)
-    assert 'provider_payload' not in decrypted_message
 
-    # test for when payload is an empty dictionary
-    payload_is_empty_dict = dict()
-    encrypted_message = create_delivery_status_callback_data(sample_notification, callback_api, payload_is_empty_dict)
-    decrypted_message = encryption.decrypt(encrypted_message)
-    assert 'provider_payload' not in decrypted_message
-
-    # test for when payload is not an empty dictionary
-    payload_is_not_empty = {'key': 'value'}
-    encrypted_message = create_delivery_status_callback_data(sample_notification, callback_api, payload_is_not_empty)
-    decrypted_message = encryption.decrypt(encrypted_message)
-    assert 'provider_payload' in decrypted_message
+    # check if payload is dictionary with at least one entry
+    if payload:
+        assert 'provider_payload' in decrypted_message
+    else:
+        assert 'provider_payload' not in decrypted_message
