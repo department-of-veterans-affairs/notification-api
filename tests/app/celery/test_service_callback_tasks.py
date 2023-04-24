@@ -261,7 +261,6 @@ def test_check_and_queue_callback_task_does_not_queue_task_if_service_callback_a
     )
 
     check_and_queue_callback_task(mock_notification)
-
     mock_send_delivery_status.assert_not_called()
 
 
