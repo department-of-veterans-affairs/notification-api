@@ -253,12 +253,10 @@ def test_check_and_queue_callback_task_does_not_queue_task_if_service_callback_a
 
     mocker.patch(
         'app.celery.service_callback_tasks.get_service_delivery_status_callback_api_for_service',
-        return_value=None
-    )
+         return_value=None)
 
     mock_send_delivery_status = mocker.patch(
-        'app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async'
-    )
+        'app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
 
     check_and_queue_callback_task(mock_notification)
     mock_send_delivery_status.assert_not_called()
