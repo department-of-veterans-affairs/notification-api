@@ -250,7 +250,6 @@ def test_existing_service_delivery_status_callback_api_by_status(sample_service,
             sample_service.id,
             notification_status=notification_status
         )
-        
         assert result.id == service_callback_api.id
         assert result.url == service_callback_api.url
         assert result.bearer_token == service_callback_api.bearer_token
