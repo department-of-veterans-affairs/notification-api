@@ -216,7 +216,12 @@ def test_get_service_callback_api_with_include_provider_payload(sample_service, 
     assert callback_api.bearer_token == "some_unique_string"
     assert callback_api._bearer_token != "some_unique_string"
     assert callback_api.updated_at is None
-    assert callback_api.include_provider_payload == payload_included
+
+    # if-else logic because "callback_api.include_provider_payload == payload_included" is not PEP8 compliant
+    if payload_included:
+        assert callback_api.include_provider_payload
+    else:
+        assert not callback_api.include_provider_payload
 
 
 def test_get_service_delivery_status_callback_api_for_service(sample_service):
@@ -255,16 +260,16 @@ def test_existing_service_delivery_status_callback_api_by_status(sample_service,
 
 @pytest.mark.parametrize('saved_notification_statuses, query_notification_statuses', [
     (
-        [NOTIFICATION_FAILED],
-        list(filter(lambda status: status != NOTIFICATION_FAILED, NOTIFICATION_STATUS_TYPES_COMPLETED))
+            [NOTIFICATION_FAILED],
+            list(filter(lambda status: status != NOTIFICATION_FAILED, NOTIFICATION_STATUS_TYPES_COMPLETED))
     ),
     (
-        [NOTIFICATION_SENT, NOTIFICATION_DELIVERED],
-        [NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_FAILED]
+            [NOTIFICATION_SENT, NOTIFICATION_DELIVERED],
+            [NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_FAILED]
     ),
     (
-        [NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_FAILED],
-        [NOTIFICATION_SENT, NOTIFICATION_DELIVERED]
+            [NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_FAILED],
+            [NOTIFICATION_SENT, NOTIFICATION_DELIVERED]
     )
 ])
 def test_no_service_delivery_status_callback_api_by_status(
