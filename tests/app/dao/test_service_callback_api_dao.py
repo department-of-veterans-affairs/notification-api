@@ -256,7 +256,7 @@ def test_existing_service_delivery_status_callback_api_by_status(sample_service,
 @pytest.mark.parametrize('saved_notification_statuses, query_notification_statuses', [
     (
         [NOTIFICATION_FAILED],
-        list(filter(lambda status: status != NOTIFICATION_FAILED,NOTIFICATION_STATUS_TYPES_COMPLETED))
+        list(filter(lambda status: status != NOTIFICATION_FAILED, NOTIFICATION_STATUS_TYPES_COMPLETED))
     ),
     (
         [NOTIFICATION_SENT, NOTIFICATION_DELIVERED],
