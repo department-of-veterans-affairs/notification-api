@@ -454,7 +454,7 @@ class TestSendInboundSmsToService:
         assert mock_send.call_count == 0
 
 
-@pytest.mark.parametrize("payload", [None, {}, {'key': 'value'}])
+@pytest.mark.parametrize("payload", [None, {}, {'key': 'value'}, 'Hello%20G%C3%BCnter', '!@##$%^&*(){}:"?><'])
 @pytest.mark.parametrize("include_provider_payload", [True, False])
 def test_create_delivery_status_callback_data(sample_notification, payload, include_provider_payload):
     # callback_api
