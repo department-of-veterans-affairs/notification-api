@@ -27,7 +27,7 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.VAEC_AWS_SECRET_ACCESS_KEY }}
 
 jobs:
-  deploy-and-deploy-lambda-functions:
+  build-and-deploy-lambda-functions:
     runs-on: ubuntu-latest
     defaults:
       run:
