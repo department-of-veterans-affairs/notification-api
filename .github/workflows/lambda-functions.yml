@@ -60,7 +60,8 @@ jobs:
           source venv_user_flows/bin/activate
           pip install -r requirements-lambda.txt
           deactivate
-          cat ../../certs/* >> ./venv_user_flows/lib/python3.8/site-packages/certifi/cacert.pem
+          cat ../../certs/VA-Internal-S2-ICA11.cer >> ./venv_user_flows/lib/python3.8/site-packages/certifi/cacert.pem
+          cat ../../certs/VA-Internal-S2-RCA2.cer >> ./venv_user_flows/lib/python3.8/site-packages/certifi/cacert.pem
           cd venv_user_flows/lib/python3.8/site-packages
           zip -r9 ../../../../user_flows_lambda.zip .
           cd ../../../../
