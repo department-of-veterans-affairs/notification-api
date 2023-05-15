@@ -10,8 +10,8 @@ def worker_process_shutdown(sender, signal, pid, exitcode, **kwargs):
     current_app.logger.info('worker shutdown: PID: {} Exitcode: {}'.format(pid, exitcode))
 
 @worker_shutting_down.connect
-def worker_graceful_stop(sender, signal, pid, exitcode, **kwargs):
-    current_app.logger.info(f'worker graceful stop: {sender=}, {signal=}, {pid=}, {exitcode=}')
+def worker_graceful_stop(signal, how, exitcode, **kwargs):
+    current_app.logger.info(f'worker graceful stop: {signal=}, {how=}, {exitcode=}')
 
 def make_task(app):
     class NotifyTask(Task):
