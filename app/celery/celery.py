@@ -6,7 +6,7 @@ from flask import current_app
 
 
 @worker_process_shutdown.connect
-def worker_process_shutdown(sender, signal, pid, exitcode, **kwargs):
+def worker_process_shutdown(pid, exitcode, **kwargs):
     current_app.logger.info('worker shutdown: PID: {} Exitcode: {}'.format(pid, exitcode))
 
 @worker_shutting_down.connect
