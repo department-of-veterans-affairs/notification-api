@@ -6,12 +6,12 @@ from flask import current_app
 
 
 @worker_process_shutdown.connect
-def worker_process_shutdown(pid, exitcode, **kwargs):
-    current_app.logger.info('worker shutdown: PID: {} Exitcode: {}'.format(pid, exitcode))
+def pool_worker_process_shutdown(pid, exitcode, **kwargs):
+    current_app.logger.info(f'Pool worker shutdown: {pid=}, {exitcode=}')
 
 @worker_shutting_down.connect
-def worker_graceful_stop(signal, how, exitcode, **kwargs):
-    current_app.logger.info(f'worker graceful stop: {signal=}, {how=}, {exitcode=}')
+def main_proc_graceful_stop(signal, how, exitcode, **kwargs):
+    current_app.logger.info(f'Main process worker graceful stop: {signal=}, {how=}, {exitcode=}')
 
 def make_task(app):
     class NotifyTask(Task):
