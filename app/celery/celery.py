@@ -1,17 +1,24 @@
 import time
 
 from celery import Celery, Task
-from celery.signals import worker_process_shutdown, worker_shutting_down
+from celery.signals import worker_process_shutdown, worker_shutting_down, worker_process_init
 from flask import current_app
+
+
+@worker_process_init.connect
+def pool_worker_started():
+    current_app.logger.info(f'Pool worker started')
 
 
 @worker_process_shutdown.connect
 def pool_worker_process_shutdown(pid, exitcode, **kwargs):
     current_app.logger.info(f'Pool worker shutdown: {pid=}, {exitcode=}')
 
+
 @worker_shutting_down.connect
 def main_proc_graceful_stop(signal, how, exitcode, **kwargs):
     current_app.logger.info(f'Main process worker graceful stop: {signal=}, {how=}, {exitcode=}')
+
 
 def make_task(app):
     class NotifyTask(Task):
