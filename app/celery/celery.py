@@ -17,7 +17,8 @@ def pool_worker_process_shutdown(pid, exitcode, *args, **kwargs):
 
 @worker_shutting_down.connect
 def main_proc_graceful_stop(signal, how, exitcode, *args, **kwargs):
-    current_app.logger.info('Main process worker graceful stop: signal = %s, how = %s, exitcode = %s', signal, how, exitcode)
+    current_app.logger.info('Main process worker graceful stop: signal = %s, how = %s, exitcode = %s', 
+                            signal, how, exitcode)
 
 
 def make_task(app):
