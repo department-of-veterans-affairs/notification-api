@@ -7,17 +7,17 @@ from flask import current_app
 
 @worker_process_init.connect
 def pool_worker_started(*args, **kwargs):
-    current_app.logger.info(f'Pool worker started')
+    current_app.logger.info('Pool worker started')
 
 
 @worker_process_shutdown.connect
 def pool_worker_process_shutdown(pid, exitcode, *args, **kwargs):
-    current_app.logger.info(f'Pool worker shutdown: {pid=}, {exitcode=}')
+    current_app.logger.info('Pool worker shutdown: pid = %s, exitcode = %s', pid, exitcode)
 
 
 @worker_shutting_down.connect
 def main_proc_graceful_stop(signal, how, exitcode, *args, **kwargs):
-    current_app.logger.info(f'Main process worker graceful stop: {signal=}, {how=}, {exitcode=}')
+    current_app.logger.info('Main process worker graceful stop: signal = %s, how = %s, exitcode = %s', signal, how, exitcode)
 
 
 def make_task(app):
