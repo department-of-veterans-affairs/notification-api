@@ -27,21 +27,15 @@ def worker_int(worker):
     worker.log.info("worker: received SIGINT {}".format(worker.pid))
 
 
-def post_fork(server, worker):
-    server.log.info("Gunicorn Worker spawned (pid: %s)", worker.pid)
-
-
-def pre_fork(server, worker):
-    server.log.info("Gunicorn Worker exiting (pid: %s)", worker.pid)
-
-
-def when_ready(server):
-    server.log.info("Gunicorn Server is ready. Spawning workers")
-
-
-def pre_request(worker, req):
-    worker.log.info(f"Gunicorn Worker is about to process request: {worker.pid}")
-
-
 def post_request(worker, req, environ, resp):
-    worker.log.info(f"Gunicorn Worker finished processing request: {worker.pid}")
+    worker.log.info(dir(worker))
+    worker.log.info(worker)
+
+    worker.log.info(dir(req))
+    worker.log.info(req)
+
+    worker.log.info(dir(environ))
+    worker.log.info(environ)
+    
+    worker.log.info(dir(resp))
+    worker.log.info(resp)
