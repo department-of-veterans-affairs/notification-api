@@ -28,14 +28,5 @@ def worker_int(worker):
 
 
 def post_request(worker, req, environ, resp):
-    worker.log.info(dir(worker))
-    worker.log.info(worker)
-
-    worker.log.info(dir(req))
-    worker.log.info(req)
-
-    worker.log.info(dir(environ))
-    worker.log.info(environ)
-
-    worker.log.info(dir(resp))
-    worker.log.info(resp)
+    print(resp)
+    print(resp.response_length)
