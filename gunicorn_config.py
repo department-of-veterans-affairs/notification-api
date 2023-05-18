@@ -31,11 +31,11 @@ def worker_int(worker):
 
 def post_request(worker, req, environ, resp):
     print("----start of worker object ----")
-    pprint(inspect.getmembers(worker))
+    print(inspect.getmembers(worker))
     print("----end of worker object ----")
     print("----start of req object ----")
-    pprint(inspect.getmembers(req))
+    print(inspect.getmembers(req))
     print("----end of req object ----")
     print("----start of resp object ----")
-    pprint(inspect.getmembers(resp))
+    print(inspect.getmembers(resp))
     print("----end of resp object ----")
