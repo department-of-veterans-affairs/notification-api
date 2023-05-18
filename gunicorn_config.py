@@ -1,6 +1,8 @@
 import os
 import sys
 import traceback
+from pprint import pprint
+import inspect
 
 workers = 4
 worker_class = "eventlet"
@@ -28,4 +30,12 @@ def worker_int(worker):
 
 
 def post_request(worker, req, environ, resp):
-    print('response length:' + str(resp.response_length))
+    print("----start of worker object ----")
+    pprint(inspect.getmembers(worker))
+    print("----end of worker object ----")
+    print("----start of req object ----")
+    pprint(inspect.getmembers(req))
+    print("----end of req object ----")
+    print("----start of resp object ----")
+    pprint(inspect.getmembers(resp))
+    print("----end of resp object ----")
