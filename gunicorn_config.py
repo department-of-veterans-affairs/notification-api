@@ -36,6 +36,6 @@ def post_request(worker, req, environ, resp):
 
     worker.log.info(dir(environ))
     worker.log.info(environ)
-    
+
     worker.log.info(dir(resp))
     worker.log.info(resp)
