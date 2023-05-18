@@ -28,5 +28,4 @@ def worker_int(worker):
 
 
 def post_request(worker, req, environ, resp):
-    print(resp)
     print(resp.response_length)
