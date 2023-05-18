@@ -1,6 +1,6 @@
 # Python 3.8 is supported until 14 October 2024.
-# Alpine Linux 3.17 is supported until 22 November 2024.
-FROM python:3.8-alpine3.17
+# Alpine Linux 3.16 is supported until 23 May 2024.
+FROM python:3.8-alpine3.16
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     # https://flask.palletsprojects.com/en/2.2.x/config/?highlight=flask_debug#DEBUG
