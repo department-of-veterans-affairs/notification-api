@@ -52,4 +52,4 @@ ARG GIT_SHA
 ENV GIT_SHA ${GIT_SHA}
 
 ENTRYPOINT ["./scripts/save_certificate.sh"]
-CMD ["sh", "-c", "ddtrace-run gunicorn -c gunicorn_config.py --access-logformat application"]
+CMD ["sh", "-c", "ddtrace-run gunicorn -c gunicorn_config.py application"]
