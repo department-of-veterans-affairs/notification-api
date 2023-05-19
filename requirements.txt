@@ -10,7 +10,7 @@ asyncio==3.4.3
 attrs==23.1.0
 Authlib==1.2.0
 bcrypt==4.0.1
-billiard==3.6.4.0
+billiard==4.1.0
 bleach==6.0.0
 blinker==1.6.2
 boto3==1.26.115
