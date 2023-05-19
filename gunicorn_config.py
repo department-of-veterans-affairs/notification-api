@@ -25,4 +25,3 @@ def on_exit(server):
 
 def worker_int(worker):
     worker.log.info("worker: received SIGINT {}".format(worker.pid))
-
