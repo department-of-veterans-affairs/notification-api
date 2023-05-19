@@ -1,8 +1,6 @@
 import os
 import sys
 import traceback
-from pprint import pprint
-import inspect
 
 workers = 4
 worker_class = "eventlet"
@@ -28,14 +26,3 @@ def on_exit(server):
 def worker_int(worker):
     worker.log.info("worker: received SIGINT {}".format(worker.pid))
 
-
-def post_request(worker, req, environ, resp):
-    print("----start of worker object ----")
-    print(inspect.getmembers(worker))
-    print("----end of worker object ----")
-    print("----start of req object ----")
-    print(inspect.getmembers(req))
-    print("----end of req object ----")
-    print("----start of resp object ----")
-    print(inspect.getmembers(resp))
-    print("----end of resp object ----")
