@@ -1,3 +1,4 @@
+import logging
 from uuid import UUID
 
 
@@ -25,5 +26,5 @@ def test_get_communication_items(mocker, admin_request, sample_email_template):
         try:
             assert isinstance(UUID(communication_item["id"]), UUID)
         except ValueError as e:
-            print(communication_item["id"], "is not a valid uuid4.")
+            logging.exception(e)
             raise
