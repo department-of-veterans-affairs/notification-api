@@ -21,4 +21,9 @@ def test_get_communication_items(mocker, admin_request, sample_email_template):
         assert isinstance(communication_item["name"], str) and communication_item["name"]
         assert isinstance(communication_item["va_profile_item_id"], int)
         assert isinstance(communication_item["id"], str)
-        assert isinstance(UUID(communication_item["id"], UUID), communication_item["id"]
+
+        try:
+            assert isinstance(UUID(communication_item["id"]), UUID)
+        except ValueError as e:
+            print(communication_item["id"], "is not a valid uuid4.")
+            raise
