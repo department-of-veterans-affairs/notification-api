@@ -1,7 +1,14 @@
 import time
 
 from celery import Celery, Task
-from celery.signals import worker_process_shutdown, worker_shutting_down, worker_process_init
+from celery.signals import (
+    worker_process_shutdown,
+    worker_shutting_down,
+    worker_process_init,
+    task_received,
+    task_success,
+    task_failure
+)
 from flask import current_app
 
 
@@ -19,6 +26,27 @@ def pool_worker_process_shutdown(pid, exitcode, *args, **kwargs):
 def main_proc_graceful_stop(signal, how, exitcode, *args, **kwargs):
     current_app.logger.info('Main process worker graceful stop: signal = %s, how = %s, exitcode = %s',
                             signal, how, exitcode)
+
+
+@task_received.connect()
+def celery_task_received(**kwargs):
+    print('celery_task_received check kwargs:')
+    print(kwargs)
+    current_app.logger.info('logger celery_task_received')
+
+
+@task_success.connect()
+def celery_task_succeded(**kwargs):
+    print('celery_task_succeded check kwargs:')
+    print(kwargs)
+    current_app.logger.info('logger celery_task_succeded')
+
+
+@task_failure.connect()
+def celery_task_failed(**kwargs):
+    print('celery_task_failed check kwargs:')
+    print(kwargs)
+    current_app.logger.info('logger celery_task_failed')
 
 
 def make_task(app):
