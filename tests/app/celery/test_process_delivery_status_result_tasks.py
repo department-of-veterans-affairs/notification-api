@@ -338,7 +338,7 @@ def test_get_notification_parameters(notify_db_session, sample_notification_plat
     assert isinstance(payload, str)
 
 
-def test_race_condition(notify_db_session, sample_notification_platform_status, sample_template, notify_db):
+def test_notification_exit_delivered_status(notify_db_session, sample_notification_platform_status, sample_template, notify_db):
     notification_status = 'delivered'
     reference = 'SMyyy'
 
