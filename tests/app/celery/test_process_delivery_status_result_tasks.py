@@ -9,7 +9,7 @@ from app.celery.process_delivery_status_result_tasks import (
 from app.models import Notification
 from celery.exceptions import Retry
 from tests.app.db import create_notification
-
+from sqlalchemy.sql import text
 
 class MockCeleryTask:
     def retry(self, queue=None):
@@ -320,7 +320,6 @@ def test_process_delivery_status_with_valid_message_with_payload(
     assert process_delivery_status(event=sample_delivery_status_result_message)
     callback_mock.assert_called_once()
 
-
 def test_get_notification_parameters(notify_db_session, sample_notification_platform_status):
     (payload,
      reference,
@@ -337,3 +336,45 @@ def test_get_notification_parameters(notify_db_session, sample_notification_plat
     assert number_of_message_parts == 1
     assert price_in_millicents_usd >= 0
     assert isinstance(payload, str)
+
+
+def test_race_condition(notify_db_session, sample_notification_platform_status, sample_template, notify_db):
+    notification_status = 'delivered'
+    reference = 'SMyyy'
+
+    # create notification object
+    create_notification(
+        sample_template,
+        reference=reference,
+        sent_at=datetime.datetime.utcnow(),
+        status=notification_status
+    )
+
+    # attempt to get the notification object that we created from the database
+    notification, should_retry, should_exit = attempt_to_get_notification(reference, notification_status, 0)
+
+    # check the values that attempt_to_get_notification() return against what we sent
+    assert isinstance(notification, Notification)
+    assert notification.status == notification_status
+    assert notification.reference == reference
+
+    # build query object to update the database directly
+    update_notification = text(
+        """UPDATE Notification set status = :notification_status where reference = :notification_reference"""
+    ).bindparams(
+        notification_status='sending',
+        notification_reference=reference
+    )
+
+    select_notification = text(
+        """SELECT * FROM Notification where reference = :notification_reference"""
+    ).bindparams(notification_reference=reference)
+
+    # update the database directly
+    with notify_db.engine.begin() as connection:
+        connection.execute(update_notification)
+        rs = connection.execute(select_notification)
+
+        for row in rs:
+            rs
+
