@@ -39,6 +39,7 @@ from app.models import (
     Notification,
     NotificationHistory,
     ScheduledNotification,
+    NOTIFICATION_CREATED,
     NOTIFICATION_STATUS_TYPES,
     NOTIFICATION_STATUS_TYPES_FAILED,
     NOTIFICATION_TEMPORARY_FAILURE,
@@ -1593,3 +1594,178 @@ def test_update_notification_status_updates_failure_reason(sample_job, mocker):
     )
 
     assert updated_notification.status_reason == failure_message
+
+
+@pytest.mark.parametrize("next_status", [
+    NOTIFICATION_CREATED,
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_PENDING,
+    NOTIFICATION_SENT
+])
+def test_update_notification_status_by_id_cannot_exit_delivered_status_immediately_after_create_state(
+        notify_db_session,
+        sample_template,
+        notify_db,
+        next_status
+):
+    reference = str(uuid.uuid4())
+
+    # create notification object
+    create_notification(
+        sample_template,
+        reference=reference,
+        sent_at=datetime.now()
+    )
+
+    # get the notification object
+    notification = dao_get_notification_by_reference(reference)
+
+    # check the values that attempt_to_get_notification() return against what we sent
+    assert isinstance(notification, Notification)
+    assert notification.status == NOTIFICATION_CREATED
+    assert notification.reference == reference
+
+    # assume you enter deliver state immediately after creation
+    update_notification_status_by_id(
+        notification_id=notification.id,
+        status=NOTIFICATION_DELIVERED,
+        current_status=NOTIFICATION_CREATED
+    )
+
+    # record the last update value that is in the database
+    notification_last_updated = notification.updated_at
+
+    # get the notification object and make sure it has the values you gave it
+    notification = dao_get_notification_by_reference(reference)
+    assert isinstance(notification, Notification)
+    assert notification.status == NOTIFICATION_DELIVERED
+    assert notification.reference == reference
+
+    update_notification_status_by_id(
+        notification_id=notification.id,
+        status=next_status,
+        current_status=NOTIFICATION_DELIVERED
+    )
+
+    notification = dao_get_notification_by_reference(reference)
+    assert notification.updated_at == notification_last_updated
+    assert notification.status == NOTIFICATION_DELIVERED
+
+    update_notification_status_by_id(
+        notification_id=notification.id,
+        status=next_status
+    )
+
+    notification = dao_get_notification_by_reference(reference)
+    assert notification.updated_at == notification_last_updated
+    assert notification.status == NOTIFICATION_DELIVERED
+
+
+@pytest.mark.parametrize("next_status", [
+    NOTIFICATION_CREATED,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_PENDING,
+    NOTIFICATION_SENT
+])
+def test_update_notification_status_by_id_cannot_exit_delivered_status_after_intermediate_state(
+        notify_db_session,
+        sample_template,
+        notify_db,
+        next_status
+):
+    reference = str(uuid.uuid4())
+
+    # create notification object
+    create_notification(
+        sample_template,
+        reference=reference,
+        sent_at=datetime.now()
+    )
+
+    # get the notification object
+    notification = dao_get_notification_by_reference(reference)
+
+    # check the values that attempt_to_get_notification() return against what we sent
+    assert isinstance(notification, Notification)
+    assert notification.status == NOTIFICATION_CREATED
+    assert notification.reference == reference
+
+    # assume you enter deliver state immediately after creation
+    update_notification_status_by_id(
+        notification_id=notification.id,
+        status=next_status
+    )
+
+    # record the last update value that is in the database
+    notification_last_updated = notification.updated_at
+
+    # get the notification object and make sure it has the values you gave it
+    # establish sending as the intermediate step
+    notification = dao_get_notification_by_reference(reference)
+    assert isinstance(notification, Notification)
+    assert notification.status == next_status
+    assert notification.reference == reference
+
+    # set notification to delivered
+    update_notification_status_by_id(
+        notification_id=notification.id,
+        status=NOTIFICATION_DELIVERED,
+        current_status=next_status
+    )
+
+    notification = dao_get_notification_by_reference(reference)
+    assert notification.updated_at > notification_last_updated
+    assert notification.status == NOTIFICATION_DELIVERED
+
+    # attempt without the condition current state
+    update_notification_status_by_id(
+        notification_id=notification.id,
+        status=next_status
+    )
+
+    notification = dao_get_notification_by_reference(reference)
+    assert notification.status == NOTIFICATION_DELIVERED
+
+    # attempt with the condition current state
+    update_notification_status_by_id(
+        notification_id=notification.id,
+        status=next_status,
+        current_status=NOTIFICATION_DELIVERED
+    )
+
+    notification = dao_get_notification_by_reference(reference)
+    assert notification.status == NOTIFICATION_DELIVERED
+
+
+def test_dao_update_notification_will_update_last_updated_without_conditions(
+        notify_db_session,
+        sample_template,
+        notify_db
+):
+    notification_status_delivered = 'delivered'
+    reference = str(uuid.uuid4())
+
+    # create notification object
+    create_notification(
+        sample_template,
+        reference=reference,
+        sent_at=datetime.datetime.utcnow(),
+        status=notification_status_delivered
+    )
+
+    # get the notification object
+    notification = dao_get_notification_by_reference(reference)
+
+    # check the values that attempt_to_get_notification() return against what we sent
+    assert isinstance(notification, Notification)
+    assert notification.status == notification_status_delivered
+    assert notification.reference == reference
+
+    # record the last update value that is in the database
+    notification_last_updated = notification.updated_at
+
+    # attempt to do an update of the object
+    dao_update_notification(notification)
+    notification = dao_get_notification_by_reference(reference)
+    assert notification.updated_at > notification_last_updated
