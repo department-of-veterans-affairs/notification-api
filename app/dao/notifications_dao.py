@@ -148,7 +148,9 @@ def update_notification_status_by_id(
     if is_feature_enabled(FeatureFlag.NOTIFICATION_FAILURE_REASON_ENABLED) and status_reason:
         notification.status_reason = status_reason
 
-    # todo: prevent sent -> sending
+    # prevents sent -> sending
+    if (notification.status == NOTIFICATION_SENT) and (status == NOTIFICATION_SENDING):
+        return None
 
     # the new and current status must both be in the order matrix
     if (current_status in order_matrix) and (status in order_matrix):
