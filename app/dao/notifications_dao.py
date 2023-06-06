@@ -114,10 +114,18 @@ def _update_notification_status(notification, status):
 @statsd(namespace="dao")
 @transactional
 def update_notification_status_by_id(
-        notification_id: uuid, status: str, sent_by: str = None, status_reason: str = None
+        notification_id: uuid,
+        status: str,
+        sent_by: str = None,
+        status_reason: str = None,
+        current_status: str = None
 ) -> Notification:
-    notification = Notification.query.with_for_update().filter(Notification.id == notification_id).first()
 
+    notification = Notification.query.with_for_update().filter(Notification.id == notification_id)
+    if current_status is not None:
+        notification.filter(Notification.status == current_status)
+
+    notification = notification.first()
     if not notification:
         current_app.logger.info(
             'notification not found for id %s (update to status %s)',

@@ -1750,7 +1750,7 @@ def test_dao_update_notification_will_update_last_updated_without_conditions(
     create_notification(
         sample_template,
         reference=reference,
-        sent_at=datetime.datetime.utcnow(),
+        sent_at=datetime.now(),
         status=notification_status_delivered
     )
 
