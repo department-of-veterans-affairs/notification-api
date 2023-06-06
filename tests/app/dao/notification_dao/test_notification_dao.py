@@ -1604,9 +1604,7 @@ def test_update_notification_status_updates_failure_reason(sample_job, mocker):
     NOTIFICATION_SENT
 ])
 def test_update_notification_status_by_id_cannot_exit_delivered_status_immediately_after_create_state(
-        notify_db_session,
         sample_template,
-        notify_db,
         next_status
 ):
     reference = str(uuid.uuid4())
@@ -1667,9 +1665,7 @@ def test_update_notification_status_by_id_cannot_exit_delivered_status_immediate
     NOTIFICATION_SENT
 ])
 def test_update_notification_status_by_id_cannot_exit_delivered_status_after_intermediate_state(
-        notify_db_session,
         sample_template,
-        notify_db,
         next_status
 ):
     reference = str(uuid.uuid4())
@@ -1734,11 +1730,7 @@ def test_update_notification_status_by_id_cannot_exit_delivered_status_after_int
     assert notification.status == NOTIFICATION_DELIVERED
 
 
-def test_dao_update_notification_will_update_last_updated_without_conditions(
-        notify_db_session,
-        sample_template,
-        notify_db
-):
+def test_dao_update_notification_will_update_last_updated_without_conditions(sample_template):
     notification_status_delivered = 'delivered'
     reference = str(uuid.uuid4())
 
@@ -1774,9 +1766,7 @@ def test_dao_update_notification_will_update_last_updated_without_conditions(
     (NOTIFICATION_DELIVERED, NOTIFICATION_TEMPORARY_FAILURE)
 ])
 def test_update_notification_status_by_id_cannot_update_status_out_of_order_with_invalid_values(
-        notify_db_session,
         sample_template,
-        notify_db,
         current_status,
         next_status
 ):
@@ -1831,9 +1821,7 @@ def test_update_notification_status_by_id_cannot_update_status_out_of_order_with
     (NOTIFICATION_SENT, NOTIFICATION_DELIVERED)
 ])
 def test_update_notification_status_by_id_can_update_status_in_order_when_given_valid_values(
-        notify_db_session,
         sample_template,
-        notify_db,
         current_status,
         next_status
 ):
