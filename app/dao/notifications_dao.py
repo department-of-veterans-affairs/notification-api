@@ -121,6 +121,8 @@ def update_notification_status_by_id(
         current_status: str = None
 ) -> Notification:
 
+    # the order of notification status that mus be maintained
+    order_matrix = [NOTIFICATION_SENDING, NOTIFICATION_SENT, NOTIFICATION_DELIVERED]
     notification = Notification.query.with_for_update().filter(Notification.id == notification_id)
     if current_status is not None:
         notification.filter(Notification.status == current_status)
@@ -145,6 +147,18 @@ def update_notification_status_by_id(
 
     if is_feature_enabled(FeatureFlag.NOTIFICATION_FAILURE_REASON_ENABLED) and status_reason:
         notification.status_reason = status_reason
+
+    # todo: prevent sent -> sending
+
+    # the new and current status must both be in the order matrix
+    if (current_status in order_matrix) and (status in order_matrix):
+        # get the order of the statuses
+        current_status_index = order_matrix.index(notification.status)
+        new_status_index = order_matrix.index(status)
+
+        # do not update the database if the new status happens before the current status in the database
+        if new_status_index < current_status_index:
+            return None
 
     return _update_notification_status(
         notification=notification,
