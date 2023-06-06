@@ -22,6 +22,7 @@ eventlet ~= 0.33.3
 # https://developers.yubico.com/WebAuthn/
 fido2 >= 1.1.1
 
+# 6 June 2023: Ignoring security vulnerability 55261 in Makefile.  It is fixed in  2.3.2 and 2.2.5
 Flask >= 2.2.3
 Flask-Bcrypt >= 1.0.1
 Flask-Cors >= 3.0.10
