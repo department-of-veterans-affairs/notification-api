@@ -57,16 +57,24 @@
           "value": "True"
         },
         {
-          "name": "DD_PROFILING_ENABLED",
+          "name": "DD_ENV",
+          "value": "dev"
+        },
+        {
+          "name": "DD_SITE",
+          "value": "ddog-gov.com"
+        },
+        {
+          "name": "DD_SERVICE",
+          "value": "notification-api"
+        },
+        {
+          "name": "DD_PROFILING_ENABLE_CODE_PROVENANCE",
           "value": "True"
         },
         {
-          "name": "DATADOG_AGENT_HOSTNAME",
-          "value": "localhost"
-        },
-        {
-          "name": "DATADOG_AGENT_PORT",
-          "value": "8126"
+          "name": "DD_PROFILING_ENABLED",
+          "value": "True"
         },
         {
           "name": "EMAIL_ATTACHMENTS_ENABLED",
@@ -255,6 +263,18 @@
       ],
       "environment": [
         {
+          "name": "DD_APM_NON_LOCAL_TRAFFIC",
+          "value": "true"
+        },
+        {
+          "name": "DD_LOGS_ENABLED",
+          "value": "true"
+        },
+        {
+          "name": "DD_PROCESS_AGENT_ENABLED",
+          "value": "true"
+        },
+        {
           "name": "ECS_FARGATE",
           "value": "true"
         },
@@ -267,16 +287,16 @@
           "value": "true"
         },
         {
-          "name": "DD_PROCESS_AGENT_ENABLED",
-          "value": "true"
-        },
-        {
           "name": "DD_ENV",
           "value": "dev"
         },
         {
           "name": "DD_SERVICE",
-          "value": "notification-celery-beat"
+          "value": "notification-api"
+        },
+        {
+          "name": "DD_APM_FEATURES",
+          "value": "enable_cid_stats"
         },
         {
           "name": "DD_PROFILING_ENABLE_CODE_PROVENANCE",
@@ -295,7 +315,7 @@
     "FARGATE"
   ],
   "cpu": "512",
-  "memory": "4096",
+  "memory": "1024",
   "tags": [
     {
       "key": "Stack",
@@ -327,4 +347,3 @@
     }
   ]
 }
-

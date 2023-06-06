@@ -25,9 +25,14 @@ class WebhookCallbackStrategy(ServiceCallbackStrategyInterface):
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer {}'.format(callback.bearer_token)
                 },
-                timeout=60
+                timeout=(3.05, 1)
             )
-            current_app.logger.info(f"Callback sent to {callback.url}, response {response.status_code}, {tags}")
+            current_app.logger.info(
+                "Callback sent to %s, response %d, %s",
+                callback.url,
+                response.status_code,
+                tags
+            )
             response.raise_for_status()
 
         except RequestException as e:

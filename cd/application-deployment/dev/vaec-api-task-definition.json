@@ -31,16 +31,24 @@
           "value": "https://dev.api.notifications.va.gov"
         },
         {
+          "name": "DD_ENV",
+          "value": "dev"
+        },
+        {
+          "name": "DD_SITE",
+          "value": "ddog-gov.com"
+        },
+        {
           "name": "DD_PROFILING_ENABLED",
           "value": "True"
         },
         {
-          "name": "DATADOG_AGENT_HOSTNAME",
-          "value": "localhost"
+          "name": "DD_SERVICE",
+          "value": "notification-api"
         },
         {
-          "name": "DATADOG_AGENT_PORT",
-          "value": "8126"
+          "name": "DD_PROFILING_ENABLE_CODE_PROVENANCE",
+          "value": "True"
         },
         {
           "name": "API_MESSAGE_LIMIT_ENABLED",
@@ -312,6 +320,18 @@
       ],
       "environment": [
         {
+          "name": "DD_APM_NON_LOCAL_TRAFFIC",
+          "value": "true"
+        },
+        {
+          "name": "DD_LOGS_ENABLED",
+          "value": "true"
+        },
+        {
+          "name": "DD_PROCESS_AGENT_ENABLED",
+          "value": "true"
+        },
+        {
           "name": "ECS_FARGATE",
           "value": "true"
         },
@@ -324,16 +344,16 @@
           "value": "true"
         },
         {
-          "name": "DD_PROCESS_AGENT_ENABLED",
-          "value": "true"
-        },
-        {
           "name": "DD_ENV",
           "value": "dev"
         },
         {
           "name": "DD_SERVICE",
           "value": "notification-api"
+        },
+        {
+          "name": "DD_APM_FEATURES",
+          "value": "enable_cid_stats"
         },
         {
           "name": "DD_PROFILING_ENABLE_CODE_PROVENANCE",
@@ -352,7 +372,7 @@
     "FARGATE"
   ],
   "cpu": "1024",
-  "memory": "4096",
+  "memory": "2048",
   "tags": [
     {
       "key": "Stack",

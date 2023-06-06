@@ -1,9 +1,14 @@
 # Python 3.8 is supported until 14 October 2024.
-# Alpine Linux 3.15 is supported until 1 November 2023.
-FROM python:3.8-alpine3.15
+# Alpine Linux 3.16 is supported until 23 May 2024 and packages OpenSSL v1.1.1.  Newer versions of Alpine package
+# OpenSSL v3.x, which will not work with notification-api until the Python "requests" package is upgrade to
+# >=2.30.0 and "urllib3" to >=2.0.0.  As of 18 May 2023, the notification-api top level dependency "botocore"
+# does not support urllib3>=2.0.0.
+FROM python:3.8-alpine3.16
 
 ARG GIT_SHA
 
+# REQUESTS_CA_BUNDLE is for the "requests" Python package.
+#   https://requests.readthedocs.io/en/latest/user/advanced/#ssl-cert-verification
 ENV PYTHONDONTWRITEBYTECODE=1 \
   REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
   PORT=6011 \
@@ -26,6 +31,7 @@ COPY --chown=vanotify requirements.txt .
 RUN apk add --no-cache --virtual .build-deps gcc musl-dev rust cargo \
   && python -m pip install --upgrade pip \
   && python -m pip install wheel \
+  && pip install --upgrade setuptools==65.5.1 \
   && pip install --no-cache-dir -r requirements.txt \
   # Remove build dependencies.
   && apk del --no-cache .build-deps

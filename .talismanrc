@@ -266,7 +266,7 @@ fileignoreconfig:
     - filename: tests/app/notifications/test_validators.py
       checksum: efce5afc3015a7bdcae7e027da762acf1fefe782b30a5a92855b253cad6c3050
     - filename: requirements.txt
-      checksum: 4cd08981422546219b07315d07ac44e2f94aeb939772afc4c8e09b533196c183
+      checksum: 791842e72fc5dc89e56f8e5c4d55cc31c87ef1a91c22660a0d4321dcb9d61122
     - filename: app/va/va_profile/va_profile_client.py
       checksum: 2942cb80f53433d4c129c2fbd43ba7b28f252d2daf30ad2c93bf8255d3d1e179
     - filename: ci/.docker-env.example
@@ -349,3 +349,7 @@ fileignoreconfig:
       checksum: d04d6378dd6ce8b0046d6dc2c106ca87cf93ee555e03821e7970570c4b132450
     - filename: tests/app/service/test_api_key_endpoints.py
       checksum: 1ac2f66bdf3a93a8c0c71ea97a3f464fc885f98034012b5c85de05d883b324c0
+    - filename: certs/DigiCert-Global-Root-G2.cer
+      checksum: ae4a406af9f5ccd0c8b7d2439076327fb131760d29043f8488a22f6eff26a27e
+    - filename: certs/DigiCert-Global-G2-TLS-RSA-SHA256-2020-CA1.cer
+      checksum: 120ea4457eac8216580853c44751a329b74cc29fafc9064105ee73d9a9c2bdc8
