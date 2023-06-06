@@ -80,14 +80,11 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         return False
 
     try:
-        # calculate pricing
         current_app.logger.info(
             "Notification ID (%s) - Calculate Pricing: %s and notification_status: %s with number_of_message_parts: %s",
             notification.id, provider_name, notification_status, number_of_message_parts,
         )
 
-        """ Calculate pricing """
-        current_app.logger.info("Calculate Pricing")
         if price_in_millicents_usd > 0.0:
             notification.status = notification_status
             notification.segments_count = number_of_message_parts

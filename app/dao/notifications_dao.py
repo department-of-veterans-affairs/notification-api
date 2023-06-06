@@ -121,7 +121,7 @@ def update_notification_status_by_id(
         current_status: str = None
 ) -> Notification:
 
-    # the order of notification status that mus be maintained
+    # the order of notification status that must be maintained
     order_matrix = [NOTIFICATION_SENDING, NOTIFICATION_SENT, NOTIFICATION_DELIVERED]
     notification = Notification.query.with_for_update().filter(Notification.id == notification_id)
     if current_status is not None:
