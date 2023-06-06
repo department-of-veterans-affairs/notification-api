@@ -150,6 +150,12 @@ def update_notification_status_by_id(
 
     # prevents sent -> sending
     if (notification.status == NOTIFICATION_SENT) and (status == NOTIFICATION_SENDING):
+        current_app.logger.info(
+            'warning: attempt was made to transition notification id %s from %s to %s',
+            notification_id,
+            notification.status,
+            status
+        )
         return None
 
     # the new and current status must both be in the order matrix
@@ -160,6 +166,12 @@ def update_notification_status_by_id(
 
         # do not update the database if the new status happens before the current status in the database
         if new_status_index < current_status_index:
+            current_app.logger.warning(
+                'warning: attempt was made to transition notification id %s from %s to %s',
+                notification_id,
+                notification.status,
+                status
+            )
             return None
 
     return _update_notification_status(
