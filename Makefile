@@ -1,4 +1,4 @@
-    .DEFAULT_GOAL := help
+.DEFAULT_GOAL := help
 SHELL := /bin/bash
 DATE = $(shell date +%Y-%m-%d:%H:%M:%S)
 
