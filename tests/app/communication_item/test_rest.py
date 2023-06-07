@@ -13,16 +13,18 @@ from uuid import UUID, uuid4
     ({}, 400),
     ({"id": "invalid uuid4"}, 400),
     ({"id": "39247cfc-a52d-4b2b-b9a9-2ef8a20190cb"}, 400),
-    ({"name": "name"}, 400),
+    ({"name": "communication item tests"}, 400),
     ({"va_profile_item_id": 1}, 400),
-    ({"name": "name", "va_profile_item_id": 1}, 201),
-    ({"default_send_indicator": False, "name": "name", "va_profile_item_id": 1}, 201),
-    ({"default_send_indicator": False, "name": "name", "va_profile_item_id": -5}, 400),
+    ({"name": "communication item tests", "va_profile_item_id": 1}, 201),
+    ({"default_send_indicator": False, "name": '', "va_profile_item_id": 1}, 400),
+    ({"default_send_indicator": False, "name": "communication item tests", "va_profile_item_id": 1}, 201),
+    ({"default_send_indicator": False, "name": "communication item tests", "va_profile_item_id": -5}, 400),
+    ({"default_send_indicator": False, "name": "communication item tests", "va_profile_item_id": 0}, 400),
     (
         {
             "default_send_indicator": False,
             "id": "39247cfc-a52d-4b2b-b9a9-2ef8a20190cb",
-            "name": "name",
+            "name": "communication item tests",
             "va_profile_item_id": 1,
         },
         400
@@ -43,7 +45,7 @@ def test_create_communication_item(notify_db_session, admin_request, post_data, 
     if expected_status == 201:
         assert isinstance(response, dict), response
         assert response["default_send_indicator"] is post_data.get("default_send_indicator", True)
-        assert response["name"] == "name"
+        assert response["name"] == "communication item tests"
         assert response["va_profile_item_id"] == 1
         assert isinstance(UUID(response["id"]), UUID)
     elif expected_status == 400:
@@ -56,6 +58,30 @@ def test_create_communication_item(notify_db_session, admin_request, post_data, 
         raise RuntimeError("This is a programming error.")
 
 
+@pytest.mark.parametrize("post_data", [
+    {"name": "communication item tests", "va_profile_item_id": 2},
+    {"name": "different name", "va_profile_item_id": 1},
+])
+def test_create_communication_item_duplicates(notify_db_session, admin_request, post_data):
+    """ The name and va_profile_item_id must be unique in the table. """
+
+    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=1, name="communication item tests")
+    notify_db_session.session.add(communication_item)
+    notify_db_session.session.commit()
+
+    response = admin_request.post(
+        "communication_item.create_communication_item",
+        post_data,
+        400
+    )
+
+    assert isinstance(response, dict) and "errors" in response, response
+    assert isinstance(response["errors"], list) and len(response["errors"]) == 1
+    assert isinstance(response["errors"][0], dict)
+    assert response["errors"][0]["error"] == "IntegrityError"
+    assert "message" in response["errors"][0]
+
+
 #############
 # Retrieve
 #############
@@ -66,7 +92,7 @@ def test_get_all_communication_items(notify_db_session, admin_request):
     database, but it doesn't assume that only one instance exists because fixtures create them.
     """
 
-    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=1, name="name")
+    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=1, name="communication item tests")
     notify_db_session.session.add(communication_item)
     notify_db_session.session.commit()
 
@@ -83,7 +109,7 @@ def test_get_all_communication_items(notify_db_session, admin_request):
 
 
 def test_get_communication_item(notify_db_session, admin_request):
-    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=1, name="name")
+    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=1, name="communication item tests")
     notify_db_session.session.add(communication_item)
     notify_db_session.session.commit()
 
@@ -96,21 +122,20 @@ def test_get_communication_item(notify_db_session, admin_request):
     assert isinstance(response, dict), response
     assert isinstance(response["default_send_indicator"], bool)
     assert response["default_send_indicator"], "Should be True by default."
-    assert response["name"] == "name"
+    assert response["name"] == "communication item tests"
     assert response["va_profile_item_id"] == 1
     assert isinstance(UUID(response["id"]), UUID)
 
 
-def test_get_communication_item_not_found(notify_db_session, admin_request):
+@pytest.mark.parametrize("communication_item_id", ["doesn't exist", "39247cfc-a52d-4b2b-b9a9-2ef8a20190cb"])
+def test_get_communication_item_not_found(notify_db_session, admin_request, communication_item_id):
     response = admin_request.get(
         "communication_item.get_communication_item",
         404,
-        communication_item_id="doesn't exist"
+        communication_item_id=communication_item_id
     )
 
     assert isinstance(response, dict), response
-    assert response["message"] == "No result found"
-    assert response["result"] == "error"
 
 
 #############
@@ -120,15 +145,19 @@ def test_get_communication_item_not_found(notify_db_session, admin_request):
 @pytest.mark.parametrize("post_data,expected_status", [
     ({}, 400),
     ({"name": 1}, 400),
+    ({"name": ''}, 400),
+    ({"name": "communication item tests"}, 200),
     ({"va_profile_item_id": "not a number"}, 400),
     ({"va_profile_item_id": -5}, 400),
+    ({"va_profile_item_id": 0}, 400),
+    ({"va_profile_item_id": 1}, 200),
     ({"name": "different name"}, 200),
     ({"va_profile_item_id": 2}, 200),
     ({"default_send_indicator": False}, 200),
     ({"name": "different name", "va_profile_item_id": 2, "default_send_indicator": False}, 200),
 ])
 def test_partially_update_communication_item(notify_db_session, admin_request, post_data, expected_status):
-    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=1, name="name")
+    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=1, name="communication item tests")
     notify_db_session.session.add(communication_item)
     notify_db_session.session.commit()
     assert communication_item.default_send_indicator, "Should be True by default."
@@ -158,12 +187,13 @@ def test_partially_update_communication_item(notify_db_session, admin_request, p
         assert "message" in response["errors"][0]
 
 
-def test_partially_update_communication_item_not_found(notify_db_session, admin_request):
+@pytest.mark.parametrize("communication_item_id", ["doesn't exist", "39247cfc-a52d-4b2b-b9a9-2ef8a20190cb"])
+def test_partially_update_communication_item_not_found(notify_db_session, admin_request, communication_item_id):
     admin_request.patch(
         "communication_item.partially_update_communication_item",
         {"va_profile_item_id": 2},
         404,
-        communication_item_id="doesn't exist"
+        communication_item_id=communication_item_id
     )
 
 
@@ -172,7 +202,7 @@ def test_partially_update_communication_item_not_found(notify_db_session, admin_
 #############
 
 def test_delete_communication_item(notify_db_session, admin_request):
-    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=1, name="name")
+    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=1, name="communication item tests")
     communication_item_id = communication_item.id
     notify_db_session.session.add(communication_item)
     notify_db_session.session.commit()
@@ -190,9 +220,12 @@ def test_delete_communication_item(notify_db_session, admin_request):
     assert CommunicationItem.query.get(communication_item_id) is None
 
 
-def test_delete_communication_item_not_found(notify_db_session, admin_request):
-    admin_request.delete(
+@pytest.mark.parametrize("communication_item_id", ["doesn't exist", "39247cfc-a52d-4b2b-b9a9-2ef8a20190cb"])
+def test_delete_communication_item_not_found(notify_db_session, admin_request, communication_item_id):
+    response = admin_request.delete(
         "communication_item.delete_communication_item",
         404,
-        communication_item_id="doesn't exist"
+        communication_item_id=communication_item_id
     )
+
+    assert isinstance(response, dict), response

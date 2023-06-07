@@ -3,10 +3,13 @@ communication_item_base_schema = {
     "type": "object",
     "properties": {
         "default_send_indicator": {"type": "boolean"},
-        "name": {"type": "string"},
+        "name": {
+            "type": "string",
+            "minLength": 1
+        },
         "va_profile_item_id": {
             "type": "integer",
-            "minimum": 0
+            "minimum": 1
         }
     },
     "additionalProperties": False
