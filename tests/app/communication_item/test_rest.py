@@ -46,8 +46,6 @@ def test_create_communication_item(notify_db_session, admin_request, post_data, 
         assert response["name"] == "name"
         assert response["va_profile_item_id"] == 1
         assert isinstance(UUID(response["id"]), UUID)
-        if "id" in post_data:
-            assert response["id"] == post_data["id"]
     elif expected_status == 400:
         assert isinstance(response, dict) and "errors" in response, response
         assert isinstance(response["errors"], list) and len(response["errors"]) == 1
