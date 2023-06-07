@@ -80,7 +80,18 @@ def get_all_communication_items():
 @communication_item_blueprint.route("/<communication_item_id>", methods=["GET"])
 def get_communication_item(communication_item_id):
     communication_item = CommunicationItem.query.get(communication_item_id)
-    return communication_item_schema.dump(communication_item).data, 404 if (communication_item is None) else 200
+
+    if communication_item is None:
+        return {
+            "errors": [
+                {
+                    "error": "NotFound",
+                    "message": f"Communication item {communication_item_id} does not exist.",
+                }
+            ]
+        }, 404
+
+    return communication_item_schema.dump(communication_item).data
 
 
 #############
@@ -104,8 +115,17 @@ def partially_update_communication_item(communication_item_id):
         }, 400
 
     communication_item = CommunicationItem.query.get(communication_item_id)
-    assert communication_item is not None, \
-        "The framework should have returned 404 instead of calling this route handler."
+
+    if communication_item is None:
+        return {
+            "errors": [
+                {
+                    "error": "NotFound",
+                    "message": f"Communication item {communication_item_id} does not exist.",
+                }
+            ]
+        }, 404
+
     db.session.add(communication_item)
 
     for key, value in request.get_json().items():
@@ -150,9 +170,11 @@ def delete_communication_item(communication_item_id):
     if rows_deleted:
         return {}, 202
 
-    current_app.logger.warning(
-        f"Failed to delete CommunicationItem {communication_item_id} and returned status code 200."
-        "  The framework should have returned 404 instead of calling the route handler."
-    )
-
-    return {}, 200
+    return {
+        "errors": [
+            {
+                "error": "NotFound",
+                "message": f"Communication item {communication_item_id} was not deleted.",
+            }
+        ]
+    }, 404
