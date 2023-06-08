@@ -122,13 +122,13 @@ def update_notification_status_by_id(
 ) -> Notification:
 
     # the order of notification status that must be maintained
-    order_matrix = [NOTIFICATION_SENDING, NOTIFICATION_SENT, NOTIFICATION_DELIVERED]
-    notification = Notification.query.with_for_update().filter(Notification.id == notification_id)
+    order_matrix = (NOTIFICATION_SENDING, NOTIFICATION_SENT, NOTIFICATION_DELIVERED)
+    notification_query = Notification.query.with_for_update().filter(Notification.id == notification_id)
     if current_status is not None:
-        notification.filter(Notification.status == current_status)
+        notification_query.filter(Notification.status == current_status)
 
-    notification = notification.first()
-    if not notification:
+    notification = notification_query.first()
+    if notification is None:
         current_app.logger.info(
             'notification not found for id %s (update to status %s)',
             notification_id,
@@ -150,8 +150,8 @@ def update_notification_status_by_id(
 
     # prevents sent -> sending
     if (notification.status == NOTIFICATION_SENT) and (status == NOTIFICATION_SENDING):
-        current_app.logger.info(
-            'warning: attempt was made to transition notification id %s from %s to %s',
+        current_app.logger.warning(
+            'attempt was made to transition notification id %s from %s to %s',
             notification_id,
             notification.status,
             status
@@ -167,7 +167,7 @@ def update_notification_status_by_id(
         # do not update the database if the new status happens before the current status in the database
         if new_status_index < current_status_index:
             current_app.logger.warning(
-                'warning: attempt was made to transition notification id %s from %s to %s',
+                'attempt was made to transition notification id %s from %s to %s',
                 notification_id,
                 notification.status,
                 status
