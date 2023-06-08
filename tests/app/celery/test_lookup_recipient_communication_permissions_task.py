@@ -136,7 +136,7 @@ def test_recipient_has_given_permission_should_return_true_if_user_permissions_n
         client, mocker, mock_communication_item
 ):
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
-    mocked_va_profile_client.get_is_communication_allowed = mocker.Mock(return_value=CommunicationItemNotFoundException)
+    mocked_va_profile_client.get_is_communication_allowed = mocker.Mock(side_effect=CommunicationItemNotFoundException)
     mocker.patch(
         'app.celery.lookup_recipient_communication_permissions_task.va_profile_client',
         new=mocked_va_profile_client
@@ -149,33 +149,40 @@ def test_recipient_has_given_permission_should_return_true_if_user_permissions_n
 
 
 def test_recipient_has_given_permission_should_return_true_if_default_send_indicator_true(
-        client, mocker, mock_communication_item
+        client, mocker
 ):
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
-    mocked_va_profile_client.get_is_communication_allowed = mocker.Mock(return_value=CommunicationItemNotFoundException)
+    mocked_va_profile_client.get_is_communication_allowed = mocker.Mock(side_effect=CommunicationItemNotFoundException)
     mocker.patch(
         'app.celery.lookup_recipient_communication_permissions_task.va_profile_client',
         new=mocked_va_profile_client
     )
 
+    mock_communication_item = mocker.Mock(CommunicationItem)
+    mock_communication_item.id = 'some-communication-id'
+    mock_communication_item.name = 'test comm item'
+    mock_communication_item.va_profile_item_id = 55
     mock_communication_item.default_send_indicator = True
 
     mocker.patch(
-        'app.dao.communication_item_dao.get_communication_item',
+        'app.celery.lookup_recipient_communication_permissions_task.get_communication_item',
         return_value=mock_communication_item
     )
 
     mock_task = mocker.Mock()
-    assert recipient_has_given_permission(
+    has_given_permission_return = recipient_has_given_permission(
         mock_task, 'VAPROFILEID', '1', 'some-notification-id', SMS_TYPE, 'some-communication-id'
     )
+
+    assert type(has_given_permission_return) is bool
+    assert has_given_permission_return
 
 
 def test_recipient_has_given_permission_should_return_false_if_default_send_indicator_false(
         client, mocker
 ):
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
-    mocked_va_profile_client.get_is_communication_allowed = mocker.Mock(return_value=CommunicationItemNotFoundException)
+    mocked_va_profile_client.get_is_communication_allowed = mocker.Mock(side_effect=CommunicationItemNotFoundException)
     mocker.patch(
         'app.celery.lookup_recipient_communication_permissions_task.va_profile_client',
         new=mocked_va_profile_client
@@ -188,15 +195,17 @@ def test_recipient_has_given_permission_should_return_false_if_default_send_indi
     mock_communication_item.default_send_indicator = False
 
     mocker.patch(
-        # 'app.dao.communication_item_dao.get_communication_item',  # should this be the path?
         'app.celery.lookup_recipient_communication_permissions_task.get_communication_item',
         return_value=mock_communication_item
     )
 
     mock_task = mocker.Mock()
-    assert not recipient_has_given_permission(
+    has_given_permission_return = recipient_has_given_permission(
         mock_task, 'VAPROFILEID', '1', 'some-notification-id', SMS_TYPE, 'some-communication-id'
     )
+
+    assert type(has_given_permission_return) is bool
+    assert not has_given_permission_return
 
 
 @pytest.mark.parametrize(('notification_type'), ['sms', 'email'])

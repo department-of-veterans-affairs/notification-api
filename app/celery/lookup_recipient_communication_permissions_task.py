@@ -98,5 +98,5 @@ def recipient_has_given_permission(
     # sqlalchemy.orm.exc.MultipleResultsFound
     except Exception as e:
         current_app.logger.exception('There was an unexpected exception when attempting to check '
-                                     'recipient_has_given_permission see exception:\n%s', e)
+                                     'recipient_has_given_permission see exception: %s', e)
         raise e
