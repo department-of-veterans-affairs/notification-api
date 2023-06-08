@@ -14,7 +14,7 @@ from app.va.identifier import IdentifierType
 @pytest.fixture
 def mock_communication_item(mocker):
     mock_communication_item = mocker.Mock()
-    mock_communication_item.va_profile_item_id = 'some-va-profile-item-id'
+    mock_communication_item.va_profile_item_id = 5
     mock_communication_item.default_send_indicator = True
     mocker.patch('app.celery.lookup_recipient_communication_permissions_task.get_communication_item',
                  return_value=mock_communication_item)
@@ -60,7 +60,7 @@ def test_lookup_recipient_communication_permissions_should_not_update_notificati
     notification = mock_notification_with_vaprofile_id(mocker)
 
     mocker.patch('app.celery.lookup_recipient_communication_permissions_task.recipient_has_given_permission',
-                 return_value=True)
+                 return_value=None)
     mocker.patch(
         'app.celery.lookup_recipient_communication_permissions_task.get_notification_by_id',
         return_value=notification
@@ -81,7 +81,7 @@ def test_lookup_recipient_communication_permissions_updates_notification_status_
     notification = mock_notification_with_vaprofile_id(mocker)
 
     mocker.patch('app.celery.lookup_recipient_communication_permissions_task.recipient_has_given_permission',
-                 return_value=False)
+                 return_value="Contact preferences set to false")
     mocker.patch(
         'app.celery.lookup_recipient_communication_permissions_task.get_notification_by_id',
         return_value=notification
@@ -111,9 +111,10 @@ def test_recipient_has_given_permission_should_return_false_if_user_denies_permi
     )
 
     mock_task = mocker.Mock()
-    assert not recipient_has_given_permission(
+    permission_message = recipient_has_given_permission(
         mock_task, 'VAPROFILEID', '1', 'some-notification-id', SMS_TYPE, 'some-communication-id'
     )
+    assert permission_message == "Contact preferences set to false"
 
 
 def test_recipient_has_given_permission_should_return_true_if_user_grants_permissions(
@@ -127,13 +128,14 @@ def test_recipient_has_given_permission_should_return_true_if_user_grants_permis
     )
 
     mock_task = mocker.Mock()
-    assert recipient_has_given_permission(
+    permission_message = recipient_has_given_permission(
         mock_task, 'VAPROFILEID', '1', 'some-notification-id', SMS_TYPE, 'some-communication-id'
     )
+    assert permission_message is None
 
 
 def test_recipient_has_given_permission_should_return_true_if_user_permissions_not_set_and_no_com_item(
-        client, mocker, mock_communication_item
+        client, mocker, fake_uuid
 ):
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
     mocked_va_profile_client.get_is_communication_allowed = mocker.Mock(side_effect=CommunicationItemNotFoundException)
@@ -142,14 +144,28 @@ def test_recipient_has_given_permission_should_return_true_if_user_permissions_n
         new=mocked_va_profile_client
     )
 
-    mock_task = mocker.Mock()
-    assert recipient_has_given_permission(
-        mock_task, 'VAPROFILEID', '1', 'some-notification-id', SMS_TYPE, 'some-communication-id'
+    mocker.patch(
+        'app.celery.lookup_recipient_communication_permissions_task.get_communication_item',
+        return_value=None
     )
 
+    mock_task = mocker.Mock()
+    permission_message = recipient_has_given_permission(
+        mock_task, 'VAPROFILEID', '1', 'some-notification-id', SMS_TYPE, fake_uuid
+    )
+    assert permission_message is None
 
-def test_recipient_has_given_permission_should_return_true_if_default_send_indicator_true(
-        client, mocker
+
+@pytest.mark.parametrize(
+    ('send_indicator'),
+    [True, False],
+    ids=[
+        "default_send_indicator is True",
+        "default_send_indicator is False"
+    ]
+)
+def test_recipient_has_given_permission_with_default_send_indicator_and_no_preference_set(
+        client, mocker, send_indicator: bool
 ):
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
     mocked_va_profile_client.get_is_communication_allowed = mocker.Mock(side_effect=CommunicationItemNotFoundException)
@@ -159,10 +175,7 @@ def test_recipient_has_given_permission_should_return_true_if_default_send_indic
     )
 
     mock_communication_item = mocker.Mock(CommunicationItem)
-    mock_communication_item.id = 'some-communication-id'
-    mock_communication_item.name = 'test comm item'
-    mock_communication_item.va_profile_item_id = 55
-    mock_communication_item.default_send_indicator = True
+    mock_communication_item.default_send_indicator = send_indicator
 
     mocker.patch(
         'app.celery.lookup_recipient_communication_permissions_task.get_communication_item',
@@ -170,42 +183,14 @@ def test_recipient_has_given_permission_should_return_true_if_default_send_indic
     )
 
     mock_task = mocker.Mock()
-    has_given_permission_return = recipient_has_given_permission(
+    permission_message = recipient_has_given_permission(
         mock_task, 'VAPROFILEID', '1', 'some-notification-id', SMS_TYPE, 'some-communication-id'
     )
 
-    assert type(has_given_permission_return) is bool
-    assert has_given_permission_return
-
-
-def test_recipient_has_given_permission_should_return_false_if_default_send_indicator_false(
-        client, mocker
-):
-    mocked_va_profile_client = mocker.Mock(VAProfileClient)
-    mocked_va_profile_client.get_is_communication_allowed = mocker.Mock(side_effect=CommunicationItemNotFoundException)
-    mocker.patch(
-        'app.celery.lookup_recipient_communication_permissions_task.va_profile_client',
-        new=mocked_va_profile_client
-    )
-
-    mock_communication_item = mocker.Mock(CommunicationItem)
-    mock_communication_item.id = 'some-communication-id'
-    mock_communication_item.name = 'test comm item'
-    mock_communication_item.va_profile_item_id = 55
-    mock_communication_item.default_send_indicator = False
-
-    mocker.patch(
-        'app.celery.lookup_recipient_communication_permissions_task.get_communication_item',
-        return_value=mock_communication_item
-    )
-
-    mock_task = mocker.Mock()
-    has_given_permission_return = recipient_has_given_permission(
-        mock_task, 'VAPROFILEID', '1', 'some-notification-id', SMS_TYPE, 'some-communication-id'
-    )
-
-    assert type(has_given_permission_return) is bool
-    assert not has_given_permission_return
+    if send_indicator:
+        assert permission_message is None
+    else:
+        assert permission_message == "No recipient opt-in found for explicit preference"
 
 
 @pytest.mark.parametrize(('notification_type'), ['sms', 'email'])

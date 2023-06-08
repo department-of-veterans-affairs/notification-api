@@ -15,4 +15,4 @@ def get_communication_items() -> List[CommunicationItem]:
 
 
 def get_communication_item(communication_item_id) -> CommunicationItem:
-    return CommunicationItem.query.filter_by(id=communication_item_id).one_or_none()
+    return CommunicationItem.query.filter_by(id=communication_item_id).one()

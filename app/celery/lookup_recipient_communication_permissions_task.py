@@ -1,3 +1,4 @@
+from sqlalchemy.orm.exc import NoResultFound
 from app.va.va_profile.exceptions import VAProfileIdNotFoundException
 from flask import current_app
 from notifications_utils.statsd_decorators import statsd
@@ -37,16 +38,18 @@ def lookup_recipient_communication_permissions(
     communication_item_id = notification.template.communication_item_id
     notification_type = notification.notification_type
 
-    if not recipient_has_given_permission(
-            self,
-            IdentifierType.VA_PROFILE_ID.value,
-            va_profile_id,
-            notification_id,
-            notification_type,
-            communication_item_id
-    ):
+    status_reason = recipient_has_given_permission(
+        self,
+        IdentifierType.VA_PROFILE_ID.value,
+        va_profile_id,
+        notification_id,
+        notification_type,
+        communication_item_id
+    )
+
+    if status_reason is not None:
         update_notification_status_by_id(notification_id, NOTIFICATION_PREFERENCES_DECLINED,
-                                         status_reason="Contact preferences set to false")
+                                         status_reason=status_reason)
         current_app.logger.info(f"Recipient for notification {notification_id}"
                                 f"has declined permission to receive notifications")
         self.request.chain = None
@@ -58,22 +61,34 @@ def recipient_has_given_permission(
         notification_id: str,
         notification_type: str,
         communication_item_id: str
-) -> bool:
+) -> str:
     default_send_flag = True
+    communication_item = None
     identifier = RecipientIdentifier(id_type=id_type, id_value=id_value)
 
     try:
         communication_item = get_communication_item(communication_item_id)
+    except NoResultFound:
+        pass
 
+    try:
         if communication_item is not None:
             default_send_flag = communication_item.default_send_indicator
 
         is_allowed = va_profile_client.get_is_communication_allowed(
-            identifier, communication_item.va_profile_item_id, notification_id, notification_type
+            identifier,
+            communication_item.va_profile_item_id if communication_item is not None else None,
+            notification_id,
+            notification_type
         )
+
         current_app.logger.info('Value of permission for item %s for recipient %s for notification %s: %s',
-                                communication_item.va_profile_item_id, id_value, notification_id, is_allowed)
-        return is_allowed
+                                communication_item.va_profile_item_id if communication_item else None,
+                                id_value, notification_id, is_allowed)
+        if is_allowed:
+            return None
+        else:
+            return "Contact preferences set to false"
     except VAProfileRetryableException as e:
         current_app.logger.exception(e)
         try:
@@ -92,8 +107,11 @@ def recipient_has_given_permission(
     except CommunicationItemNotFoundException:
         current_app.logger.info('Communication item for recipient %s not found on notification %s',
                                 id_value, notification_id)
-        return default_send_flag
-    # TODO: catch exception from get_communication_item() when finding multiple entries
+        if default_send_flag:
+            return None
+        else:
+            return "No recipient opt-in found for explicit preference"
+    # TODO: catch exception from get_communication_item() if multiple entries returned
     # https://docs.sqlalchemy.org/en/14/orm/query.html#sqlalchemy.orm.Query.one_or_none
     # sqlalchemy.orm.exc.MultipleResultsFound
     except Exception as e:
