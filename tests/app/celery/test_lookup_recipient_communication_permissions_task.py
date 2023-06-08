@@ -6,8 +6,8 @@ from app.celery.lookup_recipient_communication_permissions_task import (
     lookup_recipient_communication_permissions,
     recipient_has_given_permission
 )
-from app.models import NOTIFICATION_PREFERENCES_DECLINED, SMS_TYPE, RecipientIdentifier, Notification
-from app.va.va_profile.va_profile_client import VAProfileClient
+from app.models import NOTIFICATION_PREFERENCES_DECLINED, SMS_TYPE, CommunicationItem, RecipientIdentifier, Notification
+from app.va.va_profile.va_profile_client import VAProfileClient, CommunicationItemNotFoundException
 from app.va.identifier import IdentifierType
 
 
@@ -15,6 +15,7 @@ from app.va.identifier import IdentifierType
 def mock_communication_item(mocker):
     mock_communication_item = mocker.Mock()
     mock_communication_item.va_profile_item_id = 'some-va-profile-item-id'
+    mock_communication_item.default_send_indicator = True
     mocker.patch('app.celery.lookup_recipient_communication_permissions_task.get_communication_item',
                  return_value=mock_communication_item)
 
@@ -127,6 +128,73 @@ def test_recipient_has_given_permission_should_return_true_if_user_grants_permis
 
     mock_task = mocker.Mock()
     assert recipient_has_given_permission(
+        mock_task, 'VAPROFILEID', '1', 'some-notification-id', SMS_TYPE, 'some-communication-id'
+    )
+
+
+def test_recipient_has_given_permission_should_return_true_if_user_permissions_not_set_and_no_com_item(
+        client, mocker, mock_communication_item
+):
+    mocked_va_profile_client = mocker.Mock(VAProfileClient)
+    mocked_va_profile_client.get_is_communication_allowed = mocker.Mock(return_value=CommunicationItemNotFoundException)
+    mocker.patch(
+        'app.celery.lookup_recipient_communication_permissions_task.va_profile_client',
+        new=mocked_va_profile_client
+    )
+
+    mock_task = mocker.Mock()
+    assert recipient_has_given_permission(
+        mock_task, 'VAPROFILEID', '1', 'some-notification-id', SMS_TYPE, 'some-communication-id'
+    )
+
+
+def test_recipient_has_given_permission_should_return_true_if_default_send_indicator_true(
+        client, mocker, mock_communication_item
+):
+    mocked_va_profile_client = mocker.Mock(VAProfileClient)
+    mocked_va_profile_client.get_is_communication_allowed = mocker.Mock(return_value=CommunicationItemNotFoundException)
+    mocker.patch(
+        'app.celery.lookup_recipient_communication_permissions_task.va_profile_client',
+        new=mocked_va_profile_client
+    )
+
+    mock_communication_item.default_send_indicator = True
+
+    mocker.patch(
+        'app.dao.communication_item_dao.get_communication_item',
+        return_value=mock_communication_item
+    )
+
+    mock_task = mocker.Mock()
+    assert recipient_has_given_permission(
+        mock_task, 'VAPROFILEID', '1', 'some-notification-id', SMS_TYPE, 'some-communication-id'
+    )
+
+
+def test_recipient_has_given_permission_should_return_false_if_default_send_indicator_false(
+        client, mocker
+):
+    mocked_va_profile_client = mocker.Mock(VAProfileClient)
+    mocked_va_profile_client.get_is_communication_allowed = mocker.Mock(return_value=CommunicationItemNotFoundException)
+    mocker.patch(
+        'app.celery.lookup_recipient_communication_permissions_task.va_profile_client',
+        new=mocked_va_profile_client
+    )
+
+    mock_communication_item = mocker.Mock(CommunicationItem)
+    mock_communication_item.id = 'some-communication-id'
+    mock_communication_item.name = 'test comm item'
+    mock_communication_item.va_profile_item_id = 55
+    mock_communication_item.default_send_indicator = False
+
+    mocker.patch(
+        # 'app.dao.communication_item_dao.get_communication_item',  # should this be the path?
+        'app.celery.lookup_recipient_communication_permissions_task.get_communication_item',
+        return_value=mock_communication_item
+    )
+
+    mock_task = mocker.Mock()
+    assert not recipient_has_given_permission(
         mock_task, 'VAPROFILEID', '1', 'some-notification-id', SMS_TYPE, 'some-communication-id'
     )
 

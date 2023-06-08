@@ -59,16 +59,20 @@ def recipient_has_given_permission(
         notification_type: str,
         communication_item_id: str
 ) -> bool:
+    default_send_flag = True
     identifier = RecipientIdentifier(id_type=id_type, id_value=id_value)
 
-    communication_item = get_communication_item(communication_item_id)
-
     try:
+        communication_item = get_communication_item(communication_item_id)
+
+        if communication_item is not None:
+            default_send_flag = communication_item.default_send_indicator
+
         is_allowed = va_profile_client.get_is_communication_allowed(
             identifier, communication_item.va_profile_item_id, notification_id, notification_type
         )
-        current_app.logger.info(f'Value of permission for item {communication_item.va_profile_item_id} for recipient '
-                                f'{id_value} for notification {notification_id}: {is_allowed}')
+        current_app.logger.info('Value of permission for item %s for recipient %s for notification %s: %s',
+                                communication_item.va_profile_item_id, id_value, notification_id, is_allowed)
         return is_allowed
     except VAProfileRetryableException as e:
         current_app.logger.exception(e)
@@ -86,6 +90,13 @@ def recipient_has_given_permission(
             )
             raise NotificationTechnicalFailureException(message) from e
     except CommunicationItemNotFoundException:
-        current_app.logger.info(f'Communication item for recipient {id_value} not found on notification '
-                                f'{notification_id}')
-        return True
+        current_app.logger.info('Communication item for recipient %s not found on notification %s',
+                                id_value, notification_id)
+        return default_send_flag
+    # TODO: catch exception from get_communication_item() when finding multiple entries
+    # https://docs.sqlalchemy.org/en/14/orm/query.html#sqlalchemy.orm.Query.one_or_none
+    # sqlalchemy.orm.exc.MultipleResultsFound
+    except Exception as e:
+        current_app.logger.exception('There was an unexpected exception when attempting to check '
+                                     'recipient_has_given_permission see exception:\n%s', e)
+        raise e
