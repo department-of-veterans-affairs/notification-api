@@ -174,7 +174,7 @@ def delete_communication_item(communication_item_id):
         "errors": [
             {
                 "error": "NotFound",
-                "message": f"Communication item {communication_item_id} was not deleted.",
+                "message": f"Communication item {communication_item_id} does not exist.",
             }
         ]
     }, 404
