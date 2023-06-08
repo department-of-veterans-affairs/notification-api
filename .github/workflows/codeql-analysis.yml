@@ -23,7 +23,6 @@ jobs:
       matrix:
         language:
           - python
-          - ruby
     steps:
       - name: Run Code Scanning
         uses: department-of-veterans-affairs/codeql-tools/codeql-analysis@main
