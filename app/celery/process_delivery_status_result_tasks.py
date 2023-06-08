@@ -80,25 +80,12 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
         return False
 
     try:
+        # calculate pricing
         current_app.logger.info(
             "Notification ID (%s) - Calculate Pricing: %s and notification_status: %s with number_of_message_parts: %s",
             notification.id, provider_name, notification_status, number_of_message_parts,
         )
-
-        if price_in_millicents_usd > 0.0:
-            notification.status = notification_status
-            notification.segments_count = number_of_message_parts
-            notification.cost_in_millicents = price_in_millicents_usd
-            dao_update_notification(notification)
-        else:
-            # notification_id -  is the UID in the database for the notification
-            # status - is the notification platform status generated earlier
-            # current_status = current notification platform status before the update
-            update_notification_status_by_id(
-                notification_id=notification.id,
-                status=notification_status,
-                current_status=notification.status
-            )
+        _calculate_pricing(price_in_millicents_usd, notification, notification_status, number_of_message_parts)
 
         # statsd - metric tracking of # of messages sent
         current_app.logger.info(
@@ -210,6 +197,27 @@ def _get_notification_parameters(notification_platform_status: dict) -> Tuple[st
         price_in_millicents_usd
     )
     return payload, reference, notification_status, number_of_message_parts, price_in_millicents_usd
+
+
+def _calculate_pricing(price_in_millicents_usd: float, notification: Notification, notification_status: str,
+                       number_of_message_parts: int):
+
+    """ Calculate pricing """
+    current_app.logger.info("Calculate Pricing")
+    if price_in_millicents_usd > 0.0:
+        notification.status = notification_status
+        notification.segments_count = number_of_message_parts
+        notification.cost_in_millicents = price_in_millicents_usd
+        dao_update_notification(notification)
+    else:
+        # notification_id -  is the UID in the database for the notification
+        # status - is the notification platform status generated earlier
+        # current_status - is the notification.status
+        update_notification_status_by_id(
+            notification_id=notification.id,
+            status=notification_status,
+            current_status=notification.status
+        )
 
 
 def _get_notification_platform_status(self, provider: any, body: str, sqs_message: dict) -> dict:
