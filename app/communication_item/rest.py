@@ -86,7 +86,7 @@ def get_communication_item(communication_item_id):
             "errors": [
                 {
                     "error": "NotFound",
-                    "message": f"Communication item {communication_item_id} does not exist.",
+                    "message": "That communication item does not exist.",
                 }
             ]
         }, 404
@@ -121,7 +121,7 @@ def partially_update_communication_item(communication_item_id):
             "errors": [
                 {
                     "error": "NotFound",
-                    "message": f"Communication item {communication_item_id} does not exist.",
+                    "message": "That communication item does not exist.",
                 }
             ]
         }, 404
@@ -174,7 +174,7 @@ def delete_communication_item(communication_item_id):
         "errors": [
             {
                 "error": "NotFound",
-                "message": f"Communication item {communication_item_id} does not exist.",
+                "message": "That communication item does not exist.",
             }
         ]
     }, 404
