@@ -69,9 +69,10 @@ def recipient_has_given_permission(
     try:
         communication_item = get_communication_item(communication_item_id)
     except NoResultFound:
-        pass
+        current_app.logger.info('No communication item found for notification %s', notification_id)
 
     try:
+        # get default send flag when available
         if communication_item is not None:
             default_send_flag = communication_item.default_send_indicator
 
@@ -85,10 +86,12 @@ def recipient_has_given_permission(
         current_app.logger.info('Value of permission for item %s for recipient %s for notification %s: %s',
                                 communication_item.va_profile_item_id if communication_item else None,
                                 id_value, notification_id, is_allowed)
+
         if is_allowed:
             return None
-        else:
-            return "Contact preferences set to false"
+
+        # return status reason message if message should not be sent
+        return "Contact preferences set to false"
     except VAProfileRetryableException as e:
         current_app.logger.exception(e)
         try:
@@ -107,14 +110,9 @@ def recipient_has_given_permission(
     except CommunicationItemNotFoundException:
         current_app.logger.info('Communication item for recipient %s not found on notification %s',
                                 id_value, notification_id)
+
         if default_send_flag:
             return None
-        else:
-            return "No recipient opt-in found for explicit preference"
-    # TODO: catch exception from get_communication_item() if multiple entries returned
-    # https://docs.sqlalchemy.org/en/14/orm/query.html#sqlalchemy.orm.Query.one_or_none
-    # sqlalchemy.orm.exc.MultipleResultsFound
-    except Exception as e:
-        current_app.logger.exception('There was an unexpected exception when attempting to check '
-                                     'recipient_has_given_permission see exception: %s', e)
-        raise e
+
+        # return status reason message if message should not be sent
+        return "No recipient opt-in found for explicit preference"
