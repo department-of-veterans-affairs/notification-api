@@ -84,13 +84,6 @@ def recipient_has_given_permission(
         is_allowed = va_profile_client.get_is_communication_allowed(
             identifier, communication_item.va_profile_item_id, notification_id, notification_type
         )
-
-        current_app.logger.info('Value of permission for item %s for recipient %s for notification %s: %s',
-                                communication_item.va_profile_item_id if communication_item else None,
-                                id_value, notification_id, is_allowed)
-
-        # return status reason message if message should not be sent
-        return None if is_allowed else "Contact preferences set to false"
     except VAProfileRetryableException as e:
         current_app.logger.exception(e)
         try:
@@ -110,5 +103,8 @@ def recipient_has_given_permission(
         current_app.logger.info('Communication item for recipient %s not found on notification %s',
                                 id_value, notification_id)
 
-        # return status reason message if message should not be sent
-        return None if default_send_flag else "No recipient opt-in found for explicit preference"
+    current_app.logger.info('Value of permission for item %s for recipient %s for notification %s: %s',
+                            communication_item.va_profile_item_id, id_value, notification_id, is_allowed)
+
+    # return status reason message if message should not be sent
+    return None if default_send_flag else "No recipient opt-in found for explicit preference"
