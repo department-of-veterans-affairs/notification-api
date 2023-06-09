@@ -174,8 +174,12 @@ def test_recipient_has_given_permission_with_default_send_indicator_and_no_prefe
         new=mocked_va_profile_client
     )
 
-    test_communication_item = CommunicationItem
-    test_communication_item.default_send_indicator = send_indicator
+    test_communication_item = CommunicationItem(
+        id=uuid.uuid4(),
+        va_profile_item_id=1,
+        name="name",
+        default_send_indicator=send_indicator
+    )
 
     mocker.patch(
         'app.celery.lookup_recipient_communication_permissions_task.get_communication_item',
