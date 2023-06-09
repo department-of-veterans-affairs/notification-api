@@ -100,7 +100,7 @@ def test_lookup_recipient_communication_permissions_updates_notification_status_
     )
 
 
-def test_recipient_has_given_permission_should_return_false_if_user_denies_permissions(
+def test_recipient_has_given_permission_should_return_status_message_if_user_denies_permissions(
         client, mocker, mock_communication_item
 ):
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
@@ -117,7 +117,7 @@ def test_recipient_has_given_permission_should_return_false_if_user_denies_permi
     assert permission_message == "Contact preferences set to false"
 
 
-def test_recipient_has_given_permission_should_return_true_if_user_grants_permissions(
+def test_recipient_has_given_permission_should_return_none_if_user_grants_permissions(
         client, mocker, mock_communication_item
 ):
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
@@ -134,7 +134,7 @@ def test_recipient_has_given_permission_should_return_true_if_user_grants_permis
     assert permission_message is None
 
 
-def test_recipient_has_given_permission_should_return_true_if_user_permissions_not_set_and_no_com_item(
+def test_recipient_has_given_permission_should_return_none_if_user_permissions_not_set_and_no_com_item(
         client, mocker, fake_uuid
 ):
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
@@ -174,12 +174,12 @@ def test_recipient_has_given_permission_with_default_send_indicator_and_no_prefe
         new=mocked_va_profile_client
     )
 
-    mock_communication_item = mocker.Mock(CommunicationItem)
-    mock_communication_item.default_send_indicator = send_indicator
+    test_communication_item = CommunicationItem
+    test_communication_item.default_send_indicator = send_indicator
 
     mocker.patch(
         'app.celery.lookup_recipient_communication_permissions_task.get_communication_item',
-        return_value=mock_communication_item
+        return_value=test_communication_item
     )
 
     mock_task = mocker.Mock()

@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlalchemy.orm.exc import NoResultFound
 from app.va.va_profile.exceptions import VAProfileIdNotFoundException
 from flask import current_app
@@ -61,7 +62,7 @@ def recipient_has_given_permission(
         notification_id: str,
         notification_type: str,
         communication_item_id: str
-) -> str:
+) -> Optional[str]:
     default_send_flag = True
     communication_item = None
     identifier = RecipientIdentifier(id_type=id_type, id_value=id_value)
@@ -71,27 +72,21 @@ def recipient_has_given_permission(
     except NoResultFound:
         current_app.logger.info('No communication item found for notification %s', notification_id)
 
-    try:
-        # get default send flag when available
-        if communication_item is not None:
-            default_send_flag = communication_item.default_send_indicator
+    # get default send flag when available
+    if communication_item is not None:
+        default_send_flag = communication_item.default_send_indicator
+    else:
+        # Calling va_profile without a communication item won't return anything.
+        # Perform default behavior of sending the notification.
+        return None
 
+    try:
         is_allowed = va_profile_client.get_is_communication_allowed(
             identifier,
             communication_item.va_profile_item_id if communication_item is not None else None,
             notification_id,
             notification_type
         )
-
-        current_app.logger.info('Value of permission for item %s for recipient %s for notification %s: %s',
-                                communication_item.va_profile_item_id if communication_item else None,
-                                id_value, notification_id, is_allowed)
-
-        if is_allowed:
-            return None
-
-        # return status reason message if message should not be sent
-        return "Contact preferences set to false"
     except VAProfileRetryableException as e:
         current_app.logger.exception(e)
         try:
@@ -116,3 +111,13 @@ def recipient_has_given_permission(
 
         # return status reason message if message should not be sent
         return "No recipient opt-in found for explicit preference"
+    else:
+        current_app.logger.info('Value of permission for item %s for recipient %s for notification %s: %s',
+                                communication_item.va_profile_item_id if communication_item else None,
+                                id_value, notification_id, is_allowed)
+
+        if is_allowed:
+            return None
+
+        # return status reason message if message should not be sent
+        return "Contact preferences set to false"
