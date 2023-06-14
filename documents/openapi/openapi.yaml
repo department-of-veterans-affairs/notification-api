@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: VA Notify API Documentation
-  version: 1.0.1
+  version: 1.0.2
   description: |
     <p>This documents the API schemas for consumption by internal VA developers.</p>
     <h1>Authorization header</h1>
@@ -887,21 +887,6 @@ paths:
   /communication-item/{communication_item_id}:
     parameters:
       - $ref: "#/components/parameters/CommunicationItemId"
-    delete:
-      summary: Delete a communication item by ID
-      tags:
-        - communication-item
-      responses:
-        "202":
-          description: Accepted
-          content:
-            application/json:
-              schema:
-                type: object
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
     get:
       summary: Retrieve a communication item by ID
       tags:
@@ -936,6 +921,21 @@ paths:
                 $ref: "#/components/schemas/CommunicationItem"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      summary: Delete a communication item by ID
+      tags:
+        - communication-item
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
