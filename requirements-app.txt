@@ -2,8 +2,8 @@
 alembic_utils >= 0.8.1
 
 Authlib >= 1.2.0
-boto3 >= 1.26.115
-botocore >= 1.29.115
+boto3 >= 1.26.155
+botocore >= 1.29.155
 cachelib >= 0.10.2
 
 # 5 May 2022: Ignoring security vulnerabilities 42498 and 43738 in Makefile.
