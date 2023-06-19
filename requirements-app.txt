@@ -53,7 +53,7 @@ kombu < 5.0
 marshmallow ~= 2.20.5
 marshmallow-sqlalchemy ~= 0.22.3
 nanoid >= 2.0.0
-notifications-python-client >= 8.0.0
+notifications-python-client >= 8.0.1
 psycopg2-binary >= 2.9.6
 pwnedpasswords >= 2.0.0
 PyJWT >= 2.6.0
