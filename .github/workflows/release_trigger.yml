@@ -12,13 +12,12 @@ jobs:
     steps:
       - name: Setup Environment
         id: setup
-        uses: actions/github-script@v6
+        uses: actions/github-script@v5
         with:
           script: |
-            if ('${{ github.event.action }}' === 'prereleased') {
+            if (context.payload.release.prerelease) {
               core.setOutput('environment', 'staging')
-            }
-            if ('${{ github.event.action }}' === 'released') {
+            } else {
               core.setOutput('environment', 'prod')
             }
 
