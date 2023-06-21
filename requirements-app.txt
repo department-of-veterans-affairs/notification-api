@@ -27,6 +27,7 @@ Flask-Bcrypt >= 1.0.1
 Flask-Cors >= 3.0.10
 
 # 2023 June 21: Created issue ticket for upgrading Flask-JWT-Extended
+# Cannot upgrade because of breaking changes causing "Attribute Error: 'Cookie' has no attribute 'name'"
 # https://github.com/department-of-veterans-affairs/notification-api/issues/1330
 Flask-JWT-Extended ~= 4.4.4
 
