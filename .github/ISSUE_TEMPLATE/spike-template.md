@@ -14,15 +14,14 @@ We do not need what to write showing up in tickets though, so please do not unco
 ## User Story - Business Goal
 
 - [ ] Ticket is understood, and QA has been contacted (if the ticket has a QA label).
-- [ ] Appropriate labels added to the ticket (i.e. "enhancement", "dependencies", etc.)
 
 <!--_**Required.** Please note you can have more than one story, if applicable. If this is a technical investigation to achieve a larger initiative, the user story should represent that piece of the initiative._-->
 
 ### User Story(ies)
 
-**As a**        <!---   describe the affected user  ---><br>
-**I want**      <!---   describe the need           ---><br>
-**So that**     <!---   describe the outcome]       ---> 
+**As a**    <!-- describe the affected user --><br>
+**I want**  <!-- describe the need          --><br>
+**So that** <!-- describe the outcome]      --> 
 
 ### Additional Info and Resources
 <!--Always attempt to include additional information.  This could include screenshots, log snippets, links to applicable code files, and/or articles/websites that have relevant info on the issue. Leave blank if n/a.-->

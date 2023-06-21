@@ -14,7 +14,6 @@ We do not need what to write showing up in tickets though, so please do not unco
 ## Description
 
 - [ ] Ticket is understood, and QA has been contacted (if the ticket has a QA label).
-- [ ] Appropriate labels added to the ticket (i.e. "enhancement", "dependencies", etc.)
 
 <!--_**Required.** Describe the problem._-->
 
