@@ -1,7 +1,7 @@
 name: Release Trigger
 on:
   release:
-    types: [published]
+    types: [prereleased, published, released]
 
 jobs:
   setup-release:
@@ -10,14 +10,21 @@ jobs:
       git-tag: ${{ steps.tag.outputs.version }}
       env: ${{ steps.setup.outputs.environment }}
     steps:
+      - name: Check release
+        run: |
+          echo "Release tag: ${{ github.event.release.tag_name }}"
+          echo "Release name: ${{ github.event.release.name }}"
+          echo "Is pre-release (boolean): ${{ github.event.release.prerelease }}"
+          echo "Is release (string): ${{ github.event.action }}"
       - name: Setup Environment
         id: setup
-        uses: actions/github-script@v5
+        uses: actions/github-script@v6
         with:
           script: |
-            if (context.payload.release.prerelease) {
+            if (github.event.release.isPrerelease) {
               core.setOutput('environment', 'staging')
-            } else {
+            }
+            if ('${{ github.event.action }}' === 'released') {
               core.setOutput('environment', 'prod')
             }
 
