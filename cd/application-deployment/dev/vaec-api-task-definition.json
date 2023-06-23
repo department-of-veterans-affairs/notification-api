@@ -50,6 +50,10 @@
           "name": "DD_PROFILING_ENABLE_CODE_PROVENANCE",
           "value": "True"
         },
+		{
+          "name": "DATADOG_AGENT_HOSTNAME",
+          "value": "localhost"
+		},
         {
           "name": "API_MESSAGE_LIMIT_ENABLED",
           "value": "True"
