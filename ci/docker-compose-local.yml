@@ -9,6 +9,7 @@ services:
       #- /proc/:/host/proc/:ro
       - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
     environment:
+      - DD_LOGS_ENABLED=true
       - DD_API_KEY=$GOV_DATADOG_API_KEY
       - DD_SITE=ddog-gov.com
       - DD_APM_ENABLED=True
