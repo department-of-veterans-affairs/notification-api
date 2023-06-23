@@ -1,5 +1,13 @@
 version: "3"
 services:
+  statsd-agent:
+    build: 
+      context: ..
+      dockerfile: Dockerfile.statsD
+    ports:
+      - 8126:8126/udp
+    depends_on:
+      - datadog-agent
   datadog-agent:
     build: 
       context: ..
@@ -25,6 +33,9 @@ services:
       #- DD_DOCKER_LABELS_AS_TAGS={"my.custom.label.team":"team"}
       - DD_TAGS='env:dd101-dev'
       - DD_HOSTNAME=dd101-dev-host
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+    ports:
+      - 8125:8125/udp
     depends_on:
       - migrations
       - localstack
