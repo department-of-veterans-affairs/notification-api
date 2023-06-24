@@ -1,13 +1,5 @@
 version: "3"
 services:
-  statsd-agent:
-    build: 
-      context: ..
-      dockerfile: Dockerfile.statsD
-    ports:
-      - 8126:8126/udp
-    depends_on:
-      - datadog-agent
   datadog-agent:
     build: 
       context: ..
