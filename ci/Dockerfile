@@ -51,6 +51,18 @@ USER vanotify
 ENV PORT=6011
 ARG GIT_SHA
 ENV GIT_SHA ${GIT_SHA}
+ENV DD_TRACE_DEBUG=true
+ENV DD_TRACE_STARTUP_LOGS=true
 
+ test label - pizza
+LABEL "pizza"="cheese"
+#label for autodiscovery
+LABEL com.datadoghq.ad.checks='[{"some_check": {"instances": ["ci_app_1"]}}'
+#label fo logs
+LABEL com.datadoghq.ad.logs='[{"source":"test_source", "service":"test_service"}]' 
+
+LABEL com.datadoghq.ad.init_configs='[{}]' \
+	  com.datadoghq.ad.check_names: '["app"]' \
+	  com.datadoghq.ad.instances='[{"host":"%%host%%", "port":5432,"username":"datadog","password":"datadog"}]'
 ENTRYPOINT ["./scripts/save_certificate.sh"]
 CMD ["sh", "-c", "ddtrace-run gunicorn -c gunicorn_config.py application"]

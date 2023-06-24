@@ -54,6 +54,10 @@
           "name": "DATADOG_AGENT_HOSTNAME",
           "value": "localhost"
 		},
+		{
+          "name": "DD_LOGS_INJECTION",
+          "value": "True"
+		},
         {
           "name": "API_MESSAGE_LIMIT_ENABLED",
           "value": "True"
@@ -362,7 +366,16 @@
         {
           "name": "DD_PROFILING_ENABLE_CODE_PROVENANCE",
           "value": "true"
-        }
+        },
+        {
+          "name": "DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL",
+          "value": "true"
+        },
+        {
+          "name": "DD_HOSTNAME",
+          "value": "dev"
+        },
+
       ],
       "secrets": [
         {

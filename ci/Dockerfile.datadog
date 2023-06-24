@@ -8,3 +8,7 @@ RUN \
 
 COPY ./certs/VA-Internal-S2-RCA1-v1.crt /usr/local/share/ca-certificates/VA-Internal-S2-RCA1-v1.crt
 RUN /usr/sbin/update-ca-certificates
+#LABEL "com.datadoghq.ad.checks"='{"<INTEGRATION_NAME>": {"instances": [<INSTANCE_CONFIG>]}}'
+#LABEL "com.datadoghq.ad.checks"='{"some_check": {"instances": [app]}}'
+#LABEL "com.datadoghq.ad.checks"='{"some_check": {"instances": ["ci_app_1"]}}'
+LABEL "com.datadoghq.ad.checks"='{"some_check": {"instances": [{"app": "ci_app_1"}]}}'

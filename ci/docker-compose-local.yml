@@ -8,6 +8,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       #- /proc/:/host/proc/:ro
       - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+      - /sys/kernel/debug:/sys/kernel/debug
     environment:
       - DD_API_KEY=$GOV_DATADOG_API_KEY
       - DD_SITE=ddog-gov.com
@@ -18,14 +19,16 @@ services:
       - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
       #- DATADOG_AGENT_HOSTNAME='datadog-agent'
       #- DATADOG_AGENT_PORT=8126
-      #- DD_LOG_LEVEL=debug
-      #- DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
-      #- DD_PROCESS_AGENT_ENABLED=true
-      - DD_LOGS_ENABLED=true
       #- DD_DOCKER_LABELS_AS_TAGS={"my.custom.label.team":"team"}
       - DD_TAGS='env:dd101-dev'
       - DD_HOSTNAME=dd101-dev-host
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      - DD_PROCESS_AGENT_ENABLED=true
+      - DD_LOGS_INJECTION=true
+      - DD_TRACE_DEBUG=true
+      - DD_TRACE_STARTUP_LOGS=true
+      - DD_LOG_LEVEL=debug
+      - DD_LOGS_ENABLED=true
     ports:
       - 8125:8125/udp
     depends_on:
@@ -33,6 +36,9 @@ services:
       - localstack
       - app
       - db
+    security_opt:
+      - apparmor:unconfined
+
   app:
     build:
       context: ..
