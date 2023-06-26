@@ -194,11 +194,11 @@ def dao_fetch_service_by_inbound_number(number):
 
 
 def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
-    
+
     # fetch READ instance engine
     reader = db.engines['read-db']
     session = scoped_session(sessionmaker(bind=reader))
-    
+
     # fetch data from READ instance
     # query = Service.query.filter_by(
     query = session.query(Service).filter_by(
