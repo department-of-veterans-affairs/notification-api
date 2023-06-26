@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from notifications_utils.statsd_decorators import statsd
 from notifications_utils.timezones import convert_utc_to_local_timezone
 from sqlalchemy.sql.expression import asc, case, and_, func
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, sessionmaker, scoped_session
 from flask import current_app
 
 from app import db
@@ -194,7 +194,14 @@ def dao_fetch_service_by_inbound_number(number):
 
 
 def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
-    query = Service.query.filter_by(
+    
+    # fetch READ instance engine
+    reader = db.engines['read-db']
+    session = scoped_session(sessionmaker(bind=reader))
+    
+    # fetch data from READ instance
+    # query = Service.query.filter_by(
+    query = session.query(Service).filter_by(
         id=service_id
     ).options(
         joinedload('api_keys')
