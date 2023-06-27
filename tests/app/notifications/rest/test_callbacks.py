@@ -50,30 +50,6 @@ def test_dvla_callback_returns_400_with_invalid_request(client):
 
 
 @pytest.mark.skip(reason="Endpoint disabled and slated for removal")
-def test_dvla_callback_autoconfirms_subscription(client, mocker):
-    autoconfirm_mock = mocker.patch('app.notifications.notifications_letter_callback.autoconfirm_subscription')
-
-    data = _sns_confirmation_callback()
-    response = dvla_post(client, data)
-    assert response.status_code == 200
-    assert autoconfirm_mock.called
-
-
-@pytest.mark.skip(reason="Endpoint disabled and slated for removal")
-def test_dvla_callback_autoconfirm_does_not_call_update_letter_notifications_task(client, mocker):
-    autoconfirm_mock = mocker.patch('app.notifications.notifications_letter_callback.autoconfirm_subscription')
-    update_task = \
-        mocker.patch('app.notifications.notifications_letter_callback.update_letter_notifications_statuses.apply_async')
-
-    data = _sns_confirmation_callback()
-    response = dvla_post(client, data)
-
-    assert response.status_code == 200
-    assert autoconfirm_mock.called
-    assert not update_task.called
-
-
-@pytest.mark.skip(reason="Endpoint disabled and slated for removal")
 def test_dvla_callback_calls_does_not_update_letter_notifications_task_with_invalid_file_type(client, mocker):
     update_task = \
         mocker.patch('app.notifications.notifications_letter_callback.update_letter_notifications_statuses.apply_async')

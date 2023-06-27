@@ -11,7 +11,6 @@ from flask import (
 
 from app.celery.tasks import update_letter_notifications_statuses, record_daily_sorted_counts
 from app.v2.errors import register_errors
-from app.notifications.utils import autoconfirm_subscription
 from app.schema_validation import validate
 from app.config import QueueNames
 
@@ -41,24 +40,3 @@ def validate_schema(schema):
             return f(*args, **kw)
         return wrapper
     return decorator
-
-
-@letter_callback_blueprint.route('/notifications/letter/dvla', methods=['POST'])
-@validate_schema(dvla_sns_callback_schema)
-def process_letter_response():
-    req_json = request.get_json(force=True)
-    current_app.logger.debug('Received SNS callback: {}'.format(req_json))
-    if not autoconfirm_subscription(req_json):
-        # The callback should have one record for an S3 Put Event.
-        message = json.loads(req_json['Message'])
-        filename = message['Records'][0]['s3']['object']['key']
-        current_app.logger.info('Received file from DVLA: {}'.format(filename))
-
-        if filename.lower().endswith('rs.txt') or filename.lower().endswith('rsp.txt'):
-            current_app.logger.info('DVLA callback: Calling task to update letter notifications')
-            update_letter_notifications_statuses.apply_async([filename], queue=QueueNames.NOTIFY)
-            record_daily_sorted_counts.apply_async([filename], queue=QueueNames.NOTIFY)
-
-    return jsonify(
-        result="success", message="DVLA callback succeeded"
-    ), 200
