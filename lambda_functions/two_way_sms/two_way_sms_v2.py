@@ -280,10 +280,10 @@ def forward_to_service(inbound_sms: dict, url: str) -> bool:
         logger.error("No URL provided in the configuration for the service.")
         return False
 
-    headers = {
-        'Content-type': 'application/json',
-        'Authorization': 'Basic ' + vetext_auth_token
-    }
+    headers = { 'Content-type': 'application/json' }
+
+    if "ng.vetext.va.gov" not in url:
+        headers['Authorization'] = 'Basic ' + vetext_auth_token
 
     try:
         response = requests.post(
