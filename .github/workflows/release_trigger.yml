@@ -23,7 +23,7 @@ jobs:
 
   pre-release:
     needs: [setup-release]
-    if: github.event.release.prerelease == true
+    if: ${{ github.event.release.prerelease == true }}
     uses: ./.github/workflows/release.yml
     with:
       environment: "staging"
@@ -32,7 +32,7 @@ jobs:
 
   release:
     needs: [setup-release]
-    if: github.event.release.prerelease == false
+    if: ${{ github.event.release.prerelease == false }}
     uses: ./.github/workflows/release.yml
     with:
       environment: "prod"
