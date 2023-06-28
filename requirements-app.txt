@@ -8,7 +8,7 @@ cachelib >= 0.10.2
 
 # 5 May 2022: Ignoring security vulnerabilities 42498 and 43738 in Makefile.
 # One is fixed in version 5.2.0; the other, 5.2.2.  See the note below for "kombu".
-celery[sqs] >= 4.4.7
+celery[sqs] >= 5.3.1
 
 click-datetime >= 0.2
 
@@ -44,10 +44,10 @@ iso8601 >= 2.0.0
 itsdangerous >= 1.1.0
 jsonschema >= 4.17.3
 
-# 5 May 2022: Celery depends on this package, and the Docker image build failed with the newest version.
+# 5 May 2022: Celery depends on this package, and they are usually updated in parallel.
 # Ignoring security vulnerability 42497 in Makefile.  The vulnerability is fixed in kombu >= 5.2.1.
 # Kombu is a top-level package too.
-kombu < 5.0
+kombu >= 5.3.1, < 6.0
 
 # 31 March 2023: marshmallow 2.x has not been supported since 18 August 2020.
 marshmallow ~= 2.20.5
