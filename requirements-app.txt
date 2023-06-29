@@ -5,9 +5,7 @@ Authlib >= 1.2.0
 boto3 >= 1.26.158
 botocore >= 1.29.158
 cachelib >= 0.10.2
-
 celery[sqs] >= 5.3.1
-
 click-datetime >= 0.2
 
 # Datadog Tracer and Profiler
@@ -41,13 +39,11 @@ gunicorn[eventlet] @ git+https://github.com/benoitc/gunicorn.git@6a8ebb4844b2f28
 iso8601 >= 2.0.0
 itsdangerous >= 1.1.0
 jsonschema >= 4.17.3
-
-# Celery depends on this package.
-# Kombu is a top-level package too.
-kombu >= 5.3.1, < 6.0
+kombu >= 5.3.1
 
 # 31 March 2023: marshmallow 2.x has not been supported since 18 August 2020.
 marshmallow ~= 2.20.5
+
 marshmallow-sqlalchemy ~= 0.22.3
 nanoid >= 2.0.0
 notifications-python-client >= 8.0.1
