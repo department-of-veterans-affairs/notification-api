@@ -29,12 +29,3 @@ jobs:
       environment: "staging"
       git-tag: "${{ github.event.release.tag_name }}"
     secrets: inherit
-
-  release:
-    needs: [setup-release]
-    if: ${{ github.event.release.prerelease == false }}
-    uses: ./.github/workflows/release.yml
-    with:
-      environment: "prod"
-      git-tag: "${{ github.event.release.tag_name }}"
-    secrets: inherit
