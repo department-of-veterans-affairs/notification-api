@@ -18,14 +18,12 @@ jobs:
         run: |
           echo "Release tag: ${{ github.event.release.tag_name }}"	          
           echo "Release name: ${{ github.event.release.name }}"
-          echo "is a prerelease? (github.event.release.prerelease): ${{ github.event.release.prerelease }}"
-          echo "is published (staging) or a release (prod)?: ${{ github.event.action }}"
+          echo "string check: release (prod)?: ${{ github.event.action }}"
 
-  pre-release:
+  release:
     needs: [setup-release]
-    if: ${{ github.event.release.prerelease == true }}
     uses: ./.github/workflows/release.yml
     with:
-      environment: "staging"
+      environment: "prod"
       git-tag: "${{ github.event.release.tag_name }}"
     secrets: inherit
