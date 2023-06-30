@@ -1,4 +1,4 @@
-name: Deploy to Staging from Pre-release
+name: Pre-release to Staging
 on:
   release:
     types: [published]
