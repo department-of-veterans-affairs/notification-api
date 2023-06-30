@@ -2179,8 +2179,9 @@ class CommunicationItem(db.Model):
     __tablename__ = "communication_items"
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    va_profile_item_id = db.Column(db.Integer, nullable=False)
-    name = db.Column(db.Text(), nullable=False)
+    default_send_indicator = db.Column(db.Boolean, nullable=False, default=True)
+    name = db.Column(db.String(255), nullable=False, unique=True)
+    va_profile_item_id = db.Column(db.Integer, nullable=False, unique=True)
 
 
 class VAProfileLocalCache(db.Model):
