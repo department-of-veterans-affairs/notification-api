@@ -136,7 +136,6 @@ class VETextClient:
                 self.statsd.timing(f"{self.STATSD_KEY}.request_time", elapsed_time)
         _send_push(mobile_app, template_id, icn, personalization, bad_req)
 
-
     def _decode_bad_request_response(self, http_exception):
         try:
             payload = http_exception.response.json()
@@ -147,5 +146,3 @@ class VETextClient:
             field = payload.get("idType")
             message = payload.get("error")
             raise VETextBadRequestException(field=field, message=message) from http_exception
-
-
