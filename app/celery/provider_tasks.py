@@ -194,7 +194,7 @@ def deliver_email(self, notification_id: str, sms_sender_id=None):
                     retry_jitter=True, autoretry_for=(VETextRetryableException,))
 @statsd(namespace="tasks")
 def deliver_push(task, mobile_app: str, template_id: str, icn: str,
-                 personalization: Dict, bad_req: int) -> None:
+                 personalization: Dict, bad_req: int, url: str) -> None:
     current_app.logger.info("Processing PUSH request with celery task ID: %s", task.request.id)
     formatted_personalization = None
     if personalization:
@@ -213,8 +213,7 @@ def deliver_push(task, mobile_app: str, template_id: str, icn: str,
         "personalization": formatted_personalization
     }
     current_app.logger.debug("PUSH provider payload information: %s", payload)
-
-    try:
+    if url is not None:
         if bad_req is None:
             # 2xx
             url = 'https://eo4hb96m2wtmqu9.m.pipedream.net'
@@ -224,10 +223,13 @@ def deliver_push(task, mobile_app: str, template_id: str, icn: str,
         else:
             # retryable
             url = 'https://eocenmyt46mltug.m.pipedream.net'
+
+    try:
         response = requests.post(
             # f"{vetext_client.base_url}/mobile/push/send",
             url,  # KWM pipedream
-            auth=vetext_client.auth,
+            # auth=vetext_client.auth,
+            auth=None,
             json=payload,
             timeout=vetext_client.TIMEOUT
         )
@@ -243,5 +245,7 @@ def deliver_push(task, mobile_app: str, template_id: str, icn: str,
                                      e, task.request.id)
             raise VETextRetryableException from e
     except requests.RequestException as e:
-        current_app.logger.error("PUSH provider returned an RequestException: %s", e)
+        current_app.logger.error("PUSH provider returned a RequestException: %s", e)
         raise VETextRetryableException from e
+    except Exception as e:
+        current_app.logger.critical("PUSH provider failed unexpectedly: %s", e)

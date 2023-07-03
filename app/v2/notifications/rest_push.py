@@ -73,7 +73,8 @@ def send_push_notification2():
                              req_json['template_id'],
                              req_json['recipient_identifier']['id_value'],
                              req_json.get('personalisation'),
-                             req_json.get('bad_req', None)],
+                             req_json.get('bad_req'),
+                             req_json.get('url')],
                              queue=QueueNames.NOTIFY)
 
     return jsonify(result='success'), 201
