@@ -73,7 +73,8 @@ class VETextClient:
 
     @notify_celery.task(bind=True, name="deliver_push", max_retries=48, retry_backoff=True, retry_backoff_max=60,
                         retry_jitter=True, autoretry_for=(VETextRetryableException,))
-    def send_push(self, task, mobile_app: str, template_id: str, icn: str, personalization: Dict = None, bad_req: int = None) -> None:
+    def send_push(self, task, mobile_app: str, template_id: str, icn: str,
+                  personalization: Dict = None, bad_req: int = None) -> None:
         self.logger.info("Processing PUSH request with celery task ID: %s", task.request.id)
         formatted_personalization = None
         if personalization:
