@@ -123,7 +123,8 @@ class VETextClient:
                                             payload, task.request.id)
                     self._decode_bad_request_response(e)
                 else:
-                    self.logger.error("PUSH provider returned an HTTPError: %s, retrying task ID: %s", e, task.request.id)
+                    self.logger.error("PUSH provider returned an HTTPError: %s, retrying task ID: %s",
+                                      e, task.request.id)
                     raise VETextRetryableException from e
             except requests.RequestException as e:
                 self.logger.error("PUSH provider returned an RequestException: %s", e)
