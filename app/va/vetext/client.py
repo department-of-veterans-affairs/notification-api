@@ -70,13 +70,13 @@ class VETextClient:
             self.statsd.timing(f"{self.STATSD_KEY}.request_time", elapsed_time)
 
     def send_push(self, mobile_app: str, template_id: str, icn: str,
-                        personalization: Dict = None, bad_req: int = None):
+                  personalization: Dict = None, bad_req: int = None):
         # Because we cannot avoid the circular import...
         from app import notify_celery
         @notify_celery.task(bind=True, name="deliver_push", max_retries=48, retry_backoff=True, retry_backoff_max=60,
-                    retry_jitter=True, autoretry_for=(VETextRetryableException,))
+                            retry_jitter=True, autoretry_for=(VETextRetryableException,))
         def _send_push(task, mobile_app: str, template_id: str, icn: str,
-                        personalization: Dict, bad_req: int) -> None:
+                       personalization: Dict, bad_req: int) -> None:
             self.logger.info("Processing PUSH request with celery task ID: %s", task.request.id)
             formatted_personalization = None
             if personalization:
@@ -120,7 +120,7 @@ class VETextClient:
                 self.statsd.incr(f"{self.STATSD_KEY}.error.{e.response.status_code}")
                 if e.response.status_code == 400:
                     self.logger.critical("PUSH provider unable to process request: %s for task ID: %s",
-                                            payload, task.request.id)
+                                         payload, task.request.id)
                     self._decode_bad_request_response(e)
                 else:
                     self.logger.error("PUSH provider returned an HTTPError: %s, retrying task ID: %s",
