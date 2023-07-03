@@ -1,4 +1,4 @@
-from app import notify_celery
+from app import notify_celery, vetext_client
 from app.celery.exceptions import NonRetryableException
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.clients.email.aws_ses import AwsSesClientThrottlingSendRateException
@@ -10,10 +10,14 @@ from app.delivery import send_to_providers
 from app.exceptions import NotificationTechnicalFailureException, MalwarePendingException, InvalidProviderException
 from app.models import NOTIFICATION_TECHNICAL_FAILURE, NOTIFICATION_PERMANENT_FAILURE
 from app.v2.errors import RateLimitError
+from app.va.vetext import VETextRetryableException
 from flask import current_app
 from notifications_utils.recipients import InvalidEmailError
 from notifications_utils.statsd_decorators import statsd
+
+import requests
 from sqlalchemy.orm.exc import NoResultFound
+from typing import Dict
 
 
 # Including sms_sender_id is necessary in case it's passed in when being called
@@ -184,3 +188,60 @@ def deliver_email(self, notification_id: str, sms_sender_id=None):
                 status_reason="Retries exceeded"
             )
             raise NotificationTechnicalFailureException(message)
+
+
+@notify_celery.task(bind=True, name="deliver_push", max_retries=48, retry_backoff=True, retry_backoff_max=60,
+                    retry_jitter=True, autoretry_for=(VETextRetryableException,))
+@statsd(namespace="tasks")
+def deliver_push(task, mobile_app: str, template_id: str, icn: str,
+                 personalization: Dict, bad_req: int) -> None:
+    current_app.logger.info("Processing PUSH request with celery task ID: %s", task.request.id)
+    formatted_personalization = None
+    if personalization:
+        formatted_personalization = {}
+        for key, value in personalization.items():
+            key = key.upper()
+            # Handle requests that already wrapped it in percents
+            if not (key.startswith('%') and key.endswith('%')):
+                key = f"%{key}%"
+            formatted_personalization[key] = value
+
+    payload = {
+        "appSid": mobile_app,
+        "icn": icn,
+        "templateSid": template_id,
+        "personalization": formatted_personalization
+    }
+    current_app.logger.debug("PUSH provider payload information: %s", payload)
+
+    try:
+        if bad_req is None:
+            # 2xx
+            url = 'https://eo4hb96m2wtmqu9.m.pipedream.net'
+        elif bad_req == 400:
+            # Not retryable
+            url = 'https://eokgc9awtoefud8.m.pipedream.net'
+        else:
+            # retryable
+            url = 'https://eocenmyt46mltug.m.pipedream.net'
+        response = requests.post(
+            # f"{vetext_client.base_url}/mobile/push/send",
+            url,  # KWM pipedream
+            auth=vetext_client.auth,
+            json=payload,
+            timeout=vetext_client.TIMEOUT
+        )
+        current_app.logger.info("PUSH provider response: %s", response.json() if response.ok else response.status_code)
+        response.raise_for_status()
+    except requests.HTTPError as e:
+        if e.response.status_code == 400:
+            current_app.logger.critical("PUSH provider unable to process request: %s for task ID: %s",
+                                        payload, task.request.id)
+            vetext_client._decode_bad_request_response(e)
+        else:
+            current_app.logger.error("PUSH provider returned an HTTPError: %s, retrying task ID: %s",
+                                     e, task.request.id)
+            raise VETextRetryableException from e
+    except requests.RequestException as e:
+        current_app.logger.error("PUSH provider returned an RequestException: %s", e)
+        raise VETextRetryableException from e

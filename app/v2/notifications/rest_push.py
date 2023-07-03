@@ -17,6 +17,8 @@ from app.v2.notifications.notification_schemas import (
     push_notification_request
 )
 from app.va.vetext import (VETextRetryableException, VETextNonRetryableException, VETextBadRequestException)
+from app.config import QueueNames
+from app.celery.provider_tasks import deliver_push
 
 
 @v2_notification_blueprint.route('/push', methods=['POST'])
@@ -67,10 +69,11 @@ def send_push_notification2():
     if not app_instance:
         return jsonify(result='error', message='Mobile app is not initialized'), 503
 
-    vetext_client.send_push(app_instance.sid,
-                            req_json['template_id'],
-                            req_json['recipient_identifier']['id_value'],
-                            req_json.get('personalisation'),
-                            req_json.get('bad_req', None))
+    deliver_push.apply_async([app_instance.sid,
+                             req_json['template_id'],
+                             req_json['recipient_identifier']['id_value'],
+                             req_json.get('personalisation'),
+                             req_json.get('bad_req', None)],
+                             queue=QueueNames.NOTIFY)
 
     return jsonify(result='success'), 201
