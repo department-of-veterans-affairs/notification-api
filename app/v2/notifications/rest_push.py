@@ -1,6 +1,7 @@
 from flask import request, jsonify
 
 from app import authenticated_service, vetext_client
+from app.config import QueueNames
 from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.mobile_app import MobileAppRegistry, MobileAppType, DEAFULT_MOBILE_APP_TYPE
 
@@ -51,7 +52,7 @@ def send_push_notification():
 
 
 @v2_notification_blueprint.route('/push2', methods=['POST'])
-def send_push_notification():
+def send_push_notification2():
     if not is_feature_enabled(FeatureFlag.PUSH_NOTIFICATIONS_ENABLED):
         raise NotImplementedError()
 
@@ -66,17 +67,12 @@ def send_push_notification():
 
     if not app_instance:
         return jsonify(result='error', message='Mobile app is not initialized'), 503
-    try:
-        vetext_client.send_push_notification2(
-            app_instance.sid,
-            req_json['template_id'],
-            req_json['recipient_identifier']['id_value'],
-            req_json.get('personalisation'),
-            req_json.get('bad_req', None)
-        )
-    except VETextBadRequestException as e:
-        raise BadRequestError(message=e.message, status_code=400)
-    except (VETextNonRetryableException, VETextRetryableException):
-        return jsonify(result='error', message="Invalid response from downstream service"), 502
-    else:
-        return jsonify(result='success'), 201
+    
+    vetext_client.send_push_notification2.apply_async(app_instance.sid,
+                                                      req_json['template_id'],
+                                                      req_json['recipient_identifier']['id_value'],
+                                                      req_json.get('personalisation'),
+                                                      req_json.get('bad_req', None),
+                                                      queue=QueueNames.NOTIFY)
+
+    return jsonify(result='success'), 201
