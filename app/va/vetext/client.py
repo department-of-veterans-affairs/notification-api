@@ -4,8 +4,6 @@ from typing import Dict
 from typing_extensions import TypedDict
 from time import monotonic
 from requests.auth import HTTPBasicAuth
-
-from app import notify_celery
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
 from . import VETextRetryableException, VETextNonRetryableException, VETextBadRequestException
 
