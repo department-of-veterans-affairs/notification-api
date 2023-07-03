@@ -1,7 +1,6 @@
 from flask import request, jsonify
 
 from app import authenticated_service, vetext_client
-from app.config import QueueNames
 from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.mobile_app import MobileAppRegistry, MobileAppType, DEAFULT_MOBILE_APP_TYPE
 
@@ -68,11 +67,10 @@ def send_push_notification2():
     if not app_instance:
         return jsonify(result='error', message='Mobile app is not initialized'), 503
 
-    vetext_client.send_push.apply_async(app_instance.sid,
-                                        req_json['template_id'],
-                                        req_json['recipient_identifier']['id_value'],
-                                        req_json.get('personalisation'),
-                                        req_json.get('bad_req', None),
-                                        queue=QueueNames.NOTIFY)
+    vetext_client.send_push(app_instance.sid,
+                            req_json['template_id'],
+                            req_json['recipient_identifier']['id_value'],
+                            req_json.get('personalisation'),
+                            req_json.get('bad_req', None))
 
     return jsonify(result='success'), 201

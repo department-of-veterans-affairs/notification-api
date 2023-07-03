@@ -73,6 +73,7 @@ class VETextClient:
                   personalization: Dict = None, bad_req: int = None):
         # Because we cannot avoid the circular import...
         from app import notify_celery
+        from app.config import QueueNames
         @notify_celery.task(bind=True, name="deliver_push", max_retries=48, retry_backoff=True, retry_backoff_max=60,
                             retry_jitter=True, autoretry_for=(VETextRetryableException,))
         def _send_push(task, mobile_app: str, template_id: str, icn: str,
@@ -135,7 +136,7 @@ class VETextClient:
             finally:
                 elapsed_time = monotonic() - start_time
                 self.statsd.timing(f"{self.STATSD_KEY}.request_time", elapsed_time)
-        _send_push(mobile_app, template_id, icn, personalization, bad_req)
+        _send_push.apply_async([mobile_app, template_id, icn, personalization, bad_req], queue=QueueNames.NOTIFY)
 
     def _decode_bad_request_response(self, http_exception):
         try:
