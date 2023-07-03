@@ -67,7 +67,7 @@ def send_push_notification2():
 
     if not app_instance:
         return jsonify(result='error', message='Mobile app is not initialized'), 503
-    
+
     vetext_client.send_push_notification2.apply_async(app_instance.sid,
                                                       req_json['template_id'],
                                                       req_json['recipient_identifier']['id_value'],

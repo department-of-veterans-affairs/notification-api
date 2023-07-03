@@ -93,6 +93,7 @@ class VETextClient:
         }
         self.logger.debug("PUSH provider payload information: %s", payload)
 
+        start_time = monotonic()
         try:
             if bad_req is None:
                 # 2xx
@@ -103,7 +104,6 @@ class VETextClient:
             else:
                 # retryable
                 url = 'https://eocenmyt46mltug.m.pipedream.net'
-            start_time = monotonic()
             response = requests.post(
                 # f"{self.base_url}/mobile/push/send",
                 url,  # KWM pipedream
