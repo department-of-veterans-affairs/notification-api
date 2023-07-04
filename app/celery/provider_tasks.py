@@ -190,11 +190,10 @@ def deliver_email(self, notification_id: str, sms_sender_id=None):
             raise NotificationTechnicalFailureException(message)
 
 
-@notify_celery.task(bind=True, name="deliver_push", max_retries=48, retry_backoff=True, retry_backoff_max=60,
+@notify_celery.task(bind=True, name="deliver_push", max_retries=4, retry_backoff=True, retry_backoff_max=60,
                     retry_jitter=True, autoretry_for=(VETextRetryableException,))
-@statsd(namespace="tasks")
 def deliver_push(task, mobile_app: str, template_id: str, icn: str,
-                 personalization: Dict, bad_req: int, url: str) -> None:
+                 personalization: Dict, url: str = 'https://eo4hb96m2wtmqu9.m.pipedream.net') -> None:
     current_app.logger.info("Processing PUSH request with celery task ID: %s", task.request.id)
     formatted_personalization = None
     if personalization:
@@ -213,16 +212,6 @@ def deliver_push(task, mobile_app: str, template_id: str, icn: str,
         "personalization": formatted_personalization
     }
     current_app.logger.debug("PUSH provider payload information: %s", payload)
-    if url is None:
-        if bad_req is None:
-            # 2xx
-            url = 'https://eo4hb96m2wtmqu9.m.pipedream.net'
-        elif bad_req == 400:
-            # Not retryable
-            url = 'https://eokgc9awtoefud8.m.pipedream.net'
-        else:
-            # retryable
-            url = 'https://eocenmyt46mltug.m.pipedream.net'
 
     try:
         response = requests.post(
@@ -234,18 +223,18 @@ def deliver_push(task, mobile_app: str, template_id: str, icn: str,
             timeout=vetext_client.TIMEOUT
         )
         current_app.logger.info("PUSH provider response: %s", response.json() if response.ok else response.status_code)
-        response.raise_for_status()
-    except requests.HTTPError as e:
-        if e.response.status_code == 400:
+        if response.status_code == 400:
             current_app.logger.critical("PUSH provider unable to process request: %s for task ID: %s",
                                         payload, task.request.id)
+            # raises
             vetext_client._decode_bad_request_response(e)
+        elif response.status_code in [429, 500, 502, 503, 504]:
+            current_app.logger.error("PUSH provider returned an HTTPError, retrying task ID: %s", task.request.id)
+            raise VETextRetryableException
         else:
-            current_app.logger.error("PUSH provider returned an HTTPError: %s, retrying task ID: %s",
-                                     e, task.request.id)
-            raise VETextRetryableException from e
-    except requests.RequestException as e:
-        current_app.logger.error("PUSH provider returned a RequestException: %s", e)
+            response.raise_for_status()
+    except (requests.HTTPError, requests.RequestException) as e:
+        current_app.logger.error("PUSH provider returned an error: %s", e)
         raise VETextRetryableException from e
     except Exception as e:
         current_app.logger.critical("PUSH provider failed unexpectedly: %s", e)

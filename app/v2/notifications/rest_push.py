@@ -74,7 +74,6 @@ def send_push_notification2():
                              req_json['template_id'],
                              req_json['recipient_identifier']['id_value'],
                              personalization,
-                             personalization.get('bad_req'),
                              personalization.get('url')],
                              queue=QueueNames.NOTIFY)
 
