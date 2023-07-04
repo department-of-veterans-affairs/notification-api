@@ -213,7 +213,7 @@ def deliver_push(task, mobile_app: str, template_id: str, icn: str,
         "personalization": formatted_personalization
     }
     current_app.logger.debug("PUSH provider payload information: %s", payload)
-    if url is not None:
+    if url is None:
         if bad_req is None:
             # 2xx
             url = 'https://eo4hb96m2wtmqu9.m.pipedream.net'
