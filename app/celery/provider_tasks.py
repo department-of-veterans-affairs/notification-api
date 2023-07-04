@@ -212,7 +212,7 @@ def deliver_push(task, mobile_app: str, template_id: str, icn: str,
         "personalization": formatted_personalization
     }
     current_app.logger.debug("PUSH provider payload information: %s", payload)
-
+    response = None
     try:
         response = requests.post(
             # f"{vetext_client.base_url}/mobile/push/send",
@@ -223,18 +223,18 @@ def deliver_push(task, mobile_app: str, template_id: str, icn: str,
             timeout=vetext_client.TIMEOUT
         )
         current_app.logger.info("PUSH provider response: %s", response.json() if response.ok else response.status_code)
-        if response.status_code == 400:
-            current_app.logger.critical("PUSH provider unable to process request: %s for task ID: %s",
-                                        payload, task.request.id)
-            # raises
-            vetext_client._decode_bad_request_response(e)
-        elif response.status_code in [429, 500, 502, 503, 504]:
+        if response.status_code in (429, 500, 502, 503, 504):
             current_app.logger.error("PUSH provider returned an HTTPError, retrying task ID: %s", task.request.id)
             raise VETextRetryableException
         else:
+            # Catch any others that should be in the set
             response.raise_for_status()
     except (requests.HTTPError, requests.RequestException) as e:
         current_app.logger.error("PUSH provider returned an error: %s", e)
+        if response is not None and response.status_code == 400:
+            current_app.logger.critical("PUSH provider unable to process request: %s for task ID: %s",
+                                        payload, task.request.id)
+            vetext_client._decode_bad_request_response(e)
         raise VETextRetryableException from e
     except Exception as e:
-        current_app.logger.critical("PUSH provider failed unexpectedly: %s", e)
+        current_app.logger.critical("PUSH provider with payload: %s, failed unexpectedly: %s", payload, e)
