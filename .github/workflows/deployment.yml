@@ -5,8 +5,7 @@ on:
     inputs:
       environment:
         required: true
-        default: "dev"
-        type: string
+        default: dev
       ref:
         required: true
         default: "master"
