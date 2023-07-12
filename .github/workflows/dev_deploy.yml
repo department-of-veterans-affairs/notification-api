@@ -4,7 +4,7 @@ on:
     inputs:
       environment:
         description: "Deployment environment (dev|perf|staging|prod)"
-        default: dev
+        #default: dev
         type: environment
         required: true
       ref:
