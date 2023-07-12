@@ -5,6 +5,7 @@ on:
       environment:
         description: "Deployment environment (dev|perf|staging|prod)"
         default: dev
+        type: environment
         required: true
       ref:
         description: "Branch or Commit"
