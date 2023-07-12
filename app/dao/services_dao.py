@@ -1,6 +1,6 @@
 import uuid
 from datetime import date, datetime, timedelta
-
+from cachetools import cached, TTLCache
 from notifications_utils.statsd_decorators import statsd
 from notifications_utils.timezones import convert_utc_to_local_timezone
 from sqlalchemy.sql.expression import asc, case, and_, func
@@ -193,7 +193,9 @@ def dao_fetch_service_by_inbound_number(number):
     ).first()
 
 
+@cached(cache=TTLCache(maxsize=32, ttl=60))
 def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
+    print("attempting to get response for: " + str(service_id))
     query = Service.query.filter_by(
         id=service_id
     ).options(
