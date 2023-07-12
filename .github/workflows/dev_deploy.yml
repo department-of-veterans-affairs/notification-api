@@ -62,7 +62,7 @@ jobs:
     needs: [setup-environment, run-build]
     uses: ./.github/workflows/deployment.yml
     with:
-      environment: "${{ inputs.environment }}"
+      #environment: "${{ inputs.environment }}"
       ref: "${{ needs.setup-environment.outputs.git-hash }}"
     secrets: inherit
 

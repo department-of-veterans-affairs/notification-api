@@ -3,10 +3,10 @@ name: api deploy
 on:
   workflow_call:
     inputs:
-      environment:
-        required: true
-        default: dev
-        type: environment
+      #environment:
+        #required: true
+        #default: dev
+        #type: environment
       ref:
         required: true
         default: "master"
