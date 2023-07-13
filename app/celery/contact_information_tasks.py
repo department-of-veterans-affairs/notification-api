@@ -11,7 +11,8 @@ from app.exceptions import NotificationTechnicalFailureException, NotificationPe
 from app.va.va_profile.exceptions import VAProfileIDNotFoundException
 
 
-@notify_celery.task(bind=True, name="lookup-contact-info-tasks", max_retries=48, default_retry_delay=300)
+@notify_celery.task(bind=True, name="lookup-contact-info-tasks",
+                    max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def lookup_contact_info(self, notification_id):
     current_app.logger.info(f"Looking up contact information for notification_id:{notification_id}.")

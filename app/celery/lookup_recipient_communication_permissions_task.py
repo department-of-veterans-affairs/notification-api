@@ -16,8 +16,8 @@ from app.va.identifier import IdentifierType
 
 
 @notify_celery.task(
-    bind=True, name="lookup-recipient-communication-permissions", max_retries=5, default_retry_delay=300
-)
+    bind=True, name="lookup-recipient-communication-permissions",
+    max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def lookup_recipient_communication_permissions(
         self, notification_id: str

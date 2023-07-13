@@ -36,7 +36,8 @@ FINAL_STATUS_STATES = [
 
 
 # Create SQS Queue for Process Deliver Status.
-@notify_celery.task(bind=True, name="process-delivery-status-result", max_retries=48, default_retry_delay=300)
+@notify_celery.task(bind=True, name="process-delivery-status-result",
+                    max_retries=585, retry_backoff=True, retry_backoff_max=300)
 @statsd(namespace="tasks")
 def process_delivery_status(self, event: CeleryEvent) -> bool:
     """Celery task for updating the delivery status of a notification"""

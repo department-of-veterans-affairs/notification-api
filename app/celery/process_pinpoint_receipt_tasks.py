@@ -50,7 +50,8 @@ def _map_record_status_to_notification_status(record_status):
     return _record_status_status_mapping[record_status]
 
 
-@notify_celery.task(bind=True, name="process-pinpoint-result", max_retries=5, default_retry_delay=300)
+@notify_celery.task(bind=True, name="process-pinpoint-result",
+                    max_retries=585, retry_backoff=True, retry_backoff_max=300)
 @statsd(namespace="tasks")
 def process_pinpoint_results(self, response):
     """

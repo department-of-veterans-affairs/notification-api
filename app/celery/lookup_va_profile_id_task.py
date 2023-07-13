@@ -14,7 +14,8 @@ from app.va.mpi import MpiRetryableException, BeneficiaryDeceasedException, \
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 
 
-@notify_celery.task(bind=True, name="lookup-va-profile-id-tasks", max_retries=48, default_retry_delay=300)
+@notify_celery.task(bind=True, name="lookup-va-profile-id-tasks",
+                    max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def lookup_va_profile_id(self, notification_id):
     current_app.logger.info(f"Retrieving VA Profile ID from MPI for notification {notification_id}")

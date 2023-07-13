@@ -17,7 +17,8 @@ from sqlalchemy.orm.exc import NoResultFound
 
 
 # Including sms_sender_id is necessary in case it's passed in when being called
-@notify_celery.task(bind=True, name="deliver_sms", max_retries=48, default_retry_delay=300)
+@notify_celery.task(bind=True, name="deliver_sms",
+                    max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def deliver_sms(self, notification_id, sms_sender_id=None):
     try:
@@ -131,7 +132,8 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
 
 
 # Including sms_sender_id is necessary in case it's passed in when being called.
-@notify_celery.task(bind=True, name="deliver_email", max_retries=48, default_retry_delay=300)
+@notify_celery.task(bind=True, name="deliver_email",
+                    max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def deliver_email(self, notification_id: str, sms_sender_id=None):
     try:
