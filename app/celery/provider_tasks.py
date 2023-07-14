@@ -18,6 +18,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 # Including sms_sender_id is necessary in case it's passed in when being called
 @notify_celery.task(bind=True, name="deliver_sms",
+                    autoretry_for=(RetryableException, ),
                     max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def deliver_sms(self, notification_id, sms_sender_id=None):
@@ -47,15 +48,12 @@ def deliver_sms(self, notification_id, sms_sender_id=None):
         )
         notification = notifications_dao.get_notification_by_id(notification_id)
         check_and_queue_callback_task(notification)
-    except Exception:
+    except Exception as e:
         try:
             current_app.logger.exception(
                 "SMS notification delivery for id: %s failed", notification_id
             )
-            if self.request.retries == 0:
-                self.retry(queue=QueueNames.RETRY, countdown=0)
-            else:
-                self.retry(queue=QueueNames.RETRY)
+            raise RetryableException(f'Found {type(e).__name__}, autoretrying...')
         except self.MaxRetriesExceededError:
             message = "RETRY FAILED: Max retries reached. The task send_sms_to_provider failed for notification " \
                       f"{notification_id}. Notification has been updated to technical-failure"
@@ -133,12 +131,17 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
 
 # Including sms_sender_id is necessary in case it's passed in when being called.
 @notify_celery.task(bind=True, name="deliver_email",
-                    autoretry_for=(RetryableException,),
-                    max_retries=2886, retry_backoff=True, retry_backoff_max=60)
+                    autoretry_for=(RetryableException, ),
+                    max_retries=6, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def deliver_email(self, notification_id: str, sms_sender_id=None):
     current_app.logger.info("Entered deliver_email...")
-    raise RetryableException("Forcing RetryableException")
+    try:
+        raise RetryableException("Found RetryableException, autoretrying...")
+    except self.MaxRetriesExceededError:
+        current_app.logger.info('Caught the max retry error!')
+    except RetryableException:
+        raise
     try:
         current_app.logger.info("Start sending email for notification id: %s", notification_id)
         notification = notifications_dao.get_notification_by_id(notification_id)
@@ -154,11 +157,11 @@ def deliver_email(self, notification_id: str, sms_sender_id=None):
             status_reason="Email address is in invalid format"
         )
         raise NotificationTechnicalFailureException(str(e))
-    except MalwarePendingException:
+    except MalwarePendingException as e:
         current_app.logger.info(
             "RETRY number %s: Email notification %s is pending malware scans", self.request.retries, notification_id
         )
-        self.retry(queue=QueueNames.RETRY, countdown=60)
+        raise RetryableException('Pending malware scans...')
     except InvalidProviderException as e:
         current_app.logger.exception("Invalid provider for %s: %s", notification_id, str(e))
         update_notification_status_by_id(
@@ -178,7 +181,7 @@ def deliver_email(self, notification_id: str, sms_sender_id=None):
                 current_app.logger.exception(
                     "RETRY number %d: Email notification %s failed", self.request.retries, notification_id
                 )
-            self.retry(queue=QueueNames.RETRY)
+            raise RetryableException(f'Found {type(e).__name__}, autoretrying...')
         except self.MaxRetriesExceededError:
             message = "RETRY FAILED: Max retries reached. " \
                       "The task send_email_to_provider failed for notification {}. " \

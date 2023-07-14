@@ -15,9 +15,9 @@ from app.va.va_profile.va_profile_client import CommunicationItemNotFoundExcepti
 from app.va.identifier import IdentifierType
 
 
-@notify_celery.task(
-    bind=True, name="lookup-recipient-communication-permissions",
-    max_retries=2886, retry_backoff=True, retry_backoff_max=60)
+@notify_celery.task(bind=True, name="lookup-recipient-communication-permissions",
+                    autoretry_for=(VAProfileRetryableException, ),
+                    max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def lookup_recipient_communication_permissions(
         self, notification_id: str
@@ -85,9 +85,10 @@ def recipient_has_given_permission(
             identifier, communication_item.va_profile_item_id, notification_id, notification_type
         )
     except VAProfileRetryableException as e:
+        current_app.logger.warning('Encountered VAProfileRetryableException for notification: %s', notification_id)
         current_app.logger.exception(e)
         try:
-            task.retry(queue=QueueNames.RETRY)
+            raise VAProfileRetryableException(f'Found VAProfileRetryableException, autoretrying...')
         except task.MaxRetriesExceededError:
             message = (
                 'RETRY FAILED: Max retries reached. '

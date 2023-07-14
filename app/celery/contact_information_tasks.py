@@ -12,6 +12,7 @@ from app.va.va_profile.exceptions import VAProfileIDNotFoundException
 
 
 @notify_celery.task(bind=True, name="lookup-contact-info-tasks",
+                    autoretry_for=(VAProfileRetryableException, ),
                     max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def lookup_contact_info(self, notification_id):
@@ -34,7 +35,7 @@ def lookup_contact_info(self, notification_id):
     except VAProfileRetryableException as e:
         current_app.logger.exception(e)
         try:
-            self.retry(queue=QueueNames.RETRY)
+            raise VAProfileRetryableException(f'Found VAProfileRetryableException, autoretrying...')
         except self.MaxRetriesExceededError:
             message = (
                 'RETRY FAILED: Max retries reached. '
