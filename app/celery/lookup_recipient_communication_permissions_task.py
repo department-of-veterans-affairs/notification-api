@@ -5,7 +5,6 @@ from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 
 from app import notify_celery, va_profile_client
-from app.config import QueueNames
 from app.dao.communication_item_dao import get_communication_item
 from app.dao.notifications_dao import get_notification_by_id, update_notification_status_by_id
 from app.exceptions import NotificationTechnicalFailureException
