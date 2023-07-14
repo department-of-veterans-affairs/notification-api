@@ -150,6 +150,7 @@ def validate_service_api_key_auth():
     client = __get_token_issuer(auth_token)
 
     try:
+        print("dkb-inside here")
         service = dao_fetch_service_by_id_with_api_keys(client)
     except DataError:
         raise AuthError("Invalid token: service id is not the right data type", 403)
