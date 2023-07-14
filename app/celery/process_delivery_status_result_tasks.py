@@ -232,7 +232,7 @@ def _get_notification_platform_status(self, provider: any, body: str, sqs_messag
     if notification_platform_status is None:
         current_app.logger.error("Notification Platform Status cannot be None")
         current_app.logger.debug(body)
-        raise RetryableException(f'Found {type(e).__name__}, autoretrying...')
+        raise RetryableException(f'Found no notification_platform_status, autoretrying...')
 
     return notification_platform_status
 
@@ -296,6 +296,6 @@ def _get_provider_info(self, sqs_message: dict) -> Tuple[str, any]:
     if provider is None:
         current_app.logger.error("Provider cannot be None")
         current_app.logger.debug(sqs_message)
-        raise RetryableException(f'Found {type(e).__name__}, autoretrying...')
+        raise RetryableException(f'Found no provider, autoretrying...')
 
     return provider_name, provider
