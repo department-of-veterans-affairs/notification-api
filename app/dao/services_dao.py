@@ -8,6 +8,7 @@ from sqlalchemy.orm import joinedload
 from flask import current_app
 
 from app import db
+
 from app.dao.date_util import get_current_financial_year
 from app.dao.dao_utils import (
     transactional,
@@ -193,7 +194,6 @@ def dao_fetch_service_by_inbound_number(number):
     ).first()
 
 
-@cached(cache=TTLCache(maxsize=32, ttl=3600))
 def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
     query = Service.query.filter_by(
         id=service_id

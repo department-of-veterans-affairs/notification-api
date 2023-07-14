@@ -11,8 +11,7 @@ from notifications_python_client.errors import TokenDecodeError, TokenExpiredErr
 from notifications_utils import request_helper
 from sqlalchemy.exc import DataError
 from sqlalchemy.orm.exc import NoResultFound
-
-
+from cachetools import cached, LRUCache, TTLCache
 from app.dao.services_dao import dao_fetch_service_by_id_with_api_keys
 
 
@@ -143,14 +142,15 @@ def requires_admin_auth():
     return decorator
 
 
+@cached(cache=TTLCache(maxsize=32, ttl=60))
 def validate_service_api_key_auth():
     request_helper.check_proxy_header_before_request()
-
     auth_token = get_auth_token(request)
     client = __get_token_issuer(auth_token)
 
     try:
         service = dao_fetch_service_by_id_with_api_keys(client)
+
     except DataError:
         raise AuthError("Invalid token: service id is not the right data type", 403)
     except NoResultFound:
@@ -185,6 +185,7 @@ def validate_service_api_key_auth():
             api_key.id,
             request.headers.get('User-Agent')
         )
+
         return
     else:
         # service has API keys, but none matching the one the user provided
