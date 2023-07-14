@@ -136,6 +136,7 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
                     max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def deliver_email(self, notification_id: str, sms_sender_id=None):
+    self.retry(queue=QueueNames.RETRY)
     try:
         current_app.logger.info("Start sending email for notification id: %s", notification_id)
         notification = notifications_dao.get_notification_by_id(notification_id)
