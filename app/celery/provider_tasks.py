@@ -157,7 +157,7 @@ def deliver_email(self, notification_id: str, sms_sender_id=None):
             status_reason="Email address is in invalid format"
         )
         raise NotificationTechnicalFailureException(str(e))
-    except MalwarePendingException as e:
+    except MalwarePendingException:
         current_app.logger.info(
             "RETRY number %s: Email notification %s is pending malware scans", self.request.retries, notification_id
         )
