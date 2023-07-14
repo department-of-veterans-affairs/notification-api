@@ -195,7 +195,6 @@ def dao_fetch_service_by_inbound_number(number):
 
 @cached(cache=TTLCache(maxsize=32, ttl=3600))
 def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
-    print("dkb-attempting to get response for: " + str(service_id))
     query = Service.query.filter_by(
         id=service_id
     ).options(
