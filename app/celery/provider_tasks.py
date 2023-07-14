@@ -1,5 +1,5 @@
 from app import notify_celery
-from app.celery.exceptions import NonRetryableException
+from app.celery.exceptions import RetryableException, NonRetryableException
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.clients.email.aws_ses import AwsSesClientThrottlingSendRateException
 from app.config import QueueNames
@@ -133,10 +133,12 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
 
 # Including sms_sender_id is necessary in case it's passed in when being called.
 @notify_celery.task(bind=True, name="deliver_email",
+                    autoretry_for=(RetryableException,),
                     max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def deliver_email(self, notification_id: str, sms_sender_id=None):
-    self.retry(queue=QueueNames.RETRY)
+    current_app.logger.info("Entered deliver_email...")
+    raise RetryableException("Forcing RetryableException")
     try:
         current_app.logger.info("Start sending email for notification id: %s", notification_id)
         notification = notifications_dao.get_notification_by_id(notification_id)
