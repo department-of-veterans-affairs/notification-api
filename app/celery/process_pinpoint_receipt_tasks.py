@@ -50,7 +50,7 @@ def _map_record_status_to_notification_status(record_status):
 
 
 @notify_celery.task(bind=True, name="process-pinpoint-result",
-                    autoretry_for=(RetryableException, ),
+                    # autoretry_for=(RetryableException, ),
                     max_retries=585, retry_backoff=True, retry_backoff_max=300)
 @statsd(namespace="tasks")
 def process_pinpoint_results(self, response):

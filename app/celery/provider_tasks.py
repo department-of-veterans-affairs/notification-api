@@ -22,7 +22,8 @@ from sqlalchemy.orm.exc import NoResultFound
                     max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def deliver_sms(self, notification_id, sms_sender_id=None):
-    raise AutoRetryException()
+    raise AutoRetryException
+    return
     try:
         raise NoResultFound()
     except NoResultFound as e:
@@ -141,12 +142,13 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
 
 
 # Including sms_sender_id is necessary in case it's passed in when being called.
-@notify_celery.task(bind=True, name="deliver_email", throws=(RetryableException, ),
-                    autoretry_for=(RetryableException, ),
+@notify_celery.task(bind=True, name="deliver_email", throws=(AutoRetryException, ),
+                    autoretry_for=(AutoRetryException, ),
                     max_retries=6, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def deliver_email(self, notification_id: str, sms_sender_id=None):
-    raise RetryableException()
+    raise AutoRetryException
+    return
     current_app.logger.info("Entered deliver_email...")
     try:
         raise RetryableException("Found RetryableException, autoretrying...")

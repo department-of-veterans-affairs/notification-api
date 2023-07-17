@@ -21,7 +21,7 @@ from app.models import Complaint, Notification, ServiceCallback
 
 
 @notify_celery.task(bind=True, name="send-delivery-status",
-                    autoretry_for=(RetryableException, ),
+                    # autoretry_for=(RetryableException, ),
                     max_retries=60, retry_backoff=True, retry_backoff_max=3600)
 @statsd(namespace="tasks")
 def send_delivery_status_to_service(
@@ -80,7 +80,7 @@ def send_delivery_status_to_service(
 
 
 @notify_celery.task(bind=True, name="send-complaint",
-                    autoretry_for=(RetryableException, ),
+                    # autoretry_for=(RetryableException, ),
                     max_retries=60, retry_backoff=True, retry_backoff_max=3600)
 @statsd(namespace="tasks")
 def send_complaint_to_service(self, service_callback_id, complaint_data):
@@ -134,7 +134,7 @@ def send_complaint_to_service(self, service_callback_id, complaint_data):
 
 
 @notify_celery.task(bind=True, name="send-complaint-to-vanotify",
-                    autoretry_for=(RetryableException, ),
+                    # autoretry_for=(RetryableException, ),
                     max_retries=60, retry_backoff=True, retry_backoff_max=3600)
 @statsd(namespace="tasks")
 def send_complaint_to_vanotify(self, complaint_id: str, complaint_template_name: str) -> None:
@@ -168,7 +168,7 @@ def send_complaint_to_vanotify(self, complaint_id: str, complaint_template_name:
 
 
 @notify_celery.task(bind=True, name="send-inbound-sms",
-                    autoretry_for=(RetryableException, ),
+                    # autoretry_for=(RetryableException, ),
                     max_retries=60, retry_backoff=True, retry_backoff_max=3600)
 @statsd(namespace="tasks")
 def send_inbound_sms_to_service(self, inbound_sms_id, service_id):
