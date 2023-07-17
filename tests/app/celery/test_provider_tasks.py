@@ -2,18 +2,16 @@ import os
 import uuid
 from collections import namedtuple
 
-from celery.exceptions import Retry
 import pytest
 from botocore.exceptions import ClientError
 from celery.exceptions import MaxRetriesExceededError
 from notifications_utils.recipients import InvalidEmailError
-from sqlalchemy.orm.exc import NoResultFound
 
 
 import app
 from app.attachments.store import AttachmentStoreError
 from app.celery import provider_tasks
-from app.celery.exceptions import RetryableException, NonRetryableException, AutoRetryException
+from app.celery.exceptions import NonRetryableException, AutoRetryException
 from app.celery.provider_tasks import deliver_sms, deliver_email, deliver_sms_with_rate_limiting
 from app.clients.email.aws_ses import AwsSesClientException, AwsSesClientThrottlingSendRateException
 from app.config import QueueNames
@@ -44,11 +42,9 @@ def test_should_add_to_retry_queue_if_notification_not_found_in_deliver_sms_task
 
     notification_id = app.create_uuid()
 
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(AutoRetryException) as exc_info:
         deliver_sms(notification_id)
-    print(f'KWM        {exc_info.type=}')
-    # assert exc_info.type is AutoRetryException
-    print(exc_info)
+    assert exc_info.type is AutoRetryException
     # [print(x) for x in exc_info]
     # assert 'AutoRetry:' in str(exc_info)
 
@@ -71,9 +67,9 @@ def test_should_add_to_retry_queue_if_notification_not_found_in_deliver_email_ta
     # mocker.patch('app.celery.provider_tasks.deliver_email.retry')
     
     notification_id = app.create_uuid()
-    with pytest.raises(Exception) as exc_info:
-        deliver_email(notification_id)
-    print(f'Exception info: {exc_info}')
+    with pytest.raises(AutoRetryException) as exc_info:
+        deliver_sms(notification_id)
+    assert exc_info.type is AutoRetryException
     # assert exc_info.type is Exception
     # app.delivery.send_to_providers.send_email_to_provider.assert_not_called()
     # app.celery.provider_tasks.deliver_email.retry.assert_called_with(queue="retry-tasks")

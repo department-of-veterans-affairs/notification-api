@@ -7,7 +7,7 @@ from app import (
     statsd_client,
     DATETIME_FORMAT
 )
-from app.celery.exceptions import RetryableException, NonRetryableException
+from app.celery.exceptions import AutoRetryException, NonRetryableException, RetryableException
 from app.config import QueueNames
 from app.dao.complaint_dao import fetch_complaint_by_id
 from app.dao.inbound_sms_dao import dao_get_inbound_sms_by_id
@@ -21,7 +21,8 @@ from app.models import Complaint, Notification, ServiceCallback
 
 
 @notify_celery.task(bind=True, name="send-delivery-status",
-                    # autoretry_for=(RetryableException, ),
+                    throws=(AutoRetryException, ),
+                    autoretry_for=(AutoRetryException, ),
                     max_retries=60, retry_backoff=True, retry_backoff_max=3600)
 @statsd(namespace="tasks")
 def send_delivery_status_to_service(
@@ -63,7 +64,7 @@ def send_delivery_status_to_service(
                 "Retrying: %s failed for %s, url %s.", self.name, logging_tags, service_callback.url
             )
             current_app.logger.exception(e)
-            raise RetryableException('Found RetryableException, autoretrying...')
+            raise AutoRetryException('Found RetryableException, autoretrying...')
         except self.MaxRetriesExceededError:
             current_app.logger.error(
                 "Retry: %s has retried the max num of times for %s, url %s.",
@@ -80,7 +81,8 @@ def send_delivery_status_to_service(
 
 
 @notify_celery.task(bind=True, name="send-complaint",
-                    # autoretry_for=(RetryableException, ),
+                    throws=(AutoRetryException, ),
+                    autoretry_for=(AutoRetryException, ),
                     max_retries=60, retry_backoff=True, retry_backoff_max=3600)
 @statsd(namespace="tasks")
 def send_complaint_to_service(self, service_callback_id, complaint_data):
@@ -112,7 +114,7 @@ def send_complaint_to_service(self, service_callback_id, complaint_data):
                 service_callback.url,
                 e,
             )
-            raise RetryableException('Found RetryableException, autoretrying...')
+            raise AutoRetryException('Found RetryableException, autoretrying...')
         except self.MaxRetriesExceededError:
             current_app.logger.error(
                 "Retry: %s has retried the max num of times for %s, url %s. exc: %s",
@@ -134,7 +136,8 @@ def send_complaint_to_service(self, service_callback_id, complaint_data):
 
 
 @notify_celery.task(bind=True, name="send-complaint-to-vanotify",
-                    # autoretry_for=(RetryableException, ),
+                    throws=(AutoRetryException, ),
+                    autoretry_for=(AutoRetryException, ),
                     max_retries=60, retry_backoff=True, retry_backoff_max=3600)
 @statsd(namespace="tasks")
 def send_complaint_to_vanotify(self, complaint_id: str, complaint_template_name: str) -> None:
@@ -168,7 +171,8 @@ def send_complaint_to_vanotify(self, complaint_id: str, complaint_template_name:
 
 
 @notify_celery.task(bind=True, name="send-inbound-sms",
-                    # autoretry_for=(RetryableException, ),
+                    throws=(AutoRetryException, ),
+                    autoretry_for=(AutoRetryException, ),
                     max_retries=60, retry_backoff=True, retry_backoff_max=3600)
 @statsd(namespace="tasks")
 def send_inbound_sms_to_service(self, inbound_sms_id, service_id):
@@ -213,7 +217,7 @@ def send_inbound_sms_to_service(self, inbound_sms_id, service_id):
                 service_callback.url,
                 e,
             )
-            raise RetryableException('Found RetryableException, autoretrying...')
+            raise AutoRetryException('Found RetryableException, autoretrying...')
         except self.MaxRetriesExceededError:
             current_app.logger.error(
                 "Retry: %s has retried the max num of times for %s, url %s. exc: %s",

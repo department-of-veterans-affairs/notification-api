@@ -17,7 +17,8 @@ from sqlalchemy.orm.exc import NoResultFound
 
 
 # Including sms_sender_id is necessary in case it's passed in when being called
-@notify_celery.task(bind=True, name="deliver_sms", throws=(AutoRetryException, ),
+@notify_celery.task(bind=True, name="deliver_sms",
+                    throws=(AutoRetryException, ),
                     autoretry_for=(AutoRetryException, ),
                     max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")

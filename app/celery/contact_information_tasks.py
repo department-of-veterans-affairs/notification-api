@@ -2,6 +2,7 @@ from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 
 from app import notify_celery, va_profile_client
+from app.celery.exceptions import AutoRetryException
 from app.va.identifier import IdentifierType
 from app.va.va_profile import VAProfileRetryableException, VAProfileNonRetryableException, NoContactInfoException
 from app.dao.notifications_dao import get_notification_by_id, dao_update_notification, update_notification_status_by_id
@@ -11,7 +12,8 @@ from app.va.va_profile.exceptions import VAProfileIDNotFoundException
 
 
 @notify_celery.task(bind=True, name="lookup-contact-info-tasks",
-                    # autoretry_for=(VAProfileRetryableException, ),
+                    throws=(AutoRetryException, ),
+                    autoretry_for=(AutoRetryException, ),
                     max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def lookup_contact_info(self, notification_id):
@@ -34,7 +36,7 @@ def lookup_contact_info(self, notification_id):
     except VAProfileRetryableException as e:
         current_app.logger.exception(e)
         try:
-            raise VAProfileRetryableException(f'Found VAProfileRetryableException, autoretrying...')
+            raise AutoRetryException(f'Found VAProfileRetryableException, autoretrying...')
         except self.MaxRetriesExceededError:
             message = (
                 'RETRY FAILED: Max retries reached. '

@@ -3,12 +3,12 @@ import datetime
 import json
 from typing import Tuple
 
-from app.celery.exceptions import RetryableException
 from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 from app import notify_celery, statsd_client
+from app.celery.exceptions import AutoRetryException
 from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
     dao_update_notification,
@@ -50,7 +50,8 @@ def _map_record_status_to_notification_status(record_status):
 
 
 @notify_celery.task(bind=True, name="process-pinpoint-result",
-                    # autoretry_for=(RetryableException, ),
+                    throws=(AutoRetryException, ),
+                    autoretry_for=(AutoRetryException, ),
                     max_retries=585, retry_backoff=True, retry_backoff_max=300)
 @statsd(namespace="tasks")
 def process_pinpoint_results(self, response):
@@ -69,7 +70,7 @@ def process_pinpoint_results(self, response):
         pinpoint_message = json.loads(base64.b64decode(response['Message']))
     except (json.decoder.JSONDecodeError, ValueError, TypeError, KeyError) as e:
         current_app.logger.exception(e)
-        raise RetryableException(f'Found {type(e).__name__}, autoretrying...')
+        raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...')
 
     try:
         pinpoint_attributes = pinpoint_message["attributes"]
@@ -82,7 +83,7 @@ def process_pinpoint_results(self, response):
         current_app.logger.error("The event stream message data is missing expected attributes.")
         current_app.logger.exception(e)
         current_app.logger.debug(pinpoint_message)
-        raise RetryableException('Found KeyError, autoretrying...')
+        raise AutoRetryException('Found KeyError, autoretrying...')
 
     current_app.logger.info(
         "Processing Pinpoint result. | reference=%s | event_type=%s | record_status=%s | "
@@ -129,7 +130,7 @@ def process_pinpoint_results(self, response):
         return True
     except Exception as e:
         current_app.logger.exception(e)
-        raise RetryableException(f'Found {type(e).__name__}, autoretrying...')
+        raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...')
 
 
 def get_notification_status(event_type: str, record_status: str, reference: str) -> str:
@@ -160,7 +161,7 @@ def attempt_to_get_notification(
             current_app.logger.info(
                 'Pinpoint callback event for reference %s was received less than five minutes ago.', reference
             )
-            raise RetryableException('Found NoResultFound, autoretrying...')
+            raise AutoRetryException('Found NoResultFound, autoretrying...')
         else:
             current_app.logger.critical(
                 'notification not found for reference: %s (update to %s)', reference, notification_status

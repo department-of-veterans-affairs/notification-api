@@ -10,12 +10,12 @@ from app.dao.notifications_dao import (
 )
 
 from typing import Tuple
-from app.celery.exceptions import RetryableException
 from flask import current_app
 
 from notifications_utils.statsd_decorators import statsd
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from app import notify_celery, statsd_client, clients
+from app.celery.exceptions import AutoRetryException
 from app.dao.service_callback_dao import dao_get_callback_include_payload_status
 
 from app.models import (
@@ -36,7 +36,8 @@ FINAL_STATUS_STATES = [
 
 # Create SQS Queue for Process Deliver Status.
 @notify_celery.task(bind=True, name="process-delivery-status-result",
-                    # autoretry_for=(RetryableException, ),
+                    throws=(AutoRetryException, ),
+                    autoretry_for=(AutoRetryException, ),
                     max_retries=585, retry_backoff=True, retry_backoff_max=300)
 @statsd(namespace="tasks")
 def process_delivery_status(self, event: CeleryEvent) -> bool:
@@ -74,7 +75,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     # the race condition scenario if we got the delivery status before we actually record the sms
     if notification is None:
         # warning is handled in the attempt_to_get_notification() call
-        raise RetryableException('Found NoResultFound, autoretrying...')
+        raise AutoRetryException('Found NoResultFound, autoretrying...')
 
     if should_exit:
         current_app.logger.critical(event)
@@ -103,7 +104,7 @@ def process_delivery_status(self, event: CeleryEvent) -> bool:
     except Exception as e:
         # why are we here logging.warning indicate the step that was being performed
         current_app.logger.exception(e)
-        raise RetryableException(f'Found {type(e).__name__}, autoretrying...')
+        raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...')
 
 
 def attempt_to_get_notification(
@@ -131,7 +132,7 @@ def attempt_to_get_notification(
         if event_duration_in_seconds < 300:
             current_app.logger.info(
                 "Delivery Status callback event for reference %s was received less than five minutes ago.", reference)
-            raise RetryableException('Found NoResultFound, autoretrying...')
+            raise AutoRetryException('Found NoResultFound, autoretrying...')
         else:
             current_app.logger.critical(
                 "notification not found for reference: %s (update to %s)", reference, notification_status)
@@ -224,7 +225,7 @@ def _get_notification_platform_status(self, provider: any, body: str, sqs_messag
         current_app.logger.error("The event stream body could not be translated.")
         current_app.logger.exception(e)
         current_app.logger.debug(sqs_message)
-        raise RetryableException(f'Found {type(e).__name__}, autoretrying...')
+        raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...')
 
     current_app.logger.info("retrieved delivery status: %s", notification_platform_status)
 
@@ -232,7 +233,7 @@ def _get_notification_platform_status(self, provider: any, body: str, sqs_messag
     if notification_platform_status is None:
         current_app.logger.error("Notification Platform Status cannot be None")
         current_app.logger.debug(body)
-        raise RetryableException(f'Found no notification_platform_status, autoretrying...')
+        raise AutoRetryException(f'Found no notification_platform_status, autoretrying...')
 
     return notification_platform_status
 
@@ -253,7 +254,7 @@ def _get_include_payload_status(self, notification: Notification) -> bool:
         current_app.logger.error("Could not determine include_payload property for ServiceCallback.")
         current_app.logger.exception(e)
         current_app.logger.debug(notification)
-        raise RetryableException(f'Found {type(e).__name__}, autoretrying...')
+        raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...')
 
     return include_payload_status
 
@@ -281,7 +282,7 @@ def _get_sqs_message(self, event: CeleryEvent) -> dict:
     except (TypeError, KeyError) as e:
         current_app.logger.exception(e)
         # same thing here regarding logging
-        raise RetryableException(f'Found {type(e).__name__}, autoretrying...')
+        raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...')
 
     return sqs_message
 
@@ -296,6 +297,6 @@ def _get_provider_info(self, sqs_message: dict) -> Tuple[str, any]:
     if provider is None:
         current_app.logger.error("Provider cannot be None")
         current_app.logger.debug(sqs_message)
-        raise RetryableException(f'Found no provider, autoretrying...')
+        raise AutoRetryException(f'Found no provider, autoretrying...')
 
     return provider_name, provider

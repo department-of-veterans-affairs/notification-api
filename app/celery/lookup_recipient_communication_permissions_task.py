@@ -5,6 +5,7 @@ from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 
 from app import notify_celery, va_profile_client
+from app.celery.exceptions import AutoRetryException
 from app.dao.communication_item_dao import get_communication_item
 from app.dao.notifications_dao import get_notification_by_id, update_notification_status_by_id
 from app.exceptions import NotificationTechnicalFailureException
@@ -15,7 +16,8 @@ from app.va.identifier import IdentifierType
 
 
 @notify_celery.task(bind=True, name="lookup-recipient-communication-permissions",
-                    # autoretry_for=(VAProfileRetryableException, ),
+                    throws=(AutoRetryException, ),
+                    autoretry_for=(AutoRetryException, ),
                     max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def lookup_recipient_communication_permissions(
@@ -87,7 +89,7 @@ def recipient_has_given_permission(
         current_app.logger.warning('Encountered VAProfileRetryableException for notification: %s', notification_id)
         current_app.logger.exception(e)
         try:
-            raise VAProfileRetryableException(f'Found VAProfileRetryableException, autoretrying...')
+            raise AutoRetryException(f'Found VAProfileRetryableException, autoretrying...')
         except task.MaxRetriesExceededError:
             message = (
                 'RETRY FAILED: Max retries reached. '

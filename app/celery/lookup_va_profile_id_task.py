@@ -4,6 +4,7 @@ from app.models import RecipientIdentifier, NOTIFICATION_TECHNICAL_FAILURE, \
 from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 from app import notify_celery
+from app.celery.exceptions import AutoRetryException
 from app.dao import notifications_dao
 from app import mpi_client
 from app.va.identifier import IdentifierType, UnsupportedIdentifierException
@@ -14,7 +15,8 @@ from app.celery.service_callback_tasks import check_and_queue_callback_task
 
 
 @notify_celery.task(bind=True, name="lookup-va-profile-id-tasks",
-                    # autoretry_for=(MpiRetryableException, ),
+                    throws=(AutoRetryException, ),
+                    autoretry_for=(AutoRetryException, ),
                     max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def lookup_va_profile_id(self, notification_id):
@@ -39,7 +41,7 @@ def lookup_va_profile_id(self, notification_id):
     except MpiRetryableException as e:
         current_app.logger.warning(f"Received {str(e)} for notification {notification_id}.")
         try:
-            raise MpiRetryableException('Found MpiRetryableException, autoretrying...')
+            raise AutoRetryException('Found MpiRetryableException, autoretrying...')
         except self.MaxRetriesExceededError:
             message = "RETRY FAILED: Max retries reached. " \
                       f"The task lookup_va_profile_id failed for notification {notification_id}. " \
