@@ -14,7 +14,7 @@ from app.celery.service_callback_tasks import check_and_queue_callback_task
 
 
 @notify_celery.task(bind=True, name="lookup-va-profile-id-tasks",
-                    autoretry_for=(MpiRetryableException, ),
+                    # autoretry_for=(MpiRetryableException, ),
                     max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def lookup_va_profile_id(self, notification_id):

@@ -1,5 +1,5 @@
 from app import notify_celery
-from app.celery.exceptions import RetryableException, NonRetryableException
+from app.celery.exceptions import RetryableException, NonRetryableException, AutoRetryException
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.clients.email.aws_ses import AwsSesClientThrottlingSendRateException
 from app.config import QueueNames
@@ -17,11 +17,16 @@ from sqlalchemy.orm.exc import NoResultFound
 
 
 # Including sms_sender_id is necessary in case it's passed in when being called
-@notify_celery.task(bind=True, name="deliver_sms",
-                    autoretry_for=(RetryableException, ),
+@notify_celery.task(bind=True, name="deliver_sms", throws=(AutoRetryException, ),
+                    autoretry_for=(AutoRetryException, ),
                     max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def deliver_sms(self, notification_id, sms_sender_id=None):
+    raise AutoRetryException()
+    try:
+        raise NoResultFound()
+    except NoResultFound as e:
+        raise AutoRetryException('no')
     try:
         current_app.logger.info("Start sending SMS for notification id: %s", notification_id)
         notification = notifications_dao.get_notification_by_id(notification_id)
@@ -48,12 +53,18 @@ def deliver_sms(self, notification_id, sms_sender_id=None):
         )
         notification = notifications_dao.get_notification_by_id(notification_id)
         check_and_queue_callback_task(notification)
+    except NoResultFound:
+        raise RetryableException()
     except Exception as e:
+        
         try:
             current_app.logger.exception(
                 "SMS notification delivery for id: %s failed", notification_id
             )
-            raise RetryableException(f'Found {type(e).__name__}, autoretrying...')
+            # Need to raise here so max retries can error
+            # self.retry(queue=QueueNames.RETRY, countdown=0)
+            raise Phony()
+            # raise RetryableException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
         except self.MaxRetriesExceededError:
             message = "RETRY FAILED: Max retries reached. The task send_sms_to_provider failed for notification " \
                       f"{notification_id}. Notification has been updated to technical-failure"
@@ -130,11 +141,12 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
 
 
 # Including sms_sender_id is necessary in case it's passed in when being called.
-@notify_celery.task(bind=True, name="deliver_email",
+@notify_celery.task(bind=True, name="deliver_email", throws=(RetryableException, ),
                     autoretry_for=(RetryableException, ),
                     max_retries=6, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def deliver_email(self, notification_id: str, sms_sender_id=None):
+    raise RetryableException()
     current_app.logger.info("Entered deliver_email...")
     try:
         raise RetryableException("Found RetryableException, autoretrying...")
