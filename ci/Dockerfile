@@ -31,7 +31,7 @@ COPY --chown=vanotify requirements.txt .
 RUN apk add --no-cache --virtual .build-deps gcc musl-dev rust cargo \
   && python -m pip install --upgrade pip \
   && python -m pip install wheel \
-  # Temporary add due to errors related to PyYAML and AttributeError.  See failed build on a deploy to dev here: https://github.com/department-of-veterans-affairs/notification-api/actions/runs/5578361363 
+  # TODO (ticket number) Temporary add due to errors related to PyYAML and AttributeError.
   && pip install "Cython<3.0" "pyyaml<6" --no-build-isolation \
   && pip install --upgrade setuptools==65.5.1 \
   && pip install --no-cache-dir -r requirements.txt \
