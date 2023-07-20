@@ -56,7 +56,7 @@ def deliver_sms(self, notification_id, sms_sender_id=None):
             "SMS delivery for notification id: %s failed", notification_id
         )
         if can_retry(self.request.retries, self.max_retries):
-            current_app.logger.warning("Unable to send sms for notificaiton id: %s, retrying", notification_id)
+            current_app.logger.warning("Unable to send sms for notification id: %s, retrying", notification_id)
             raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
         else:
             msg = handle_max_retries_exceeded(notification_id, 'deliver_sms', current_app.logger)
@@ -111,7 +111,7 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
             "Rate Limit SMS notification delivery for id: %s failed", notification_id
         )
         if can_retry(self.request.retries, self.max_retries):
-            current_app.logger.warning("Unable to send sms with rate limiting for notificaiton id: %s, retrying",
+            current_app.logger.warning("Unable to send sms with rate limiting for notification id: %s, retrying",
                                        notification_id)
             raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
         else:
@@ -166,7 +166,7 @@ def deliver_email(self, notification_id: str, sms_sender_id=None):
                     self.request.retries, notification_id
                 )
             else:
-                current_app.logger.warning("Unable to send email for notificaiton id: %s, retrying", notification_id)
+                current_app.logger.warning("Unable to send email for notification id: %s, retrying", notification_id)
             raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
         else:
             msg = handle_max_retries_exceeded(notification_id, 'deliver_email', current_app.logger)
