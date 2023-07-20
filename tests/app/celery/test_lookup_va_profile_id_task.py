@@ -217,7 +217,7 @@ def test_should_permanently_fail_and_clear_chain_when_permanent_failure_exceptio
 @pytest.mark.parametrize(
     'exception, notification_status, failure_reason', [
         (
-            MpiRetryableException('some error'),
+            MpiRetryableException,
             NOTIFICATION_TECHNICAL_FAILURE,
             RETRIES_EXCEEDED,
         ),
@@ -251,30 +251,22 @@ def test_should_permanently_fail_and_clear_chain_when_permanent_failure_exceptio
 def test_caught_exceptions_should_set_status_reason_on_notification(
         client, mocker, notification, exception, notification_status, failure_reason
 ):
-    mocker.patch(
-        'app.celery.lookup_va_profile_id_task.notifications_dao.get_notification_by_id',
-        return_value=notification
-    )
-
-    mocked_mpi_client = mocker.Mock()
-    mocked_mpi_client.get_va_profile_id = mocker.Mock(side_effect=exception)
-    mocker.patch(
-        'app.celery.lookup_va_profile_id_task.mpi_client',
-        new=mocked_mpi_client
-    )
+    mocker.patch('app.celery.lookup_va_profile_id_task.mpi_client.get_va_profile_id', side_effect=exception)
     if exception is MpiRetryableException:
+        # Ensuring this does not retry and should raise a NotificationTechnicalFailureException
         mocker.patch('app.celery.lookup_va_profile_id_task.can_retry', return_value=False)
+        mocker_handle_max_retries_exceeded = mocker.patch(
+            'app.celery.lookup_va_profile_id_task.handle_max_retries_exceeded')
+        with pytest.raises(Exception) as exc_info:
+            lookup_va_profile_id(notification.id)
+        assert exc_info.type is NotificationTechnicalFailureException
+        mocker_handle_max_retries_exceeded.assert_called_once()
     else:
-        mocked_update_notification_status_by_id = mocker.patch(
-            'app.celery.lookup_va_profile_id_task.notifications_dao.update_notification_status_by_id')
-
-    with pytest.raises(Exception) as exc_info:
-        lookup_va_profile_id(notification.id)
-    assert exc_info.type is exception
-    if exception is MpiRetryableException:
-        mocker.patch('app.celery.lookup_va_profile_id_task.handle_max_retries_exceeded').assert_called_once()
-    else:
-        mocked_update_notification_status_by_id.assert_called_with(
+        dao_path = 'app.celery.lookup_va_profile_id_task.notifications_dao.update_notification_status_by_id'
+        mocker_mocker_update_notification_status_by_id = mocker.patch(dao_path)
+        with pytest.raises(Exception) as exc_info:
+            lookup_va_profile_id(notification.id)
+        mocker_mocker_update_notification_status_by_id.assert_called_with(
             notification.id, notification_status, status_reason=failure_reason)
 
 
