@@ -49,7 +49,10 @@ nanoid >= 2.0.0
 notifications-python-client >= 8.0.1
 psycopg2-binary >= 2.9.6
 pwnedpasswords >= 2.0.0
-PyJWT >= 2.8.0
+
+# 20 July 2023: pyjwt[crypto] 2.7.0 depends on PyJWT 2.7.0 when you upgrade beyond PyJWT >= 2.8.0.
+# See #1380
+PyJWT ~= 2.7.0
 
 # 19 April 2023: This package is deprecated.  See #1221.
 PyPDF2 ~= 3.0.1
