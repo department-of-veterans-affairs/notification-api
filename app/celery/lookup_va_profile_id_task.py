@@ -4,7 +4,9 @@ from app.models import RecipientIdentifier, NOTIFICATION_TECHNICAL_FAILURE, \
 from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 from app import notify_celery
+from app.celery.common import can_retry, handle_max_retries_exceeded
 from app.celery.exceptions import AutoRetryException
+from app.config import QueueNames
 from app.dao import notifications_dao
 from app import mpi_client
 from app.va.identifier import IdentifierType, UnsupportedIdentifierException
@@ -39,18 +41,13 @@ def lookup_va_profile_id(self, notification_id):
         return va_profile_id
 
     except MpiRetryableException as e:
-        current_app.logger.warning(f"Received {str(e)} for notification {notification_id}.")
-        try:
-            raise AutoRetryException('Found MpiRetryableException, autoretrying...')
-        except self.MaxRetriesExceededError:
-            message = "RETRY FAILED: Max retries reached. " \
-                      f"The task lookup_va_profile_id failed for notification {notification_id}. " \
-                      "Notification has been updated to technical-failure"
-
-            notifications_dao.update_notification_status_by_id(
-                notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason=e.failure_reason
-            )
-            raise NotificationTechnicalFailureException(message) from e
+        if can_retry(self.request.retries, self.max_retries):
+            current_app.logger.warning("Unable to lookup VA Profile ID for notificaiton id: %s, retrying",
+                                       notification_id)
+            raise AutoRetryException(f'Found MpiRetryableException, autoretrying...', e, e.args)
+        else:
+            msg = handle_max_retries_exceeded(notification_id, 'lookup_va_profile_id', current_app.logger)
+            raise NotificationTechnicalFailureException(msg)
 
     except (BeneficiaryDeceasedException, IdentifierNotFound, MultipleActiveVaProfileIdsException,
             UnsupportedIdentifierException, IncorrectNumberOfIdentifiersException, NoSuchIdentifierException) as e:
