@@ -89,7 +89,7 @@ def recipient_has_given_permission(
         current_app.logger.warning('Encountered VAProfileRetryableException for notification: %s', notification_id)
         current_app.logger.exception(e)
         try:
-            raise AutoRetryException(f'Found VAProfileRetryableException, autoretrying...')
+            raise AutoRetryException('Found VAProfileRetryableException, autoretrying...')
         except task.MaxRetriesExceededError:
             message = (
                 'RETRY FAILED: Max retries reached. '

@@ -43,7 +43,7 @@ def lookup_va_profile_id(self, notification_id):
         if can_retry(self.request.retries, self.max_retries):
             current_app.logger.warning("Unable to lookup VA Profile ID for notification id: %s, retrying",
                                        notification_id)
-            raise AutoRetryException(f'Found MpiRetryableException, autoretrying...', e, e.args)
+            raise AutoRetryException('Found MpiRetryableException, autoretrying...', e, e.args)
         else:
             msg = handle_max_retries_exceeded(notification_id, 'lookup_va_profile_id', current_app.logger)
             raise NotificationTechnicalFailureException(msg)
