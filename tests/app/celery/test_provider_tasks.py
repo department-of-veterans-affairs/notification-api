@@ -3,7 +3,6 @@ import uuid
 from collections import namedtuple
 
 import pytest
-from botocore.exceptions import ClientError
 from notifications_utils.recipients import InvalidEmailError
 
 
@@ -150,14 +149,6 @@ def test_should_technical_error_and_not_retry_if_invalid_sms_provider(sample_not
 
 
 def test_should_retry_and_log_exception(sample_notification, mocker):
-    error_response = {
-        'Error': {
-            'Code': 'SomeError',
-            'Message': 'some error message from amazon',
-            'Type': 'Sender'
-        }
-    }
-    ex = ClientError(error_response=error_response, operation_name='opname')
     mocker.patch('app.delivery.send_to_providers.send_email_to_provider',
                  side_effect=AwsSesClientThrottlingSendRateException)
     with pytest.raises(AutoRetryException) as exc_info:

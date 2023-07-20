@@ -146,11 +146,9 @@ def test__send_data_to_service_callback_api_retries_if_request_returns_500_with_
                                        status='sent'
                                        )
     encrypted_data = _set_up_data_for_status_update(callback_api, notification)
-    
+
     with requests_mock.Mocker() as request_mock:
-        request_mock.post(callback_api.url,
-                        json={},
-                        status_code=501)
+        request_mock.post(callback_api.url, json={}, status_code=501)
         with pytest.raises(Exception) as exc_info:
             send_delivery_status_to_service(callback_api.id, notification.id, encrypted_status_update=encrypted_data)
         assert exc_info.type is AutoRetryException

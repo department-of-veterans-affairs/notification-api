@@ -4,6 +4,7 @@ from app.models import NOTIFICATION_TECHNICAL_FAILURE
 
 RETRIES_EXCEEDED = "Retries exceeded"
 
+
 def can_retry(retries: int, max_retries: int):
     """ Facilitates testing - Compares retries vs max retries returns True if retries < max_retries """
     return retries < max_retries

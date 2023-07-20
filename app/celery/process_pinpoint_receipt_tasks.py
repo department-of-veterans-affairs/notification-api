@@ -9,7 +9,6 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 from app import notify_celery, statsd_client
 from app.celery.exceptions import AutoRetryException
-from app.config import QueueNames
 from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
     dao_update_notification,

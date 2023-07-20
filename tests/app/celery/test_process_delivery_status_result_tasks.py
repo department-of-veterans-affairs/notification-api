@@ -118,6 +118,7 @@ def test_celery_event_with_invalid_body_attribute(notify_db_session, sample_deli
         process_delivery_status(event=sample_delivery_status_result_message)
     assert exc_info.type is AutoRetryException
 
+
 def test_get_provider_info_with_no_provider_retries(
         notify_db_session,
         sample_sqs_message_without_provider
@@ -127,6 +128,7 @@ def test_get_provider_info_with_no_provider_retries(
     with pytest.raises(Exception) as exc_info:
         _get_provider_info(sample_sqs_message_without_provider)
     assert exc_info.type is AutoRetryException
+
 
 def test_get_provider_info_with_invalid_provider_retries(
         notify_db_session,
@@ -140,6 +142,7 @@ def test_get_provider_info_with_invalid_provider_retries(
     with pytest.raises(Exception) as exc_info:
         _get_provider_info(sample_sqs_message_with_provider)
     assert exc_info.type is AutoRetryException
+
 
 def test_get_provider_info_with_twilio(
         notify_db_session,
@@ -233,6 +236,7 @@ def test_process_delivery_status_with_invalid_notification_retries(
         process_delivery_status(event=sample_delivery_status_result_message)
     assert exc_info.type is AutoRetryException
 
+
 def test_none_notification_platform_status_triggers_retry(
         mocker,
         notify_db_session,
@@ -247,6 +251,7 @@ def test_none_notification_platform_status_triggers_retry(
         process_delivery_status(event=sample_delivery_status_result_message)
     assert exc_info.type is AutoRetryException
 
+
 @pytest.mark.parametrize("event_duration_in_seconds", [-1, 0, 299, 300])
 def test_attempt_to_get_notification_NoResultFound(notify_db_session, event_duration_in_seconds):
     """
@@ -256,8 +261,8 @@ def test_attempt_to_get_notification_NoResultFound(notify_db_session, event_dura
     """
     if event_duration_in_seconds < 300:
         with pytest.raises(Exception) as exc_info:
-            notification, should_exit = attempt_to_get_notification(
-                "bad_reference", "delivered", event_duration_in_seconds)
+            # Ignore the returns, we are expecting an exception
+            attempt_to_get_notification("bad_reference", "delivered", event_duration_in_seconds)
         assert exc_info.type is AutoRetryException
     else:
         notification, should_exit = attempt_to_get_notification(
@@ -274,6 +279,7 @@ def test_process_delivery_status_should_retry_preempts_exit(
     with pytest.raises(Exception) as exc_info:
         process_delivery_status(event=sample_delivery_status_result_message)
     assert exc_info.type is AutoRetryException
+
 
 def test_process_delivery_status_with_valid_message_with_no_payload(
         mocker,

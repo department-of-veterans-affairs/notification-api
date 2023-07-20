@@ -6,7 +6,6 @@ from notifications_utils.statsd_decorators import statsd
 from app import notify_celery
 from app.celery.common import can_retry, handle_max_retries_exceeded
 from app.celery.exceptions import AutoRetryException
-from app.config import QueueNames
 from app.dao import notifications_dao
 from app import mpi_client
 from app.va.identifier import IdentifierType, UnsupportedIdentifierException

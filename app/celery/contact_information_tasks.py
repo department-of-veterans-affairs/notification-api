@@ -4,7 +4,6 @@ from notifications_utils.statsd_decorators import statsd
 from app import notify_celery, va_profile_client
 from app.celery.common import can_retry, handle_max_retries_exceeded
 from app.celery.exceptions import AutoRetryException
-from app.config import QueueNames
 from app.va.identifier import IdentifierType
 from app.va.va_profile import VAProfileRetryableException, VAProfileNonRetryableException, NoContactInfoException
 from app.dao.notifications_dao import get_notification_by_id, dao_update_notification, update_notification_status_by_id
@@ -36,12 +35,9 @@ def lookup_contact_info(self, notification_id):
                 f"{notification.notification_type} is not supported")
 
     except VAProfileRetryableException as e:
-        current_app.logger.exception(
-            "SMS notification delivery for id: %s failed", notification_id
-        )
         if can_retry(self.request.retries, self.max_retries):
             current_app.logger.warning("Unable to get contact info for notificaiton id: %s, retrying", notification_id)
-            raise AutoRetryException('Found VAProfileRetryableException, autoretrying...')
+            raise AutoRetryException('Found VAProfileRetryableException, autoretrying...', e, e.args)
         else:
             msg = handle_max_retries_exceeded(notification_id, 'lookup_contact_info', current_app.logger)
             raise NotificationTechnicalFailureException(msg)
