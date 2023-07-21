@@ -5,6 +5,7 @@ from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 
 from app import notify_celery, va_profile_client
+from app.celery.common import can_retry, handle_max_retries_exceeded
 from app.celery.exceptions import AutoRetryException
 from app.dao.communication_item_dao import get_communication_item
 from app.dao.notifications_dao import get_notification_by_id, update_notification_status_by_id
@@ -86,21 +87,13 @@ def recipient_has_given_permission(
             identifier, communication_item.va_profile_item_id, notification_id, notification_type
         )
     except VAProfileRetryableException as e:
-        current_app.logger.warning('Encountered VAProfileRetryableException for notification: %s', notification_id)
-        current_app.logger.exception(e)
-        try:
-            raise AutoRetryException('Found VAProfileRetryableException, autoretrying...')
-        except task.MaxRetriesExceededError:
-            message = (
-                'RETRY FAILED: Max retries reached. '
-                f'The task lookup_recipient_communication_permissions failed for notification {notification_id}. '
-                'Notification has been updated to technical-failure'
-            )
-
-            update_notification_status_by_id(
-                notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason=e.failure_reason
-            )
-            raise NotificationTechnicalFailureException(message) from e
+        if can_retry(task.request.retries, task.max_retries):
+            current_app.logger.warning('Unable to look up recipient communication permissions for notification: %s',
+                                       notification_id)
+            raise AutoRetryException('Found VAProfileRetryableException, autoretrying...', e, e.args)
+        else:
+            msg = handle_max_retries_exceeded(notification_id, 'lookup_recipient_communication_permissions', current_app.logger)
+            raise NotificationTechnicalFailureException(msg)
     except CommunicationItemNotFoundException:
         current_app.logger.info('Communication item for recipient %s not found on notification %s',
                                 id_value, notification_id)
