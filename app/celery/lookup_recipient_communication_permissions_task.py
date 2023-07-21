@@ -10,7 +10,7 @@ from app.celery.exceptions import AutoRetryException
 from app.dao.communication_item_dao import get_communication_item
 from app.dao.notifications_dao import get_notification_by_id, update_notification_status_by_id
 from app.exceptions import NotificationTechnicalFailureException
-from app.models import RecipientIdentifier, NOTIFICATION_PREFERENCES_DECLINED, NOTIFICATION_TECHNICAL_FAILURE
+from app.models import RecipientIdentifier, NOTIFICATION_PREFERENCES_DECLINED
 from app.va.va_profile import VAProfileRetryableException
 from app.va.va_profile.va_profile_client import CommunicationItemNotFoundException
 from app.va.identifier import IdentifierType
@@ -92,7 +92,8 @@ def recipient_has_given_permission(
                                        notification_id)
             raise AutoRetryException('Found VAProfileRetryableException, autoretrying...', e, e.args)
         else:
-            msg = handle_max_retries_exceeded(notification_id, 'lookup_recipient_communication_permissions', current_app.logger)
+            msg = handle_max_retries_exceeded(notification_id, 'lookup_recipient_communication_permissions',
+                                              current_app.logger)
             raise NotificationTechnicalFailureException(msg)
     except CommunicationItemNotFoundException:
         current_app.logger.info('Communication item for recipient %s not found on notification %s',
