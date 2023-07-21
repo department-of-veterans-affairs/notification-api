@@ -228,7 +228,7 @@ def _get_notification_platform_status(self, provider: any, body: str, sqs_messag
     if notification_platform_status is None:
         current_app.logger.error("Notification Platform Status cannot be None")
         current_app.logger.debug(body)
-        raise AutoRetryException(f'Found no notification_platform_status, autoretrying...')
+        raise AutoRetryException("Found no notification_platform_status, autoretrying...")
 
     return notification_platform_status
 
