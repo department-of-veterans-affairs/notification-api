@@ -288,6 +288,6 @@ def _get_provider_info(sqs_message: dict) -> Tuple[str, any]:
     # provider cannot None
     if provider is None:
         current_app.logger.warning("Unable to find provider given the following message: %s", sqs_message)
-        raise AutoRetryException(f'Found no provider, autoretrying...')
+        raise AutoRetryException("Found no provider, autoretrying...")
 
     return provider_name, provider
