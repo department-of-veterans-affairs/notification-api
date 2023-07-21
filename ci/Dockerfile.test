@@ -15,4 +15,3 @@ WORKDIR /app
 RUN rm -rf /temp
 USER vanotify
 CMD ["sh", "-c", "make test"]
-#CMD ["sh", "-c", "tail -f setup.cfg"]
