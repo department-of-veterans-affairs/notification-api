@@ -87,7 +87,7 @@ def recipient_has_given_permission(
             identifier, communication_item.va_profile_item_id, notification_id, notification_type
         )
     except VAProfileRetryableException as e:
-        if can_retry(task.request.retries, task.max_retries):
+        if can_retry(task.request.retries, task.max_retries, notification_id, current_app.logger):
             current_app.logger.warning('Unable to look up recipient communication permissions for notification: %s',
                                        notification_id)
             raise AutoRetryException('Found VAProfileRetryableException, autoretrying...', e, e.args)
