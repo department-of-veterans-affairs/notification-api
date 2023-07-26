@@ -123,7 +123,7 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
 @notify_celery.task(bind=True, name="deliver_email",
                     throws=(AutoRetryException, ),
                     autoretry_for=(AutoRetryException, ),
-                    max_retries=2886, retry_backoff=True, retry_backoff_max=60)
+                    retry_kwargs={'max_retries': 2886, 'retry_backoff': True, 'retry_backoff_max': 60})
 @statsd(namespace="tasks")
 def deliver_email(self, notification_id: str, sms_sender_id=None):
     try:
