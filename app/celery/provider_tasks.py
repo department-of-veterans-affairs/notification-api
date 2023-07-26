@@ -159,6 +159,8 @@ def deliver_email(self, notification_id: str, sms_sender_id=None):
         current_app.logger.exception(
             "Email delivery for notification id: %s failed", notification_id
         )
+        current_app.logger.info("Retries: %s, max retries: %s, notification id: %s",
+                                self.request.retries, self.max_retries, notification_id)
         if can_retry(self.request.retries, self.max_retries):
             if isinstance(e, AwsSesClientThrottlingSendRateException):
                 current_app.logger.warning(
