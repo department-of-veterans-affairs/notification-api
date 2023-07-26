@@ -127,7 +127,7 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
 @statsd(namespace="tasks")
 def deliver_email(self, notification_id: str, sms_sender_id=None):
     try:
-        raise AutoRetryException
+        raise KeyError
         current_app.logger.info("Start sending email for notification id: %s", notification_id)
         notification = notifications_dao.get_notification_by_id(notification_id)
         if not notification:
