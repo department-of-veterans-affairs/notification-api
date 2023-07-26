@@ -7,8 +7,9 @@ from app.models import NOTIFICATION_TECHNICAL_FAILURE
 RETRIES_EXCEEDED = "Retries exceeded"
 
 
-def can_retry(retries: int, max_retries: int) -> bool:
+def can_retry(retries: int, max_retries: int, notification_id: str, logger: logging.Logger) -> bool:
     """ Facilitates testing - Compares retries vs max retries returns True if retries < max_retries """
+    logger.info("Notification id: %s, max retries: %s, retries: %s", notification_id, max_retries, retries)
     return retries < max_retries
 
 
