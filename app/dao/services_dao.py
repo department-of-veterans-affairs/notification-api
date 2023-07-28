@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from notifications_utils.statsd_decorators import statsd
 from notifications_utils.timezones import convert_utc_to_local_timezone
 from sqlalchemy.sql.expression import asc, case, and_, func
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, scoped_session, sessionmaker
 from flask import current_app
 
 from app import db
@@ -193,18 +193,44 @@ def dao_fetch_service_by_inbound_number(number):
     ).first()
 
 
+class AuthenticatedServiceInfo:
+    def __init__(self, result):
+        self.active = result.active
+        self.permissions = [p.permission for p in result.permissions]
+        self.api_keys = [k for k in result.api_keys]
+        self.id = result.id
+        self.research_mode = result.research_mode
+        self.restricted = result.restricted
+        # self.serializedService = result.serialize()
+
+
 def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
-    query = Service.query.filter_by(
+    print("\n\n READER - START \n\n")
+    reader = db.engines['read-db']
+    session = scoped_session(sessionmaker(bind=reader))
+    print(session)
+    print(session.get_bind())
+    print(reader)
+    query = session.query(Service).filter_by(
         id=service_id
     ).options(
         joinedload('api_keys')
     )
+    session.close()
+
+    # query = Service.query.filter_by(
+    #     id=service_id
+    # ).options(
+    #     joinedload('api_keys')
+    # )
 
     if only_active:
         query = query.filter(Service.active)
 
-    return query.one()
-
+    result = query.one()
+    serviceInfo = AuthenticatedServiceInfo(result)
+    print("\n\n READER - END \n\n")
+    return serviceInfo
 
 def dao_fetch_all_services_by_user(user_id, only_active=False):
     query = Service.query.filter(

@@ -466,6 +466,39 @@ class Service(db.Model, Versioned):
             'name': self.name,
             'research_mode': self.research_mode
         }
+    
+    def serialize(self):
+        return {
+            'active': self.active,
+            'consent_to_research': self.consent_to_research,
+            'contact_link': self.contact_link,
+            'count_as_live': self.count_as_live,
+            'created_at': self.created_at,
+            'created_by_id': self.created_by_id,
+            'crown': self.crown,
+            'email_from': self.email_from,
+            'email_provider_id': self.email_provider_id,
+            'go_live_at': self.go_live_at,
+            'go_live_user_id': self.go_live_user_id,
+            'id': self.id,
+            'message_limit': self.message_limit,
+            'name': self.name,
+            'organisation_id': self.organisation_id,
+            'organisation_type': self.organisation_type,
+            'prefix_sms': self.prefix_sms,
+            'rate_limit': self.rate_limit,
+            'research_mode': self.research_mode,
+            'restricted': self.restricted,
+            'sending_domain': self.sending_domain,
+            'sms_provider_id': self.sms_provider_id,
+            'smtp_user': self.smtp_user,
+            'updated_at': self.updated_at,
+            # 'version': self.version,
+            'volume_email': self.volume_email,
+            'volume_letter': self.volume_letter,
+            'volume_sms': self.volume_sms,
+        }
+    
 
 
 class AnnualBilling(db.Model):
