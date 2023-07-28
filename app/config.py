@@ -510,9 +510,12 @@ class Development(Config):
 
     NOTIFICATION_QUEUE_PREFIX = os.getenv("NOTIFICATION_QUEUE_PREFIX", "vanotify-")
 
+    # TODO raise an error in dev / prod if unable to connect instead of deafulting to localhost
     SQLALCHEMY_DATABASE_URI = os.getenv(  # nosec
         "SQLALCHEMY_DATABASE_URI",
         'postgresql://postgres@localhost/notification_api')
+    
+    # TODO raise an error in dev / prod if unable to connect instead of deafulting to localhost
     SQLALCHEMY_BINDS = {"read-db": os.getenv(
         "SQLALCHEMY_DATABASE_URI_READ",
         'postgresql://postgres@localhost/notification_api')}
