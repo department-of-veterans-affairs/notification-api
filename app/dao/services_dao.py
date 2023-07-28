@@ -203,6 +203,7 @@ class AuthenticatedServiceInfo:
         self.restricted = result.restricted
         self.rate_limit = result.rate_limit
         self.service_sms_senders = result.service_sms_senders
+        self.message_limit = result.message_limit
         # self.serializedService = result.serialize()
 
 
@@ -234,6 +235,7 @@ def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
     print(serviceInfo)
     print(serviceInfo.rate_limit)
     print(serviceInfo.service_sms_senders)
+    print(serviceInfo.message_limit)
     print("\n\n READER - END \n\n")
     return serviceInfo
 
