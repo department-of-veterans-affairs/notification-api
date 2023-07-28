@@ -86,7 +86,7 @@ def dao_create_notification(notification):
         # need to populate defaulted fields before we create the notification history object
         notification.id = create_uuid()
     # TODO what if db.session.add fails?
-    # why is status created before 
+    # why is status created before
     if not notification.status:
         notification.status = NOTIFICATION_CREATED
 

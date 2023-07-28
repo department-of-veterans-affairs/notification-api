@@ -466,7 +466,7 @@ class Service(db.Model, Versioned):
             'name': self.name,
             'research_mode': self.research_mode
         }
-    
+
     def serialize(self):
         return {
             'active': self.active,
@@ -498,7 +498,7 @@ class Service(db.Model, Versioned):
             'volume_letter': self.volume_letter,
             'volume_sms': self.volume_sms,
         }
-    
+
 
 class AnnualBilling(db.Model):
     __tablename__ = "annual_billing"
