@@ -114,10 +114,7 @@ def persist_notification(
         sms_sender_id=sms_sender_id
     )
 
-    # print("\n\nHERE-21a\n\n")
-
     if accept_recipient_identifiers_enabled() and recipient_identifier:
-        # print("\n\nHERE-21b\n\n")
         _recipient_identifier = RecipientIdentifier(
             notification_id=notification_id,
             id_type=recipient_identifier['id_type'],
@@ -127,7 +124,6 @@ def persist_notification(
         notification.recipient_identifiers.set(_recipient_identifier)
 
     if notification_type == SMS_TYPE and notification.to:
-        # print("\n\nHERE-21c\n\n")
         formatted_recipient = validate_and_format_phone_number(recipient, international=True)
         recipient_info = get_international_phone_info(formatted_recipient)
         notification.normalised_to = formatted_recipient
@@ -135,19 +131,16 @@ def persist_notification(
         notification.phone_prefix = recipient_info.country_prefix
         notification.rate_multiplier = recipient_info.billable_units
     elif notification_type == EMAIL_TYPE and notification.to:
-        # print("\n\nHERE-21d\n\n")
         notification.normalised_to = format_email_address(notification.to)
     elif notification_type == LETTER_TYPE:
-        # print("\n\nHERE-21e\n\n")
         notification.postage = postage or template_postage
 
     if not simulated:
-        # print("\n\nHERE-21f\n\n")
         # Persist the Notification in the database.
         dao_create_notification(notification)
-        # if key_type != KEY_TYPE_TEST:
-        #     if redis_store.get(redis.daily_limit_cache_key(service.id)):
-        #         redis_store.incr(redis.daily_limit_cache_key(service.id))
+        if key_type != KEY_TYPE_TEST:
+            if redis_store.get(redis.daily_limit_cache_key(service.id)):
+                redis_store.incr(redis.daily_limit_cache_key(service.id))
 
         print("\n\nHERE-21g\n\n")
 
