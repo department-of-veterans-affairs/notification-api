@@ -500,7 +500,6 @@ class Service(db.Model, Versioned):
         }
     
 
-
 class AnnualBilling(db.Model):
     __tablename__ = "annual_billing"
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=False)

@@ -201,10 +201,13 @@ class AuthenticatedServiceInfo:
         self.id = result.id
         self.research_mode = result.research_mode
         self.restricted = result.restricted
+        self.rate_limit = result.rate_limit
+        self.service_sms_senders = result.service_sms_senders
         # self.serializedService = result.serialize()
 
+
 def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
-    # print("\n\n READER - START \n\n")
+    print("\n\n READER - START \n\n")
     reader = db.engines['read-db']
     session = scoped_session(sessionmaker(bind=reader))
     # print(session)
@@ -228,8 +231,12 @@ def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
 
     result = query.one()
     serviceInfo = AuthenticatedServiceInfo(result)
-    # print("\n\n READER - END \n\n")
+    print(serviceInfo)
+    print(serviceInfo.rate_limit)
+    print(serviceInfo.service_sms_senders)
+    print("\n\n READER - END \n\n")
     return serviceInfo
+
 
 def dao_fetch_all_services_by_user(user_id, only_active=False):
     query = Service.query.filter(
