@@ -40,9 +40,3 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.login-ecr-vaec.outputs.registry }}/notification_api:${{ inputs.ref }}_${{ inputs.environment }}
-
-      #- name: Dispatch Twistlock Workflow
-        #env:
-          #GH_TOKEN: ${{ github.token }}
-        #run: |
-          #gh workflow run -r master -F image-tag=${{ inputs.ref }}_${{ inputs.environment }} twistlock.yml
