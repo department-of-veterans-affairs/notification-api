@@ -28,7 +28,6 @@ class TestTransformToFhirFormat:
         (IdentifierType.VA_PROFILE_ID, "301", "301^PI^200VETS^USDVA"),
         (IdentifierType.BIRLSID, "789123", "789123^PI^200BRLS^USVBA"),
         (IdentifierType.EDIPI, "1005079124", "1005079124^NI^200DOD^USDOD")
-        
     ])
     def test_should_transform_recipient_identifier_to_mpi_acceptable_format(
             self,
