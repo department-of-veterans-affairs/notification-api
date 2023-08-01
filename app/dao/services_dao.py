@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime, timedelta
+from app.service.authenticated_service_info import AuthenticatedServiceInfo
 
 from notifications_utils.statsd_decorators import statsd
 from notifications_utils.timezones import convert_utc_to_local_timezone
@@ -193,27 +194,12 @@ def dao_fetch_service_by_inbound_number(number):
     ).first()
 
 
-class AuthenticatedServiceInfo:
-    def __init__(self, result):
-        self.active = result.active
-        self.permissions = [p.permission for p in result.permissions]
-        self.api_keys = [k for k in result.api_keys]
-        self.id = result.id
-        self.research_mode = result.research_mode
-        self.restricted = result.restricted
-        self.rate_limit = result.rate_limit
-        self.service_sms_senders = result.service_sms_senders
-        self.message_limit = result.message_limit
-        # self.serializedService = result.serialize()
-
-
 def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
-    print("\n\n READER - START \n\n")
+    # instead of default engine bound to write instance of the database
+    # use engine bound to read intance of database cluster
     reader = db.engines['read-db']
     session = scoped_session(sessionmaker(bind=reader))
-    # print(session)
-    # print(session.get_bind())
-    # print(reader)
+    # query using read engine
     query = session.query(Service).filter_by(
         id=service_id
     ).options(
@@ -221,22 +207,14 @@ def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
     )
     session.close()
 
-    # query = Service.query.filter_by(
-    #     id=service_id
-    # ).options(
-    #     joinedload('api_keys')
-    # )
-
     if only_active:
         query = query.filter(Service.active)
 
     result = query.one()
+    # instead of returning the whole model
+    # extract only need properties and return them
+    # as a serializable object
     serviceInfo = AuthenticatedServiceInfo(result)
-    print(serviceInfo)
-    print(serviceInfo.rate_limit)
-    print(serviceInfo.service_sms_senders)
-    print(serviceInfo.message_limit)
-    print("\n\n READER - END \n\n")
     return serviceInfo
 
 
