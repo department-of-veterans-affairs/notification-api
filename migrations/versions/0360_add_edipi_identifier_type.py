@@ -23,7 +23,7 @@ def upgrade():
 
 
 def downgrade():
-    op.execute('ALTER TYPE id_types RENAME TO tmp_id_types CASCADE')
+    op.execute('ALTER TYPE id_types RENAME TO tmp_id_types')
     old_id_types.create(op.get_bind())
     op.execute('ALTER TABLE recipient_identifiers ALTER COLUMN id_type TYPE id_types USING id_type::text::id_types')
     op.execute('DROP TYPE tmp_id_types')
