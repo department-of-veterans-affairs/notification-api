@@ -37,3 +37,4 @@ class AuthenticatedServiceInfo:
         result = cls()
         result.__dict__ = json.loads(json_string)
         return result
+
