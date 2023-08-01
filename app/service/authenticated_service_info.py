@@ -1,5 +1,6 @@
 import json
 
+
 class AuthenticatedServiceInfo:
     def __init__(self, result=None):
         self.active = None
@@ -37,4 +38,3 @@ class AuthenticatedServiceInfo:
         result = cls()
         result.__dict__ = json.loads(json_string)
         return result
-
