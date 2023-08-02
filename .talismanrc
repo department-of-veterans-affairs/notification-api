@@ -333,3 +333,5 @@ fileignoreconfig:
       checksum: 120ea4457eac8216580853c44751a329b74cc29fafc9064105ee73d9a9c2bdc8
     - filename: migrations/versions/0359_communication_items_unique.py
       checksum: 1c963f08a88caf7de46e27f89fdc7af37b38a61bb62b10498bfca26bc29d792e
+    - filename: app/schema_validation/__init__.py
+      checksum: 735a9c7183bccdd7feb87ab29e64566ed076747c527e0cd4fa6281d9991af297
