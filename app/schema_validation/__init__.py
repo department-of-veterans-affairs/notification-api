@@ -67,8 +67,7 @@ def validate(json_to_validate, schema):
             if isinstance(json_to_validate["personalisation"], str):
                 json_to_validate["personalisation"] = "<redacted>"
             elif isinstance(json_to_validate["personalisation"], dict):
-                for key in json_to_validate["personalisation"]:
-                    json_to_validate["personalisation"][key] = "<redacted>"
+                json_to_validate["personalisation"] = {key: "<redacted>" for key in json_to_validate["personalisation"]}
         current_app.logger.info("Validation failed for: %s", json_to_validate)
         raise ValidationError(build_error_message(errors))
 
