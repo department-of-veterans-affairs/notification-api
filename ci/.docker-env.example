@@ -46,4 +46,4 @@ GITHUB_CLIENT_ID=fake-id
 GITHUB_CLIENT_SECRET=fake-secret
 
 REDIS_ENABLED='True'
-REDIS_URL=redis://localhost:6379/0
+REDIS_URL=redis://redis:6379/0

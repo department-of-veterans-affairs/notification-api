@@ -108,6 +108,7 @@ class Config(object):
 
     # DB conection string
     SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
+    SQLALCHEMY_DATABASE_URI_READ = os.getenv('SQLALCHEMY_DATABASE_URI_READ')
 
     # MMG API Key
     MMG_API_KEY = os.getenv('MMG_API_KEY')
@@ -547,6 +548,10 @@ class Test(Development):
     # this is overriden in jenkins and on cloudfoundry
     SQLALCHEMY_DATABASE_URI = os.getenv(  # nosec
         'SQLALCHEMY_DATABASE_URI',
+        'postgresql://postgres@localhost/test_notification_api'
+    )
+    SQLALCHEMY_DATABASE_URI_READ = os.getenv(  # nosec
+        'SQLALCHEMY_DATABASE_URI_READ',
         'postgresql://postgres@localhost/test_notification_api'
     )
 

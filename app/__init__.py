@@ -99,6 +99,8 @@ def create_app(application, worker_id=None):
         application.config["SQLALCHEMY_DATABASE_URI"] += f"_{worker_id}"
         assert "test_notification_api" in application.config["SQLALCHEMY_DATABASE_URI"], \
             "Don't run tests against the main database."
+        assert "test_notification_api" in application.config["SQLALCHEMY_DATABASE_URI_READ"], \
+            "Don't run tests against the main database."
 
     application.config["NOTIFY_APP_NAME"] = application.name
     init_app(application)

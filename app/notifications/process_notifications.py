@@ -96,6 +96,10 @@ def persist_notification(
         template_version=template_version,
         to=recipient,
         service_id=service.id,
+        # Commenting this out as part of work on #1344
+        # We only need service.id above and don't need
+        # the whole service. We should remove this once
+        # we confirm everything works.
         # service=service,
         personalisation=personalisation,
         notification_type=notification_type,
@@ -141,8 +145,6 @@ def persist_notification(
         if key_type != KEY_TYPE_TEST:
             if redis_store.get(redis.daily_limit_cache_key(service.id)):
                 redis_store.incr(redis.daily_limit_cache_key(service.id))
-
-        print("\n\nHERE-21g\n\n")
 
         current_app.logger.info(
             f"{notification_type} {notification_id} created at {notification_created_at}"
