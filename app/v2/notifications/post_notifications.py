@@ -43,7 +43,7 @@ from app.notifications.validators import (
     validate_and_format_recipient,
     check_rate_limiting,
     check_service_can_schedule_notification,
-    check_service_has_permission,
+    # check_service_has_permission,
     validate_template,
     check_service_email_reply_to_id,
     check_service_sms_sender_id
@@ -62,6 +62,7 @@ from app.v2.notifications.notification_schemas import (
     post_letter_request,
     post_precompiled_letter_request
 )
+from app.utils import get_public_notify_type_text
 
 
 # FIXME: POST requests to /v2/notifications/letter match this route and the
@@ -75,7 +76,10 @@ def post_precompiled_letter_notification():
     form = validate(request.get_json(), post_precompiled_letter_request)
 
     # Check permission to send letters
-    check_service_has_permission(LETTER_TYPE, authenticated_service.permissions)
+    # check_service_has_permission(LETTER_TYPE, authenticated_service.permissions)
+    if not authenticated_service.has_permissions(LETTER_TYPE):
+        raise BadRequestError(message="Service is not allowed to send {}".format(
+            get_public_notify_type_text(LETTER_TYPE, plural=True)))
 
     check_rate_limiting(authenticated_service, api_user)
 
@@ -131,7 +135,10 @@ def post_notification(notification_type):  # noqa: C901
     else:
         abort(404)
 
-    check_service_has_permission(notification_type, authenticated_service.permissions)
+    # check_service_has_permission(notification_type, authenticated_service.permissions)
+    if not authenticated_service.has_permissions(notification_type):
+        raise BadRequestError(message="Service is not allowed to send {}".format(
+            get_public_notify_type_text(notification_type, plural=True)))
 
     scheduled_for = form.get("scheduled_for")
 
@@ -308,7 +315,10 @@ def process_document_uploads(personalisation_data, service, simulated=False):
 
     personalisation_data = personalisation_data.copy()
 
-    check_service_has_permission(UPLOAD_DOCUMENT, authenticated_service.permissions)
+    # check_service_has_permission(UPLOAD_DOCUMENT, authenticated_service.permissions)
+    if not authenticated_service.has_permissions(UPLOAD_DOCUMENT):
+        raise BadRequestError(message="Service is not allowed to send {}".format(
+            get_public_notify_type_text(UPLOAD_DOCUMENT, plural=True)))
 
     if any(personalisation_data[key].get('sending_method') == 'link' for key in file_keys):
         raise NotImplementedError()

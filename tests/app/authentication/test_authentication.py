@@ -278,9 +278,12 @@ def test_authentication_returns_error_when_service_doesnt_exit(
 
 def test_authentication_returns_error_when_service_inactive(client, sample_api_key):
     sample_api_key.service.active = False
+    print(f"NIK: 123123 : sample_api_key {sample_api_key}")
+    print(f"NIK: 123123 : sample_api_key.service.active {sample_api_key.service.active}")
     token = create_jwt_token(secret=str(sample_api_key.id), client_id=str(sample_api_key.service_id))
 
     response = client.get('/notifications', headers={'Authorization': 'Bearer {}'.format(token)})
+    print(f"NIK: 123123 : response {response}")
 
     assert response.status_code == 403
     error_message = json.loads(response.get_data())
@@ -308,8 +311,20 @@ def test_should_attach_the_current_api_key_to_current_app(notify_api, sample_ser
             '/notifications',
             headers={'Authorization': 'Bearer {}'.format(token)}
         )
+        print(f"NIK: api_user type = {type(api_user)}")
+        print(f"NIK: api_user {api_user}")
+        for p in dir(api_user):
+            if not p.startswith("_") and not callable(getattr(api_user, p)):
+                print(f"NIK: api_user prop {p}: {getattr(api_user, p)}")
+
+        print(f"NIK: sample_api_key type = {type(sample_api_key)}")
+        print(f"NIK: sample_api_key {sample_api_key}")
+        for p in dir(sample_api_key):
+            if not p.startswith("_") and not callable(getattr(sample_api_key, p)):
+                print(f"NIK: sample_api_key prop {p}: {getattr(sample_api_key, p)}")
+        print(f"NIK: is api_user.id == sample_api_key.id ? : {api_user.id == sample_api_key.id}")
         assert response.status_code == 200
-        assert api_user == sample_api_key
+        assert api_user.id == sample_api_key.id
 
 
 def test_should_return_403_when_token_is_expired(client,

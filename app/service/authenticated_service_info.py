@@ -1,4 +1,5 @@
 import json
+# from app.models import SMS_TYPE, INBOUND_SMS_TYPE
 
 
 class AuthenticatedServiceInfo:
@@ -12,6 +13,8 @@ class AuthenticatedServiceInfo:
         self.rate_limit = None
         self.service_sms_senders = None
         self.message_limit = None
+        self.users = None
+        self.whitelist = None
         if result is not None:
             self.extract(result)
 
@@ -19,17 +22,32 @@ class AuthenticatedServiceInfo:
     def extract(self, result):
         self.active = result.active
         self.permissions = [p.permission for p in result.permissions]
+        print(f"NIK: AuthenticatedServiceInfo : result.api_keys = {result.api_keys}")
         self.api_keys = [k for k in result.api_keys]
+        print(f"NIK: AuthenticatedServiceInfo : self.api_keys = {self.api_keys}")
         self.id = result.id
         self.research_mode = result.research_mode
         self.restricted = result.restricted
         self.rate_limit = result.rate_limit
         self.service_sms_senders = result.service_sms_senders
         self.message_limit = result.message_limit
+        self.users = [u for u in result.users]
+        self.whitelist = [w for w in result.whitelist]
 
     # method might be used for caching
     def serialize(self):
         return json.dumps(self.__dict__)
+
+    def has_permissions(self, permissions_to_check_for):
+        if type(permissions_to_check_for) != 'list':
+            tmp = permissions_to_check_for
+            permissions_to_check_for = [tmp]
+        print(f"NIK: AuthenticatedServiceInfo.has_permission was called")
+        print(f"NIK: AuthenticatedServiceInfo permissions_to_check_for {permissions_to_check_for}")
+        print(f"NIK: AuthenticatedServiceInfo self.permissions = {self.permissions}")
+        print(f"NIK: AuthenticatedServiceInfo result = {set(permissions_to_check_for).issubset(set(self.permissions))}")
+        # return permission_to_check in self.permissions
+        return set(permissions_to_check_for).issubset(set(self.permissions))
 
     # method creates a new instance of class
     # and might be used after retrival from caching

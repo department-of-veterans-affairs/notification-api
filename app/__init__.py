@@ -97,6 +97,11 @@ def create_app(application, worker_id=None):
     if notify_environment == "test":
         assert worker_id is not None
         application.config["SQLALCHEMY_DATABASE_URI"] += f"_{worker_id}"
+        # application.config["SQLALCHEMY_DATABASE_URI_READ"] += f"_{worker_id}"
+        application.config["SQLALCHEMY_BINDS"] = {"read-db": application.config["SQLALCHEMY_DATABASE_URI"]}
+        # SQLALCHEMY_BINDS = {"read-db": os.getenv(
+        # "SQLALCHEMY_DATABASE_URI_READ",
+        # 'postgresql://postgres@localhost/notification_api')}
         assert "test_notification_api" in application.config["SQLALCHEMY_DATABASE_URI"], \
             "Don't run tests against the main database."
         assert "test_notification_api" in application.config["SQLALCHEMY_DATABASE_URI_READ"], \

@@ -23,7 +23,7 @@ from app.service.utils import service_allowed_to_send_to
 from app.v2.errors import TooManyRequestsError, BadRequestError, RateLimitError
 from app import redis_store
 from app.notifications.process_notifications import create_content_for_notification
-from app.utils import get_public_notify_type_text
+# from app.utils import get_public_notify_type_text
 from app.dao.service_email_reply_to_dao import dao_get_reply_to_by_id
 from app.dao.service_letter_contact_dao import dao_get_letter_contact_by_id
 
@@ -112,10 +112,10 @@ def service_has_permission(notify_type, permissions):
     return notify_type in permissions
 
 
-def check_service_has_permission(notify_type, permissions):
-    if not service_has_permission(notify_type, permissions):
-        raise BadRequestError(message="Service is not allowed to send {}".format(
-            get_public_notify_type_text(notify_type, plural=True)))
+# def check_service_has_permission(notify_type, permissions):
+#     if not service_has_permission(notify_type, permissions):
+#         raise BadRequestError(message="Service is not allowed to send {}".format(
+#             get_public_notify_type_text(notify_type, plural=True)))
 
 
 def check_service_can_schedule_notification(permissions, scheduled_for):
@@ -131,15 +131,19 @@ def validate_and_format_recipient(send_to, key_type, service, notification_type,
     service_can_send_to_recipient(send_to, key_type, service, allow_whitelisted_recipients)
 
     if notification_type == SMS_TYPE:
-        international_phone_info = get_international_phone_info(send_to)
+        phone_info = get_international_phone_info(send_to)
 
-        if international_phone_info.international and \
-                INTERNATIONAL_SMS_TYPE not in service.permissions:
+        # print(f"NIK:2: {INTERNATIONAL_SMS_TYPE} not in {service.permissions}")
+        if phone_info.international and not service.has_permissions(INTERNATIONAL_SMS_TYPE):
+            # INTERNATIONAL_SMS_TYPE not in [p.permission for p in service.permissions]:
+            # TODO investigate flows that get to this point and and make sure that it
+            # works for both Service and AuthenticatedServiceInfo
+            # INTERNATIONAL_SMS_TYPE not in service.permissions:
             raise BadRequestError(message="Cannot send to international mobile numbers")
 
         return validate_and_format_phone_number(
             number=send_to,
-            international=international_phone_info.international
+            international=phone_info.international
         )
     elif notification_type == EMAIL_TYPE:
         return validate_and_format_email_address(email_address=send_to)

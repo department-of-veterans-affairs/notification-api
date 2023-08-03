@@ -6,6 +6,7 @@ from app.dao.inbound_sms_dao import dao_create_inbound_sms
 from app.dao.services_dao import dao_fetch_service_by_inbound_number
 from app.errors import register_errors
 from app.models import InboundSms, INBOUND_SMS_TYPE, SMS_TYPE, Service
+# from app.models import InboundSms, Service
 from datetime import datetime
 from flask import jsonify, Blueprint, current_app, request, abort
 from notifications_utils.recipients import try_validate_and_format_phone_number
@@ -217,13 +218,17 @@ class NoSuitableServiceForInboundSms(Exception):
 def fetch_potential_service(inbound_number: str, provider_name: str) -> Service:
     service = dao_fetch_service_by_inbound_number(inbound_number)
 
+    if service is not None:
+        print(f"NIK: fetch_potential_service:service type {type(service)} ")
+        print(f"NIK: fetch_potential_service:service.permissions {service.permissions} ")
+
     if not service:
         statsd_client.incr(f"inbound.{provider_name}.failed")
         message = f'Inbound number "{inbound_number}" from {provider_name} not associated with a service'
         current_app.logger.error(message)
         raise NoSuitableServiceForInboundSms(message)
 
-    elif not has_inbound_sms_permissions(service.permissions):
+    elif not service.has_permissions([INBOUND_SMS_TYPE, SMS_TYPE]):
         statsd_client.incr(f"inbound.{provider_name}.failed")
         message = f'Service "{service.id}" does not allow inbound SMS'
         current_app.logger.error(message)
@@ -233,9 +238,10 @@ def fetch_potential_service(inbound_number: str, provider_name: str) -> Service:
         return service
 
 
-def has_inbound_sms_permissions(permissions):
-    str_permissions = [p.permission for p in permissions]
-    return set([INBOUND_SMS_TYPE, SMS_TYPE]).issubset(set(str_permissions))
+# def has_inbound_sms_permissions(permissions):
+#     # str_permissions = [p.permission for p in permissions]
+#     str_permissions = permissions
+#     return set([INBOUND_SMS_TYPE, SMS_TYPE]).issubset(set(str_permissions))
 
 
 def strip_leading_forty_four(number):

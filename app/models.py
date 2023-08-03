@@ -34,7 +34,7 @@ from sqlalchemy.dialects.postgresql import JSON, JSONB, UUID
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm.collections import attribute_mapped_collection
+from sqlalchemy.orm.collections import attribute_mapped_collection, InstrumentedList
 
 
 SMS_TYPE = 'sms'
@@ -448,8 +448,41 @@ class Service(db.Model, Versioned):
         default_letter_contact = [x for x in self.letter_contacts if x.is_default]
         return default_letter_contact[0].contact_block if default_letter_contact else None
 
-    def has_permission(self, permission):
-        return permission in [p.permission for p in self.permissions]
+    # TODO define the right place for permission checking. Consider merging with AuthenticatedServiceInfo
+    def has_permissions(self, permissions_to_check_for):
+        print(f"NIK: Service.has_permission was called")
+        print(f"NIK: Service permissions_to_check_for type = {type(permissions_to_check_for)}")
+        print(f"NIK: Service permissions_to_check_for {permissions_to_check_for}")
+        print(f"NIK: Service self.permissions type = {type(self.permissions)}")
+        print(f"NIK: Service self.permissions {self.permissions}")
+
+        if type(permissions_to_check_for) == 'list':
+            for idx, p in permissions_to_check_for:
+                print(f"NIK: Service permissions_to_check_for type[{idx}] = {type(p)}")
+
+        if isinstance(permissions_to_check_for, InstrumentedList):
+            print(f"NIK: Service permissions_to_check_for is InstrumentedList")
+            _permissions_to_check_for = [p.permission for p in permissions_to_check_for]
+        elif not isinstance(permissions_to_check_for, InstrumentedList)\
+                and not isinstance(permissions_to_check_for, list):
+            _permissions_to_check_for = [permissions_to_check_for]
+        else:
+            print(f"NIK: Service permissions_to_check_for is NOT InstrumentedList")
+            _permissions_to_check_for = permissions_to_check_for
+
+        if isinstance(self.permissions, InstrumentedList):
+            print(f"NIK: Service self.permissions is InstrumentedList")
+            _permissions = [p.permission for p in self.permissions]
+        else:
+            print(f"NIK: Service self.permissions is NOT InstrumentedList")
+            _permissions = self.permissions
+
+        print(f"NIK: Service _permissions = {_permissions}")
+        print(f"NIK: Service _permissions_to_check_for {_permissions_to_check_for}")
+        result = set(_permissions_to_check_for).issubset(set(_permissions))
+
+        print(f"NIK: Service result = {result}")
+        return result
 
     def serialize_for_org_dashboard(self):
         return {

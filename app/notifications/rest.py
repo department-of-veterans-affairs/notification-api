@@ -187,10 +187,13 @@ def get_notification_return_data(notification_id, notification, template):
 
 
 def _service_can_send_internationally(service, number):
-    international_phone_info = get_international_phone_info(number)
+    phone_info = get_international_phone_info(number)
 
-    if international_phone_info.international and \
-            INTERNATIONAL_SMS_TYPE not in [p.permission for p in service.permissions]:
+    # print(f"NIK:1: {INTERNATIONAL_SMS_TYPE} not in {service.permissions}")
+    if phone_info.international and not service.has_permissions(INTERNATIONAL_SMS_TYPE):
+        # INTERNATIONAL_SMS_TYPE not in [p.permission for p in service.permissions]:
+        # TODO investigate flows that get to this point and and make sure that it
+        # works for both Service and AuthenticatedServiceInfo
         raise InvalidRequest(
             {'to': ["Cannot send to international mobile numbers"]},
             status_code=400
