@@ -83,12 +83,6 @@ def notify_db(notify_api):
 
     # Create a database for this worker thread.
     create_test_db(current_app.config['SQLALCHEMY_DATABASE_URI'])
-    # print(f"NIK: SQLALCHEMY_DATABASE_URI {current_app.config['SQLALCHEMY_DATABASE_URI']}")
-    # print(f"NIK: SQLALCHEMY_DATABASE_URI_READ {current_app.config['SQLALCHEMY_DATABASE_URI_READ']}")
-    # if current_app.config['SQLALCHEMY_DATABASE_URI'] != current_app.config['SQLALCHEMY_DATABASE_URI_READ']:
-    # print(f"NIK: isEqual = {current_app.config['SQLALCHEMY_DATABASE_URI']
-    # != current_app.config['SQLALCHEMY_DATABASE_URI_READ']}")
-    # create_test_db(current_app.config['SQLALCHEMY_DATABASE_URI_READ'])
 
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
     ALEMBIC_CONFIG = os.path.join(BASE_DIR, 'migrations')

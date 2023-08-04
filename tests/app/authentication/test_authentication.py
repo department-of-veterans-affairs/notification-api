@@ -280,25 +280,9 @@ def test_authentication_returns_error_when_service_inactive(client, sample_api_k
     sample_api_key.service.active = False
     # we now need to save the model because we'll read using read-db engine
     dao_update_service(sample_api_key.service)
-    
-    # token = create_jwt_token(secret=str(sample_api_key.id), client_id=str(sample_api_key.service_id))
-    token = create_jwt_token(secret=str(sample_api_key.secret), client_id=str(sample_api_key.service_id))
-    try:
-        print(f"NIK: test_authentication_returns_error_when_service_inactive : token {token}")
-        # print(f"NIK: test_authentication_returns_error_when_service_inactive : secret {sample_api_key.id}")
-        print(f"NIK: test_authentication_returns_error_when_service_inactive : secret {sample_api_key.secret}")
-        print(f"NIK: test_authentication_returns_error_when_service_inactive : client_id (service-id) {sample_api_key.service_id}")
-        print(f"NIK: test_authentication_returns_error_when_service_inactive : client.id {client.id}")
-    except Exception as err:
-        print(f"NIK: test_authentication_returns_error_when_service_inactive : error {err}")
-    # print(f"NIK: test_authentication_returns_error_when_service_inactive : sample_api_key {sample_api_key}")
-    # print(f"NIK: test_authentication_returns_error_when_service_inactive : sample_api_key.service.active {sample_api_key.service.active}")
-    # print(f"NIK: test_authentication_returns_error_when_service_inactive : sample_api_key.id {sample_api_key.id}")
-    # print(f"NIK: test_authentication_returns_error_when_service_inactive : sample_api_key.service_id {sample_api_key.service_id}")
-    # print(f"NIK: test_authentication_returns_error_when_service_inactive : client {client}")
 
+    token = create_jwt_token(secret=str(sample_api_key.secret), client_id=str(sample_api_key.service_id))
     response = client.get('/notifications', headers={'Authorization': 'Bearer {}'.format(token)})
-    # print(f"NIK: test_authentication_returns_error_when_service_inactive : response {response}")
 
     assert response.status_code == 403
     error_message = json.loads(response.get_data())
@@ -326,18 +310,6 @@ def test_should_attach_the_current_api_key_to_current_app(notify_api, sample_ser
             '/notifications',
             headers={'Authorization': 'Bearer {}'.format(token)}
         )
-        print(f"NIK: api_user type = {type(api_user)}")
-        print(f"NIK: api_user {api_user}")
-        for p in dir(api_user):
-            if not p.startswith("_") and not callable(getattr(api_user, p)):
-                print(f"NIK: api_user prop {p}: {getattr(api_user, p)}")
-
-        print(f"NIK: sample_api_key type = {type(sample_api_key)}")
-        print(f"NIK: sample_api_key {sample_api_key}")
-        for p in dir(sample_api_key):
-            if not p.startswith("_") and not callable(getattr(sample_api_key, p)):
-                print(f"NIK: sample_api_key prop {p}: {getattr(sample_api_key, p)}")
-        print(f"NIK: is api_user.id == sample_api_key.id ? : {api_user.id == sample_api_key.id}")
         assert response.status_code == 200
         assert api_user.id == sample_api_key.id
 

@@ -107,6 +107,7 @@ def service_can_send_to_recipient(send_to, key_type, service, allow_whitelisted_
             )
         raise BadRequestError(message=message)
 
+
 # TODO clean up and remove
 def service_has_permission(notify_type, permissions):
     return notify_type in [p.permission for p in permissions]
@@ -134,12 +135,7 @@ def validate_and_format_recipient(send_to, key_type, service, notification_type,
     if notification_type == SMS_TYPE:
         phone_info = get_international_phone_info(send_to)
 
-        # print(f"NIK:2: {INTERNATIONAL_SMS_TYPE} not in {service.permissions}")
         if phone_info.international and not service.has_permissions(INTERNATIONAL_SMS_TYPE):
-            # INTERNATIONAL_SMS_TYPE not in [p.permission for p in service.permissions]:
-            # TODO investigate flows that get to this point and and make sure that it
-            # works for both Service and AuthenticatedServiceInfo
-            # INTERNATIONAL_SMS_TYPE not in service.permissions:
             raise BadRequestError(message="Cannot send to international mobile numbers")
 
         return validate_and_format_phone_number(

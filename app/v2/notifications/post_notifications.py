@@ -43,8 +43,6 @@ from app.notifications.process_notifications import (
 from app.notifications.validators import (
     validate_and_format_recipient,
     check_rate_limiting,
-    check_service_can_schedule_notification,
-    # check_service_has_permission,
     validate_template,
     check_service_email_reply_to_id,
     check_service_sms_sender_id

@@ -103,7 +103,6 @@ def create_template(service_id):
         message = "Creating {} templates is not allowed".format(
             get_public_notify_type_text(new_template.template_type))
         errors = {'template_type': [message]}
-        print(f"NIK: {errors}")
         raise InvalidRequest(errors, 403)
 
     if not new_template.postage and new_template.template_type == LETTER_TYPE:

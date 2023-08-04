@@ -218,10 +218,6 @@ class NoSuitableServiceForInboundSms(Exception):
 def fetch_potential_service(inbound_number: str, provider_name: str) -> Service:
     service = dao_fetch_service_by_inbound_number(inbound_number)
 
-    if service is not None:
-        print(f"NIK: fetch_potential_service:service type {type(service)} ")
-        print(f"NIK: fetch_potential_service:service.permissions {service.permissions} ")
-
     if not service:
         statsd_client.incr(f"inbound.{provider_name}.failed")
         message = f'Inbound number "{inbound_number}" from {provider_name} not associated with a service'
@@ -236,12 +232,6 @@ def fetch_potential_service(inbound_number: str, provider_name: str) -> Service:
 
     else:
         return service
-
-
-# def has_inbound_sms_permissions(permissions):
-#     # str_permissions = [p.permission for p in permissions]
-#     str_permissions = permissions
-#     return set([INBOUND_SMS_TYPE, SMS_TYPE]).issubset(set(str_permissions))
 
 
 def strip_leading_forty_four(number):
