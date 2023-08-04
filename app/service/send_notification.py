@@ -8,7 +8,6 @@ from app.dao.notifications_dao import _update_notification_status
 from app.dao.service_email_reply_to_dao import dao_get_reply_to_by_id
 from app.dao.service_sms_sender_dao import dao_get_service_sms_sender_by_id
 from app.notifications.validators import (
-    # check_service_has_permission,
     check_service_over_daily_message_limit,
     validate_and_format_recipient,
     validate_template
@@ -136,12 +135,10 @@ def get_reply_to_text(notification_type, sender_id, service, template):
 def send_pdf_letter_notification(service_id, post_data):
     service = dao_fetch_service_by_id(service_id)
 
-    # check_service_has_permission(LETTER_TYPE, service.permissions)
     if not service.has_permissions(LETTER_TYPE):
         raise BadRequestError(message="Service is not allowed to send {}".format(
             get_public_notify_type_text(LETTER_TYPE, plural=True)))
 
-    # check_service_has_permission(UPLOAD_LETTERS, service.permissions)
     if not service.has_permissions(UPLOAD_LETTERS):
         raise BadRequestError(message="Service is not allowed to send {}".format(
             get_public_notify_type_text(UPLOAD_LETTERS, plural=True)))

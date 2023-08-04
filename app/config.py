@@ -545,19 +545,11 @@ class Test(Development):
     INVALID_PDF_BUCKET_NAME = 'test-letters-invalid-pdf'
     TRANSIENT_UPLOADED_LETTERS = 'test-transient-uploaded-letters'
 
-    # TODO figure out if we need this at all, remove if we don't
-    # this value is also added in /app/__init__.py > create_app
     # this is overriden in jenkins and on cloudfoundry
     SQLALCHEMY_DATABASE_URI = os.getenv(  # nosec
         'SQLALCHEMY_DATABASE_URI',
         'postgresql://postgres@localhost/test_notification_api'
     )
-    # SQLALCHEMY_DATABASE_URI_READ = os.getenv(  # nosec
-    #     'SQLALCHEMY_DATABASE_URI_READ',
-    #     'postgresql://postgres@localhost/test_notification_api'
-    # )
-    # TODO figure out if we need this at all, remove if we don't
-    # these value is also added in /app/__init__.py > create_app
     SQLALCHEMY_BINDS = {"read-db": os.getenv(
         "SQLALCHEMY_DATABASE_URI_READ",
         'postgresql://postgres@localhost/notification_api')}

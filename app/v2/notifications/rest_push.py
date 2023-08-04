@@ -7,9 +7,6 @@ from app.mobile_app import MobileAppRegistry, MobileAppType, DEAFULT_MOBILE_APP_
 from app.models import (
     PUSH_TYPE
 )
-# from app.notifications.validators import (
-#     check_service_has_permission
-# )
 from app.schema_validation import validate
 from app.v2.errors import BadRequestError
 from app.v2.notifications import v2_notification_blueprint

@@ -195,11 +195,11 @@ def dao_fetch_service_by_inbound_number(number):
 
 
 def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
-    # instead of default engine bound to write instance of the database
-    # use engine bound to read intance of database cluster
+    # use read-db engine bound to the read intance instead of the default
+    # engine bound to the write instance of our cluster 
     reader = db.engines['read-db']
     session = scoped_session(sessionmaker(bind=reader))
-    # query using read engine
+
     query = session.query(Service).filter_by(
         id=service_id
     ).options(
@@ -211,9 +211,10 @@ def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
         query = query.filter(Service.active)
 
     result = query.one()
-    # instead of returning the whole model
-    # extract only need properties and return them
-    # as a serializable object
+
+    # instead of returning the whole model attached to read-db engine
+    # extract needed properties and return object that can be
+    # serialized for caching
     serviceInfo = AuthenticatedServiceInfo(result)
     return serviceInfo
 

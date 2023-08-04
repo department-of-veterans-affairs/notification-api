@@ -15,9 +15,9 @@ from sqlalchemy import or_, func
 @transactional
 @version_class(ApiKey)
 def save_model_api_key(api_key):
-    if not api_key.id:
+    if api_key.id is not None:
         api_key.id = uuid.uuid4()  # must be set now so version history model can use same id
-    if not api_key.secret:
+    if api_key.secret is not None:
         api_key.secret = uuid.uuid4()
     db.session.add(api_key)
 
