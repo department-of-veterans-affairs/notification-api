@@ -140,7 +140,8 @@ def post_notification(notification_type):  # noqa: C901
 
     scheduled_for = form.get("scheduled_for")
 
-    if not authenticated_service.has_permissions(SCHEDULE_NOTIFICATIONS):
+    if scheduled_for is not None:
+        if not authenticated_service.has_permissions(SCHEDULE_NOTIFICATIONS):
             raise BadRequestError(message="Cannot schedule notifications (this feature is invite-only)")
 
     check_rate_limiting(authenticated_service, api_user)
