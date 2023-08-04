@@ -25,7 +25,6 @@ def send_push_notification():
     if not is_feature_enabled(FeatureFlag.PUSH_NOTIFICATIONS_ENABLED):
         raise NotImplementedError()
 
-    # check_service_has_permission(PUSH_TYPE, authenticated_service.permissions)
     if not authenticated_service.has_permissions(PUSH_TYPE):
         raise BadRequestError(message="Service is not allowed to send {}".format(
             get_public_notify_type_text(PUSH_TYPE, plural=True)))

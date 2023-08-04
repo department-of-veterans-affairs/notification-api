@@ -17,6 +17,7 @@ from app.dao.templates_dao import get_precompiled_letter_template
 from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
 from app.letters.utils import upload_letter_pdf
 from app.models import (
+    SCHEDULE_NOTIFICATIONS,
     SMS_TYPE,
     EMAIL_TYPE,
     LETTER_TYPE,
@@ -75,8 +76,6 @@ def post_precompiled_letter_notification():
 
     form = validate(request.get_json(), post_precompiled_letter_request)
 
-    # Check permission to send letters
-    # check_service_has_permission(LETTER_TYPE, authenticated_service.permissions)
     if not authenticated_service.has_permissions(LETTER_TYPE):
         raise BadRequestError(message="Service is not allowed to send {}".format(
             get_public_notify_type_text(LETTER_TYPE, plural=True)))
@@ -135,14 +134,14 @@ def post_notification(notification_type):  # noqa: C901
     else:
         abort(404)
 
-    # check_service_has_permission(notification_type, authenticated_service.permissions)
     if not authenticated_service.has_permissions(notification_type):
         raise BadRequestError(message="Service is not allowed to send {}".format(
             get_public_notify_type_text(notification_type, plural=True)))
 
     scheduled_for = form.get("scheduled_for")
 
-    check_service_can_schedule_notification(authenticated_service.permissions, scheduled_for)
+    if not authenticated_service.has_permissions(SCHEDULE_NOTIFICATIONS):
+            raise BadRequestError(message="Cannot schedule notifications (this feature is invite-only)")
 
     check_rate_limiting(authenticated_service, api_user)
 
@@ -315,7 +314,6 @@ def process_document_uploads(personalisation_data, service, simulated=False):
 
     personalisation_data = personalisation_data.copy()
 
-    # check_service_has_permission(UPLOAD_DOCUMENT, authenticated_service.permissions)
     if not authenticated_service.has_permissions(UPLOAD_DOCUMENT):
         raise BadRequestError(message="Service is not allowed to send {}".format(
             get_public_notify_type_text(UPLOAD_DOCUMENT, plural=True)))

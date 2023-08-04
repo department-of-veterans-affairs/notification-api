@@ -122,7 +122,7 @@ def send_notification(notification_type):
     template_object = create_template_object_for_notification(template, notification_form.get('personalisation', {}))
 
     _service_allowed_to_send_to(notification_form, authenticated_service)
-    if not service_has_permission(notification_type, authenticated_service.permissions):
+    if not authenticated_service.has_permissions(notification_type):
         raise InvalidRequest(
             {'service': ["Cannot send {}".format(get_public_notify_type_text(notification_type, plural=True))]},
             status_code=400
