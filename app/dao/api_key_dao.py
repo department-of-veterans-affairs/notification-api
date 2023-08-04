@@ -15,9 +15,13 @@ from sqlalchemy import or_, func
 @transactional
 @version_class(ApiKey)
 def save_model_api_key(api_key):
+    print(f"NIK: save_model_api_key api_key = {api_key}")
     if not api_key.id:
         api_key.id = uuid.uuid4()  # must be set now so version history model can use same id
-    api_key.secret = uuid.uuid4()
+        print(f"NIK: save_model_api_key missing api_key.id, assinged = {api_key.id}")
+    if not api_key.secret:
+        api_key.secret = uuid.uuid4()
+        print(f"NIK: save_model_api_key missing api_key.secret, assinged = {api_key.secret}")
     db.session.add(api_key)
 
 

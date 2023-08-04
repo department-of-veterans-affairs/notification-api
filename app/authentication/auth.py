@@ -148,12 +148,18 @@ def validate_service_api_key_auth():
 
     auth_token = get_auth_token(request)
     client = __get_token_issuer(auth_token)
+    try:
+        print(f"NIK: validate_service_api_key_auth token {auth_token}")
+        print(f"NIK: validate_service_api_key_auth client {client}")
+        print(f"NIK: validate_service_api_key_auth client {client.id}")
+    except Exception as err:
+        print(f"NIK: validate_service_api_key_auth error {err}")
 
     try:
         service = dao_fetch_service_by_id_with_api_keys(client)
-        print(f"NIK: validate_service_api_key_auth returned {service}")
-        print(f"NIK: validate_service_api_key_auth service.api_keys[1] {service.api_keys}")
-        print(f"NIK: validate_service_api_key_auth service.active {service.active}")
+        # print(f"NIK: validate_service_api_key_auth service {service}")
+        # print(f"NIK: validate_service_api_key_auth service.api_keys[1] {service.api_keys}")
+        # print(f"NIK: validate_service_api_key_auth service.active {service.active}")
     except DataError:
         raise AuthError("Invalid token: service id is not the right data type", 403)
     except NoResultFound:
@@ -168,11 +174,12 @@ def validate_service_api_key_auth():
         raise AuthError("Invalid token: service is archived", 403, service_id=service.id)
 
     for api_key in service.api_keys:
-        print(f"NIK: validate_service_api_key_auth [a] {auth_token} ::: {api_key} \
-              ::: {api_key.secret} ::: {service} ::: {service.api_keys}")
+        print(f"NIK: validate_service_api_key_auth [b] token {auth_token}")
+        print(f"NIK: validate_service_api_key_auth [b] secret {api_key.secret}")
         try:
             decode_jwt_token(auth_token, api_key.secret)
-            print(f"NIK: validate_service_api_key_auth [b] {auth_token}")
+            # print(f"NIK: validate_service_api_key_auth [b] token {auth_token}")
+            # print(f"NIK: validate_service_api_key_auth [b] secret {api_key.secret}")
         except TokenDecodeError as err:
             print(f"NIK: validate_service_api_key_auth [c] TokenDecodeError ::: {err}")
             continue
@@ -196,6 +203,10 @@ def validate_service_api_key_auth():
             api_key.id,
             request.headers.get('User-Agent')
         )
+        for p in dir(api_key):
+            if not p.startswith("_") and not callable(getattr(api_key, p)):
+                print(f"NIK: validate_service_api_key_auth [bbb] api_key prop {p}: {getattr(api_key, p)}")
+        print(f"NIK: validate_service_api_key_auth [bbb] DONE")
         return
     else:
         print(f"NIK: validate_service_api_key_auth [f] for-else {api_key} ::: {service} ::: {service.api_keys}")

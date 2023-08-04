@@ -578,10 +578,19 @@ def sample_api_key(notify_db,
     data = {'service': service, 'name': name or uuid.uuid4(), 'created_by': service.created_by, 'key_type': key_type}
     print(f"NIK: sample_api_key : service type {type(service)}")
     print(f"NIK: sample_api_key : service {service}")
+    print(f"NIK: sample_api_key : service.id {service.id}")
     api_key = ApiKey(**data)
-    print(f"NIK: sample_api_key : api_key type {type(api_key)}")
-    print(f"NIK: sample_api_key : api_key {api_key}")
+    print(f"NIK: sample_api_key : [0] api_key type {type(api_key)}")
+    print(f"NIK: sample_api_key : [0] api_key {api_key}")
+    print(f"NIK: sample_api_key : [0] api_key.id {api_key.id}")
+    print(f"NIK: sample_api_key : [0] api_key.service_id {api_key.service_id}")
+    print(f"NIK: sample_api_key : [0] api_key.secret {api_key.secret}")
     save_model_api_key(api_key)
+    print(f"NIK: sample_api_key : [1] api_key type {type(api_key)}")
+    print(f"NIK: sample_api_key : [1] api_key {api_key}")
+    print(f"NIK: sample_api_key : [1] api_key.id {api_key.id}")
+    print(f"NIK: sample_api_key : [1] api_key.service_id {api_key.service_id}")
+    print(f"NIK: sample_api_key : [1] api_key.secret {api_key.secret}")
     print(f"NIK: save_model_api_key - passed")
     return api_key
 

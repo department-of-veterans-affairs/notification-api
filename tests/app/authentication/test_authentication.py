@@ -6,7 +6,7 @@ from datetime import datetime
 from flask_jwt_extended import create_access_token
 from jwt import ExpiredSignatureError
 
-from app.dao.services_dao import dao_add_user_to_service
+from app.dao.services_dao import dao_add_user_to_service, dao_update_service
 from tests.app.db import create_user, create_service
 from tests.conftest import set_config_values
 
@@ -278,12 +278,27 @@ def test_authentication_returns_error_when_service_doesnt_exit(
 
 def test_authentication_returns_error_when_service_inactive(client, sample_api_key):
     sample_api_key.service.active = False
-    print(f"NIK: 123123 : sample_api_key {sample_api_key}")
-    print(f"NIK: 123123 : sample_api_key.service.active {sample_api_key.service.active}")
-    token = create_jwt_token(secret=str(sample_api_key.id), client_id=str(sample_api_key.service_id))
+    # we now need to save the model because we'll read using read-db engine
+    dao_update_service(sample_api_key.service)
+    
+    # token = create_jwt_token(secret=str(sample_api_key.id), client_id=str(sample_api_key.service_id))
+    token = create_jwt_token(secret=str(sample_api_key.secret), client_id=str(sample_api_key.service_id))
+    try:
+        print(f"NIK: test_authentication_returns_error_when_service_inactive : token {token}")
+        # print(f"NIK: test_authentication_returns_error_when_service_inactive : secret {sample_api_key.id}")
+        print(f"NIK: test_authentication_returns_error_when_service_inactive : secret {sample_api_key.secret}")
+        print(f"NIK: test_authentication_returns_error_when_service_inactive : client_id (service-id) {sample_api_key.service_id}")
+        print(f"NIK: test_authentication_returns_error_when_service_inactive : client.id {client.id}")
+    except Exception as err:
+        print(f"NIK: test_authentication_returns_error_when_service_inactive : error {err}")
+    # print(f"NIK: test_authentication_returns_error_when_service_inactive : sample_api_key {sample_api_key}")
+    # print(f"NIK: test_authentication_returns_error_when_service_inactive : sample_api_key.service.active {sample_api_key.service.active}")
+    # print(f"NIK: test_authentication_returns_error_when_service_inactive : sample_api_key.id {sample_api_key.id}")
+    # print(f"NIK: test_authentication_returns_error_when_service_inactive : sample_api_key.service_id {sample_api_key.service_id}")
+    # print(f"NIK: test_authentication_returns_error_when_service_inactive : client {client}")
 
     response = client.get('/notifications', headers={'Authorization': 'Bearer {}'.format(token)})
-    print(f"NIK: 123123 : response {response}")
+    # print(f"NIK: test_authentication_returns_error_when_service_inactive : response {response}")
 
     assert response.status_code == 403
     error_message = json.loads(response.get_data())
