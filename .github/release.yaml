@@ -29,3 +29,6 @@ changelog:
     - title: Other Changes 🧑‍💻
       labels:
         - "*"
+    - title: Dependency Upgrades 🆙
+        labels:
+          - dependencies
