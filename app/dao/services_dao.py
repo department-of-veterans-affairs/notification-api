@@ -196,7 +196,7 @@ def dao_fetch_service_by_inbound_number(number):
 
 def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
     # use read-db engine bound to the read intance instead of the default
-    # engine bound to the write instance of our cluster 
+    # engine bound to the write instance of our cluster
     reader = db.engines['read-db']
     session = scoped_session(sessionmaker(bind=reader))
 
