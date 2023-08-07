@@ -100,8 +100,6 @@ def test_receive_notification_returns_received_to_mmg(client, mocker, sample_ser
 ])
 def test_check_permissions_for_inbound_sms(notify_db, notify_db_session, permissions, expected_response):
     service = create_service(service_permissions=permissions)
-    # assert has_inbound_sms_permissions(service.permissions) is expected_response
-    # check that service has sms permissions
     assert service.has_permissions([INBOUND_SMS_TYPE, SMS_TYPE]) is expected_response
 
 

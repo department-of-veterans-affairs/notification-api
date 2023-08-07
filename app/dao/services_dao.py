@@ -218,11 +218,10 @@ def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
 
         try:
             result = query.one()
-            serviceInfo = AuthenticatedServiceInfo(result)
             # instead of returning the whole model attached to read-db engine
             # extract needed properties and return object that can be
             # serialized for caching
-            return serviceInfo
+            return AuthenticatedServiceInfo(result)
         except AuthenticatedServiceInfoException as err:
             current_app.logger.error("Could not find service with ID %s", service_id)
             raise NoResultFound(err)
