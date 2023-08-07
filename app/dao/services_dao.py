@@ -211,8 +211,8 @@ def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
     if only_active:
         query = query.filter(Service.active)
 
-    result = query.one()
     session.close()
+    result = query.one()
 
     # instead of returning the whole model attached to read-db engine
     # extract needed properties and return object that can be
