@@ -1,11 +1,13 @@
+from contextlib import contextmanager
 import uuid
 from datetime import date, datetime, timedelta
-from app.service.authenticated_service_info import AuthenticatedServiceInfo
+from app.service.authenticated_service_info import AuthenticatedServiceInfo, AuthenticatedServiceInfoException
 
 from notifications_utils.statsd_decorators import statsd
 from notifications_utils.timezones import convert_utc_to_local_timezone
 from sqlalchemy.sql.expression import asc, case, and_, func
 from sqlalchemy.orm import joinedload, scoped_session, sessionmaker
+from sqlalchemy.orm.exc import NoResultFound
 from flask import current_app
 
 from app import db
@@ -195,30 +197,42 @@ def dao_fetch_service_by_inbound_number(number):
 
 
 def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
-    # use read-db engine bound to the read intance instead of the default
-    # engine bound to the write instance of our cluster
+    @contextmanager
+    def get_session(engine):
+        session = scoped_session(sessionmaker(bind=engine))
+        try:
+            yield session
+        finally:
+            session.close()
+
     reader = db.engines['read-db']
-    session = scoped_session(sessionmaker(bind=reader))
-    current_app.logger.info(f"dao_fetch_service_by_id_with_api_keys read engine is {reader}")
+    with get_session(reader) as session:
+        query = session.query(Service).filter_by(
+            id=service_id
+        ).options(
+            joinedload('api_keys')
+        )
 
-    query = session.query(Service).filter_by(
-        id=service_id
-    ).options(
-        joinedload('api_keys')
-    )
-    current_app.logger.info(f"dao_fetch_service_by_id_with_api_keys query is {query}")
+        if only_active:
+            query = query.filter(Service.active)
 
-    if only_active:
-        query = query.filter(Service.active)
-
-    session.close()
-    result = query.one()
-
-    # instead of returning the whole model attached to read-db engine
-    # extract needed properties and return object that can be
-    # serialized for caching
-    serviceInfo = AuthenticatedServiceInfo(result)
-    return serviceInfo
+        try:
+            result = query.one()
+            serviceInfo = AuthenticatedServiceInfo(result)
+            # instead of returning the whole model attached to read-db engine
+            # extract needed properties and return object that can be
+            # serialized for caching
+            return serviceInfo
+        except AuthenticatedServiceInfoException as err:
+            current_app.logger.error("Could not find service with ID %s", service_id)
+            raise NoResultFound(err)
+        except NoResultFound:
+            # we handle this failure in the parent
+            current_app.logger.error("Could not find service with ID %s", service_id)
+            raise
+        except Exception:
+            # we handle this failure in the parent
+            raise
 
 
 def dao_fetch_all_services_by_user(user_id, only_active=False):
