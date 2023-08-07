@@ -12,7 +12,6 @@ from app.notifications.receive_notifications import (
     format_mmg_datetime,
     create_inbound_sms_object,
     strip_leading_forty_four,
-    # has_inbound_sms_permissions,
     unescape_string, fetch_potential_service, NoSuitableServiceForInboundSms,
 )
 
