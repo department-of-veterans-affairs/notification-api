@@ -53,7 +53,7 @@ def deliver_sms(self, notification_id, sms_sender_id=None):
         notification = notifications_dao.get_notification_by_id(notification_id)
         check_and_queue_callback_task(notification)
     except NullValueForNonConditionalPlaceholderException:
-        msg = handle_non_retryable(notification_id, 'deliver_email')
+        msg = handle_non_retryable(notification_id, 'deliver_sms')
         raise NotificationTechnicalFailureException(msg)
     except Exception as e:
         current_app.logger.exception(
