@@ -199,18 +199,20 @@ def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
     # engine bound to the write instance of our cluster
     reader = db.engines['read-db']
     session = scoped_session(sessionmaker(bind=reader))
+    current_app.logger.info(f"dao_fetch_service_by_id_with_api_keys read engine is {reader}")
 
     query = session.query(Service).filter_by(
         id=service_id
     ).options(
         joinedload('api_keys')
     )
-    session.close()
+    current_app.logger.info(f"dao_fetch_service_by_id_with_api_keys query is {query}")
 
     if only_active:
         query = query.filter(Service.active)
 
     result = query.one()
+    session.close()
 
     # instead of returning the whole model attached to read-db engine
     # extract needed properties and return object that can be
