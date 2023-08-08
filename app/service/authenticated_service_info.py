@@ -119,7 +119,7 @@ class AuthenticatedServiceInfo:
             except Exception as err:
                 raise AuthenticatedServiceInfoException(err)
 
-    def extract(self, result):
+    def extract(self, result) -> None:
         """
         Extracts the necessary data from an authenticated service ORM object.
 
@@ -141,7 +141,7 @@ class AuthenticatedServiceInfo:
         self.users = [u for u in result.users]
         self.whitelist = [w for w in result.whitelist]
 
-    def serialize(self):
+    def serialize(self) -> str:
         """
         Serializes the object into a JSON string.
         This method might be used for caching, allowing the object to be easily stored and retrieved.
@@ -151,7 +151,7 @@ class AuthenticatedServiceInfo:
         """
         return json.dumps(self.__dict__)
 
-    def has_permissions(self, permissions_to_check_for):
+    def has_permissions(self, permissions_to_check_for) -> bool:
         """
         Checks if the object has the specified permissions.
 
@@ -167,7 +167,7 @@ class AuthenticatedServiceInfo:
         return frozenset(permissions_to_check_for).issubset(frozenset(self.permissions))
 
     @classmethod
-    def deserialize(cls, json_string):
+    def deserialize(cls, json_string) -> 'AuthenticatedServiceInfo':
         """
         Creates a new instance of the class using a JSON string.
         This method might be used after retrieval from caching, allowing the object to be reconstructed.
