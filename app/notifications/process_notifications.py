@@ -96,11 +96,6 @@ def persist_notification(
         template_version=template_version,
         to=recipient,
         service_id=service.id,
-        # Commenting this out as part of work on #1344
-        # We only need service.id above and don't need
-        # the whole service. We should remove this once
-        # we confirm everything works.
-        # service=service,
         personalisation=personalisation,
         notification_type=notification_type,
         api_key_id=api_key_id,

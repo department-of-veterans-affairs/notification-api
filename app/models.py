@@ -451,8 +451,7 @@ class Service(db.Model, Versioned):
     def has_permissions(self, permissions_to_check_for):
         if isinstance(permissions_to_check_for, InstrumentedList):
             _permissions_to_check_for = [p.permission for p in permissions_to_check_for]
-        elif not isinstance(permissions_to_check_for, InstrumentedList)\
-                and not isinstance(permissions_to_check_for, list):
+        elif not isinstance(permissions_to_check_for, list):
             _permissions_to_check_for = [permissions_to_check_for]
         else:
             _permissions_to_check_for = permissions_to_check_for
