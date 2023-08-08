@@ -164,7 +164,7 @@ class AuthenticatedServiceInfo:
         if not isinstance(permissions_to_check_for, list):
             tmp = permissions_to_check_for
             permissions_to_check_for = [tmp]
-        return set(permissions_to_check_for).issubset(set(self.permissions))
+        return frozenset(permissions_to_check_for).issubset(frozenset(self.permissions))
 
     @classmethod
     def deserialize(cls, json_string):

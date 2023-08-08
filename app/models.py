@@ -461,7 +461,7 @@ class Service(db.Model, Versioned):
         else:
             _permissions = self.permissions
 
-        return set(_permissions_to_check_for).issubset(set(_permissions))
+        return frozenset(_permissions_to_check_for).issubset(frozenset(_permissions))
 
     def serialize_for_org_dashboard(self):
         return {
