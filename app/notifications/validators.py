@@ -107,12 +107,12 @@ def service_can_send_to_recipient(send_to, key_type, service, allow_whitelisted_
         raise BadRequestError(message=message)
 
 
-# TODO clean up and remove
+# TODO #1410 clean up and remove
 def service_has_permission(notify_type, permissions):
     return notify_type in [p.permission for p in permissions]
 
 
-# TODO clean up and remove
+# TODO #1410 clean up and remove
 def check_service_can_schedule_notification(permissions, scheduled_for):
     if scheduled_for:
         if not service_has_permission(SCHEDULE_NOTIFICATIONS, permissions):
