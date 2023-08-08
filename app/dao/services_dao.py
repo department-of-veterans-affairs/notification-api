@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 import uuid
 from datetime import date, datetime, timedelta
-from app.service.authenticated_service_info import AuthenticatedServiceInfo, AuthenticatedServiceInfoException
+from app.service.service_data import ServiceData, ServiceDataException
 
 from notifications_utils.statsd_decorators import statsd
 from notifications_utils.timezones import convert_utc_to_local_timezone
@@ -221,8 +221,8 @@ def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
             # instead of returning the whole model attached to read-db engine
             # extract needed properties and return object that can be
             # serialized for caching
-            return AuthenticatedServiceInfo(result)
-        except (AuthenticatedServiceInfoException, NoResultFound, MultipleResultsFound) as err:
+            return ServiceData(result)
+        except (ServiceDataException, NoResultFound, MultipleResultsFound) as err:
             # we handle this failure in the parent
             current_app.logger.error("Could not find unique service with ID %s", service_id)
             raise NoResultFound(err)

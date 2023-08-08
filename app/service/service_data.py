@@ -5,27 +5,27 @@ from typing import List, Union
 from app.models import Service
 
 
-class AuthenticatedServiceInfoException(Exception):
+class ServiceDataException(Exception):
     """
-    Custom exception class for handling specific errors related to the AuthenticatedServiceInfo class.
+    Custom exception class for handling specific errors related to the ServiceData class.
 
     Attributes:
         message (str): A custom message describing the error.
 
     Usage:
-        raise AuthenticatedServiceInfoException("Description...")
+        raise ServiceDataException("Description...")
     """
 
     def __init__(
         self,
-        message="Unable to create AuthenticatedServiceInfo object.",
+        message="Unable to create ServiceData object.",
         *args,
         **kwargs
     ):
         super().__init__(message, *args, **kwargs)
 
 
-class AuthenticatedServiceApiKey:
+class ServiceDataApiKey:
     """
     A class to encapsulate information related to an authenticated service's API key.
 
@@ -76,8 +76,36 @@ class AuthenticatedServiceApiKey:
         self.service_id = key.service_id
         self.updated_at = key.updated_at
 
+    def __eq__(self, other: 'ServiceDataApiKey') -> bool:
+        """
+        Determines equality between two instances of ServiceDataApiKey.
 
-class AuthenticatedServiceInfo:
+        Two instances of ServiceDataApiKey are considered equal if they have the same values for
+        the following attributes:
+            - id
+            - name
+            - key_type
+            - created_by_id
+            - service_id
+            - secret
+
+        Args:
+            other (ServiceDataApiKey): The object to compare against.
+
+        Returns:
+            bool: True if the instances have the same values for the relevant attributes, False otherwise.
+        """
+        if isinstance(other, ServiceDataApiKey):
+            return self.id == other.id\
+                and self.key_type == other.key_type\
+                and self.name == other.name\
+                and self.service_id == other.service_id\
+                and self.created_by_id == other.created_by_id\
+                and self.secret == other.secret
+        return False
+
+
+class ServiceData:
     """
     Represents the relevant information extracted from an SQLAlchemy query result.
 
@@ -120,7 +148,7 @@ class AuthenticatedServiceInfo:
             try:
                 self.extract(result)
             except Exception as err:
-                raise AuthenticatedServiceInfoException(err)
+                raise ServiceDataException(err)
 
     def extract(self, result: Service) -> None:
         """
@@ -135,7 +163,7 @@ class AuthenticatedServiceInfo:
         """
         self.active = result.active
         self.permissions = [p.permission for p in result.permissions]
-        self.api_keys = [AuthenticatedServiceApiKey(key) for key in result.api_keys]
+        self.api_keys = [ServiceDataApiKey(key) for key in result.api_keys]
         self.id = result.id
         self.research_mode = result.research_mode
         self.restricted = result.restricted
@@ -171,7 +199,7 @@ class AuthenticatedServiceInfo:
         return frozenset(permissions_to_check_for).issubset(frozenset(self.permissions))
 
     @classmethod
-    def deserialize(cls, json_string: str) -> 'AuthenticatedServiceInfo':
+    def deserialize(cls, json_string: str) -> 'ServiceData':
         """
         Creates a new instance of the class using a JSON string.
         This method might be used after retrieval from caching, allowing the object to be reconstructed.
@@ -180,7 +208,7 @@ class AuthenticatedServiceInfo:
             json_string (str): A JSON string representing the object.
 
         Returns:
-            AuthenticatedServiceInfo: A new instance of the class populated with the data from the JSON string.
+            ServiceData: A new instance of the class populated with the data from the JSON string.
         """
         result = cls()
         result.__dict__ = json.loads(json_string)

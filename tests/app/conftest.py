@@ -15,7 +15,7 @@ from app.dao.jobs_dao import dao_create_job
 from app.dao.notifications_dao import dao_create_notification
 from app.dao.organisation_dao import dao_create_organisation
 from app.dao.provider_rates_dao import create_provider_rates
-from app.dao.services_dao import (dao_create_service, dao_add_user_to_service)
+from app.dao.services_dao import (dao_create_service, dao_add_user_to_service, dao_fetch_service_by_id_with_api_keys)
 from app.dao.service_sms_sender_dao import dao_add_sms_sender_for_service
 from app.dao.templates_dao import dao_create_template
 from app.dao.users_dao import create_secret_code, create_user_code
@@ -579,6 +579,25 @@ def sample_api_key(notify_db,
     api_key = ApiKey(**data)
     save_model_api_key(api_key)
     return api_key
+
+
+@pytest.fixture(scope='function')
+def sample_service_data_api_key(service=None, key_type=KEY_TYPE_NORMAL, name=None):
+    if service is None:
+        service = create_service(check_if_service_exists=True)
+
+    data = {
+        'service': service,
+        'name': name or uuid.uuid4(),
+        'created_by': service.created_by,
+        'key_type': key_type
+    }
+    api_key = ApiKey(**data)
+    save_model_api_key(api_key)
+
+    _tmp = dao_fetch_service_by_id_with_api_keys(service.id)
+    service_data_api_key = _tmp.api_keys[0]
+    return service_data_api_key
 
 
 @pytest.fixture(scope='function')

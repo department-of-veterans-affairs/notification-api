@@ -303,15 +303,15 @@ def test_authentication_returns_error_when_service_has_no_secrets(client,
     assert exc.value.service_id == sample_service.id
 
 
-def test_should_attach_the_current_api_key_to_current_app(notify_api, sample_service, sample_api_key):
+def test_should_attach_the_current_api_key_to_current_app(notify_api, sample_service_data_api_key):
     with notify_api.test_request_context(), notify_api.test_client() as client:
-        token = __create_token(sample_api_key.service_id)
+        token = __create_token(sample_service_data_api_key.service_id)
         response = client.get(
             '/notifications',
             headers={'Authorization': 'Bearer {}'.format(token)}
         )
         assert response.status_code == 200
-        assert api_user.id == sample_api_key.id
+        assert api_user == sample_service_data_api_key
 
 
 def test_should_return_403_when_token_is_expired(client,
