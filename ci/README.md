@@ -2,7 +2,7 @@
 
 ## Fake Replication Setup
 NOTE: This setup is enough to test basic route functions with Read & Write instances. Scroll down if you need fully functional / real time replication between read and write instances.
-####1. Setup Docker-Compose
+#### 1. Setup Docker-Compose
 Update local environment in your `.docker-env`. You should have Read & Write URIs pointing to different instances.
 ```
 SQLALCHEMY_DATABASE_URI=postgresql://postgres:LocalPassword@db:5432/notification_api
@@ -13,22 +13,22 @@ Start containers
 docker-compose -f ci/docker-compose-local-readwrite.yml up -d
 ```
 
-####2. Create snapshot of the write database instance
+#### 2. Create snapshot of the write database instance
 ```
 pg_dump -U postgres -W -F t notification_api > /var/db-data/writedb.dump
 ```
 
-####3. Copy snapshot of the write database instance into read instance's mounted volume on your system
+#### 3. Copy snapshot of the write database instance into read instance's mounted volume on your system
 ```
 cp ci/db-data/writedb.dump ci/db-data-read/writedb.dump
 ```
 
-####4. Restore data from write instance on read instance
+#### 4. Restore data from write instance on read instance
 ```
 pg_restore -U postgres -W -d notification_api /var/db-data-read/writedb.dump
 ```
 
-####5. Stop containers & remove data when done testing
+#### 5. Stop containers & remove data when done testing
 ```
 docker-compose -f ci/docker-compose-local-readwrite.yml down -v
 rm -fr db-data*

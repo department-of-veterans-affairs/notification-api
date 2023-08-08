@@ -7,7 +7,7 @@ from notifications_utils.statsd_decorators import statsd
 from notifications_utils.timezones import convert_utc_to_local_timezone
 from sqlalchemy.sql.expression import asc, case, and_, func
 from sqlalchemy.orm import joinedload, scoped_session, sessionmaker
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from flask import current_app
 
 from app import db
@@ -222,13 +222,10 @@ def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
             # extract needed properties and return object that can be
             # serialized for caching
             return AuthenticatedServiceInfo(result)
-        except AuthenticatedServiceInfoException as err:
-            current_app.logger.error("Could not find service with ID %s", service_id)
-            raise NoResultFound(err)
-        except NoResultFound:
+        except (AuthenticatedServiceInfoException, NoResultFound, MultipleResultsFound) as err:
             # we handle this failure in the parent
-            current_app.logger.error("Could not find service with ID %s", service_id)
-            raise
+            current_app.logger.error("Could not find unique service with ID %s", service_id)
+            raise NoResultFound(err)
         except Exception:
             # we handle this failure in the parent
             raise

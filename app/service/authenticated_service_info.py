@@ -1,5 +1,8 @@
 import json
 from types import SimpleNamespace
+from typing import List, Union
+
+from app.models import Service
 
 
 class AuthenticatedServiceInfoException(Exception):
@@ -119,12 +122,13 @@ class AuthenticatedServiceInfo:
             except Exception as err:
                 raise AuthenticatedServiceInfoException(err)
 
-    def extract(self, result) -> None:
+    def extract(self, result: Service) -> None:
         """
         Extracts the necessary data from an authenticated service ORM object.
 
         Args:
-            result: The ORM object containing the data.
+            result: The ORM object containing the data. WARNING it's not pure Service
+                object, but Service augmented with api_keys
 
         Returns:
             None
@@ -151,7 +155,7 @@ class AuthenticatedServiceInfo:
         """
         return json.dumps(self.__dict__)
 
-    def has_permissions(self, permissions_to_check_for) -> bool:
+    def has_permissions(self, permissions_to_check_for: Union[str, List[str]]) -> bool:
         """
         Checks if the object has the specified permissions.
 
@@ -167,7 +171,7 @@ class AuthenticatedServiceInfo:
         return frozenset(permissions_to_check_for).issubset(frozenset(self.permissions))
 
     @classmethod
-    def deserialize(cls, json_string) -> 'AuthenticatedServiceInfo':
+    def deserialize(cls, json_string: str) -> 'AuthenticatedServiceInfo':
         """
         Creates a new instance of the class using a JSON string.
         This method might be used after retrieval from caching, allowing the object to be reconstructed.
