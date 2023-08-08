@@ -2,7 +2,7 @@ bandit >= 1.7.5
 boto3
 botocore
 coveralls >= 3.3.1
-flake8 == 3.7.7  # TODO - upgrade to newest (6.0.0); will cause new failures.  See #1105.
+flake8 == 6.1.0  # TODO - upgrade to newest (6.0.0); will cause new failures.  See #1105.
 freezegun >= 1.2.2
 
 # This is a library for mocking AWS services.
