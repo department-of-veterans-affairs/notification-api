@@ -118,7 +118,7 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
             "Rate Limit SMS notification delivery for id: %s failed", notification_id
         )
         if can_retry(self.request.retries, self.max_retries, notification_id):
-            current_app.logger.warning("Unable to send sms with rate limiting for notification id: %s, retrying",
+            current_app.logger.warning("Unable to send sms with rate limit  ing for notification id: %s, retrying",
                                        notification_id)
             raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
         else:

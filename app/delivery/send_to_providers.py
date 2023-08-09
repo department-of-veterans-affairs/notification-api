@@ -112,7 +112,8 @@ def send_email_to_provider(notification: Notification):
         technical_failure(notification=notification)
 
     if notification.status != 'created':
-        raise RuntimeError(f"notification.status = {notification.status}")
+        current_app.logger.warning("notification.status = %s", notification.status)
+        return
 
     client = client_to_use(notification)
 
