@@ -130,10 +130,13 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
 @notify_celery.task(bind=True, name="deliver_email",
                     throws=(AutoRetryException, ),
                     autoretry_for=(AutoRetryException, ),
-                    max_retries=2886, retry_backoff=True, retry_backoff_max=60)
+                    max_retries=60, retry_backoff=True, retry_backoff_max=3600)
 @statsd(namespace="tasks")
 def deliver_email(self, notification_id: str, sms_sender_id=None):
     try:
+        from time import sleep
+        sleep(0.2)
+        raise AutoRetryException
         current_app.logger.info("Start sending email for notification id: %s", notification_id)
         notification = notifications_dao.get_notification_by_id(notification_id)
         if not notification:
