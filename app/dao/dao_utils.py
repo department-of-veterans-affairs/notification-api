@@ -100,8 +100,6 @@ def get_reader_session():
     """
     engine = db.engines['read-db']
     session = scoped_session(sessionmaker(bind=engine))
-    print(f"NIK: engine {engine}")
-    print(f"NIK: session {session}")
     try:
         yield session
     finally:

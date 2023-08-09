@@ -16,7 +16,8 @@ from freezegun import freeze_time
 from notifications_python_client.authentication import create_jwt_token
 
 from app import api_user
-from app.dao.api_key_dao import get_unsigned_secrets, save_model_api_key, get_unsigned_secret, expire_api_key
+from app.dao.api_key_dao import get_unsigned_secrets,\
+    save_model_api_key, get_unsigned_secret, expire_api_key
 from app.models import ApiKey, KEY_TYPE_NORMAL, PERMISSION_LIST, Permission
 from app.authentication.auth import AuthError, validate_admin_auth, validate_service_api_key_auth, \
     requires_admin_auth_or_user_in_service, requires_user_in_service_or_admin
@@ -317,7 +318,7 @@ def test_should_attach_the_current_api_key_to_current_app(notify_api, sample_ser
 def test_should_return_403_when_token_is_expired(client,
                                                  sample_api_key):
     with freeze_time('2001-01-01T12:00:00'):
-        token = __create_token(sample_api_key.service_id)
+        token = create_jwt_token(secret=sample_api_key.secret, client_id=str(sample_api_key.service_id))
     with freeze_time('2001-01-01T12:00:40'):
         with pytest.raises(AuthError) as exc:
             request.headers = {'Authorization': 'Bearer {}'.format(token)}
