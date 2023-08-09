@@ -52,7 +52,8 @@ def send_delivery_status_to_service(
         payload['provider_payload'] = status_update['provider_payload']
 
     logging_tags = {
-        "notification_id": str(notification_id)
+        "notification_id": str(notification_id),
+        "service_id": status_update.get('service_id')
     }
 
     try:
@@ -258,6 +259,7 @@ def create_delivery_status_callback_data(
         "service_callback_api_bearer_token": service_callback.bearer_token,
         "provider": notification.sent_by,
         "status_reason": notification.status_reason,
+        "service_id": notification.service_id
     }
 
     # do not update data[] when provider_payload is None or empty dictionary
