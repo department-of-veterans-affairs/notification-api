@@ -26,7 +26,8 @@ jobs:
           role-duration-seconds: 900
 
       - name: Run Custom AWS CLI command
-        run: aws s3 ls
+        run: |
+          aws inspector2 enable --resource-types ECR
 
       #- name: Login to VAEC ECR
         #id: login-ecr-vaec
