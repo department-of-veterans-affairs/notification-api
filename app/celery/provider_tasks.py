@@ -137,8 +137,13 @@ def deliver_email(self, notification_id: str, sms_sender_id=None):
         current_app.logger.info("Start sending email for notification id: %s", notification_id)
         notification = notifications_dao.get_notification_by_id(notification_id)
         if not notification:
-            current_app.logger.warning("Notification not found for: %s, retrying", notification_id)
-            raise AutoRetryException
+            if self.request.retries < 100:
+                current_app.logger.warning("Notification not found for: %s, retrying", notification_id)
+                raise AutoRetryException
+            else:
+                current_app.logger.critical("Failed to find notification object for notification id: %s",
+                                            notification_id)
+                raise NotificationTechnicalFailureException
         send_to_providers.send_email_to_provider(notification)
         current_app.logger.info("Successfully sent email for notification id: %s", notification_id)
     except InvalidEmailError as e:
