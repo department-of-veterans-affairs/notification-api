@@ -315,16 +315,16 @@ def test_should_attach_the_current_api_key_to_current_app(notify_api, sample_ser
 
 
 def test_should_return_403_when_token_is_expired(client,
-                                                 sample_api_key):
+                                                 sample_service_data_api_key):
     with freeze_time('2001-01-01T12:00:00'):
-        token = __create_token(sample_api_key.service_id)
+        token = __create_token(sample_service_data_api_key.service_id)
     with freeze_time('2001-01-01T12:00:40'):
         with pytest.raises(AuthError) as exc:
             request.headers = {'Authorization': 'Bearer {}'.format(token)}
             validate_service_api_key_auth()
     assert exc.value.short_message == 'Error: Your system clock must be accurate to within 30 seconds'
-    assert exc.value.service_id == sample_api_key.service_id
-    assert exc.value.api_key_id == sample_api_key.id
+    assert exc.value.service_id == sample_service_data_api_key.service_id
+    assert exc.value.api_key_id == sample_service_data_api_key.id
 
 
 def __create_token(service_id):

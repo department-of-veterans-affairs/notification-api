@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 import uuid
 from datetime import date, datetime, timedelta
 from app.service.service_data import ServiceData, ServiceDataException
@@ -6,13 +5,14 @@ from app.service.service_data import ServiceData, ServiceDataException
 from notifications_utils.statsd_decorators import statsd
 from notifications_utils.timezones import convert_utc_to_local_timezone
 from sqlalchemy.sql.expression import asc, case, and_, func
-from sqlalchemy.orm import joinedload, scoped_session, sessionmaker
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from flask import current_app
 
 from app import db
 from app.dao.date_util import get_current_financial_year
 from app.dao.dao_utils import (
+    get_reader_session,
     transactional,
     version_class,
     VersionOptions,
@@ -197,16 +197,7 @@ def dao_fetch_service_by_inbound_number(number):
 
 
 def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
-    @contextmanager
-    def get_session(engine):
-        session = scoped_session(sessionmaker(bind=engine))
-        try:
-            yield session
-        finally:
-            session.close()
-
-    reader = db.engines['read-db']
-    with get_session(reader) as session:
+    with get_reader_session() as session:
         query = session.query(Service).filter_by(
             id=service_id
         ).options(
