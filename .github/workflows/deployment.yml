@@ -75,6 +75,8 @@ jobs:
       - name: Login to VAEC ECR
         id: login-ecr-vaec
         uses: aws-actions/amazon-ecr-login@v1
+        with:
+          mask-password: 'true'
 
       - name: Render API task definition
         id: render-api-container
@@ -113,6 +115,8 @@ jobs:
       - name: Login to VAEC ECR
         id: login-ecr-vaec
         uses: aws-actions/amazon-ecr-login@v1
+        with:
+          mask-password: 'true'
 
       - name: Render celery task definition
         id: render-celery-container
@@ -151,6 +155,8 @@ jobs:
       - name: Login to VAEC ECR
         id: login-ecr-vaec
         uses: aws-actions/amazon-ecr-login@v1
+        with:
+          mask-password: 'true'
 
       - name: Render celery beat task definition
         id: render-celery-beat-container
