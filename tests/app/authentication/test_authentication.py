@@ -306,13 +306,15 @@ def test_authentication_returns_error_when_service_has_no_secrets(client,
 
 def test_should_attach_the_current_api_key_to_current_app(notify_api, sample_service_data_api_key):
     with notify_api.test_request_context(), notify_api.test_client() as client:
-        token = __create_token(sample_service_data_api_key.service_id)
+        _key = sample_service_data_api_key
+        token = create_jwt_token(secret=_key.secret, client_id=str(_key.service_id))
         response = client.get(
             '/notifications',
             headers={'Authorization': 'Bearer {}'.format(token)}
         )
         assert response.status_code == 200
-        assert api_user == sample_service_data_api_key
+        # api_user is an api key assigned globally after a service is authenticated
+        assert api_user == _key
 
 
 def test_should_return_403_when_token_is_expired(client,

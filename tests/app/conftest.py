@@ -1,5 +1,6 @@
 import json
 import os
+from app.service.service_data import ServiceDataApiKey
 import pytest
 import pytz
 import requests_mock
@@ -15,7 +16,7 @@ from app.dao.jobs_dao import dao_create_job
 from app.dao.notifications_dao import dao_create_notification
 from app.dao.organisation_dao import dao_create_organisation
 from app.dao.provider_rates_dao import create_provider_rates
-from app.dao.services_dao import (dao_create_service, dao_add_user_to_service, dao_fetch_service_by_id_with_api_keys)
+from app.dao.services_dao import (dao_create_service, dao_add_user_to_service)
 from app.dao.service_sms_sender_dao import dao_add_sms_sender_for_service
 from app.dao.templates_dao import dao_create_template
 from app.dao.users_dao import create_secret_code, create_user_code
@@ -595,9 +596,7 @@ def sample_service_data_api_key(service=None, key_type=KEY_TYPE_NORMAL, name=Non
     api_key = ApiKey(**data)
     save_model_api_key(api_key)
 
-    _tmp = dao_fetch_service_by_id_with_api_keys(service.id)
-    service_data_api_key = _tmp.api_keys[0]
-    return service_data_api_key
+    return ServiceDataApiKey(api_key)
 
 
 @pytest.fixture(scope='function')
