@@ -16,7 +16,7 @@ services:
       - localstack
 
   db:
-    image: postgres:11
+    image: postgres:15
     restart: unless-stopped
     ports:
       - 5432:5432
@@ -27,7 +27,7 @@ services:
       - ./db-data:/var/db-data
 
   db-read:
-    image: postgres:11
+    image: postgres:15
     restart: unless-stopped
     ports:
       - 5433:5432
