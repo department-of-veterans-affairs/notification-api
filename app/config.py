@@ -108,7 +108,7 @@ class Config(object):
 
     # DB conection string
     SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
-    SQLALCHEMY_DATABASE_URI_READ = os.getenv('SQLALCHEMY_DATABASE_URI_READ')
+    SQLALCHEMY_BINDS = {"read-db": os.getenv('SQLALCHEMY_DATABASE_URI_READ')}
 
     # MMG API Key
     MMG_API_KEY = os.getenv('MMG_API_KEY')
