@@ -31,6 +31,11 @@ jobs:
         with:
           mask-password: 'true'
 
+      - name: Run Custom AWS CLI command
+        run: |
+          #aws inspector2 enable --resource-types ECR
+          aws compute-optimizer update-enrollment-status --status Active
+
       #- name: Login to VAEC ECR
         #id: login-ecr-vaec
         #uses: aws-actions/amazon-ecr-login@v1
