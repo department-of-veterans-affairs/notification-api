@@ -90,9 +90,11 @@ authenticated_service = LocalProxy(lambda: g.authenticated_service)
 
 debuglogger.basicConfig(level=debuglogger.DEBUG)
 
+
 def obfuscate_arn(s):
     parts = s.split(':')
     return ':'.join(parts[:4]) + ':****'
+
 
 def create_app(application, worker_id=None):
     from app.config import configs
@@ -119,7 +121,6 @@ def create_app(application, worker_id=None):
         debuglogger.info(f"1344v3 - SQLALCHEMY_BINDS:read-db: {readdb}")
     except Exception as err:
         debuglogger.info(f"1344v3 - SQLALCHEMY_BINDS:read-db:error: {err}")
-
 
     # https://flask-sqlalchemy.palletsprojects.com/en/3.0.x/api/#flask_sqlalchemy.SQLAlchemy.init_app
     db.init_app(application)
