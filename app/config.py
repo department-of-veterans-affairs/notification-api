@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from fido2.server import Fido2Server
 from fido2.webauthn import PublicKeyCredentialRpEntity
 from kombu import Exchange, Queue
+import logging as debuglogger
 
 
 load_dotenv()
@@ -597,6 +598,11 @@ class Staging(Config):
     SQLALCHEMY_BINDS = {"read-db": os.getenv("SQLALCHEMY_DATABASE_URI_READ")}
 
 
+def obfuscate_arn(s):
+    parts = s.split(':')
+    return ':'.join(parts[:4]) + ':****'
+
+
 class Production(Config):
     # CSV_UPLOAD_BUCKET_NAME = 'live-notifications-csv-upload'
     TEST_LETTERS_BUCKET_NAME = 'production-test-letters'
@@ -615,7 +621,15 @@ class Production(Config):
     SESSION_COOKIE_SECURE = True
 
     SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
-    SQLALCHEMY_BINDS = {"read-db": os.getenv("SQLALCHEMY_DATABASE_URI_READ")}
+    SQLALCHEMY_BINDS = {"read-db": os.getenv(
+        "SQLALCHEMY_DATABASE_URI_READ",
+        'postgresql://postgres@localhost/notification_api'
+    )}
+    try:
+        readdb = obfuscate_arn(SQLALCHEMY_BINDS['read-db'])
+        debuglogger.critical(f"1344v3 - Production:read-db: {readdb}")
+    except Exception as err:
+        debuglogger.critical(f"1344v3 - Production:read-db:error: {err}")
 
 
 configs = {

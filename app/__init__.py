@@ -117,10 +117,11 @@ def create_app(application, worker_id=None):
     request_helper.init_app(application)
 
     try:
+        debuglogger.critical(f"1344v3 - create_app:notify_environment: {notify_environment}")
         readdb = obfuscate_arn(application.config['SQLALCHEMY_BINDS']['read-db'])
-        debuglogger.critical(f"1344v3 - SQLALCHEMY_BINDS:read-db: {readdb}")
+        debuglogger.critical(f"1344v3 - create_app:read-db: {readdb}")
     except Exception as err:
-        debuglogger.critical(f"1344v3 - SQLALCHEMY_BINDS:read-db:error: {err}")
+        debuglogger.critical(f"1344v3 - create_app:read-db:error: {err}")
 
     # https://flask-sqlalchemy.palletsprojects.com/en/3.0.x/api/#flask_sqlalchemy.SQLAlchemy.init_app
     db.init_app(application)
