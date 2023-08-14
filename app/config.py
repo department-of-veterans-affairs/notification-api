@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from fido2.server import Fido2Server
 from fido2.webauthn import PublicKeyCredentialRpEntity
 from kombu import Exchange, Queue
+import logging
 
 
 load_dotenv()
@@ -585,6 +586,10 @@ class Staging(Config):
     FROM_NUMBER = '+18555420534'
 
     SESSION_COOKIE_SECURE = True
+    SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
+    SQLALCHEMY_BINDS = {"read-db": os.getenv("SQLALCHEMY_DATABASE_URI_READ")}
+    if SQLALCHEMY_BINDS['read-db'] is None:
+        logging.critical("Missing SQLALCHEMY_DATABASE_URI_READ")
 
 
 class Production(Config):
@@ -603,6 +608,11 @@ class Production(Config):
     FROM_NUMBER = '+18334981539'
 
     SESSION_COOKIE_SECURE = True
+
+    SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
+    SQLALCHEMY_BINDS = {"read-db": os.getenv("SQLALCHEMY_DATABASE_URI_READ")}
+    if SQLALCHEMY_BINDS['read-db'] is None:
+        logging.critical("Missing SQLALCHEMY_DATABASE_URI_READ")
 
 
 configs = {
