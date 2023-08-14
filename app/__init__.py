@@ -2,7 +2,6 @@ import os
 import random
 import string
 import uuid
-import logging as debuglogger
 from dotenv import load_dotenv
 
 from flask import request, g, jsonify, make_response
@@ -88,13 +87,6 @@ provider_service = ProviderService()
 api_user = LocalProxy(lambda: g.api_user)
 authenticated_service = LocalProxy(lambda: g.authenticated_service)
 
-debuglogger.basicConfig(level=debuglogger.DEBUG)
-
-
-def obfuscate_arn(s):
-    parts = s.split(':')
-    return ':'.join(parts[:4]) + ':****'
-
 
 def create_app(application, worker_id=None):
     from app.config import configs
@@ -115,13 +107,6 @@ def create_app(application, worker_id=None):
     application.config["NOTIFY_APP_NAME"] = application.name
     init_app(application)
     request_helper.init_app(application)
-
-    try:
-        debuglogger.critical(f"1344v3 - create_app:notify_environment: {notify_environment}")
-        readdb = obfuscate_arn(application.config['SQLALCHEMY_BINDS']['read-db'])
-        debuglogger.critical(f"1344v3 - create_app:read-db: {readdb}")
-    except Exception as err:
-        debuglogger.critical(f"1344v3 - create_app:read-db:error: {err}")
 
     # https://flask-sqlalchemy.palletsprojects.com/en/3.0.x/api/#flask_sqlalchemy.SQLAlchemy.init_app
     db.init_app(application)

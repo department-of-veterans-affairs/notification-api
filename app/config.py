@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from fido2.server import Fido2Server
 from fido2.webauthn import PublicKeyCredentialRpEntity
 from kombu import Exchange, Queue
-import logging as debuglogger
+import logging
 
 
 load_dotenv()
@@ -596,11 +596,8 @@ class Staging(Config):
     SESSION_COOKIE_SECURE = True
     SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
     SQLALCHEMY_BINDS = {"read-db": os.getenv("SQLALCHEMY_DATABASE_URI_READ")}
-
-
-def obfuscate_arn(s):
-    parts = s.split(':')
-    return ':'.join(parts[:4]) + ':****'
+    if SQLALCHEMY_BINDS['read-db'] is None:
+        logging.critical("Missing SQLALCHEMY_DATABASE_URI_READ")
 
 
 class Production(Config):
@@ -621,15 +618,9 @@ class Production(Config):
     SESSION_COOKIE_SECURE = True
 
     SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
-    SQLALCHEMY_BINDS = {"read-db": os.getenv(
-        "SQLALCHEMY_DATABASE_URI_READ",
-        'postgresql://postgres@localhost/notification_api'
-    )}
-    try:
-        readdb = obfuscate_arn(SQLALCHEMY_BINDS['read-db'])
-        debuglogger.critical(f"1344v3 - Production:read-db: {readdb}")
-    except Exception as err:
-        debuglogger.critical(f"1344v3 - Production:read-db:error: {err}")
+    SQLALCHEMY_BINDS = {"read-db": os.getenv("SQLALCHEMY_DATABASE_URI_READ")}
+    if SQLALCHEMY_BINDS['read-db'] is None:
+        logging.critical("Missing SQLALCHEMY_DATABASE_URI_READ")
 
 
 configs = {
