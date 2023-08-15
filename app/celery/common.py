@@ -27,7 +27,7 @@ def handle_max_retries_exceeded(notification_id: str, method_name: str) -> str:
     return message
 
 
-def handle_non_retryable(notification_id: str, method_name: str):
+def handle_non_retryable(notification_id: str, method_name: str) -> None:
     """ Handles sms/email deliver requests that failed in a non-retryable manner """
     current_app.logger.critical("%s: Notification %s encountered a non-retryable exception and "
                                 "has been updated to a technical-failure",
