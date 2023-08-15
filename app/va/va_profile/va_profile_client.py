@@ -41,7 +41,11 @@ class VAProfileClient:
         self.ssl_key_path = ssl_key_path
         self.statsd_client = statsd_client
 
-    def get_email(self, va_profile_id):
+    def get_email(self, va_profile_id) -> str:
+        """
+        Return the e-mail address for a given Profile ID, or raise NoContactInfoException.
+        """
+
         if is_fhir_format(va_profile_id):
             va_profile_id = transform_from_fhir_format(va_profile_id)
 
@@ -56,7 +60,11 @@ class VAProfileClient:
         self.statsd_client.incr("clients.va-profile.get-email.success")
         return email
 
-    def get_telephone(self, va_profile_id):
+    def get_telephone(self, va_profile_id) -> str:
+        """
+        Return the phone number for a given Profile ID, or raise NoContactInfoException.
+        """
+
         if is_fhir_format(va_profile_id):
             va_profile_id = transform_from_fhir_format(va_profile_id)
 
@@ -165,6 +173,10 @@ class VAProfileClient:
             exception.failure_reason = failure_message
 
             raise exception from e
+
+        except requests.Timeout:
+            self.logger.error("The request to VA Profile timed out for VA Profile ID %s.", va_profile_id)
+            raise
 
         else:
             response_json = response.json()
