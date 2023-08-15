@@ -43,7 +43,6 @@ jobs:
           push: true
           tags: ${{ steps.login-ecr-vaec.outputs.registry }}/notification_api:${{ inputs.ref }}_${{ inputs.environment }}
 
-       Twistlock will be fully removed from actions and the infrastructure in #1398
       - name: Dispatch Twistlock Workflow
         env:
           GH_TOKEN: ${{ github.token }}
