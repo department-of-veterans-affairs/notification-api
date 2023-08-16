@@ -72,6 +72,7 @@ class VAProfileClient:
             self.logger.error("Received a garbled response from VA Profile for ID %s.", va_profile_id)
             self.logger.exception(e)
 
+        self.statsd_client.incr("clients.va-profile.get-email.failure")
         self._raise_no_contact_info_exception(self.EMAIL_BIO_TYPE, va_profile_id, response.get(self.TX_AUDIT_ID))
 
     def get_telephone(self, va_profile_id) -> str:
@@ -101,13 +102,14 @@ class VAProfileClient:
                 if sorted_bios[0].get("countryCode") and sorted_bios[0].get("areaCode") and \
                         sorted_bios[0].get("phoneNumber"):
                     # The required attributes are present and not empty strings.
-                    self.statsd_client.incr("clients.va-profile.get-email.success")
+                    self.statsd_client.incr("clients.va-profile.get-telephone.success")
                 # This is intentionally allowed to raise KeyError so the problem is logged below.
                 return '+' + sorted_bios[0]["countryCode"] + sorted_bios[0]["areaCode"] + sorted_bios[0]["phoneNumber"]
         except KeyError as e:
             self.logger.error("Received a garbled response from VA Profile for ID %s.", va_profile_id)
             self.logger.exception(e)
 
+        self.statsd_client.incr("clients.va-profile.get-telephone.failure")
         self._raise_no_contact_info_exception(self.PHONE_BIO_TYPE, va_profile_id, response.get(self.TX_AUDIT_ID))
 
     def get_is_communication_allowed(
