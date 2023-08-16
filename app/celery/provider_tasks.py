@@ -24,6 +24,7 @@ from notifications_utils.statsd_decorators import statsd
                     max_retries=2886, retry_backoff=True, retry_backoff_max=60)
 @statsd(namespace="tasks")
 def deliver_sms(self, notification_id, sms_sender_id=None):
+    from twilio.base.exceptions import TwilioRestException
     try:
         current_app.logger.info("Start sending SMS for notification id: %s", notification_id)
         notification = notifications_dao.get_notification_by_id(notification_id)
@@ -52,7 +53,7 @@ def deliver_sms(self, notification_id, sms_sender_id=None):
         )
         notification = notifications_dao.get_notification_by_id(notification_id)
         check_and_queue_callback_task(notification)
-    except (NullValueForNonConditionalPlaceholderException, AttributeError, RuntimeError) as e:
+    except (NullValueForNonConditionalPlaceholderException, AttributeError, RuntimeError, TwilioRestException) as e:
         handle_non_retryable(notification_id, 'deliver_sms')
         raise NotificationTechnicalFailureException(f'Found {type(e).__name__}, NOT retrying...', e, e.args)
     except Exception as e:
