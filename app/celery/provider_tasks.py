@@ -56,7 +56,7 @@ def deliver_sms(self, notification_id, sms_sender_id=None):
         )
         notification = notifications_dao.get_notification_by_id(notification_id)
         check_and_queue_callback_task(notification)
-    except (NullValueForNonConditionalPlaceholderException, AttributeError, RuntimeError) as e:
+    except (NullValueForNonConditionalPlaceholderException, AttributeError, RuntimeError, KeyError) as e:
         handle_non_retryable(notification_id, 'deliver_sms')
         raise NotificationTechnicalFailureException(f'Found {type(e).__name__}, NOT retrying...', e, e.args)
     except Exception as e:
@@ -75,7 +75,7 @@ def deliver_sms(self, notification_id, sms_sender_id=None):
 @notify_celery.task(bind=True, name='deliver_sms_with_rate_limiting',
                     throws=(AutoRetryException, ),
                     autoretry_for=(AutoRetryException, ),
-                    max_retries=2886, retry_backoff=10, retry_backoff_max=60)
+                    max_retries=2886, retry_backoff=2, retry_backoff_max=60)
 @statsd(namespace='tasks')
 def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
     from app.notifications.validators import check_sms_sender_over_rate_limit
