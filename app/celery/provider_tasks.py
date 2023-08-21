@@ -56,7 +56,7 @@ def deliver_sms(self, notification_id, sms_sender_id=None):
         )
         notification = notifications_dao.get_notification_by_id(notification_id)
         check_and_queue_callback_task(notification)
-    except (NullValueForNonConditionalPlaceholderException, AttributeError, RuntimeError, KeyError) as e:
+    except (NullValueForNonConditionalPlaceholderException, AttributeError, RuntimeError) as e:
         handle_non_retryable(notification_id, 'deliver_sms')
         raise NotificationTechnicalFailureException(f'Found {type(e).__name__}, NOT retrying...', e, e.args)
     except Exception as e:
