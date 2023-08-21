@@ -91,7 +91,7 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
             )
         sms_sender = dao_get_service_sms_sender_by_service_id_and_number(notification.service_id,
                                                                          notification.reply_to_text)
-        check_sms_sender_over_rate_limit(notification.service_id, sms_sender.id)
+        check_sms_sender_over_rate_limit(notification.service_id, sms_sender)
         send_to_providers.send_sms_to_provider(notification, sms_sender_id)
         current_app.logger.info('Successfully sent sms with rate limiting for notification id: %s', notification_id)
     except InvalidProviderException as e:

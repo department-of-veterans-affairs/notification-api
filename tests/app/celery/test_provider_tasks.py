@@ -3,6 +3,7 @@ import uuid
 from collections import namedtuple
 
 import pytest
+from unittest.mock import patch
 from notifications_utils.recipients import InvalidEmailError
 
 
@@ -202,7 +203,6 @@ def test_deliver_sms_with_rate_limiting_should_retry_if_rate_limit_exceeded(samp
 
 
 def test_deliver_sms_with_rate_limiting_should_retry_generic_exceptions(sample_notification, mocker):
-    mocker.patch('app.celery.provider_tasks.check_sms_sender_over_rate_limit')
     mocker.patch('app.celery.provider_tasks.send_to_providers.send_sms_to_provider', side_effect=Exception)
     with pytest.raises(AutoRetryException) as exc_info:
         deliver_sms_with_rate_limiting(sample_notification.id)
@@ -211,7 +211,6 @@ def test_deliver_sms_with_rate_limiting_should_retry_generic_exceptions(sample_n
 
 
 def test_deliver_sms_with_rate_limiting_max_retries_exceeded(sample_notification, mocker):
-    mocker.patch('app.celery.provider_tasks.check_sms_sender_over_rate_limit')
     mocker.patch('app.celery.provider_tasks.send_to_providers.send_sms_to_provider', side_effect=Exception)
     mocker.patch('app.celery.provider_tasks.can_retry', return_value=False)
 
