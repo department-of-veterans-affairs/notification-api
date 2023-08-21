@@ -203,6 +203,8 @@ def test_deliver_sms_with_rate_limiting_should_retry_if_rate_limit_exceeded(samp
 
 def test_deliver_sms_with_rate_limiting_should_retry_generic_exceptions(sample_notification, mocker):
     mocker.patch('app.celery.provider_tasks.send_to_providers.send_sms_to_provider', side_effect=Exception)
+    mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
+
     with pytest.raises(AutoRetryException) as exc_info:
         deliver_sms_with_rate_limiting(sample_notification.id)
 
