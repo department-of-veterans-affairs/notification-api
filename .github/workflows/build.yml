@@ -1,14 +1,5 @@
 name: api build and push
 on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        required: true
-        default: "dev"
-        type: string
-      ref:
-        required: true
-        type: string
   workflow_call:
     inputs:
       environment:
