@@ -3,7 +3,6 @@ import uuid
 from collections import namedtuple
 
 import pytest
-from unittest.mock import patch
 from notifications_utils.recipients import InvalidEmailError
 
 
