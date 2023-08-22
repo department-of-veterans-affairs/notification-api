@@ -259,7 +259,6 @@ class Organisation(db.Model):
         nullable=True,
     )
 
-
     @property
     def live_services(self):
         return [
@@ -382,7 +381,6 @@ class Service(db.Model, Versioned):
         secondary=service_email_branding,
         uselist=False,
         backref=db.backref('services', lazy='dynamic'))
-
 
     @classmethod
     def from_json(cls, data):

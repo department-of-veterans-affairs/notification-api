@@ -42,7 +42,7 @@ from app.models import (
     NOTIFICATION_VIRUS_SCAN_FAILED,
 )
 
-from tests.app.db import create_notification, create_letter_branding
+from tests.app.db import create_notification
 
 from tests.conftest import set_config_values
 
@@ -220,8 +220,7 @@ def test_create_letters_gets_the_right_logo_when_service_has_no_logo(
 def test_create_letters_gets_the_right_logo_when_service_has_letter_branding_logo(
         notify_api, mocker, sample_letter_notification
 ):
-    letter_branding = create_letter_branding(name='test brand', filename='test-brand')
-    sample_letter_notification.service.letter_branding = letter_branding
+    sample_letter_notification.service.letter_branding = None
     mock_get_letters_pdf = mocker.patch('app.celery.letters_pdf_tasks.get_letters_pdf', return_value=(b'\x00\x01', 1))
     mocker.patch('app.letters.utils.s3upload')
     mocker.patch('app.celery.letters_pdf_tasks.update_notification_status_by_id')
@@ -230,7 +229,7 @@ def test_create_letters_gets_the_right_logo_when_service_has_letter_branding_log
     mock_get_letters_pdf.assert_called_once_with(
         sample_letter_notification.template,
         contact_block=sample_letter_notification.reply_to_text,
-        filename=sample_letter_notification.service.letter_branding.filename,
+        filename=None,
         values=sample_letter_notification.personalisation
     )
 

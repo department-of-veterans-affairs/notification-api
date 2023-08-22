@@ -375,7 +375,6 @@ def preview_letter_template_by_notification_id(service_id, notification_id, file
             "version": str(template.version)
         }
 
-        service = dao_fetch_service_by_id(service_id)
         data = {
             'letter_contact_block': notification.reply_to_text,
             'template': template_for_letter_print,
