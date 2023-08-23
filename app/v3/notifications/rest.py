@@ -9,14 +9,14 @@ from uuid import uuid4
 v3_notifications_blueprint = Blueprint("v3_notifications", __name__, url_prefix='/v3/notifications')
 
 
-@v3_notifications_blueprint.route("/email>", methods=["POST"])
+@v3_notifications_blueprint.route("/email", methods=["POST"])
 def post_notification_email():
     request_data = request.get_json()
     request_data["notification_type"] = EMAIL_TYPE
     return post_notification(request_data)
 
 
-@v3_notifications_blueprint.route("/sms>", methods=["POST"])
+@v3_notifications_blueprint.route("/sms", methods=["POST"])
 def post_notification_sms():
     request_data = request.get_json()
     request_data["notification_type"] = SMS_TYPE
