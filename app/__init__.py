@@ -222,6 +222,9 @@ def create_app(application, worker_id=None):
     register_blueprint(application)
     register_v2_blueprints(application)
 
+    # TODO 1360 - Only call this if a feature flag is set.
+    register_v3_blueprints(application)
+
     # avoid circular imports by importing this file later
     from app.commands import setup_commands
 
@@ -379,6 +382,14 @@ def register_v2_blueprints(application):
 
     get_inbound_sms.before_request(validate_service_api_key_auth)
     application.register_blueprint(get_inbound_sms)
+
+
+def register_v3_blueprints(application):
+    from app.authentication.auth import validate_service_api_key_auth
+    from app.v3.notifications.rest import v3_notifications_blueprint
+
+    v3_notifications_blueprint.before_request(validate_service_api_key_auth)
+    application.register_blueprint(v3_notifications_blueprint)
 
 
 def init_app(app):
