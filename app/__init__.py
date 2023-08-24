@@ -385,11 +385,20 @@ def register_v2_blueprints(application):
 
 
 def register_v3_blueprints(application):
-    from app.authentication.auth import validate_service_api_key_auth
-    from app.v3.notifications.rest import v3_notifications_blueprint
+    """
+    Only the top level v3_blueprint should be registered directly with the application.  Register all
+    child blueprints with v3_blueprint.  This helps to standardize error handling across all v3 routes.
+    """
 
-    v3_notifications_blueprint.before_request(validate_service_api_key_auth)
-    application.register_blueprint(v3_notifications_blueprint)
+    from app.authentication.auth import validate_service_api_key_auth
+    from app.v3 import v3_blueprint
+
+    # Notifications
+    from app.v3.notifications.rest import v3_notifications_blueprint
+    # v3_notifications_blueprint.before_request(validate_service_api_key_auth)
+    v3_blueprint.register_blueprint(v3_notifications_blueprint)
+
+    application.register_blueprint(v3_blueprint)
 
 
 def init_app(app):

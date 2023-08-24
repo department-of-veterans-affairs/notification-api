@@ -68,9 +68,9 @@ from uuid import UUID
 )
 def test_post_notification_email(admin_request, request_data, expected_status):
     """
-    Test e-mail and SMS POST endpoints using "to" and "recipient_identifier".  Also test
-    POSTing with bad request data to verify a 400 response.  This test does not exhaustively
-    test bad request data because tests/app/v3/notifications/test_notification_schemas.py
+    Test e-mail and SMS POST endpoints using "to" and "recipient_identifier".  Also test POSTing
+    with bad request data to verify a 400 response.  This test does not exhaustively test
+    request data combinations because tests/app/v3/notifications/test_notification_schemas.py
     tests validation.
     """
 
@@ -78,7 +78,7 @@ def test_post_notification_email(admin_request, request_data, expected_status):
 
     # This call has the side effect of asserting that the response status matches the expected status.
     response = admin_request.post(
-        f"v3_notifications.post_notification_{request_data['notification_type']}",
+        "v3.v3_notifications.post_notification_v3",
         request_data,
         expected_status
     )
