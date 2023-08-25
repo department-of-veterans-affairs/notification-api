@@ -66,19 +66,21 @@ from uuid import UUID
         "additional properties not allowed",
     )
 )
-def test_post_notification_email(admin_request, request_data, expected_status):
+def test_post_notification_v3(admin_request, request_data, expected_status):
     """
     Test e-mail and SMS POST endpoints using "to" and "recipient_identifier".  Also test POSTing
     with bad request data to verify a 400 response.  This test does not exhaustively test
     request data combinations because tests/app/v3/notifications/test_notification_schemas.py
     tests validation.
+
+    Tests for authentication are in tests/app/test_route_authentication.py.
     """
 
     # TODO 1361 - mock call to Celery apply_async
 
-    # This call has the side effect of asserting that the response status matches the expected status.
+    # This has the side effect of asserting that the response status matches the expected status.
     response = admin_request.post(
-        "v3.v3_notifications.post_notification_v3",
+        f"v3.v3_notifications.v3_notification_{request_data['notification_type']}",
         request_data,
         expected_status
     )

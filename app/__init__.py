@@ -388,6 +388,7 @@ def register_v3_blueprints(application):
     """
     Only the top level v3_blueprint should be registered directly with the application.  Register all
     child blueprints with v3_blueprint.  This helps to standardize error handling across all v3 routes.
+    See app/v3/__init__.py.
     """
 
     from app.authentication.auth import validate_service_api_key_auth
