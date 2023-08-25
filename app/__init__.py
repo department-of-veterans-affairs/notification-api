@@ -396,6 +396,7 @@ def register_v3_blueprints(application):
 
     # Notifications
     from app.v3.notifications.rest import v3_notifications_blueprint
+    # TODO 1360 - require auth
     # v3_notifications_blueprint.before_request(validate_service_api_key_auth)
     v3_blueprint.register_blueprint(v3_notifications_blueprint)
 

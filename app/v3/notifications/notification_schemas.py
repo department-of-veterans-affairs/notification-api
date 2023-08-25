@@ -49,15 +49,11 @@ notification_v3_post_request_schema = {
         {"required": ["recipient_identifier"]}
     ],
     "if": {
-        "properties": {"notification_type": {"const": SMS_TYPE}}
+        "properties": {"notification_type": {"const": EMAIL_TYPE}}
     },
     "then": {
-        # For SMS_TYPE notifications, sms_sender_id is required.
-        # Note that there is no "phone_number" string format, contrary to the v2 schema definition.
-        "required": ["sms_sender_id"]
-    },
-    "else": {
         # For EMAIL_TYPE notifications, "to", if present, must have the "email" format.
+        # Note that there is no "phone_number" string format, contrary to the v2 schema definition.
         "properties": {"to": {"type": "string", "format": "email"}}
     }
 }

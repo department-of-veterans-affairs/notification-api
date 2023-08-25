@@ -32,7 +32,7 @@ from jsonschema import FormatChecker, validate, ValidationError
                 "to": "+12701234567",
                 "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
             },
-            False,
+            True,
         ),
         (
             {

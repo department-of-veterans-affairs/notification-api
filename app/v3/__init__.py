@@ -4,7 +4,7 @@ across all v3 endpoints.
 """
 
 from app.authentication.auth import AuthError
-from flask import Blueprint, current_app, request
+from flask import Blueprint
 from jsonschema import ValidationError
 
 v3_blueprint = Blueprint("v3", __name__, url_prefix='/v3')
@@ -16,9 +16,6 @@ v3_blueprint = Blueprint("v3", __name__, url_prefix='/v3')
 
 @v3_blueprint.errorhandler(AuthError)
 def auth_error(error):
-    print("MADE IT HERE 2")  # TODO
-    current_app.logger.info("API AuthError, client: %s error: %s", request.headers.get("User-Agent"), error)
-    # TODO 1360 - standardize this
     return error.to_dict_v2(), error.code
 
 

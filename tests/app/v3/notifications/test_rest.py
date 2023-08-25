@@ -71,7 +71,7 @@ def test_post_notification_v3(admin_request, request_data, expected_status):
     Test e-mail and SMS POST endpoints using "to" and "recipient_identifier".  Also test POSTing
     with bad request data to verify a 400 response.  This test does not exhaustively test
     request data combinations because tests/app/v3/notifications/test_notification_schemas.py
-    tests validation.
+    handles that.
 
     Tests for authentication are in tests/app/test_route_authentication.py.
     """
