@@ -246,7 +246,7 @@ fileignoreconfig:
     - filename: requirements.txt
       checksum: 0cf734d45d6941fdc317a23c6490ed4ce92194bc02adecb52e5edff5bb5442f8
     - filename: ci/.docker-env.example
-      checksum: 7bc7fefe2e93aab23fae65dc41683255bdabd0a07af9e0154c046592567d914c
+      checksum: c8375940619721b3691429d58b303b6d864ef179b065a13d3be0b319a6a4153c
     - filename: cd/application-deployment/prod/vaec-celery-beat-task-definition.json
       checksum: 3c249196ee8c2ba3b9b0ca7c736850cfb467c1b0c1993ac58a11653a4f80b436
     - filename: cd/application-deployment/prod/vaec-api-task-definition.json

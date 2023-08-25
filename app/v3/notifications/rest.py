@@ -18,7 +18,10 @@ v3_notifications_post_request_validator = Draft202012Validator(notification_v3_p
 def post_notification_v3():
     request_data = request.get_json()
     request_data["notification_type"] = EMAIL_TYPE if request.base_url.endswith("email") else SMS_TYPE
+
+    # This has the side effect of adding an "id" attribute.
     post_notification_v3_validate_and_send_to_celery(request_data)
+
     return {"id": request_data["id"]}, 202
 
 
