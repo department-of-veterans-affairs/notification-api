@@ -1958,8 +1958,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Id'
-        letter_branding:
-          $ref: '#/components/schemas/Id'
         letter_contact_block:
           type: string
         letter_logo_filename:
