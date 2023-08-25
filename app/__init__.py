@@ -391,7 +391,8 @@ def register_v3_blueprints(application):
     See app/v3/__init__.py.
     """
 
-    from app.authentication.auth import validate_service_api_key_auth
+    # TODO 1360 - require auth
+    # from app.authentication.auth import validate_service_api_key_auth
     from app.v3 import v3_blueprint
 
     # Notifications

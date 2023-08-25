@@ -19,7 +19,8 @@ def post_notification_v3():
     request_data = request.get_json()
     request_data["notification_type"] = EMAIL_TYPE if request.base_url.endswith("email") else SMS_TYPE
 
-    # This might raise jsonschema.ValidationError, which should trigger an error handler in app/v3/__init__.py.
+    # This might raise jsonschema.ValidationError, which should trigger an error handler in
+    # app/v3/__init__.py that return a 400 response.
     v3_notifications_post_request_validator.validate(request_data)
 
     request_data["id"] = uuid4()

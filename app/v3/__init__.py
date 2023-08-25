@@ -1,8 +1,3 @@
-"""
-Declare all error handlers for v3 in this file.  This ensures consistent error handling
-across all v3 endpoints.
-"""
-
 from app.authentication.auth import AuthError
 from flask import Blueprint
 from jsonschema import ValidationError
