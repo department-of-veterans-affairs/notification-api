@@ -69,7 +69,7 @@ from uuid import UUID
         "additional properties not allowed",
     )
 )
-def test_post_notification_v3(client, sample_service, request_data, expected_status_code):
+def test_post_notification_v3(notify_db_session, client, sample_service, request_data, expected_status_code):
     """
     Test e-mail and SMS POST endpoints using "to" and "recipient_identifier".  Also test POSTing
     with bad request data to verify a 400 response.  This test does not exhaustively test

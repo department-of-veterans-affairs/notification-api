@@ -32,6 +32,7 @@ from app.clients.sms.aws_pinpoint import AwsPinpointClient
 from app.clients.performance_platform.performance_platform_client import (
     PerformancePlatformClient,
 )
+from app.feature_flags import FeatureFlag, is_feature_enabled
 from app.oauth.registry import oauth_registry
 from app.va.va_onsite import VAOnsiteClient
 from app.va.va_profile import VAProfileClient
@@ -222,8 +223,8 @@ def create_app(application, worker_id=None):
     register_blueprint(application)
     register_v2_blueprints(application)
 
-    # TODO 1360 - Only call this if a feature flag is set.
-    register_v3_blueprints(application)
+    if is_feature_enabled(FeatureFlag.V3_ENABLED):
+        register_v3_blueprints(application)
 
     # avoid circular imports by importing this file later
     from app.commands import setup_commands
