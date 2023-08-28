@@ -117,13 +117,42 @@ from jsonschema import FormatChecker, validate, ValidationError
                 "client_reference": "client reference",
                 "email_reply_to_id": "4f365dd4-332e-454d-94ff-e393463602db",
                 "personalisation": {
-                    "test": {
+                    "test_file": {
                         "file": "string",
                         "filename": "file name",
                         "sending_method": "link",
                     },
                 },
                 "reference": "reference",
+            },
+            True,
+        ),
+        (
+            {
+                "notification_type": EMAIL_TYPE,
+                "to": "test@va.gov",
+                "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
+                "personalisation": {
+                    "test1": "This is not a file.",
+                    "test2": "ditto",
+                },
+            },
+            True,
+        ),
+        (
+            {
+                "notification_type": EMAIL_TYPE,
+                "to": "test@va.gov",
+                "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
+                "personalisation": {
+                    "test1": "This is not a file.",
+                    "test2": "ditto",
+                    "test_file": {
+                        "file": "string",
+                        "filename": "file name",
+                        "sending_method": "link",
+                    },
+                },
             },
             True,
         ),
@@ -140,7 +169,9 @@ from jsonschema import FormatChecker, validate, ValidationError
         'neither "to" nor recipient ID',
         '"to" and recipient ID',
         "unrecognized notification type",
-        "all optional fields",
+        "all optional fields including file personalisation",
+        "non-file personalisation",
+        "file and non-file personalisation",
     )
 )
 def test_notification_v3_post_request_schema(post_data: dict, should_validate: bool):

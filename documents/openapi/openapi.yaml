@@ -1334,6 +1334,58 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v3/notifications/email:
+    post:
+      summary: Send an e-mail notification
+      tags:
+        - notification
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationV3Request"
+        required: true
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v3/notifications/sms:
+    post:
+      summary: Send a SMS notification
+      tags:
+        - notification
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationV3Request"
+        required: true
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /inbound-number:
     get:
       summary: Retrieve an inbound number
@@ -2177,15 +2229,7 @@ components:
         template_id:
           $ref: '#/components/schemas/Id'
         personalisation:
-          type: object
-          description: The personalisation values created in the template must be defined here.
-          additionalProperties:
-            oneOf:
-              - type: string
-              - $ref: '#/components/schemas/Attachment'
-          example:
-            "full_name": "John Smith"
-            "claim_id": "123456"
+          $ref: "#/components/schemas/Personalisation"
         scheduled_for:
           type: string
           format: datetime within next day
@@ -2243,12 +2287,7 @@ components:
         template_id:
           type: string
         personalisation:
-          type: object
-          description: >-
-            The personalisation values created in the template must be defined here.
-          example:
-            full_name: John Smith
-            claim_id: '123456'
+          $ref: "#/components/schemas/Personalisation"
         recipient_identifier:
           type: object
           properties:
@@ -2267,6 +2306,50 @@ components:
       required:
         - recipient_identifier
         - template_id
+    NotificationV3Request:
+      type: object
+      properties:
+        billing_code:
+          type: string
+          maxLength: 256
+        client_reference:
+          type: string
+        email_reply_to_id:
+          description: For e-mail notifications
+          type: string
+          format: uuid
+        personalisation:
+          $ref: "#/components/schemas/Personalisation"
+        recipient_identifier:
+          $ref: "#/components/schemas/RecipientIdentifier"
+        reference:
+          type: string
+        sms_sender_id:
+          description: For SMS notifications
+          type: string
+          format: uuid
+        template_id:
+          $ref: "#/components/schemas/Id"
+        to:
+          description: A phone-number or e-mail address, as appropriate
+          type: string
+      additionalProperties: false
+      required:
+        - notification_type
+        - template_id
+      anyOf:
+        - required: [to]
+        - required: [recipient_identifier]
+    Personalisation:
+      type: object
+      description: The personalisation values created in the template must be defined here.
+      additionalProperties:
+        oneOf:
+          - type: string
+          - $ref: '#/components/schemas/Attachment'
+      example:
+        "full_name": "John Smith"
+        "claim_id": "123456"
     InboundNumberCreateResponse:
       type: object
       properties: {} # TODO (issue 965)
