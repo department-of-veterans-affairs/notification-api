@@ -19,23 +19,29 @@ def post_notification_v3():
     request_data = request.get_json()
     request_data["notification_type"] = EMAIL_TYPE if request.base_url.endswith("email") else SMS_TYPE
 
-    # This has the side effect of adding an "id" attribute.
-    post_notification_v3_validate_and_send_to_celery(request_data)
+    # This might raise jsonschema.ValidationError, which should trigger an error handler in
+    # app/v3/__init__.py that returns a 400 response.
+    v3_notifications_post_request_validator.validate(request_data)
+
+    request_data["id"] = str(uuid4())
+    # TODO 1361 - Pass the validated request data to Celery by calling apply_async (or something else)
 
     return {"id": request_data["id"]}, 202
 
 
-def post_notification_v3_validate_and_send_to_celery(request_data):
+def send_notification_v3(request_data: dict) -> str:
     """
-    Having this as a standalone function provides an internal tool to send messages without having
-    to make API requests.
+    This function is an internal tool to send notifications without having to make API requests.
+    It duplicates the above route handler's code, rather than have the route handler call this
+    function, to maximize the efficiency of the route handler, thereby maximizing the throughput
+    of notification requests.
     """
 
-    # This might raise jsonschema.ValidationError.  When this function is called from above, this
-    # should trigger an error handler in app/v3/__init__.py that returns a 400 response.  When
-    # this function is called other than for an API call, the upstream code should handle this
-    # exception.
+    # This might raise jsonschema.ValidationError.  Upstream code should handle this exception.
     v3_notifications_post_request_validator.validate(request_data)
 
-    request_data["id"] = uuid4()
+    # This has the side effect of modifying the input in the upstream code.
+    request_data["id"] = str(uuid4())
+
     # TODO 1361 - Pass the validated request data to Celery by calling apply_async (or something else)
+    return request_data["id"]

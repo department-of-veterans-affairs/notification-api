@@ -2,8 +2,10 @@
 
 import pytest
 from app.models import EMAIL_TYPE, SMS_TYPE
+from app.v3.notifications.rest import send_notification_v3
 from flask import url_for
 from json import dumps
+from jsonschema import ValidationError
 from tests import create_authorization_header
 from uuid import UUID
 
@@ -76,6 +78,8 @@ def test_post_notification_v3(notify_db_session, client, sample_service, request
     request data combinations because tests/app/v3/notifications/test_notification_schemas.py
     handles that.
 
+    Also test the utility function to send notifications directly (not via an API call).
+
     Tests for authentication are in tests/app/test_route_authentication.py.
     """
 
@@ -91,5 +95,8 @@ def test_post_notification_v3(notify_db_session, client, sample_service, request
 
     if expected_status_code == 202:
         assert isinstance(UUID(response.get_json().get("id")), UUID)
+        assert isinstance(UUID(send_notification_v3(request_data)), UUID)
     elif expected_status_code == 400:
         assert "errors" in response.get_json()
+        with pytest.raises(ValidationError):
+            send_notification_v3(request_data)
