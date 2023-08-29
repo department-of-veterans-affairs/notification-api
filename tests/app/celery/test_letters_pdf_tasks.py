@@ -216,24 +216,6 @@ def test_create_letters_gets_the_right_logo_when_service_has_no_logo(
     )
 
 
-# We only need this while we are migrating to the new letter_branding model
-def test_create_letters_gets_the_right_logo_when_service_has_letter_branding_logo(
-        notify_api, mocker, sample_letter_notification
-):
-    sample_letter_notification.service.letter_branding = None
-    mock_get_letters_pdf = mocker.patch('app.celery.letters_pdf_tasks.get_letters_pdf', return_value=(b'\x00\x01', 1))
-    mocker.patch('app.letters.utils.s3upload')
-    mocker.patch('app.celery.letters_pdf_tasks.update_notification_status_by_id')
-
-    create_letters_pdf(sample_letter_notification.id)
-    mock_get_letters_pdf.assert_called_once_with(
-        sample_letter_notification.template,
-        contact_block=sample_letter_notification.reply_to_text,
-        filename=None,
-        values=sample_letter_notification.personalisation
-    )
-
-
 def test_collate_letter_pdfs_for_day(notify_api, mocker):
     mock_s3 = mocker.patch('app.celery.tasks.s3.get_s3_bucket_objects', return_value=[
         {'Key': 'B.pDf', 'Size': 2},
