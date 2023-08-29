@@ -73,10 +73,9 @@ from uuid import UUID
 )
 def test_post_v3_notifications(notify_db_session, client, sample_service, request_data, expected_status_code):
     """
-    Test e-mail and SMS POST endpoints using "to" and "recipient_identifier".  Also test POSTing
-    with bad request data to verify a 400 response.  This test does not exhaustively test
-    request data combinations because tests/app/v3/notifications/test_notification_schemas.py
-    handles that.
+    Test e-mail and SMS POST endpoints using "email_address", "phone_number", and "recipient_identifier".
+    Also test POSTing with bad request data to verify a 400 response.  This test does not exhaustively test
+    request data combinations because tests/app/v3/notifications/test_notification_schemas.py handles that.
 
     Also test the utility function to send notifications directly (not via an API call).
 
