@@ -16,7 +16,7 @@ from uuid import UUID
         (
             {
                 "notification_type": SMS_TYPE,
-                "to": "+12701234567",
+                "phone_number": "+12701234567",
                 "sms_sender_id": "4f365dd4-332e-454d-94ff-e393463602db",
                 "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
             },
@@ -25,7 +25,7 @@ from uuid import UUID
         (
             {
                 "notification_type": EMAIL_TYPE,
-                "to": "test@va.gov",
+                "email_address": "test@va.gov",
                 "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
             },
             202,
@@ -56,7 +56,7 @@ from uuid import UUID
         (
             {
                 "notification_type": EMAIL_TYPE,
-                "to": "test@va.gov",
+                "email_address": "test@va.gov",
                 "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
                 "something": 42,
             },

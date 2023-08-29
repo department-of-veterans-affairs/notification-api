@@ -1500,7 +1500,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"to\": \"veteran@email.com\",\n    \"template_id\": \"{{email-template-id}}\",\n    \"recipient_identifier\": {\n        \"id_type\": \"VAPROFILEID\",\n        \"id_value\": \"example\"\n    },\n    \"email_reply_to_id\": \"uuid\"\n}"						},
+							"raw": "{\n    \"email_address\": \"veteran@email.com\",\n    \"template_id\": \"{{email-template-id}}\",\n    \"recipient_identifier\": {\n        \"id_type\": \"VAPROFILEID\",\n        \"id_value\": \"example\"\n    },\n    \"email_reply_to_id\": \"uuid\"\n}"						},
 						"url": {
 							"raw": "{{notification-api-url}}/v3/notifications/email",
 							"host": [
@@ -1610,7 +1610,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"to\": \"+16502532222\",\n    \"template_id\": \"{{sms-template-id}}\",\n    \"recipient_identifier\": {\n        \"id_type\": \"VAPROFILEID\",\n        \"id_value\": \"example\"\n    },\n    \"sms_sender_id\": \"{{sms-sender-id}}\"\n}"
+							"raw": "{\n    \"phone_number\": \"+16502532222\",\n    \"template_id\": \"{{sms-template-id}}\",\n    \"recipient_identifier\": {\n        \"id_type\": \"VAPROFILEID\",\n        \"id_value\": \"example\"\n    },\n    \"sms_sender_id\": \"{{sms-sender-id}}\"\n}"
 						},
 						"url": {
 							"raw": "{{notification-api-url}}/v3/notifications/sms",

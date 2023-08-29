@@ -1343,7 +1343,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NotificationV3Request"
+              $ref: "#/components/schemas/V3NotificationsEmailRequest"
         required: true
       responses:
         "202":
@@ -1369,7 +1369,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NotificationV3Request"
+              $ref: "#/components/schemas/V3NotificationsSMSRequest"
         required: true
       responses:
         "202":
@@ -2306,7 +2306,7 @@ components:
       required:
         - recipient_identifier
         - template_id
-    NotificationV3Request:
+    V3NotificationsEmailRequest:
       type: object
       properties:
         billing_code:
@@ -2314,10 +2314,36 @@ components:
           maxLength: 256
         client_reference:
           type: string
+        email_address:
+          type: string
+          format: email
         email_reply_to_id:
           description: For e-mail notifications
           type: string
           format: uuid
+        personalisation:
+          $ref: "#/components/schemas/Personalisation"
+        recipient_identifier:
+          $ref: "#/components/schemas/RecipientIdentifier"
+        reference:
+          type: string
+        template_id:
+          $ref: "#/components/schemas/Id"
+      additionalProperties: false
+      required:
+        - notification_type
+        - template_id
+      anyOf:
+        - required: [email_address]
+        - required: [recipient_identifier]
+    V3NotificationsSMSRequest:
+      type: object
+      properties:
+        billing_code:
+          type: string
+          maxLength: 256
+        client_reference:
+          type: string
         personalisation:
           $ref: "#/components/schemas/Personalisation"
         recipient_identifier:
@@ -2330,15 +2356,14 @@ components:
           format: uuid
         template_id:
           $ref: "#/components/schemas/Id"
-        to:
-          description: A phone-number or e-mail address, as appropriate
+        phone_number:
           type: string
       additionalProperties: false
       required:
         - notification_type
         - template_id
       anyOf:
-        - required: [to]
+        - required: [phone_number]
         - required: [recipient_identifier]
     Personalisation:
       type: object

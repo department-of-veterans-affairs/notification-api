@@ -12,7 +12,7 @@ from jsonschema import FormatChecker, validate, ValidationError
         (
             {
                 "notification_type": SMS_TYPE,
-                "to": "+12701234567",
+                "phone_number": "+12701234567",
                 "sms_sender_id": "4f365dd4-332e-454d-94ff-e393463602db",
                 "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
             },
@@ -21,7 +21,7 @@ from jsonschema import FormatChecker, validate, ValidationError
         (
             {
                 "notification_type": EMAIL_TYPE,
-                "to": "test@va.gov",
+                "email_address": "test@va.gov",
                 "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
             },
             True,
@@ -29,15 +29,8 @@ from jsonschema import FormatChecker, validate, ValidationError
         (
             {
                 "notification_type": SMS_TYPE,
-                "to": "+12701234567",
-                "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
-            },
-            True,
-        ),
-        (
-            {
-                "notification_type": EMAIL_TYPE,
-                "to": "not an e-mail address",
+                "email_address": "test@va.gov",
+                "sms_sender_id": "4f365dd4-332e-454d-94ff-e393463602db",
                 "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
             },
             False,
@@ -45,7 +38,49 @@ from jsonschema import FormatChecker, validate, ValidationError
         (
             {
                 "notification_type": EMAIL_TYPE,
-                "to": "test@va.gov",
+                "phone_number": "+12701234567",
+                "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
+            },
+            False,
+        ),
+        (
+            {
+                "notification_type": SMS_TYPE,
+                "phone_number": "+12701234567",
+                "email_reply_to_id": "4f365dd4-332e-454d-94ff-e393463602db",
+                "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
+            },
+            False,
+        ),
+        (
+            {
+                "notification_type": EMAIL_TYPE,
+                "email_address": "test@va.gov",
+                "sms_sender_id": "4f365dd4-332e-454d-94ff-e393463602db",
+                "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
+            },
+            False,
+        ),
+        (
+            {
+                "notification_type": SMS_TYPE,
+                "phone_number": "+12701234567",
+                "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
+            },
+            True,
+        ),
+        (
+            {
+                "notification_type": EMAIL_TYPE,
+                "email_address": "not an e-mail address",
+                "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
+            },
+            False,
+        ),
+        (
+            {
+                "notification_type": EMAIL_TYPE,
+                "email_address": "test@va.gov",
                 "template_id": "not a UUID4",
             },
             False,
@@ -76,7 +111,7 @@ from jsonschema import FormatChecker, validate, ValidationError
         (
             {
                 "notification_type": EMAIL_TYPE,
-                "to": "test@va.gov",
+                "email_address": "test@va.gov",
                 "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
                 "something": 42,
             },
@@ -92,7 +127,26 @@ from jsonschema import FormatChecker, validate, ValidationError
         (
             {
                 "notification_type": EMAIL_TYPE,
-                "to": "test@va.gov",
+                "email_address": "test@va.gov",
+                "recipient_identifier": {
+                    "id_type": "EDIPI",
+                    "id_value": "some value",
+                },
+                "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
+            },
+            True,
+        ),
+        (
+            {
+                "notification_type": SMS_TYPE,
+                "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
+            },
+            False,
+        ),
+        (
+            {
+                "notification_type": SMS_TYPE,
+                "phone_number": "+12701234567",
                 "recipient_identifier": {
                     "id_type": "EDIPI",
                     "id_value": "some value",
@@ -111,7 +165,7 @@ from jsonschema import FormatChecker, validate, ValidationError
         (
             {
                 "notification_type": EMAIL_TYPE,
-                "to": "test@va.gov",
+                "email_address": "test@va.gov",
                 "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
                 "billing_code": "billing code",
                 "client_reference": "client reference",
@@ -130,7 +184,7 @@ from jsonschema import FormatChecker, validate, ValidationError
         (
             {
                 "notification_type": EMAIL_TYPE,
-                "to": "test@va.gov",
+                "email_address": "test@va.gov",
                 "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
                 "personalisation": {
                     "test1": "This is not a file.",
@@ -142,7 +196,7 @@ from jsonschema import FormatChecker, validate, ValidationError
         (
             {
                 "notification_type": EMAIL_TYPE,
-                "to": "test@va.gov",
+                "email_address": "test@va.gov",
                 "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
                 "personalisation": {
                     "test1": "This is not a file.",
@@ -160,14 +214,20 @@ from jsonschema import FormatChecker, validate, ValidationError
     ids=(
         "SMS with phone number",
         "e-mail with e-mail address",
+        "SMS with e-mail address",
+        "e-mail with phone number",
+        "SMS with email_reply_to_id address",
+        "e-mail with sms_sender_id",
         "SMS without sms_sender_id",
         "bad e-mail address",
         "bad UUID4",
         "SMS with recipient ID",
         "e-mail with recipient ID",
         "additional properties not allowed",
-        'neither "to" nor recipient ID',
-        '"to" and recipient ID',
+        'neither "email_address" nor recipient ID',
+        '"email_address" and recipient ID',
+        'neither "phone_number" nor recipient ID',
+        '"phone_number" and recipient ID',
         "unrecognized notification type",
         "all optional fields including file personalisation",
         "non-file personalisation",
