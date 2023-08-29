@@ -2,7 +2,7 @@
 
 import pytest
 from app.models import EMAIL_TYPE, SMS_TYPE
-from app.v3.notifications.rest import send_notification_v3
+from app.v3.notifications.rest import v3_send_notification
 from flask import url_for
 from json import dumps
 from jsonschema import ValidationError
@@ -71,7 +71,7 @@ from uuid import UUID
         "additional properties not allowed",
     )
 )
-def test_post_notification_v3(notify_db_session, client, sample_service, request_data, expected_status_code):
+def test_post_v3_notifications(notify_db_session, client, sample_service, request_data, expected_status_code):
     """
     Test e-mail and SMS POST endpoints using "to" and "recipient_identifier".  Also test POSTing
     with bad request data to verify a 400 response.  This test does not exhaustively test
@@ -87,7 +87,7 @@ def test_post_notification_v3(notify_db_session, client, sample_service, request
 
     auth_header = create_authorization_header(service_id=sample_service.id, key_type="team")
     response = client.post(
-        path=url_for(f"v3.v3_notifications.v3_notification_{request_data['notification_type']}"),
+        path=url_for(f"v3.v3_notifications.v3_post_notification_{request_data['notification_type']}"),
         data=dumps(request_data),
         headers=(("Content-Type", "application/json"), auth_header)
     )
@@ -95,8 +95,8 @@ def test_post_notification_v3(notify_db_session, client, sample_service, request
 
     if expected_status_code == 202:
         assert isinstance(UUID(response.get_json().get("id")), UUID)
-        assert isinstance(UUID(send_notification_v3(request_data)), UUID)
+        assert isinstance(UUID(v3_send_notification(request_data)), UUID)
     elif expected_status_code == 400:
         assert "errors" in response.get_json()
         with pytest.raises(ValidationError):
-            send_notification_v3(request_data)
+            v3_send_notification(request_data)

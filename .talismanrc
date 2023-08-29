@@ -224,7 +224,7 @@ fileignoreconfig:
     - filename: app/template/rest.py
       checksum: 4f300f5136873066acede094b788ccca6707c05f14c22979adb64ea2e60569eb
     - filename: scripts/postman/notification-api.postman_collection.json
-      checksum: b92b55a7835796a97a71be623282911b3e4fb65dfe2e9eb831625a5d236a2800
+      checksum: be4dcc184966687f28698133ac547f68388b0d770f316e53e6bdb298ca31015d
     - filename: scripts/postman/development.postman_environment.json
       checksum: 750e0712ccb3fe0e07f9ba73dbe83998ec71d70b88d852100cc27ca8e6fcd58e
     - filename: scripts/postman/performance.postman_environment.json
