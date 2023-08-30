@@ -1653,7 +1653,6 @@ components:
             errors:
               - error: AuthError
                 message: "Unauthorized, authentication token must be provided"
-            status_code: 401
     AdminAuthError:
       description: Authentication Error for Admin endpoints
       content:
@@ -1788,12 +1787,6 @@ components:
             required:
               - error
               - message
-        status_code:
-          type: integer
-          const: 401
-        required:
-          - errors
-          - status_code
     ErrorMessage:
       type: object
       properties:

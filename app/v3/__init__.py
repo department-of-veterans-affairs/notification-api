@@ -11,7 +11,7 @@ v3_blueprint = Blueprint("v3", __name__, url_prefix='/v3')
 
 @v3_blueprint.errorhandler(AuthError)
 def auth_error(error):
-    return error.to_dict_v2(), error.code
+    return error.to_dict_v3(), error.code
 
 
 @v3_blueprint.errorhandler(ValidationError)
