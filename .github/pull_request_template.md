@@ -6,7 +6,7 @@ Before you open this PR, make sure that you review and are taking steps to follo
 
 Please include a summary of the change and which issue is fixed. Please also include relevant motivation and context. List any dependencies that are required for this change.
 
-Fixes # (issue)
+issue #(issue)
 
 ## Type of change
 
@@ -38,6 +38,8 @@ Please describe the tests that you ran to verify your changes. Provide instructi
 - [ ] I have made corresponding changes to any documentation
 - [ ] My changes generate no new warnings
 - [ ] I have added tests that prove my fix is effective or that my feature works
+- [ ] If applicable, I've provided a Proof of Concept (e.g., screenshots, links to deployment, regression test results) to demonstrate the functionality or fix
+- [ ] I have ensured the latest master is merged into my branch and all checks are green prior to review
 - [ ] New and existing unit tests pass locally with my changes
 - [ ] Any dependent changes have been merged and published in downstream modules
 - [ ] The ticket is now moved into the DEV test column
