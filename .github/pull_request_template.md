@@ -1,3 +1,4 @@
+<!--the actual pr templates are found at .github/pull_request_template.md of each repo-->
 <!--
 Before you open this PR, make sure that you review and are taking steps to follow [the Definition of Mergeable in our team agreement](https://docs.google.com/document/d/1nwZIF_lydPWfvixxZlQLNt4nqy3Qp13pHQnMcYJjTqE/edit#heading=h.6mnhaqm79e12). You may need to scroll down to that subheader.
 -->
@@ -20,10 +21,8 @@ Please delete options that are not relevant.
 
 ## How Has This Been Tested?
 
-Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce. Please also list any relevant details for your test configuration
-
-- [ ] Test A
-- [ ] Test B
+<!--Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce. Please also list any relevant details for your test configuration-->
+How has this been tested? (e.g., screenshots, links to deployment, regression test results) to demonstrate the functionality or fix: e.g. Tested locally, Tested as a GitHub action, etc.
 
 ## Checklist
 
@@ -38,7 +37,6 @@ Please describe the tests that you ran to verify your changes. Provide instructi
 - [ ] I have made corresponding changes to any documentation
 - [ ] My changes generate no new warnings
 - [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] If applicable, I've provided a Proof of Concept (e.g., screenshots, links to deployment, regression test results) to demonstrate the functionality or fix
 - [ ] I have ensured the latest master is merged into my branch and all checks are green prior to review
 - [ ] New and existing unit tests pass locally with my changes
 - [ ] Any dependent changes have been merged and published in downstream modules
