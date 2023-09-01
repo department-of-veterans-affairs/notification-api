@@ -1,4 +1,3 @@
-<!--the actual pr templates are found at .github/pull_request_template.md of each repo-->
 <!--
 Before you open this PR, make sure that you review and are taking steps to follow [the Definition of Mergeable in our team agreement](https://docs.google.com/document/d/1nwZIF_lydPWfvixxZlQLNt4nqy3Qp13pHQnMcYJjTqE/edit#heading=h.6mnhaqm79e12). You may need to scroll down to that subheader.
 -->
