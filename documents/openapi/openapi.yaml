@@ -1398,7 +1398,9 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequestV3"
         "401":
-          $ref: "#/components/responses/UnauthorizedV3"
+          $ref: "#/components/responses/Unauthorized_401_V3"
+        "403":
+          $ref: "#/components/responses/Unauthorized_403_V3"
   /v3/notifications/sms:
     post:
       summary: Send a SMS notification
@@ -1463,7 +1465,9 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequestV3"
         "401":
-          $ref: "#/components/responses/UnauthorizedV3"
+          $ref: "#/components/responses/Unauthorized_401_V3"
+        "403":
+          $ref: "#/components/responses/Unauthorized_403_V3"
   /inbound-number:
     get:
       summary: Retrieve an inbound number
@@ -1630,8 +1634,7 @@ components:
           example:
             errors:
               - error: ValidationError
-                message: "sms_sender_id e925b547-8195-4ed2-83c5-0633a74d780a does not exist in database
-                                  for service id 9ffb5212-e621-45df-820d-97ee65d392ab"
+                message: "template_id is not a valid uuid"
     Unauthorized:
       description: No Bearer authentication provided
       content:
@@ -1643,8 +1646,8 @@ components:
             message:
               token:
                 - 'Unauthorized, authentication token must be provided'
-    UnauthorizedV3:
-      description: No Bearer authentication provided
+    Unauthorized_401_V3:
+      description: Not authenticated
       content:
         application/json:
           schema:
@@ -1653,6 +1656,16 @@ components:
             errors:
               - error: AuthError
                 message: "Unauthorized, authentication token must be provided"
+    Unauthorized_403_V3:
+      description: Not authorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/V3Response403"
+          example:
+            errors:
+              - error: AuthError
+                message: Invalid token
     AdminAuthError:
       description: Authentication Error for Admin endpoints
       content:
@@ -1784,6 +1797,24 @@ components:
               message:
                 type: string
                 const: "Unauthortized, authentication token must be provided"
+            required:
+              - error
+              - message
+    V3Response403:
+      description: 403 response for all V3 routes
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              error:
+                type: string
+                const: AuthError
+              message:
+                type: string
+                const: Invalid token
             required:
               - error
               - message

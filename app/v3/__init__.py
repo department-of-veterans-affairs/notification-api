@@ -23,7 +23,7 @@ def auth_error(error):
 def bad_request(error):
     """
     This is for 400 responses not caused by schema validation failure.  If error.__cause__
-    is not None, the syntax "raise BadRequest from e" raised the exception.
+    is not None, the syntax "raise BadRequest from <exception>" raised the exception.
     """
 
     return {
