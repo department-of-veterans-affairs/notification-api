@@ -69,7 +69,7 @@ def v3_send_notification(request_data: dict) -> str:
 
     if "phone_number" in request_data:
         # This might raise phonenumbers.phonenumberutil.NumberParseException.
-        phone_number = phonenumbers.parse(request_data["phone_number"]) 
+        phone_number = phonenumbers.parse(request_data["phone_number"])
 
         # This is a possible phone number, but is it in an assigned exchange (valid area code, etc.)?
         if not phonenumbers.is_valid_number(phone_number):

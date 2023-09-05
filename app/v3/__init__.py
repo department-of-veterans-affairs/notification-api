@@ -37,7 +37,7 @@ def bad_request(error):
 
 
 @v3_blueprint.errorhandler(ValidationError)
-def bad_request(error):
+def schema_validation_error(error):
     """
     This is for schema validation errors, which should result in a 400 response.
     """
