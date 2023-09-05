@@ -24,48 +24,49 @@ recipient_identifier_schema = {
 }
 
 
-notification_v3_post_request_schema = {
+# All notification types include these properties.  They should be added to notification-type-specific schemas.
+common_properties = {
+    "billing_code": {"type": "string", "maxLength": 256},
+    "client_reference": {"type": "string"},
+    "personalisation": personalisation,
+    "recipient_identifier": recipient_identifier_schema,
+    "reference": {"type": "string"},
+    "template_id": {"type": "string", "format": "uuid"}
+}
+
+
+notification_v3_post_email_request_schema = {
     "$schema": "http://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "properties": {
-        "billing_code": {"type": "string", "maxLength": 256},
-        "client_reference": {"type": "string"},
         "email_address": {"type": "string", "format": "email"},
         "email_reply_to_id": {"type": "string", "format": "uuid"},
-        "notification_type": {"type": "string", "enum": [EMAIL_TYPE, SMS_TYPE]},
-        "personalisation": personalisation,
-        # Note that there is no "phone_number" string format, contrary to the v2 schema definition.
-        "phone_number": {"type": "string"},
-        "recipient_identifier": recipient_identifier_schema,
-        "reference": {"type": "string"},
-        "sms_sender_id": {"type": "string", "format": "uuid"},
-        "template_id": {"type": "string", "format": "uuid"}
+        "notification_type": {"const": EMAIL_TYPE},
     },
     "additionalProperties": False,
     "required": ["notification_type", "template_id"],
     "anyOf": [
         {"required": ["email_address"]},
+        {"required": ["recipient_identifier"]}
+    ]
+}
+notification_v3_post_email_request_schema["properties"].update(common_properties)
+
+
+notification_v3_post_sms_request_schema = {
+    "$schema": "http://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+        "notification_type": {"const": SMS_TYPE},
+        # Note that there is no "phone_number" string format, contrary to the v2 schema definition.
+        "phone_number": {"type": "string"},
+        "sms_sender_id": {"type": "string", "format": "uuid"},
+    },
+    "additionalProperties": False,
+    "required": ["notification_type", "template_id"],
+    "anyOf": [
         {"required": ["phone_number"]},
         {"required": ["recipient_identifier"]}
-    ],
-    "not": {
-        "anyOf": [
-            # "phone_number" and "sms_sender_id" must not be present for e-mail notifications.
-            {
-                "properties": {"notification_type": {"const": EMAIL_TYPE}},
-                "anyOf": [
-                    {"required": ["phone_number"]},
-                    {"required": ["sms_sender_id"]}
-                ]
-            },
-            # "email_address" and "email_reply_to_id" must not be present for SMS notifications.
-            {
-                "properties": {"notification_type": {"const": SMS_TYPE}},
-                "anyOf": [
-                    {"required": ["email_address"]},
-                    {"required": ["email_reply_to_id"]}
-                ]
-            }
-        ]
-    }
+    ]
 }
+notification_v3_post_sms_request_schema["properties"].update(common_properties)
