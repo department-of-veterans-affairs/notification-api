@@ -1,6 +1,9 @@
 """
 Define schemas to validate requests to /v3/notifications.
 https://json-schema.org/understanding-json-schema/
+
+The ValidationError handler should reference the schemas' "anyOfValidationMessage" attribute, which is not part
+of the JSON schema specification, to customize the error message.
 """
 
 from app.models import EMAIL_TYPE, SMS_TYPE
@@ -49,7 +52,8 @@ notification_v3_post_email_request_schema = {
     "anyOf": [
         {"required": ["email_address"]},
         {"required": ["recipient_identifier"]}
-    ]
+    ],
+    "anyOfValidationMessage": "You must provide an e-mail address or recipient identifier."
 }
 notification_v3_post_email_request_schema["properties"].update(common_properties)
 
@@ -68,6 +72,7 @@ notification_v3_post_sms_request_schema = {
     "anyOf": [
         {"required": ["phone_number"]},
         {"required": ["recipient_identifier"]}
-    ]
+    ],
+    "anyOfValidationMessage": "You must provide a phone number or recipient identifier."
 }
 notification_v3_post_sms_request_schema["properties"].update(common_properties)
