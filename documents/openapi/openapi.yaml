@@ -1348,6 +1348,7 @@ paths:
               email:
                 value:
                   reference: string
+                  client_reference: string
                   template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   personalisation:
                     full_name: John Smith
@@ -1359,6 +1360,7 @@ paths:
               recipient_identifier:
                 value:
                   reference: string
+                  client_reference: string
                   template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   personalisation:
                     full_name: John Smith
@@ -1372,6 +1374,7 @@ paths:
               both:
                 value:
                   reference: string
+                  client_reference: string
                   template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   personalisation:
                     full_name: John Smith
@@ -1386,15 +1389,7 @@ paths:
         required: true
       responses:
         "202":
-          description: Accepted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                    format: uuid
+          $ref: "#/components/responses/AcceptedV3"
         "400":
           $ref: "#/components/responses/BadRequestV3"
         "401":
@@ -1415,6 +1410,7 @@ paths:
               phone_number:
                 value:
                   reference: string
+                  client_reference: string
                   template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   personalisation:
                     full_name: John Smith
@@ -1426,6 +1422,7 @@ paths:
               recipient_identifier:
                 value:
                   reference: string
+                  client_reference: string
                   template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   personalisation:
                     full_name: John Smith
@@ -1439,6 +1436,7 @@ paths:
               both:
                 value:
                   reference: string
+                  client_reference: string
                   template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   personalisation:
                     full_name: John Smith
@@ -1453,15 +1451,7 @@ paths:
         required: true
       responses:
         "202":
-          description: Accepted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                    format: uuid
+          $ref: "#/components/responses/AcceptedV3"
         "400":
           $ref: "#/components/responses/BadRequestV3"
         "401":
@@ -1613,6 +1603,14 @@ components:
       description: CommunicationItem identifier
       example: e925b547-8195-4ed2-83c5-0633a74d780a
   responses:
+    AcceptedV3:
+      description: Accepted
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/V3AcceptedResponse"
+          example:
+            id: 9ffb5212-e621-45df-820d-97ee65d392ab
     BadRequest:
       description: Bad Request
       content:
@@ -1630,7 +1628,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/V3Response400"
+            $ref: "#/components/schemas/V3ErrorResponse"
           example:
             errors:
               - error: ValidationError
@@ -1651,7 +1649,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/V3Response401"
+            $ref: "#/components/schemas/V3ErrorResponse"
           example:
             errors:
               - error: AuthError
@@ -1661,7 +1659,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/V3Response403"
+            $ref: "#/components/schemas/V3ErrorResponse"
           example:
             errors:
               - error: AuthError
@@ -1765,8 +1763,8 @@ components:
                 type: string
               message:
                 type: string
-    V3Response400:
-      description: 400 response for all V3 routes
+    V3ErrorResponse:
+      description: 4xx and 5xx response for all V3 routes
       type: object
       properties:
         errors:
@@ -1782,42 +1780,17 @@ components:
             required:
               - error
               - message
-    V3Response401:
-      description: 401 response for all V3 routes
+      required:
+        - errors
+    V3AcceptedResponse:
+      description: 202 Accepted
       type: object
       properties:
-        errors:
-          type: array
-          items:
-            type: object
-            properties:
-              error:
-                type: string
-                const: AuthError
-              message:
-                type: string
-                const: "Unauthortized, authentication token must be provided"
-            required:
-              - error
-              - message
-    V3Response403:
-      description: 403 response for all V3 routes
-      type: object
-      properties:
-        errors:
-          type: array
-          items:
-            type: object
-            properties:
-              error:
-                type: string
-                const: AuthError
-              message:
-                type: string
-                const: Invalid token
-            required:
-              - error
-              - message
+        id:
+          type: string
+          format: uuid
+      required:
+        - id
     ErrorMessage:
       type: object
       properties:
