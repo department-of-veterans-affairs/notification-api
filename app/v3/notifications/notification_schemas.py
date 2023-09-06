@@ -31,6 +31,7 @@ common_properties = {
     "personalisation": personalisation,
     "recipient_identifier": recipient_identifier_schema,
     "reference": {"type": "string"},
+    "scheduled_for": {"type": "string", "format": "date-time"},
     "template_id": {"type": "string", "format": "uuid"}
 }
 
@@ -48,10 +49,7 @@ notification_v3_post_email_request_schema = {
     "anyOf": [
         {"required": ["email_address"]},
         {"required": ["recipient_identifier"]}
-    ],
-    "validationMessage": {
-        "anyOf": "Please provide either an e-mail address or recipient identifier."
-    }
+    ]
 }
 notification_v3_post_email_request_schema["properties"].update(common_properties)
 
@@ -70,9 +68,6 @@ notification_v3_post_sms_request_schema = {
     "anyOf": [
         {"required": ["phone_number"]},
         {"required": ["recipient_identifier"]}
-    ],
-    "validationMessage": {
-        "anyOf": "Please provide either a phone number or recipient identifier."
-    }
+    ]
 }
 notification_v3_post_sms_request_schema["properties"].update(common_properties)

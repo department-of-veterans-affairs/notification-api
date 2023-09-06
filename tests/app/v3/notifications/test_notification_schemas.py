@@ -24,17 +24,32 @@ def test_notification_v3_post_request_schemas():
     v3_notifications_post_sms_request_validator.check_schema(notification_v3_post_sms_request_schema)
 
 
-def test_v3_notifications_post_request_validators_require_notification_type():
+def test_v3_notifications_post_email_request_validator_requires_notification_type():
     post_data = {
+        "notification_type": EMAIL_TYPE,
         "email_address": "test@va.gov",
         "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
     }
 
+    # This should not raise ValidationError.
+    v3_notifications_post_email_request_validator.validate(post_data)
+
+    del post_data["notification_type"]
     with pytest.raises(ValidationError):
         v3_notifications_post_email_request_validator.validate(post_data)
 
-    post_data["phone_number"] = "+12701234567"
 
+def test_v3_notifications_post_sms_request_validator_requires_notification_type():
+    post_data = {
+        "notification_type": SMS_TYPE,
+        "phone_number": "+12701234567",
+        "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
+    }
+
+    # This should not raise ValidationError.
+    v3_notifications_post_sms_request_validator.validate(post_data)
+
+    del post_data["notification_type"]
     with pytest.raises(ValidationError):
         v3_notifications_post_sms_request_validator.validate(post_data)
 
@@ -119,6 +134,7 @@ def test_v3_notifications_post_request_validators_require_notification_type():
                     },
                 },
                 "reference": "reference",
+                "scheduled_for": "2023-09-06T19:55:23.592973+00:00",
             },
             True,
         ),
@@ -149,6 +165,14 @@ def test_v3_notifications_post_request_validators_require_notification_type():
             },
             True,
         ),
+        (
+            {
+                "email_address": "test@va.gov",
+                "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
+                "scheduled_for": "not a date-time",
+            },
+            False,
+        ),
     ),
     ids=(
         "send with e-mail address",
@@ -162,6 +186,7 @@ def test_v3_notifications_post_request_validators_require_notification_type():
         "all optional fields including file personalisation",
         "non-file personalisation",
         "file and non-file personalisation",
+        "scheduled_for not a date-time",
     )
 )
 def test_v3_notifications_post_email_request_validator(post_data: dict, should_validate: bool):
@@ -258,6 +283,7 @@ def test_v3_notifications_post_email_request_validator(post_data: dict, should_v
                     },
                 },
                 "reference": "reference",
+                "scheduled_for": "2023-09-06T19:55:23.592973+00:00",
             },
             True,
         ),
@@ -288,6 +314,14 @@ def test_v3_notifications_post_email_request_validator(post_data: dict, should_v
             },
             True,
         ),
+        (
+            {
+                "phone_number": "+12701234567",
+                "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
+                "scheduled_for": "not a date-time",
+            },
+            False,
+        ),
     ),
     ids=(
         "send with phone number",
@@ -301,6 +335,7 @@ def test_v3_notifications_post_email_request_validator(post_data: dict, should_v
         "all optional fields including file personalisation",
         "non-file personalisation",
         "file and non-file personalisation",
+        "scheduled_for not a date-time",
     )
 )
 def test_v3_notifications_post_sms_request_validator(post_data: dict, should_validate: bool):

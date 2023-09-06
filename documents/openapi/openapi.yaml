@@ -1353,7 +1353,7 @@ paths:
                   personalisation:
                     full_name: John Smith
                     claim_id: '123456'
-                  scheduled_for: string
+                  scheduled_for: "2023-09-06T19:55:23.592973+00:00"
                   billing_code: string
                   email_reply_to_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   email: "test@notification.com"
@@ -1365,7 +1365,7 @@ paths:
                   personalisation:
                     full_name: John Smith
                     claim_id: '123456'
-                  scheduled_for: string
+                  scheduled_for: "2023-09-06T19:55:23.592973+00:00"
                   billing_code: string
                   email_reply_to_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   recipient_identifier:
@@ -1379,7 +1379,7 @@ paths:
                   personalisation:
                     full_name: John Smith
                     claim_id: '123456'
-                  scheduled_for: string
+                  scheduled_for: "2023-09-06T19:55:23.592973+00:00"
                   billing_code: string
                   email_reply_to_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   email: "test@notification.com"
@@ -1415,7 +1415,7 @@ paths:
                   personalisation:
                     full_name: John Smith
                     claim_id: '123456'
-                  scheduled_for: string
+                  scheduled_for: "2023-09-06T19:55:23.592973+00:00"
                   billing_code: string
                   sms_sender_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   phone_number: "+19876543210"
@@ -1427,7 +1427,7 @@ paths:
                   personalisation:
                     full_name: John Smith
                     claim_id: '123456'
-                  scheduled_for: string
+                  scheduled_for: "2023-09-06T19:55:23.592973+00:00"
                   billing_code: string
                   sms_sender_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6                  
                   recipient_identifier:
@@ -1441,7 +1441,7 @@ paths:
                   personalisation:
                     full_name: John Smith
                     claim_id: '123456'
-                  scheduled_for: string
+                  scheduled_for: "2023-09-06T19:55:23.592973+00:00"
                   billing_code: string
                   sms_sender_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6                  
                   phone_number: "+19876543210"
@@ -2453,13 +2453,16 @@ components:
         client_reference:
           type: string
         email_reply_to_id:
-          description: For e-mail notifications
           type: string
           format: uuid
         personalisation:
           $ref: "#/components/schemas/Personalisation"
         reference:
           type: string
+        scheduled_for:
+          description: An ISO 8601 formatted date-time string with timezone info
+          type: string
+          format: date-time
         template_id:
           $ref: "#/components/schemas/Id"
       additionalProperties: false
@@ -2487,8 +2490,11 @@ components:
           $ref: "#/components/schemas/Personalisation"
         reference:
           type: string
+        scheduled_for:
+          description: An ISO 8601 formatted date-time string with timezone info
+          type: string
+          format: date-time
         sms_sender_id:
-          description: For SMS notifications
           type: string
           format: uuid
         template_id:
