@@ -42,7 +42,7 @@ def schema_validation_error(error):
     This is for schema validation errors, which should result in a 400 response.
     """
 
-    if "is not valid under any of the given schemas" in error.message:
+    if "is not valid under any of the given schemas" in error.message and "anyOfValidationMessage" in error.schema:
         # This is probably a failure of an "anyOf" clause, and the default error message is not helpful.
         error_message = error.schema["anyOfValidationMessage"]
     else:
