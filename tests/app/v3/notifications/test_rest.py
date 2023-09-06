@@ -143,7 +143,7 @@ def test_post_v3_notifications_phone_number_not_possible(notify_db_session, clie
 
     auth_header = create_authorization_header(service_id=sample_service.id, key_type="team")
     response = client.post(
-        path=url_for(f"v3.v3_notifications.v3_post_notification_sms"),
+        path=url_for("v3.v3_notifications.v3_post_notification_sms"),
         data=dumps(request_data),
         headers=(("Content-Type", "application/json"), auth_header)
     )
@@ -164,7 +164,7 @@ def test_post_v3_notifications_phone_number_not_valid(notify_db_session, client,
 
     auth_header = create_authorization_header(service_id=sample_service.id, key_type="team")
     response = client.post(
-        path=url_for(f"v3.v3_notifications.v3_post_notification_sms"),
+        path=url_for("v3.v3_notifications.v3_post_notification_sms"),
         data=dumps(request_data),
         headers=(("Content-Type", "application/json"), auth_header)
     )
@@ -200,14 +200,14 @@ def test_post_v3_notifications_scheduled_for(notify_db_session, client, sample_s
     #######################################################################
 
     response = client.post(
-        path=url_for(f"v3.v3_notifications.v3_post_notification_email"),
+        path=url_for("v3.v3_notifications.v3_post_notification_email"),
         data=dumps(email_request_data),
         headers=(("Content-Type", "application/json"), auth_header)
     )
     assert response.status_code == 202, response.get_json()
 
     response = client.post(
-        path=url_for(f"v3.v3_notifications.v3_post_notification_sms"),
+        path=url_for("v3.v3_notifications.v3_post_notification_sms"),
         data=dumps(sms_request_data),
         headers=(("Content-Type", "application/json"), auth_header)
     )
@@ -220,7 +220,7 @@ def test_post_v3_notifications_scheduled_for(notify_db_session, client, sample_s
     for bad_scheduled_for in (scheduled_for + timedelta(days=2), scheduled_for - timedelta(days=5)):
         email_request_data["scheduled_for"] = bad_scheduled_for.isoformat()
         response = client.post(
-            path=url_for(f"v3.v3_notifications.v3_post_notification_email"),
+            path=url_for("v3.v3_notifications.v3_post_notification_email"),
             data=dumps(email_request_data),
             headers=(("Content-Type", "application/json"), auth_header)
         )
@@ -228,14 +228,23 @@ def test_post_v3_notifications_scheduled_for(notify_db_session, client, sample_s
 
         sms_request_data["scheduled_for"] = bad_scheduled_for.isoformat()
         response = client.post(
-            path=url_for(f"v3.v3_notifications.v3_post_notification_sms"),
+            path=url_for("v3.v3_notifications.v3_post_notification_sms"),
             data=dumps(sms_request_data),
             headers=(("Content-Type", "application/json"), auth_header)
         )
         bad_request_helper(response)
 
 
-def test_post_v3_notifications_email_custom_validation_error_message(notify_db_session, client, sample_service):
+@pytest.mark.parametrize(
+    "notification_type, error_message",
+    (
+        (EMAIL_TYPE, "You must provide an e-mail address or recipient identifier."),
+        (SMS_TYPE, "You must provide a phone number or recipient identifier."),
+    )
+)
+def test_post_v3_notifications_custom_validation_error_messages(
+    notify_db_session, client, sample_service, notification_type, error_message
+):
     """
     Send a request that has neither an e-mail address nor a recipient identifier.  The response should have
     a custom validation error message because the default message is not helpful.
@@ -243,39 +252,16 @@ def test_post_v3_notifications_email_custom_validation_error_message(notify_db_s
 
     auth_header = create_authorization_header(service_id=sample_service.id, key_type="team")
     request_data = {
-        "notification_type": EMAIL_TYPE,
+        "notification_type": notification_type,
         "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
     }
 
     response = client.post(
-        path=url_for(f"v3.v3_notifications.v3_post_notification_email"),
+        path=url_for(f"v3.v3_notifications.v3_post_notification_{request_data['notification_type']}"),
         data=dumps(request_data),
         headers=(("Content-Type", "application/json"), auth_header)
     )
 
     response_json = response.get_json()
     assert response.status_code == 400, response_json
-    assert response_json["errors"][0]["message"] == "You must provide an e-mail address or recipient identifier."
-
-
-def test_post_v3_notifications_sms_custom_validation_error_message(notify_db_session, client, sample_service):
-    """
-    Send a request that has neither a phone number address nor a recipient identifier.  The response should have
-    a custom validation error message because the default message is not helpful.
-    """
-
-    auth_header = create_authorization_header(service_id=sample_service.id, key_type="team")
-    request_data = {
-        "notification_type": SMS_TYPE,
-        "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
-    }
-
-    response = client.post(
-        path=url_for(f"v3.v3_notifications.v3_post_notification_sms"),
-        data=dumps(request_data),
-        headers=(("Content-Type", "application/json"), auth_header)
-    )
-
-    response_json = response.get_json()
-    assert response.status_code == 400, response_json
-    assert response_json["errors"][0]["message"] == "You must provide a phone number or recipient identifier."
+    assert response_json["errors"][0]["message"] == error_message
