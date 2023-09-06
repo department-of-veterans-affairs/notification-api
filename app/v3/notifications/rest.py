@@ -6,7 +6,7 @@ from app.v3.notifications.notification_schemas import (
     notification_v3_post_email_request_schema,
     notification_v3_post_sms_request_schema,
 )
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from flask import Blueprint, request
 from jsonschema import FormatChecker
 from jsonschema.validators import Draft202012Validator
