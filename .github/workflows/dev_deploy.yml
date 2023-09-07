@@ -82,12 +82,12 @@ jobs:
 
     - name: Setup SSH Keys
       env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
       run: |
-        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        echo "$DEPLOY_KEY" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-    - name: Clone Private Repo
-      run: |
-        git clone git@github.com:YOUR_USERNAME/YOUR_PRIVATE_REPO.git
+    #- name: Clone Private Repo
+      #run: |
+        #git clone git@github.com:YOUR_USERNAME/YOUR_PRIVATE_REPO.git
