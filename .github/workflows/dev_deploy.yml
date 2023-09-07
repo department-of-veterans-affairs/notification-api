@@ -80,30 +80,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up SSH
+    - name: Setup SSH Keys
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       run: |
-        pwd
-        cd
-        pwd
-        mkdir -p $HOME/.ssh
-        echo "${{ secrets.DEPLOY_KEY }}" > $HOME/.ssh/id_rsa
-        chmod 600 $HOME/.ssh/id_rsa
-        ssh-keyscan ${{ secrets.HOST }} >> $HOME/.ssh/known_hosts
-        echo "all done"
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-    - name: Checkout Private Repository
-      run:
-        git clone git@github.com:department-of-veterans-affairs/notification-api-qa.git
-
-    #- name: Deploy
-      #run: ssh user@${{ secrets.HOST }} 'bash -s' < deploy.sh
-
-
-
-
-
-
-    #uses: department-of-veterans-affairs/notification-api-qa/.github/workflows/regression.yml@master
-    #secrets: inherit
-    #with: 
-      #environment: "${{ inputs.environment }}"
+    - name: Clone Private Repo
+      run: |
+        git clone git@github.com:YOUR_USERNAME/YOUR_PRIVATE_REPO.git
