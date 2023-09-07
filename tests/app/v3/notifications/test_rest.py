@@ -246,8 +246,8 @@ def test_post_v3_notifications_custom_validation_error_messages(
     notify_db_session, client, sample_service, notification_type, error_message
 ):
     """
-    Send a request that has neither an e-mail address nor a recipient identifier.  The response should have
-    a custom validation error message because the default message is not helpful.
+    Send a request that has neither direct contact information nor a recipient identifier.  The response
+    should have a custom validation error message because the default message is not helpful.
     """
 
     auth_header = create_authorization_header(service_id=sample_service.id, key_type="team")
