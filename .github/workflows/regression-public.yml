@@ -52,9 +52,14 @@ jobs:
           # Copy the contents of the host's build context directory to /home/qa-container
           #sudo cp -R . /home/qa-container
 
-          touch .env
+          #touch .env
 
-          aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r > /tmp/testfile
+          whoami
+
+          aws ssm get-parameter --name /notification-api-qa/env --with-decryption | sudo tee .etc > /dev/null
+
+          # THIS COMMAND CANT MAKE A FILE BECAUSE ITS THE WRONG USER
+          #aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r > /tmp/testfile
 
           # Change the ownership of all files and directories in /home/qa-container to qa-container:qa-container
           #sudo chown -R qa-container:qa-container /home/qa-container
