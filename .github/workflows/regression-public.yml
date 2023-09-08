@@ -45,24 +45,22 @@ jobs:
         run: |
           aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r > .env
 
-          aws s3 ls
+          sudo chgrp qa-container .env
+          chmod 640 .env
 
-          #sudo chgrp qa-container .env
-          #chmod 640 .env
+          #aws --region us-gov-west-1 ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY" 2>/dev/null
 
-          ##aws --region us-gov-west-1 ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY" 2>/dev/null
+          docker pull ${{ env.ECR_REGISTRY }}/notification_api_qa:master 1>/dev/null
 
-          #docker pull ${{ env.ECR_REGISTRY }}/notification_api_qa:master 1>/dev/null
+          docker logout '$ECR_REGISTRY'
 
-          #docker logout '$ECR_REGISTRY'
+          docker run --rm --name qa_container \
+          -v $(pwd)/.env:/home/qa-container/.env \
+          "$ECR_REGISTRY/notification_api_qa:master" \
+          #pytest -ra -v tests/ --basetemp=/tmp/pytest_cache \
+          pytest -ra -v tests/test_organizations.py --platform local \
+          --environment '${{ inputs.environment }}' \
+          --platform hosted
 
-          #docker run --rm --name qa_container \
-          #-v $(pwd)/.env:/home/qa-container/.env \
-          #"$ECR_REGISTRY/notification_api_qa:master" \
-          ##pytest -ra -v tests/ --basetemp=/tmp/pytest_cache \
-          #pytest -ra -v tests/test_organizations.py --platform local \
-          #--environment '${{ inputs.environment }}' \
-          #--platform hosted
-
-          ##docker image prune -a -f 1>/dev/null
+          #docker image prune -a -f 1>/dev/null
 
