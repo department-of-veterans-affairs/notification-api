@@ -45,7 +45,7 @@ jobs:
         run: |
           aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r > .env
 
-          sudo chgrp qa-container .env
+          #sudo chgrp qa-container .env
           chmod 640 .env
 
           #aws --region us-gov-west-1 ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY" 2>/dev/null
