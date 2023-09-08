@@ -52,6 +52,8 @@ jobs:
           # Copy the contents of the host's build context directory to /home/qa-container
           #sudo cp -R . /home/qa-container
 
+          rm -rf .env
+
           aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r > .env
 
           # Change the ownership of all files and directories in /home/qa-container to qa-container:qa-container
