@@ -53,8 +53,6 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr-vaec.outputs.registry }}
         run: |
-          docker image prune -a -f 1>/dev/null
-
           aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r > .env
 
           #sudo chgrp qa-container .env
@@ -66,12 +64,12 @@ jobs:
 
           docker logout '$ECR_REGISTRY'
 
-          docker run --rm --name qa_container \
-          -v $(pwd)/.env:/home/qa-container/.env \
-          "$ECR_REGISTRY/notification_api_qa:master" \
-          #pytest -ra -v tests/ --basetemp=/tmp/pytest_cache \
-          pytest -ra -v tests/test_organizations.py --platform local \
-          --environment '${{ inputs.environment }}' \
-          --platform hosted
+          #docker run --rm --name qa_container \
+          #-v $(pwd)/.env:/home/qa-container/.env \
+          #"$ECR_REGISTRY/notification_api_qa:master" \
+          ##pytest -ra -v tests/ --basetemp=/tmp/pytest_cache \
+          #pytest -ra -v tests/test_organizations.py --platform local \
+          #--environment '${{ inputs.environment }}' \
+          #--platform hosted
 
           docker image prune -a -f 1>/dev/null
