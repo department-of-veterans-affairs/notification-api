@@ -56,7 +56,7 @@ jobs:
           #sudo chown 1051:1051 .env
 
           sudo chgrp qa-container .env
-          chmod 640 .env
+          #chmod 640 .env
 
           ls -al
           pwd
