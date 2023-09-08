@@ -56,7 +56,7 @@ jobs:
 
           whoami
 
-          aws ssm get-parameter --name /notification-api-qa/env --with-decryption | sudo tee .etc > /dev/null
+          aws ssm get-parameter --name /notification-api-qa/env --with-decryption | sudo tee .env > /dev/null
 
           # THIS COMMAND CANT MAKE A FILE BECAUSE ITS THE WRONG USER
           #aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r > /tmp/testfile
