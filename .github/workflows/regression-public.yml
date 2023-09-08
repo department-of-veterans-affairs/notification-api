@@ -58,20 +58,17 @@ jobs:
           sudo chgrp qa-container .env
           sudo chmod 640 .env
 
-          ls -al
-          pwd
+          aws --region us-gov-west-1 ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY" 2>/dev/null
 
-          #aws --region us-gov-west-1 ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY" 2>/dev/null
+          docker pull ${{ env.ECR_REGISTRY }}/notification_api_qa:master 1>/dev/null
 
-          #docker pull ${{ env.ECR_REGISTRY }}/notification_api_qa:master 1>/dev/null
+          docker logout '$ECR_REGISTRY'
 
-          #docker logout '$ECR_REGISTRY'
+          docker run --rm --name qa_container \
+          -v $(pwd)/.env:/home/qa-container/.env \
+          "$ECR_REGISTRY/notification_api_qa:master" \
+          #pytest -ra -v tests/ --platform local \
+          pytest -ra -v tests/test_organizations.py --platform local \
+          --environment '${{ inputs.environment }}'
 
-          #docker run --rm --name qa_container \
-          #-v $(pwd)/.env:/home/qa-container/.env \
-          #"$ECR_REGISTRY/notification_api_qa:master" \
-          ##pytest -ra -v tests/ --platform local \
-          #pytest -ra -v tests/test_organizations.py --platform local \
-          #--environment '${{ inputs.environment }}'
-
-          #docker image prune -a -f 1>/dev/null
+          docker image prune -a -f 1>/dev/null
