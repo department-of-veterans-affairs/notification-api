@@ -58,7 +58,7 @@ jobs:
           sudo chgrp qa-container .env
           sudo chmod 640 .env
 
-          aws --region us-gov-west-1 ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY" 2>/dev/null
+          #aws --region us-gov-west-1 ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY" 2>/dev/null
 
           docker pull ${{ env.ECR_REGISTRY }}/notification_api_qa:master 1>/dev/null
 
