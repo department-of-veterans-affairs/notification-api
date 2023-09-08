@@ -47,7 +47,7 @@ jobs:
           sudo useradd -u 1051 -m -d /home/qa-container -s /bin/bash qa-container
 
           ## Set the working directory to /home/qa-container
-          #cd /home/qa-container
+          cd /home/qa-container
 
           ## Copy the contents of the host's build context directory to /home/qa-container
           ##sudo cp -R . /home/qa-container
