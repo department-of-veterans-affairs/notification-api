@@ -7,7 +7,6 @@ Create Date: 2023-09-08 11:01:59.093025
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision = '0362_add_service_field'
 down_revision = '0361_remove_letter_branding'
