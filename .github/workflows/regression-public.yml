@@ -54,7 +54,7 @@ jobs:
 
           rm -rf .env
 
-          aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r > .env
+          aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r > /tmp/testfile
 
           # Change the ownership of all files and directories in /home/qa-container to qa-container:qa-container
           #sudo chown -R qa-container:qa-container /home/qa-container
