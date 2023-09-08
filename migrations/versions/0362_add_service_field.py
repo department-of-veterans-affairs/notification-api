@@ -14,7 +14,9 @@ down_revision = '0361_remove_letter_branding'
 
 def upgrade():
     op.add_column('services', sa.Column('p2p_enabled', sa.Boolean(), nullable=True))
+    op.add_column('services_history', sa.Column('p2p_enabled', sa.Boolean(), nullable=True))
 
 
 def downgrade():
     op.drop_column('services', 'p2p_enabled')
+    op.drop_column('services_history', 'p2p_enabled')
