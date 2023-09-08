@@ -49,35 +49,32 @@ jobs:
           ## Set the working directory to /home/qa-container
           cd /home/qa-container
 
-          ls -al 
+          # Copy the contents of the host's build context directory to /home/qa-container
+          #sudo cp -R . /home/qa-container
+
+          aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r > .env
+
+          # Change the ownership of all files and directories in /home/qa-container to qa-container:qa-container
+          sudo chown -R qa-container:qa-container /home/qa-container
+          #sudo chown 1051:1051 .env
+
+          #sudo chgrp qa-container .env
+          chmod 640 .env
+
+          ls -al
           pwd
 
-          ## Copy the contents of the host's build context directory to /home/qa-container
-          ##sudo cp -R . /home/qa-container
+          #aws --region us-gov-west-1 ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY" 2>/dev/null
 
-          #aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r > .env
+          #docker pull ${{ env.ECR_REGISTRY }}/notification_api_qa:master 1>/dev/null
 
-          ## Change the ownership of all files and directories in /home/qa-container to qa-container:qa-container
-          #sudo chown -R qa-container:qa-container /home/qa-container
-          ##sudo chown 1051:1051 .env
+          #docker logout '$ECR_REGISTRY'
 
-          ##sudo chgrp qa-container .env
-          #chmod 640 .env
+          #docker run --rm --name qa_container \
+          #-v $(pwd)/.env:/home/qa-container/.env \
+          #"$ECR_REGISTRY/notification_api_qa:master" \
+          ##pytest -ra -v tests/ --platform local \
+          #pytest -ra -v tests/test_organizations.py --platform local \
+          #--environment '${{ inputs.environment }}'
 
-          #ls -al
-          #pwd
-
-          ##aws --region us-gov-west-1 ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY" 2>/dev/null
-
-          ##docker pull ${{ env.ECR_REGISTRY }}/notification_api_qa:master 1>/dev/null
-
-          ##docker logout '$ECR_REGISTRY'
-
-          ##docker run --rm --name qa_container \
-          ##-v $(pwd)/.env:/home/qa-container/.env \
-          ##"$ECR_REGISTRY/notification_api_qa:master" \
-          ###pytest -ra -v tests/ --platform local \
-          ##pytest -ra -v tests/test_organizations.py --platform local \
-          ##--environment '${{ inputs.environment }}'
-
-          ##docker image prune -a -f 1>/dev/null
+          #docker image prune -a -f 1>/dev/null
