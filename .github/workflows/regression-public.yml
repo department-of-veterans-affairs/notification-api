@@ -53,6 +53,8 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr-vaec.outputs.registry }}
         run: |
+          docker image prune -a -f 1>/dev/null
+
           aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r > .env
 
           #sudo chgrp qa-container .env
@@ -72,5 +74,4 @@ jobs:
           --environment '${{ inputs.environment }}' \
           --platform hosted
 
-          #docker image prune -a -f 1>/dev/null
-
+          docker image prune -a -f 1>/dev/null
