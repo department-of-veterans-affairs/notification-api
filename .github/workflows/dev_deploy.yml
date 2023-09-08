@@ -73,23 +73,10 @@ jobs:
       #environment: "${{ inputs.environment }}"
     #secrets: inherit
 
-  run-regression-suite:
+  run-regression-public-endpoints:
     if: ${{ (inputs.environment == 'perf') || (inputs.environment == 'staging') }}
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Setup SSH Keys
-      env:
-        DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
-      run: |
-        pwd
-        ls
-        echo "$DEPLOY_KEY" > .ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan github.com >> .ssh/known_hosts
-
-    #- name: Clone Private Repo
-      #run: |
-        #git clone git@github.com:YOUR_USERNAME/YOUR_PRIVATE_REPO.git
+    uses: ./.github/workflows/regression-public.yml
+    with:
+      branch: "master"
+      environment: "${{ inputs.environment }}"
+    secrets: inherit
