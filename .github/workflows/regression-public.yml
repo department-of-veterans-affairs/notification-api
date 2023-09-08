@@ -52,7 +52,7 @@ jobs:
           # Copy the contents of the host's build context directory to /home/qa-container
           #sudo cp -R . /home/qa-container
 
-          rm -rf .env
+          touch .env
 
           aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r > /tmp/testfile
 
