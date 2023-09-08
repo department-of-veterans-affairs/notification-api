@@ -49,6 +49,9 @@ jobs:
           ## Set the working directory to /home/qa-container
           cd /home/qa-container
 
+          ls -al 
+          pwd
+
           ## Copy the contents of the host's build context directory to /home/qa-container
           ##sudo cp -R . /home/qa-container
 
