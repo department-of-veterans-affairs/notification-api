@@ -39,12 +39,12 @@ jobs:
         with:
           mask-password: 'true'
 
-      #- name: QA regression test - public endpoints
-        #env:
-          #ECR_REGISTRY: ${{ steps.login-ecr-vaec.outputs.registry }}
-        #run: |
-          ## Add user qa-container with UID 1051 and home directory at /home/qa-container
-          #sudo useradd -u 1051 -m -d /home/qa-container -s /bin/bash qa-container
+      - name: QA regression test - public endpoints
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr-vaec.outputs.registry }}
+        run: |
+          # Add user qa-container with UID 1051 and home directory at /home/qa-container
+          sudo useradd -u 1051 -m -d /home/qa-container -s /bin/bash qa-container
 
           ## Set the working directory to /home/qa-container
           #cd /home/qa-container
