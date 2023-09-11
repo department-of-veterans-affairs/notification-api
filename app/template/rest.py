@@ -98,6 +98,7 @@ def create_template(service_id):
         errors = {'content': [message]}
         raise InvalidRequest(errors, status_code=400)
 
+    # TODO #1410 clean up validator, use class method instead.
     if not service_has_permission(new_template.template_type, permissions):
         message = "Creating {} templates is not allowed".format(
             get_public_notify_type_text(new_template.template_type))
@@ -374,14 +375,12 @@ def preview_letter_template_by_notification_id(service_id, notification_id, file
             "version": str(template.version)
         }
 
-        service = dao_fetch_service_by_id(service_id)
-        letter_logo_filename = service.letter_branding and service.letter_branding.filename
         data = {
             'letter_contact_block': notification.reply_to_text,
             'template': template_for_letter_print,
             'values': notification.personalisation,
             'date': notification.created_at.isoformat(),
-            'filename': letter_logo_filename,
+            'filename': None,
         }
 
         url = '{}/preview.{}{}'.format(

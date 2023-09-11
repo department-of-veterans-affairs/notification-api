@@ -2,6 +2,7 @@ TWILIO_ACCOUNT_SID=add value
 TWILIO_AUTH_TOKEN=add value
 
 SQLALCHEMY_DATABASE_URI=postgresql://postgres:LocalPassword@db:5432/notification_api
+SQLALCHEMY_DATABASE_URI_READ=postgresql://postgres:LocalPassword@db:5432/notification_api
 NOTIFY_ENVIRONMENT=development
 FLASK_APP=application.py
 
@@ -34,6 +35,7 @@ PROVIDER_STRATEGIES_ENABLED=True
 NOTIFICATION_FAILURE_REASON_ENABLED=True
 NIGHTLY_NOTIF_CSV_ENABLED=True
 VA_SSO_ENABLED=True
+V3_ENABLED=True
 
 EMAIL_PROVIDER_SELECTION_STRATEGY_LABEL=LOAD_BALANCING
 AWS_SES_ENDPOINT_URL=http://host.docker.internal:4566
@@ -45,4 +47,4 @@ GITHUB_CLIENT_ID=fake-id
 GITHUB_CLIENT_SECRET=fake-secret
 
 REDIS_ENABLED='True'
-REDIS_URL=redis://localhost:6379/0
+REDIS_URL=redis://redis:6379/0

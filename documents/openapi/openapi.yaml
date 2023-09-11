@@ -1334,6 +1334,130 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v3/notifications/email:
+    post:
+      summary: Send an e-mail notification
+      tags:
+        - notification
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/V3NotificationsEmailRequest"
+            examples:
+              email:
+                value:
+                  reference: string
+                  client_reference: string
+                  template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  personalisation:
+                    full_name: John Smith
+                    claim_id: '123456'
+                  scheduled_for: "2023-09-06T19:55:23.592973+00:00"
+                  billing_code: string
+                  email_reply_to_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  email: "test@notification.com"
+              recipient_identifier:
+                value:
+                  reference: string
+                  client_reference: string
+                  template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  personalisation:
+                    full_name: John Smith
+                    claim_id: '123456'
+                  scheduled_for: "2023-09-06T19:55:23.592973+00:00"
+                  billing_code: string
+                  email_reply_to_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  recipient_identifier:
+                    id_type: ICN
+                    id_value: 1000000000V000000
+              both:
+                value:
+                  reference: string
+                  client_reference: string
+                  template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  personalisation:
+                    full_name: John Smith
+                    claim_id: '123456'
+                  scheduled_for: "2023-09-06T19:55:23.592973+00:00"
+                  billing_code: string
+                  email_reply_to_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  email: "test@notification.com"
+                  recipient_identifier:
+                    id_type: ICN
+                    id_value: 1000000000V000000
+        required: true
+      responses:
+        "202":
+          $ref: "#/components/responses/AcceptedV3"
+        "400":
+          $ref: "#/components/responses/BadRequestV3"
+        "401":
+          $ref: "#/components/responses/Unauthorized_401_V3"
+        "403":
+          $ref: "#/components/responses/Unauthorized_403_V3"
+  /v3/notifications/sms:
+    post:
+      summary: Send a SMS notification
+      tags:
+        - notification
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/V3NotificationsSMSRequest"
+            examples:
+              phone_number:
+                value:
+                  reference: string
+                  client_reference: string
+                  template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  personalisation:
+                    full_name: John Smith
+                    claim_id: '123456'
+                  scheduled_for: "2023-09-06T19:55:23.592973+00:00"
+                  billing_code: string
+                  sms_sender_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  phone_number: "+19876543210"
+              recipient_identifier:
+                value:
+                  reference: string
+                  client_reference: string
+                  template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  personalisation:
+                    full_name: John Smith
+                    claim_id: '123456'
+                  scheduled_for: "2023-09-06T19:55:23.592973+00:00"
+                  billing_code: string
+                  sms_sender_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6                  
+                  recipient_identifier:
+                    id_type: ICN
+                    id_value: 1000000000V000000
+              both:
+                value:
+                  reference: string
+                  client_reference: string
+                  template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  personalisation:
+                    full_name: John Smith
+                    claim_id: '123456'
+                  scheduled_for: "2023-09-06T19:55:23.592973+00:00"
+                  billing_code: string
+                  sms_sender_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6                  
+                  phone_number: "+19876543210"
+                  recipient_identifier:
+                    id_type: ICN
+                    id_value: 1000000000V000000
+        required: true
+      responses:
+        "202":
+          $ref: "#/components/responses/AcceptedV3"
+        "400":
+          $ref: "#/components/responses/BadRequestV3"
+        "401":
+          $ref: "#/components/responses/Unauthorized_401_V3"
+        "403":
+          $ref: "#/components/responses/Unauthorized_403_V3"
   /inbound-number:
     get:
       summary: Retrieve an inbound number
@@ -1479,6 +1603,14 @@ components:
       description: CommunicationItem identifier
       example: e925b547-8195-4ed2-83c5-0633a74d780a
   responses:
+    AcceptedV3:
+      description: Accepted
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/V3AcceptedResponse"
+          example:
+            id: 9ffb5212-e621-45df-820d-97ee65d392ab
     BadRequest:
       description: Bad Request
       content:
@@ -1491,6 +1623,16 @@ components:
                 message: 'sms_sender_id e925b547-8195-4ed2-83c5-0633a74d780a does not exist in database
                                   for service id 9ffb5212-e621-45df-820d-97ee65d392ab'
             status_code: 400
+    BadRequestV3:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/V3ErrorResponse"
+          example:
+            errors:
+              - error: ValidationError
+                message: "template_id is not a valid uuid"
     Unauthorized:
       description: No Bearer authentication provided
       content:
@@ -1502,6 +1644,26 @@ components:
             message:
               token:
                 - 'Unauthorized, authentication token must be provided'
+    Unauthorized_401_V3:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/V3ErrorResponse"
+          example:
+            errors:
+              - error: AuthError
+                message: "Unauthorized, authentication token must be provided"
+    Unauthorized_403_V3:
+      description: Not authorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/V3ErrorResponse"
+          example:
+            errors:
+              - error: AuthError
+                message: Invalid token
     AdminAuthError:
       description: Authentication Error for Admin endpoints
       content:
@@ -1601,6 +1763,34 @@ components:
                 type: string
               message:
                 type: string
+    V3ErrorResponse:
+      description: 4xx and 5xx response for all V3 routes
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              error:
+                type: string
+                const: ValidationError
+              message:
+                type: string
+            required:
+              - error
+              - message
+      required:
+        - errors
+    V3AcceptedResponse:
+      description: 202 Accepted
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+      required:
+        - id
     ErrorMessage:
       type: object
       properties:
@@ -1668,10 +1858,6 @@ components:
         crown:
           type: boolean
         email_branding_id:
-          format: uuid
-          nullable: true
-          type: string
-        letter_branding_id:
           format: uuid
           nullable: true
           type: string
@@ -1958,8 +2144,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Id'
-        letter_branding:
-          $ref: '#/components/schemas/Id'
         letter_contact_block:
           type: string
         letter_logo_filename:
@@ -2183,15 +2367,7 @@ components:
         template_id:
           $ref: '#/components/schemas/Id'
         personalisation:
-          type: object
-          description: The personalisation values created in the template must be defined here.
-          additionalProperties:
-            oneOf:
-              - type: string
-              - $ref: '#/components/schemas/Attachment'
-          example:
-            "full_name": "John Smith"
-            "claim_id": "123456"
+          $ref: "#/components/schemas/Personalisation"
         scheduled_for:
           type: string
           format: datetime within next day
@@ -2249,12 +2425,7 @@ components:
         template_id:
           type: string
         personalisation:
-          type: object
-          description: >-
-            The personalisation values created in the template must be defined here.
-          example:
-            full_name: John Smith
-            claim_id: '123456'
+          $ref: "#/components/schemas/Personalisation"
         recipient_identifier:
           type: object
           properties:
@@ -2273,6 +2444,83 @@ components:
       required:
         - recipient_identifier
         - template_id
+    V3NotificationsEmailRequest:
+      type: object
+      properties:
+        billing_code:
+          type: string
+          maxLength: 256
+        client_reference:
+          type: string
+        email_reply_to_id:
+          type: string
+          format: uuid
+        personalisation:
+          $ref: "#/components/schemas/Personalisation"
+        reference:
+          type: string
+        scheduled_for:
+          description: An ISO 8601 formatted date-time string with timezone info
+          type: string
+          format: date-time
+        template_id:
+          $ref: "#/components/schemas/Id"
+      additionalProperties: false
+      required:
+        - template_id
+      anyOf:
+        - properties:
+            email_address:
+              type: string
+          format: email
+          required: [email_address]
+        - properties:
+            recipient_identifier:
+              $ref: "#/components/schemas/RecipientIdentifier"
+          required: [recipient_identifier]
+    V3NotificationsSMSRequest:
+      type: object
+      properties:
+        billing_code:
+          type: string
+          maxLength: 256
+        client_reference:
+          type: string
+        personalisation:
+          $ref: "#/components/schemas/Personalisation"
+        reference:
+          type: string
+        scheduled_for:
+          description: An ISO 8601 formatted date-time string with timezone info
+          type: string
+          format: date-time
+        sms_sender_id:
+          type: string
+          format: uuid
+        template_id:
+          $ref: "#/components/schemas/Id"
+      additionalProperties: false
+      required:
+        - template_id
+      anyOf:
+        - properties:
+            phone_number:
+              type: string
+          required: [phone_number]
+        - properties:
+            recipient_identifier:
+              $ref: "#/components/schemas/RecipientIdentifier"
+          required: [recipient_identifier]
+    Personalisation:
+      type: object
+      description: The personalisation values created in the template must be defined here.
+      additionalProperties:
+        oneOf:
+          - type: string
+          - $ref: '#/components/schemas/Attachment'
+      example:
+        "full_name": "John Smith"
+        "claim_id": "123456"
     InboundNumberCreateResponse:
       type: object
       properties: {} # TODO (issue 965)

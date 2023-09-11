@@ -34,13 +34,14 @@ from sqlalchemy.dialects.postgresql import JSON, JSONB, UUID
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm.collections import attribute_mapped_collection
+from sqlalchemy.orm.collections import attribute_mapped_collection, InstrumentedList
 
 
-SMS_TYPE = 'sms'
 EMAIL_TYPE = 'email'
 LETTER_TYPE = 'letter'
+MOBILE_TYPE = 'mobile'
 PUSH_TYPE = 'push'
+SMS_TYPE = 'sms'
 
 VA_NOTIFY_TO_VA_PROFILE_NOTIFICATION_TYPES = {
     EMAIL_TYPE: 'Email',
@@ -170,28 +171,6 @@ service_email_branding = db.Table(
 )
 
 
-class LetterBranding(db.Model):
-    __tablename__ = 'letter_branding'
-    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = db.Column(db.String(255), unique=True, nullable=False)
-    filename = db.Column(db.String(255), unique=True, nullable=False)
-
-    def serialize(self):
-        return {
-            "id": str(self.id),
-            "name": self.name,
-            "filename": self.filename,
-        }
-
-
-service_letter_branding = db.Table(
-    'service_letter_branding',
-    db.Model.metadata,
-    # service_id is a primary key as you can only have one letter branding per service
-    db.Column('service_id', UUID(as_uuid=True), db.ForeignKey('services.id'), primary_key=True, nullable=False),
-    db.Column('letter_branding_id', UUID(as_uuid=True), db.ForeignKey('letter_branding.id'), nullable=False),
-)
-
 INTERNATIONAL_SMS_TYPE = 'international_sms'
 INBOUND_SMS_TYPE = 'inbound_sms'
 SCHEDULE_NOTIFICATIONS = 'schedule_notifications'
@@ -281,13 +260,6 @@ class Organisation(db.Model):
         nullable=True,
     )
 
-    letter_branding = db.relationship('LetterBranding')
-    letter_branding_id = db.Column(
-        UUID(as_uuid=True),
-        db.ForeignKey('letter_branding.id'),
-        nullable=True,
-    )
-
     @property
     def live_services(self):
         return [
@@ -308,7 +280,6 @@ class Organisation(db.Model):
             "active": self.active,
             "crown": self.crown,
             "organisation_type": self.organisation_type,
-            "letter_branding_id": self.letter_branding_id,
             "email_branding_id": self.email_branding_id,
             "agreement_signed": self.agreement_signed,
             "agreement_signed_at": self.agreement_signed_at,
@@ -411,11 +382,6 @@ class Service(db.Model, Versioned):
         secondary=service_email_branding,
         uselist=False,
         backref=db.backref('services', lazy='dynamic'))
-    letter_branding = db.relationship(
-        'LetterBranding',
-        secondary=service_letter_branding,
-        uselist=False,
-        backref=db.backref('services', lazy='dynamic'))
 
     @classmethod
     def from_json(cls, data):
@@ -448,8 +414,20 @@ class Service(db.Model, Versioned):
         default_letter_contact = [x for x in self.letter_contacts if x.is_default]
         return default_letter_contact[0].contact_block if default_letter_contact else None
 
-    def has_permission(self, permission):
-        return permission in [p.permission for p in self.permissions]
+    def has_permissions(self, permissions_to_check_for):
+        if isinstance(permissions_to_check_for, InstrumentedList):
+            _permissions_to_check_for = [p.permission for p in permissions_to_check_for]
+        elif not isinstance(permissions_to_check_for, list):
+            _permissions_to_check_for = [permissions_to_check_for]
+        else:
+            _permissions_to_check_for = permissions_to_check_for
+
+        if isinstance(self.permissions, InstrumentedList):
+            _permissions = [p.permission for p in self.permissions]
+        else:
+            _permissions = self.permissions
+
+        return frozenset(_permissions_to_check_for).issubset(frozenset(_permissions))
 
     def serialize_for_org_dashboard(self):
         return {
@@ -594,9 +572,6 @@ class ServicePermission(db.Model):
     def __repr__(self):
         return '<{} has service permission: {}>'.format(self.service_id, self.permission)
 
-
-MOBILE_TYPE = 'mobile'
-EMAIL_TYPE = 'email'
 
 WHITELIST_RECIPIENT_TYPE = [MOBILE_TYPE, EMAIL_TYPE]
 whitelist_recipient_types = db.Enum(*WHITELIST_RECIPIENT_TYPE, name='recipient_type')

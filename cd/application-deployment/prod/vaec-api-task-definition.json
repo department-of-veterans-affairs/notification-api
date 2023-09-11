@@ -191,6 +191,10 @@
           "value": "True"
         },
         {
+          "name": "V3_ENABLED",
+          "value": "False"
+        },
+        {
           "name": "VA_SSO_SERVER_METADATA_URL",
           "value": "https://fed.eauth.va.gov/oauthi/sps/oauth/oauth20/metadata/ISAMOP/.well-known/oauth-authorization-server"
         },
@@ -219,6 +223,10 @@
         {
           "name": "SQLALCHEMY_DATABASE_URI",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/prod/notification-api/database/uri"
+        },
+        {
+          "name": "SQLALCHEMY_DATABASE_URI_READ",
+          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/prod/notification-api/database/uri_read"
         },
         {
           "name": "ADMIN_CLIENT_SECRET",
