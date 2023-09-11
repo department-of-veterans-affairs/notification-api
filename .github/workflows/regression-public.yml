@@ -41,7 +41,7 @@ jobs:
 
       - name: Install jq
         run: |
-          apt install jq -y
+          sudo apt install jq -y
 
       - name: QA regression test - public endpoints
         env:
