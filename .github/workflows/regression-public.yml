@@ -51,7 +51,8 @@ jobs:
 
           rm -rf .env
 
-          aws ssm get-parameter --name /notification-api-qa/env --with-decryption | sudo tee .env > /dev/null
+          #aws ssm get-parameter --name /notification-api-qa/env --with-decryption | sudo tee .env > /dev/null
+          aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r > .env
 
           # Change the ownership of all files and directories in /home/qa-container to qa-container:qa-container
           sudo chown -R qa-container:qa-container /home/qa-container
@@ -61,8 +62,6 @@ jobs:
           sudo chmod 640 .env
 
           ls -al
-
-          #aws --region us-gov-west-1 ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY" 2>/dev/null
 
           docker pull ${{ env.ECR_REGISTRY }}/notification_api_qa:master 1>/dev/null
 
