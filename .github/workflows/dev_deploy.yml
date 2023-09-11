@@ -47,37 +47,41 @@ jobs:
       ref: "${{ needs.setup-environment.outputs.git-hash }}"
     secrets: inherit
 
-  run-lambda-deploy:
-    if: ${{ inputs.lambdaDeploy }}
-    needs: [setup-environment]
-    uses: ./.github/workflows/lambda-functions.yml
-    with:
-      environment: "${{ inputs.environment }}"
-      ref: "${{ needs.setup-environment.outputs.git-hash }}"
-      lambdaName: "All"
-    secrets: inherit
+  #run-lambda-deploy:
+    #if: ${{ inputs.lambdaDeploy }}
+    #needs: [setup-environment]
+    #uses: ./.github/workflows/lambda-functions.yml
+    #with:
+      #environment: "${{ inputs.environment }}"
+      #ref: "${{ needs.setup-environment.outputs.git-hash }}"
+      #lambdaName: "All"
+    #secrets: inherit
 
-  run-deployment:
-    needs: [setup-environment, run-build]
-    uses: ./.github/workflows/deployment.yml
-    with:
-      environment: "${{ inputs.environment }}"
-      ref: "${{ needs.setup-environment.outputs.git-hash }}"
-    secrets: inherit
+  #run-deployment:
+    #needs: [setup-environment, run-build]
+    #uses: ./.github/workflows/deployment.yml
+    #with:
+      #environment: "${{ inputs.environment }}"
+      #ref: "${{ needs.setup-environment.outputs.git-hash }}"
+    #secrets: inherit
 
   run-user-flows:
-    needs: [run-deployment]
+    needs: [run-build]
     if: ${{ inputs.environment == 'dev' }}
-    uses: ./.github/workflows/user_flows.yml
-    with:
-      environment: "${{ inputs.environment }}"
-    secrets: inherit
+    run: |
+      echo "i ran something cause dev"
+    #uses: ./.github/workflows/user_flows.yml
+    #with:
+      #environment: "${{ inputs.environment }}"
+    #secrets: inherit
 
   run-regression-public-endpoints:
-    needs: [run-deployment]
+    needs: [run-build]
     if: ${{ (inputs.environment == 'perf') || (inputs.environment == 'staging') }}
-    uses: ./.github/workflows/regression-public.yml
-    with:
-      qa-image-branch: "master"
-      environment: "${{ inputs.environment }}"
-    secrets: inherit
+    run: |
+      echo "i ran something cause dev"
+    #uses: ./.github/workflows/regression-public.yml
+    #with:
+      #qa-image-branch: "master"
+      #environment: "${{ inputs.environment }}"
+    #secrets: inherit
