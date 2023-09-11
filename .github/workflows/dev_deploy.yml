@@ -39,41 +39,42 @@ jobs:
           echo "The branch/tag is ${{ inputs.ref }}"
           echo "The commit hash is ${{ steps.set-hash.outputs.commit-hash }}"
 
-  #run-build:
-    #needs: [setup-environment]
-    #uses: ./.github/workflows/build.yml
-    #with:
-      #environment: "${{ inputs.environment }}"
-      #ref: "${{ needs.setup-environment.outputs.git-hash }}"
-    #secrets: inherit
+  run-build:
+    needs: [setup-environment]
+    uses: ./.github/workflows/build.yml
+    with:
+      environment: "${{ inputs.environment }}"
+      ref: "${{ needs.setup-environment.outputs.git-hash }}"
+    secrets: inherit
 
-  #run-lambda-deploy:
-    #if: ${{ inputs.lambdaDeploy }}
-    #needs: [setup-environment]
-    #uses: ./.github/workflows/lambda-functions.yml
-    #with:
-      #environment: "${{ inputs.environment }}"
-      #ref: "${{ needs.setup-environment.outputs.git-hash }}"
-      #lambdaName: "All"
-    #secrets: inherit
+  run-lambda-deploy:
+    if: ${{ inputs.lambdaDeploy }}
+    needs: [setup-environment]
+    uses: ./.github/workflows/lambda-functions.yml
+    with:
+      environment: "${{ inputs.environment }}"
+      ref: "${{ needs.setup-environment.outputs.git-hash }}"
+      lambdaName: "All"
+    secrets: inherit
 
-  #run-deployment:
-    #needs: [setup-environment, run-build]
-    #uses: ./.github/workflows/deployment.yml
-    #with:
-      #environment: "${{ inputs.environment }}"
-      #ref: "${{ needs.setup-environment.outputs.git-hash }}"
-    #secrets: inherit
+  run-deployment:
+    needs: [setup-environment, run-build]
+    uses: ./.github/workflows/deployment.yml
+    with:
+      environment: "${{ inputs.environment }}"
+      ref: "${{ needs.setup-environment.outputs.git-hash }}"
+    secrets: inherit
 
-  #run-user-flows:
-    #needs: [run-deployment]
-    #if: ${{ inputs.environment == 'dev' }}
-    #uses: ./.github/workflows/user_flows.yml
-    #with:
-      #environment: "${{ inputs.environment }}"
-    #secrets: inherit
+  run-user-flows:
+    needs: [run-deployment]
+    if: ${{ inputs.environment == 'dev' }}
+    uses: ./.github/workflows/user_flows.yml
+    with:
+      environment: "${{ inputs.environment }}"
+    secrets: inherit
 
   run-regression-public-endpoints:
+    needs: [run-deployment]
     if: ${{ (inputs.environment == 'perf') || (inputs.environment == 'staging') }}
     uses: ./.github/workflows/regression-public.yml
     with:
