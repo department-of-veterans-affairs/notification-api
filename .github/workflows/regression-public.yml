@@ -53,8 +53,6 @@ jobs:
           ## Set the working directory to /home/qa-container
           cd /home/qa-container
 
-          rm -rf .env
-
           #aws ssm get-parameter --name /notification-api-qa/env --with-decryption | sudo tee .env > /dev/null
           aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r | sudo tee .env > /dev/null
 
