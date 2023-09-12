@@ -47,18 +47,16 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr-vaec.outputs.registry }}
         run: |
-          # Add user qa-container with UID 1051 and home directory at /home/qa-container
+          # qa-container is the user inside the container
+          # the runner needs to have the same user and permissions for .env 
+          # For the the container to run correctly
           sudo useradd -u 1051 -m -d /home/qa-container -s /bin/bash qa-container
 
-          ## Set the working directory to /home/qa-container
           cd /home/qa-container
 
-          #aws ssm get-parameter --name /notification-api-qa/env --with-decryption | sudo tee .env > /dev/null
           aws ssm get-parameter --name /notification-api-qa/env --with-decryption | jq '.Parameter.Value' -r | sudo tee .env > /dev/null
 
-          # Change the ownership of all files and directories in /home/qa-container to qa-container:qa-container
           sudo chown -R qa-container:qa-container /home/qa-container
-          #sudo chown 1051:1051 .env
 
           sudo chgrp qa-container .env
           sudo chmod 640 .env
