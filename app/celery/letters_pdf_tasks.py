@@ -32,7 +32,7 @@ from app.letters.utils import (
     copy_redaction_failed_pdf,
     get_reference_from_filename,
     get_folder_name,
-    upload_letter_pdf,
+    # upload_letter_pdf,
     ScanErrorType,
     move_failed_pdf,
     move_scan_to_invalid_pdf_bucket,
