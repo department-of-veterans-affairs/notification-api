@@ -30,9 +30,9 @@ from app.models import (
     NOTIFICATION_DELIVERED,
     NOTIFICATION_PENDING_VIRUS_CHECK
 )
-# from app.notifications.process_letter_notifications import (
-#     create_letter_notification
-# )
+from app.notifications.process_letter_notifications import (
+    create_letter_notification
+)
 from app.notifications.process_notifications import (
     persist_notification,
     persist_scheduled_notification,
@@ -105,117 +105,117 @@ from app.utils import get_public_notify_type_text
 #     return jsonify(resp), 201
 #
 #
-# todo: cannot find a reference where this actually used
-# @v2_notification_blueprint.route('/<notification_type>', methods=['POST'])
-# def post_notification(notification_type):  # noqa: C901
-#     try:
-#         request_json = request.get_json()
-#     except werkzeug.exceptions.BadRequest as e:
-#         raise BadRequestError(message=f"Error decoding arguments: {e.description}", status_code=400)
-#
-#     if notification_type == EMAIL_TYPE:
-#         form = validate(request_json, post_email_request)
-#     elif notification_type == SMS_TYPE:
-#         form = validate(request_json, post_sms_request)
-#
-#         if form.get("sms_sender_id") is None:
-#             # Use the service's default sms_sender.
-#             for sender in authenticated_service.service_sms_senders:
-#                 if sender.is_default:
-#                     form["sms_sender_id"] = sender.id
-#                     break
-#             else:
-#                 raise BadRequestError(
-#                     message="You must supply a value for sms_sender_id, or the service must have a default."
-#                 )
-#     elif notification_type == LETTER_TYPE:
-#         form = validate(request_json, post_letter_request)
-#     else:
-#         abort(404)
-#
-#     if not authenticated_service.has_permissions(notification_type):
-#         raise BadRequestError(message="Service is not allowed to send {}".format(
-#             get_public_notify_type_text(notification_type, plural=True)))
-#
-#     scheduled_for = form.get("scheduled_for")
-#
-#     if scheduled_for is not None:
-#         if not authenticated_service.has_permissions(SCHEDULE_NOTIFICATIONS):
-#             raise BadRequestError(message="Cannot schedule notifications (this feature is invite-only)")
-#
-#     check_rate_limiting(authenticated_service, api_user)
-#
-#     template, template_with_content = validate_template(
-#         form['template_id'],
-#         strip_keys_from_personalisation_if_send_attach(form.get('personalisation', {})),
-#         authenticated_service,
-#         notification_type,
-#     )
-#
-#     onsite_enabled = template.onsite_notification
-#
-#     reply_to = get_reply_to_text(notification_type, form, template)
-#
-#     if notification_type == LETTER_TYPE:
-#         notification = process_letter_notification(
-#             letter_data=form,
-#             api_key=api_user,
-#             template=template,
-#             reply_to_text=reply_to
-#         )
-#     else:
-#         if "email_address" in form or "phone_number" in form:
-#             notification = process_sms_or_email_notification(
-#                 form=form,
-#                 notification_type=notification_type,
-#                 api_key=api_user,
-#                 template=template,
-#                 service=authenticated_service,
-#                 reply_to_text=reply_to
-#             )
-#         else:
-#             # This execution path uses a given recipient identifier to lookup the
-#             # recipient's e-mail address or phone number.
-#             if accept_recipient_identifiers_enabled():
-#                 notification = process_notification_with_recipient_identifier(
-#                     form=form,
-#                     notification_type=notification_type,
-#                     api_key=api_user,
-#                     template=template,
-#                     service=authenticated_service,
-#                     reply_to_text=reply_to,
-#                     onsite_enabled=onsite_enabled
-#                 )
-#             else:
-#                 current_app.logger.debug("Sending a notification without contact information is not implemented.")
-#                 return jsonify(result='error', message="Not Implemented"), 501
-#
-#         template_with_content.values = notification.personalisation
-#
-#     if notification_type == SMS_TYPE:
-#         create_resp_partial = functools.partial(
-#             create_post_sms_response_from_notification,
-#             from_number=reply_to
-#         )
-#     elif notification_type == EMAIL_TYPE:
-#         create_resp_partial = functools.partial(
-#             create_post_email_response_from_notification,
-#             subject=template_with_content.subject
-#         )
-#     elif notification_type == LETTER_TYPE:
-#         create_resp_partial = functools.partial(
-#             create_post_letter_response_from_notification,
-#             subject=template_with_content.subject,
-#         )
-#
-#     resp = create_resp_partial(
-#         notification=notification,
-#         content=str(template_with_content),
-#         url_root=request.url_root,
-#         scheduled_for=scheduled_for
-#     )
-#
-#     return jsonify(resp), 201
+
+@v2_notification_blueprint.route('/<notification_type>', methods=['POST'])
+def post_notification(notification_type):  # noqa: C901
+    try:
+        request_json = request.get_json()
+    except werkzeug.exceptions.BadRequest as e:
+        raise BadRequestError(message=f"Error decoding arguments: {e.description}", status_code=400)
+
+    if notification_type == EMAIL_TYPE:
+        form = validate(request_json, post_email_request)
+    elif notification_type == SMS_TYPE:
+        form = validate(request_json, post_sms_request)
+
+        if form.get("sms_sender_id") is None:
+            # Use the service's default sms_sender.
+            for sender in authenticated_service.service_sms_senders:
+                if sender.is_default:
+                    form["sms_sender_id"] = sender.id
+                    break
+            else:
+                raise BadRequestError(
+                    message="You must supply a value for sms_sender_id, or the service must have a default."
+                )
+    elif notification_type == LETTER_TYPE:
+        form = validate(request_json, post_letter_request)
+    else:
+        abort(404)
+
+    if not authenticated_service.has_permissions(notification_type):
+        raise BadRequestError(message="Service is not allowed to send {}".format(
+            get_public_notify_type_text(notification_type, plural=True)))
+
+    scheduled_for = form.get("scheduled_for")
+
+    if scheduled_for is not None:
+        if not authenticated_service.has_permissions(SCHEDULE_NOTIFICATIONS):
+            raise BadRequestError(message="Cannot schedule notifications (this feature is invite-only)")
+
+    check_rate_limiting(authenticated_service, api_user)
+
+    template, template_with_content = validate_template(
+        form['template_id'],
+        strip_keys_from_personalisation_if_send_attach(form.get('personalisation', {})),
+        authenticated_service,
+        notification_type,
+    )
+
+    onsite_enabled = template.onsite_notification
+
+    reply_to = get_reply_to_text(notification_type, form, template)
+
+    if notification_type == LETTER_TYPE:
+        notification = process_letter_notification(
+            letter_data=form,
+            api_key=api_user,
+            template=template,
+            reply_to_text=reply_to
+        )
+    else:
+        if "email_address" in form or "phone_number" in form:
+            notification = process_sms_or_email_notification(
+                form=form,
+                notification_type=notification_type,
+                api_key=api_user,
+                template=template,
+                service=authenticated_service,
+                reply_to_text=reply_to
+            )
+        else:
+            # This execution path uses a given recipient identifier to lookup the
+            # recipient's e-mail address or phone number.
+            if accept_recipient_identifiers_enabled():
+                notification = process_notification_with_recipient_identifier(
+                    form=form,
+                    notification_type=notification_type,
+                    api_key=api_user,
+                    template=template,
+                    service=authenticated_service,
+                    reply_to_text=reply_to,
+                    onsite_enabled=onsite_enabled
+                )
+            else:
+                current_app.logger.debug("Sending a notification without contact information is not implemented.")
+                return jsonify(result='error', message="Not Implemented"), 501
+
+        template_with_content.values = notification.personalisation
+
+    if notification_type == SMS_TYPE:
+        create_resp_partial = functools.partial(
+            create_post_sms_response_from_notification,
+            from_number=reply_to
+        )
+    elif notification_type == EMAIL_TYPE:
+        create_resp_partial = functools.partial(
+            create_post_email_response_from_notification,
+            subject=template_with_content.subject
+        )
+    elif notification_type == LETTER_TYPE:
+        create_resp_partial = functools.partial(
+            create_post_letter_response_from_notification,
+            subject=template_with_content.subject,
+        )
+
+    resp = create_resp_partial(
+        notification=notification,
+        content=str(template_with_content),
+        url_root=request.url_root,
+        scheduled_for=scheduled_for
+    )
+
+    return jsonify(resp), 201
 
 
 def process_sms_or_email_notification(*, form, notification_type, api_key, template, service, reply_to_text=None):
@@ -352,80 +352,80 @@ def process_document_uploads(personalisation_data, service, simulated=False):
     return personalisation_data
 
 
-# def process_letter_notification(*, letter_data, api_key, template, reply_to_text, precompiled=False):
-#     if api_key.key_type == KEY_TYPE_TEAM:
-#         raise BadRequestError(message='Cannot send letters with a team api key', status_code=403)
-#
-#     if not api_key.service.research_mode and api_key.service.restricted and api_key.key_type != KEY_TYPE_TEST:
-#         raise BadRequestError(message='Cannot send letters when service is in trial mode', status_code=403)
-#
-#     if precompiled:
-#         return process_precompiled_letter_notifications(letter_data=letter_data,
-#                                                         api_key=api_key,
-#                                                         template=template,
-#                                                         reply_to_text=reply_to_text)
-#
-#     test_key = api_key.key_type == KEY_TYPE_TEST
-#
-#     # if we don't want to actually send the letter, then start it off in SENDING so we don't pick it up
-#     status = NOTIFICATION_CREATED if not test_key else NOTIFICATION_SENDING
-#     queue = QueueNames.CREATE_LETTERS_PDF if not test_key else QueueNames.RESEARCH_MODE
-#
-#     notification = create_letter_notification(letter_data=letter_data,
-#                                               template=template,
-#                                               api_key=api_key,
-#                                               status=status,
-#                                               reply_to_text=reply_to_text)
-#
-#     create_letters_pdf.apply_async(
-#         [str(notification.id)],
-#         queue=queue
-#     )
-#
-#     if test_key:
-#         if current_app.config['NOTIFY_ENVIRONMENT'] in ['preview', 'development']:
-#             create_fake_letter_response_file.apply_async(
-#                 (notification.reference,),
-#                 queue=queue
-#             )
-#         else:
-#             update_notification_status_by_reference(notification.reference, NOTIFICATION_DELIVERED)
-#
-#     return notification
+def process_letter_notification(*, letter_data, api_key, template, reply_to_text, precompiled=False):
+    if api_key.key_type == KEY_TYPE_TEAM:
+        raise BadRequestError(message='Cannot send letters with a team api key', status_code=403)
+
+    if not api_key.service.research_mode and api_key.service.restricted and api_key.key_type != KEY_TYPE_TEST:
+        raise BadRequestError(message='Cannot send letters when service is in trial mode', status_code=403)
+
+    if precompiled:
+        return process_precompiled_letter_notifications(letter_data=letter_data,
+                                                        api_key=api_key,
+                                                        template=template,
+                                                        reply_to_text=reply_to_text)
+
+    test_key = api_key.key_type == KEY_TYPE_TEST
+
+    # if we don't want to actually send the letter, then start it off in SENDING so we don't pick it up
+    status = NOTIFICATION_CREATED if not test_key else NOTIFICATION_SENDING
+    queue = QueueNames.CREATE_LETTERS_PDF if not test_key else QueueNames.RESEARCH_MODE
+
+    notification = create_letter_notification(letter_data=letter_data,
+                                              template=template,
+                                              api_key=api_key,
+                                              status=status,
+                                              reply_to_text=reply_to_text)
+
+    create_letters_pdf.apply_async(
+        [str(notification.id)],
+        queue=queue
+    )
+
+    if test_key:
+        if current_app.config['NOTIFY_ENVIRONMENT'] in ['preview', 'development']:
+            create_fake_letter_response_file.apply_async(
+                (notification.reference,),
+                queue=queue
+            )
+        else:
+            update_notification_status_by_reference(notification.reference, NOTIFICATION_DELIVERED)
+
+    return notification
 
 
-# def process_precompiled_letter_notifications(*, letter_data, api_key, template, reply_to_text):
-#     try:
-#         status = NOTIFICATION_PENDING_VIRUS_CHECK
-#         letter_content = base64.b64decode(letter_data['content'])
-#     except ValueError:
-#         raise BadRequestError(message='Cannot decode letter content (invalid base64 encoding)', status_code=400)
-#
-#     notification = create_letter_notification(letter_data=letter_data,
-#                                               template=template,
-#                                               api_key=api_key,
-#                                               status=status,
-#                                               reply_to_text=reply_to_text)
-#
-#     filename = upload_letter_pdf(notification, letter_content, precompiled=True)
-#
-#     current_app.logger.info("Calling task scan-file for %s.", filename)
-#
-#     # call task to add the filename to anti virus queue
-#     if current_app.config['ANTIVIRUS_ENABLED']:
-#         notify_celery.send_task(
-#             name=TaskNames.SCAN_FILE,
-#             kwargs={'filename': filename},
-#             queue=QueueNames.ANTIVIRUS,
-#         )
-#     else:
-#         # stub out antivirus in dev
-#         process_virus_scan_passed.apply_async(
-#             kwargs={'filename': filename},
-#             queue=QueueNames.LETTERS,
-#         )
-#
-#     return notification
+def process_precompiled_letter_notifications(*, letter_data, api_key, template, reply_to_text):
+    try:
+        status = NOTIFICATION_PENDING_VIRUS_CHECK
+        letter_content = base64.b64decode(letter_data['content'])
+    except ValueError:
+        raise BadRequestError(message='Cannot decode letter content (invalid base64 encoding)', status_code=400)
+
+    notification = create_letter_notification(letter_data=letter_data,
+                                              template=template,
+                                              api_key=api_key,
+                                              status=status,
+                                              reply_to_text=reply_to_text)
+
+    filename = upload_letter_pdf(notification, letter_content, precompiled=True)
+
+    current_app.logger.info("Calling task scan-file for %s.", filename)
+
+    # call task to add the filename to anti virus queue
+    if current_app.config['ANTIVIRUS_ENABLED']:
+        notify_celery.send_task(
+            name=TaskNames.SCAN_FILE,
+            kwargs={'filename': filename},
+            queue=QueueNames.ANTIVIRUS,
+        )
+    else:
+        # stub out antivirus in dev
+        process_virus_scan_passed.apply_async(
+            kwargs={'filename': filename},
+            queue=QueueNames.LETTERS,
+        )
+
+    return notification
 
 
 def get_reply_to_text(notification_type, form, template):
@@ -455,7 +455,7 @@ def get_reply_to_text(notification_type, form, template):
 
     return reply_to
 
-#
-# def strip_keys_from_personalisation_if_send_attach(personalisation):
-#     return {k: v for (k, v) in personalisation.items() if
-#             not (type(v) is dict and v.get('sending_method') == 'attach')}
+
+def strip_keys_from_personalisation_if_send_attach(personalisation):
+    return {k: v for (k, v) in personalisation.items() if
+            not (type(v) is dict and v.get('sending_method') == 'attach')}
