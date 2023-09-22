@@ -2,7 +2,7 @@ from . import return_json_from_response, validate_v0
 from flask import json
 from tests import create_authorization_header
 
-# todo: do not see anywhere where this code is being used except in testing
+
 def _post_notification(client, template, url, to, sms_sender_id=None):
     data = {
         'to': to,

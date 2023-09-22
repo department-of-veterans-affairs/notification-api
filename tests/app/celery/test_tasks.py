@@ -46,7 +46,6 @@ from tests.app import load_example_csv
 
 from tests.app.db import (
     create_job,
-    create_letter_contact,
     create_notification,
     create_service,
     create_template,

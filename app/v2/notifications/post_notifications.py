@@ -1,34 +1,20 @@
-import base64
 import functools
-
 import werkzeug
 from flask import request, jsonify, current_app, abort
 from notifications_utils.recipients import try_validate_and_format_phone_number
-
-from app import api_user, authenticated_service, notify_celery, attachment_store
+from app import api_user, authenticated_service, attachment_store
 from app.attachments.mimetype import extract_and_validate_mimetype
 from app.attachments.store import AttachmentStoreError
 from app.attachments.types import UploadedAttachmentMetadata
-# from app.celery.letters_pdf_tasks import create_letters_pdf, process_virus_scan_passed
-from app.celery.research_mode_tasks import create_fake_letter_response_file
-from app.config import QueueNames, TaskNames
-from app.dao.notifications_dao import update_notification_status_by_reference
-from app.dao.templates_dao import get_precompiled_letter_template
+from app.config import QueueNames
 from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
-from app.letters.utils import upload_letter_pdf
 from app.models import (
     SCHEDULE_NOTIFICATIONS,
     SMS_TYPE,
     EMAIL_TYPE,
     LETTER_TYPE,
     UPLOAD_DOCUMENT,
-    PRIORITY,
-    KEY_TYPE_TEST,
-    KEY_TYPE_TEAM,
-    NOTIFICATION_CREATED,
-    NOTIFICATION_SENDING,
-    NOTIFICATION_DELIVERED,
-    NOTIFICATION_PENDING_VIRUS_CHECK
+    PRIORITY
 )
 # from app.notifications.process_letter_notifications import (
 #     create_letter_notification
@@ -59,7 +45,6 @@ from app.v2.notifications.notification_schemas import (
     post_sms_request,
     post_email_request,
     post_letter_request,
-    post_precompiled_letter_request
 )
 from app.utils import get_public_notify_type_text
 
@@ -157,12 +142,7 @@ def post_notification(notification_type):  # noqa: C901
     reply_to = get_reply_to_text(notification_type, form, template)
 
     if notification_type == LETTER_TYPE:
-        notification = process_letter_notification(
-            letter_data=form,
-            api_key=api_user,
-            template=template,
-            reply_to_text=reply_to
-        )
+        pass
     else:
         if "email_address" in form or "phone_number" in form:
             notification = process_sms_or_email_notification(
