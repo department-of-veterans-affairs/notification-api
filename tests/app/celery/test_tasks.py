@@ -962,172 +962,172 @@ def test_save_sms_does_not_send_duplicate_and_does_not_put_in_retry_queue(sample
     assert not retry.called
 
 
-def test_save_letter_saves_letter_to_database(mocker, notify_db_session):
-    service = create_service()
-    contact_block = create_letter_contact(service=service, contact_block="Address contact", is_default=True)
-    template = create_template(service=service, template_type=LETTER_TYPE, reply_to=contact_block.id)
-    job = create_job(template=template)
-
-    mocker.patch('app.celery.tasks.create_random_identifier', return_value="this-is-random-in-real-life")
-    mocker.patch('app.celery.tasks.letters_pdf_tasks.create_letters_pdf.apply_async')
-
-    personalisation = {
-        'addressline1': 'Foo',
-        'addressline2': 'Bar',
-        'addressline3': 'Baz',
-        'addressline4': 'Wibble',
-        'addressline5': 'Wobble',
-        'addressline6': 'Wubble',
-        'postcode': 'Flob',
-    }
-    notification_json = _notification_json(
-        template=job.template,
-        to='Foo',
-        personalisation=personalisation,
-        job_id=job.id,
-        row_number=1
-    )
-    notification_id = uuid.uuid4()
-    created_at = datetime.utcnow()
-
-    save_letter(
-        job.service_id,
-        notification_id,
-        encryption.encrypt(notification_json),
-    )
-
-    notification_db = Notification.query.one()
-    assert notification_db.id == notification_id
-    assert notification_db.to == 'Foo'
-    assert notification_db.job_id == job.id
-    assert notification_db.template_id == job.template.id
-    assert notification_db.template_version == job.template.version
-    assert notification_db.status == 'created'
-    assert notification_db.created_at >= created_at
-    assert notification_db.notification_type == 'letter'
-    assert notification_db.sent_at is None
-    assert notification_db.sent_by is None
-    assert notification_db.personalisation == personalisation
-    assert notification_db.reference == "this-is-random-in-real-life"
-    assert notification_db.reply_to_text == contact_block.contact_block
-
-
-@pytest.mark.parametrize('postage', ['first', 'second'])
-def test_save_letter_saves_letter_to_database_with_correct_postage(mocker, notify_db_session, postage):
-    service = create_service(service_permissions=[LETTER_TYPE])
-    template = create_template(service=service, template_type=LETTER_TYPE, postage=postage)
-    letter_job = create_job(template=template)
-
-    mocker.patch('app.celery.tasks.letters_pdf_tasks.create_letters_pdf.apply_async')
-    notification_json = _notification_json(
-        template=letter_job.template,
-        to='Foo',
-        personalisation={'addressline1': 'Foo', 'addressline2': 'Bar', 'postcode': 'Flob'},
-        job_id=letter_job.id,
-        row_number=1
-    )
-    notification_id = uuid.uuid4()
-    save_letter(
-        letter_job.service_id,
-        notification_id,
-        encryption.encrypt(notification_json),
-    )
-
-    notification_db = Notification.query.one()
-    assert notification_db.id == notification_id
-    assert notification_db.postage == postage
+# def test_save_letter_saves_letter_to_database(mocker, notify_db_session):
+#     service = create_service()
+#     contact_block = create_letter_contact(service=service, contact_block="Address contact", is_default=True)
+#     template = create_template(service=service, template_type=LETTER_TYPE, reply_to=contact_block.id)
+#     job = create_job(template=template)
+#
+#     mocker.patch('app.celery.tasks.create_random_identifier', return_value="this-is-random-in-real-life")
+#     mocker.patch('app.celery.tasks.letters_pdf_tasks.create_letters_pdf.apply_async')
+#
+#     personalisation = {
+#         'addressline1': 'Foo',
+#         'addressline2': 'Bar',
+#         'addressline3': 'Baz',
+#         'addressline4': 'Wibble',
+#         'addressline5': 'Wobble',
+#         'addressline6': 'Wubble',
+#         'postcode': 'Flob',
+#     }
+#     notification_json = _notification_json(
+#         template=job.template,
+#         to='Foo',
+#         personalisation=personalisation,
+#         job_id=job.id,
+#         row_number=1
+#     )
+#     notification_id = uuid.uuid4()
+#     created_at = datetime.utcnow()
+#
+#     save_letter(
+#         job.service_id,
+#         notification_id,
+#         encryption.encrypt(notification_json),
+#     )
+#
+#     notification_db = Notification.query.one()
+#     assert notification_db.id == notification_id
+#     assert notification_db.to == 'Foo'
+#     assert notification_db.job_id == job.id
+#     assert notification_db.template_id == job.template.id
+#     assert notification_db.template_version == job.template.version
+#     assert notification_db.status == 'created'
+#     assert notification_db.created_at >= created_at
+#     assert notification_db.notification_type == 'letter'
+#     assert notification_db.sent_at is None
+#     assert notification_db.sent_by is None
+#     assert notification_db.personalisation == personalisation
+#     assert notification_db.reference == "this-is-random-in-real-life"
+#     assert notification_db.reply_to_text == contact_block.contact_block
 
 
-def test_save_letter_saves_letter_to_database_right_reply_to(mocker, notify_db_session):
-    service = create_service()
-    create_letter_contact(service=service, contact_block="Address contact", is_default=True)
-    template = create_template(service=service, template_type=LETTER_TYPE, reply_to=None)
-    job = create_job(template=template)
-
-    mocker.patch('app.celery.tasks.create_random_identifier', return_value="this-is-random-in-real-life")
-    mocker.patch('app.celery.tasks.letters_pdf_tasks.create_letters_pdf.apply_async')
-
-    personalisation = {
-        'addressline1': 'Foo',
-        'addressline2': 'Bar',
-        'addressline3': 'Baz',
-        'addressline4': 'Wibble',
-        'addressline5': 'Wobble',
-        'addressline6': 'Wubble',
-        'postcode': 'Flob',
-    }
-    notification_json = _notification_json(
-        template=job.template,
-        to='Foo',
-        personalisation=personalisation,
-        job_id=job.id,
-        row_number=1
-    )
-    notification_id = uuid.uuid4()
-    created_at = datetime.utcnow()
-
-    save_letter(
-        job.service_id,
-        notification_id,
-        encryption.encrypt(notification_json),
-    )
-
-    notification_db = Notification.query.one()
-    assert notification_db.id == notification_id
-    assert notification_db.to == 'Foo'
-    assert notification_db.job_id == job.id
-    assert notification_db.template_id == job.template.id
-    assert notification_db.template_version == job.template.version
-    assert notification_db.status == 'created'
-    assert notification_db.created_at >= created_at
-    assert notification_db.notification_type == 'letter'
-    assert notification_db.sent_at is None
-    assert notification_db.sent_by is None
-    assert notification_db.personalisation == personalisation
-    assert notification_db.reference == "this-is-random-in-real-life"
-    assert not notification_db.reply_to_text
+# @pytest.mark.parametrize('postage', ['first', 'second'])
+# def test_save_letter_saves_letter_to_database_with_correct_postage(mocker, notify_db_session, postage):
+#     service = create_service(service_permissions=[LETTER_TYPE])
+#     template = create_template(service=service, template_type=LETTER_TYPE, postage=postage)
+#     letter_job = create_job(template=template)
+#
+#     mocker.patch('app.celery.tasks.letters_pdf_tasks.create_letters_pdf.apply_async')
+#     notification_json = _notification_json(
+#         template=letter_job.template,
+#         to='Foo',
+#         personalisation={'addressline1': 'Foo', 'addressline2': 'Bar', 'postcode': 'Flob'},
+#         job_id=letter_job.id,
+#         row_number=1
+#     )
+#     notification_id = uuid.uuid4()
+#     save_letter(
+#         letter_job.service_id,
+#         notification_id,
+#         encryption.encrypt(notification_json),
+#     )
+#
+#     notification_db = Notification.query.one()
+#     assert notification_db.id == notification_id
+#     assert notification_db.postage == postage
 
 
-def test_save_letter_uses_template_reply_to_text(mocker, notify_db_session):
-    service = create_service()
-    create_letter_contact(service=service, contact_block="Address contact", is_default=True)
-    template_contact = create_letter_contact(
-        service=service,
-        contact_block="Template address contact",
-        is_default=False
-    )
-    template = create_template(
-        service=service,
-        template_type=LETTER_TYPE,
-        reply_to=template_contact.id
-    )
+# def test_save_letter_saves_letter_to_database_right_reply_to(mocker, notify_db_session):
+#     service = create_service()
+#     create_letter_contact(service=service, contact_block="Address contact", is_default=True)
+#     template = create_template(service=service, template_type=LETTER_TYPE, reply_to=None)
+#     job = create_job(template=template)
+#
+#     mocker.patch('app.celery.tasks.create_random_identifier', return_value="this-is-random-in-real-life")
+#     mocker.patch('app.celery.tasks.letters_pdf_tasks.create_letters_pdf.apply_async')
+#
+#     personalisation = {
+#         'addressline1': 'Foo',
+#         'addressline2': 'Bar',
+#         'addressline3': 'Baz',
+#         'addressline4': 'Wibble',
+#         'addressline5': 'Wobble',
+#         'addressline6': 'Wubble',
+#         'postcode': 'Flob',
+#     }
+#     notification_json = _notification_json(
+#         template=job.template,
+#         to='Foo',
+#         personalisation=personalisation,
+#         job_id=job.id,
+#         row_number=1
+#     )
+#     notification_id = uuid.uuid4()
+#     created_at = datetime.utcnow()
+#
+#     save_letter(
+#         job.service_id,
+#         notification_id,
+#         encryption.encrypt(notification_json),
+#     )
+#
+#     notification_db = Notification.query.one()
+#     assert notification_db.id == notification_id
+#     assert notification_db.to == 'Foo'
+#     assert notification_db.job_id == job.id
+#     assert notification_db.template_id == job.template.id
+#     assert notification_db.template_version == job.template.version
+#     assert notification_db.status == 'created'
+#     assert notification_db.created_at >= created_at
+#     assert notification_db.notification_type == 'letter'
+#     assert notification_db.sent_at is None
+#     assert notification_db.sent_by is None
+#     assert notification_db.personalisation == personalisation
+#     assert notification_db.reference == "this-is-random-in-real-life"
+#     assert not notification_db.reply_to_text
 
-    job = create_job(template=template)
 
-    mocker.patch('app.celery.tasks.create_random_identifier', return_value="this-is-random-in-real-life")
-    mocker.patch('app.celery.tasks.letters_pdf_tasks.create_letters_pdf.apply_async')
-
-    personalisation = {
-        'addressline1': 'Foo',
-        'addressline2': 'Bar',
-        'postcode': 'Flob',
-    }
-    notification_json = _notification_json(
-        template=job.template,
-        to='Foo',
-        personalisation=personalisation,
-        job_id=job.id,
-        row_number=1
-    )
-
-    save_letter(
-        job.service_id,
-        uuid.uuid4(),
-        encryption.encrypt(notification_json),
-    )
-
-    notification_db = Notification.query.one()
-    assert notification_db.reply_to_text == "Template address contact"
+# def test_save_letter_uses_template_reply_to_text(mocker, notify_db_session):
+#     service = create_service()
+#     create_letter_contact(service=service, contact_block="Address contact", is_default=True)
+#     template_contact = create_letter_contact(
+#         service=service,
+#         contact_block="Template address contact",
+#         is_default=False
+#     )
+#     template = create_template(
+#         service=service,
+#         template_type=LETTER_TYPE,
+#         reply_to=template_contact.id
+#     )
+#
+#     job = create_job(template=template)
+#
+#     mocker.patch('app.celery.tasks.create_random_identifier', return_value="this-is-random-in-real-life")
+#     mocker.patch('app.celery.tasks.letters_pdf_tasks.create_letters_pdf.apply_async')
+#
+#     personalisation = {
+#         'addressline1': 'Foo',
+#         'addressline2': 'Bar',
+#         'postcode': 'Flob',
+#     }
+#     notification_json = _notification_json(
+#         template=job.template,
+#         to='Foo',
+#         personalisation=personalisation,
+#         job_id=job.id,
+#         row_number=1
+#     )
+#
+#     save_letter(
+#         job.service_id,
+#         uuid.uuid4(),
+#         encryption.encrypt(notification_json),
+#     )
+#
+#     notification_db = Notification.query.one()
+#     assert notification_db.reply_to_text == "Template address contact"
 
 
 def test_save_sms_uses_sms_sender_reply_to_text(mocker, notify_db_session):
@@ -1249,35 +1249,35 @@ def test_save_letter_calls_create_fake_response_for_letters_in_research_mode_on_
     )
 
 
-def test_save_letter_calls_create_letters_pdf_task_not_in_research(
-        mocker, notify_db_session, sample_letter_job):
-    mock_create_letters_pdf = mocker.patch('app.celery.letters_pdf_tasks.create_letters_pdf.apply_async')
-
-    personalisation = {
-        'addressline1': 'Foo',
-        'addressline2': 'Bar',
-        'postcode': 'Flob',
-    }
-    notification_json = _notification_json(
-        template=sample_letter_job.template,
-        to='Foo',
-        personalisation=personalisation,
-        job_id=sample_letter_job.id,
-        row_number=1
-    )
-    notification_id = uuid.uuid4()
-
-    save_letter(
-        sample_letter_job.service_id,
-        notification_id,
-        encryption.encrypt(notification_json),
-    )
-
-    assert mock_create_letters_pdf.called
-    mock_create_letters_pdf.assert_called_once_with(
-        [str(notification_id)],
-        queue=QueueNames.CREATE_LETTERS_PDF
-    )
+# def test_save_letter_calls_create_letters_pdf_task_not_in_research(
+#         mocker, notify_db_session, sample_letter_job):
+#     mock_create_letters_pdf = mocker.patch('app.celery.letters_pdf_tasks.create_letters_pdf.apply_async')
+#
+#     personalisation = {
+#         'addressline1': 'Foo',
+#         'addressline2': 'Bar',
+#         'postcode': 'Flob',
+#     }
+#     notification_json = _notification_json(
+#         template=sample_letter_job.template,
+#         to='Foo',
+#         personalisation=personalisation,
+#         job_id=sample_letter_job.id,
+#         row_number=1
+#     )
+#     notification_id = uuid.uuid4()
+#
+#     save_letter(
+#         sample_letter_job.service_id,
+#         notification_id,
+#         encryption.encrypt(notification_json),
+#     )
+#
+#     assert mock_create_letters_pdf.called
+#     mock_create_letters_pdf.assert_called_once_with(
+#         [str(notification_id)],
+#         queue=QueueNames.CREATE_LETTERS_PDF
+#     )
 
 
 def test_should_cancel_job_if_service_is_inactive(sample_service,

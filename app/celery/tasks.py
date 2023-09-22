@@ -325,11 +325,9 @@ def save_letter(
             status=status
         )
 
+        # TODO: remove if statement
         if not service.research_mode:
-            letters_pdf_tasks.create_letters_pdf.apply_async(
-                [str(saved_notification.id)],
-                queue=QueueNames.CREATE_LETTERS_PDF
-            )
+            pass
         elif current_app.config['NOTIFY_ENVIRONMENT'] in ['preview', 'development']:
             research_mode_tasks.create_fake_letter_response_file.apply_async(
                 (saved_notification.reference,),
