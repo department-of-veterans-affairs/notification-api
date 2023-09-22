@@ -325,10 +325,7 @@ def save_letter(
             status=status
         )
 
-        # TODO: remove if statement
-        if not service.research_mode:
-            pass
-        elif current_app.config['NOTIFY_ENVIRONMENT'] in ['preview', 'development']:
+        if current_app.config['NOTIFY_ENVIRONMENT'] in ['preview', 'development']:
             research_mode_tasks.create_fake_letter_response_file.apply_async(
                 (saved_notification.reference,),
                 queue=QueueNames.RESEARCH_MODE

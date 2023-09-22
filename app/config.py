@@ -50,7 +50,6 @@ class QueueNames(object):
     RATE_LIMIT_RETRY = 'rate-limit-retry-tasks'
     NOTIFY = 'notify-internal-tasks'
     PROCESS_FTP = 'process-ftp-tasks'
-    # CREATE_LETTERS_PDF = 'create-letters-pdf-tasks'
     CALLBACKS = 'service-callbacks'
     LETTERS = 'letter-tasks'
     ANTIVIRUS = 'antivirus-tasks'
@@ -75,9 +74,7 @@ class QueueNames(object):
             QueueNames.RETRY,
             QueueNames.RATE_LIMIT_RETRY,
             QueueNames.NOTIFY,
-            # QueueNames.CREATE_LETTERS_PDF,
             QueueNames.CALLBACKS,
-            # QueueNames.LETTERS,
             QueueNames.LOOKUP_CONTACT_INFO,
             QueueNames.LOOKUP_VA_PROFILE_ID,
             QueueNames.DELIVERY_RECEIPTS,
