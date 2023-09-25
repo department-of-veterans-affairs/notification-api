@@ -33,7 +33,6 @@ from app.v2.errors import JobIncompleteError
 
 from tests.app.db import (
     create_notification,
-    create_template,
     create_job,
 )
 
