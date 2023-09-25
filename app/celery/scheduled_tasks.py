@@ -18,7 +18,6 @@ from app.dao.jobs_dao import dao_update_job
 from app.dao.notifications_dao import (
     dao_get_scheduled_notifications,
     set_scheduled_notification_to_processed,
-    notifications_not_yet_sent,
     dao_precompiled_letters_still_pending_virus_check,
     dao_old_letters_with_created_status,
 )
@@ -27,8 +26,6 @@ from app.models import (
     Job,
     JOB_STATUS_IN_PROGRESS,
     JOB_STATUS_ERROR,
-    SMS_TYPE,
-    EMAIL_TYPE,
 )
 from app.notifications.process_notifications import send_notification_to_queue
 from app.v2.errors import JobIncompleteError
