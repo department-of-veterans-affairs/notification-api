@@ -282,11 +282,6 @@ class Config(object):
                 'schedule': crontab(),
                 'options': {'queue': QueueNames.PERIODIC}
             },
-            'replay-created-notifications': {
-                'task': 'replay-created-notifications',
-                'schedule': crontab(minute='0, 15, 30, 45'),
-                'options': {'queue': QueueNames.PERIODIC}
-            },
             # app/celery/nightly_tasks.py
             'timeout-sending-notifications': {
                 'task': 'timeout-sending-notifications',

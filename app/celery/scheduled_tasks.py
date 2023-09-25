@@ -129,26 +129,6 @@ def check_job_status():
         raise JobIncompleteError("Job(s) {} have not completed.".format(job_ids))
 
 
-@notify_celery.task(name='replay-created-notifications')
-@statsd(namespace="tasks")
-def replay_created_notifications():
-    # if the notification has not be send after 4 hours + 15 minutes, then try to resend.
-    resend_created_notifications_older_than = (60 * 60 * 4) + (60 * 15)
-    for notification_type in (EMAIL_TYPE, SMS_TYPE):
-        notifications_to_resend = notifications_not_yet_sent(
-            resend_created_notifications_older_than,
-            notification_type
-        )
-
-        if len(notifications_to_resend) > 0:
-            current_app.logger.info("Sending {} {} notifications "
-                                    "to the delivery queue because the notification "
-                                    "status was created.".format(len(notifications_to_resend), notification_type))
-
-        for n in notifications_to_resend:
-            send_notification_to_queue(notification=n, research_mode=n.service.research_mode)
-
-
 @notify_celery.task(name='check-precompiled-letter-state')
 @statsd(namespace="tasks")
 def check_precompiled_letter_state():
