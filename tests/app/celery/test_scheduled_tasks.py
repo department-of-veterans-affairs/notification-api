@@ -12,6 +12,7 @@ from app.celery.scheduled_tasks import (
     delete_verify_codes,
     run_scheduled_jobs,
     send_scheduled_notifications,
+    replay_created_notifications,
     check_precompiled_letter_state,
     check_templated_letter_state,
 )
@@ -33,6 +34,7 @@ from app.v2.errors import JobIncompleteError
 
 from tests.app.db import (
     create_notification,
+    create_template,
     create_job,
 )
 
@@ -255,6 +257,45 @@ def test_check_job_status_task_sets_jobs_to_error(mocker, sample_template):
     )
     assert job.job_status == JOB_STATUS_ERROR
     assert job_2.job_status == JOB_STATUS_IN_PROGRESS
+
+
+@pytest.mark.parametrize(
+    "notification_type, expected_delivery_status", [
+        ('email', 'delivered'),
+        ('sms', 'sending')
+    ])
+def test_replay_created_notifications(
+    notify_db_session, sample_service, mocker, notification_type, expected_delivery_status
+):
+    mocked = mocker.patch(f'app.celery.provider_tasks.deliver_{notification_type}.apply_async')
+
+    template = create_template(service=sample_service, template_type=notification_type)
+
+    older_than = (60 * 60 * 4) + (60 * 15)  # 4 hours 15 minutes
+    old_notification = create_notification(template=template,
+                                           created_at=datetime.utcnow() - timedelta(seconds=older_than),
+                                           status='created')
+    create_notification(template=template, created_at=datetime.utcnow() - timedelta(seconds=older_than),
+                        status=expected_delivery_status)
+    create_notification(template=template, created_at=datetime.utcnow(),
+                        status='created')
+    create_notification(template=template, created_at=datetime.utcnow(),
+                        status='created')
+
+    mock_sms_sender = mocker.Mock()
+    mock_sms_sender.rate_limit = 1
+
+    mocker.patch('app.notifications.process_notifications.dao_get_service_sms_sender_by_service_id_and_number',
+                 return_value=mock_sms_sender)
+
+    replay_created_notifications()
+
+    result_notification_id, result_queue = mocked.call_args
+    result_id, *rest = result_notification_id[0]
+    assert result_id == str(old_notification.id)
+
+    assert result_queue['queue'] == f'send-{notification_type}-tasks'
+    mocked.assert_called_once()
 
 
 def test_check_job_status_task_does_not_raise_error(sample_template):

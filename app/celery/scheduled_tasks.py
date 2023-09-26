@@ -18,6 +18,7 @@ from app.dao.jobs_dao import dao_update_job
 from app.dao.notifications_dao import (
     dao_get_scheduled_notifications,
     set_scheduled_notification_to_processed,
+    notifications_not_yet_sent,
     dao_precompiled_letters_still_pending_virus_check,
     dao_old_letters_with_created_status,
 )
@@ -26,6 +27,8 @@ from app.models import (
     Job,
     JOB_STATUS_IN_PROGRESS,
     JOB_STATUS_ERROR,
+    SMS_TYPE,
+    EMAIL_TYPE,
 )
 from app.notifications.process_notifications import send_notification_to_queue
 from app.v2.errors import JobIncompleteError
@@ -124,6 +127,26 @@ def check_job_status():
             queue=QueueNames.JOBS
         )
         raise JobIncompleteError("Job(s) {} have not completed.".format(job_ids))
+
+
+@notify_celery.task(name='replay-created-notifications')
+@statsd(namespace="tasks")
+def replay_created_notifications():
+    # if the notification has not be send after 4 hours + 15 minutes, then try to resend.
+    resend_created_notifications_older_than = (60 * 60 * 4) + (60 * 15)
+    for notification_type in (EMAIL_TYPE, SMS_TYPE):
+        notifications_to_resend = notifications_not_yet_sent(
+            resend_created_notifications_older_than,
+            notification_type
+        )
+
+        if len(notifications_to_resend) > 0:
+            current_app.logger.info("Sending {} {} notifications "
+                                    "to the delivery queue because the notification "
+                                    "status was created.".format(len(notifications_to_resend), notification_type))
+
+        for n in notifications_to_resend:
+            send_notification_to_queue(notification=n, research_mode=n.service.research_mode)
 
 
 @notify_celery.task(name='check-precompiled-letter-state')
