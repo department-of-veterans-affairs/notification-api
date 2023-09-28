@@ -2,6 +2,7 @@
 
 import pytest
 from app.models import EMAIL_TYPE, SMS_TYPE
+from app.service.service_data import ServiceData
 from app.v3.notifications.rest import v3_send_notification
 from datetime import datetime, timedelta, timezone
 from flask import Response, url_for
@@ -84,7 +85,7 @@ def bad_request_helper(response: Response):
         "additional properties not allowed",
     )
 )
-def test_post_v3_notifications(notify_db_session, client, sample_service, request_data, expected_status_code):
+def test_post_v3_notifications(notify_db_session, client, mocker, sample_service, request_data, expected_status_code):
     """
     Test e-mail and SMS POST endpoints using "email_address", "phone_number", and "recipient_identifier".
     Also test POSTing with bad request data to verify a 400 response.  This test does not exhaustively test
@@ -96,23 +97,42 @@ def test_post_v3_notifications(notify_db_session, client, sample_service, reques
     Tests for authentication are in tests/app/test_route_authentication.py.
     """
 
-    # TODO 1361 - mock call to Celery apply_async
-
+    celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
     auth_header = create_authorization_header(service_id=sample_service.id, key_type="team")
     response = client.post(
         path=url_for(f"v3.v3_notifications.v3_post_notification_{request_data['notification_type']}"),
         data=dumps(request_data),
         headers=(("Content-Type", "application/json"), auth_header)
     )
-    assert response.status_code == expected_status_code, response.get_json()
+    response_json = response.get_json()
+    assert response.status_code == expected_status_code, response_json
+    service_data = ServiceData(sample_service)
 
     if expected_status_code == 202:
-        assert isinstance(UUID(response.get_json().get("id")), UUID)
-        assert isinstance(UUID(v3_send_notification(request_data)), UUID)
+        assert isinstance(UUID(response_json["id"]), UUID)
+        request_data["id"] = response_json["id"]
+        celery_mock.assert_called_once_with(request_data, mocker.ANY)
+        assert isinstance(celery_mock.call_args.args[1], ServiceData)
+        assert celery_mock.call_args.args[1].id == sample_service.id
+
+        # For the same request data, calling v3_send_notification directly, rather than through a route
+        # handler, should also succeed.
+        celery_mock.reset_mock()
+        del request_data["id"]
+        request_data["id"] = v3_send_notification(request_data, service_data)
+        assert isinstance(UUID(request_data["id"]), UUID)
+        celery_mock.assert_called_once_with(request_data, service_data)
+        assert isinstance(celery_mock.call_args.args[1], ServiceData)
+        assert celery_mock.call_args.args[1].id == sample_service.id
     elif expected_status_code == 400:
-        assert response.get_json()["errors"][0]["error"] == "ValidationError"
+        assert response_json["errors"][0]["error"] == "ValidationError"
+
+        # For the same request data, calling v3_send_notification directly, rather than through a route
+        # handler, should also raise ValidationError.
         with pytest.raises(ValidationError):
-            v3_send_notification(request_data)
+            v3_send_notification(request_data, service_data)
+
+        celery_mock.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -175,11 +195,12 @@ def test_post_v3_notifications_phone_number_not_valid(notify_db_session, client,
     assert response_json["errors"][0]["message"].endswith("is not a valid phone number.")
 
 
-def test_post_v3_notifications_scheduled_for(notify_db_session, client, sample_service):
+def test_post_v3_notifications_scheduled_for(notify_db_session, client, mocker, sample_service):
     """
     The scheduled time must not be in the past or more than a calendar day in the future.
     """
 
+    celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
     auth_header = create_authorization_header(service_id=sample_service.id, key_type="team")
     scheduled_for = datetime.now(timezone.utc) + timedelta(hours=2)
     email_request_data = {
@@ -204,14 +225,28 @@ def test_post_v3_notifications_scheduled_for(notify_db_session, client, sample_s
         data=dumps(email_request_data),
         headers=(("Content-Type", "application/json"), auth_header)
     )
-    assert response.status_code == 202, response.get_json()
+    response_json = response.get_json()
+    assert response.status_code == 202, response_json
+    email_request_data["id"] = response_json["id"]
+    celery_mock.assert_called_once_with(email_request_data, mocker.ANY)
+    assert isinstance(celery_mock.call_args.args[1], ServiceData)
+    assert celery_mock.call_args.args[1].id == sample_service.id
+    celery_mock.reset_mock()
+    del email_request_data["id"]
 
     response = client.post(
         path=url_for("v3.v3_notifications.v3_post_notification_sms"),
         data=dumps(sms_request_data),
         headers=(("Content-Type", "application/json"), auth_header)
     )
-    assert response.status_code == 202, response.get_json()
+    response_json = response.get_json()
+    assert response.status_code == 202, response_json
+    sms_request_data["id"] = response_json["id"]
+    celery_mock.assert_called_once_with(sms_request_data, mocker.ANY)
+    assert isinstance(celery_mock.call_args.args[1], ServiceData)
+    assert celery_mock.call_args.args[1].id == sample_service.id
+    celery_mock.reset_mock()
+    del sms_request_data["id"]
 
     #######################################################################
     # Test scheduled_for too far in the future and in the past.
@@ -225,6 +260,7 @@ def test_post_v3_notifications_scheduled_for(notify_db_session, client, sample_s
             headers=(("Content-Type", "application/json"), auth_header)
         )
         bad_request_helper(response)
+        celery_mock.assert_not_called()
 
         sms_request_data["scheduled_for"] = bad_scheduled_for.isoformat()
         response = client.post(
@@ -233,6 +269,7 @@ def test_post_v3_notifications_scheduled_for(notify_db_session, client, sample_s
             headers=(("Content-Type", "application/json"), auth_header)
         )
         bad_request_helper(response)
+        celery_mock.assert_not_called()
 
 
 @pytest.mark.parametrize(

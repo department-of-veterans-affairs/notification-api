@@ -1,7 +1,10 @@
 """ Implement v3 endpoints for the Notification model. """
 
 import phonenumbers
+from app import authenticated_service
+from app.celery.v3.notification_tasks import v3_process_notification
 from app.models import EMAIL_TYPE, SMS_TYPE
+from app.service.service_data import ServiceData
 from app.v3.notifications.notification_schemas import (
     notification_v3_post_email_request_schema,
     notification_v3_post_sms_request_schema,
@@ -39,7 +42,7 @@ def v3_post_notification_email():
 
     try:
         # This might trigger an error handler for ValidationError that returns a 400 response.
-        return {"id": v3_send_notification(request_data)}, 202
+        return {"id": v3_send_notification(request_data, authenticated_service)}, 202
     except ValueError as e:
         # This should trigger an error handler for BadRequest that returns a 400 response.
         raise BadRequest from e
@@ -52,13 +55,13 @@ def v3_post_notification_sms():
 
     try:
         # This might trigger an error handler for ValidationError that returns a 400 response.
-        return {"id": v3_send_notification(request_data)}, 202
+        return {"id": v3_send_notification(request_data, authenticated_service)}, 202
     except (phonenumbers.phonenumberutil.NumberParseException, ValueError) as e:
         # This should trigger an error handler for BadRequest that returns a 400 response.
         raise BadRequest from e
 
 
-def v3_send_notification(request_data: dict) -> str:
+def v3_send_notification(request_data: dict, service_data: ServiceData) -> str:
     """
     This function can be called directly to send notifications without having to make API requests.
     In that use case, the upstream code is responsbile for populating notification_type and for
@@ -96,5 +99,6 @@ def v3_send_notification(request_data: dict) -> str:
     # This has the side effect of modifying the input in the upstream code.
     request_data["id"] = str(uuid4())
 
-    # TODO 1361 - Pass the validated request data to Celery by calling apply_async (or something else)
+    # Initiate a Celery task to process the validated request data.  This does not block.
+    v3_process_notification.delay(request_data, service_data)
     return request_data["id"]
