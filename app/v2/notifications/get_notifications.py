@@ -1,20 +1,9 @@
-from io import BytesIO
-
-from flask import jsonify, request, url_for, current_app, send_file
-
 from app import api_user, authenticated_service
 from app.dao import notifications_dao
-from app.letters.utils import get_letter_pdf
 from app.schema_validation import validate
-from app.v2.errors import BadRequestError, PDFNotReadyError
 from app.v2.notifications import v2_notification_blueprint
 from app.v2.notifications.notification_schemas import get_notifications_request, notification_by_id
-from app.models import (
-    NOTIFICATION_PENDING_VIRUS_CHECK,
-    NOTIFICATION_VIRUS_SCAN_FAILED,
-    NOTIFICATION_TECHNICAL_FAILURE,
-    LETTER_TYPE,
-)
+from flask import jsonify, request, url_for, current_app
 
 
 @v2_notification_blueprint.route("/<notification_id>", methods=['GET'])

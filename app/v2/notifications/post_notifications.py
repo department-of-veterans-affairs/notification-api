@@ -13,7 +13,6 @@ from app.celery.letters_pdf_tasks import create_letters_pdf, process_virus_scan_
 from app.celery.research_mode_tasks import create_fake_letter_response_file
 from app.config import QueueNames, TaskNames
 from app.dao.notifications_dao import update_notification_status_by_reference
-from app.dao.templates_dao import get_precompiled_letter_template
 from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
 from app.letters.utils import upload_letter_pdf
 from app.models import (
@@ -59,7 +58,6 @@ from app.v2.notifications.notification_schemas import (
     post_sms_request,
     post_email_request,
     post_letter_request,
-    post_precompiled_letter_request
 )
 from app.utils import get_public_notify_type_text
 
