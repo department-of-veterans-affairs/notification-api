@@ -969,8 +969,6 @@ def test_save_letter_saves_letter_to_database(mocker, notify_db_session):
     job = create_job(template=template)
 
     mocker.patch('app.celery.tasks.create_random_identifier', return_value="this-is-random-in-real-life")
-    mocker.patch('app.celery.tasks.letters_pdf_tasks.create_letters_pdf.apply_async')
-
     personalisation = {
         'addressline1': 'Foo',
         'addressline2': 'Bar',
@@ -1018,7 +1016,6 @@ def test_save_letter_saves_letter_to_database_with_correct_postage(mocker, notif
     template = create_template(service=service, template_type=LETTER_TYPE, postage=postage)
     letter_job = create_job(template=template)
 
-    mocker.patch('app.celery.tasks.letters_pdf_tasks.create_letters_pdf.apply_async')
     notification_json = _notification_json(
         template=letter_job.template,
         to='Foo',
@@ -1045,7 +1042,6 @@ def test_save_letter_saves_letter_to_database_right_reply_to(mocker, notify_db_s
     job = create_job(template=template)
 
     mocker.patch('app.celery.tasks.create_random_identifier', return_value="this-is-random-in-real-life")
-    mocker.patch('app.celery.tasks.letters_pdf_tasks.create_letters_pdf.apply_async')
 
     personalisation = {
         'addressline1': 'Foo',
@@ -1105,7 +1101,6 @@ def test_save_letter_uses_template_reply_to_text(mocker, notify_db_session):
     job = create_job(template=template)
 
     mocker.patch('app.celery.tasks.create_random_identifier', return_value="this-is-random-in-real-life")
-    mocker.patch('app.celery.tasks.letters_pdf_tasks.create_letters_pdf.apply_async')
 
     personalisation = {
         'addressline1': 'Foo',
@@ -1246,37 +1241,6 @@ def test_save_letter_calls_create_fake_response_for_letters_in_research_mode_on_
     mock_create_fake_letter_response_file.assert_called_once_with(
         (sample_reference,),
         queue=QueueNames.RESEARCH_MODE
-    )
-
-
-def test_save_letter_calls_create_letters_pdf_task_not_in_research(
-        mocker, notify_db_session, sample_letter_job):
-    mock_create_letters_pdf = mocker.patch('app.celery.letters_pdf_tasks.create_letters_pdf.apply_async')
-
-    personalisation = {
-        'addressline1': 'Foo',
-        'addressline2': 'Bar',
-        'postcode': 'Flob',
-    }
-    notification_json = _notification_json(
-        template=sample_letter_job.template,
-        to='Foo',
-        personalisation=personalisation,
-        job_id=sample_letter_job.id,
-        row_number=1
-    )
-    notification_id = uuid.uuid4()
-
-    save_letter(
-        sample_letter_job.service_id,
-        notification_id,
-        encryption.encrypt(notification_json),
-    )
-
-    assert mock_create_letters_pdf.called
-    mock_create_letters_pdf.assert_called_once_with(
-        [str(notification_id)],
-        queue=QueueNames.CREATE_LETTERS_PDF
     )
 
 
