@@ -54,6 +54,7 @@ from app.models import (
     TemplateHistory,
     UserServiceRoles,
 )
+from app.service.service_data import ServiceData
 from datetime import datetime, timedelta
 from flask import current_app, url_for
 from random import randrange
@@ -345,9 +346,7 @@ def sample_notification_model_with_organization(
     return notification
 
 
-@pytest.fixture(scope='function')
-def sample_service(
-        notify_db,
+def sample_service_helper(
         notify_db_session,
         service_name="Sample service",
         user=None,
@@ -387,6 +386,21 @@ def sample_service(
     return service
 
 
+@pytest.fixture(scope='function')
+def sample_service(notify_db_session):
+    return sample_service_helper(notify_db_session)
+
+
+@pytest.fixture(scope="function")
+def sample_service_email_permission(notify_db_session):
+    return sample_service_helper(notify_db_session, permissions=[EMAIL_TYPE])
+
+
+@pytest.fixture(scope="function")
+def sample_service_sms_permission(notify_db_session):
+    return sample_service_helper(notify_db_session, permissions=[SMS_TYPE])
+
+
 @pytest.fixture(scope='function', name='sample_service_full_permissions')
 def _sample_service_full_permissions(notify_db_session):
     service = create_service(
@@ -402,6 +416,11 @@ def _sample_service_full_permissions(notify_db_session):
 def _sample_service_custom_letter_contact_block(sample_service):
     create_letter_contact(sample_service, contact_block='((contact block))')
     return sample_service
+
+
+@pytest.fixture(scope="function")
+def sample_service_data(sample_service):
+    return ServiceData(sample_service)
 
 
 @pytest.fixture(scope='function')

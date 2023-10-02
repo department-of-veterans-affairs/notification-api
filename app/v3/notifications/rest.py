@@ -2,6 +2,7 @@
 
 import phonenumbers
 from app import authenticated_service
+from app.authentication.auth import AuthError
 from app.celery.v3.notification_tasks import v3_process_notification
 from app.models import EMAIL_TYPE, SMS_TYPE
 from app.service.service_data import ServiceData
@@ -41,7 +42,7 @@ def v3_post_notification_email():
     request_data["notification_type"] = EMAIL_TYPE
 
     try:
-        # This might trigger an error handler for ValidationError that returns a 400 response.
+        # This might trigger various exceptions with associated error handlers.
         return {"id": v3_send_notification(request_data, authenticated_service)}, 202
     except ValueError as e:
         # This should trigger an error handler for BadRequest that returns a 400 response.
@@ -54,7 +55,7 @@ def v3_post_notification_sms():
     request_data["notification_type"] = SMS_TYPE
 
     try:
-        # This might trigger an error handler for ValidationError that returns a 400 response.
+        # This might trigger various exceptions with associated error handlers.
         return {"id": v3_send_notification(request_data, authenticated_service)}, 202
     except (phonenumbers.phonenumberutil.NumberParseException, ValueError) as e:
         # This should trigger an error handler for BadRequest that returns a 400 response.
@@ -67,6 +68,15 @@ def v3_send_notification(request_data: dict, service_data: ServiceData) -> str:
     In that use case, the upstream code is responsbile for populating notification_type and for
     catching exceptions.
     """
+
+    # Ensure the service has permission to send a notification of the given type.
+    if (
+        (request_data["notification_type"] == EMAIL_TYPE and not service_data.has_permissions(EMAIL_TYPE)) or
+        (request_data["notification_type"] == SMS_TYPE and not service_data.has_permissions(SMS_TYPE))
+        # TODO - test for international phone numbers (needs a unit test too)
+    ):
+        # TODO - more specific for phone numbers (i.e. service can't send international)
+        raise AuthError("The service does not have permission to send this type of notification.", 403)
 
     # This might raise jsonschema.ValidationError.
     if request_data["notification_type"] == EMAIL_TYPE:
@@ -88,6 +98,8 @@ def v3_send_notification(request_data: dict, service_data: ServiceData) -> str:
         if (scheduled_for - right_now).days > 1:
             raise ValueError("The scheduled time cannot be more than one calendar day in the future.")
 
+        raise NotImplementedError("Scheduled sending is not implemented.")
+
     if "phone_number" in request_data:
         # This might raise phonenumbers.phonenumberutil.NumberParseException.
         phone_number = phonenumbers.parse(request_data["phone_number"])
@@ -100,5 +112,5 @@ def v3_send_notification(request_data: dict, service_data: ServiceData) -> str:
     request_data["id"] = str(uuid4())
 
     # Initiate a Celery task to process the validated request data.  This does not block.
-    v3_process_notification.delay(request_data, service_data)
+    v3_process_notification.delay(request_data)
     return request_data["id"]

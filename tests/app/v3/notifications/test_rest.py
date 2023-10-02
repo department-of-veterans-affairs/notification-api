@@ -1,6 +1,7 @@
 """ Test endpoints for the v3 notifications. """
 
 import pytest
+from app.authentication.auth import AuthError
 from app.models import EMAIL_TYPE, SMS_TYPE
 from app.service.service_data import ServiceData
 from app.v3.notifications.rest import v3_send_notification
@@ -111,9 +112,7 @@ def test_post_v3_notifications(notify_db_session, client, mocker, sample_service
     if expected_status_code == 202:
         assert isinstance(UUID(response_json["id"]), UUID)
         request_data["id"] = response_json["id"]
-        celery_mock.assert_called_once_with(request_data, mocker.ANY)
-        assert isinstance(celery_mock.call_args.args[1], ServiceData)
-        assert celery_mock.call_args.args[1].id == sample_service.id
+        celery_mock.assert_called_once_with(request_data)
 
         # For the same request data, calling v3_send_notification directly, rather than through a route
         # handler, should also succeed.
@@ -121,9 +120,7 @@ def test_post_v3_notifications(notify_db_session, client, mocker, sample_service
         del request_data["id"]
         request_data["id"] = v3_send_notification(request_data, service_data)
         assert isinstance(UUID(request_data["id"]), UUID)
-        celery_mock.assert_called_once_with(request_data, service_data)
-        assert isinstance(celery_mock.call_args.args[1], ServiceData)
-        assert celery_mock.call_args.args[1].id == sample_service.id
+        celery_mock.assert_called_once_with(request_data)
     elif expected_status_code == 400:
         assert response_json["errors"][0]["error"] == "ValidationError"
 
@@ -133,6 +130,64 @@ def test_post_v3_notifications(notify_db_session, client, mocker, sample_service
             v3_send_notification(request_data, service_data)
 
         celery_mock.assert_not_called()
+
+
+def test_post_v3_notifications_email_denied(notify_db_session, client, mocker, sample_service_sms_permission):
+    """
+    Test trying to send e-mail with a service that does not have permission to send e-mail.
+    The implementation should test permission before validating the request data.
+    """
+
+    assert not sample_service_sms_permission.has_permissions(EMAIL_TYPE)
+
+    celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
+    auth_header = create_authorization_header(service_id=sample_service_sms_permission.id, key_type="team")
+    response = client.post(
+        path=url_for(f"v3.v3_notifications.v3_post_notification_email"),
+        data=dumps({}),
+        headers=(("Content-Type", "application/json"), auth_header)
+    )
+    assert response.status_code == 403
+    response_json = response.get_json()
+    assert response_json["errors"][0]["error"] == "AuthError"
+    assert response_json["errors"][0]["message"] == \
+        "The service does not have permission to send this type of notification."
+    celery_mock.assert_not_called()
+
+    # For the same request data, calling v3_send_notification directly, rather than through a route
+    # handler, should also raise AuthError.
+    with pytest.raises(AuthError):
+        v3_send_notification({"notification_type": EMAIL_TYPE}, ServiceData(sample_service_sms_permission))
+    celery_mock.assert_not_called()
+
+
+def test_post_v3_notifications_sms_denied(notify_db_session, client, mocker, sample_service_email_permission):
+    """
+    Test trying to send a SMS notification with a service that does not have permission to send SMS.
+    The implementation should test permission before validating the request data.
+    """
+
+    assert not sample_service_email_permission.has_permissions(SMS_TYPE)
+
+    celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
+    auth_header = create_authorization_header(service_id=sample_service_email_permission.id, key_type="team")
+    response = client.post(
+        path=url_for(f"v3.v3_notifications.v3_post_notification_sms"),
+        data=dumps({}),
+        headers=(("Content-Type", "application/json"), auth_header)
+    )
+    assert response.status_code == 403
+    response_json = response.get_json()
+    assert response_json["errors"][0]["error"] == "AuthError"
+    assert response_json["errors"][0]["message"] == \
+        "The service does not have permission to send this type of notification."
+    celery_mock.assert_not_called()
+
+    # For the same request data, calling v3_send_notification directly, rather than through a route
+    # handler, should also raise AuthError.
+    with pytest.raises(AuthError):
+        v3_send_notification({"notification_type": SMS_TYPE}, ServiceData(sample_service_email_permission))
+    celery_mock.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -158,7 +213,7 @@ def test_post_v3_notifications(notify_db_session, client, mocker, sample_service
 )
 def test_post_v3_notifications_phone_number_not_possible(notify_db_session, client, sample_service, request_data):
     """
-    Test a phone number strings that cannot be parsed.
+    Test phone number strings that cannot be parsed.
     """
 
     auth_header = create_authorization_header(service_id=sample_service.id, key_type="team")
@@ -226,13 +281,20 @@ def test_post_v3_notifications_scheduled_for(notify_db_session, client, mocker, 
         headers=(("Content-Type", "application/json"), auth_header)
     )
     response_json = response.get_json()
-    assert response.status_code == 202, response_json
-    email_request_data["id"] = response_json["id"]
-    celery_mock.assert_called_once_with(email_request_data, mocker.ANY)
-    assert isinstance(celery_mock.call_args.args[1], ServiceData)
-    assert celery_mock.call_args.args[1].id == sample_service.id
-    celery_mock.reset_mock()
-    del email_request_data["id"]
+
+    # TODO - Delete when scheduled sending is implemented.
+    assert response.status_code == 501, response_json
+    assert response_json["errors"][0]["message"] == "Scheduled sending is not implemented."
+    celery_mock.assert_not_called()
+
+    # TODO - Uncomment when scheduled sending is implemented.
+    # assert response.status_code == 202, response_json
+    # email_request_data["id"] = response_json["id"]
+    # celery_mock.assert_called_once_with(email_request_data)
+    # assert isinstance(celery_mock.call_args.args[1], ServiceData)
+    # assert celery_mock.call_args.args[1].id == sample_service.id
+    # celery_mock.reset_mock()
+    # del email_request_data["id"]
 
     response = client.post(
         path=url_for("v3.v3_notifications.v3_post_notification_sms"),
@@ -240,13 +302,20 @@ def test_post_v3_notifications_scheduled_for(notify_db_session, client, mocker, 
         headers=(("Content-Type", "application/json"), auth_header)
     )
     response_json = response.get_json()
-    assert response.status_code == 202, response_json
-    sms_request_data["id"] = response_json["id"]
-    celery_mock.assert_called_once_with(sms_request_data, mocker.ANY)
-    assert isinstance(celery_mock.call_args.args[1], ServiceData)
-    assert celery_mock.call_args.args[1].id == sample_service.id
-    celery_mock.reset_mock()
-    del sms_request_data["id"]
+
+    # TODO - Delete when scheduled sending is implemented.
+    assert response.status_code == 501, response_json
+    assert response_json["errors"][0]["message"] == "Scheduled sending is not implemented."
+    celery_mock.assert_not_called()
+
+    # TODO - Uncomment when scheduled sending is implemented.
+    # assert response.status_code == 202, response_json
+    # sms_request_data["id"] = response_json["id"]
+    # celery_mock.assert_called_once_with(sms_request_data)
+    # assert isinstance(celery_mock.call_args.args[1], ServiceData)
+    # assert celery_mock.call_args.args[1].id == sample_service.id
+    # celery_mock.reset_mock()
+    # del sms_request_data["id"]
 
     #######################################################################
     # Test scheduled_for too far in the future and in the past.
