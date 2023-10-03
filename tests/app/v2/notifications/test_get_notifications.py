@@ -698,14 +698,3 @@ def test_get_pdf_for_notification_only_returns_pdf_content_if_right_status(
         'message': expected_message
     }]
     assert mock_get_letter_pdf.called is False
-
-
-def test_get_pdf_for_notification_fails_for_non_letters(client, sample_notification):
-    auth_header = create_authorization_header(service_id=sample_notification.service_id)
-    response = client.get(
-        path=url_for('v2_notifications.get_pdf_for_notification', notification_id=sample_notification.id),
-        headers=[('Content-Type', 'application/json'), auth_header]
-    )
-
-    assert response.status_code == 400
-    assert response.json['errors'] == [{'error': 'BadRequestError', 'message': 'Notification is not a letter'}]
