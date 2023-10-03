@@ -452,4 +452,3 @@ def test_post_precompiled_letter_notification_returns_201(
 
     resp_json = json.loads(response.get_data(as_text=True))
     assert resp_json == {'id': str(notification.id), 'reference': 'letter-reference', 'postage': expected_postage}
-
