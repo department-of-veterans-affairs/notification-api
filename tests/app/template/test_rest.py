@@ -308,7 +308,7 @@ def test_create_a_new_template_for_a_service_adds_postage_for_letters_only(
 
 
 def test_create_template_should_return_400_if_folder_is_for_a_different_service(
-        client, sample_service
+        client, sample_letter_notification, sample_service
 ):
     service2 = create_service(service_name='second service')
     parent_folder = create_template_folder(service=service2)
