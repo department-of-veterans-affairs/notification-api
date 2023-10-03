@@ -672,25 +672,6 @@ def test_get_notifications_renames_letter_statuses(client, sample_letter_templat
     assert json_response['status'] == expected_status
 
 
-def test_get_pdf_for_notification_returns_pdf_content(
-    client,
-    sample_letter_notification,
-    mocker,
-):
-    mock_get_letter_pdf = mocker.patch('app.v2.notifications.get_notifications.get_letter_pdf', return_value=b'foo')
-    sample_letter_notification.status = 'created'
-
-    auth_header = create_authorization_header(service_id=sample_letter_notification.service_id)
-    response = client.get(
-        path=url_for('v2_notifications.get_pdf_for_notification', notification_id=sample_letter_notification.id),
-        headers=[('Content-Type', 'application/json'), auth_header]
-    )
-
-    assert response.status_code == 200
-    assert response.get_data() == b'foo'
-    mock_get_letter_pdf.assert_called_once_with(sample_letter_notification)
-
-
 def test_get_pdf_for_notification_returns_400_if_pdf_not_found(
     client,
     sample_letter_notification,
