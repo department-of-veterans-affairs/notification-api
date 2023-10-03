@@ -679,7 +679,7 @@ def test_get_pdf_for_notification_returns_400_if_pdf_not_found(
 ):
     # if no files are returned get_letter_pdf throws StopIteration as the iterator runs out
     mock_get_letter_pdf = mocker.patch(
-        'app.v2.notifications.get_notifications.get_letter_pdf',
+        'app.letters.utils.get_letter_pdf',
         side_effect=StopIteration
     )
     sample_letter_notification.status = 'created'
