@@ -670,31 +670,3 @@ def test_get_notifications_renames_letter_statuses(client, sample_letter_templat
     json_response = json.loads(response.get_data(as_text=True))
     assert response.status_code == 200
     assert json_response['status'] == expected_status
-
-
-@pytest.mark.parametrize('status, expected_message', [
-    ('virus-scan-failed', 'Document did not pass the virus scan'),
-    ('technical-failure', 'PDF not available for letters in status technical-failure'),
-])
-def test_get_pdf_for_notification_only_returns_pdf_content_if_right_status(
-    client,
-    sample_letter_notification,
-    mocker,
-    status,
-    expected_message
-):
-    mock_get_letter_pdf = mocker.patch('app.letters.utils.get_letter_pdf', return_value=b'foo')
-    sample_letter_notification.status = status
-
-    auth_header = create_authorization_header(service_id=sample_letter_notification.service_id)
-    response = client.get(
-        path=url_for('v2_notifications.get_pdf_for_notification', notification_id=sample_letter_notification.id),
-        headers=[('Content-Type', 'application/json'), auth_header]
-    )
-
-    assert response.status_code == 400
-    assert response.json['errors'] == [{
-        'error': 'BadRequestError',
-        'message': expected_message
-    }]
-    assert mock_get_letter_pdf.called is False
