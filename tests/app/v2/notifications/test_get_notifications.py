@@ -709,7 +709,7 @@ def test_get_pdf_for_notification_only_returns_pdf_content_if_right_status(
     status,
     expected_message
 ):
-    mock_get_letter_pdf = mocker.patch('app.v2.notifications.get_notifications.get_letter_pdf', return_value=b'foo')
+    mock_get_letter_pdf = mocker.patch('app.letters.utils.get_letter_pdf', return_value=b'foo')
     sample_letter_notification.status = status
 
     auth_header = create_authorization_header(service_id=sample_letter_notification.service_id)
