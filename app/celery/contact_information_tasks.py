@@ -33,7 +33,6 @@ def lookup_contact_info(self, notification_id):
             raise NotImplementedError(
                 f"The task lookup_contact_info failed for notification {notification_id}. "
                 f"{notification.notification_type} is not supported")
-
     except (Timeout, VAProfileRetryableException) as e:
         if can_retry(self.request.retries, self.max_retries, notification_id):
             current_app.logger.warning("Unable to get contact info for notification id: %s, retrying", notification_id)
