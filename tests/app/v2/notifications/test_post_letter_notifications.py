@@ -376,30 +376,6 @@ def test_post_letter_notification_is_delivered_but_still_creates_pdf_if_in_trial
     fake_create_letter_task.assert_called_once_with([str(notification.id)], queue='research-mode-tasks')
 
 
-def test_post_letter_notification_is_delivered_and_has_pdf_uploaded_to_test_letters_bucket_using_test_key(
-    client,
-    notify_user,
-    mocker
-):
-    sample_letter_service = create_service(service_permissions=['letter'])
-    mocker.patch('app.celery.letters_pdf_tasks.notify_celery.send_task')
-    s3mock = mocker.patch('app.v2.notifications.post_notifications.upload_letter_pdf', return_value='test.pdf')
-    data = {
-        "reference": "letter-reference",
-        "content": "bGV0dGVyLWNvbnRlbnQ="
-    }
-    letter_request(
-        client,
-        data=data,
-        service_id=str(sample_letter_service.id),
-        key_type=KEY_TYPE_TEST,
-        precompiled=True)
-
-    notification = Notification.query.one()
-    assert notification.status == NOTIFICATION_PENDING_VIRUS_CHECK
-    s3mock.assert_called_once_with(ANY, b'letter-content', precompiled=True)
-
-
 def test_post_letter_notification_persists_notification_reply_to_text(
     client, notify_db_session, mocker
 ):

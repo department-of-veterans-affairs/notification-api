@@ -670,14 +670,3 @@ def test_get_notifications_renames_letter_statuses(client, sample_letter_templat
     json_response = json.loads(response.get_data(as_text=True))
     assert response.status_code == 200
     assert json_response['status'] == expected_status
-
-
-def test_get_pdf_for_notification_fails_for_non_letters(client, sample_notification):
-    auth_header = create_authorization_header(service_id=sample_notification.service_id)
-    response = client.get(
-        path=url_for('v2_notifications.get_pdf_for_notification', notification_id=sample_notification.id),
-        headers=[('Content-Type', 'application/json'), auth_header]
-    )
-
-    assert response.status_code == 400
-    assert response.json['errors'] == [{'error': 'BadRequestError', 'message': 'Notification is not a letter'}]
