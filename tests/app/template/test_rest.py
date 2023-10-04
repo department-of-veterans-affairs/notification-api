@@ -22,7 +22,7 @@ from app.models import (
 )
 from datetime import datetime, timedelta, date
 from flask import url_for
-from flask_jwt_extended import create_access_token, current_user
+from flask_jwt_extended import create_access_token
 from freezegun import freeze_time
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
 from notifications_utils.template import HTMLEmailTemplate
@@ -811,8 +811,7 @@ def test_should_return_404_if_no_templates_for_service_with_id(client, sample_se
     assert json_resp['message'] == 'No result found'
 
 
-def test_create_400_for_over_limit_content(client, notify_api, sample_user, sample_service, fake_uuid):
-    current_user = sample_user
+def test_create_400_for_over_limit_content(client, notify_api, sample_service, fake_uuid):
     content = ''.join(
         random.choice(string.ascii_uppercase + string.digits) for _ in range(SMS_CHAR_COUNT_LIMIT + 1)  # nosec
     )
@@ -820,8 +819,7 @@ def test_create_400_for_over_limit_content(client, notify_api, sample_user, samp
         'name': 'too big template',
         'template_type': SMS_TYPE,
         'content': content,
-        'service': str(sample_service.id),
-        'created_by': str(sample_user.id)
+        'service': str(sample_service.id)
     }
     data = json.dumps(data)
     auth_header = create_authorization_header()
