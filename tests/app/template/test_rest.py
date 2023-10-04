@@ -22,7 +22,7 @@ from app.models import (
 )
 from datetime import datetime, timedelta, date
 from flask import url_for
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, current_user
 from freezegun import freeze_time
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
 from notifications_utils.template import HTMLEmailTemplate
@@ -812,6 +812,7 @@ def test_should_return_404_if_no_templates_for_service_with_id(client, sample_se
 
 
 def test_create_400_for_over_limit_content(client, notify_api, sample_user, sample_service, fake_uuid):
+    current_user = sample_user
     content = ''.join(
         random.choice(string.ascii_uppercase + string.digits) for _ in range(SMS_CHAR_COUNT_LIMIT + 1)  # nosec
     )
