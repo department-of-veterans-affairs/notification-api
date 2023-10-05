@@ -1,7 +1,15 @@
 # TODO - Should I continue using notify_celery?  It has side-effects.
 from app import db, notify_celery
 from app.dao.dao_utils import get_reader_session
-from app.models import EMAIL_TYPE, KEY_TYPE_NORMAL, Notification, NOTIFICATION_PERMANENT_FAILURE, SMS_TYPE, Template
+from app.models import (
+    EMAIL_TYPE,
+    KEY_TYPE_NORMAL,
+    Notification,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_TECHNICAL_FAILURE,
+    SMS_TYPE,
+    Template,
+)
 from app.service.service_data import ServiceData
 from datetime import datetime
 from flask import current_app
@@ -9,15 +17,15 @@ from sqlalchemy import select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 
 
-@notify_celery.task
+@notify_celery.task(serializer="pickle")
 def v3_process_notification(request_data: dict, service_data: ServiceData):
     """
     This is the first task used to process request data send to POST /v3/notification/(email|sms).  It performs
     additional, non-schema verifications that require database queries:
 
-    1. The specified template exists and is for the specified type of notification.
-    2. The given service owns the specified template.
-    x. ...etc...
+    1. The specified template exists.
+    2. The specified template is for the specified type of notification.
+    3. The given service owns the specified template.
     """
 
     notification = Notification(
@@ -58,11 +66,6 @@ def v3_process_notification(request_data: dict, service_data: ServiceData):
             return
 
     notification.template_version = template.version
-    if notification.notification_type == SMS_TYPE and notification.sms_sender_id is None:
-        # Get the template or service default sms_sender_id.
-        # TODO
-        pass
-
     if service_data.id != template.service_id:
         notification.status_reason = "The service does not own the template."
         db.session.add(notification)
@@ -75,8 +78,19 @@ def v3_process_notification(request_data: dict, service_data: ServiceData):
         db.session.commit()
         return
 
-    # Create the notification content using the template and personalization data.
-    # TODO
+    if notification.notification_type == SMS_TYPE and notification.sms_sender_id is None:
+        # Get the template or service default sms_sender_id.
+        # TODO
+        pass
+
+    if notification.to is None:
+        # Get the contact information from VA Profile using the recipient ID.
+        # TODO
+        notification.status = NOTIFICATION_TECHNICAL_FAILURE
+        notification.status_reason = "Sending with recipient_identifer is not yet implemented."
+        db.session.add(notification)
+        db.session.commit()
+        return
 
     # Determine the provider.
     # Launch a new task to make an API call to the provider.
