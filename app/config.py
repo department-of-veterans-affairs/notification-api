@@ -249,7 +249,7 @@ class Config(object):
         'worker_enable_remote_control': False,
         'enable_utc': True,
         'timezone': os.getenv("TIMEZONE", "America/New_York"),
-        'accept_content': ['json'],
+        'accept_content': ['json', 'pickle'],
         'task_serializer': 'json',
         'imports': (
             'app.celery.tasks',
