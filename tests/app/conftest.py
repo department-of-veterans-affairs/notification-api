@@ -226,7 +226,7 @@ def create_service_model(
         crown=True,
         organisation=None,
         smtp_user=None
-):
+) -> Service:
     service = Service(
         name=service_name,
         message_limit=message_limit,
@@ -300,7 +300,7 @@ def sample_notification_model_with_organization(
         normalised_to=None,
         postage=None,
         sms_sender_id=None
-):
+) -> Notification:
     created_at = datetime.utcnow()
 
     if service is None:

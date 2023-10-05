@@ -112,7 +112,9 @@ def test_post_v3_notifications(notify_db_session, client, mocker, sample_service
     if expected_status_code == 202:
         assert isinstance(UUID(response_json["id"]), UUID)
         request_data["id"] = response_json["id"]
-        celery_mock.assert_called_once_with(request_data)
+        celery_mock.assert_called_once_with(request_data, mocker.ANY)
+        assert isinstance(celery_mock.call_args.args[1], ServiceData)
+        assert celery_mock.call_args.args[1].id == sample_service.id
 
         # For the same request data, calling v3_send_notification directly, rather than through a route
         # handler, should also succeed.
@@ -120,7 +122,9 @@ def test_post_v3_notifications(notify_db_session, client, mocker, sample_service
         del request_data["id"]
         request_data["id"] = v3_send_notification(request_data, service_data)
         assert isinstance(UUID(request_data["id"]), UUID)
-        celery_mock.assert_called_once_with(request_data)
+        celery_mock.assert_called_once_with(request_data, mocker.ANY)
+        assert isinstance(celery_mock.call_args.args[1], ServiceData)
+        assert celery_mock.call_args.args[1].id == sample_service.id
     elif expected_status_code == 400:
         assert response_json["errors"][0]["error"] == "ValidationError"
 
@@ -290,7 +294,7 @@ def test_post_v3_notifications_scheduled_for(notify_db_session, client, mocker, 
     # TODO - Uncomment when scheduled sending is implemented.
     # assert response.status_code == 202, response_json
     # email_request_data["id"] = response_json["id"]
-    # celery_mock.assert_called_once_with(email_request_data)
+    # celery_mock.assert_called_once_with(email_request_data, mocker.ANY)
     # assert isinstance(celery_mock.call_args.args[1], ServiceData)
     # assert celery_mock.call_args.args[1].id == sample_service.id
     # celery_mock.reset_mock()
@@ -311,7 +315,7 @@ def test_post_v3_notifications_scheduled_for(notify_db_session, client, mocker, 
     # TODO - Uncomment when scheduled sending is implemented.
     # assert response.status_code == 202, response_json
     # sms_request_data["id"] = response_json["id"]
-    # celery_mock.assert_called_once_with(sms_request_data)
+    # celery_mock.assert_called_once_with(sms_request_data, mocker.ANY)
     # assert isinstance(celery_mock.call_args.args[1], ServiceData)
     # assert celery_mock.call_args.args[1].id == sample_service.id
     # celery_mock.reset_mock()

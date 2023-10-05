@@ -112,5 +112,5 @@ def v3_send_notification(request_data: dict, service_data: ServiceData) -> str:
     request_data["id"] = str(uuid4())
 
     # Initiate a Celery task to process the validated request data.  This does not block.
-    v3_process_notification.delay(request_data)
+    v3_process_notification.delay(request_data, service_data)
     return request_data["id"]
