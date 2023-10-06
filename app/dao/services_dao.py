@@ -1,5 +1,4 @@
 import uuid
-from cachetools import cached, TTLCache
 from datetime import date, datetime, timedelta
 from app.service.service_data import ServiceData, ServiceDataException
 
@@ -197,7 +196,6 @@ def dao_fetch_service_by_inbound_number(number):
     ).first()
 
 
-@cached(cache=TTLCache(maxsize=1024, ttl=600))
 def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
     with get_reader_session() as session:
         query = session.query(Service).filter_by(
