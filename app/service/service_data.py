@@ -79,6 +79,10 @@ class ServiceDataApiKey:
 
     @property
     def created_by(self):
+        """
+        Returns the User object for the API Key creator
+        """
+        # Without the wrapper function the ORM object detaches in some cases
         def lazyload():
             with get_reader_session() as session:
                 return session.execute(select(User).filter_by(id=self.created_by_id)).one()
