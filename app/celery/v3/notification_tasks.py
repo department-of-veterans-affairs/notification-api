@@ -3,22 +3,23 @@ from app import db, notify_celery
 from app.dao.dao_utils import get_reader_session
 from app.models import (
     EMAIL_TYPE,
-    KEY_TYPE_NORMAL,
     Notification,
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_TECHNICAL_FAILURE,
     SMS_TYPE,
     Template,
 )
-from app.service.service_data import ServiceData
+from celery.utils.log import get_task_logger
 from datetime import datetime
 from flask import current_app
 from sqlalchemy import select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 
+logger = get_task_logger(__name__)
 
-@notify_celery.task(serializer="pickle")
-def v3_process_notification(request_data: dict, service_data: ServiceData):
+
+@notify_celery.task
+def v3_process_notification(request_data: dict, service_id: str, api_key_id: str, api_key_type: str):
     """
     This is the first task used to process request data send to POST /v3/notification/(email|sms).  It performs
     additional, non-schema verifications that require database queries:
@@ -28,16 +29,17 @@ def v3_process_notification(request_data: dict, service_data: ServiceData):
     3. The given service owns the specified template.
     """
 
+    current_app.logger.info("MADE IT HERE 2 app logger")  # TODO
+    logger.info("MADE IT HERE 2 logger")  # TODO
+    print("MADE IT HERE 2")  # TODO
     notification = Notification(
         id=request_data["id"],
         to=request_data.get("email_address" if request_data["notification_type"] == EMAIL_TYPE else "phone_number"),
-        service_id=service_data.id,
+        service_id=service_id,
         template_id=request_data["template_id"],
         template_version=0,
-        # TODO - v2 uses the imported value "api_user" for the api_key.
-        # Does the list service_data.api_keys ever have more than one element?
-        api_key_id=service_data.api_keys[0].id if service_data.api_keys else None,
-        key_type=service_data.api_keys[0].key_type if service_data.api_keys else KEY_TYPE_NORMAL,
+        api_key_id=api_key_id,
+        key_type=api_key_type,
         notification_type=request_data["notification_type"],
         created_at=datetime.utcnow(),
         status=NOTIFICATION_PERMANENT_FAILURE,
@@ -66,7 +68,7 @@ def v3_process_notification(request_data: dict, service_data: ServiceData):
             return
 
     notification.template_version = template.version
-    if service_data.id != template.service_id:
+    if service_id != template.service_id:
         notification.status_reason = "The service does not own the template."
         db.session.add(notification)
         db.session.commit()
@@ -78,13 +80,8 @@ def v3_process_notification(request_data: dict, service_data: ServiceData):
         db.session.commit()
         return
 
-    if notification.notification_type == SMS_TYPE and notification.sms_sender_id is None:
-        # Get the template or service default sms_sender_id.
-        # TODO
-        pass
-
     if notification.to is None:
-        # Get the contact information from VA Profile using the recipient ID.
+        # Launch a new task to get the contact information from VA Profile using the recipient ID.
         # TODO
         notification.status = NOTIFICATION_TECHNICAL_FAILURE
         notification.status_reason = "Sending with recipient_identifer is not yet implemented."
@@ -92,7 +89,30 @@ def v3_process_notification(request_data: dict, service_data: ServiceData):
         db.session.commit()
         return
 
-    # Determine the provider.
-    # Launch a new task to make an API call to the provider.
-    print("MADE IT HERE 4")  # TODO
-    raise NotImplementedError
+    print("MADE IT HERE 3")  # TODO
+    if notification.notification_type == EMAIL_TYPE:
+        # TODO - Determine the provider.  For now, assume SES.
+        v3_send_email_notification_with_ses.delay(notification)
+    elif notification.notification_type == SMS_TYPE:
+        if notification.sms_sender_id is None:
+            # Get the template or service default sms_sender_id.
+            # TODO
+            notification.status = NOTIFICATION_TECHNICAL_FAILURE
+            notification.status_reason = "Default logic for sms_sender_id is not yet implemented."
+            db.session.add(notification)
+            db.session.commit()
+            return
+
+        # TODO - Determine the provider.  For now, assume Pinpoint.
+        print("MADE IT HERE 4")  # TODO
+        v3_send_sms_notification_with_pinpoint.delay(notification)
+
+
+@notify_celery.task(serializer="pickle")
+def v3_send_email_notification_with_ses(notification: Notification):
+    print("MADE IT HERE E-MAIL SES")
+
+
+@notify_celery.task(serializer="pickle")
+def v3_send_sms_notification_with_pinpoint(notification: Notification):
+    print("MADE IT HERE SMS PINPOINT")

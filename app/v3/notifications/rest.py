@@ -4,7 +4,7 @@ import phonenumbers
 from app import authenticated_service
 from app.authentication.auth import AuthError
 from app.celery.v3.notification_tasks import v3_process_notification
-from app.models import EMAIL_TYPE, SMS_TYPE
+from app.models import EMAIL_TYPE, KEY_TYPE_NORMAL, SMS_TYPE
 from app.service.service_data import ServiceData
 from app.v3.notifications.notification_schemas import (
     notification_v3_post_email_request_schema,
@@ -112,5 +112,13 @@ def v3_send_notification(request_data: dict, service_data: ServiceData) -> str:
     request_data["id"] = str(uuid4())
 
     # Initiate a Celery task to process the validated request data.  This does not block.
-    v3_process_notification.delay(request_data, service_data)
+    # TODO - v2 uses the imported value "api_user" for the api_key.
+    # Does the list service_data.api_keys ever have more than one element?
+    print("MADE IT HERE 1")  # TODO
+    v3_process_notification.delay(
+        request_data,
+        service_data.id,
+        service_data.api_keys[0].id if service_data.api_keys else None,
+        service_data.api_keys[0].key_type if service_data.api_keys else KEY_TYPE_NORMAL,
+    )
     return request_data["id"]

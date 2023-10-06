@@ -334,4 +334,4 @@ fileignoreconfig:
     - filename: app/schema_validation/__init__.py
       checksum: a2ee4584781782e5154ae0641f85777bc263d6f1e6f9fe1cfd370fff0a869418
     - filename: app/celery/v3/notification_tasks.py
-      checksum: 6aa4c0e7d5347d42dfa1fcc1af1dcd44f1c7fc1b6313617af917d3d8f6c8b194
+      checksum: f24411a73bb9d2114434b1cb5c5edbdade6520797698a20be37c74bdc4b26252
