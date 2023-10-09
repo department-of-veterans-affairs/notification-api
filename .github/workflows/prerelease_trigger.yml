@@ -28,8 +28,14 @@ jobs:
       git-tag: "${{ github.event.release.tag_name }}"
     secrets: inherit
 
-  run-qa-suite:
+  wait-for-stable:
     needs: [pre-release]
+    steps:
+      - name: Sleep for 10 seconds
+        run: sleep 10s
+
+  run-qa-suite:
+    needs: [wait-for-stable]
     uses: ./.github/workflows/regression-public.yml
     with:
       qa-image-branch: "master"
