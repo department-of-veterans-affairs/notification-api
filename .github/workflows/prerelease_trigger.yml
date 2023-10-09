@@ -28,7 +28,7 @@ jobs:
       git-tag: "${{ github.event.release.tag_name }}"
     secrets: inherit
 
-  run-QA-suite:
+  run-qa-suite:
     needs: [pre-release]
     uses: ./.github/workflows/regression-public.yml
     with:
