@@ -99,7 +99,7 @@ def test_post_v3_notifications(notify_db_session, client, mocker, sample_service
     Tests for authentication are in tests/app/test_route_authentication.py.
     """
 
-    celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.apply_async")
+    celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
     auth_header = create_authorization_header(service_id=sample_service.id, key_type=KEY_TYPE_TEAM)
     response = client.post(
         path=url_for(f"v3.v3_notifications.v3_post_notification_{request_data['notification_type']}"),
@@ -116,9 +116,7 @@ def test_post_v3_notifications(notify_db_session, client, mocker, sample_service
         expected_celery_queue = QueueNames.SEND_EMAIL if \
             (request_data["notification_type"] == EMAIL_TYPE) else QueueNames.SEND_SMS
         celery_mock.assert_called_once_with(
-            (request_data, sample_service.id, sample_service.api_keys[0].id, KEY_TYPE_TEAM),
-            queue=expected_celery_queue,
-            routing_key=expected_celery_queue
+            request_data, sample_service.id, sample_service.api_keys[0].id, KEY_TYPE_TEAM
         )
 
         # For the same request data, calling v3_send_notification directly, rather than through a route
@@ -128,9 +126,7 @@ def test_post_v3_notifications(notify_db_session, client, mocker, sample_service
         request_data["id"] = v3_send_notification(request_data, service_data)
         assert isinstance(UUID(request_data["id"]), UUID)
         celery_mock.assert_called_once_with(
-            (request_data, sample_service.id, sample_service.api_keys[0].id, KEY_TYPE_TEAM),
-            queue=expected_celery_queue,
-            routing_key=expected_celery_queue
+            request_data, sample_service.id, sample_service.api_keys[0].id, KEY_TYPE_TEAM
         )
     elif expected_status_code == 400:
         assert response_json["errors"][0]["error"] == "ValidationError"
@@ -151,7 +147,7 @@ def test_post_v3_notifications_email_denied(notify_db_session, client, mocker, s
 
     assert not sample_service_sms_permission.has_permissions(EMAIL_TYPE)
 
-    celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.apply_async")
+    celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
     auth_header = create_authorization_header(service_id=sample_service_sms_permission.id, key_type=KEY_TYPE_TEAM)
     response = client.post(
         path=url_for(f"v3.v3_notifications.v3_post_notification_email"),
@@ -180,7 +176,7 @@ def test_post_v3_notifications_sms_denied(notify_db_session, client, mocker, sam
 
     assert not sample_service_email_permission.has_permissions(SMS_TYPE)
 
-    celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.apply_async")
+    celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
     auth_header = create_authorization_header(service_id=sample_service_email_permission.id, key_type=KEY_TYPE_TEAM)
     response = client.post(
         path=url_for(f"v3.v3_notifications.v3_post_notification_sms"),
@@ -266,7 +262,7 @@ def test_post_v3_notifications_scheduled_for(notify_db_session, client, mocker, 
     The scheduled time must not be in the past or more than a calendar day in the future.
     """
 
-    celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.apply_async")
+    celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
     auth_header = create_authorization_header(service_id=sample_service.id, key_type=KEY_TYPE_TEAM)
     scheduled_for = datetime.now(timezone.utc) + timedelta(hours=2)
     email_request_data = {
@@ -302,9 +298,7 @@ def test_post_v3_notifications_scheduled_for(notify_db_session, client, mocker, 
     # assert response.status_code == 202, response_json
     # email_request_data["id"] = response_json["id"]
     # celery_mock.assert_called_once_with(
-    #     (email_request_data, sample_service.id, sample_service.api_keys[0].id, KEY_TYPE_TEAM),
-    #     queue=QueueNames.SEND_EMAIL,
-    #     routing_key=QueueNames.SEND_EMAIL
+    #     email_request_data, sample_service.id, sample_service.api_keys[0].id, KEY_TYPE_TEAM
     # )
     # celery_mock.reset_mock()
     # del email_request_data["id"]
@@ -325,9 +319,7 @@ def test_post_v3_notifications_scheduled_for(notify_db_session, client, mocker, 
     # assert response.status_code == 202, response_json
     # sms_request_data["id"] = response_json["id"]
     # celery_mock.assert_called_once_with(
-    #     (sms_request_data, sample_service.id, sample_service.api_keys[0].id, KEY_TYPE_TEAM),
-    #     queue=QueueNames.SEND_SMS,
-    #     routing_key=QueueNames.SEND_SMS
+    #     sms_request_data, sample_service.id, sample_service.api_keys[0].id, KEY_TYPE_TEAM
     # )
     # celery_mock.reset_mock()
     # del sms_request_data["id"]

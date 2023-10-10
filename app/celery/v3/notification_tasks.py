@@ -1,6 +1,5 @@
 # TODO - Should I continue using notify_celery?  It has side-effects.
 from app import db, notify_celery
-from app.config import QueueNames
 from app.dao.dao_utils import get_reader_session
 from app.models import (
     EMAIL_TYPE,
@@ -19,6 +18,7 @@ from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 logger = get_task_logger(__name__)
 
 
+# TODO - Error handler for sqlalchemy.exc.IntegrityError.  This happens when a foreign key references a nonexistent ID.
 @notify_celery.task(serializer="json")
 def v3_process_notification(request_data: dict, service_id: str, api_key_id: str, api_key_type: str):
     """
@@ -90,12 +90,7 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         return
 
     if notification.notification_type == EMAIL_TYPE:
-        # TODO - Determine the provider.  For now, assume SES.
-        v3_send_email_notification_with_ses.apply_async(
-            (notification,),
-            queue=QueueNames.SEND_EMAIL,
-            routing_key=QueueNames.SEND_EMAIL
-        )
+        v3_send_email_notification.delay(notification)
     elif notification.notification_type == SMS_TYPE:
         if notification.sms_sender_id is None:
             # Get the template or service default sms_sender_id.
@@ -106,29 +101,24 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
             db.session.commit()
             return
 
-        # TODO - Determine the provider.  For now, assume Pinpoint.
-        v3_send_sms_notification_with_pinpoint.apply_async(
-            (notification,),
-            queue=QueueNames.SEND_SMS,
-            routing_key=QueueNames.SEND_SMS
-        )
+        v3_send_sms_notification.delay(notification)
 
 
 # TODO - retry conditions
 @notify_celery.task(serializer="pickle")
-def v3_send_email_notification_with_ses(notification: Notification):
-    # TODO
+def v3_send_email_notification(notification: Notification):
+    # TODO - Determine the provider.  For now, assume SES.
     notification.status = NOTIFICATION_TECHNICAL_FAILURE
-    notification.status_reason = "Sending e-mail with SES is not yet implemented."
+    notification.status_reason = "Sending e-mail is not yet implemented."
     db.session.add(notification)
     db.session.commit()
 
 
 # TODO - retry conditions
 @notify_celery.task(serializer="pickle")
-def v3_send_sms_notification_with_pinpoint(notification: Notification):
-    # TODO
+def v3_send_sms_notification(notification: Notification):
+    # TODO - Determine the provider.  For now, assume Pinpoint.
     notification.status = NOTIFICATION_TECHNICAL_FAILURE
-    notification.status_reason = "Sending SMS with Pinpoint is not yet implemented."
+    notification.status_reason = "Sending SMS is not yet implemented."
     db.session.add(notification)
     db.session.commit()

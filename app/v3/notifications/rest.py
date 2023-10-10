@@ -117,14 +117,10 @@ def v3_send_notification(request_data: dict, service_data: ServiceData) -> str:
     # Initiate a Celery task to process the validated request data.  This does not block.
     # TODO - v2 uses the imported value "api_user" for the api_key.
     # Does the list service_data.api_keys ever have more than one element?
-    v3_process_notification.apply_async(
-        (
-            request_data,
-            service_data.id,
-            service_data.api_keys[0].id if service_data.api_keys else None,
-            service_data.api_keys[0].key_type if service_data.api_keys else KEY_TYPE_NORMAL,
-        ),
-        queue=celery_queue,
-        routing_key=celery_queue
+    v3_process_notification.delay(
+        request_data,
+        service_data.id,
+        service_data.api_keys[0].id if service_data.api_keys else None,
+        service_data.api_keys[0].key_type if service_data.api_keys else KEY_TYPE_NORMAL,
     )
     return request_data["id"]

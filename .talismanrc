@@ -274,7 +274,7 @@ fileignoreconfig:
     - filename: app/__init__.py
       checksum: 6b99603dd19ba02921639b7da0b04d15908622de4238f443795e2982d311acaa
     - filename: app/config.py
-      checksum: e4e35170dd17728f2fcdfa0d40177dcaeffe020293f5fe28f253a27688845476
+      checksum: dd2df4bbed5a0c18271a242e50b2a98ceb34838b48487f755c2665e2d72b51a0
     - filename: tests/app/celery/test_reporting_tasks.py
       checksum: 9caffea8b2253d9b86c512aeff16e03487501a9b84a98737593a79dc4d8ee14d
     - filename: scripts/trigger_task.py
