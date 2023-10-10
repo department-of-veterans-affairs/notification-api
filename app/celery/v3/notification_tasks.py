@@ -1,5 +1,6 @@
 # TODO - Should I continue using notify_celery?  It has side-effects.
 from app import db, notify_celery
+from app.config import QueueNames
 from app.dao.dao_utils import get_reader_session
 from app.models import (
     EMAIL_TYPE,
@@ -18,7 +19,7 @@ from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 logger = get_task_logger(__name__)
 
 
-@notify_celery.task
+@notify_celery.task(serializer="json")
 def v3_process_notification(request_data: dict, service_id: str, api_key_id: str, api_key_type: str):
     """
     This is the first task used to process request data send to POST /v3/notification/(email|sms).  It performs
@@ -29,9 +30,7 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
     3. The given service owns the specified template.
     """
 
-    current_app.logger.info("MADE IT HERE 2 app logger")  # TODO
-    logger.info("MADE IT HERE 2 logger")  # TODO
-    print("MADE IT HERE 2")  # TODO
+    right_now = datetime.utcnow()
     notification = Notification(
         id=request_data["id"],
         to=request_data.get("email_address" if request_data["notification_type"] == EMAIL_TYPE else "phone_number"),
@@ -41,7 +40,8 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         api_key_id=api_key_id,
         key_type=api_key_type,
         notification_type=request_data["notification_type"],
-        created_at=datetime.utcnow(),
+        created_at=right_now,
+        updated_at=right_now,
         status=NOTIFICATION_PERMANENT_FAILURE,
         client_reference=request_data.get("client_reference"),
         reference=request_data.get("reference"),
@@ -89,10 +89,13 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         db.session.commit()
         return
 
-    print("MADE IT HERE 3")  # TODO
     if notification.notification_type == EMAIL_TYPE:
         # TODO - Determine the provider.  For now, assume SES.
-        v3_send_email_notification_with_ses.delay(notification)
+        v3_send_email_notification_with_ses.apply_async(
+            (notification,),
+            queue=QueueNames.SEND_EMAIL,
+            routing_key=QueueNames.SEND_EMAIL
+        )
     elif notification.notification_type == SMS_TYPE:
         if notification.sms_sender_id is None:
             # Get the template or service default sms_sender_id.
@@ -104,8 +107,11 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
             return
 
         # TODO - Determine the provider.  For now, assume Pinpoint.
-        print("MADE IT HERE 4")  # TODO
-        v3_send_sms_notification_with_pinpoint.delay(notification)
+        v3_send_sms_notification_with_pinpoint.apply_async(
+            (notification,),
+            queue=QueueNames.SEND_SMS,
+            routing_key=QueueNames.SEND_SMS
+        )
 
 
 @notify_celery.task(serializer="pickle")

@@ -2,6 +2,7 @@
 
 import phonenumbers
 from app import authenticated_service
+from app.config import QueueNames
 from app.authentication.auth import AuthError
 from app.celery.v3.notification_tasks import v3_process_notification
 from app.models import EMAIL_TYPE, KEY_TYPE_NORMAL, SMS_TYPE
@@ -81,8 +82,10 @@ def v3_send_notification(request_data: dict, service_data: ServiceData) -> str:
     # This might raise jsonschema.ValidationError.
     if request_data["notification_type"] == EMAIL_TYPE:
         v3_notifications_post_email_request_validator.validate(request_data)
+        celery_queue = QueueNames.SEND_EMAIL
     elif request_data["notification_type"] == SMS_TYPE:
         v3_notifications_post_sms_request_validator.validate(request_data)
+        celery_queue = QueueNames.SEND_SMS
     else:
         raise RuntimeError("Unrecognized notification type.  This is a programming error.")
 
@@ -114,11 +117,14 @@ def v3_send_notification(request_data: dict, service_data: ServiceData) -> str:
     # Initiate a Celery task to process the validated request data.  This does not block.
     # TODO - v2 uses the imported value "api_user" for the api_key.
     # Does the list service_data.api_keys ever have more than one element?
-    print("MADE IT HERE 1")  # TODO
-    v3_process_notification.delay(
-        request_data,
-        service_data.id,
-        service_data.api_keys[0].id if service_data.api_keys else None,
-        service_data.api_keys[0].key_type if service_data.api_keys else KEY_TYPE_NORMAL,
+    v3_process_notification.apply_async(
+        (
+            request_data,
+            service_data.id,
+            service_data.api_keys[0].id if service_data.api_keys else None,
+            service_data.api_keys[0].key_type if service_data.api_keys else KEY_TYPE_NORMAL,
+        ),
+        queue=celery_queue,
+        routing_key=celery_queue
     )
     return request_data["id"]

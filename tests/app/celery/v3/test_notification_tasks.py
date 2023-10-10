@@ -1,7 +1,6 @@
 import pytest
 from app.celery.v3.notification_tasks import v3_process_notification
-from app.models import EMAIL_TYPE, Notification, NOTIFICATION_PERMANENT_FAILURE, SMS_TYPE
-from app.service.service_data import ServiceData
+from app.models import EMAIL_TYPE, KEY_TYPE_TEST, Notification, NOTIFICATION_PERMANENT_FAILURE, SMS_TYPE
 from sqlalchemy import select
 from uuid import uuid4
 
@@ -20,7 +19,12 @@ def test_v3_process_notification_no_template(notify_db_session, sample_service):
         "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
     }
 
-    v3_process_notification(request_data, ServiceData(sample_service))
+    v3_process_notification(
+        request_data,
+        sample_service.id,
+        None,
+        KEY_TYPE_TEST
+    )
 
     query = select(Notification).where(Notification.id == request_data["id"])
     notification = notify_db_session.session.execute(query).one().Notification
@@ -50,7 +54,12 @@ def test_v3_process_notification_template_owner_mismatch(
         "template_id": sample_template.id,
     }
 
-    v3_process_notification(request_data, ServiceData(sample_service))
+    v3_process_notification(
+        request_data,
+        sample_service.id,
+        None,
+        KEY_TYPE_TEST
+    )
 
     query = select(Notification).where(Notification.id == request_data["id"])
     notification = notify_db_session.session.execute(query).one().Notification
@@ -72,7 +81,12 @@ def test_v3_process_notification_template_type_mismatch(notify_db_session, sampl
         "template_id": sample_template.id,
     }
 
-    v3_process_notification(request_data, ServiceData(sample_service))
+    v3_process_notification(
+        request_data,
+        sample_service.id,
+        None,
+        KEY_TYPE_TEST
+    )
 
     query = select(Notification).where(Notification.id == request_data["id"])
     notification = notify_db_session.session.execute(query).one().Notification
