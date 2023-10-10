@@ -114,11 +114,21 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         )
 
 
+# TODO - retry conditions
 @notify_celery.task(serializer="pickle")
 def v3_send_email_notification_with_ses(notification: Notification):
-    print("MADE IT HERE E-MAIL SES")
+    # TODO
+    notification.status = NOTIFICATION_TECHNICAL_FAILURE
+    notification.status_reason = "Sending e-mail with SES is not yet implemented."
+    db.session.add(notification)
+    db.session.commit()
 
 
+# TODO - retry conditions
 @notify_celery.task(serializer="pickle")
 def v3_send_sms_notification_with_pinpoint(notification: Notification):
-    print("MADE IT HERE SMS PINPOINT")
+    # TODO
+    notification.status = NOTIFICATION_TECHNICAL_FAILURE
+    notification.status_reason = "Sending SMS with Pinpoint is not yet implemented."
+    db.session.add(notification)
+    db.session.commit()
