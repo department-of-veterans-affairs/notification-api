@@ -1,5 +1,5 @@
 # TODO - Should I continue using notify_celery?  It has side-effects.
-from app import db, notify_celery
+from app import clients, db, notify_celery
 from app.dao.dao_utils import get_reader_session
 from app.models import (
     EMAIL_TYPE,
@@ -9,9 +9,12 @@ from app.models import (
     SMS_TYPE,
     Template,
 )
+# from app.service.utils import compute_source_email_address
 from celery.utils.log import get_task_logger
 from datetime import datetime
 from flask import current_app
+# from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate
+# from notifications_utils.recipients import validate_and_format_email_address
 from sqlalchemy import select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 
@@ -107,11 +110,47 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
 # TODO - retry conditions
 @notify_celery.task(serializer="pickle")
 def v3_send_email_notification(notification: Notification):
-    # TODO - Determine the provider.  For now, assume SES.
     notification.status = NOTIFICATION_TECHNICAL_FAILURE
     notification.status_reason = "Sending e-mail is not yet implemented."
     db.session.add(notification)
     db.session.commit()
+
+    # TODO - Determine the provider.  For now, assume SES.
+#    client = clients.get_email_client('ses')  # Hardcoded
+#    with get_reader_session() as r_session:
+#        stmt = select(Template).where(Template.id == notification.template_id,
+#                                      Template.version == notification.template_version)
+#        template_dict = r_session.execute(stmt).mappings().all()[0]
+
+#    personlization_data = notification.personalisation.copy()
+
+#    html_email = HTMLEmailTemplate(
+#        template_dict,
+#        values=personlization_data,
+#        **get_html_email_options(notification, client)
+#    )
+
+#    plain_text_email = PlainTextEmailTemplate(
+#        template_dict,
+#        values=personlization_data
+#    )
+
+#    reference = client.send_email(
+#        source=compute_source_email_address(notification.service, client),
+#        to_addresses=validate_and_format_email_address(notification.to),
+#        subject=plain_text_email.subject,
+#        body=str(plain_text_email),
+#        html_body=str(html_email),
+#        reply_to_address=validate_and_format_email_address(notification.get('reply_to_text')),
+#        attachments=[]
+#    )
+#    notification.reference = reference
+#    notification.sent_at = datetime.utcnow()
+#    notification.sent_by = client.get_name()
+#    notification.status = NOTIFICATION_SENDING
+#    db.session.add(notification)
+#    db.session.commit()
+#    current_app.logger.info("Saved provider reference: %s for notification id: %s", reference, notification.id)
 
 
 # TODO - retry conditions
