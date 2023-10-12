@@ -8,6 +8,7 @@ from app.dao.dao_utils import get_reader_session
 from app.models import (
     EMAIL_TYPE,
     Notification,
+    NOTIFICATION_CREATED,
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_SENT,
     NOTIFICATION_TECHNICAL_FAILURE,
@@ -64,6 +65,7 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
     with get_reader_session() as reader_session:
         try:
             template = reader_session.execute(query).one().Template
+            notification.template_version = template.version
         except (MultipleResultsFound, NoResultFound):
             notification.status_reason = "The template does not exist."
             # TODO - This isn't an option right now because Notification.template_id is non-nullable and
@@ -98,7 +100,14 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         db.session.commit()
         return
 
+    # After this point, a new task might be started to send a notification, and the Notification instance
+    # should be persisted before that happens.  Otherwise, related model attributes will not be available
+    # to downstream code, and that can raise exceptions.
+
     if notification.notification_type == EMAIL_TYPE:
+        notification.status = NOTIFICATION_CREATED
+        db.session.add(notification)
+        db.session.commit()
         v3_send_email_notification.delay(notification)
     elif notification.notification_type == SMS_TYPE:
         if notification.sms_sender_id is None:
@@ -115,6 +124,11 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         try:
             with get_reader_session() as reader_session:
                 sms_sender = reader_session.execute(query).one().ServiceSmsSender
+
+                notification.status = NOTIFICATION_CREATED
+                db.session.add(notification)
+                db.session.commit()
+
                 v3_send_sms_notification.delay(notification, sms_sender.sms_sender)
         except (MultipleResultsFound, NoResultFound):
             notification.status_reason = f"SMS sender {notification.sms_sender_id} does not exist."

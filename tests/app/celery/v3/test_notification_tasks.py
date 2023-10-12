@@ -22,7 +22,7 @@ from uuid import uuid4
 
 # TODO - Make the Notification.template_id field nullable?  Have a default template?
 @pytest.mark.xfail(reason="A Notification with an invalid template ID cannot be persisted.")
-def test_v3_process_notification_no_template(notify_db_session, sample_service):
+def test_v3_process_notification_no_template(notify_db_session, mocker, sample_service):
     """
     Call the task with request data referencing a nonexistent template.
     """
@@ -34,7 +34,9 @@ def test_v3_process_notification_no_template(notify_db_session, sample_service):
         "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
     }
 
+    v3_send_email_notification_mock = mocker.patch("app.celery.v3.notification_tasks.v3_send_email_notification.delay")
     v3_process_notification(request_data, sample_service.id, None, KEY_TYPE_TEST)
+    v3_send_email_notification_mock.assert_not_called()
 
     query = select(Notification).where(Notification.id == request_data["id"])
     notification = notify_db_session.session.execute(query).one().Notification
@@ -44,7 +46,7 @@ def test_v3_process_notification_no_template(notify_db_session, sample_service):
 
 @pytest.mark.xfail(reason="This test needs a template not owned by sample_service.", run=False)
 def test_v3_process_notification_template_owner_mismatch(
-    notify_db_session, sample_service, sample_template, sample_template_without_email_permission
+    notify_db_session, mocker, sample_service, sample_template, sample_template_without_email_permission
 ):
     """
     Call the task with request data for a template the service doesn't own.
@@ -64,7 +66,9 @@ def test_v3_process_notification_template_owner_mismatch(
         "template_id": sample_template.id,
     }
 
+    v3_send_sms_notification_mock = mocker.patch("app.celery.v3.notification_tasks.v3_send_sms_notification.delay")
     v3_process_notification(request_data, sample_service.id, None, KEY_TYPE_TEST)
+    v3_send_sms_notification_mock.assert_not_called()
 
     query = select(Notification).where(Notification.id == request_data["id"])
     notification = notify_db_session.session.execute(query).one().Notification
@@ -72,7 +76,7 @@ def test_v3_process_notification_template_owner_mismatch(
     assert notification.status_reason == "The service does not own the template."
 
 
-def test_v3_process_notification_template_type_mismatch_1(notify_db_session, sample_service, sample_template):
+def test_v3_process_notification_template_type_mismatch_1(notify_db_session, mocker, sample_service, sample_template):
     """
     Call the task with request data for an e-mail notification, but specify an SMS template.
     """
@@ -86,7 +90,9 @@ def test_v3_process_notification_template_type_mismatch_1(notify_db_session, sam
         "template_id": sample_template.id,
     }
 
+    v3_send_email_notification_mock = mocker.patch("app.celery.v3.notification_tasks.v3_send_email_notification.delay")
     v3_process_notification(request_data, sample_service.id, None, KEY_TYPE_TEST)
+    v3_send_email_notification_mock.assert_not_called()
 
     query = select(Notification).where(Notification.id == request_data["id"])
     notification = notify_db_session.session.execute(query).one().Notification
@@ -94,7 +100,9 @@ def test_v3_process_notification_template_type_mismatch_1(notify_db_session, sam
     assert notification.status_reason == "The template type does not match the notification type."
 
 
-def test_v3_process_notification_template_type_mismatch_2(notify_db_session, sample_service, sample_email_template):
+def test_v3_process_notification_template_type_mismatch_2(
+    notify_db_session, mocker, sample_service, sample_email_template
+):
     """
     Call the task with request data for an SMS notification, but specify an e-mail template.
     """
@@ -108,7 +116,9 @@ def test_v3_process_notification_template_type_mismatch_2(notify_db_session, sam
         "template_id": sample_email_template.id,
     }
 
+    v3_send_sms_notification_mock = mocker.patch("app.celery.v3.notification_tasks.v3_send_sms_notification.delay")
     v3_process_notification(request_data, sample_service.id, None, KEY_TYPE_TEST)
+    v3_send_sms_notification_mock.assert_not_called()
 
     query = select(Notification).where(Notification.id == request_data["id"])
     notification = notify_db_session.session.execute(query).one().Notification
