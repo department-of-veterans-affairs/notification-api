@@ -1351,10 +1351,14 @@ class Notification(db.Model):
         default='created',
         key='status'  # http://docs.sqlalchemy.org/en/latest/core/metadata.html#sqlalchemy.schema.Column
     )
-    reference = db.Column(db.String, nullable=True, index=True)
-    client_reference = db.Column(db.String, index=True, nullable=True)
-    _personalisation = db.Column(db.String, nullable=True)
 
+    # This is an ID from a provider, such as SES (e-mail) or Pinpoint (SMS).
+    reference = db.Column(db.String, nullable=True, index=True)
+
+    # This is an ID optionally provided in POST data by a VA service (a.k.a. the client).
+    client_reference = db.Column(db.String, index=True, nullable=True)
+
+    _personalisation = db.Column(db.String, nullable=True)
     scheduled_notification = db.relationship('ScheduledNotification', uselist=False)
 
     international = db.Column(db.Boolean, nullable=False, default=False)

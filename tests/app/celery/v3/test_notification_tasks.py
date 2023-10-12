@@ -1,7 +1,7 @@
 import pytest
 from app.celery.v3.notification_tasks import (
     v3_process_notification,
-    # v3_send_email_notification,
+    v3_send_email_notification,
     v3_send_sms_notification,
 )
 from app.models import (
@@ -10,6 +10,7 @@ from app.models import (
     Notification,
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_SENT,
+    Template,
     SMS_TYPE,
 )
 from sqlalchemy import select
@@ -130,19 +131,46 @@ def test_v3_process_notification_template_type_mismatch_2(
 # Test sending e-mail notifications.
 ############################################################################################
 
-@pytest.mark.xfail(reason="Not implemented.", run=False)
-def test_v3_process_notification_valid_email(notify_db_session, sample_service):
+def test_v3_process_notification_valid_email(notify_db_session, mocker, sample_service, sample_email_template):
     """
     Given data for a valid e-mail notification, the task v3_process_notification should pass a Notification
     instance to the task v3_send_email_notification.
     """
 
-    pass
+    assert sample_email_template.template_type == EMAIL_TYPE
+
+    request_data = {
+        "id": str(uuid4()),
+        "notification_type": EMAIL_TYPE,
+        "email_address": "test@va.gov",
+        "template_id": sample_email_template.id,
+    }
+
+    v3_send_email_notification_mock = mocker.patch("app.celery.v3.notification_tasks.v3_send_email_notification.delay")
+    v3_process_notification(request_data, sample_service.id, None, KEY_TYPE_TEST)
+    v3_send_email_notification_mock.assert_called_once()
+    assert isinstance(v3_send_email_notification_mock.call_args.args[0], Notification)
 
 
-@pytest.mark.xfail(reason="Not implemented.", run=False)
-def test_v3_send_email_notification():
-    pass
+def test_v3_send_email_notification(notify_db_session, mocker, sample_email_notification):
+    assert sample_email_notification.notification_type == EMAIL_TYPE
+
+    client_mock = mocker.Mock()
+    client_mock.send_email = mocker.Mock(return_value="provider reference")
+    client_mock.get_name = mocker.Mock(return_value="client name")
+    mocker.patch("app.celery.v3.notification_tasks.clients.get_email_client", return_value=client_mock)
+
+    query = select(Template).where(Template.id == sample_email_notification.template_id)
+    template = notify_db_session.session.execute(query).one().Template
+
+    v3_send_email_notification(sample_email_notification, template)
+    client_mock.send_email.assert_called_once()  # TODO
+
+    query = select(Notification).where(Notification.id == sample_email_notification.id)
+    notification = notify_db_session.session.execute(query).one().Notification
+    assert notification.status == NOTIFICATION_SENT
+    assert notification.reference == "provider reference"
+    assert notification.sent_by == "client name"
 
 
 ############################################################################################
@@ -173,6 +201,7 @@ def test_v3_process_notification_valid_sms_with_sender_id(
         mocker.ANY,
         sample_sms_sender.sms_sender
     )
+    assert isinstance(v3_send_sms_notification_mock.call_args.args[0], Notification)
 
 
 @pytest.mark.xfail(reason="Not implemented.", run=False)
@@ -191,14 +220,15 @@ def test_v3_send_sms_notification(notify_db_session, mocker, sample_notification
     assert sample_notification.notification_type == SMS_TYPE
 
     client_mock = mocker.Mock()
-    client_mock.send_sms = mocker.Mock(return_value="client reference")
+    client_mock.send_sms = mocker.Mock(return_value="provider reference")
+    client_mock.get_name = mocker.Mock(return_value="client name")
     mocker.patch("app.celery.v3.notification_tasks.clients.get_sms_client", return_value=client_mock)
 
     v3_send_sms_notification(sample_notification, sample_sms_sender.sms_sender)
     client_mock.send_sms.assert_called_once_with(
         sample_notification.to,
         sample_notification.content,
-        sample_notification.reference,
+        sample_notification.client_reference,
         True,
         sample_sms_sender.sms_sender
     )
@@ -206,4 +236,5 @@ def test_v3_send_sms_notification(notify_db_session, mocker, sample_notification
     query = select(Notification).where(Notification.id == sample_notification.id)
     notification = notify_db_session.session.execute(query).one().Notification
     assert notification.status == NOTIFICATION_SENT
-    assert notification.client_reference == "client reference"
+    assert notification.reference == "provider reference"
+    assert notification.sent_by == "client name"

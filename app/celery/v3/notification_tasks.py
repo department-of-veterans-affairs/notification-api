@@ -16,12 +16,12 @@ from app.models import (
     SMS_TYPE,
     Template,
 )
-# from app.service.utils import compute_source_email_address
+from app.service.utils import compute_source_email_address
 from celery.utils.log import get_task_logger
 from datetime import datetime
 from flask import current_app
+from notifications_utils.recipients import validate_and_format_email_address
 # from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate
-# from notifications_utils.recipients import validate_and_format_email_address
 from sqlalchemy import select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 
@@ -101,7 +101,7 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         return
 
     if notification.notification_type == EMAIL_TYPE:
-        v3_send_email_notification.delay(notification)
+        v3_send_email_notification.delay(notification, template)
     elif notification.notification_type == SMS_TYPE:
         if notification.sms_sender_id is None:
             # Get the template or service default sms_sender_id.
@@ -129,49 +129,59 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
 
 
 # TODO - retry conditions
+# TODO - error handling
 @notify_celery.task(serializer="pickle")
-def v3_send_email_notification(notification: Notification):
-    notification.status = NOTIFICATION_TECHNICAL_FAILURE
-    notification.status_reason = "Sending e-mail is not yet implemented."
+def v3_send_email_notification(notification: Notification, template: Template):
+    # TODO - Determine the provider.  For now, assume SES.
+    # TODO - test "client is None"
+    client = clients.get_email_client("ses")
+
+    # Persist the notification so related model instances are available to downstream code.
+    notification.status = NOTIFICATION_CREATED
     db.session.add(notification)
     db.session.commit()
 
-    # TODO - Determine the provider.  For now, assume SES.
-#    client = clients.get_email_client('ses')  # Hardcoded
-#    with get_reader_session() as r_session:
-#        stmt = select(Template).where(Template.id == notification.template_id,
-#                                      Template.version == notification.template_version)
-#        template_dict = r_session.execute(stmt).mappings().all()[0]
+    # query = select(Template).where(
+    #     Template.id == notification.template_id,
+    #     Template.version == notification.template_version
+    # )
+    # with get_reader_session() as reader_session:
+    #     template_dict = reader_session.execute(query).mappings().all()[0]
 
-#    personlization_data = notification.personalisation.copy()
+    # personlization_data = notification.personalisation.copy()
 
-#    html_email = HTMLEmailTemplate(
-#        template_dict,
-#        values=personlization_data,
-#        **get_html_email_options(notification, client)
-#    )
+    # plain_text_email = PlainTextEmailTemplate(
+    #     template_dict,
+    #     template.serialize(),
+    #     values=personlization_data
+    # )
 
-#    plain_text_email = PlainTextEmailTemplate(
-#        template_dict,
-#        values=personlization_data
-#    )
+    # html_email = HTMLEmailTemplate(
+    #    template_dict,
+    #    template,
+    #    values=personlization_data,
+    #     **get_html_email_options(notification, client)
+    # )
 
-#    reference = client.send_email(
-#        source=compute_source_email_address(notification.service, client),
-#        to_addresses=validate_and_format_email_address(notification.to),
-#        subject=plain_text_email.subject,
-#        body=str(plain_text_email),
-#        html_body=str(html_email),
-#        reply_to_address=validate_and_format_email_address(notification.get('reply_to_text')),
-#        attachments=[]
-#    )
-#    notification.reference = reference
-#    notification.sent_at = datetime.utcnow()
-#    notification.sent_by = client.get_name()
-#    notification.status = NOTIFICATION_SENDING
-#    db.session.add(notification)
-#    db.session.commit()
-#    current_app.logger.info("Saved provider reference: %s for notification id: %s", reference, notification.id)
+    provider_reference = client.send_email(
+        compute_source_email_address(notification.service, client),
+        validate_and_format_email_address(notification.to),
+        notification.subject,
+        # str(plain_text_email),
+        notification.content,
+        # html_body=str(html_email),
+        notification.content,
+        # reply_to_address=validate_and_format_email_address(
+        #     notification.reply_to_text if notification.reply_to_text else ''
+        # )
+        reply_to_address=template.get_reply_to_text()
+    )
+
+    notification.status = NOTIFICATION_SENT
+    notification.sent_at = datetime.utcnow()
+    notification.sent_by = client.get_name()
+    notification.reference = provider_reference
+    db.session.commit()
 
 
 # TODO - retry conditions
@@ -182,22 +192,23 @@ def v3_send_sms_notification(notification: Notification, sender_phone_number: st
     # TODO - test "client is None"
     client = clients.get_sms_client("pinpoint")
 
-    # Persist the notification so related model instances are available to downstream code, which would raise
-    # exceptions otherwise.
+    # Persist the notification so related model instances are available to downstream code.
     notification.status = NOTIFICATION_CREATED
     db.session.add(notification)
     db.session.commit()
 
     # This might raise AwsPinpointException.
     # TODO - Conditional retry based on exception details.
-    aws_reference = client.send_sms(
+    provider_reference = client.send_sms(
         notification.to,
         notification.content,
-        notification.reference,
+        notification.client_reference,
         True,
         sender_phone_number
     )
 
-    # notification.status = NOTIFICATION_SENT
-    notification.reference = aws_reference
+    notification.status = NOTIFICATION_SENT
+    notification.sent_at = datetime.utcnow()
+    notification.sent_by = client.get_name()
+    notification.reference = provider_reference
     db.session.commit()
