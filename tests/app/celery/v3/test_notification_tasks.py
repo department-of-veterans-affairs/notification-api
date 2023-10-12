@@ -58,7 +58,6 @@ def test_v3_process_notification_template_owner_mismatch(
 
     assert sample_template_without_email_permission.template_type == EMAIL_TYPE
     assert sample_template_without_email_permission.service_id != sample_service.id
-    assert False
 
     request_data = {
         "id": str(uuid4()),
