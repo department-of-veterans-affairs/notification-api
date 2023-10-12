@@ -182,8 +182,10 @@ def v3_send_sms_notification(notification: Notification, sender_phone_number: st
     # TODO - test "client is None"
     client = clients.get_sms_client("pinpoint")
 
-    db.session.add(notification)
+    # Persist the notification so related model instances are available to downstream code, which would raise
+    # exceptions otherwise.
     notification.status = NOTIFICATION_CREATED
+    db.session.add(notification)
     db.session.commit()
 
     # This might raise AwsPinpointException.
@@ -196,6 +198,6 @@ def v3_send_sms_notification(notification: Notification, sender_phone_number: st
         sender_phone_number
     )
 
-    notification.status = NOTIFICATION_SENT
-    notification.client_reference = aws_reference
+    # notification.status = NOTIFICATION_SENT
+    notification.reference = aws_reference
     db.session.commit()
