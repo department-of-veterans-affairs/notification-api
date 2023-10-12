@@ -1,3 +1,7 @@
+"""
+Tasks declared in this module must be configured in the CELERY_SETTINGS dictionary in app/config.py.
+"""
+
 # TODO - Should I continue using notify_celery?  It has side-effects.
 from app import clients, db, notify_celery
 from app.dao.dao_utils import get_reader_session
@@ -5,7 +9,9 @@ from app.models import (
     EMAIL_TYPE,
     Notification,
     NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_SENT,
     NOTIFICATION_TECHNICAL_FAILURE,
+    ServiceSmsSender,
     SMS_TYPE,
     Template,
 )
@@ -104,7 +110,20 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
             db.session.commit()
             return
 
-        v3_send_sms_notification.delay(notification)
+        # TODO - Catch db connection errors and retry?
+        query = select(ServiceSmsSender).where(ServiceSmsSender.id == request_data["sms_sender_id"])
+        try:
+            with get_reader_session() as reader_session:
+                sms_sender = reader_session.execute(query).one().ServiceSmsSender
+                v3_send_sms_notification.delay(notification, sms_sender.sms_sender)
+        except (MultipleResultsFound, NoResultFound):
+            notification.status_reason = f"SMS sender {notification.sms_sender_id} does not exist."
+            # Set sms_sender_id to None so persisting it doesn't raise sqlalchemy.exc.IntegrityError.
+            notification.sms_sender_id = None
+            db.session.add(notification)
+            db.session.commit()
+
+    return
 
 
 # TODO - retry conditions
@@ -154,10 +173,24 @@ def v3_send_email_notification(notification: Notification):
 
 
 # TODO - retry conditions
+# TODO - error handling
 @notify_celery.task(serializer="pickle")
-def v3_send_sms_notification(notification: Notification):
+def v3_send_sms_notification(notification: Notification, sender_phone_number: str):
     # TODO - Determine the provider.  For now, assume Pinpoint.
-    notification.status = NOTIFICATION_TECHNICAL_FAILURE
-    notification.status_reason = "Sending SMS is not yet implemented."
+    # TODO - test "client is None"
+    client = clients.get_sms_client("pinpoint")
+
+    # This might raise AwsPinpointException.
+    # TODO - Conditional retry based on exception details.
+    aws_reference = client.send_sms(
+        notification.to,
+        notification.content,
+        notification.reference,
+        True,
+        sender_phone_number
+    )
+
+    notification.status = NOTIFICATION_SENT
+    notification.client_reference = aws_reference
     db.session.add(notification)
     db.session.commit()

@@ -1357,8 +1357,6 @@ class Notification(db.Model):
 
     scheduled_notification = db.relationship('ScheduledNotification', uselist=False)
 
-    client_reference = db.Column(db.String, index=True, nullable=True)
-
     international = db.Column(db.Boolean, nullable=False, default=False)
     phone_prefix = db.Column(db.String, nullable=True)
     rate_multiplier = db.Column(db.Float(asdecimal=False), nullable=True)

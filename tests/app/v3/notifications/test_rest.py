@@ -2,7 +2,6 @@
 
 import pytest
 from app.authentication.auth import AuthError
-from app.config import QueueNames
 from app.models import EMAIL_TYPE, KEY_TYPE_TEAM, SMS_TYPE
 from app.service.service_data import ServiceData
 from app.v3.notifications.rest import v3_send_notification
@@ -113,8 +112,6 @@ def test_post_v3_notifications(notify_db_session, client, mocker, sample_service
     if expected_status_code == 202:
         assert isinstance(UUID(response_json["id"]), UUID)
         request_data["id"] = response_json["id"]
-        expected_celery_queue = QueueNames.SEND_EMAIL if \
-            (request_data["notification_type"] == EMAIL_TYPE) else QueueNames.SEND_SMS
         celery_mock.assert_called_once_with(
             request_data, sample_service.id, sample_service.api_keys[0].id, KEY_TYPE_TEAM
         )
