@@ -181,7 +181,10 @@ def v3_send_sms_notification(notification: Notification, sender_phone_number: st
     # TODO - Determine the provider.  For now, assume Pinpoint.
     # TODO - test "client is None"
     client = clients.get_sms_client("pinpoint")
+
     db.session.add(notification)
+    notification.status = NOTIFICATION_CREATED
+    db.session.commit()
 
     # This might raise AwsPinpointException.
     # TODO - Conditional retry based on exception details.
