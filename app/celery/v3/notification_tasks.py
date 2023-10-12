@@ -139,6 +139,7 @@ def v3_send_email_notification(notification: Notification, template: Template):
     # Persist the notification so related model instances are available to downstream code.
     notification.status = NOTIFICATION_CREATED
     db.session.add(notification)
+    db.session.add(template)
     db.session.commit()
 
     # query = select(Template).where(
