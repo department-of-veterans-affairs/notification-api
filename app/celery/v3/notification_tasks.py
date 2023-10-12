@@ -100,14 +100,7 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         db.session.commit()
         return
 
-    # After this point, a new task might be started to send a notification, and the Notification instance
-    # should be persisted before that happens.  Otherwise, related model attributes will not be available
-    # to downstream code, and that can raise exceptions.
-
     if notification.notification_type == EMAIL_TYPE:
-        notification.status = NOTIFICATION_CREATED
-        db.session.add(notification)
-        db.session.commit()
         v3_send_email_notification.delay(notification)
     elif notification.notification_type == SMS_TYPE:
         if notification.sms_sender_id is None:
@@ -124,11 +117,6 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         try:
             with get_reader_session() as reader_session:
                 sms_sender = reader_session.execute(query).one().ServiceSmsSender
-
-                notification.status = NOTIFICATION_CREATED
-                db.session.add(notification)
-                db.session.commit()
-
                 v3_send_sms_notification.delay(notification, sms_sender.sms_sender)
         except (MultipleResultsFound, NoResultFound):
             notification.status_reason = f"SMS sender {notification.sms_sender_id} does not exist."
@@ -193,6 +181,7 @@ def v3_send_sms_notification(notification: Notification, sender_phone_number: st
     # TODO - Determine the provider.  For now, assume Pinpoint.
     # TODO - test "client is None"
     client = clients.get_sms_client("pinpoint")
+    db.session.add(notification)
 
     # This might raise AwsPinpointException.
     # TODO - Conditional retry based on exception details.
@@ -206,5 +195,4 @@ def v3_send_sms_notification(notification: Notification, sender_phone_number: st
 
     notification.status = NOTIFICATION_SENT
     notification.client_reference = aws_reference
-    db.session.add(notification)
     db.session.commit()
