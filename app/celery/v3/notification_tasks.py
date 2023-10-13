@@ -1,9 +1,14 @@
 """
 Tasks declared in this module must be configured in the CELERY_SETTINGS dictionary in app/config.py.
+
+TODO - Maybe we shouldn't save failed messages at all.  Instead, we would just send a callback and
+call it good.
 """
 
 # TODO - Should I continue using notify_celery?  It has side-effects.
 from app import clients, db, notify_celery
+from app.clients.email.aws_ses import AwsSesClientException
+from app.clients.sms.aws_pinpoint import AwsPinpointException
 from app.dao.dao_utils import get_reader_session
 from app.models import (
     EMAIL_TYPE,
@@ -128,13 +133,23 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
     return
 
 
-# TODO - retry conditions
-# TODO - error handling
+@notify_celery.task(
+    serializer="pickle",
+    autoretry_for=(AwsSesClientException,),
+    retry_backoff=True,
+    retry_backoff_max=3600,  # 1 hour
+    max_retries=26           # This is about 1 day total of retries.
+)
 @notify_celery.task(serializer="pickle")
 def v3_send_email_notification(notification: Notification, template: Template):
     # TODO - Determine the provider.  For now, assume SES.
-    # TODO - test "client is None"
     client = clients.get_email_client("ses")
+    if client is None:
+        notification.status = NOTIFICATION_TECHNICAL_FAILURE
+        notification.status_reason = "Couldn't get the provider client."
+        db.session.add(notification)
+        db.session.commit()
+        return
 
     # Persist the notification so related model instances are available to downstream code.
     notification.status = NOTIFICATION_CREATED
@@ -164,6 +179,7 @@ def v3_send_email_notification(notification: Notification, template: Template):
     #     **get_html_email_options(notification, client)
     # )
 
+    # This might raise AwsSesClientException.
     provider_reference = client.send_email(
         compute_source_email_address(notification.service, client),
         validate_and_format_email_address(notification.to),
@@ -183,15 +199,25 @@ def v3_send_email_notification(notification: Notification, template: Template):
     notification.sent_by = client.get_name()
     notification.reference = provider_reference
     db.session.commit()
+    return
 
 
-# TODO - retry conditions
-# TODO - error handling
-@notify_celery.task(serializer="pickle")
+@notify_celery.task(
+    serializer="pickle",
+    autoretry_for=(AwsPinpointException,),
+    retry_backoff=True,
+    retry_backoff_max=3600,  # 1 hour
+    max_retries=26           # This is about 1 day total of retries.
+)
 def v3_send_sms_notification(notification: Notification, sender_phone_number: str):
     # TODO - Determine the provider.  For now, assume Pinpoint.
-    # TODO - test "client is None"
     client = clients.get_sms_client("pinpoint")
+    if client is None:
+        notification.status = NOTIFICATION_TECHNICAL_FAILURE
+        notification.status_reason = "Couldn't get the provider client."
+        db.session.add(notification)
+        db.session.commit()
+        return
 
     # Persist the notification so related model instances are available to downstream code.
     notification.status = NOTIFICATION_CREATED
@@ -199,7 +225,6 @@ def v3_send_sms_notification(notification: Notification, sender_phone_number: st
     db.session.commit()
 
     # This might raise AwsPinpointException.
-    # TODO - Conditional retry based on exception details.
     provider_reference = client.send_sms(
         notification.to,
         notification.content,
@@ -213,3 +238,4 @@ def v3_send_sms_notification(notification: Notification, sender_phone_number: st
     notification.sent_by = client.get_name()
     notification.reference = provider_reference
     db.session.commit()
+    return
