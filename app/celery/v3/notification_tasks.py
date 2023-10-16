@@ -1,8 +1,5 @@
 """
 Tasks declared in this module must be configured in the CELERY_SETTINGS dictionary in app/config.py.
-
-TODO - Maybe we shouldn't save failed messages at all.  Instead, we would just send a callback and
-call it good.
 """
 
 # TODO - Should I continue using notify_celery?  It has side-effects.
