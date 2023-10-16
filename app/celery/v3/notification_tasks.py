@@ -74,7 +74,7 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
             # must reference a valid template.
             # db.session.add(notification)
             # db.session.commit()
-            # TODO - Delete logging when the above issue is remedied.
+            # TODO - Delete logging when the above issue is remedied, and call v3_persist_failed_notification.
             current_app.logger.error(
                 "Notification %s specified nonexistent template %s.", notification.id, notification.template_id
             )
@@ -82,24 +82,23 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
 
     notification.template_version = template.version
     if service_id != template.service_id:
-        notification.status_reason = "The service does not own the template."
-        db.session.add(notification)
-        db.session.commit()
+        v3_persist_failed_notification(
+            notification, NOTIFICATION_PERMANENT_FAILURE, "The service does not own the template."
+        )
         return
 
     if request_data["notification_type"] != template.template_type:
-        notification.status_reason = "The template type does not match the notification type."
-        db.session.add(notification)
-        db.session.commit()
+        v3_persist_failed_notification(
+            notification, NOTIFICATION_PERMANENT_FAILURE, "The template type does not match the notification type."
+        )
         return
 
     if notification.to is None:
         # Launch a new task to get the contact information from VA Profile using the recipient ID.
         # TODO
-        notification.status = NOTIFICATION_TECHNICAL_FAILURE
-        notification.status_reason = "Sending with recipient_identifer is not yet implemented."
-        db.session.add(notification)
-        db.session.commit()
+        v3_persist_failed_notification(
+            notification, NOTIFICATION_TECHNICAL_FAILURE, "Sending with recipient_identifer is not yet implemented."
+        )
         return
 
     if notification.notification_type == EMAIL_TYPE:
@@ -108,10 +107,9 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         if notification.sms_sender_id is None:
             # Get the template or service default sms_sender_id.
             # TODO
-            notification.status = NOTIFICATION_TECHNICAL_FAILURE
-            notification.status_reason = "Default logic for sms_sender_id is not yet implemented."
-            db.session.add(notification)
-            db.session.commit()
+            v3_persist_failed_notification(
+                notification, NOTIFICATION_TECHNICAL_FAILURE, "Default logic for sms_sender_id is not yet implemented."
+            )
             return
 
         # TODO - Catch db connection errors and retry?
@@ -121,11 +119,11 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
                 sms_sender = reader_session.execute(query).one().ServiceSmsSender
                 v3_send_sms_notification.delay(notification, sms_sender.sms_sender)
         except (MultipleResultsFound, NoResultFound):
-            notification.status_reason = f"SMS sender {notification.sms_sender_id} does not exist."
             # Set sms_sender_id to None so persisting it doesn't raise sqlalchemy.exc.IntegrityError.
             notification.sms_sender_id = None
-            db.session.add(notification)
-            db.session.commit()
+            v3_persist_failed_notification(
+                notification, NOTIFICATION_PERMANENT_FAILURE, f"SMS sender {notification.sms_sender_id} does not exist."
+            )
 
     return
 
@@ -134,18 +132,17 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
     serializer="pickle",
     autoretry_for=(AwsSesClientException,),
     retry_backoff=True,
-    retry_backoff_max=3600,  # 1 hour
-    max_retries=26           # This is about 1 day total of retries.
+    retry_backoff_max=60,
+    max_retries=2886
 )
 @notify_celery.task(serializer="pickle")
 def v3_send_email_notification(notification: Notification, template: Template):
     # TODO - Determine the provider.  For now, assume SES.
     client = clients.get_email_client("ses")
     if client is None:
-        notification.status = NOTIFICATION_TECHNICAL_FAILURE
-        notification.status_reason = "Couldn't get the provider client."
-        db.session.add(notification)
-        db.session.commit()
+        v3_persist_failed_notification(
+            notification, NOTIFICATION_TECHNICAL_FAILURE, "Couldn't get the provider client."
+        )
         return
 
     # Persist the notification so related model instances are available to downstream code.
@@ -203,17 +200,16 @@ def v3_send_email_notification(notification: Notification, template: Template):
     serializer="pickle",
     autoretry_for=(AwsPinpointException,),
     retry_backoff=True,
-    retry_backoff_max=3600,  # 1 hour
-    max_retries=26           # This is about 1 day total of retries.
+    retry_backoff_max=60,
+    max_retries=2886
 )
 def v3_send_sms_notification(notification: Notification, sender_phone_number: str):
     # TODO - Determine the provider.  For now, assume Pinpoint.
     client = clients.get_sms_client("pinpoint")
     if client is None:
-        notification.status = NOTIFICATION_TECHNICAL_FAILURE
-        notification.status_reason = "Couldn't get the provider client."
-        db.session.add(notification)
-        db.session.commit()
+        v3_persist_failed_notification(
+            notification, NOTIFICATION_TECHNICAL_FAILURE, "Couldn't get the provider client."
+        )
         return
 
     # Persist the notification so related model instances are available to downstream code.
@@ -236,3 +232,15 @@ def v3_send_sms_notification(notification: Notification, sender_phone_number: st
     notification.reference = provider_reference
     db.session.commit()
     return
+
+
+def v3_persist_failed_notification(notification: Notification, status: str, status_reason: str):
+    """
+    This is a helper to log and persist failed notifications that are not retriable.
+    """
+
+    current_app.logger.error("Notification %s failed: %s", notification.id, status_reason)
+    notification.status = status
+    notification.status_reason = status_reason
+    db.session.add(notification)
+    db.session.commit()
