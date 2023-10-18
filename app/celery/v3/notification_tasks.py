@@ -103,6 +103,7 @@ def v3_process_notification(  # noqa: C901
     with get_reader_session() as reader_session:
         query = select(Template).where(Template.id == request_data['template_id'])
         try:
+            # TODO - This should intead use reader_session.get which returns an object or None
             template = reader_session.execute(query).one().Template
             notification.template_version = template.version
         except NoResultFound:
@@ -163,6 +164,8 @@ def v3_process_notification(  # noqa: C901
                 sms_sender = reader_session.execute(query).one().ServiceSmsSender
                 v3_send_sms_notification.delay(notification, sms_sender.sms_sender)
         except (MultipleResultsFound, NoResultFound):
+            status_reason = f"SMS sender {notification.sms_sender_id} does not exist."
+
             # Set sms_sender_id to None so persisting it doesn't raise sqlalchemy.exc.IntegrityError
             # This happens in case user provides invalid sms_sender_id in the request data
             notification.sms_sender_id = None

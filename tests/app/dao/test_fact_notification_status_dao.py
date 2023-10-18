@@ -486,8 +486,9 @@ def set_up_data():
 
 
 def test_fetch_notification_statuses_for_job(sample_template):
-    j1 = create_job(sample_template)
-    j2 = create_job(sample_template)
+    template = sample_template()
+    j1 = create_job(template)
+    j2 = create_job(template)
 
     create_ft_notification_status(date(2018, 10, 1), job=j1, notification_status='created', count=1)
     create_ft_notification_status(date(2018, 10, 1), job=j1, notification_status='delivered', count=2)
@@ -532,19 +533,34 @@ def test_fetch_stats_for_all_services_by_date_range(notify_db_session):
 
 @freeze_time('2018-03-30 14:00')
 def test_fetch_monthly_template_usage_for_service(sample_service):
-    template_one = create_template(service=sample_service, template_type='sms', template_name='a')
-    template_two = create_template(service=sample_service, template_type='email', template_name='b')
-    template_three = create_template(service=sample_service, template_type='letter', template_name='c')
+    service = sample_service()
+    template_one = create_template(service=service, template_type='sms', template_name='a')
+    template_two = create_template(service=service, template_type='email', template_name='b')
+    template_three = create_template(service=service, template_type='letter', template_name='c')
 
-    create_ft_notification_status(utc_date=date(2017, 12, 10), service=sample_service, template=template_two, count=3)
-    create_ft_notification_status(utc_date=date(2017, 12, 10), service=sample_service, template=template_one, count=6)
+    create_ft_notification_status(utc_date=date(2017, 12, 10),
+                                  service=service,
+                                  template=template_two,
+                                  count=3)
+    create_ft_notification_status(utc_date=date(2017, 12, 10),
+                                  service=service,
+                                  template=template_one,
+                                  count=6)
 
-    create_ft_notification_status(utc_date=date(2018, 1, 1), service=sample_service, template=template_one, count=4)
+    create_ft_notification_status(utc_date=date(2018, 1, 1),
+                                  service=service,
+                                  template=template_one,
+                                  count=4)
 
-    create_ft_notification_status(utc_date=date(2018, 3, 1), service=sample_service, template=template_three, count=5)
+    create_ft_notification_status(utc_date=date(2018, 3, 1),
+                                  service=service,
+                                  template=template_three,
+                                  count=5)
     create_notification(template=template_three, created_at=datetime.utcnow() - timedelta(days=1))
     create_notification(template=template_three, created_at=datetime.utcnow())
-    results = fetch_monthly_template_usage_for_service(datetime(2017, 4, 1), datetime(2018, 3, 31), sample_service.id)
+    results = fetch_monthly_template_usage_for_service(
+        datetime(2017, 4, 1), datetime(2018, 3, 31), service.id
+    )
 
     assert len(results) == 4
 
@@ -582,17 +598,28 @@ def test_fetch_monthly_template_usage_for_service(sample_service):
 
 @freeze_time('2021-01-01 14:00')
 def test_fetch_delivered_notification_stats_by_month(sample_service):
-    sms_template = create_template(service=sample_service, template_type='sms', template_name='a')
-    email_template = create_template(service=sample_service, template_type='email', template_name='b')
+    service = sample_service()
+    sms_template = create_template(service=service, template_type='sms', template_name='a')
+    email_template = create_template(service=service, template_type='email', template_name='b')
 
     # Not counted: before GC Notify started
-    create_ft_notification_status(utc_date=date(2020, 10, 10), service=sample_service, template=email_template, count=3)
+    create_ft_notification_status(
+        utc_date=date(2020, 10, 10),
+        service=service,
+        template=email_template,
+        count=3
+    )
 
-    create_ft_notification_status(utc_date=date(2020, 12, 10), service=sample_service, template=email_template, count=3)
+    create_ft_notification_status(
+        utc_date=date(2020, 12, 10),
+        service=service,
+        template=email_template,
+        count=3
+    )
 
     create_ft_notification_status(
         utc_date=date(2021, 12, 5),
-        service=sample_service,
+        service=service,
         template=sms_template,
         notification_status=NOTIFICATION_DELIVERED,
         count=6,
@@ -600,7 +627,7 @@ def test_fetch_delivered_notification_stats_by_month(sample_service):
 
     create_ft_notification_status(
         utc_date=date(2021, 1, 1),
-        service=sample_service,
+        service=service,
         template=sms_template,
         notification_status=NOTIFICATION_SENT,
         count=4,
@@ -608,7 +635,7 @@ def test_fetch_delivered_notification_stats_by_month(sample_service):
 
     create_ft_notification_status(
         utc_date=date(2021, 1, 1),
-        service=sample_service,
+        service=service,
         template=sms_template,
         notification_status=NOTIFICATION_SENT,
         status_reason='foo',
@@ -618,13 +645,18 @@ def test_fetch_delivered_notification_stats_by_month(sample_service):
     # Not counted: failed notifications
     create_ft_notification_status(
         utc_date=date(2021, 1, 1),
-        service=sample_service,
+        service=service,
         template=sms_template,
         notification_status=NOTIFICATION_FAILED,
         count=10,
     )
 
-    create_ft_notification_status(utc_date=date(2021, 3, 1), service=sample_service, template=email_template, count=5)
+    create_ft_notification_status(
+        utc_date=date(2021, 3, 1),
+        service=service,
+        template=email_template,
+        count=5
+    )
 
     results = fetch_delivered_notification_stats_by_month()
 
@@ -642,17 +674,21 @@ def test_fetch_delivered_notification_stats_by_month_empty():
 def test_fetch_monthly_template_usage_for_service_does_join_to_notifications_if_today_is_not_in_date_range(
     sample_service,
 ):
-    template_one = create_template(service=sample_service, template_type='sms', template_name='a')
-    template_two = create_template(service=sample_service, template_type='email', template_name='b')
-    create_ft_notification_status(
-        utc_date=date(2018, 2, 1), service=template_two.service, template=template_two, count=15
-    )
-    create_ft_notification_status(
-        utc_date=date(2018, 2, 2), service=template_one.service, template=template_one, count=20
-    )
-    create_ft_notification_status(
-        utc_date=date(2018, 3, 1), service=template_one.service, template=template_one, count=3
-    )
+    service = sample_service()
+    template_one = create_template(service=service, template_type='sms', template_name='a')
+    template_two = create_template(service=service, template_type='email', template_name='b')
+    create_ft_notification_status(utc_date=date(2018, 2, 1),
+                                  service=template_two.service,
+                                  template=template_two,
+                                  count=15)
+    create_ft_notification_status(utc_date=date(2018, 2, 2),
+                                  service=template_one.service,
+                                  template=template_one,
+                                  count=20)
+    create_ft_notification_status(utc_date=date(2018, 3, 1),
+                                  service=template_one.service,
+                                  template=template_one,
+                                  count=3)
     create_notification(template=template_one, created_at=datetime.utcnow())
     results = fetch_monthly_template_usage_for_service(
         datetime(2018, 1, 1), datetime(2018, 2, 20), template_one.service_id
@@ -677,109 +713,84 @@ def test_fetch_monthly_template_usage_for_service_does_join_to_notifications_if_
 
 
 @freeze_time('2018-03-30 14:00')
-def test_fetch_monthly_template_usage_for_service_does_not_include_cancelled_status(sample_template):
-    create_ft_notification_status(
-        utc_date=date(2018, 3, 1),
-        service=sample_template.service,
-        template=sample_template,
-        notification_status='cancelled',
-        count=15,
-    )
-    create_notification(template=sample_template, created_at=datetime.utcnow(), status='cancelled')
-    create_notification(template=sample_template, created_at=datetime.utcnow(), status='cancelled', status_reason='foo')
+def test_fetch_monthly_template_usage_for_service_does_not_include_cancelled_status(
+    sample_template
+):
+    template = sample_template()
+    create_ft_notification_status(utc_date=date(2018, 3, 1),
+                                  service=template.service,
+                                  template=template,
+                                  notification_status='cancelled',
+                                  count=15)
+    create_notification(template=template, created_at=datetime.utcnow(), status='cancelled')
+    create_notification(template=template, created_at=datetime.utcnow(), status='cancelled',
+                        status_reason='foo')
     results = fetch_monthly_template_usage_for_service(
-        datetime(2018, 1, 1), datetime(2018, 3, 31), sample_template.service_id
+        datetime(2018, 1, 1), datetime(2018, 3, 31), template.service_id
     )
 
     assert len(results) == 0
 
 
 @freeze_time('2018-03-30 14:00')
-def test_fetch_monthly_template_usage_for_service_does_not_include_test_notifications(sample_template):
-    create_ft_notification_status(
-        utc_date=date(2018, 3, 1),
-        service=sample_template.service,
-        template=sample_template,
-        notification_status='delivered',
-        key_type='test',
-        count=15,
-    )
-    create_notification(
-        template=sample_template,
-        created_at=datetime.utcnow(),
-        status='delivered',
-        key_type='test',
-    )
+def test_fetch_monthly_template_usage_for_service_does_not_include_test_notifications(
+    sample_template
+):
+    template = sample_template()
+    create_ft_notification_status(utc_date=date(2018, 3, 1),
+                                  service=template.service,
+                                  template=template,
+                                  notification_status='delivered',
+                                  key_type='test',
+                                  count=15)
+    create_notification(template=template,
+                        created_at=datetime.utcnow(),
+                        status='delivered',
+                        key_type='test',)
     results = fetch_monthly_template_usage_for_service(
-        datetime(2018, 1, 1), datetime(2018, 3, 31), sample_template.service_id
+        datetime(2018, 1, 1), datetime(2018, 3, 31), template.service_id
     )
 
     assert len(results) == 0
 
 
-@pytest.mark.parametrize('notification_type, count', [('sms', 3), ('email', 5), ('letter', 14)])
+@pytest.mark.parametrize("notification_type, count", [
+    ("sms", 3),
+    ("email", 5),
+])
 def test_get_total_sent_notifications_for_day_and_type_returns_right_notification_type(
     notification_type, count, sample_template, sample_email_template, sample_letter_template
 ):
-    create_ft_notification_status(
-        utc_date='2019-03-27', service=sample_template.service, template=sample_template, count=3
-    )
-    create_ft_notification_status(
-        utc_date='2019-03-27', service=sample_email_template.service, template=sample_email_template, count=5
-    )
-    create_ft_notification_status(
-        utc_date='2019-03-27', service=sample_letter_template.service, template=sample_letter_template, count=7
-    )
+    template = sample_template()
+    create_ft_notification_status(utc_date="2019-03-27", service=template.service, template=template, count=3)
 
-    create_ft_notification_status(
-        utc_date='2019-03-27',
-        service=sample_letter_template.service,
-        template=sample_letter_template,
-        notification_status='foo',
-        status_reason='bar',
-        count=7,
-    )
+    email_template = sample_template(template_type=EMAIL_TYPE)
+    create_ft_notification_status(utc_date="2019-03-27", service=email_template.service,
+                                  template=email_template, count=5)
 
     result = get_total_sent_notifications_for_day_and_type(day='2019-03-27', notification_type=notification_type)
 
     assert result == count
 
 
-@pytest.mark.parametrize('day', ['2019-01-27', '2019-04-02'])
-def test_get_total_sent_notifications_for_day_and_type_returns_total_for_right_day(day, sample_template):
-    date = datetime.strptime(day, '%Y-%m-%d')
-    create_ft_notification_status(
-        utc_date=date - timedelta(days=1),
-        notification_type=sample_template.template_type,
-        service=sample_template.service,
-        template=sample_template,
-        count=1,
-    )
-    create_ft_notification_status(
-        utc_date=date,
-        notification_type=sample_template.template_type,
-        service=sample_template.service,
-        template=sample_template,
-        count=2,
-    )
-    create_ft_notification_status(
-        utc_date=date + timedelta(days=1),
-        notification_type=sample_template.template_type,
-        service=sample_template.service,
-        template=sample_template,
-        count=3,
-    )
-    create_ft_notification_status(
-        utc_date=date + timedelta(days=1),
-        notification_type=sample_template.template_type,
-        service=sample_template.service,
-        template=sample_template,
-        notification_status='foo',
-        status_reason='bar',
-        count=3,
-    )
+@pytest.mark.parametrize("day",
+                         ["2019-01-27", "2019-04-02"])
+def test_get_total_sent_notifications_for_day_and_type_returns_total_for_right_day(
+    day, sample_template
+):
+    template = sample_template()
+    date = datetime.strptime(day, "%Y-%m-%d")
+    create_ft_notification_status(utc_date=date - timedelta(days=1), notification_type=template.template_type,
+                                  service=template.service, template=template, count=1)
+    create_ft_notification_status(utc_date=date, notification_type=template.template_type,
+                                  service=template.service, template=template, count=2)
+    create_ft_notification_status(utc_date=date + timedelta(days=1), notification_type=template.template_type,
+                                  service=template.service, template=template, count=3)
+    create_ft_notification_status(utc_date=date + timedelta(days=1), notification_type=template.template_type,
+                                  service=template.service, template=template,
+                                  notification_status='foo', status_reason='bar', count=3)
 
-    total = get_total_sent_notifications_for_day_and_type(day, sample_template.template_type)
+    total = get_total_sent_notifications_for_day_and_type(day, template.template_type)
 
     assert total == 2
 

@@ -97,7 +97,7 @@ def test_remove_opted_out_records_query(notify_db_session):
         assert select_count_of_opted_out_record.fetchone()[0] == 0, 'The expired opt out should have been deleted.'
 
 
-def test_va_profile_remove_old_opt_outs_handler(notify_db, worker_id):
+def test_va_profile_remove_old_opt_outs_handler(notify_db):
     """
     Test the VA profile remove old opt outs lambda function to remove records
     that are opted out and greater than 24 hours old.
@@ -109,7 +109,7 @@ def test_va_profile_remove_old_opt_outs_handler(notify_db, worker_id):
         select_count_of_opted_out_record = connection.execute(SELECT_COUNT_OF_SINGLE_OPTED_OUT_RECORD)
         assert select_count_of_opted_out_record.fetchone()[0] == 1, 'There should be one expired opted out record.'
 
-    va_profile_remove_old_opt_outs_handler(worker_id=worker_id)
+    va_profile_remove_old_opt_outs_handler()
 
     with notify_db.engine.begin() as connection:
         count_queryset = connection.execute(COUNT)

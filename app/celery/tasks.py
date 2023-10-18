@@ -81,7 +81,7 @@ def process_job(
     if not service.active:
         job.job_status = JOB_STATUS_CANCELLED
         dao_update_job(job)
-        current_app.logger.warning('Job {} has been cancelled, service {} is inactive'.format(job_id, service.id))
+        current_app.logger.warning(f"Job {job_id} has been cancelled, service {service.id} is inactive")
         return
 
     if __sending_limits_for_job_exceeded(service, job, job_id):
@@ -360,7 +360,10 @@ def update_letter_notifications_to_sent_to_dvla(
     self,
     notification_references,
 ):
-    # This task will be called by the FTP app to update notifications as sent to DVLA
+    """
+    The FTP app calls this task to update notifications as sent to DVLA.
+    """
+
     provider = get_current_provider(LETTER_TYPE)
 
     updated_count, _ = dao_update_notifications_by_reference(

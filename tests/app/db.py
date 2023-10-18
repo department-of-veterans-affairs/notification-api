@@ -1,10 +1,8 @@
 import random
-import uuid
 import json
 from datetime import datetime, date, timedelta
 
 from app import db
-from app.dao.communication_item_dao import dao_create_communication_item
 from app.dao.email_branding_dao import dao_create_email_branding
 from app.dao.inbound_sms_dao import dao_create_inbound_sms
 from app.dao.invited_org_user_dao import save_invited_org_user
@@ -19,7 +17,7 @@ from app.dao.service_permissions_dao import dao_add_service_permission
 from app.dao.service_sms_sender_dao import dao_update_service_sms_sender
 from app.dao.services_dao import dao_create_service, dao_add_user_to_service
 from app.dao.templates_dao import dao_create_template, dao_update_template
-from app.dao.users_dao import save_model_user
+from app.dao.dao_utils import transactional, version_class
 from app.models import (
     ApiKey,
     DailySortedLetter,
@@ -59,36 +57,63 @@ from app.models import (
     NOTIFICATION_STATUS_TYPES_COMPLETED,
     DELIVERY_STATUS_CALLBACK_TYPE,
     WEBHOOK_CHANNEL_TYPE,
-    CommunicationItem,
 )
 from app.model import User
+from uuid import UUID, uuid4
+from sqlalchemy import select, or_
+from sqlalchemy.orm.attributes import flag_dirty
 
 
 def create_user(
-    mobile_number='+16502532222',
-    email='notify@digital.cabinet-office.gov.uk',
+    mobile_number="+16502532222",
+    email=None,
     state='active',
-    id_=None,
+    user_id=None,
     identity_provider_user_id=None,
     name='Test User',
     blocked=False,
     platform_admin=False,
+    check_if_user_exists=False,
+    idp_name=None,
+    idp_id=None,
 ):
-    data = {
-        'id': id_ or uuid.uuid4(),
-        'name': name,
-        'email_address': email,
-        'password': 'password',
-        'identity_provider_user_id': identity_provider_user_id,
-        'mobile_number': mobile_number,
-        'state': state,
-        'blocked': blocked,
-        'platform_admin': platform_admin,
-    }
-    user = User.query.filter_by(email_address=email).first()
+    user = None
+    if check_if_user_exists:
+        # Returns None if not found
+        user = db.session.scalar(select(User).where(or_(User.email_address == email, User.id == user_id)))
+
     if user is None:
-        user = User(**data)
-        save_model_user(user)
+        data = {
+            'id': user_id or uuid4(),
+            'name': name,
+            # This is a unique, non-nullable field.
+            'email_address': email if email is not None else f"create_user_{uuid4()}@va.gov",
+            'password': 'password',
+            'password_changed_at': datetime.utcnow(),
+            # This is a unique, nullable field.
+            'identity_provider_user_id': identity_provider_user_id,
+            'mobile_number': mobile_number,
+            'state': state,
+            'blocked': blocked,
+            'platform_admin': platform_admin,
+            'idp_name': idp_name,
+            'idp_id': idp_id
+        }
+
+        user = transactional_save_user(User(**data))
+
+    return user
+
+
+def transactional_save_user(user: User) -> User:
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except Exception:
+        # Without the rollback some tests fail because they are supposed to raise DB exceptions to trigger rollbacks
+        db.session.rollback()
+        raise
+
     return user
 
 
@@ -100,14 +125,14 @@ def create_permissions(user, service, *permissions):
 
 def create_service(
     user=None,
-    service_name='Sample service',
+    service_name='',
     service_id=None,
     restricted=False,
     count_as_live=True,
     service_permissions=[EMAIL_TYPE, SMS_TYPE],
     research_mode=False,
     active=True,
-    email_from=None,
+    email_from='',
     prefix_sms=False,
     message_limit=1000,
     organisation_type='other',
@@ -116,17 +141,17 @@ def create_service(
     go_live_at=None,
     crown=True,
     organisation=None,
-    smtp_user=None,
+    smtp_user=None
 ):
     if check_if_service_exists:
         service = Service.query.filter_by(name=service_name).first()
     if (not check_if_service_exists) or (check_if_service_exists and not service):
         service = Service(
-            name=service_name,
+            name=service_name or uuid4(),
             message_limit=message_limit,
             restricted=restricted,
             email_from=email_from if email_from else service_name.lower().replace(' ', '.'),
-            created_by=user if user else create_user(email=f'{uuid.uuid4()}@digital.cabinet-office.gov.uk'),
+            created_by=user if user else create_user(email=f'create_service_{uuid4()}@va.gov'),
             prefix_sms=prefix_sms,
             organisation_type=organisation_type,
             go_live_user=go_live_user,
@@ -146,7 +171,28 @@ def create_service(
     return service
 
 
-def create_service_with_inbound_number(inbound_number='1234567', *args, **kwargs):
+@transactional
+@version_class(Service)
+def version_service(
+    service,
+):
+    # version_class requires something in the session to flush, so flag service as dirty
+    flag_dirty(service)
+
+
+@transactional
+@version_class(ApiKey)
+def version_api_key(
+    api_key,
+):
+    # version_class requires something in the session to flush, so flag service as dirty
+    flag_dirty(api_key)
+
+
+def create_service_with_inbound_number(
+    inbound_number='1234567',
+    *args, **kwargs
+):
     service = create_service(*args, **kwargs)
 
     sms_sender = ServiceSmsSender.query.filter_by(service_id=service.id).first()
@@ -166,7 +212,10 @@ def create_service_with_defined_sms_sender(sms_sender_value='1234567', *args, **
 
     sms_sender = ServiceSmsSender.query.filter_by(service_id=service.id).first()
     dao_update_service_sms_sender(
-        service_id=service.id, service_sms_sender_id=sms_sender.id, is_default=True, sms_sender=sms_sender_value
+        service_id=service.id,
+        service_sms_sender_id=sms_sender.id,
+        is_default=True,
+        sms_sender=sms_sender_value
     )
 
     return service
@@ -186,15 +235,8 @@ def create_template(
     process_type='normal',
     reply_to_email=None,
     onsite_notification=False,
+    communication_item_id=None
 ):
-    # The CommunicationItem fields "va_profile_item_id" and "name" must be unique.  Using a UUID for
-    # "name" is very unlikely to cause a collision.  If a test fails with a duplicate "va_profile_item_id",
-    # rerun the test.  See #1106 for a more elegant solution.
-    communication_item = CommunicationItem(
-        id=uuid.uuid4(), va_profile_item_id=random.randint(1, 100000), name=uuid.uuid4()
-    )
-    dao_create_communication_item(communication_item)
-
     data = {
         'name': template_name or '{} Template Name'.format(template_type),
         'template_type': template_type,
@@ -205,7 +247,7 @@ def create_template(
         'hidden': hidden,
         'folder': folder,
         'process_type': process_type,
-        'communication_item_id': communication_item.id,
+        'communication_item_id': communication_item_id,
         'reply_to_email': reply_to_email,
         'onsite_notification': onsite_notification,
     }
@@ -279,7 +321,7 @@ def create_notification(  # noqa: C901
         postage = 'second'
 
     data = {
-        'id': uuid.uuid4(),
+        'id': uuid4(),
         'to': to_field,
         'job_id': job and job.id,
         'job': job,
@@ -327,11 +369,10 @@ def create_notification(  # noqa: C901
 
     dao_create_notification(notification)
     if scheduled_for:
-        scheduled_notification = ScheduledNotification(
-            id=uuid.uuid4(),
-            notification_id=notification.id,
-            scheduled_for=datetime.strptime(scheduled_for, '%Y-%m-%d %H:%M'),
-        )
+        scheduled_notification = ScheduledNotification(id=uuid4(),
+                                                       notification_id=notification.id,
+                                                       scheduled_for=datetime.strptime(scheduled_for,
+                                                                                       "%Y-%m-%d %H:%M"))
         if status != 'created':
             scheduled_notification.pending = False
         dao_created_scheduled_notification(scheduled_notification)
@@ -376,7 +417,7 @@ def create_notification_history(
         postage = 'second'
 
     data = {
-        'id': uuid.uuid4(),
+        'id': uuid4(),
         'job_id': job and job.id,
         'job': job,
         'service_id': template.service.id,
@@ -422,7 +463,7 @@ def create_job(
     archived=False,
 ):
     data = {
-        'id': uuid.uuid4(),
+        'id': uuid4(),
         'service_id': template.service_id,
         'service': template.service,
         'template_id': template.id,
@@ -529,7 +570,12 @@ def create_email_branding(colour='blue', logo='test_x2.png', name='test_org_1', 
 
 
 def create_rate(start_date, value, notification_type):
-    rate = Rate(id=uuid.uuid4(), valid_from=start_date, rate=value, notification_type=notification_type)
+    rate = Rate(
+        id=uuid4(),
+        valid_from=start_date,
+        rate=value,
+        notification_type=notification_type
+    )
     db.session.add(rate)
     db.session.commit()
     return rate
@@ -539,7 +585,7 @@ def create_letter_rate(start_date=None, end_date=None, crown=True, sheet_count=1
     if start_date is None:
         start_date = datetime(2016, 1, 1)
     rate = LetterRate(
-        id=uuid.uuid4(),
+        id=uuid4(),
         start_date=start_date,
         end_date=end_date,
         crown=crown,
@@ -552,14 +598,24 @@ def create_letter_rate(start_date=None, end_date=None, crown=True, sheet_count=1
     return rate
 
 
-def create_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None):
-    id_ = uuid.uuid4()
+def create_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None, expired=False):
+    id = uuid4()
 
-    name = key_name if key_name else '{} api key {}'.format(key_type, id_)
+    name = key_name if key_name else '{} api key {}'.format(key_type, id)
 
-    api_key = ApiKey(
-        service=service, name=name, created_by=service.created_by, key_type=key_type, id=id_, secret=uuid.uuid4()
-    )
+    data = {
+        "service": service,
+        "name": name,
+        "created_by": service.created_by,
+        "key_type": key_type,
+        "id": id,
+        "secret": uuid4(),
+    }
+
+    if expired:
+        data["expiry_date"] = datetime.utcnow()
+
+    api_key = ApiKey(**data)
     db.session.add(api_key)
     db.session.commit()
     return api_key
@@ -575,7 +631,7 @@ def create_inbound_number(
     auth_parameter=None,
 ):
     inbound_number = InboundNumber(
-        id=uuid.uuid4(),
+        id=uuid4(),
         number=number,
         provider=provider,
         active=active,
@@ -751,6 +807,7 @@ def create_ft_notification_status(
 ):
     if job:
         template = job.template
+
     if template:
         service = template.service
         notification_type = template.template_type
@@ -763,7 +820,7 @@ def create_ft_notification_status(
         bst_date=utc_date,
         template_id=template.id,
         service_id=service.id,
-        job_id=job.id if job else uuid.UUID(int=0),
+        job_id=job.id if job else UUID(int=0),
         notification_type=notification_type,
         key_type=key_type,
         notification_status=notification_status,
@@ -795,14 +852,13 @@ def create_complaint(service=None, notification=None, created_at=None):
         template = create_template(service=service, template_type='email')
         notification = create_notification(template=template)
 
-    complaint = Complaint(
-        notification_id=notification.id,
-        service_id=service.id,
-        feedback_id=str(uuid.uuid4()),
-        complaint_type='abuse',
-        complaint_date=datetime.utcnow(),
-        created_at=created_at if created_at else datetime.now(),
-    )
+    complaint = Complaint(notification_id=notification.id,
+                          service_id=service.id,
+                          feedback_id=str(uuid4()),
+                          complaint_type='abuse',
+                          complaint_date=datetime.utcnow(),
+                          created_at=created_at if created_at else datetime.now()
+                          )
     db.session.add(complaint)
     db.session.commit()
     return complaint
@@ -1011,7 +1067,7 @@ def create_invited_user(service=None, to_email_address=None):
         'email_address': to_email_address,
         'from_user': from_user,
         'permissions': 'send_messages,manage_service,manage_api_keys',
-        'folder_permissions': [str(uuid.uuid4()), str(uuid.uuid4())],
+        'folder_permissions': [str(uuid4()), str(uuid4())]
     }
     invited_user = InvitedUser(**data)
     save_invited_user(invited_user)

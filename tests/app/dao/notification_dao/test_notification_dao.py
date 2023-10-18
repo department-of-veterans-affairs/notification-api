@@ -757,51 +757,62 @@ def test_should_return_notifications_including_one_offs_by_default(sample_user, 
 
 
 def test_should_not_count_pages_when_given_a_flag(sample_user, sample_template):
-    create_notification(sample_template)
-    notification = create_notification(sample_template)
+    template = sample_template()
+    create_notification(template)
+    notification = create_notification(template)
 
-    pagination = get_notifications_for_service(sample_template.service_id, count_pages=False, page_size=1)
+    pagination = get_notifications_for_service(template.service_id, count_pages=False, page_size=1)
     assert len(pagination.items) == 1
     assert pagination.total is None
     assert pagination.items[0].id == notification.id
 
 
 def test_get_notifications_created_by_api_or_csv_are_returned_correctly_excluding_test_key_notifications(
-    notify_db, notify_db_session, sample_service, sample_job, sample_api_key, sample_team_api_key, sample_test_api_key
+    notify_db,
+    notify_db_session,
+    sample_service,
+    sample_template,
+    sample_job,
+    sample_api_key,
 ):
-    create_notification(template=sample_job.template, created_at=datetime.utcnow(), job=sample_job)
+    service = sample_service()
+    template = sample_template(service=service)
+    job = sample_job(template=template, service=service)
     create_notification(
-        template=sample_job.template,
-        created_at=datetime.utcnow(),
-        api_key=sample_api_key,
-        key_type=sample_api_key.key_type,
+        template=template, created_at=datetime.utcnow(), job=job
     )
+
+    normal_api_key = sample_api_key()
     create_notification(
-        template=sample_job.template,
-        created_at=datetime.utcnow(),
-        api_key=sample_team_api_key,
-        key_type=sample_team_api_key.key_type,
+        template=template, created_at=datetime.utcnow(), api_key=normal_api_key,
+        key_type=normal_api_key.key_type
     )
+
+    team_api_key = normal_api_key(key_type=KEY_TYPE_TEAM)
     create_notification(
-        template=sample_job.template,
-        created_at=datetime.utcnow(),
-        api_key=sample_test_api_key,
-        key_type=sample_test_api_key.key_type,
+        template=template, created_at=datetime.utcnow(), api_key=team_api_key,
+        key_type=team_api_key.key_type
+    )
+
+    test_api_key = normal_api_key(key_type=KEY_TYPE_TEST)
+    create_notification(
+        template=template, created_at=datetime.utcnow(), api_key=test_api_key,
+        key_type=test_api_key.key_type
     )
 
     all_notifications = Notification.query.all()
     assert len(all_notifications) == 4
 
     # returns all real API derived notifications
-    all_notifications = get_notifications_for_service(sample_service.id).items
+    all_notifications = get_notifications_for_service(service.id).items
     assert len(all_notifications) == 2
 
     # returns all API derived notifications, including those created with test key
-    all_notifications = get_notifications_for_service(sample_service.id, include_from_test_key=True).items
+    all_notifications = get_notifications_for_service(service.id, include_from_test_key=True).items
     assert len(all_notifications) == 3
 
     # all real notifications including jobs
-    all_notifications = get_notifications_for_service(sample_service.id, limit_days=1, include_jobs=True).items
+    all_notifications = get_notifications_for_service(service.id, limit_days=1, include_jobs=True).items
     assert len(all_notifications) == 3
 
 
@@ -972,13 +983,18 @@ def test_is_delivery_slow_for_provider(
     threshold,
     expected_result,
 ):
+    template = sample_template()
     normal_notification = partial(
-        create_notification, template=sample_template, sent_by='mmg', sent_at=datetime.now(), updated_at=datetime.now()
+        create_notification,
+        template=template,
+        sent_by='mmg',
+        sent_at=datetime.now(),
+        updated_at=datetime.now()
     )
 
     slow_notification = partial(
         create_notification,
-        template=sample_template,
+        template=template,
         sent_by='mmg',
         sent_at=datetime.now() - timedelta(minutes=5),
         updated_at=datetime.now(),
@@ -1014,9 +1030,9 @@ def test_delivery_is_delivery_slow_for_provider_filters_out_notifications_it_sho
     notify_db_session, sample_template, options, expected_result
 ):
     create_notification_with = {
-        'template': sample_template,
-        'sent_at': datetime.now() - timedelta(minutes=5),
-        'updated_at': datetime.now(),
+        "template": sample_template(),
+        "sent_at": datetime.now() - timedelta(minutes=5),
+        "updated_at": datetime.now(),
     }
     create_notification_with.update(options)
     create_notification(**create_notification_with)
@@ -1026,10 +1042,24 @@ def test_delivery_is_delivery_slow_for_provider_filters_out_notifications_it_sho
 def test_dao_get_notifications_by_to_field(sample_template):
     recipient_to_search_for = {'to_field': '+16502532222', 'normalised_to': '+16502532222'}
 
-    notification1 = create_notification(template=sample_template, **recipient_to_search_for)
-    create_notification(template=sample_template, key_type=KEY_TYPE_TEST, **recipient_to_search_for)
-    create_notification(template=sample_template, to_field='jack@gmail.com', normalised_to='jack@gmail.com')
-    create_notification(template=sample_template, to_field='jane@gmail.com', normalised_to='jane@gmail.com')
+    recipient_to_search_for = {
+        'to_field': '+16502532222',
+        'normalised_to': '+16502532222'
+    }
+
+    template = sample_template()
+    notification1 = create_notification(
+        template=template, **recipient_to_search_for
+    )
+    create_notification(
+        template=template, key_type=KEY_TYPE_TEST, **recipient_to_search_for
+    )
+    create_notification(
+        template=template, to_field='jack@gmail.com', normalised_to='jack@gmail.com'
+    )
+    create_notification(
+        template=template, to_field='jane@gmail.com', normalised_to='jane@gmail.com'
+    )
 
     results = dao_get_notifications_by_to_field(
         notification1.service_id, recipient_to_search_for['to_field'], notification_type=SMS_TYPE

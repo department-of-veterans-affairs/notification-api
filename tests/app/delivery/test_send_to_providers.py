@@ -507,14 +507,13 @@ def __update_notification(notification_to_update, research_mode, expected_status
 def test_should_update_billable_units_and_status_according_to_research_mode_and_key_type(
     sample_template, mocker, mock_sms_client, research_mode, key_type, billable_units, expected_status
 ):
-    notification = create_notification(template=sample_template, billable_units=0, status='created', key_type=key_type)
-    mocker.patch(
-        'app.delivery.send_to_providers.send_sms_response',
-        side_effect=__update_notification(notification, research_mode, expected_status),
-    )
+    template = sample_template()
+    notification = create_notification(template=template, billable_units=0, status='created', key_type=key_type)
+    mocker.patch('app.delivery.send_to_providers.send_sms_response',
+                 side_effect=__update_notification(notification, research_mode, expected_status))
 
     if research_mode:
-        sample_template.service.research_mode = True
+        template.service.research_mode = True
 
     send_to_providers.send_sms_to_provider(notification)
     assert notification.billable_units == billable_units

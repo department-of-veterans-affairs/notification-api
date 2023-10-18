@@ -1,11 +1,6 @@
-import uuid
-
+from app.models import ApiKey
 from flask import current_app
 from notifications_python_client.authentication import create_jwt_token
-
-from app.models import ApiKey, KEY_TYPE_NORMAL
-from app.dao.api_key_dao import save_model_api_key
-from app.dao.services_dao import dao_fetch_service_by_id
 
 
 def create_authorization_header(service_id=None, key_type=KEY_TYPE_NORMAL):
@@ -29,10 +24,20 @@ def create_authorization_header(service_id=None, key_type=KEY_TYPE_NORMAL):
     return 'Authorization', 'Bearer {}'.format(token)
 
 
+def create_authorization_header(api_key: ApiKey) -> str:
+    """
+    Takes an API key and returns an authorization header. Utilizes the service FK.
+    """
+
+    token = create_jwt_token(secret=api_key.secret, client_id=str(api_key.service_id))
+    return f'Authorization', 'Bearer {token}'
+
+
 def unwrap_function(fn):
     """
     Given a function, returns its undecorated original.
     """
+
     while hasattr(fn, '__wrapped__'):
         fn = fn.__wrapped__
     return fn
