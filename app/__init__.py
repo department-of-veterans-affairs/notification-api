@@ -89,20 +89,18 @@ api_user = LocalProxy(lambda: g.api_user)
 authenticated_service = LocalProxy(lambda: g.authenticated_service)
 
 
-def create_app(application, worker_id=None):
+def create_app(application):
     from app.config import configs
 
     notify_environment = os.getenv("NOTIFY_ENVIRONMENT", "development")
 
     application.config.from_object(configs[notify_environment])
     if notify_environment == "test":
-        assert worker_id is not None
-        application.config["SQLALCHEMY_DATABASE_URI"] += f"_{worker_id}"
         # set read-db to be the same as write/default instance for testing
         application.config["SQLALCHEMY_BINDS"] = {"read-db": application.config["SQLALCHEMY_DATABASE_URI"]}
-        assert "test_notification_api" in application.config["SQLALCHEMY_DATABASE_URI"], \
+        assert application.config["SQLALCHEMY_DATABASE_URI"].endswith("test_notification_api"), \
             "Don't run tests against the main database."
-        assert "test_notification_api" in application.config["SQLALCHEMY_BINDS"]["read-db"], \
+        assert application.config["SQLALCHEMY_BINDS"]["read-db"].endswith("test_notification_api"), \
             "Don't run tests against the main database."
 
     application.config["NOTIFY_APP_NAME"] = application.name

@@ -9,7 +9,7 @@ from flask import Flask
 
 
 @pytest.fixture(scope='session')
-def notify_api(worker_id):
+def notify_api():
     """
     Initialize a Flask application with the Flask-SQLAlchemy extension.
 
@@ -18,7 +18,7 @@ def notify_api(worker_id):
     """
 
     app = Flask('test')
-    create_app(app, worker_id)
+    create_app(app)
 
     # deattach server-error error handlers - error_handler_spec looks like:
     #   {'blueprint_name': {
@@ -81,7 +81,7 @@ def notify_db(notify_api):
     # Import current_app only after the app has been created and initialized via the notify_api fixture.
     from flask import current_app
 
-    # Create a database for this worker thread.
+    # Create the database.
     create_test_db(current_app.config['SQLALCHEMY_DATABASE_URI'])
 
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
