@@ -1,6 +1,6 @@
 """
 
-Revision ID: 49c566c849ae
+Revision ID: 0364_add_templatep2pchecklist
 Revises: 0363_add_reply_to_inbox
 Create Date: 2023-10-17 22:52:47.268549
 
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-revision = '49c566c849ae'
+revision = '0364_add_templatep2pchecklist'
 down_revision = '0363_add_reply_to_inbox'
 
 
