@@ -1,5 +1,4 @@
 import random
-import uuid
 import json
 from datetime import datetime, date, timedelta
 
@@ -62,11 +61,12 @@ from app.models import (
     DELIVERY_STATUS_CALLBACK_TYPE, WEBHOOK_CHANNEL_TYPE, CommunicationItem
 )
 from app.model import User
+from uuid import UUID, uuid4
 
 
 def create_user(
     mobile_number="+16502532222",
-    email="notify@digital.cabinet-office.gov.uk",
+    email=None,
     state='active',
     id_=None,
     identity_provider_user_id=None,
@@ -75,10 +75,12 @@ def create_user(
     platform_admin=False
 ):
     data = {
-        'id': id_ or uuid.uuid4(),
+        'id': id_ or uuid4(),
         'name': name,
-        'email_address': email,
+        # This is a unique, non-nullable field.
+        'email_address': email if email is not None else f"{uuid4()}@va.gov",
         'password': 'password',
+        # This is a unique, nullable field.
         'identity_provider_user_id': identity_provider_user_id,
         'mobile_number': mobile_number,
         'state': state,
@@ -129,7 +131,7 @@ def create_service(
             message_limit=message_limit,
             restricted=restricted,
             email_from=email_from if email_from else service_name.lower().replace(' ', '.'),
-            created_by=user if user else create_user(email=f'{uuid.uuid4()}@digital.cabinet-office.gov.uk'),
+            created_by=user if user else create_user(email=f'{uuid4()}@digital.cabinet-office.gov.uk'),
             prefix_sms=prefix_sms,
             organisation_type=organisation_type,
             go_live_user=go_live_user,
@@ -201,9 +203,9 @@ def create_template(
     # "name" is very unlikely to cause a collision.  If a test fails with a duplicate "va_profile_item_id",
     # rerun the test.  See #1106 for a more elegant solution.
     communication_item = CommunicationItem(
-        id=uuid.uuid4(),
+        id=uuid4(),
         va_profile_item_id=random.randint(1, 100000),
-        name=uuid.uuid4()
+        name=uuid4()
     )
     dao_create_communication_item(communication_item)
 
@@ -291,7 +293,7 @@ def create_notification(
         postage = 'second'
 
     data = {
-        'id': uuid.uuid4(),
+        'id': uuid4(),
         'to': to_field,
         'job_id': job and job.id,
         'job': job,
@@ -339,7 +341,7 @@ def create_notification(
 
     dao_create_notification(notification)
     if scheduled_for:
-        scheduled_notification = ScheduledNotification(id=uuid.uuid4(),
+        scheduled_notification = ScheduledNotification(id=uuid4(),
                                                        notification_id=notification.id,
                                                        scheduled_for=datetime.strptime(scheduled_for,
                                                                                        "%Y-%m-%d %H:%M"))
@@ -387,7 +389,7 @@ def create_notification_history(
         postage = 'second'
 
     data = {
-        'id': uuid.uuid4(),
+        'id': uuid4(),
         'job_id': job and job.id,
         'job': job,
         'service_id': template.service.id,
@@ -433,7 +435,7 @@ def create_job(
         archived=False
 ):
     data = {
-        'id': uuid.uuid4(),
+        'id': uuid4(),
         'service_id': template.service_id,
         'service': template.service,
         'template_id': template.id,
@@ -540,7 +542,7 @@ def create_email_branding(colour='blue', logo='test_x2.png', name='test_org_1', 
 
 def create_rate(start_date, value, notification_type):
     rate = Rate(
-        id=uuid.uuid4(),
+        id=uuid4(),
         valid_from=start_date,
         rate=value,
         notification_type=notification_type
@@ -554,7 +556,7 @@ def create_letter_rate(start_date=None, end_date=None, crown=True, sheet_count=1
     if start_date is None:
         start_date = datetime(2016, 1, 1)
     rate = LetterRate(
-        id=uuid.uuid4(),
+        id=uuid4(),
         start_date=start_date,
         end_date=end_date,
         crown=crown,
@@ -568,7 +570,7 @@ def create_letter_rate(start_date=None, end_date=None, crown=True, sheet_count=1
 
 
 def create_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None):
-    id_ = uuid.uuid4()
+    id_ = uuid4()
 
     name = key_name if key_name else '{} api key {}'.format(key_type, id_)
 
@@ -578,7 +580,7 @@ def create_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None):
         created_by=service.created_by,
         key_type=key_type,
         id=id_,
-        secret=uuid.uuid4()
+        secret=uuid4()
     )
     db.session.add(api_key)
     db.session.commit()
@@ -594,7 +596,7 @@ def create_inbound_number(
     self_managed=False
 ):
     inbound_number = InboundNumber(
-        id=uuid.uuid4(),
+        id=uuid4(),
         number=number,
         provider=provider,
         active=active,
@@ -800,7 +802,7 @@ def create_ft_notification_status(
         bst_date=utc_date,
         template_id=template.id,
         service_id=service.id,
-        job_id=job.id if job else uuid.UUID(int=0),
+        job_id=job.id if job else UUID(int=0),
         notification_type=notification_type,
         key_type=key_type,
         notification_status=notification_status,
@@ -836,7 +838,7 @@ def create_complaint(service=None,
 
     complaint = Complaint(notification_id=notification.id,
                           service_id=service.id,
-                          feedback_id=str(uuid.uuid4()),
+                          feedback_id=str(uuid4()),
                           complaint_type='abuse',
                           complaint_date=datetime.utcnow(),
                           created_at=created_at if created_at else datetime.now()
@@ -1045,7 +1047,7 @@ def create_invited_user(service=None,
         'email_address': to_email_address,
         'from_user': from_user,
         'permissions': 'send_messages,manage_service,manage_api_keys',
-        'folder_permissions': [str(uuid.uuid4()), str(uuid.uuid4())]
+        'folder_permissions': [str(uuid4()), str(uuid4())]
     }
     invited_user = InvitedUser(**data)
     save_invited_user(invited_user)

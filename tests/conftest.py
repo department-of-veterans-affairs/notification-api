@@ -65,7 +65,8 @@ def create_test_db(database_uri):
         result = postgres_db.execute(sqlalchemy.sql.text('CREATE DATABASE {}'.format(db_uri_parts[-1])))
         result.close()
     except sqlalchemy.exc.ProgrammingError:
-        # The database "test_notification_api" already exists.
+        # The database "test_notification_api" already exists, which is okay.  This is the execution path
+        # for running unit tests with multiple threads.
         pass
     finally:
         postgres_db.dispose()
@@ -97,7 +98,8 @@ def notify_db(notify_api):
     db.session.remove()
     db.engine.dispose()
 
-    # TODO - Properly delete the database after all workers finish?
+    # TODO - We should delete the test database after all tests finish, but how do we do this
+    # with multiple test threads?
 
 
 @pytest.fixture(scope='function')
