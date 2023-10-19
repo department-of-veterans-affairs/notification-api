@@ -4,7 +4,6 @@ from app.service.service_data import ServiceDataApiKey
 import pytest
 import pytz
 import requests_mock
-import uuid
 from app import db
 from app.clients.email import EmailClient
 from app.clients.sms import SmsClient
@@ -57,7 +56,7 @@ from app.models import (
 from app.service.service_data import ServiceData
 from datetime import datetime, timedelta
 from flask import current_app, url_for
-from random import randrange
+from random import randint, randrange
 from sqlalchemy import asc
 from sqlalchemy.orm.session import make_transient
 from tests import create_authorization_header
@@ -75,6 +74,7 @@ from tests.app.db import (
 from tests.app.factories import (
     service_whitelist
 )
+from uuid import uuid4
 
 
 @pytest.yield_fixture
@@ -84,7 +84,7 @@ def rmock():
 
 
 @pytest.fixture(scope='function')
-def service_factory(notify_db, notify_db_session):
+def service_factory(notify_db_session):
     class ServiceFactory(object):
         def get(self, service_name, user=None, template_type=None, email_from=None):
             if not user:
@@ -151,7 +151,7 @@ def notify_user(notify_db_session):
     )
 
 
-def create_code(notify_db, notify_db_session, code_type, usr=None, code=None):
+def create_code(notify_db_session, code_type, usr=None, code=None):
     if code is None:
         code = create_secret_code()
     if usr is None:
@@ -198,7 +198,7 @@ def create_user_model(
         blocked=False,
 ):
     data = {
-        'id': id_ or uuid.uuid4(),
+        'id': id_ or uuid4(),
         'name': name,
         'email_address': email,
         'password': 'password',
@@ -239,7 +239,7 @@ def create_service_model(
         go_live_at=go_live_at,
         crown=crown,
         smtp_user=smtp_user,
-        organisation=organisation if organisation else Organisation(id=uuid.uuid4(), name='sample organization')
+        organisation=organisation if organisation else Organisation(id=uuid4(), name='sample organization')
     )
     service.active = active
     service.research_mode = research_mode
@@ -260,7 +260,7 @@ def create_template_model(
         process_type='normal',
 ):
     data = {
-        'id': uuid.uuid4(),
+        'id': uuid4(),
         'name': template_name or '{} Template Name'.format(template_type),
         'template_type': template_type,
         'content': content,
@@ -309,7 +309,7 @@ def sample_notification_model_with_organization(
     if template is None:
         template = create_template_model(service=service)
 
-    notification_id = uuid.uuid4()
+    notification_id = uuid4()
 
     data = {
         'id': notification_id,
@@ -348,7 +348,7 @@ def sample_notification_model_with_organization(
 
 def sample_service_helper(
         notify_db_session,
-        service_name="Sample service",
+        service_name=None,
         user=None,
         restricted=False,
         limit=1000,
@@ -358,6 +358,10 @@ def sample_service_helper(
 ):
     if user is None:
         user = create_user()
+    if service_name is None:
+        # This is a unique field.  Running tests in parallel will raise IntegrityError
+        # if this is hard-coded to a static value.
+        service_name = str(uuid4())
     if email_from is None:
         email_from = service_name.lower().replace(' ', '.')
 
@@ -386,7 +390,7 @@ def sample_service_helper(
     return service
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def sample_service(notify_db_session):
     return sample_service_helper(notify_db_session)
 
@@ -408,7 +412,11 @@ def _sample_service_full_permissions(notify_db_session):
         service_permissions=set(SERVICE_PERMISSION_TYPES),
         check_if_service_exists=True
     )
-    create_inbound_number('12345', service_id=service.id)
+
+    # The inbound number is a unique, non-nullable 12-digit string.  With tests running
+    # in parallel, this could result in a collision, although that's unlikely.
+    number = str(randint(100000000000, 999999999999))
+    create_inbound_number(number, service_id=service.id)
     return service
 
 
@@ -511,7 +519,7 @@ def sample_email_template(
             service_permissions=permissions,
             check_if_service_exists=True,
             smtp_user="smtp_user")
-    communication_item = CommunicationItem(id=uuid.uuid4(), va_profile_item_id=1, name='some name')
+    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=1, name='some name')
     dao_create_communication_item(communication_item)
 
     data = {
@@ -595,7 +603,7 @@ def sample_api_key(notify_db,
                    name=None):
     if service is None:
         service = create_service(check_if_service_exists=True)
-    data = {'service': service, 'name': name or uuid.uuid4(), 'created_by': service.created_by, 'key_type': key_type}
+    data = {'service': service, 'name': name or uuid4(), 'created_by': service.created_by, 'key_type': key_type}
     api_key = ApiKey(**data)
     save_model_api_key(api_key)
     return api_key
@@ -608,7 +616,7 @@ def sample_service_data_api_key(service=None, key_type=KEY_TYPE_NORMAL, name=Non
 
     data = {
         'service': service,
-        'name': name or uuid.uuid4(),
+        'name': name or uuid4(),
         'created_by': service.created_by,
         'key_type': key_type
     }
@@ -657,7 +665,7 @@ def sample_job(
     if template is None:
         template = create_template(service=service)
     data = {
-        'id': uuid.uuid4(),
+        'id': uuid4(),
         'service_id': service.id,
         'service': service,
         'template_id': template.id,
@@ -707,7 +715,7 @@ def sample_email_job(notify_db,
             notify_db,
             notify_db_session,
             service=service)
-    job_id = uuid.uuid4()
+    job_id = uuid4()
     data = {
         'id': job_id,
         'service_id': service.id,
@@ -727,7 +735,7 @@ def sample_email_job(notify_db,
 def sample_letter_job(sample_letter_template):
     service = sample_letter_template.service
     data = {
-        'id': uuid.uuid4(),
+        'id': uuid4(),
         'service_id': service.id,
         'service': service,
         'template_id': sample_letter_template.id,
@@ -830,7 +838,7 @@ def sample_notification(
         if not api_key:
             api_key = create_api_key(template.service, key_type=key_type)
 
-    notification_id = uuid.uuid4()
+    notification_id = uuid4()
 
     data = {
         'id': notification_id,
@@ -869,7 +877,7 @@ def sample_notification(
 
     if scheduled_for:
         scheduled_notification = ScheduledNotification(
-            id=uuid.uuid4(),
+            id=uuid4(),
             notification_id=notification.id,
             scheduled_for=datetime.strptime(scheduled_for, "%Y-%m-%d %H:%M")
         )
@@ -903,7 +911,7 @@ def sample_email_notification(notify_db_session):
     template = create_template(service, template_type=EMAIL_TYPE)
     job = create_job(template)
 
-    notification_id = uuid.uuid4()
+    notification_id = uuid4()
 
     to = 'foo@bar.com'
 
@@ -958,7 +966,7 @@ def sample_notification_history(
         api_key = create_api_key(sample_template.service, key_type=key_type)
 
     notification_history = NotificationHistory(
-        id=uuid.uuid4(),
+        id=uuid4(),
         service=sample_template.service,
         template_id=sample_template.id,
         template_version=sample_template.version,
@@ -1035,7 +1043,7 @@ def sample_invited_org_user(
 
 @pytest.fixture(scope='function')
 def sample_user_service_permission(
-        notify_db, notify_db_session, service=None, user=None, permission="manage_settings"
+        notify_db_session, service=None, user=None, permission="manage_settings"
 ):
     if user is None:
         user = create_user()
@@ -1353,7 +1361,7 @@ def create_custom_template(service, user, template_config_name, template_type, c
     return template
 
 
-def notify_service(notify_db, notify_db_session):
+def notify_service(notify_db_session):
     user = create_user()
     service = Service.query.get(current_app.config['NOTIFY_SERVICE_ID'])
     if not service:
@@ -1394,7 +1402,7 @@ def sample_service_whitelist(notify_db_session):
 
 
 @pytest.fixture(scope='function')
-def sample_provider_rate(notify_db, notify_db_session, valid_from=None, rate=None, provider_identifier=None):
+def sample_provider_rate(notify_db_session, valid_from=None, rate=None, provider_identifier=None):
     create_provider_rates(
         provider_identifier=provider_identifier if provider_identifier is not None else 'mmg',
         valid_from=valid_from if valid_from is not None else datetime.utcnow(),
@@ -1403,7 +1411,7 @@ def sample_provider_rate(notify_db, notify_db_session, valid_from=None, rate=Non
 
 
 @pytest.fixture
-def sample_inbound_numbers(notify_db, notify_db_session, sample_service):
+def sample_inbound_numbers(notify_db_session, sample_service):
     service = create_service(service_name='sample service 2', check_if_service_exists=True)
     inbound_numbers = list()
     inbound_numbers.append(create_inbound_number(number='1', provider='mmg'))
@@ -1413,14 +1421,14 @@ def sample_inbound_numbers(notify_db, notify_db_session, sample_service):
 
 
 @pytest.fixture
-def sample_organisation(notify_db, notify_db_session):
+def sample_organisation(notify_db_session):
     org = Organisation(name='sample organisation')
     dao_create_organisation(org)
     return org
 
 
 @pytest.fixture
-def sample_fido2_key(notify_db, notify_db_session):
+def sample_fido2_key(notify_db_session):
     user = create_user()
     key = Fido2Key(name='sample key', key="abcd", user_id=user.id)
     save_fido2_key(key)
@@ -1436,7 +1444,7 @@ def aws_credentials():
 
 
 @pytest.fixture
-def sample_login_event(notify_db, notify_db_session):
+def sample_login_event(notify_db_session):
     user = create_user()
     event = LoginEvent(data={"ip": "8.8.8.8", "user-agent": "GoogleBot"}, user_id=user.id)
     save_login_event(event)
@@ -1553,7 +1561,7 @@ def mocked_build_ga_pixel_url(mocker):
 def mocked_provider_stats(sample_user, mocker):
     return [
         mocker.Mock(**{
-            'id': uuid.uuid4(),
+            'id': uuid4(),
             'display_name': 'foo',
             'identifier': 'foo',
             'priority': 10,
@@ -1566,7 +1574,7 @@ def mocked_provider_stats(sample_user, mocker):
             'current_month_billable_sms': randrange(100)  # nosec
         }),
         mocker.Mock(**{
-            'id': uuid.uuid4(),
+            'id': uuid4(),
             'display_name': 'bar',
             'identifier': 'bar',
             'priority': 20,

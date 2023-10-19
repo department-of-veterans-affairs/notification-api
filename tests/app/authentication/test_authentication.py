@@ -133,16 +133,15 @@ def test_should_allow_valid_token(client, sample_api_key, scheme):
     assert response.status_code == 200
 
 
-def test_should_not_allow_service_id_that_is_not_the_wrong_data_type(client, sample_api_key):
+def test_should_not_allow_service_id_that_is_not_uuid(client, sample_api_key):
     token = create_jwt_token(secret=get_unsigned_secrets(sample_api_key.service_id)[0],
-                             client_id=str('not-a-valid-id'))
+                             client_id=str('not-a-valid-uuid'))
     response = client.get(
         '/notifications',
         headers={'Authorization': "Bearer {}".format(token)}
     )
     assert response.status_code == 403
-    data = json.loads(response.get_data())
-    assert data['message'] == 'Invalid token: service id is not the right data type'
+    assert response.get_json()['message'] == 'Invalid token: service id is not the right data type'
 
 
 def test_should_allow_valid_token_for_request_with_path_params_for_public_url(client, sample_api_key):
