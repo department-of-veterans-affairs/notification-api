@@ -50,7 +50,7 @@ notifications-python-client >= 8.0.1
 
 # Sending an SMS message with v3 endpoints uses this package to test for a valid phone number.  The package
 # is also a dependency of notification-utils.
-phonenumbers ~= 8.12.57
+phonenumbers ~= 8.13.23
 
 psycopg2-binary >= 2.9.7
 pwnedpasswords >= 2.0.0
