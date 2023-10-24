@@ -36,6 +36,40 @@ v3_notifications_post_sms_request_validator = Draft202012Validator(
 #########################################################################
 
 
+# 1493 - [start]
+# Rough implementation of a LRU cache to test performance without having to install "cachetools"
+# KEY: int - template id
+# VALUE: str - template type
+from collections import OrderedDict
+class MyCache:
+    def __init__(self, capacity: int) -> None:
+        self.cache = OrderedDict()
+        self.capacity = capacity
+
+    def put(self, key: int, value: str) -> None:
+        if len(self.cache) >= self.capacity:
+            self.cache.popitem(last=True)
+
+        self.cache[key] = value
+        self.cache.move_to_end(key)
+
+    def get(self, key: int) -> str:
+        if key not in self.cache:
+            return None
+        else:
+            self.cache.move_to_end(key)
+            return self.cache[key]
+
+test_lru_cache = MyCache(300)
+# test_lru_cache.put(1, 'sms')
+# test_lru_cache.put(2, 'sms')
+# test_lru_cache.put(3, 'email')
+# test_lru_cache.get(1)
+# TODO ask Dave about template id / type
+# 1493 - [end]
+
+
+
 @v3_notifications_blueprint.route("/email", methods=["POST"])
 def v3_post_notification_email():
     request_data = request.get_json()
