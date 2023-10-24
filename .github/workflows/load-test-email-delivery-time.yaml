@@ -12,14 +12,19 @@ on:
         type: string
         description: "The commit SHA containing code you want to load test"
         required: true
-      email_limit:
+      run_time:
         type: string
-        description: "Number of emails to send"
+        description: "Stop after the specified amount of time, e.g. (300s, 20m, 3h, 1h30m, etc.)"
         required: true
-        default: "10"
-      email_status_query_interval:
+        default: "10s"
+      num_users:
         type: string
-        description: "Number of seconds to wait between requests to query notification status"
+        description: "Number of concurrent Locust users."
+        required: true
+        default: "1"
+      spawn_rate:
+        type: string
+        description: "The rate per second in which users are spawned."
         required: true
         default: "1"
   workflow_dispatch:
@@ -33,14 +38,19 @@ on:
         type: string
         description: "The commit SHA containing code you want to load test"
         required: true
-      email_limit:
+      run_time:
         type: string
-        description: "Number of emails to send"
+        description: "Stop after the specified amount of time, e.g. (300s, 20m, 3h, 1h30m, etc.)"
         required: true
-        default: "10"
-      email_status_query_interval:
+        default: "10s"
+      num_users:
         type: string
-        description: "Number of seconds to wait between requests to query notification status"
+        description: "Number of concurrent Locust users."
+        required: true
+        default: "1"
+      spawn_rate:
+        type: string
+        description: "The rate per second in which users are spawned."
         required: true
         default: "1"
 
