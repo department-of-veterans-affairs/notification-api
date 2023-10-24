@@ -16,6 +16,9 @@ from jsonschema import FormatChecker
 from jsonschema.validators import Draft202012Validator
 from uuid import uuid4
 from werkzeug.exceptions import BadRequest
+import logging
+
+logger = logging.getLogger('v3-notifications')
 
 v3_notifications_blueprint = Blueprint("v3_notifications", __name__, url_prefix='/notifications')
 
@@ -60,12 +63,7 @@ class MyCache:
             self.cache.move_to_end(key)
             return self.cache[key]
 
-test_lru_cache = MyCache(300)
-# test_lru_cache.put(1, 'sms')
-# test_lru_cache.put(2, 'sms')
-# test_lru_cache.put(3, 'email')
-# test_lru_cache.get(1)
-# TODO ask Dave about template id / type
+test_lru_cache = MyCache(50)
 # 1493 - [end]
 
 
@@ -148,6 +146,19 @@ def v3_send_notification(request_data: dict, service_data: ServiceData) -> str:
     # Initiate a Celery task to process the validated request data.  This does not block.
     # TODO - v2 uses the imported value "api_user" for the api_key.
     # Does the list service_data.api_keys ever have more than one element?
+
+    # 1493 - test memory. This is a pure memory exercise, not real logic
+    _type = test_lru_cache.get(request_data["template_id"])
+    if _type is None:
+        logger.critical("Template id not found in cache.")
+        test_lru_cache.put(request_data["template_id"], request_data["notification_type"])
+        logger.critical("New template id / type added to cache.")
+    elif _type == request_data["notification_type"]:
+        # all good, proceed
+        pass
+    else:
+        # this shouldn't happen in testing because we populate cache with known matching values
+        raise ValueError(f"{request_data['phone_number']} is not a valid phone number.")
 
     # 1493 - commenting out to test performance
     # v3_process_notification.delay(
