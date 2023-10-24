@@ -187,7 +187,8 @@ def send_notification_to_queue(
 
         # This executes the task list.  Each task calls a function that makes a request to
         # the backend provider.
-        chain(*tasks).apply_async()
+        # 1493 - commenting out to test performance
+        # chain(*tasks).apply_async()
 
     except Exception:
         dao_delete_notification_by_id(notification.id)
@@ -289,7 +290,8 @@ def send_to_queue_for_recipient_info_based_on_recipient_identifier(
                 .set(queue=QueueNames.COMMUNICATION_ITEM_PERMISSIONS)
             )
 
-    chain(*tasks).apply_async()
+    # 1493 - commenting out to test performance
+    # chain(*tasks).apply_async()
 
     current_app.logger.debug(
         "{} {} passed to tasks: {}".format(
