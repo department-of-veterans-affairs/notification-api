@@ -6,7 +6,7 @@ from locust import HttpUser, task
 from urllib.parse import urlparse
 
 
-class SendSms(HttpUser):
+class SendEmail(HttpUser):
     def on_start(self):
         self.short_env = urlparse(self.environment.host).hostname.split('.')[0]  # looking for "dev" or "staging"
         self.email_template_id = self.read_configuration('email_template_id')
