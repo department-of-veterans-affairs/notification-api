@@ -1596,3 +1596,17 @@ def datetime_in_past(days=0, seconds=0):
 @pytest.fixture(scope='function')
 def sample_sms_sender(sample_service):
     return dao_add_sms_sender_for_service(sample_service.id, "+12025555555", True)
+
+
+@pytest.fixture(scope="function")
+def sample_communication_item(notify_db_session, worker_id):
+    va_profile_item_id = randint(500, 100000)
+    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=va_profile_item_id, name=worker_id)
+    notify_db_session.session.add(communication_item)
+    notify_db_session.session.commit()
+    assert communication_item.default_send_indicator, "Should be True by default."
+
+    yield communication_item
+
+    notify_db_session.session.delete(communication_item)
+    notify_db_session.session.commit()
