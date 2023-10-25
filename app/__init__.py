@@ -90,18 +90,22 @@ authenticated_service = LocalProxy(lambda: g.authenticated_service)
 
 
 def create_app(application):
+    """
+    https://flask.palletsprojects.com/en/2.3.x/tutorial/factory/
+    """
+
     from app.config import configs
 
     notify_environment = os.getenv("NOTIFY_ENVIRONMENT", "development")
 
     application.config.from_object(configs[notify_environment])
     if notify_environment == "test":
-        # set read-db to be the same as write/default instance for testing
+        # Set the read-db to be the same as the write/default instance.
         application.config["SQLALCHEMY_BINDS"] = {"read-db": application.config["SQLALCHEMY_DATABASE_URI"]}
         assert application.config["SQLALCHEMY_DATABASE_URI"].endswith("test_notification_api"), \
-            "Don't run tests against the main database."
+            "Don't run tests against the main writer database."
         assert application.config["SQLALCHEMY_BINDS"]["read-db"].endswith("test_notification_api"), \
-            "Don't run tests against the main database."
+            "Don't run tests against the main reader database."
 
     application.config["NOTIFY_APP_NAME"] = application.name
     init_app(application)
