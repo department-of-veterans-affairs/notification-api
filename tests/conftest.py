@@ -65,14 +65,14 @@ def create_test_db(database_uri):
         result = postgres_db.execute(sqlalchemy.sql.text('CREATE DATABASE {}'.format(db_uri_parts[-1])))
         result.close()
     except sqlalchemy.exc.ProgrammingError:
-        # The database "test_notification_api" already exists, which is okay.  This is the execution path
-        # for running unit tests with multiple threads.
+        # The database "test_notification_api" already exists, which is okay.  This
+        # is the execution path for running unit tests with multiple threads.
         pass
     finally:
         postgres_db.dispose()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def notify_db(notify_api):
     """
     Yield an instance of flask_sqlalchemy.SQLAlchemy.
@@ -82,7 +82,6 @@ def notify_db(notify_api):
     # Import current_app only after the app has been created and initialized via the notify_api fixture.
     from flask import current_app
 
-    # Create the database.
     create_test_db(current_app.config['SQLALCHEMY_DATABASE_URI'])
 
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -95,38 +94,19 @@ def notify_db(notify_api):
 
     yield db
 
-    db.session.remove()
+    # db.session.remove()
     db.engine.dispose()
 
     # TODO - We should delete the test database after all tests finish, but how do we do this
-    # with multiple test threads?
+    # with multiple test threads?  Search for "finalizer" on this page for one possibility:
+    #   https://pypi.org/project/pytest-flask-sqlalchemy/#configuration
+    # Given this fixture is session scope, manually deleting the databse should also work.
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def notify_db_session(notify_db):
-    """
-    This is the notify_db fixture with additional teardown code that
-    deletes a subset of tables.
-    """
-
     yield notify_db
-
     notify_db.session.remove()
-    for tbl in reversed(notify_db.metadata.sorted_tables):
-        if tbl.name not in ["provider_details",
-                            "key_types",
-                            "branding_type",
-                            "job_status",
-                            "provider_details_history",
-                            "template_process_type",
-                            "notification_status_types",
-                            "organisation_types",
-                            "service_permission_types",
-                            "auth_type",
-                            "invite_status_type",
-                            "service_callback_type",
-                            "service_callback_channel"]:
-            notify_db.engine.execute(tbl.delete())
     notify_db.session.commit()
 
 

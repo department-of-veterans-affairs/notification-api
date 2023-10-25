@@ -11,6 +11,7 @@ from app.models import CommunicationItem
 from app.schemas import communication_item_schema
 from flask import Blueprint, current_app, jsonify, request
 from jsonschema import validate, ValidationError
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 communication_item_blueprint = Blueprint("communication_item", __name__, url_prefix="/communication-item")
@@ -43,6 +44,7 @@ def create_communication_item():
     try:
         db.session.commit()
     except SQLAlchemyError as e:
+        db.session.rollback()
         return {
             "errors": [
                 {
@@ -52,6 +54,7 @@ def create_communication_item():
             ]
         }, 400
     except psycopg2.Error as e:
+        db.session.rollback()
         return {
             "errors": [
                 {
@@ -61,6 +64,7 @@ def create_communication_item():
             ]
         }, 400
     except Exception as e:
+        db.session.rollback()
         current_app.logger.exception(e)
         raise
 
@@ -73,13 +77,13 @@ def create_communication_item():
 
 @communication_item_blueprint.route('', methods=["GET"])
 def get_all_communication_items():
-    communication_items = CommunicationItem.query.all()
+    communication_items = db.session.execute(select(CommunicationItem)).scalars()
     return jsonify(data=communication_item_schema.dump(communication_items, many=True).data)
 
 
 @communication_item_blueprint.route("/<communication_item_id>", methods=["GET"])
 def get_communication_item(communication_item_id):
-    communication_item = CommunicationItem.query.get(communication_item_id)
+    communication_item = db.session.get(CommunicationItem, communication_item_id)
 
     if communication_item is None:
         return {
@@ -114,7 +118,7 @@ def partially_update_communication_item(communication_item_id):
             ]
         }, 400
 
-    communication_item = CommunicationItem.query.get(communication_item_id)
+    communication_item = db.session.get(CommunicationItem, communication_item_id)
 
     if communication_item is None:
         return {
@@ -134,6 +138,7 @@ def partially_update_communication_item(communication_item_id):
     try:
         db.session.commit()
     except SQLAlchemyError as e:
+        db.session.rollback()
         return {
             "errors": [
                 {
@@ -143,6 +148,7 @@ def partially_update_communication_item(communication_item_id):
             ]
         }, 400
     except psycopg2.Error as e:
+        db.session.rollback()
         return {
             "errors": [
                 {
@@ -152,6 +158,7 @@ def partially_update_communication_item(communication_item_id):
             ]
         }, 400
     except Exception as e:
+        db.session.rollback()
         current_app.logger.exception(e)
         raise
 
@@ -164,10 +171,11 @@ def partially_update_communication_item(communication_item_id):
 
 @communication_item_blueprint.route("/<communication_item_id>", methods=["DELETE"])
 def delete_communication_item(communication_item_id):
-    rows_deleted = CommunicationItem.query.filter_by(id=communication_item_id).delete()
-    db.session.commit()
+    communication_item = db.session.get(CommunicationItem, communication_item_id)
 
-    if rows_deleted:
+    if communication_item is not None:
+        db.session.delete(communication_item)
+        db.session.commit()
         return {}, 202
 
     return {

@@ -98,6 +98,7 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
     query = select(Template).where(Template.id == request_data["template_id"])
     with get_reader_session() as reader_session:
         try:
+            # TODO - This should intead use reader_session.get which returns an object or None
             template = reader_session.execute(query).one().Template
             notification.template_version = template.version
         except (MultipleResultsFound, NoResultFound):
