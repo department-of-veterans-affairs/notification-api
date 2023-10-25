@@ -119,7 +119,12 @@ def service_factory(notify_db_session):
 
 @pytest.fixture(scope='function')
 def sample_user(notify_db_session):
-    return create_user()
+    new_user = create_user()
+
+    yield new_user
+
+    notify_db_session.session.delete(new_user)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture(scope='function')
@@ -1005,17 +1010,10 @@ def mock_encryption(mocker):
     return mocker.patch('app.encryption.encrypt', return_value="something_encrypted")
 
 
-@pytest.fixture(scope='function')
-def sample_invited_user(
-    notify_db,
-    notify_db_session,
-    service=None,
-    to_email_address=None
-):
-    if service is None:
-        service = create_service(check_if_service_exists=True)
-    if to_email_address is None:
-        to_email_address = 'invited_user@digital.gov.uk'
+@pytest.fixture(scope="function")
+def sample_invited_user(notify_db_session):
+    service = create_service(check_if_service_exists=True)
+    to_email_address = 'invited_user@digital.gov.uk'
 
     from_user = service.users[0]
 
@@ -1028,17 +1026,21 @@ def sample_invited_user(
     }
     invited_user = InvitedUser(**data)
     save_invited_user(invited_user)
-    return invited_user
+
+    yield invited_user
+
+    notify_db_session.session.delete(invited_user)
+    notify_db_session.session.commit()
 
 
-@pytest.fixture(scope='function')
-def sample_invited_org_user(
-        notify_db,
-        notify_db_session,
-        sample_user,
-        sample_organisation
-):
-    return create_invited_org_user(sample_organisation, sample_user)
+@pytest.fixture(scope="function")
+def sample_invited_org_user(notify_db_session, sample_organisation, sample_user):
+    invited_organisation_user = create_invited_org_user(sample_organisation, sample_user)
+
+    yield invited_organisation_user
+
+    notify_db_session.session.delete(invited_organisation_user)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture(scope='function')
@@ -1420,11 +1422,15 @@ def sample_inbound_numbers(notify_db_session, sample_service):
     return inbound_numbers
 
 
-@pytest.fixture
-def sample_organisation(notify_db_session):
-    org = Organisation(name='sample organisation')
+@pytest.fixture(scope="function")
+def sample_organisation(notify_db_session, worker_id):
+    org = Organisation(name=f"sample organisation {worker_id}")
     dao_create_organisation(org)
-    return org
+
+    yield org
+
+    notify_db_session.session.delete(org)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture
