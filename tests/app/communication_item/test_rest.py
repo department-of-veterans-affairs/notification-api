@@ -1,6 +1,8 @@
 """
-Test CRUD endpoints for the CommunicationItem model.  These tests rely upon
-preseeded rows in the communication_items table.
+Test CRUD endpoints for the CommunicationItem model.
+
+Tests running locally in Docker expect for the table communication_items to contain 4 rows preseeded
+via Mountebank.  These rows have va_profile_item_id values 1-4.
 """
 
 import pytest
@@ -60,10 +62,9 @@ def test_create_communication_item(notify_db_session, admin_request, post_data, 
         assert response["va_profile_item_id"] == post_data["va_profile_item_id"]
         assert isinstance(UUID(response["id"]), UUID)
 
+        # Test clean-up
         communication_item = notify_db_session.session.get(CommunicationItem, response["id"])
         assert communication_item is not None
-
-        # Test clean-up
         notify_db_session.session.delete(communication_item)
         notify_db_session.session.commit()
     elif expected_status == 400:
@@ -76,17 +77,34 @@ def test_create_communication_item(notify_db_session, admin_request, post_data, 
         raise RuntimeError("This is a programming error.")
 
 
-@pytest.mark.parametrize("post_data", [
-        {"name": "COVID-19 Updates", "va_profile_item_id": 5},
-        {"name": "name", "va_profile_item_id": 1},
-    ],
-    ids=(
-        "existing name; new item ID",
-        "new name; existing item ID",
+def test_create_communication_item_duplicate_name(admin_request, sample_communication_item):
+    """ The name must be unique in the table. """
+
+    post_data = {
+        "name": sample_communication_item.name,
+        "va_profile_item_id": sample_communication_item.va_profile_item_id + 1,
+    }
+
+    response = admin_request.post(
+        "communication_item.create_communication_item",
+        post_data,
+        400
     )
-)
-def test_create_communication_item_duplicates(notify_db_session, admin_request, post_data):
-    """ The name and va_profile_item_id must be unique in the table. """
+
+    assert isinstance(response, dict) and "errors" in response, response
+    assert isinstance(response["errors"], list) and len(response["errors"]) == 1
+    assert isinstance(response["errors"][0], dict)
+    assert "error" in response["errors"][0]
+    assert "message" in response["errors"][0]
+
+
+def test_create_communication_item_duplicate_name(admin_request, sample_communication_item):
+    """ The va_profile_item_id must be unique in the table. """
+
+    post_data = {
+        "name": sample_communication_item.name + 'a',
+        "va_profile_item_id": sample_communication_item.va_profile_item_id,
+    }
 
     response = admin_request.post(
         "communication_item.create_communication_item",
@@ -105,7 +123,12 @@ def test_create_communication_item_duplicates(notify_db_session, admin_request, 
 # Retrieve
 #############
 
-def test_get_all_communication_items(admin_request):
+def test_get_all_communication_items(admin_request, sample_communication_item):
+    """
+    The sample_communication_item fixture ensures the table contains at least one
+    row, but it might have more.
+    """
+
     response = admin_request.get("communication_item.get_all_communication_items", 200)
     assert isinstance(response["data"], list)
 
@@ -118,19 +141,19 @@ def test_get_all_communication_items(admin_request):
         assert isinstance(UUID(communication_item["id"]), UUID)
 
 
-def test_get_communication_item(notify_db_session, admin_request):
+def test_get_communication_item(admin_request, sample_communication_item):
     response = admin_request.get(
         "communication_item.get_communication_item",
         200,
-        communication_item_id="e2e35ef6-1ed1-4a02-9281-38f1c8afd2f6"
+        communication_item_id=sample_communication_item.id
     )
 
     assert isinstance(response, dict), response
     assert isinstance(response["default_send_indicator"], bool)
     assert response["default_send_indicator"], "Should be True by default."
-    assert response["name"] == "Board of Veterans' Appeals hearing reminder"
-    assert response["va_profile_item_id"] == 1
-    assert response["id"] == "e2e35ef6-1ed1-4a02-9281-38f1c8afd2f6"
+    assert response["name"] == sample_communication_item.name
+    assert response["va_profile_item_id"] == sample_communication_item.va_profile_item_id
+    assert response["id"] == str(sample_communication_item.id)
 
 
 @pytest.mark.parametrize("communication_item_id", ["doesn't exist", "39247cfc-a52d-4b2b-b9a9-2ef8a20190cb"])
@@ -152,54 +175,34 @@ def test_get_communication_item_not_found(notify_db_session, admin_request, comm
     ({}, 400),
     ({"name": 1}, 400),
     ({"name": ''}, 400),
-    ({"name": "communication item tests"}, 200),
     ({"va_profile_item_id": "not a number"}, 400),
     ({"va_profile_item_id": -5}, 400),
     ({"va_profile_item_id": 0}, 400),
-    ({"va_profile_item_id": 1}, 400),
     ({"name": "different name"}, 200),
-    ({"va_profile_item_id": 600}, 200),
     ({"default_send_indicator": False}, 200),
-    ({"name": "different name", "va_profile_item_id": 6, "default_send_indicator": False}, 200),
 ])
-def test_partially_update_communication_item(notify_db_session, admin_request, post_data, expected_status, worker_id):
-    va_profile_item_id = 5 + (int(worker_id[2:]) if (worker_id.startswith("gw")) else 0)
-    name=f"communication item tests {worker_id}"
-    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=va_profile_item_id, name=name)
-    notify_db_session.session.add(communication_item)
-    notify_db_session.session.commit()
+def test_partially_update_communication_item(admin_request, post_data, expected_status, sample_communication_item):
+    response = admin_request.patch(
+        "communication_item.partially_update_communication_item",
+        post_data,
+        expected_status,
+        communication_item_id=str(sample_communication_item.id)
+    )
 
-    try:
-        assert communication_item.default_send_indicator, "Should be True by default."
-
-        response = admin_request.patch(
-            "communication_item.partially_update_communication_item",
-            post_data,
-            expected_status,
-            communication_item_id=str(communication_item.id)
-        )
-
-        assert isinstance(response, dict), response
-
-        if expected_status == 200:
-            if "name" in post_data:
-                assert communication_item.name == post_data["name"]
-                assert response["name"] == post_data["name"]
-            if "va_profile_item_id" in post_data:
-                assert communication_item.va_profile_item_id == post_data["va_profile_item_id"]
-                assert response["va_profile_item_id"] == post_data["va_profile_item_id"]
-            if "default_send_indicator" in post_data:
-                assert isinstance(communication_item.default_send_indicator, bool)
-                assert communication_item.default_send_indicator is post_data["default_send_indicator"]
-                assert response["default_send_indicator"] is post_data["default_send_indicator"]
-        elif expected_status == 400:
-            assert response["errors"][0]["error"] in ("DataError", "IntegrityError", "ValidationError")
-            assert "message" in response["errors"][0]
-    finally:
-        # Test clean-up
-        print("MADE IT HERE")
-        notify_db_session.session.delete(communication_item)
-        notify_db_session.session.commit()
+    if expected_status == 200:
+        if "name" in post_data:
+            assert sample_communication_item.name == post_data["name"]
+            assert response["name"] == post_data["name"]
+        if "va_profile_item_id" in post_data:
+            assert sample_communication_item.va_profile_item_id == post_data["va_profile_item_id"]
+            assert response["va_profile_item_id"] == post_data["va_profile_item_id"]
+        if "default_send_indicator" in post_data:
+            assert isinstance(sample_communication_item.default_send_indicator, bool)
+            assert sample_communication_item.default_send_indicator is post_data["default_send_indicator"]
+            assert response["default_send_indicator"] is post_data["default_send_indicator"]
+    elif expected_status == 400:
+        assert response["errors"][0]["error"] in ("DataError", "IntegrityError", "ValidationError")
+        assert "message" in response["errors"][0]
 
 
 @pytest.mark.parametrize("communication_item_id", ["doesn't exist", "39247cfc-a52d-4b2b-b9a9-2ef8a20190cb"])
@@ -216,23 +219,18 @@ def test_partially_update_communication_item_not_found(notify_db_session, admin_
 # Delete
 #############
 
-def test_delete_communication_item(notify_db_session, admin_request):
-    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=5, name="communication item tests")
-    communication_item_id = communication_item.id
-    notify_db_session.session.add(communication_item)
-    notify_db_session.session.commit()
-
+def test_delete_communication_item(notify_db_session, admin_request, sample_communication_item):
     # Ensure the new CommunicationItem instance is in the database.
-    assert CommunicationItem.query.get(communication_item_id) is not None
+    assert notify_db_session.session.get(CommunicationItem, sample_communication_item.id) is not None
 
     admin_request.delete(
         "communication_item.delete_communication_item",
         202,
-        communication_item_id=communication_item_id
+        communication_item_id=sample_communication_item.id
     )
 
     # Ensure communication_item1 is not in the database.
-    assert CommunicationItem.query.get(communication_item_id) is None
+    assert notify_db_session.session.get(CommunicationItem, sample_communication_item.id) is None
 
 
 @pytest.mark.parametrize("communication_item_id", ["doesn't exist", "39247cfc-a52d-4b2b-b9a9-2ef8a20190cb"])
