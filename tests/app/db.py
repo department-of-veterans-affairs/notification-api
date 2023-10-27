@@ -3,7 +3,6 @@ import json
 from datetime import datetime, date, timedelta
 
 from app import db
-from app.dao.communication_item_dao import dao_create_communication_item
 from app.dao.email_branding_dao import dao_create_email_branding
 from app.dao.inbound_sms_dao import dao_create_inbound_sms
 from app.dao.invited_org_user_dao import save_invited_org_user
@@ -57,8 +56,10 @@ from app.models import (
     TemplateFolder,
     Domain,
     NotificationHistory,
-    RecipientIdentifier, NOTIFICATION_STATUS_TYPES_COMPLETED,
-    DELIVERY_STATUS_CALLBACK_TYPE, WEBHOOK_CHANNEL_TYPE, CommunicationItem
+    RecipientIdentifier,
+    NOTIFICATION_STATUS_TYPES_COMPLETED,
+    DELIVERY_STATUS_CALLBACK_TYPE,
+    WEBHOOK_CHANNEL_TYPE,
 )
 from app.model import User
 from uuid import UUID, uuid4
@@ -197,18 +198,9 @@ def create_template(
         postage=None,
         process_type='normal',
         reply_to_email=None,
-        onsite_notification=False
+        onsite_notification=False,
+        communication_item_id=None
 ):
-    # The CommunicationItem fields "va_profile_item_id" and "name" must be unique.  Using a UUID for
-    # "name" is very unlikely to cause a collision.  If a test fails with a duplicate "va_profile_item_id",
-    # rerun the test.  See #1106 for a more elegant solution.
-    communication_item = CommunicationItem(
-        id=uuid4(),
-        va_profile_item_id=random.randint(1, 100000),
-        name=uuid4()
-    )
-    dao_create_communication_item(communication_item)
-
     data = {
         'name': template_name or '{} Template Name'.format(template_type),
         'template_type': template_type,
@@ -219,7 +211,7 @@ def create_template(
         'hidden': hidden,
         'folder': folder,
         'process_type': process_type,
-        'communication_item_id': communication_item.id,
+        'communication_item_id': communication_item_id,
         'reply_to_email': reply_to_email,
         'onsite_notification': onsite_notification
     }

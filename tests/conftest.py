@@ -77,6 +77,8 @@ def notify_db(notify_api):
     """
     Yield an instance of flask_sqlalchemy.SQLAlchemy.
         https://flask-sqlalchemy.palletsprojects.com/en/2.x/api/#flask_sqlalchemy.SQLAlchemy
+
+    Use this fixture in other session-scoped fixtures.
     """
 
     # Import current_app only after the app has been created and initialized via the notify_api fixture.
@@ -94,7 +96,7 @@ def notify_db(notify_api):
 
     yield db
 
-    # db.session.remove()
+    db.session.remove()
     db.engine.dispose()
 
     # TODO - We should delete the test database after all tests finish, but how do we do this
@@ -105,6 +107,10 @@ def notify_db(notify_api):
 
 @pytest.fixture(scope="function")
 def notify_db_session(notify_db):
+    """
+    Use this fixture with other function-scoped fixtures.
+    """
+
     yield notify_db
     notify_db.session.remove()
     notify_db.session.commit()

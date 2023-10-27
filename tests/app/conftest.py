@@ -15,7 +15,7 @@ from app.dao.jobs_dao import dao_create_job
 from app.dao.notifications_dao import dao_create_notification
 from app.dao.organisation_dao import dao_create_organisation
 from app.dao.provider_rates_dao import create_provider_rates
-from app.dao.services_dao import (dao_create_service, dao_add_user_to_service)
+from app.dao.services_dao import dao_create_service  # , dao_add_user_to_service TODO
 from app.dao.service_sms_sender_dao import dao_add_sms_sender_for_service
 from app.dao.templates_dao import dao_create_template
 from app.dao.users_dao import create_secret_code, create_user_code
@@ -28,7 +28,7 @@ from app.models import (
     CommunicationItem,
     EMAIL_TYPE,
     Fido2Key,
-    INBOUND_SMS_TYPE,
+    # INBOUND_SMS_TYPE,  TODO
     InvitedUser,
     Job,
     KEY_TYPE_NORMAL,
@@ -117,14 +117,18 @@ def service_factory(notify_db_session):
     return ServiceFactory()
 
 
-@pytest.fixture(scope='function')
-def sample_user(notify_db_session):
-    new_user = create_user()
+@pytest.fixture(scope="session")
+def sample_user(notify_db):
+    """
+    Use this session-scoped user for tests that don't need to modify the user.
+    """
 
-    yield new_user
+    user = create_user()
 
-    notify_db_session.session.delete(new_user)
-    notify_db_session.session.commit()
+    yield user
+
+    notify_db.session.delete(user)
+    notify_db.session.commit()
 
 
 @pytest.fixture(scope='function')
@@ -138,8 +142,8 @@ def sample_user_service_role(sample_user, sample_service):
 
 
 @pytest.fixture(scope='function')
-def sample_service_role_udpated(sample_user, sample_service):
-    return UserServiceRoles(
+def sample_service_role_udpated(notify_db_session, sample_user, sample_service):
+    user_service_role = UserServiceRoles(
         user_id=sample_user.id,
         service_id=sample_service.id,
         role="admin",
@@ -147,13 +151,23 @@ def sample_service_role_udpated(sample_user, sample_service):
         updated_at=datetime.utcnow(),
     )
 
+    yield user_service_role
 
-@pytest.fixture(scope='function')
-def notify_user(notify_db_session):
-    return create_user(
-        email="notify-service-user@digital.cabinet-office.gov.uk",
-        id_=current_app.config['NOTIFY_USER_ID']
+    notify_db_session.session.delete(user_service_role)
+    notify_db_session.session.commit()
+
+
+@pytest.fixture(scope="function")
+def notify_user(notify_db_session, worker_id):
+    new_user = create_user(
+        email=f"notify-service-user-{worker_id}@digital.cabinet-office.gov.uk",
+        id_=current_app.config["NOTIFY_USER_ID"]
     )
+
+    yield new_user
+
+    notify_db_session.session.delete(new_user)
+    notify_db_session.session.commit()
 
 
 def create_code(notify_db_session, code_type, usr=None, code=None):
@@ -352,62 +366,75 @@ def sample_notification_model_with_organization(
 
 
 def sample_service_helper(
-        notify_db_session,
-        service_name=None,
-        user=None,
-        restricted=False,
-        limit=1000,
+        user,
+        name,
         email_from=None,
+        limit=1000,
+        restricted=False,
+        research_mode=False,
         permissions=None,
-        research_mode=None
+        crown=None
 ):
-    if user is None:
-        user = create_user()
-    if service_name is None:
-        # This is a unique field.  Running tests in parallel will raise IntegrityError
-        # if this is hard-coded to a static value.
-        service_name = str(uuid4())
-    if email_from is None:
-        email_from = service_name.lower().replace(' ', '.')
+    """
+    Create a new service for the given user using model defaults, where available.
+    A service must have a user and a unique name.
+    """
 
-    service = Service.query.filter_by(name=service_name).first()
-    if service is None:
-        data = {
-            'name': service_name,
-            'message_limit': limit,
-            'restricted': restricted,
-            'email_from': email_from,
-            'created_by': user,
-            'crown': True,
-        }
-        service = Service(**data)
-        dao_create_service(service, user, service_permissions=permissions)
+    data = {
+        "name": name,
+        "message_limit": limit,
+        "restricted": restricted,
+        "email_from": email_from,
+        "created_by": user,
+        "created_by_id": user.id,
+        "crown": crown,
+        "research_mode": research_mode,
+    }
 
-        if research_mode:
-            service.research_mode = research_mode
-    else:
-        if user not in service.users:
-            dao_add_user_to_service(service, user)
-
-    if permissions and INBOUND_SMS_TYPE in permissions:
-        create_inbound_number('12345', service_id=service.id)
-
+    service = Service(**data)
+    # TODO - Do something with the permissions
+    # dao_create_service(service, user, service_permissions=permissions)
     return service
 
 
-@pytest.fixture(scope="function")
-def sample_service(notify_db_session):
-    return sample_service_helper(notify_db_session)
+@pytest.fixture(scope="session")
+def sample_service(notify_db, sample_user, worker_id):
+    """
+    Use this session-scoped service for tests that don't need to modify the service.
+    """
+
+    service = sample_service_helper(sample_user, f"session service {worker_id}")
+    notify_db.session.add(service)
+    notify_db.session.commit()
+
+    yield service
+
+    notify_db.session.delete(service)
+    notify_db.session.commit()
 
 
 @pytest.fixture(scope="function")
-def sample_service_email_permission(notify_db_session):
-    return sample_service_helper(notify_db_session, permissions=[EMAIL_TYPE])
+def sample_service_email_permission(notify_db_session, sample_user, worker_id):
+    service = sample_service_helper(sample_user, f"function e-mail service {worker_id}", permissions=[EMAIL_TYPE])
+    notify_db_session.session.add(service)
+    notify_db_session.session.commit()
+
+    yield service
+
+    notify_db_session.session.delete(service)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture(scope="function")
-def sample_service_sms_permission(notify_db_session):
-    return sample_service_helper(notify_db_session, permissions=[SMS_TYPE])
+def sample_service_sms_permission(notify_db_session, sample_user, worker_id):
+    service = sample_service_helper(sample_user, f"function SMS {worker_id}", permissions=[SMS_TYPE])
+    notify_db_session.session.add(service)
+    notify_db_session.session.commit()
+
+    yield service
+
+    notify_db_session.session.delete(service)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture(scope='function', name='sample_service_full_permissions')
@@ -600,18 +627,28 @@ def sample_email_template_with_onsite_true(sample_service):
     )
 
 
-@pytest.fixture(scope='function')
-def sample_api_key(notify_db,
-                   notify_db_session,
-                   service=None,
-                   key_type=KEY_TYPE_NORMAL,
-                   name=None):
-    if service is None:
-        service = create_service(check_if_service_exists=True)
-    data = {'service': service, 'name': name or uuid4(), 'created_by': service.created_by, 'key_type': key_type}
+@pytest.fixture(scope="session")
+def sample_api_key(notify_db, sample_service, worker_id):
+    """
+    Yield a session-scoped API key for the sample service.
+    """
+
+    data = {
+        'service': sample_service,
+        'name': worker_id,
+        'created_by': sample_service.created_by,
+        'key_type': KEY_TYPE_NORMAL,
+        'secret': uuid4(),
+    }
+
     api_key = ApiKey(**data)
-    save_model_api_key(api_key)
-    return api_key
+    notify_db.session.add(api_key)
+    notify_db.session.commit()
+
+    yield api_key
+
+    notify_db.session.delete(api_key)
+    notify_db.session.commit()
 
 
 @pytest.fixture(scope='function')
@@ -1606,6 +1643,8 @@ def sample_sms_sender(sample_service):
 
 @pytest.fixture(scope="function")
 def sample_communication_item(notify_db_session, worker_id):
+    # Although unlikely, this can cause a duplicate Profile ID contraint failure.
+    # If that happens, re-run the failing tests.
     va_profile_item_id = randint(500, 100000)
     communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=va_profile_item_id, name=worker_id)
     notify_db_session.session.add(communication_item)

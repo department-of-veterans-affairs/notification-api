@@ -405,16 +405,25 @@ class Service(db.Model, Versioned):
         service_sms_senders is a back reference from the ServiceSmsSender table.
         """
 
-        default_sms_sender = [x for x in self.service_sms_senders if x.is_default]
-        return default_sms_sender[0].sms_sender
+        for sms_sender in self.service_sms_senders:
+            if sms_sender.is_default:
+                return sms_sender.sms_sender
+
+        return None
 
     def get_default_reply_to_email_address(self):
-        default_reply_to = [x for x in self.reply_to_email_addresses if x.is_default]
-        return default_reply_to[0].email_address if default_reply_to else None
+        for reply_to in self.reply_to_email_addresses:
+            if reply_to.is_default:
+                return reply_to.email_address
+
+        return None
 
     def get_default_letter_contact(self):
-        default_letter_contact = [x for x in self.letter_contacts if x.is_default]
-        return default_letter_contact[0].contact_block if default_letter_contact else None
+        for letter_contact in self.letter_contacts:
+            if letter_contact.is_default:
+                return letter_contact.contact_block
+
+        return None
 
     def has_permissions(self, permissions_to_check_for):
         if isinstance(permissions_to_check_for, InstrumentedList):
