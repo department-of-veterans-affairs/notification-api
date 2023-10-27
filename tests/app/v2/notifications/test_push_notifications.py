@@ -43,8 +43,8 @@ def test_returns_not_implemented_if_feature_flag_disabled(client, mocker, servic
 
 
 class MockRequest:
-    @classmethod
-    def post(self, args, kwargs):
+    @staticmethod
+    def post(*args, **kwargs):
         raise requests.exceptions.ReadTimeout
 
 
