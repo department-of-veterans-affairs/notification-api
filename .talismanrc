@@ -136,7 +136,7 @@ fileignoreconfig:
     - filename: tests/conftest.py
       checksum: 81db237c7a3abb49d28f8fe11f2a72b2879096882eb79a6ed2556ec484eaa1e3
     - filename: tests/app/conftest.py
-      checksum: 7a6e2dc6855fc6df998c68222f6054864a602e92e4a795dfdbd6e8e73c64b217
+      checksum: 66ae2649c1945f88130f36756d5daf65b35a15aeb4d1f6d56432c7026d21cd18
     - filename: tests/app/notifications/test_process_client_response.py
       checksum: 6a72967293c852a49f04203c83dd4c2591226874e96f34bebc434d5dfc204215
     - filename: app/celery/service_callback_tasks.py
@@ -337,3 +337,5 @@ fileignoreconfig:
       checksum: 68a0f794fd010f7c2916de4e1af28aabba4e6465a8020f8f3b9f5f2e4d1bfa1a
     - filename: tests/app/v3/notifications/test_rest.py
       checksum: f970efab73ad52e3e203fe0805925929033a72d9975ec1deb077331e9409f06f
+    - filename: tests/app/api_key/test_rest.py
+      checksum: 5de25c1d4f6f812a2a4124c3f36171d91ad026aa9a26e7aa098c65d037380869

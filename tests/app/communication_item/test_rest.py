@@ -7,7 +7,7 @@ via Mountebank.  These rows have va_profile_item_id values 1-4.
 
 import pytest
 from app.models import CommunicationItem
-from uuid import UUID, uuid4
+from uuid import UUID
 
 
 #############
@@ -98,7 +98,7 @@ def test_create_communication_item_duplicate_name(admin_request, sample_communic
     assert "message" in response["errors"][0]
 
 
-def test_create_communication_item_duplicate_name(admin_request, sample_communication_item):
+def test_create_communication_item_duplicate_va_profile_item_id(admin_request, sample_communication_item):
     """ The va_profile_item_id must be unique in the table. """
 
     post_data = {
