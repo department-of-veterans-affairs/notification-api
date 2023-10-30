@@ -183,7 +183,7 @@ def _calculate_pricing(price_in_millicents_usd: float, notification: Notificatio
     current_app.logger.info("Calculate Pricing")
     if price_in_millicents_usd > 0.0:
         dao_update_notification_by_id(
-            id=notification.id,
+            notification_id=notification.id,
             status=notification_status,
             segments_count=number_of_message_parts,
             cost_in_millicents=price_in_millicents_usd,
