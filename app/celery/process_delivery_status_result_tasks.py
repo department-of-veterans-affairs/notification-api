@@ -5,7 +5,7 @@ from app.celery.process_pinpoint_inbound_sms import CeleryEvent
 
 from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
-    # dao_update_notification,
+    dao_update_notification_by_id,
     update_notification_status_by_id,
     FINAL_STATUS_STATES
 )
@@ -15,19 +15,11 @@ from flask import current_app
 
 from notifications_utils.statsd_decorators import statsd
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-from sqlalchemy import update
-from app import notify_celery, statsd_client, clients, db
+from app import notify_celery, statsd_client, clients
 from app.celery.exceptions import AutoRetryException
 from app.dao.service_callback_dao import dao_get_callback_include_payload_status
 
 from app.models import Notification
-# (
-#     NOTIFICATION_DELIVERED,
-#     NOTIFICATION_TECHNICAL_FAILURE,
-#     NOTIFICATION_PERMANENT_FAILURE,
-#     Notification,
-#     NOTIFICATION_PREFERENCES_DECLINED,
-# )
 
 
 # Create SQS Queue for Process Deliver Status.
@@ -190,39 +182,13 @@ def _calculate_pricing(price_in_millicents_usd: float, notification: Notificatio
     """ Calculate pricing """
     current_app.logger.info("Calculate Pricing")
     if price_in_millicents_usd > 0.0:
-        # notification.status = notification_status
-        # notification.segments_count = number_of_message_parts
-        # notification.cost_in_millicents = price_in_millicents_usd
-        # dao_update_notification(notification)
-        update_statement = (
-            update(Notification)
-            # db.and_(Notification.id == notification.id, Notification.status != NOTIFICATION_DELIVERED)
-            .where(db.and_(Notification.id == notification.id, Notification.status != FINAL_STATUS_STATES))
-            .values(
-                status=notification_status,
-                segments_count=number_of_message_parts,
-                cost_in_millicents=price_in_millicents_usd,
-                updated_at=datetime.utcnow()
-            )
+        dao_update_notification_by_id(
+            id=notification.id,
+            status=notification_status,
+            segments_count=number_of_message_parts,
+            cost_in_millicents=price_in_millicents_usd,
+            updated_at=datetime.utcnow()
         )
-
-        print('evan_test')
-        print(update_statement)
-
-        try:
-            db.session.execute(update_statement)
-        except NoResultFound as e:
-            print(f'e_test - {e}')
-            current_app.logger.exception(
-                'No result found when attempting to update a notification to status %s - The exception: %s',
-                e, notification_status
-            )
-        except Exception as e:
-            print(f'e_test - {e}')
-            current_app.logger.exception(
-                'An error occured when attempting to update a notification to status %s - The exception %s',
-                e, notification_status
-            )
     else:
         # notification_id -  is the UID in the database for the notification
         # status - is the notification platform status generated earlier
