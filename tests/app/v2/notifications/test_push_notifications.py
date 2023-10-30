@@ -43,12 +43,6 @@ def test_returns_not_implemented_if_feature_flag_disabled(client, mocker, servic
     assert response.status_code == 501
 
 
-class MockRequest:
-    @staticmethod
-    def post(*args, **kwargs):
-        raise requests.exceptions.ReadTimeout
-
-
 class TestValidations:
 
     def test_checks_service_permissions(self, client, notify_db_session):
@@ -139,7 +133,7 @@ class TestPushSending:
 
         assert response.status_code == 201
 
-    def test_returns_201_after_read_timeout(self, client, service_with_push_permission, vetext_client, mocker):
+    def test_returns_201_after_read_timeout(self, client, service_with_push_permission, vetext_client):
         with requests_mock.Mocker() as m:
             m.post(f'{client.application.config["VETEXT_URL"]}/mobile/push/send', exc=requests.exceptions.ReadTimeout)
         response = post_send_notification(client, service_with_push_permission, 'push', push_request)
