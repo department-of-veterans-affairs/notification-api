@@ -113,7 +113,7 @@ def country_records_delivery(phone_prefix):
 
 
 def _get_notification_status_update_statement(notification_id: str, status: str):
-    current_status = Notification.query.get(notification_id).status
+    current_status = Notification.query.filter(Notification.id == notification_id).one().status
     status = _decide_permanent_temporary_failure(current_status=current_status, status=status)
 
     if status in TRANSIENT_NOTIFICATION_STATUSES and current_status in TRANSIENT_NOTIFICATION_STATUSES:
@@ -169,20 +169,19 @@ def _update_notification_status(notification, status):
 
     try:
         db.session.execute(update_statement)
+        db.session.commit()
     except NoResultFound as e:
-        print(f'e_test - {e}')
         current_app.logger.exception(
             'No result found when attempting to update notification %s to status %s - The exception: %s',
             notification.id, status, e
         )
     except Exception as e:
-        print(f'e_test - {e}')
         current_app.logger.exception(
             'An error occured when attempting to update notification %s to status %s - The exception %s',
             notification.id, status, e
         )
 
-    return notification
+    return Notification.query.filter(Notification.id == notification.id).one()
 
 
 @statsd(namespace="dao")
@@ -222,32 +221,6 @@ def update_notification_status_by_id(
 
     if is_feature_enabled(FeatureFlag.NOTIFICATION_FAILURE_REASON_ENABLED) and status_reason:
         notification.status_reason = status_reason
-
-    # # prevents sent -> sending
-    # if (notification.status == NOTIFICATION_SENT) and (status == NOTIFICATION_SENDING):
-    #     current_app.logger.warning(
-    #         'attempt was made to transition notification id %s from %s to %s',
-    #         notification_id,
-    #         notification.status,
-    #         status
-    #     )
-    #     return None
-
-    # # the new and current status must both be in the order matrix
-    # if (current_status in order_matrix) and (status in order_matrix):
-    #     # get the order of the statuses
-    #     current_status_index = order_matrix.index(notification.status)
-    #     new_status_index = order_matrix.index(status)
-
-    #     # do not update the database if the new status happens before the current status in the database
-    #     if new_status_index < current_status_index:
-    #         current_app.logger.warning(
-    #             'attempt was made to transition notification id %s from %s to %s',
-    #             notification_id,
-    #             notification.status,
-    #             status
-    #         )
-    #         return None
 
     return _update_notification_status(
         notification=notification,
@@ -308,6 +281,7 @@ def dao_update_notification_by_id(id: str, **kwargs):
 
     try:
         db.session.execute(update_statement)
+        db.session.commit()
     except NoResultFound as e:
         current_app.logger.exception(
             'No notification found with id %s when attempting to update - exception %s', id, e
