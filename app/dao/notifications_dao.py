@@ -16,7 +16,7 @@ from notifications_utils.recipients import (
 )
 from notifications_utils.statsd_decorators import statsd
 from notifications_utils.timezones import convert_local_timezone_to_utc, convert_utc_to_local_timezone
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import asc, desc, func, select, update
 from sqlalchemy.engine.row import Row
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
@@ -46,6 +46,7 @@ from app.models import (
     NOTIFICATION_TEMPORARY_FAILURE,
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_SENT,
+    NOTIFICATION_PREFERENCES_DECLINED,
     SMS_TYPE,
     EMAIL_TYPE,
     ServiceDataRetention,
@@ -62,6 +63,13 @@ TRANSIENT_NOTIFICATION_STATUSES = {
     NOTIFICATION_PENDING_VIRUS_CHECK,
     NOTIFICATION_TEMPORARY_FAILURE
 }
+
+FINAL_STATUS_STATES = [
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_TECHNICAL_FAILURE,
+    NOTIFICATION_PREFERENCES_DECLINED,
+]
 
 
 @statsd(namespace="dao")
@@ -106,8 +114,50 @@ def country_records_delivery(phone_prefix):
 
 def _update_notification_status(notification, status):
     status = _decide_permanent_temporary_failure(current_status=notification.status, status=status)
-    notification.status = status
-    dao_update_notification(notification)
+    # notification.status = status
+    # dao_update_notification(notification)
+
+    if status in FINAL_STATUS_STATES:
+        update_statement = (
+            update(Notification)
+            # db.and_(Notification.id == notification.id, Notification.status != FINAL_STATUS_STATES)
+            .where(Notification.id == notification.id)
+            .values(
+                status=status,
+                updated_at=datetime.utcnow()
+            )
+        )
+    else:
+        update_statement = (
+            update(Notification)
+            .where(
+                db.and_(
+                    Notification.id == notification.id,
+                    Notification.status.not_in(FINAL_STATUS_STATES)
+                )
+            )
+            .values(
+                status=status,
+                updated_at=datetime.utcnow()
+            )
+        )
+
+    try:
+        db.session.execute(update_statement)
+
+        # only update the status here if the query executes successfully
+        notification.status = status
+    except NoResultFound as e:
+        print(f'e_test - {e}')
+        current_app.logger.exception(
+            'No result found when attempting to update a notification to status %s - The exception: %s', e, status
+        )
+    except Exception as e:
+        print(f'e_test - {e}')
+        current_app.logger.exception(
+            'An error occured when attempting to update a notification to status %s - The exception %s', e, status
+        )
+
     return notification
 
 
@@ -142,6 +192,7 @@ def update_notification_status_by_id(
 
     if notification.international and not country_records_delivery(notification.phone_prefix):
         return None
+
     if not notification.sent_by and sent_by:
         notification.sent_by = sent_by
 
