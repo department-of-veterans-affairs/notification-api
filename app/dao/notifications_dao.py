@@ -113,12 +113,19 @@ def country_records_delivery(phone_prefix):
 
 
 def _get_notification_status_update_statement(notification_id: str, status: str):
+    """
+    Generates an update statement for the given notification id and status.
+    Preserves status order and ensures a transient status will not override a final status.
+    :param notification_id: String value of notification uuid to be updated
+    :param status: String value of the status the given notification will attempt to update to
+    :return: An update statement to be executed, or None
+    """
     current_status = Notification.query.filter(Notification.id == notification_id).one().status
     status = _decide_permanent_temporary_failure(current_status=current_status, status=status)
 
+    # do not update if the incoming status happens before the current status in the database
     if status in TRANSIENT_NOTIFICATION_STATUSES and current_status in TRANSIENT_NOTIFICATION_STATUSES:
         if TRANSIENT_NOTIFICATION_STATUSES.index(status) < TRANSIENT_NOTIFICATION_STATUSES.index(current_status):
-            # do not update the database if the new status happens before the current status in the database
             current_app.logger.warning(
                 'attempt was made to transition notification id %s from %s to %s',
                 notification_id,
@@ -130,7 +137,6 @@ def _get_notification_status_update_statement(notification_id: str, status: str)
     if status in FINAL_STATUS_STATES:
         update_statement = (
             update(Notification)
-            # db.and_(Notification.id == notification.id, Notification.status != FINAL_STATUS_STATES)
             .where(Notification.id == notification_id)
             .values(
                 status=status,
@@ -138,6 +144,7 @@ def _get_notification_status_update_statement(notification_id: str, status: str)
             )
         )
     else:
+        # when updating to status not in a final state, make sure notification is not in final state via query
         update_statement = (
             update(Notification)
             .where(
@@ -194,8 +201,6 @@ def update_notification_status_by_id(
         current_status: str = None
 ) -> Notification:
 
-    # the order of notification status that must be maintained
-    # order_matrix = (NOTIFICATION_SENDING, NOTIFICATION_SENT, NOTIFICATION_DELIVERED)
     notification_query = Notification.query.with_for_update().filter(Notification.id == notification_id)
     if current_status is not None:
         notification_query.filter(Notification.status == current_status)
@@ -222,9 +227,11 @@ def update_notification_status_by_id(
     if is_feature_enabled(FeatureFlag.NOTIFICATION_FAILURE_REASON_ENABLED) and status_reason:
         notification.status_reason = status_reason
 
-    return _update_notification_status(
-        notification=notification,
-        status=status
+    return dao_update_notification_by_id(
+        id=notification.id,
+        status=status,
+        status_reason=notification.status_reason,
+        sent_by=notification.sent_by
     )
 
 
@@ -262,13 +269,17 @@ def dao_update_notification_by_id(id: str, **kwargs):
     :param id: The notification uuid in string form
     :param kwargs: The notification key-value pairs to be updated
       Note: Ensure keys are valid according to notification model
+    :return: Notification or None
     """
     kwargs['updated_at'] = datetime.utcnow()
     status = kwargs.get('status')
 
     if status is not None:
         update_statement = _get_notification_status_update_statement(notification_id=id, status=status)
-        update_statement.values(kwargs)
+
+        # statement can be None, must check in this instance
+        if update_statement is not None:
+            update_statement.values(kwargs)
     elif id is not None:
         update_statement = (
             update(Notification)
@@ -277,7 +288,7 @@ def dao_update_notification_by_id(id: str, **kwargs):
         )
     else:
         current_app.logger.error('Programming error. Attempting to update without providing required ID field.')
-        return
+        return None
 
     try:
         db.session.execute(update_statement)
@@ -286,11 +297,15 @@ def dao_update_notification_by_id(id: str, **kwargs):
         current_app.logger.exception(
             'No notification found with id %s when attempting to update - exception %s', id, e
         )
+        return None
     except Exception as e:
         current_app.logger.exception(
             'Exception thrown attempting to update notification, given parameters for updating notification may '
             'be incorrect - Exception: %s', e
         )
+        return None
+
+    return Notification.query.filter(Notification.id == id).one()
 
 
 @statsd(namespace="dao")
