@@ -1,6 +1,7 @@
 import datetime
 import uuid
 import itertools
+from typing import Dict, Any
 from app import (
     DATETIME_FORMAT,
     encryption,
@@ -35,6 +36,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.collections import attribute_mapped_collection, InstrumentedList
+
 
 
 EMAIL_TYPE = 'email'
@@ -2218,3 +2220,23 @@ class UserServiceRoles(db.Model):
             'created_at': self.created_at.strftime(DATETIME_FORMAT),
             'updated_at': self.updated_at.strftime(DATETIME_FORMAT) if self.updated_at else None
         }
+
+
+class NotificationFailures(db.Model):
+    """
+    A SQLAlchemy model representing the 'notification_failures' table.
+
+    Attributes:
+        notification_id (int): The primary key of the table.
+        body (JSONB): Column used to store the details of the notification failure in a JSON object.
+
+    Methods:
+        serialize: Converts the 'body' attribute to a dictionary for easier consumption in Python.
+    """
+    __tablename__ = 'notification_failures'
+
+    notification_id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(JSONB)
+    
+    def serialize(self) -> Dict[str, Any]:
+        return self.body
