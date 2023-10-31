@@ -1,7 +1,7 @@
 """
 Test CRUD endpoints for the CommunicationItem model.
 
-Tests running locally in Docker expect for the table communication_items to contain 4 rows preseeded
+Tests running locally in Docker expect the table communication_items to contain 4 rows preseeded
 via Mountebank.  These rows have va_profile_item_id values 1-4.
 """
 
