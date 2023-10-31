@@ -9,7 +9,6 @@ from app.clients.email import EmailClient
 from app.clients.sms import SmsClient
 from app.clients.sms.firetext import FiretextClient
 from app.dao.api_key_dao import save_model_api_key
-from app.dao.communication_item_dao import dao_create_communication_item
 from app.dao.invited_user_dao import save_invited_user
 from app.dao.jobs_dao import dao_create_job
 from app.dao.notifications_dao import dao_create_notification
@@ -17,7 +16,6 @@ from app.dao.organisation_dao import dao_create_organisation
 from app.dao.provider_rates_dao import create_provider_rates
 from app.dao.services_dao import dao_create_service  # , dao_add_user_to_service TODO
 from app.dao.service_sms_sender_dao import dao_add_sms_sender_for_service
-from app.dao.templates_dao import dao_create_template
 from app.dao.users_dao import create_secret_code, create_user_code
 from app.dao.fido2_key_dao import save_fido2_key
 from app.dao.login_event_dao import save_login_event
@@ -36,6 +34,7 @@ from app.models import (
     KEY_TYPE_TEAM,
     LETTER_TYPE,
     LoginEvent,
+    NORMAL,
     Notification,
     NOTIFICATION_STATUS_TYPES_COMPLETED,
     NotificationHistory,
@@ -366,14 +365,14 @@ def sample_notification_model_with_organization(
 
 
 def sample_service_helper(
-        user,
-        name,
-        email_from=None,
-        limit=1000,
-        restricted=False,
-        research_mode=False,
-        permissions=None,
-        crown=None
+    user,
+    name,
+    email_from=None,
+    limit=1000,
+    restricted=False,
+    research_mode=False,
+    permissions=None,
+    crown=None
 ):
     """
     Create a new service for the given user using model defaults, where available.
@@ -463,53 +462,124 @@ def sample_service_data(sample_service):
     return ServiceData(sample_service)
 
 
-@pytest.fixture(scope='function')
-def sample_template(
-        notify_db,
-        notify_db_session,
-        template_name="Template Name",
-        template_type="sms",
-        content="This is a template:\nwith a newline",
-        archived=False,
-        hidden=False,
-        subject_line='Subject',
-        user=None,
-        service=None,
-        created_by=None,
-        process_type='normal',
-        permissions=[EMAIL_TYPE, SMS_TYPE],
-        reply_to_email=None
-):
-    if user is None:
-        user = create_user()
-    if service is None:
-        service = Service.query.filter_by(name='Sample service').first()
-        if not service:
-            service = create_service(service_permissions=permissions, check_if_service_exists=True)
-    if created_by is None:
-        created_by = create_user()
+def sample_template_helper(
+    name,
+    template_type,
+    service,
+    user,
+    content="This is a template.",
+    archived=False,
+    hidden=False,
+    subject_line="Subject",
+    reply_to_email=None,
+    process_type=NORMAL,
+    version=0
+) -> dict:
+    """
+    Return a dictionary of data for creating a Template or TemplateHistory instance.
+    """
 
     data = {
-        'name': template_name,
-        'template_type': template_type,
-        'content': content,
-        'service': service,
-        'created_by': created_by,
-        'archived': archived,
-        'hidden': hidden,
-        'process_type': process_type,
-        'reply_to_email': reply_to_email
+        "name": name,
+        "template_type": template_type,
+        "content": content,
+        "service": service,
+        "created_by": user,
+        "archived": archived,
+        "hidden": hidden,
+        "reply_to_email": reply_to_email,
+        "process_type": process_type,
+        "version": version,
     }
-    if template_type in [EMAIL_TYPE, LETTER_TYPE]:
-        data.update({
-            'subject': subject_line
-        })
-    if template_type == LETTER_TYPE:
-        data['postage'] = 'second'
-    template = Template(**data)
-    dao_create_template(template)
 
-    return template
+    if template_type == EMAIL_TYPE:
+        data["subject"] = subject_line
+
+    return data
+
+
+@pytest.fixture(scope="session")
+def sample_sms_template(notify_db, sample_service, sample_user, worker_id):
+    """
+    Use this session-scoped SMS template for tests that don't need to modify the template.
+    """
+
+    template_data = sample_template_helper(f"session sms template {worker_id}", SMS_TYPE, sample_service, sample_user)
+    template = Template(**template_data)
+    notify_db.session.add(template)
+    notify_db.session.commit()
+
+    yield template
+
+    notify_db.session.delete(template)
+    notify_db.session.commit()
+
+
+@pytest.fixture(scope="session")
+def sample_sms_template_history(notify_db, sample_service, sample_user, worker_id):
+    """
+    Use this session-scoped SMS TemplateHistory for tests that don't need to modify templates.
+    Create a template history instance for any template instance used to create a Notification instance.
+    Otherwise, attempting to create a Notification will lead to an InegrityError.
+
+    Note that Notification instances have foreign keys to TemplateHistory instances rather than
+    Template instances.
+    """
+
+    template_data = sample_template_helper(
+        f"session sms template history {worker_id}", SMS_TYPE, sample_service, sample_user
+    )
+    template_history = TemplateHistory(**template_data)
+    notify_db.session.add(template_history)
+    notify_db.session.commit()
+
+    yield template_history
+
+    notify_db.session.delete(template_history)
+    notify_db.session.commit()
+
+
+@pytest.fixture(scope="session")
+def sample_email_template(notify_db, sample_service, sample_user, worker_id):
+    """
+    Use this session-scoped e-mail template for tests that don't need to modify the template.
+    """
+
+    template_data = sample_template_helper(
+        f"session e-mail template {worker_id}", EMAIL_TYPE, sample_service, sample_user
+    )
+    template = Template(**template_data)
+    notify_db.session.add(template)
+    notify_db.session.commit()
+    print("TEMPLATE ID =", template.id)  # TODO
+    yield template
+
+    notify_db.session.delete(template)
+    notify_db.session.commit()
+
+
+@pytest.fixture(scope="session")
+def sample_email_template_history(notify_db, sample_service, sample_user, worker_id):
+    """
+    Use this session-scoped e-mail TemplateHistory for tests that don't need to modify templates.
+    Create a template history instance for any template instance used to create a Notification instance.
+    Otherwise, attempting to create a Notification will lead to an InegrityError.
+
+    Note that Notification instances have foreign keys to TemplateHistory instances rather than
+    Template instances.
+    """
+
+    template_data = sample_template_helper(
+        f"session e-mail template history {worker_id}", EMAIL_TYPE, sample_service, sample_user
+    )
+    template_history = TemplateHistory(**template_data)
+    notify_db.session.add(template_history)
+    notify_db.session.commit()
+    print("TEMPLATE HISTORY ID =", template_history.id)  # TODO
+    yield template_history
+
+    notify_db.session.delete(template_history)
+    notify_db.session.commit()
 
 
 @pytest.fixture(scope='function')
@@ -530,42 +600,6 @@ def sample_sms_template_with_html(sample_service):
     # deliberate space and title case in placeholder
     sample_service.prefix_sms = True
     return create_template(sample_service, content="Hello (( Name))\nHere is <em>some HTML</em> & entities")
-
-
-@pytest.fixture(scope='function')
-def sample_email_template(
-        notify_db,
-        notify_db_session,
-        template_name="Email Template Name",
-        template_type="email",
-        user=None,
-        content="This is a template",
-        subject_line='Email Subject',
-        service=None,
-        permissions=[EMAIL_TYPE, SMS_TYPE]):
-    if user is None:
-        user = create_user()
-    if service is None:
-        service = create_service(
-            user=user,
-            service_permissions=permissions,
-            check_if_service_exists=True,
-            smtp_user="smtp_user")
-    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=1, name='some name')
-    dao_create_communication_item(communication_item)
-
-    data = {
-        'name': template_name,
-        'template_type': template_type,
-        'content': content,
-        'service': service,
-        'created_by': user,
-        'subject': subject_line,
-        'communication_item_id': communication_item.id
-    }
-    template = Template(**data)
-    dao_create_template(template)
-    return template
 
 
 @pytest.fixture(scope='function')
@@ -634,11 +668,11 @@ def sample_api_key(notify_db, sample_service, worker_id):
     """
 
     data = {
-        'service': sample_service,
-        'name': worker_id,
-        'created_by': sample_service.created_by,
-        'key_type': KEY_TYPE_NORMAL,
-        'secret': uuid4(),
+        "service": sample_service,
+        "name": worker_id,
+        "created_by": sample_service.created_by,
+        "key_type": KEY_TYPE_NORMAL,
+        "secret": uuid4(),
     }
 
     api_key = ApiKey(**data)
