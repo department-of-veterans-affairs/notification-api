@@ -37,8 +37,6 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.collections import attribute_mapped_collection, InstrumentedList
 
-
-
 EMAIL_TYPE = 'email'
 LETTER_TYPE = 'letter'
 MOBILE_TYPE = 'mobile'
