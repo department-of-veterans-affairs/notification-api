@@ -2228,6 +2228,8 @@ class NotificationFailures(db.Model):
 
     Attributes:
         notification_id (int): The primary key of the table.
+        created_at (DateTime): Record date and time of creation. This field will be used for pg_cron
+        job delete records older then 30 days
         body (JSONB): Column used to store the details of the notification failure in a JSON object.
 
     Methods:
@@ -2236,7 +2238,8 @@ class NotificationFailures(db.Model):
     __tablename__ = 'notification_failures'
 
     notification_id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     body = db.Column(JSONB)
-    
+
     def serialize(self) -> Dict[str, Any]:
         return self.body
