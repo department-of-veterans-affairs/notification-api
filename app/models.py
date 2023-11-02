@@ -2237,7 +2237,7 @@ class NotificationFailures(db.Model):
 
     notification_id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    body = db.Column(JSONB)
+    body = db.Column(JSONB, nullable=False)
 
     def serialize(self) -> Dict[str, Any]:
         return self.body
