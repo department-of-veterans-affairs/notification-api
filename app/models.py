@@ -2222,7 +2222,9 @@ class UserServiceRoles(db.Model):
 
 class NotificationFailures(db.Model):
     """
-    A SQLAlchemy model representing the 'notification_failures' table.
+    A SQLAlchemy model representing the 'notification_failures' table. This table captures infrequent,
+    invalid v3 requests that passed schema checks but failed during processing and could not be added
+    to the notifications table.
 
     Attributes:
         notification_id (int): The primary key of the table.
@@ -2235,7 +2237,7 @@ class NotificationFailures(db.Model):
     """
     __tablename__ = 'notification_failures'
 
-    notification_id = db.Column(db.Integer, primary_key=True)
+    notification_id = db.Column(UUID(as_uuid=True), primary_key=True, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     body = db.Column(JSONB, nullable=False)
 
