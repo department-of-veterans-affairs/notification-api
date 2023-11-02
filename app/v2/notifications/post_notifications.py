@@ -65,7 +65,7 @@ from app.utils import get_public_notify_type_text
 @v2_notification_blueprint.route('/<notification_type>', methods=['POST'])
 def post_notification(notification_type):  # noqa: C901
 
-    form = None
+    form = {}
     try:
         request_json = request.get_json()
     except werkzeug.exceptions.BadRequest as e:

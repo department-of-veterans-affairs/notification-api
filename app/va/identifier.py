@@ -39,16 +39,15 @@ class UnsupportedIdentifierException(Exception):
     failure_reason = 'Unsupported identifier'
 
 
-def transform_to_fhir_format(recipient_identifier):
+def transform_to_fhir_format(recipient_identifier: RecipientIdentifier):
 
-    identifier_type = "Unknown Type"
     try:
         identifier_type = IdentifierType(recipient_identifier.id_type)
         return f"{recipient_identifier.id_value}{FHIR_FORMAT_SUFFIXES[identifier_type]}"
     except ValueError as e:
         raise UnsupportedIdentifierException(f"No identifier of type: {recipient_identifier.id_type}") from e
     except KeyError as e:
-        raise UnsupportedIdentifierException(f"No mapping for identifier: {identifier_type}") from e
+        raise UnsupportedIdentifierException(f"No mapping for identifier: {recipient_identifier.id_type}") from e
 
 
 def transform_from_fhir_format(fhir_format_identifier: str) -> str:
