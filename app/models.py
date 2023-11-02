@@ -2233,7 +2233,7 @@ class NotificationFailures(db.Model):
         body (JSONB): Column used to store the details of the notification failure in a JSON object.
 
     Methods:
-        serialize: Converts the 'body' attribute to a dictionary for easier consumption in Python.
+        serialize: Converts the 'body' attribute to a dictionary for easier consumption.
     """
     __tablename__ = 'notification_failures'
 
