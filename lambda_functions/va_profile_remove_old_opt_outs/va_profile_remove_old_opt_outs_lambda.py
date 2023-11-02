@@ -36,7 +36,7 @@ if sqlalchemy_database_uri is None:
     sys.exit("Can't get the database URI.")
 
 
-def va_profile_remove_old_opt_outs_handler(event=None, context=None, worker_id=None):
+def va_profile_remove_old_opt_outs_handler(event=None, context=None):
     """
     This function deletes any va_profile cache records that
     are opted out and greater than 24 hours old.
@@ -48,7 +48,7 @@ def va_profile_remove_old_opt_outs_handler(event=None, context=None, worker_id=N
     # https://www.psycopg.org/docs/module.html#exceptions
     try:
         logger.info("Connecting to the database...")
-        connection = psycopg2.connect(sqlalchemy_database_uri + ('' if worker_id is None else f"_{worker_id}"))
+        connection = psycopg2.connect(sqlalchemy_database_uri)
         logger.info(". . . Connected to the database.")
 
         with connection.cursor() as c:

@@ -1,7 +1,6 @@
 from app import DATETIME_FORMAT
-from app.models import KEY_TYPE_NORMAL
 from datetime import datetime
-from tests.app.db import create_api_key, create_notification
+from tests.app.db import create_notification
 
 
 def test_get_api_key_stats_with_sends(notify_db_session, admin_request, sample_email_template_history, sample_api_key):
@@ -34,7 +33,9 @@ def test_get_api_key_stats_with_sends(notify_db_session, admin_request, sample_e
 
 
 def test_get_api_key_stats_no_sends(notify_db_session, admin_request, sample_api_key):
+    # Add the session-scoped fixture to the function session.
     notify_db_session.session.add(sample_api_key)
+
     api_key_stats = admin_request.get(
         'api_key.get_api_key_stats',
         api_key_id=sample_api_key.id
@@ -48,18 +49,28 @@ def test_get_api_key_stats_no_sends(notify_db_session, admin_request, sample_api
 
 
 def test_get_api_keys_ranked(
-    notify_db_session, admin_request, sample_service, sample_api_key, sample_email_template_history
+    notify_db_session,
+    admin_request,
+    sample_service,
+    sample_api_key,
+    sample_api_key_function_with_session_service,
+    sample_email_template_history
 ):
+    # Add session-scoped fixtures to the function session.
     notify_db_session.session.add(sample_service)
     notify_db_session.session.add(sample_api_key)
     notify_db_session.session.add(sample_email_template_history)
-    api_key_2 = create_api_key(sample_service, key_type=KEY_TYPE_NORMAL, key_name="test_get_api_keys_ranked Key 2")
     total_sends = 10
 
     notifications = [create_notification(template=sample_email_template_history, api_key=sample_api_key)]
     for _ in range(total_sends):
         notifications.append(create_notification(template=sample_email_template_history, api_key=sample_api_key))
-        notifications.append(create_notification(template=sample_email_template_history, api_key=api_key_2))
+        notifications.append(
+            create_notification(
+                template=sample_email_template_history,
+                api_key=sample_api_key_function_with_session_service
+            )
+        )
 
     api_keys_ranked = admin_request.get(
         'api_key.get_api_keys_ranked',
@@ -74,7 +85,7 @@ def test_get_api_keys_ranked(
         assert api_keys_ranked[0]["total_notifications"] == total_sends + 1
         assert "last_notification_created" in api_keys_ranked[0]
 
-        assert api_keys_ranked[1]["api_key_name"] == api_key_2.name
+        assert api_keys_ranked[1]["api_key_name"] == sample_api_key_function_with_session_service.name
         assert api_keys_ranked[1]["service_name"] == sample_service.name
         assert api_keys_ranked[1]["sms_notifications"] == 0
         assert api_keys_ranked[1]["email_notifications"] == total_sends
@@ -84,5 +95,4 @@ def test_get_api_keys_ranked(
         # Test clean-up
         for notification in notifications:
             notify_db_session.session.delete(notification)
-        notify_db_session.session.delete(api_key_2)
         notify_db_session.session.commit()

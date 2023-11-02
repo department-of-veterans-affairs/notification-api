@@ -75,21 +75,22 @@ def create_user(
     blocked=False,
     platform_admin=False
 ):
-    data = {
-        'id': id_ or uuid4(),
-        'name': name,
-        # This is a unique, non-nullable field.
-        'email_address': email if email is not None else f"{uuid4()}@va.gov",
-        'password': 'password',
-        # This is a unique, nullable field.
-        'identity_provider_user_id': identity_provider_user_id,
-        'mobile_number': mobile_number,
-        'state': state,
-        'blocked': blocked,
-        'platform_admin': platform_admin,
-    }
     user = User.query.filter_by(email_address=email).first()
     if user is None:
+        data = {
+            'id': id_ or uuid4(),
+            'name': name,
+            # This is a unique, non-nullable field.
+            'email_address': email if email is not None else f"{uuid4()}@va.gov",
+            'password': 'password',
+            # This is a unique, nullable field.
+            'identity_provider_user_id': identity_provider_user_id,
+            'mobile_number': mobile_number,
+            'state': state,
+            'blocked': blocked,
+            'platform_admin': platform_admin,
+        }
+
         user = User(**data)
         save_model_user(user)
     return user
