@@ -118,7 +118,7 @@ def get_reply_to_text(notification_type, sender_id, service, template):
                 reply_to = dao_get_service_sms_sender_by_id(service.id, sender_id).get_reply_to_text()
         except NoResultFound:
             if len(message) == 0:
-                message = 'Unknown message'
+                message = 'No Results Found'
             raise BadRequestError(message=message)
     else:
         reply_to = template.get_reply_to_text()
