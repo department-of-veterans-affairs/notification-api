@@ -310,6 +310,7 @@ def _upload_pdf_to_test_or_live_pdf_bucket(pdf_data, filename, is_test_letter):
 
 
 def _sanitise_precompiled_pdf(self, notification, precompiled_pdf):
+    response = None
     try:
         response = requests_post(
             '{}/precompiled/sanitise'.format(current_app.config['TEMPLATE_PREVIEW_API_HOST']),
