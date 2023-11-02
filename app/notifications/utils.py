@@ -8,11 +8,13 @@ def confirm_subscription(confirmation_request):
         current_app.logger.warning("SubscribeURL does not exist or empty")
         return
 
+    response = None
     try:
         response = requests.get(url, timeout=(3.05, 1))
         response.raise_for_status()
     except requests.RequestException as e:
-        current_app.logger.warning("Response: %s", response.text)
+        if response is not None:
+            current_app.logger.warning("Response: %s", response.text)
         raise e
 
     return confirmation_request['TopicArn']

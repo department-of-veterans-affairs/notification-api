@@ -36,7 +36,8 @@ def cronitor(task_name):
 
         @wraps(func)
         def inner_decorator(*args, **kwargs):
-            ping_cronitor('run')
+            status = 'run'
+            ping_cronitor(status)
             try:
                 ret = func(*args, **kwargs)
                 status = 'complete'

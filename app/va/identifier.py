@@ -40,6 +40,8 @@ class UnsupportedIdentifierException(Exception):
 
 
 def transform_to_fhir_format(recipient_identifier):
+
+    identifier_type = "Unknown Type"
     try:
         identifier_type = IdentifierType(recipient_identifier.id_type)
         return f"{recipient_identifier.id_value}{FHIR_FORMAT_SUFFIXES[identifier_type]}"

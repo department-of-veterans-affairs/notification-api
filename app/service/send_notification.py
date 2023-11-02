@@ -107,6 +107,7 @@ def send_one_off_notification(service_id, post_data):
 
 def get_reply_to_text(notification_type, sender_id, service, template):
     reply_to = None
+    message = ''
     if sender_id:
         try:
             if notification_type == EMAIL_TYPE:
@@ -116,6 +117,8 @@ def get_reply_to_text(notification_type, sender_id, service, template):
                 message = 'SMS sender not found'
                 reply_to = dao_get_service_sms_sender_by_id(service.id, sender_id).get_reply_to_text()
         except NoResultFound:
+            if len(message) == 0:
+                message = 'Unknown message'
             raise BadRequestError(message=message)
     else:
         reply_to = template.get_reply_to_text()

@@ -82,6 +82,7 @@ def get_certificate(url):
 @ses_callback_blueprint.route('/notifications/email/ses', methods=['POST'])
 def sns_callback_handler():
     message_type = request.headers.get('x-amz-sns-message-type')
+    response = None
     try:
         verify_message_type(message_type)
     except InvalidMessageTypeException:
@@ -103,7 +104,8 @@ def sns_callback_handler():
             response = requests.get(url, timeout=(3.05, 1))
             response.raise_for_status()
         except requests.RequestException as e:
-            current_app.logger.warning("Response: %s", response.text)
+            if response is not None:
+                current_app.logger.warning("Response: %s", response.text)
             raise e
 
         return jsonify(
@@ -120,6 +122,7 @@ def sns_callback_handler():
 @ses_smtp_callback_blueprint.route('/notifications/email/ses-smtp', methods=['POST'])
 def sns_smtp_callback_handler():
     message_type = request.headers.get('x-amz-sns-message-type')
+    response = None
     try:
         verify_message_type(message_type)
     except InvalidMessageTypeException:
@@ -141,7 +144,8 @@ def sns_smtp_callback_handler():
             response = requests.get(url, timeout=(3.05, 1))
             response.raise_for_status()
         except requests.RequestException as e:
-            current_app.logger.warning("Response: %s", response.text)
+            if response is not None:
+                current_app.logger.warning("Response: %s", response.text)
             raise e
 
         return jsonify(
