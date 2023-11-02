@@ -79,8 +79,6 @@ def deliver_sms(self, notification_id, sms_sender_id=None):
 @statsd(namespace='tasks')
 def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
     from app.notifications.validators import check_sms_sender_over_rate_limit
-
-    sms_sender = None
     try:
         current_app.logger.info('Start sending SMS with rate limiting for notification id: %s', notification_id)
         notification = notifications_dao.get_notification_by_id(notification_id)
@@ -116,8 +114,7 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
         notification = notifications_dao.get_notification_by_id(notification_id)
         check_and_queue_callback_task(notification)
     except RateLimitError:
-        if sms_sender is not None:
-            retry_time = sms_sender.rate_limit_interval / sms_sender.rate_limit
+        retry_time = sms_sender.rate_limit_interval / sms_sender.rate_limit
         current_app.logger.info(
             'SMS notification delivery for id: %s failed due to rate limit being exceeded. '
             'Will retry in %d seconds.', notification_id, retry_time
