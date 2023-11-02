@@ -310,7 +310,6 @@ def _upload_pdf_to_test_or_live_pdf_bucket(pdf_data, filename, is_test_letter):
 
 
 def _sanitise_precompiled_pdf(self, notification, precompiled_pdf):
-    response = None
     try:
         response = requests_post(
             '{}/precompiled/sanitise'.format(current_app.config['TEMPLATE_PREVIEW_API_HOST']),
@@ -327,8 +326,8 @@ def _sanitise_precompiled_pdf(self, notification, precompiled_pdf):
 
         if e.response is not None and e.response.status_code == 400:
             message = f"sanitise_precompiled_pdf validation error for notification: {notification.id}."
-            if "message" in response.json():
-                message += ' ' + response.json()["message"]
+            if "message" in e.response.json():
+                message += ' ' + e.response.json()["message"]
 
             current_app.logger.error(message)
             return None
