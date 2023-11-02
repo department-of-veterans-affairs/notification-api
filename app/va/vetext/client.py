@@ -38,10 +38,8 @@ class VETextClient:
         }
         self.logger.info("VEText Payload information: %s", payload)
 
-        # monotonic() returns 0.0 so I explicitly set it 0.0
-        start_time = 0.0
+        start_time = monotonic()
         try:
-            start_time = monotonic()
             response = requests.post(
                 f"{self.base_url}/mobile/push/send",
                 auth=self.auth,
