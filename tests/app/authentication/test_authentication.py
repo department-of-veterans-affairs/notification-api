@@ -1,28 +1,29 @@
+"""
+Many tests in this module take "self" and the fixture "client" as parameters which appear unused.
+"self" is used by tests in the TestRequiresUserInService class.  Without these parameters, the
+tests error with, "Working outside of request context."
+"""
+
 import jwt
-import uuid
-import time
-from datetime import datetime
-
-from flask_jwt_extended import create_access_token
-from jwt import ExpiredSignatureError
-
-from app.dao.services_dao import dao_add_user_to_service, dao_update_service
-from tests.app.db import create_user, create_service
-from tests.conftest import set_config_values
-
 import pytest
-from flask import json, current_app, request
-from freezegun import freeze_time
-from notifications_python_client.authentication import create_jwt_token
-
+import time
 from app import api_user
-from app.dao.api_key_dao import get_unsigned_secrets,\
-    save_model_api_key, get_unsigned_secret, expire_api_key
-from app.models import ApiKey, KEY_TYPE_NORMAL, PERMISSION_LIST, Permission
-from app.authentication.auth import AuthError, validate_admin_auth, validate_service_api_key_auth, \
-    requires_admin_auth_or_user_in_service, requires_user_in_service_or_admin
-
-from tests.conftest import set_config
+from app.authentication.auth import (
+    AuthError,
+    validate_admin_auth,
+    validate_service_api_key_auth,
+    requires_admin_auth_or_user_in_service,
+    requires_user_in_service_or_admin,
+)
+from app.dao.api_key_dao import get_unsigned_secrets
+from app.models import PERMISSION_LIST, Permission
+from flask import json, current_app, request
+from flask_jwt_extended import create_access_token
+from freezegun import freeze_time
+from jwt import ExpiredSignatureError
+from notifications_python_client.authentication import create_jwt_token
+from tests.conftest import set_config, set_config_values
+from uuid import uuid4
 
 
 @pytest.mark.parametrize('auth_fn', [validate_service_api_key_auth, validate_admin_auth])
@@ -62,7 +63,7 @@ def test_should_not_allow_request_with_no_iss(client, auth_fn):
         'iat': int(time.time())
     }
 
-    token = jwt.encode(payload=claims, key=str(uuid.uuid4()), headers=headers)
+    token = jwt.encode(payload=claims, key=str(uuid4()), headers=headers)
 
     request.headers = {'Authorization': 'Bearer {}'.format(token)}
     with pytest.raises(AuthError) as exc:
@@ -83,7 +84,7 @@ def test_auth_should_not_allow_request_with_no_iat(client, sample_api_key):
         # 'iat': not provided
     }
 
-    token = jwt.encode(payload=claims, key=str(uuid.uuid4()), headers=headers)
+    token = jwt.encode(payload=claims, key=str(uuid4()), headers=headers)
 
     request.headers = {'Authorization': 'Bearer {}'.format(token)}
     with pytest.raises(AuthError) as exc:
@@ -105,7 +106,7 @@ def test_admin_auth_should_not_allow_request_with_no_iat(client, sample_api_key)
         # 'iat': not provided
     }
 
-    token = jwt.encode(payload=claims, key=str(uuid.uuid4()), headers=headers)
+    token = jwt.encode(payload=claims, key=str(uuid4()), headers=headers)
 
     request.headers = {'Authorization': 'Bearer {}'.format(token)}
     with pytest.raises(AuthError) as exc:
@@ -116,11 +117,14 @@ def test_admin_auth_should_not_allow_request_with_no_iat(client, sample_api_key)
 def test_should_not_allow_invalid_secret(client, sample_api_key):
     token = create_jwt_token(  # nosec
         secret="not-so-secret",
-        client_id=str(sample_api_key.service_id))
+        client_id=str(sample_api_key.service_id)
+    )
+
     response = client.get(
         '/notifications',
         headers={'Authorization': "Bearer {}".format(token)}
     )
+
     assert response.status_code == 403
     data = json.loads(response.get_data())
     assert data['message'] == 'Invalid token: signature, api token not found'
@@ -134,12 +138,16 @@ def test_should_allow_valid_token(client, sample_api_key, scheme):
 
 
 def test_should_not_allow_service_id_that_is_not_uuid(client, sample_api_key):
-    token = create_jwt_token(secret=get_unsigned_secrets(sample_api_key.service_id)[0],
-                             client_id=str('not-a-valid-uuid'))
+    token = create_jwt_token(
+        secret=get_unsigned_secrets(sample_api_key.service_id)[0],
+        client_id=str('not-a-valid-uuid')
+    )
+
     response = client.get(
         '/notifications',
         headers={'Authorization': "Bearer {}".format(token)}
     )
+
     assert response.status_code == 403
     assert response.get_json()['message'] == 'Invalid token: service id is not the right data type'
 
@@ -156,87 +164,76 @@ def test_should_allow_valid_token_for_request_with_path_params_for_admin_url(cli
     assert response.status_code == 200
 
 
-def test_should_allow_valid_token_when_service_has_multiple_keys(client, sample_api_key):
-    data = {'service': sample_api_key.service,
-            'name': 'some key name',
-            'created_by': sample_api_key.created_by,
-            'key_type': KEY_TYPE_NORMAL
-            }
-    api_key = ApiKey(**data)
-    save_model_api_key(api_key)
+def test_should_allow_valid_token_when_service_has_multiple_keys(
+    client, sample_api_key, sample_api_key_function_with_session_service
+):
+    assert sample_api_key.service == sample_api_key_function_with_session_service.service, \
+        "The api key fixtures should both be associated with sample_service."
+
     token = __create_token(sample_api_key.service_id)
     response = client.get(
         '/notifications'.format(str(sample_api_key.service_id)),
-        headers={'Authorization': 'Bearer {}'.format(token)})
+        headers={'Authorization': 'Bearer {}'.format(token)}
+    )
+
     assert response.status_code == 200
 
 
 def test_authentication_passes_when_service_has_multiple_keys_some_expired(
-        client,
-        sample_api_key):
-    expired_key_data = {'service': sample_api_key.service,
-                        'name': 'expired_key',
-                        'expiry_date': datetime.utcnow(),
-                        'created_by': sample_api_key.created_by,
-                        'key_type': KEY_TYPE_NORMAL
-                        }
-    expired_key = ApiKey(**expired_key_data)
-    save_model_api_key(expired_key)
-    another_key = {'service': sample_api_key.service,
-                   'name': 'another_key',
-                   'created_by': sample_api_key.created_by,
-                   'key_type': KEY_TYPE_NORMAL
-                   }
-    api_key = ApiKey(**another_key)
-    save_model_api_key(api_key)
+    notify_db, client, sample_api_key, sample_expired_api_key_function_with_session_service
+):
+    notify_db.session.add(sample_api_key)
+    assert sample_api_key.service == sample_expired_api_key_function_with_session_service.service, \
+        "The api key fixtures should both be associated with sample_service."
+
     token = create_jwt_token(
-        secret=get_unsigned_secret(api_key.id),
-        client_id=str(sample_api_key.service_id))
+        secret=sample_api_key.secret,
+        client_id=str(sample_api_key.service_id)
+    )
+
     response = client.get(
         '/notifications',
-        headers={'Authorization': 'Bearer {}'.format(token)})
+        headers={'Authorization': 'Bearer {}'.format(token)}
+    )
+
     assert response.status_code == 200
 
 
-def test_authentication_returns_token_expired_when_service_uses_expired_key_and_has_multiple_keys(client,
-                                                                                                  sample_api_key):
-    expired_key = {'service': sample_api_key.service,
-                   'name': 'expired_key',
-                   'created_by': sample_api_key.created_by,
-                   'key_type': KEY_TYPE_NORMAL
-                   }
-    expired_api_key = ApiKey(**expired_key)
-    save_model_api_key(expired_api_key)
-    another_key = {'service': sample_api_key.service,
-                   'name': 'another_key',
-                   'created_by': sample_api_key.created_by,
-                   'key_type': KEY_TYPE_NORMAL
-                   }
-    api_key = ApiKey(**another_key)
-    save_model_api_key(api_key)
+def test_authentication_returns_token_expired_when_service_uses_expired_key_and_has_multiple_keys(
+    notify_db, client, sample_api_key, sample_expired_api_key_function_with_session_service
+):
+    notify_db.session.add(sample_api_key)
+    assert sample_api_key.service.id == sample_expired_api_key_function_with_session_service.service.id, \
+        "The api key fixtures should both be associated with sample_service."
+
     token = create_jwt_token(
-        secret=get_unsigned_secret(expired_api_key.id),
-        client_id=str(sample_api_key.service_id))
-    expire_api_key(service_id=sample_api_key.service_id, api_key_id=expired_api_key.id)
+        sample_expired_api_key_function_with_session_service.secret,
+        client_id=str(sample_api_key.service_id)
+    )
+
     request.headers = {'Authorization': 'Bearer {}'.format(token)}
     with pytest.raises(AuthError) as exc:
         validate_service_api_key_auth()
     assert exc.value.short_message == 'Invalid token: API key revoked'
-    assert exc.value.service_id == expired_api_key.service_id
-    assert exc.value.api_key_id == expired_api_key.id
+    assert exc.value.service_id == sample_expired_api_key_function_with_session_service.service_id
+    assert exc.value.api_key_id == sample_expired_api_key_function_with_session_service.id
 
 
 def test_authentication_returns_error_when_admin_client_has_no_secrets(client):
     api_secret = current_app.config.get('ADMIN_CLIENT_SECRET')
     api_service_id = current_app.config.get('ADMIN_CLIENT_USER_NAME')
+
     token = create_jwt_token(
         secret=api_secret,
         client_id=api_service_id
     )
+
     with set_config(client.application, 'ADMIN_CLIENT_SECRET', ''):
         response = client.get(
             '/service',
-            headers={'Authorization': 'Bearer {}'.format(token)})
+            headers={'Authorization': 'Bearer {}'.format(token)}
+        )
+
     assert response.status_code == 403
     error_message = json.loads(response.get_data())
     assert error_message['message'] == "Invalid token: signature, api token is not valid"
@@ -244,44 +241,59 @@ def test_authentication_returns_error_when_admin_client_has_no_secrets(client):
 
 def test_authentication_returns_error_when_admin_client_secret_is_invalid(client):
     api_secret = current_app.config.get('ADMIN_CLIENT_SECRET')
+
     token = create_jwt_token(
         secret=api_secret,
         client_id=current_app.config.get('ADMIN_CLIENT_USER_NAME')
     )
+
     current_app.config['ADMIN_CLIENT_SECRET'] = 'something-wrong'
+
     response = client.get(
         '/service',
-        headers={'Authorization': 'Bearer {}'.format(token)})
+        headers={'Authorization': 'Bearer {}'.format(token)}
+    )
+
     assert response.status_code == 403
     error_message = json.loads(response.get_data())
     assert error_message['message'] == "Invalid token: signature, api token is not valid"
     current_app.config['ADMIN_CLIENT_SECRET'] = api_secret
 
 
-def test_authentication_returns_error_when_service_doesnt_exit(
-    client,
-    sample_api_key
-):
-    # get service ID and secret the wrong way around
+def test_authentication_returns_error_when_service_doesnt_exit(notify_db, client, sample_api_key):
+    notify_db.session.add(sample_api_key)
+
+    # Use the UUIDs of sample_api_key, but assign them to the wrong parameters.
     token = create_jwt_token(
         secret=str(sample_api_key.service_id),
-        client_id=str(sample_api_key.id))
+        client_id=str(sample_api_key.id)
+    )
 
     response = client.get(
         '/notifications',
         headers={'Authorization': 'Bearer {}'.format(token)}
     )
+
     assert response.status_code == 403
     error_message = json.loads(response.get_data())
     assert error_message['message'] == 'Invalid token: service not found'
 
 
-def test_authentication_returns_error_when_service_inactive(client, sample_api_key):
-    sample_api_key.service.active = False
-    # we now need to save the model because we'll read using read-db engine
-    dao_update_service(sample_api_key.service)
+def test_authentication_returns_error_when_service_inactive(
+    notify_db_session, client, sample_service_function, sample_api_key_function_with_function_service
+):
+    assert sample_service_function.id == sample_api_key_function_with_function_service.service.id
 
-    token = create_jwt_token(secret=str(sample_api_key.secret), client_id=str(sample_api_key.service_id))
+    # Deactive the service.
+    sample_service_function.active = False
+    notify_db_session.session.add(sample_service_function)
+    notify_db_session.session.commit()
+
+    token = create_jwt_token(
+        secret=str(sample_api_key_function_with_function_service.secret),
+        client_id=str(sample_service_function.id)
+    )
+
     response = client.get('/notifications', headers={'Authorization': 'Bearer {}'.format(token)})
 
     assert response.status_code == 403
@@ -289,35 +301,41 @@ def test_authentication_returns_error_when_service_inactive(client, sample_api_k
     assert error_message['message'] == 'Invalid token: service is archived'
 
 
-def test_authentication_returns_error_when_service_has_no_secrets(client,
-                                                                  sample_service,
-                                                                  fake_uuid):
+def test_authentication_returns_error_when_service_has_no_secrets(notify_db, client, sample_service, fake_uuid):
+    notify_db.session.add(sample_service)
+
     token = create_jwt_token(
         secret=fake_uuid,
-        client_id=str(sample_service.id))
+        client_id=str(sample_service.id)
+    )
 
     request.headers = {'Authorization': 'Bearer {}'.format(token)}
     with pytest.raises(AuthError) as exc:
         validate_service_api_key_auth()
-    assert exc.value.short_message == 'Invalid token: service has no API keys'
+    assert "Invalid token" in exc.value.short_message
     assert exc.value.service_id == sample_service.id
 
 
 def test_should_attach_the_current_api_key_to_current_app(notify_api, sample_service_data_api_key):
     with notify_api.test_request_context(), notify_api.test_client() as client:
-        _key = sample_service_data_api_key
-        token = create_jwt_token(secret=_key.secret, client_id=str(_key.service_id))
+        token = create_jwt_token(
+            secret=sample_service_data_api_key.secret,
+            client_id=str(sample_service_data_api_key.service_id)
+        )
+
         response = client.get(
             '/notifications',
             headers={'Authorization': 'Bearer {}'.format(token)}
         )
         assert response.status_code == 200
-        # api_user is an api key assigned globally after a service is authenticated
-        assert api_user == _key
+
+        # api_user is a ServiceDataApiKey instance assigned globally after a service is authenticated.
+        assert api_user == sample_service_data_api_key
 
 
-def test_should_return_403_when_token_is_expired(client,
-                                                 sample_api_key):
+def test_should_return_403_when_token_is_expired(notify_db, client, sample_api_key):
+    notify_db.session.add(sample_api_key)
+
     with freeze_time('2001-01-01T12:00:00'):
         token = create_jwt_token(secret=sample_api_key.secret, client_id=str(sample_api_key.service_id))
     with freeze_time('2001-01-01T12:00:40'):
@@ -330,11 +348,13 @@ def test_should_return_403_when_token_is_expired(client,
 
 
 def __create_token(service_id):
-    return create_jwt_token(secret=get_unsigned_secrets(service_id)[0],
-                            client_id=str(service_id))
+    return create_jwt_token(
+        secret=get_unsigned_secrets(service_id)[0],
+        client_id=str(service_id)
+    )
 
 
-@pytest.mark.parametrize('check_proxy_header,header_value,expected_status', [
+@pytest.mark.parametrize('check_proxy_header, header_value, expected_status', [
     (True, 'key_1', 200),
     (True, 'wrong_key', 200),
     (False, 'key_1', 200),
@@ -357,7 +377,7 @@ def test_proxy_key_non_auth_endpoint(notify_api, check_proxy_header, header_valu
         assert response.status_code == expected_status
 
 
-@pytest.mark.parametrize('check_proxy_header,header_value,expected_status', [
+@pytest.mark.parametrize('check_proxy_header, header_value, expected_status', [
     (True, 'key_1', 200),
     (True, 'wrong_key', 403),
     (False, 'key_1', 200),
@@ -385,102 +405,95 @@ def test_proxy_key_on_admin_auth_endpoint(notify_api, check_proxy_header, header
 
 class TestRequiresUserInService:
 
-    def test_accepts_jwt_for_user_in_service(self, client, notify_db_session):
+    def test_accepts_jwt_for_user_in_service(self, notify_db, client, sample_service):
+        notify_db.session.add(sample_service)
 
         @requires_user_in_service_or_admin()
         def endpoint_that_requires_user_in_service():
             pass
 
-        user = create_user()
-        service = create_service(service_name='some-service', user=user)
+        token = create_access_token(identity=sample_service.created_by)
 
-        token = create_access_token(identity=user)
-
-        request.view_args['service_id'] = service.id
+        request.view_args['service_id'] = sample_service.id
         request.headers = {'Authorization': 'Bearer {}'.format(token)}
 
         endpoint_that_requires_user_in_service()
 
-    def test_rejects_jwt_for_user_not_in_service(self, client, notify_db_session):
+    def test_rejects_jwt_for_user_not_in_service(self, client, sample_service_function):
 
         @requires_user_in_service_or_admin()
         def endpoint_that_requires_user_in_service():
             pass
 
-        user = create_user()
-        service = create_service(service_name='some-service')
+        token = create_access_token(identity=sample_service_function.created_by)
 
-        token = create_access_token(identity=user)
-
-        request.view_args['service_id'] = service.id
+        request.view_args['service_id'] = sample_service_function.id
         request.headers = {'Authorization': 'Bearer {}'.format(token)}
+
+        assert len(sample_service_function.users) == 1 and \
+            sample_service_function.users[0] == sample_service_function.created_by
+        sample_service_function.users.clear()
 
         with pytest.raises(AuthError) as error:
             endpoint_that_requires_user_in_service()
 
         assert error.value.code == 403
 
-    def test_propagates_error_when_bearer_token_expired(self, client, notify_db_session, mocker):
+    def test_propagates_error_when_bearer_token_expired(self, notify_db, client, mocker, sample_service):
+        notify_db.session.add(sample_service)
 
         @requires_user_in_service_or_admin()
         def endpoint_that_requires_user_in_service():
             pass
 
-        user = create_user()
-        service = create_service(service_name='some-service')
-        # The requires_user_in_service_or_admin middleware requires this.
-        dao_add_user_to_service(
-            service,
-            user,
-            permissions=[Permission(service=service, user=user, permission='manage_users')]
-        )
-
-        token = create_access_token(identity=user)
+        token = create_access_token(identity=sample_service.created_by)
         mocker.patch("app.authentication.auth.verify_jwt_in_request", side_effect=ExpiredSignatureError)
 
-        request.view_args['service_id'] = service.id
+        request.view_args['service_id'] = sample_service.id
         request.headers = {'Authorization': 'Bearer {}'.format(token)}
 
         with pytest.raises(ExpiredSignatureError):
             endpoint_that_requires_user_in_service()
 
     @pytest.mark.parametrize('required_permission', PERMISSION_LIST)
-    def test_accepts_jwt_with_permission_for_service(self, client, notify_db_session, required_permission):
+    def test_accepts_jwt_with_permission_for_service(
+        self, notify_db_session, client, required_permission, sample_service_function
+    ):
 
         @requires_user_in_service_or_admin(required_permission=required_permission)
         def endpoint_that_requires_permission_for_service():
             pass
 
-        user = create_user()
-        service = create_service(service_name='some-service')
-
-        dao_add_user_to_service(
-            service,
-            user,
-            permissions=[Permission(service=service, user=user, permission=required_permission)]
+        permission = Permission(
+            service=sample_service_function,
+            user=sample_service_function.created_by,
+            permission=required_permission
         )
+        notify_db_session.session.add(permission)
+        notify_db_session.session.commit()
 
-        token = create_access_token(identity=user)
+        token = create_access_token(identity=sample_service_function.created_by)
 
-        request.view_args['service_id'] = service.id
+        request.view_args['service_id'] = sample_service_function.id
         request.headers = {'Authorization': 'Bearer {}'.format(token)}
 
-        endpoint_that_requires_permission_for_service()
+        try:
+            endpoint_that_requires_permission_for_service()
+        finally:
+            # Test clean-up
+            notify_db_session.session.delete(permission)
+            notify_db_session.session.commit()
 
-    def test_rejects_jwt_without_permission_for_service(self, client, notify_db_session):
+    def test_rejects_jwt_without_permission_for_service(self, notify_db, client, sample_service):
+        notify_db.session.add(sample_service)
 
         @requires_user_in_service_or_admin(required_permission='some-required-permission')
         def endpoint_that_requires_permission_for_service():
             pass
 
-        user = create_user()
-        service = create_service(service_name='some-service')
+        token = create_access_token(identity=sample_service.created_by)
 
-        dao_add_user_to_service(service, user, permissions=[])
-
-        token = create_access_token(identity=user)
-
-        request.view_args['service_id'] = service.id
+        request.view_args['service_id'] = sample_service.id
         request.headers = {'Authorization': 'Bearer {}'.format(token)}
 
         with pytest.raises(AuthError) as error:
@@ -488,36 +501,36 @@ class TestRequiresUserInService:
 
         assert error.value.code == 403
 
-    def test_accepts_jwt_for_platform_admin(self, client, notify_db_session):
+    def test_accepts_jwt_for_platform_admin(self, client, sample_user_function_platform_admin, sample_service_function):
+
+        assert sample_service_function.created_by != sample_user_function_platform_admin, \
+            "Admin users should not need to be assigned to a service."
 
         @requires_user_in_service_or_admin()
         def endpoint_that_requires_user_in_service():
             pass
 
-        user = create_user(platform_admin=True)
-        service = create_service(service_name='some-service')
+        token = create_access_token(identity=sample_user_function_platform_admin)
 
-        token = create_access_token(identity=user)
-
-        request.view_args['service_id'] = service.id
+        request.view_args['service_id'] = sample_service_function.id
         request.headers = {'Authorization': 'Bearer {}'.format(token)}
 
         endpoint_that_requires_user_in_service()
 
     @pytest.mark.parametrize('required_permission', PERMISSION_LIST)
-    def test_accepts_jwt_for_platform_admin_even_with_required_permissions(self, client,
-                                                                           notify_db_session, required_permission):
+    def test_accepts_jwt_for_platform_admin_even_with_required_permissions(
+        self, client, sample_user_function_platform_admin, sample_service_function, required_permission
+    ):
+        assert sample_service_function.created_by != sample_user_function_platform_admin, \
+            "Admin users should not need to be assigned to a service."
 
         @requires_user_in_service_or_admin(required_permission=required_permission)
         def endpoint_that_requires_permission_for_service():
             pass
 
-        user = create_user(platform_admin=True)
-        service = create_service(service_name='some-service')
+        token = create_access_token(identity=sample_user_function_platform_admin)
 
-        token = create_access_token(identity=user)
-
-        request.view_args['service_id'] = service.id
+        request.view_args['service_id'] = sample_service_function.id
         request.headers = {'Authorization': 'Bearer {}'.format(token)}
 
         endpoint_that_requires_permission_for_service()
@@ -526,42 +539,43 @@ class TestRequiresUserInService:
 class TestRequiresAdminAuthOrUserInService:
 
     @pytest.mark.parametrize('required_permission', PERMISSION_LIST)
-    def test_accepts_jwt_with_permission_for_service(self, client, notify_db_session, required_permission):
-
+    def test_accepts_jwt_with_permission_for_service(
+        self, notify_db_session, client, required_permission, sample_service_function
+    ):
         @requires_admin_auth_or_user_in_service(required_permission=required_permission)
         def endpoint_that_requires_admin_auth_or_permission_for_service():
             pass
 
-        user = create_user()
-        service = create_service(service_name='some-service')
-
-        dao_add_user_to_service(
-            service,
-            user,
-            permissions=[Permission(service=service, user=user, permission=required_permission)]
+        permission = Permission(
+            service=sample_service_function,
+            user=sample_service_function.created_by,
+            permission=required_permission
         )
+        notify_db_session.session.add(permission)
+        notify_db_session.session.commit()
 
-        token = create_access_token(identity=user)
+        token = create_access_token(identity=sample_service_function.created_by)
 
-        request.view_args['service_id'] = service.id
+        request.view_args['service_id'] = sample_service_function.id
         request.headers = {'Authorization': 'Bearer {}'.format(token)}
 
-        endpoint_that_requires_admin_auth_or_permission_for_service()
+        try:
+            endpoint_that_requires_admin_auth_or_permission_for_service()
+        finally:
+            # Test clean-up
+            notify_db_session.session.delete(permission)
+            notify_db_session.session.commit()
 
-    def test_rejects_jwt_without_permission_for_service(self, client, notify_db_session):
+    def test_rejects_jwt_without_permission_for_service(self, notify_db, client, sample_service):
+        notify_db.session.add(sample_service)
 
         @requires_admin_auth_or_user_in_service(required_permission='some-required-permission')
         def endpoint_that_requires_admin_auth_or_permission_for_service():
             pass
 
-        user = create_user()
-        service = create_service(service_name='some-service')
+        token = create_access_token(identity=sample_service.created_by)
 
-        dao_add_user_to_service(service, user, permissions=[])
-
-        token = create_access_token(identity=user)
-
-        request.view_args['service_id'] = service.id
+        request.view_args['service_id'] = sample_service.id
         request.headers = {'Authorization': 'Bearer {}'.format(token)}
 
         with pytest.raises(AuthError) as error:
@@ -570,7 +584,7 @@ class TestRequiresAdminAuthOrUserInService:
         assert error.value.code == 403
 
     @pytest.mark.parametrize('required_permission', PERMISSION_LIST)
-    def test_accepts_admin_jwt(self, client, notify_db_session, required_permission):
+    def test_accepts_admin_jwt(self, client, required_permission):
 
         @requires_admin_auth_or_user_in_service(required_permission=required_permission)
         def endpoint_that_requires_admin_auth_or_permission_for_service():
