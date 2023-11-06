@@ -36,12 +36,8 @@ def notify_api():
             if error_handlers[None] == []:
                 error_handlers.pop(None)
 
-    ctx = app.app_context()
-    ctx.push()
-
-    yield app
-
-    ctx.pop()
+    with app.app_context():
+        yield app
 
 
 @pytest.fixture(scope='function')
@@ -96,6 +92,7 @@ def notify_db(notify_api):
 
     yield db
 
+    print("notify_db teardown")  # TODO
     db.session.remove()
     db.engine.dispose()
 

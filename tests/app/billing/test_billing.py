@@ -1,34 +1,27 @@
-from calendar import monthrange
-from datetime import datetime, timedelta
 import json
-
 import pytest
-from freezegun import freeze_time
-
-from app.models import FactBilling
+from app.billing.rest import update_free_sms_fragment_limit_data
 from app.dao.date_util import get_current_financial_year_start_year, get_month_start_and_end_date_in_utc
 from app.dao.annual_billing_dao import dao_get_free_sms_fragment_limit_for_year
+from app.models import FactBilling
+from calendar import monthrange
+from datetime import datetime, timedelta
+from freezegun import freeze_time
+from tests import create_authorization_header
 from tests.app.db import (
     create_notification,
     create_rate,
     create_annual_billing,
     create_template,
     create_service,
-    create_ft_billing
+    create_ft_billing,
 )
-from app.billing.rest import update_free_sms_fragment_limit_data
-
-from tests import create_authorization_header
 
 APR_2016_MONTH_START = datetime(2016, 3, 31, 23, 00, 00)
 APR_2016_MONTH_END = datetime(2016, 4, 30, 22, 59, 59, 99999)
 
 IN_MAY_2016 = datetime(2016, 5, 10, 23, 00, 00)
 IN_JUN_2016 = datetime(2016, 6, 3, 23, 00, 00)
-
-
-def _assert_dict_equals(actual, expected_dict):
-    assert actual == expected_dict
 
 
 def test_create_update_free_sms_fragment_limit_invalid_schema(client, sample_service):
@@ -42,7 +35,9 @@ def test_create_update_free_sms_fragment_limit_invalid_schema(client, sample_ser
     assert 'JSON' in json_resp['message']
 
 
-def test_create_free_sms_fragment_limit_current_year_updates_future_years(admin_request, sample_service):
+def test_create_free_sms_fragment_limit_current_year_updates_future_years(
+    notify_db_session, admin_request, sample_service
+):
     current_year = get_current_financial_year_start_year()
     future_billing = create_annual_billing(sample_service.id, 1, current_year + 1)
 
@@ -54,28 +49,41 @@ def test_create_free_sms_fragment_limit_current_year_updates_future_years(admin_
     )
 
     current_billing = dao_get_free_sms_fragment_limit_for_year(sample_service.id, current_year)
-    assert future_billing.free_sms_fragment_limit == 9999
-    assert current_billing.financial_year_start == current_year
-    assert current_billing.free_sms_fragment_limit == 9999
+
+    try:
+        assert future_billing.free_sms_fragment_limit == 9999
+        assert current_billing.financial_year_start == current_year
+        assert current_billing.free_sms_fragment_limit == 9999
+    finally:
+        # Test clean-up
+        print("test teardown")  # TODO
+        # TODO - This is trying to set future_billing.service_id to NULL before deletion,
+        # which raises IntegrityError.  Why is it doing this?  Not cleaning-up isn't an option
+        # because then IntegrityError is raised during the service's teardown.
+        notify_db_session.session.delete(future_billing)
+        notify_db_session.session.commit()
 
 
 @pytest.mark.parametrize('update_existing', [True, False])
 def test_create_or_update_free_sms_fragment_limit_past_year_doenst_update_other_years(
-    admin_request,
-    sample_service,
-    update_existing
+    admin_request, sample_service, update_existing
 ):
     current_year = get_current_financial_year_start_year()
     create_annual_billing(sample_service.id, 1, current_year)
     if update_existing:
         create_annual_billing(sample_service.id, 1, current_year - 1)
 
-    data = {'financial_year_start': current_year - 1, 'free_sms_fragment_limit': 9999}
+    data = {
+        'financial_year_start': current_year - 1,
+        'free_sms_fragment_limit': 9999
+    }
+
     admin_request.post(
         'billing.create_or_update_free_sms_fragment_limit',
         service_id=sample_service.id,
         _data=data,
-        _expected_status=201)
+        _expected_status=201
+    )
 
     assert dao_get_free_sms_fragment_limit_for_year(sample_service.id, current_year - 1).free_sms_fragment_limit == 9999
     assert dao_get_free_sms_fragment_limit_for_year(sample_service.id, current_year).free_sms_fragment_limit == 1

@@ -749,7 +749,7 @@ def sample_api_key_function_with_session_service(notify_db_session, sample_servi
     Yield a function-scoped API key for the session-scoped sample service.
     """
 
-    # Add the session-scoped fixture to the function session.
+    # Add the session-scoped fixture to the function session.  # TODO - Necessary?
     notify_db_session.session.add(sample_service)
 
     data = {
