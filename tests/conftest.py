@@ -13,7 +13,7 @@ def notify_api():
     """
     Initialize a Flask application with the Flask-SQLAlchemy extension.
 
-    https://flask.palletsprojects.com/en/2.2.x/testing/
+    https://flask.palletsprojects.com/en/2.3.x/testing/
     https://flask-sqlalchemy.palletsprojects.com/en/3.0.x/quickstart/
     """
 
@@ -92,7 +92,6 @@ def notify_db(notify_api):
 
     yield db
 
-    print("notify_db teardown")  # TODO
     db.session.remove()
     db.engine.dispose()
 

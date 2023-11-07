@@ -1839,7 +1839,8 @@ PERMISSION_LIST = [
     SEND_LETTERS,
     MANAGE_API_KEYS,
     PLATFORM_ADMIN,
-    VIEW_ACTIVITY]
+    VIEW_ACTIVITY,
+]
 
 
 class Permission(db.Model):

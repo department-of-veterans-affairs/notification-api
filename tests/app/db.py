@@ -107,14 +107,14 @@ def create_permissions(user, service, *permissions):
 
 def create_service(
         user=None,
-        service_name="Sample service",
+        service_name='',
         service_id=None,
         restricted=False,
         count_as_live=True,
         service_permissions=[EMAIL_TYPE, SMS_TYPE],
         research_mode=False,
         active=True,
-        email_from=None,
+        email_from='',
         prefix_sms=False,
         message_limit=1000,
         organisation_type='other',
@@ -129,7 +129,7 @@ def create_service(
         service = Service.query.filter_by(name=service_name).first()
     if (not check_if_service_exists) or (check_if_service_exists and not service):
         service = Service(
-            name=service_name,
+            name=service_name or uuid4(),
             message_limit=message_limit,
             restricted=restricted,
             email_from=email_from if email_from else service_name.lower().replace(' ', '.'),
@@ -562,19 +562,24 @@ def create_letter_rate(start_date=None, end_date=None, crown=True, sheet_count=1
     return rate
 
 
-def create_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None):
+def create_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None, expired=False):
     id_ = uuid4()
 
     name = key_name if key_name else '{} api key {}'.format(key_type, id_)
 
-    api_key = ApiKey(
-        service=service,
-        name=name,
-        created_by=service.created_by,
-        key_type=key_type,
-        id=id_,
-        secret=uuid4()
-    )
+    data = {
+        "service": service,
+        "name": name,
+        "created_by": service.created_by,
+        "key_type": key_type,
+        "id": id_,
+        "secret": uuid4(),
+    }
+
+    if expired:
+        data["expiry_date"] = datetime.utcnow()
+
+    api_key = ApiKey(**data)
     db.session.add(api_key)
     db.session.commit()
     return api_key
