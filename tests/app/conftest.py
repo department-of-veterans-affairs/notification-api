@@ -120,7 +120,7 @@ def sample_user(notify_db_session):
     created_users = []
 
     def _sample_user(platform_admin=False):
-        user = create_user(platform_admin)
+        user = create_user(platform_admin=platform_admin)
         created_users.append(user)
         return user
 
