@@ -1,6 +1,5 @@
 import json
 import os
-from app.service.service_data import ServiceDataApiKey
 import pytest
 import pytz
 import requests_mock
@@ -13,9 +12,9 @@ from app.dao.jobs_dao import dao_create_job
 from app.dao.notifications_dao import dao_create_notification
 from app.dao.organisation_dao import dao_create_organisation
 from app.dao.provider_rates_dao import create_provider_rates
-from app.dao.services_dao import dao_create_service
+from app.dao.services_dao import dao_archive_service, dao_create_service
 from app.dao.service_sms_sender_dao import dao_add_sms_sender_for_service
-from app.dao.users_dao import create_secret_code, create_user_code
+from app.dao.users_dao import create_secret_code, create_user_code, dao_archive_user
 from app.dao.fido2_key_dao import save_fido2_key
 from app.dao.login_event_dao import save_login_event
 from app.history_meta import create_history
@@ -48,26 +47,27 @@ from app.models import (
     Service,
     Template,
     TemplateHistory,
+    User,
     UserServiceRoles,
 )
 from app.service.service_data import ServiceData
 from datetime import datetime, timedelta
 from flask import current_app, url_for
 from random import randint, randrange
-from sqlalchemy import asc
+from sqlalchemy import asc, delete
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm.session import make_transient
 from tests import create_authorization_header
 from tests.app.db import (
-    create_user,
-    create_template,
-    create_notification,
-    create_service,
     create_api_key,
     create_inbound_number,
-    create_letter_contact,
     create_invited_org_user,
     create_job,
+    create_letter_contact,
+    create_notification,
+    create_service,
+    create_template,
+    create_user,
 )
 from tests.app.factories import (
     service_whitelist
@@ -115,52 +115,21 @@ def service_factory(notify_db_session):
     return ServiceFactory()
 
 
-@pytest.fixture(scope="session")
-def sample_user(notify_db):
-    """
-    Use this session-scoped user for tests that don't need to modify the user.
-    """
+@pytest.fixture
+def sample_user(notify_db_session):
+    created_users = []
 
-    user = create_user()
+    def _sample_user(platform_admin=False):
+        user = create_user(platform_admin)
+        created_users.append(user)
+        return user
 
-    print("sample_user setup ID =", user.id, "email =", user.email_address)  # TODO
-    yield user
-    print("sample_user teardown")  # TODO
+    yield _sample_user
 
-    try:
-        notify_db.session.delete(user)
-        notify_db.session.commit()
-    except InvalidRequestError:
-        # This instance is already marked for deletion.
-        pass
-
-
-@pytest.fixture(scope="function")
-def sample_user_function(notify_db_session):
-    """
-    Use this function-scoped user for tests that modify the user or require multiple users.
-    """
-
-    user = create_user()
-
-    yield user
-
-    notify_db_session.session.delete(user)
-    notify_db_session.session.commit()
-
-
-@pytest.fixture(scope="function")
-def sample_user_function_platform_admin(notify_db_session):
-    """
-    Use this function-scoped platform admin user for tests that modify the user or require multiple users.
-    """
-
-    user = create_user(platform_admin=True)
-
-    yield user
-
-    notify_db_session.session.delete(user)
-    notify_db_session.session.commit()
+    # TODO - Is there are way to delete a user?  Trying to delete a service raises IntegrityError
+    # because there are still associated permissions.
+    for user in created_users:
+        dao_archive_user(user)
 
 
 @pytest.fixture(scope='function')
@@ -397,75 +366,20 @@ def sample_notification_model_with_organization(
     return notification
 
 
-def sample_service_helper(
-    user,
-    name,
-    add_user_to_service=True,
-    email_from=None,
-    limit=1000,
-    restricted=False,
-    research_mode=False,
-    permissions=None,
-    crown=None
-):
-    """
-    Create a new service for the given user using model defaults, where available.
-    A service must have a user and a unique name.
-    """
+@pytest.fixture
+def sample_service(sample_user):
+    created_services = []
 
-    data = {
-        "name": name,
-        "message_limit": limit,
-        "restricted": restricted,
-        "email_from": email_from,
-        "created_by": user,
-        "created_by_id": user.id,
-        "crown": crown,
-        "research_mode": research_mode,
-    }
+    def _sample_service(*args, **kwargs):
+        service = create_service(*args, **kwargs)
+        created_services.append(service)
+        return service
 
-    service = Service(**data)
-    if add_user_to_service:
-        service.users.append(user)
-    # TODO - Do something with the permissions
-    # dao_create_service(service, user, service_permissions=permissions)
-    return service
+    yield _sample_service
 
-
-@pytest.fixture(scope="session")
-def sample_service(notify_db, sample_user, worker_id):
-    """
-    Use this session-scoped service for tests that don't need to modify the service.
-    Make the user a member of the service.
-    """
-
-    service = sample_service_helper(sample_user, f"session service {worker_id}")
-    notify_db.session.add(service)
-    notify_db.session.commit()
-
-    print("sample_service setup ID=", service.id)  # TODO
-    yield service
-    print("sample_service teardown")  # TODO
-
-    notify_db.session.delete(service)
-    notify_db.session.commit()
-
-
-@pytest.fixture(scope="function")
-def sample_service_function(notify_db_session, sample_user_function, worker_id):
-    """
-    Use this function-scoped service for tests that modify the service.
-    Make the user a member of the service.
-    """
-
-    service = sample_service_helper(sample_user_function, f"function service {worker_id}")
-    notify_db_session.session.add(service)
-    notify_db_session.session.commit()
-
-    yield service
-
-    notify_db_session.session.delete(service)
-    notify_db_session.session.commit()
+    # TODO - Is there are way to delete a service?  Trying to delete a service raises IntegrityError.
+    for service in created_services:
+        dao_archive_service(service.id)
 
 
 @pytest.fixture(scope="function")
@@ -717,120 +631,35 @@ def sample_email_template_with_onsite_true(sample_service):
     )
 
 
-@pytest.fixture(scope="session")
-def sample_api_key(notify_db, sample_service, worker_id):
-    """
-    Yield a session-scoped API key for the session-scoped sample service.
-    """
+@pytest.fixture
+def sample_api_key(notify_db_session):
+    created_keys = []
 
-    data = {
-        "service": sample_service,
-        "name": f"session sample api key {worker_id}",
-        "created_by": sample_service.created_by,
-        "key_type": KEY_TYPE_NORMAL,
-        "secret": uuid4(),
-    }
+    def _sample_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None, expired=False):
+        api_key = create_api_key(service, key_type, key_name, expired)
+        created_keys.append(api_key)
+        return api_key
 
-    api_key = ApiKey(**data)
-    notify_db.session.add(api_key)
-    notify_db.session.commit()
+    yield _sample_api_key
 
-    print("sample_api_key setup ID =", api_key.id)  # TODO
-    yield api_key
-    print("sample_api_key teardown")  # TODO
-
-    notify_db.session.delete(api_key)
-    notify_db.session.commit()
-
-
-@pytest.fixture(scope="function")
-def sample_api_key_function_with_session_service(notify_db_session, sample_service, worker_id):
-    """
-    Yield a function-scoped API key for the session-scoped sample service.
-    """
-
-    # Add the session-scoped fixture to the function session.  # TODO - Necessary?
-    notify_db_session.session.add(sample_service)
-
-    data = {
-        "service": sample_service,
-        "name": f"function sample api key with session service {worker_id}",
-        "created_by": sample_service.created_by,
-        "key_type": KEY_TYPE_NORMAL,
-        "secret": uuid4(),
-    }
-
-    api_key = ApiKey(**data)
-    notify_db_session.session.add(api_key)
-    notify_db_session.session.commit()
-
-    print("sample_api_key_function_with_session_service setup ID =", api_key.id)  # TODO
-    yield api_key
-    print("sample_api_key_function_with_session_service teardown")  # TODO
-
-    notify_db_session.session.delete(api_key)
+    for key in created_keys:
+        notify_db_session.session.delete(key)
     notify_db_session.session.commit()
 
 
-@pytest.fixture(scope="function")
-def sample_api_key_function_with_function_service(notify_db_session, sample_service_function, worker_id):
+@pytest.fixture
+def sample_user_service_api_key(notify_db_session, sample_user, sample_service, sample_api_key):
     """
-    Yield a function-scoped API key for the function-scoped sample service.
-    """
-
-    data = {
-        "service": sample_service_function,
-        "name": f"function sample api key with function service {worker_id}",
-        "created_by": sample_service_function.created_by,
-        "key_type": KEY_TYPE_NORMAL,
-        "secret": uuid4(),
-    }
-
-    api_key = ApiKey(**data)
-    notify_db_session.session.add(api_key)
-    notify_db_session.session.commit()
-
-    print("sample_api_key_function_with_function_service setup ID=", api_key.id)  # TODO
-    yield api_key
-    print("sample_api_key_function_with_function_service teardown")  # TODO
-
-    notify_db_session.session.delete(api_key)
-    notify_db_session.session.commit()
-
-
-@pytest.fixture(scope="function")
-def sample_expired_api_key_function_with_session_service(notify_db_session, sample_service, worker_id):
-    """
-    Yield a function-scoped API key for the session-scoped sample service.
+    Return a related user, service, and API key.  The user and API key are associated with the service.
+    The user is not admin, and the API key is "normal" type.
     """
 
-    notify_db_session.session.add(sample_service)
-
-    data = {
-        "service": sample_service,
-        "name": f"function expired sample api key with session service {worker_id}",
-        "created_by": sample_service.created_by,
-        'expiry_date': datetime.utcnow(),
-        "key_type": KEY_TYPE_NORMAL,
-        "secret": uuid4(),
-    }
-
-    api_key = ApiKey(**data)
-    notify_db_session.session.add(api_key)
-    notify_db_session.session.commit()
-
-    print("sample_expired_api_key_function_with_session_service setup ID=", api_key.id)  # TODO
-    yield api_key
-    print("sample_expired_api_key_function_with_session_service teardown")  # TODO
-
-    notify_db_session.session.delete(api_key)
-    notify_db_session.session.commit()
-
-
-@pytest.fixture(scope="function")
-def sample_service_data_api_key(notify_db_session, sample_api_key_function_with_function_service):
-    # Note that ServiceDataApiKey is not a database model.
-    return ServiceDataApiKey(sample_api_key_function_with_function_service)
+    user = sample_user()
+    service = sample_service(user, str(uuid4()))
+    assert service.created_by == user
+    api_key = sample_api_key(service)
+    assert api_key in service.api_keys
+    return user, service, api_key
 
 
 @pytest.fixture(scope='function')
