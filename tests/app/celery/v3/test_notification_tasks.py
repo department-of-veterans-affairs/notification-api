@@ -229,7 +229,7 @@ def test_v3_process_notification_valid_sms_without_sender_id(
     assert isinstance(v3_send_sms_notification_mock.call_args.args[0], Notification)
 
 
-def test_v3_process_notification_invalid_sms_with_sender_id(
+def test_v3_process_notification_valid_sms_with_invalid_sender_id(
     notify_db_session, mocker, sample_service, sample_template, sample_sms_sender
 ):
     """
