@@ -54,7 +54,7 @@ from app.service.service_data import ServiceData
 from datetime import datetime, timedelta
 from flask import current_app, url_for
 from random import randint, randrange
-from sqlalchemy import asc, delete
+from sqlalchemy import asc, update
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm.session import make_transient
 from tests import create_authorization_header
@@ -116,11 +116,23 @@ def service_factory(notify_db_session):
 
 
 @pytest.fixture
-def sample_user(notify_db_session):
+def set_user_as_admin(notify_db_session):
+    def _wrapper(user, *args, **kwargs):
+        stmt = update(User).where(User.id == user.id).values(platform_admin=True)
+        notify_db_session.session.execute(stmt)
+        return notify_db_session.session.get(User, user.id)
+    return _wrapper
+
+
+@pytest.fixture
+def sample_user(notify_db_session, set_user_as_admin):
     created_users = []
 
     def _sample_user(platform_admin=False):
-        user = create_user(platform_admin=platform_admin)
+        # Cannot set platform admin when creating a user (schema)
+        user = create_user()
+        if platform_admin:
+            user = set_user_as_admin(user)
         created_users.append(user)
         return user
 
@@ -528,7 +540,7 @@ def sample_email_template(notify_db, sample_service, sample_user, worker_id):
     notify_db.session.commit()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def sample_email_template_history(notify_db, sample_service, sample_user, worker_id):
     """
     Use this session-scoped e-mail TemplateHistory for tests that don't need to modify templates.
@@ -540,7 +552,7 @@ def sample_email_template_history(notify_db, sample_service, sample_user, worker
     """
 
     template_data = sample_template_helper(
-        f"session e-mail template history {worker_id}", EMAIL_TYPE, sample_service, sample_user
+        f"session e-mail template history {worker_id}", EMAIL_TYPE, sample_service(), sample_user()
     )
     template_history = TemplateHistory(**template_data)
     notify_db.session.add(template_history)
@@ -632,10 +644,12 @@ def sample_email_template_with_onsite_true(sample_service):
 
 
 @pytest.fixture
-def sample_api_key(notify_db_session):
+def sample_api_key(notify_db_session, sample_service):
     created_keys = []
 
-    def _sample_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None, expired=False):
+    def _sample_api_key(service=None, key_type=KEY_TYPE_NORMAL, key_name=None, expired=False):
+        if service is None:
+            service = sample_service()
         api_key = create_api_key(service, key_type, key_name, expired)
         created_keys.append(api_key)
         return api_key
@@ -653,13 +667,13 @@ def sample_user_service_api_key(notify_db_session, sample_user, sample_service, 
     Return a related user, service, and API key.  The user and API key are associated with the service.
     The user is not admin, and the API key is "normal" type.
     """
-
     user = sample_user()
     service = sample_service(user, str(uuid4()))
     assert service.created_by == user
     api_key = sample_api_key(service)
     assert api_key in service.api_keys
     return user, service, api_key
+    
 
 
 @pytest.fixture(scope='function')
