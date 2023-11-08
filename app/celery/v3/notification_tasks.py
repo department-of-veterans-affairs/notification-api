@@ -113,18 +113,24 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
             with get_reader_session() as db:
                 try:
                     sms_sender = db.execute(query).one().ServiceSmsSender
-                    v3_send_sms_notification.delay(notification, sms_sender.sms_sender)
+                    notification.sms_sender_id = sms_sender.id
                 except NoResultFound:
                     _msg = ("SMS sender ID was not set for the notification and no default was found.")
                     v3_persist_failed_notification(notification, NOTIFICATION_TECHNICAL_FAILURE, _msg)
+                    return
                 except Exception as err:
                     _msg = "Unexpected error while retrieving the SMS sender: %s" % err
                     v3_persist_failed_notification(notification, NOTIFICATION_TECHNICAL_FAILURE, _msg)
-            return
+                    return
+                else:
+                    if notification.sms_sender_id is None:
+                        _msg = "Unexpected error while retrieving the SMS sender: %s" % err
+                        v3_persist_failed_notification(notification, NOTIFICATION_TECHNICAL_FAILURE, _msg)
+                        return
 
         # TODO - Catch db connection errors and retry?
         query = select(ServiceSmsSender).where(
-            (ServiceSmsSender.id == request_data["sms_sender_id"]) &
+            (ServiceSmsSender.id == notification.sms_sender_id) &
             (ServiceSmsSender.service_id == service_id)
         )
         try:
@@ -132,7 +138,8 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
                 sms_sender = reader_session.execute(query).one().ServiceSmsSender
                 v3_send_sms_notification.delay(notification, sms_sender.sms_sender)
         except (MultipleResultsFound, NoResultFound):
-            # Set sms_sender_id to None so persisting it doesn't raise sqlalchemy.exc.IntegrityError.
+            # Set sms_sender_id to None so persisting it doesn't raise sqlalchemy.exc.IntegrityError
+            # This happens in case user provides invalid sms_sender_id in the request data
             notification.sms_sender_id = None
             v3_persist_failed_notification(
                 notification, NOTIFICATION_PERMANENT_FAILURE, f"SMS sender {notification.sms_sender_id} does not exist."
