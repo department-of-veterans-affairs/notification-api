@@ -56,7 +56,7 @@ from app.service.service_data import ServiceData
 from datetime import datetime, timedelta
 from flask import current_app, url_for
 from random import randint, randrange
-from sqlalchemy import asc, update
+from sqlalchemy import asc, update, select
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm.session import make_transient
 from tests import create_authorization_header
@@ -143,7 +143,11 @@ def sample_user(notify_db_session, set_user_as_admin):
     # TODO - Is there are way to delete a user?  Trying to delete a service raises IntegrityError
     # because there are still associated permissions.
     for user in created_users:
-        dao_archive_user(user)
+        try:
+            dao_archive_user(user)
+        except:
+            # Some users can't be archived due to constraints
+            pass
 
 
 @pytest.fixture(scope='function')
@@ -423,7 +427,7 @@ def sample_service_sms_permission(notify_db_session, sample_user, worker_id):
 @pytest.fixture(scope='function', name='sample_service_full_permissions')
 def _sample_service_full_permissions(notify_db_session):
     service = create_service(
-        service_name="sample service full permissions",
+        service_name=f'sample service full permissions {uuid4()}',
         service_permissions=set(SERVICE_PERMISSION_TYPES),
         check_if_service_exists=True
     )
@@ -432,7 +436,10 @@ def _sample_service_full_permissions(notify_db_session):
     # in parallel, this could result in a collision, although that's unlikely.
     number = str(randint(100000000000, 999999999999))
     create_inbound_number(number, service_id=service.id)
-    return service
+    yield service
+
+    # Teardown
+    dao_archive_service(service.id)
 
 
 @pytest.fixture(scope='function', name='sample_service_custom_letter_contact_block')
@@ -453,8 +460,11 @@ def sample_template_helper(
     user,
     content="This is a template.",
     archived=False,
+    folder=None,
     hidden=False,
+    postage=None,
     subject_line="Subject",
+    reply_to=None,
     reply_to_email=None,
     process_type=NORMAL,
     version=0
@@ -470,7 +480,10 @@ def sample_template_helper(
         "service": service,
         "created_by": user,
         "archived": archived,
+        "folder": folder,
         "hidden": hidden,
+        'postage': postage,
+        "reply_to": reply_to,
         "reply_to_email": reply_to_email,
         "process_type": process_type,
         "version": version,
@@ -480,6 +493,44 @@ def sample_template_helper(
         data["subject"] = subject_line
 
     return data
+
+
+@pytest.fixture(scope="function")
+def sample_template_func(notify_db_session, sample_service, sample_user):
+    """
+    Use this function-scoped SMS template for tests that don't need to modify the template.
+    """
+    templates = []
+
+    def _wrapper(*args, **kwargs):
+        assert len(args) == 0, "Function is not setup for args"
+        # Mandatory arguments - ignore args
+        kwargs['name'] = kwargs.get('name', f"function template {uuid4()}")
+        kwargs['template_type'] = kwargs.get('template_type', SMS_TYPE)
+        kwargs['service'] = kwargs.get('service', sample_service())
+        kwargs['user'] = kwargs.get('user', sample_user())
+        if 'subject' in kwargs:
+            kwargs['subject_line'] = kwargs.pop('subject')
+
+        template_data = sample_template_helper(**kwargs)
+
+        if kwargs['template_type'] == LETTER_TYPE:
+            template_data["postage"] = kwargs.get('postage',  "second")
+        template = Template(**template_data)
+        dao_create_template(template)
+        templates.append(template)
+        return template
+
+    yield _wrapper
+
+    # Teardown
+    for template in templates:
+        for history in notify_db_session.session.scalars(select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)).all():
+            notify_db_session.session.delete(history)
+        template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
+        notify_db_session.session.delete(template_redacted)
+        notify_db_session.session.delete(template)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture(scope="function")
@@ -496,6 +547,9 @@ def sample_sms_template_func(notify_db_session, sample_service, sample_user):
 
     yield template
 
+    # Teardown
+    template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
+    notify_db_session.session.delete(template_history)
     template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
     notify_db_session.session.delete(template_redacted)
     notify_db_session.session.delete(template)
@@ -557,6 +611,9 @@ def sample_email_template_func(notify_db_session, sample_service, sample_user):
 
     yield template
 
+    # Teardown
+    template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
+    notify_db_session.session.delete(template_history)
     template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
     notify_db_session.session.delete(template_redacted)
     notify_db_session.session.delete(template)
@@ -611,7 +668,16 @@ def sample_email_template_history(notify_db, sample_service, sample_user, worker
 @pytest.fixture(scope='function')
 def sample_template_without_sms_permission(notify_db_session):
     service = create_service(service_permissions=[EMAIL_TYPE], check_if_service_exists=True)
-    return create_template(service, template_type=SMS_TYPE)
+    template = create_template(service, template_type=SMS_TYPE)
+    yield template
+
+    #Teardown
+    template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
+    notify_db_session.session.delete(template_history)
+    template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
+    notify_db_session.session.delete(template_redacted)
+    notify_db_session.session.delete(template)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture(scope='function')
@@ -631,7 +697,16 @@ def sample_sms_template_with_html(sample_service):
 @pytest.fixture(scope='function')
 def sample_template_without_email_permission(notify_db_session):
     service = create_service(service_permissions=[SMS_TYPE], check_if_service_exists=True)
-    return create_template(service, template_type=EMAIL_TYPE)
+    template = create_template(service, template_type=EMAIL_TYPE)
+    yield template
+
+    #Teardown
+    template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
+    notify_db_session.session.delete(template_history)
+    template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
+    notify_db_session.session.delete(template_redacted)
+    notify_db_session.session.delete(template)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture
@@ -1001,7 +1076,7 @@ def sample_notification(
 
 
 @pytest.fixture
-def sample_letter_notification(sample_letter_template):
+def sample_letter_notification(notify_db_session, sample_letter_template):
     address = {
         'address_line_1': 'A1',
         'address_line_2': 'A2',
@@ -1011,8 +1086,12 @@ def sample_letter_notification(sample_letter_template):
         'address_line_6': 'A6',
         'postcode': 'A_POST'
     }
-    return create_notification(sample_letter_template, reference='foo', personalisation=address)
+    notification = create_notification(sample_letter_template, reference='foo', personalisation=address)
+    yield notification
 
+    # Teardown
+    notify_db_session.session.delete(notification)
+    notify_db_session.session.commit()
 
 @pytest.fixture(scope='function')
 def sample_email_notification(notify_db_session):
@@ -1072,8 +1151,10 @@ def sample_notification_history(
         notification_type = sample_sms_template_func.template_type
         assert notification_type == SMS_TYPE, "This is the default."
 
+    api_key_teardown = None
     if not api_key:
         api_key = create_api_key(sample_sms_template_func.service, key_type=key_type)
+        api_key_teardown = api_key
 
     notification_history = NotificationHistory(
         id=uuid4(),
@@ -1092,8 +1173,14 @@ def sample_notification_history(
     notify_db.session.add(notification_history)
     notify_db.session.commit()
 
-    return notification_history
+    yield notification_history
 
+    # Teardown
+    if api_key_teardown is not None:
+        key_to_delete = notify_db.session.get(ApiKey, api_key.id)
+        notify_db.session.delete(key_to_delete)
+    notify_db.session.delete(notification_history)
+    notify_db.session.commit()
 
 @pytest.fixture(scope='function')
 def mock_celery_send_sms_code(mocker):
