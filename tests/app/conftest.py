@@ -56,7 +56,7 @@ from app.service.service_data import ServiceData
 from datetime import datetime, timedelta
 from flask import current_app, url_for
 from random import randint, randrange
-from sqlalchemy import asc, update, select
+from sqlalchemy import asc, inspect, update, select
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm.session import make_transient
 from tests import create_authorization_header
@@ -1088,9 +1088,10 @@ def sample_letter_notification(notify_db_session, sample_letter_template):
     notification = create_notification(sample_letter_template, reference='foo', personalisation=address)
     yield notification
 
-    # Teardown
-    notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
+    # Teardown only if the object wasn't deleted already
+    if not inspect(notification).detached:
+        notify_db_session.session.delete(notification)
+        notify_db_session.session.commit()
 
 @pytest.fixture(scope='function')
 def sample_email_notification(notify_db_session):

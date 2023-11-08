@@ -14,12 +14,14 @@ from app.models import (
     EMAIL_TYPE,
     LETTER_TYPE,
     SMS_TYPE,
+    Notification,
     Template,
     TemplateHistory,
     TemplateRedacted,
     ProviderDetails,
     Permission,
     EDIT_TEMPLATES,
+    SERVICE_PERMISSION_TYPES,
 )
 from datetime import datetime, timedelta, date
 from flask import url_for
@@ -1306,6 +1308,7 @@ def test_should_not_update_template_with_incorrect_provider_type(
 @pytest.mark.parametrize('file_type', ('png', 'pdf'))
 def test_preview_letter_template_by_id_valid_file_type(
     notify_api,
+    notify_db_session,
     sample_letter_notification,
     admin_request,
     file_type,
@@ -1347,11 +1350,21 @@ def test_preview_letter_template_by_id_valid_file_type(
             assert post_json['filename'] is None
             assert base64.b64decode(resp['content']) == content
 
+    # Teardown
+    notify_db_session.session.delete(notify_db_session.session.get(Notification, sample_letter_notification.id))
+    template = notify_db_session.session.scalar(select(Template).where(Template.service_id == sample_letter_notification.service_id))
+    for history in notify_db_session.session.scalars(select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)).all():
+        notify_db_session.session.delete(history)
+    template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
+    notify_db_session.session.delete(template_redacted)
+    notify_db_session.session.delete(template)
+    notify_db_session.session.commit()
 
 def test_preview_letter_template_by_id_template_preview_500(
         notify_api,
         client,
         admin_request,
+        notify_db_session,
         sample_letter_notification):
 
     with set_config_values(notify_api, {
@@ -1381,6 +1394,17 @@ def test_preview_letter_template_by_id_template_preview_500(
             assert 'Status code: 404' in resp['message']
             assert 'Error generating preview letter for {}'.format(sample_letter_notification.id) in resp['message']
 
+    # Teardown
+    # Can't clear template stuff the POST made until we delete the notification (even though the fixture cleans it)
+    notify_db_session.session.delete(notify_db_session.session.get(Notification, sample_letter_notification.id))
+    for template in notify_db_session.session.scalars(select(Template).where(Template.service_id == sample_letter_notification.service_id)).all():
+        for history in notify_db_session.session.scalars(select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)).all():
+            notify_db_session.session.delete(history)
+        template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
+        notify_db_session.session.delete(template_redacted)
+        notify_db_session.session.delete(template)
+    notify_db_session.session.commit()
+
 
 def test_preview_letter_template_precompiled_pdf_file_type(
         notify_api,
@@ -1393,10 +1417,10 @@ def test_preview_letter_template_precompiled_pdf_file_type(
 ):
 
     template = sample_template(service=sample_service(),
-                                    template_type='letter',
-                                    name='Pre-compiled PDF',
-                                    subject='Pre-compiled PDF',
-                                    hidden=True)
+                               template_type='letter',
+                               name='Pre-compiled PDF',
+                               subject='Pre-compiled PDF',
+                               hidden=True)
 
     notification = create_notification(template)
 
@@ -1757,14 +1781,16 @@ def test_preview_letter_template_precompiled_png_template_preview_pdf_error(
 
 
 def test_should_create_template_without_created_by_using_current_user_id(
-        client, sample_service_full_permissions):
-    sample_service = sample_service_full_permissions
-    user = sample_service.users[0]
+        client, notify_db_session, sample_service):
+    service = sample_service(service_name=f'sample service full permissions {uuid.uuid4()}',
+                             service_permissions=set(SERVICE_PERMISSION_TYPES),
+                             check_if_service_exists=True)
+    user = service.users[0]
     permission_dao.set_user_service_permission(
         user,
-        sample_service,
+        service,
         [Permission(
-            service_id=sample_service.id,
+            service_id=service.id,
             user_id=user.id,
             permission=EDIT_TEMPLATES
         )])
@@ -1773,13 +1799,13 @@ def test_should_create_template_without_created_by_using_current_user_id(
         'name': 'my template',
         'template_type': SMS_TYPE,
         'content': 'template <b>content</b>',
-        'service': str(sample_service.id),
+        'service': str(service.id),
         'created_by': None
     }
     data = json.dumps(data)
 
     response = client.post(
-        '/service/{}/template'.format(sample_service.id),
+        '/service/{}/template'.format(service.id),
         headers=[('Content-Type', 'application/json'),
                  ('Authorization', f'Bearer {create_access_token(user)}')],
         data=data
@@ -1791,6 +1817,14 @@ def test_should_create_template_without_created_by_using_current_user_id(
     template = Template.query.get(json_resp['data']['id'])
     from app.schemas import template_schema
     assert sorted(json_resp['data']) == sorted(template_schema.dump(template).data)
+
+    # Teardown
+    for history in notify_db_session.session.scalars(select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)).all():
+        notify_db_session.session.delete(history)
+    template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
+    notify_db_session.session.delete(template_redacted)
+    notify_db_session.session.delete(template)
+    notify_db_session.session.commit()
 
 
 class TestGenerateHtmlPreviewForContent:
