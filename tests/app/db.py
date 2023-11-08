@@ -133,7 +133,7 @@ def create_service(
             message_limit=message_limit,
             restricted=restricted,
             email_from=email_from if email_from else service_name.lower().replace(' ', '.'),
-            created_by=user if user else create_user(email=f'{uuid4()}@digital.cabinet-office.gov.uk'),
+            created_by=user if user else create_user(email=f'{uuid4()}@va.gov'),
             prefix_sms=prefix_sms,
             organisation_type=organisation_type,
             go_live_user=go_live_user,
