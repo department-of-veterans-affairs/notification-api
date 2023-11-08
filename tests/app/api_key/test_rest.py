@@ -4,9 +4,9 @@ from datetime import datetime
 from tests.app.db import create_notification
 
 
-def test_get_api_key_stats_with_sends(notify_db_session, admin_request, sample_template_func, sample_api_key):
+def test_get_api_key_stats_with_sends(notify_db_session, admin_request, sample_template, sample_api_key):
     api_key = sample_api_key()
-    template = sample_template_func(template_type=EMAIL_TYPE)
+    template = sample_template(template_type=EMAIL_TYPE)
     total_sends = 10
     notifications = [
         create_notification(template=template, api_key=api_key) for _ in range(total_sends)
@@ -56,9 +56,9 @@ def test_get_api_keys_ranked(
     notify_db_session,
     admin_request,
     sample_api_key,
-    sample_template_func
+    sample_template
 ):
-    template = sample_template_func(template_type=EMAIL_TYPE)
+    template = sample_template(template_type=EMAIL_TYPE)
 
     # Get the service used for that template
     service = notify_db_session.session.get(Service, template.service_id)
