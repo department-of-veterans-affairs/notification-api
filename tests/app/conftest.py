@@ -17,6 +17,7 @@ from app.dao.service_sms_sender_dao import dao_add_sms_sender_for_service
 from app.dao.users_dao import create_secret_code, create_user_code, dao_archive_user
 from app.dao.fido2_key_dao import save_fido2_key
 from app.dao.login_event_dao import save_login_event
+from app.dao.templates_dao import dao_create_template
 from app.history_meta import create_history
 from app.model import User
 from app.models import (
@@ -47,6 +48,7 @@ from app.models import (
     Service,
     Template,
     TemplateHistory,
+    TemplateRedacted,
     User,
     UserServiceRoles,
 )
@@ -480,6 +482,26 @@ def sample_template_helper(
     return data
 
 
+@pytest.fixture(scope="function")
+def sample_sms_template_func(notify_db_session, sample_service, sample_user):
+    """
+    Use this function-scoped SMS template for tests that don't need to modify the template.
+    """
+
+    template_data = sample_template_helper(f"function sms template {uuid4()}",
+        SMS_TYPE, sample_service(), sample_user()
+    )
+    template = Template(**template_data)
+    dao_create_template(template)
+
+    yield template
+
+    template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
+    notify_db_session.session.delete(template_redacted)
+    notify_db_session.session.delete(template)
+    notify_db_session.session.commit()
+
+
 @pytest.fixture(scope="session")
 def sample_sms_template(notify_db, sample_service, sample_user, worker_id):
     """
@@ -521,6 +543,26 @@ def sample_sms_template_history(notify_db, sample_service, sample_user, worker_i
     notify_db.session.commit()
 
 
+@pytest.fixture(scope="function")
+def sample_email_template_func(notify_db_session, sample_service, sample_user):
+    """
+    Use this function-scoped e-mail template for tests that don't need to modify the template.
+    """
+
+    template_data = sample_template_helper(
+        f"function e-mail template {uuid4()}", EMAIL_TYPE, sample_service(), sample_user()
+    )
+    template = Template(**template_data)
+    dao_create_template(template)
+
+    yield template
+
+    template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
+    notify_db_session.session.delete(template_redacted)
+    notify_db_session.session.delete(template)
+    notify_db_session.session.commit()
+
+
 @pytest.fixture(scope="session")
 def sample_email_template(notify_db, sample_service, sample_user, worker_id):
     """
@@ -550,18 +592,20 @@ def sample_email_template_history(notify_db, sample_service, sample_user, worker
     Note that Notification instances have foreign keys to TemplateHistory instances rather than
     Template instances.
     """
-
+    templates = []
     template_data = sample_template_helper(
         f"session e-mail template history {worker_id}", EMAIL_TYPE, sample_service(), sample_user()
     )
     template_history = TemplateHistory(**template_data)
     notify_db.session.add(template_history)
     notify_db.session.commit()
+    templates.append(template_history)
     print("TEMPLATE HISTORY ID =", template_history.id)  # TODO
     yield template_history
 
-    notify_db.session.delete(template_history)
-    notify_db.session.commit()
+    for template in templates:
+        notify_db.session.delete(template)
+        notify_db.session.commit()
 
 
 @pytest.fixture(scope='function')
@@ -873,13 +917,16 @@ def sample_notification(
     """
     Create, persist, and return a Notification instance.
     """
-
+    teardown_service = None
+    teardown_template = None
     if created_at is None:
         created_at = datetime.utcnow()
     if service is None:
         service = create_service(check_if_service_exists=True)
+        teardown_service = service
     if template is None:
         template = create_template(service=service)
+        teardown_template = template
         assert template.template_type == SMS_TYPE, "This is the default template type."
 
     if job is None and api_key is None:
@@ -934,10 +981,23 @@ def sample_notification(
 
         if status != 'created':
             scheduled_notification.pending = False
-        db.session.add(scheduled_notification)
-        db.session.commit()
+        notify_db_session.session.add(scheduled_notification)
+        notify_db_session.session.commit()
 
-    return notification
+    yield notification
+
+    # Teardown
+    if scheduled_for:
+        notify_db_session.session.delete(scheduled_notification)
+    if teardown_template is not None:
+        template_redacted = notify_db_session.session.get(TemplateRedacted, teardown_template.id)
+        notify_db_session.session.delete(template_redacted)
+        notify_db_session.session.delete(teardown_template)
+    if teardown_service is not None:
+        dao_archive_service(teardown_service.id)
+
+    notify_db_session.session.delete(notification)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture
@@ -993,7 +1053,7 @@ def sample_email_notification(notify_db_session):
 def sample_notification_history(
         notify_db,
         notify_db_session,
-        sample_template,
+        sample_sms_template_func,
         status='created',
         created_at=None,
         notification_type=None,
@@ -1009,17 +1069,17 @@ def sample_notification_history(
         sent_at = datetime.utcnow()
 
     if notification_type is None:
-        notification_type = sample_template.template_type
+        notification_type = sample_sms_template_func.template_type
         assert notification_type == SMS_TYPE, "This is the default."
 
     if not api_key:
-        api_key = create_api_key(sample_template.service, key_type=key_type)
+        api_key = create_api_key(sample_sms_template_func.service, key_type=key_type)
 
     notification_history = NotificationHistory(
         id=uuid4(),
-        service=sample_template.service,
-        template_id=sample_template.id,
-        template_version=sample_template.version,
+        service=sample_sms_template_func.service,
+        template_id=sample_sms_template_func.id,
+        template_version=sample_sms_template_func.version,
         status=status,
         created_at=created_at,
         notification_type=notification_type,
@@ -1645,8 +1705,13 @@ def datetime_in_past(days=0, seconds=0):
 
 
 @pytest.fixture(scope='function')
-def sample_sms_sender(sample_service):
-    return dao_add_sms_sender_for_service(sample_service.id, "+12025555555", True)
+def sample_sms_sender(notify_db_session, sample_service):
+    service_sms_sender = dao_add_sms_sender_for_service(sample_service().id, "+12025555555", True)
+    yield service_sms_sender
+
+    # Fails if any notifications were sent
+    notify_db_session.session.delete(service_sms_sender)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture(scope="function")
