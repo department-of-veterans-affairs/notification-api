@@ -1,14 +1,15 @@
 from app import DATETIME_FORMAT
-from app.models import Service
+from app.models import Service, EMAIL_TYPE
 from datetime import datetime
 from tests.app.db import create_notification
 
 
-def test_get_api_key_stats_with_sends(notify_db_session, admin_request, sample_email_template_history, sample_api_key):
+def test_get_api_key_stats_with_sends(notify_db_session, admin_request, sample_template_func, sample_api_key):
     api_key = sample_api_key()
+    template = sample_template_func(template_type=EMAIL_TYPE)
     total_sends = 10
     notifications = [
-        create_notification(template=sample_email_template_history, api_key=api_key) for _ in range(total_sends)
+        create_notification(template=template, api_key=api_key) for _ in range(total_sends)
     ]
 
     api_key_stats = admin_request.get(
@@ -55,14 +56,12 @@ def test_get_api_keys_ranked(
     notify_db_session,
     admin_request,
     sample_api_key,
-    sample_email_template_history
+    sample_template_func
 ):
-    # Utilize template history for some reason
-    notify_db_session.session.add(sample_email_template_history)
-    notify_db_session.session.commit()
+    template = sample_template_func(template_type=EMAIL_TYPE)
 
     # Get the service used for that template
-    service = notify_db_session.session.get(Service, sample_email_template_history.service_id)
+    service = notify_db_session.session.get(Service, template.service_id)
     
     # Create the two keys with the correct service
     key_0 = sample_api_key(service=service)
@@ -71,12 +70,12 @@ def test_get_api_keys_ranked(
     total_sends = 10
 
     # Create series of notifications
-    notifications = [create_notification(template=sample_email_template_history, api_key=key_0)]
+    notifications = [create_notification(template=template, api_key=key_0)]
     for _ in range(total_sends):
-        notifications.append(create_notification(template=sample_email_template_history, api_key=key_0))
+        notifications.append(create_notification(template=template, api_key=key_0))
         notifications.append(
             create_notification(
-                template=sample_email_template_history,
+                template=template,
                 api_key=key_1
             )
         )
