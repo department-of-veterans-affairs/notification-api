@@ -503,7 +503,6 @@ def sample_template(notify_db_session, sample_service, sample_user):
     templates = []
 
     def _wrapper(*args, **kwargs):
-        assert len(args) == 0, "Function is not setup for args"
         # Mandatory arguments - ignore args
         kwargs['name'] = kwargs.get('name', f"function template {uuid4()}")
         kwargs['template_type'] = kwargs.get('template_type', SMS_TYPE)
@@ -512,7 +511,7 @@ def sample_template(notify_db_session, sample_service, sample_user):
         if 'subject' in kwargs:
             kwargs['subject_line'] = kwargs.pop('subject')
 
-        template_data = sample_template_helper(**kwargs)
+        template_data = sample_template_helper(*args, **kwargs)
 
         if kwargs['template_type'] == LETTER_TYPE:
             template_data["postage"] = kwargs.get('postage',  "second")
