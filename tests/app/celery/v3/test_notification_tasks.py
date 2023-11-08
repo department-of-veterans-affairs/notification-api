@@ -223,14 +223,14 @@ def test_v3_process_notification_valid_sms_without_sender_id(
     v3_send_sms_notification_mock = mocker.patch(
         "app.celery.v3.notification_tasks.v3_send_sms_notification.delay"
     )
-    
+
     get_default_sms_sender_id_mock = mocker.patch(
         "app.celery.v3.notification_tasks.get_default_sms_sender_id",
         return_value=sample_sms_sender.id
     )
 
     v3_process_notification(request_data, sample_service.id, None, KEY_TYPE_TEST)
-    
+
     v3_send_sms_notification_mock.assert_called_once_with(
         mocker.ANY,
         sample_sms_sender.sms_sender
