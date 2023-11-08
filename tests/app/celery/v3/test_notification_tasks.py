@@ -203,7 +203,6 @@ def test_v3_process_notification_valid_sms_with_sender_id(
     assert isinstance(v3_send_sms_notification_mock.call_args.args[0], Notification)
 
 
-@pytest.mark.xfail(reason="Not implemented.", run=False)
 def test_v3_process_notification_valid_sms_without_sender_id(
     notify_db_session, mocker, sample_service, sample_template, sample_sms_sender
 ):
@@ -212,7 +211,22 @@ def test_v3_process_notification_valid_sms_without_sender_id(
     should pass a Notification instance to the task v3_send_sms_notification.
     """
 
-    pass
+    assert sample_template.template_type == SMS_TYPE
+
+    request_data = {
+        "id": str(uuid4()),
+        "notification_type": SMS_TYPE,
+        "phone_number": "+18006982411",
+        "template_id": sample_template.id,
+    }
+
+    v3_send_sms_notification_mock = mocker.patch("app.celery.v3.notification_tasks.v3_send_sms_notification.delay")
+    v3_process_notification(request_data, sample_service.id, None, KEY_TYPE_TEST)
+    v3_send_sms_notification_mock.assert_called_once_with(
+        mocker.ANY,
+        sample_sms_sender.sms_sender
+    )
+    assert isinstance(v3_send_sms_notification_mock.call_args.args[0], Notification)
 
 
 def test_v3_send_sms_notification(notify_db_session, mocker, sample_notification, sample_sms_sender):
