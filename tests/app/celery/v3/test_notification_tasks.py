@@ -220,13 +220,27 @@ def test_v3_process_notification_valid_sms_without_sender_id(
         "template_id": sample_template.id,
     }
 
-    v3_send_sms_notification_mock = mocker.patch("app.celery.v3.notification_tasks.v3_send_sms_notification.delay")
+    v3_send_sms_notification_mock = mocker.patch(
+        "app.celery.v3.notification_tasks.v3_send_sms_notification.delay"
+    )
+    
+    get_default_sms_sender_id_mock = mocker.patch(
+        "app.celery.v3.notification_tasks.get_default_sms_sender_id",
+        return_value=sample_sms_sender.id
+    )
+
     v3_process_notification(request_data, sample_service.id, None, KEY_TYPE_TEST)
+    
     v3_send_sms_notification_mock.assert_called_once_with(
         mocker.ANY,
         sample_sms_sender.sms_sender
     )
-    assert isinstance(v3_send_sms_notification_mock.call_args.args[0], Notification)
+
+    _notification = v3_send_sms_notification_mock.call_args.args[0]
+    assert isinstance(_notification, Notification)
+    assert _notification.sms_sender_id == get_default_sms_sender_id_mock.return_value
+
+    get_default_sms_sender_id_mock.assert_called_once_with(sample_service.id)
 
 
 def test_v3_process_notification_valid_sms_with_invalid_sender_id(
