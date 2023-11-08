@@ -124,7 +124,7 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
                     return
                 else:
                     if notification.sms_sender_id is None:
-                        _msg = "Unexpected error while retrieving the SMS sender: %s" % err
+                        _msg = "Missing sms_sender_id after retrieving the SMS sender."
                         v3_persist_failed_notification(notification, NOTIFICATION_TECHNICAL_FAILURE, _msg)
                         return
 
