@@ -30,6 +30,39 @@ from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 logger = get_task_logger(__name__)
 
 
+def get_default_sms_sender_id(service_id: str) -> str:
+    """
+    Retrieve the default SMS sender ID for a given service.
+
+    Parameters:
+    - service_id (str): The UUID for the service whose default SMS sender ID is being retrieved.
+
+    Returns:
+    - str: The ID of the default SMS sender.
+
+    Raises:
+    - RuntimeError:
+        If no default SMS sender ID is found.
+        If there is an unexpected error during the database query.
+        If the SMS sender ID is None after retrieving a sender that was marked as default.
+    """
+    query = select(ServiceSmsSender).where(
+        (ServiceSmsSender.service_id == service_id) &
+        ServiceSmsSender.is_default
+    )
+    with get_reader_session() as db:
+        try:
+            sms_sender = db.execute(query).one().ServiceSmsSender
+        except NoResultFound:
+            raise RuntimeError("SMS sender ID was not set for the notification and no default was found.")
+        except Exception as err:
+            raise RuntimeError("Unexpected error while retrieving the SMS sender: %s" % err)
+        else:
+            if sms_sender.id is None:
+                raise RuntimeError("Unexpected missing SMS sender ID.")
+            return sms_sender.id
+
+
 # TODO - Error handler for sqlalchemy.exc.IntegrityError.  This happens when a foreign key references a nonexistent ID.
 @notify_celery.task(serializer="json")
 def v3_process_notification(request_data: dict, service_id: str, api_key_id: str, api_key_type: str):
@@ -105,28 +138,12 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         v3_send_email_notification.delay(notification, template)
     elif notification.notification_type == SMS_TYPE:
         if notification.sms_sender_id is None:
-            # If id is not present, try to fetch the default one associated with the service
-            query = select(ServiceSmsSender).where(
-                (ServiceSmsSender.service_id == service_id) &
-                ServiceSmsSender.is_default
-            )
-            with get_reader_session() as db:
-                try:
-                    sms_sender = db.execute(query).one().ServiceSmsSender
-                    notification.sms_sender_id = sms_sender.id
-                except NoResultFound:
-                    _msg = ("SMS sender ID was not set for the notification and no default was found.")
-                    v3_persist_failed_notification(notification, NOTIFICATION_TECHNICAL_FAILURE, _msg)
-                    return
-                except Exception as err:
-                    _msg = "Unexpected error while retrieving the SMS sender: %s" % err
-                    v3_persist_failed_notification(notification, NOTIFICATION_TECHNICAL_FAILURE, _msg)
-                    return
-                else:
-                    if notification.sms_sender_id is None:
-                        _msg = "Missing sms_sender_id after retrieving the SMS sender."
-                        v3_persist_failed_notification(notification, NOTIFICATION_TECHNICAL_FAILURE, _msg)
-                        return
+            try:
+                # If id is not present, try to fetch the default one associated with the service
+                notification.sms_sender_id = get_default_sms_sender_id(service_id)
+            except RuntimeError as err:
+                v3_persist_failed_notification(notification, NOTIFICATION_TECHNICAL_FAILURE, err)
+                return
 
         # TODO - Catch db connection errors and retry?
         query = select(ServiceSmsSender).where(

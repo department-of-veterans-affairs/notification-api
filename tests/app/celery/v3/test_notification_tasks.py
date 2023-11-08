@@ -233,8 +233,8 @@ def test_v3_process_notification_invalid_sms_with_sender_id(
     notify_db_session, mocker, sample_service, sample_template, sample_sms_sender
 ):
     """
-    Given data for a valid SMS notification that includes an INVALID sms_sender_id, the task v3_process_notification
-    should pass a Notification instance to the task v3_send_sms_notification.
+    Given data for a valid SMS notification that includes an INVALID sms_sender_id,
+    v3_process_notification should NOT call v3_send_sms_notification after checking sms_sender_id.
     """
 
     assert sample_template.template_type == SMS_TYPE
@@ -249,11 +249,7 @@ def test_v3_process_notification_invalid_sms_with_sender_id(
 
     v3_send_sms_notification_mock = mocker.patch("app.celery.v3.notification_tasks.v3_send_sms_notification.delay")
     v3_process_notification(request_data, sample_service.id, None, KEY_TYPE_TEST)
-    v3_send_sms_notification_mock.assert_called_once_with(
-        mocker.ANY,
-        sample_sms_sender.sms_sender
-    )
-    assert isinstance(v3_send_sms_notification_mock.call_args.args[0], Notification)
+    v3_send_sms_notification_mock.assert_not_called()
 
 
 def test_v3_send_sms_notification(notify_db_session, mocker, sample_notification, sample_sms_sender):
