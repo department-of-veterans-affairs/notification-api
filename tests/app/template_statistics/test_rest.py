@@ -79,7 +79,7 @@ def test_get_template_statistics_for_service_by_day_accepts_old_query_string(
 def test_get_template_statistics_for_service_by_day_goes_to_db(
     admin_request,
     mocker,
-    sample_template
+    sample_sms_template_func
 ):
 
     # first time it is called redis returns data, second time returns none
@@ -87,10 +87,10 @@ def test_get_template_statistics_for_service_by_day_goes_to_db(
         'app.template_statistics.rest.fetch_notification_status_for_service_for_today_and_7_previous_days',
         return_value=[
             Mock(
-                template_id=sample_template.id,
+                template_id=sample_sms_template_func.id,
                 count=3,
-                template_name=sample_template.name,
-                notification_type=sample_template.template_type,
+                template_name=sample_sms_template_func.name,
+                notification_type=sample_sms_template_func.template_type,
                 status='created',
                 is_precompiled_letter=False
             )
@@ -98,22 +98,22 @@ def test_get_template_statistics_for_service_by_day_goes_to_db(
     )
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_service_by_day',
-        service_id=sample_template.service_id,
+        service_id=sample_sms_template_func.service_id,
         whole_days=1
     )
 
     assert json_resp['data'] == [{
-        "template_id": str(sample_template.id),
+        "template_id": str(sample_sms_template_func.id),
         "count": 3,
-        "template_name": sample_template.name,
-        "template_type": sample_template.template_type,
+        "template_name": sample_sms_template_func.name,
+        "template_type": sample_sms_template_func.template_type,
         "status": "created",
         "is_precompiled_letter": False
 
     }]
     # dao only called for 2nd, since redis returned values for first call
     mock_dao.assert_called_once_with(
-        str(sample_template.service_id), limit_days=1, by_template=True
+        str(sample_sms_template_func.service_id), limit_days=1, by_template=True
     )
 
 
@@ -125,7 +125,7 @@ def test_get_template_statistics_for_service_by_day_returns_empty_list_if_no_tem
 
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_service_by_day',
-        service_id=sample_service.id,
+        service_id=sample_service().id,
         whole_days=7
     )
 
@@ -135,28 +135,35 @@ def test_get_template_statistics_for_service_by_day_returns_empty_list_if_no_tem
 # get_template_statistics_for_template
 
 
-def test_get_template_statistics_for_template_returns_last_notification(admin_request, sample_template):
-    create_notification(sample_template)
-    create_notification(sample_template)
-    notification_3 = create_notification(sample_template)
+def test_get_template_statistics_for_template_returns_last_notification(notify_db_session, admin_request, sample_email_template_func):
+
+    # Build notifications
+    notifications = [create_notification(template=sample_email_template_func)]
+    notifications.append(create_notification(template=sample_email_template_func))
+    notifications.append(create_notification(template=sample_email_template_func))
 
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_template_id',
-        service_id=notification_3.service_id,
-        template_id=notification_3.template_id
+        service_id=notifications[-1].service_id,
+        template_id=notifications[-1].template_id
     )
 
-    assert json_resp['data']['id'] == str(notification_3.id)
+    assert json_resp['data']['id'] == str(notifications[-1].id)
+
+    # Teardown
+    for notification in notifications:
+        notify_db_session.session.delete(notification)
+    notify_db_session.session.commit()
 
 
 def test_get_template_statistics_for_template_returns_empty_if_no_statistics(
     admin_request,
-    sample_template,
+    sample_email_template_func,
 ):
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_template_id',
-        service_id=sample_template.service_id,
-        template_id=sample_template.id
+        service_id=sample_email_template_func.service_id,
+        template_id=sample_email_template_func.id
     )
 
     assert not json_resp['data']
@@ -169,7 +176,7 @@ def test_get_template_statistics_for_template_raises_error_for_nonexistent_templ
 ):
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_template_id',
-        service_id=sample_service.id,
+        service_id=sample_service().id,
         template_id=fake_uuid,
         _expected_status=404
     )
