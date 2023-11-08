@@ -16,7 +16,8 @@ from app.authentication.auth import (
     requires_user_in_service_or_admin,
 )
 from app.dao.api_key_dao import get_unsigned_secrets
-from app.models import PERMISSION_LIST, Permission
+from app.dao.permissions_dao import permission_dao
+from app.models import PERMISSION_LIST, SERVICE_PERMISSION_TYPES, Permission
 from app.service.service_data import ServiceDataApiKey
 from flask import json, current_app, request
 from flask_jwt_extended import create_access_token
@@ -466,44 +467,26 @@ class TestRequiresUserInService:
         with pytest.raises(ExpiredSignatureError):
             endpoint_that_requires_user_in_service()
 
-    #@pytest.mark.parametrize('required_permission', PERMISSION_LIST)
-    @pytest.mark.parametrize('required_permission', ("view_activity",))
+    @pytest.mark.parametrize('required_permission', PERMISSION_LIST)
     def test_accepts_jwt_with_permission_for_service(
         self, notify_db_session, client, required_permission, sample_user_service_api_key
     ):
+        # This one tests a user with valid permissions
+        # The PERMISSION_LIST is for users to be able to do things with services
         user, service, _ = sample_user_service_api_key
+        permission_list = [Permission(service_id=service.id, user_id=user.id, permission=required_permission)]
+        permission_dao.set_user_service_permission(user, service, permission_list, _commit=True, replace=True)
 
         @requires_user_in_service_or_admin(required_permission=required_permission)
         def endpoint_that_requires_permission_for_service():
             pass
-
-        permission = None
-        if not service.has_permissions(required_permission):
-            print("MADE IT HERE FOR", required_permission, user, service)  # TODO
-            permission = Permission(
-                service=service,
-                user=user,
-                permission=required_permission
-            )
-            notify_db_session.session.add(permission)
-        #    notify_db_session.session.commit()
-        # Else, the service had the permission upon its creation.
-        #else:
-        #    print("ELSE", required_permission)  # TODO
 
         token = create_access_token(identity=user)
 
         request.view_args['service_id'] = service.id
         request.headers = {'Authorization': 'Bearer {}'.format(token)}
 
-        try:
-            endpoint_that_requires_permission_for_service()
-        finally:
-            # Test clean-up
-            print("MADE IT TO TEARDOWN", required_permission)  # TODO
-            #if permission is not None:
-            #    notify_db_session.session.delete(permission)
-            #    notify_db_session.session.commit()
+        endpoint_that_requires_permission_for_service()
 
     def test_rejects_jwt_without_permission_for_service(self, client, sample_user_service_api_key):
         user, service, _ = sample_user_service_api_key
@@ -541,16 +524,16 @@ class TestRequiresUserInService:
 
         endpoint_that_requires_user_in_service()
 
-    @pytest.mark.parametrize('required_permission', PERMISSION_LIST)
-    def test_accepts_jwt_for_platform_admin_even_with_required_permissions(
-        self, client, sample_user, sample_user_service_api_key, required_permission
-    ):
-        user, service, _ = sample_user_service_api_key
-        admin_user = sample_user(platform_admin=True)
 
-        assert admin_user.platform_admin
-        assert user in service.users
-        assert admin_user not in service.users, "Admin users should not need to be assigned to a service."
+class TestRequiresAdminAuthOrUserInService:
+
+    @pytest.mark.parametrize('required_permission', SERVICE_PERMISSION_TYPES)
+    def test_accepts_jwt_with_permission_for_service(
+        self, notify_db_session, client, required_permission, sample_user, sample_service
+    ):
+        # This one tests the admin path
+        admin_user = sample_user(platform_admin=True)
+        service = sample_service(service_permissions=SERVICE_PERMISSION_TYPES)
 
         @requires_user_in_service_or_admin(required_permission=required_permission)
         def endpoint_that_requires_permission_for_service():
@@ -562,37 +545,6 @@ class TestRequiresUserInService:
         request.headers = {'Authorization': 'Bearer {}'.format(token)}
 
         endpoint_that_requires_permission_for_service()
-
-
-class TestRequiresAdminAuthOrUserInService:
-
-    @pytest.mark.parametrize('required_permission', PERMISSION_LIST)
-    def test_accepts_jwt_with_permission_for_service(
-        self, notify_db_session, client, required_permission, sample_service_function
-    ):
-        @requires_admin_auth_or_user_in_service(required_permission=required_permission)
-        def endpoint_that_requires_admin_auth_or_permission_for_service():
-            pass
-
-        permission = Permission(
-            service=sample_service_function,
-            user=sample_service_function.created_by,
-            permission=required_permission
-        )
-        notify_db_session.session.add(permission)
-        notify_db_session.session.commit()
-
-        token = create_access_token(identity=sample_service_function.created_by)
-
-        request.view_args['service_id'] = sample_service_function.id
-        request.headers = {'Authorization': 'Bearer {}'.format(token)}
-
-        try:
-            endpoint_that_requires_admin_auth_or_permission_for_service()
-        finally:
-            # Test clean-up
-            notify_db_session.session.delete(permission)
-            notify_db_session.session.commit()
 
     def test_rejects_jwt_without_permission_for_service(self, client, sample_user_service_api_key):
         user, service, _ = sample_user_service_api_key
@@ -627,3 +579,53 @@ class TestRequiresAdminAuthOrUserInService:
         request.headers = {'Authorization': 'Bearer {}'.format(token)}
 
         endpoint_that_requires_admin_auth_or_permission_for_service()
+
+    def test_accepts_jwt_for_platform_admin(self, client, sample_user, sample_service):
+        admin_user = sample_user(platform_admin=True)
+        service = sample_service()
+        assert admin_user.platform_admin
+
+        @requires_user_in_service_or_admin()
+        def endpoint_that_requires_user_in_service():
+            pass
+
+        token = create_access_token(identity=admin_user)
+
+        request.view_args['service_id'] = service.id
+        request.headers = {'Authorization': 'Bearer {}'.format(token)}
+
+        endpoint_that_requires_user_in_service()
+
+
+    @pytest.mark.parametrize('required_permission', PERMISSION_LIST)
+    def test_accepts_jwt_for_platform_admin_even_with_required_permissions(
+        self, client, required_permission, sample_user, sample_service, set_user_as_admin
+    ):
+        # Create normal user and service with all permissions
+        user = sample_user()
+        service = sample_service(user=user, service_permissions=SERVICE_PERMISSION_TYPES)
+
+        # Add required permission to user that is in the service
+        permission_list = [Permission(service_id=service.id, user_id=user.id, permission=required_permission)]
+        permission_dao.set_user_service_permission(user, service, permission_list, _commit=True, replace=True)
+
+        # Upgrade user to admin
+        admin_user = set_user_as_admin(user)
+
+        # Assert admin is the same user and that they are still in the service
+        assert admin_user.id == user.id
+        assert admin_user.platform_admin
+        assert admin_user in service.users
+
+        @requires_user_in_service_or_admin(required_permission=required_permission)
+        def endpoint_that_requires_permission_for_service():
+            pass
+
+        # Setup current_user to be the admin user
+        token = create_access_token(identity=admin_user)
+
+        request.view_args['service_id'] = service.id
+        request.headers = {'Authorization': 'Bearer {}'.format(token)}
+
+        # Validate no errors
+        endpoint_that_requires_permission_for_service()
