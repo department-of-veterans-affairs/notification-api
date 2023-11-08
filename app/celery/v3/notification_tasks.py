@@ -104,7 +104,6 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
     if notification.notification_type == EMAIL_TYPE:
         v3_send_email_notification.delay(notification, template)
     elif notification.notification_type == SMS_TYPE:
-        current_app.logger.critical(f"V3: service_id: {service_id}")
         if notification.sms_sender_id is None:
             current_app.logger.critical(f"V3: sms_sender_id is not set for notification. Fetching the default one.")
             query = select(ServiceSmsSender).where(
