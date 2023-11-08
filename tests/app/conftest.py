@@ -496,7 +496,7 @@ def sample_template_helper(
 
 
 @pytest.fixture(scope="function")
-def sample_template_func(notify_db_session, sample_service, sample_user):
+def sample_template(notify_db_session, sample_service, sample_user):
     """
     Use this function-scoped SMS template for tests that don't need to modify the template.
     """

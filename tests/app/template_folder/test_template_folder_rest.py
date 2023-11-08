@@ -308,16 +308,16 @@ def test_move_to_folder_validates_schema(data, admin_request, notify_db_session)
     )
 
 
-def test_move_to_folder_moves_folders_and_templates(admin_request, sample_service, sample_template_func):
+def test_move_to_folder_moves_folders_and_templates(admin_request, sample_service, sample_template):
     service = sample_service()
     target_folder = create_template_folder(service, name='target')
     f1 = create_template_folder(service, name='f1')
     f2 = create_template_folder(service, name='f2')
 
-    t1 = sample_template_func(service=service, name=str(uuid.uuid4()), folder=f1)
-    t2 = sample_template_func(service=service, name=str(uuid.uuid4()), folder=f1)
-    t3 = sample_template_func(service=service, name=str(uuid.uuid4()), folder=f2)
-    t4 = sample_template_func(service=service, name=str(uuid.uuid4()), folder=target_folder)
+    t1 = sample_template(service=service, name=str(uuid.uuid4()), folder=f1)
+    t2 = sample_template(service=service, name=str(uuid.uuid4()), folder=f1)
+    t3 = sample_template(service=service, name=str(uuid.uuid4()), folder=f2)
+    t4 = sample_template(service=service, name=str(uuid.uuid4()), folder=target_folder)
 
     admin_request.post(
         'template_folder.move_to_template_folder',
@@ -346,14 +346,14 @@ def test_move_to_folder_moves_folders_and_templates(admin_request, sample_servic
     assert t4.version == 1
 
 
-def test_move_to_folder_moves_folders_and_templates_to_top_level_if_no_target(admin_request, sample_service, sample_template_func):
+def test_move_to_folder_moves_folders_and_templates_to_top_level_if_no_target(admin_request, sample_service, sample_template):
     service = sample_service()
     f1 = create_template_folder(service, name='f1')
     f2 = create_template_folder(service, name='f2', parent=f1)
 
-    t1 = sample_template_func(service=service, name=str(uuid.uuid4()), folder=f1)
-    t2 = sample_template_func(service=service, name=str(uuid.uuid4()), folder=f1)
-    t3 = sample_template_func(service=service, name=str(uuid.uuid4()), folder=f2)
+    t1 = sample_template(service=service, name=str(uuid.uuid4()), folder=f1)
+    t2 = sample_template(service=service, name=str(uuid.uuid4()), folder=f1)
+    t3 = sample_template(service=service, name=str(uuid.uuid4()), folder=f2)
 
     admin_request.post(
         'template_folder.move_to_template_folder',
@@ -393,11 +393,11 @@ def test_move_to_folder_rejects_folder_from_other_service(admin_request, sample_
     assert response['message'] == 'No folder found with id {} for service {}'.format(f2.id, s1.id)
 
 
-def test_move_to_folder_rejects_template_from_other_service(admin_request, sample_service, sample_template_func):
+def test_move_to_folder_rejects_template_from_other_service(admin_request, sample_service, sample_template):
     s1 = sample_service(service_name=str(uuid.uuid4()))
     s2 = sample_service(service_name=str(uuid.uuid4()))
 
-    t2 = sample_template_func(service=s2)
+    t2 = sample_template(service=s2)
 
     response = admin_request.post(
         'template_folder.move_to_template_folder',
@@ -450,13 +450,13 @@ def test_move_to_folder_itself_is_rejected(admin_request, sample_service):
 
 
 @pytest.mark.skip(reason="Endpoint disabled and slated for removal")
-def test_move_to_folder_skips_archived_templates(admin_request, sample_service, sample_template_func):
+def test_move_to_folder_skips_archived_templates(admin_request, sample_service, sample_template):
     service = sample_service()
     target_folder = create_template_folder(service)
     other_folder = create_template_folder(service)
 
-    archived_template = sample_template_func(service=service, archived=True, folder=None)
-    unarchived_template = sample_template_func(service=service, archived=False, folder=other_folder)
+    archived_template = sample_template(service=service, archived=True, folder=None)
+    unarchived_template = sample_template(service=service, archived=False, folder=other_folder)
 
     archived_timestamp = archived_template.updated_at
 
