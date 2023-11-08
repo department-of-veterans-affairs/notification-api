@@ -105,19 +105,21 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         v3_send_email_notification.delay(notification, template)
     elif notification.notification_type == SMS_TYPE:
         if notification.sms_sender_id is None:
-            current_app.logger.critical(f"V3: sms_sender_id is not set for notification. Fetching the default one.")
+            # If id is not present, try to fetch the default one associated with the service
             query = select(ServiceSmsSender).where(
                 (ServiceSmsSender.service_id == service_id) &
                 ServiceSmsSender.is_default
             )
-            with get_reader_session() as dbsession:
+            with get_reader_session() as db:
+                sms_sender = None
                 try:
-                    sms_sender: ServiceSmsSender = dbsession.execute(query).one().ServiceSmsSender
+                    sms_sender = db.execute(query).one()
                     v3_send_sms_notification.delay(notification, sms_sender.sms_sender)
-                except Exception as err:
-                    _msg = "sms_sender_id was not set for notification and we were unable to retreive the default one.\
-                            Error: %s" % err
-                    current_app.logger.critical(_msg)
+                except NoResultFound:
+                    _msg = ("SMS sender ID was not set for the notification and no default was found.")
+                    v3_persist_failed_notification(notification, NOTIFICATION_TECHNICAL_FAILURE, _msg)
+                except Exception as err: 
+                    _msg = "Unexpected error while retrieving the SMS sender: %s" % err
                     v3_persist_failed_notification(notification, NOTIFICATION_TECHNICAL_FAILURE, _msg)
             return
 
