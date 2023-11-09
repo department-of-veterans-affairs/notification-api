@@ -10,7 +10,6 @@ from app.v2.inbound_sms.inbound_sms_schemas import (
 from app.schema_validation import validate
 
 from tests import create_authorization_header
-from tests.app.db import create_inbound_sms
 
 valid_inbound_sms = {
     "user_number": "447700900111",
@@ -42,11 +41,12 @@ invalid_inbound_sms_list = {
 }
 
 
-def test_get_inbound_sms_contract(client, sample_service):
+def test_get_inbound_sms_contract(client, sample_inbound_sms, sample_service):
+    service = sample_service()
     all_inbound_sms = [
-        create_inbound_sms(service=sample_service, user_number='447700900113'),
-        create_inbound_sms(service=sample_service, user_number='447700900112'),
-        create_inbound_sms(service=sample_service, user_number='447700900111'),
+        sample_inbound_sms(service, user_number='447700900121'),
+        sample_inbound_sms(service, user_number='447700900131'),
+        sample_inbound_sms(service, user_number='447700900141'),
     ]
     reversed_inbound_sms = sorted(all_inbound_sms, key=lambda sms: sms.created_at, reverse=True)
 
