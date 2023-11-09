@@ -159,7 +159,7 @@ def sample_user(notify_db_session, set_user_as_admin):
             notify_db_session.session.delete(user_service)
 
         notify_db_session.session.delete(user)
-        notify_db_session.session.commit()
+    notify_db_session.session.commit()
 
 
 @pytest.fixture(scope='function')
