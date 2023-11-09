@@ -271,7 +271,9 @@ def test_delete_template_folder_fails_if_folder_has_subfolders(admin_request, sa
 
 
 @pytest.mark.skip(reason="Endpoint disabled and slated for removal")
-def test_delete_template_folder_fails_if_folder_contains_templates(admin_request, sample_service, sample_email_template_func):
+def test_delete_template_folder_fails_if_folder_contains_templates(
+    admin_request, sample_service, sample_email_template_func
+):
     service = sample_service()
     existing_folder = create_template_folder(service)
     sample_email_template_func.folder = existing_folder
@@ -346,7 +348,9 @@ def test_move_to_folder_moves_folders_and_templates(admin_request, sample_servic
     assert t4.version == 1
 
 
-def test_move_to_folder_moves_folders_and_templates_to_top_level_if_no_target(admin_request, sample_service, sample_template):
+def test_move_to_folder_moves_folders_and_templates_to_top_level_if_no_target(
+    admin_request, sample_service, sample_template
+):
     service = sample_service()
     f1 = create_template_folder(service, name='f1')
     f2 = create_template_folder(service, name='f2', parent=f1)

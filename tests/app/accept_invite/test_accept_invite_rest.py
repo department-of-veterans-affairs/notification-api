@@ -22,6 +22,7 @@ def test_validate_invitation_token_for_expired_token_returns_400(client, invitat
         'Your invitation to GOV.UK Notify has expired. '
         'Please ask the person that invited you to send you another one']}
 
+
 @pytest.mark.skip(reason="Endpoint disabled and slated for removal")
 @pytest.mark.parametrize('invitation_type', ['service', 'organisation'])
 def test_validate_invitation_token_returns_200_when_token_valid(

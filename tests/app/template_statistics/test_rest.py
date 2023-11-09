@@ -44,16 +44,18 @@ def test_get_template_statistics_for_service_by_day_with_bad_arg_returns_400(adm
 
 
 def test_get_template_statistics_for_service_by_day_returns_template_info(admin_request, mocker, sample_notification):
+    notification = sample_notification()
+
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_service_by_day',
-        service_id=sample_notification.service_id,
+        service_id=notification.service_id,
         whole_days=1
     )
 
     assert len(json_resp['data']) == 1
 
     assert json_resp['data'][0]['count'] == 1
-    assert json_resp['data'][0]['template_id'] == str(sample_notification.template_id)
+    assert json_resp['data'][0]['template_id'] == str(notification.template_id)
     assert json_resp['data'][0]['template_name'] == 'sms Template Name'
     assert json_resp['data'][0]['template_type'] == 'sms'
     assert json_resp['data'][0]['is_precompiled_letter'] is False
@@ -66,9 +68,11 @@ def test_get_template_statistics_for_service_by_day_accepts_old_query_string(
     sample_notification,
     var_name
 ):
+    notification = sample_notification()
+
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_service_by_day',
-        service_id=sample_notification.service_id,
+        service_id=notification.service_id,
         **{var_name: 1}
     )
 
@@ -135,8 +139,9 @@ def test_get_template_statistics_for_service_by_day_returns_empty_list_if_no_tem
 # get_template_statistics_for_template
 
 
-def test_get_template_statistics_for_template_returns_last_notification(notify_db_session, admin_request, sample_email_template_func):
-
+def test_get_template_statistics_for_template_returns_last_notification(
+    notify_db_session, admin_request, sample_email_template_func
+):
     # Build notifications
     notifications = [create_notification(template=sample_email_template_func)]
     notifications.append(create_notification(template=sample_email_template_func))
