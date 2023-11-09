@@ -62,7 +62,7 @@ def test_get_api_keys_ranked(
 
     # Get the service used for that template
     service = notify_db_session.session.get(Service, template.service_id)
-    
+
     # Create the two keys with the correct service
     key_0 = sample_api_key(service=service)
     key_1 = sample_api_key(service=service)

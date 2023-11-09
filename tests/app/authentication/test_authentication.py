@@ -596,7 +596,6 @@ class TestRequiresAdminAuthOrUserInService:
 
         endpoint_that_requires_user_in_service()
 
-
     @pytest.mark.parametrize('required_permission', PERMISSION_LIST)
     def test_accepts_jwt_for_platform_admin_even_with_required_permissions(
         self, client, required_permission, sample_user, sample_service, set_user_as_admin
