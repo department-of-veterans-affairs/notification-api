@@ -39,7 +39,6 @@ from app.models import (
     LoginEvent,
     NORMAL,
     Notification,
-    NOTIFICATION_STATUS_TYPES_COMPLETED,
     NotificationHistory,
     Organisation,
     Permission,
@@ -67,7 +66,6 @@ from datetime import datetime, timedelta
 from flask import current_app, url_for
 from random import randint, randrange
 from sqlalchemy import asc, delete, inspect, update, select
-from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm.session import make_transient
 from tests import create_authorization_header
 from tests.app.db import (
@@ -444,27 +442,13 @@ def sample_service(notify_db_session, sample_user):
 
 
 @pytest.fixture(scope="function")
-def sample_service_email_permission(notify_db_session, sample_user, worker_id):
-    service = sample_service_helper(sample_user, f"function e-mail service {worker_id}", permissions=[EMAIL_TYPE])
-    notify_db_session.session.add(service)
-    notify_db_session.session.commit()
-
-    yield service
-
-    notify_db_session.session.delete(service)
-    notify_db_session.session.commit()
+def sample_service_email_permission(notify_db_session, sample_user, sample_service, worker_id):
+    return sample_service(sample_user, f"function e-mail service {worker_id}", permissions=[EMAIL_TYPE])
 
 
-@pytest.fixture(scope="function")
-def sample_service_sms_permission(notify_db_session, sample_user, worker_id):
-    service = sample_service_helper(sample_user, f"function SMS {worker_id}", permissions=[SMS_TYPE])
-    notify_db_session.session.add(service)
-    notify_db_session.session.commit()
-
-    yield service
-
-    notify_db_session.session.delete(service)
-    notify_db_session.session.commit()
+@pytest.fixture
+def sample_service_sms_permission(notify_db_session, sample_user, sample_service, worker_id):
+    return sample_service(sample_user, f"function SMS {worker_id}", permissions=[SMS_TYPE])
 
 
 @pytest.fixture(scope='function', name='sample_service_full_permissions')
@@ -557,7 +541,7 @@ def sample_template(notify_db_session, sample_service, sample_user):
         template_data = sample_template_helper(*args, **kwargs)
 
         if kwargs['template_type'] == LETTER_TYPE:
-            template_data["postage"] = kwargs.get('postage',  "second")
+            template_data["postage"] = kwargs.get("postage", "second")
         template = Template(**template_data)
         dao_create_template(template)
         templates.append(template)
@@ -567,7 +551,9 @@ def sample_template(notify_db_session, sample_service, sample_user):
 
     # Teardown
     for template in templates:
-        for history in notify_db_session.session.scalars(select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)).all():
+        for history in notify_db_session.session.scalars(
+            select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)
+        ).all():
             notify_db_session.session.delete(history)
         template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
         notify_db_session.session.delete(template_redacted)
@@ -581,7 +567,8 @@ def sample_sms_template_func(notify_db_session, sample_service, sample_user):
     Use this function-scoped SMS template for tests that don't need to modify the template.
     """
 
-    template_data = sample_template_helper(f"function sms template {uuid4()}",
+    template_data = sample_template_helper(
+        f"function sms template {uuid4()}",
         SMS_TYPE, sample_service(), sample_user()
     )
     template = Template(**template_data)
@@ -713,7 +700,7 @@ def sample_template_without_sms_permission(notify_db_session):
     template = create_template(service, template_type=SMS_TYPE)
     yield template
 
-    #Teardown
+    # Teardown
     template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
     notify_db_session.session.delete(template_history)
     template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
@@ -742,7 +729,7 @@ def sample_template_without_email_permission(notify_db_session):
     template = create_template(service, template_type=EMAIL_TYPE)
     yield template
 
-    #Teardown
+    # Teardown
     template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
     notify_db_session.session.delete(template_history)
     template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
@@ -834,7 +821,6 @@ def sample_user_service_api_key(notify_db_session, sample_user, sample_service, 
     api_key = sample_api_key(service)
     assert api_key in service.api_keys
     return user, service, api_key
-    
 
 
 @pytest.fixture(scope='function')
@@ -1005,120 +991,77 @@ def sample_notification_with_job(
     )
 
 
-@pytest.fixture(scope='function')
-def sample_notification(
-        notify_db,
-        notify_db_session,
-        sample_sms_sender,
-        service=None,
-        template=None,
-        job=None,
-        job_row_number=None,
-        to_field=None,
-        status='created',
-        reference=None,
-        created_at=None,
-        sent_at=None,
-        billable_units=1,
-        personalisation=None,
-        api_key=None,
-        key_type=KEY_TYPE_NORMAL,
-        sent_by=None,
-        international=False,
-        client_reference=None,
-        rate_multiplier=1.0,
-        scheduled_for=None,
-        normalised_to=None,
-        postage=None
-):
-    """
-    Create, persist, and return a Notification instance.
-    """
-    teardown_service = None
-    teardown_template = None
-    if created_at is None:
-        created_at = datetime.utcnow()
-    if service is None:
-        service = create_service(check_if_service_exists=True)
-        teardown_service = service
-    if template is None:
-        template = create_template(service=service)
-        teardown_template = template
-        assert template.template_type == SMS_TYPE, "This is the default template type."
+@pytest.fixture
+def sample_notification(notify_db_session):
+    created_notifications = []
+    created_scheduled_notifications = []
+    created_services = []
+    created_templates = []
+    created_api_keys = []
 
-    if job is None and api_key is None:
-        # we didn't specify in test - lets create it
-        api_key = ApiKey.query.filter(ApiKey.service == template.service, ApiKey.key_type == key_type).first()
-        if not api_key:
-            api_key = create_api_key(template.service, key_type=key_type)
+    def _sample_notification(*args, **kwargs):
+        if kwargs.get("created_at") is None:
+            kwargs["created_at"] = datetime.utcnow()
 
-    notification_id = uuid4()
+        if kwargs.get("template") is None:
+            service = create_service(check_if_service_exists=True)
+            created_services.append(service)
 
-    data = {
-        'id': notification_id,
-        'to': to_field if to_field else "+16502532222",
-        'job_id': job.id if job else None,
-        'job': job,
-        'service_id': service.id,
-        'service': service,
-        'template_id': template.id,
-        'template_version': template.version,
-        'status': status,
-        'reference': reference,
-        'created_at': created_at,
-        'sent_at': sent_at,
-        'billable_units': billable_units,
-        'personalisation': personalisation,
-        'notification_type': template.template_type,
-        'api_key': api_key,
-        'api_key_id': api_key and api_key.id,
-        'key_type': api_key.key_type if api_key else key_type,
-        'sent_by': sent_by,
-        'updated_at': created_at if status in NOTIFICATION_STATUS_TYPES_COMPLETED else None,
-        'client_reference': client_reference,
-        'rate_multiplier': rate_multiplier,
-        'normalised_to': normalised_to,
-        'postage': postage,
-        'sms_sender_id': sample_sms_sender.id,
-        "sms_sender": sample_sms_sender,
-    }
+            template = create_template(service=service)
+            kwargs["template"] = template
+            created_templates.append(template)
+            assert template.template_type == SMS_TYPE, "This is the default template type."
 
-    if job_row_number is not None:
-        data['job_row_number'] = job_row_number
+        if kwargs.get("job") is None and kwargs.get("api_key") is None:
+            api_key = ApiKey.query.filter(
+                ApiKey.service == kwargs["template"].service,
+                ApiKey.key_type == kwargs.get("key_type", KEY_TYPE_NORMAL)
+            ).first()
 
-    notification = Notification(**data)
-    dao_create_notification(notification)
+            if not api_key:
+                api_key = create_api_key(kwargs["template"].service, key_type=kwargs.get("key_type", KEY_TYPE_NORMAL))
+                kwargs["api_key"] = api_key
+                created_api_keys.append(api_key)
 
-    if scheduled_for:
-        scheduled_notification = ScheduledNotification(
-            id=uuid4(),
-            notification_id=notification.id,
-            scheduled_for=datetime.strptime(scheduled_for, "%Y-%m-%d %H:%M")
-        )
+        notification = create_notification(*args, **kwargs)
+        created_notifications.append(notification)
 
-        if status != 'created':
-            scheduled_notification.pending = False
-        notify_db_session.session.add(scheduled_notification)
-        notify_db_session.session.commit()
+        if kwargs.get("scheduled_for"):
+            scheduled_notification = ScheduledNotification(
+                id=uuid4(),
+                notification_id=notification.id,
+                scheduled_for=datetime.strptime(kwargs["scheduled_for"], "%Y-%m-%d %H:%M")
+            )
 
-    yield notification
+            if kwargs.get("status") != "created":
+                scheduled_notification.pending = False
 
-    # Teardown
-    if scheduled_for:
+            notify_db_session.session.add(scheduled_notification)
+            notify_db_session.session.commit()
+            created_scheduled_notifications.append(scheduled_notification)
+
+        return notification
+
+    yield _sample_notification
+
+    # Teardown.  Order matters.  Delete API keys last.
+    for scheduled_notification in created_scheduled_notifications:
         notify_db_session.session.delete(scheduled_notification)
-    if teardown_template is not None:
-        template_redacted = notify_db_session.session.get(TemplateRedacted, teardown_template.id)
+    for notification in created_notifications:
+        notify_db_session.session.delete(notification)
+    for template in created_templates:
+        template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
         notify_db_session.session.delete(template_redacted)
-        notify_db_session.session.delete(teardown_template)
-    if teardown_service is not None:
-        dao_archive_service(teardown_service.id)
-
-    notify_db_session.session.delete(notification)
+        notify_db_session.session.delete(template)
+    for service in created_services:
+        dao_archive_service(service.id)
+    for api_key in created_api_keys:
+        notify_db_session.session.delete(api_key)
     notify_db_session.session.commit()
 
 
 @pytest.fixture
-def sample_letter_notification(notify_db_session, sample_letter_template):
+def sample_letter_notification(notify_db_session, sample_letter_template, sample_notification):
     address = {
         'address_line_1': 'A1',
         'address_line_2': 'A2',
@@ -1126,9 +1069,9 @@ def sample_letter_notification(notify_db_session, sample_letter_template):
         'address_line_4': 'A4',
         'address_line_5': 'A5',
         'address_line_6': 'A6',
-        'postcode': 'A_POST'
+        'postcode': 'A_POST',
     }
-    notification = create_notification(sample_letter_template, reference='foo', personalisation=address)
+    notification = sample_notification(template=sample_letter_template, reference='foo', personalisation=address)
     yield notification
 
     # Teardown only if the object wasn't deleted already
@@ -1136,7 +1079,7 @@ def sample_letter_notification(notify_db_session, sample_letter_template):
         notify_db_session.session.delete(notification)
         notify_db_session.session.commit()
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def sample_email_notification(notify_db_session):
     created_at = datetime.utcnow()
     service = create_service(check_if_service_exists=True)
@@ -1224,6 +1167,7 @@ def sample_notification_history(
         notify_db.session.delete(key_to_delete)
     notify_db.session.delete(notification_history)
     notify_db.session.commit()
+
 
 @pytest.fixture(scope='function')
 def mock_celery_send_sms_code(mocker):

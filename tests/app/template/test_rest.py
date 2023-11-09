@@ -633,10 +633,12 @@ def test_get_precompiled_template_for_service_when_service_has_existing_precompi
     sample_template
 ):
     service = sample_service()
-    template = sample_template(service=service, 
-                                    name=f'Exisiting precompiled template {str(uuid.uuid4())}',
-                                    template_type=LETTER_TYPE,
-                                    hidden=True)
+    template = sample_template(
+        service=service,
+        name=f'Exisiting precompiled template {str(uuid.uuid4())}',
+        template_type=LETTER_TYPE,
+        hidden=True
+    )
     assert len(service.templates) == 1
 
     response = client.get(
@@ -704,10 +706,14 @@ def test_should_be_able_to_get_all_templates_for_a_service(client, sample_user, 
     assert update_json_resp['data'][1]['created_at']
 
 
-def test_should_get_only_templates_for_that_service(admin_request, sample_sms_template_func, sample_email_template_func):
-    templates = [sample_sms_template_func,
-                 sample_sms_template_func,
-                 sample_email_template_func]
+def test_should_get_only_templates_for_that_service(
+    admin_request, sample_sms_template_func, sample_email_template_func
+):
+    templates = [
+        sample_sms_template_func,
+        sample_sms_template_func,
+        sample_email_template_func
+    ]
     ids = [str(t.id) for t in templates]
 
     json_resp_1 = admin_request.get('template.get_all_templates_for_service',
@@ -931,7 +937,7 @@ def test_update_does_not_create_new_version_when_there_is_no_change(client, samp
         'template_type': sample_sms_template_func.template_type,
         'content': sample_sms_template_func.content,
     }
-    resp = client.post('/service/{}/template/{}'.format(sample_sms_template_func.service_id, sample_sms_template_func.id),
+    resp = client.post(f'/service/{sample_sms_template_func.service_id}/template/{sample_sms_template_func.id}',
                        data=json.dumps(data),
                        headers=[('Content-Type', 'application/json'), auth_header])
     assert resp.status_code == 200
@@ -1056,7 +1062,9 @@ def test_update_template_reply_to(client, notify_db_session, sample_template, sa
     assert th.service_letter_contact_id == letter_contact.id
 
     # Teardown
-    template_histories = notify_db_session.session.scalars(select(TemplateHistory).where(TemplateHistory.id == template.id)).all()
+    template_histories = notify_db_session.session.scalars(
+        select(TemplateHistory).where(TemplateHistory.id == template.id)
+    ).all()
     for template in template_histories:
         notify_db_session.session.delete(template)
     notify_db_session.session.commit()
@@ -1432,11 +1440,13 @@ def test_preview_letter_template_precompiled_pdf_file_type(
         sample_template,
 ):
 
-    template = sample_template(service=sample_service(),
-                               template_type='letter',
-                               name='Pre-compiled PDF',
-                               subject='Pre-compiled PDF',
-                               hidden=True)
+    template = sample_template(
+        service=sample_service(),
+        template_type='letter',
+        name='Pre-compiled PDF',
+        subject='Pre-compiled PDF',
+        hidden=True
+    )
 
     notification = create_notification(template)
 
@@ -1464,6 +1474,7 @@ def test_preview_letter_template_precompiled_pdf_file_type(
     notify_db_session.session.delete(notification)
     notify_db_session.session.commit()
 
+
 def test_preview_letter_template_precompiled_s3_error(
         notify_api,
         client,
@@ -1474,11 +1485,13 @@ def test_preview_letter_template_precompiled_s3_error(
         sample_template
 ):
 
-    template = sample_template(service=sample_service(),
-                                    template_type='letter',
-                                    name='Pre-compiled PDF',
-                                    subject='Pre-compiled PDF',
-                                    hidden=True)
+    template = sample_template(
+        service=sample_service(),
+        template_type='letter',
+        name='Pre-compiled PDF',
+        subject='Pre-compiled PDF',
+        hidden=True
+    )
 
     notification = create_notification(template)
 
@@ -1532,11 +1545,13 @@ def test_preview_letter_template_precompiled_png_file_type_or_pdf_with_overlay(
         sample_template
 ):
 
-    template = sample_template(service=sample_service(),
-                                    template_type='letter',
-                                    name='Pre-compiled PDF',
-                                    subject='Pre-compiled PDF',
-                                    hidden=True)
+    template = sample_template(
+        service=sample_service(),
+        template_type='letter',
+        name='Pre-compiled PDF',
+        subject='Pre-compiled PDF',
+        hidden=True
+    )
 
     notification = create_notification(template)
 
@@ -1595,11 +1610,13 @@ def test_preview_letter_template_precompiled_png_file_type_hide_notify_tag_only_
         sample_template
 ):
 
-    template = sample_template(service=sample_service(),
-                                    template_type='letter',
-                                    name='Pre-compiled PDF',
-                                    subject='Pre-compiled PDF',
-                                    hidden=True)
+    template = sample_template(
+        service=sample_service(),
+        template_type='letter',
+        name='Pre-compiled PDF',
+        subject='Pre-compiled PDF',
+        hidden=True
+    )
 
     notification = create_notification(template)
 
@@ -1642,11 +1659,13 @@ def test_preview_letter_template_precompiled_png_template_preview_500_error(
         sample_template
 ):
 
-    template = sample_template(service=sample_service(),
-                                    template_type='letter',
-                                    name='Pre-compiled PDF',
-                                    subject='Pre-compiled PDF',
-                                    hidden=True)
+    template = sample_template(
+        service=sample_service(),
+        template_type='letter',
+        name='Pre-compiled PDF',
+        subject='Pre-compiled PDF',
+        hidden=True
+    )
 
     notification = create_notification(template)
 
@@ -1697,11 +1716,13 @@ def test_preview_letter_template_precompiled_png_template_preview_400_error(
         sample_template
 ):
 
-    template = sample_template(service=sample_service(),
-                                    template_type='letter',
-                                    name='Pre-compiled PDF',
-                                    subject='Pre-compiled PDF',
-                                    hidden=True)
+    template = sample_template(
+        service=sample_service(),
+        template_type='letter',
+        name='Pre-compiled PDF',
+        subject='Pre-compiled PDF',
+        hidden=True
+    )
 
     notification = create_notification(template)
 
@@ -1751,11 +1772,13 @@ def test_preview_letter_template_precompiled_png_template_preview_pdf_error(
         sample_template
 ):
 
-    template = sample_template(service=sample_service(),
-                                    template_type='letter',
-                                    name='Pre-compiled PDF',
-                                    subject='Pre-compiled PDF',
-                                    hidden=True)
+    template = sample_template(
+        service=sample_service(),
+        template_type='letter',
+        name='Pre-compiled PDF',
+        subject='Pre-compiled PDF',
+        hidden=True
+    )
 
     notification = create_notification(template)
 
@@ -1937,7 +1960,9 @@ class TestTemplateNameAlreadyExists:
             == 'Template name already exists in service. Please change template name.'
         )
 
-    def test_update_should_not_update_a_template_if_name_already_exists(self, mocker, client, sample_service, sample_template):
+    def test_update_should_not_update_a_template_if_name_already_exists(
+        self, mocker, client, sample_service, sample_template
+    ):
         mock_feature_flag(mocker, FeatureFlag.CHECK_TEMPLATE_NAME_EXISTS_ENABLED, 'True')
         mocker.patch('app.template.rest.template_name_already_exists_on_service', return_value=True)
 

@@ -45,51 +45,53 @@ def test_get_template_statistics_for_service_by_day_with_bad_arg_returns_400(adm
 
 
 def test_get_template_statistics_for_service_by_day_returns_template_info(admin_request,
-                                                                          mocker,
                                                                           notify_db_session,
                                                                           sample_notification
     ):
+    notification = sample_notification()
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_service_by_day',
-        service_id=sample_notification.service_id,
+        service_id=notification.service_id,
         whole_days=1
     )
 
     assert len(json_resp['data']) == 1
 
     assert json_resp['data'][0]['count'] == 1
-    assert json_resp['data'][0]['template_id'] == str(sample_notification.template_id)
+    assert json_resp['data'][0]['template_id'] == str(notification.template_id)
     assert json_resp['data'][0]['template_name'] == 'sms Template Name'
     assert json_resp['data'][0]['template_type'] == 'sms'
     assert json_resp['data'][0]['is_precompiled_letter'] is False
 
     # Teardown
-    template = notify_db_session.session.get(Template, sample_notification.template_id)
+    template = notify_db_session.session.get(Template, notification.template_id)
     template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
-    notify_db_session.session.delete(sample_notification)
+    # Must delete the notification to clear the template history
+    notify_db_session.session.delete(notification)
     notify_db_session.session.delete(template_history)
     notify_db_session.session.commit()
 
 @pytest.mark.parametrize('var_name', ['limit_days', 'whole_days'])
 def test_get_template_statistics_for_service_by_day_accepts_old_query_string(
     admin_request,
-    mocker,
     notify_db_session,
     sample_notification,
     var_name
 ):
+    notification = sample_notification()
+
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_service_by_day',
-        service_id=sample_notification.service_id,
+        service_id=notification.service_id,
         **{var_name: 1}
     )
 
     assert len(json_resp['data']) == 1
 
     # Teardown
-    template = notify_db_session.session.get(Template, sample_notification.template_id)
+    template = notify_db_session.session.get(Template, notification.template_id)
     template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
-    notify_db_session.session.delete(sample_notification)
+    notify_db_session.session.delete(notification)
     notify_db_session.session.delete(template_history)
     notify_db_session.session.commit()
 
