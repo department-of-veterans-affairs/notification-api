@@ -1,6 +1,7 @@
 from app import DATETIME_FORMAT
 from app.models import Service, EMAIL_TYPE
 from datetime import datetime
+import pytest
 from tests.app.db import create_notification
 
 
@@ -52,6 +53,7 @@ def test_get_api_key_stats_no_sends(notify_db_session, admin_request, sample_api
     assert api_key_stats["last_send"] is None
 
 
+@pytest.mark.skip(reason="Endpoint disabled and slated for removal")
 def test_get_api_keys_ranked(
     notify_db_session,
     admin_request,
