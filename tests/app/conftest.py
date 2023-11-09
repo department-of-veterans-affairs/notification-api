@@ -28,6 +28,7 @@ from app.models import (
     CommunicationItem,
     EMAIL_TYPE,
     Fido2Key,
+    InboundNumber,
     InboundSms,
     InvitedUser,
     Job,
@@ -79,7 +80,6 @@ from tests.app.db import (
     create_service,
     create_template,
     create_user,
-    inbound_number_helper,
 )
 from tests.app.factories import (
     service_whitelist
@@ -1700,9 +1700,26 @@ def sample_inbound_sms(notify_db_session, sample_service, sample_inbound_number)
 def sample_inbound_number(notify_db_session):
     inbound_numbers = []
 
-    def _wrapper(*args, **kwargs):
-        # Build the InboundNumber object but commit with this session for cleanup
-        inbound_number = inbound_number_helper(*args, **kwargs)
+    def _wrapper(number=None,
+                 provider='ses',
+                 active=True,
+                 service_id=None,
+                 url_endpoint=None,
+                 self_managed=False
+        ):
+        # Default to the correct amount of characters
+        number = number or f'1{randint(100000000, 999999999)}'
+
+        inbound_number = InboundNumber(
+            id=uuid4(),
+            number=number,
+            provider=provider,
+            active=active,
+            service_id=service_id,
+            url_endpoint=url_endpoint,
+            self_managed=self_managed
+        )
+
         notify_db_session.session.add(inbound_number)
         notify_db_session.session.commit()
         inbound_numbers.append(inbound_number)
