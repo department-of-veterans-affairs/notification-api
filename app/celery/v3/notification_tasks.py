@@ -26,25 +26,24 @@ from notifications_utils.recipients import validate_and_format_email_address
 # from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate
 from sqlalchemy import select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
+from typing import Tuple, Optional
 
 logger = get_task_logger(__name__)
 
 
-def get_default_sms_sender_id(service_id: str) -> str:
+def get_default_sms_sender_id(service_id: str) -> Tuple[Optional[str], Optional[str]]:
     """
-    Retrieve the default SMS sender ID for a given service.
+    Retrieves the default SMS sender ID for a given service.
+
+    This function queries the database to find the default SMS sender associated with a specified service ID.
 
     Parameters:
-    - service_id (str): The UUID for the service whose default SMS sender ID is being retrieved.
+    service_id (str): The unique identifier for the service whose default SMS sender ID is to be retrieved.
 
     Returns:
-    - str: The ID of the default SMS sender.
-
-    Raises:
-    - RuntimeError:
-        If no default SMS sender ID is found.
-        If there is an unexpected error during the database query.
-        If the SMS sender ID is None after retrieving a sender that was marked as default.
+    Tuple[Optional[str], Optional[str]]:
+        - First element is an error message or None if no error occurs.
+        - Second element is the SMS sender ID (if found) or None (if not found or an error occurs).
     """
     query = select(ServiceSmsSender).where(
         (ServiceSmsSender.service_id == service_id) &

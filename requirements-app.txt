@@ -1,8 +1,12 @@
 # This is used to create Postgres stored functions via the migrations process.
 alembic_utils >= 0.8.1
 
+# 8 Nov 2023: Ignoring security vulnerabilities for aiohttp 61657 & 61661 in Makefile. Fixed in >=3.8.6
+
 Authlib >= 1.2.1
 boto3 >= 1.28.32
+# 7 Nov 2023: Ignoring security vulnerability 61601 in Makefile. This is for urllib3, fixed in >=1.26.17
+# update restricted by botocore version
 botocore >= 1.31.32
 cachelib >= 0.10.2
 celery[sqs] >= 5.3.1
