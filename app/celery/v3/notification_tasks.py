@@ -54,13 +54,13 @@ def get_default_sms_sender_id(service_id: str) -> str:
         try:
             sms_sender = db.execute(query).one().ServiceSmsSender
         except NoResultFound:
-            raise RuntimeError("SMS sender ID was not set for the notification and no default was found.")
+            return "SMS sender ID was not set for the notification and no default was found.", None
         except Exception as err:
-            raise RuntimeError("Unexpected error while retrieving the SMS sender: %s" % err)
+            return "Unexpected error while retrieving the SMS sender: %s" % err, None
         else:
             if sms_sender.id is None:
-                raise RuntimeError("Unexpected missing SMS sender ID.")
-            return sms_sender.id
+                return "Unexpected missing SMS sender ID.", None
+            return (None, sms_sender.id)
 
 
 # TODO - Error handler for sqlalchemy.exc.IntegrityError.  This happens when a foreign key references a nonexistent ID.
@@ -138,12 +138,11 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         v3_send_email_notification.delay(notification, template)
     elif notification.notification_type == SMS_TYPE:
         if notification.sms_sender_id is None:
-            try:
-                # If id is not present, try to fetch the default one associated with the service
-                notification.sms_sender_id = get_default_sms_sender_id(service_id)
-            except RuntimeError as err:
+            err, sms_sender_id = get_default_sms_sender_id(service_id)
+            if err is not None:
                 v3_persist_failed_notification(notification, NOTIFICATION_TECHNICAL_FAILURE, err)
                 return
+            notification.sms_sender_id = sms_sender_id
 
         # TODO - Catch db connection errors and retry?
         query = select(ServiceSmsSender).where(
