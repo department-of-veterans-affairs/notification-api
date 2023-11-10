@@ -63,22 +63,28 @@ from app.models import (
 )
 from app.model import User
 from uuid import UUID, uuid4
+from sqlalchemy import select, or_
 
 
 def create_user(
     mobile_number="+16502532222",
     email=None,
     state='active',
-    id_=None,
+    user_id=None,
     identity_provider_user_id=None,
     name="Test User",
     blocked=False,
-    platform_admin=False
+    platform_admin=False,
+    check_if_user_exists=False,
 ):
-    user = User.query.filter_by(email_address=email).first()
+    user = None
+    if check_if_user_exists:
+        # Returns None if not found
+        user = db.session.scalar(select(User).where(or_(User.email_address == email, User.id == user_id)))
+
     if user is None:
         data = {
-            'id': id_ or uuid4(),
+            'id': user_id or uuid4(),
             'name': name,
             # This is a unique, non-nullable field.
             'email_address': email if email is not None else f"{uuid4()}@va.gov",
@@ -563,16 +569,16 @@ def create_letter_rate(start_date=None, end_date=None, crown=True, sheet_count=1
 
 
 def create_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None, expired=False):
-    id_ = uuid4()
+    id = uuid4()
 
-    name = key_name if key_name else '{} api key {}'.format(key_type, id_)
+    name = key_name if key_name else '{} api key {}'.format(key_type, id)
 
     data = {
         "service": service,
         "name": name,
         "created_by": service.created_by,
         "key_type": key_type,
-        "id": id_,
+        "id": id,
         "secret": uuid4(),
     }
 
