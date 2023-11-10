@@ -61,11 +61,13 @@ from app.models import (
     user_folder_permissions,
     UserServiceRoles,
 )
+from app.schemas import ServiceHistorySchema
 from app.service.service_data import ServiceData
 from datetime import datetime, timedelta
 from flask import current_app, url_for
 from random import randint, randrange
-from sqlalchemy import asc, delete, inspect, update, select
+from sqlalchemy import asc, delete, inspect, update, select, Table
+from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm.session import make_transient
 from tests import create_authorization_header
 from tests.app.db import (
@@ -134,6 +136,7 @@ def set_user_as_admin(notify_db_session):
     return _wrapper
 
 
+
 @pytest.fixture
 def sample_user(notify_db_session, set_user_as_admin):
     created_user_ids = []
@@ -148,6 +151,7 @@ def sample_user(notify_db_session, set_user_as_admin):
 
     yield _sample_user
 
+    # Unsafe to teardown with objects, have to use ids to look up the object
     for user_id in created_user_ids:
         user = notify_db_session.session.get(User, user_id)
         # Clear user_to_service
@@ -398,47 +402,64 @@ def sample_notification_model_with_organization(
 
 @pytest.fixture
 def sample_service(notify_db_session, sample_user):
-    created_service_ids = []
+    created_service_ids: list = []
 
     def _sample_service(*args, **kwargs):
         # We do not want create_service to create users because it does not clean them up
         if len(args) == 0 and 'user' not in kwargs:
             kwargs['user'] = sample_user()
-        service = create_service(*args, **kwargs)
+
+        service: Service = create_service(*args, **kwargs)
         
         # The session is different (dao) so we can't just use save the session object for deletion. Set id, query it later
         created_service_ids.append(service.id)
         return service
 
     yield _sample_service
+    service_cleanup(created_service_ids, notify_db_session.session)
 
-    for service_id in created_service_ids:
-        service = notify_db_session.session.get(Service, service_id)
+
+def service_cleanup(service_ids: list, session: scoped_session) -> None:
+    """
+    Cleans up a list of services by deleting all dependencies then clearing the services.
+    Moved this out of the sample_service method for clarity.
+    """
+    # This is an unfortunate reality of the deep dependency web of our database
+    for service_id in service_ids:
+        service = session.get(Service, service_id)
         # Clear service_letter_contacts
-        for letter_contact in notify_db_session.session.scalars(select(ServiceLetterContact).where(ServiceLetterContact.service_id == service.id)).all():
-            notify_db_session.session.delete(letter_contact)
+        for letter_contact in session.scalars(select(ServiceLetterContact).where(ServiceLetterContact.service_id == service.id)).all():
+            session.delete(letter_contact)
 
         # Clear template_folder
-        for template_folder in notify_db_session.session.scalars(select(TemplateFolder).where(TemplateFolder.service_id == service.id)).all():
-            notify_db_session.session.delete(template_folder)
+        for template_folder in session.scalars(select(TemplateFolder).where(TemplateFolder.service_id == service.id)).all():
+            session.delete(template_folder)
 
         # Clear user_to_service
-        notify_db_session.session.execute(delete(user_folder_permissions).where(user_folder_permissions.c.service_id == service.id))
+        session.execute(delete(user_folder_permissions).where(user_folder_permissions.c.service_id == service.id))
 
         # Clear all keys
-        for api_key in notify_db_session.session.scalars(select(ApiKey).where(ApiKey.service_id == service.id)).all():
-            notify_db_session.session.delete(api_key)
+        for api_key in session.scalars(select(ApiKey).where(ApiKey.service_id == service.id)).all():
+            session.delete(api_key)
 
         # Clear all permissions
-        for perm in notify_db_session.session.scalars(select(Permission).where(Permission.service_id == service.id)).all():
-            notify_db_session.session.delete(perm)
+        for perm in session.scalars(select(Permission).where(Permission.service_id == service.id)).all():
+            session.delete(perm)
 
         # Clear all service_sms_senders
-        for sender in notify_db_session.session.scalars(select(ServiceSmsSender).where(ServiceSmsSender.service_id == service.id)).all():
-            notify_db_session.session.delete(sender)
+        for sender in session.scalars(select(ServiceSmsSender).where(ServiceSmsSender.service_id == service.id)).all():
+            session.delete(sender)
 
-        notify_db_session.session.delete(service)
-        notify_db_session.session.commit()
+        # Clean up service servies_history
+        # We do not have a ServicesHistory model. This allows us to have a table for deletions
+        # Can't be declared until the app context is declared
+        ServicesHistory = Table('services_history', Service.get_history_model().metadata, autoload_with=db.engine)
+
+        session.execute(delete(ServicesHistory).where(ServicesHistory.c.id == service.id))
+        session.commit()  # TODO: Remove this
+
+        session.delete(service)
+        session.commit()
 
 
 @pytest.fixture(scope="function")
@@ -494,7 +515,8 @@ def sample_template_helper(
     reply_to=None,
     reply_to_email=None,
     process_type=NORMAL,
-    version=0
+    version=0,
+    id=None,
 ) -> dict:
     """
     Return a dictionary of data for creating a Template or TemplateHistory instance.
@@ -514,6 +536,7 @@ def sample_template_helper(
         "reply_to_email": reply_to_email,
         "process_type": process_type,
         "version": version,
+        "id": id,
     }
 
     if template_type == EMAIL_TYPE:
@@ -527,14 +550,18 @@ def sample_template(notify_db_session, sample_service, sample_user):
     """
     Use this function-scoped SMS template for tests that don't need to modify the template.
     """
-    templates = []
+    template_ids = []
 
     def _wrapper(*args, **kwargs):
+        assert len(args) == 0, "sample_template method does not accept positional arguments"
         # Mandatory arguments - ignore args
         kwargs['name'] = kwargs.get('name', f"function template {uuid4()}")
         kwargs['template_type'] = kwargs.get('template_type', SMS_TYPE)
-        kwargs['service'] = kwargs.get('service', sample_service())
-        kwargs['user'] = kwargs.get('user', sample_user())
+
+        # Using fixtures as defaults creates those objects! Do not make a fixture the default param
+        kwargs['user'] = kwargs.get('user') or sample_user()
+        kwargs['service'] = kwargs.get('service') or sample_service()
+        
         if 'subject' in kwargs:
             kwargs['subject_line'] = kwargs.pop('subject')
 
@@ -542,15 +569,19 @@ def sample_template(notify_db_session, sample_service, sample_user):
 
         if kwargs['template_type'] == LETTER_TYPE:
             template_data["postage"] = kwargs.get("postage", "second")
+
+        # Create template object and put it in the DB
         template = Template(**template_data)
         dao_create_template(template)
-        templates.append(template)
+        template_ids.append(template.id)
+
         return template
 
     yield _wrapper
 
     # Teardown
-    for template in templates:
+    for template_id in template_ids:
+        template = notify_db_session.session.get(Template, template_id)
         for history in notify_db_session.session.scalars(
             select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)
         ).all():
@@ -1391,20 +1422,6 @@ def verify_reply_to_address_email_template(notify_db, notify_db_session):
 
 
 @pytest.fixture(scope='function')
-def account_change_template(notify_db, notify_db_session):
-    service, user = notify_service(notify_db, notify_db_session)
-
-    return create_custom_template(
-        service=service,
-        user=user,
-        template_config_name='ACCOUNT_CHANGE_TEMPLATE_ID',
-        content='Your account was changed',
-        subject='Your account was changed',
-        template_type=EMAIL_TYPE
-    )
-
-
-@pytest.fixture(scope='function')
 def team_member_email_edit_template(notify_db, notify_db_session):
     service, user = notify_service(notify_db, notify_db_session)
 
@@ -1926,3 +1943,253 @@ def sample_service_with_inbound_number(
         notify_db_session.session.delete(sms_sender)
     notify_db_session.session.commit()
     # Service is cleaned elsewhere or in teardown of sample_service
+
+
+@pytest.fixture
+def sample_service_email_reply_to(notify_db_session, sample_service):
+    service_email_reply_to_ids = []
+
+    def _wrapper(service=None, **kwargs):
+        data = {'service': service or sample_service(),
+                'email_address': 'vanotify@va.gov',
+                'is_default': True
+        }
+        service_email_reply_to = ServiceEmailReplyTo(**data)
+
+        notify_db_session.session.add(service_email_reply_to)
+        notify_db_session.session.commit()
+
+        service_email_reply_to_ids.append(service_email_reply_to.id)
+        return service_email_reply_to
+    
+    yield _wrapper
+
+    # Teardown
+    # Unsafe to teardown with objects, have to use ids to look up the object
+    for sert_id in service_email_reply_to_ids:
+        sert = notify_db_session.session.get(ServiceEmailReplyTo, sert_id)
+        notify_db_session.session.delete(sert)
+    notify_db_session.session.commit()
+
+
+#######################################################################################################################
+#                                                                                                                     #
+#                                                 SESSION-SCOPED                                                      #
+#                                                                                                                     #
+#######################################################################################################################
+
+
+@pytest.fixture(scope='session')
+def sample_notify_service_user_session(notify_db,
+                                       sample_service_session,
+                                       sample_service_email_reply_to_session,
+                                       sample_user_session,
+    ):
+
+    def _wrapper():
+        u_id = current_app.config['NOTIFY_USER_ID']
+        s_id = current_app.config['NOTIFY_SERVICE_ID']
+
+        # We only want these created if they are not already made. This was session-scoped before
+        user = notify_db.session.get(User, u_id) or \
+            sample_user_session(user_id=u_id)
+
+        service = notify_db.session.get(Service, s_id) or \
+            sample_service_session(service_name='Notify Service', email_from='notify.service', user=user, service_id=s_id)
+
+        sample_service_email_reply_to_session(service)
+        return service, user
+    
+    return _wrapper
+    # Teardown not required
+
+
+@pytest.fixture(scope='session')
+def sample_service_session(notify_db, sample_user_session):
+    created_service_ids: list = []
+
+    def _wrapper(*args, **kwargs):
+        # We do not want create_service to create users because it does not clean them up
+        if len(args) == 0 and 'user' not in kwargs:
+            kwargs['user'] = sample_user_session()
+
+        service: Service = create_service(*args, **kwargs)
+        
+
+
+
+
+        from sqlalchemy.dialects.postgresql import insert as dialect_insert
+        
+        # pw = user.pop('password')
+
+        # insert_stmt = dialect_insert(User).values(**user)
+        # stmt = insert_stmt.on_conflict_do_nothing(index_elements=['id'])
+        # notify_db.session.execute(stmt)
+        # # notify_db.session.merge(user)
+        # notify_db.session.commit()
+        # user = notify_db.session.get(User, user['id'])
+
+
+
+
+
+
+
+
+
+        # The session is different (dao) so we can't just use save the session object for deletion. Set id, query it later
+        created_service_ids.append(service.id)
+        return service
+
+    yield _wrapper
+    service_cleanup(created_service_ids, notify_db.session)
+
+
+@pytest.fixture(scope='session')
+def sample_service_email_reply_to_session(notify_db, sample_service_session):
+    service_email_reply_to_ids = []
+
+    def _wrapper(service=None, **kwargs):
+        data = {'service': service or sample_service_session(),
+                'email_address': 'vanotify@va.gov',
+                'is_default': True
+        }
+        service_email_reply_to = ServiceEmailReplyTo(**data)
+
+        notify_db.session.add(service_email_reply_to)
+        notify_db.session.commit()
+
+        service_email_reply_to_ids.append(service_email_reply_to.id)
+        return service_email_reply_to
+    
+    yield _wrapper
+
+    # Teardown
+    # Unsafe to teardown with objects, have to use ids to look up the object
+    for sert_id in service_email_reply_to_ids:
+        sert = notify_db.session.get(ServiceEmailReplyTo, sert_id)
+        notify_db.session.delete(sert)
+    notify_db.session.commit()
+
+
+@pytest.fixture(scope='session')
+def sample_template_session(notify_db, sample_service_session, sample_user_session):
+    """
+    Use this session-scoped SMS template for tests that don't need to modify the template.
+    """
+    template_ids = []
+
+    def _wrapper(*args, **kwargs):
+        # Guard statements
+        assert len(args) == 0, "sample_template method does not accept positional arguments"
+        if str(kwargs.get('id')) in template_ids:
+            return notify_db.session.get(Template, kwargs['id'])
+
+        # Mandatory arguments - ignore args
+        kwargs['name'] = kwargs.get('name', f"function template {uuid4()}")
+        kwargs['template_type'] = kwargs.get('template_type', SMS_TYPE)
+
+        # Using fixtures as defaults creates those objects! Do not make a fixture the default param
+        kwargs['user'] = kwargs.get('user') or sample_user_session()
+        kwargs['service'] = kwargs.get('service') or sample_service_session()
+        
+        if 'subject' in kwargs:
+            kwargs['subject_line'] = kwargs.pop('subject')
+
+        template_data = sample_template_helper(*args, **kwargs)
+
+        if kwargs['template_type'] == LETTER_TYPE:
+            template_data["postage"] = kwargs.get("postage", "second")
+
+        # Create template object and put it in the DB
+        template = Template(**template_data)
+        dao_create_template(template)
+        template_ids.append(str(template.id))
+
+        return template
+
+    yield _wrapper
+
+    # Teardown
+    for template_id in template_ids:
+        template = notify_db.session.get(Template, template_id)
+        for history in notify_db.session.scalars(
+            select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)
+        ).all():
+            notify_db.session.delete(history)
+        template_redacted = notify_db.session.get(TemplateRedacted, template.id)
+        notify_db.session.delete(template_redacted)
+        notify_db.session.delete(template)
+    notify_db.session.commit()
+
+
+
+#     mobile_number="+16502532222",
+#     email=None,
+#     state='active',
+#     user_id=None,
+#     identity_provider_user_id=None,
+#     name="Test User",
+#     blocked=False,
+#     platform_admin=False,
+#     check_if_user_exists=False,
+# ):
+#     user = None
+#     if check_if_user_exists:
+#         # Returns None if not found
+#         user = db.session.scalar(select(User).where(or_(User.email_address == email, User.id == user_id)))
+
+#     if user is None:
+#         data = {
+#             'id': user_id or uuid4(),
+#             'name': name,
+#             # This is a unique, non-nullable field.
+#             'email_address': email if email is not None else f"{uuid4()}@va.gov",
+#             'password': 'password',
+#             # This is a unique, nullable field.
+#             'identity_provider_user_id': identity_provider_user_id,
+#             'mobile_number': mobile_number,
+#             'state': state,
+#             'blocked': blocked,
+#             'platform_admin': platform_admin,
+#         }
+
+#         user = User(**data)
+
+
+
+@pytest.fixture(scope='session')
+def sample_user_session(notify_db):
+    created_user_ids = []
+
+    def _wrapper(*args, **kwargs):
+        # Don't recreate this user unless we specify we want to make a new one
+        user = create_user(*args, check_if_user_exists=True, **kwargs)
+        from sqlalchemy.dialects.postgresql import insert as dialect_insert
+        pw = user.pop('password')
+
+        insert_stmt = dialect_insert(User).values(**user)
+        stmt = insert_stmt.on_conflict_do_nothing(index_elements=['id'])
+        notify_db.session.execute(stmt)
+        # notify_db.session.merge(user)
+        notify_db.session.commit()
+        user = notify_db.session.get(User, user['id'])
+        created_user_ids.append(user.id)
+        return user
+
+    yield _wrapper
+
+    for user_id in created_user_ids:
+        user = notify_db.session.get(User, user_id)
+        # Clear user_to_service
+        notify_db.session.execute(delete(user_folder_permissions).where(user_folder_permissions.c.user_id == user.id))
+
+        # Clear user_folder_permissions
+        for user_service in notify_db.session.scalars(select(ServiceUser)
+                                                      .where(ServiceUser.user_id == user.id)).all():
+            notify_db.session.delete(user_service)
+
+        notify_db.session.delete(user)
+    created_user_ids.clear()
+    notify_db.session.commit()
