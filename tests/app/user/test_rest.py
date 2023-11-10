@@ -7,15 +7,17 @@ from app.dao.permissions_dao import default_service_permissions
 from app.dao.service_user_dao import dao_get_service_user, dao_update_service_user
 from app.model import User, SMS_AUTH_TYPE, EMAIL_AUTH_TYPE
 from app.models import (
+    EMAIL_TYPE,
     Fido2Key,
     LoginEvent,
     MANAGE_SETTINGS,
     MANAGE_TEMPLATES,
     Notification,
     Permission,
+    Service,
 )
 from fido2 import cbor
-from flask import url_for
+from flask import current_app, url_for
 from freezegun import freeze_time
 from tests import create_authorization_header
 from tests.app.db import create_service, create_template_folder, create_organisation, create_user, create_reply_to_email
@@ -306,6 +308,8 @@ def test_cannot_create_user_with_empty_strings(admin_request):
         'name': ['Invalid name']
     }
 
+# @pytest.mark.usefixtures('sample_notify_service_user_session')
+# class TestAllTheThings:
 
 @pytest.mark.parametrize('user_attribute, user_value', [
     ('name', 'New User'),
@@ -313,8 +317,16 @@ def test_cannot_create_user_with_empty_strings(admin_request):
     ('mobile_number', '+16502532223'),
     ('identity_provider_user_id', 'test-id')
 ])
-def test_post_user_attribute(client, mocker, sample_user, user_attribute, user_value):
-    user = sample_user()
+def test_post_user_attribute(client, mocker, user_attribute, user_value, sample_notify_service_user_session, sample_template_session):
+    service, user = sample_notify_service_user_session()
+    sample_template_session(service=service,
+                            user=user,
+                            name='ACCOUNT_CHANGE_TEMPLATE_ID',
+                            id=current_app.config['ACCOUNT_CHANGE_TEMPLATE_ID'],
+                            content='Your account was changed',
+                            subject='Your account was changed',
+                            template_type=EMAIL_TYPE)
+    # raise
     assert getattr(user, user_attribute) != user_value
     update_dict = {
         user_attribute: user_value
@@ -392,10 +404,30 @@ def test_post_user_attribute_send_notification_email(
     )),
 ])
 def test_post_user_attribute_with_updated_by(
-    client, mocker, sample_user, user_attribute,
-    user_value, arguments, team_member_email_edit_template, team_member_mobile_edit_template, account_change_template  # TODO: Clean out fixtures
+    client, mocker, sample_user, user_attribute, sample_notify_service_user_session, sample_template_session,
+    user_value, arguments, team_member_email_edit_template, team_member_mobile_edit_template  # TODO: Clean out fixtures
 ):
-    updater = create_user(name="Service Manago", email="notify_manago@va.gov")
+    service, user = sample_notify_service_user_session()
+    # Email template
+    sample_template_session(service=service,
+                            user=user,
+                            name='TEAM_MEMBER_EDIT_EMAIL_TEMPLATE_ID',
+                            content='Hi ((name)) ((servicemanagername)) changed your email to ((email address))',
+                            # subject='Your VA Notify email address has changed',
+                            template_type=EMAIL_TYPE)
+    
+        # template_config_name='TEAM_MEMBER_EDIT_EMAIL_TEMPLATE_ID',
+        # content='Hi ((name)) ((servicemanagername)) changed your email to ((email address))',
+        # subject='Your GOV.UK Notify email address has changed',
+        # template_type=EMAIL_TYPE
+
+        # service=service,
+        # user=user,
+        # template_config_name='TEAM_MEMBER_EDIT_MOBILE_TEMPLATE_ID',
+        # content='Your mobile number was changed by ((servicemanagername)).',
+        # template_type='sms'
+
+    updater = sample_user(name="Service Manago", email="notify_manago@va.gov")
     user = sample_user()
     assert getattr(user, user_attribute) != user_value
     update_dict = {
