@@ -74,19 +74,19 @@ def test_invalid_inbound_sms_request_json(client):
         validate({'user_number': '447700900111'}, get_inbound_sms_request)
 
 
-def test_valid_inbound_sms_response_json():
+def test_valid_inbound_sms_response_json(client):
     assert validate(valid_inbound_sms, get_inbound_sms_single_response) == valid_inbound_sms
 
 
-def test_valid_inbound_sms_list_response_json():
+def test_valid_inbound_sms_list_response_json(client):
     validate(valid_inbound_sms_list, get_inbound_sms_response)
 
 
-def test_invalid_inbound_sms_response_json():
+def test_invalid_inbound_sms_response_json(client):
     with pytest.raises(expected_exception=ValidationError):
         validate(invalid_inbound_sms, get_inbound_sms_single_response)
 
 
-def test_invalid_inbound_sms_list_response_json():
+def test_invalid_inbound_sms_list_response_json(client):
     with pytest.raises(expected_exception=ValidationError):
         validate(invalid_inbound_sms_list, get_inbound_sms_response)

@@ -87,7 +87,7 @@ def create_user(
             'id': user_id or uuid4(),
             'name': name,
             # This is a unique, non-nullable field.
-            'email_address': email if email is not None else f"{uuid4()}@va.gov",
+            'email_address': email if email is not None else f"create_user_{uuid4()}@va.gov",
             'password': 'password',
             # This is a unique, nullable field.
             'identity_provider_user_id': identity_provider_user_id,
@@ -139,7 +139,7 @@ def create_service(
             message_limit=message_limit,
             restricted=restricted,
             email_from=email_from if email_from else service_name.lower().replace(' ', '.'),
-            created_by=user if user else create_user(email=f'{uuid4()}@va.gov'),
+            created_by=user if user else create_user(email=f'create_service_{uuid4()}@va.gov'),
             prefix_sms=prefix_sms,
             organisation_type=organisation_type,
             go_live_user=go_live_user,

@@ -46,9 +46,11 @@ def test_get_template_statistics_for_service_by_day_with_bad_arg_returns_400(adm
 
 def test_get_template_statistics_for_service_by_day_returns_template_info(admin_request,
                                                                           notify_db_session,
-                                                                          sample_notification
+                                                                          sample_notification,
+                                                                          sample_template,
     ):
-    notification = sample_notification()
+    template = sample_template()
+    notification = sample_notification(template=template)
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_service_by_day',
         service_id=notification.service_id,
@@ -59,8 +61,8 @@ def test_get_template_statistics_for_service_by_day_returns_template_info(admin_
 
     assert json_resp['data'][0]['count'] == 1
     assert json_resp['data'][0]['template_id'] == str(notification.template_id)
-    assert json_resp['data'][0]['template_name'] == 'sms Template Name'
-    assert json_resp['data'][0]['template_type'] == 'sms'
+    assert json_resp['data'][0]['template_name'] == template.name
+    assert json_resp['data'][0]['template_type'] == template.template_type
     assert json_resp['data'][0]['is_precompiled_letter'] is False
 
     # Teardown
@@ -71,18 +73,21 @@ def test_get_template_statistics_for_service_by_day_returns_template_info(admin_
     notify_db_session.session.delete(template_history)
     notify_db_session.session.commit()
 
+
 @pytest.mark.parametrize('var_name', ['limit_days', 'whole_days'])
 def test_get_template_statistics_for_service_by_day_accepts_old_query_string(
     admin_request,
     notify_db_session,
     sample_notification,
-    var_name
+    sample_template,
+    var_name,
 ):
-    notification = sample_notification()
+    template = sample_template()
+    notification = sample_notification(template=template)
 
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_service_by_day',
-        service_id=notification.service_id,
+        service_id=template.service_id,
         **{var_name: 1}
     )
 
@@ -94,6 +99,7 @@ def test_get_template_statistics_for_service_by_day_accepts_old_query_string(
     notify_db_session.session.delete(notification)
     notify_db_session.session.delete(template_history)
     notify_db_session.session.commit()
+
 
 @freeze_time('2018-01-02 12:00:00')
 def test_get_template_statistics_for_service_by_day_goes_to_db(

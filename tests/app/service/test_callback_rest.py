@@ -1,5 +1,7 @@
 import pytest
 import json
+from sqlalchemy import select
+from uuid import uuid4
 from flask import url_for
 from flask_jwt_extended import create_access_token
 from freezegun import freeze_time
@@ -11,25 +13,24 @@ from app.models import ServiceCallback, NOTIFICATION_STATUS_TYPES_COMPLETED, WEB
     QUEUE_CHANNEL_TYPE
 from app.schemas import service_callback_api_schema
 from tests.app.db import (
-    create_user,
-    create_service,
     create_service_callback_api
 )
 
 
 class TestFetchServiceCallback:
 
-    def test_fetch_service_callback_works_with_user_permisisons(self, notify_db_session, client, sample_service):
-        service_callback_api = create_service_callback_api(service=sample_service)
-        original_user = sample_service.users[0]
-        user = create_user(email='foo@bar.com')
-        dao_add_user_to_service(sample_service, user,
-                                permissions=[Permission(service=sample_service, user=user, permission=MANAGE_SETTINGS)])
+    def test_fetch_service_callback_works_with_user_permisisons(self, client, sample_service, sample_user):
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service=service)
+        original_user = service.users[0]
+        user = sample_user(email=f'foo{uuid4()}@bar.com')
+        dao_add_user_to_service(service, user,
+                                permissions=[Permission(service=service, user=user, permission=MANAGE_SETTINGS)])
         token = create_access_token(user)
 
         response = client.get(
             url_for('service_callback.fetch_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             headers=[('Authorization', f'Bearer {token}')]
         )
@@ -47,14 +48,15 @@ class TestFetchServiceCallback:
             "include_provider_payload": service_callback_api.include_provider_payload
         }
 
-    def test_fetch_service_callback_works_with_platform_admin(self, notify_db_session, client, sample_service):
-        service_callback_api = create_service_callback_api(service=sample_service)
-        user = create_user(email='foo@bar.com', platform_admin=True)
+    def test_fetch_service_callback_works_with_platform_admin(self, client, sample_service, sample_user):
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service=service)
+        user = sample_user(email=f'foo{uuid4()}@bar.com', platform_admin=True)
         token = create_access_token(user)
 
         response = client.get(
             url_for('service_callback.fetch_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             headers=[('Authorization', f'Bearer {token}')]
         )
@@ -62,49 +64,52 @@ class TestFetchServiceCallback:
         assert response.json["data"] == service_callback_api_schema.dump(service_callback_api).data
 
     def test_should_return_404_if_trying_to_fetch_callback_from_different_service(self, client, sample_service):
-        another_service = create_service(service_name='Another Service')
+        service = sample_service()
+        another_service = sample_service(service_name=f'callback service {uuid4()}')
         service_callback_api = create_service_callback_api(another_service)
 
         response = client.get(
             url_for('service_callback.fetch_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
-            headers=[('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+            headers=[('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
         assert response.status_code == 404
 
 
 class TestFetchServiceCallbacks:
 
-    def test_fetch_service_callbacks_works_with_user_permisisons(self, notify_db_session, client, sample_service):
+    def test_fetch_service_callbacks_works_with_user_permisisons(self, client, sample_service, sample_user):
+        service = sample_service()
         service_callbacks = [
-            create_service_callback_api(service=sample_service),
-            create_service_callback_api(service=sample_service, callback_type=INBOUND_SMS_CALLBACK_TYPE)
+            create_service_callback_api(service=service),
+            create_service_callback_api(service=service, callback_type=INBOUND_SMS_CALLBACK_TYPE)
         ]
-        user = create_user(email='foo@bar.com')
-        dao_add_user_to_service(sample_service, user,
-                                permissions=[Permission(service=sample_service, user=user, permission=MANAGE_SETTINGS)])
+        user = sample_user(email=f'foo{uuid4()}@bar.com')
+        dao_add_user_to_service(service, user,
+                                permissions=[Permission(service=service, user=user, permission=MANAGE_SETTINGS)])
         token = create_access_token(user)
 
         response = client.get(
             url_for('service_callback.fetch_service_callbacks',
-                    service_id=sample_service.id),
+                    service_id=service.id),
             headers=[('Authorization', f'Bearer {token}')]
         )
         assert response.status_code == 200
         assert response.json["data"] == [service_callback_api_schema.dump(s).data for s in service_callbacks]
 
-    def test_fetch_service_callbacks_works_with_platform_admin(self, notify_db_session, client, sample_service):
+    def test_fetch_service_callbacks_works_with_platform_admin(self, client, sample_service, sample_user):
+        service = sample_service()
         service_callbacks = [
-            create_service_callback_api(service=sample_service),
-            create_service_callback_api(service=sample_service, callback_type=INBOUND_SMS_CALLBACK_TYPE)
+            create_service_callback_api(service=service),
+            create_service_callback_api(service=service, callback_type=INBOUND_SMS_CALLBACK_TYPE)
         ]
-        user = create_user(email='foo@bar.com', platform_admin=True)
+        user = sample_user(email=f'foo{uuid4()}@bar.com', platform_admin=True)
         token = create_access_token(user)
 
         response = client.get(
             url_for('service_callback.fetch_service_callbacks',
-                    service_id=sample_service.id),
+                    service_id=service.id),
             headers=[('Authorization', f'Bearer {token}')]
         )
         assert response.status_code == 200
@@ -114,9 +119,9 @@ class TestFetchServiceCallbacks:
 class TestCreateServiceCallback:
 
     def test_create_service_callback_raises_404_when_service_does_not_exist_for_platform_admin(
-            self, notify_db_session, client
+            self, client, sample_user
     ):
-        user = create_user(email='foo@bar.com', platform_admin=True)
+        user = sample_user(email=f'foo{uuid4()}@bar.com', platform_admin=True)
         token = create_access_token(user)
 
         data = {
@@ -143,9 +148,10 @@ class TestCreateServiceCallback:
             (COMPLAINT_CALLBACK_TYPE, False)
         ]
     )
-    def test_create_service_callback(self, notify_db_session, client, sample_service, callback_type,
+    def test_create_service_callback(self, client, sample_service, callback_type,
                                      has_notification_statuses):
-        user = sample_service.users[0]
+        service = sample_service()
+        user = service.users[0]
         data = {
             "url": "https://some.service/delivery-receipt-endpoint",
             "bearer_token": "some-unique-string",
@@ -156,7 +162,7 @@ class TestCreateServiceCallback:
             data["notification_statuses"] = ["failed"]
 
         response = client.post(
-            url_for('service_callback.create_service_callback', service_id=sample_service.id),
+            url_for('service_callback.create_service_callback', service_id=service.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
                      ('Authorization', f'Bearer {create_access_token(user)}')]
@@ -165,7 +171,7 @@ class TestCreateServiceCallback:
         assert response.status_code == 201
         resp_json = response.json["data"]
         assert resp_json["id"]
-        assert resp_json["service_id"] == str(sample_service.id)
+        assert resp_json["service_id"] == str(service.id)
         assert resp_json["url"] == "https://some.service/delivery-receipt-endpoint"
         assert resp_json["updated_by_id"] == str(user.id)
         assert resp_json["created_at"]
@@ -178,9 +184,10 @@ class TestCreateServiceCallback:
 
     # TODO: No need to test using API calls - move that test to model?
     def test_create_service_callback_creates_delivery_status_with_default_statuses_if_no_statuses_passed(
-            self, notify_db_session, client, sample_service
+            self, client, sample_service
     ):
-        user = sample_service.users[0]
+        service = sample_service()
+        user = service.users[0]
         data = {
             "url": "https://some.service/delivery-receipt-endpoint",
             "bearer_token": "some-unique-string",
@@ -189,7 +196,7 @@ class TestCreateServiceCallback:
         }
 
         response = client.post(
-            url_for('service_callback.create_service_callback', service_id=sample_service.id),
+            url_for('service_callback.create_service_callback', service_id=service.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
                      ('Authorization', f'Bearer {create_access_token(user)}')]
@@ -203,9 +210,10 @@ class TestCreateServiceCallback:
         'callback_type', [INBOUND_SMS_CALLBACK_TYPE, COMPLAINT_CALLBACK_TYPE]
     )
     def test_create_service_callback_returns_400_if_statuses_passed_with_incompatible_callback_type(
-            self, notify_db_session, client, sample_service, callback_type
+            self, client, sample_service, callback_type
     ):
-        user = sample_service.users[0]
+        service = sample_service()
+        user = service.users[0]
         data = {
             "url": "https://some.service/delivery-receipt-endpoint",
             "bearer_token": "some-unique-string",
@@ -215,7 +223,7 @@ class TestCreateServiceCallback:
         }
 
         response = client.post(
-            url_for('service_callback.create_service_callback', service_id=sample_service.id),
+            url_for('service_callback.create_service_callback', service_id=service.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
                      ('Authorization', f'Bearer {create_access_token(user)}')]
@@ -228,9 +236,10 @@ class TestCreateServiceCallback:
         assert error_message == f"Callback type {callback_type} should not have notification statuses"
 
     def test_create_service_callback_returns_400_if_no_bearer_token_for_webhook(
-            self, notify_db_session, client, sample_service
+            self, client, sample_service
     ):
-        user = sample_service.users[0]
+        service = sample_service()
+        user = service.users[0]
         data = {
             "url": "https://some.service/delivery-receipt-endpoint",
             "callback_type": DELIVERY_STATUS_CALLBACK_TYPE,
@@ -239,7 +248,7 @@ class TestCreateServiceCallback:
         }
 
         response = client.post(
-            url_for('service_callback.create_service_callback', service_id=sample_service.id),
+            url_for('service_callback.create_service_callback', service_id=service.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
                      ('Authorization', f'Bearer {create_access_token(user)}')]
@@ -251,9 +260,10 @@ class TestCreateServiceCallback:
         assert resp_json['message']['_schema'][0] == f"Callback channel {WEBHOOK_CHANNEL_TYPE} should have bearer_token"
 
     def test_create_service_callback_returns_400_for_invalid_callback_channel(
-            self, notify_db_session, client, sample_service
+            self, client, sample_service
     ):
-        user = sample_service.users[0]
+        service = sample_service()
+        user = service.users[0]
         data = {
             "url": "https://some.service/delivery-receipt-endpoint",
             "bearer_token": "some-unique-string",
@@ -263,7 +273,7 @@ class TestCreateServiceCallback:
         }
 
         response = client.post(
-            url_for('service_callback.create_service_callback', service_id=sample_service.id),
+            url_for('service_callback.create_service_callback', service_id=service.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
                      ('Authorization', f'Bearer {create_access_token(user)}')]
@@ -276,9 +286,10 @@ class TestCreateServiceCallback:
                                                     f"[webhook, queue]"
 
     def test_users_cannot_create_service_callbacks_with_queue_channel(
-            self, notify_db_session, client, sample_service
+            self, client, sample_service
     ):
-        user = sample_service.users[0]
+        service = sample_service()
+        user = service.users[0]
         data = {
             "url": "https://some.service/delivery-receipt-endpoint",
             "callback_type": DELIVERY_STATUS_CALLBACK_TYPE,
@@ -287,7 +298,7 @@ class TestCreateServiceCallback:
         }
 
         response = client.post(
-            url_for('service_callback.create_service_callback', service_id=sample_service.id),
+            url_for('service_callback.create_service_callback', service_id=service.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
                      ('Authorization', f'Bearer {create_access_token(user)}')]
@@ -298,9 +309,9 @@ class TestCreateServiceCallback:
         assert error_message == f"User does not have permissions to create callbacks of channel type queue"
 
     def test_platform_admin_can_create_queue_service_callback(
-            self, notify_db_session, client, sample_service
+            self, client, sample_service, sample_user
     ):
-        user = create_user(email='foo@bar.com', platform_admin=True)
+        user = sample_user(email=f'foo{uuid4()}@bar.com', platform_admin=True)
         data = {
             "url": "https://some.service/delivery-receipt-endpoint",
             "callback_type": DELIVERY_STATUS_CALLBACK_TYPE,
@@ -309,7 +320,7 @@ class TestCreateServiceCallback:
         }
 
         response = client.post(
-            url_for('service_callback.create_service_callback', service_id=sample_service.id),
+            url_for('service_callback.create_service_callback', service_id=sample_service().id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
                      ('Authorization', f'Bearer {create_access_token(user)}')]
@@ -318,7 +329,7 @@ class TestCreateServiceCallback:
         assert response.status_code == 201
 
     def test_create_service_callback_raises_400_when_notification_status_validation_failed(
-            self, notify_db_session, client
+            self, client, sample_user
     ):
         non_existent_status = 'nonexistent_failed'
         data = {
@@ -331,7 +342,7 @@ class TestCreateServiceCallback:
             url_for('service_callback.create_service_callback', service_id=create_uuid()),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
-                     ('Authorization', f'Bearer {create_access_token(create_user(platform_admin=True))}')]
+                     ('Authorization', f'Bearer {create_access_token(sample_user(platform_admin=True))}')]
         )
         assert response.status_code == 400
 
@@ -344,9 +355,10 @@ class TestCreateServiceCallback:
         ]
     )
     def test_create_service_callback_raises_400_when_url_validation_failed(
-            self, notify_db_session, sample_service, client, add_url, url, expected_response
+            self, sample_service, client, add_url, url, expected_response
     ):
-        user = sample_service.users[0]
+        service = sample_service()
+        user = service.users[0]
         data = {
             "bearer_token": "some-unique-string",
             "notification_statuses": ["failed"],
@@ -355,7 +367,7 @@ class TestCreateServiceCallback:
             data['url'] = url
 
         response = client.post(
-            url_for('service_callback.create_service_callback', service_id=sample_service.id),
+            url_for('service_callback.create_service_callback', service_id=service.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
                      ('Authorization', f'Bearer {create_access_token(user)}')]
@@ -373,9 +385,10 @@ class TestCreateServiceCallback:
         ]
     )
     def test_create_service_callback_raises_400_when_bearer_token_validation_failed(
-            self, notify_db_session, client, sample_service, add_bearer_token, bearer_token, expected_response
+            self, client, sample_service, add_bearer_token, bearer_token, expected_response
     ):
-        user = sample_service.users[0]
+        service = sample_service()
+        user = service.users[0]
         data = {
             "url": "https://some.service/delivery-receipt-endpoint",
             "notification_statuses": ["failed"],
@@ -384,7 +397,7 @@ class TestCreateServiceCallback:
             data['bearer_token'] = bearer_token
 
         response = client.post(
-            url_for('service_callback.create_service_callback', service_id=sample_service.id),
+            url_for('service_callback.create_service_callback', service_id=service.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
                      ('Authorization', f'Bearer {create_access_token(user)}')]
@@ -399,7 +412,8 @@ class TestCreateServiceCallback:
 class TestUpdateServiceCallback:
 
     def test_update_service_callback_updates_url(self, client, sample_service):
-        service_callback_api = create_service_callback_api(service=sample_service,
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service=service,
                                                            url="https://originalurl.com")
 
         data = {
@@ -408,50 +422,52 @@ class TestUpdateServiceCallback:
 
         response = client.post(
             url_for('service_callback.update_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
-                     ('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+                     ('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
 
         assert response.status_code == 200
         assert response.json["data"]["url"] == "https://anotherurl.com"
         assert service_callback_api.url == "https://anotherurl.com"
 
+
     def test_update_service_callback_updates_bearer_token(self, client, sample_service):
-        service_callback_api = create_service_callback_api(service=sample_service,  # nosec
-                                                           bearer_token="some_super_secret")
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service=service, bearer_token='some_super_secret')
         data = {
-            "bearer_token": "different_token",
+            "bearer_token": 'different_token',
         }
 
         response = client.post(
             url_for('service_callback.update_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
-                     ('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+                     ('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
         assert response.status_code == 200
         assert service_callback_api.bearer_token == "different_token"
 
-    def test_update_service_callback_updates_notification_statuses(self, client, sample_service):
-        service_callback_api = create_service_callback_api(service=sample_service,
-                                                           notification_statuses=['cancelled'])
 
+    def test_update_service_callback_updates_notification_statuses(self, client, sample_service):
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service=service,
+                                                           notification_statuses=['cancelled'])
         data = {
             "notification_statuses": ["delivered"],
         }
 
         response = client.post(
             url_for('service_callback.update_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
-                     ('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+                     ('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
         assert response.status_code == 200
         resp_json = response.json
@@ -459,23 +475,24 @@ class TestUpdateServiceCallback:
         assert resp_json.get("bearer_token") is None
 
     def test_update_service_callback_updates_include_provider_payload(self, client, sample_service):
-        service_callback_api = create_service_callback_api(service=sample_service,  # nosec
-                                                           include_provider_payload=False)
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service=service, include_provider_payload=False)
         data = {
             "include_provider_payload": True,
         }
 
         response = client.post(
             url_for('service_callback.update_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
-                     ('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+                     ('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
 
         assert response.status_code == 200
         assert service_callback_api.include_provider_payload is True
+
 
     @pytest.mark.idparametrize(
         'request_data', {
@@ -486,16 +503,17 @@ class TestUpdateServiceCallback:
         }
     )
     def test_update_service_callback_raises_400_when_wrong_request(self, client, sample_service, request_data):
-        service_callback_api = create_service_callback_api(service=sample_service,
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service=service,
                                                            notification_statuses=['technical-failure'])
 
         response = client.post(
             url_for('service_callback.update_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             data=json.dumps(request_data),
             headers=[('Content-Type', 'application/json'),
-                     ('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+                     ('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
 
         assert response.status_code == 400
@@ -504,8 +522,10 @@ class TestUpdateServiceCallback:
         for error in resp_json['errors']:
             assert error['message'] is not None
 
+
     def test_update_service_callback_raises_400_when_invalid_status(self, client, sample_service):
-        service_callback_api = create_service_callback_api(service=sample_service,
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service=service,
                                                            notification_statuses=['technical-failure'])
 
         data = {
@@ -514,11 +534,11 @@ class TestUpdateServiceCallback:
 
         response = client.post(
             url_for('service_callback.update_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
-                     ('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+                     ('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
         assert response.status_code == 400
         resp_json = response.json
@@ -527,7 +547,8 @@ class TestUpdateServiceCallback:
 
     def test_update_service_callback_modifies_updated_at(self, client, sample_service):
         with freeze_time("2021-05-13 12:00:00.000000"):
-            service_callback_api = create_service_callback_api(service=sample_service,  # nosec
+            service = sample_service()
+            service_callback_api = create_service_callback_api(service=service,  # nosec
                                                                bearer_token="some_super_secret")
             data = {
                 "url": "https://some.service"
@@ -535,20 +556,21 @@ class TestUpdateServiceCallback:
 
             response = client.post(
                 url_for('service_callback.update_service_callback',
-                        service_id=sample_service.id,
+                        service_id=service.id,
                         callback_id=service_callback_api.id),
                 data=json.dumps(data),
                 headers=[('Content-Type', 'application/json'),
-                         ('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+                         ('Authorization', f'Bearer {create_access_token(service.users[0])}')]
             )
 
         assert response.json['data']['updated_at'] == "2021-05-13T12:00:00+00:00"
 
-    def test_update_service_callback_modifies_updated_by(self, client, sample_service):
-        service_callback_api = create_service_callback_api(service=sample_service)
-        user = create_user(email='foo@bar.com')
-        dao_add_user_to_service(sample_service, user,
-                                permissions=[Permission(service=sample_service, user=user, permission=MANAGE_SETTINGS)])
+    def test_update_service_callback_modifies_updated_by(self, client, sample_service, sample_user):
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service=service)
+        user = sample_user(email=f'foo{uuid4()}@bar.com')
+        dao_add_user_to_service(service, user,
+                                permissions=[Permission(service=service, user=user, permission=MANAGE_SETTINGS)])
 
         data = {
             "url": "https://some.service"
@@ -556,7 +578,7 @@ class TestUpdateServiceCallback:
 
         response = client.post(
             url_for('service_callback.update_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
@@ -565,17 +587,19 @@ class TestUpdateServiceCallback:
 
         assert response.json['data']['updated_by_id'] == str(user.id)
 
-    def test_update_service_callback_should_return_403_if_not_authorized(self, client, sample_service):
-        service_callback_api = create_service_callback_api(sample_service)
-        user = create_user(email='foo@bar.com')
-        dao_add_user_to_service(sample_service, user, permissions=[])
+
+    def test_update_service_callback_should_return_403_if_not_authorized(self, client, sample_service, sample_user):
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service)
+        user = sample_user(email=f'foo{uuid4()}@bar.com')
+        dao_add_user_to_service(service, user, permissions=[])
 
         data = {
             "url": "https://anotherurl.com",
         }
         response = client.post(
             url_for('service_callback.update_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
@@ -583,23 +607,27 @@ class TestUpdateServiceCallback:
         )
         assert response.status_code == 403
 
+
     def test_should_return_403_when_updating_queue_callback_and_not_admin(self, client, sample_service):
-        service_callback_api = create_service_callback_api(sample_service, callback_channel=QUEUE_CHANNEL_TYPE)
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service, callback_channel=QUEUE_CHANNEL_TYPE)
         data = {
             "url": "https://anotherurl.com",
         }
         response = client.post(
             url_for('service_callback.update_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
-                     ('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+                     ('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
         assert response.status_code == 403
 
+
     def test_update_service_callback_should_allow_change_from_queue_to_webhook_by_user(self, client, sample_service):
-        service_callback_api = create_service_callback_api(sample_service, callback_channel=QUEUE_CHANNEL_TYPE)
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service, callback_channel=QUEUE_CHANNEL_TYPE)
         data = {
             "url": "https://anotherurl.com",
             "bearer_token": "some-token",
@@ -607,45 +635,47 @@ class TestUpdateServiceCallback:
         }
         response = client.post(
             url_for('service_callback.update_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
-                     ('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+                     ('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
         assert response.status_code == 200
         assert response.json['data']["callback_channel"] == WEBHOOK_CHANNEL_TYPE
         assert service_callback_api.callback_channel == WEBHOOK_CHANNEL_TYPE
 
     def test_returns_403_when_changing_callback_to_queue_and_not_admin(self, client, sample_service):
-        service_callback_api = create_service_callback_api(sample_service, callback_channel=WEBHOOK_CHANNEL_TYPE)
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service, callback_channel=WEBHOOK_CHANNEL_TYPE)
         data = {
             "url": "https://anotherurl.com",
             "callback_channel": QUEUE_CHANNEL_TYPE,
         }
         response = client.post(
             url_for('service_callback.update_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
-                     ('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+                     ('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
         assert response.status_code == 403
 
     def test_should_return_404_when_trying_to_update_callback_from_different_service(self, client, sample_service):
-        another_service = create_service(service_name='Another Service')
+        service = sample_service()
+        another_service = sample_service(service_name=f'Another Service {uuid4()}')
         service_callback_api = create_service_callback_api(another_service)
         data = {
             "url": "https://anotherurl.com",
         }
         response = client.post(
             url_for('service_callback.update_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             data=json.dumps(data),
             headers=[('Content-Type', 'application/json'),
-                     ('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+                     ('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
         assert response.status_code == 404
 
@@ -656,48 +686,58 @@ class TestRemoveServiceCallback:
         'webhook': (WEBHOOK_CHANNEL_TYPE),
         'queue': (QUEUE_CHANNEL_TYPE)
     })
-    def test_delete_service_callback_works_for_user(self, client, sample_service, callback_channel):
-        service_callback_api = create_service_callback_api(sample_service, callback_channel=callback_channel)
+    def test_delete_service_callback_works_for_user(self, client, notify_db_session, sample_service, callback_channel):
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service, callback_channel=callback_channel)
 
         response = client.delete(
             url_for('service_callback.remove_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
-            headers=[('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+            headers=[('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
 
         assert response.status_code == 204
-        assert ServiceCallback.query.count() == 0
+
+        # DB verification
+        stmt = select(ServiceCallback).where(ServiceCallback.service_id == service.id)
+        assert  len(notify_db_session.session.execute(stmt).all()) == 0
+
 
     def test_delete_service_callback_should_return_404_if_callback_does_not_exist(self, client, sample_service):
+        service = sample_service()
         response = client.delete(
             url_for('service_callback.remove_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=create_uuid()),
-            headers=[('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+            headers=[('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
         assert response.status_code == 404
 
-    def test_delete_service_callback_should_return_403_if_not_authorized(self, client, sample_service):
-        service_callback_api = create_service_callback_api(sample_service)
-        user = create_user(email='foo@bar.com')
-        dao_add_user_to_service(sample_service, user, permissions=[])
+
+    def test_delete_service_callback_should_return_403_if_not_authorized(self, client, sample_service, sample_user):
+        service = sample_service()
+        service_callback_api = create_service_callback_api(service)
+        user = sample_user(email=f'foo{uuid4()}@bar.com')
+        dao_add_user_to_service(service, user, permissions=[])
         response = client.delete(
             url_for('service_callback.remove_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
             headers=[('Authorization', f'Bearer {create_access_token(user)}')]
         )
         assert response.status_code == 403
 
+
     def test_should_return_404_if_trying_to_delete_callback_from_different_service(self, client, sample_service):
-        another_service = create_service(service_name='Another Service')
+        service = sample_service()
+        another_service = sample_service(service_name=f'Another Service {uuid4()}')
         service_callback_api = create_service_callback_api(another_service)
 
         response = client.delete(
             url_for('service_callback.remove_service_callback',
-                    service_id=sample_service.id,
+                    service_id=service.id,
                     callback_id=service_callback_api.id),
-            headers=[('Authorization', f'Bearer {create_access_token(sample_service.users[0])}')]
+            headers=[('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
         assert response.status_code == 404

@@ -48,6 +48,7 @@ from app.models import (
     SMS_TYPE,
     ScheduledNotification,
     SERVICE_PERMISSION_TYPES,
+    ServiceCallback,
     ServiceEmailReplyTo,
     ServiceLetterContact,
     ServiceSmsSender,
@@ -61,7 +62,6 @@ from app.models import (
     user_folder_permissions,
     UserServiceRoles,
 )
-from app.schemas import ServiceHistorySchema
 from app.service.service_data import ServiceData
 from datetime import datetime, timedelta
 from flask import current_app, url_for
@@ -86,6 +86,8 @@ from tests.app.factories import (
 )
 from uuid import uuid4
 
+# Tests only run against email/sms. API also considers letters
+TEMPLATE_TYPES = [SMS_TYPE, EMAIL_TYPE]
 
 @pytest.yield_fixture
 def rmock():
@@ -451,12 +453,17 @@ def service_cleanup(service_ids: list, session: scoped_session) -> None:
             session.delete(sender)
 
         # Clean up service servies_history
-        # We do not have a ServicesHistory model. This allows us to have a table for deletions
+        # We do not have a all history models. This allows us to have a table for deletions
         # Can't be declared until the app context is declared
         ServicesHistory = Table('services_history', Service.get_history_model().metadata, autoload_with=db.engine)
+        ServiceCallbackHistory = Table('service_callback_history', ServiceCallback.get_history_model().metadata, autoload_with=db.engine)
 
         session.execute(delete(ServicesHistory).where(ServicesHistory.c.id == service.id))
+        session.execute(delete(ServiceCallbackHistory).where(ServiceCallbackHistory.c.service_id == service.id))
         session.commit()  # TODO: Remove this
+
+        for service_callback in session.scalars(select(ServiceCallback).where(ServiceCallback.service_id == service.id)).all():
+            session.delete(service_callback)
 
         session.delete(service)
         session.commit()
@@ -836,6 +843,9 @@ def sample_api_key(notify_db_session, sample_service):
     yield _sample_api_key
 
     for key in created_keys:
+        # No model for api_keys_history
+        ApiKeyHistory = Table('api_keys_history', ApiKey.get_history_model().metadata, autoload_with=db.engine)
+        notify_db_session.session.execute(delete(ApiKeyHistory).where(ApiKeyHistory.c.id == key.id))
         notify_db_session.session.delete(key)
     notify_db_session.session.commit()
 
@@ -1024,9 +1034,10 @@ def sample_notification_with_job(
 
 @pytest.fixture
 def sample_notification(notify_db_session):
+    # TODO: Refactor to use fixtures for teardown purposes
     created_notifications = []
     created_scheduled_notifications = []
-    created_services = []
+    created_service_ids = []
     created_templates = []
     created_api_keys = []
 
@@ -1036,7 +1047,7 @@ def sample_notification(notify_db_session):
 
         if kwargs.get("template") is None:
             service = create_service(check_if_service_exists=True)
-            created_services.append(service)
+            created_service_ids.append(service.id)
 
             template = create_template(service=service)
             kwargs["template"] = template
@@ -1079,20 +1090,23 @@ def sample_notification(notify_db_session):
     for scheduled_notification in created_scheduled_notifications:
         notify_db_session.session.delete(scheduled_notification)
     for notification in created_notifications:
-        notify_db_session.session.delete(notification)
+        # Other things may delete it first, check before deleting
+        if not inspect(notification).detached:
+            notify_db_session.session.delete(notification)
     for template in created_templates:
         template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
         notify_db_session.session.delete(template_redacted)
         notify_db_session.session.delete(template)
-    for service in created_services:
-        dao_archive_service(service.id)
+    service_cleanup(created_service_ids, notify_db_session.session)
     for api_key in created_api_keys:
-        notify_db_session.session.delete(api_key)
+        # Other things may delete it first, check before deleting
+        if not inspect(api_key).detached:
+            notify_db_session.session.delete(api_key)
     notify_db_session.session.commit()
 
 
 @pytest.fixture
-def sample_letter_notification(notify_db_session, sample_letter_template, sample_notification):
+def sample_letter_notification(notify_db_session, sample_notification, sample_service, sample_template):
     address = {
         'address_line_1': 'A1',
         'address_line_2': 'A2',
@@ -1102,7 +1116,10 @@ def sample_letter_notification(notify_db_session, sample_letter_template, sample
         'address_line_6': 'A6',
         'postcode': 'A_POST',
     }
-    notification = sample_notification(template=sample_letter_template, reference='foo', personalisation=address)
+    service = sample_service(service_permissions=SERVICE_PERMISSION_TYPES)
+    template = sample_template(service=service, template_type=LETTER_TYPE, postage='postage')
+    notification = sample_notification(template=template, reference='foo', personalisation=address)
+
     yield notification
 
     # Teardown only if the object wasn't deleted already
@@ -2122,41 +2139,6 @@ def sample_template_session(notify_db, sample_service_session, sample_user_sessi
         notify_db.session.delete(template_redacted)
         notify_db.session.delete(template)
     notify_db.session.commit()
-
-
-
-#     mobile_number="+16502532222",
-#     email=None,
-#     state='active',
-#     user_id=None,
-#     identity_provider_user_id=None,
-#     name="Test User",
-#     blocked=False,
-#     platform_admin=False,
-#     check_if_user_exists=False,
-# ):
-#     user = None
-#     if check_if_user_exists:
-#         # Returns None if not found
-#         user = db.session.scalar(select(User).where(or_(User.email_address == email, User.id == user_id)))
-
-#     if user is None:
-#         data = {
-#             'id': user_id or uuid4(),
-#             'name': name,
-#             # This is a unique, non-nullable field.
-#             'email_address': email if email is not None else f"{uuid4()}@va.gov",
-#             'password': 'password',
-#             # This is a unique, nullable field.
-#             'identity_provider_user_id': identity_provider_user_id,
-#             'mobile_number': mobile_number,
-#             'state': state,
-#             'blocked': blocked,
-#             'platform_admin': platform_admin,
-#         }
-
-#         user = User(**data)
-
 
 
 @pytest.fixture(scope='session')
