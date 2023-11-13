@@ -460,13 +460,12 @@ def service_cleanup(service_ids: list, session: scoped_session) -> None:
 
         session.execute(delete(ServicesHistory).where(ServicesHistory.c.id == service.id))
         session.execute(delete(ServiceCallbackHistory).where(ServiceCallbackHistory.c.service_id == service.id))
-        session.commit()  # TODO: Remove this
 
         for service_callback in session.scalars(select(ServiceCallback).where(ServiceCallback.service_id == service.id)).all():
             session.delete(service_callback)
 
         session.delete(service)
-        session.commit()
+    session.commit()
 
 
 @pytest.fixture(scope="function")
