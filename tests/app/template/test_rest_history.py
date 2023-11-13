@@ -1,20 +1,24 @@
+
 import json
 import pytest
-from app.dao.templates_dao import dao_update_template
+from app.dao.templates_dao import dao_update_template, LETTER_TYPE
+from app.models import SERVICE_PERMISSION_TYPES
 from datetime import (datetime, date)
 from flask import url_for
+from uuid import uuid4
 from tests import create_authorization_header
 from tests.app.db import create_letter_contact
 
 
-def test_template_history_version(notify_api, sample_user, sample_sms_template_func):
+def test_template_history_version(notify_api, sample_user, sample_template):
+    template = sample_template()
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             auth_header = create_authorization_header()
             endpoint = url_for(
                 'template.get_template_version',
-                service_id=sample_sms_template_func.service.id,
-                template_id=sample_sms_template_func.id,
+                service_id=template.service.id,
+                template_id=template.id,
                 version=1)
             resp = client.get(
                 endpoint,
@@ -22,24 +26,26 @@ def test_template_history_version(notify_api, sample_user, sample_sms_template_f
             )
             assert resp.status_code == 200
             json_resp = json.loads(resp.get_data(as_text=True))
-            assert json_resp['data']['id'] == str(sample_sms_template_func.id)
-            assert json_resp['data']['content'] == sample_sms_template_func.content
+            assert json_resp['data']['id'] == str(template.id)
+            assert json_resp['data']['content'] == template.content
             assert json_resp['data']['version'] == 1
             assert json_resp['data']['created_by']['name'] == sample_user().name
             assert datetime.strptime(json_resp['data']['created_at'], '%Y-%m-%d %H:%M:%S.%f').date() == date.today()
 
 
-def test_previous_template_history_version(notify_api, sample_sms_template_func):
-    old_content = sample_sms_template_func.content
-    sample_sms_template_func.content = "New content"
-    dao_update_template(sample_sms_template_func)
+def test_previous_template_history_version(notify_api, sample_template):
+    template = sample_template()
+    old_content = template.content
+    template.content = "New content"
+    dao_update_template(template)
+
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             auth_header = create_authorization_header()
             endpoint = url_for(
                 'template.get_template_version',
-                service_id=sample_sms_template_func.service.id,
-                template_id=sample_sms_template_func.id,
+                service_id=template.service.id,
+                template_id=template.id,
                 version=1)
             resp = client.get(
                 endpoint,
@@ -47,19 +53,21 @@ def test_previous_template_history_version(notify_api, sample_sms_template_func)
             )
             assert resp.status_code == 200
             json_resp = json.loads(resp.get_data(as_text=True))
-            assert json_resp['data']['id'] == str(sample_sms_template_func.id)
+            assert json_resp['data']['id'] == str(template.id)
             assert json_resp['data']['version'] == 1
             assert json_resp['data']['content'] == old_content
 
 
-def test_404_missing_template_version(notify_api, sample_sms_template_func):
+def test_404_missing_template_version(notify_api, sample_template):
+    template = sample_template()
+
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             auth_header = create_authorization_header()
             endpoint = url_for(
                 'template.get_template_version',
-                service_id=sample_sms_template_func.service.id,
-                template_id=sample_sms_template_func.id,
+                service_id=template.service.id,
+                template_id=template.id,
                 version=2)
             resp = client.get(
                 endpoint,
@@ -70,20 +78,21 @@ def test_404_missing_template_version(notify_api, sample_sms_template_func):
 
 @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
 def test_all_versions_of_template(notify_api, sample_template):
+    template = sample_template()
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
-            old_content = sample_template.content
+            old_content = template.content
             newer_content = "Newer content"
             newest_content = "Newest content"
-            sample_template.content = newer_content
-            dao_update_template(sample_template)
-            sample_template.content = newest_content
-            dao_update_template(sample_template)
+            template.content = newer_content
+            dao_update_template(template)
+            template.content = newest_content
+            dao_update_template(template)
             auth_header = create_authorization_header()
             endpoint = url_for(
                 'template.get_template_versions',
-                service_id=sample_template.service.id,
-                template_id=sample_template.id
+                service_id=template.service.id,
+                template_id=template.id
             )
             resp = client.get(
                 endpoint,
@@ -98,15 +107,22 @@ def test_all_versions_of_template(notify_api, sample_template):
             assert json_resp['data'][2]['content'] == old_content
 
 
-def test_update_template_reply_to_updates_history(client, sample_letter_template):
+def test_update_template_reply_to_updates_history(client,
+                                                  sample_template,
+                                                  sample_service):
+    service = sample_service(service_name=f'sample service full permissions {uuid4()}',
+                             service_permissions=set(SERVICE_PERMISSION_TYPES),
+                             check_if_service_exists=True
+    )
+    template = sample_template(service=service, template_type=LETTER_TYPE, postage="second")
     auth_header = create_authorization_header()
-    letter_contact = create_letter_contact(sample_letter_template.service, "Edinburgh, ED1 1AA")
+    letter_contact = create_letter_contact(template.service, "Edinburgh, ED1 1AA")
 
-    sample_letter_template.reply_to = letter_contact.id
-    dao_update_template(sample_letter_template)
+    template.reply_to = letter_contact.id
+    dao_update_template(template)
 
     resp = client.get(
-        '/service/{}/template/{}/version/2'.format(sample_letter_template.service_id, sample_letter_template.id),
+        '/service/{}/template/{}/version/2'.format(template.service_id, template.id),
         headers=[auth_header]
     )
     assert resp.status_code == 200

@@ -14,12 +14,14 @@ from app.models import (
     EMAIL_TYPE,
     LETTER_TYPE,
     SMS_TYPE,
+    Notification,
     Template,
     TemplateHistory,
     TemplateRedacted,
     ProviderDetails,
     Permission,
     EDIT_TEMPLATES,
+    SERVICE_PERMISSION_TYPES,
 )
 from datetime import datetime, timedelta, date
 from flask import url_for
@@ -31,7 +33,6 @@ from pypdf.errors import PdfReadError
 from sqlalchemy import select
 from tests import create_authorization_header
 from tests.app.db import (
-    create_service,
     create_letter_contact,
     create_notification,
     create_template_folder,
@@ -49,9 +50,9 @@ from tests.conftest import set_config_values
     (LETTER_TYPE, 'subject'),
 ])
 def test_should_create_a_new_template_for_a_service(
-    client, sample_user, template_type, subject
+    client, sample_service, sample_user, template_type, subject
 ):
-    service = create_service(service_permissions=[template_type])
+    service = sample_service(service_permissions=[template_type])
     data = {
         'name': 'my template',
         'template_type': template_type,
@@ -97,12 +98,11 @@ def test_should_create_a_new_template_for_a_service(
 
 
 @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
-def test_should_create_a_new_template_with_a_valid_provider(client, sample_user, ses_provider):
-    template_type = EMAIL_TYPE
-    service = create_service(service_permissions=[template_type])
+def test_should_create_a_new_template_with_a_valid_provider(client, sample_service, sample_user, ses_provider):
+    service = sample_service(service_permissions=[EMAIL_TYPE])
     data = {
         'name': 'my template',
-        'template_type': template_type,
+        'template_type': EMAIL_TYPE,
         'content': 'template <b>content</b>',
         'service': str(service.id),
         'created_by': str(sample_user.id),
@@ -131,11 +131,12 @@ def test_should_create_a_new_template_with_a_valid_provider(client, sample_user,
 ))
 def test_should_not_create_template_with_non_existent_provider(
     client,
+    sample_service,
     sample_user,
     fake_uuid,
     template_type
 ):
-    service = create_service(service_permissions=[template_type])
+    service = sample_service(service_permissions=[template_type])
     data = {
         'name': 'my template',
         'template_type': template_type,
@@ -148,11 +149,13 @@ def test_should_not_create_template_with_non_existent_provider(
     data = json.dumps(data)
     auth_header = create_authorization_header()
 
-    response = client.post(
-        f'/service/{service.id}/template',
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
-    )
+    # Requires a context block because the calling method expects current_user in the request
+    with client.application.app_context():
+        response = client.post(
+            f'/service/{service.id}/template',
+            headers=[('Content-Type', 'application/json'), auth_header],
+            data=data
+        )
     assert response.status_code == 400
 
     json_resp = response.get_json()
@@ -166,12 +169,13 @@ def test_should_not_create_template_with_non_existent_provider(
 ))
 def test_should_not_create_template_with_inactive_provider(
     client,
+    sample_service,
     sample_user,
     fake_uuid,
     template_type,
     mocker
 ):
-    service = create_service(service_permissions=[template_type])
+    service = sample_service(service_permissions=[template_type])
     data = {
         'name': 'my template',
         'template_type': template_type,
@@ -193,11 +197,13 @@ def test_should_not_create_template_with_inactive_provider(
         return_value=mocked_provider_details
     )
 
-    response = client.post(
-        f'/service/{service.id}/template',
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
-    )
+    # Requires a context block because the calling method expects current_user in the request
+    with client.application.app_context():
+        response = client.post(
+            f'/service/{service.id}/template',
+            headers=[('Content-Type', 'application/json'), auth_header],
+            data=data
+        )
     assert response.status_code == 400
 
     json_resp = response.get_json()
@@ -211,12 +217,13 @@ def test_should_not_create_template_with_inactive_provider(
 ))
 def test_should_not_create_template_with_incorrect_provider_type(
     client,
+    sample_service,
     sample_user,
     fake_uuid,
     template_type,
     mocker
 ):
-    service = create_service(service_permissions=[template_type])
+    service = sample_service(service_permissions=[template_type])
     data = {
         'name': 'my template',
         'template_type': template_type,
@@ -238,11 +245,13 @@ def test_should_not_create_template_with_incorrect_provider_type(
         return_value=mocked_provider_details
     )
 
-    response = client.post(
-        f'/service/{service.id}/template',
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
-    )
+    # Requires a context block because the calling method expects current_user in the request
+    with client.application.app_context():
+        response = client.post(
+            f'/service/{service.id}/template',
+            headers=[('Content-Type', 'application/json'), auth_header],
+            data=data
+        )
     assert response.status_code == 400
 
     json_resp = response.get_json()
@@ -314,7 +323,7 @@ def test_create_template_should_return_400_if_folder_is_for_a_different_service(
         client, sample_service
 ):
     service = sample_service()
-    service2 = create_service(service_name=str(uuid.uuid4()))
+    service2 = sample_service(service_name=str(uuid.uuid4()))
     parent_folder = create_template_folder(service=service2)
 
     data = {
@@ -328,11 +337,13 @@ def test_create_template_should_return_400_if_folder_is_for_a_different_service(
     data = json.dumps(data)
     auth_header = create_authorization_header()
 
-    response = client.post(
-        '/service/{}/template'.format(service.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
-    )
+    # Requires a context block because the calling method expects current_user in the request
+    with client.application.app_context():
+        response = client.post(
+            '/service/{}/template'.format(service.id),
+            headers=[('Content-Type', 'application/json'), auth_header],
+            data=data
+        )
     assert response.status_code == 400
     assert response.get_json()['message'] == 'parent_folder_id not found'
 
@@ -352,11 +363,13 @@ def test_create_template_should_return_400_if_folder_does_not_exist(
     data = json.dumps(data)
     auth_header = create_authorization_header()
 
-    response = client.post(
-        '/service/{}/template'.format(service.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
-    )
+    # Requires a context block because the calling method expects current_user in the request
+    with client.application.app_context():
+        response = client.post(
+            '/service/{}/template'.format(service.id),
+            headers=[('Content-Type', 'application/json'), auth_header],
+            data=data
+        )
     assert response.status_code == 400
     assert response.get_json()['message'] == 'parent_folder_id not found'
 
@@ -389,8 +402,8 @@ def test_should_raise_error_if_service_does_not_exist_on_create(client, sample_u
     ([SMS_TYPE], LETTER_TYPE, 'subject', {'template_type': ['Creating letter templates is not allowed']}),
 ])
 def test_should_raise_error_on_create_if_no_permission(
-        client, sample_user, permissions, template_type, subject, expected_error):
-    service = create_service(service_permissions=permissions)
+        client, sample_service, sample_user, permissions, template_type, subject, expected_error):
+    service = sample_service(service_permissions=permissions)
     data = {
         'name': 'my template',
         'template_type': template_type,
@@ -404,11 +417,13 @@ def test_should_raise_error_on_create_if_no_permission(
     data = json.dumps(data)
     auth_header = create_authorization_header()
 
-    response = client.post(
-        '/service/{}/template'.format(service.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
-    )
+    # Requires a context block because the calling method expects current_user in the request
+    with client.application.app_context():
+        response = client.post(
+            '/service/{}/template'.format(service.id),
+            headers=[('Content-Type', 'application/json'), auth_header],
+            data=data
+        )
     json_resp = response.get_json()
     assert response.status_code == 403
     assert json_resp['result'] == 'error'
@@ -513,11 +528,13 @@ def test_must_have_a_subject_on_an_email_or_letter_template(client, sample_user,
     data = json.dumps(data)
     auth_header = create_authorization_header()
 
-    response = client.post(
-        '/service/{}/template'.format(service.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
-    )
+    # Requires a context block because the calling method expects current_user in the request
+    with client.application.app_context():
+        response = client.post(
+            '/service/{}/template'.format(service.id),
+            headers=[('Content-Type', 'application/json'), auth_header],
+            data=data
+        )
     json_resp = response.get_json()
     assert json_resp['errors'][0]['error'] == "ValidationError"
     assert json_resp['errors'][0]["message"] == 'subject is a required property'
@@ -834,7 +851,6 @@ def test_should_return_404_if_no_templates_for_service_with_id(client, sample_se
     assert json_resp['message'] == 'No result found'
 
 
-# def test_create_400_for_over_limit_content(client, notify_api, sample_service, sample_user):
 def test_create_400_for_over_limit_content(client, notify_db_session, sample_service, sample_user):
     service = sample_service()
     content = ''.join(
@@ -850,11 +866,13 @@ def test_create_400_for_over_limit_content(client, notify_db_session, sample_ser
     data = json.dumps(data)
     auth_header = create_authorization_header()
 
-    response = client.post(
-        '/service/{}/template'.format(service.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
-    )
+    # Requires a context block because the calling method expects current_user in the request
+    with client.application.app_context():
+        response = client.post(
+            '/service/{}/template'.format(service.id),
+            headers=[('Content-Type', 'application/json'), auth_header],
+            data=data
+        )
     assert response.status_code == 400
     json_resp = response.get_json()
     print(f'{json_resp=}')
@@ -944,8 +962,8 @@ def test_update_set_process_type_on_template(client, sample_template):
 
 
 @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
-def test_create_a_template_with_reply_to(admin_request, sample_user):
-    service = create_service(service_permissions=['letter'])
+def test_create_a_template_with_reply_to(admin_request, sample_service, sample_user):
+    service = sample_service(service_permissions=['letter'])
     letter_contact = create_letter_contact(service, "Edinburgh, ED1 1AA")
     data = {
         'name': 'my template',
@@ -971,10 +989,10 @@ def test_create_a_template_with_reply_to(admin_request, sample_user):
 
 
 @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
-def test_create_a_template_with_foreign_service_reply_to(admin_request, sample_user):
-    service = create_service(service_permissions=['letter'])
-    service2 = create_service(service_name='test service', email_from='test@example.com',
-                              service_permissions=['letter'])
+def test_create_a_template_with_foreign_service_reply_to(admin_request, sample_service, sample_user):
+    service = sample_service(service_permissions=[LETTER_TYPE])
+    service2 = sample_service(service_name=f'test service {str(uuid.uuid4())}', email_from='test@example.com',
+                              service_permissions=[LETTER_TYPE])
     letter_contact = create_letter_contact(service2, "Edinburgh, ED1 1AA")
     data = {
         'name': 'my template',
@@ -1314,6 +1332,7 @@ def test_should_not_update_template_with_incorrect_provider_type(
 @pytest.mark.parametrize('file_type', ('png', 'pdf'))
 def test_preview_letter_template_by_id_valid_file_type(
     notify_api,
+    notify_db_session,
     sample_letter_notification,
     admin_request,
     file_type,
@@ -1355,11 +1374,21 @@ def test_preview_letter_template_by_id_valid_file_type(
             assert post_json['filename'] is None
             assert base64.b64decode(resp['content']) == content
 
+    # Teardown
+    notify_db_session.session.delete(notify_db_session.session.get(Notification, sample_letter_notification.id))
+    template = notify_db_session.session.scalar(select(Template).where(Template.service_id == sample_letter_notification.service_id))
+    for history in notify_db_session.session.scalars(select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)).all():
+        notify_db_session.session.delete(history)
+    template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
+    notify_db_session.session.delete(template_redacted)
+    notify_db_session.session.delete(template)
+    notify_db_session.session.commit()
 
 def test_preview_letter_template_by_id_template_preview_500(
         notify_api,
         client,
         admin_request,
+        notify_db_session,
         sample_letter_notification):
 
     with set_config_values(notify_api, {
@@ -1388,6 +1417,17 @@ def test_preview_letter_template_by_id_template_preview_500(
             assert mock_post.last_request.json()
             assert 'Status code: 404' in resp['message']
             assert 'Error generating preview letter for {}'.format(sample_letter_notification.id) in resp['message']
+
+    # Teardown
+    # Can't clear template stuff the POST made until we delete the notification (even though the fixture cleans it)
+    notify_db_session.session.delete(notify_db_session.session.get(Notification, sample_letter_notification.id))
+    for template in notify_db_session.session.scalars(select(Template).where(Template.service_id == sample_letter_notification.service_id)).all():
+        for history in notify_db_session.session.scalars(select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)).all():
+            notify_db_session.session.delete(history)
+        template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
+        notify_db_session.session.delete(template_redacted)
+        notify_db_session.session.delete(template)
+    notify_db_session.session.commit()
 
 
 def test_preview_letter_template_precompiled_pdf_file_type(
@@ -1780,14 +1820,16 @@ def test_preview_letter_template_precompiled_png_template_preview_pdf_error(
 
 
 def test_should_create_template_without_created_by_using_current_user_id(
-        client, sample_service_full_permissions):
-    sample_service = sample_service_full_permissions
-    user = sample_service.users[0]
+        client, notify_db_session, sample_service):
+    service = sample_service(service_name=f'sample service full permissions {uuid.uuid4()}',
+                             service_permissions=set(SERVICE_PERMISSION_TYPES),
+                             check_if_service_exists=True)
+    user = service.users[0]
     permission_dao.set_user_service_permission(
         user,
-        sample_service,
+        service,
         [Permission(
-            service_id=sample_service.id,
+            service_id=service.id,
             user_id=user.id,
             permission=EDIT_TEMPLATES
         )])
@@ -1796,13 +1838,13 @@ def test_should_create_template_without_created_by_using_current_user_id(
         'name': 'my template',
         'template_type': SMS_TYPE,
         'content': 'template <b>content</b>',
-        'service': str(sample_service.id),
+        'service': str(service.id),
         'created_by': None
     }
     data = json.dumps(data)
 
     response = client.post(
-        '/service/{}/template'.format(sample_service.id),
+        '/service/{}/template'.format(service.id),
         headers=[('Content-Type', 'application/json'),
                  ('Authorization', f'Bearer {create_access_token(user)}')],
         data=data
@@ -1814,6 +1856,14 @@ def test_should_create_template_without_created_by_using_current_user_id(
     template = Template.query.get(json_resp['data']['id'])
     from app.schemas import template_schema
     assert sorted(json_resp['data']) == sorted(template_schema.dump(template).data)
+
+    # Teardown
+    for history in notify_db_session.session.scalars(select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)).all():
+        notify_db_session.session.delete(history)
+    template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
+    notify_db_session.session.delete(template_redacted)
+    notify_db_session.session.delete(template)
+    notify_db_session.session.commit()
 
 
 class TestGenerateHtmlPreviewForContent:

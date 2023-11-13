@@ -1,3 +1,4 @@
+from app.models import Template, TemplateHistory
 import uuid
 from unittest.mock import Mock
 
@@ -43,9 +44,10 @@ def test_get_template_statistics_for_service_by_day_with_bad_arg_returns_400(adm
     assert 'whole_days' in json_resp['message']
 
 
-def test_get_template_statistics_for_service_by_day_returns_template_info(admin_request, mocker, sample_notification):
+def test_get_template_statistics_for_service_by_day_returns_template_info(
+    admin_request, notify_db_session, sample_notification
+):
     notification = sample_notification()
-
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_service_by_day',
         service_id=notification.service_id,
@@ -60,11 +62,18 @@ def test_get_template_statistics_for_service_by_day_returns_template_info(admin_
     assert json_resp['data'][0]['template_type'] == 'sms'
     assert json_resp['data'][0]['is_precompiled_letter'] is False
 
+    # Teardown
+    template = notify_db_session.session.get(Template, notification.template_id)
+    template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
+    # Must delete the notification to clear the template history
+    notify_db_session.session.delete(notification)
+    notify_db_session.session.delete(template_history)
+    notify_db_session.session.commit()
 
 @pytest.mark.parametrize('var_name', ['limit_days', 'whole_days'])
 def test_get_template_statistics_for_service_by_day_accepts_old_query_string(
     admin_request,
-    mocker,
+    notify_db_session,
     sample_notification,
     var_name
 ):
@@ -78,6 +87,12 @@ def test_get_template_statistics_for_service_by_day_accepts_old_query_string(
 
     assert len(json_resp['data']) == 1
 
+    # Teardown
+    template = notify_db_session.session.get(Template, notification.template_id)
+    template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
+    notify_db_session.session.delete(notification)
+    notify_db_session.session.delete(template_history)
+    notify_db_session.session.commit()
 
 @freeze_time('2018-01-02 12:00:00')
 def test_get_template_statistics_for_service_by_day_goes_to_db(
@@ -85,16 +100,16 @@ def test_get_template_statistics_for_service_by_day_goes_to_db(
     mocker,
     sample_sms_template_func
 ):
-
+    template = sample_template()
     # first time it is called redis returns data, second time returns none
     mock_dao = mocker.patch(
         'app.template_statistics.rest.fetch_notification_status_for_service_for_today_and_7_previous_days',
         return_value=[
             Mock(
-                template_id=sample_sms_template_func.id,
+                template_id=template.id,
                 count=3,
-                template_name=sample_sms_template_func.name,
-                notification_type=sample_sms_template_func.template_type,
+                template_name=template.name,
+                notification_type=template.template_type,
                 status='created',
                 is_precompiled_letter=False
             )
@@ -102,22 +117,22 @@ def test_get_template_statistics_for_service_by_day_goes_to_db(
     )
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_service_by_day',
-        service_id=sample_sms_template_func.service_id,
+        service_id=template.service_id,
         whole_days=1
     )
 
     assert json_resp['data'] == [{
-        "template_id": str(sample_sms_template_func.id),
+        "template_id": str(template.id),
         "count": 3,
-        "template_name": sample_sms_template_func.name,
-        "template_type": sample_sms_template_func.template_type,
+        "template_name": template.name,
+        "template_type": template.template_type,
         "status": "created",
         "is_precompiled_letter": False
 
     }]
     # dao only called for 2nd, since redis returned values for first call
     mock_dao.assert_called_once_with(
-        str(sample_sms_template_func.service_id), limit_days=1, by_template=True
+        str(template.service_id), limit_days=1, by_template=True
     )
 
 
@@ -140,12 +155,13 @@ def test_get_template_statistics_for_service_by_day_returns_empty_list_if_no_tem
 
 
 def test_get_template_statistics_for_template_returns_last_notification(
-    notify_db_session, admin_request, sample_email_template_func
+    notify_db_session, admin_request, sample_template
 ):
+    template = sample_template()
     # Build notifications
-    notifications = [create_notification(template=sample_email_template_func)]
-    notifications.append(create_notification(template=sample_email_template_func))
-    notifications.append(create_notification(template=sample_email_template_func))
+    notifications = [create_notification(template=template)]
+    notifications.append(create_notification(template=template))
+    notifications.append(create_notification(template=template))
 
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_template_id',
@@ -165,10 +181,11 @@ def test_get_template_statistics_for_template_returns_empty_if_no_statistics(
     admin_request,
     sample_email_template_func,
 ):
+    tempalte = sample_template()
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_template_id',
-        service_id=sample_email_template_func.service_id,
-        template_id=sample_email_template_func.id
+        service_id=tempalte.service_id,
+        template_id=tempalte.id
     )
 
     assert not json_resp['data']

@@ -13,8 +13,11 @@ from app.dao.notifications_dao import dao_create_notification
 from app.dao.organisation_dao import dao_create_organisation
 from app.dao.provider_rates_dao import create_provider_rates
 from app.dao.services_dao import dao_archive_service, dao_create_service
-from app.dao.service_sms_sender_dao import dao_add_sms_sender_for_service
-from app.dao.users_dao import create_secret_code, create_user_code, dao_archive_user
+from app.dao.service_sms_sender_dao import (
+    dao_add_sms_sender_for_service,
+    dao_update_service_sms_sender,
+)
+from app.dao.users_dao import create_secret_code, create_user_code
 from app.dao.fido2_key_dao import save_fido2_key
 from app.dao.login_event_dao import save_login_event
 from app.dao.templates_dao import dao_create_template
@@ -25,6 +28,8 @@ from app.models import (
     CommunicationItem,
     EMAIL_TYPE,
     Fido2Key,
+    InboundNumber,
+    InboundSms,
     InvitedUser,
     Job,
     KEY_TYPE_NORMAL,
@@ -44,17 +49,22 @@ from app.models import (
     ScheduledNotification,
     SERVICE_PERMISSION_TYPES,
     ServiceEmailReplyTo,
+    ServiceLetterContact,
+    ServiceSmsSender,
     Service,
+    ServiceUser,
     Template,
+    TemplateFolder,
     TemplateHistory,
     TemplateRedacted,
+    user_folder_permissions,
     UserServiceRoles,
 )
 from app.service.service_data import ServiceData
 from datetime import datetime, timedelta
 from flask import current_app, url_for
 from random import randint, randrange
-from sqlalchemy import asc, update, select
+from sqlalchemy import asc, delete, inspect, update, select
 from sqlalchemy.orm.session import make_transient
 from tests import create_authorization_header
 from tests.app.db import (
@@ -125,26 +135,30 @@ def set_user_as_admin(notify_db_session):
 
 @pytest.fixture
 def sample_user(notify_db_session, set_user_as_admin):
-    created_users = []
+    created_user_ids = []
 
-    def _sample_user(platform_admin=False):
+    def _sample_user(*args, platform_admin=False, **kwargs):
         # Cannot set platform admin when creating a user (schema)
-        user = create_user()
+        user = create_user(*args, **kwargs)
         if platform_admin:
             user = set_user_as_admin(user)
-        created_users.append(user)
+        created_user_ids.append(user.id)
         return user
 
     yield _sample_user
 
-    # TODO - Is there are way to delete a user?  Trying to delete a service raises IntegrityError
-    # because there are still associated permissions.
-    for user in created_users:
-        try:
-            dao_archive_user(user)
-        except Exception:
-            # Some users can't be archived due to constraints.
-            pass
+    for user_id in created_user_ids:
+        user = notify_db_session.session.get(User, user_id)
+        # Clear user_to_service
+        notify_db_session.session.execute(delete(user_folder_permissions).where(user_folder_permissions.c.user_id == user.id))
+
+        # Clear user_folder_permissions
+        for user_service in notify_db_session.session.scalars(select(ServiceUser)
+                                                              .where(ServiceUser.user_id == user.id)).all():
+            notify_db_session.session.delete(user_service)
+
+        notify_db_session.session.delete(user)
+        notify_db_session.session.commit()
 
 
 @pytest.fixture(scope='function')
@@ -382,20 +396,49 @@ def sample_notification_model_with_organization(
 
 
 @pytest.fixture
-def sample_service(sample_user):
-    created_services = []
+def sample_service(notify_db_session, sample_user):
+    created_service_ids = []
 
     def _sample_service(*args, **kwargs):
+        # We do not want create_service to create users because it does not clean them up
+        if len(args) == 0 and 'user' not in kwargs:
+            kwargs['user'] = sample_user()
         service = create_service(*args, **kwargs)
-        created_services.append(service)
+        
+        # The session is different (dao) so we can't just use save the session object for deletion. Set id, query it later
+        created_service_ids.append(service.id)
         return service
 
     yield _sample_service
 
-    # TODO - Is there are way to delete a service?  Trying to delete a service
-    # with session.delete raises IntegrityError.
-    for service in created_services:
-        dao_archive_service(service.id)
+    for service_id in created_service_ids:
+        service = notify_db_session.session.get(Service, service_id)
+        # Clear service_letter_contacts
+        for letter_contact in notify_db_session.session.scalars(select(ServiceLetterContact).where(ServiceLetterContact.service_id == service.id)).all():
+            notify_db_session.session.delete(letter_contact)
+
+        # Clear template_folder
+        for template_folder in notify_db_session.session.scalars(select(TemplateFolder).where(TemplateFolder.service_id == service.id)).all():
+            notify_db_session.session.delete(template_folder)
+
+        # Clear user_to_service
+        notify_db_session.session.execute(delete(user_folder_permissions).where(user_folder_permissions.c.service_id == service.id))
+
+        # Clear all keys
+        for api_key in notify_db_session.session.scalars(select(ApiKey).where(ApiKey.service_id == service.id)).all():
+            notify_db_session.session.delete(api_key)
+
+        # Clear all permissions
+        for perm in notify_db_session.session.scalars(select(Permission).where(Permission.service_id == service.id)).all():
+            notify_db_session.session.delete(perm)
+
+        # Clear all service_sms_senders
+        for sender in notify_db_session.session.scalars(select(ServiceSmsSender).where(ServiceSmsSender.service_id == service.id)).all():
+            notify_db_session.session.delete(sender)
+
+        notify_db_session.session.delete(service)
+        # TODO - Does this need to happen each iteration, or can it happen once after the loop?
+        notify_db_session.session.commit()
 
 
 @pytest.fixture(scope="function")
@@ -1018,7 +1061,7 @@ def sample_notification(notify_db_session):
 
 
 @pytest.fixture
-def sample_letter_notification(sample_letter_template, sample_notification):
+def sample_letter_notification(notify_db_session, sample_letter_template, sample_notification):
     address = {
         'address_line_1': 'A1',
         'address_line_2': 'A2',
@@ -1028,7 +1071,15 @@ def sample_letter_notification(sample_letter_template, sample_notification):
         'address_line_6': 'A6',
         'postcode': 'A_POST',
     }
-    return sample_notification(template=sample_letter_template, reference='foo', personalisation=address)
+
+    notification = sample_notification(template=sample_letter_template, reference='foo', personalisation=address)
+
+    yield notification
+
+    # Teardown only if the object wasn't deleted already.
+    if not inspect(notification).detached:
+        notify_db_session.session.delete(notification)
+        notify_db_session.session.commit()
 
 
 @pytest.fixture
@@ -1544,6 +1595,92 @@ def sample_provider_rate(notify_db_session, valid_from=None, rate=None, provider
 
 
 @pytest.fixture
+def sample_inbound_sms(notify_db_session, sample_service, sample_inbound_number):
+    inbound_sms_list = []
+
+    def _wrapper(
+            service=None,
+            notify_number=None,
+            user_number='+16502532222',
+            provider_date=None,
+            provider_reference='foo',  # TODO: Was None. Will this introduce problems?
+            content='Hello',
+            provider="mmg",
+            created_at=None
+    ):
+        # Set values if they came in None
+        service = service or sample_service()
+        provider_date = provider_date or datetime.utcnow()
+        created_at = created_at or datetime.utcnow()
+        # if notify_number comes in None it is handled by creating an inbound number for the service
+
+        if not service.inbound_numbers:
+            # Create inbound_number attached to the service
+            sample_inbound_number(number=notify_number,
+                                  provider=provider,
+                                  service_id=service.id)
+
+        inbound_sms = InboundSms(service=service,
+                                 created_at=created_at,
+                                 notify_number=notify_number or service.inbound_numbers[0].number,
+                                 user_number=user_number,
+                                 provider_date=provider_date,
+                                 provider_reference=provider_reference,
+                                 content=content,
+                                 provider=provider)
+
+        notify_db_session.session.add(inbound_sms)
+        notify_db_session.session.commit()
+        inbound_sms_list.append(inbound_sms)
+
+        return inbound_sms
+    
+    yield _wrapper
+
+    # Teardown
+    for inbound_sms in inbound_sms_list:
+        notify_db_session.session.delete(inbound_sms)
+    notify_db_session.session.commit()
+
+
+@pytest.fixture
+def sample_inbound_number(notify_db_session):
+    inbound_numbers = []
+
+    def _wrapper(number=None,
+                 provider='ses',
+                 active=True,
+                 service_id=None,
+                 url_endpoint=None,
+                 self_managed=False
+        ):
+        # Default to the correct amount of characters
+        number = number or f'1{randint(100000000, 999999999)}'
+
+        inbound_number = InboundNumber(
+            id=uuid4(),
+            number=number,
+            provider=provider,
+            active=active,
+            service_id=service_id,
+            url_endpoint=url_endpoint,
+            self_managed=self_managed
+        )
+
+        notify_db_session.session.add(inbound_number)
+        notify_db_session.session.commit()
+        inbound_numbers.append(inbound_number)
+        return inbound_number
+    
+    yield _wrapper
+
+    # Teardown
+    for inbound_number in inbound_numbers:
+        notify_db_session.session.delete(inbound_number)
+    notify_db_session.session.commit()
+
+
+@pytest.fixture
 def sample_inbound_numbers(notify_db_session, sample_service):
     service = create_service(service_name='sample service 2', check_if_service_exists=True)
     inbound_numbers = list()
@@ -1754,3 +1891,41 @@ def sample_communication_item(notify_db_session, worker_id):
 
     notify_db_session.session.delete(communication_item)
     notify_db_session.session.commit()
+
+
+@pytest.fixture
+def sample_service_with_inbound_number(
+        notify_db_session,
+        sample_service,
+        inbound_number='1234567'
+):
+    teardown_tuples = []
+
+    def _wrapper(*args, **kwargs):
+        if kwargs.get('service') is None:
+            # Sample service does not accept inbound_number, keep the name
+            inbound_number = kwargs.pop('inbound_number')
+            service = sample_service(*args, **kwargs)
+
+        sms_sender = ServiceSmsSender.query.filter_by(service_id=service.id).first()
+        inbound = create_inbound_number(number=inbound_number)
+        dao_update_service_sms_sender(
+            service_id=service.id,
+            service_sms_sender_id=sms_sender.id,
+            sms_sender=inbound_number,
+            inbound_number_id=inbound.id
+        )
+        teardown_tuples.append((inbound, sms_sender))
+        return service
+
+    yield _wrapper
+
+    # Teardown
+    for inbound, sms_sender in teardown_tuples:
+        # Cannot delete the sender if there's an inbound attached
+        notify_db_session.session.delete(inbound)
+        # Can't default default senders normally
+        sms_sender.is_default = False
+        notify_db_session.session.delete(sms_sender)
+    notify_db_session.session.commit()
+    # Service is cleaned elsewhere or in teardown of sample_service

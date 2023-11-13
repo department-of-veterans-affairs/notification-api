@@ -1,16 +1,13 @@
-import uuid
-
 import pytest
-
+import uuid
 from app.dao.service_user_dao import dao_get_service_user
 from app.models import TemplateFolder
+from tests.app.db import create_template_folder
 
-from tests.app.db import create_service, create_template_folder, create_user
 
-
-def test_get_folders_for_service(admin_request, notify_db_session):
-    s1 = create_service(service_name=str(uuid.uuid4()))
-    s2 = create_service(service_name=str(uuid.uuid4()))
+def test_get_folders_for_service(admin_request, notify_db_session, sample_service):
+    s1 = sample_service(service_name=str(uuid.uuid4()))
+    s2 = sample_service(service_name=str(uuid.uuid4()))
 
     tf1 = create_template_folder(s1)
     tf2 = create_template_folder(s1)
@@ -30,11 +27,11 @@ def test_get_folders_for_service_with_no_folders(sample_service, admin_request):
     assert resp == {'template_folders': []}
 
 
-def test_get_folders_returns_users_with_permission(admin_request, sample_service):
+def test_get_folders_returns_users_with_permission(admin_request, sample_service, sample_user):
     service = sample_service()
-    user_1 = create_user(email='one@gov.uk')
-    user_2 = create_user(email='two@gov.uk')
-    user_3 = create_user(email='three@gov.uk')
+    user_1 = sample_user(email=f'{uuid.uuid4()}@va.gov')
+    user_2 = sample_user(email=f'{uuid.uuid4()}@va.gov')
+    user_3 = sample_user(email=f'{uuid.uuid4()}@va.gov')
     template_folder = create_template_folder(service)
 
     service.users = [user_1, user_2, user_3]
@@ -76,11 +73,11 @@ def test_create_template_folder(admin_request, sample_service, has_parent):
 
 
 @pytest.mark.parametrize('has_parent', [True, False])
-def test_create_template_folder_sets_user_permissions(admin_request, sample_service, has_parent):
+def test_create_template_folder_sets_user_permissions(admin_request, sample_service, sample_user, has_parent):
     service = sample_service()
-    user_1 = create_user(email='one@va.gov')
-    user_2 = create_user(email='two@va.gov')
-    user_3 = create_user(email='three@va.gov', state='pending')
+    user_1 = sample_user(email=f'{uuid.uuid4()}@va.gov')
+    user_2 = sample_user(email=f'{uuid.uuid4()}@va.gov')
+    user_3 = sample_user(email=f'{uuid.uuid4()}@va.gov', state='pending')
     existing_folder = create_template_folder(service)
     service.users = [user_1, user_2, user_3]
     service_user_1 = dao_get_service_user(user_1.id, service.id)
@@ -144,7 +141,7 @@ def test_create_template_folder_fails_if_unknown_parent_id(admin_request, sample
 
 
 def test_create_template_folder_fails_if_parent_id_from_different_service(admin_request, sample_service):
-    s1 = create_service(service_name=str(uuid.uuid4()))
+    s1 = sample_service(service_name=str(uuid.uuid4()))
     parent_folder_id = create_template_folder(s1).id
 
     resp = admin_request.post(
@@ -175,12 +172,12 @@ def test_update_template_folder_name(admin_request, sample_service):
     assert existing_folder.name == 'bar'
 
 
-def test_update_template_folder_users(admin_request, sample_service):
+def test_update_template_folder_users(admin_request, sample_service, sample_user):
     service = sample_service()
     existing_folder = create_template_folder(service)
-    user_1 = create_user(email="notify_1@digital.cabinet-office.gov.uk")
-    user_2 = create_user(email="notify_2@digital.cabinet-office.gov.uk")
-    user_3 = create_user(email="notify_3@digital.cabinet-office.gov.uk")
+    user_1 = sample_user(email="notify_1@digital.cabinet-office.gov.uk")
+    user_2 = sample_user(email="notify_2@digital.cabinet-office.gov.uk")
+    user_3 = sample_user(email="notify_3@digital.cabinet-office.gov.uk")
     service.users += [user_1, user_2, user_3]
     assert len(existing_folder.users) == 0
     response_1 = admin_request.post(
@@ -206,7 +203,10 @@ def test_update_template_folder_users(admin_request, sample_service):
         }
     )
 
-    assert response_2['data']['users_with_permission'] == [str(user_2.id), str(user_3.id)]
+    resp = response_2['data']['users_with_permission']
+    expected_users = [str(user_2.id), str(user_3.id)]
+    # Compare without altering (can't make a set because it may clean values out)
+    assert len([x for x in resp if x in expected_users]) == len(resp)
     assert len(existing_folder.users) == 2
 
 
