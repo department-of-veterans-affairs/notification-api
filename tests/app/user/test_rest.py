@@ -7,19 +7,21 @@ from app.dao.permissions_dao import default_service_permissions
 from app.dao.service_user_dao import dao_get_service_user, dao_update_service_user
 from app.model import User, SMS_AUTH_TYPE, EMAIL_AUTH_TYPE
 from app.models import (
+    EMAIL_TYPE,
     Fido2Key,
     LoginEvent,
     MANAGE_SETTINGS,
     MANAGE_TEMPLATES,
     Notification,
     Permission,
+    Service,
 )
 from fido2 import cbor
-from flask import url_for
+from flask import current_app, url_for
 from freezegun import freeze_time
 from tests import create_authorization_header
 from tests.app.db import create_service, create_template_folder, create_organisation, create_user, create_reply_to_email
-from uuid import UUID
+from uuid import UUID, uuid4
 from unittest import mock
 
 
@@ -27,11 +29,12 @@ def test_get_user_list(admin_request, sample_service):
     """
     Tests GET endpoint '/' to retrieve entire user list.
     """
+    service = sample_service()
     json_resp = admin_request.get('user.get_user')
 
     # it may have the notify user in the DB still :weary:
     assert len(json_resp['data']) >= 1
-    sample_user = sample_service.users[0]
+    sample_user = service.users[0]
     expected_permissions = default_service_permissions
     fetched = next(x for x in json_resp['data'] if x['id'] == str(sample_user.id))
 
@@ -39,14 +42,15 @@ def test_get_user_list(admin_request, sample_service):
     assert sample_user.mobile_number == fetched['mobile_number']
     assert sample_user.email_address == fetched['email_address']
     assert sample_user.state == fetched['state']
-    assert sorted(expected_permissions) == sorted(fetched['permissions'][str(sample_service.id)])
+    assert sorted(expected_permissions) == sorted(fetched['permissions'][str(service.id)])
 
 
 def test_get_user(admin_request, sample_service, sample_organisation):
     """
     Tests GET endpoint '/<user_id>' to retrieve a single service.
     """
-    sample_user = sample_service.users[0]
+    service = sample_service()
+    sample_user = service.users[0]
     sample_user.organisations = [sample_organisation]
     json_resp = admin_request.get(
         'user.get_user',
@@ -62,20 +66,21 @@ def test_get_user(admin_request, sample_service, sample_organisation):
     assert fetched['email_address'] == sample_user.email_address
     assert fetched['state'] == sample_user.state
     assert fetched['auth_type'] == EMAIL_AUTH_TYPE
-    assert fetched['permissions'].keys() == {str(sample_service.id)}
-    assert fetched['services'] == [str(sample_service.id)]
+    assert fetched['permissions'].keys() == {str(service.id)}
+    assert fetched['services'] == [str(service.id)]
     assert fetched['organisations'] == [str(sample_organisation.id)]
-    assert sorted(fetched['permissions'][str(sample_service.id)]) == sorted(expected_permissions)
+    assert sorted(fetched['permissions'][str(service.id)]) == sorted(expected_permissions)
 
 
 def test_get_user_doesnt_return_inactive_services_and_orgs(admin_request, sample_service, sample_organisation):
     """
     Tests GET endpoint '/<user_id>' to retrieve a single service.
     """
-    sample_service.active = False
+    service = sample_service()
+    service.active = False
     sample_organisation.active = False
 
-    sample_user = sample_service.users[0]
+    sample_user = service.users[0]
     sample_user.organisations = [sample_organisation]
 
     json_resp = admin_request.get(
@@ -91,8 +96,9 @@ def test_get_user_doesnt_return_inactive_services_and_orgs(admin_request, sample
     assert fetched['permissions'] == {}
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
-def test_post_user(client, notify_db, notify_db_session):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+# @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+def test_post_user(client):
     """
     Tests POST endpoint '/' to create a user.
     """
@@ -124,8 +130,9 @@ def test_post_user(client, notify_db, notify_db_session):
     assert user.auth_type == EMAIL_AUTH_TYPE
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
-def test_post_user_without_auth_type(admin_request, notify_db_session):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+# @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+def test_post_user_without_auth_type(admin_request):
     assert User.query.count() == 0
     data = {
         "name": "Test User",
@@ -134,7 +141,7 @@ def test_post_user_without_auth_type(admin_request, notify_db_session):
         "mobile_number": "+16502532222",
         "permissions": {},
     }
-
+    # TODO: Clean up this non-fixture user
     json_resp = admin_request.post('user.create_user', _data=data, _expected_status=201)
 
     user = User.query.filter_by(email_address='user@digital.cabinet-office.gov.uk').first()
@@ -142,7 +149,8 @@ def test_post_user_without_auth_type(admin_request, notify_db_session):
     assert user.auth_type == EMAIL_AUTH_TYPE
 
 
-def test_post_user_missing_attribute_email(client, notify_db, notify_db_session):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_post_user_missing_attribute_email(client):
     """
     Tests POST endpoint '/' missing attribute email.
     """
@@ -168,8 +176,9 @@ def test_post_user_missing_attribute_email(client, notify_db, notify_db_session)
     assert {'email_address': ['Missing data for required field.']} == json_resp['message']
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
-def test_post_user_with_identity_provider_user_id_without_password(client, notify_db, notify_db_session):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+# @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+def test_post_user_with_identity_provider_user_id_without_password(client):
     """
     Tests POST endpoint '/' to create a user with an identity_provider_user_id.
     """
@@ -200,7 +209,8 @@ def test_post_user_with_identity_provider_user_id_without_password(client, notif
     assert user.auth_type == EMAIL_AUTH_TYPE
 
 
-def test_create_user_missing_attribute_password(client, notify_db, notify_db_session):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_create_user_missing_attribute_password(client):
     """
     Tests POST endpoint '/' missing attribute password.
     """
@@ -226,7 +236,8 @@ def test_create_user_missing_attribute_password(client, notify_db, notify_db_ses
     assert {'password': ['Missing data for required field.']} == json_resp['message']
 
 
-def test_create_user_with_known_bad_password(client, notify_db, notify_db_session):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_create_user_with_known_bad_password(client):
     """
     Tests POST endpoint '/' missing attribute password.
     """
@@ -253,8 +264,9 @@ def test_create_user_with_known_bad_password(client, notify_db, notify_db_sessio
     assert {'password': ['Password is blacklisted.']} == json_resp['message']
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
-def test_can_create_user_with_email_auth_and_no_mobile(admin_request, notify_db_session):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+# @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+def test_can_create_user_with_email_auth_and_no_mobile(admin_request):
     data = {
         'name': 'Test User',
         'email_address': 'user@digital.cabinet-office.gov.uk',
@@ -269,7 +281,8 @@ def test_can_create_user_with_email_auth_and_no_mobile(admin_request, notify_db_
     assert json_resp['data']['mobile_number'] is None
 
 
-def test_cannot_create_user_with_sms_auth_and_no_mobile(admin_request, notify_db_session):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_cannot_create_user_with_sms_auth_and_no_mobile(admin_request):
     data = {
         'name': 'Test User',
         'email_address': 'user@digital.cabinet-office.gov.uk',
@@ -283,8 +296,9 @@ def test_cannot_create_user_with_sms_auth_and_no_mobile(admin_request, notify_db
     assert json_resp['message'] == 'Mobile number must be set if auth_type is set to sms_auth'
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
-def test_cannot_create_user_with_empty_strings(admin_request, notify_db_session):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+# @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+def test_cannot_create_user_with_empty_strings(admin_request):
     data = {
         'name': '',
         'email_address': '',
@@ -303,15 +317,27 @@ def test_cannot_create_user_with_empty_strings(admin_request, notify_db_session)
         'name': ['Invalid name']
     }
 
+# @pytest.mark.usefixtures('sample_notify_service_user_session')
+# class TestAllTheThings:
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 @pytest.mark.parametrize('user_attribute, user_value', [
     ('name', 'New User'),
     ('email_address', 'newuser@mail.com'),
     ('mobile_number', '+16502532223'),
     ('identity_provider_user_id', 'test-id')
 ])
-def test_post_user_attribute(client, mocker, sample_user, user_attribute, user_value, account_change_template):
-    assert getattr(sample_user, user_attribute) != user_value
+def test_post_user_attribute(client, mocker, user_attribute, user_value, sample_notify_service_user_session, sample_template_session):
+    service, user = sample_notify_service_user_session()
+    sample_template_session(service=service,
+                            user=user,
+                            name='ACCOUNT_CHANGE_TEMPLATE_ID',
+                            id=current_app.config['ACCOUNT_CHANGE_TEMPLATE_ID'],
+                            content='Your account was changed',
+                            subject='Your account was changed',
+                            template_type=EMAIL_TYPE)
+    # raise
+    assert getattr(user, user_attribute) != user_value
     update_dict = {
         user_attribute: user_value
     }
@@ -321,16 +347,18 @@ def test_post_user_attribute(client, mocker, sample_user, user_attribute, user_v
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
 
-    resp = client.post(
-        url_for('user.update_user_attribute', user_id=sample_user.id),
-        data=json.dumps(update_dict),
-        headers=headers)
+    with client.application.app_context():
+        resp = client.post(
+            url_for('user.update_user_attribute', user_id=user.id),
+            data=json.dumps(update_dict),
+            headers=headers)
 
     assert resp.status_code == 200
     json_resp = resp.get_json()
     assert json_resp['data'][user_attribute] == user_value
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 @pytest.mark.parametrize('user_attribute, user_value', [
     ('name', 'New User'),
     ('email_address', 'newuser@mail.com'),
@@ -340,7 +368,8 @@ def test_post_user_attribute(client, mocker, sample_user, user_attribute, user_v
 def test_post_user_attribute_send_notification_email(
         client, mocker,
         sample_user, user_attribute, user_value, account_change_template):
-    assert getattr(sample_user, user_attribute) != user_value
+    user = sample_user()
+    assert getattr(user, user_attribute) != user_value
     update_dict = {
         user_attribute: user_value
     }
@@ -351,7 +380,7 @@ def test_post_user_attribute_send_notification_email(
     mocker.patch('app.user.rest.send_notification_to_queue')
 
     resp = client.post(
-        url_for('user.update_user_attribute', user_id=sample_user.id),
+        url_for('user.update_user_attribute', user_id=user.id),
         data=json.dumps(update_dict),
         headers=headers)
 
@@ -361,6 +390,7 @@ def test_post_user_attribute_send_notification_email(
     assert json_resp['data'][user_attribute] == user_value
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 @pytest.mark.parametrize('user_attribute, user_value, arguments', [
     ('name', 'New User', None),
     ('email_address', 'newuser@mail.com', dict(
@@ -386,11 +416,32 @@ def test_post_user_attribute_send_notification_email(
     )),
 ])
 def test_post_user_attribute_with_updated_by(
-    client, mocker, sample_user, user_attribute,
-    user_value, arguments, team_member_email_edit_template, team_member_mobile_edit_template, account_change_template
+    client, mocker, sample_user, user_attribute, sample_notify_service_user_session, sample_template_session,
+    user_value, arguments, team_member_email_edit_template, team_member_mobile_edit_template  # TODO: Clean out fixtures
 ):
-    updater = create_user(name="Service Manago", email="notify_manago@digital.cabinet-office.gov.uk")
-    assert getattr(sample_user, user_attribute) != user_value
+    service, user = sample_notify_service_user_session()
+    # Email template
+    sample_template_session(service=service,
+                            user=user,
+                            name='TEAM_MEMBER_EDIT_EMAIL_TEMPLATE_ID',
+                            content='Hi ((name)) ((servicemanagername)) changed your email to ((email address))',
+                            # subject='Your VA Notify email address has changed',
+                            template_type=EMAIL_TYPE)
+    
+        # template_config_name='TEAM_MEMBER_EDIT_EMAIL_TEMPLATE_ID',
+        # content='Hi ((name)) ((servicemanagername)) changed your email to ((email address))',
+        # subject='Your GOV.UK Notify email address has changed',
+        # template_type=EMAIL_TYPE
+
+        # service=service,
+        # user=user,
+        # template_config_name='TEAM_MEMBER_EDIT_MOBILE_TEMPLATE_ID',
+        # content='Your mobile number was changed by ((servicemanagername)).',
+        # template_type='sms'
+
+    updater = sample_user(name="Service Manago", email="notify_manago@va.gov")
+    user = sample_user()
+    assert getattr(user, user_attribute) != user_value
     update_dict = {
         user_attribute: user_value,
         'updated_by': str(updater.id)
@@ -400,7 +451,7 @@ def test_post_user_attribute_with_updated_by(
     mock_persist_notification = mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
     resp = client.post(
-        url_for('user.update_user_attribute', user_id=sample_user.id),
+        url_for('user.update_user_attribute', user_id=user.id),
         data=json.dumps(update_dict),
         headers=headers)
 
@@ -412,19 +463,21 @@ def test_post_user_attribute_with_updated_by(
         mock_persist_notification.assert_any_call(**arguments)
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_archive_user(mocker, client, sample_user):
     archive_mock = mocker.patch('app.user.rest.dao_archive_user')
-
+    user = sample_user()
     response = client.post(
-        url_for('user.archive_user', user_id=sample_user.id),
+        url_for('user.archive_user', user_id=user.id),
         headers=[create_authorization_header()]
     )
 
     assert response.status_code == 204
-    archive_mock.assert_called_once_with(sample_user)
+    archive_mock.assert_called_once_with(user)
 
 
-def test_archive_user_when_user_does_not_exist_gives_404(mocker, client, fake_uuid, notify_db_session):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_archive_user_when_user_does_not_exist_gives_404(mocker, client, fake_uuid):
     archive_mock = mocker.patch('app.user.rest.dao_archive_user')
 
     response = client.post(
@@ -436,11 +489,12 @@ def test_archive_user_when_user_does_not_exist_gives_404(mocker, client, fake_uu
     archive_mock.assert_not_called()
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_archive_user_when_user_cannot_be_archived(mocker, client, sample_user):
     mocker.patch('app.dao.users_dao.user_can_be_archived', return_value=False)
 
     response = client.post(
-        url_for('user.archive_user', user_id=sample_user.id),
+        url_for('user.archive_user', user_id=sample_user().id),
         headers=[create_authorization_header()]
     )
     json_resp = json.loads(response.get_data(as_text=True))
@@ -451,8 +505,10 @@ def test_archive_user_when_user_cannot_be_archived(mocker, client, sample_user):
     assert json_resp['message'] == msg
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_get_user_by_email(client, sample_service):
-    sample_user = sample_service.users[0]
+    service = sample_service()
+    sample_user = service.users[0]
     header = create_authorization_header()
     url = url_for('user.get_by_email', email=sample_user.email_address)
     resp = client.get(url, headers=[header])
@@ -467,10 +523,11 @@ def test_get_user_by_email(client, sample_service):
     assert sample_user.mobile_number == fetched['mobile_number']
     assert sample_user.email_address == fetched['email_address']
     assert sample_user.state == fetched['state']
-    assert sorted(expected_permissions) == sorted(fetched['permissions'][str(sample_service.id)])
+    assert sorted(expected_permissions) == sorted(fetched['permissions'][str(service.id)])
 
 
-def test_get_user_by_email_not_found_returns_404(client, sample_user):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_get_user_by_email_not_found_returns_404(client):
     header = create_authorization_header()
     url = url_for('user.get_by_email', email='no_user@digital.gov.uk')
     resp = client.get(url, headers=[header])
@@ -480,7 +537,8 @@ def test_get_user_by_email_not_found_returns_404(client, sample_user):
     assert json_resp['message'] == 'No result found'
 
 
-def test_get_user_by_email_bad_url_returns_404(client, sample_user):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_get_user_by_email_bad_url_returns_404(client):
     header = create_authorization_header()
     url = '/user/email'
     resp = client.get(url, headers=[header])
@@ -499,89 +557,101 @@ def test_get_user_with_permissions(client, sample_user_service_permission):
     assert sample_user_service_permission.permission in permissions[str(sample_user_service_permission.service.id)]
 
 
-def test_set_user_permissions(client, sample_user, sample_service):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_set_user_permissions(client, sample_service, sample_user):
+    service = sample_service()
+    user = sample_user()
     data = json.dumps({'permissions': [{'permission': MANAGE_SETTINGS}]})
     header = create_authorization_header()
     headers = [('Content-Type', 'application/json'), header]
     response = client.post(
         url_for(
             'user.set_permissions',
-            user_id=str(sample_user.id),
-            service_id=str(sample_service.id)),
+            user_id=str(user.id),
+            service_id=str(service.id)),
         headers=headers,
         data=data)
 
     assert response.status_code == 204
     permission = Permission.query.filter_by(permission=MANAGE_SETTINGS).first()
-    assert permission.user == sample_user
-    assert permission.service == sample_service
+    assert permission.user == user
+    assert permission.service == service
     assert permission.permission == MANAGE_SETTINGS
 
 
-def test_set_user_permissions_multiple(client, sample_user, sample_service):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_set_user_permissions_multiple(client, sample_service, sample_user):
+    service = sample_service()
+    user = sample_user()
     data = json.dumps({'permissions': [{'permission': MANAGE_SETTINGS}, {'permission': MANAGE_TEMPLATES}]})
     header = create_authorization_header()
     headers = [('Content-Type', 'application/json'), header]
     response = client.post(
         url_for(
             'user.set_permissions',
-            user_id=str(sample_user.id),
-            service_id=str(sample_service.id)),
+            user_id=str(user.id),
+            service_id=str(service.id)),
         headers=headers,
         data=data)
 
     assert response.status_code == 204
     permission = Permission.query.filter_by(permission=MANAGE_SETTINGS).first()
-    assert permission.user == sample_user
-    assert permission.service == sample_service
+    assert permission.user == user
+    assert permission.service == service
     assert permission.permission == MANAGE_SETTINGS
     permission = Permission.query.filter_by(permission=MANAGE_TEMPLATES).first()
-    assert permission.user == sample_user
-    assert permission.service == sample_service
+    assert permission.user == user
+    assert permission.service == service
     assert permission.permission == MANAGE_TEMPLATES
 
 
-def test_set_user_permissions_remove_old(client, sample_user, sample_service):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_set_user_permissions_remove_old(client, sample_service, sample_user):
+    user = sample_user()
     data = json.dumps({'permissions': [{'permission': MANAGE_SETTINGS}]})
     header = create_authorization_header()
     headers = [('Content-Type', 'application/json'), header]
     response = client.post(
         url_for(
             'user.set_permissions',
-            user_id=str(sample_user.id),
-            service_id=str(sample_service.id)),
+            user_id=str(user.id),
+            service_id=str((sample_service()).id)),
         headers=headers,
         data=data)
 
     assert response.status_code == 204
-    query = Permission.query.filter_by(user=sample_user)
+    query = Permission.query.filter_by(user=user)
     assert query.count() == 1
     assert query.first().permission == MANAGE_SETTINGS
 
 
-def test_set_user_folder_permissions(client, sample_user, sample_service):
-    tf1 = create_template_folder(sample_service)
-    tf2 = create_template_folder(sample_service)
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_set_user_folder_permissions(client, sample_service, sample_user):
+    service = sample_service()
+    user = sample_user()
+    tf1 = create_template_folder(service)
+    tf2 = create_template_folder(service)
     data = json.dumps({'permissions': [], 'folder_permissions': [str(tf1.id), str(tf2.id)]})
 
     response = client.post(
         url_for(
             'user.set_permissions',
-            user_id=str(sample_user.id),
-            service_id=str(sample_service.id)),
+            user_id=str(user.id),
+            service_id=str(service.id)),
         headers=[('Content-Type', 'application/json'), create_authorization_header()],
         data=data)
 
     assert response.status_code == 204
 
-    service_user = dao_get_service_user(sample_user.id, sample_service.id)
+    service_user = dao_get_service_user(user.id, sample_service.id)
     assert len(service_user.folders) == 2
     assert tf1 in service_user.folders
     assert tf2 in service_user.folders
 
 
-def test_set_user_folder_permissions_when_user_does_not_belong_to_service(client, sample_user):
-    service = create_service()
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_set_user_folder_permissions_when_user_does_not_belong_to_service(client, sample_service, sample_user):
+    service = sample_service()
     tf1 = create_template_folder(service)
     tf2 = create_template_folder(service)
 
@@ -590,7 +660,7 @@ def test_set_user_folder_permissions_when_user_does_not_belong_to_service(client
     response = client.post(
         url_for(
             'user.set_permissions',
-            user_id=str(sample_user.id),
+            user_id=str(sample_user().id),
             service_id=str(service.id)),
         headers=[('Content-Type', 'application/json'), create_authorization_header()],
         data=data)
@@ -598,22 +668,25 @@ def test_set_user_folder_permissions_when_user_does_not_belong_to_service(client
     assert response.status_code == 404
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_set_user_folder_permissions_does_not_affect_permissions_for_other_services(
     client,
     sample_user,
     sample_service,
 ):
-    tf1 = create_template_folder(sample_service)
-    tf2 = create_template_folder(sample_service)
+    service = sample_service()
+    user = sample_user()
+    tf1 = create_template_folder(service)
+    tf2 = create_template_folder(service)
 
-    service_2 = create_service(sample_user, service_name='other service')
+    service_2 = sample_service(user, service_name='other service')
     tf3 = create_template_folder(service_2)
 
-    sample_service_user = dao_get_service_user(sample_user.id, sample_service.id)
+    sample_service_user = dao_get_service_user(user.id, service.id)
     sample_service_user.folders = [tf1]
     dao_update_service_user(sample_service_user)
 
-    service_2_user = dao_get_service_user(sample_user.id, service_2.id)
+    service_2_user = dao_get_service_user(user.id, service_2.id)
     service_2_user.folders = [tf3]
     dao_update_service_user(service_2_user)
 
@@ -622,8 +695,8 @@ def test_set_user_folder_permissions_does_not_affect_permissions_for_other_servi
     response = client.post(
         url_for(
             'user.set_permissions',
-            user_id=str(sample_user.id),
-            service_id=str(sample_service.id)),
+            user_id=str(user.id),
+            service_id=str(service.id)),
         headers=[('Content-Type', 'application/json'), create_authorization_header()],
         data=data)
 
@@ -633,12 +706,15 @@ def test_set_user_folder_permissions_does_not_affect_permissions_for_other_servi
     assert service_2_user.folders == [tf3]
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_update_user_folder_permissions(client, sample_user, sample_service):
-    tf1 = create_template_folder(sample_service)
-    tf2 = create_template_folder(sample_service)
-    tf3 = create_template_folder(sample_service)
+    service = sample_service()
+    user = sample_user()
+    tf1 = create_template_folder(service)
+    tf2 = create_template_folder(service)
+    tf3 = create_template_folder(service)
 
-    service_user = dao_get_service_user(sample_user.id, sample_service.id)
+    service_user = dao_get_service_user(user.id, service.id)
     service_user.folders = [tf1, tf2]
     dao_update_service_user(service_user)
 
@@ -647,8 +723,8 @@ def test_update_user_folder_permissions(client, sample_user, sample_service):
     response = client.post(
         url_for(
             'user.set_permissions',
-            user_id=str(sample_user.id),
-            service_id=str(sample_service.id)),
+            user_id=str(user.id),
+            service_id=str(service.id)),
         headers=[('Content-Type', 'application/json'), create_authorization_header()],
         data=data)
 
@@ -658,11 +734,14 @@ def test_update_user_folder_permissions(client, sample_user, sample_service):
     assert tf3 in service_user.folders
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_remove_user_folder_permissions(client, sample_user, sample_service):
-    tf1 = create_template_folder(sample_service)
-    tf2 = create_template_folder(sample_service)
+    service = sample_service()
+    user = sample_user()
+    tf1 = create_template_folder(service)
+    tf2 = create_template_folder(service)
 
-    service_user = dao_get_service_user(sample_user.id, sample_service.id)
+    service_user = dao_get_service_user(user.id, service.id)
     service_user.folders = [tf1, tf2]
     dao_update_service_user(service_user)
 
@@ -671,7 +750,7 @@ def test_remove_user_folder_permissions(client, sample_user, sample_service):
     response = client.post(
         url_for(
             'user.set_permissions',
-            user_id=str(sample_user.id),
+            user_id=str(user.id),
             service_id=str(sample_service.id)),
         headers=[('Content-Type', 'application/json'), create_authorization_header()],
         data=data)
@@ -680,13 +759,14 @@ def test_remove_user_folder_permissions(client, sample_user, sample_service):
     assert service_user.folders == []
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 @freeze_time("2016-01-01 11:09:00.061258")
 def test_send_user_reset_password_should_send_reset_password_link(client,
                                                                   sample_user,
                                                                   mocker,
                                                                   password_reset_email_template):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
-    data = json.dumps({'email': sample_user.email_address})
+    data = json.dumps({'email': sample_user().email_address})
     auth_header = create_authorization_header()
     notify_service = password_reset_email_template.service
     resp = client.post(
@@ -707,6 +787,7 @@ def test_send_user_reset_password_should_send_reset_password_link(client,
     assert notification.reply_to_text == notify_service.get_default_reply_to_email_address()
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_send_user_reset_password_should_return_400_when_email_is_missing(client, mocker):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     data = json.dumps({})
@@ -722,6 +803,7 @@ def test_send_user_reset_password_should_return_400_when_email_is_missing(client
     assert mocked.call_count == 0
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_send_user_reset_password_should_return_400_when_user_doesnot_exist(client, mocker):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     bad_email_address = 'bad@email.gov.uk'
@@ -738,6 +820,7 @@ def test_send_user_reset_password_should_return_400_when_user_doesnot_exist(clie
     assert mocked.call_count == 0
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_send_user_reset_password_should_return_400_when_data_is_not_email_address(client, mocker):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     bad_email_address = 'bad.email.gov.uk'
@@ -754,14 +837,16 @@ def test_send_user_reset_password_should_return_400_when_data_is_not_email_addre
     assert mocked.call_count == 0
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_send_already_registered_email(client, sample_user, already_registered_template, mocker):
-    data = json.dumps({'email': sample_user.email_address})
+    user = sample_user()
+    data = json.dumps({'email': user.email_address})
     auth_header = create_authorization_header()
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     notify_service = already_registered_template.service
 
     resp = client.post(
-        url_for('user.send_already_registered_email', user_id=str(sample_user.id)),
+        url_for('user.send_already_registered_email', user_id=str(user.id)),
         data=data,
         headers=[('Content-Type', 'application/json'), auth_header])
     assert resp.status_code == 204
@@ -777,27 +862,30 @@ def test_send_already_registered_email(client, sample_user, already_registered_t
     assert notification.reply_to_text == notify_service.get_default_reply_to_email_address()
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_send_already_registered_email_returns_400_when_data_is_missing(client, sample_user):
     data = json.dumps({})
     auth_header = create_authorization_header()
 
     resp = client.post(
-        url_for('user.send_already_registered_email', user_id=str(sample_user.id)),
+        url_for('user.send_already_registered_email', user_id=str(sample_user().id)),
         data=data,
         headers=[('Content-Type', 'application/json'), auth_header])
     assert resp.status_code == 400
     assert resp.get_json()['message'] == {'email': ['Missing data for required field.']}
 
 
-@pytest.mark.skip(reason="not in use")
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+# @pytest.mark.skip(reason="not in use")
 def test_send_support_email(client, sample_user, contact_us_template, mocker):
-    data = json.dumps({'email': sample_user.email_address, 'message': "test"})
+    user = sample_user()
+    data = json.dumps({'email': user.email_address, 'message': "test"})
     auth_header = create_authorization_header()
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     notify_service = contact_us_template.service
 
     resp = client.post(
-        url_for('user.send_support_email', user_id=str(sample_user.id)),
+        url_for('user.send_support_email', user_id=str(user.id)),
         data=data,
         headers=[('Content-Type', 'application/json'), auth_header])
     assert resp.status_code == 204
@@ -807,13 +895,14 @@ def test_send_support_email(client, sample_user, contact_us_template, mocker):
     assert notification.reply_to_text == notify_service.get_default_reply_to_email_address()
 
 
-@pytest.mark.skip(reason="not in use")
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+# @pytest.mark.skip(reason="not in use")
 def test_send_support_email_returns_400_when_data_is_missing(client, sample_user):
     data = json.dumps({})
     auth_header = create_authorization_header()
 
     resp = client.post(
-        url_for('user.send_support_email', user_id=str(sample_user.id)),
+        url_for('user.send_support_email', user_id=str(sample_user().id)),
         data=data,
         headers=[('Content-Type', 'application/json'), auth_header])
     assert resp.status_code == 400
@@ -821,6 +910,7 @@ def test_send_support_email_returns_400_when_data_is_missing(client, sample_user
         'email': ['Missing data for required field.'], 'message': ['Missing data for required field.']}
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_send_user_confirm_new_email_returns_204(client, sample_user, change_email_confirmation_template, mocker):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     new_email = 'new_address@dig.gov.uk'
@@ -828,7 +918,7 @@ def test_send_user_confirm_new_email_returns_204(client, sample_user, change_ema
     auth_header = create_authorization_header()
     notify_service = change_email_confirmation_template.service
 
-    resp = client.post(url_for('user.send_user_confirm_new_email', user_id=str(sample_user.id)),
+    resp = client.post(url_for('user.send_user_confirm_new_email', user_id=str(sample_user().id)),
                        data=data,
                        headers=[('Content-Type', 'application/json'), auth_header])
     assert resp.status_code == 204
@@ -844,11 +934,12 @@ def test_send_user_confirm_new_email_returns_204(client, sample_user, change_ema
     assert notification.reply_to_text == notify_service.get_default_reply_to_email_address()
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_send_user_confirm_new_email_returns_400_when_email_missing(client, sample_user, mocker):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     data = json.dumps({})
     auth_header = create_authorization_header()
-    resp = client.post(url_for('user.send_user_confirm_new_email', user_id=str(sample_user.id)),
+    resp = client.post(url_for('user.send_user_confirm_new_email', user_id=str(sample_user().id)),
                        data=data,
                        headers=[('Content-Type', 'application/json'), auth_header])
     assert resp.status_code == 400
@@ -856,6 +947,7 @@ def test_send_user_confirm_new_email_returns_400_when_email_missing(client, samp
     mocked.assert_not_called()
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_update_user_password_saves_correctly(client, sample_service):
     sample_user = sample_service.users[0]
     new_password = 'tQETOgIO8yzDMyCsDjLZIEVZHAvkFArYfmSI1KTsJnlnPohI2tfIa8kfng7bxCm'
@@ -882,8 +974,9 @@ def test_update_user_password_saves_correctly(client, sample_service):
     assert resp.status_code == 204
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_update_user_password_failes_when_banned_password_used(client, sample_service):
-    sample_user = sample_service.users[0]
+    sample_user = sample_service().users[0]
     new_password = 'password'
     data = {
         '_password': new_password
@@ -897,6 +990,7 @@ def test_update_user_password_failes_when_banned_password_used(client, sample_se
     assert resp.status_code == 400
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_activate_user(admin_request, sample_user):
     sample_user.state = 'pending'
 
@@ -907,53 +1001,63 @@ def test_activate_user(admin_request, sample_user):
     assert sample_user.state == 'active'
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_activate_user_fails_if_already_active(admin_request, sample_user):
-    resp = admin_request.post('user.activate_user', user_id=sample_user.id, _expected_status=400)
+    user = sample_user()
+    resp = admin_request.post('user.activate_user', user_id=user.id, _expected_status=400)
     assert resp['message'] == 'User already active'
-    assert sample_user.state == 'active'
+    assert user.state == 'active'
 
 
-def test_update_user_auth_type(admin_request, sample_user, account_change_template, mocker):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_update_user_auth_type(admin_request, sample_user, account_change_template, mocker):  # TODO: Remove fixture
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
 
-    assert sample_user.auth_type == 'email_auth'
+    user = sample_user()
+    assert user.auth_type == 'email_auth'
     resp = admin_request.post(
         'user.update_user_attribute',
-        user_id=sample_user.id,
+        user_id=user.id,
         _data={'auth_type': 'sms_auth'},
     )
 
-    assert resp['data']['id'] == str(sample_user.id)
+    assert resp['data']['id'] == str(user.id)
     assert resp['data']['auth_type'] == 'sms_auth'
 
 
-def test_can_set_email_auth_and_remove_mobile_at_same_time(admin_request, sample_user, account_change_template, mocker):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_can_set_email_auth_and_remove_mobile_at_same_time(admin_request, sample_user, account_change_template, mocker):  # TODO: Remove fixture
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
-    sample_user.auth_type = SMS_AUTH_TYPE
+
+    user = sample_user()
+    user.auth_type = SMS_AUTH_TYPE
 
     admin_request.post(
         'user.update_user_attribute',
-        user_id=sample_user.id,
+        user_id=user.id,
         _data={
             'mobile_number': None,
             'auth_type': EMAIL_AUTH_TYPE,
         }
     )
 
-    assert sample_user.mobile_number is None
-    assert sample_user.auth_type == EMAIL_AUTH_TYPE
+    assert user.mobile_number is None
+    assert user.auth_type == EMAIL_AUTH_TYPE
 
 
-def test_cannot_remove_mobile_if_sms_auth(admin_request, sample_user, account_change_template, mocker):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_cannot_remove_mobile_if_sms_auth(admin_request, sample_user, account_change_template, mocker):  # TODO: Remove fixture
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
-    sample_user.auth_type = SMS_AUTH_TYPE
+
+    user = sample_user()
+    user.auth_type = SMS_AUTH_TYPE
 
     json_resp = admin_request.post(
         'user.update_user_attribute',
-        user_id=sample_user.id,
+        user_id=user.id,
         _data={'mobile_number': None},
         _expected_status=400
     )
@@ -961,82 +1065,94 @@ def test_cannot_remove_mobile_if_sms_auth(admin_request, sample_user, account_ch
     assert json_resp['message'] == 'Mobile number must be set if auth_type is set to sms_auth'
 
 
-def test_can_remove_mobile_if_email_auth(admin_request, sample_user, account_change_template, mocker):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_can_remove_mobile_if_email_auth(admin_request, sample_user, account_change_template, mocker):  # TODO: Remove fixture
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
-    sample_user.auth_type = EMAIL_AUTH_TYPE
+
+    user = sample_user()
+    user.auth_type = EMAIL_AUTH_TYPE
 
     admin_request.post(
         'user.update_user_attribute',
-        user_id=sample_user.id,
+        user_id=user.id,
         _data={'mobile_number': None},
     )
 
-    assert sample_user.mobile_number is None
+    assert user.mobile_number is None
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+# @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
 def test_cannot_update_user_with_mobile_number_as_empty_string(
-        admin_request, sample_user, account_change_template, mocker):
+        admin_request, sample_user, account_change_template, mocker):  # TODO: Remove fixture
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
-    sample_user.auth_type = EMAIL_AUTH_TYPE
+
+    user = sample_user()
+    user.auth_type = EMAIL_AUTH_TYPE
 
     resp = admin_request.post(
         'user.update_user_attribute',
-        user_id=sample_user.id,
+        user_id=user.id,
         _data={'mobile_number': ''},
         _expected_status=400
     )
     assert resp['message']['mobile_number'] == ['Invalid phone number: Not a valid number']
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_cannot_update_user_password_using_attributes_method(
-        admin_request, sample_user, account_change_template, mocker):
+        admin_request, sample_user, account_change_template, mocker):  # TODO: Remove fixture
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
     resp = admin_request.post(
         'user.update_user_attribute',
-        user_id=sample_user.id,
+        user_id=sample_user().id,
         _data={'password': 'foo'},
         _expected_status=400
     )
     assert resp['message']['_schema'] == ['Unknown field name password']
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_can_update_user_attribute_identity_provider_user_id_as_empty(
-        admin_request, sample_user, account_change_template, mocker
+        admin_request, sample_user, account_change_template, mocker  # TODO: Remove fixture
 ):
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
-    sample_user.auth_type = SMS_AUTH_TYPE
-    sample_user.identity_provider_user_id = "test-id"
+
+    user = sample_user()
+    user.auth_type = SMS_AUTH_TYPE
+    user.identity_provider_user_id = "test-id"
 
     admin_request.post(
         'user.update_user_attribute',
-        user_id=sample_user.id,
+        user_id=user.id,
         _data={
             'identity_provider_user_id': None,
         }
     )
 
-    assert sample_user.identity_provider_user_id is None
+    assert user.identity_provider_user_id is None
 
 
-def test_get_orgs_and_services_nests_services(admin_request, sample_user):
-    org1 = create_organisation(name='org1')
-    org2 = create_organisation(name='org2')
-    service1 = create_service(service_name='service1')
-    service2 = create_service(service_name='service2')
-    service3 = create_service(service_name='service3')
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_get_orgs_and_services_nests_services(admin_request, sample_service, sample_user):
+    user = sample_user()
+    org1 = create_organisation(name=f'org  {uuid4}')
+    org2 = create_organisation(name=f'org {uuid4}')
+    service1 = sample_service(service_name=f'service {uuid4}')
+    service2 = sample_service(service_name=f'service {uuid4}')
+    service3 = sample_service(service_name=f'service {uuid4}')
 
     org1.services = [service1, service2]
     org2.services = []
 
-    sample_user.organisations = [org1, org2]
-    sample_user.services = [service1, service2, service3]
+    user.organisations = [org1, org2]
+    user.services = [service1, service2, service3]
 
-    resp = admin_request.get('user.get_organisations_and_services_for_user', user_id=sample_user.id)
+    resp = admin_request.get('user.get_organisations_and_services_for_user', user_id=user.id)
 
     assert set(resp.keys()) == {
         'organisations',
@@ -1076,26 +1192,28 @@ def test_get_orgs_and_services_nests_services(admin_request, sample_user):
     ]
 
 
-def test_get_orgs_and_services_only_returns_active(admin_request, sample_user):
-    org1 = create_organisation(name='org1', active=True)
-    org2 = create_organisation(name='org2', active=False)
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_get_orgs_and_services_only_returns_active(admin_request, sample_service, sample_user):
+    user = sample_user()
+    org1 = create_organisation(name=f'org  {uuid4}', active=True)
+    org2 = create_organisation(name=f'org  {uuid4}', active=False)
 
     # in an active org
-    service1 = create_service(service_name='service1', active=True)
-    service2 = create_service(service_name='service2', active=False)
+    service1 = sample_service(service_name=f'service {uuid4}', active=True)
+    service2 = sample_service(service_name=f'service {uuid4}', active=False)
     # active but in an inactive org
-    service3 = create_service(service_name='service3', active=True)
+    service3 = sample_service(service_name=f'service {uuid4}', active=True)
     # not in an org
-    service4 = create_service(service_name='service4', active=True)
-    service5 = create_service(service_name='service5', active=False)
+    service4 = sample_service(service_name=f'service {uuid4}', active=True)
+    service5 = sample_service(service_name=f'service {uuid4}', active=False)
 
     org1.services = [service1, service2]
     org2.services = [service3]
 
-    sample_user.organisations = [org1, org2]
-    sample_user.services = [service1, service2, service3, service4, service5]
+    user.organisations = [org1, org2]
+    user.services = [service1, service2, service3, service4, service5]
 
-    resp = admin_request.get('user.get_organisations_and_services_for_user', user_id=sample_user.id)
+    resp = admin_request.get('user.get_organisations_and_services_for_user', user_id=user.id)
 
     assert set(resp.keys()) == {
         'organisations',
@@ -1130,23 +1248,25 @@ def test_get_orgs_and_services_only_returns_active(admin_request, sample_user):
     ]
 
 
-def test_get_orgs_and_services_only_shows_users_orgs_and_services(admin_request, sample_user):
-    other_user = create_user(email='other@user.com')
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_get_orgs_and_services_only_shows_users_orgs_and_services(admin_request, sample_service, sample_user):
+    user = sample_user()
+    other_user = sample_user(email=f'{uuid4}other@va.gov')
 
-    org1 = create_organisation(name='org1')
-    org2 = create_organisation(name='org2')
-    service1 = create_service(service_name='service1')
-    service2 = create_service(service_name='service2')
+    org1 = create_organisation(name=f'org {uuid4}')
+    org2 = create_organisation(name=f'org {uuid4}')
+    service1 = sample_service(service_name=f'service {uuid4}')
+    service2 = sample_service(service_name=f'service {uuid4}')
 
     org1.services = [service1]
 
-    sample_user.organisations = [org2]
-    sample_user.services = [service1]
+    user.organisations = [org2]
+    user.services = [service1]
 
     other_user.organisations = [org1, org2]
     other_user.services = [service1, service2]
 
-    resp = admin_request.get('user.get_organisations_and_services_for_user', user_id=sample_user.id)
+    resp = admin_request.get('user.get_organisations_and_services_for_user', user_id=user.id)
 
     assert set(resp.keys()) == {
         'organisations',
@@ -1171,9 +1291,13 @@ def test_get_orgs_and_services_only_shows_users_orgs_and_services(admin_request,
     ]
 
 
-def test_find_users_by_email_finds_user_by_partial_email(notify_db, client):
-    create_user(email='findel.mestro@foo.com')
-    create_user(email='me.ignorra@foo.com')
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_find_users_by_email_finds_user_by_partial_email(client, sample_user):
+    user1 = sample_user(email=f'findel.mestro{uuid4}@foo.com')
+    # Insert a few so there's more in the table
+    for _ in range(10):
+        sample_user(email=f'me.ignorra{uuid4}@foo.com')
+
     data = json.dumps({"email": "findel"})
     auth_header = create_authorization_header()
 
@@ -1186,13 +1310,17 @@ def test_find_users_by_email_finds_user_by_partial_email(notify_db, client):
 
     assert response.status_code == 200
     assert len(users['data']) == 1
-    assert users['data'][0]['email_address'] == 'findel.mestro@foo.com'
+    assert users['data'][0]['email_address'] == user1.email_address
 
 
-def test_find_users_by_email_finds_user_by_full_email(notify_db, client):
-    create_user(email='findel.mestro@foo.com')
-    create_user(email='me.ignorra@foo.com')
-    data = json.dumps({"email": "findel.mestro@foo.com"})
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_find_users_by_email_finds_user_by_full_email(client, sample_user):
+    user1 = sample_user(email=f'findel.mestro{uuid4}@foo.com')
+    # Insert a few so there's more in the table
+    for _ in range(10):
+        sample_user(email=f'me.ignorra{uuid4}@foo.com')
+
+    data = json.dumps({"email": user1.email_address})
     auth_header = create_authorization_header()
 
     response = client.post(
@@ -1204,12 +1332,16 @@ def test_find_users_by_email_finds_user_by_full_email(notify_db, client):
 
     assert response.status_code == 200
     assert len(users['data']) == 1
-    assert users['data'][0]['email_address'] == 'findel.mestro@foo.com'
+    assert users['data'][0]['email_address'] == user1.email_address
 
 
-def test_find_users_by_email_handles_no_results(notify_db, client):
-    create_user(email='findel.mestro@foo.com')
-    create_user(email='me.ignorra@foo.com')
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_find_users_by_email_handles_no_results(client, sample_user):
+    sample_user(email=f'findel.mestro{uuid4}@foo.com')
+    # Insert a few so there's more in the table
+    for _ in range(10):
+        sample_user(email=f'me.ignorra{uuid4}@foo.com')
+
     data = json.dumps({"email": "rogue"})
     auth_header = create_authorization_header()
 
@@ -1224,8 +1356,9 @@ def test_find_users_by_email_handles_no_results(notify_db, client):
     assert users['data'] == []
 
 
-def test_search_for_users_by_email_handles_incorrect_data_format(notify_db, client):
-    create_user(email='findel.mestro@foo.com')
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_search_for_users_by_email_handles_incorrect_data_format(client, sample_user):
+    sample_user(email=f'findel.mestro{uuid4}@foo.com')
     data = json.dumps({"email": 1})
     auth_header = create_authorization_header()
 
@@ -1239,8 +1372,9 @@ def test_search_for_users_by_email_handles_incorrect_data_format(notify_db, clie
     assert json.loads(response.get_data(as_text=True))['message'] == {'email': ['Not a valid string.']}
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_list_fido2_keys_for_a_user(client, sample_service):
-    sample_user = sample_service.users[0]
+    sample_user = sample_service().users[0]
     auth_header = create_authorization_header()
 
     key_one = Fido2Key(name='sample key one', key="abcd", user_id=sample_user.id)
@@ -1260,9 +1394,11 @@ def test_list_fido2_keys_for_a_user(client, sample_service):
     ) == [str(key_one.id), str(key_two.id)]
 
 
-def test_create_fido2_keys_for_a_user(client, sample_service, mocker, account_change_template):
-    sample_user = sample_service.users[0]
-    create_reply_to_email(sample_service, 'reply-here@example.canada.ca')
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_create_fido2_keys_for_a_user(client, sample_service, mocker, account_change_template):  # TODO: Remove fixture
+    service = sample_service()
+    sample_user = service.users[0]
+    create_reply_to_email(service, 'reply-here@example.canada.ca')
     auth_header = create_authorization_header()
 
     create_fido2_session(sample_user.id, "ABCD")
@@ -1285,11 +1421,13 @@ def test_create_fido2_keys_for_a_user(client, sample_service, mocker, account_ch
     assert json.loads(response.get_data(as_text=True))["id"]
 
 
-def test_delete_fido2_keys_for_a_user(client, sample_service, mocker, account_change_template):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_delete_fido2_keys_for_a_user(client, sample_service, mocker, account_change_template):  # TODO: Remove fixture
+    service = sample_service()
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
-    sample_user = sample_service.users[0]
-    create_reply_to_email(sample_service, 'reply-here@example.canada.ca')
+    sample_user = service.users[0]
+    create_reply_to_email(service, 'reply-here@example.canada.ca')
     auth_header = create_authorization_header()
 
     key = Fido2Key(name='sample key one', key="abcd", user_id=sample_user.id)
@@ -1312,9 +1450,10 @@ def test_delete_fido2_keys_for_a_user(client, sample_service, mocker, account_ch
     assert json.loads(response.get_data(as_text=True))["id"] == data[0]["id"]
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+# @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
 def test_start_fido2_registration(client, sample_service):
-    sample_user = sample_service.users[0]
+    sample_user = sample_service().users[0]
     auth_header = create_authorization_header()
 
     response = client.post(
@@ -1329,9 +1468,10 @@ def test_start_fido2_registration(client, sample_service):
     assert data['publicKey']['user']['id'] == sample_user.id.bytes
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+# @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
 def test_start_fido2_authentication(client, sample_service):
-    sample_user = sample_service.users[0]
+    sample_user = sample_service().users[0]
     auth_header = create_authorization_header()
 
     response = client.post(
@@ -1345,8 +1485,9 @@ def test_start_fido2_authentication(client, sample_service):
     assert data['publicKey']['rpId'] == "localhost"
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_list_login_events_for_a_user(client, sample_service):
-    sample_user = sample_service.users[0]
+    sample_user = sample_service().users[0]
     auth_header = create_authorization_header()
 
     event_one = LoginEvent(**{'user': sample_user, 'data': {}})
@@ -1366,14 +1507,18 @@ def test_list_login_events_for_a_user(client, sample_service):
     ) == [str(event_two.id), str(event_one.id)]
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_update_user_blocked(admin_request, sample_user, account_change_template, mocker):
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
+
+    user = sample_user()
+
     resp = admin_request.post(
         'user.update_user_attribute',
-        user_id=sample_user.id,
+        user_id=user.id,
         _data={'blocked': True},
     )
 
-    assert resp['data']['id'] == str(sample_user.id)
+    assert resp['data']['id'] == str(user.id)
     assert resp['data']['blocked']

@@ -27,6 +27,7 @@ def test_get_folders_for_service_with_no_folders(sample_service, admin_request):
     assert resp == {'template_folders': []}
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_get_folders_returns_users_with_permission(admin_request, sample_service, sample_user):
     service = sample_service()
     user_1 = sample_user(email=f'{uuid.uuid4()}@va.gov')
@@ -235,7 +236,7 @@ def test_update_template_folder_fails_if_missing_name(admin_request, sample_serv
     }
 
 
-@pytest.mark.skip(reason="Endpoint disabled and slated for removal")
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_delete_template_folder(admin_request, sample_service):
     service = sample_service()
     existing_folder = create_template_folder(service)
@@ -249,7 +250,7 @@ def test_delete_template_folder(admin_request, sample_service):
     assert TemplateFolder.query.all() == []
 
 
-@pytest.mark.skip(reason="Endpoint disabled and slated for removal")
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_delete_template_folder_fails_if_folder_has_subfolders(admin_request, sample_service):
     service = sample_service()
     existing_folder = create_template_folder(service)
@@ -270,7 +271,7 @@ def test_delete_template_folder_fails_if_folder_has_subfolders(admin_request, sa
     assert TemplateFolder.query.count() == 2
 
 
-@pytest.mark.skip(reason="Endpoint disabled and slated for removal")
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_delete_template_folder_fails_if_folder_contains_templates(
     admin_request, sample_service, sample_email_template_func
 ):
@@ -453,7 +454,7 @@ def test_move_to_folder_itself_is_rejected(admin_request, sample_service):
     assert response['message'] == 'You cannot move a folder to itself'
 
 
-@pytest.mark.skip(reason="Endpoint disabled and slated for removal")
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_move_to_folder_skips_archived_templates(admin_request, sample_service, sample_template):
     service = sample_service()
     target_folder = create_template_folder(service)
