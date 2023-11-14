@@ -281,9 +281,6 @@ def send_scheduled_comp_and_pen_sms():
 
     try:
         template = dao_get_template_by_id(template_id)
-
-        # TODO test: can be removed after testing
-        current_app.logger.info('send_scheduled_comp_and_pen_sms template retrieved id: %s', template.id)
     except NoResultFound as e:
         current_app.logger.error(
             'No results found in task send_scheduled_comp_and_pen_sms attempting to lookup template - %s', e)
@@ -324,16 +321,23 @@ def send_scheduled_comp_and_pen_sms():
         )
 
         # update dynamodb entries
-        updated_item = table.update_item(
-            key={
-                'participant_id': item.get('participant_id'),
-                'payment_id': item.get('payment_id')
-            },
-            UpdateExpression='SET processed = :val',
-            ExpressionAttributeValues={
-                ':val': True
-            }
-        )
+        try:
+            updated_item = table.update_item(
+                key={
+                    'participant_id': item.get('participant_id'),
+                    # 'payment_id': item.get('payment_id')
+                },
+                UpdateExpression='SET processed = :val',
+                ExpressionAttributeValues={
+                    ':val': True
+                }
+            )
+        except Exception as e:
+            current_app.logger.critical(
+                'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
+                'exception_type: %s exception_message: %s',
+                item.get('participant_id'), item.get('payment_id'), type(e), e
+            )
 
         # TODO test: can be removed after testing
         current_app.logger.info('updated_item from dynamodb ("processed" shouldb be "True"): %s', updated_item)
