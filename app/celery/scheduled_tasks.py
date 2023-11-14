@@ -324,17 +324,17 @@ def send_scheduled_comp_and_pen_sms():
         try:
             updated_item = table.update_item(
                 Key={
-                    'participant_id': int(item.get('participant_id')),
+                    'participant_id': item.get('participant_id'),
                     # 'payment_id': item.get('payment_id')
                 },
-                UpdateExpression='SET processed = :val',
+                UpdateExpression='SET is_processed = :val',
                 ExpressionAttributeValues={
                     ':val': True
                 }
             )
 
             # TODO test: can be removed after testing
-            current_app.logger.info('updated_item from dynamodb ("processed" shouldb be "True"): %s', updated_item)
+            current_app.logger.info('updated_item from dynamodb ("is_processed" shouldb be "True"): %s', updated_item)
         except Exception as e:
             current_app.logger.critical(
                 'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
