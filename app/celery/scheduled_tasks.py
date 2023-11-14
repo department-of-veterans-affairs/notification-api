@@ -199,15 +199,10 @@ def check_templated_letter_state():
 
 
 def _get_dynamodb_comp_pen_messages(table, message_limit: int) -> list:
-    try:
-        results = table.scan(
-            FilterExpression=boto3.dynamodb.conditions.Attr('processed').eq(False),
-            Limit=message_limit
-        )
-    except Exception as e:
-        current_app.logger.error(
-            'Exception trying to scan dynamodb table for send_scheduled_comp_and_pen_sms - %s', e)
-        return None
+    results = table.scan(
+        FilterExpression=boto3.dynamodb.conditions.Attr('processed').eq(False),
+        Limit=message_limit
+    )
 
     current_app.logger.info('count of messages initially pulled from dynamodb Count=%s vs ScannedCount=%s',
                             results.get('Count'), results.get('ScannedCount'))
@@ -237,7 +232,7 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int) -> list:
         current_app.logger.info('current length of items from dynamodb len: %s', len(items))
 
     # TODO test: can be removed after testing
-    current_app.logger.info('returning all items from dynamodb: %s', results.get('Items'))
+    current_app.logger.info('returning all items from dynamodb len: %s, items: %s', len(items), items)
 
     return items[:message_limit]
 
@@ -270,7 +265,9 @@ def send_scheduled_comp_and_pen_sms():
         comp_and_pen_messages = _get_dynamodb_comp_pen_messages(table, messages_per_min)
     except Exception as e:
         current_app.logger.error(
-            'Exception trying to scan dynamodb table for send_scheduled_comp_and_pen_sms - %s', e)
+            'Exception trying to scan dynamodb table for send_scheduled_comp_and_pen_sms exception_type: %s - '
+            'exception_message: %s', type(e), e
+        )
         return
 
     # TODO test: can be removed after testing
@@ -305,19 +302,20 @@ def send_scheduled_comp_and_pen_sms():
         )
 
         # call generic method to send messages
-        send_notification_bypass_route(
-            service_id=service_id,
-            template=template,
-            notification_type=SMS_TYPE,
-            # recipient=item.get('vaprofile_id'),  # can this be vaprofile_id? maps to notification.to field
-            personalisation={'paymentAmount': item.get('paymentAmount')},
-            sms_sender_id=None,
-            recipient_id={
-                'id_type': IdentifierType.VA_PROFILE_ID.value,
-                'id_value': item.get('vaprofile_id')
-            },
-            # api_key_type=KEY_TYPE_NORMAL
-        )
+        # TODO commented out to test update
+        # send_notification_bypass_route(
+        #     service_id=service_id,
+        #     template=template,
+        #     notification_type=SMS_TYPE,
+        #     # recipient=item.get('vaprofile_id'),  # can this be vaprofile_id? maps to notification.to field
+        #     personalisation={'paymentAmount': item.get('paymentAmount')},
+        #     sms_sender_id=None,
+        #     recipient_id={
+        #         'id_type': IdentifierType.VA_PROFILE_ID.value,
+        #         'id_value': item.get('vaprofile_id')
+        #     },
+        #     # api_key_type=KEY_TYPE_NORMAL
+        # )
 
         # TODO test: can be removed after testing
         current_app.logger.info(
