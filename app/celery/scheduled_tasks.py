@@ -323,7 +323,7 @@ def send_scheduled_comp_and_pen_sms():
         # update dynamodb entries
         try:
             updated_item = table.update_item(
-                key={
+                Key={
                     'participant_id': int(item.get('participant_id')),
                     # 'payment_id': item.get('payment_id')
                 },
