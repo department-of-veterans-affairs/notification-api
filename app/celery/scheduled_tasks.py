@@ -247,7 +247,7 @@ def send_scheduled_comp_and_pen_sms():
         current_app.logger.info('Attempted to run send_scheduled_comp_and_pen_sms task, but feature flag disabled.')
         return
 
-    messages_per_min = 2  # TODO test: update to 3000 for final commit
+    messages_per_min = 100  # TODO test: update to 3000 for final commit
     dynamodb_table_name = os.getenv('COMP_AND_PEN_DYANMODB_NAME')
     service_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
     template_id = os.getenv('COMP_AND_PEN_TEMPLATE_ID')
@@ -308,7 +308,7 @@ def send_scheduled_comp_and_pen_sms():
         try:
             # call generic method to send messages
             send_notification_bypass_route(
-                service_id=service_id,
+                service=service,
                 template=template,
                 notification_type=SMS_TYPE,
                 # recipient=item.get('vaprofile_id'),  # can this be vaprofile_id? maps to notification.to field
@@ -325,6 +325,10 @@ def send_scheduled_comp_and_pen_sms():
                 'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | '
                 'exception_type: %s - exception: %s', type(e), e
             )
+
+            # TODO what do we do when we fail to send a notification?
+            # add a field to the table?
+            continue
 
         # TODO test: can be removed after testing
         current_app.logger.info(
