@@ -21,6 +21,7 @@ from app.dao.service_sms_sender_dao import dao_update_service_sms_sender
 from app.dao.services_dao import dao_create_service, dao_add_user_to_service
 from app.dao.templates_dao import dao_create_template, dao_update_template
 from app.dao.users_dao import save_model_user
+from app.dao.dao_utils import transactional, version_class
 from app.models import (
     ApiKey,
     DailySortedLetter,
@@ -64,6 +65,7 @@ from app.models import (
 from app.model import User
 from uuid import UUID, uuid4
 from sqlalchemy import select, or_
+from sqlalchemy.orm.attributes import flag_dirty
 
 
 def create_user(
@@ -157,6 +159,23 @@ def create_service(
             dao_add_user_to_service(service, user)
 
     return service
+
+@transactional
+@version_class(Service)
+def version_service(
+    service,
+):
+    # version_class requires something in the session to flush, so flag service as dirty
+    flag_dirty(service)
+
+
+@transactional
+@version_class(ApiKey)
+def version_api_key(
+    api_key,
+):
+    # version_class requires something in the session to flush, so flag service as dirty
+    flag_dirty(api_key)
 
 
 def create_service_with_inbound_number(
