@@ -194,9 +194,7 @@ def send_notification_to_queue(
         raise
 
     current_app.logger.debug(
-        "{} {} sent to the {} queue for delivery".format(notification.notification_type,
-                                                         notification.id,
-                                                         queue))
+        "%s %s sent to the %s queue for delivery", notification.notification_type, notification.id, queue)
 
 
 def _get_delivery_task(notification, research_mode=False, queue=None, sms_sender_id=None):

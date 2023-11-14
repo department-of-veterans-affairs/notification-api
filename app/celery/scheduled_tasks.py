@@ -8,6 +8,7 @@ from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm.exc import NoResultFound
 
 from app import notify_celery, zendesk_client
 from app.celery.tasks import process_job
@@ -23,7 +24,10 @@ from app.dao.notifications_dao import (
     dao_precompiled_letters_still_pending_virus_check,
     dao_old_letters_with_created_status,
 )
+from app.dao.services_dao import dao_fetch_service_by_id
+from app.dao.templates_dao import dao_get_template_by_id
 from app.dao.users_dao import delete_codes_older_created_more_than_a_day_ago
+from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.models import (
     Job,
     JOB_STATUS_IN_PROGRESS,
@@ -216,7 +220,7 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int):
         )
 
         last_key = more_results.get('LastEvaluatedKey')
-        results['Items'].append(more_results['Items'])
+        results['Items'].extend(more_results['Items'])
 
     return results.get('Items')
 
@@ -240,30 +244,49 @@ def send_scheduled_comp_and_pen_sms():
         current_app.logger.info('No Comp and Pen messages to send via scheduled task. Exiting task...')
         return
 
-    # get service, template, personalisation
+    # get service, template (sms_sender ?)
     # TODO - need env variables for service id and template id
+    service_id = ''
+    template_id = ''
 
-    # call generic method created to send messages
-    send_notification_bypass_route(
-        service_id='',
-        template_id='',
-        notification_type='',
-        recipient='',
-        personalisation=[],
-        sms_sender_id=None,
-        recipient_id_type=IdentifierType.VA_PROFILE_ID.value,
-        # api_key_type=KEY_TYPE_NORMAL
-    )
+    try:
+        service = dao_fetch_service_by_id(service_id)
+        template = dao_get_template_by_id(template_id)
+    except NoResultFound as e:
+        current_app.logger.error(
+            'Error in task send_scheduled_comp_and_pen_sms attempting to lookup service or template - %s', e)
+    except Exception as e:
+        current_app.logger.critical(
+            'Error in task send_scheduled_comp_and_pen_sms attempting to lookup service or template - %s', e)
 
-    # update dynamo entries
-    for item in results.get('Items'):
-        table.update_item(
-            key={
-                'participant_id': {'N': item['participant_id']},
-                'vaprofile_id': {'N': item['vaprofile_id']}
-            },
-            UpdateExpression='SET processed = :val',
-            ExpressionAttributeValues={
-                ':val': {'BOOL': True}
-            }
-        )
+    if is_feature_enabled(FeatureFlag.COMP_AND_PEN_MESSAGES_ENABLED):
+        # send messages and update entries in dynamodb table
+        for item in results.get('Items'):
+            # call generic method to send messages
+            send_notification_bypass_route(
+                service=service,
+                template=template,
+                notification_type=SMS_TYPE,
+                # recipient=item.get('vaprofile_id'),  # can this be vaprofile_id? maps to notification.to field
+                personalisation={'paymentAmount': item.get('paymentAmount')},
+                sms_sender_id=None,
+                recipient_id={
+                    'id_type': IdentifierType.VA_PROFILE_ID.value,
+                    'id_value': item.get('vaprofile_id')
+                },
+                # api_key_type=KEY_TYPE_NORMAL
+            )
+
+            # update dynamodb entries
+            table.update_item(
+                key={
+                    'participant_id': item['participant_id'],
+                    'vaprofile_id': item['vaprofile_id']
+                },
+                UpdateExpression='SET processed = :val',
+                ExpressionAttributeValues={
+                    ':val': True
+                }
+            )
+    else:
+        current_app.logger.debug('Attempt to run send_scheduled_comp_and_pen_sms task, but feature flag disabled.')

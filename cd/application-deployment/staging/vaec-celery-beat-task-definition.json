@@ -183,6 +183,10 @@
         {
           "name": "PLATFORM_STATS_ENABLED",
           "value": "False"
+        },
+        {
+          "name": "COMP_AND_PEN_MESSAGES_ENABLED",
+          "value": "False"
         }
       ],
       "secrets": [
