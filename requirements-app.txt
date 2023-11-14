@@ -3,6 +3,8 @@ alembic_utils >= 0.8.1
 
 Authlib >= 1.2.1
 boto3 >= 1.28.32
+# 7 Nov 2023: Ignoring security vulnerability 61601 in Makefile. This is for urllib3, fixed in >=1.26.17
+# update restricted by botocore version
 botocore >= 1.31.32
 cachelib >= 0.10.2
 celery[sqs] >= 5.3.1

@@ -215,24 +215,26 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int):
     # TODO test: can be removed after testing
     current_app.logger.info('results from dynamodb: %s', results)
 
-    # get the rest of the messages if the result was > 1MB (dynamodb limit, # of rows not considered)
-    last_key = results.get('LastEvaluatedKey')
+    items: list = results.get('Items')
 
-    # TODO test: can be removed after testing
-    current_app.logger.info('getting more results from dynamodb LastEvaluatedKey: %s', last_key)
+    while 'LastEvaluatedKey' in results:
+        # TODO test: can be removed after testing
+        current_app.logger.info(
+            'getting more results from dynamodb LastEvaluatedKey: %s', results.get('LastEvaluatedKey'))
 
-    while last_key is not None:
-        more_results = table.scan(
+        results = table.scan(
             FilterExpression=boto3.dynamodb.conditions.Attr('processed').eq(False),
-            Limit=message_limit - len(results.get('Items')),
-            ExclusiveStartKey=last_key
+            Limit=message_limit - len(items),
+            ExclusiveStartKey=results['LastEvaluatedKey']
         )
 
         # TODO test: can be removed after testing
-        current_app.logger.info('returned more results from dynamodb more_results: %s', more_results)
+        current_app.logger.info('returned more results from dynamodb more_results: %s', results)
 
-        last_key = more_results.get('LastEvaluatedKey')
-        results['Items'].extend(more_results['Items'])
+        items.extend(results['Items'])
+
+        # TODO test: can be removed after testing
+        current_app.logger.info('current length of items from dynamodb len: %s', len(items))
 
     # TODO test: can be removed after testing
     current_app.logger.info('returning all items from dynamodb: %s', results.get('Items'))
@@ -247,7 +249,7 @@ def send_scheduled_comp_and_pen_sms():
         current_app.logger.info('Attempted to run send_scheduled_comp_and_pen_sms task, but feature flag disabled.')
         return
 
-    messages_per_min = 5  # TODO test: update to 3000 for final commit
+    messages_per_min = 7  # TODO test: update to 3000 for final commit
     dynamodb_table_name = os.getenv('COMP_AND_PEN_DYANMODB_NAME')
     service_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
     template_id = os.getenv('COMP_AND_PEN_TEMPLATE_ID')
