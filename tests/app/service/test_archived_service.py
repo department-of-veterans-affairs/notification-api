@@ -50,6 +50,7 @@ def archived_service(client, sample_service, sample_template, sample_api_key):
 
     auth_header = create_authorization_header()
     response = client.post('/service/{}/archive'.format(service.id), headers=[auth_header])
+
     assert response.status_code == 204
     assert response.data == b''
     return service

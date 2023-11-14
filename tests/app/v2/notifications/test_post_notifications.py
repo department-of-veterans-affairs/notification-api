@@ -1,4 +1,5 @@
 import base64
+from random import randint
 import pytest
 from sqlalchemy import delete, select
 import uuid
@@ -102,7 +103,8 @@ def test_post_sms_notification_returns_201(client, notify_db_session, sample_tem
     resp_json = response.get_json()
     assert validate(resp_json, post_sms_response) == resp_json
 
-    notifications = notify_db_session.session.scalars(select(Notification).where(Notification.service_id == template.service_id)).all()
+    notifications = notify_db_session.session.scalars(select(Notification)
+                                                      .where(Notification.service_id == template.service_id)).all()
     assert len(notifications) == 1
     assert notifications[0].status == NOTIFICATION_CREATED
     assert notifications[0].postage is None
@@ -124,6 +126,8 @@ def test_post_sms_notification_returns_201(client, notify_db_session, sample_tem
     notify_db_session.session.delete(notifications[0])
     notify_db_session.session.commit()
 
+
+# TODO: Finish this
 def test_post_sms_notification_uses_inbound_number_as_sender(client, mocker,
                                                              notify_db_session,
                                                              sample_template,
@@ -131,7 +135,8 @@ def test_post_sms_notification_uses_inbound_number_as_sender(client, mocker,
     ):
     # sample_service_with_inbound_number()
     # service = sample_service()
-    service = sample_service_with_inbound_number(inbound_number='1')
+    inbound_num = str(randint(1, 999999999))
+    service = sample_service_with_inbound_number(inbound_number=inbound_num)
     # return
     template = sample_template(service=service, content="Hello (( Name))\nYour thing is due soon")
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
@@ -149,8 +154,8 @@ def test_post_sms_notification_uses_inbound_number_as_sender(client, mocker,
     assert len(notifications) == 1
     notification_id = notifications[0].id
     assert resp_json['id'] == str(notification_id)
-    assert resp_json['content']['from_number'] == '1'
-    assert notifications[0].reply_to_text == '1'
+    assert resp_json['content']['from_number'] == inbound_num
+    assert notifications[0].reply_to_text == inbound_num
 
     mocked_chain.assert_called_once()
     args, _ = mocked_chain.call_args
