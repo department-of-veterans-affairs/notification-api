@@ -299,20 +299,19 @@ def send_scheduled_comp_and_pen_sms():
         )
 
         # call generic method to send messages
-        # TODO commented out to test update
-        # send_notification_bypass_route(
-        #     service_id=service_id,
-        #     template=template,
-        #     notification_type=SMS_TYPE,
-        #     # recipient=item.get('vaprofile_id'),  # can this be vaprofile_id? maps to notification.to field
-        #     personalisation={'paymentAmount': item.get('paymentAmount')},
-        #     sms_sender_id=None,
-        #     recipient_id={
-        #         'id_type': IdentifierType.VA_PROFILE_ID.value,
-        #         'id_value': item.get('vaprofile_id')
-        #     },
-        #     # api_key_type=KEY_TYPE_NORMAL
-        # )
+        send_notification_bypass_route(
+            service_id=service_id,
+            template=template,
+            notification_type=SMS_TYPE,
+            # recipient=item.get('vaprofile_id'),  # can this be vaprofile_id? maps to notification.to field
+            personalisation={'paymentAmount': item.get('paymentAmount')},
+            sms_sender_id=None,
+            recipient_id={
+                'id_type': IdentifierType.VA_PROFILE_ID.value,
+                'id_value': item.get('vaprofile_id')
+            },
+            # api_key_type=KEY_TYPE_NORMAL
+        )
 
         # TODO test: can be removed after testing
         current_app.logger.info(
@@ -332,12 +331,12 @@ def send_scheduled_comp_and_pen_sms():
                     ':val': True
                 }
             )
+
+            # TODO test: can be removed after testing
+            current_app.logger.info('updated_item from dynamodb ("processed" shouldb be "True"): %s', updated_item)
         except Exception as e:
             current_app.logger.critical(
                 'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
                 'exception_type: %s exception_message: %s',
                 item.get('participant_id'), item.get('payment_id'), type(e), e
             )
-
-        # TODO test: can be removed after testing
-        current_app.logger.info('updated_item from dynamodb ("processed" shouldb be "True"): %s', updated_item)
