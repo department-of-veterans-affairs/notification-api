@@ -2,6 +2,7 @@ from datetime import (
     datetime,
     timedelta
 )
+import os
 
 import boto3
 from flask import current_app
@@ -24,7 +25,6 @@ from app.dao.notifications_dao import (
     dao_precompiled_letters_still_pending_virus_check,
     dao_old_letters_with_created_status,
 )
-from app.dao.services_dao import dao_fetch_service_by_id
 from app.dao.templates_dao import dao_get_template_by_id
 from app.dao.users_dao import delete_codes_older_created_more_than_a_day_ago
 from app.feature_flags import is_feature_enabled, FeatureFlag
@@ -205,11 +205,6 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int):
     )
     current_app.logger.debug('count of messages initially pulled from dynamodb Count=%s', results.get('Count'))
 
-    # stop if there are no messages
-    if results.get('Items') is None or len(results.get('Items')) < 1:
-        current_app.logger.info('No Comp and Pen messages to send via scheduled task. Exiting task...')
-        return None
-
     # get the rest of the messages if the result was > 1MB (dynamodb limit, # of rows not considered)
     last_key = results.get('LastEvaluatedKey')
     while last_key is not None:
@@ -228,13 +223,19 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int):
 @notify_celery.task(name='send-scheduled-comp-and-pen-sms')
 @statsd(namespace='tasks')
 def send_scheduled_comp_and_pen_sms():
-    messages_per_min = 100
-    # TODO probably need infra to allow access to dynamo?
+    if not is_feature_enabled(FeatureFlag.COMP_AND_PEN_MESSAGES_ENABLED):
+        current_app.logger.debug('Attempted to run send_scheduled_comp_and_pen_sms task, but feature flag disabled.')
+        return
 
-    # connect to dynamodb
+    messages_per_min = 100  # TODO update to 3000 for final commit
+    dynamodb_table_name = os.getenv('COMP_AND_PEN_DYANMODB_NAME')
+    service_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
+    template_id = os.getenv('COMP_AND_PEN_TEMPLATE_ID')
+
+    # connect to dynamodb table
+    # TODO do I need infra to allow access to dynamo?
     dynamodb = boto3.resource('dynamodb')
-    # TODO make env variable for table name
-    table = dynamodb.Table('dev-bip-msg-mpi-profile-participant-cache-table')
+    table = dynamodb.Table(dynamodb_table_name)
 
     # get messages to send
     results = _get_dynamodb_comp_pen_messages(table, messages_per_min)
@@ -244,49 +245,42 @@ def send_scheduled_comp_and_pen_sms():
         current_app.logger.info('No Comp and Pen messages to send via scheduled task. Exiting task...')
         return
 
-    # get service, template (sms_sender ?)
-    # TODO - need env variables for service id and template id
-    service_id = ''
-    template_id = ''
-
     try:
-        service = dao_fetch_service_by_id(service_id)
         template = dao_get_template_by_id(template_id)
     except NoResultFound as e:
         current_app.logger.error(
-            'Error in task send_scheduled_comp_and_pen_sms attempting to lookup service or template - %s', e)
+            'No results found in task send_scheduled_comp_and_pen_sms attempting to lookup template - %s', e)
+        return
     except Exception as e:
         current_app.logger.critical(
-            'Error in task send_scheduled_comp_and_pen_sms attempting to lookup service or template - %s', e)
+            'Error in task send_scheduled_comp_and_pen_sms attempting to lookup template - %s', e)
+        return
 
-    if is_feature_enabled(FeatureFlag.COMP_AND_PEN_MESSAGES_ENABLED):
-        # send messages and update entries in dynamodb table
-        for item in results.get('Items'):
-            # call generic method to send messages
-            send_notification_bypass_route(
-                service=service,
-                template=template,
-                notification_type=SMS_TYPE,
-                # recipient=item.get('vaprofile_id'),  # can this be vaprofile_id? maps to notification.to field
-                personalisation={'paymentAmount': item.get('paymentAmount')},
-                sms_sender_id=None,
-                recipient_id={
-                    'id_type': IdentifierType.VA_PROFILE_ID.value,
-                    'id_value': item.get('vaprofile_id')
-                },
-                # api_key_type=KEY_TYPE_NORMAL
-            )
+    # send messages and update entries in dynamodb table
+    for item in results.get('Items'):
+        # call generic method to send messages
+        send_notification_bypass_route(
+            service_id=service_id,
+            template=template,
+            notification_type=SMS_TYPE,
+            # recipient=item.get('vaprofile_id'),  # can this be vaprofile_id? maps to notification.to field
+            personalisation={'paymentAmount': item.get('paymentAmount')},
+            sms_sender_id=None,
+            recipient_id={
+                'id_type': IdentifierType.VA_PROFILE_ID.value,
+                'id_value': item.get('vaprofile_id')
+            },
+            # api_key_type=KEY_TYPE_NORMAL
+        )
 
-            # update dynamodb entries
-            table.update_item(
-                key={
-                    'participant_id': item['participant_id'],
-                    'vaprofile_id': item['vaprofile_id']
-                },
-                UpdateExpression='SET processed = :val',
-                ExpressionAttributeValues={
-                    ':val': True
-                }
-            )
-    else:
-        current_app.logger.debug('Attempt to run send_scheduled_comp_and_pen_sms task, but feature flag disabled.')
+        # update dynamodb entries
+        table.update_item(
+            key={
+                'participant_id': item['participant_id'],
+                'vaprofile_id': item['vaprofile_id']
+            },
+            UpdateExpression='SET processed = :val',
+            ExpressionAttributeValues={
+                ':val': True
+            }
+        )

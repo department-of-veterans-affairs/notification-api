@@ -2,12 +2,12 @@
 
 from celery import current_app
 from app.config import QueueNames
-from app.models import EMAIL_TYPE, KEY_TYPE_NORMAL, PUSH_TYPE, SMS_TYPE, Service, Template
+from app.models import EMAIL_TYPE, KEY_TYPE_NORMAL, PUSH_TYPE, SMS_TYPE, Template
 from app.notifications.process_notifications import persist_notification, send_notification_to_queue
 
 
 def send_notification_bypass_route(
-        service: Service,
+        service_id: str,
         template: Template,
         notification_type: str,
         recipient: str = None,
@@ -17,11 +17,10 @@ def send_notification_bypass_route(
         api_key_type: str = KEY_TYPE_NORMAL):
 
     notification = persist_notification(
-        template_id=template.template_id,
+        template_id=template.id,
         template_version=template.version,
         recipient=recipient,
-        service=service,
-        service_id=service.service_id,
+        service_id=service_id,
         personalisation=personalisation,
         notification_type=notification_type,
         api_key_id=None,
