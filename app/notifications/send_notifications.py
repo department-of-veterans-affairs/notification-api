@@ -3,7 +3,11 @@
 from celery import current_app
 from app.config import QueueNames
 from app.models import EMAIL_TYPE, KEY_TYPE_NORMAL, PUSH_TYPE, SMS_TYPE, Template
-from app.notifications.process_notifications import persist_notification, send_notification_to_queue
+from app.notifications.process_notifications import (
+    persist_notification,
+    send_notification_to_queue,
+    send_to_queue_for_recipient_info_based_on_recipient_identifier
+)
 
 
 def send_notification_bypass_route(
@@ -43,10 +47,19 @@ def send_notification_bypass_route(
         notification_type, notification.id
     )
 
-    send_notification_to_queue(
-        notification=notification,
-        research_mode=False,
-        queue=q,
-        recipient_id_type=recipient_id.get('id_type') if recipient_id else None,
-        sms_sender_id=sms_sender_id
-    )
+    if recipient is not None:
+        send_to_queue_for_recipient_info_based_on_recipient_identifier(
+            notification=notification,
+            id_type=recipient['id_type'],
+            id_value=recipient['id_value'],
+            communication_item_id=template.communication_item_id,
+            onsite_enabled=False
+        )
+    else:
+        send_notification_to_queue(
+            notification=notification,
+            research_mode=False,
+            queue=q,
+            recipient_id_type=recipient_id.get('id_type') if recipient_id else None,
+            sms_sender_id=sms_sender_id
+        )

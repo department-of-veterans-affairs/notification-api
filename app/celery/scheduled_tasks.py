@@ -199,14 +199,20 @@ def check_templated_letter_state():
 
 
 def _get_dynamodb_comp_pen_messages(table, message_limit: int):
-    results = table.scan(
-        FilterExpression=boto3.dynamodb.conditions.Attr('processed').eq(False),
-        Limit=message_limit
-    )
-    current_app.logger.debug('count of messages initially pulled from dynamodb Count=%s', results.get('Count'))
+    try:
+        results = table.scan(
+            FilterExpression=boto3.dynamodb.conditions.Attr('processed').eq(False),
+            Limit=message_limit
+        )
+    except Exception as e:
+        current_app.logger.error(
+            'Exception trying to scan dynamodb table for send_scheduled_comp_and_pen_sms - %s', e)
+        return None
+
+    current_app.logger.info('count of messages initially pulled from dynamodb Count=%s', results.get('Count'))
 
     # TODO test: can be removed after testing
-    current_app.logger.debug('results from dynamodb: %s', results)
+    current_app.logger.info('results from dynamodb: %s', results)
 
     # get the rest of the messages if the result was > 1MB (dynamodb limit, # of rows not considered)
     last_key = results.get('LastEvaluatedKey')
