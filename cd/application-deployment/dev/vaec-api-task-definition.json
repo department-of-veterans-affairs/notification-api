@@ -228,7 +228,7 @@
         },
         {
           "name": "COMP_AND_PEN_MESSAGES_ENABLED",
-          "value": "TRUE"
+          "value": "True"
         },
         {
           "name": "COMP_AND_PEN_SERVICE_ID",

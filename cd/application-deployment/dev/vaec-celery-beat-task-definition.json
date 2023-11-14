@@ -190,7 +190,7 @@
         },
         {
           "name": "COMP_AND_PEN_MESSAGES_ENABLED",
-          "value": "False"
+          "value": "True"
         },
         {
           "name": "COMP_AND_PEN_SERVICE_ID",
