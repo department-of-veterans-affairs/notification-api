@@ -205,6 +205,9 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int):
     )
     current_app.logger.debug('count of messages initially pulled from dynamodb Count=%s', results.get('Count'))
 
+    # TODO test: can be removed after testing
+    current_app.logger.debug('results from dynamodb: %s', results)
+
     # get the rest of the messages if the result was > 1MB (dynamodb limit, # of rows not considered)
     last_key = results.get('LastEvaluatedKey')
     while last_key is not None:
@@ -227,22 +230,26 @@ def send_scheduled_comp_and_pen_sms():
         current_app.logger.debug('Attempted to run send_scheduled_comp_and_pen_sms task, but feature flag disabled.')
         return
 
-    messages_per_min = 100  # TODO update to 3000 for final commit
+    messages_per_min = 100  # TODO test: update to 3000 for final commit
     dynamodb_table_name = os.getenv('COMP_AND_PEN_DYANMODB_NAME')
     service_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
     template_id = os.getenv('COMP_AND_PEN_TEMPLATE_ID')
 
     # connect to dynamodb table
-    # TODO do I need infra to allow access to dynamo?
+    # TODO test: do I need infra to allow access to dynamo?
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(dynamodb_table_name)
 
     # get messages to send
     results = _get_dynamodb_comp_pen_messages(table, messages_per_min)
 
+    # TODO test: can be removed after testing
+    current_app.logger.debug('items from dynamodb: %s', results)
+
     # stop if there are no messages
     if results is None or len(results.get('Items')) < 1:
-        current_app.logger.info('No Comp and Pen messages to send via scheduled task. Exiting task...')
+        current_app.logger.info(
+            'No Comp and Pen messages to send via send_scheduled_comp_and_pen_sms task. Exiting task...')
         return
 
     try:
@@ -258,6 +265,12 @@ def send_scheduled_comp_and_pen_sms():
 
     # send messages and update entries in dynamodb table
     for item in results.get('Items'):
+        # TODO test: can be removed after testing
+        current_app.logger.debug(
+            'item paymentAmount from dynamodb: %s | item vaprofile_id from dynamodb: %s',
+            item.get('paymentAmount'), item.get('vaprofile_id')
+        )
+
         # call generic method to send messages
         send_notification_bypass_route(
             service_id=service_id,
@@ -274,13 +287,16 @@ def send_scheduled_comp_and_pen_sms():
         )
 
         # update dynamodb entries
-        table.update_item(
+        updated_item = table.update_item(
             key={
-                'participant_id': item['participant_id'],
-                'vaprofile_id': item['vaprofile_id']
+                'participant_id': item.get('participant_id'),
+                'vaprofile_id': item.get('vaprofile_id')
             },
             UpdateExpression='SET processed = :val',
             ExpressionAttributeValues={
                 ':val': True
             }
         )
+
+        # TODO test: can be removed after testing
+        current_app.logger.debug('updated_item from dynamodb ("processed" shouldb be "True"): %s', updated_item)
