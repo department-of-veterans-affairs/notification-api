@@ -207,35 +207,17 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int) -> list:
         Limit=message_limit
     )
 
-    current_app.logger.info('count of messages initially pulled from dynamodb Count=%s vs ScannedCount=%s',
-                            results.get('Count'), results.get('ScannedCount'))
-
-    # TODO test: can be removed after testing
-    current_app.logger.info('results from dynamodb: %s', results)
-
     items: list = results.get('Items')
 
+    # keep getting items from table until we have the number we want to send, or run out of items
     while 'LastEvaluatedKey' in results and len(items) < message_limit:
-        # TODO test: can be removed after testing
-        current_app.logger.info(
-            'getting more results from dynamodb LastEvaluatedKey: %s', results.get('LastEvaluatedKey'))
-
         results = table.scan(
             FilterExpression=boto3.dynamodb.conditions.Attr('is_processed').eq(False),
             Limit=message_limit,
             ExclusiveStartKey=results['LastEvaluatedKey']
         )
 
-        # TODO test: can be removed after testing
-        current_app.logger.info('returned more results from dynamodb more_results: %s', results)
-
         items.extend(results['Items'])
-
-        # TODO test: can be removed after testing
-        current_app.logger.info('current length of items from dynamodb len: %s', len(items))
-
-    # TODO test: can be removed after testing
-    current_app.logger.info('returning all items from dynamodb len: %s, items: %s', len(items), items)
 
     return items[:message_limit]
 
@@ -244,23 +226,20 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int) -> list:
 @statsd(namespace='tasks')
 def send_scheduled_comp_and_pen_sms():
     if not is_feature_enabled(FeatureFlag.COMP_AND_PEN_MESSAGES_ENABLED):
-        current_app.logger.info('Attempted to run send_scheduled_comp_and_pen_sms task, but feature flag disabled.')
+        current_app.logger.warning('Attempted to run send_scheduled_comp_and_pen_sms task, but feature flag disabled.')
         return
 
-    messages_per_min = 100  # TODO test: update to 3000 for final commit
+    # this is the agreed upon message per minute limit
+    messages_per_min = 3000
     dynamodb_table_name = os.getenv('COMP_AND_PEN_DYANMODB_NAME')
     service_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
     template_id = os.getenv('COMP_AND_PEN_TEMPLATE_ID')
 
-    # TODO test: can be removed after testing
-    current_app.logger.info('send_scheduled_comp_and_pen_sms attempting connection to dynamodb...')
+    current_app.logger.debug('send_scheduled_comp_and_pen_sms connecting to dynamodb')
 
     # connect to dynamodb table
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(dynamodb_table_name)
-
-    # TODO test: can be removed after testing
-    current_app.logger.info('send_scheduled_comp_and_pen_sms connected to dynamodb')
 
     # get messages to send
     try:
@@ -272,8 +251,7 @@ def send_scheduled_comp_and_pen_sms():
         )
         return
 
-    # TODO test: can be removed after testing
-    current_app.logger.info('send_scheduled_comp_and_pen_sms items from dynamodb: %s', comp_and_pen_messages)
+    current_app.logger.debug('send_scheduled_comp_and_pen_sms list of items from dynamodb: %s', comp_and_pen_messages)
 
     # stop if there are no messages
     if comp_and_pen_messages is None or len(comp_and_pen_messages) < 1:
@@ -286,22 +264,20 @@ def send_scheduled_comp_and_pen_sms():
         template: Template = dao_get_template_by_id(template_id)
     except NoResultFound as e:
         current_app.logger.error(
-            'No results found in task send_scheduled_comp_and_pen_sms attempting to lookup service or template - '
-            'exception: %s', e)
+            'No results found in task send_scheduled_comp_and_pen_sms attempting to lookup service or template. Exiting'
+            ' - exception: %s', e)
         return
     except Exception as e:
         current_app.logger.critical(
-            'Error in task send_scheduled_comp_and_pen_sms attempting to lookup service or template - '
+            'Error in task send_scheduled_comp_and_pen_sms attempting to lookup service or template Exiting - '
             'exception: %s', e)
         return
 
     # send messages and update entries in dynamodb table
     for item in comp_and_pen_messages:
-        # TODO test: can be removed after testing
         current_app.logger.info(
-            'sending - item from dynamodb - vaprofile_id: %s | participant_id: %s | paymentAmount: %s - check_type: %s',
-            item.get('vaprofile_id'), item.get('participant_id'), item.get('paymentAmount'),
-            type(item.get('paymentAmount'))
+            'sending - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
+            item.get('vaprofile_id'), item.get('participant_id'), item.get('payment_id')
         )
 
         try:
@@ -310,29 +286,25 @@ def send_scheduled_comp_and_pen_sms():
                 service=service,
                 template=template,
                 notification_type=SMS_TYPE,
-                # recipient=item.get('vaprofile_id'),  # this should be email / phone#, maps to notification.to field
                 personalisation={'paymentAmount': int(item.get('paymentAmount'))},
                 sms_sender_id=service.get_default_sms_sender_id(),
                 recipient_item={
                     'id_type': IdentifierType.VA_PROFILE_ID.value,
                     'id_value': str(item.get('vaprofile_id'))
                 },
-                # api_key_type=KEY_TYPE_NORMAL
             )
         except Exception as e:
             current_app.logger.critical(
-                'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | '
-                'exception_type: %s - exception: %s', type(e), e
+                'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | item from '
+                'dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s | exception_type: %s - '
+                'exception: %s', item.get('vaprofile_id'), item.get('participant_id'), item.get('payment_id'), type(e),
+                e
             )
 
-            # TODO what do we do when we fail to send a notification?
-            # add a field to the table? problem_encountered
-            continue
-
-        # TODO test: can be removed after testing
         current_app.logger.info(
-            'sent to queue, updating - item from dynamodb - vaprofile_id: %s | participant_id: %s | paymentAmount: %s',
-            item.get('vaprofile_id'), item.get('participant_id'), item.get('paymentAmount')
+            'sent to queue, updating - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s '
+            '| paymentAmount: %s', item.get('vaprofile_id'), item.get('participant_id'), item.get('payment_id'),
+            item.get('paymentAmount')
         )
 
         # update dynamodb entries
@@ -340,15 +312,15 @@ def send_scheduled_comp_and_pen_sms():
             updated_item = table.update_item(
                 Key={
                     'participant_id': item.get('participant_id'),
-                    # 'payment_id': item.get('payment_id')
+                    'payment_id': item.get('payment_id')
                 },
                 UpdateExpression='SET is_processed = :val',
                 ExpressionAttributeValues={
                     ':val': True
-                }
+                },
+                ReturnValues='ALL_NEW'
             )
 
-            # TODO test: can be removed after testing
             current_app.logger.info('updated_item from dynamodb ("is_processed" shouldb be "True"): %s', updated_item)
         except Exception as e:
             current_app.logger.critical(

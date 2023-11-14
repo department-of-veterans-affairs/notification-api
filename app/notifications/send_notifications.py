@@ -1,6 +1,6 @@
 from flask import current_app
 from app.config import QueueNames
-from app.models import EMAIL_TYPE, KEY_TYPE_NORMAL, PUSH_TYPE, SMS_TYPE, Service, Template
+from app.models import EMAIL_TYPE, KEY_TYPE_NORMAL, SMS_TYPE, Service, Template
 from app.notifications.process_notifications import (
     persist_notification,
     send_notification_to_queue,
@@ -16,10 +16,19 @@ def send_notification_bypass_route(
         personalisation: dict = None,
         sms_sender_id: str = None,
         recipient_item: dict = None,
-        api_key_type: str = KEY_TYPE_NORMAL):
+        api_key_type: str = KEY_TYPE_NORMAL
+):
 
-    if sms_sender_id is None and notification_type == SMS_TYPE:
-        # Use the service's default sms_sender.
+    if recipient is None and recipient_item is None:
+        current_app.logger.critical(
+            'Programming error attempting to use send_notification_bypass_route, both recipient and recipient_item are '
+            'None. Please check the code calling this function to ensure one of these fields is populated properly.'
+        )
+
+        return
+
+    # Use the service's default sms_sender if applicable
+    if notification_type == SMS_TYPE and sms_sender_id is None:
         sms_sender_id = service.get_default_sms_sender_id()
 
     notification = persist_notification(
@@ -35,15 +44,6 @@ def send_notification_bypass_route(
         sms_sender_id=sms_sender_id,
     )
 
-    if notification_type == SMS_TYPE:
-        q = QueueNames.SEND_SMS
-    elif notification_type == EMAIL_TYPE:
-        q = QueueNames.SEND_EMAIL
-    elif notification_type == PUSH_TYPE:
-        q = QueueNames.NOTIFY  # there's no push queue?
-    else:
-        q = QueueNames.NOTIFY
-
     if recipient_item is not None:
         current_app.logger.info(
             'sending %s notification with send_notification_bypass_route via '
@@ -58,7 +58,15 @@ def send_notification_bypass_route(
             communication_item_id=template.communication_item_id,
             onsite_enabled=False
         )
+
     else:
+        if notification_type == SMS_TYPE:
+            q = QueueNames.SEND_SMS
+        elif notification_type == EMAIL_TYPE:
+            q = QueueNames.SEND_EMAIL
+        else:
+            q = QueueNames.NOTIFY
+
         current_app.logger.info(
             'sending %s notification with send_notification_bypass_route via send_notification_to_queue, '
             'notification id %s', notification_type, notification.id
