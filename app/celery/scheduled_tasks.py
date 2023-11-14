@@ -25,6 +25,7 @@ from app.dao.notifications_dao import (
     dao_precompiled_letters_still_pending_virus_check,
     dao_old_letters_with_created_status,
 )
+from app.dao.services_dao import dao_fetch_service_by_id
 from app.dao.templates_dao import dao_get_template_by_id
 from app.dao.users_dao import delete_codes_older_created_more_than_a_day_ago
 from app.feature_flags import is_feature_enabled, FeatureFlag
@@ -34,6 +35,8 @@ from app.models import (
     JOB_STATUS_ERROR,
     SMS_TYPE,
     EMAIL_TYPE,
+    Service,
+    Template,
 )
 from app.notifications.process_notifications import send_notification_to_queue
 from app.notifications.send_notifications import send_notification_bypass_route
@@ -244,7 +247,7 @@ def send_scheduled_comp_and_pen_sms():
         current_app.logger.info('Attempted to run send_scheduled_comp_and_pen_sms task, but feature flag disabled.')
         return
 
-    messages_per_min = 7  # TODO test: update to 3000 for final commit
+    messages_per_min = 2  # TODO test: update to 3000 for final commit
     dynamodb_table_name = os.getenv('COMP_AND_PEN_DYANMODB_NAME')
     service_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
     template_id = os.getenv('COMP_AND_PEN_TEMPLATE_ID')
@@ -262,7 +265,7 @@ def send_scheduled_comp_and_pen_sms():
 
     # get messages to send
     try:
-        comp_and_pen_messages = _get_dynamodb_comp_pen_messages(table, messages_per_min)
+        comp_and_pen_messages: list = _get_dynamodb_comp_pen_messages(table, messages_per_min)
     except Exception as e:
         current_app.logger.error(
             'Exception trying to scan dynamodb table for send_scheduled_comp_and_pen_sms exception_type: %s - '
@@ -280,14 +283,17 @@ def send_scheduled_comp_and_pen_sms():
         return
 
     try:
-        template = dao_get_template_by_id(template_id)
+        service: Service = dao_fetch_service_by_id(service_id)
+        template: Template = dao_get_template_by_id(template_id)
     except NoResultFound as e:
         current_app.logger.error(
-            'No results found in task send_scheduled_comp_and_pen_sms attempting to lookup template - %s', e)
+            'No results found in task send_scheduled_comp_and_pen_sms attempting to lookup service or template - '
+            'exception: %s', e)
         return
     except Exception as e:
         current_app.logger.critical(
-            'Error in task send_scheduled_comp_and_pen_sms attempting to lookup template - %s', e)
+            'Error in task send_scheduled_comp_and_pen_sms attempting to lookup service or template - '
+            'exception: %s', e)
         return
 
     # send messages and update entries in dynamodb table
@@ -299,20 +305,26 @@ def send_scheduled_comp_and_pen_sms():
             type(item.get('paymentAmount'))
         )
 
-        # call generic method to send messages
-        send_notification_bypass_route(
-            service_id=service_id,
-            template=template,
-            notification_type=SMS_TYPE,
-            # recipient=item.get('vaprofile_id'),  # can this be vaprofile_id? maps to notification.to field
-            personalisation={'paymentAmount': int(item.get('paymentAmount'))},
-            sms_sender_id=None,
-            recipient_id={
-                'id_type': IdentifierType.VA_PROFILE_ID.value,
-                'id_value': int(item.get('vaprofile_id'))
-            },
-            # api_key_type=KEY_TYPE_NORMAL
-        )
+        try:
+            # call generic method to send messages
+            send_notification_bypass_route(
+                service_id=service_id,
+                template=template,
+                notification_type=SMS_TYPE,
+                # recipient=item.get('vaprofile_id'),  # can this be vaprofile_id? maps to notification.to field
+                personalisation={'paymentAmount': int(item.get('paymentAmount'))},
+                sms_sender_id=service.get_default_sms_sender().id,
+                recipient_id={
+                    'id_type': IdentifierType.VA_PROFILE_ID.value,
+                    'id_value': str(item.get('vaprofile_id'))
+                },
+                # api_key_type=KEY_TYPE_NORMAL
+            )
+        except Exception as e:
+            current_app.logger.critical(
+                'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | '
+                'exception_type: %s - exception: %s', type(e), e
+            )
 
         # TODO test: can be removed after testing
         current_app.logger.info(
