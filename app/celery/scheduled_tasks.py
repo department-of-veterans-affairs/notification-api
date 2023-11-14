@@ -294,8 +294,9 @@ def send_scheduled_comp_and_pen_sms():
     for item in comp_and_pen_messages:
         # TODO test: can be removed after testing
         current_app.logger.info(
-            'sending - item from dynamodb - vaprofile_id: %s | participant_id: %s | paymentAmount: %s',
-            item.get('vaprofile_id'), item.get('participant_id'), item.get('paymentAmount')
+            'sending - item from dynamodb - vaprofile_id: %s | participant_id: %s | paymentAmount: %s - check_type: %s',
+            item.get('vaprofile_id'), item.get('participant_id'), item.get('paymentAmount'),
+            type(item.get('paymentAmount'))
         )
 
         # call generic method to send messages
@@ -304,11 +305,11 @@ def send_scheduled_comp_and_pen_sms():
             template=template,
             notification_type=SMS_TYPE,
             # recipient=item.get('vaprofile_id'),  # can this be vaprofile_id? maps to notification.to field
-            personalisation={'paymentAmount': item.get('paymentAmount')},
+            personalisation={'paymentAmount': int(item.get('paymentAmount'))},
             sms_sender_id=None,
             recipient_id={
                 'id_type': IdentifierType.VA_PROFILE_ID.value,
-                'id_value': item.get('vaprofile_id')
+                'id_value': int(item.get('vaprofile_id'))
             },
             # api_key_type=KEY_TYPE_NORMAL
         )
@@ -323,7 +324,7 @@ def send_scheduled_comp_and_pen_sms():
         try:
             updated_item = table.update_item(
                 key={
-                    'participant_id': item.get('participant_id'),
+                    'participant_id': int(item.get('participant_id')),
                     # 'payment_id': item.get('payment_id')
                 },
                 UpdateExpression='SET processed = :val',
