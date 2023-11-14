@@ -449,7 +449,7 @@ def test_should_be_error_on_update_if_no_permission(
     user = sample_user()
     service = sample_service(user=user, service_permissions=permissions)
     template = sample_template(service=service, template_type=template_type)
-    
+
     data = {
         'content': 'new template content',
         'created_by': str(user.id)
@@ -592,12 +592,9 @@ def test_should_be_able_to_archive_template(client, sample_template):
     assert resp.status_code == 200
     assert Template.query.first().archived
 
+
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_get_precompiled_template_for_service(    
-    client,
-    notify_db_session,
-    sample_service,
-):
+def test_get_precompiled_template_for_service(client, notify_db_session, sample_service):
     service = sample_service()
     assert len(service.templates) == 0
 
@@ -1094,10 +1091,7 @@ def test_update_template_reply_to_set_to_blank(client, notify_db_session, sample
     notify_db_session.session.commit()
 
 
-def test_update_template_with_foreign_service_reply_to(client, sample_service,
-                                                       sample_template,
-    ):
-
+def test_update_template_with_foreign_service_reply_to(client, sample_service, sample_template):
     auth_header = create_authorization_header()
 
     service = sample_service(service_name=f'test service {str(uuid.uuid4())}', email_from='test@example.com',
@@ -1214,11 +1208,7 @@ def test_update_redact_template_400s_if_no_created_by(admin_request, sample_temp
     assert template.template_redacted.updated_at == original_updated_time
 
 
-def test_preview_letter_template_by_id_invalid_file_type(
-        admin_request,
-        sample_service,
-        sample_template,
-    ):
+def test_preview_letter_template_by_id_invalid_file_type(admin_request, sample_service, sample_template):
     service = sample_service(service_permissions=SERVICE_PERMISSION_TYPES)
     template = sample_template(service=service, template_type=LETTER_TYPE, postage="second")
     resp = admin_request.get(
@@ -1386,8 +1376,12 @@ def test_preview_letter_template_by_id_valid_file_type(
 
     # Teardown
     notify_db_session.session.delete(notify_db_session.session.get(Notification, sample_letter_notification.id))
-    template = notify_db_session.session.scalar(select(Template).where(Template.service_id == sample_letter_notification.service_id))
-    for history in notify_db_session.session.scalars(select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)).all():
+    template = notify_db_session.session.scalar(
+        select(Template).where(Template.service_id == sample_letter_notification.service_id)
+    )
+    for history in notify_db_session.session.scalars(
+        select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)
+    ).all():
         notify_db_session.session.delete(history)
     template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
     notify_db_session.session.delete(template_redacted)
@@ -1433,8 +1427,12 @@ def test_preview_letter_template_by_id_template_preview_500(
     # Teardown
     # Can't clear template stuff the POST made until we delete the notification (even though the fixture cleans it)
     notify_db_session.session.delete(notify_db_session.session.get(Notification, sample_letter_notification.id))
-    for template in notify_db_session.session.scalars(select(Template).where(Template.service_id == sample_letter_notification.service_id)).all():
-        for history in notify_db_session.session.scalars(select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)).all():
+    for template in notify_db_session.session.scalars(
+        select(Template).where(Template.service_id == sample_letter_notification.service_id)
+    ).all():
+        for history in notify_db_session.session.scalars(
+            select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)
+        ).all():
             notify_db_session.session.delete(history)
         template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
         notify_db_session.session.delete(template_redacted)
@@ -1869,7 +1867,9 @@ def test_should_create_template_without_created_by_using_current_user_id(
     assert sorted(json_resp['data']) == sorted(template_schema.dump(template).data)
 
     # Teardown
-    for history in notify_db_session.session.scalars(select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)).all():
+    for history in notify_db_session.session.scalars(
+        select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)
+    ).all():
         notify_db_session.session.delete(history)
     template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
     notify_db_session.session.delete(template_redacted)

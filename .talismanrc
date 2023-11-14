@@ -314,7 +314,7 @@ fileignoreconfig:
     - filename: app/user/rest.py
       checksum: d04d6378dd6ce8b0046d6dc2c106ca87cf93ee555e03821e7970570c4b132450
     - filename: tests/app/service/test_api_key_endpoints.py
-      checksum: 83edee72f31700edf057b72f754a468b6e16b0003ba855aa0e0af3f9e0d1ef9b
+      checksum: e9edd26a2909f06666fa12b9aaaecc5ad003684f61816052cea26ed7e20ceb79
     - filename: certs/DigiCert-Global-Root-G2.cer
       checksum: ae4a406af9f5ccd0c8b7d2439076327fb131760d29043f8488a22f6eff26a27e
     - filename: certs/DigiCert-Global-G2-TLS-RSA-SHA256-2020-CA1.cer
@@ -336,6 +336,6 @@ fileignoreconfig:
     - filename: tests/app/service/test_archived_service.py
       checksum: 0c3270d414e44aae0b3ffa0907899cfed01ef6fe646aa86be6aa373db4211c9a
     - filename: tests/app/service/test_rest.py
-      checksum: ce2b92327833c2fca05636a71bc6397fa08370917fa1c3d049dba25f717379d8
+      checksum: 89154b93067ebee63b9022ee67a823ab9ea01697f3f3d03df9ae38af992c249b
     - filename: tests/app/user/test_rest.py
       checksum: 72f4b61d663cea8a2881675ac250bf1e4c8545ba5fca704473533c1a0f99665b

@@ -69,7 +69,9 @@ def test_revoke_should_expire_api_key_for_service(notify_api, notify_db_session,
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             api_key = sample_api_key()
-            api_keys = notify_db_session.session.scalars(select(ApiKey).where(ApiKey.service_id == api_key.service_id)).all()
+            api_keys = notify_db_session.session.scalars(
+                select(ApiKey).where(ApiKey.service_id == api_key.service_id)
+            ).all()
 
             assert len(api_keys) == 1
             auth_header = create_authorization_header()

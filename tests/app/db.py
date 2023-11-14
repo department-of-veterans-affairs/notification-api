@@ -160,6 +160,7 @@ def create_service(
 
     return service
 
+
 @transactional
 @version_class(Service)
 def version_service(

@@ -94,10 +94,10 @@ from tests.app.db import (
 from tests.app.factories import (
     service_whitelist
 )
-from uuid import uuid4
 
 # Tests only run against email/sms. API also considers letters
 TEMPLATE_TYPES = [SMS_TYPE, EMAIL_TYPE]
+
 
 @pytest.yield_fixture
 def rmock():
@@ -148,7 +148,6 @@ def set_user_as_admin(notify_db_session):
     return _wrapper
 
 
-
 @pytest.fixture
 def sample_user(notify_db_session, set_user_as_admin):
     created_user_ids = []
@@ -167,7 +166,9 @@ def sample_user(notify_db_session, set_user_as_admin):
     for user_id in created_user_ids:
         user = notify_db_session.session.get(User, user_id)
         # Clear user_folder_permissions
-        notify_db_session.session.execute(delete(user_folder_permissions).where(user_folder_permissions.c.user_id == user.id))
+        notify_db_session.session.execute(
+            delete(user_folder_permissions).where(user_folder_permissions.c.user_id == user.id)
+        )
 
         # Clear permissions
         for user_perm in notify_db_session.session.scalars(select(Permission)
@@ -446,7 +447,9 @@ def sample_notification_model_with_organization(
 
 
 @pytest.fixture
-def sample_service(notify_db_session, sample_user, sample_permissions, sample_service_permissions, sample_sms_sender_v2):
+def sample_service(
+    notify_db_session, sample_user, sample_permissions, sample_service_permissions, sample_sms_sender_v2
+):
     created_service_ids: list = []
 
     def _sample_service(*args, **kwargs):
@@ -456,7 +459,7 @@ def sample_service(notify_db_session, sample_user, sample_permissions, sample_se
             service = notify_db_session.session.scalar(select(Service).where(Service.name == kwargs['service_name']))
             if service is not None:
                 return service
-            
+
         # We do not want create_service to create users because it does not clean them up
         if len(args) == 0 and 'user' not in kwargs:
             kwargs['user'] = sample_user(email=f'sample_service_{uuid4()}@va.gov')
@@ -508,6 +511,7 @@ def sample_service_helper(
 
     return Service(**kwargs)
 
+
 def service_cleanup(service_ids: list, session: scoped_session) -> None:
     """
     Cleans up a list of services by deleting all dependencies then clearing the services.
@@ -528,11 +532,15 @@ def service_cleanup(service_ids: list, session: scoped_session) -> None:
         service.sms_provider_id = None
 
         # Clear service_letter_contacts
-        for letter_contact in session.scalars(select(ServiceLetterContact).where(ServiceLetterContact.service_id == service_id)).all():
+        for letter_contact in session.scalars(
+            select(ServiceLetterContact).where(ServiceLetterContact.service_id == service_id)
+        ).all():
             session.delete(letter_contact)
 
         # Clear template_folder
-        for template_folder in session.scalars(select(TemplateFolder).where(TemplateFolder.service_id == service_id)).all():
+        for template_folder in session.scalars(
+            select(TemplateFolder).where(TemplateFolder.service_id == service_id)
+        ).all():
             session.delete(template_folder)
 
         # Clear user_to_service
@@ -544,7 +552,9 @@ def service_cleanup(service_ids: list, session: scoped_session) -> None:
 
         # Clear all permissions
         # session.execute(delete(ServicePermission).where(ServicePermission.service_id == service_id))
-        for service_perm in session.scalars(select(ServicePermission).where(ServicePermission.service_id == service_id)).all():
+        for service_perm in session.scalars(
+            select(ServicePermission).where(ServicePermission.service_id == service_id)
+        ).all():
             if not inspect(service_perm).deleted:
                 session.delete(service_perm)
 
@@ -561,12 +571,18 @@ def service_cleanup(service_ids: list, session: scoped_session) -> None:
         # We do not have a all history models. This allows us to have a table for deletions
         # Can't be declared until the app context is declared
         ServicesHistory = Table('services_history', Service.get_history_model().metadata, autoload_with=db.engine)
-        ServiceCallbackHistory = Table('service_callback_history', ServiceCallback.get_history_model().metadata, autoload_with=db.engine)
+        ServiceCallbackHistory = Table(
+            'service_callback_history',
+            ServiceCallback.get_history_model().metadata,
+            autoload_with=db.engine
+        )
 
         session.execute(delete(ServicesHistory).where(ServicesHistory.c.id == service_id))
         session.execute(delete(ServiceCallbackHistory).where(ServiceCallbackHistory.c.service_id == service_id))
 
-        for service_callback in session.scalars(select(ServiceCallback).where(ServiceCallback.service_id == service_id)).all():
+        for service_callback in session.scalars(
+            select(ServiceCallback).where(ServiceCallback.service_id == service_id)
+        ).all():
             session.delete(service_callback)
 
         for user_to_service in session.scalars(select(ServiceUser).where(ServiceUser.service_id == service_id)).all():
@@ -590,7 +606,7 @@ def sample_service_permissions(notify_db_session):
         if len(permissions) > 0:
             notify_db_session.session.commit()
         return service.permissions
-    
+
     yield _wrapper
 
     # Teardown
@@ -614,7 +630,7 @@ def sample_permissions(notify_db_session):
             perm_ids.append(permission.id)
             notify_db_session.session.add(permission)
         notify_db_session.session.commit()
-    
+
     yield _wrapper
 
     # Teardown
@@ -698,11 +714,8 @@ def sample_template_helper(
     return data
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def sample_template(notify_db_session, sample_service, sample_user):
-    """
-    Use this function-scoped SMS template for tests that don't need to modify the template.
-    """
     template_ids = []
 
     def _wrapper(*args, **kwargs):
@@ -714,7 +727,7 @@ def sample_template(notify_db_session, sample_service, sample_user):
         # Using fixtures as defaults creates those objects! Do not make a fixture the default param
         kwargs['user'] = kwargs.get('user') or sample_user()
         kwargs['service'] = kwargs.get('service') or sample_service()
-        
+
         if 'subject' in kwargs:
             kwargs['subject_line'] = kwargs.pop('subject')
 
@@ -878,10 +891,10 @@ def sample_email_template_history(notify_db, sample_service, sample_user, worker
         notify_db.session.commit()
 
 
-@pytest.fixture(scope='function')
-def sample_template_without_sms_permission(notify_db_session):
+@pytest.fixture
+def sample_template_without_sms_permission(notify_db_session, sample_template):
     service = create_service(service_permissions=[EMAIL_TYPE], check_if_service_exists=True)
-    template = create_template(service, template_type=SMS_TYPE)
+    template = sample_template(service, template_type=SMS_TYPE)
     yield template
 
     # Teardown
@@ -893,24 +906,24 @@ def sample_template_without_sms_permission(notify_db_session):
     notify_db_session.session.commit()
 
 
-@pytest.fixture(scope='function')
-def sample_template_with_placeholders(sample_service):
-    new_template = create_template(sample_service, content="Hello (( Name))\nYour thing is due soon")
+@pytest.fixture
+def sample_template_with_placeholders(sample_template):
+    new_template = sample_template(content="Hello (( Name))\nYour thing is due soon")
     assert new_template.template_type == SMS_TYPE, "This is the default."
     return new_template
 
 
-@pytest.fixture(scope='function')
-def sample_sms_template_with_html(sample_service):
+@pytest.fixture
+def sample_sms_template_with_html(sample_service, sample_template):
     # deliberate space and title case in placeholder
     sample_service.prefix_sms = True
-    return create_template(sample_service, content="Hello (( Name))\nHere is <em>some HTML</em> & entities")
+    return sample_template(sample_service, content="Hello (( Name))\nHere is <em>some HTML</em> & entities")
 
 
-@pytest.fixture(scope='function')
-def sample_template_without_email_permission(notify_db_session):
+@pytest.fixture
+def sample_template_without_email_permission(notify_db_session, sample_template):
     service = create_service(service_permissions=[SMS_TYPE], check_if_service_exists=True)
-    template = create_template(service, template_type=EMAIL_TYPE)
+    template = sample_template(service, template_type=EMAIL_TYPE)
     yield template
 
     # Teardown
@@ -923,30 +936,28 @@ def sample_template_without_email_permission(notify_db_session):
 
 
 @pytest.fixture
-def sample_letter_template(sample_service_full_permissions, postage="second"):
-    return create_template(sample_service_full_permissions, template_type=LETTER_TYPE, postage=postage)
+def sample_letter_template(sample_service_full_permissions, sample_template):
+    return sample_template(sample_service_full_permissions, template_type=LETTER_TYPE, postage="second")
 
 
 @pytest.fixture
-def sample_trial_letter_template(sample_service_full_permissions):
+def sample_trial_letter_template(sample_service_full_permissions, sample_template):
     sample_service_full_permissions.restricted = True
-    return create_template(sample_service_full_permissions, template_type=LETTER_TYPE)
+    return sample_template(sample_service_full_permissions, template_type=LETTER_TYPE)
 
 
-@pytest.fixture(scope='function')
-def sample_email_template_with_placeholders(sample_service):
-    return create_template(
-        sample_service,
+@pytest.fixture
+def sample_email_template_with_placeholders(sample_template):
+    return sample_template(
         template_type=EMAIL_TYPE,
         subject="((name))",
         content="Hello ((name))\nThis is an email from GOV.UK",
     )
 
 
-@pytest.fixture(scope='function')
-def sample_email_template_with_reply_to(sample_service):
-    return create_template(
-        sample_service,
+@pytest.fixture
+def sample_email_template_with_reply_to(sample_template):
+    return sample_template(
         template_type=EMAIL_TYPE,
         subject="((name))",
         content="Hello ((name))\nThis is an email from GOV.UK",
@@ -954,20 +965,18 @@ def sample_email_template_with_reply_to(sample_service):
     )
 
 
-@pytest.fixture(scope='function')
-def sample_email_template_with_html(sample_service):
-    return create_template(
-        sample_service,
+@pytest.fixture
+def sample_email_template_with_html(sample_template):
+    return sample_template(
         template_type=EMAIL_TYPE,
         subject="((name)) <em>some HTML</em>",
         content="Hello ((name))\nThis is an email from GOV.UK with <em>some HTML</em>",
     )
 
 
-@pytest.fixture(scope='function')
-def sample_email_template_with_onsite_true(sample_service):
-    return create_template(
-        sample_service,
+@pytest.fixture
+def sample_email_template_with_onsite_true(sample_template):
+    return sample_template(
         template_type=EMAIL_TYPE,
         subject="((name))",
         content="Hello ((name))\nThis is an email from GOV.UK",
@@ -1031,55 +1040,33 @@ def sample_team_api_key(sample_api_key):
     )
 
 
-@pytest.fixture(scope='function')
-def sample_job(
-        notify_db,
-        notify_db_session,
-        service=None,
-        template=None,
-        notification_count=1,
-        created_at=None,
-        job_status='pending',
-        scheduled_for=None,
-        processing_started=None,
-        original_file_name='some.csv',
-        archived=False
-):
-    if service is None:
-        service = create_service(check_if_service_exists=True)
-    if template is None:
-        template = create_template(service=service)
-    data = {
-        'id': uuid4(),
-        'service_id': service.id,
-        'service': service,
-        'template_id': template.id,
-        'template_version': template.version,
-        'original_file_name': original_file_name,
-        'notification_count': notification_count,
-        'created_at': created_at or datetime.utcnow(),
-        'created_by': service.created_by,
-        'job_status': job_status,
-        'scheduled_for': scheduled_for,
-        'processing_started': processing_started,
-        'archived': archived
-    }
-    job = Job(**data)
-    dao_create_job(job)
-    return job
+@pytest.fixture
+def sample_job(notify_db_session):
+    created_jobs = []
+
+    def _sample_job(template, **kwargs):
+        job = create_job(template, **kwargs)
+        created_jobs.append(job)
+        return job
+
+    yield _sample_job
+
+    for job in created_jobs:
+        notify_db_session.session.delete(job)
+    notify_db_session.session.commit()
 
 
-@pytest.fixture(scope='function')
-def sample_job_with_placeholdered_template(
-        sample_job,
-        sample_template_with_placeholders,
-):
-    sample_job.template = sample_template_with_placeholders
-
-    return sample_job
+@pytest.fixture
+def email_job_with_placeholders(sample_job, sample_email_template_with_placeholders):
+    return sample_job(sample_email_template_with_placeholders)
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
+def sample_job_with_placeholdered_template(sample_job, sample_template_with_placeholders):
+    return sample_job(sample_template_with_placeholders)
+
+
+@pytest.fixture
 def sample_scheduled_job(sample_template_with_placeholders):
     return create_job(
         sample_template_with_placeholders,
@@ -1088,7 +1075,7 @@ def sample_scheduled_job(sample_template_with_placeholders):
     )
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def sample_email_job(notify_db,
                      notify_db_session,
                      service=None,
@@ -1460,14 +1447,15 @@ def current_sms_provider():
 def sample_provider(notify_db_session):
     providers = []
 
-    def _wrapper(identifier: str = PINPOINT_PROVIDER,
-                 get: bool = False,
-                 display_name: str = '',
-                 priority: int = 10,
-                 notification_type: Union[EMAIL_TYPE, SMS_TYPE] = SMS_TYPE,
-                 active: bool = True,
-                 supports_international: bool = False,
-        ):
+    def _wrapper(
+        identifier: str = PINPOINT_PROVIDER,
+        get: bool = False,
+        display_name: str = '',
+        priority: int = 10,
+        notification_type: Union[EMAIL_TYPE, SMS_TYPE] = SMS_TYPE,
+        active: bool = True,
+        supports_international: bool = False,
+    ):
         assert identifier in PROVIDERS
         if get:
             stmt = select(ProviderDetails).where(ProviderDetails.identifier == identifier)
@@ -1487,13 +1475,14 @@ def sample_provider(notify_db_session):
             providers.append(provider)
 
         return provider
-    
+
     yield _wrapper
 
     # Teardown
     for provider in providers:
         notify_db_session.session.delete(provider)
     notify_db_session.session.commit()
+
 
 @pytest.fixture(scope='function')
 def ses_provider():
@@ -1852,7 +1841,7 @@ def sample_inbound_sms(notify_db_session, sample_service, sample_inbound_number)
         inbound_sms_list.append(inbound_sms)
 
         return inbound_sms
-    
+
     yield _wrapper
 
     # Teardown
@@ -1865,13 +1854,14 @@ def sample_inbound_sms(notify_db_session, sample_service, sample_inbound_number)
 def sample_inbound_number(notify_db_session):
     inbound_numbers = []
 
-    def _wrapper(number=None,
-                 provider='ses',
-                 active=True,
-                 service_id=None,
-                 url_endpoint=None,
-                 self_managed=False
-        ):
+    def _wrapper(
+        number=None,
+        provider='ses',
+        active=True,
+        service_id=None,
+        url_endpoint=None,
+        self_managed=False
+    ):
         # Default to the correct amount of characters
         number = number or f'1{randint(100000000, 999999999)}'
 
@@ -1889,7 +1879,7 @@ def sample_inbound_number(notify_db_session):
         notify_db_session.session.commit()
         inbound_numbers.append(inbound_number)
         return inbound_number
-    
+
     yield _wrapper
 
     # Teardown
@@ -2090,14 +2080,14 @@ def sample_sms_sender_v2(notify_db_session):
     sms_sender_ids = []
 
     def _wrapper(
-            service_id,
-            sms_sender=current_app.config['FROM_NUMBER'],
-            is_default=True,
-            inbound_number_id=None,
-            rate_limit=None,
-            rate_limit_interval=None,
-            sms_sender_specifics=None,
-        ):
+        service_id,
+        sms_sender=current_app.config['FROM_NUMBER'],
+        is_default=True,
+        inbound_number_id=None,
+        rate_limit=None,
+        rate_limit_interval=None,
+        sms_sender_specifics=None,
+    ):
         data = {
             'service_id': service_id,
             'sms_sender': sms_sender,
@@ -2196,9 +2186,10 @@ def sample_service_email_reply_to(notify_db_session, sample_service):
     service_email_reply_to_ids = []
 
     def _wrapper(service=None, **kwargs):
-        data = {'service': service or sample_service(),
-                'email_address': 'vanotify@va.gov',
-                'is_default': True
+        data = {
+            'service': service or sample_service(),
+            'email_address': 'vanotify@va.gov',
+            'is_default': True
         }
         service_email_reply_to = ServiceEmailReplyTo(**data)
 
@@ -2207,7 +2198,7 @@ def sample_service_email_reply_to(notify_db_session, sample_service):
 
         service_email_reply_to_ids.append(service_email_reply_to.id)
         return service_email_reply_to
-    
+
     yield _wrapper
 
     # Teardown
@@ -2224,30 +2215,33 @@ def sample_service_email_reply_to(notify_db_session, sample_service):
 #                                                                                                                     #
 #######################################################################################################################
 
-# These exist because a few tests are expecting VA Notify-specific resources to exist. Attempting to utilize them with 
-# function-scoped fixtures leads to race conditions
+# These exist because a few tests are expecting VA Notify-specific resources to exist. Attempting to utilize them with
+# function-scoped fixtures leads to race conditions.
 
 @pytest.fixture(scope='session')
-def sample_notify_service_user_session(notify_db,
-                                       sample_service_session,
-                                       sample_service_email_reply_to_session,
-                                       sample_user_session,
-    ):
-
+def sample_notify_service_user_session(
+    notify_db, sample_service_session, sample_service_email_reply_to_session, sample_user_session
+):
     def _wrapper():
         u_id = current_app.config['NOTIFY_USER_ID']
         s_id = current_app.config['NOTIFY_SERVICE_ID']
 
         # We only want these created if they are not already made. This was session-scoped before
-        user = notify_db.session.get(User, u_id) or \
-            sample_user_session(user_id=u_id)
+        user = notify_db.session.get(User, u_id) or sample_user_session(user_id=u_id)
 
-        service = notify_db.session.get(Service, s_id) or \
-            sample_service_session(service_name='Notify Service', email_from='notify.service', user=user, service_id=s_id)
+        service = (
+            notify_db.session.get(Service, s_id) or
+            sample_service_session(
+                service_name='Notify Service',
+                email_from='notify.service',
+                user=user,
+                service_id=s_id
+            )
+        )
 
         sample_service_email_reply_to_session(service)
         return service, user
-    
+
     return _wrapper
     # Teardown not required
 
@@ -2263,7 +2257,8 @@ def sample_service_session(notify_db, sample_user_session):
 
         service: Service = create_service(*args, **kwargs)
 
-        # The session is different (dao) so we can't just use save the session object for deletion. Set id, query it later
+        # The session is different (dao) so we can't just use save the
+        # session object for deletion. Save the ID, and query it later.
         created_service_ids.append(service.id)
         return service
 
@@ -2276,9 +2271,10 @@ def sample_service_email_reply_to_session(notify_db, sample_service_session):
     service_email_reply_to_ids = []
 
     def _wrapper(service=None, **kwargs):
-        data = {'service': service or sample_service_session(),
-                'email_address': 'vanotify@va.gov',
-                'is_default': True
+        data = {
+            'service': service or sample_service_session(),
+            'email_address': 'vanotify@va.gov',
+            'is_default': True
         }
         service_email_reply_to = ServiceEmailReplyTo(**data)
 
@@ -2287,7 +2283,7 @@ def sample_service_email_reply_to_session(notify_db, sample_service_session):
 
         service_email_reply_to_ids.append(service_email_reply_to.id)
         return service_email_reply_to
-    
+
     yield _wrapper
 
     # Teardown
@@ -2318,7 +2314,7 @@ def sample_template_session(notify_db, sample_service_session, sample_user_sessi
         # Using fixtures as defaults creates those objects! Do not make a fixture the default param
         kwargs['user'] = kwargs.get('user') or sample_user_session()
         kwargs['service'] = kwargs.get('service') or sample_service_session()
-        
+
         if 'subject' in kwargs:
             kwargs['subject_line'] = kwargs.pop('subject')
 
@@ -2357,7 +2353,7 @@ def sample_user_session(notify_db):
         # Don't recreate this user unless we specify we want to make a new one
         user = create_user(*args, check_if_user_exists=True, **kwargs)
         from sqlalchemy.dialects.postgresql import insert as dialect_insert
-        pw = user.pop('password')
+        user.pop('password')
 
         insert_stmt = dialect_insert(User).values(**user)
         stmt = insert_stmt.on_conflict_do_nothing(index_elements=['id'])

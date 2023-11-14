@@ -181,7 +181,9 @@ missing_id_type_and_value_json = {}
     (missing_value_json, ["id_value"]),
     (missing_id_type_and_value_json, ["id_type", "id_value"])
 ])
-def test_post_sms_json_schema_missing_recipient_identifier_required_fields(client, recipient_identifier, missing_key_name):
+def test_post_sms_json_schema_missing_recipient_identifier_required_fields(
+    client, recipient_identifier, missing_key_name
+):
     j = {
         "recipient_identifier": recipient_identifier,
         "template_id": str(uuid.uuid4())
@@ -369,7 +371,9 @@ missing_id_type_and_value_json = {}
     (missing_value_json, ["id_value"]),
     (missing_id_type_and_value_json, ["id_type", "id_value"])
 ])
-def test_post_email_json_schema_missing_recipient_identifier_required_fields(client, recipient_identifier, missing_key_name):
+def test_post_email_json_schema_missing_recipient_identifier_required_fields(
+    client, recipient_identifier, missing_key_name
+):
     j = {
         "recipient_identifier": recipient_identifier,
         "template_id": str(uuid.uuid4())

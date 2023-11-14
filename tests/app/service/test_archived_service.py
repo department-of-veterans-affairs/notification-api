@@ -1,18 +1,14 @@
-import uuid
-from datetime import datetime
-
 import pytest
+import uuid
+from app import db
+from app.dao.api_key_dao import expire_api_key
+from app.dao.services_dao import dao_archive_service
+from app.dao.templates_dao import dao_update_template
+from app.models import Service
+from datetime import datetime
 from freezegun import freeze_time
 from sqlalchemy import select
-
-from app import db
-from app.models import Service
-from app.dao.services_dao import dao_archive_service
-from app.dao.api_key_dao import expire_api_key
-from app.dao.templates_dao import dao_update_template
-
 from tests import create_authorization_header, unwrap_function
-from tests.app.db import create_template, create_api_key
 
 
 def test_archive_only_allows_post(client):
@@ -31,7 +27,7 @@ def test_deactivating_inactive_service_does_nothing(client, notify_db_session, s
     service = sample_service()
     dao_archive_service(service.id)
     auth_header = create_authorization_header()
-    
+
     response = client.post('/service/{}/archive'.format(service.id), headers=[auth_header])
     assert response.status_code == 204
     assert service.name == service.name

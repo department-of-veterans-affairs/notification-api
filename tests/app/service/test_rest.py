@@ -101,7 +101,7 @@ def test_get_service_list_with_user_id_and_only_active_flag(
 
     # One inactive, three active
     sample_service(user=user_0, active=False)
-    active_0 = sample_service(user=user_0)
+    sample_service(user=user_0)
     active_1 = sample_service(user=user_1)
     active_2 = sample_service(user=user_1)
 
@@ -116,8 +116,8 @@ def test_get_service_list_with_user_id_and_only_active_flag(
     resp_data = [x['name'] for x in json_resp['data'] if x['created_by'] == str(user_1.id)]
 
     assert len(resp_data) == 2
-    assert resp_data[0]== str(active_1.name)
-    assert resp_data[1]== str(active_2.name)
+    assert resp_data[0] == str(active_1.name)
+    assert resp_data[1] == str(active_2.name)
 
 
 def test_get_service_list_by_user(admin_request, sample_service, sample_user):
@@ -128,8 +128,8 @@ def test_get_service_list_by_user(admin_request, sample_service, sample_user):
     # One inactive, three active
     inactive = sample_service(user=user_0, active=False)
     active_0 = sample_service(user=user_0)
-    active_1 = sample_service(user=user_1)
-    active_2 = sample_service(user=user_1)
+    sample_service(user=user_1)
+    sample_service(user=user_1)
 
     json_resp = admin_request.get('service.get_services', user_id=user_0.id)
 
@@ -480,7 +480,7 @@ def test_create_service_with_domain_sets_organisation(
         assert json_resp['data']['organisation'] == str(org.id)
     else:
         assert json_resp['data']['organisation'] is None
-    
+
     # Teardown
     # sample_user cleans up any services associated with it, so no need to clean the post
 
@@ -1211,7 +1211,7 @@ def test_should_not_update_service_with_duplicate_email_from(notify_api,
         with notify_api.test_client() as client:
             email_from = f'duplicate.name {uuid4()}'
             # Original and duplicate (email_from) services
-            sample_service(email_from=email_from)            
+            sample_service(email_from=email_from)
             duplicate = sample_service(email_from='random')
             data = {
                 'name': duplicate.name,
@@ -1430,9 +1430,7 @@ def test_add_existing_user_to_another_service_with_all_permissions(
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_add_existing_user_to_another_service_with_send_permissions(notify_api,
-                                                                    sample_service,
-    ):
+def test_add_existing_user_to_another_service_with_send_permissions(notify_api, sample_service):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             # they must exist in db first
@@ -1477,9 +1475,7 @@ def test_add_existing_user_to_another_service_with_send_permissions(notify_api,
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_add_existing_user_to_another_service_with_manage_permissions(notify_api,
-                                                                      sample_service,
-    ):
+def test_add_existing_user_to_another_service_with_manage_permissions(notify_api, sample_service):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             # they must exist in db first
@@ -1523,9 +1519,7 @@ def test_add_existing_user_to_another_service_with_manage_permissions(notify_api
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_add_existing_user_to_another_service_with_folder_permissions(notify_api,
-                                                                      sample_service,
-    ):
+def test_add_existing_user_to_another_service_with_folder_permissions(notify_api, sample_service):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             # they must exist in db first
@@ -1563,9 +1557,7 @@ def test_add_existing_user_to_another_service_with_folder_permissions(notify_api
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_add_existing_user_to_another_service_with_manage_api_keys(notify_api,
-                                                                   sample_service,
-    ):
+def test_add_existing_user_to_another_service_with_manage_api_keys(notify_api, sample_service):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             # they must exist in db first
@@ -1753,7 +1745,7 @@ def test_get_service_and_api_key_history(notify_api, sample_service, sample_api_
                 headers=[auth_header]
             )
             assert response.status_code == 200
-            
+
             json_resp = json.loads(response.get_data(as_text=True))
             assert json_resp['data']['service_history'][0]['id'] == str(service.id)
             assert json_resp['data']['api_key_history'][0]['id'] == str(api_key.id)
@@ -2047,7 +2039,7 @@ def test_set_sms_prefixing_for_service_cant_be_none(
 
 
 # TODO: This always returns 0. Does not appear to be used
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")  
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 @pytest.mark.parametrize('today_only,stats', [
     ('False', {'requested': 2, 'delivered': 1, 'failed': 0}),
     ('True', {'requested': 1, 'delivered': 0, 'failed': 0})
@@ -2170,6 +2162,7 @@ def test_get_services_with_detailed_flag_defaults_to_today(client, mocker):
 
     assert resp.status_code == 200
 
+
 @pytest.mark.skip(reason="TODO: Do we utilzie this?")
 def test_get_detailed_services_groups_by_service(notify_db_session, sample_api_key, sample_service, sample_template):
     from app.service.rest import get_detailed_services
@@ -2182,10 +2175,11 @@ def test_get_detailed_services_groups_by_service(notify_db_session, sample_api_k
     service_0_template = sample_template(service=service_0)
     service_1_template = sample_template(service=service_1)
 
-    notifications = [create_notification(service_0_template, api_key=api_key_0, status='created'),
-                     create_notification(service_1_template, api_key=api_key_1, status='created'),
-                     create_notification(service_0_template, api_key=api_key_0, status='delivered'),
-                     create_notification(service_0_template, api_key=api_key_0, status='created'),
+    notifications = [
+        create_notification(service_0_template, api_key=api_key_0, status='created'),
+        create_notification(service_1_template, api_key=api_key_1, status='created'),
+        create_notification(service_0_template, api_key=api_key_0, status='delivered'),
+        create_notification(service_0_template, api_key=api_key_0, status='created'),
     ]
 
     data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
@@ -2212,7 +2206,9 @@ def test_get_detailed_services_groups_by_service(notify_db_session, sample_api_k
 
 
 @pytest.mark.skip(reason="TODO: Do we utilzie this?")
-def test_get_detailed_services_includes_services_with_no_notifications(notify_db_session, sample_api_key, sample_service, sample_template):
+def test_get_detailed_services_includes_services_with_no_notifications(
+    notify_db_session, sample_api_key, sample_service, sample_template
+):
     from app.service.rest import get_detailed_services
 
     service_0 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='1')
@@ -2282,7 +2278,9 @@ def test_get_detailed_services_only_includes_todays_notifications(notify_db_sess
                           (1, 0)
                           ])
 @freeze_time('2017-03-28T12:00:00')
-def test_get_detailed_services_for_date_range(notify_db_session, sample_api_key, sample_template, start_date_delta, end_date_delta):
+def test_get_detailed_services_for_date_range(
+    notify_db_session, sample_api_key, sample_template, start_date_delta, end_date_delta
+):
     from app.service.rest import get_detailed_services
     api_key = sample_api_key()
     template = sample_template(service=api_key.service)
@@ -2389,7 +2387,7 @@ def test_search_for_notification_by_to_field_return_multiple_matches(client, not
     notify_db_session.session.delete(notification2)
     notify_db_session.session.delete(notification3)
     notify_db_session.session.delete(notification4)
-    notify_db_session.session.commit()    
+    notify_db_session.session.commit()
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
@@ -2405,7 +2403,9 @@ def test_search_for_notification_by_to_field_return_400_for_letter_type(
     assert error_message['message'] == 'Only email and SMS can use search by recipient'
 
 
-def test_update_service_calls_send_notification_as_service_becomes_live(notify_db, notify_db_session, client, mocker, sample_service):
+def test_update_service_calls_send_notification_as_service_becomes_live(
+    notify_db, notify_db_session, client, mocker, sample_service
+):
     send_notification_mock = mocker.patch('app.service.rest.send_notification_to_service_users')
 
     restricted_service = sample_service(restricted=True)
@@ -2495,7 +2495,7 @@ def test_search_for_notification_by_to_field_filters_by_status(client, notify_db
     # Teardown
     notify_db_session.session.delete(notification1)
     notify_db_session.session.delete(notification2)
-    notify_db_session.session.commit()    
+    notify_db_session.session.commit()
 
 
 def test_search_for_notification_by_to_field_filters_by_statuses(client, notify_db_session, sample_template):
@@ -2528,7 +2528,7 @@ def test_search_for_notification_by_to_field_filters_by_statuses(client, notify_
     # Teardown
     notify_db_session.session.delete(notification1)
     notify_db_session.session.delete(notification2)
-    notify_db_session.session.commit()    
+    notify_db_session.session.commit()
 
 
 def test_search_for_notification_by_to_field_returns_content(
@@ -2561,7 +2561,7 @@ def test_search_for_notification_by_to_field_returns_content(
 
     # Teardown
     notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()    
+    notify_db_session.session.commit()
 
 
 def test_send_one_off_notification(notify_db_session, sample_service, admin_request, mocker, sample_template):
@@ -2588,7 +2588,9 @@ def test_send_one_off_notification(notify_db_session, sample_service, admin_requ
     notify_db_session.session.commit()
 
 
-def test_get_notification_for_service_includes_template_redacted(admin_request, notify_db_session, sample_notification, sample_template):
+def test_get_notification_for_service_includes_template_redacted(
+    admin_request, notify_db_session, sample_notification, sample_template
+):
     template = sample_template()
     notification = sample_notification(template=template)
     resp = admin_request.get(
@@ -2618,7 +2620,9 @@ def test_get_notification_for_service_includes_precompiled_letter(admin_request,
     assert resp['template']['is_precompiled_letter'] is False
 
 
-def test_get_all_notifications_for_service_includes_template_redacted(admin_request, notify_db_session, sample_service, sample_template):
+def test_get_all_notifications_for_service_includes_template_redacted(
+    admin_request, notify_db_session, sample_service, sample_template
+):
     service = sample_service()
     normal_template = sample_template(service=service)
 
@@ -2649,7 +2653,9 @@ def test_get_all_notifications_for_service_includes_template_redacted(admin_requ
 
 # Precompiled letters are not something we do or plan to do
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_get_all_notifications_for_service_includes_template_hidden(admin_request, notify_db_session, sample_service, sample_template):
+def test_get_all_notifications_for_service_includes_template_hidden(
+    admin_request, notify_db_session, sample_service, sample_template
+):
     service = sample_service()
     letter_template = sample_template(service=service, template_type=LETTER_TYPE)
     precompiled_template = sample_template(
@@ -2721,7 +2727,11 @@ def test_search_for_notification_by_to_field_returns_notifications_by_type(
     sample_template,
 ):
     sms_notification = create_notification(sample_template(), to_field='+16502532222', normalised_to='+16502532222')
-    email_notification = create_notification(sample_template(template_type=EMAIL_TYPE), to_field='44770@gamil.com', normalised_to='44770@gamil.com')
+    email_notification = create_notification(
+        sample_template(template_type=EMAIL_TYPE),
+        to_field='44770@gamil.com',
+        normalised_to='44770@gamil.com'
+    )
 
     response = client.get(
         '/service/{}/notifications?to={}&template_type={}'.format(
@@ -2867,7 +2877,9 @@ def test_get_email_reply_to_addresses_with_one_email_address(client, notify_db, 
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_get_email_reply_to_addresses_with_multiple_email_addresses(client, notify_db, notify_db_session, sample_service):
+def test_get_email_reply_to_addresses_with_multiple_email_addresses(
+    client, notify_db, notify_db_session, sample_service
+):
     service = sample_service()
     reply_to_a = create_reply_to_email(service, 'test_a@mail.com')
     reply_to_b = create_reply_to_email(service, 'test_b@mail.com', False)
@@ -2922,7 +2934,9 @@ def test_verify_reply_to_email_address_should_send_verification_email(
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_verify_reply_to_email_address_doesnt_allow_duplicates(admin_request, notify_db, notify_db_session, mocker, sample_service):
+def test_verify_reply_to_email_address_doesnt_allow_duplicates(
+    admin_request, notify_db, notify_db_session, mocker, sample_service
+):
     data = {'email': 'reply-here@example.va.gov'}
     service = sample_service()
     create_reply_to_email(service, 'reply-here@example.va.gov')
@@ -3344,7 +3358,9 @@ def test_get_smtp_relay_for_service_returns_empty_if_none(mocker, client, notify
     assert json_resp == {}
 
 
-def test_delete_smtp_relay_for_service_returns_500_if_none(mocker, client, notify_db, notify_db_session, sample_service):
+def test_delete_smtp_relay_for_service_returns_500_if_none(
+    mocker, client, notify_db, notify_db_session, sample_service
+):
     service = sample_service(service_name="ABCDEF", smtp_user=None)
 
     resp = client.delete(
@@ -3355,7 +3371,9 @@ def test_delete_smtp_relay_for_service_returns_500_if_none(mocker, client, notif
     assert resp.status_code == 500
 
 
-def test_delete_smtp_relay_for_service_returns_201_if_success(mocker, client, notify_db, notify_db_session, sample_service):
+def test_delete_smtp_relay_for_service_returns_201_if_success(
+    mocker, client, notify_db, notify_db_session, sample_service
+):
     service = sample_service(service_name="ABCDEF", smtp_user="foo")
 
     delete_mock = mocker.patch(

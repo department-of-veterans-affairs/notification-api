@@ -100,11 +100,7 @@ def test_get_template_statistics_for_service_by_day_accepts_old_query_string(
 
 
 @freeze_time('2018-01-02 12:00:00')
-def test_get_template_statistics_for_service_by_day_goes_to_db(
-    admin_request,
-    mocker,
-    sample_sms_template_func
-):
+def test_get_template_statistics_for_service_by_day_goes_to_db(admin_request, mocker, sample_template):
     template = sample_template()
     # first time it is called redis returns data, second time returns none
     mock_dao = mocker.patch(
@@ -182,15 +178,12 @@ def test_get_template_statistics_for_template_returns_last_notification(
     notify_db_session.session.commit()
 
 
-def test_get_template_statistics_for_template_returns_empty_if_no_statistics(
-    admin_request,
-    sample_email_template_func,
-):
-    tempalte = sample_template()
+def test_get_template_statistics_for_template_returns_empty_if_no_statistics(admin_request, sample_template):
+    template = sample_template()
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_template_id',
-        service_id=tempalte.service_id,
-        template_id=tempalte.id
+        service_id=template.service_id,
+        template_id=template.id
     )
 
     assert not json_resp['data']

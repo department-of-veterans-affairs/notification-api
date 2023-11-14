@@ -433,7 +433,6 @@ class TestUpdateServiceCallback:
         assert response.json["data"]["url"] == "https://anotherurl.com"
         assert service_callback_api.url == "https://anotherurl.com"
 
-
     def test_update_service_callback_updates_bearer_token(self, client, sample_service):
         service = sample_service()
         service_callback_api = create_service_callback_api(service=service, bearer_token='some_super_secret')
@@ -451,7 +450,6 @@ class TestUpdateServiceCallback:
         )
         assert response.status_code == 200
         assert service_callback_api.bearer_token == "different_token"
-
 
     def test_update_service_callback_updates_notification_statuses(self, client, sample_service):
         service = sample_service()
@@ -493,7 +491,6 @@ class TestUpdateServiceCallback:
         assert response.status_code == 200
         assert service_callback_api.include_provider_payload is True
 
-
     @pytest.mark.idparametrize(
         'request_data', {
             'invalid_property': ({
@@ -521,7 +518,6 @@ class TestUpdateServiceCallback:
         assert len(resp_json['errors']) > 0
         for error in resp_json['errors']:
             assert error['message'] is not None
-
 
     def test_update_service_callback_raises_400_when_invalid_status(self, client, sample_service):
         service = sample_service()
@@ -587,7 +583,6 @@ class TestUpdateServiceCallback:
 
         assert response.json['data']['updated_by_id'] == str(user.id)
 
-
     def test_update_service_callback_should_return_403_if_not_authorized(self, client, sample_service, sample_user):
         service = sample_service()
         service_callback_api = create_service_callback_api(service)
@@ -607,7 +602,6 @@ class TestUpdateServiceCallback:
         )
         assert response.status_code == 403
 
-
     def test_should_return_403_when_updating_queue_callback_and_not_admin(self, client, sample_service):
         service = sample_service()
         service_callback_api = create_service_callback_api(service, callback_channel=QUEUE_CHANNEL_TYPE)
@@ -623,7 +617,6 @@ class TestUpdateServiceCallback:
                      ('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
         assert response.status_code == 403
-
 
     def test_update_service_callback_should_allow_change_from_queue_to_webhook_by_user(self, client, sample_service):
         service = sample_service()
@@ -701,8 +694,7 @@ class TestRemoveServiceCallback:
 
         # DB verification
         stmt = select(ServiceCallback).where(ServiceCallback.service_id == service.id)
-        assert  len(notify_db_session.session.execute(stmt).all()) == 0
-
+        assert len(notify_db_session.session.execute(stmt).all()) == 0
 
     def test_delete_service_callback_should_return_404_if_callback_does_not_exist(self, client, sample_service):
         service = sample_service()
@@ -713,7 +705,6 @@ class TestRemoveServiceCallback:
             headers=[('Authorization', f'Bearer {create_access_token(service.users[0])}')]
         )
         assert response.status_code == 404
-
 
     def test_delete_service_callback_should_return_403_if_not_authorized(self, client, sample_service, sample_user):
         service = sample_service()
@@ -727,7 +718,6 @@ class TestRemoveServiceCallback:
             headers=[('Authorization', f'Bearer {create_access_token(user)}')]
         )
         assert response.status_code == 403
-
 
     def test_should_return_404_if_trying_to_delete_callback_from_different_service(self, client, sample_service):
         service = sample_service()

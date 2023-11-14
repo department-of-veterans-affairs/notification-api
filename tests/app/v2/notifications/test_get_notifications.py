@@ -84,12 +84,14 @@ def test_get_notification_by_id_returns_200(client, billable_units, provider, no
     assert json_response == expected_response
 
     # Teardown
-    first_sched = notify_db_session.session.scalars(select(ScheduledNotification)
-                                                    .where(ScheduledNotification.notification_id == first_notification.id)).first()
+    first_sched = notify_db_session.session.scalars(
+        select(ScheduledNotification).where(ScheduledNotification.notification_id == first_notification.id)
+    ).first()
     notify_db_session.session.delete(first_sched)
     notify_db_session.session.delete(first_notification)
-    second_sched = notify_db_session.session.scalars(select(ScheduledNotification)
-                                                     .where(ScheduledNotification.notification_id == second_notification.id)).first()
+    second_sched = notify_db_session.session.scalars(
+        select(ScheduledNotification).where(ScheduledNotification.notification_id == second_notification.id)
+    ).first()
     notify_db_session.session.delete(second_sched)
     notify_db_session.session.delete(second_notification)
     notify_db_session.session.commit()
@@ -185,7 +187,7 @@ def test_get_notification_by_reference_returns_200(client, notify_db_session, sa
 
     # Teardown
     notify_db_session.session.delete(sample_notification_with_reference)
-    notify_db_session.session.commit()   
+    notify_db_session.session.commit()
 
 
 def test_get_notification_by_id_returns_created_by_name_if_notification_created_by_id(
@@ -209,7 +211,7 @@ def test_get_notification_by_id_returns_created_by_name_if_notification_created_
 
     # Teardown
     notify_db_session.session.delete(sms_notification)
-    notify_db_session.session.commit()   
+    notify_db_session.session.commit()
 
 
 # This test assumes the local timezone is EST
@@ -233,8 +235,9 @@ def test_get_notifications_returns_scheduled_for(client, notify_db_session, samp
     assert json_response['notifications'][0]['scheduled_for'] == "2017-05-23T21:15:00.000000Z"
 
     # Teardown
-    first_sched = notify_db_session.session.scalars(select(ScheduledNotification)
-                                                    .where(ScheduledNotification.notification_id == notification_with_ref.id)).first()
+    first_sched = notify_db_session.session.scalars(
+        select(ScheduledNotification).where(ScheduledNotification.notification_id == notification_with_ref.id)
+    ).first()
     notify_db_session.session.delete(first_sched)
     notify_db_session.session.delete(notification_with_ref)
     notify_db_session.session.commit()
@@ -326,7 +329,9 @@ def test_get_notification_adds_delivery_estimate_for_letters(
 
 
 @pytest.mark.parametrize('template_type', [SMS_TYPE, EMAIL_TYPE])
-def test_get_notification_doesnt_have_delivery_estimate_for_non_letters(client, notify_db_session, sample_service, sample_template, template_type):
+def test_get_notification_doesnt_have_delivery_estimate_for_non_letters(
+    client, notify_db_session, sample_service, sample_template, template_type
+):
     service = sample_service()
     template = sample_template(service=service, template_type=template_type)
     mocked_notification = create_notification(template=template)
@@ -502,7 +507,9 @@ def test_get_all_notifications_filter_by_single_status(client, notify_db_session
     notify_db_session.session.commit()
 
 
-def test_get_all_notifications_filter_by_status_invalid_status(client, notify_db_session, sample_notification, sample_template):
+def test_get_all_notifications_filter_by_status_invalid_status(
+    client, notify_db_session, sample_notification, sample_template
+):
     notification = sample_notification(template=sample_template())
     auth_header = create_authorization_header(service_id=notification.service_id)
 
@@ -553,7 +560,7 @@ def test_get_all_notifications_filter_by_multiple_statuses(client, notify_db_ses
         assert str(_id) in returned_notification_ids
 
     assert failed_notification.id not in returned_notification_ids
-    
+
     # Teardown
     for notification in notifications:
         notify_db_session.session.delete(notification)
@@ -635,7 +642,9 @@ def test_get_all_notifications_filter_by_id_invalid_id(client, sample_service):
     assert json_response['errors'][0]['message'] == "older_than is not a valid UUID"
 
 
-def test_get_all_notifications_filter_by_id_no_notifications_if_nonexistent_id(client, notify_db_session, sample_template):
+def test_get_all_notifications_filter_by_id_no_notifications_if_nonexistent_id(
+    client, notify_db_session, sample_template
+):
     notification = create_notification(template=sample_template())
 
     auth_header = create_authorization_header(service_id=notification.service_id)
@@ -657,7 +666,9 @@ def test_get_all_notifications_filter_by_id_no_notifications_if_nonexistent_id(c
     notify_db_session.session.commit()
 
 
-def test_get_all_notifications_filter_by_id_no_notifications_if_last_notification(client, notify_db_session, sample_template):
+def test_get_all_notifications_filter_by_id_no_notifications_if_last_notification(
+    client, notify_db_session, sample_template
+):
     notification = create_notification(template=sample_template())
 
     auth_header = create_authorization_header(service_id=notification.service_id)

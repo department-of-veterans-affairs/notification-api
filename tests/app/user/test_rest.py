@@ -14,13 +14,12 @@ from app.models import (
     MANAGE_TEMPLATES,
     Notification,
     Permission,
-    Service,
 )
 from fido2 import cbor
 from flask import current_app, url_for
 from freezegun import freeze_time
 from tests import create_authorization_header
-from tests.app.db import create_service, create_template_folder, create_organisation, create_user, create_reply_to_email
+from tests.app.db import create_template_folder, create_organisation, create_reply_to_email
 from uuid import UUID, uuid4
 from unittest import mock
 
@@ -317,8 +316,10 @@ def test_cannot_create_user_with_empty_strings(admin_request):
         'name': ['Invalid name']
     }
 
+
 # @pytest.mark.usefixtures('sample_notify_service_user_session')
 # class TestAllTheThings:
+
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 @pytest.mark.parametrize('user_attribute, user_value', [
@@ -327,7 +328,9 @@ def test_cannot_create_user_with_empty_strings(admin_request):
     ('mobile_number', '+16502532223'),
     ('identity_provider_user_id', 'test-id')
 ])
-def test_post_user_attribute(client, mocker, user_attribute, user_value, sample_notify_service_user_session, sample_template_session):
+def test_post_user_attribute(
+    client, mocker, user_attribute, user_value, sample_notify_service_user_session, sample_template_session
+):
     service, user = sample_notify_service_user_session()
     sample_template_session(service=service,
                             user=user,
@@ -421,23 +424,25 @@ def test_post_user_attribute_with_updated_by(
 ):
     service, user = sample_notify_service_user_session()
     # Email template
-    sample_template_session(service=service,
-                            user=user,
-                            name='TEAM_MEMBER_EDIT_EMAIL_TEMPLATE_ID',
-                            content='Hi ((name)) ((servicemanagername)) changed your email to ((email address))',
-                            # subject='Your VA Notify email address has changed',
-                            template_type=EMAIL_TYPE)
-    
-        # template_config_name='TEAM_MEMBER_EDIT_EMAIL_TEMPLATE_ID',
-        # content='Hi ((name)) ((servicemanagername)) changed your email to ((email address))',
-        # subject='Your GOV.UK Notify email address has changed',
-        # template_type=EMAIL_TYPE
+    sample_template_session(
+        service=service,
+        user=user,
+        name='TEAM_MEMBER_EDIT_EMAIL_TEMPLATE_ID',
+        content='Hi ((name)) ((servicemanagername)) changed your email to ((email address))',
+        # subject='Your VA Notify email address has changed',
+        template_type=EMAIL_TYPE
+    )
 
-        # service=service,
-        # user=user,
-        # template_config_name='TEAM_MEMBER_EDIT_MOBILE_TEMPLATE_ID',
-        # content='Your mobile number was changed by ((servicemanagername)).',
-        # template_type='sms'
+    # template_config_name='TEAM_MEMBER_EDIT_EMAIL_TEMPLATE_ID',
+    # content='Hi ((name)) ((servicemanagername)) changed your email to ((email address))',
+    # subject='Your GOV.UK Notify email address has changed',
+    # template_type=EMAIL_TYPE
+
+    # service=service,
+    # user=user,
+    # template_config_name='TEAM_MEMBER_EDIT_MOBILE_TEMPLATE_ID',
+    # content='Your mobile number was changed by ((servicemanagername)).',
+    # template_type='sms'
 
     updater = sample_user(name="Service Manago", email="notify_manago@va.gov")
     user = sample_user()
@@ -1026,8 +1031,9 @@ def test_update_user_auth_type(admin_request, sample_user, account_change_templa
     assert resp['data']['auth_type'] == 'sms_auth'
 
 
+# TODO: Remove fixture
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_can_set_email_auth_and_remove_mobile_at_same_time(admin_request, sample_user, account_change_template, mocker):  # TODO: Remove fixture
+def test_can_set_email_auth_and_remove_mobile_at_same_time(admin_request, sample_user, account_change_template, mocker):
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
 
@@ -1047,8 +1053,9 @@ def test_can_set_email_auth_and_remove_mobile_at_same_time(admin_request, sample
     assert user.auth_type == EMAIL_AUTH_TYPE
 
 
+# TODO: Remove fixture
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_cannot_remove_mobile_if_sms_auth(admin_request, sample_user, account_change_template, mocker):  # TODO: Remove fixture
+def test_cannot_remove_mobile_if_sms_auth(admin_request, sample_user, account_change_template, mocker):
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
 
@@ -1065,8 +1072,9 @@ def test_cannot_remove_mobile_if_sms_auth(admin_request, sample_user, account_ch
     assert json_resp['message'] == 'Mobile number must be set if auth_type is set to sms_auth'
 
 
+# TODO: Remove fixture
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_can_remove_mobile_if_email_auth(admin_request, sample_user, account_change_template, mocker):  # TODO: Remove fixture
+def test_can_remove_mobile_if_email_auth(admin_request, sample_user, account_change_template, mocker):
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
 

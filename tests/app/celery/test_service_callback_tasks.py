@@ -453,15 +453,17 @@ class TestSendInboundSmsToService:
 @pytest.mark.parametrize("payload", [None, {}, {'key': 'value'}, 'Hello%20G%C3%BCnter', '!@##$%^&*(){}:"?><'])
 @pytest.mark.parametrize("include_provider_payload", [True, False])
 def test_create_delivery_status_callback_data(sample_notification, payload, include_provider_payload):
+    notification = sample_notification()
+
     # callback_api
     service_callback = create_service_callback_api(
-        service=sample_notification.service,
+        service=notification.service,
         url="https://original_url.com",
         notification_statuses=NOTIFICATION_STATUS_TYPES,
         include_provider_payload=include_provider_payload
     )
 
-    encrypted_message = create_delivery_status_callback_data(sample_notification, service_callback, payload)
+    encrypted_message = create_delivery_status_callback_data(notification, service_callback, payload)
     decrypted_message = encryption.decrypt(encrypted_message)
 
     # check if payload is dictionary with at least one entry

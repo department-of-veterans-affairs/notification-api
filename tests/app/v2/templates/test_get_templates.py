@@ -1,13 +1,10 @@
 import pytest
-
+from app.models import EMAIL_TYPE
 from flask import json
 from itertools import product
-from uuid import uuid4
-
-from app.models import EMAIL_TYPE
 from tests import create_authorization_header
-from tests.app.db import create_template
 from tests.app.conftest import TEMPLATE_TYPES
+from uuid import uuid4
 
 
 def test_get_all_templates_returns_200(client, sample_service, sample_template):

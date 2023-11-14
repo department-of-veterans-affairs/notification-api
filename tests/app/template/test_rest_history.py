@@ -107,12 +107,11 @@ def test_all_versions_of_template(notify_api, sample_template):
             assert json_resp['data'][2]['content'] == old_content
 
 
-def test_update_template_reply_to_updates_history(client,
-                                                  sample_template,
-                                                  sample_service):
-    service = sample_service(service_name=f'sample service full permissions {uuid4()}',
-                             service_permissions=set(SERVICE_PERMISSION_TYPES),
-                             check_if_service_exists=True
+def test_update_template_reply_to_updates_history(client, sample_template, sample_service):
+    service = sample_service(
+        service_name=f'sample service full permissions {uuid4()}',
+        service_permissions=set(SERVICE_PERMISSION_TYPES),
+        check_if_service_exists=True
     )
     template = sample_template(service=service, template_type=LETTER_TYPE, postage="second")
     auth_header = create_authorization_header()
