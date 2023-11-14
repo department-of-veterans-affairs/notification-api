@@ -3,6 +3,7 @@ from app.billing.rest import update_free_sms_fragment_limit_data
 from app.dao.annual_billing_dao import dao_get_free_sms_fragment_limit_for_year
 from app.dao.date_util import get_current_financial_year_start_year, get_month_start_and_end_date_in_utc
 from app.models import (
+    AnnualBilling,
     EMAIL_TYPE,
     FactBilling,
     LETTER_TYPE,
@@ -12,6 +13,7 @@ from app.models import (
 from calendar import monthrange
 from datetime import datetime, timedelta
 from freezegun import freeze_time
+from sqlalchemy import select
 from tests import create_authorization_header
 from tests.app.db import (
     create_rate,
@@ -109,7 +111,7 @@ def test_create_free_sms_fragment_limit_updates_existing_year(admin_request, sam
     assert annual_billing.free_sms_fragment_limit == 2
 
 
-def test_get_free_sms_fragment_limit_current_year_creates_new_row(client, sample_service):
+def test_get_free_sms_fragment_limit_current_year_creates_new_row(client, notify_db_session, sample_service):
     service = sample_service()
     current_year = get_current_financial_year_start_year()
     create_annual_billing(service.id, 9999, current_year - 1)
@@ -124,8 +126,13 @@ def test_get_free_sms_fragment_limit_current_year_creates_new_row(client, sample
     assert json_resp['financial_year_start'] == get_current_financial_year_start_year()
     assert json_resp['free_sms_fragment_limit'] == 9999
 
+    # Teardown
+    stmt = select(AnnualBilling).where(AnnualBilling.service_id == service.id)
+    notify_db_session.session.execute(stmt)
+    notify_db_session.session.commit()
 
-def test_get_free_sms_fragment_limit_past_year_not_exist(client, sample_service):
+
+def test_get_free_sms_fragment_limit_past_year_not_exist(client, notify_db_session, sample_service):
     service = sample_service()
     current_year = get_current_financial_year_start_year()
     create_annual_billing(service.id, 9999, current_year - 1)
@@ -144,6 +151,11 @@ def test_get_free_sms_fragment_limit_past_year_not_exist(client, sample_service)
     json_resp = res_get.get_json()
     assert json_resp['financial_year_start'] == current_year - 1
     assert json_resp['free_sms_fragment_limit'] == 9999
+
+    # Teardown
+    stmt = select(AnnualBilling).where(AnnualBilling.service_id == service.id)
+    notify_db_session.session.execute(stmt)
+    notify_db_session.session.commit()
 
 
 def test_get_free_sms_fragment_limit_future_year_not_exist(client, sample_service):
@@ -187,10 +199,11 @@ def test_get_yearly_usage_by_monthly_from_ft_billing_populates_deltas(
     notification = sample_notification(template=sms_template, status="delivered")
     assert notification.status == "delivered"
 
-    assert FactBilling.query.count() == 0
+    stmt = select(FactBilling).where(FactBilling.service_id == service.id)
+    assert len(notify_db_session.session.execute(stmt).all()) == 0
 
     # This request has the side-effect of creating a FactBilling instance in the ft_billing table.
-    # TODO - But it's a GET request?
+    # But it's a GET request?
     response = client.get(
         f'service/{service.id}/billing/ft-monthly-usage?year=2018',
         headers=[('Content-Type', 'application/json'), create_authorization_header()]
