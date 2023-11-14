@@ -343,7 +343,7 @@ class Config(object):
                 'task': 'send-scheduled-comp-and-pen-sms',
                 # At every minute past every hour from 13 through 21 on every day-of-month from 21 through 28
                 # TODO test: use this as real value after testing - crontab(hour='13-21', day_of_month='21-28'),
-                'schedule': crontab(minute='30'),
+                'schedule': crontab(minute='0,15,30,45'),
                 'options': {'queue': QueueNames.PERIODIC}
             },
         },
