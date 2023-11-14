@@ -20,7 +20,7 @@ def send_notification_bypass_route(
 
     if sms_sender_id is None and notification_type == SMS_TYPE:
         # Use the service's default sms_sender.
-        sms_sender_id = service.get_default_sms_sender()
+        sms_sender_id = service.get_default_sms_sender_id()
 
     notification = persist_notification(
         template_id=template.id,

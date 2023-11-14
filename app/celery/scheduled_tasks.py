@@ -256,7 +256,6 @@ def send_scheduled_comp_and_pen_sms():
     current_app.logger.info('send_scheduled_comp_and_pen_sms attempting connection to dynamodb...')
 
     # connect to dynamodb table
-    # TODO test: do I need infra to allow access to dynamo?
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(dynamodb_table_name)
 
@@ -311,9 +310,9 @@ def send_scheduled_comp_and_pen_sms():
                 service=service,
                 template=template,
                 notification_type=SMS_TYPE,
-                # recipient=item.get('vaprofile_id'),  # can this be vaprofile_id? maps to notification.to field
+                # recipient=item.get('vaprofile_id'),  # this should be email / phone#, maps to notification.to field
                 personalisation={'paymentAmount': int(item.get('paymentAmount'))},
-                sms_sender_id=service.get_default_sms_sender(),
+                sms_sender_id=service.get_default_sms_sender_id(),
                 recipient_item={
                     'id_type': IdentifierType.VA_PROFILE_ID.value,
                     'id_value': str(item.get('vaprofile_id'))
@@ -327,7 +326,7 @@ def send_scheduled_comp_and_pen_sms():
             )
 
             # TODO what do we do when we fail to send a notification?
-            # add a field to the table?
+            # add a field to the table? problem_encountered
             continue
 
         # TODO test: can be removed after testing
