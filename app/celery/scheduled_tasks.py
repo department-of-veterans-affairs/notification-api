@@ -224,7 +224,7 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int):
 
         results = table.scan(
             FilterExpression=boto3.dynamodb.conditions.Attr('processed').eq(False),
-            Limit=message_limit - len(items),
+            Limit=message_limit,
             ExclusiveStartKey=results['LastEvaluatedKey']
         )
 
@@ -329,7 +329,7 @@ def send_scheduled_comp_and_pen_sms():
         updated_item = table.update_item(
             key={
                 'participant_id': item.get('participant_id'),
-                'vaprofile_id': item.get('vaprofile_id')
+                'payment_id': item.get('payment_id')
             },
             UpdateExpression='SET processed = :val',
             ExpressionAttributeValues={
