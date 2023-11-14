@@ -49,7 +49,7 @@ def send_notification_bypass_route(
         notification_type, notification.id
     )
 
-    if recipient is not None:
+    if recipient_item is not None:
         send_to_queue_for_recipient_info_based_on_recipient_identifier(
             notification=notification,
             id_type=recipient_item['id_type'],
