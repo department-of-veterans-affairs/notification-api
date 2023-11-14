@@ -202,6 +202,14 @@ def check_templated_letter_state():
 
 
 def _get_dynamodb_comp_pen_messages(table, message_limit: int) -> list:
+    """
+    Helper function to get the Comp and Pen data from our dynamodb cache table.
+
+    :param table: the dynamodb table to grab the data from
+    :param message_limit: the number of rows to search at a time and the max number of items that should be returned
+    :return: a list of entries from the table that have not been processed yet
+    """
+
     results = table.scan(
         FilterExpression=boto3.dynamodb.conditions.Attr('is_processed').eq(False),
         Limit=message_limit
@@ -209,7 +217,7 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int) -> list:
 
     items: list = results.get('Items')
 
-    # keep getting items from table until we have the number we want to send, or run out of items
+    # Keep getting items from the table until we have the number we want to send, or run out of items
     while 'LastEvaluatedKey' in results and len(items) < message_limit:
         results = table.scan(
             FilterExpression=boto3.dynamodb.conditions.Attr('is_processed').eq(False),
@@ -235,6 +243,7 @@ def send_scheduled_comp_and_pen_sms():
     service_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
     template_id = os.getenv('COMP_AND_PEN_TEMPLATE_ID')
 
+    # Debug messages currently don't show up in cloudwatch, requires a configuration change
     current_app.logger.debug('send_scheduled_comp_and_pen_sms connecting to dynamodb')
 
     # connect to dynamodb table
