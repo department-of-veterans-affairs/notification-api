@@ -314,7 +314,7 @@ def send_scheduled_comp_and_pen_sms():
                 # recipient=item.get('vaprofile_id'),  # can this be vaprofile_id? maps to notification.to field
                 personalisation={'paymentAmount': int(item.get('paymentAmount'))},
                 sms_sender_id=service.get_default_sms_sender(),
-                recipient_id={
+                recipient_item={
                     'id_type': IdentifierType.VA_PROFILE_ID.value,
                     'id_value': str(item.get('vaprofile_id'))
                 },
