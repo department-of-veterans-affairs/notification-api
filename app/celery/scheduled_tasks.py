@@ -209,13 +209,18 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int):
             'Exception trying to scan dynamodb table for send_scheduled_comp_and_pen_sms - %s', e)
         return None
 
-    current_app.logger.info('count of messages initially pulled from dynamodb Count=%s', results.get('Count'))
+    current_app.logger.info('count of messages initially pulled from dynamodb Count=%s vs ScannedCount=%s',
+                            results.get('Count'), results.get('ScannedCount'))
 
     # TODO test: can be removed after testing
     current_app.logger.info('results from dynamodb: %s', results)
 
     # get the rest of the messages if the result was > 1MB (dynamodb limit, # of rows not considered)
     last_key = results.get('LastEvaluatedKey')
+
+    # TODO test: can be removed after testing
+    current_app.logger.info('getting more results from dynamodb LastEvaluatedKey: %s', last_key)
+
     while last_key is not None:
         more_results = table.scan(
             FilterExpression=boto3.dynamodb.conditions.Attr('processed').eq(False),
@@ -223,8 +228,14 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int):
             ExclusiveStartKey=last_key
         )
 
+        # TODO test: can be removed after testing
+        current_app.logger.info('returned more results from dynamodb more_results: %s', more_results)
+
         last_key = more_results.get('LastEvaluatedKey')
         results['Items'].extend(more_results['Items'])
+
+    # TODO test: can be removed after testing
+    current_app.logger.info('returning all items from dynamodb: %s', results.get('Items'))
 
     return results.get('Items')
 
@@ -253,7 +264,12 @@ def send_scheduled_comp_and_pen_sms():
     current_app.logger.info('send_scheduled_comp_and_pen_sms connected to dynamodb')
 
     # get messages to send
-    comp_and_pen_messages = _get_dynamodb_comp_pen_messages(table, messages_per_min)
+    try:
+        comp_and_pen_messages = _get_dynamodb_comp_pen_messages(table, messages_per_min)
+    except Exception as e:
+        current_app.logger.error(
+            'Exception trying to scan dynamodb table for send_scheduled_comp_and_pen_sms - %s', e)
+        return
 
     # TODO test: can be removed after testing
     current_app.logger.info('send_scheduled_comp_and_pen_sms items from dynamodb: %s', comp_and_pen_messages)
@@ -266,6 +282,9 @@ def send_scheduled_comp_and_pen_sms():
 
     try:
         template = dao_get_template_by_id(template_id)
+
+        # TODO test: can be removed after testing
+        current_app.logger.info('send_scheduled_comp_and_pen_sms template retrieved id: %s', template.id)
     except NoResultFound as e:
         current_app.logger.error(
             'No results found in task send_scheduled_comp_and_pen_sms attempting to lookup template - %s', e)
@@ -279,7 +298,7 @@ def send_scheduled_comp_and_pen_sms():
     for item in comp_and_pen_messages:
         # TODO test: can be removed after testing
         current_app.logger.info(
-            'item from dynamodb - vaprofile_id: %s | participant_id: %s | paymentAmount: %s',
+            'sending - item from dynamodb - vaprofile_id: %s | participant_id: %s | paymentAmount: %s',
             item.get('vaprofile_id'), item.get('participant_id'), item.get('paymentAmount')
         )
 
@@ -296,6 +315,12 @@ def send_scheduled_comp_and_pen_sms():
                 'id_value': item.get('vaprofile_id')
             },
             # api_key_type=KEY_TYPE_NORMAL
+        )
+
+        # TODO test: can be removed after testing
+        current_app.logger.info(
+            'sent to queue, updating - item from dynamodb - vaprofile_id: %s | participant_id: %s | paymentAmount: %s',
+            item.get('vaprofile_id'), item.get('participant_id'), item.get('paymentAmount')
         )
 
         # update dynamodb entries
