@@ -1,6 +1,4 @@
-
-
-from celery import current_app
+from flask import current_app
 from app.config import QueueNames
 from app.models import EMAIL_TYPE, KEY_TYPE_NORMAL, PUSH_TYPE, SMS_TYPE, Template
 from app.notifications.process_notifications import (
