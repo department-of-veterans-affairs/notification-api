@@ -247,13 +247,13 @@ def send_scheduled_comp_and_pen_sms():
     current_app.logger.info('send_scheduled_comp_and_pen_sms connected to dynamodb')
 
     # get messages to send
-    results = _get_dynamodb_comp_pen_messages(table, messages_per_min)
+    comp_and_pen_messages = _get_dynamodb_comp_pen_messages(table, messages_per_min)
 
     # TODO test: can be removed after testing
-    current_app.logger.info('send_scheduled_comp_and_pen_sms items from dynamodb: %s', results)
+    current_app.logger.info('send_scheduled_comp_and_pen_sms items from dynamodb: %s', comp_and_pen_messages)
 
     # stop if there are no messages
-    if results is None or len(results.get('Items')) < 1:
+    if comp_and_pen_messages is None or len(comp_and_pen_messages) < 1:
         current_app.logger.info(
             'No Comp and Pen messages to send via send_scheduled_comp_and_pen_sms task. Exiting task...')
         return
@@ -270,11 +270,11 @@ def send_scheduled_comp_and_pen_sms():
         return
 
     # send messages and update entries in dynamodb table
-    for item in results.get('Items'):
+    for item in comp_and_pen_messages:
         # TODO test: can be removed after testing
         current_app.logger.info(
-            'item paymentAmount from dynamodb: %s | item vaprofile_id from dynamodb: %s',
-            item.get('paymentAmount'), item.get('vaprofile_id')
+            'item from dynamodb - vaprofile_id: %s | participant_id: %s | paymentAmount: %s',
+            item.get('vaprofile_id'), item.get('participant_id'), item.get('paymentAmount')
         )
 
         # call generic method to send messages
