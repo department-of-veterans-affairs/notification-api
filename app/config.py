@@ -296,7 +296,7 @@ class Config(object):
             },
             'create-nightly-billing': {
                 'task': 'create-nightly-billing',
-                'schedule': crontab(hour=0, minute=15),  # TODO make sure this is (hour=0, minute=15) before merging
+                'schedule': crontab(hour=0, minute=15),
                 'options': {'queue': QueueNames.REPORTING}
             },
             'create-nightly-notification-status': {
@@ -324,7 +324,6 @@ class Config(object):
                 'schedule': crontab(hour=1, minute=40),
                 'options': {'queue': QueueNames.PERIODIC}
             },
-
             'send-daily-performance-platform-stats': {
                 'task': 'send-daily-performance-platform-stats',
                 'schedule': crontab(hour=2, minute=0),
@@ -339,6 +338,12 @@ class Config(object):
                 'task': 'remove_sms_email_jobs',
                 'schedule': crontab(hour=4, minute=0),
                 'options': {'queue': QueueNames.PERIODIC},
+            },
+            'send-scheduled-comp-and-pen-sms': {
+                'task': 'send-scheduled-comp-and-pen-sms',
+                # At every minute past every hour from 13 through 21 on every day-of-month from 21 through 28
+                'schedule': crontab(hour='13-21', day_of_month='21-28'),
+                'options': {'queue': QueueNames.PERIODIC}
             },
         },
         "task_queues": [Queue(queue, Exchange("default"), routing_key=queue) for queue in QueueNames.all_queues()],

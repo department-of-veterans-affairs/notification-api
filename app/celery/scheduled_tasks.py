@@ -3,6 +3,7 @@ from datetime import (
     timedelta
 )
 
+import boto3
 from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 from sqlalchemy import and_
@@ -31,7 +32,9 @@ from app.models import (
     EMAIL_TYPE,
 )
 from app.notifications.process_notifications import send_notification_to_queue
+from app.notifications.send_notifications import send_notification_bypass_route
 from app.v2.errors import JobIncompleteError
+from app.va.identifier import IdentifierType
 
 
 @notify_celery.task(name="run-scheduled-jobs")
@@ -189,3 +192,78 @@ def check_templated_letter_state():
                 message=msg,
                 ticket_type=zendesk_client.TYPE_INCIDENT
             )
+
+
+def _get_dynamodb_comp_pen_messages(table, message_limit: int):
+    results = table.scan(
+        FilterExpression=boto3.dynamodb.conditions.Attr('processed').eq(False),
+        Limit=message_limit
+    )
+    current_app.logger.debug('count of messages initially pulled from dynamodb Count=%s', results.get('Count'))
+
+    # stop if there are no messages
+    if results.get('Items') is None or len(results.get('Items')) < 1:
+        current_app.logger.info('No Comp and Pen messages to send via scheduled task. Exiting task...')
+        return None
+
+    # get the rest of the messages if the result was > 1MB (dynamodb limit, # of rows not considered)
+    last_key = results.get('LastEvaluatedKey')
+    while last_key is not None:
+        more_results = table.scan(
+            FilterExpression=boto3.dynamodb.conditions.Attr('processed').eq(False),
+            Limit=message_limit - len(results.get('Items')),
+            ExclusiveStartKey=last_key
+        )
+
+        last_key = more_results.get('LastEvaluatedKey')
+        results['Items'].append(more_results['Items'])
+
+    return results.get('Items')
+
+
+@notify_celery.task(name='send-scheduled-comp-and-pen-sms')
+@statsd(namespace='tasks')
+def send_scheduled_comp_and_pen_sms():
+    messages_per_min = 100
+    # TODO probably need infra to allow access to dynamo?
+
+    # connect to dynamodb
+    dynamodb = boto3.resource('dynamodb')
+    # TODO make env variable for table name
+    table = dynamodb.Table('dev-bip-msg-mpi-profile-participant-cache-table')
+
+    # get messages to send
+    results = _get_dynamodb_comp_pen_messages(table, messages_per_min)
+
+    # stop if there are no messages
+    if results is None or len(results.get('Items')) < 1:
+        current_app.logger.info('No Comp and Pen messages to send via scheduled task. Exiting task...')
+        return
+
+    # get service, template, personalisation
+    # TODO - need env variables for service id and template id
+
+    # call generic method created to send messages
+    send_notification_bypass_route(
+        service_id='',
+        template_id='',
+        notification_type='',
+        recipient='',
+        personalisation=[],
+        sms_sender_id=None,
+        recipient_id_type=IdentifierType.VA_PROFILE_ID.value,
+        # api_key_type=KEY_TYPE_NORMAL
+    )
+
+    # update dynamo entries
+    for item in results.get('Items'):
+        table.update_item(
+            key={
+                'participant_id': {'N': item['participant_id']},
+                'vaprofile_id': {'N': item['vaprofile_id']}
+            },
+            UpdateExpression='SET processed = :val',
+            ExpressionAttributeValues={
+                ':val': {'BOOL': True}
+            }
+        )
