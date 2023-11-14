@@ -3,6 +3,8 @@ import os
 import pytest
 import pytz
 import requests_mock
+from typing import Union
+from uuid import uuid4
 from app import db
 from app.clients.email import EmailClient
 from app.clients.sms import SmsClient
@@ -11,8 +13,9 @@ from app.dao.invited_user_dao import save_invited_user
 from app.dao.jobs_dao import dao_create_job
 from app.dao.notifications_dao import dao_create_notification
 from app.dao.organisation_dao import dao_create_organisation
+from app.dao.permissions_dao import default_service_permissions
 from app.dao.provider_rates_dao import create_provider_rates
-from app.dao.services_dao import dao_archive_service, dao_create_service
+from app.dao.services_dao import dao_archive_service, dao_create_service, DEFAULT_SERVICE_PERMISSIONS
 from app.dao.service_sms_sender_dao import (
     dao_add_sms_sender_for_service,
     dao_update_service_sms_sender,
@@ -25,8 +28,11 @@ from app.history_meta import create_history
 from app.model import User
 from app.models import (
     ApiKey,
+    AnnualBilling,
     CommunicationItem,
+    Domain,
     EMAIL_TYPE,
+    FactBilling,
     Fido2Key,
     InboundNumber,
     InboundSms,
@@ -42,6 +48,8 @@ from app.models import (
     NotificationHistory,
     Organisation,
     Permission,
+    PINPOINT_PROVIDER,
+    PROVIDERS,
     ProviderDetails,
     ProviderDetailsHistory,
     ProviderRates,
@@ -51,6 +59,7 @@ from app.models import (
     ServiceCallback,
     ServiceEmailReplyTo,
     ServiceLetterContact,
+    ServicePermission,
     ServiceSmsSender,
     Service,
     ServiceUser,
@@ -80,6 +89,8 @@ from tests.app.db import (
     create_service,
     create_template,
     create_user,
+    version_api_key,
+    version_service,
 )
 from tests.app.factories import (
     service_whitelist
@@ -156,14 +167,27 @@ def sample_user(notify_db_session, set_user_as_admin):
     # Unsafe to teardown with objects, have to use ids to look up the object
     for user_id in created_user_ids:
         user = notify_db_session.session.get(User, user_id)
-        # Clear user_to_service
+        # Clear user_folder_permissions
         notify_db_session.session.execute(delete(user_folder_permissions).where(user_folder_permissions.c.user_id == user.id))
 
-        # Clear user_folder_permissions
+        # Clear permissions
+        for user_perm in notify_db_session.session.scalars(select(Permission)
+                                                           .where(Permission.user_id == user.id)).all():
+            notify_db_session.session.delete(user_perm)
+
+        # Clear user_to_service
         for user_service in notify_db_session.session.scalars(select(ServiceUser)
                                                               .where(ServiceUser.user_id == user.id)).all():
             notify_db_session.session.delete(user_service)
 
+        # Clear services created by this user
+        stmt = select(Service).where(Service.created_by_id == user_id)
+        services = notify_db_session.session.scalars(stmt).all()
+        if services is not None:
+            service_ids = [s.id for s in services]
+            service_cleanup(service_ids, notify_db_session.session)
+
+        # Delete the user
         notify_db_session.session.delete(user)
     notify_db_session.session.commit()
 
@@ -204,6 +228,26 @@ def notify_user(notify_db_session, worker_id):
     yield new_user
 
     notify_db_session.session.delete(new_user)
+    notify_db_session.session.commit()
+
+
+@pytest.fixture
+def sample_domain(notify_db_session):
+    domains = []
+
+    def _wrapper(domain, organisation_id):
+        domain = Domain(domain=domain, organisation_id=organisation_id)
+
+        db.session.add(domain)
+        db.session.commit()
+        domains.append(domain)
+        return domain
+
+    yield _wrapper
+
+    # Teardown
+    for domain in domains:
+        notify_db_session.session.delete(domain)
     notify_db_session.session.commit()
 
 
@@ -403,23 +447,67 @@ def sample_notification_model_with_organization(
 
 
 @pytest.fixture
-def sample_service(notify_db_session, sample_user):
+def sample_service(notify_db_session, sample_user, sample_permissions, sample_service_permissions, sample_sms_sender_v2):
     created_service_ids: list = []
 
     def _sample_service(*args, **kwargs):
+
+        # Handle where they are checking if it exists by name
+        if kwargs.pop('check_if_service_exists', False) and 'service_name' in kwargs:
+            service = notify_db_session.session.scalar(select(Service).where(Service.name == kwargs['service_name']))
+            if service is not None:
+                return service
+            
         # We do not want create_service to create users because it does not clean them up
         if len(args) == 0 and 'user' not in kwargs:
-            kwargs['user'] = sample_user()
+            kwargs['user'] = sample_user(email=f'sample_service_{uuid4()}@va.gov')
 
-        service: Service = create_service(*args, **kwargs)
-        
-        # The session is different (dao) so we can't just use save the session object for deletion. Set id, query it later
+        # Remove things that Service does not expect
+        service_permissions = kwargs.pop('service_permissions', [EMAIL_TYPE, SMS_TYPE])
+        user = kwargs.pop('user')
+
+        service: Service = sample_service_helper(user, *args, **kwargs)
+        service.users.append(user)
+
+        sample_service_permissions(service, service_permissions)
+        sample_permissions(user, service)
+        sample_sms_sender_v2(service.id)
+        # Service should be version 1 in the history after calling this
+        version_service(service)
+
         created_service_ids.append(service.id)
         return service
 
     yield _sample_service
     service_cleanup(created_service_ids, notify_db_session.session)
 
+
+def sample_service_helper(
+        user,
+        service_name=None,
+        service_id=None,
+        restricted=False,
+        count_as_live=True,
+        research_mode=False,
+        active=True,
+        email_from='',
+        prefix_sms=False,
+        message_limit=1000,
+        organisation_type='other',
+        go_live_user=None,
+        go_live_at=None,
+        crown=True,
+        organisation=None,
+        smtp_user=None
+):
+    service_name = service_name or f'sample service {uuid4()}'
+    kwargs = locals()
+    kwargs['created_by'] = kwargs.pop('user')
+    kwargs['email_from'] = email_from or service_name.lower().replace(' ', '.')
+    kwargs['id'] = kwargs.pop('service_id') or str(uuid4())
+    kwargs['name'] = kwargs.pop('service_name')
+
+    return Service(**kwargs)
 
 def service_cleanup(service_ids: list, session: scoped_session) -> None:
     """
@@ -429,27 +517,44 @@ def service_cleanup(service_ids: list, session: scoped_session) -> None:
     # This is an unfortunate reality of the deep dependency web of our database
     for service_id in service_ids:
         service = session.get(Service, service_id)
+        # Clear annual_billing
+        session.execute(delete(AnnualBilling).where(AnnualBilling.service_id == service_id))
+
+        # Clear ft_billing
+        session.execute(delete(FactBilling).where(FactBilling.service_id == service_id))
+
+        # Clear providers
+        service.email_provider_id = None
+        service.sms_provider_id = None
+
         # Clear service_letter_contacts
-        for letter_contact in session.scalars(select(ServiceLetterContact).where(ServiceLetterContact.service_id == service.id)).all():
+        for letter_contact in session.scalars(select(ServiceLetterContact).where(ServiceLetterContact.service_id == service_id)).all():
             session.delete(letter_contact)
 
         # Clear template_folder
-        for template_folder in session.scalars(select(TemplateFolder).where(TemplateFolder.service_id == service.id)).all():
+        for template_folder in session.scalars(select(TemplateFolder).where(TemplateFolder.service_id == service_id)).all():
             session.delete(template_folder)
 
         # Clear user_to_service
-        session.execute(delete(user_folder_permissions).where(user_folder_permissions.c.service_id == service.id))
+        session.execute(delete(user_folder_permissions).where(user_folder_permissions.c.service_id == service_id))
 
         # Clear all keys
-        for api_key in session.scalars(select(ApiKey).where(ApiKey.service_id == service.id)).all():
+        for api_key in session.scalars(select(ApiKey).where(ApiKey.service_id == service_id)).all():
             session.delete(api_key)
 
         # Clear all permissions
-        for perm in session.scalars(select(Permission).where(Permission.service_id == service.id)).all():
-            session.delete(perm)
+        # session.execute(delete(ServicePermission).where(ServicePermission.service_id == service_id))
+        for service_perm in session.scalars(select(ServicePermission).where(ServicePermission.service_id == service_id)).all():
+            if not inspect(service_perm).deleted:
+                session.delete(service_perm)
+
+        # Clear all permissions
+        for perm in session.scalars(select(Permission).where(Permission.service_id == service_id)).all():
+            if not inspect(perm).deleted:
+                session.delete(perm)
 
         # Clear all service_sms_senders
-        for sender in session.scalars(select(ServiceSmsSender).where(ServiceSmsSender.service_id == service.id)).all():
+        for sender in session.scalars(select(ServiceSmsSender).where(ServiceSmsSender.service_id == service_id)).all():
             session.delete(sender)
 
         # Clean up service servies_history
@@ -458,24 +563,66 @@ def service_cleanup(service_ids: list, session: scoped_session) -> None:
         ServicesHistory = Table('services_history', Service.get_history_model().metadata, autoload_with=db.engine)
         ServiceCallbackHistory = Table('service_callback_history', ServiceCallback.get_history_model().metadata, autoload_with=db.engine)
 
-        session.execute(delete(ServicesHistory).where(ServicesHistory.c.id == service.id))
-        session.execute(delete(ServiceCallbackHistory).where(ServiceCallbackHistory.c.service_id == service.id))
+        session.execute(delete(ServicesHistory).where(ServicesHistory.c.id == service_id))
+        session.execute(delete(ServiceCallbackHistory).where(ServiceCallbackHistory.c.service_id == service_id))
 
-        for service_callback in session.scalars(select(ServiceCallback).where(ServiceCallback.service_id == service.id)).all():
+        for service_callback in session.scalars(select(ServiceCallback).where(ServiceCallback.service_id == service_id)).all():
             session.delete(service_callback)
 
-        session.delete(service)
+        for user_to_service in session.scalars(select(ServiceUser).where(ServiceUser.service_id == service_id)).all():
+            session.delete(user_to_service)
+
+        session.execute(delete(Service).where(Service.id == service_id))
     session.commit()
 
 
-@pytest.fixture(scope="function")
-def sample_service_email_permission(notify_db_session, sample_user, sample_service, worker_id):
-    return sample_service(sample_user, f"function e-mail service {worker_id}", permissions=[EMAIL_TYPE])
+@pytest.fixture
+def sample_service_permissions(notify_db_session):
+    service_permissions = []
+
+    def _wrapper(service: Service, permissions: list = DEFAULT_SERVICE_PERMISSIONS):
+        for perm in permissions:
+            service_permission = ServicePermission(service_id=service.id, permission=perm)
+            notify_db_session.session.add(service_permission)
+            service.permissions.append(service_permission)
+            service_permissions.append((service.id, perm))
+
+        if len(permissions) > 0:
+            notify_db_session.session.commit()
+        return service.permissions
+    
+    yield _wrapper
+
+    # Teardown
+    # Set service.permissions.clear() ??
+    for service_id, perm in service_permissions:
+        stmt = select(ServicePermission).where(ServicePermission.service_id == service_id)\
+                                        .where(ServicePermission.permission == perm)
+        perm = notify_db_session.session.scalar(stmt)
+        if perm is not None:
+            notify_db_session.session.delete(perm)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture
-def sample_service_sms_permission(notify_db_session, sample_user, sample_service, worker_id):
-    return sample_service(sample_user, f"function SMS {worker_id}", permissions=[SMS_TYPE])
+def sample_permissions(notify_db_session):
+    perm_ids = []
+
+    def _wrapper(user, service, permissions=default_service_permissions):
+        for name in permissions:
+            permission = Permission(permission=name, user=user, service=service)
+            perm_ids.append(permission.id)
+            notify_db_session.session.add(permission)
+        notify_db_session.session.commit()
+    
+    yield _wrapper
+
+    # Teardown
+    for perm_id in perm_ids:
+        permission = notify_db_session.session.scalar(select(Permission).where(Permission.id == perm_id))
+        if permission is not None:
+            notify_db_session.session.delete(permission)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture(scope='function', name='sample_service_full_permissions')
@@ -836,6 +983,7 @@ def sample_api_key(notify_db_session, sample_service):
         if service is None:
             service = sample_service()
         api_key = create_api_key(service, key_type, key_name, expired)
+        version_api_key(api_key)
         created_keys.append(api_key)
         return api_key
 
@@ -856,7 +1004,7 @@ def sample_user_service_api_key(notify_db_session, sample_user, sample_service, 
     The user is not admin, and the API key is "normal" type.
     """
     user = sample_user()
-    service = sample_service(user, str(uuid4()))
+    service = sample_service(user=user)
     assert service.created_by == user
     api_key = sample_api_key(service)
     assert api_key in service.api_keys
@@ -1032,7 +1180,7 @@ def sample_notification_with_job(
 
 
 @pytest.fixture
-def sample_notification(notify_db_session):
+def sample_notification(notify_db_session, sample_api_key, sample_service, sample_template):
     # TODO: Refactor to use fixtures for teardown purposes
     created_notifications = []
     created_scheduled_notifications = []
@@ -1045,10 +1193,10 @@ def sample_notification(notify_db_session):
             kwargs["created_at"] = datetime.utcnow()
 
         if kwargs.get("template") is None:
-            service = create_service(check_if_service_exists=True)
+            service = sample_service(check_if_service_exists=True)
             created_service_ids.append(service.id)
 
-            template = create_template(service=service)
+            template = sample_template(service=service)
             kwargs["template"] = template
             created_templates.append(template)
             assert template.template_type == SMS_TYPE, "This is the default template type."
@@ -1307,6 +1455,45 @@ def current_sms_provider():
     ).first()
 
 
+@pytest.fixture
+def sample_provider(notify_db_session):
+    providers = []
+
+    def _wrapper(identifier: str = PINPOINT_PROVIDER,
+                 get: bool = False,
+                 display_name: str = '',
+                 priority: int = 10,
+                 notification_type: Union[EMAIL_TYPE, SMS_TYPE] = SMS_TYPE,
+                 active: bool = True,
+                 supports_international: bool = False,
+        ):
+        assert identifier in PROVIDERS
+        if get:
+            stmt = select(ProviderDetails).where(ProviderDetails.identifier == identifier)
+            provider = notify_db_session.session.scalar(stmt)
+        else:
+            data = {
+                'display_name': display_name or f'provider_{uuid4()}',
+                'identifier': identifier,
+                'priority': priority,
+                'notification_type': notification_type,
+                'active': active,
+                'supports_international': supports_international,
+            }
+            provider = ProviderDetails(**data)
+            notify_db_session.session.add(provider)
+            notify_db_session.session.commit()
+            providers.append(provider)
+
+        return provider
+    
+    yield _wrapper
+
+    # Teardown
+    for provider in providers:
+        notify_db_session.session.delete(provider)
+    notify_db_session.session.commit()
+
 @pytest.fixture(scope='function')
 def ses_provider():
     return ProviderDetails.query.filter_by(identifier='ses').one()
@@ -1425,7 +1612,7 @@ def password_reset_email_template(notify_db,
 
 @pytest.fixture(scope='function')
 def verify_reply_to_address_email_template(notify_db, notify_db_session):
-    service, user = notify_service(notify_db, notify_db_session)
+    service, user = notify_service(notify_db_session)
 
     return create_custom_template(
         service=service,
@@ -1897,6 +2084,48 @@ def datetime_in_past(days=0, seconds=0):
     return datetime.now(tz=pytz.utc) - timedelta(days=days, seconds=seconds)
 
 
+@pytest.fixture
+def sample_sms_sender_v2(notify_db_session):
+    sms_sender_ids = []
+
+    def _wrapper(
+            service_id,
+            sms_sender=current_app.config['FROM_NUMBER'],
+            is_default=True,
+            inbound_number_id=None,
+            rate_limit=None,
+            rate_limit_interval=None,
+            sms_sender_specifics=None,
+        ):
+        data = {
+            'service_id': service_id,
+            'sms_sender': sms_sender,
+            'is_default': is_default,
+            'inbound_number_id': inbound_number_id,
+            'rate_limit': rate_limit,
+            'rate_limit_interval': rate_limit_interval,
+            'sms_sender_specifics': sms_sender_specifics,
+        }
+
+        service_sms_sender = ServiceSmsSender(**data)
+        notify_db_session.session.add(service_sms_sender)
+        notify_db_session.session.commit()
+        sms_sender_ids.append(service_sms_sender.id)
+
+        return service_sms_sender
+
+    yield _wrapper
+
+    # Teardown
+    # Fails if any notifications were sent
+    for sms_sender_id in sms_sender_ids:
+        sms_sender = notify_db_session.session.scalar(select(ServiceSmsSender)
+                                                      .where(ServiceSmsSender.id == sms_sender_id))
+        if sms_sender is not None:
+            notify_db_session.session.delete(sms_sender)
+    notify_db_session.session.commit()
+
+
 @pytest.fixture(scope='function')
 def sample_sms_sender(notify_db_session, sample_service):
     service_sms_sender = dao_add_sms_sender_for_service(sample_service().id, "+12025555555", True)
@@ -1994,6 +2223,8 @@ def sample_service_email_reply_to(notify_db_session, sample_service):
 #                                                                                                                     #
 #######################################################################################################################
 
+# These exist because a few tests are expecting VA Notify-specific resources to exist. Attempting to utilize them with 
+# function-scoped fixtures leads to race conditions
 
 @pytest.fixture(scope='session')
 def sample_notify_service_user_session(notify_db,
@@ -2030,29 +2261,6 @@ def sample_service_session(notify_db, sample_user_session):
             kwargs['user'] = sample_user_session()
 
         service: Service = create_service(*args, **kwargs)
-        
-
-
-
-
-        from sqlalchemy.dialects.postgresql import insert as dialect_insert
-        
-        # pw = user.pop('password')
-
-        # insert_stmt = dialect_insert(User).values(**user)
-        # stmt = insert_stmt.on_conflict_do_nothing(index_elements=['id'])
-        # notify_db.session.execute(stmt)
-        # # notify_db.session.merge(user)
-        # notify_db.session.commit()
-        # user = notify_db.session.get(User, user['id'])
-
-
-
-
-
-
-
-
 
         # The session is different (dao) so we can't just use save the session object for deletion. Set id, query it later
         created_service_ids.append(service.id)
@@ -2153,7 +2361,7 @@ def sample_user_session(notify_db):
         insert_stmt = dialect_insert(User).values(**user)
         stmt = insert_stmt.on_conflict_do_nothing(index_elements=['id'])
         notify_db.session.execute(stmt)
-        # notify_db.session.merge(user)
+
         notify_db.session.commit()
         user = notify_db.session.get(User, user['id'])
         created_user_ids.append(user.id)
