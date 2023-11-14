@@ -227,24 +227,30 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int):
 @statsd(namespace='tasks')
 def send_scheduled_comp_and_pen_sms():
     if not is_feature_enabled(FeatureFlag.COMP_AND_PEN_MESSAGES_ENABLED):
-        current_app.logger.debug('Attempted to run send_scheduled_comp_and_pen_sms task, but feature flag disabled.')
+        current_app.logger.info('Attempted to run send_scheduled_comp_and_pen_sms task, but feature flag disabled.')
         return
 
-    messages_per_min = 100  # TODO test: update to 3000 for final commit
+    messages_per_min = 5  # TODO test: update to 3000 for final commit
     dynamodb_table_name = os.getenv('COMP_AND_PEN_DYANMODB_NAME')
     service_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
     template_id = os.getenv('COMP_AND_PEN_TEMPLATE_ID')
+
+    # TODO test: can be removed after testing
+    current_app.logger.info('send_scheduled_comp_and_pen_sms attempting connection to dynamodb...')
 
     # connect to dynamodb table
     # TODO test: do I need infra to allow access to dynamo?
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(dynamodb_table_name)
 
+    # TODO test: can be removed after testing
+    current_app.logger.info('send_scheduled_comp_and_pen_sms connected to dynamodb')
+
     # get messages to send
     results = _get_dynamodb_comp_pen_messages(table, messages_per_min)
 
     # TODO test: can be removed after testing
-    current_app.logger.debug('items from dynamodb: %s', results)
+    current_app.logger.info('send_scheduled_comp_and_pen_sms items from dynamodb: %s', results)
 
     # stop if there are no messages
     if results is None or len(results.get('Items')) < 1:
@@ -266,7 +272,7 @@ def send_scheduled_comp_and_pen_sms():
     # send messages and update entries in dynamodb table
     for item in results.get('Items'):
         # TODO test: can be removed after testing
-        current_app.logger.debug(
+        current_app.logger.info(
             'item paymentAmount from dynamodb: %s | item vaprofile_id from dynamodb: %s',
             item.get('paymentAmount'), item.get('vaprofile_id')
         )
@@ -299,4 +305,4 @@ def send_scheduled_comp_and_pen_sms():
         )
 
         # TODO test: can be removed after testing
-        current_app.logger.debug('updated_item from dynamodb ("processed" shouldb be "True"): %s', updated_item)
+        current_app.logger.info('updated_item from dynamodb ("processed" shouldb be "True"): %s', updated_item)
