@@ -3,7 +3,7 @@ import os
 import pytest
 import pytz
 import requests_mock
-from typing import Union
+from typing import List, Union
 from uuid import uuid4
 from app import db
 from app.clients.email import EmailClient
@@ -162,34 +162,36 @@ def sample_user(notify_db_session, set_user_as_admin):
 
     yield _sample_user
 
+    cleanup_user(created_user_ids, notify_db_session.session)
+
+
+def cleanup_user(user_ids: List[int], session: scoped_session):
     # Unsafe to teardown with objects, have to use ids to look up the object
-    for user_id in created_user_ids:
-        user = notify_db_session.session.get(User, user_id)
+    for user_id in user_ids:
+        user = session.get(User, user_id)
         # Clear user_folder_permissions
-        notify_db_session.session.execute(
+        session.execute(
             delete(user_folder_permissions).where(user_folder_permissions.c.user_id == user.id)
         )
 
         # Clear permissions
-        for user_perm in notify_db_session.session.scalars(select(Permission)
-                                                           .where(Permission.user_id == user.id)).all():
-            notify_db_session.session.delete(user_perm)
+        for user_perm in session.scalars(select(Permission).where(Permission.user_id == user.id)).all():
+            session.delete(user_perm)
 
         # Clear user_to_service
-        for user_service in notify_db_session.session.scalars(select(ServiceUser)
-                                                              .where(ServiceUser.user_id == user.id)).all():
-            notify_db_session.session.delete(user_service)
+        for user_service in session.scalars(select(ServiceUser).where(ServiceUser.user_id == user.id)).all():
+            session.delete(user_service)
 
         # Clear services created by this user
         stmt = select(Service).where(Service.created_by_id == user_id)
-        services = notify_db_session.session.scalars(stmt).all()
+        services = session.scalars(stmt).all()
         if services is not None:
             service_ids = [s.id for s in services]
-            service_cleanup(service_ids, notify_db_session.session)
+            service_cleanup(service_ids, session)
 
         # Delete the user
-        notify_db_session.session.delete(user)
-    notify_db_session.session.commit()
+        session.delete(user)
+    session.commit()
 
 
 @pytest.fixture(scope='function')
@@ -1513,37 +1515,6 @@ def mock_firetext_client(mocker, statsd_client=None):
 
 
 @pytest.fixture(scope='function')
-def sms_code_template(notify_db,
-                      notify_db_session):
-    service, user = notify_service(notify_db, notify_db_session)
-    return create_custom_template(
-        service=service,
-        user=user,
-        template_config_name='SMS_CODE_TEMPLATE_ID',
-        content='((verify_code))',
-        template_type='sms'
-    )
-
-
-@pytest.fixture(scope='function')
-def email_2fa_code_template(notify_db, notify_db_session):
-    service, user = notify_service(notify_db, notify_db_session)
-    return create_custom_template(
-        service=service,
-        user=user,
-        template_config_name='EMAIL_2FA_TEMPLATE_ID',
-        content=(
-            'Hi ((name)),'
-            ''
-            'To sign in to GOV.​UK Notify please open this link:'
-            '((url))'
-        ),
-        subject='Sign in to GOV.UK Notify',
-        template_type=EMAIL_TYPE
-    )
-
-
-@pytest.fixture(scope='function')
 def email_verification_template(notify_db,
                                 notify_db_session):
     service, user = notify_service(notify_db, notify_db_session)
@@ -2188,7 +2159,7 @@ def sample_service_email_reply_to(notify_db_session, sample_service):
     def _wrapper(service=None, **kwargs):
         data = {
             'service': service or sample_service(),
-            'email_address': 'vanotify@va.gov',
+            'email_address': kwargs.get('email_address', 'vanotify@va.gov'),
             'is_default': True
         }
         service_email_reply_to = ServiceEmailReplyTo(**data)
@@ -2349,33 +2320,12 @@ def sample_template_session(notify_db, sample_service_session, sample_user_sessi
 def sample_user_session(notify_db):
     created_user_ids = []
 
-    def _wrapper(*args, **kwargs):
-        # Don't recreate this user unless we specify we want to make a new one
-        user = create_user(*args, check_if_user_exists=True, **kwargs)
-        from sqlalchemy.dialects.postgresql import insert as dialect_insert
-        user.pop('password')
-
-        insert_stmt = dialect_insert(User).values(**user)
-        stmt = insert_stmt.on_conflict_do_nothing(index_elements=['id'])
-        notify_db.session.execute(stmt)
-
-        notify_db.session.commit()
-        user = notify_db.session.get(User, user['id'])
+    def _sample_user(*args, **kwargs):
+        # Cannot set platform admin when creating a user (schema)
+        user = create_user(*args, **kwargs)
         created_user_ids.append(user.id)
         return user
 
-    yield _wrapper
+    yield _sample_user
 
-    for user_id in created_user_ids:
-        user = notify_db.session.get(User, user_id)
-        # Clear user_to_service
-        notify_db.session.execute(delete(user_folder_permissions).where(user_folder_permissions.c.user_id == user.id))
-
-        # Clear user_folder_permissions
-        for user_service in notify_db.session.scalars(select(ServiceUser)
-                                                      .where(ServiceUser.user_id == user.id)).all():
-            notify_db.session.delete(user_service)
-
-        notify_db.session.delete(user)
-    created_user_ids.clear()
-    notify_db.session.commit()
+    cleanup_user(created_user_ids, notify_db.session)
