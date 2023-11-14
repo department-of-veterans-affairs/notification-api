@@ -44,12 +44,13 @@ def send_notification_bypass_route(
     else:
         q = QueueNames.NOTIFY
 
-    current_app.logger.info(
-        'sending %s notification with send_notification_bypass_route, notification id %s',
-        notification_type, notification.id
-    )
-
     if recipient_item is not None:
+        current_app.logger.info(
+            'sending %s notification with send_notification_bypass_route via '
+            'send_to_queue_for_recipient_info_based_on_recipient_identifier, notification id %s',
+            notification_type, notification.id
+        )
+
         send_to_queue_for_recipient_info_based_on_recipient_identifier(
             notification=notification,
             id_type=recipient_item['id_type'],
@@ -58,6 +59,11 @@ def send_notification_bypass_route(
             onsite_enabled=False
         )
     else:
+        current_app.logger.info(
+            'sending %s notification with send_notification_bypass_route via send_notification_to_queue, '
+            'notification id %s', notification_type, notification.id
+        )
+
         send_notification_to_queue(
             notification=notification,
             research_mode=False,
