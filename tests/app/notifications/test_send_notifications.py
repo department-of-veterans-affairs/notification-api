@@ -1,6 +1,3 @@
-
-from unittest import mock
-
 from app.models import SMS_TYPE, EMAIL_TYPE, KEY_TYPE_NORMAL
 from app.config import QueueNames
 from app.notifications.send_notifications import send_notification_bypass_route
@@ -86,15 +83,16 @@ def test_send_notification_bypass_route_sms_with_recipient_item(
         'id_value': '1234'
     }
 
-    # Test sending an SMS notification using the default sms_sender_id when it's not provided
+    # Test sending an SMS notification using the recipient_item
     send_notification_bypass_route(
         service=sample_service_sms_permission,
         template=sample_template,
         notification_type=SMS_TYPE,
         recipient_item=recipient_item,
+        sms_sender_id='test_sms_sender'
     )
 
-    # Assert that the default SMS sender ID was used
+    # Assert the notification received the expected params
     persist_notification_mock.assert_called_with(
         template_id=sample_template.id,
         template_version=sample_template.version,
@@ -105,10 +103,10 @@ def test_send_notification_bypass_route_sms_with_recipient_item(
         api_key_id=None,
         key_type=KEY_TYPE_NORMAL,
         recipient_identifier=recipient_item,
-        sms_sender_id=sample_service_sms_permission.get_default_sms_sender_id(),
+        sms_sender_id='test_sms_sender',
     )
 
-    # Assert that the notification was queued correctly
+    # Assert that the notification was queued correctly, with expected params
     send_to_queue_for_recipient_info_based_on_recipient_identifier_mock.assert_called_with(
         notification=sample_notification,
         id_type=recipient_item['id_type'],
@@ -128,12 +126,11 @@ def test_send_notification_bypass_route_email_with_recipient(
         sample_notification
 ):
     persist_notification_mock = mocker.patch(
-        'app.notifications.send_notifications.persist_notification',
-        return_value=sample_notification
+        'app.notifications.send_notifications.persist_notification', return_value=sample_notification
     )
     send_notification_to_queue_mock = mocker.patch('app.notifications.send_notifications.send_notification_to_queue')
 
-    # Test sending an SMS notification using the default sms_sender_id when it's not provided
+    # Test sending an email notification with recipient
     send_notification_bypass_route(
         service=sample_service_sms_permission,
         template=sample_template,
@@ -141,7 +138,7 @@ def test_send_notification_bypass_route_email_with_recipient(
         recipient='test@email.com',
     )
 
-    # Assert that the default SMS sender ID was used
+    # Assert the notification received the expected params
     persist_notification_mock.assert_called_with(
         template_id=sample_template.id,
         template_version=sample_template.version,
@@ -152,16 +149,16 @@ def test_send_notification_bypass_route_email_with_recipient(
         api_key_id=None,
         key_type=KEY_TYPE_NORMAL,
         recipient_identifier=None,
-        sms_sender_id=mock.ANY,
+        sms_sender_id=None,
     )
 
-    # Assert that the notification was queued correctly
+    # Assert the notification was queued correctly, with expected params
     send_notification_to_queue_mock.assert_called_with(
         notification=sample_notification,
         research_mode=False,
         queue=QueueNames.SEND_EMAIL,
         recipient_id_type=None,
-        sms_sender_id=mock.ANY,
+        sms_sender_id=None,
     )
 
 
@@ -172,8 +169,7 @@ def test_send_notification_bypass_route_email_with_recipient_item(
         sample_notification
 ):
     persist_notification_mock = mocker.patch(
-        'app.notifications.send_notifications.persist_notification',
-        return_value=sample_notification
+        'app.notifications.send_notifications.persist_notification', return_value=sample_notification
     )
     send_to_queue_for_recipient_info_based_on_recipient_identifier_mock = mocker.patch(
         'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier'
@@ -183,7 +179,7 @@ def test_send_notification_bypass_route_email_with_recipient_item(
         'id_value': '1234'
     }
 
-    # Test sending an SMS notification using the default sms_sender_id when it's not provided
+    # Test sending an email notification, with recipient_item
     send_notification_bypass_route(
         service=sample_service_sms_permission,
         template=sample_template,
@@ -191,7 +187,7 @@ def test_send_notification_bypass_route_email_with_recipient_item(
         recipient_item=recipient_item,
     )
 
-    # Assert that the default SMS sender ID was used
+    # Assert the notification received the expected params
     persist_notification_mock.assert_called_with(
         template_id=sample_template.id,
         template_version=sample_template.version,
@@ -205,7 +201,7 @@ def test_send_notification_bypass_route_email_with_recipient_item(
         sms_sender_id=None,
     )
 
-    # Assert that the notification was queued correctly
+    # Assert that the notification was queued correctly, with the expected params
     send_to_queue_for_recipient_info_based_on_recipient_identifier_mock.assert_called_with(
         notification=sample_notification,
         id_type=recipient_item['id_type'],
