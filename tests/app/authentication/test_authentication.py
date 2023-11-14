@@ -292,7 +292,7 @@ def test_authentication_returns_error_when_service_doesnt_exit(client, sample_us
 
 def test_authentication_returns_error_when_service_inactive(client, sample_user, sample_service, sample_api_key):
     user = sample_user()
-    service = sample_service(user, str(uuid4()), active=False)
+    service = sample_service(user=user, active=False)
     assert service.created_by == user
     assert not service.active
     api_key = sample_api_key(service)
