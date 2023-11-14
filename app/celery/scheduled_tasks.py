@@ -198,7 +198,7 @@ def check_templated_letter_state():
             )
 
 
-def _get_dynamodb_comp_pen_messages(table, message_limit: int):
+def _get_dynamodb_comp_pen_messages(table, message_limit: int) -> list:
     try:
         results = table.scan(
             FilterExpression=boto3.dynamodb.conditions.Attr('processed').eq(False),
@@ -217,14 +217,14 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int):
 
     items: list = results.get('Items')
 
-    while 'LastEvaluatedKey' in results:
+    while 'LastEvaluatedKey' in results and len(items) < message_limit:
         # TODO test: can be removed after testing
         current_app.logger.info(
             'getting more results from dynamodb LastEvaluatedKey: %s', results.get('LastEvaluatedKey'))
 
         results = table.scan(
             FilterExpression=boto3.dynamodb.conditions.Attr('processed').eq(False),
-            Limit=message_limit,
+            Limit=message_limit // 2,
             ExclusiveStartKey=results['LastEvaluatedKey']
         )
 
@@ -239,7 +239,7 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int):
     # TODO test: can be removed after testing
     current_app.logger.info('returning all items from dynamodb: %s', results.get('Items'))
 
-    return results.get('Items')
+    return items[:message_limit]
 
 
 @notify_celery.task(name='send-scheduled-comp-and-pen-sms')
