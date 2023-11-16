@@ -204,10 +204,12 @@ def create_service_with_defined_sms_sender(
     service = create_service(*args, **kwargs)
 
     sms_sender = ServiceSmsSender.query.filter_by(service_id=service.id).first()
-    dao_update_service_sms_sender(service_id=service.id,
-                                  service_sms_sender_id=sms_sender.id,
-                                  is_default=True,
-                                  sms_sender=sms_sender_value)
+    dao_update_service_sms_sender(
+        service_id=service.id,
+        service_sms_sender_id=sms_sender.id,
+        is_default=True,
+        sms_sender=sms_sender_value
+    )
 
     return service
 
