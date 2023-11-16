@@ -392,6 +392,9 @@ def test_create_service(
     assert len(service_sms_senders) == 1
     assert service_sms_senders[0].sms_sender == current_app.config['FROM_NUMBER']
 
+    # Teardown
+    
+
 
 @pytest.mark.skip(reason='We do not create services with default SMS senders anymore but will move this')
 def test_create_service_with_valid_provider(

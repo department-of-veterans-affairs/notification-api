@@ -29,6 +29,7 @@ from app.model import User
 from app.models import (
     ApiKey,
     AnnualBilling,
+    COMPLAINT_CALLBACK_TYPE,
     CommunicationItem,
     Domain,
     EMAIL_TYPE,
@@ -69,6 +70,7 @@ from app.models import (
     TemplateRedacted,
     user_folder_permissions,
     UserServiceRoles,
+    WEBHOOK_CHANNEL_TYPE,
 )
 from app.service.service_data import ServiceData
 from datetime import datetime, timedelta
@@ -194,30 +196,79 @@ def cleanup_user(user_ids: List[int], session: scoped_session):
     session.commit()
 
 
+@pytest.fixture
+def sample_service_callback(notify_db_session, sample_service):
+    service_callback_ids = []
+
+    def _wrapper(
+            service_id=None,
+            url='',
+            bearer_token="some_super_secret",
+            updated_by_id=None,
+            callback_type=COMPLAINT_CALLBACK_TYPE,
+            callback_channel=WEBHOOK_CHANNEL_TYPE):
+        data = {
+            'service_id': service_id,
+            'url': url or f"https://something{uuid4()}.com",
+            'bearer_token': bearer_token,
+            'updated_by_id': updated_by_id,
+            'callback_type': callback_type,
+            'callback_channel': callback_channel,
+        }
+        service = None
+
+        if service_id is None or updated_by_id is None:
+            service = sample_service()
+            # Input may have a different service for each. Only update if it did not set it
+            if service_id is None:
+                data['service_id'] = str(service.id)
+            if updated_by_id is None:
+                data['updated_by_id'] = str(service.users[0].id)
+
+        service_callback = ServiceCallback(**data)
+        notify_db_session.session.add(service_callback)
+        notify_db_session.session.commit()
+        service_callback_ids.append(service_callback.id)
+
+        return service_callback
+
+    yield _wrapper
+
+    # Teardown
+    for sc_id in service_callback_ids:
+        service_callback = notify_db_session.session.get(ServiceCallback, sc_id)
+        if service_callback is None:
+            continue
+
+        notify_db_session.session.delete(service_callback)
+    notify_db_session.session.commit()
+
+
 @pytest.fixture(scope='function')
-def sample_user_service_role(sample_user, sample_service):
-    return UserServiceRoles(
-        user_id=sample_user.id,
-        service_id=sample_service.id,
+def sample_user_service_role(notify_db_session, sample_service):
+    service = sample_service()
+    user_service_role = UserServiceRoles(
+        user_id=service.users[0].id,
+        service_id=service.id,
         role="admin",
         created_at=datetime.utcnow(),
     )
 
+    yield user_service_role
+
 
 @pytest.fixture(scope='function')
-def sample_service_role_udpated(notify_db_session, sample_user, sample_service):
+def sample_service_role_udpated(notify_db_session, sample_service):
+    service = sample_service()
     user_service_role = UserServiceRoles(
-        user_id=sample_user.id,
-        service_id=sample_service.id,
+        user_id=service.users[0].id,
+        service_id=sample_service().id,
         role="admin",
         created_at=datetime_in_past(days=3),
         updated_at=datetime.utcnow(),
     )
 
     yield user_service_role
-
-    notify_db_session.session.delete(user_service_role)
-    notify_db_session.session.commit()
 
 
 @pytest.fixture(scope="function")
@@ -516,13 +567,18 @@ def sample_service_helper(
 
 def service_cleanup(service_ids: list, session: scoped_session) -> None:
     """
-    Cleans up a list of services by deleting all dependencies then clearing the services.
-    Moved this out of the sample_service method for clarity.
+    Cleans up a list of services by deleting all dependencies then clearing the services. Services are used for almost
+    everything we do, so the list below is extensive. Without all these here we will need specific ordering on the
+    fixtures so one fixture cleans up before it makes it to the sample_service teardown.
+    Moved this out of the sample_service fixture for clarity.
     """
 
     # This is an unfortunate reality of the deep dependency web of our database
     for service_id in service_ids:
         service = session.get(Service, service_id)
+        if service is None:
+            continue
+
         # Clear annual_billing
         session.execute(delete(AnnualBilling).where(AnnualBilling.service_id == service_id))
 
@@ -587,8 +643,15 @@ def service_cleanup(service_ids: list, session: scoped_session) -> None:
         ).all():
             session.delete(service_callback)
 
+        # Clear user_to_service
         for user_to_service in session.scalars(select(ServiceUser).where(ServiceUser.service_id == service_id)).all():
             session.delete(user_to_service)
+
+        # Clear inbound_numbers
+        session.execute(delete(InboundNumber).where(InboundNumber.service_id == service_id))
+
+        # Clear service_email_reply_to
+        session.execute(delete(ServiceEmailReplyTo).where(ServiceEmailReplyTo.service_id == service_id))
 
         session.execute(delete(Service).where(Service.id == service_id))
     session.commit()
@@ -750,6 +813,9 @@ def sample_template(notify_db_session, sample_service, sample_user):
     # Teardown
     for template_id in template_ids:
         template = notify_db_session.session.get(Template, template_id)
+        if template is None:  # It has already been cleaned up
+            continue
+
         for history in notify_db_session.session.scalars(
             select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)
         ).all():
@@ -988,19 +1054,23 @@ def sample_email_template_with_onsite_true(sample_template):
 
 @pytest.fixture
 def sample_api_key(notify_db_session, sample_service):
-    created_keys = []
+    created_key_ids = []
 
     def _sample_api_key(service=None, key_type=KEY_TYPE_NORMAL, key_name=None, expired=False):
         if service is None:
             service = sample_service()
         api_key = create_api_key(service, key_type, key_name, expired)
         version_api_key(api_key)
-        created_keys.append(api_key)
+        created_key_ids.append(api_key.id)
         return api_key
 
     yield _sample_api_key
 
-    for key in created_keys:
+    for key_id in created_key_ids:
+        key = notify_db_session.session.get(ApiKey, key_id)
+        if key is None:
+            continue
+
         # No model for api_keys_history
         ApiKeyHistory = Table('api_keys_history', ApiKey.get_history_model().metadata, autoload_with=db.engine)
         notify_db_session.session.execute(delete(ApiKeyHistory).where(ApiKeyHistory.c.id == key.id))
@@ -1151,7 +1221,7 @@ def sample_notification_with_job(
     if job is None:
         job = create_job(template=template)
 
-    return create_notification(
+    yield create_notification(
         template=template,
         job=job,
         job_row_number=job_row_number if job_row_number is not None else None,
@@ -1166,6 +1236,9 @@ def sample_notification_with_job(
         key_type=key_type,
         sms_sender_id=sample_sms_sender.id
     )
+
+    # Teardown
+    notify_db_session.session.execute(delete(Notification).where(Notification.service_id == service.id))
 
 
 @pytest.fixture
@@ -1197,7 +1270,7 @@ def sample_notification(notify_db_session, sample_api_key, sample_service, sampl
             ).first()
 
             if not api_key:
-                api_key = create_api_key(kwargs["template"].service, key_type=kwargs.get("key_type", KEY_TYPE_NORMAL))
+                api_key = sample_api_key(kwargs["template"].service, key_type=kwargs.get("key_type", KEY_TYPE_NORMAL))
                 kwargs["api_key"] = api_key
                 created_api_keys.append(api_key)
 
@@ -1230,6 +1303,9 @@ def sample_notification(notify_db_session, sample_api_key, sample_service, sampl
         if not inspect(notification).detached:
             notify_db_session.session.delete(notification)
     for template in created_templates:
+        for hist in notify_db_session.session.scalars(select(TemplateHistory)
+                                                      .where(TemplateHistory.id == template.id)).all():
+            notify_db_session.session.delete(hist)    
         template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
         notify_db_session.session.delete(template_redacted)
         notify_db_session.session.delete(template)
@@ -1823,7 +1899,7 @@ def sample_inbound_sms(notify_db_session, sample_service, sample_inbound_number)
 
 @pytest.fixture
 def sample_inbound_number(notify_db_session):
-    inbound_numbers = []
+    inbound_number_ids = []
 
     def _wrapper(
         number=None,
@@ -1848,13 +1924,18 @@ def sample_inbound_number(notify_db_session):
 
         notify_db_session.session.add(inbound_number)
         notify_db_session.session.commit()
-        inbound_numbers.append(inbound_number)
+        inbound_number_ids.append(inbound_number.id)
+
         return inbound_number
 
     yield _wrapper
 
     # Teardown
-    for inbound_number in inbound_numbers:
+    for inbound_number_id in inbound_number_ids:
+        inbound_number = notify_db_session.session.get(InboundNumber, inbound_number_id)
+        if inbound_number is None:
+            continue
+
         notify_db_session.session.delete(inbound_number)
     notify_db_session.session.commit()
 

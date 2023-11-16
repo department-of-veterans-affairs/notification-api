@@ -1,6 +1,7 @@
 import uuid
 
 import pytest
+from sqlalchemy import select, Table
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import encryption
@@ -9,6 +10,7 @@ from app.dao.service_callback_api_dao import (
     reset_service_callback_api,
     get_service_callback,
     get_service_delivery_status_callback_api_for_service)
+from app.db import db
 from app.models import ServiceCallback, NOTIFICATION_FAILED, NOTIFICATION_TEMPORARY_FAILURE, \
     NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_STATUS_TYPES_COMPLETED, NOTIFICATION_SENT, NOTIFICATION_DELIVERED, \
     WEBHOOK_CHANNEL_TYPE
@@ -16,39 +18,52 @@ from app.schemas import service_callback_api_schema
 from tests.app.db import create_service_callback_api
 
 
-def test_save_service_callback_api(sample_service):
+def test_save_service_callback_api(notify_db_session, sample_service):
     notification_statuses = [NOTIFICATION_FAILED]
-    service_callback_api = ServiceCallback(  # nosec
-        service_id=sample_service.id,
+    service = sample_service()
+
+    service_callback_obj = ServiceCallback(  # nosec
+        service_id=service.id,
         url="https://some_service/callback_endpoint",
         bearer_token="some_unique_string",
-        updated_by_id=sample_service.users[0].id,
+        updated_by_id=service.users[0].id,
         notification_statuses=notification_statuses,
         callback_channel=WEBHOOK_CHANNEL_TYPE
     )
 
-    save_service_callback_api(service_callback_api)
+    save_service_callback_api(service_callback_obj)
 
-    results = ServiceCallback.query.all()
-    assert len(results) == 1
-    callback_api = results[0]
-    assert callback_api.id is not None
-    assert callback_api.service_id == sample_service.id
-    assert callback_api.updated_by_id == sample_service.users[0].id
+    callback_api = notify_db_session.session.get(ServiceCallback, service_callback_obj.id)
+
+    assert callback_api is not None
+    assert callback_api.id == service_callback_obj.id
+    assert callback_api.service_id == service_callback_obj.service_id
+    assert callback_api.updated_by_id == service_callback_obj.updated_by_id
     assert callback_api.url == "https://some_service/callback_endpoint"
     assert callback_api.bearer_token == "some_unique_string"
     assert callback_api._bearer_token != "some_unique_string"
     assert callback_api.updated_at is None
     assert callback_api.notification_statuses == notification_statuses
 
-    versioned = ServiceCallback.get_history_model().query.filter_by(id=callback_api.id).one()
+    ServiceCallbackHistory = Table(
+        'service_callback_history',
+        ServiceCallback.get_history_model().metadata,
+        autoload_with=db.engine
+    )
+
+    stmt = select(ServiceCallbackHistory).where(ServiceCallbackHistory.c.id == callback_api.id)
+    versioned = notify_db_session.session.execute(stmt).one()
+
     assert versioned.id == callback_api.id
-    assert versioned.service_id == sample_service.id
-    assert versioned.updated_by_id == sample_service.users[0].id
+    assert versioned.service_id == service.id
+    assert versioned.updated_by_id == service.users[0].id
     assert versioned.url == "https://some_service/callback_endpoint"
-    assert encryption.decrypt(versioned._bearer_token) == "some_unique_string"
+    assert encryption.decrypt(versioned.bearer_token) == "some_unique_string"
     assert versioned.updated_at is None
     assert versioned.version == 1
+
+    # Teardown
+    # sample_service cleans up ServiceCallbacks and histories
 
 
 def test_save_service_callback_api_fails_if_service_does_not_exist(notify_db, notify_db_session):
