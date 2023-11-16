@@ -1,12 +1,9 @@
 import pytest
 import uuid
 from app import db
-from app.dao.api_key_dao import expire_api_key
 from app.dao.services_dao import dao_archive_service
-from app.dao.templates_dao import dao_update_template
 from app.models import Service
 from datetime import datetime
-from freezegun import freeze_time
 from sqlalchemy import select
 from tests import create_authorization_header, unwrap_function
 

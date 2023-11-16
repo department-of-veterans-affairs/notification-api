@@ -1305,7 +1305,7 @@ def sample_notification(notify_db_session, sample_api_key, sample_service, sampl
     for template in created_templates:
         for hist in notify_db_session.session.scalars(select(TemplateHistory)
                                                       .where(TemplateHistory.id == template.id)).all():
-            notify_db_session.session.delete(hist)    
+            notify_db_session.session.delete(hist)
         template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
         notify_db_session.session.delete(template_redacted)
         notify_db_session.session.delete(template)

@@ -22,7 +22,6 @@ from app.models import (
     NOTIFICATION_STATUS_TYPES_FAILED,
     NOTIFICATION_TECHNICAL_FAILURE,
     PRECOMPILED_TEMPLATE_NAME,
-    ServiceCallback,
     COMPLAINT_CALLBACK_TYPE,
     QUEUE_CHANNEL_TYPE,
     WEBHOOK_CHANNEL_TYPE
@@ -31,8 +30,6 @@ from app.va.identifier import IdentifierType
 
 from tests.app.db import (
     create_notification,
-    create_service,
-    create_inbound_number,
     create_reply_to_email,
     create_letter_contact,
     create_template,

@@ -1,9 +1,9 @@
 import pytest
 from marshmallow import ValidationError
-from sqlalchemy import desc, delete
+from sqlalchemy import desc
 
 from app.dao.provider_details_dao import dao_update_provider_details
-from app.models import ProviderDetailsHistory, Notification
+from app.models import ProviderDetailsHistory
 from tests.app.db import create_api_key
 
 
