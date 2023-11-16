@@ -243,7 +243,7 @@ def send_scheduled_comp_and_pen_sms():
     service_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
     template_id = os.getenv('COMP_AND_PEN_TEMPLATE_ID')
 
-    # Debug messages currently don't show up in cloudwatch, requires a configuration change
+    # TODO: utils #146 - Debug messages currently don't show up in cloudwatch, requires a configuration change
     current_app.logger.debug('send_scheduled_comp_and_pen_sms connecting to dynamodb')
 
     # connect to dynamodb table
