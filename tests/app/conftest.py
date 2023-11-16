@@ -4,7 +4,8 @@ import pytest
 import pytz
 import requests_mock
 from typing import List, Union
-from uuid import uuid4
+from uuid import UUID, uuid4
+import warnings
 from app import db
 from app.clients.email import EmailClient
 from app.clients.sms import SmsClient
@@ -77,6 +78,7 @@ from datetime import datetime, timedelta
 from flask import current_app, url_for
 from random import randint, randrange
 from sqlalchemy import asc, delete, inspect, update, select, Table
+from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm.session import make_transient
 from tests import create_authorization_header
@@ -1523,7 +1525,7 @@ def current_sms_provider():
 
 @pytest.fixture
 def sample_provider(notify_db_session):
-    providers = []
+    provider_ids = []
 
     def _wrapper(
         identifier: str = PINPOINT_PROVIDER,
@@ -1533,6 +1535,8 @@ def sample_provider(notify_db_session):
         notification_type: Union[EMAIL_TYPE, SMS_TYPE] = SMS_TYPE,
         active: bool = True,
         supports_international: bool = False,
+        created_by: User = None,
+        created_by_id: UUID = None,
     ):
         assert identifier in PROVIDERS
         if get:
@@ -1546,18 +1550,33 @@ def sample_provider(notify_db_session):
                 'notification_type': notification_type,
                 'active': active,
                 'supports_international': supports_international,
+                'created_by': created_by,
+                'created_by_id': created_by_id,
             }
+
+            # Set created_by or created_by_id if the other exists
+            if created_by and not created_by_id:
+                data['created_by_id'] = str(created_by.id)
+            if created_by_id and not created_by:
+                data['created_by'] = notify_db_session.session.get(User, created_by_id)
+
             provider = ProviderDetails(**data)
             notify_db_session.session.add(provider)
             notify_db_session.session.commit()
-            providers.append(provider)
+            provider_ids.append(provider.id)
 
         return provider
 
     yield _wrapper
 
     # Teardown
-    for provider in providers:
+    for provider_id in provider_ids:
+        provider = notify_db_session.session.get(ProviderDetails, provider_id)
+        if provider is None:
+            continue
+
+        notify_db_session.session.execute(delete(ProviderDetailsHistory)
+                                          .where(ProviderDetailsHistory.id == provider_id))
         notify_db_session.session.delete(provider)
     notify_db_session.session.commit()
 
@@ -2410,3 +2429,131 @@ def sample_user_session(notify_db):
     yield _sample_user
 
     cleanup_user(created_user_ids, notify_db.session)
+
+
+@pytest.fixture(scope='session', autouse=True)
+def database_prep(notify_db):
+    """
+    This clears out all the residuals that built up over the years from the test DB.
+    Only ran at the very start of the tests and is automatic due to autouse=True.
+    """
+    # Setup metadata with reflection so we can get tables from their string names
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=SAWarning)
+        meta_data = notify_db.MetaData(bind=notify_db.engine)
+        notify_db.MetaData.reflect(meta_data)
+
+    notify_service_id = current_app.config['NOTIFY_SERVICE_ID']
+    notify_user_id = current_app.config['NOTIFY_USER_ID']
+
+    # Used this format to refence the tables because model availability is inconsistent
+    AB = meta_data.tables['annual_billing']
+    notify_db.session.execute(delete(AB).where(AB.c.service_id == notify_service_id))
+
+    SERT = meta_data.tables['service_email_reply_to']
+    notify_db.session.execute(delete(SERT).where(SERT.c.service_id == notify_service_id))
+
+    SP = meta_data.tables['service_permissions']
+    notify_db.session.execute(delete(SP).where(SP.c.service_id == notify_service_id))
+
+    SSS = meta_data.tables['service_sms_senders']
+    notify_db.session.execute(delete(SSS).where(SSS.c.service_id == notify_service_id))
+
+    SH = meta_data.tables['services_history']
+    notify_db.session.execute(delete(SH).where(SH.c.id == notify_service_id))
+
+    UtS = meta_data.tables['user_to_service']
+    notify_db.session.execute(delete(UtS).where(UtS.c.service_id == notify_service_id))
+
+    TR = meta_data.tables['template_redacted']
+    notify_db.session.execute(delete(TR).where(TR.c.updated_by_id == notify_user_id))
+
+    TH = meta_data.tables['templates_history']
+    notify_db.session.execute(delete(TH).where(TH.c.service_id == notify_service_id))
+
+    T = meta_data.tables['templates']
+    notify_db.session.execute(delete(T).where(T.c.service_id == notify_service_id))
+
+    S = meta_data.tables['services']
+    notify_db.session.execute(delete(S).where(S.c.id == notify_service_id))
+
+    U = meta_data.tables['users']
+    notify_db.session.execute(delete(U).where(U.c.id == notify_user_id))
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """
+    A pytest hook that runs after all tests. Reports database is clear of extra entries after all tests have ran.
+    Exit code is set to 1 if anything is left in any table.
+    """
+    from tests.conftest import application
+    from sqlalchemy.sql import text as sa_text
+    import warnings
+
+    TRUNCATE_ARTIFACTS = False
+    with application.app_context():
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=SAWarning)
+            meta_data = db.MetaData(bind=db.engine)
+            db.MetaData.reflect(meta_data)
+
+        acceptable_counts = {
+            'communication_items': 4,
+            'job_status': 9,
+            'key_types': 3,
+            'provider_details': 9,
+            'provider_details_history': 9,
+            'provider_rates': 5,
+            'rates': 2,
+            'service_callback_channel': 2,
+            'service_callback_type': 3,
+            'service_permission_types': 12,
+        }
+
+        skip_tables = (
+            'alembic_version',
+            'auth_type',
+            'branding_type',
+            'dm_datetime',
+            'key_types',
+            'notification_status_types',
+            'template_process_type',
+        )
+        to_be_deleted_tables = (
+            'organisation_types',
+            'letter_rates',
+            'invite_status_type',
+            'job_status',
+        )
+
+        # Gather tablenames & sort
+        table_list = sorted([table for table in db.engine.table_names()
+                            if table not in skip_tables and table not in to_be_deleted_tables])
+
+        # Use metadata to query the table and add the table name to the list if there are any records
+        tables_with_artifacts = []
+        for table_name in table_list:
+            row_count = len(db.session.execute(select(meta_data.tables[table_name])).all())
+            # Only way it's okay to have records is if count <= acceptable count
+            if table_name in acceptable_counts and row_count <= acceptable_counts[table_name]:
+                continue
+            elif row_count > 0:
+                tables_with_artifacts.append(table_name)
+
+        if TRUNCATE_ARTIFACTS:
+            print()
+            for table in tables_with_artifacts:
+                # Skip tables that may have necessary information
+                if table not in acceptable_counts:
+                    db.session.execute(sa_text(f"""TRUNCATE TABLE {table} CASCADE"""))
+                else:
+                    print(f'Table {table} contains too many records but cannot be truncated.')
+            db.session.commit()
+
+    # \033[91m is red  \033[32m is green  \033[0m is reset
+    if tables_with_artifacts:
+        print(f"\n\nThese tables contain artifacts: \033[91m{tables_with_artifacts}\n\nUNIT TESTS FAILED\033[0m")
+        # session.exitstatus = 1
+    else:
+        print('\n\n\033[32mDATABASE IS CLEAN\033[0m')
