@@ -2171,11 +2171,18 @@ def sample_sms_sender_v2(notify_db_session):
 
 @pytest.fixture(scope='function')
 def sample_sms_sender(notify_db_session, sample_service):
-    service_sms_sender = dao_add_sms_sender_for_service(sample_service().id, "+12025555555", True)
-    yield service_sms_sender
+    created_sms_senders = []
 
-    # Fails if any notifications were sent
-    notify_db_session.session.delete(service_sms_sender)
+    def _sample_sms_sender(service_id: str):
+        service_sms_sender = dao_add_sms_sender_for_service(service_id, "+12025555555", True)
+        created_sms_senders.append(service_sms_sender)
+        return service_sms_sender
+
+    yield _sample_sms_sender
+
+    # Teardown
+    for sms_sender in created_sms_senders:
+        notify_db_session.session.delete(sms_sender)
     notify_db_session.session.commit()
 
 
