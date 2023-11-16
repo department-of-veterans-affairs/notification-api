@@ -2431,56 +2431,6 @@ def sample_user_session(notify_db):
     cleanup_user(created_user_ids, notify_db.session)
 
 
-@pytest.fixture(scope='session', autouse=True)
-def database_prep(notify_db):
-    """
-    This clears out all the residuals that built up over the years from the test DB.
-    Only ran at the very start of the tests and is automatic due to autouse=True.
-    """
-    # Setup metadata with reflection so we can get tables from their string names
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=SAWarning)
-        meta_data = notify_db.MetaData(bind=notify_db.engine)
-        notify_db.MetaData.reflect(meta_data)
-
-    notify_service_id = current_app.config['NOTIFY_SERVICE_ID']
-    notify_user_id = current_app.config['NOTIFY_USER_ID']
-
-    # Used this format to refence the tables because model availability is inconsistent
-    AB = meta_data.tables['annual_billing']
-    notify_db.session.execute(delete(AB).where(AB.c.service_id == notify_service_id))
-
-    SERT = meta_data.tables['service_email_reply_to']
-    notify_db.session.execute(delete(SERT).where(SERT.c.service_id == notify_service_id))
-
-    SP = meta_data.tables['service_permissions']
-    notify_db.session.execute(delete(SP).where(SP.c.service_id == notify_service_id))
-
-    SSS = meta_data.tables['service_sms_senders']
-    notify_db.session.execute(delete(SSS).where(SSS.c.service_id == notify_service_id))
-
-    SH = meta_data.tables['services_history']
-    notify_db.session.execute(delete(SH).where(SH.c.id == notify_service_id))
-
-    UtS = meta_data.tables['user_to_service']
-    notify_db.session.execute(delete(UtS).where(UtS.c.service_id == notify_service_id))
-
-    TR = meta_data.tables['template_redacted']
-    notify_db.session.execute(delete(TR).where(TR.c.updated_by_id == notify_user_id))
-
-    TH = meta_data.tables['templates_history']
-    notify_db.session.execute(delete(TH).where(TH.c.service_id == notify_service_id))
-
-    T = meta_data.tables['templates']
-    notify_db.session.execute(delete(T).where(T.c.service_id == notify_service_id))
-
-    S = meta_data.tables['services']
-    notify_db.session.execute(delete(S).where(S.c.id == notify_service_id))
-
-    U = meta_data.tables['users']
-    notify_db.session.execute(delete(U).where(U.c.id == notify_user_id))
-
-
 def pytest_sessionfinish(session, exitstatus):
     """
     A pytest hook that runs after all tests. Reports database is clear of extra entries after all tests have ran.
@@ -2488,9 +2438,8 @@ def pytest_sessionfinish(session, exitstatus):
     """
     from tests.conftest import application
     from sqlalchemy.sql import text as sa_text
-    import warnings
 
-    TRUNCATE_ARTIFACTS = False
+    TRUNCATE_ARTIFACTS = True
     with application.app_context():
 
         with warnings.catch_warnings():
