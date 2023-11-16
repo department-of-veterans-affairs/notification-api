@@ -442,13 +442,13 @@ def dynamodb_mock():
 def sample_dynamodb_insert(dynamodb_mock):
     items_inserted = []
 
-    def wrapper(items_to_insert: list):
+    def _dynamodb_insert(items_to_insert: list):
         with dynamodb_mock.batch_writer() as batch:
             for item in items_to_insert:
                 batch.put_item(Item=item)
                 items_inserted.append(item)
 
-    yield wrapper
+    yield _dynamodb_insert
 
     # delete the items added
     for item in items_inserted:
