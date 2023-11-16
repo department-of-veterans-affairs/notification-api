@@ -312,8 +312,8 @@ def send_scheduled_comp_and_pen_sms():
             current_app.logger.critical(
                 'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | item from '
                 'dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s | exception_type: %s - '
-                'exception: %s', item.get('vaprofile_id'), item.get('participant_id'), item.get('payment_id'), type(e),
-                e
+                'exception: %s',
+                item.get('vaprofile_id'), item.get('participant_id'), item.get('payment_id'), type(e), e
             )
         else:
             current_app.logger.info(

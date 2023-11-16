@@ -1,3 +1,5 @@
+import pytest
+from app.exceptions import NotificationTechnicalFailureException
 from app.models import SMS_TYPE, EMAIL_TYPE, KEY_TYPE_NORMAL
 from app.config import QueueNames
 from app.notifications.send_notifications import send_notification_bypass_route
@@ -10,7 +12,8 @@ def test_send_notification_bypass_route_no_recipient(mocker, sample_service, sam
         'app.notifications.send_notifications.current_app.logger.critical')
 
     # Test the case where recipient and recipient_item are None, should log critical error.
-    send_notification_bypass_route(sample_service, sample_template, SMS_TYPE, recipient=None, recipient_item=None)
+    with pytest.raises(NotificationTechnicalFailureException):
+        send_notification_bypass_route(sample_service, sample_template, SMS_TYPE, recipient=None, recipient_item=None)
 
     persist_notification_mock.assert_not_called()
     mock_logger.assert_called_once()

@@ -342,4 +342,6 @@ fileignoreconfig:
     - filename: app/notifications/send_notifications.py
       checksum: c91dd74d45c6e4ea76e66964688bab6b6d65275857d9422061ff7e8b663748d8
     - filename: tests/app/notifications/test_send_notifications.py
-      checksum: 615e9ebfce95632c71d8eee1913be6fb0b001fd8e686fc92a23f41994615c79a
+      checksum: 23f7e8057a8fe922a3115c79c1898c9238971a8a24c9af5b40baf0a334200925
+    - filename: tests/app/celery/test_scheduled_tasks.py
+      checksum: 2893fb34960e6a1498a8da529d99c668806e6a156996b2914f807f768b5148bb

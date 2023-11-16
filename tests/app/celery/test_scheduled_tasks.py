@@ -438,6 +438,23 @@ def dynamodb_mock():
         yield table
 
 
+@pytest.fixture
+def sample_dynamodb_insert(dynamodb_mock):
+    items_inserted = []
+
+    def wrapper(items_to_insert: list):
+        with dynamodb_mock.batch_writer() as batch:
+            for item in items_to_insert:
+                batch.put_item(Item=item)
+                items_inserted.append(item)
+
+    yield wrapper
+
+    # delete the items added
+    for item in items_inserted:
+        dynamodb_mock.delete_item(Key={'id': item['id']})
+
+
 def test_get_dynamodb_comp_pen_messages_with_empty_table(dynamodb_mock):
     # Invoke the function with the mocked table and application
     messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=1)
@@ -445,8 +462,9 @@ def test_get_dynamodb_comp_pen_messages_with_empty_table(dynamodb_mock):
     assert messages == [], "Expected no messages from an empty table"
 
 
-def test_get_dynamodb_comp_pen_messages_with_data(dynamodb_mock):
+def test_get_dynamodb_comp_pen_messages_with_data(dynamodb_mock, sample_dynamodb_insert):
     message_limit = 3
+
     # Insert mock data into the DynamoDB table
     items_to_insert = [
         {'id': '1', 'is_processed': False},
@@ -455,10 +473,7 @@ def test_get_dynamodb_comp_pen_messages_with_data(dynamodb_mock):
         {'id': '4', 'is_processed': False},
         {'id': '5', 'is_processed': False},
     ]
-
-    with dynamodb_mock.batch_writer() as batch:
-        for item in items_to_insert:
-            batch.put_item(Item=item)
+    sample_dynamodb_insert(items_to_insert)
 
     # Invoke the function with the mocked table and application
     messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=message_limit)

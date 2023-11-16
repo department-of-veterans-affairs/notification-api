@@ -1,5 +1,6 @@
 from flask import current_app
 from app.config import QueueNames
+from app.exceptions import NotificationTechnicalFailureException
 from app.models import EMAIL_TYPE, KEY_TYPE_NORMAL, SMS_TYPE, Service, Template
 from app.notifications.process_notifications import (
     persist_notification,
@@ -19,7 +20,8 @@ def send_notification_bypass_route(
         api_key_type: str = KEY_TYPE_NORMAL
 ):
     """
-    This will create a notification and add it to the proper celery queue using the given parameters
+    This will create a notification and add it to the proper celery queue using the given parameters.
+    It will use `recipient_item` if provided, otherwise it uses `recipient`
 
     :param service: the service sending the notification
     :param template: the template to use to send the notification
@@ -37,8 +39,8 @@ def send_notification_bypass_route(
             'Programming error attempting to use send_notification_bypass_route, both recipient and recipient_item are '
             'None. Please check the code calling this function to ensure one of these fields is populated properly.'
         )
-
-        return
+        raise NotificationTechnicalFailureException(
+            'Cannot send notification without one of: recipient or recipient_item')
 
     # Use the service's default sms_sender if applicable
     if notification_type == SMS_TYPE and sms_sender_id is None:
@@ -58,6 +60,17 @@ def send_notification_bypass_route(
     )
 
     if recipient_item is not None:
+        if not ('id_type' in recipient_item and 'id_value' in recipient_item):
+            current_app.logger.critical(
+                'Error in send_notification_bypass_route attempting to send notification id %s using recipient_item. '
+                'Must contain both "id_type" and "id_value" fields, but one or both are missing. recipient_item: %s',
+                notification.id, recipient_item
+            )
+            raise NotificationTechnicalFailureException(
+                'Error attempting to send notification using recipient_item. Must contain both "id_type" and "id_value"'
+                ' fields, but one or more are missing.'
+            )
+
         current_app.logger.info(
             'sending %s notification with send_notification_bypass_route via '
             'send_to_queue_for_recipient_info_based_on_recipient_identifier, notification id %s',
