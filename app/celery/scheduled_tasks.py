@@ -311,9 +311,8 @@ def send_scheduled_comp_and_pen_sms():
             )
 
         current_app.logger.info(
-            'sent to queue, updating - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s '
-            '| paymentAmount: %s', item.get('vaprofile_id'), item.get('participant_id'), item.get('payment_id'),
-            item.get('paymentAmount')
+            'sent to queue, updating - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s ',
+            item.get('vaprofile_id'), item.get('participant_id'), item.get('payment_id')
         )
 
         # update dynamodb entries
