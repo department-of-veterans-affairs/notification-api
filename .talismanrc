@@ -128,7 +128,7 @@ fileignoreconfig:
     - filename: tests/conftest.py
       checksum: 81db237c7a3abb49d28f8fe11f2a72b2879096882eb79a6ed2556ec484eaa1e3
     - filename: tests/app/conftest.py
-      checksum: b0c7de01333b714d60c0ce33a85e9131815d9f35e081e31c0eef1a45cd7caf4f
+      checksum: 65d971fe0dccef4ba5eadcf1a32be58746ec75f025a1bd3a6bfb5da2a2197a71
     - filename: tests/app/notifications/test_process_client_response.py
       checksum: 6a72967293c852a49f04203c83dd4c2591226874e96f34bebc434d5dfc204215
     - filename: app/celery/service_callback_tasks.py

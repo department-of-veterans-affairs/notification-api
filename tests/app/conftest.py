@@ -916,25 +916,6 @@ def sample_email_template_func(notify_db_session, sample_service, sample_user):
     notify_db_session.session.commit()
 
 
-@pytest.fixture(scope="session")
-def sample_email_template(notify_db, sample_service, sample_user, worker_id):
-    """
-    Use this session-scoped e-mail template for tests that don't need to modify the template.
-    """
-
-    template_data = sample_template_helper(
-        f"session e-mail template {worker_id}", EMAIL_TYPE, sample_service, sample_user
-    )
-    template = Template(**template_data)
-    notify_db.session.add(template)
-    notify_db.session.commit()
-    print("TEMPLATE ID =", template.id)  # TODO
-    yield template
-
-    notify_db.session.delete(template)
-    notify_db.session.commit()
-
-
 @pytest.fixture(scope="function")
 def sample_email_template_history(notify_db, sample_service, sample_user, worker_id):
     """
@@ -1157,7 +1138,7 @@ def sample_email_job(notify_db,
     if service is None:
         service = create_service(check_if_service_exists=True)
     if template is None:
-        template = sample_email_template(
+        template = sample_email_template_func(
             notify_db,
             notify_db_session,
             service=service)
@@ -1244,7 +1225,7 @@ def sample_notification_with_job(
 
 
 @pytest.fixture
-def sample_notification(notify_db_session, sample_api_key, sample_service, sample_template):
+def sample_notification(notify_db_session, sample_api_key, sample_service, sample_template):  # noqa C901
     # TODO: Refactor to use fixtures for teardown purposes
     created_notifications = []
     created_scheduled_notifications = []
@@ -1301,7 +1282,7 @@ def sample_notification(notify_db_session, sample_api_key, sample_service, sampl
     for scheduled_notification in created_scheduled_notifications:
         notify_db_session.session.delete(scheduled_notification)
     for notification in created_notifications:
-        # Other things may delete it first, check before deleting
+        # Other things may delete a notification first.  Check before deleting.
         if not inspect(notification).detached:
             notify_db_session.session.delete(notification)
     for template in created_templates:
@@ -1313,7 +1294,7 @@ def sample_notification(notify_db_session, sample_api_key, sample_service, sampl
         notify_db_session.session.delete(template)
     service_cleanup(created_service_ids, notify_db_session.session)
     for api_key in created_api_keys:
-        # Other things may delete it first, check before deleting
+        # Other things may delete an API key first.  Check before deleting.
         if not inspect(api_key).detached:
             notify_db_session.session.delete(api_key)
     notify_db_session.session.commit()
