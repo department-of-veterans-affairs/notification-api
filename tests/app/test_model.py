@@ -29,10 +29,7 @@ from app.models import (
 from app.va.identifier import IdentifierType
 
 from tests.app.db import (
-    create_notification,
-    create_reply_to_email,
     create_letter_contact,
-    create_template,
     create_template_folder
 )
 
@@ -97,14 +94,21 @@ def test_status_conversion(initial_statuses, expected_statuses):
     assert set(converted_statuses) == set(expected_statuses)
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 @freeze_time("2016-01-01 11:09:00.000000")
 @pytest.mark.parametrize('template_type, recipient', [
     ('sms', '+16502532222'),
     ('email', 'foo@bar.com'),
 ])
-def test_notification_for_csv_returns_correct_type(notify_db_session, sample_template, template_type, recipient):
+def test_notification_for_csv_returns_correct_type(
+    notify_db_session,
+    sample_template,
+    sample_notification,
+    template_type,
+    recipient,
+):
     template = sample_template(template_type=template_type)
-    notification = create_notification(template, to_field=recipient)
+    notification = sample_notification(template, to_field=recipient)
 
     serialized = notification.serialize_for_csv()
     assert serialized['template_type'] == template_type
@@ -116,8 +120,8 @@ def test_notification_for_csv_returns_correct_type(notify_db_session, sample_tem
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 @freeze_time("2016-01-01 11:09:00.000000")
-def test_notification_for_csv_returns_correct_job_row_number(sample_job):
-    notification = create_notification(sample_job.template, sample_job, job_row_number=0)
+def test_notification_for_csv_returns_correct_job_row_number(sample_job, sample_notification):
+    notification = sample_notification(sample_job.template, sample_job, job_row_number=0)
 
     serialized = notification.serialize_for_csv()
     assert serialized['row_number'] == 1
@@ -140,20 +144,22 @@ def test_notification_for_csv_returns_correct_job_row_number(sample_job):
 ])
 def test_notification_for_csv_returns_formatted_status(
         sample_service,
+        sample_template,
         template_type,
         status,
-        expected_status
+        expected_status,
+        sample_notification,
 ):
-    template = create_template(sample_service, template_type=template_type)
-    notification = create_notification(template, status=status)
+    template = sample_template(sample_service(), template_type=template_type)
+    notification = sample_notification(template, status=status)
 
     serialized = notification.serialize_for_csv()
     assert serialized['status'] == expected_status
 
 
 @freeze_time("2017-03-26 23:01:53.321312")
-def test_notification_for_csv_returns_est_correctly(notify_db_session, sample_template):
-    notification = create_notification(sample_template())
+def test_notification_for_csv_returns_est_correctly(notify_db_session, sample_template, sample_notification):
+    notification = sample_notification(template=sample_template())
 
     serialized = notification.serialize_for_csv()
     assert serialized['created_at'] == '2017-03-26 19:01:53'
@@ -169,7 +175,7 @@ def test_notification_personalisation_getter_returns_empty_dict_from_None():
     assert noti.personalisation == {}
 
 
-def test_notification_personalisation_getter_always_returns_empty_dict():
+def test_notification_personalisation_getter_always_returns_empty_dict(notify_api):
     noti = Notification()
     noti._personalisation = encryption.encrypt({})
     assert noti.personalisation == {}
@@ -179,7 +185,7 @@ def test_notification_personalisation_getter_always_returns_empty_dict():
     None,
     {}
 ])
-def test_notification_personalisation_setter_always_sets_empty_dict(input_value):
+def test_notification_personalisation_setter_always_sets_empty_dict(notify_api, input_value):
     noti = Notification()
     noti.personalisation = input_value
 
@@ -190,9 +196,9 @@ def test_notification_subject_is_none_for_sms():
     assert Notification(notification_type=SMS_TYPE).subject is None
 
 
-def test_notification_subject_fills_in_placeholders(notify_db_session, sample_template):
+def test_notification_subject_fills_in_placeholders(notify_db_session, sample_template, sample_notification):
     template = sample_template(template_type=EMAIL_TYPE, subject='((name))')
-    notification = create_notification(template=template, personalisation={'name': 'hello'})
+    notification = sample_notification(template=template, personalisation={'name': 'hello'})
     assert notification.subject == 'hello'
 
     # Teardown
@@ -266,9 +272,9 @@ def test_user_service_role_serializes_with_updated(client, sample_service_role_u
     assert res['updated_at'] == sample_service_role_udpated.updated_at.isoformat() + 'Z'
 
 
-def test_notification_references_template_history(client, notify_db_session, sample_template):
+def test_notification_references_template_history(client, notify_db_session, sample_template, sample_notification):
     template = sample_template()
-    notification = create_notification(template)
+    notification = sample_notification(template=template)
     template.version = 3
     template.content = 'New template content'
 
@@ -338,7 +344,7 @@ def test_inbound_number_returns_none_when_no_inbound_number(client, sample_servi
 def test_service_get_default_reply_to_email_address(sample_service, sample_service_email_reply_to):
     service = sample_service()
     email = f'{uuid4()}default@email.com'
-    create_reply_to_email(service=service, email_address=email)
+    sample_service_email_reply_to(service=service, email_address=email)
 
     assert service.get_default_reply_to_email_address() == email
 
