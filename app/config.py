@@ -341,8 +341,8 @@ class Config(object):
             },
             'send-scheduled-comp-and-pen-sms': {
                 'task': 'send-scheduled-comp-and-pen-sms',
-                # At every minute past every hour from 13 through 21 on every day-of-month from 21 through 28
-                'schedule': crontab(hour='13-21', day_of_month='21-28'),
+                # At every minute past every hour from 13 through 21 on every day-of-month from 21 through 31
+                'schedule': crontab(hour='13-21', day_of_month='21-31'),
                 'options': {'queue': QueueNames.PERIODIC}
             },
         },
@@ -406,6 +406,11 @@ class Config(object):
 
     ROUTE_SECRET_KEY_1 = os.getenv('ROUTE_SECRET_KEY_1', '')
     ROUTE_SECRET_KEY_2 = os.getenv('ROUTE_SECRET_KEY_2', '')
+
+    # Comp and Pen Variables
+    COMP_AND_PEN_DYNAMODB_TABLE_NAME = os.getenv('COMP_AND_PEN_DYANMODB_NAME')
+    COMP_AND_PEN_SERVICE_ID = os.getenv('COMP_AND_PEN_SERVICE_ID')
+    COMP_AND_PEN_TEMPLATE_ID = os.getenv('COMP_AND_PEN_TEMPLATE_ID')
 
     # Format is as follows:
     # {"dataset_1": "token_1", ...}

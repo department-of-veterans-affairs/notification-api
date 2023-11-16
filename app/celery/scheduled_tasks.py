@@ -2,7 +2,6 @@ from datetime import (
     datetime,
     timedelta
 )
-import os
 
 import boto3
 from flask import current_app
@@ -217,6 +216,13 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int) -> list:
 
     items: list = results.get('Items')
 
+    if items is None:
+        current_app.logger.critical(
+            'Error in _get_dynamodb_comp_pen_messages trying to read "Items" from dynamodb table scan result. '
+            'Returned results does not include "Items" - results: %s', results
+        )
+        return []
+
     # Keep getting items from the table until we have the number we want to send, or run out of items
     while 'LastEvaluatedKey' in results and len(items) < message_limit:
         results = table.scan(
@@ -239,9 +245,9 @@ def send_scheduled_comp_and_pen_sms():
 
     # this is the agreed upon message per minute limit
     messages_per_min = 3000
-    dynamodb_table_name = os.getenv('COMP_AND_PEN_DYANMODB_NAME')
-    service_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
-    template_id = os.getenv('COMP_AND_PEN_TEMPLATE_ID')
+    dynamodb_table_name = current_app.config['COMP_AND_PEN_DYNAMODB_TABLE_NAME']
+    service_id = current_app.config['COMP_AND_PEN_SERVICE_ID']
+    template_id = current_app.config['COMP_AND_PEN_TEMPLATE_ID']
 
     # TODO: utils #146 - Debug messages currently don't show up in cloudwatch, requires a configuration change
     current_app.logger.debug('send_scheduled_comp_and_pen_sms connecting to dynamodb')
@@ -254,7 +260,7 @@ def send_scheduled_comp_and_pen_sms():
     try:
         comp_and_pen_messages: list = _get_dynamodb_comp_pen_messages(table, messages_per_min)
     except Exception as e:
-        current_app.logger.error(
+        current_app.logger.critical(
             'Exception trying to scan dynamodb table for send_scheduled_comp_and_pen_sms exception_type: %s - '
             'exception_message: %s', type(e), e
         )
@@ -263,7 +269,7 @@ def send_scheduled_comp_and_pen_sms():
     current_app.logger.debug('send_scheduled_comp_and_pen_sms list of items from dynamodb: %s', comp_and_pen_messages)
 
     # stop if there are no messages
-    if comp_and_pen_messages is None or len(comp_and_pen_messages) < 1:
+    if not comp_and_pen_messages:
         current_app.logger.info(
             'No Comp and Pen messages to send via send_scheduled_comp_and_pen_sms task. Exiting task.')
         return
@@ -309,11 +315,11 @@ def send_scheduled_comp_and_pen_sms():
                 'exception: %s', item.get('vaprofile_id'), item.get('participant_id'), item.get('payment_id'), type(e),
                 e
             )
-
-        current_app.logger.info(
-            'sent to queue, updating - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s ',
-            item.get('vaprofile_id'), item.get('participant_id'), item.get('payment_id')
-        )
+        else:
+            current_app.logger.info(
+                'sent to queue, updating - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
+                item.get('vaprofile_id'), item.get('participant_id'), item.get('payment_id')
+            )
 
         # update dynamodb entries
         try:
