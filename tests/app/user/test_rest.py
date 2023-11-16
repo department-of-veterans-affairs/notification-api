@@ -49,21 +49,21 @@ def test_get_user(admin_request, sample_service, sample_organisation):
     Tests GET endpoint '/<user_id>' to retrieve a single service.
     """
     service = sample_service()
-    sample_user = service.users[0]
-    sample_user.organisations = [sample_organisation]
+    user = service.users[0]
+    user.organisations = [sample_organisation]
     json_resp = admin_request.get(
         'user.get_user',
-        user_id=sample_user.id
+        user_id=user.id
     )
 
     expected_permissions = default_service_permissions
     fetched = json_resp['data']
 
-    assert fetched['id'] == str(sample_user.id)
-    assert fetched['name'] == sample_user.name
-    assert fetched['mobile_number'] == sample_user.mobile_number
-    assert fetched['email_address'] == sample_user.email_address
-    assert fetched['state'] == sample_user.state
+    assert fetched['id'] == str(user.id)
+    assert fetched['name'] == user.name
+    assert fetched['mobile_number'] == user.mobile_number
+    assert fetched['email_address'] == user.email_address
+    assert fetched['state'] == user.state
     assert fetched['auth_type'] == EMAIL_AUTH_TYPE
     assert fetched['permissions'].keys() == {str(service.id)}
     assert fetched['services'] == [str(service.id)]
@@ -315,10 +315,6 @@ def test_cannot_create_user_with_empty_strings(admin_request):
         'mobile_number': ['Invalid phone number: Not a valid number'],
         'name': ['Invalid name']
     }
-
-
-# @pytest.mark.usefixtures('sample_notify_service_user_session')
-# class TestAllTheThings:
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
