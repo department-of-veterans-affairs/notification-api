@@ -7,18 +7,21 @@ from app import create_app, db, schemas
 from contextlib import contextmanager
 from flask import Flask
 
+application = None
 
-@pytest.fixture(scope='session')
-def notify_api():
+
+def pytest_sessionstart(session):
     """
+    A pytest hook that runs before any test.
     Initialize a Flask application with the Flask-SQLAlchemy extension.
 
     https://flask.palletsprojects.com/en/2.3.x/testing/
     https://flask-sqlalchemy.palletsprojects.com/en/3.0.x/quickstart/
     """
+    global application
 
     app = Flask('test')
-    create_app(app)
+    application = create_app(app)
 
     # deattach server-error error handlers - error_handler_spec looks like:
     #   {'blueprint_name': {
@@ -36,8 +39,15 @@ def notify_api():
             if error_handlers[None] == []:
                 error_handlers.pop(None)
 
-    with app.app_context():
-        yield app
+
+@pytest.fixture(scope='session')
+def notify_api():
+    """
+    yields application context
+    """
+
+    with application.app_context():
+        yield application
 
 
 @pytest.fixture(scope='function')
