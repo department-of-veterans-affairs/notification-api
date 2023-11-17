@@ -345,7 +345,10 @@ def save_letter(
 @notify_celery.task(bind=True, name='update-letter-notifications-to-sent')
 @statsd(namespace="tasks")
 def update_letter_notifications_to_sent_to_dvla(self, notification_references):
-    # This task will be called by the FTP app to update notifications as sent to DVLA
+    """
+    The FTP app calls this task to update notifications as sent to DVLA.
+    """
+
     provider = get_current_provider(LETTER_TYPE)
 
     updated_count, _ = dao_update_notifications_by_reference(
