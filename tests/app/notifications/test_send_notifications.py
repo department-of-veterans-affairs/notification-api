@@ -22,10 +22,14 @@ def test_send_notification_bypass_route_no_recipient(mocker, sample_service, sam
 # sms tests
 ##################################################
 def test_send_notification_bypass_route_sms_with_recipient_and_default_sms_sender(
-    mocker, sample_service_sms_permission, sample_template, sample_notification
+    mocker,
+    sample_service_sms_permission,
+    sample_template,
+    sample_notification
 ):
     persist_notification_mock = mocker.patch(
-        'app.notifications.send_notifications.persist_notification', return_value=sample_notification
+        'app.notifications.send_notifications.persist_notification',
+        return_value=sample_notification
     )
     send_notification_to_queue_mock = mocker.patch('app.notifications.send_notifications.send_notification_to_queue')
 
@@ -64,16 +68,22 @@ def test_send_notification_bypass_route_sms_with_recipient_and_default_sms_sende
 
 
 def test_send_notification_bypass_route_sms_with_recipient_item(
-    mocker, sample_service_sms_permission, sample_template, sample_notification
+    mocker,
+    sample_service_sms_permission,
+    sample_template,
+    sample_notification
 ):
     persist_notification_mock = mocker.patch(
-        'app.notifications.send_notifications.persist_notification', return_value=sample_notification
+        'app.notifications.send_notifications.persist_notification',
+        return_value=sample_notification
     )
     send_to_queue_for_recipient_info_based_on_recipient_identifier_mock = mocker.patch(
-        'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier'
-    )
+        'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier')
 
-    recipient_item = {'id_type': 'VAPROFILEID', 'id_value': '1234'}
+    recipient_item = {
+        'id_type': 'VAPROFILEID',
+        'id_value': '1234'
+    }
 
     # Test sending an SMS notification using the recipient_item
     send_notification_bypass_route(
@@ -112,7 +122,10 @@ def test_send_notification_bypass_route_sms_with_recipient_item(
 # email tests
 ##################################################
 def test_send_notification_bypass_route_email_with_recipient(
-    mocker, sample_service_sms_permission, sample_template, sample_notification
+    mocker,
+    sample_service_sms_permission,
+    sample_template,
+    sample_notification
 ):
     persist_notification_mock = mocker.patch(
         'app.notifications.send_notifications.persist_notification', return_value=sample_notification
@@ -152,7 +165,10 @@ def test_send_notification_bypass_route_email_with_recipient(
 
 
 def test_send_notification_bypass_route_email_with_recipient_item(
-    mocker, sample_service_sms_permission, sample_template, sample_notification
+    mocker,
+    sample_service_sms_permission,
+    sample_template,
+    sample_notification
 ):
     persist_notification_mock = mocker.patch(
         'app.notifications.send_notifications.persist_notification', return_value=sample_notification
@@ -160,7 +176,10 @@ def test_send_notification_bypass_route_email_with_recipient_item(
     send_to_queue_for_recipient_info_based_on_recipient_identifier_mock = mocker.patch(
         'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier'
     )
-    recipient_item = {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': '1234'}
+    recipient_item = {
+        'id_type': IdentifierType.VA_PROFILE_ID.value,
+        'id_value': '1234'
+    }
 
     # Test sending an email notification, with recipient_item
     send_notification_bypass_route(

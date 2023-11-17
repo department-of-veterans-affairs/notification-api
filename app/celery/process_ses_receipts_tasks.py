@@ -271,7 +271,10 @@ def process_ses_smtp_results(
                     template_version=template.version,
                     recipient=recipient,
                     service_id=service.id,
-                    personalisation={'subject': headers['subject'], 'message': message},
+                    personalisation={
+                        'subject': headers["subject"],
+                        'message': message
+                    },
                     notification_type=EMAIL_TYPE,
                     api_key_id=None,
                     key_type=KEY_TYPE_NORMAL,

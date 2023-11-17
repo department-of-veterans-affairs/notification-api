@@ -77,7 +77,7 @@ def test_persist_notification_creates_and_save_to_db(sample_template, sample_api
         recipient='+16502532222',
         service_id=sample_template.service.id,
         personalisation={},
-        notification_type='sms',
+        notification_type=SMS_TYPE,
         api_key_id=sample_api_key.id,
         key_type=sample_api_key.key_type,
         job_id=sample_job.id,
@@ -122,7 +122,7 @@ def test_persist_notification_throws_exception_when_missing_template(sample_api_
             recipient='+16502532222',
             service_id=sample_api_key.service.id,
             personalisation=None,
-            notification_type='sms',
+            notification_type=SMS_TYPE,
             api_key_id=sample_api_key.id,
             key_type=sample_api_key.key_type,
         )
@@ -140,7 +140,7 @@ def test_cache_is_not_incremented_on_failure_to_persist_notification(sample_api_
             recipient='+16502532222',
             service_id=sample_api_key.service.id,
             personalisation=None,
-            notification_type='sms',
+            notification_type=SMS_TYPE,
             api_key_id=sample_api_key.id,
             key_type=sample_api_key.key_type,
         )
@@ -164,7 +164,7 @@ def test_persist_notification_does_not_increment_cache_if_test_key(
         recipient='+16502532222',
         service_id=sample_template.service.id,
         personalisation={},
-        notification_type='sms',
+        notification_type=SMS_TYPE,
         api_key_id=sample_test_api_key.id,
         key_type=sample_test_api_key.key_type,
         job_id=sample_job.id,
@@ -191,7 +191,7 @@ def test_persist_notification_with_optionals(sample_job, sample_api_key, mocker)
         recipient='+16502532222',
         service_id=sample_job.service.id,
         personalisation=None,
-        notification_type='sms',
+        notification_type=SMS_TYPE,
         api_key_id=sample_api_key.id,
         key_type=sample_api_key.key_type,
         created_at=created_at,
@@ -230,7 +230,7 @@ def test_persist_notification_doesnt_touch_cache_for_old_keys_that_dont_exist(sa
         recipient='+16502532222',
         service_id=sample_template.service.id,
         personalisation={},
-        notification_type='sms',
+        notification_type=SMS_TYPE,
         api_key_id=sample_api_key.id,
         key_type=sample_api_key.key_type,
         reference='ref',
@@ -252,7 +252,7 @@ def test_persist_notification_increments_cache_if_key_exists(sample_template, sa
         recipient='+16502532222',
         service_id=sample_template.service.id,
         personalisation={},
-        notification_type='sms',
+        notification_type=SMS_TYPE,
         api_key_id=sample_api_key.id,
         key_type=sample_api_key.key_type,
         reference='ref2',
@@ -266,19 +266,19 @@ def test_persist_notification_increments_cache_if_key_exists(sample_template, sa
 @pytest.mark.parametrize(
     'research_mode, requested_queue, notification_type, key_type, expected_queue, expected_tasks',
     [
-        (True, None, 'sms', 'normal', 'research-mode-tasks', [deliver_sms]),
-        (True, None, 'email', 'normal', 'research-mode-tasks', [deliver_email]),
-        (True, None, 'email', 'team', 'research-mode-tasks', [deliver_email]),
-        (True, None, 'letter', 'normal', 'research-mode-tasks', [letters_pdf_tasks.create_letters_pdf]),
-        (False, None, 'sms', 'normal', 'send-sms-tasks', [deliver_sms]),
-        (False, None, 'email', 'normal', 'send-email-tasks', [deliver_email]),
-        (False, None, 'sms', 'team', 'send-sms-tasks', [deliver_sms]),
-        (False, None, 'letter', 'normal', 'create-letters-pdf-tasks', [letters_pdf_tasks.create_letters_pdf]),
-        (False, None, 'sms', 'test', 'research-mode-tasks', [deliver_sms]),
-        (True, 'notify-internal-tasks', 'email', 'normal', 'research-mode-tasks', [deliver_email]),
-        (False, 'notify-internal-tasks', 'sms', 'normal', 'notify-internal-tasks', [deliver_sms]),
-        (False, 'notify-internal-tasks', 'email', 'normal', 'notify-internal-tasks', [deliver_email]),
-        (False, 'notify-internal-tasks', 'sms', 'test', 'research-mode-tasks', [deliver_sms]),
+        (True, None, SMS_TYPE, 'normal', 'research-mode-tasks', [deliver_sms]),
+        (True, None, EMAIL_TYPE, 'normal', 'research-mode-tasks', [deliver_email]),
+        (True, None, EMAIL_TYPE, 'team', 'research-mode-tasks', [deliver_email]),
+        (True, None, LETTER_TYPE, 'normal', 'research-mode-tasks', [letters_pdf_tasks.create_letters_pdf]),
+        (False, None, SMS_TYPE, 'normal', 'send-sms-tasks', [deliver_sms]),
+        (False, None, EMAIL_TYPE, 'normal', 'send-email-tasks', [deliver_email]),
+        (False, None, SMS_TYPE, 'team', 'send-sms-tasks', [deliver_sms]),
+        (False, None, LETTER_TYPE, 'normal', 'create-letters-pdf-tasks', [letters_pdf_tasks.create_letters_pdf]),
+        (False, None, SMS_TYPE, 'test', 'research-mode-tasks', [deliver_sms]),
+        (True, 'notify-internal-tasks', EMAIL_TYPE, 'normal', 'research-mode-tasks', [deliver_email]),
+        (False, 'notify-internal-tasks', SMS_TYPE, 'normal', 'notify-internal-tasks', [deliver_sms]),
+        (False, 'notify-internal-tasks', EMAIL_TYPE, 'normal', 'notify-internal-tasks', [deliver_email]),
+        (False, 'notify-internal-tasks', SMS_TYPE, 'test', 'research-mode-tasks', [deliver_sms]),
     ],
 )
 def test_send_notification_to_queue_with_no_recipient_identifiers(
@@ -351,7 +351,7 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
         (
             True,
             None,
-            'sms',
+            SMS_TYPE,
             'normal',
             'research-mode-tasks',
             IdentifierType.VA_PROFILE_ID.value,
@@ -361,7 +361,7 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
         (
             True,
             None,
-            'email',
+            EMAIL_TYPE,
             'normal',
             'research-mode-tasks',
             IdentifierType.PID.value,
@@ -371,7 +371,7 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
         (
             True,
             None,
-            'email',
+            EMAIL_TYPE,
             'team',
             'research-mode-tasks',
             IdentifierType.ICN.value,
@@ -381,7 +381,7 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
         (
             True,
             'notify-internal-tasks',
-            'email',
+            EMAIL_TYPE,
             'normal',
             'research-mode-tasks',
             IdentifierType.VA_PROFILE_ID.value,
@@ -391,7 +391,7 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
         (
             False,
             None,
-            'sms',
+            SMS_TYPE,
             'normal',
             'send-sms-tasks',
             IdentifierType.PID.value,
@@ -401,7 +401,7 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
         (
             False,
             None,
-            'email',
+            EMAIL_TYPE,
             'normal',
             'send-email-tasks',
             IdentifierType.ICN.value,
@@ -411,7 +411,7 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
         (
             False,
             None,
-            'sms',
+            SMS_TYPE,
             'team',
             'send-sms-tasks',
             IdentifierType.VA_PROFILE_ID.value,
@@ -421,7 +421,7 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
         (
             False,
             None,
-            'sms',
+            SMS_TYPE,
             'test',
             'research-mode-tasks',
             IdentifierType.PID.value,
@@ -431,7 +431,7 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
         (
             False,
             'notify-internal-tasks',
-            'sms',
+            SMS_TYPE,
             'normal',
             'notify-internal-tasks',
             IdentifierType.ICN.value,
@@ -441,7 +441,7 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
         (
             False,
             'notify-internal-tasks',
-            'email',
+            EMAIL_TYPE,
             'normal',
             'notify-internal-tasks',
             IdentifierType.VA_PROFILE_ID.value,
@@ -451,7 +451,7 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
         (
             False,
             'notify-internal-tasks',
-            'sms',
+            SMS_TYPE,
             'test',
             'research-mode-tasks',
             IdentifierType.PID.value,
@@ -549,14 +549,14 @@ def test_send_notification_to_queue_throws_exception_deletes_notification(sample
 @pytest.mark.parametrize(
     'to_address, notification_type, expected',
     [
-        ('+16132532222', 'sms', True),
-        ('+16132532223', 'sms', True),
-        ('6132532222', 'sms', True),
-        ('simulate-delivered@notifications.va.gov', 'email', True),
-        ('simulate-delivered-2@notifications.va.gov', 'email', True),
-        ('simulate-delivered-3@notifications.va.gov', 'email', True),
-        ('6132532225', 'sms', False),
-        ('valid_email@test.com', 'email', False),
+        ('+16132532222', SMS_TYPE, True),
+        ('+16132532223', SMS_TYPE, True),
+        ('6132532222', SMS_TYPE, True),
+        ('simulate-delivered@notifications.va.gov', EMAIL_TYPE, True),
+        ('simulate-delivered-2@notifications.va.gov', EMAIL_TYPE, True),
+        ('simulate-delivered-3@notifications.va.gov', EMAIL_TYPE, True),
+        ('6132532225', SMS_TYPE, False),
+        ('valid_email@test.com', EMAIL_TYPE, False),
     ],
 )
 def test_simulated_recipient(notify_api, to_address, notification_type, expected):
@@ -572,7 +572,7 @@ def test_simulated_recipient(notify_api, to_address, notification_type, expected
     """
     formatted_address = None
 
-    if notification_type == 'email':
+    if notification_type == EMAIL_TYPE:
         formatted_address = validate_and_format_email_address(to_address)
     else:
         formatted_address = validate_and_format_phone_number(to_address)
@@ -600,7 +600,7 @@ def test_persist_notification_with_international_info_stores_correct_info(
         recipient=recipient,
         service_id=sample_job.service.id,
         personalisation=None,
-        notification_type='sms',
+        notification_type=SMS_TYPE,
         api_key_id=sample_api_key.id,
         key_type=sample_api_key.key_type,
         job_id=sample_job.id,
@@ -621,7 +621,7 @@ def test_persist_notification_with_international_info_does_not_store_for_email(s
         recipient='foo@bar.com',
         service_id=sample_job.service.id,
         personalisation=None,
-        notification_type='email',
+        notification_type=EMAIL_TYPE,
         api_key_id=sample_api_key.id,
         key_type=sample_api_key.key_type,
         job_id=sample_job.id,
@@ -663,7 +663,7 @@ def test_persist_sms_notification_stores_normalised_number(
         recipient=recipient,
         service=job.service,
         personalisation=None,
-        notification_type='sms',
+        notification_type=SMS_TYPE,
         api_key_id=api_key.id,
         key_type=api_key.key_type,
         job_id=job.id,
@@ -688,7 +688,7 @@ def test_persist_email_notification_stores_normalised_email(
         recipient=recipient,
         service=job.service,
         personalisation=None,
-        notification_type='email',
+        notification_type=EMAIL_TYPE,
         api_key_id=api_key.id,
         key_type=api_key.key_type,
         job_id=job.id,
@@ -823,7 +823,7 @@ def test_persist_notification_should_not_persist_recipient_identifier_if_none_pr
         template_version=job.template.version,
         service=job.service,
         personalisation=None,
-        notification_type='email',
+        notification_type=EMAIL_TYPE,
         api_key_id=api_key.id,
         key_type=api_key.key_type,
         job_id=job.id,
@@ -888,7 +888,7 @@ def test_send_notification_to_correct_queue_to_lookup_contact_info(
 
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
 
-    template = sample_email_template if notification_type == 'email' else sample_sms_template_with_html
+    template = sample_email_template if notification_type == EMAIL_TYPE else sample_sms_template_with_html
 
     notification_id = str(uuid.uuid4())
 
@@ -925,7 +925,7 @@ def test_send_notification_with_sms_sender_rate_limit_uses_rate_limit_delivery_t
 
     notification = Notification(
         id=str(uuid.uuid4()),
-        notification_type='sms',
+        notification_type=SMS_TYPE,
         reply_to_text=sms_sender.sms_sender,
         service_id=service.id,
         template=template,
@@ -958,7 +958,7 @@ def test_send_notification_without_sms_sender_rate_limit_uses_regular_delivery_t
 
     notification = Notification(
         id=str(uuid.uuid4()),
-        notification_type='sms',
+        notification_type=SMS_TYPE,
         reply_to_text=sms_sender.sms_sender,
         service_id=service.id,
         template=template,

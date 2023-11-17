@@ -382,7 +382,10 @@ def send_new_user_email_verification(user_id):
         template_version=template.version,
         recipient=user_to_send_to.email_address,
         service_id=service.id,
-        personalisation={'name': user_to_send_to.name, 'url': _create_verification_url(user_to_send_to)},
+        personalisation={
+            'name': user_to_send_to.name,
+            'url': _create_verification_url(user_to_send_to)
+        },
         notification_type=template.template_type,
         api_key_id=None,
         key_type=KEY_TYPE_NORMAL,
