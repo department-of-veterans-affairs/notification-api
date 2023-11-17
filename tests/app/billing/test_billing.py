@@ -14,7 +14,7 @@ from calendar import monthrange
 from datetime import datetime, timedelta
 from freezegun import freeze_time
 from sqlalchemy import select
-from tests import create_authorization_header
+from tests import create_admin_authorization_header
 from tests.app.db import (
     create_rate,
     create_annual_billing,
@@ -37,7 +37,7 @@ def test_create_update_free_sms_fragment_limit_invalid_schema(client, sample_ser
     response = client.post(
         f'service/{service.id}/billing/free-sms-fragment-limit',
         data={},
-        headers=[('Content-Type', 'application/json'), create_authorization_header()]
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()]
     )
 
     assert response.status_code == 400
@@ -118,7 +118,7 @@ def test_get_free_sms_fragment_limit_current_year_creates_new_row(client, notify
 
     response_get = client.get(
         'service/{}/billing/free-sms-fragment-limit'.format(service.id),
-        headers=[('Content-Type', 'application/json'), create_authorization_header()]
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()]
     )
 
     assert response_get.status_code == 200
@@ -144,7 +144,7 @@ def test_get_free_sms_fragment_limit_past_year_not_exist(client, notify_db_sessi
     res_get = client.get(
         'service/{}/billing/free-sms-fragment-limit?financial_year_start={}'
         .format(service.id, current_year - 2),
-        headers=[('Content-Type', 'application/json'), create_authorization_header()]
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()]
     )
 
     assert res_get.status_code == 200
@@ -170,7 +170,7 @@ def test_get_free_sms_fragment_limit_future_year_not_exist(client, sample_servic
     res_get = client.get(
         'service/{}/billing/free-sms-fragment-limit?financial_year_start={}'
         .format(service.id, current_year + 2),
-        headers=[('Content-Type', 'application/json'), create_authorization_header()])
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()])
 
     assert res_get.status_code == 200
     json_resp = res_get.get_json()
@@ -206,7 +206,7 @@ def test_get_yearly_usage_by_monthly_from_ft_billing_populates_deltas(
     # But it's a GET request?
     response = client.get(
         f'service/{service.id}/billing/ft-monthly-usage?year=2018',
-        headers=[('Content-Type', 'application/json'), create_authorization_header()]
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()]
     )
 
     assert response.status_code == 200
@@ -269,7 +269,7 @@ def test_get_yearly_usage_by_monthly_from_ft_billing(notify_db_session, client, 
 
     response = client.get(
         f'service/{service.id}/billing/ft-monthly-usage?year=2016',
-        headers=[('Content-Type', 'application/json'), create_authorization_header()]
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()]
     )
 
     json_resp = response.get_json()
@@ -311,7 +311,7 @@ def test_get_yearly_billing_usage_summary_from_ft_billing_returns_400_if_missing
 
     response = client.get(
         f'/service/{service.id}/billing/ft-yearly-usage-summary',
-        headers=[create_authorization_header()]
+        headers=[create_admin_authorization_header()]
     )
 
     assert response.status_code == 400
@@ -327,7 +327,7 @@ def test_get_yearly_billing_usage_summary_from_ft_billing_returns_empty_list_if_
 
     response = client.get(
         f'/service/{service.id}/billing/ft-yearly-usage-summary?year=2016',
-        headers=[create_authorization_header()]
+        headers=[create_admin_authorization_header()]
     )
 
     assert response.status_code == 200
@@ -391,7 +391,7 @@ def test_get_yearly_billing_usage_summary_from_ft_billing(notify_db_session, cli
 
     response = client.get(
         f'/service/{service.id}/billing/ft-yearly-usage-summary?year=2016',
-        headers=[create_authorization_header()]
+        headers=[create_admin_authorization_header()]
     )
 
     try:
@@ -424,7 +424,7 @@ def test_get_yearly_usage_by_monthly_from_ft_billing_all_cases(
 
     response = client.get(
         f'service/{service.id}/billing/ft-monthly-usage?year=2018',
-        headers=[('Content-Type', 'application/json'), create_authorization_header()]
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()]
     )
 
     try:
@@ -474,7 +474,7 @@ def test_get_yearly_billing_usage_summary_from_ft_billing_all_cases(
 
     response = client.get(
         f'/service/{service.id}/billing/ft-yearly-usage-summary?year=2018',
-        headers=[create_authorization_header()]
+        headers=[create_admin_authorization_header()]
     )
 
     try:

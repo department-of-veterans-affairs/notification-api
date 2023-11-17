@@ -48,7 +48,7 @@ valid_post = [
 )
 def test_valid_post_template_returns_200(
     client,
-    sample_service,
+    sample_api_key,
     sample_template,
     tmp_type,
     subject,
@@ -57,14 +57,14 @@ def test_valid_post_template_returns_200(
     expected_subject,
     expected_content,
 ):
-    service = sample_service()
+    api_key = sample_api_key()
     template = sample_template(
-        service=service,
+        service=api_key.service,
         template_type=tmp_type,
         subject=subject,
         content=content)
 
-    auth_header = create_authorization_header(service_id=service.id)
+    auth_header = create_authorization_header(api_key)
 
     response = client.post(
         path='/v2/template/{}/preview'.format(template.id),
@@ -89,14 +89,20 @@ def test_valid_post_template_returns_200(
 
 
 @pytest.mark.parametrize("tmp_type", TEMPLATE_TYPES)
-def test_invalid_post_template_returns_400(client, sample_service, sample_template, tmp_type):
-    service = sample_service()
+def test_invalid_post_template_returns_400(
+    client,
+    sample_api_key,
+    sample_template,
+    tmp_type,
+):
+
+    api_key = sample_api_key()
     template = sample_template(
-        service=service,
+        service=api_key.service,
         template_type=tmp_type,
         content='Dear ((Name)), Hello ((Missing)). Yours Truly, The Government.')
 
-    auth_header = create_authorization_header(service_id=service.id)
+    auth_header = create_authorization_header(api_key)
 
     response = client.post(
         path='/v2/template/{}/preview'.format(str(template.id)),
@@ -111,8 +117,12 @@ def test_invalid_post_template_returns_400(client, sample_service, sample_templa
     assert 'Missing personalisation: Missing' in resp_json['errors'][0]['message']
 
 
-def test_post_template_with_non_existent_template_id_returns_404(client, fake_uuid, sample_service):
-    auth_header = create_authorization_header(service_id=sample_service().id)
+def test_post_template_with_non_existent_template_id_returns_404(
+    client,
+    fake_uuid,
+    sample_api_key,
+):
+    auth_header = create_authorization_header(sample_api_key())
 
     response = client.post(
         path='/v2/template/{}/preview'.format(fake_uuid),

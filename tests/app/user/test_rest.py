@@ -18,7 +18,7 @@ from app.models import (
 from fido2 import cbor
 from flask import current_app, url_for
 from freezegun import freeze_time
-from tests import create_authorization_header
+from tests import create_admin_authorization_header
 from tests.app.db import create_template_folder, create_organisation, create_reply_to_email
 from uuid import UUID, uuid4
 from unittest import mock
@@ -114,7 +114,7 @@ def test_post_user(client):
         "permissions": {},
         "auth_type": EMAIL_AUTH_TYPE,
     }
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), auth_header]
     resp = client.post(
         url_for('user.create_user'),
@@ -140,7 +140,7 @@ def test_post_user_without_auth_type(admin_request):
         "mobile_number": "+16502532222",
         "permissions": {},
     }
-    # TODO: Clean up this non-fixture user
+
     json_resp = admin_request.post('user.create_user', _data=data, _expected_status=201)
 
     user = User.query.filter_by(email_address='user@digital.cabinet-office.gov.uk').first()
@@ -163,7 +163,7 @@ def test_post_user_missing_attribute_email(client):
         "failed_login_count": 0,
         "permissions": {}
     }
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), auth_header]
     resp = client.post(
         url_for('user.create_user'),
@@ -193,7 +193,7 @@ def test_post_user_with_identity_provider_user_id_without_password(client):
         "auth_type": EMAIL_AUTH_TYPE,
         "identity_provider_user_id": "test-id",
     }
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), auth_header]
     resp = client.post(
         url_for('user.create_user'),
@@ -223,7 +223,7 @@ def test_create_user_missing_attribute_password(client):
         "failed_login_count": 0,
         "permissions": {}
     }
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), auth_header]
     resp = client.post(
         url_for('user.create_user'),
@@ -251,7 +251,7 @@ def test_create_user_with_known_bad_password(client):
         "failed_login_count": 0,
         "permissions": {}
     }
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), auth_header]
     resp = client.post(
         url_for('user.create_user'),
@@ -340,7 +340,7 @@ def test_post_user_attribute(
     update_dict = {
         user_attribute: user_value
     }
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), auth_header]
 
     mocker.patch('app.user.rest.persist_notification')
@@ -372,7 +372,7 @@ def test_post_user_attribute_send_notification_email(
     update_dict = {
         user_attribute: user_value
     }
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), auth_header]
 
     mock_persist_notification = mocker.patch('app.user.rest.persist_notification')
@@ -416,7 +416,7 @@ def test_post_user_attribute_send_notification_email(
 ])
 def test_post_user_attribute_with_updated_by(
     client, mocker, sample_user, user_attribute, sample_notify_service_user_session, sample_template_session,
-    user_value, arguments, team_member_email_edit_template, team_member_mobile_edit_template  # TODO: Clean out fixtures
+    user_value, arguments, team_member_email_edit_template, team_member_mobile_edit_template
 ):
     service, user = sample_notify_service_user_session()
     # Email template
@@ -447,7 +447,7 @@ def test_post_user_attribute_with_updated_by(
         user_attribute: user_value,
         'updated_by': str(updater.id)
     }
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), auth_header]
     mock_persist_notification = mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
@@ -470,7 +470,7 @@ def test_archive_user(mocker, client, sample_user):
     user = sample_user()
     response = client.post(
         url_for('user.archive_user', user_id=user.id),
-        headers=[create_authorization_header()]
+        headers=[create_admin_authorization_header()]
     )
 
     assert response.status_code == 204
@@ -483,7 +483,7 @@ def test_archive_user_when_user_does_not_exist_gives_404(mocker, client, fake_uu
 
     response = client.post(
         url_for('user.archive_user', user_id=fake_uuid),
-        headers=[create_authorization_header()]
+        headers=[create_admin_authorization_header()]
     )
 
     assert response.status_code == 404
@@ -496,7 +496,7 @@ def test_archive_user_when_user_cannot_be_archived(mocker, client, sample_user):
 
     response = client.post(
         url_for('user.archive_user', user_id=sample_user().id),
-        headers=[create_authorization_header()]
+        headers=[create_admin_authorization_header()]
     )
     json_resp = json.loads(response.get_data(as_text=True))
 
@@ -510,7 +510,7 @@ def test_archive_user_when_user_cannot_be_archived(mocker, client, sample_user):
 def test_get_user_by_email(client, sample_service):
     service = sample_service()
     sample_user = service.users[0]
-    header = create_authorization_header()
+    header = create_admin_authorization_header()
     url = url_for('user.get_by_email', email=sample_user.email_address)
     resp = client.get(url, headers=[header])
     assert resp.status_code == 200
@@ -529,7 +529,7 @@ def test_get_user_by_email(client, sample_service):
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_get_user_by_email_not_found_returns_404(client):
-    header = create_authorization_header()
+    header = create_admin_authorization_header()
     url = url_for('user.get_by_email', email='no_user@digital.gov.uk')
     resp = client.get(url, headers=[header])
     assert resp.status_code == 404
@@ -540,7 +540,7 @@ def test_get_user_by_email_not_found_returns_404(client):
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_get_user_by_email_bad_url_returns_404(client):
-    header = create_authorization_header()
+    header = create_admin_authorization_header()
     url = '/user/email'
     resp = client.get(url, headers=[header])
     assert resp.status_code == 400
@@ -550,7 +550,7 @@ def test_get_user_by_email_bad_url_returns_404(client):
 
 
 def test_get_user_with_permissions(client, sample_user_service_permission):
-    header = create_authorization_header()
+    header = create_admin_authorization_header()
     response = client.get(url_for('user.get_user', user_id=str(sample_user_service_permission.user.id)),
                           headers=[header])
     assert response.status_code == 200
@@ -563,7 +563,7 @@ def test_set_user_permissions(client, sample_service, sample_user):
     service = sample_service()
     user = sample_user()
     data = json.dumps({'permissions': [{'permission': MANAGE_SETTINGS}]})
-    header = create_authorization_header()
+    header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), header]
     response = client.post(
         url_for(
@@ -585,7 +585,7 @@ def test_set_user_permissions_multiple(client, sample_service, sample_user):
     service = sample_service()
     user = sample_user()
     data = json.dumps({'permissions': [{'permission': MANAGE_SETTINGS}, {'permission': MANAGE_TEMPLATES}]})
-    header = create_authorization_header()
+    header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), header]
     response = client.post(
         url_for(
@@ -610,7 +610,7 @@ def test_set_user_permissions_multiple(client, sample_service, sample_user):
 def test_set_user_permissions_remove_old(client, sample_service, sample_user):
     user = sample_user()
     data = json.dumps({'permissions': [{'permission': MANAGE_SETTINGS}]})
-    header = create_authorization_header()
+    header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), header]
     response = client.post(
         url_for(
@@ -639,7 +639,7 @@ def test_set_user_folder_permissions(client, sample_service, sample_user):
             'user.set_permissions',
             user_id=str(user.id),
             service_id=str(service.id)),
-        headers=[('Content-Type', 'application/json'), create_authorization_header()],
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
         data=data)
 
     assert response.status_code == 204
@@ -663,7 +663,7 @@ def test_set_user_folder_permissions_when_user_does_not_belong_to_service(client
             'user.set_permissions',
             user_id=str(sample_user().id),
             service_id=str(service.id)),
-        headers=[('Content-Type', 'application/json'), create_authorization_header()],
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
         data=data)
 
     assert response.status_code == 404
@@ -698,7 +698,7 @@ def test_set_user_folder_permissions_does_not_affect_permissions_for_other_servi
             'user.set_permissions',
             user_id=str(user.id),
             service_id=str(service.id)),
-        headers=[('Content-Type', 'application/json'), create_authorization_header()],
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
         data=data)
 
     assert response.status_code == 204
@@ -726,7 +726,7 @@ def test_update_user_folder_permissions(client, sample_user, sample_service):
             'user.set_permissions',
             user_id=str(user.id),
             service_id=str(service.id)),
-        headers=[('Content-Type', 'application/json'), create_authorization_header()],
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
         data=data)
 
     assert response.status_code == 204
@@ -753,7 +753,7 @@ def test_remove_user_folder_permissions(client, sample_user, sample_service):
             'user.set_permissions',
             user_id=str(user.id),
             service_id=str(sample_service.id)),
-        headers=[('Content-Type', 'application/json'), create_authorization_header()],
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
         data=data)
 
     assert response.status_code == 204
@@ -768,7 +768,7 @@ def test_send_user_reset_password_should_send_reset_password_link(client,
                                                                   password_reset_email_template):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     data = json.dumps({'email': sample_user().email_address})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     notify_service = password_reset_email_template.service
     resp = client.post(
         url_for('user.send_user_reset_password'),
@@ -792,7 +792,7 @@ def test_send_user_reset_password_should_send_reset_password_link(client,
 def test_send_user_reset_password_should_return_400_when_email_is_missing(client, mocker):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     data = json.dumps({})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     resp = client.post(
         url_for('user.send_user_reset_password'),
@@ -809,7 +809,7 @@ def test_send_user_reset_password_should_return_400_when_user_doesnot_exist(clie
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     bad_email_address = 'bad@email.gov.uk'
     data = json.dumps({'email': bad_email_address})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     resp = client.post(
         url_for('user.send_user_reset_password'),
@@ -826,7 +826,7 @@ def test_send_user_reset_password_should_return_400_when_data_is_not_email_addre
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     bad_email_address = 'bad.email.gov.uk'
     data = json.dumps({'email': bad_email_address})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     resp = client.post(
         url_for('user.send_user_reset_password'),
@@ -842,7 +842,7 @@ def test_send_user_reset_password_should_return_400_when_data_is_not_email_addre
 def test_send_already_registered_email(client, sample_user, already_registered_template, mocker):
     user = sample_user()
     data = json.dumps({'email': user.email_address})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     notify_service = already_registered_template.service
 
@@ -866,7 +866,7 @@ def test_send_already_registered_email(client, sample_user, already_registered_t
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_send_already_registered_email_returns_400_when_data_is_missing(client, sample_user):
     data = json.dumps({})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     resp = client.post(
         url_for('user.send_already_registered_email', user_id=str(sample_user().id)),
@@ -881,7 +881,7 @@ def test_send_already_registered_email_returns_400_when_data_is_missing(client, 
 def test_send_support_email(client, sample_user, contact_us_template, mocker):
     user = sample_user()
     data = json.dumps({'email': user.email_address, 'message': "test"})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     notify_service = contact_us_template.service
 
@@ -900,7 +900,7 @@ def test_send_support_email(client, sample_user, contact_us_template, mocker):
 # @pytest.mark.skip(reason="not in use")
 def test_send_support_email_returns_400_when_data_is_missing(client, sample_user):
     data = json.dumps({})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     resp = client.post(
         url_for('user.send_support_email', user_id=str(sample_user().id)),
@@ -916,7 +916,7 @@ def test_send_user_confirm_new_email_returns_204(client, sample_user, change_ema
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     new_email = 'new_address@dig.gov.uk'
     data = json.dumps({'email': new_email})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     notify_service = change_email_confirmation_template.service
 
     resp = client.post(url_for('user.send_user_confirm_new_email', user_id=str(sample_user().id)),
@@ -939,7 +939,7 @@ def test_send_user_confirm_new_email_returns_204(client, sample_user, change_ema
 def test_send_user_confirm_new_email_returns_400_when_email_missing(client, sample_user, mocker):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     data = json.dumps({})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(url_for('user.send_user_confirm_new_email', user_id=str(sample_user().id)),
                        data=data,
                        headers=[('Content-Type', 'application/json'), auth_header])
@@ -955,7 +955,7 @@ def test_update_user_password_saves_correctly(client, sample_service):
     data = {
         '_password': new_password
     }
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), auth_header]
     resp = client.post(
         url_for('user.update_password', user_id=sample_user.id),
@@ -966,7 +966,7 @@ def test_update_user_password_saves_correctly(client, sample_service):
     json_resp = resp.get_json()
     assert json_resp['data']['password_changed_at'] is not None
     data = {'password': new_password}
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), auth_header]
     resp = client.post(
         url_for('user.verify_user_password', user_id=str(sample_user.id)),
@@ -982,7 +982,7 @@ def test_update_user_password_failes_when_banned_password_used(client, sample_se
     data = {
         '_password': new_password
     }
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), auth_header]
     resp = client.post(
         url_for('user.update_password', user_id=sample_user.id),
@@ -1011,7 +1011,7 @@ def test_activate_user_fails_if_already_active(admin_request, sample_user):
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_update_user_auth_type(admin_request, sample_user, account_change_template, mocker):  # TODO: Remove fixture
+def test_update_user_auth_type(admin_request, sample_user, account_change_template, mocker):
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
 
@@ -1027,7 +1027,6 @@ def test_update_user_auth_type(admin_request, sample_user, account_change_templa
     assert resp['data']['auth_type'] == 'sms_auth'
 
 
-# TODO: Remove fixture
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_can_set_email_auth_and_remove_mobile_at_same_time(admin_request, sample_user, account_change_template, mocker):
     mocker.patch('app.user.rest.persist_notification')
@@ -1049,7 +1048,6 @@ def test_can_set_email_auth_and_remove_mobile_at_same_time(admin_request, sample
     assert user.auth_type == EMAIL_AUTH_TYPE
 
 
-# TODO: Remove fixture
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_cannot_remove_mobile_if_sms_auth(admin_request, sample_user, account_change_template, mocker):
     mocker.patch('app.user.rest.persist_notification')
@@ -1068,7 +1066,6 @@ def test_cannot_remove_mobile_if_sms_auth(admin_request, sample_user, account_ch
     assert json_resp['message'] == 'Mobile number must be set if auth_type is set to sms_auth'
 
 
-# TODO: Remove fixture
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_can_remove_mobile_if_email_auth(admin_request, sample_user, account_change_template, mocker):
     mocker.patch('app.user.rest.persist_notification')
@@ -1089,7 +1086,7 @@ def test_can_remove_mobile_if_email_auth(admin_request, sample_user, account_cha
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 # @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
 def test_cannot_update_user_with_mobile_number_as_empty_string(
-        admin_request, sample_user, account_change_template, mocker):  # TODO: Remove fixture
+        admin_request, sample_user, account_change_template, mocker):
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
 
@@ -1107,7 +1104,7 @@ def test_cannot_update_user_with_mobile_number_as_empty_string(
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_cannot_update_user_password_using_attributes_method(
-        admin_request, sample_user, account_change_template, mocker):  # TODO: Remove fixture
+        admin_request, sample_user, account_change_template, mocker):
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
     resp = admin_request.post(
@@ -1121,7 +1118,7 @@ def test_cannot_update_user_password_using_attributes_method(
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_can_update_user_attribute_identity_provider_user_id_as_empty(
-        admin_request, sample_user, account_change_template, mocker  # TODO: Remove fixture
+        admin_request, sample_user, account_change_template, mocker
 ):
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
@@ -1303,7 +1300,7 @@ def test_find_users_by_email_finds_user_by_partial_email(client, sample_user):
         sample_user(email=f'me.ignorra{uuid4}@foo.com')
 
     data = json.dumps({"email": "findel"})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post(
         url_for("user.find_users_by_email"),
@@ -1325,7 +1322,7 @@ def test_find_users_by_email_finds_user_by_full_email(client, sample_user):
         sample_user(email=f'me.ignorra{uuid4}@foo.com')
 
     data = json.dumps({"email": user1.email_address})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post(
         url_for("user.find_users_by_email"),
@@ -1347,7 +1344,7 @@ def test_find_users_by_email_handles_no_results(client, sample_user):
         sample_user(email=f'me.ignorra{uuid4}@foo.com')
 
     data = json.dumps({"email": "rogue"})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post(
         url_for("user.find_users_by_email"),
@@ -1364,7 +1361,7 @@ def test_find_users_by_email_handles_no_results(client, sample_user):
 def test_search_for_users_by_email_handles_incorrect_data_format(client, sample_user):
     sample_user(email=f'findel.mestro{uuid4}@foo.com')
     data = json.dumps({"email": 1})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post(
         url_for("user.find_users_by_email"),
@@ -1379,7 +1376,7 @@ def test_search_for_users_by_email_handles_incorrect_data_format(client, sample_
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_list_fido2_keys_for_a_user(client, sample_service):
     sample_user = sample_service().users[0]
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     key_one = Fido2Key(name='sample key one', key="abcd", user_id=sample_user.id)
     save_fido2_key(key_one)
@@ -1399,11 +1396,11 @@ def test_list_fido2_keys_for_a_user(client, sample_service):
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_create_fido2_keys_for_a_user(client, sample_service, mocker, account_change_template):  # TODO: Remove fixture
+def test_create_fido2_keys_for_a_user(client, sample_service, mocker, account_change_template):
     service = sample_service()
     sample_user = service.users[0]
     create_reply_to_email(service, 'reply-here@example.canada.ca')
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     create_fido2_session(sample_user.id, "ABCD")
 
@@ -1426,13 +1423,13 @@ def test_create_fido2_keys_for_a_user(client, sample_service, mocker, account_ch
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_delete_fido2_keys_for_a_user(client, sample_service, mocker, account_change_template):  # TODO: Remove fixture
+def test_delete_fido2_keys_for_a_user(client, sample_service, mocker, account_change_template):
     service = sample_service()
     mocker.patch('app.user.rest.persist_notification')
     mocker.patch('app.user.rest.send_notification_to_queue')
     sample_user = service.users[0]
     create_reply_to_email(service, 'reply-here@example.canada.ca')
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     key = Fido2Key(name='sample key one', key="abcd", user_id=sample_user.id)
     save_fido2_key(key)
@@ -1458,7 +1455,7 @@ def test_delete_fido2_keys_for_a_user(client, sample_service, mocker, account_ch
 # @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
 def test_start_fido2_registration(client, sample_service):
     sample_user = sample_service().users[0]
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post(
         url_for("user.fido2_keys_user_register", user_id=sample_user.id),
@@ -1476,7 +1473,7 @@ def test_start_fido2_registration(client, sample_service):
 # @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
 def test_start_fido2_authentication(client, sample_service):
     sample_user = sample_service().users[0]
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post(
         url_for("user.fido2_keys_user_authenticate", user_id=sample_user.id),
@@ -1492,7 +1489,7 @@ def test_start_fido2_authentication(client, sample_service):
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_list_login_events_for_a_user(client, sample_service):
     sample_user = sample_service().users[0]
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     event_one = LoginEvent(**{'user': sample_user, 'data': {}})
     save_login_event(event_one)

@@ -7,11 +7,15 @@ from tests.app.conftest import TEMPLATE_TYPES
 from uuid import uuid4
 
 
-def test_get_all_templates_returns_200(client, sample_service, sample_template):
-    service = sample_service()
+def test_get_all_templates_returns_200(
+    client,
+    sample_api_key,
+    sample_template,
+):
+    api_key = sample_api_key()
     templates = [
         sample_template(
-            service=service,
+            service=api_key.service,
             template_type=tmp_type,
             subject='subject_{}'.format(name) if tmp_type == EMAIL_TYPE else '',
             name=name,
@@ -19,7 +23,7 @@ def test_get_all_templates_returns_200(client, sample_service, sample_template):
         for name, tmp_type in product((f'A {uuid4()}', f'B {uuid4()}', f'C {uuid4()}'), TEMPLATE_TYPES)
     ]
 
-    auth_header = create_authorization_header(service_id=service.id)
+    auth_header = create_authorization_header(api_key)
 
     response = client.get(path='/v2/templates',
                           headers=[('Content-Type', 'application/json'), auth_header])
@@ -40,11 +44,18 @@ def test_get_all_templates_returns_200(client, sample_service, sample_template):
 
 
 @pytest.mark.parametrize("tmp_type", TEMPLATE_TYPES)
-def test_get_all_templates_for_valid_type_returns_200(client, sample_service, sample_template, tmp_type):
-    service = sample_service()
+def test_get_all_templates_for_valid_type_returns_200(
+    client,
+    sample_api_key,
+    # sample_service,
+    sample_template,
+    tmp_type,
+):
+
+    api_key = sample_api_key()
     templates = [
         sample_template(
-            service=service,
+            service=api_key.service,
             template_type=tmp_type,
             name=f'Template {i}_{uuid4()}',
             subject='subject_{}'.format(i) if tmp_type == EMAIL_TYPE else ''
@@ -52,7 +63,7 @@ def test_get_all_templates_for_valid_type_returns_200(client, sample_service, sa
         for i in range(3)
     ]
 
-    auth_header = create_authorization_header(service_id=service.id)
+    auth_header = create_authorization_header(api_key)
 
     response = client.get(path='/v2/templates?type={}'.format(tmp_type),
                           headers=[('Content-Type', 'application/json'), auth_header])
@@ -73,19 +84,24 @@ def test_get_all_templates_for_valid_type_returns_200(client, sample_service, sa
 
 
 @pytest.mark.parametrize("tmp_type", TEMPLATE_TYPES)
-def test_get_correct_num_templates_for_valid_type_returns_200(client, sample_service, sample_template, tmp_type):
-    service = sample_service()
+def test_get_correct_num_templates_for_valid_type_returns_200(
+    client,
+    sample_api_key,
+    sample_template,
+    tmp_type,
+):
+    api_key = sample_api_key()
     num_templates = 3
 
     templates = []
     for _ in range(num_templates):
-        templates.append(sample_template(service=service, template_type=tmp_type))
+        templates.append(sample_template(service=api_key.service, template_type=tmp_type))
 
     for other_type in TEMPLATE_TYPES:
         if other_type != tmp_type:
-            templates.append(sample_template(service=service, template_type=other_type))
+            templates.append(sample_template(service=api_key.service, template_type=other_type))
 
-    auth_header = create_authorization_header(service_id=service.id)
+    auth_header = create_authorization_header(api_key)
 
     response = client.get(path='/v2/templates?type={}'.format(tmp_type),
                           headers=[('Content-Type', 'application/json'), auth_header])
@@ -97,8 +113,11 @@ def test_get_correct_num_templates_for_valid_type_returns_200(client, sample_ser
     assert len(json_response['templates']) == num_templates
 
 
-def test_get_all_templates_for_invalid_type_returns_400(client, sample_service):
-    auth_header = create_authorization_header(service_id=sample_service().id)
+def test_get_all_templates_for_invalid_type_returns_400(
+    client,
+    sample_api_key,
+):
+    auth_header = create_authorization_header(sample_api_key())
 
     invalid_type = 'coconut'
 

@@ -31,7 +31,7 @@ from notifications_utils import SMS_CHAR_COUNT_LIMIT
 from notifications_utils.template import HTMLEmailTemplate
 from pypdf.errors import PdfReadError
 from sqlalchemy import select
-from tests import create_authorization_header
+from tests import create_admin_authorization_header
 from tests.app.db import (
     create_letter_contact,
     create_notification,
@@ -64,7 +64,7 @@ def test_should_create_a_new_template_for_a_service(
     if template_type == LETTER_TYPE:
         data.update({'postage': 'first'})
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post(
         '/service/{}/template'.format(service.id),
@@ -109,7 +109,7 @@ def test_should_create_a_new_template_with_a_valid_provider(client, sample_servi
         'subject': 'subject'
     }
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post(
         f'/service/{service.id}/template',
@@ -147,7 +147,7 @@ def test_should_not_create_template_with_non_existent_provider(
         'subject': 'subject'
     }
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     # Requires a context block because the calling method expects current_user in the request
     with client.application.app_context():
@@ -187,7 +187,7 @@ def test_should_not_create_template_with_inactive_provider(
         'subject': 'subject'
     }
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     mocked_provider_details = mocker.Mock(ProviderDetails)
     mocked_provider_details.active = False
@@ -236,7 +236,7 @@ def test_should_not_create_template_with_incorrect_provider_type(
         'subject': 'subject'
     }
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     mocked_provider_details = mocker.Mock(ProviderDetails)
     mocked_provider_details.active = True
@@ -277,7 +277,7 @@ def test_create_a_new_template_for_a_service_adds_folder_relationship(
         'parent_folder_id': str(parent_folder.id)
     }
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post(
         '/service/{}/template'.format(service.id),
@@ -309,7 +309,7 @@ def test_create_a_new_template_for_a_service_adds_postage_for_letters_only(
         data["subject"] = "Hi, I have good news"
 
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post(
         '/service/{}/template'.format(service.id),
@@ -337,7 +337,7 @@ def test_create_template_should_return_400_if_folder_is_for_a_different_service(
         'parent_folder_id': str(parent_folder.id)
     }
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     # Requires a context block because the calling method expects current_user in the request
     with client.application.app_context():
@@ -363,7 +363,7 @@ def test_create_template_should_return_400_if_folder_does_not_exist(
         'parent_folder_id': str(uuid.uuid4())
     }
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     # Requires a context block because the calling method expects current_user in the request
     with client.application.app_context():
@@ -385,7 +385,7 @@ def test_should_raise_error_if_service_does_not_exist_on_create(client, sample_u
         'created_by': str(sample_user().id)
     }
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post(
         '/service/{}/template'.format(fake_uuid),
@@ -417,7 +417,7 @@ def test_should_raise_error_on_create_if_no_permission(
         data.update({'subject': subject})
 
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     # Requires a context block because the calling method expects current_user in the request
     with client.application.app_context():
@@ -456,7 +456,7 @@ def test_should_be_error_on_update_if_no_permission(
     }
 
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     update_response = client.post(
         '/service/{}/template/{}'.format(
@@ -482,7 +482,7 @@ def test_should_error_if_created_by_missing(client, sample_service):
         'service': service_id
     }
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post(
         '/service/{}/template'.format(service_id),
@@ -500,7 +500,7 @@ def test_should_be_error_if_service_does_not_exist_on_update(client, fake_uuid):
         'name': 'my template'
     }
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post(
         '/service/{}/template/{}'.format(fake_uuid, fake_uuid),
@@ -524,7 +524,7 @@ def test_must_have_a_subject_on_an_email_or_letter_template(client, sample_user,
         'created_by': str(sample_user().id)
     }
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     # Requires a context block because the calling method expects current_user in the request
     with client.application.app_context():
@@ -550,7 +550,7 @@ def test_update_should_update_a_template(client, sample_user, sample_service, sa
         'postage': 'first',
     })
 
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     update_response = client.post(
         '/service/{}/template/{}'.format(service.id, template.id),
@@ -581,7 +581,7 @@ def test_should_be_able_to_archive_template(client, sample_template):
 
     json_data = json.dumps(data)
 
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     resp = client.post(
         '/service/{}/template/{}'.format(template.service.id, template.id),
@@ -600,7 +600,7 @@ def test_get_precompiled_template_for_service(client, notify_db_session, sample_
 
     response = client.get(
         '/service/{}/template/precompiled'.format(service.id),
-        headers=[create_authorization_header()],
+        headers=[create_admin_authorization_header()],
     )
     assert response.status_code == 200
     assert len(service.templates) == 1
@@ -638,7 +638,7 @@ def test_get_precompiled_template_for_service_when_service_has_existing_precompi
 
     response = client.get(
         '/service/{}/template/precompiled'.format(service.id),
-        headers=[create_authorization_header()],
+        headers=[create_admin_authorization_header()],
     )
 
     assert response.status_code == 200
@@ -670,13 +670,13 @@ def test_should_be_able_to_get_all_templates_for_a_service(client, sample_user, 
         'created_by': str(sample_user.id)
     }
     data_2 = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     client.post(
         '/service/{}/template'.format(service.id),
         headers=[('Content-Type', 'application/json'), auth_header],
         data=data_1
     )
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     client.post(
         '/service/{}/template'.format(service.id),
@@ -684,7 +684,7 @@ def test_should_be_able_to_get_all_templates_for_a_service(client, sample_user, 
         data=data_2
     )
 
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.get(
         '/service/{}/template'.format(service.id),
@@ -733,7 +733,7 @@ def test_should_get_a_single_template(
     template = sample_template(template_type=template_type)
     response = client.get(
         f'/service/{template.service_id}/template/{template.id}',
-        headers=[create_authorization_header()]
+        headers=[create_admin_authorization_header()]
     )
 
     data = response.get_json()['data']
@@ -798,7 +798,7 @@ def test_should_preview_a_single_template(
 
     response = client.get(
         path.format(template.service_id, template.id),
-        headers=[create_authorization_header()]
+        headers=[create_admin_authorization_header()]
     )
 
     content = response.get_json()
@@ -814,7 +814,7 @@ def test_should_preview_a_single_template(
 
 def test_should_return_empty_array_if_no_templates_for_service(client, sample_service):
 
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.get(
         '/service/{}/template'.format(sample_service().id),
@@ -828,7 +828,7 @@ def test_should_return_empty_array_if_no_templates_for_service(client, sample_se
 
 def test_should_return_404_if_no_templates_for_service_with_id(client, sample_service, fake_uuid):
 
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.get(
         '/service/{}/template/{}'.format(sample_service().id, fake_uuid),
@@ -854,7 +854,7 @@ def test_create_400_for_over_limit_content(client, notify_db_session, sample_ser
         'created_by': str(sample_user().id)
     }
     data = json.dumps(data)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     # Requires a context block because the calling method expects current_user in the request
     with client.application.app_context():
@@ -883,7 +883,7 @@ def test_update_400_for_over_limit_content(client, sample_template):
         ),
         'created_by': str(template.created_by_id)
     })
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(
         '/service/{}/template/{}'.format(template.service.id, template.id),
         headers=[('Content-Type', 'application/json'), auth_header],
@@ -906,7 +906,7 @@ def test_should_return_all_template_versions_for_service_and_template_id(client,
     template.content = original_content + '2'
     dao_update_template(template)
 
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.get('/service/{}/template/{}/versions'.format(template.service_id, template.id),
                       headers=[('Content-Type', 'application/json'), auth_header])
     assert resp.status_code == 200
@@ -923,7 +923,7 @@ def test_should_return_all_template_versions_for_service_and_template_id(client,
 
 def test_update_does_not_create_new_version_when_there_is_no_change(client, sample_template):
     template = sample_template()
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     data = {
         'template_type': template.template_type,
         'content': template.content,
@@ -939,7 +939,7 @@ def test_update_does_not_create_new_version_when_there_is_no_change(client, samp
 
 @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
 def test_update_set_process_type_on_template(client, sample_template):
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     data = {
         'process_type': 'priority'
     }
@@ -1010,7 +1010,7 @@ def test_create_a_template_with_foreign_service_reply_to(admin_request, sample_s
                           ])
 def test_get_template_reply_to(client, sample_service, sample_template, template_default, service_default):
     service = sample_service()
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     if service_default:
         create_letter_contact(
             service=service, contact_block=service_default, is_default=True
@@ -1037,7 +1037,7 @@ def test_update_template_reply_to(client, notify_db_session, sample_template, sa
     service = sample_service(service_permissions=SERVICE_PERMISSION_TYPES)
     template = sample_template(service=service, template_type=LETTER_TYPE, postage="second")
 
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     letter_contact = create_letter_contact(template.service, "Edinburgh, ED1 1AA")
     data = {
         'reply_to': str(letter_contact.id),
@@ -1065,7 +1065,7 @@ def test_update_template_reply_to(client, notify_db_session, sample_template, sa
 
 def test_update_template_reply_to_set_to_blank(client, notify_db_session, sample_service, sample_template):
     service = sample_service(service_permissions=['letter'])
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     letter_contact = create_letter_contact(service, "Edinburgh, ED1 1AA")
     template = sample_template(service=service, template_type='letter', reply_to=letter_contact.id)
 
@@ -1092,7 +1092,7 @@ def test_update_template_reply_to_set_to_blank(client, notify_db_session, sample
 
 
 def test_update_template_with_foreign_service_reply_to(client, sample_service, sample_template):
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     service = sample_service(service_name=f'test service {str(uuid.uuid4())}', email_from='test@example.com',
                              service_permissions=['letter'])
@@ -1955,7 +1955,7 @@ class TestTemplateNameAlreadyExists:
         }
 
         data = json.dumps(data)
-        auth_header = create_authorization_header()
+        auth_header = create_admin_authorization_header()
 
         # Requires a context block because the calling method expects current_user in the request
         with client.application.app_context():
@@ -1983,7 +1983,7 @@ class TestTemplateNameAlreadyExists:
             'name': template.name
         }
         data = json.dumps(data)
-        auth_header = create_authorization_header()
+        auth_header = create_admin_authorization_header()
 
         update_response = client.post(
             f'/service/{service.id}/template/{template.id}',

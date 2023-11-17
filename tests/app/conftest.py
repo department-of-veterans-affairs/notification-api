@@ -81,7 +81,7 @@ from sqlalchemy import asc, delete, inspect, update, select, Table
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm.session import make_transient
-from tests import create_authorization_header
+from tests import create_admin_authorization_header
 from tests.app.db import (
     create_api_key,
     create_inbound_number,
@@ -145,7 +145,7 @@ def service_factory(notify_db_session):
 
 @pytest.fixture
 def set_user_as_admin(notify_db_session):
-    def _wrapper(user, *args, **kwargs):
+    def _wrapper(user: User) -> User:
         stmt = update(User).where(User.id == user.id).values(platform_admin=True)
         notify_db_session.session.execute(stmt)
         return notify_db_session.session.get(User, user.id)
@@ -153,25 +153,29 @@ def set_user_as_admin(notify_db_session):
 
 
 @pytest.fixture
-def sample_user(notify_db_session, set_user_as_admin):
-    created_user_ids = []
+def sample_user(notify_db_session, set_user_as_admin, worker_id) -> User:
+    created_user_ids = {worker_id: []}
 
     def _sample_user(*args, platform_admin=False, **kwargs):
         # Cannot set platform admin when creating a user (schema)
         user = create_user(*args, **kwargs)
         if platform_admin:
             user = set_user_as_admin(user)
-        created_user_ids.append(user.id)
+        
+        if worker_id in created_user_ids:
+            created_user_ids[worker_id].append(user.id)
+        else:
+            created_user_ids[worker_id] = [user.id]
         return user
 
     yield _sample_user
 
-    cleanup_user(created_user_ids, notify_db_session.session)
+    cleanup_user(created_user_ids, worker_id, notify_db_session.session)
 
 
-def cleanup_user(user_ids: List[int], session: scoped_session):
+def cleanup_user(user_ids: List[int], worker_id: int, session: scoped_session):
     # Unsafe to teardown with objects, have to use ids to look up the object
-    for user_id in user_ids:
+    for user_id in user_ids[worker_id]:
         user = session.get(User, user_id)
         # Clear user_folder_permissions
         session.execute(
@@ -934,7 +938,7 @@ def sample_email_template_history(notify_db, sample_service, sample_user, worker
     notify_db.session.add(template_history)
     notify_db.session.commit()
     templates.append(template_history)
-    print("TEMPLATE HISTORY ID =", template_history.id)  # TODO
+
     yield template_history
 
     for template in templates:
@@ -1036,20 +1040,25 @@ def sample_email_template_with_onsite_true(sample_template):
 
 
 @pytest.fixture
-def sample_api_key(notify_db_session, sample_service):
-    created_key_ids = []
+def sample_api_key(notify_db_session, sample_service, worker_id):
+    created_key_ids = {worker_id: []}
 
     def _sample_api_key(service=None, key_type=KEY_TYPE_NORMAL, key_name=None, expired=False):
         if service is None:
             service = sample_service()
+
         api_key = create_api_key(service, key_type, key_name, expired)
         version_api_key(api_key)
-        created_key_ids.append(api_key.id)
+
+        if worker_id in created_key_ids:
+            created_key_ids[worker_id].append(api_key.id)
+        else:
+            created_key_ids[worker_id] = [api_key.id]
         return api_key
 
     yield _sample_api_key
 
-    for key_id in created_key_ids:
+    for key_id in created_key_ids[worker_id]:
         key = notify_db_session.session.get(ApiKey, key_id)
         if key is None:
             continue
@@ -1857,7 +1866,7 @@ def sample_inbound_sms(notify_db_session, sample_service, sample_inbound_number)
             notify_number=None,
             user_number='+16502532222',
             provider_date=None,
-            provider_reference='foo',  # TODO: Was None. Will this introduce problems?
+            provider_reference='foo',
             content='Hello',
             provider="mmg",
             created_at=None
@@ -1898,7 +1907,7 @@ def sample_inbound_sms(notify_db_session, sample_service, sample_inbound_number)
 
 
 @pytest.fixture
-def sample_inbound_number(notify_db_session):
+def sample_inbound_number(notify_db_session, sample_service):
     inbound_number_ids = []
 
     def _wrapper(
@@ -1917,7 +1926,7 @@ def sample_inbound_number(notify_db_session):
             number=number,
             provider=provider,
             active=active,
-            service_id=service_id,
+            service_id=service_id or sample_service(),
             url_endpoint=url_endpoint,
             self_managed=self_managed
         )
@@ -2026,7 +2035,7 @@ def admin_request(client):
         def get(endpoint, _expected_status=200, **endpoint_kwargs):
             resp = client.get(
                 url_for(endpoint, **(endpoint_kwargs or {})),
-                headers=[create_authorization_header()]
+                headers=[create_admin_authorization_header()]
             )
 
             assert resp.status_code == _expected_status
@@ -2037,7 +2046,7 @@ def admin_request(client):
             resp = client.post(
                 url_for(endpoint, **(endpoint_kwargs or {})),
                 data=json.dumps(_data),
-                headers=[('Content-Type', 'application/json'), create_authorization_header()]
+                headers=[('Content-Type', 'application/json'), create_admin_authorization_header()]
             )
 
             assert resp.status_code == _expected_status
@@ -2048,7 +2057,7 @@ def admin_request(client):
             resp = client.patch(
                 url_for(endpoint, **(endpoint_kwargs or {})),
                 data=json.dumps(_data),
-                headers=[('Content-Type', 'application/json'), create_authorization_header()]
+                headers=[('Content-Type', 'application/json'), create_admin_authorization_header()]
             )
 
             assert resp.status_code == _expected_status
@@ -2058,7 +2067,7 @@ def admin_request(client):
         def delete(endpoint, _expected_status=204, **endpoint_kwargs):
             resp = client.delete(
                 url_for(endpoint, **(endpoint_kwargs or {})),
-                headers=[create_authorization_header()]
+                headers=[create_admin_authorization_header()]
             )
 
             assert resp.status_code == _expected_status
@@ -2103,7 +2112,7 @@ def mocked_provider_stats(sample_user, mocker):
             'active': True,
             'updated_at': datetime.utcnow(),
             'supports_international': False,
-            'created_by_name': sample_user.name,
+            'created_by_name': sample_user().name,
             'load_balancing_weight': 25,
             'current_month_billable_sms': randrange(100)  # nosec
         }),
@@ -2116,7 +2125,7 @@ def mocked_provider_stats(sample_user, mocker):
             'active': True,
             'updated_at': datetime.utcnow(),
             'supports_international': False,
-            'created_by_name': sample_user.name,
+            'created_by_name': sample_user().name,
             'load_balancing_weight': 75,
             'current_month_billable_sms': randrange(100)  # nosec
         })
@@ -2128,8 +2137,8 @@ def datetime_in_past(days=0, seconds=0):
 
 
 @pytest.fixture
-def sample_sms_sender_v2(notify_db_session):
-    sms_sender_ids = []
+def sample_sms_sender_v2(notify_db_session, worker_id):
+    sms_sender_ids = {worker_id: []}
 
     def _wrapper(
         service_id,
@@ -2153,7 +2162,10 @@ def sample_sms_sender_v2(notify_db_session):
         service_sms_sender = ServiceSmsSender(**data)
         notify_db_session.session.add(service_sms_sender)
         notify_db_session.session.commit()
-        sms_sender_ids.append(service_sms_sender.id)
+        if worker_id in sms_sender_ids:
+            sms_sender_ids[worker_id].append(service_sms_sender.id)
+        else:
+            sms_sender_ids[worker_id] = [service_sms_sender.id]
 
         return service_sms_sender
 
@@ -2161,7 +2173,7 @@ def sample_sms_sender_v2(notify_db_session):
 
     # Teardown
     # Fails if any notifications were sent
-    for sms_sender_id in sms_sender_ids:
+    for sms_sender_id in sms_sender_ids[worker_id]:
         sms_sender = notify_db_session.session.scalar(select(ServiceSmsSender)
                                                       .where(ServiceSmsSender.id == sms_sender_id))
         if sms_sender is not None:
@@ -2419,8 +2431,14 @@ def pytest_sessionfinish(session, exitstatus):
     """
     from tests.conftest import application
     from sqlalchemy.sql import text as sa_text
+    from time import sleep
 
+    sleep(2)  # Allow fixtures to finish their work
+
+    color = '\033[91m'
+    reset = '\033[0m'
     TRUNCATE_ARTIFACTS = True
+
     with application.app_context():
 
         with warnings.catch_warnings():
@@ -2470,20 +2488,23 @@ def pytest_sessionfinish(session, exitstatus):
                 continue
             elif row_count > 0:
                 tables_with_artifacts.append(table_name)
+                session.exitstatus = 1
 
-        if TRUNCATE_ARTIFACTS:
-            print()
+        if tables_with_artifacts and TRUNCATE_ARTIFACTS:
+            print('\n')
             for table in tables_with_artifacts:
                 # Skip tables that may have necessary information
                 if table not in acceptable_counts:
                     db.session.execute(sa_text(f"""TRUNCATE TABLE {table} CASCADE"""))
+                    print(f'Truncating {color}{table}{reset} with cascade...')
                 else:
-                    print(f'Table {table} contains too many records but cannot be truncated.')
+                    print(f'Table {table} contains too many records but {color}cannot be truncated{reset}.')
             db.session.commit()
-
-    # \033[91m is red  \033[32m is green  \033[0m is reset
-    if tables_with_artifacts:
-        print(f"\n\nThese tables contain artifacts: \033[91m{tables_with_artifacts}\n\nUNIT TESTS FAILED\033[0m")
-        # session.exitstatus = 1
-    else:
-        print('\n\n\033[32mDATABASE IS CLEAN\033[0m')
+            print(f"\n\nThese tables contained artifacts: "
+                  f"{tables_with_artifacts}\n\n{color}UNIT TESTS FAILED{reset}")
+        elif tables_with_artifacts:
+            print(f"\n\nThese tables contain artifacts: "
+                  f"{color}{tables_with_artifacts}\n\nUNIT TESTS FAILED{reset}")
+        else:
+            color = '\033[32m'  # Green - pulled out for clarity
+            print(f'\n\n{color}DATABASE IS CLEAN{reset}')

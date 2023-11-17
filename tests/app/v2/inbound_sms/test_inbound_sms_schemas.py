@@ -41,7 +41,12 @@ invalid_inbound_sms_list = {
 }
 
 
-def test_get_inbound_sms_contract(client, sample_inbound_sms, sample_service):
+def test_get_inbound_sms_contract(
+    client,
+    sample_inbound_sms,
+    sample_api_key,
+    sample_service,
+):
     service = sample_service()
     all_inbound_sms = [
         sample_inbound_sms(service, user_number='447700900121'),
@@ -50,7 +55,7 @@ def test_get_inbound_sms_contract(client, sample_inbound_sms, sample_service):
     ]
     reversed_inbound_sms = sorted(all_inbound_sms, key=lambda sms: sms.created_at, reverse=True)
 
-    auth_header = create_authorization_header(service_id=all_inbound_sms[0].service_id)
+    auth_header = create_authorization_header(sample_api_key(service=all_inbound_sms[0].service))
     response = client.get('/v2/received-text-messages', headers=[auth_header])
     response_json = json.loads(response.get_data(as_text=True))
 

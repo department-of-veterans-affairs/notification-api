@@ -6,7 +6,7 @@ from app.models import SERVICE_PERMISSION_TYPES
 from datetime import (datetime, date)
 from flask import url_for
 from uuid import uuid4
-from tests import create_authorization_header
+from tests import create_admin_authorization_header
 from tests.app.db import create_letter_contact
 
 
@@ -14,7 +14,7 @@ def test_template_history_version(notify_api, sample_user, sample_template):
     template = sample_template()
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
-            auth_header = create_authorization_header()
+            auth_header = create_admin_authorization_header()
             endpoint = url_for(
                 'template.get_template_version',
                 service_id=template.service.id,
@@ -41,7 +41,7 @@ def test_previous_template_history_version(notify_api, sample_template):
 
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
-            auth_header = create_authorization_header()
+            auth_header = create_admin_authorization_header()
             endpoint = url_for(
                 'template.get_template_version',
                 service_id=template.service.id,
@@ -63,7 +63,7 @@ def test_404_missing_template_version(notify_api, sample_template):
 
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
-            auth_header = create_authorization_header()
+            auth_header = create_admin_authorization_header()
             endpoint = url_for(
                 'template.get_template_version',
                 service_id=template.service.id,
@@ -88,7 +88,7 @@ def test_all_versions_of_template(notify_api, sample_template):
             dao_update_template(template)
             template.content = newest_content
             dao_update_template(template)
-            auth_header = create_authorization_header()
+            auth_header = create_admin_authorization_header()
             endpoint = url_for(
                 'template.get_template_versions',
                 service_id=template.service.id,
@@ -114,7 +114,7 @@ def test_update_template_reply_to_updates_history(client, sample_template, sampl
         check_if_service_exists=True
     )
     template = sample_template(service=service, template_type=LETTER_TYPE, postage="second")
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     letter_contact = create_letter_contact(template.service, "Edinburgh, ED1 1AA")
 
     template.reply_to = letter_contact.id

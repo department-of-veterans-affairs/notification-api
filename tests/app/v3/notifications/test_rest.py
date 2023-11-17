@@ -86,7 +86,7 @@ def bad_request_helper(response: Response):
         "additional properties not allowed",
     )
 )
-def test_post_v3_notifications(notify_db_session, client, mocker, sample_service, request_data, expected_status_code):
+def test_post_v3_notifications(client, mocker, sample_api_key, sample_service, request_data, expected_status_code):
     """
     Test e-mail and SMS POST endpoints using "email_address", "phone_number", and "recipient_identifier".
     Also test POSTing with bad request data to verify a 400 response.  This test does not exhaustively test
@@ -97,10 +97,11 @@ def test_post_v3_notifications(notify_db_session, client, mocker, sample_service
 
     Tests for authentication are in tests/app/test_route_authentication.py.
     """
-
     service = sample_service()
+    api_key = sample_api_key(service=service, key_type=KEY_TYPE_TEAM)
     celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
-    auth_header = create_authorization_header(service_id=service.id, key_type=KEY_TYPE_TEAM)
+    auth_header = create_authorization_header(api_key)
+
     response = client.post(
         path=url_for(f"v3.v3_notifications.v3_post_notification_{request_data['notification_type']}"),
         data=dumps(request_data),
@@ -137,19 +138,20 @@ def test_post_v3_notifications(notify_db_session, client, mocker, sample_service
         celery_mock.assert_not_called()
 
 
-def test_post_v3_notifications_email_denied(notify_db_session, client, mocker, sample_service):
+def test_post_v3_notifications_email_denied(client, mocker, sample_api_key, sample_service):
     """
     Test trying to send e-mail with a service that does not have permission to send e-mail.
     The implementation should test permission before validating the request data.
     """
 
     service = sample_service(service_permissions=[SMS_TYPE])
+    api_key = sample_api_key(service=service, key_type=KEY_TYPE_TEAM)
     assert not service.has_permissions(EMAIL_TYPE)
 
     celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
-    auth_header = create_authorization_header(service_id=service.id, key_type=KEY_TYPE_TEAM)
+    auth_header = create_authorization_header(api_key)
     response = client.post(
-        path=url_for(f"v3.v3_notifications.v3_post_notification_email"),
+        path=url_for("v3.v3_notifications.v3_post_notification_email"),
         data=dumps({}),
         headers=(("Content-Type", "application/json"), auth_header)
     )
@@ -167,19 +169,20 @@ def test_post_v3_notifications_email_denied(notify_db_session, client, mocker, s
     celery_mock.assert_not_called()
 
 
-def test_post_v3_notifications_sms_denied(notify_db_session, client, mocker, sample_service):
+def test_post_v3_notifications_sms_denied(client, mocker, sample_api_key, sample_service):
     """
     Test trying to send a SMS notification with a service that does not have permission to send SMS.
     The implementation should test permission before validating the request data.
     """
 
     service = sample_service(service_permissions=[EMAIL_TYPE])
+    api_key = sample_api_key(service=service, key_type=KEY_TYPE_TEAM)
     assert not service.has_permissions(SMS_TYPE)
 
     celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
-    auth_header = create_authorization_header(service_id=service.id, key_type=KEY_TYPE_TEAM)
+    auth_header = create_authorization_header(api_key)
     response = client.post(
-        path=url_for(f"v3.v3_notifications.v3_post_notification_sms"),
+        path=url_for("v3.v3_notifications.v3_post_notification_sms"),
         data=dumps({}),
         headers=(("Content-Type", "application/json"), auth_header)
     )
@@ -218,12 +221,12 @@ def test_post_v3_notifications_sms_denied(notify_db_session, client, mocker, sam
         "not enough digits",
     )
 )
-def test_post_v3_notifications_phone_number_not_possible(notify_db_session, client, sample_service, request_data):
+def test_post_v3_notifications_phone_number_not_possible(client, sample_api_key, request_data):
     """
     Test phone number strings that cannot be parsed.
     """
-
-    auth_header = create_authorization_header(service_id=sample_service().id, key_type=KEY_TYPE_TEAM)
+    api_key = sample_api_key(key_type=KEY_TYPE_TEAM)
+    auth_header = create_authorization_header(api_key)
     response = client.post(
         path=url_for("v3.v3_notifications.v3_post_notification_sms"),
         data=dumps(request_data),
@@ -232,7 +235,7 @@ def test_post_v3_notifications_phone_number_not_possible(notify_db_session, clie
     bad_request_helper(response)
 
 
-def test_post_v3_notifications_phone_number_not_valid(notify_db_session, client, sample_service):
+def test_post_v3_notifications_phone_number_not_valid(client, sample_api_key):
     """
     Test a possible phone number that is not valid (U.S. number for which area code doesn't exist).
     """
@@ -244,7 +247,8 @@ def test_post_v3_notifications_phone_number_not_valid(notify_db_session, client,
         "template_id": "4f365dd4-332e-454d-94ff-e393463602db",
     }
 
-    auth_header = create_authorization_header(service_id=sample_service().id, key_type=KEY_TYPE_TEAM)
+    api_key = sample_api_key(key_type=KEY_TYPE_TEAM)
+    auth_header = create_authorization_header(api_key)
     response = client.post(
         path=url_for("v3.v3_notifications.v3_post_notification_sms"),
         data=dumps(request_data),
@@ -257,14 +261,14 @@ def test_post_v3_notifications_phone_number_not_valid(notify_db_session, client,
     assert response_json["errors"][0]["message"].endswith("is not a valid phone number.")
 
 
-def test_post_v3_notifications_scheduled_for(notify_db_session, client, mocker, sample_service):
+def test_post_v3_notifications_scheduled_for(client, mocker, sample_api_key):
     """
     The scheduled time must not be in the past or more than a calendar day in the future.
     """
 
-    service = sample_service()
+    api_key = sample_api_key(key_type=KEY_TYPE_TEAM)
     celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
-    auth_header = create_authorization_header(service_id=service.id, key_type=KEY_TYPE_TEAM)
+    auth_header = create_authorization_header(api_key)
     scheduled_for = datetime.now(timezone.utc) + timedelta(hours=2)
     email_request_data = {
         "notification_type": EMAIL_TYPE,
@@ -357,14 +361,18 @@ def test_post_v3_notifications_scheduled_for(notify_db_session, client, mocker, 
     )
 )
 def test_post_v3_notifications_custom_validation_error_messages(
-    notify_db_session, client, sample_service, notification_type, error_message
+    client,
+    sample_api_key,
+    notification_type,
+    error_message,
 ):
     """
     Send a request that has neither direct contact information nor a recipient identifier.  The response
     should have a custom validation error message because the default message is not helpful.
     """
 
-    auth_header = create_authorization_header(service_id=sample_service().id, key_type=KEY_TYPE_TEAM)
+    api_key = sample_api_key(key_type=KEY_TYPE_TEAM)
+    auth_header = create_authorization_header(api_key)
     request_data = {
         "notification_type": notification_type,
         "template_id": "4f365dd4-332e-454d-94ff-e393463602db",

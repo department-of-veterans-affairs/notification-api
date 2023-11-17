@@ -5,7 +5,7 @@ from werkzeug.http import http_date
 
 from app.models import ProviderDetails, ProviderDetailsHistory
 
-from tests import create_authorization_header
+from tests import create_admin_authorization_header
 from tests.app.db import create_ft_billing
 
 
@@ -13,7 +13,7 @@ def test_get_provider_details_returns_information_about_providers(client, notify
     mocker.patch('app.provider_details.rest.dao_get_provider_stats', return_value=mocked_provider_stats)
     response = client.get(
         '/provider-details',
-        headers=[create_authorization_header()]
+        headers=[create_admin_authorization_header()]
     )
     assert response.status_code == 200
     json_resp = json.loads(response.get_data(as_text=True))['provider_details']
@@ -35,13 +35,13 @@ def test_get_provider_details_returns_information_about_providers(client, notify
 def test_get_provider_details_by_id(client, notify_db):
     response = client.get(
         '/provider-details',
-        headers=[create_authorization_header()]
+        headers=[create_admin_authorization_header()]
     )
     json_resp = json.loads(response.get_data(as_text=True))['provider_details']
 
     provider_resp = client.get(
         '/provider-details/{}'.format(json_resp[0]['id']),
-        headers=[create_authorization_header()]
+        headers=[create_admin_authorization_header()]
     )
 
     provider = json.loads(provider_resp.get_data(as_text=True))['provider_details']
@@ -54,7 +54,7 @@ def test_get_provider_contains_correct_fields(client, sample_service, sample_tem
 
     response = client.get(
         '/provider-details',
-        headers=[create_authorization_header()]
+        headers=[create_admin_authorization_header()]
     )
     json_resp = json.loads(response.get_data(as_text=True))['provider_details']
     allowed_keys = {
@@ -74,7 +74,7 @@ class TestUpdate:
 
         update_resp = client.post(
             '/provider-details/{}'.format(provider.id),
-            headers=[('Content-Type', 'application/json'), create_authorization_header()],
+            headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
             data=json.dumps({
                 'priority': 5
             })
@@ -90,7 +90,7 @@ class TestUpdate:
 
         update_resp_1 = client.post(
             '/provider-details/{}'.format(provider.id),
-            headers=[('Content-Type', 'application/json'), create_authorization_header()],
+            headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
             data=json.dumps({
                 'active': False
             })
@@ -111,7 +111,7 @@ class TestUpdate:
 
         resp = client.post(
             '/provider-details/{}'.format(provider.id),
-            headers=[('Content-Type', 'application/json'), create_authorization_header()],
+            headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
             data=json.dumps({field: value})
         )
         resp_json = json.loads(resp.get_data(as_text=True))
@@ -125,7 +125,7 @@ class TestUpdate:
 
         update_resp_1 = client.post(
             '/provider-details/{}'.format(provider.id),
-            headers=[('Content-Type', 'application/json'), create_authorization_header()],
+            headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
             data=json.dumps({
                 'created_by': sample_user.id,
                 'active': False
@@ -142,7 +142,7 @@ class TestUpdate:
 
         update_resp_1 = client.post(
             '/provider-details/{}'.format(provider.id),
-            headers=[('Content-Type', 'application/json'), create_authorization_header()],
+            headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
             data=json.dumps({
                 'load_balancing_weight': 333
             })
@@ -157,7 +157,7 @@ def test_get_provider_versions_contains_correct_fields(client, notify_db):
     provider = ProviderDetailsHistory.query.first()
     response = client.get(
         '/provider-details/{}/versions'.format(provider.id),
-        headers=[create_authorization_header()]
+        headers=[create_admin_authorization_header()]
     )
     json_resp = json.loads(response.get_data(as_text=True))['data']
     allowed_keys = {

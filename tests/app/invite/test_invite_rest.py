@@ -2,7 +2,7 @@ import json
 import pytest
 from app.model import EMAIL_AUTH_TYPE
 from app.models import Notification
-from tests import create_authorization_header
+from tests import create_admin_authorization_header
 from tests.app.db import create_invited_user
 
 
@@ -110,7 +110,7 @@ def test_create_invited_user_invalid_email(client, sample_service, mocker, fake_
 
     data = json.dumps(data)
 
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post(
         '/service/{}/invite'.format(sample_service.id),
@@ -134,7 +134,7 @@ def test_get_all_invited_users_by_service(client, notify_db, notify_db_session, 
 
     url = '/service/{}/invite'.format(sample_service.id)
 
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.get(
         url,
@@ -155,7 +155,7 @@ def test_get_all_invited_users_by_service(client, notify_db, notify_db_session, 
 def test_get_invited_users_by_service_with_no_invites(client, notify_db, notify_db_session, sample_service):
     url = '/service/{}/invite'.format(sample_service.id)
 
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.get(
         url,
@@ -170,7 +170,7 @@ def test_get_invited_users_by_service_with_no_invites(client, notify_db, notify_
 def test_update_invited_user_set_status_to_cancelled(client, sample_invited_user):
     data = {'status': 'cancelled'}
     url = '/service/{0}/invite/{1}'.format(sample_invited_user.service_id, sample_invited_user.id)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     response = client.post(url,
                            data=json.dumps(data),
                            headers=[('Content-Type', 'application/json'), auth_header])
@@ -183,7 +183,7 @@ def test_update_invited_user_set_status_to_cancelled(client, sample_invited_user
 def test_update_invited_user_for_wrong_service_returns_404(client, sample_invited_user, fake_uuid):
     data = {'status': 'cancelled'}
     url = '/service/{0}/invite/{1}'.format(fake_uuid, sample_invited_user.id)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     response = client.post(url, data=json.dumps(data),
                            headers=[('Content-Type', 'application/json'), auth_header])
     assert response.status_code == 404
@@ -195,7 +195,7 @@ def test_update_invited_user_for_wrong_service_returns_404(client, sample_invite
 def test_update_invited_user_for_invalid_data_returns_400(client, sample_invited_user):
     data = {'status': 'garbage'}
     url = '/service/{0}/invite/{1}'.format(sample_invited_user.service_id, sample_invited_user.id)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     response = client.post(url, data=json.dumps(data), headers=[('Content-Type', 'application/json'), auth_header])
 
     assert response.status_code == 400

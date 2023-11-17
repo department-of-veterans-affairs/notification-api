@@ -12,6 +12,7 @@ from app.feature_flags import FeatureFlag
 from app.models import (
     EMAIL_TYPE,
     INTERNATIONAL_SMS_TYPE,
+    KEY_TYPE_TEAM,
     Notification,
     NOTIFICATION_CREATED,
     RecipientIdentifier,
@@ -80,8 +81,15 @@ def mock_deliver_sms(mocker):
     # active in the testing environment.
     # {"recipient_identifier": {"id_type": IdentifierType.VA_PROFILE_ID.value, "id_value": "bar"}},
 ])
-def test_post_sms_notification_returns_201(client, notify_db_session, sample_template,
-                                           mock_deliver_sms, reference, data):
+def test_post_sms_notification_returns_201(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+    mock_deliver_sms,
+    reference,
+    data,
+):
     template = sample_template(content="Hello (( Name))\nYour thing is due soon")
     data.update({
         'template_id': str(template.id),
@@ -90,7 +98,7 @@ def test_post_sms_notification_returns_201(client, notify_db_session, sample_tem
     if reference is not None:
         data["reference"] = reference
 
-    response = post_send_notification(client, template.service, SMS_TYPE, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
 
     assert response.status_code == 201
     resp_json = response.get_json()
@@ -120,24 +128,33 @@ def test_post_sms_notification_returns_201(client, notify_db_session, sample_tem
     notify_db_session.session.commit()
 
 
-# TODO: Finish this
 def test_post_sms_notification_uses_inbound_number_as_sender(
-    client, mocker, notify_db_session, sample_template, sample_service_with_inbound_number
+    client,
+    mocker,
+    notify_db_session,
+    sample_api_key,
+    sample_service,
+    sample_template,
+    sample_inbound_number,
+    sample_sms_sender_v2,
 ):
-    # sample_service_with_inbound_number()
-    # service = sample_service()
-    inbound_num = str(randint(1, 999999999))
-    service = sample_service_with_inbound_number(inbound_number=inbound_num)
-    # return
+    service = sample_service()
     template = sample_template(service=service, content="Hello (( Name))\nYour thing is due soon")
+    inbound_number = sample_inbound_number(service_id=service.id, number=str(randint(1, 999999999)))
+    sms_sender = sample_sms_sender_v2(service_id=service.id,
+                                      inbound_number_id=inbound_number.id,
+                                      sms_sender=str(randint(1, 999999999)))
+
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
+
     data = {
         'phone_number': '+16502532222',
         'template_id': str(template.id),
-        'personalisation': {' Name': 'Jo'}
+        'personalisation': {' Name': 'Jo'},
+        'sms_sender_id': str(sms_sender.id)
     }
 
-    response = post_send_notification(client, service, SMS_TYPE, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
     assert response.status_code == 201
     resp_json = response.get_json()
     assert validate(resp_json, post_sms_response) == resp_json
@@ -147,8 +164,9 @@ def test_post_sms_notification_uses_inbound_number_as_sender(
     assert len(notifications) == 1
     notification_id = notifications[0].id
     assert resp_json['id'] == str(notification_id)
-    assert resp_json['content']['from_number'] == inbound_num
-    assert notifications[0].reply_to_text == inbound_num
+    # These two should be the same
+    assert resp_json['content']['from_number'] == sms_sender.sms_sender  # Our number
+    assert notifications[0].reply_to_text == sms_sender.sms_sender       # Our number
 
     mocked_chain.assert_called_once()
     args, _ = mocked_chain.call_args
@@ -162,7 +180,12 @@ def test_post_sms_notification_uses_inbound_number_as_sender(
 
 
 def test_post_sms_notification_uses_inbound_number_reply_to_as_sender(
-    client, mocker, notify_db_session, sample_service_with_inbound_number, sample_template
+    client,
+    mocker,
+    notify_db_session,
+    sample_api_key,
+    sample_service_with_inbound_number,
+    sample_template,
 ):
     service = sample_service_with_inbound_number(inbound_number='6502532222')
 
@@ -174,7 +197,7 @@ def test_post_sms_notification_uses_inbound_number_reply_to_as_sender(
         'personalisation': {' Name': 'Jo'}
     }
 
-    response = post_send_notification(client, service, SMS_TYPE, data)
+    response = post_send_notification(client, sample_api_key(service=service), SMS_TYPE, data)
     assert response.status_code == 201
     resp_json = response.get_json()
     assert validate(resp_json, post_sms_response) == resp_json
@@ -202,6 +225,7 @@ def test_post_sms_notification_uses_inbound_number_reply_to_as_sender(
 def test_post_sms_notification_returns_201_with_sms_sender_id(
     client,
     notify_db_session,
+    sample_api_key,
     sample_template,
     mocker,
     sms_sender_id
@@ -225,7 +249,7 @@ def test_post_sms_notification_returns_201_with_sms_sender_id(
     else:
         raise ValueError("This is a programming error.")
 
-    response = post_send_notification(client, template.service, SMS_TYPE, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
 
     assert response.status_code == 201
     resp_json = response.get_json()
@@ -264,7 +288,13 @@ def test_post_sms_notification_returns_201_with_sms_sender_id(
     notify_db_session.session.commit()
 
 
-def test_post_sms_notification_uses_sms_sender_id_reply_to(client, notify_db_session, sample_template, mocker):
+def test_post_sms_notification_uses_sms_sender_id_reply_to(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+    mocker,
+):
     template = sample_template(content="Hello (( Name))\nYour thing is due soon")
     sms_sender = create_service_sms_sender(service=template.service, sms_sender='6502532222')
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
@@ -277,7 +307,7 @@ def test_post_sms_notification_uses_sms_sender_id_reply_to(client, notify_db_ses
         'sms_sender_id': str(sms_sender.id)
     }
 
-    response = post_send_notification(client, template.service, SMS_TYPE, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
     assert response.status_code == 201
     resp_json = response.get_json()
     assert validate(resp_json, post_sms_response) == resp_json
@@ -300,7 +330,10 @@ def test_post_sms_notification_uses_sms_sender_id_reply_to(client, notify_db_ses
 
 
 def test_notification_reply_to_text_is_original_value_if_sender_is_changed_after_post_notification(
-        client, notify_db_session, sample_template
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
 ):
     template = sample_template()
     sms_sender = create_service_sms_sender(service=template.service, sms_sender='123456', is_default=False)
@@ -310,7 +343,7 @@ def test_notification_reply_to_text_is_original_value_if_sender_is_changed_after
         'sms_sender_id': str(sms_sender.id)
     }
 
-    response = post_send_notification(client, template.service, SMS_TYPE, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
 
     dao_update_service_sms_sender(
         service_id=template.service_id,
@@ -334,14 +367,19 @@ def test_notification_reply_to_text_is_original_value_if_sender_is_changed_after
 @pytest.mark.parametrize("notification_type, key_send_to, send_to",
                          [(SMS_TYPE, "phone_number", "+16502532222"),
                           (EMAIL_TYPE, "email_address", "sample@email.com")])
-def test_post_notification_returns_400_and_missing_template(client, sample_service,
-                                                            notification_type, key_send_to, send_to):
+def test_post_notification_returns_400_and_missing_template(
+    client,
+    sample_api_key,
+    notification_type,
+    key_send_to,
+    send_to,
+):
     data = {
         key_send_to: send_to,
         'template_id': str(uuid.uuid4())
     }
 
-    response = post_send_notification(client, sample_service(), notification_type, data)
+    response = post_send_notification(client, sample_api_key(), notification_type, data)
 
     assert response.status_code == 400
     assert response.headers['Content-type'] == 'application/json'
@@ -355,7 +393,6 @@ def test_post_notification_returns_400_and_missing_template(client, sample_servi
 @pytest.mark.parametrize("notification_type, key_send_to, send_to", [
     (SMS_TYPE, "phone_number", "+16502532222"),
     (EMAIL_TYPE, "email_address", "sample@email.com"),
-    # ("letter", "personalisation", {"address_line_1": "The queen", "postcode": "SW1 1AA"})
 ])
 def test_post_notification_returns_401_and_well_formed_auth_error(client, sample_template,
                                                                   notification_type, key_send_to, send_to):
@@ -380,15 +417,21 @@ def test_post_notification_returns_401_and_well_formed_auth_error(client, sample
 @pytest.mark.parametrize("notification_type, key_send_to, send_to",
                          [(SMS_TYPE, "phone_number", "+16502532222"),
                           (EMAIL_TYPE, "email_address", "sample@email.com")])
-def test_notification_returns_400_and_for_schema_problems(client, sample_template, notification_type, key_send_to,
-                                                          send_to):
+def test_notification_returns_400_and_for_schema_problems(
+    client,
+    sample_api_key,
+    sample_template,
+    notification_type,
+    key_send_to,
+    send_to,
+):
     template = sample_template()
     data = {
         key_send_to: send_to,
         'template': str(template.id)
     }
 
-    response = post_send_notification(client, template.service, notification_type, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), notification_type, data)
 
     assert response.status_code == 400
     assert response.headers['Content-type'] == 'application/json'
@@ -405,7 +448,12 @@ def test_notification_returns_400_and_for_schema_problems(client, sample_templat
 
 @pytest.mark.parametrize("reference", [None, "reference_from_client"])
 def test_post_email_notification_returns_201(
-        client, mock_deliver_email, notify_db_session, sample_template, reference
+    client,
+    mock_deliver_email,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+    reference,
 ):
     template = sample_template(template_type=EMAIL_TYPE)
     data = {
@@ -418,7 +466,7 @@ def test_post_email_notification_returns_201(
     if reference is not None:
         data["reference"] = reference
 
-    response = post_send_notification(client, template.service, EMAIL_TYPE, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), EMAIL_TYPE, data)
     assert response.status_code == 201
     resp_json = response.get_json()
     assert validate(resp_json, post_email_response) == resp_json
@@ -452,7 +500,12 @@ def test_post_email_notification_returns_201(
 
 @pytest.mark.parametrize("reference", [None, "reference_from_client"])
 def test_post_email_notification_with_reply_to_returns_201(
-    client, notify_db_session, sample_template, mock_deliver_email, reference
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+    mock_deliver_email,
+    reference,
 ):
     template = sample_template(
         template_type=EMAIL_TYPE,
@@ -470,7 +523,7 @@ def test_post_email_notification_with_reply_to_returns_201(
     if reference is not None:
         data["reference"] = reference
 
-    response = post_send_notification(client, template.service, EMAIL_TYPE, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), EMAIL_TYPE, data)
     assert response.status_code == 201
     resp_json = response.get_json()
     assert validate(resp_json, post_email_response) == resp_json
@@ -515,6 +568,7 @@ def test_should_not_persist_or_send_notification_if_simulated_recipient(
         recipient,
         notification_type,
         notify_db_session,
+        sample_api_key,
         sample_template,
         mocker):
     template = sample_template(template_type=notification_type)
@@ -530,7 +584,7 @@ def test_should_not_persist_or_send_notification_if_simulated_recipient(
         }
     data['template_id'] = str(template.id)
 
-    response = post_send_notification(client, template.service, notification_type, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), notification_type, data)
 
     assert response.status_code == 201
     apply_async.assert_not_called()
@@ -545,6 +599,7 @@ def test_should_not_persist_or_send_notification_if_simulated_recipient(
 def test_send_notification_uses_priority_queue_when_template_is_marked_as_priority(
     client,
     notify_db_session,
+    sample_api_key,
     sample_service,
     sample_template,
     mocker,
@@ -564,7 +619,7 @@ def test_send_notification_uses_priority_queue_when_template_is_marked_as_priori
         'template_id': str(template.id)
     }
 
-    response = post_send_notification(client, template.service, notification_type, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), notification_type, data)
 
     notification_id = json.loads(response.data)['id']
 
@@ -591,6 +646,7 @@ def test_send_notification_uses_priority_queue_when_template_is_marked_as_priori
 )
 def test_returns_a_429_limit_exceeded_if_rate_limit_exceeded(
         client,
+        sample_api_key,
         sample_service,
         sample_template,
         mocker,
@@ -610,7 +666,7 @@ def test_returns_a_429_limit_exceeded_if_rate_limit_exceeded(
         'template_id': str(template.id)
     }
 
-    response = post_send_notification(client, template.service, notification_type, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), notification_type, data)
 
     error = json.loads(response.data)['errors'][0]['error']
     message = json.loads(response.data)['errors'][0]['message']
@@ -625,7 +681,9 @@ def test_returns_a_429_limit_exceeded_if_rate_limit_exceeded(
 
 
 def test_post_sms_notification_returns_400_if_not_allowed_to_send_int_sms(
-        client, sample_template
+    client,
+    sample_api_key,
+    sample_template,
 ):
     template = sample_template()
 
@@ -634,7 +692,7 @@ def test_post_sms_notification_returns_400_if_not_allowed_to_send_int_sms(
         'template_id': template.id
     }
 
-    response = post_send_notification(client, template.service, SMS_TYPE, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
 
     assert response.status_code == 400
     assert response.headers['Content-type'] == 'application/json'
@@ -646,7 +704,11 @@ def test_post_sms_notification_returns_400_if_not_allowed_to_send_int_sms(
     ]
 
 
-def test_post_sms_notification_with_archived_reply_to_id_returns_400(client, sample_template):
+def test_post_sms_notification_with_archived_reply_to_id_returns_400(
+    client,
+    sample_api_key,
+    sample_template,
+):
     template = sample_template()
     archived_sender = create_service_sms_sender(
         template.service,
@@ -659,7 +721,7 @@ def test_post_sms_notification_with_archived_reply_to_id_returns_400(client, sam
         'sms_sender_id': archived_sender.id
     }
 
-    response = post_send_notification(client, template.service, SMS_TYPE, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
     assert response.status_code == 400
     resp_json = response.get_json()
     assert 'sms_sender_id {} does not exist in database for service id {}'. \
@@ -671,7 +733,15 @@ def test_post_sms_notification_with_archived_reply_to_id_returns_400(client, sam
     ('6502532222', 'phone_number', EMAIL_TYPE, SMS_TYPE, 'text messages'),
     ('someone@test.com', 'email_address', SMS_TYPE, EMAIL_TYPE, 'emails')])
 def test_post_sms_notification_returns_400_if_not_allowed_to_send_notification(
-        client, recipient, label, permission_type, notification_type, expected_error, sample_service, sample_template
+    client,
+    recipient,
+    label,
+    permission_type,
+    notification_type,
+    expected_error,
+    sample_api_key,
+    sample_service,
+    sample_template,
 ):
     # Intentionally has the wrong permission
     service = sample_service(service_permissions=[permission_type])
@@ -682,7 +752,7 @@ def test_post_sms_notification_returns_400_if_not_allowed_to_send_notification(
     }
 
     response = post_send_notification(
-        client, template.service, template.template_type, data
+        client, sample_api_key(service=template.service), template.template_type, data
     )
 
     assert response.status_code == 400
@@ -701,13 +771,13 @@ def test_post_sms_notification_returns_400_if_number_not_whitelisted(
 ):
     service = sample_service(restricted=restricted, service_permissions=[SMS_TYPE, INTERNATIONAL_SMS_TYPE])
     template = sample_template(service=service)
-    sample_api_key(service=service, key_type='team')
+    api_key = sample_api_key(service=service, key_type=KEY_TYPE_TEAM)
 
     data = {
         "phone_number": '+16132532235',
         "template_id": template.id,
     }
-    auth_header = create_authorization_header(service_id=service.id, key_type='team')
+    auth_header = create_authorization_header(api_key)
 
     response = client.post(
         path='/v2/notifications/sms',
@@ -723,10 +793,11 @@ def test_post_sms_notification_returns_400_if_number_not_whitelisted(
 
 
 def test_post_sms_notification_returns_201_if_allowed_to_send_international_sms(
-        notify_db_session,
-        sample_service,
-        sample_template,
-        client
+    notify_db_session,
+    sample_api_key,
+    sample_service,
+    sample_template,
+    client,
 ):
     """
     Ensure that SMS messages can be sent to phones outside the United States.
@@ -742,7 +813,7 @@ def test_post_sms_notification_returns_201_if_allowed_to_send_international_sms(
         'template_id': template.id
     }
 
-    response = post_send_notification(client, template.service, SMS_TYPE, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
 
     assert response.status_code == 201
     assert response.headers['Content-type'] == 'application/json'
@@ -753,7 +824,13 @@ def test_post_sms_notification_returns_201_if_allowed_to_send_international_sms(
     notify_db_session.session.commit()
 
 
-def test_post_sms_should_persist_supplied_sms_number(client, notify_db_session, sample_template, mock_deliver_sms):
+def test_post_sms_should_persist_supplied_sms_number(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+    mock_deliver_sms,
+):
     template = sample_template()
     data = {
         'phone_number': '+16502532222',
@@ -761,7 +838,7 @@ def test_post_sms_should_persist_supplied_sms_number(client, notify_db_session, 
         'personalisation': {' Name': 'Jo'}
     }
 
-    response = post_send_notification(client, template.service, SMS_TYPE, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
     assert response.status_code == 201
     resp_json = response.get_json()
     notifications = notify_db_session.session.scalars(
@@ -784,7 +861,14 @@ def test_post_sms_should_persist_supplied_sms_number(client, notify_db_session, 
 ])
 @freeze_time("2017-05-14 14:00:00")
 def test_post_notification_with_scheduled_for(
-        client, notify_db_session, sample_service, sample_template, notification_type, key_send_to, send_to
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_service,
+    sample_template,
+    notification_type,
+    key_send_to,
+    send_to,
 ):
     service = sample_service(service_name=str(uuid.uuid4()),
                              service_permissions=[EMAIL_TYPE, SMS_TYPE, SCHEDULE_NOTIFICATIONS])
@@ -795,7 +879,7 @@ def test_post_notification_with_scheduled_for(
         'scheduled_for': '2017-05-14 14:15'
     }
 
-    response = post_send_notification(client, service, notification_type, data)
+    response = post_send_notification(client, sample_api_key(service=service), notification_type, data)
     assert response.status_code == 201
     resp_json = response.get_json()
     scheduled_notification = ScheduledNotification.query.filter_by(notification_id=resp_json["id"]).all()
@@ -819,7 +903,13 @@ def test_post_notification_with_scheduled_for(
                           (EMAIL_TYPE, "email_address", "sample@email.com")])
 @freeze_time("2017-05-14 14:00:00")
 def test_post_notification_raises_bad_request_if_service_not_invited_to_schedule(
-        client, sample_template, notification_type, key_send_to, send_to):
+    client,
+    sample_api_key,
+    sample_template,
+    notification_type,
+    key_send_to,
+    send_to,
+):
     template = sample_template(template_type=notification_type)
     data = {
         key_send_to: send_to,
@@ -827,15 +917,18 @@ def test_post_notification_raises_bad_request_if_service_not_invited_to_schedule
         'scheduled_for': '2017-05-14 14:15'
     }
 
-    response = post_send_notification(client, template.service, notification_type, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), notification_type, data)
     assert response.status_code == 400
     error_json = response.get_json()
     assert error_json['errors'] == [
         {"error": "BadRequestError", "message": 'Cannot schedule notifications (this feature is invite-only)'}]
 
 
-def test_post_notification_raises_bad_request_if_not_valid_notification_type(client, sample_service):
-    response = post_send_notification(client, sample_service(), 'foo', {})
+def test_post_notification_raises_bad_request_if_not_valid_notification_type(
+    client,
+    sample_api_key,
+):
+    response = post_send_notification(client, sample_api_key(), 'foo', {})
     assert response.status_code == 404
     error_json = response.get_json()
     assert 'The requested URL was not found on the server.' in error_json['message']
@@ -843,10 +936,12 @@ def test_post_notification_raises_bad_request_if_not_valid_notification_type(cli
 
 @pytest.mark.parametrize("notification_type", [SMS_TYPE, EMAIL_TYPE])
 def test_post_notification_with_wrong_type_of_sender(
-        client,
-        sample_template,
-        notification_type,
-        fake_uuid):
+    client,
+    sample_api_key,
+    sample_template,
+    notification_type,
+    fake_uuid,
+):
     if notification_type == EMAIL_TYPE:
         template = sample_template(template_type=EMAIL_TYPE)
         form_label = 'sms_sender_id'
@@ -864,7 +959,7 @@ def test_post_notification_with_wrong_type_of_sender(
             form_label: fake_uuid
         }
 
-    response = post_send_notification(client, template.service, notification_type, data)
+    response = post_send_notification(client, sample_api_key(template.service), notification_type, data)
     assert response.status_code == 400
     resp_json = response.get_json()
     assert 'Additional properties are not allowed ({} was unexpected)'.format(form_label) \
@@ -873,7 +968,11 @@ def test_post_notification_with_wrong_type_of_sender(
 
 
 def test_post_email_notification_with_valid_reply_to_id_returns_201(
-    client, notify_db_session, sample_template, mock_deliver_email
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+    mock_deliver_email,
 ):
     template = sample_template(template_type=EMAIL_TYPE)
     reply_to_email = create_reply_to_email(template.service, 'test@test.com')
@@ -883,7 +982,7 @@ def test_post_email_notification_with_valid_reply_to_id_returns_201(
         'email_reply_to_id': reply_to_email.id
     }
 
-    response = post_send_notification(client, template.service, EMAIL_TYPE, data)
+    response = post_send_notification(client, sample_api_key(template.service), EMAIL_TYPE, data)
     assert response.status_code == 201
     resp_json = response.get_json()
     assert validate(resp_json, post_email_response) == resp_json
@@ -903,7 +1002,12 @@ def test_post_email_notification_with_valid_reply_to_id_returns_201(
     notify_db_session.session.commit()
 
 
-def test_post_email_notification_with_invalid_reply_to_id_returns_400(client, sample_template, fake_uuid):
+def test_post_email_notification_with_invalid_reply_to_id_returns_400(
+    client,
+    sample_api_key,
+    sample_template,
+    fake_uuid,
+):
     template = sample_template(template_type=EMAIL_TYPE)
     data = {
         "email_address": template.service.users[0].email_address,
@@ -911,7 +1015,7 @@ def test_post_email_notification_with_invalid_reply_to_id_returns_400(client, sa
         'email_reply_to_id': fake_uuid
     }
 
-    response = post_send_notification(client, template.service, EMAIL_TYPE, data)
+    response = post_send_notification(client, sample_api_key(template.service), EMAIL_TYPE, data)
     assert response.status_code == 400
     resp_json = response.get_json()
     assert 'email_reply_to_id {} does not exist in database for service id {}'. \
@@ -919,7 +1023,12 @@ def test_post_email_notification_with_invalid_reply_to_id_returns_400(client, sa
     assert 'BadRequestError' in resp_json['errors'][0]['error']
 
 
-def test_post_email_notification_with_archived_reply_to_id_returns_400(client, notify_db_session, sample_template):
+def test_post_email_notification_with_archived_reply_to_id_returns_400(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+):
     template = sample_template(template_type=EMAIL_TYPE)
     archived_reply_to = create_reply_to_email(
         template.service,
@@ -932,7 +1041,7 @@ def test_post_email_notification_with_archived_reply_to_id_returns_400(client, n
         'email_reply_to_id': archived_reply_to.id
     }
 
-    response = post_send_notification(client, template.service, EMAIL_TYPE, data)
+    response = post_send_notification(client, sample_api_key(template.service), EMAIL_TYPE, data)
     assert response.status_code == 400
     resp_json = response.get_json()
     assert 'email_reply_to_id {} does not exist in database for service id {}'. \
@@ -964,13 +1073,19 @@ class TestPostNotificationWithAttachment:
         mock_feature_flag(mocker, feature_flag=FeatureFlag.EMAIL_ATTACHMENTS_ENABLED, enabled='True')
 
     def test_returns_not_implemented_if_feature_flag_disabled(
-            self, client, mocker, sample_service, sample_template, attachment_store_mock
+        self,
+        client,
+        mocker,
+        sample_api_key,
+        sample_service,
+        sample_template,
+        attachment_store_mock,
     ):
         service = sample_service(service_permissions=[EMAIL_TYPE, UPLOAD_DOCUMENT])
         template = sample_template(service=service, template_type=EMAIL_TYPE, content="See attached file")
         mock_feature_flag(mocker, feature_flag=FeatureFlag.EMAIL_ATTACHMENTS_ENABLED, enabled='False')
 
-        response = post_send_notification(client, service, EMAIL_TYPE, {
+        response = post_send_notification(client, sample_api_key(service), EMAIL_TYPE, {
             "email_address": "foo@bar.com",
             "template_id": template.id,
             "personalisation": {
@@ -986,12 +1101,17 @@ class TestPostNotificationWithAttachment:
         attachment_store_mock.put.assert_not_called()
 
     def test_returns_not_implemented_if_sending_method_is_link(
-            self, client, sample_service, sample_template, attachment_store_mock
+        self,
+        client,
+        sample_api_key,
+        sample_service,
+        sample_template,
+        attachment_store_mock,
     ):
         # service_with_upload_document_permission
         service = sample_service(service_permissions=[EMAIL_TYPE, UPLOAD_DOCUMENT])
         template = sample_template(service=service, template_type=EMAIL_TYPE)
-        response = post_send_notification(client, service, EMAIL_TYPE, {
+        response = post_send_notification(client, sample_api_key(service), EMAIL_TYPE, {
             "email_address": "foo@bar.com",
             "template_id": template.id,
             "personalisation": {
@@ -1013,6 +1133,7 @@ class TestPostNotificationWithAttachment:
             mocker,
             notify_db_session,
             sending_method,
+            sample_api_key,
             sample_service,
             sample_template,
             attachment_store_mock
@@ -1036,7 +1157,7 @@ class TestPostNotificationWithAttachment:
         if sending_method:
             data["personalisation"]["some_attachment"]["sending_method"] = sending_method
 
-        response = post_send_notification(client, service, EMAIL_TYPE, data)
+        response = post_send_notification(client, sample_api_key(service), EMAIL_TYPE, data)
 
         assert response.status_code == 201, response.get_data(as_text=True)
         resp_json = response.get_json()
@@ -1068,12 +1189,13 @@ class TestPostNotificationWithAttachment:
         notify_db_session.session.commit()
 
     def test_attachment_upload_unsupported_mimetype(
-            self,
-            client,
-            sample_service,
-            sample_template,
-            attachment_store_mock,
-            validate_mimetype_mock
+        self,
+        client,
+        sample_api_key,
+        sample_service,
+        sample_template,
+        attachment_store_mock,
+        validate_mimetype_mock
     ):
         service = sample_service(service_permissions=[EMAIL_TYPE, UPLOAD_DOCUMENT])
         template = sample_template(service=service, template_type=EMAIL_TYPE, content="See attached file")
@@ -1090,16 +1212,22 @@ class TestPostNotificationWithAttachment:
             }
         }
 
-        response = post_send_notification(client, service, EMAIL_TYPE, data)
+        response = post_send_notification(client, sample_api_key(service), EMAIL_TYPE, data)
 
         assert response.status_code == 400
         attachment_store_mock.put.assert_not_called()
 
-    def test_long_filename(self, client, sample_service, sample_template):
+    def test_long_filename(
+        self,
+        client,
+        sample_api_key,
+        sample_service,
+        sample_template,
+    ):
         service = sample_service(service_permissions=[EMAIL_TYPE, UPLOAD_DOCUMENT])
         template = sample_template(service=service, template_type=EMAIL_TYPE, content="See attached file")
         filename = "a" * 256
-        response = post_send_notification(client, service, EMAIL_TYPE, {
+        response = post_send_notification(client, sample_api_key(service), EMAIL_TYPE, {
             "email_address": "foo@bar.com",
             "template_id": template.id,
             "personalisation": {
@@ -1117,10 +1245,16 @@ class TestPostNotificationWithAttachment:
         assert filename in resp_json["errors"][0]["message"]
         assert "too long" in resp_json["errors"][0]["message"]
 
-    def test_filename_required_check(self, client, sample_service, sample_template):
+    def test_filename_required_check(
+        self,
+        client,
+        sample_api_key,
+        sample_service,
+        sample_template,
+    ):
         service = sample_service(service_permissions=[EMAIL_TYPE, UPLOAD_DOCUMENT])
         template = sample_template(service=service, template_type=EMAIL_TYPE, content="See attached file")
-        response = post_send_notification(client, service, EMAIL_TYPE, {
+        response = post_send_notification(client, sample_api_key(service), EMAIL_TYPE, {
             "email_address": "foo@bar.com",
             "template_id": template.id,
             "personalisation": {
@@ -1133,10 +1267,16 @@ class TestPostNotificationWithAttachment:
         assert "ValidationError" in resp_json["errors"][0]["error"]
         assert "filename is a required property" in resp_json["errors"][0]["message"]
 
-    def test_bad_sending_method(self, client, sample_service, sample_template):
+    def test_bad_sending_method(
+        self,
+        client,
+        sample_api_key,
+        sample_service,
+        sample_template,
+    ):
         service = sample_service(service_permissions=[EMAIL_TYPE, UPLOAD_DOCUMENT])
         template = sample_template(service=service, template_type=EMAIL_TYPE, content="See attached file")
-        response = post_send_notification(client, service, EMAIL_TYPE, {
+        response = post_send_notification(client, sample_api_key(service), EMAIL_TYPE, {
             "email_address": "foo@bar.com",
             "template_id": template.id,
             "personalisation": {
@@ -1151,14 +1291,20 @@ class TestPostNotificationWithAttachment:
         assert response.status_code == 400
         resp_json = response.get_json()
         assert (
-            f"personalisation not-a-real-sending-method is not one of [attach, link]"
+            "personalisation not-a-real-sending-method is not one of [attach, link]"
             in resp_json["errors"][0]["message"]
         )
 
-    def test_not_base64_file(self, client, sample_service, sample_template):
+    def test_not_base64_file(
+        self,
+        client,
+        sample_api_key,
+        sample_service,
+        sample_template,
+    ):
         service = sample_service(service_permissions=[EMAIL_TYPE, UPLOAD_DOCUMENT])
         template = sample_template(service=service, template_type=EMAIL_TYPE, content="See attached file")
-        response = post_send_notification(client, service, EMAIL_TYPE, {
+        response = post_send_notification(client, sample_api_key(service), EMAIL_TYPE, {
             "email_address": "foo@bar.com",
             "template_id": template.id,
             "personalisation": {
@@ -1174,7 +1320,13 @@ class TestPostNotificationWithAttachment:
         resp_json = response.get_json()
         assert "Incorrect padding" in resp_json["errors"][0]["message"]
 
-    def test_simulated(self, client, sample_service, sample_template):
+    def test_simulated(
+        self,
+        client,
+        sample_api_key,
+        sample_service,
+        sample_template,
+    ):
         service = sample_service(service_permissions=[EMAIL_TYPE, UPLOAD_DOCUMENT])
         template = sample_template(
             service=service, template_type=EMAIL_TYPE, content="Document: ((document))"
@@ -1186,7 +1338,7 @@ class TestPostNotificationWithAttachment:
             "personalisation": {"document": {"file": "abababab", "filename": "file.pdf"}},
         }
 
-        response = post_send_notification(client, service, EMAIL_TYPE, data)
+        response = post_send_notification(client, sample_api_key(service), EMAIL_TYPE, data)
 
         assert response.status_code == 201
         resp_json = response.get_json()
@@ -1197,14 +1349,18 @@ class TestPostNotificationWithAttachment:
         )
 
     def test_without_document_upload_permission(
-        self, client, sample_service, sample_template
+        self,
+        client,
+        sample_api_key,
+        sample_service,
+        sample_template,
     ):
         service = sample_service(service_permissions=[EMAIL_TYPE])
         template = sample_template(
             service=service, template_type=EMAIL_TYPE, content="Document: ((document))"
         )
 
-        response = post_send_notification(client, service, EMAIL_TYPE, {
+        response = post_send_notification(client, sample_api_key(service), EMAIL_TYPE, {
             "email_address": service.users[0].email_address,
             "template_id": template.id,
             "personalisation": {"document": {"file": "abababab", "filename": "foo.pdf"}},
@@ -1215,7 +1371,12 @@ class TestPostNotificationWithAttachment:
         assert "Service is not allowed to send documents" in resp_json["errors"][0]["message"]
 
     def test_attachment_store_error(
-        self, client, sample_service, sample_template, attachment_store_mock
+        self,
+        client,
+        sample_api_key,
+        sample_service,
+        sample_template,
+        attachment_store_mock,
     ):
         attachment_store_mock.put.side_effect = AttachmentStoreError()
         service = sample_service(service_permissions=[EMAIL_TYPE, UPLOAD_DOCUMENT])
@@ -1231,16 +1392,21 @@ class TestPostNotificationWithAttachment:
             }
         }
 
-        response = post_send_notification(client, service, EMAIL_TYPE, data)
+        response = post_send_notification(client, sample_api_key(service), EMAIL_TYPE, data)
 
         assert response.status_code == 400
         resp_json = response.get_json()
         assert "Unable to upload attachment object to store" in resp_json["errors"][0]["message"]
 
 
-def test_post_notification_returns_400_when_get_json_throws_exception(client, sample_template):
+def test_post_notification_returns_400_when_get_json_throws_exception(
+    client,
+    sample_api_key,
+    sample_template,
+):
     template = sample_template(template_type=EMAIL_TYPE)
-    auth_header = create_authorization_header(service_id=template.service_id)
+    api_key = sample_api_key(service=template.service)
+    auth_header = create_authorization_header(api_key)
     response = client.post(
         path="v2/notifications/email",
         data="[",
@@ -1266,9 +1432,11 @@ def test_should_process_notification_successfully_with_recipient_identifiers(
         expected_type,
         expected_value,
         task,
+        sample_api_key,
         sample_template
 ):
     template = sample_template(template_type=EMAIL_TYPE)
+    api_key = sample_api_key(service=template.service)
     mocked_task = mocker.patch(
         f'{task}.apply_async')
 
@@ -1276,7 +1444,7 @@ def test_should_process_notification_successfully_with_recipient_identifiers(
         "template_id": template.id,
         "recipient_identifier": {'id_type': expected_type, 'id_value': expected_value}
     }
-    auth_header = create_authorization_header(service_id=template.service_id)
+    auth_header = create_authorization_header(api_key)
     response = client.post(
         path="v2/notifications/email",
         data=json.dumps(data),
@@ -1308,6 +1476,7 @@ def test_should_post_notification_successfully_with_recipient_identifier_and_con
         mocker,
         enable_accept_recipient_identifiers_enabled_feature_flag,
         check_recipient_communication_permissions_enabled,
+        sample_api_key,
         sample_template,
         sample_sms_template_with_html,
         notification_type
@@ -1343,9 +1512,9 @@ def test_should_post_notification_successfully_with_recipient_identifier_and_con
             "billing_code": "TESTCODE"
         }
 
-    service = template.service
+    api_key = sample_api_key(service=template.service)
 
-    auth_header = create_authorization_header(service_id=service.id)
+    auth_header = create_authorization_header(api_key)
     response = client.post(
         path=f"v2/notifications/{notification_type}",
         data=json.dumps(data),
@@ -1380,9 +1549,11 @@ def test_should_post_notification_successfully_with_recipient_identifier_and_con
 def test_post_notification_returns_501_when_recipient_identifiers_present_and_feature_flag_disabled(
         client,
         mocker,
+        sample_api_key,
         sample_template
 ):
-    template = sample_template(template_type=EMAIL_TYPE)
+    api_key = sample_api_key()
+    template = sample_template(service=api_key.service, template_type=EMAIL_TYPE)
     mocker.patch(
         'app.v2.notifications.post_notifications.accept_recipient_identifiers_enabled',
         return_value=False
@@ -1391,7 +1562,7 @@ def test_post_notification_returns_501_when_recipient_identifiers_present_and_fe
         "template_id": template.id,
         "recipient_identifier": {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': "foo"}
     }
-    auth_header = create_authorization_header(service_id=template.service_id)
+    auth_header = create_authorization_header(api_key)
     response = client.post(
         path="v2/notifications/email",
         data=json.dumps(data),
@@ -1401,7 +1572,11 @@ def test_post_notification_returns_501_when_recipient_identifiers_present_and_fe
 
 @pytest.mark.parametrize('notification_type', [EMAIL_TYPE, SMS_TYPE])
 def test_post_notification_returns_400_when_billing_code_length_exceeds_max(
-    client, sample_service, sample_template, notification_type
+    client,
+    sample_api_key,
+    sample_service,
+    sample_template,
+    notification_type,
 ):
     data = {
         "billing_code": (
@@ -1411,6 +1586,7 @@ def test_post_notification_returns_400_when_billing_code_length_exceeds_max(
         )
     }
     service = sample_service(prefix_sms=True)
+    api_key = sample_api_key(service=service)
     if notification_type == EMAIL_TYPE:
         template = sample_template(service=service, template_type=EMAIL_TYPE)
         data["email_address"] = "someemail@test.com"
@@ -1426,7 +1602,7 @@ def test_post_notification_returns_400_when_billing_code_length_exceeds_max(
 
     data["template_id"] = template.id
 
-    auth_header = create_authorization_header(service_id=template.service_id)
+    auth_header = create_authorization_header(api_key)
     response = client.post(
         path=f"v2/notifications/{notification_type}",
         data=json.dumps(data),

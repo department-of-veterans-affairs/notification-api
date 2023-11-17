@@ -533,16 +533,17 @@ def test_toggle_sms_provider_switches_provider_stores_notify_user_id(
     sample_user,
     setup_sms_providers
 ):
+    user = sample_user()
     [inactive_provider, current_provider, alternative_provider] = setup_sms_providers
-    mocker.patch('app.provider_details.switch_providers.get_user_by_id', return_value=sample_user)
+    mocker.patch('app.provider_details.switch_providers.get_user_by_id', return_value=user)
     mocker.patch('app.dao.provider_details_dao.get_alternative_sms_provider', return_value=alternative_provider)
 
     dao_toggle_sms_provider(current_provider.identifier)
     new_provider = get_current_provider('sms')
 
     assert current_provider.identifier != new_provider.identifier
-    assert new_provider.created_by.id == sample_user.id
-    assert new_provider.created_by_id == sample_user.id
+    assert new_provider.created_by.id == user.id
+    assert new_provider.created_by_id == user.id
 
 
 def test_toggle_sms_provider_switches_provider_stores_notify_user_id_in_history(

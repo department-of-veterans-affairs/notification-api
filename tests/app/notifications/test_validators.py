@@ -295,9 +295,10 @@ def test_service_can_send_to_recipient_fails_when_mobile_number_is_not_on_team(s
 
 @pytest.mark.parametrize('key_type', ['team', 'live', 'test'])
 def test_that_when_exceed_rate_limit_request_fails(
-        key_type,
-        sample_service,
-        mocker):
+    key_type,
+    sample_service,
+    mocker,
+):
     with freeze_time("2016-01-01 12:00:00.000000"):
         current_app.config['API_RATE_LIMIT_ENABLED'] = True
 
@@ -309,37 +310,41 @@ def test_that_when_exceed_rate_limit_request_fails(
         mocker.patch('app.redis_store.exceeded_rate_limit', return_value=True)
         mocker.patch('app.notifications.validators.services_dao')
 
-        sample_service.restricted = True
-        api_key = create_api_key(sample_service, key_type=api_key_type)
+        service = sample_service()
+        service.restricted = True
+        api_key = create_api_key(service, key_type=api_key_type)
 
         with pytest.raises(RateLimitError) as e:
-            check_service_over_api_rate_limit(sample_service, api_key)
+            check_service_over_api_rate_limit(service, api_key)
 
         assert app.redis_store.exceeded_rate_limit.called_with(
-            "{}-{}".format(str(sample_service.id), api_key.key_type),
-            sample_service.rate_limit,
+            "{}-{}".format(str(service.id), api_key.key_type),
+            service.rate_limit,
             60
         )
         assert e.value.status_code == 429
         assert e.value.message == 'Exceeded rate limit for key type {} of {} requests per {} seconds'.format(
-            key_type.upper(), sample_service.rate_limit, 60
+            key_type.upper(), service.rate_limit, 60
         )
         assert e.value.fields == []
 
 
 def test_that_when_not_exceeded_rate_limit_request_succeeds(
-        sample_service,
-        mocker):
+    sample_api_key,
+    sample_service,
+    mocker,
+):
     with freeze_time("2016-01-01 12:00:00.000000"):
         mocker.patch('app.redis_store.exceeded_rate_limit', return_value=False)
         mocker.patch('app.notifications.validators.services_dao')
 
-        sample_service.restricted = True
-        api_key = create_api_key(sample_service)
+        service = sample_service()
+        service.restricted = True
+        api_key = sample_api_key(service)
 
-        check_service_over_api_rate_limit(sample_service, api_key)
+        check_service_over_api_rate_limit(service, api_key)
         assert app.redis_store.exceeded_rate_limit.called_with(
-            "{}-{}".format(str(sample_service.id), api_key.key_type),
+            "{}-{}".format(str(service.id), api_key.key_type),
             3000,
             60
         )

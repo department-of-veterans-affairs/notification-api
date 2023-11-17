@@ -677,16 +677,18 @@ def test_persist_sms_notification_stores_normalised_number(
     recipient,
     expected_recipient_normalised
 ):
+    api_key = sample_api_key()
+    job = sample_job()
     persist_notification(
-        template_id=sample_job.template.id,
-        template_version=sample_job.template.version,
+        template_id=job.template.id,
+        template_version=job.template.version,
         recipient=recipient,
-        service=sample_job.service,
+        service=job.service,
         personalisation=None,
         notification_type='sms',
-        api_key_id=sample_api_key.id,
-        key_type=sample_api_key.key_type,
-        job_id=sample_job.id,
+        api_key_id=api_key.id,
+        key_type=api_key.key_type,
+        job_id=job.id,
     )
     persisted_notification = Notification.query.all()[0]
 
@@ -706,16 +708,18 @@ def test_persist_email_notification_stores_normalised_email(
     recipient,
     expected_recipient_normalised
 ):
+    api_key = sample_api_key()
+    job = sample_job()
     persist_notification(
-        template_id=sample_job.template.id,
-        template_version=sample_job.template.version,
+        template_id=job.template.id,
+        template_version=job.template.version,
         recipient=recipient,
-        service=sample_job.service,
+        service=job.service,
         personalisation=None,
         notification_type='email',
-        api_key_id=sample_api_key.id,
-        key_type=sample_api_key.key_type,
-        job_id=sample_job.id,
+        api_key_id=api_key.id,
+        key_type=api_key.key_type,
+        job_id=job.id,
     )
     persisted_notification = Notification.query.all()[0]
 
@@ -740,6 +744,7 @@ def test_persist_letter_notification_finds_correct_postage(
     sample_service_full_permissions,
     sample_api_key,
 ):
+    api_key = sample_api_key()
     template = create_template(sample_service_full_permissions, template_type=LETTER_TYPE, postage=template_postage)
     mocker.patch('app.dao.templates_dao.dao_get_template_by_id', return_value=template)
     persist_notification(
@@ -750,8 +755,8 @@ def test_persist_letter_notification_finds_correct_postage(
         service=sample_service_full_permissions,
         personalisation=None,
         notification_type=LETTER_TYPE,
-        api_key_id=sample_api_key.id,
-        key_type=sample_api_key.key_type,
+        api_key_id=api_key.id,
+        key_type=api_key.key_type,
         postage=postage_argument
     )
     persisted_notification = Notification.query.all()[0]
@@ -803,16 +808,19 @@ def test_persist_notification_persists_recipient_identifiers(
         'app.notifications.process_notifications.accept_recipient_identifiers_enabled',
         return_value=True
     )
+
+    api_key = sample_api_key()
+    job = sample_job()
     recipient_identifier = {'id_type': id_type, 'id_value': id_value}
     notification = persist_notification(
-        template_id=sample_job.template.id,
-        template_version=sample_job.template.version,
-        service=sample_job.service,
+        template_id=job.template.id,
+        template_version=job.template.version,
+        service=job.service,
         personalisation=None,
         notification_type=notification_type,
-        api_key_id=sample_api_key.id,
-        key_type=sample_api_key.key_type,
-        job_id=sample_job.id,
+        api_key_id=api_key.id,
+        key_type=api_key.key_type,
+        job_id=job.id,
         recipient_identifier=recipient_identifier
     )
 
@@ -846,15 +854,17 @@ def test_persist_notification_should_not_persist_recipient_identifier_if_none_pr
         return_value=recipient_identifiers_enabled
     )
 
+    api_key = sample_api_key()
+    job = sample_job()
     notification = persist_notification(
-        template_id=sample_job.template.id,
-        template_version=sample_job.template.version,
-        service=sample_job.service,
+        template_id=job.template.id,
+        template_version=job.template.version,
+        service=job.service,
         personalisation=None,
         notification_type='email',
-        api_key_id=sample_api_key.id,
-        key_type=sample_api_key.key_type,
-        job_id=sample_job.id,
+        api_key_id=api_key.id,
+        key_type=api_key.key_type,
+        job_id=job.id,
         recipient_identifier=recipient_identifier
     )
 

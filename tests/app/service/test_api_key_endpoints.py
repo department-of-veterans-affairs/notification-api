@@ -8,7 +8,7 @@ from uuid import uuid4
 from app import db
 from app.models import ApiKey, KEY_TYPE_NORMAL
 from app.dao.api_key_dao import expire_api_key
-from tests import create_authorization_header
+from tests import create_admin_authorization_header
 
 
 def test_api_key_should_create_new_api_key_for_service(notify_api, notify_db_session, sample_service):
@@ -20,7 +20,7 @@ def test_api_key_should_create_new_api_key_for_service(notify_api, notify_db_ses
                 'created_by': str(service.created_by.id),
                 'key_type': KEY_TYPE_NORMAL
             }
-            auth_header = create_authorization_header()
+            auth_header = create_admin_authorization_header()
             response = client.post(url_for('service.create_api_key', service_id=service.id),
                                    data=json.dumps(data),
                                    headers=[('Content-Type', 'application/json'), auth_header])
@@ -42,7 +42,7 @@ def test_api_key_should_return_error_when_service_does_not_exist(notify_api):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             missing_service_id = uuid4()
-            auth_header = create_authorization_header()
+            auth_header = create_admin_authorization_header()
             response = client.post(url_for('service.create_api_key', service_id=missing_service_id),
                                    headers=[('Content-Type', 'application/json'), auth_header])
             assert response.status_code == 404
@@ -55,7 +55,7 @@ def test_create_api_key_without_key_type_rejects(notify_api, notify_db_session, 
             'name': 'some secret name',
             'created_by': str(service.created_by.id)
         }
-        auth_header = create_authorization_header()
+        auth_header = create_admin_authorization_header()
         response = client.post(url_for('service.create_api_key', service_id=service.id),
                                data=json.dumps(data),
                                headers=[('Content-Type', 'application/json'), auth_header])
@@ -74,7 +74,7 @@ def test_revoke_should_expire_api_key_for_service(notify_api, notify_db_session,
             ).all()
 
             assert len(api_keys) == 1
-            auth_header = create_authorization_header()
+            auth_header = create_admin_authorization_header()
             response = client.post(
                 url_for(
                     'service.revoke_api_key',
@@ -106,7 +106,7 @@ def test_api_key_should_create_multiple_new_api_key_for_service(notify_api, noti
                 'created_by': str(service.created_by_id),
                 'key_type': KEY_TYPE_NORMAL
             }
-            auth_header = create_authorization_header()
+            auth_header = create_admin_authorization_header()
             response = client.post(url_for('service.create_api_key', service_id=service.id),
                                    data=json.dumps(data),
                                    headers=[('Content-Type', 'application/json'), auth_header])
@@ -118,7 +118,7 @@ def test_api_key_should_create_multiple_new_api_key_for_service(notify_api, noti
 
             # Second key creation
             data['name'] = f'another secret name {uuid4()}'
-            auth_header = create_authorization_header()
+            auth_header = create_admin_authorization_header()
             response2 = client.post(url_for('service.create_api_key', service_id=service.id),
                                     data=json.dumps(data),
                                     headers=[('Content-Type', 'application/json'), auth_header])
@@ -161,7 +161,7 @@ def test_get_api_keys_should_return_all_keys_for_service(notify_api, notify_db_s
             assert len(notify_db_session.session.execute(select(ApiKey)).all()) == 5
 
             # Get request verification
-            auth_header = create_authorization_header()
+            auth_header = create_admin_authorization_header()
             response = client.get(url_for('service.get_api_keys',
                                           service_id=service.id),
                                   headers=[('Content-Type', 'application/json'), auth_header])
@@ -179,7 +179,7 @@ def test_get_api_keys_should_return_one_key_for_service(notify_api, notify_db_se
         with notify_api.test_client() as client:
             service = sample_service()
             api_key = sample_api_key(service=service)
-            auth_header = create_authorization_header()
+            auth_header = create_admin_authorization_header()
 
             # Get request verification
             response = client.get(url_for('service.get_api_keys',

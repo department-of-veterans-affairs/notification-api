@@ -74,7 +74,7 @@ def test_get_available_inbound_numbers(admin_request, sample_inbound_numbers):
     result = admin_request.get('inbound_number.get_available_inbound_numbers')
 
     assert len(result['data']) == 1
-    assert result['data'] == [i.serialize() for i in sample_inbound_numbers if
+    assert result['data'] == [i.serialize() for i in sample_inbound_numbers() if
                               i.service_id is None]
 
 

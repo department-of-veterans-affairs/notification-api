@@ -10,7 +10,7 @@ def _post_notification(client, template, url, to, sms_sender_id=None):
         'sms_sender_id': sms_sender_id,
     }
 
-    auth_header = create_authorization_header(service_id=template.service_id)
+    auth_header = create_authorization_header(service_id=template.service_id)  # TODO: KWM Fix this, needs an ApiKey
 
     return client.post(
         path=url,

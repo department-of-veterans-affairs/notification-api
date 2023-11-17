@@ -7,6 +7,8 @@ from app.va.identifier import IdentifierType
 from flask import json, url_for
 from tests import create_authorization_header
 from tests.app.db import create_notification
+from time import sleep
+import datetime
 
 
 @pytest.mark.parametrize('billable_units, provider', [
@@ -14,7 +16,15 @@ from tests.app.db import create_notification
     (0, 'mmg'),
     (1, None)
 ])
-def test_get_notification_by_id_returns_200(client, billable_units, provider, notify_db_session, sample_template):
+def test_get_notification_by_id_returns_200(
+    client,
+    billable_units,
+    provider,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+):
+
     """ This test assumes the local timezone is EST. """
     template = sample_template()
     first_notification = create_notification(
@@ -32,7 +42,7 @@ def test_get_notification_by_id_returns_200(client, billable_units, provider, no
         scheduled_for="2017-06-12 15:15"
     )
 
-    auth_header = create_authorization_header(service_id=first_notification.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
         path='/v2/notifications/{}'.format(first_notification.id),
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -102,7 +112,11 @@ def test_get_notification_by_id_returns_200(client, billable_units, provider, no
     [{"id_type": IdentifierType.VA_PROFILE_ID.value, "id_value": "some vaprofileid"}]
 ])
 def test_get_notification_by_id_with_placeholders_and_recipient_identifiers_returns_200(
-    client, notify_db_session, sample_template, recipient_identifiers
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+    recipient_identifiers,
 ):
     template = sample_template(template_type=EMAIL_TYPE, content='Hello ((name))\nThis is an email from va.gov')
     notification = create_notification(
@@ -111,7 +125,7 @@ def test_get_notification_by_id_with_placeholders_and_recipient_identifiers_retu
         recipient_identifiers=recipient_identifiers
     )
 
-    auth_header = create_authorization_header(service_id=notification.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
         path='/v2/notifications/{}'.format(notification.id),
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -167,11 +181,16 @@ def test_get_notification_by_id_with_placeholders_and_recipient_identifiers_retu
     notify_db_session.session.commit()
 
 
-def test_get_notification_by_reference_returns_200(client, notify_db_session, sample_template):
+def test_get_notification_by_reference_returns_200(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+):
     sample_notification_with_reference = create_notification(template=sample_template(),
                                                              client_reference='some-client-reference')
 
-    auth_header = create_authorization_header(service_id=sample_notification_with_reference.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=sample_notification_with_reference.service))
     response = client.get(
         path='/v2/notifications?reference={}'.format(sample_notification_with_reference.client_reference),
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -193,6 +212,7 @@ def test_get_notification_by_reference_returns_200(client, notify_db_session, sa
 def test_get_notification_by_id_returns_created_by_name_if_notification_created_by_id(
     client,
     notify_db_session,
+    sample_api_key,
     sample_template,
     sample_user,
 ):
@@ -200,7 +220,7 @@ def test_get_notification_by_id_returns_created_by_name_if_notification_created_
     template = sample_template(user=user)
     sms_notification = create_notification(template=template, created_by_id=user.id)
 
-    auth_header = create_authorization_header(service_id=sms_notification.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
         path=url_for('v2_notifications.get_notification_by_id', notification_id=sms_notification.id),
         headers=[('Content-Type', 'application/json'), auth_header]
@@ -215,12 +235,17 @@ def test_get_notification_by_id_returns_created_by_name_if_notification_created_
 
 
 # This test assumes the local timezone is EST
-def test_get_notifications_returns_scheduled_for(client, notify_db_session, sample_template):
+def test_get_notifications_returns_scheduled_for(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+):
     notification_with_ref = create_notification(template=sample_template(),
                                                 client_reference='some-client-reference',
                                                 scheduled_for='2017-05-23 17:15')
 
-    auth_header = create_authorization_header(service_id=notification_with_ref.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=notification_with_ref.service))
     response = client.get(
         path='/v2/notifications?reference={}'.format(notification_with_ref.client_reference),
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -243,8 +268,12 @@ def test_get_notifications_returns_scheduled_for(client, notify_db_session, samp
     notify_db_session.session.commit()
 
 
-def test_get_notification_by_reference_nonexistent_reference_returns_no_notifications(client, sample_service):
-    auth_header = create_authorization_header(service_id=sample_service().id)
+def test_get_notification_by_reference_nonexistent_reference_returns_no_notifications(
+    client,
+    sample_api_key,
+):
+
+    auth_header = create_authorization_header(sample_api_key())
     response = client.get(
         path='/v2/notifications?reference={}'.format('nonexistent-reference'),
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -256,10 +285,15 @@ def test_get_notification_by_reference_nonexistent_reference_returns_no_notifica
     assert len(json_response['notifications']) == 0
 
 
-def test_get_notification_by_id_nonexistent_id(client, sample_template):
+def test_get_notification_by_id_nonexistent_id(
+    client,
+    sample_api_key,
+    sample_template,
+):
+
     template = sample_template()
-    auth_header = create_authorization_header(service_id=template.service_id)
-    # auth_header = create_authorization_header(service_id=sample_notification.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
+
     response = client.get(
         path='/v2/notifications/dd4b8b9d-d414-4a83-9256-580046bf18f9',
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -280,9 +314,15 @@ def test_get_notification_by_id_nonexistent_id(client, sample_template):
 
 
 @pytest.mark.parametrize("id", ["1234-badly-formatted-id-7890", "0"])
-def test_get_notification_by_id_invalid_id(client, sample_template, id):
+def test_get_notification_by_id_invalid_id(
+    client,
+    sample_api_key,
+    sample_template,
+    id,
+):
+
     template = sample_template()
-    auth_header = create_authorization_header(service_id=template.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
         path='/v2/notifications/{}'.format(id),
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -308,15 +348,17 @@ def test_get_notification_by_id_invalid_id(client, sample_template, id):
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_get_notification_adds_delivery_estimate_for_letters(
     client,
+    sample_api_key,
     sample_letter_notification,
     created_at_month,
     postage,
     estimated_delivery,
 ):
+
     sample_letter_notification.created_at = datetime.date(2000, created_at_month, 1)
     sample_letter_notification.postage = postage
 
-    auth_header = create_authorization_header(service_id=sample_letter_notification.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=sample_letter_notification.service))
     response = client.get(
         path='/v2/notifications/{}'.format(sample_letter_notification.id),
         headers=[('Content-Type', 'application/json'), auth_header]
@@ -330,13 +372,16 @@ def test_get_notification_adds_delivery_estimate_for_letters(
 
 @pytest.mark.parametrize('template_type', [SMS_TYPE, EMAIL_TYPE])
 def test_get_notification_doesnt_have_delivery_estimate_for_non_letters(
-    client, notify_db_session, sample_service, sample_template, template_type
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+    template_type,
 ):
-    service = sample_service()
-    template = sample_template(service=service, template_type=template_type)
+    template = sample_template(template_type=template_type)
     mocked_notification = create_notification(template=template)
 
-    auth_header = create_authorization_header(service_id=mocked_notification.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=mocked_notification.service))
     response = client.get(
         path='/v2/notifications/{}'.format(mocked_notification.id),
         headers=[('Content-Type', 'application/json'), auth_header]
@@ -350,13 +395,18 @@ def test_get_notification_doesnt_have_delivery_estimate_for_non_letters(
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_get_all_notifications_except_job_notifications_returns_200(client, sample_template, sample_job):
+def test_get_all_notifications_except_job_notifications_returns_200(
+    client,
+    sample_api_key,
+    sample_template,
+    sample_job,
+):
     template = sample_template()
     create_notification(template=template, job=sample_job)  # should not return this job notification
     notifications = [create_notification(template=template) for _ in range(2)]
     notification = notifications[-1]
 
-    auth_header = create_authorization_header(service_id=notification.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
         path='/v2/notifications',
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -383,7 +433,10 @@ def test_get_all_notifications_except_job_notifications_returns_200(client, samp
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_get_all_notifications_with_include_jobs_arg_returns_200(
-    client, sample_template, sample_job
+    client,
+    sample_api_key,
+    sample_template,
+    sample_job,
 ):
     template = sample_template()
     notifications = [
@@ -392,7 +445,7 @@ def test_get_all_notifications_with_include_jobs_arg_returns_200(
     ]
     notification = notifications[-1]
 
-    auth_header = create_authorization_header(service_id=notification.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
     # We are not using the "jobs" functionality
     response = client.get(
         path='/v2/notifications?include_jobs=true',
@@ -412,8 +465,12 @@ def test_get_all_notifications_with_include_jobs_arg_returns_200(
     assert not json_response['notifications'][0]['scheduled_for']
 
 
-def test_get_all_notifications_no_notifications_if_no_notifications(client, sample_service):
-    auth_header = create_authorization_header(service_id=sample_service().id)
+def test_get_all_notifications_no_notifications_if_no_notifications(
+    client,
+    sample_api_key,
+):
+
+    auth_header = create_authorization_header(sample_api_key())
     response = client.get(
         path='/v2/notifications',
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -427,7 +484,13 @@ def test_get_all_notifications_no_notifications_if_no_notifications(client, samp
     assert len(json_response['notifications']) == 0
 
 
-def test_get_all_notifications_filter_by_template_type(client, notify_db_session, sample_service, sample_template):
+def test_get_all_notifications_filter_by_template_type(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_service,
+    sample_template,
+):
     service = sample_service()
     email_template = sample_template(service=service, template_type=EMAIL_TYPE)
     sms_template = sample_template(service=service, template_type=SMS_TYPE)
@@ -435,7 +498,7 @@ def test_get_all_notifications_filter_by_template_type(client, notify_db_session
     notification = create_notification(template=email_template, to_field="don.draper@scdp.biz")
     sms_notification = create_notification(template=sms_template)
 
-    auth_header = create_authorization_header(service_id=notification.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=email_template.service))
     response = client.get(
         path='/v2/notifications?template_type=email',
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -464,8 +527,12 @@ def test_get_all_notifications_filter_by_template_type(client, notify_db_session
     notify_db_session.session.commit()
 
 
-def test_get_all_notifications_filter_by_template_type_invalid_template_type(client, sample_template):
-    auth_header = create_authorization_header(service_id=sample_template().service_id)
+def test_get_all_notifications_filter_by_template_type_invalid_template_type(
+    client,
+    sample_api_key,
+):
+
+    auth_header = create_authorization_header(sample_api_key())
     response = client.get(
         path='/v2/notifications?template_type=orange',
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -480,12 +547,17 @@ def test_get_all_notifications_filter_by_template_type_invalid_template_type(cli
     assert json_response['errors'][0]['message'] == "template_type orange is not one of [sms, email, letter]"
 
 
-def test_get_all_notifications_filter_by_single_status(client, notify_db_session, sample_template):
+def test_get_all_notifications_filter_by_single_status(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+):
     template = sample_template()
     notification = create_notification(template=template, status="pending")
     non_pending_notification = create_notification(template=template)
 
-    auth_header = create_authorization_header(service_id=notification.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
         path='/v2/notifications?status=pending',
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -508,10 +580,15 @@ def test_get_all_notifications_filter_by_single_status(client, notify_db_session
 
 
 def test_get_all_notifications_filter_by_status_invalid_status(
-    client, notify_db_session, sample_notification, sample_template
+    client,
+    notify_db_session,
+    sample_notification,
+    sample_api_key,
+    sample_template,
 ):
-    notification = sample_notification(template=sample_template())
-    auth_header = create_authorization_header(service_id=notification.service_id)
+    api_key = sample_api_key()
+    notification = sample_notification(template=sample_template(service=api_key.service))
+    auth_header = create_authorization_header(api_key)
 
     response = client.get(
         path='/v2/notifications?status=elephant',
@@ -534,7 +611,12 @@ def test_get_all_notifications_filter_by_status_invalid_status(
     notify_db_session.session.commit()
 
 
-def test_get_all_notifications_filter_by_multiple_statuses(client, notify_db_session, sample_template):
+def test_get_all_notifications_filter_by_multiple_statuses(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+):
     template = sample_template()
     notifications = [
         create_notification(template=template, status=_status)
@@ -542,7 +624,7 @@ def test_get_all_notifications_filter_by_multiple_statuses(client, notify_db_ses
     ]
     failed_notification = create_notification(template=template, status="permanent-failure")
 
-    auth_header = create_authorization_header(service_id=notifications[0].service_id)
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
         path='/v2/notifications?status=created&status=pending&status=sending',
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -568,7 +650,12 @@ def test_get_all_notifications_filter_by_multiple_statuses(client, notify_db_ses
     notify_db_session.session.commit()
 
 
-def test_get_all_notifications_filter_by_failed_status(client, notify_db_session, sample_template):
+def test_get_all_notifications_filter_by_failed_status(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+):
     template = sample_template()
     created_notification = create_notification(template=template, status="created")
     failed_notifications = [
@@ -576,7 +663,7 @@ def test_get_all_notifications_filter_by_failed_status(client, notify_db_session
         for _status in ["technical-failure", "temporary-failure", "permanent-failure"]
     ]
 
-    auth_header = create_authorization_header(service_id=created_notification.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
         path='/v2/notifications?status=failed',
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -602,12 +689,17 @@ def test_get_all_notifications_filter_by_failed_status(client, notify_db_session
     notify_db_session.session.commit()
 
 
-def test_get_all_notifications_filter_by_id(client, notify_db_session, sample_template):
+def test_get_all_notifications_filter_by_id(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+):
     template = sample_template()
     older_notification = create_notification(template=template)
     newer_notification = create_notification(template=template)
 
-    auth_header = create_authorization_header(service_id=newer_notification.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
         path='/v2/notifications?older_than={}'.format(newer_notification.id),
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -628,9 +720,12 @@ def test_get_all_notifications_filter_by_id(client, notify_db_session, sample_te
     notify_db_session.session.commit()
 
 
-def test_get_all_notifications_filter_by_id_invalid_id(client, sample_service):
-    service = sample_service()
-    auth_header = create_authorization_header(service_id=service.id)
+def test_get_all_notifications_filter_by_id_invalid_id(
+    client,
+    sample_api_key,
+):
+
+    auth_header = create_authorization_header(sample_api_key())
     response = client.get(
         path='/v2/notifications?older_than=1234-badly-formatted-id-7890',
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -643,11 +738,15 @@ def test_get_all_notifications_filter_by_id_invalid_id(client, sample_service):
 
 
 def test_get_all_notifications_filter_by_id_no_notifications_if_nonexistent_id(
-    client, notify_db_session, sample_template
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
 ):
-    notification = create_notification(template=sample_template())
+    template = sample_template()
+    notification = create_notification(template=template)
 
-    auth_header = create_authorization_header(service_id=notification.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
         path='/v2/notifications?older_than=dd4b8b9d-d414-4a83-9256-580046bf18f9',
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -667,11 +766,15 @@ def test_get_all_notifications_filter_by_id_no_notifications_if_nonexistent_id(
 
 
 def test_get_all_notifications_filter_by_id_no_notifications_if_last_notification(
-    client, notify_db_session, sample_template
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
 ):
-    notification = create_notification(template=sample_template())
+    template = sample_template()
+    notification = create_notification(template=template)
 
-    auth_header = create_authorization_header(service_id=notification.service_id)
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
         path='/v2/notifications?older_than={}'.format(notification.id),
         headers=[('Content-Type', 'application/json'), auth_header])
@@ -689,8 +792,14 @@ def test_get_all_notifications_filter_by_id_no_notifications_if_last_notificatio
     notify_db_session.session.commit()
 
 
-def test_get_all_notifications_filter_multiple_query_parameters(client, notify_db_session, sample_template):
+def test_get_all_notifications_filter_multiple_query_parameters(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+):
     template = sample_template(template_type=EMAIL_TYPE)
+    api_key = sample_api_key(service=template.service)
     # this is the notification we are looking for
     older_notification = create_notification(
         template=template, status="pending")
@@ -707,7 +816,7 @@ def test_get_all_notifications_filter_multiple_query_parameters(client, notify_d
     # this notification was created too recently
     recent_notification = create_notification(template=template, status="pending")
 
-    auth_header = create_authorization_header(service_id=newer_notification.service_id)
+    auth_header = create_authorization_header(api_key)
     response = client.get(
         path='/v2/notifications?status=pending&template_type=email&older_than={}'.format(newer_notification.id),
         headers=[('Content-Type', 'application/json'), auth_header])

@@ -5,18 +5,18 @@ from app.dao.services_dao import dao_archive_service
 from app.models import Service
 from datetime import datetime
 from sqlalchemy import select
-from tests import create_authorization_header, unwrap_function
+from tests import create_admin_authorization_header, unwrap_function
 
 
 def test_archive_only_allows_post(client):
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     response = client.get('/service/{}/archive'.format(uuid.uuid4()), headers=[auth_header])
     assert response.status_code == 405
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_archive_service_errors_with_bad_service_id(client):
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     response = client.post('/service/{}/archive'.format(uuid.uuid4()), headers=[auth_header])
     assert response.status_code == 404
 
@@ -25,7 +25,7 @@ def test_archive_service_errors_with_bad_service_id(client):
 def test_deactivating_inactive_service_does_nothing(client, notify_db_session, sample_service):
     service = sample_service()
     dao_archive_service(service.id)
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     response = client.post('/service/{}/archive'.format(service.id), headers=[auth_header])
     assert response.status_code == 204

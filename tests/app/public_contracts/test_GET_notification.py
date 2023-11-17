@@ -5,72 +5,88 @@ from app.v2.notifications.notification_schemas import get_notification_response,
 from tests import create_authorization_header
 
 
-def _get_notification(client, notification, url):
+def _get_notification(client, notification, url, api_key):
     save_model_api_key(ApiKey(
         service=notification.service,
         name='api_key',
         created_by=notification.service.created_by,
         key_type=KEY_TYPE_NORMAL
     ))
-    auth_header = create_authorization_header(service_id=notification.service_id)
+    auth_header = create_authorization_header(api_key)
     return client.get(url, headers=[auth_header])
 
 
 # v2
 
-def test_get_v2_sms_contract(client, sample_notification):
+def test_get_v2_sms_contract(client, sample_api_key, sample_notification):
+    api_key = sample_api_key()
+    notification = sample_notification(service=api_key.service)
     response_json = return_json_from_response(_get_notification(
-        client, sample_notification, '/v2/notifications/{}'.format(sample_notification.id)
+        client, notification, '/v2/notifications/{}'.format(notification.id), api_key
     ))
     validate(response_json, get_notification_response)
 
 
-def test_get_v2_email_contract(client, sample_email_notification):
+def test_get_v2_email_contract(client, sample_api_key, sample_email_notification):
+    api_key = sample_api_key()
+    notification = sample_email_notification(service=api_key.service)
     response_json = return_json_from_response(_get_notification(
-        client, sample_email_notification, '/v2/notifications/{}'.format(sample_email_notification.id)
+        client, notification, '/v2/notifications/{}'.format(notification.id), api_key
     ))
     validate(response_json, get_notification_response)
 
 
-def test_get_v2_notifications_contract(client, sample_notification):
+def test_get_v2_notifications_contract(client, sample_api_key, sample_notification):
+    api_key = sample_api_key()
+    notification = sample_notification(service=api_key.service)
     response_json = return_json_from_response(_get_notification(
-        client, sample_notification, '/v2/notifications'
+        client, notification, '/v2/notifications', api_key
     ))
     validate(response_json, get_notifications_response)
 
 
 # v0
 
-def test_get_api_sms_contract(client, sample_notification):
+def test_get_api_sms_contract(client, sample_api_key, sample_notification):
+    api_key = sample_api_key()
+    notification = sample_notification(service=api_key.service)
     response_json = return_json_from_response(_get_notification(
-        client, sample_notification, '/notifications/{}'.format(sample_notification.id)
+        client, notification, '/notifications/{}'.format(notification.id), api_key
     ))
     validate_v0(response_json, 'GET_notification_return_sms.json')
 
 
-def test_get_api_email_contract(client, sample_email_notification):
+def test_get_api_email_contract(client, sample_api_key, sample_email_notification):
+    api_key = sample_api_key()
+    notification = sample_email_notification(service=api_key.service)
     response_json = return_json_from_response(_get_notification(
-        client, sample_email_notification, '/notifications/{}'.format(sample_email_notification.id)
+        client, notification, '/notifications/{}'.format(notification.id), api_key
     ))
     validate_v0(response_json, 'GET_notification_return_email.json')
 
 
-def test_get_job_sms_contract(client, sample_notification):
+def test_get_job_sms_contract(client, sample_api_key, sample_notification):
+    api_key = sample_api_key()
+    notification = sample_notification(service=api_key.service)
     response_json = return_json_from_response(_get_notification(
-        client, sample_notification, '/notifications/{}'.format(sample_notification.id)
+        client, notification, '/notifications/{}'.format(notification.id), api_key
     ))
     validate_v0(response_json, 'GET_notification_return_sms.json')
 
 
-def test_get_job_email_contract(client, sample_email_notification):
+def test_get_job_email_contract(client, sample_api_key, sample_email_notification):
+    api_key = sample_api_key()
+    notification = sample_email_notification(service=api_key.service)
     response_json = return_json_from_response(_get_notification(
-        client, sample_email_notification, '/notifications/{}'.format(sample_email_notification.id)
+        client, notification, '/notifications/{}'.format(notification.id), api_key
     ))
     validate_v0(response_json, 'GET_notification_return_email.json')
 
 
-def test_get_notifications_contract(client, sample_notification, sample_email_notification):
+def test_get_notifications_contract(client, sample_api_key, sample_notification, sample_email_notification):
+    api_key = sample_api_key()
+    notification = sample_notification(service=api_key.service)
     response_json = return_json_from_response(_get_notification(
-        client, sample_notification, '/notifications'
+        client, notification, '/notifications', api_key
     ))
     validate_v0(response_json, 'GET_notifications_return.json')

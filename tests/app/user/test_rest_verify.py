@@ -21,7 +21,7 @@ from app.models import (
 from app.model import User
 from app import db
 
-from tests import create_authorization_header
+from tests import create_admin_authorization_header
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
@@ -33,7 +33,7 @@ def test_user_verify_sms_code(client, sample_sms_code):
     data = json.dumps({
         'code_type': sample_sms_code.code_type,
         'code': sample_sms_code.txt_code})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(
         url_for('user.verify_user_code', user_id=sample_sms_code.user.id),
         data=data,
@@ -49,7 +49,7 @@ def test_user_verify_code_missing_code(client,
                                        sample_sms_code):
     assert not VerifyCode.query.first().code_used
     data = json.dumps({'code_type': sample_sms_code.code_type})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(
         url_for('user.verify_user_code', user_id=sample_sms_code.user.id),
         data=data,
@@ -66,7 +66,7 @@ def test_user_verify_code_bad_code_and_increments_failed_login_count(client,
     data = json.dumps({
         'code_type': sample_sms_code.code_type,
         'code': "blah"})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(
         url_for('user.verify_user_code', user_id=sample_sms_code.user.id),
         data=data,
@@ -88,7 +88,7 @@ def test_user_verify_code_expired_code_and_increments_failed_login_count(
     data = json.dumps({
         'code_type': sample_sms_code.code_type,
         'code': sample_sms_code.txt_code})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(
         url_for('user.verify_user_code', user_id=sample_sms_code.user.id),
         data=data,
@@ -104,7 +104,7 @@ def test_user_verify_password(client, sample_user):
     yesterday = datetime.utcnow() - timedelta(days=1)
     sample_user.logged_in_at = yesterday
     data = json.dumps({'password': 'password'})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(
         url_for('user.verify_user_password', user_id=sample_user.id),
         data=data,
@@ -119,7 +119,7 @@ def test_user_verify_password_creates_login_event(client, sample_user):
     yesterday = datetime.utcnow() - timedelta(days=1)
     sample_user.logged_in_at = yesterday
     data = json.dumps({'password': 'password', 'loginData': {"foo": "bar"}})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(
         url_for('user.verify_user_password', user_id=sample_user.id),
         data=data,
@@ -135,7 +135,7 @@ def test_user_verify_password_creates_login_event(client, sample_user):
 def test_user_verify_password_invalid_password(client,
                                                sample_user):
     data = json.dumps({'password': 'bad password'})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     assert sample_user.failed_login_count == 0
 
@@ -153,7 +153,7 @@ def test_user_verify_password_invalid_password(client,
 def test_user_verify_password_valid_password_resets_failed_logins(client,
                                                                   sample_user):
     data = json.dumps({'password': 'bad password'})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     assert sample_user.failed_login_count == 0
 
@@ -168,7 +168,7 @@ def test_user_verify_password_valid_password_resets_failed_logins(client,
     assert sample_user.failed_login_count == 1
 
     data = json.dumps({'password': 'password'})
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(
         url_for('user.verify_user_password', user_id=sample_user.id),
         data=data,
@@ -181,7 +181,7 @@ def test_user_verify_password_valid_password_resets_failed_logins(client,
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_user_verify_password_missing_password(client,
                                                sample_user):
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(
         url_for('user.verify_user_password', user_id=sample_user.id),
         data=json.dumps({'bingo': 'bongo'}),
@@ -207,7 +207,7 @@ def test_send_user_sms_code(client,
         notify_service.research_mode = True
         dao_update_service(notify_service)
 
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     mocked = mocker.patch('app.user.rest.create_secret_code', return_value='11111')
     mocked_task = mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
 
@@ -246,7 +246,7 @@ def test_send_user_code_for_sms_with_optional_to_field(client,
     to_number = '+447119876757'
     mocked = mocker.patch('app.user.rest.create_secret_code', return_value='11111')
     mocked_task = mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     resp = client.post(
         url_for('user.send_user_2fa_code', code_type='sms', user_id=sample_user.id),
@@ -278,7 +278,7 @@ def test_send_user_code_for_sms_respects_a_retry_time_delta(client,
     to_number = '+447119876757'
     mocked = mocker.patch('app.user.rest.create_secret_code', return_value='11111')
     mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
 
     resp = client.post(
         url_for('user.send_user_2fa_code', code_type='sms', user_id=sample_user.id),
@@ -289,7 +289,7 @@ def test_send_user_code_for_sms_respects_a_retry_time_delta(client,
     assert mocked.call_count == 1
 
     # Inside delta
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(
         url_for('user.send_user_2fa_code', code_type='sms', user_id=sample_user.id),
         data=json.dumps({'to': to_number}),
@@ -302,7 +302,7 @@ def test_send_user_code_for_sms_respects_a_retry_time_delta(client,
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_send_sms_code_returns_404_for_bad_input_data(client):
     uuid_ = uuid.uuid4()
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(
         url_for('user.send_user_2fa_code', code_type='sms', user_id=uuid_),
         data=json.dumps({}),
@@ -324,7 +324,7 @@ def test_send_sms_code_returns_204_when_too_many_codes_already_created(client, s
         db.session.add(verify_code)
         db.session.commit()
     assert VerifyCode.query.count() == 10
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(
         url_for('user.send_user_2fa_code', code_type='sms', user_id=sample_user.id),
         data=json.dumps({}),
@@ -339,7 +339,7 @@ def test_send_new_user_email_verification(client,
                                           mocker,
                                           email_verification_template):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(
         url_for('user.send_new_user_email_verification', user_id=str(sample_user.id)),
         data=json.dumps({}),
@@ -366,7 +366,7 @@ def test_send_email_verification_returns_404_for_bad_input_data(client, notify_d
     """
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     uuid_ = uuid.uuid4()
-    auth_header = create_authorization_header()
+    auth_header = create_admin_authorization_header()
     resp = client.post(
         url_for('user.send_new_user_email_verification', user_id=uuid_),
         data=json.dumps({}),
@@ -385,7 +385,7 @@ def test_user_verify_user_code_returns_404_when_code_is_right_but_user_account_i
     resp = client.post(
         url_for('user.verify_user_code', user_id=sample_sms_code.user.id),
         data=data,
-        headers=[('Content-Type', 'application/json'), create_authorization_header()])
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()])
     assert resp.status_code == 404
     assert sample_sms_code.user.failed_login_count == 10
     assert not sample_sms_code.code_used
@@ -400,7 +400,7 @@ def test_user_verify_user_code_valid_code_resets_failed_login_count(client, samp
     resp = client.post(
         url_for('user.verify_user_code', user_id=sample_sms_code.user.id),
         data=data,
-        headers=[('Content-Type', 'application/json'), create_authorization_header()])
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()])
     assert resp.status_code == 204
     assert sample_sms_code.user.failed_login_count == 0
     assert sample_sms_code.code_used
@@ -411,7 +411,7 @@ def test_user_reset_failed_login_count_returns_200(client, sample_user):
     sample_user.failed_login_count = 1
     resp = client.post(url_for("user.user_reset_failed_login_count", user_id=sample_user.id),
                        data={},
-                       headers=[('Content-Type', 'application/json'), create_authorization_header()])
+                       headers=[('Content-Type', 'application/json'), create_admin_authorization_header()])
     assert resp.status_code == 200
     assert sample_user.failed_login_count == 0
 
@@ -420,7 +420,7 @@ def test_user_reset_failed_login_count_returns_200(client, sample_user):
 def test_reset_failed_login_count_returns_404_when_user_does_not_exist(client):
     resp = client.post(url_for("user.user_reset_failed_login_count", user_id=uuid.uuid4()),
                        data={},
-                       headers=[('Content-Type', 'application/json'), create_authorization_header()])
+                       headers=[('Content-Type', 'application/json'), create_admin_authorization_header()])
     assert resp.status_code == 404
 
 
