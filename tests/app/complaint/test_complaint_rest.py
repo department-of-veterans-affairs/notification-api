@@ -38,7 +38,10 @@ def test_get_all_complaints_returns_pagination_links(mocker, client, notify_db_s
     create_complaint(service=service_1)
     create_complaint(service=service_2)
 
-    response = client.get(url_for('complaint.get_all_complaints', page=2), headers=[create_admin_authorization_header()])
+    response = client.get(
+        url_for('complaint.get_all_complaints', page=2),
+        headers=[create_admin_authorization_header()]
+    )
 
     assert response.status_code == 200
     assert json.loads(response.get_data(as_text=True))['links'] == {

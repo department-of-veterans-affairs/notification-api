@@ -816,6 +816,7 @@ def create_ft_notification_status(
 ):
     if job:
         template = job.template
+
     if template:
         service = template.service
         notification_type = template.template_type

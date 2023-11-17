@@ -767,16 +767,16 @@ def test_fetch_monthly_template_usage_for_service_does_not_include_test_notifica
     assert len(results) == 0
 
 
-@pytest.mark.parametrize("notification_type, count",
-                         [("sms", 3),
-                          ("email", 5),])
+@pytest.mark.parametrize("notification_type, count", [
+    ("sms", 3),
+    ("email", 5),
+])
 def test_get_total_sent_notifications_for_day_and_type_returns_right_notification_type(
         notification_type, count, sample_template, sample_email_template, sample_letter_template
 ):
     template = sample_template()
-    create_ft_notification_status(utc_date="2019-03-27", service=template.service, template=template,
-                                  count=3)
-    
+    create_ft_notification_status(utc_date="2019-03-27", service=template.service, template=template, count=3)
+
     email_template = sample_template(template_type=EMAIL_TYPE)
     create_ft_notification_status(utc_date="2019-03-27", service=email_template.service,
                                   template=email_template, count=5)

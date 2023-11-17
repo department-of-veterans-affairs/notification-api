@@ -161,7 +161,7 @@ def sample_user(notify_db_session, set_user_as_admin, worker_id) -> User:
         user = create_user(*args, **kwargs)
         if platform_admin:
             user = set_user_as_admin(user)
-        
+
         if worker_id in created_user_ids:
             created_user_ids[worker_id].append(user.id)
         else:

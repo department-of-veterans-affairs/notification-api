@@ -1,11 +1,9 @@
 import json
 import os
-
 import pytest
 from flask import url_for
 from app.feature_flags import FeatureFlag
 from app.models import PUSH_TYPE
-from tests.app.db import create_service
 from tests.app.factories.feature_flag import mock_feature_flag
 from tests import create_authorization_header
 
