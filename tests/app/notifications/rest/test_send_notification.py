@@ -1574,7 +1574,7 @@ def test_post_notification_should_set_reply_to_text(
 
     if notification_type == EMAIL_TYPE:
         expected_reply_to = 'reply_to@va.gov'
-        sample_service_email_reply_to(service=service, email_address=expected_reply_to, is_default=True)
+        sample_service_email_reply_to(service, email_address=expected_reply_to, is_default=True)
 
     data = {
         'to': recipient,

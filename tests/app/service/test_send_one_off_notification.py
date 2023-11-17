@@ -308,7 +308,7 @@ def test_send_one_off_notification_should_add_email_reply_to_text_for_notificati
         celery_mock,
 ):
     template = sample_template(template_type=EMAIL_TYPE)
-    reply_to_email = sample_service_email_reply_to(service=template.service, email_address='test@test.com')
+    reply_to_email = sample_service_email_reply_to(template.service, email_address='test@test.com')
     data = {
         'to': 'ok@ok.com',
         'template_id': str(template.id),

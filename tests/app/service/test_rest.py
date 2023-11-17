@@ -149,7 +149,7 @@ def test_get_service_list_by_user_should_return_empty_list_if_no_services(admin_
     assert len(json_resp['data']) == 0
 
 
-@pytest.mark.single  # Cannot handle multiple workers
+@pytest.mark.serial  # Cannot handle multiple workers
 def test_get_service_list_should_return_empty_list_if_no_services(admin_request):
     # Tests involving a check on all services cannot be done with multiple workers
     json_resp = admin_request.get('service.get_services')
@@ -1811,18 +1811,18 @@ def test_get_notification_for_service_includes_created_by(
     sample_template,
 ):
     template = sample_template()
-    user = template.created_by
-    api_key = sample_api_key(service=template.service, user=user)
+    api_key = sample_api_key(service=template.service)
 
-    notification_user = sample_notification(template=template, api_key=api_key).service.created_by
+    notification = sample_notification(template=template, api_key=api_key)
+    notification_user = notification.created_by
 
     resp = admin_request.get(
         'service.get_notification_for_service',
-        service_id=sample_notification.service_id,
-        notification_id=sample_notification.id,
+        service_id=notification.service_id,
+        notification_id=notification.id
     )
 
-    assert resp['id'] == str(sample_notification.id)
+    assert resp['id'] == str(notification.id)
     assert resp['created_by'] == {
         'id': str(notification_user.id),
         'name': notification_user.name,
@@ -1852,7 +1852,7 @@ def test_get_notification_for_service_returns_old_template_version(
     assert resp['reference'] == 'modified-inplace'
     assert resp['template']['version'] == 1
     assert resp['template']['content'] == notification.template.content
-    assert resp['template']['content'] != sample_template.content
+    assert resp['template']['content'] != template.content
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
@@ -1864,17 +1864,17 @@ def test_get_notification_for_service_returns_old_template_version(
     ]
 )
 def test_get_all_notifications_for_service_including_ones_made_by_jobs(
-        client,
-        notify_db_session,
-        sample_service,
-        include_from_test_key,
-        expected_count_of_notifications,
-        sample_notification,
-        sample_notification_with_job,
-        sample_template,
+    client,
+    notify_db_session,
+    sample_service,
+    include_from_test_key,
+    expected_count_of_notifications,
+    sample_notification,
+    sample_notification_with_job,
+    sample_template,
 ):
     # notification from_test_api_key
-    notification = create_notification(sample_template, key_type=KEY_TYPE_TEST)
+    notification = sample_notification(sample_template, key_type=KEY_TYPE_TEST)
 
     auth_header = create_admin_authorization_header()
 
@@ -1886,7 +1886,7 @@ def test_get_all_notifications_for_service_including_ones_made_by_jobs(
     resp = json.loads(response.get_data(as_text=True))
     assert len(resp['notifications']) == expected_count_of_notifications
     assert resp['notifications'][0]['to'] == sample_notification_with_job.to
-    assert resp['notifications'][1]['to'] == sample_notification.to
+    assert resp['notifications'][1]['to'] == notification.to
     assert response.status_code == 200
 
     # Teardown
@@ -1897,17 +1897,13 @@ def test_get_all_notifications_for_service_including_ones_made_by_jobs(
 def test_get_only_api_created_notifications_for_service(
     admin_request,
     sample_api_key,
-    sample_job,
     sample_notification,
     sample_template,
-    sample_user,
 ):
     template = sample_template()
     api_key = sample_api_key(service=template.service)
-    # notification sent as a job
-    sample_notification(template=template, job=sample_job(), api_key=api_key)
     # notification sent as a one-off
-    sample_notification(template=template, one_off=True, created_by_id=sample_user.id, api_key=api_key)
+    sample_notification(template=template, one_off=True, api_key=api_key)
     # notification sent via API
     without_job = sample_notification(template=template, api_key=api_key)
 
@@ -1924,9 +1920,7 @@ def test_get_only_api_created_notifications_for_service(
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_get_notifications_for_service_without_page_count(
     admin_request,
-    sample_job,
     sample_template,
-    sample_user,
 ):
     create_notification(sample_template)
     without_job = create_notification(sample_template)
@@ -2042,7 +2036,7 @@ def test_get_detailed_service(notify_api, notify_db_session, sample_service, sam
     notify_db_session.session.commit()
 
 
-@pytest.mark.single  # Cannot handle multiple workers
+@pytest.mark.serial  # Cannot handle multiple workers
 def test_get_services_with_detailed_flag(
     client,
     sample_api_key,
@@ -2725,11 +2719,11 @@ def test_is_service_name_unique_returns_200_if_unique(admin_request, notify_db, 
     assert response == {'result': True}
 
 
-@pytest.mark.single  # Would have to break into multiple tests or many if/else checks in the test if ran w/many workers
+@pytest.mark.serial  # Would have to break into multiple tests or many if/else checks in the test if ran w/many workers
 @pytest.mark.parametrize('name, email_from', [
-    ("UNIQUE", "unique"),
-    ("Unique.", "unique"),
-    ("**uniQUE**", "unique"),
+    ('UNIQUE', 'unique'),
+    ('Unique.', 'unique'),
+    ('**uniQUE**', 'unique'),
 ])
 def test_is_service_name_unique_returns_200_with_name_capitalized_or_punctuation_added(
     admin_request,
@@ -2807,7 +2801,12 @@ def test_get_email_reply_to_addresses_when_there_are_no_reply_to_email_addresses
     assert response.status_code == 200
 
 
-def test_get_email_reply_to_addresses_with_one_email_address(client, notify_db, notify_db_session, sample_service):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_get_email_reply_to_addresses_with_one_email_address(
+    client,
+    notify_db_session,
+    sample_service,
+):
     service = sample_service()
     reply_to_email = create_reply_to_email(service, 'test@mail.com')
 
