@@ -1486,7 +1486,7 @@ def test_should_post_notification_successfully_with_recipient_identifier_and_con
     expected_id_type = IdentifierType.VA_PROFILE_ID.value
     expected_id_value = 'some va profile id'
 
-    if notification_type == "email":
+    if notification_type == EMAIL_TYPE:
         template = sample_template(template_type=EMAIL_TYPE)
         data = {
             "template_id": template.id,
