@@ -4,17 +4,22 @@ import pytest
 from freezegun import freeze_time
 
 from tests.app.db import (
-    create_inbound_sms, create_service, create_service_with_inbound_number, create_service_data_retention
+    create_service_with_inbound_number, create_service_data_retention, SMS_TYPE
 )
 
 
-def test_post_to_get_inbound_sms_with_no_params(admin_request, sample_service):
-    one = create_inbound_sms(sample_service)
-    two = create_inbound_sms(sample_service)
+def test_post_to_get_inbound_sms_with_no_params(
+    admin_request,
+    sample_inbound_sms,
+    sample_service,
+):
+    service = sample_service()
+    one = sample_inbound_sms(service)
+    two = sample_inbound_sms(service)
 
     sms = admin_request.post(
         'inbound_sms.post_inbound_sms_for_service',
-        service_id=sample_service.id,
+        service_id=service.id,
         _data={}
     )['data']
 
@@ -36,10 +41,16 @@ def test_post_to_get_inbound_sms_with_no_params(admin_request, sample_service):
     '+16502532222',
     '+16502532222',
 ])
-def test_post_to_get_inbound_sms_filters_user_number(admin_request, sample_service, user_number):
+def test_post_to_get_inbound_sms_filters_user_number(
+    admin_request,
+    sample_inbound_sms,
+    sample_service,
+    user_number,
+):
+    service = sample_service()
     # user_number in the db is international and normalised
-    one = create_inbound_sms(sample_service, user_number='+16502532222')
-    create_inbound_sms(sample_service, user_number='+16502532223')
+    one = sample_inbound_sms(service, user_number='+16502532222')
+    sample_inbound_sms(service, user_number='+16502532223')
 
     data = {
         'phone_number': user_number
@@ -47,7 +58,7 @@ def test_post_to_get_inbound_sms_filters_user_number(admin_request, sample_servi
 
     sms = admin_request.post(
         'inbound_sms.post_inbound_sms_for_service',
-        service_id=sample_service.id,
+        service_id=service.id,
         _data=data
     )['data']
 
@@ -56,10 +67,15 @@ def test_post_to_get_inbound_sms_filters_user_number(admin_request, sample_servi
     assert sms[0]['user_number'] == str(one.user_number)
 
 
-def test_post_to_get_inbound_sms_filters_international_user_number(admin_request, sample_service):
+def test_post_to_get_inbound_sms_filters_international_user_number(
+    admin_request,
+    sample_inbound_sms,
+    sample_service,
+):
+    service = sample_service()
     # user_number in the db is international and normalised
-    one = create_inbound_sms(sample_service, user_number='+16502532223')
-    create_inbound_sms(sample_service)
+    one = sample_inbound_sms(service, user_number='+16502532223')
+    sample_inbound_sms(service)
 
     data = {
         'phone_number': '+1 (650) 253-2223'
@@ -67,7 +83,7 @@ def test_post_to_get_inbound_sms_filters_international_user_number(admin_request
 
     sms = admin_request.post(
         'inbound_sms.post_inbound_sms_for_service',
-        service_id=sample_service.id,
+        service_id=service.id,
         _data=data
     )['data']
 
@@ -76,12 +92,17 @@ def test_post_to_get_inbound_sms_filters_international_user_number(admin_request
     assert sms[0]['user_number'] == str(one.user_number)
 
 
-def test_post_to_get_inbound_sms_allows_badly_formatted_number(admin_request, sample_service):
-    one = create_inbound_sms(sample_service, user_number='ALPHANUM3R1C')
+def test_post_to_get_inbound_sms_allows_badly_formatted_number(
+    admin_request,
+    sample_inbound_sms,
+    sample_service,
+):
+    service = sample_service()
+    one = sample_inbound_sms(service, user_number='ALPHANUM3R1C')
 
     sms = admin_request.post(
         'inbound_sms.post_inbound_sms_for_service',
-        service_id=sample_service.id,
+        service_id=service.id,
         _data={'phone_number': 'ALPHANUM3R1C'}
     )['data']
 
@@ -92,11 +113,16 @@ def test_post_to_get_inbound_sms_allows_badly_formatted_number(admin_request, sa
 
 @freeze_time('Monday 10th April 2017 12:00')
 # This test assumes the local timezone is EST
-def test_post_to_get_most_recent_inbound_sms_for_service_limits_to_a_week(admin_request, sample_service):
-    create_inbound_sms(sample_service, created_at=datetime(2017, 4, 3, 3, 59))
-    returned_inbound = create_inbound_sms(sample_service, created_at=datetime(2017, 4, 3, 4, 30))
+def test_post_to_get_most_recent_inbound_sms_for_service_limits_to_a_week(
+    admin_request,
+    sample_inbound_sms,
+    sample_service,
+):
+    service = sample_service()
+    sample_inbound_sms(service, created_at=datetime(2017, 4, 3, 3, 59))
+    returned_inbound = sample_inbound_sms(service, created_at=datetime(2017, 4, 3, 4, 30))
 
-    sms = admin_request.post('inbound_sms.post_inbound_sms_for_service', service_id=sample_service.id, _data={})
+    sms = admin_request.post('inbound_sms.post_inbound_sms_for_service', service_id=service.id, _data={})
 
     assert len(sms['data']) == 1
     assert sms['data'][0]['id'] == str(returned_inbound.id)
@@ -109,33 +135,40 @@ def test_post_to_get_most_recent_inbound_sms_for_service_limits_to_a_week(admin_
 @freeze_time('Monday 10th April 2017 12:00')
 def test_post_to_get_inbound_sms_for_service_respects_data_retention(
     admin_request,
+    sample_inbound_sms,
     sample_service,
     days_of_retention,
     too_old_date,
     returned_date
 ):
-    create_service_data_retention(sample_service, 'sms', days_of_retention)
-    create_inbound_sms(sample_service, created_at=too_old_date)
-    returned_inbound = create_inbound_sms(sample_service, created_at=returned_date)
+    service = sample_service()
+    create_service_data_retention(service, SMS_TYPE, days_of_retention)
+    sample_inbound_sms(service, created_at=too_old_date)
+    returned_inbound = sample_inbound_sms(service, created_at=returned_date)
 
-    sms = admin_request.post('inbound_sms.post_inbound_sms_for_service', service_id=sample_service.id, _data={})
+    sms = admin_request.post('inbound_sms.post_inbound_sms_for_service', service_id=service.id, _data={})
 
     assert len(sms['data']) == 1
     assert sms['data'][0]['id'] == str(returned_inbound.id)
 
 
-def test_get_inbound_sms_summary(admin_request, sample_service):
-    other_service = create_service(service_name='other_service')
+def test_get_inbound_sms_summary(
+    admin_request,
+    sample_inbound_sms,
+    sample_service,
+):
+    service = sample_service()
+    other_service = sample_service(service_name='other_service')
     with freeze_time('2017-01-01'):
-        create_inbound_sms(sample_service)
+        sample_inbound_sms(service)
     with freeze_time('2017-01-02'):
-        create_inbound_sms(sample_service)
+        sample_inbound_sms(service)
     with freeze_time('2017-01-03'):
-        create_inbound_sms(other_service)
+        sample_inbound_sms(other_service)
 
         summary = admin_request.get(
             'inbound_sms.get_inbound_sms_summary_for_service',
-            service_id=sample_service.id
+            service_id=service.id
         )
 
     assert summary == {
@@ -147,7 +180,7 @@ def test_get_inbound_sms_summary(admin_request, sample_service):
 def test_get_inbound_sms_summary_with_no_inbound(admin_request, sample_service):
     summary = admin_request.get(
         'inbound_sms.get_inbound_sms_summary_for_service',
-        service_id=sample_service.id
+        service_id=sample_service().id
     )
 
     assert summary == {
@@ -156,9 +189,13 @@ def test_get_inbound_sms_summary_with_no_inbound(admin_request, sample_service):
     }
 
 
-def test_get_inbound_sms_by_id_returns_200(admin_request, notify_db_session):
-    service = create_service_with_inbound_number(inbound_number='12345')
-    inbound = create_inbound_sms(service=service, user_number='+16502532222')
+def test_get_inbound_sms_by_id_returns_200(
+    admin_request,
+    sample_inbound_sms,
+    sample_service_with_inbound_number,
+):
+    service = sample_service_with_inbound_number(inbound_number='12345')
+    inbound = sample_inbound_sms(service=service, user_number='+16502532222')
 
     response = admin_request.get(
         'inbound_sms.get_inbound_by_id',
@@ -173,13 +210,13 @@ def test_get_inbound_sms_by_id_returns_200(admin_request, notify_db_session):
 def test_get_inbound_sms_by_id_invalid_id_returns_404(admin_request, sample_service):
     assert admin_request.get(
         'inbound_sms.get_inbound_by_id',
-        service_id=sample_service.id,
+        service_id=sample_service().id,
         inbound_sms_id='bar',
         _expected_status=404
     )
 
 
-def test_get_inbound_sms_by_id_with_invalid_service_id_returns_404(admin_request, sample_service):
+def test_get_inbound_sms_by_id_with_invalid_service_id_returns_404(admin_request):
     assert admin_request.get(
         'inbound_sms.get_inbound_by_id',
         service_id='foo',
@@ -195,17 +232,19 @@ def test_get_inbound_sms_by_id_with_invalid_service_id_returns_404(admin_request
 def test_get_most_recent_inbound_sms_for_service(
     admin_request,
     page_given,
+    sample_inbound_sms,
     sample_service,
     expected_rows,
-    has_next_link
+    has_next_link,
 ):
+    service = sample_service()
     for i in range(60):
-        create_inbound_sms(service=sample_service, user_number='44770090000{}'.format(i))
+        sample_inbound_sms(service=service, user_number='44770090000{}'.format(i))
 
     request_args = {'page': 2} if page_given else {}
     response = admin_request.get(
         'inbound_sms.get_most_recent_inbound_sms_for_service',
-        service_id=sample_service.id,
+        service_id=service.id,
         **request_args
     )
 
@@ -216,14 +255,16 @@ def test_get_most_recent_inbound_sms_for_service(
 @freeze_time('Monday 10th April 2017 12:00')
 def test_get_most_recent_inbound_sms_for_service_respects_data_retention(
     admin_request,
-    sample_service
+    sample_inbound_sms,
+    sample_service,
 ):
-    create_service_data_retention(sample_service, 'sms', 5)
+    service = sample_service()
+    create_service_data_retention(service, SMS_TYPE, 5)
     for i in range(10):
         created = datetime.utcnow() - timedelta(days=i)
-        create_inbound_sms(sample_service, user_number='44770090000{}'.format(i), created_at=created)
+        sample_inbound_sms(service, user_number='44770090000{}'.format(i), created_at=created)
 
-    response = admin_request.get('inbound_sms.get_most_recent_inbound_sms_for_service', service_id=sample_service.id)
+    response = admin_request.get('inbound_sms.get_most_recent_inbound_sms_for_service', service_id=service.id)
 
     assert len(response['data']) == 6
     assert [x['created_at'] for x in response['data']] == [
@@ -239,12 +280,14 @@ def test_get_most_recent_inbound_sms_for_service_respects_data_retention(
 @freeze_time('Monday 10th April 2017 12:00')
 def test_get_most_recent_inbound_sms_for_service_respects_data_retention_if_older_than_a_week(
     admin_request,
-    sample_service
+    sample_inbound_sms,
+    sample_service,
 ):
-    create_service_data_retention(sample_service, 'sms', 14)
-    create_inbound_sms(sample_service, created_at=datetime(2017, 4, 1, 12, 0))
+    service = sample_service()
+    create_service_data_retention(service, SMS_TYPE, 14)
+    sample_inbound_sms(service, created_at=datetime(2017, 4, 1, 12, 0))
 
-    response = admin_request.get('inbound_sms.get_most_recent_inbound_sms_for_service', service_id=sample_service.id)
+    response = admin_request.get('inbound_sms.get_most_recent_inbound_sms_for_service', service_id=service.id)
 
     assert len(response['data']) == 1
     assert response['data'][0]['created_at'] == '2017-04-01T12:00:00.000000Z'
@@ -253,14 +296,16 @@ def test_get_most_recent_inbound_sms_for_service_respects_data_retention_if_olde
 @freeze_time('Monday 10th April 2017 12:00')
 def test_get_inbound_sms_for_service_respects_data_retention(
     admin_request,
-    sample_service
+    sample_inbound_sms,
+    sample_service,
 ):
-    create_service_data_retention(sample_service, 'sms', 5)
+    service = sample_service()
+    create_service_data_retention(service, SMS_TYPE, 5)
     for i in range(10):
         created = datetime.utcnow() - timedelta(days=i)
-        create_inbound_sms(sample_service, user_number='44770090000{}'.format(i), created_at=created)
+        sample_inbound_sms(service, user_number='44770090000{}'.format(i), created_at=created)
 
-    response = admin_request.get('inbound_sms.get_most_recent_inbound_sms_for_service', service_id=sample_service.id)
+    response = admin_request.get('inbound_sms.get_most_recent_inbound_sms_for_service', service_id=service.id)
 
     assert len(response['data']) == 6
     assert [x['created_at'] for x in response['data']] == [

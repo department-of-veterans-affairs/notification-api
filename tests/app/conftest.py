@@ -61,6 +61,7 @@ from app.models import (
     ScheduledNotification,
     SERVICE_PERMISSION_TYPES,
     ServiceCallback,
+    ServiceDataRetention,
     ServiceEmailReplyTo,
     ServiceLetterContact,
     ServicePermission,
@@ -606,6 +607,9 @@ def service_cleanup(service_ids: list, session: scoped_session) -> None:
         service = session.get(Service, service_id)
         if service is None:
             continue
+
+        # Clear service_data_retention
+        session.execute(delete(ServiceDataRetention).where(ServiceDataRetention.service_id == service_id))
 
         # Clear annual_billing
         session.execute(delete(AnnualBilling).where(AnnualBilling.service_id == service_id))
