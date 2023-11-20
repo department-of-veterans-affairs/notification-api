@@ -36,7 +36,6 @@ from tests.app.db import (
     create_letter_contact,
     create_notification,
     create_template_folder,
-    create_ft_notification_status,
 )
 from tests.app.factories.feature_flag import mock_feature_flag
 from tests.conftest import set_config_values
@@ -270,7 +269,7 @@ def test_create_a_new_template_for_a_service_adds_folder_relationship(
 
     data = {
         'name': 'my template',
-        'template_type': 'sms',
+        'template_type': SMS_TYPE,
         'content': 'template <b>content</b>',
         'service': str(service.id),
         'created_by': str(service.users[0].id),
@@ -330,7 +329,7 @@ def test_create_template_should_return_400_if_folder_is_for_a_different_service(
 
     data = {
         'name': 'my template',
-        'template_type': 'sms',
+        'template_type': SMS_TYPE,
         'content': 'template <b>content</b>',
         'service': str(service.id),
         'created_by': str(service.users[0].id),
@@ -356,7 +355,7 @@ def test_create_template_should_return_400_if_folder_does_not_exist(
     service = sample_service()
     data = {
         'name': 'my template',
-        'template_type': 'sms',
+        'template_type': SMS_TYPE,
         'content': 'template <b>content</b>',
         'service': str(service.id),
         'created_by': str(service.users[0].id),
@@ -1445,9 +1444,11 @@ def test_preview_letter_template_precompiled_pdf_file_type(
         client,
         admin_request,
         notify_db_session,
+        sample_api_key,
+        sample_notification,
         sample_service,
-        mocker,
         sample_template,
+        mocker,
 ):
 
     template = sample_template(
@@ -1458,7 +1459,8 @@ def test_preview_letter_template_precompiled_pdf_file_type(
         hidden=True
     )
 
-    notification = create_notification(template)
+    api_key = sample_api_key(service=template.service)
+    notification = sample_notification(template=template, api_key=api_key)
 
     with set_config_values(notify_api, {
         'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
@@ -1480,16 +1482,14 @@ def test_preview_letter_template_precompiled_pdf_file_type(
             assert mock_get_letter_pdf.called_once_with(notification)
             assert base64.b64decode(resp['content']) == content
 
-    # Teardown
-    notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
-
 
 def test_preview_letter_template_precompiled_s3_error(
         notify_api,
         client,
         admin_request,
         notify_db_session,
+        sample_api_key,
+        sample_notification,
         sample_service,
         mocker,
         sample_template
@@ -1503,7 +1503,8 @@ def test_preview_letter_template_precompiled_s3_error(
         hidden=True
     )
 
-    notification = create_notification(template)
+    api_key = sample_api_key(service=template.service)
+    notification = sample_notification(template=template, api_key=api_key)
 
     with set_config_values(notify_api, {
         'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
@@ -1529,10 +1530,6 @@ def test_preview_letter_template_precompiled_s3_error(
                                          "<class 'botocore.exceptions.ClientError'> An error occurred (403) " \
                                          "when calling the GetObject operation: Unauthorized".format(notification.id)
 
-    # Teardown
-    notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
-
 
 @pytest.mark.parametrize(
     "filetype, post_url, overlay",
@@ -1547,6 +1544,8 @@ def test_preview_letter_template_precompiled_png_file_type_or_pdf_with_overlay(
         client,
         admin_request,
         notify_db_session,
+        sample_api_key,
+        sample_notification,
         sample_service,
         mocker,
         filetype,
@@ -1563,7 +1562,8 @@ def test_preview_letter_template_precompiled_png_file_type_or_pdf_with_overlay(
         hidden=True
     )
 
-    notification = create_notification(template)
+    api_key = sample_api_key(service=template.service)
+    notification = sample_notification(template=template, api_key=api_key)
 
     with set_config_values(notify_api, {
         'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
@@ -1598,10 +1598,6 @@ def test_preview_letter_template_precompiled_png_file_type_or_pdf_with_overlay(
             assert mock_get_letter_pdf.called_once_with(notification)
             assert base64.b64decode(resp['content']) == expected_returned_content
 
-    # Teardown
-    notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
-
 
 @pytest.mark.parametrize('page_number,expect_preview_url', [
     ('', 'http://localhost/notifications-template-preview/precompiled-preview.png?hide_notify=true'),
@@ -1613,6 +1609,8 @@ def test_preview_letter_template_precompiled_png_file_type_hide_notify_tag_only_
         client,
         admin_request,
         notify_db_session,
+        sample_api_key,
+        sample_notification,
         sample_service,
         mocker,
         page_number,
@@ -1627,7 +1625,8 @@ def test_preview_letter_template_precompiled_png_file_type_hide_notify_tag_only_
         hidden=True
     )
 
-    notification = create_notification(template)
+    api_key = sample_api_key(service=template.service)
+    notification = sample_notification(template=template, api_key=api_key)
 
     with set_config_values(notify_api, {
         'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
@@ -1653,16 +1652,14 @@ def test_preview_letter_template_precompiled_png_file_type_hide_notify_tag_only_
             expect_preview_url, encoded, notification.id, json=False
         )
 
-    # Teardown
-    notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
-
 
 def test_preview_letter_template_precompiled_png_template_preview_500_error(
         notify_api,
         client,
         admin_request,
         notify_db_session,
+        sample_api_key,
+        sample_notification,
         sample_service,
         mocker,
         sample_template
@@ -1676,7 +1673,8 @@ def test_preview_letter_template_precompiled_png_template_preview_500_error(
         hidden=True
     )
 
-    notification = create_notification(template)
+    api_key = sample_api_key(service=template.service)
+    notification = sample_notification(template=template, api_key=api_key)
 
     with set_config_values(notify_api, {
         'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
@@ -1710,16 +1708,14 @@ def test_preview_letter_template_precompiled_png_template_preview_500_error(
             with pytest.raises(ValueError):
                 mock_post.last_request.json()
 
-    # Teardown
-    notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
-
 
 def test_preview_letter_template_precompiled_png_template_preview_400_error(
         notify_api,
         client,
         admin_request,
         notify_db_session,
+        sample_api_key,
+        sample_notification,
         sample_service,
         mocker,
         sample_template
@@ -1733,7 +1729,8 @@ def test_preview_letter_template_precompiled_png_template_preview_400_error(
         hidden=True
     )
 
-    notification = create_notification(template)
+    api_key = sample_api_key(service=template.service)
+    notification = sample_notification(template=template, api_key=api_key)
 
     with set_config_values(notify_api, {
         'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
@@ -1766,16 +1763,14 @@ def test_preview_letter_template_precompiled_png_template_preview_400_error(
             with pytest.raises(ValueError):
                 mock_post.last_request.json()
 
-    # Teardown
-    notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
-
 
 def test_preview_letter_template_precompiled_png_template_preview_pdf_error(
         notify_api,
         client,
         admin_request,
         notify_db_session,
+        sample_api_key,
+        sample_notification,
         sample_service,
         mocker,
         sample_template
@@ -1789,7 +1784,8 @@ def test_preview_letter_template_precompiled_png_template_preview_pdf_error(
         hidden=True
     )
 
-    notification = create_notification(template)
+    api_key = sample_api_key(service=template.service)
+    notification = sample_notification(template=template, api_key=api_key)
 
     with set_config_values(notify_api, {
         'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
@@ -1823,13 +1819,12 @@ def test_preview_letter_template_precompiled_png_template_preview_pdf_error(
             assert request['message'] == "Error extracting requested page from PDF file for notification_id {} type " \
                                          "{} {}".format(notification.id, type(PdfReadError()), error_message)
 
-    # Teardown
-    notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
-
 
 def test_should_create_template_without_created_by_using_current_user_id(
-        client, notify_db_session, sample_service):
+    client,
+    notify_db_session,
+    sample_service,
+):
     service = sample_service(service_name=f'sample service full permissions {uuid.uuid4()}',
                              service_permissions=set(SERVICE_PERMISSION_TYPES),
                              check_if_service_exists=True)
@@ -1862,14 +1857,13 @@ def test_should_create_template_without_created_by_using_current_user_id(
     json_resp = response.get_json()
     assert json_resp['data']['created_by'] == str(user.id)
 
-    template = Template.query.get(json_resp['data']['id'])
+    template = notify_db_session.session.get(Template, json_resp['data']['id'])
     from app.schemas import template_schema
     assert sorted(json_resp['data']) == sorted(template_schema.dump(template).data)
 
     # Teardown
-    for history in notify_db_session.session.scalars(
-        select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)
-    ).all():
+    stmt = select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)
+    for history in notify_db_session.session.scalars(stmt).all():
         notify_db_session.session.delete(history)
     template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
     notify_db_session.session.delete(template_redacted)
@@ -1879,7 +1873,12 @@ def test_should_create_template_without_created_by_using_current_user_id(
 
 class TestGenerateHtmlPreviewForContent:
 
-    def test_should_generate_html_preview_for_content(self, client, sample_service, sample_user):
+    def test_should_generate_html_preview_for_content(
+        self,
+        client,
+        sample_service,
+        sample_user,
+    ):
         user = sample_user(platform_admin=True)
         token = create_access_token(user)
 
@@ -1909,7 +1908,12 @@ class TestGenerateHtmlPreviewForContent:
 
 class TestGenerateHtmlPreviewForTemplateContent:
 
-    def test_should_generate_html_preview_for_template_content(self, client, sample_service, sample_user):
+    def test_should_generate_html_preview_for_template_content(
+        self,
+        client,
+        sample_service,
+        sample_user,
+    ):
         user = sample_user(platform_admin=True)
         token = create_access_token(user)
 
@@ -1939,7 +1943,11 @@ class TestGenerateHtmlPreviewForTemplateContent:
 
 class TestTemplateNameAlreadyExists:
     def test_create_template_should_return_400_if_template_name_already_exists_on_service(
-            self, notify_db_session, mocker, client, sample_service, sample_user
+        self,
+        mocker,
+        client,
+        sample_service,
+        sample_user,
     ):
         service = sample_service()
         mock_feature_flag(mocker, FeatureFlag.CHECK_TEMPLATE_NAME_EXISTS_ENABLED, 'True')
@@ -1972,7 +1980,11 @@ class TestTemplateNameAlreadyExists:
         )
 
     def test_update_should_not_update_a_template_if_name_already_exists(
-        self, mocker, client, sample_service, sample_template
+        self,
+        mocker,
+        client,
+        sample_service,
+        sample_template,
     ):
         mock_feature_flag(mocker, FeatureFlag.CHECK_TEMPLATE_NAME_EXISTS_ENABLED, 'True')
         mocker.patch('app.template.rest.template_name_already_exists_on_service', return_value=True)
@@ -1999,16 +2011,22 @@ class TestTemplateNameAlreadyExists:
 
 
 class TestServiceTemplateUsageStats:
-    def test_get_specific_template_usage_stats(self, admin_request, sample_service, sample_template):
+    def test_get_specific_template_usage_stats(
+        self,
+        admin_request,
+        sample_ft_notification_status,
+        sample_service,
+        sample_template,
+    ):
         service = sample_service(service_name=str(uuid.uuid4()), smtp_user="foo")
         template = sample_template(service=service)
 
-        create_ft_notification_status(date(2021, 3, 15), service=service, template=template)
-        create_ft_notification_status(date(2021, 3, 17), service=service, template=template)
-        create_ft_notification_status(
+        sample_ft_notification_status(date(2021, 3, 15), service=service, template=template)
+        sample_ft_notification_status(date(2021, 3, 17), service=service, template=template)
+        sample_ft_notification_status(
             date(2021, 10, 10), service=service, template=template, notification_status='sent'
         )
-        create_ft_notification_status(
+        sample_ft_notification_status(
             date(2021, 10, 10), service=service, template=template, notification_status='permanent_failure'
         )
 
@@ -2023,16 +2041,22 @@ class TestServiceTemplateUsageStats:
         }
 
     @freeze_time('2021-10-18 14:00')
-    def test_get_specific_template_usage_with_start_date(self, admin_request, sample_service, sample_template):
+    def test_get_specific_template_usage_with_start_date(
+        self,
+        admin_request,
+        sample_ft_notification_status,
+        sample_service,
+        sample_template,
+    ):
         service = sample_service(service_name=str(uuid.uuid4()), smtp_user="foo")
         template = sample_template(service=service)
 
-        create_ft_notification_status(date(2021, 3, 15), service=service, template=template)
-        create_ft_notification_status(date(2021, 3, 17), service=service, template=template)
-        create_ft_notification_status(
+        sample_ft_notification_status(date(2021, 3, 15), service=service, template=template)
+        sample_ft_notification_status(date(2021, 3, 17), service=service, template=template)
+        sample_ft_notification_status(
             date(2021, 10, 10), service=service, template=template, notification_status='sent'
         )
-        create_ft_notification_status(
+        sample_ft_notification_status(
             date(2021, 10, 10), service=service, template=template, notification_status='permanent_failure'
         )
 
@@ -2050,16 +2074,22 @@ class TestServiceTemplateUsageStats:
         }
 
     @freeze_time('2021-10-18 14:00')
-    def test_get_specific_template_usage_with_end_date(self, admin_request, sample_service, sample_template):
+    def test_get_specific_template_usage_with_end_date(
+        self,
+        admin_request,
+        sample_ft_notification_status,
+        sample_service,
+        sample_template,
+    ):
         service = sample_service(service_name=str(uuid.uuid4()), smtp_user="foo")
         template = sample_template(service=service)
 
-        create_ft_notification_status(date(2021, 3, 15), service=service, template=template)
-        create_ft_notification_status(date(2021, 3, 17), service=service, template=template)
-        create_ft_notification_status(
+        sample_ft_notification_status(date(2021, 3, 15), service=service, template=template)
+        sample_ft_notification_status(date(2021, 3, 17), service=service, template=template)
+        sample_ft_notification_status(
             date(2021, 10, 10), service=service, template=template, notification_status='sent'
         )
-        create_ft_notification_status(
+        sample_ft_notification_status(
             date(2021, 10, 10), service=service, template=template, notification_status='permanent_failure'
         )
 
@@ -2075,16 +2105,22 @@ class TestServiceTemplateUsageStats:
         }
 
     @freeze_time('2021-10-18 14:00')
-    def test_get_specific_template_usage_with_start_and_end_date(self, admin_request, sample_service, sample_template):
+    def test_get_specific_template_usage_with_start_and_end_date(
+        self,
+        admin_request,
+        sample_ft_notification_status,
+        sample_service,
+        sample_template,
+    ):
         service = sample_service(service_name=str(uuid.uuid4()), smtp_user="foo")
         template = sample_template(service=service)
 
-        create_ft_notification_status(date(2021, 3, 15), service=service, template=template)
-        create_ft_notification_status(date(2021, 3, 17), service=service, template=template)
-        create_ft_notification_status(
+        sample_ft_notification_status(date(2021, 3, 15), service=service, template=template)
+        sample_ft_notification_status(date(2021, 3, 17), service=service, template=template)
+        sample_ft_notification_status(
             date(2021, 10, 10), service=service, template=template, notification_status='sent'
         )
-        create_ft_notification_status(
+        sample_ft_notification_status(
             date(2021, 10, 12), service=service, template=template, notification_status='permanent_failure'
         )
 
