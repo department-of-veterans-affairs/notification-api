@@ -34,7 +34,6 @@ from sqlalchemy import select
 from tests import create_admin_authorization_header
 from tests.app.db import (
     create_letter_contact,
-    create_notification,
     create_template_folder,
 )
 from tests.app.factories.feature_flag import mock_feature_flag

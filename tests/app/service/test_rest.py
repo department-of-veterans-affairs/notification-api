@@ -1870,9 +1870,9 @@ def test_get_notification_for_service_includes_created_by(
     template = sample_template()
     user = template.created_by
     api_key = sample_api_key(service=template.service, user=user)
-    
+
     notification_user = sample_notification(template=template, api_key=api_key).service.created_by
-    
+
     resp = admin_request.get(
         'service.get_notification_for_service',
         service_id=sample_notification.service_id,

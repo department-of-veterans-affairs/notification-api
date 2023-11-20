@@ -3,10 +3,7 @@ from flask import json
 from freezegun import freeze_time
 from werkzeug.http import http_date
 
-from app.models import ProviderDetails, ProviderDetailsHistory
-
 from tests import create_admin_authorization_header
-from tests.app.db import create_ft_billing
 
 
 def test_get_provider_details_returns_information_about_providers(client, notify_db, mocked_provider_stats, mocker):
@@ -32,7 +29,14 @@ def test_get_provider_details_returns_information_about_providers(client, notify
         assert json_resp[idx]['current_month_billable_sms'] == provider.current_month_billable_sms
 
 
-def test_get_provider_details_by_id(client, notify_db):
+def test_get_provider_details_by_id(
+    client,
+    sample_provider,
+):
+    # Populate DB with a provider
+    sample_provider()
+
+    # Leaving all these get calls for now, even though we could reference the sample_provider's return
     response = client.get(
         '/provider-details',
         headers=[create_admin_authorization_header()]
@@ -49,9 +53,16 @@ def test_get_provider_details_by_id(client, notify_db):
 
 
 @freeze_time('2018-06-28 12:00')
-def test_get_provider_contains_correct_fields(client, sample_service, sample_template):
-    create_ft_billing('2018-06-01', 'sms', sample_template, sample_service, provider='mmg', billable_unit=1)
+def test_get_provider_contains_correct_fields(
+    client,
+    sample_ft_billing,
+    sample_provider,
+    sample_template,
+):
+    template = sample_template()
+    sample_ft_billing('2018-06-01', 'sms', template, template.service, provider='mmg', billable_unit=1)
 
+    sample_provider()
     response = client.get(
         '/provider-details',
         headers=[create_admin_authorization_header()]
@@ -69,8 +80,13 @@ def test_get_provider_contains_correct_fields(client, sample_service, sample_tem
 
 class TestUpdate:
 
-    def test_should_be_able_to_update_priority(self, client, restore_provider_details):
-        provider = ProviderDetails.query.first()
+    def test_should_be_able_to_update_priority(
+        self,
+        client,
+        sample_provider,
+        restore_provider_details,
+    ):
+        provider = sample_provider()
 
         update_resp = client.post(
             '/provider-details/{}'.format(provider.id),
@@ -85,8 +101,13 @@ class TestUpdate:
         assert update_json['priority'] == 5
         assert provider.priority == 5
 
-    def test_should_be_able_to_update_status(self, client, restore_provider_details):
-        provider = ProviderDetails.query.first()
+    def test_should_be_able_to_update_status(
+        self,
+        client,
+        sample_provider,
+        restore_provider_details,
+    ):
+        provider = sample_provider()
 
         update_resp_1 = client.post(
             '/provider-details/{}'.format(provider.id),
@@ -106,8 +127,15 @@ class TestUpdate:
         ('version', 7),
         ('updated_at', None)
     ])
-    def test_should_not_be_able_to_update_disallowed_fields(self, client, restore_provider_details, field, value):
-        provider = ProviderDetails.query.first()
+    def test_should_not_be_able_to_update_disallowed_fields(
+        self,
+        client,
+        sample_provider,
+        restore_provider_details,
+        field,
+        value,
+    ):
+        provider = sample_provider()
 
         resp = client.post(
             '/provider-details/{}'.format(provider.id),
@@ -120,14 +148,22 @@ class TestUpdate:
         assert resp_json['result'] == 'error'
         assert resp.status_code == 400
 
-    def test_update_provider_should_store_user_id(self, client, restore_provider_details, sample_user):
-        provider = ProviderDetails.query.first()
+    def test_update_provider_should_store_user_id(
+        self,
+        client,
+        sample_provider,
+        sample_user,
+        restore_provider_details,
+    ):
+        user_start = sample_user()
+        user_update = sample_user()
+        provider = sample_provider(created_by=user_start)
 
         update_resp_1 = client.post(
             '/provider-details/{}'.format(provider.id),
             headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
             data=json.dumps({
-                'created_by': sample_user.id,
+                'created_by': user_update.id,
                 'active': False
             })
         )
@@ -137,8 +173,13 @@ class TestUpdate:
         assert not update_resp_1['active']
         assert not provider.active
 
-    def test_should_be_able_to_update_load_balancing_weight(self, client, restore_provider_details):
-        provider = ProviderDetails.query.first()
+    def test_should_be_able_to_update_load_balancing_weight(
+        self,
+        client,
+        sample_provider,
+        restore_provider_details,
+    ):
+        provider = sample_provider()
 
         update_resp_1 = client.post(
             '/provider-details/{}'.format(provider.id),
@@ -153,12 +194,16 @@ class TestUpdate:
         assert provider.load_balancing_weight == 333
 
 
-def test_get_provider_versions_contains_correct_fields(client, notify_db):
-    provider = ProviderDetailsHistory.query.first()
+def test_get_provider_versions_contains_correct_fields(
+    client,
+    sample_provider,
+):
+    provider = sample_provider()
     response = client.get(
         '/provider-details/{}/versions'.format(provider.id),
         headers=[create_admin_authorization_header()]
     )
+
     json_resp = json.loads(response.get_data(as_text=True))['data']
     allowed_keys = {
         "id", "created_by", "display_name",

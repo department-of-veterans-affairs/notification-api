@@ -99,7 +99,7 @@ class TestValidateStrategies:
 
 
 class TestGetProvider:
-    def test_returns_template_provider(self, mocker, provider_service):
+    def test_returns_template_provider(self, client, mocker, provider_service):
 
         template_with_provider = mocker.Mock(Template, provider_id='some-id')
 
@@ -115,7 +115,7 @@ class TestGetProvider:
 
         mock_get_provider_details.assert_called_with('some-id')
 
-    def test_raises_exception_if_template_provider_is_inactive(self, mocker, provider_service):
+    def test_raises_exception_if_template_provider_is_inactive(self, client, mocker, provider_service):
 
         template_with_provider = mocker.Mock(Template, provider_id='some-id')
 
@@ -132,7 +132,7 @@ class TestGetProvider:
 
         mock_get_provider_details.assert_called_with('some-id')
 
-    def test_raises_exception_if_template_provider_cannot_be_found(self, mocker, provider_service):
+    def test_raises_exception_if_template_provider_cannot_be_found(self, client, mocker, provider_service):
 
         template_with_provider = mocker.Mock(Template, provider_id='some-id')
 
@@ -156,6 +156,7 @@ class TestGetProvider:
     )
     def test_returns_service_provider_for_notification_type_if_no_template_provider(
             self,
+            client,
             mocker,
             provider_service,
             notification_type,
@@ -188,6 +189,7 @@ class TestGetProvider:
 
     def test_uses_strategy_for_notification_type_when_no_template_or_service_providers_email(
             self,
+            client,
             mocker,
             provider_service
     ):
@@ -225,6 +227,7 @@ class TestGetProvider:
     )
     def test_get_template_or_service_provider_id(
         self,
+        client,
         mocker,
         notification_type,
         template_provider_id,
@@ -253,6 +256,7 @@ class TestGetProvider:
 
     def test_no_strategy_for_notification_type_when_no_template_or_service_providers_sms(
             self,
+            client,
             mocker,
             provider_service
     ):
@@ -276,6 +280,7 @@ class TestGetProvider:
     @pytest.mark.parametrize('notification_type', [NotificationType.EMAIL, NotificationType.SMS])
     def test_raises_exception_when_strategy_cannot_find_suitable_provider(
             self,
+            client,
             mocker,
             provider_service,
             notification_type,
