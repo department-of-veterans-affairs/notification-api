@@ -864,8 +864,8 @@ def test_create_400_for_over_limit_content(client, notify_db_session, sample_ser
     assert response.status_code == 400
     json_resp = response.get_json()
     assert (
-        'Content has a character count greater than the limit of {}'
-    ).format(SMS_CHAR_COUNT_LIMIT) in json_resp['message']['content']
+        f'Content has a character count greater than the limit of {SMS_CHAR_COUNT_LIMIT}'
+    ) in json_resp['message']['content']
 
     # Teardown
     template = notify_db_session.session.scalar(select(Template).where(Template.service_id == service.id))
