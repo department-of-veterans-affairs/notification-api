@@ -14,6 +14,7 @@ from app.models import (
     MANAGE_TEMPLATES,
     Notification,
     Permission,
+    SMS_TYPE,
 )
 from fido2 import cbor
 from flask import current_app, url_for
@@ -44,13 +45,18 @@ def test_get_user_list(admin_request, sample_service):
     assert sorted(expected_permissions) == sorted(fetched['permissions'][str(service.id)])
 
 
-def test_get_user(admin_request, sample_service, sample_organisation):
+def test_get_user(
+    admin_request,
+    sample_service,
+    sample_organisation,
+):
     """
     Tests GET endpoint '/<user_id>' to retrieve a single service.
     """
     service = sample_service()
     user = service.users[0]
-    user.organisations = [sample_organisation]
+    org = sample_organisation()
+    user.organisations = [org]
     json_resp = admin_request.get(
         'user.get_user',
         user_id=user.id
@@ -67,20 +73,25 @@ def test_get_user(admin_request, sample_service, sample_organisation):
     assert fetched['auth_type'] == EMAIL_AUTH_TYPE
     assert fetched['permissions'].keys() == {str(service.id)}
     assert fetched['services'] == [str(service.id)]
-    assert fetched['organisations'] == [str(sample_organisation.id)]
+    assert fetched['organisations'] == [str(org.id)]
     assert sorted(fetched['permissions'][str(service.id)]) == sorted(expected_permissions)
 
 
-def test_get_user_doesnt_return_inactive_services_and_orgs(admin_request, sample_service, sample_organisation):
+def test_get_user_doesnt_return_inactive_services_and_orgs(
+    admin_request,
+    sample_service,
+    sample_organisation,
+):
     """
     Tests GET endpoint '/<user_id>' to retrieve a single service.
     """
+    org = sample_organisation()
     service = sample_service()
     service.active = False
-    sample_organisation.active = False
+    org.active = False
 
     sample_user = service.users[0]
-    sample_user.organisations = [sample_organisation]
+    sample_user.organisations = [org]
 
     json_resp = admin_request.get(
         'user.get_user',
@@ -393,7 +404,7 @@ def test_post_user_attribute_send_notification_email(
 @pytest.mark.parametrize('user_attribute, user_value, arguments', [
     ('name', 'New User', None),
     ('email_address', 'newuser@mail.com', dict(
-        api_key_id=None, key_type='normal', notification_type='email',
+        api_key_id=None, key_type='normal', notification_type=EMAIL_TYPE,
         personalisation={
             'name': 'Test User', 'servicemanagername': 'Service Manago',
             'change_type': '\n- email address\n',
@@ -404,7 +415,7 @@ def test_post_user_attribute_send_notification_email(
         template_id=UUID('c73f1d71-4049-46d5-a647-d013bdeca3f0'), template_version=1
     )),
     ('mobile_number', '+16502532223', dict(
-        api_key_id=None, key_type='normal', notification_type='sms',
+        api_key_id=None, key_type='normal', notification_type=SMS_TYPE,
         personalisation={
             'name': 'Test User', 'servicemanagername': 'Service Manago',
             'change_type': '\n- mobile number\n',
@@ -438,7 +449,7 @@ def test_post_user_attribute_with_updated_by(
     # user=user,
     # template_config_name='TEAM_MEMBER_EDIT_MOBILE_TEMPLATE_ID',
     # content='Your mobile number was changed by ((servicemanagername)).',
-    # template_type='sms'
+    # template_type=SMS_TYPE
 
     updater = sample_user(name="Service Manago", email="notify_manago@va.gov")
     user = sample_user()
@@ -549,13 +560,25 @@ def test_get_user_by_email_bad_url_returns_404(client):
     assert json_resp['message'] == 'Invalid request. Email query string param required'
 
 
-def test_get_user_with_permissions(client, sample_user_service_permission):
+@pytest.mark.parametrize("user_perm", default_service_permissions)
+def test_get_user_with_permissions(
+    client,
+    sample_service,
+    user_perm,
+):
+    service = sample_service()
+    user = service.users[0]
+
+    # Default permission
+    permissions = user.get_permissions(service.id)
+    assert user_perm in permissions
+
     header = create_admin_authorization_header()
-    response = client.get(url_for('user.get_user', user_id=str(sample_user_service_permission.user.id)),
+    response = client.get(url_for('user.get_user', user_id=str(user.id)),
                           headers=[header])
     assert response.status_code == 200
     permissions = json.loads(response.get_data(as_text=True))['data']['permissions']
-    assert sample_user_service_permission.permission in permissions[str(sample_user_service_permission.service.id)]
+    assert user_perm in permissions[str(service.id)]
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
@@ -767,7 +790,7 @@ def test_send_user_reset_password_should_send_reset_password_link(client,
                                                                   mocker,
                                                                   password_reset_email_template):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
-    data = json.dumps({'email': sample_user().email_address})
+    data = json.dumps({EMAIL_TYPE: sample_user().email_address})
     auth_header = create_admin_authorization_header()
     notify_service = password_reset_email_template.service
     resp = client.post(
@@ -800,7 +823,7 @@ def test_send_user_reset_password_should_return_400_when_email_is_missing(client
         headers=[('Content-Type', 'application/json'), auth_header])
 
     assert resp.status_code == 400
-    assert resp.get_json()['message'] == {'email': ['Missing data for required field.']}
+    assert resp.get_json()['message'] == {EMAIL_TYPE: ['Missing data for required field.']}
     assert mocked.call_count == 0
 
 
@@ -808,7 +831,7 @@ def test_send_user_reset_password_should_return_400_when_email_is_missing(client
 def test_send_user_reset_password_should_return_400_when_user_doesnot_exist(client, mocker):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     bad_email_address = 'bad@email.gov.uk'
-    data = json.dumps({'email': bad_email_address})
+    data = json.dumps({EMAIL_TYPE: bad_email_address})
     auth_header = create_admin_authorization_header()
 
     resp = client.post(
@@ -825,7 +848,7 @@ def test_send_user_reset_password_should_return_400_when_user_doesnot_exist(clie
 def test_send_user_reset_password_should_return_400_when_data_is_not_email_address(client, mocker):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     bad_email_address = 'bad.email.gov.uk'
-    data = json.dumps({'email': bad_email_address})
+    data = json.dumps({EMAIL_TYPE: bad_email_address})
     auth_header = create_admin_authorization_header()
 
     resp = client.post(
@@ -834,14 +857,14 @@ def test_send_user_reset_password_should_return_400_when_data_is_not_email_addre
         headers=[('Content-Type', 'application/json'), auth_header])
 
     assert resp.status_code == 400
-    assert resp.get_json()['message'] == {'email': ['Not a valid email address']}
+    assert resp.get_json()['message'] == {EMAIL_TYPE: ['Not a valid email address']}
     assert mocked.call_count == 0
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_send_already_registered_email(client, sample_user, already_registered_template, mocker):
     user = sample_user()
-    data = json.dumps({'email': user.email_address})
+    data = json.dumps({EMAIL_TYPE: user.email_address})
     auth_header = create_admin_authorization_header()
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     notify_service = already_registered_template.service
@@ -873,14 +896,14 @@ def test_send_already_registered_email_returns_400_when_data_is_missing(client, 
         data=data,
         headers=[('Content-Type', 'application/json'), auth_header])
     assert resp.status_code == 400
-    assert resp.get_json()['message'] == {'email': ['Missing data for required field.']}
+    assert resp.get_json()['message'] == {EMAIL_TYPE: ['Missing data for required field.']}
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 # @pytest.mark.skip(reason="not in use")
 def test_send_support_email(client, sample_user, contact_us_template, mocker):
     user = sample_user()
-    data = json.dumps({'email': user.email_address, 'message': "test"})
+    data = json.dumps({EMAIL_TYPE: user.email_address, 'message': "test"})
     auth_header = create_admin_authorization_header()
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     notify_service = contact_us_template.service
@@ -908,14 +931,14 @@ def test_send_support_email_returns_400_when_data_is_missing(client, sample_user
         headers=[('Content-Type', 'application/json'), auth_header])
     assert resp.status_code == 400
     assert resp.get_json()['message'] == {
-        'email': ['Missing data for required field.'], 'message': ['Missing data for required field.']}
+        EMAIL_TYPE: ['Missing data for required field.'], 'message': ['Missing data for required field.']}
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_send_user_confirm_new_email_returns_204(client, sample_user, change_email_confirmation_template, mocker):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     new_email = 'new_address@dig.gov.uk'
-    data = json.dumps({'email': new_email})
+    data = json.dumps({EMAIL_TYPE: new_email})
     auth_header = create_admin_authorization_header()
     notify_service = change_email_confirmation_template.service
 
@@ -944,7 +967,7 @@ def test_send_user_confirm_new_email_returns_400_when_email_missing(client, samp
                        data=data,
                        headers=[('Content-Type', 'application/json'), auth_header])
     assert resp.status_code == 400
-    assert resp.get_json()['message'] == {'email': ['Missing data for required field.']}
+    assert resp.get_json()['message'] == {EMAIL_TYPE: ['Missing data for required field.']}
     mocked.assert_not_called()
 
 
@@ -1299,7 +1322,7 @@ def test_find_users_by_email_finds_user_by_partial_email(client, sample_user):
     for _ in range(10):
         sample_user(email=f'me.ignorra{uuid4}@foo.com')
 
-    data = json.dumps({"email": "findel"})
+    data = json.dumps({EMAIL_TYPE: "findel"})
     auth_header = create_admin_authorization_header()
 
     response = client.post(
@@ -1321,7 +1344,7 @@ def test_find_users_by_email_finds_user_by_full_email(client, sample_user):
     for _ in range(10):
         sample_user(email=f'me.ignorra{uuid4}@foo.com')
 
-    data = json.dumps({"email": user1.email_address})
+    data = json.dumps({EMAIL_TYPE: user1.email_address})
     auth_header = create_admin_authorization_header()
 
     response = client.post(
@@ -1343,7 +1366,7 @@ def test_find_users_by_email_handles_no_results(client, sample_user):
     for _ in range(10):
         sample_user(email=f'me.ignorra{uuid4}@foo.com')
 
-    data = json.dumps({"email": "rogue"})
+    data = json.dumps({EMAIL_TYPE: "rogue"})
     auth_header = create_admin_authorization_header()
 
     response = client.post(
@@ -1360,7 +1383,7 @@ def test_find_users_by_email_handles_no_results(client, sample_user):
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_search_for_users_by_email_handles_incorrect_data_format(client, sample_user):
     sample_user(email=f'findel.mestro{uuid4}@foo.com')
-    data = json.dumps({"email": 1})
+    data = json.dumps({EMAIL_TYPE: 1})
     auth_header = create_admin_authorization_header()
 
     response = client.post(
@@ -1370,7 +1393,7 @@ def test_search_for_users_by_email_handles_incorrect_data_format(client, sample_
     )
 
     assert response.status_code == 400
-    assert json.loads(response.get_data(as_text=True))['message'] == {'email': ['Not a valid string.']}
+    assert json.loads(response.get_data(as_text=True))['message'] == {EMAIL_TYPE: ['Not a valid string.']}
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
