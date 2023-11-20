@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, date
 
 from freezegun import freeze_time
-from tests.app.db import create_notification
 from app.performance_platform.processing_time import (
     send_processing_time_to_performance_platform,
     send_processing_time_data
@@ -10,14 +9,24 @@ from app.performance_platform.processing_time import (
 
 @freeze_time('2016-10-18T06:00')
 # This test assumes the local timezone is EST
-def test_send_processing_time_to_performance_platform_generates_correct_calls(mocker, sample_template):
+def test_send_processing_time_to_performance_platform_generates_correct_calls(
+    mocker,
+    sample_api_key,
+    sample_template,
+    sample_notification,
+):
     send_mock = mocker.patch('app.performance_platform.processing_time.send_processing_time_data')
 
     created_at = datetime.utcnow() - timedelta(days=1)
 
-    create_notification(sample_template, created_at=created_at, sent_at=created_at + timedelta(seconds=5))
-    create_notification(sample_template, created_at=created_at, sent_at=created_at + timedelta(seconds=15))
-    create_notification(sample_template, created_at=datetime.utcnow() - timedelta(days=2))
+    api_key = sample_api_key()
+    template = sample_template()
+    sample_notification(template=template, created_at=created_at,
+                        sent_at=created_at + timedelta(seconds=5), api_key=api_key)
+    sample_notification(template=template, created_at=created_at,
+                        sent_at=created_at + timedelta(seconds=15), api_key=api_key)
+    sample_notification(template=template, created_at=datetime.utcnow() - timedelta(days=2),
+                        api_key=api_key)
 
     send_processing_time_to_performance_platform(date(2016, 10, 17))
 
