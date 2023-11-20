@@ -2245,12 +2245,15 @@ def sample_inbound_number(notify_db_session, sample_service):
 
 
 @pytest.fixture
-def sample_inbound_numbers(notify_db_session, sample_service):
-    service = create_service(service_name='sample service 2', check_if_service_exists=True)
+def sample_inbound_numbers(
+    sample_inbound_number,
+    sample_service,
+):
+    service = sample_service(service_name='sample service 2', check_if_service_exists=True)
     inbound_numbers = list()
-    inbound_numbers.append(create_inbound_number(number='1', provider='mmg'))
-    inbound_numbers.append(create_inbound_number(number='2', provider='mmg', active=False, service_id=service.id))
-    inbound_numbers.append(create_inbound_number(number='3', provider='firetext', service_id=sample_service.id))
+    inbound_numbers.append(sample_inbound_number(number='1', provider='mmg'))
+    inbound_numbers.append(sample_inbound_number(number='2', provider='mmg', active=False, service_id=service.id))
+    inbound_numbers.append(sample_inbound_number(number='3', provider='firetext', service_id=service.id))
     return inbound_numbers
 
 
