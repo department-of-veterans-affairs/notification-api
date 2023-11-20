@@ -13,7 +13,7 @@ from app.clients.sms.firetext import FiretextClient
 from app.dao.invited_user_dao import save_invited_user
 from app.dao.jobs_dao import dao_create_job
 from app.dao.notifications_dao import dao_create_notification
-from app.dao.organisation_dao import dao_create_organisation
+from app.dao.organisation_dao import dao_create_organisation, dao_add_service_to_organisation
 from app.dao.permissions_dao import default_service_permissions
 from app.dao.provider_rates_dao import create_provider_rates
 from app.dao.services_dao import dao_archive_service, dao_create_service, DEFAULT_SERVICE_PERMISSIONS
@@ -26,7 +26,7 @@ from app.dao.fido2_key_dao import save_fido2_key
 from app.dao.login_event_dao import save_login_event
 from app.dao.templates_dao import dao_create_template
 from app.history_meta import create_history
-from app.model import User
+from app.model import User, IdentityProviderIdentifier
 from app.models import (
     ApiKey,
     AnnualBilling,
@@ -35,6 +35,7 @@ from app.models import (
     Domain,
     EMAIL_TYPE,
     FactBilling,
+    FactNotificationStatus,
     Fido2Key,
     InboundNumber,
     InboundSms,
@@ -45,6 +46,7 @@ from app.models import (
     KEY_TYPE_TEAM,
     LETTER_TYPE,
     LoginEvent,
+    MOBILE_TYPE,
     NORMAL,
     Notification,
     NotificationHistory,
@@ -65,6 +67,7 @@ from app.models import (
     ServiceSmsSender,
     Service,
     ServiceUser,
+    ServiceWhitelist,
     Template,
     TemplateFolder,
     TemplateHistory,
@@ -95,9 +98,7 @@ from tests.app.db import (
     version_api_key,
     version_service,
 )
-from tests.app.factories import (
-    service_whitelist
-)
+
 
 # Tests only run against email/sms. API also considers letters
 TEMPLATE_TYPES = [SMS_TYPE, EMAIL_TYPE]
@@ -170,17 +171,38 @@ def sample_user(notify_db_session, set_user_as_admin, worker_id) -> User:
 
     yield _sample_user
 
-    cleanup_user(created_user_ids, worker_id, notify_db_session.session)
+    # Teardown
+    cleanup_user(created_user_ids[worker_id], notify_db_session.session)
 
 
-def cleanup_user(user_ids: List[int], worker_id: int, session: scoped_session):
+def cleanup_user(user_ids: List[int], session: scoped_session):
     # Unsafe to teardown with objects, have to use ids to look up the object
-    for user_id in user_ids[worker_id]:
-        user = session.get(User, user_id)
+    for user_id in user_ids:
+        try:
+            user = session.get(User, user_id)
+        except Exception as e:
+            print(e)
+            continue
+
         # Clear user_folder_permissions
         session.execute(
             delete(user_folder_permissions).where(user_folder_permissions.c.user_id == user.id)
         )
+
+        # Clear IdentityProviderIdentifier
+        stmt = select(IdentityProviderIdentifier).where(IdentityProviderIdentifier.user_id == user.id)
+        for idp in session.scalars(stmt):
+            session.delete(idp)
+
+        # Clear provider_details_history
+        stmt = select(ProviderDetailsHistory).where(ProviderDetailsHistory.created_by_id == user_id)
+        for pd_hist in session.scalars(stmt):
+            session.delete(pd_hist)
+
+        # Clear provider_details
+        stmt = select(ProviderDetails).where(ProviderDetails.created_by_id == user_id)
+        for pd_hist in session.scalars(stmt):
+            session.delete(pd_hist)
 
         # Clear permissions
         for user_perm in session.scalars(select(Permission).where(Permission.user_id == user.id)).all():
@@ -294,7 +316,7 @@ def notify_user(notify_db_session, worker_id):
 def sample_domain(notify_db_session):
     domains = []
 
-    def _wrapper(domain, organisation_id):
+    def _wrapper(domain: str, organisation_id: UUID):
         domain = Domain(domain=domain, organisation_id=organisation_id)
 
         db.session.add(domain)
@@ -701,6 +723,7 @@ def sample_permissions(notify_db_session):
             perm_ids.append(permission.id)
             notify_db_session.session.add(permission)
         notify_db_session.session.commit()
+        return permission
 
     yield _wrapper
 
@@ -947,14 +970,15 @@ def sample_email_template_history(notify_db, sample_service, sample_user, worker
 
 
 @pytest.fixture
-def sample_template_without_sms_permission(notify_db_session, sample_template):
-    service = create_service(service_permissions=[EMAIL_TYPE], check_if_service_exists=True)
-    template = sample_template(service, template_type=SMS_TYPE)
+def sample_template_without_sms_permission(notify_db_session, sample_service, sample_template):
+    service = sample_service(service_permissions=[EMAIL_TYPE], check_if_service_exists=True)
+    template = sample_template(service=service, template_type=SMS_TYPE)
     yield template
 
     # Teardown
     template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
     notify_db_session.session.delete(template_history)
+
     template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
     notify_db_session.session.delete(template_redacted)
     notify_db_session.session.delete(template)
@@ -976,9 +1000,9 @@ def sample_sms_template_with_html(sample_service, sample_template):
 
 
 @pytest.fixture
-def sample_template_without_email_permission(notify_db_session, sample_template):
-    service = create_service(service_permissions=[SMS_TYPE], check_if_service_exists=True)
-    template = sample_template(service, template_type=EMAIL_TYPE)
+def sample_template_without_email_permission(notify_db_session, sample_service, sample_template):
+    service = sample_service(service_permissions=[SMS_TYPE], check_if_service_exists=True)
+    template = sample_template(service=service, template_type=EMAIL_TYPE)
     yield template
 
     # Teardown
@@ -1105,17 +1129,22 @@ def sample_team_api_key(sample_api_key):
 
 
 @pytest.fixture
-def sample_job(notify_db_session):
-    created_jobs = []
+def sample_job(notify_db_session, worker_id):
+    created_jobs = {worker_id: []}
 
     def _sample_job(template, **kwargs):
         job = create_job(template, **kwargs)
-        created_jobs.append(job)
+
+        if worker_id in created_jobs:
+            created_jobs[worker_id].append(job)
+        else:
+            created_jobs[worker_id] = [job]
+
         return job
 
     yield _sample_job
 
-    for job in created_jobs:
+    for job in created_jobs[worker_id]:
         notify_db_session.session.delete(job)
     notify_db_session.session.commit()
 
@@ -1186,6 +1215,242 @@ def sample_letter_job(sample_letter_template):
     return job
 
 
+@pytest.fixture
+def sample_annual_billing(
+    notify_db_session,
+    worker_id,
+):
+    billing_ids = {worker_id: []}
+
+    def _wrapper(
+        service_id,
+        free_sms_fragment_limit,
+        financial_year_start,
+    ):
+        annual_billing = AnnualBilling(
+            service_id=service_id,
+            free_sms_fragment_limit=free_sms_fragment_limit,
+            financial_year_start=financial_year_start
+        )
+        db.session.add(annual_billing)
+        db.session.commit()
+
+        if worker_id in billing_ids:
+            billing_ids[worker_id].append(annual_billing.id)
+        else:
+            billing_ids[worker_id] = [annual_billing.id]
+
+        return annual_billing
+
+    yield _wrapper
+
+    # Teardown
+    for ab_id in billing_ids[worker_id]:
+        ab = notify_db_session.session.get(AnnualBilling, ab_id)
+        if ab:
+            notify_db_session.session.delete(ab)
+    notify_db_session.session.commit()
+
+
+@pytest.fixture
+def sample_ft_billing(
+    notify_db_session,
+    worker_id,
+):
+    ft_billing_bsts = {worker_id: []}
+
+    def _wrapper(
+        utc_date,
+        notification_type,
+        template=None,
+        service=None,
+        provider='test',
+        rate_multiplier=1,
+        international=False,
+        rate=0,
+        billable_unit=1,
+        notifications_sent=1,
+        postage='none',
+    ):
+        if not service:
+            service = create_service()
+        if not template:
+            template = create_template(service=service, template_type=notification_type)
+
+        data = FactBilling(bst_date=utc_date,
+                           service_id=service.id,
+                           template_id=template.id,
+                           notification_type=notification_type,
+                           provider=provider,
+                           rate_multiplier=rate_multiplier,
+                           international=international,
+                           rate=rate,
+                           billable_units=billable_unit,
+                           notifications_sent=notifications_sent,
+                           postage=postage)
+        db.session.add(data)
+        db.session.commit()
+
+        if worker_id in ft_billing_bsts:
+            ft_billing_bsts[worker_id].append((data.bst_date, data.service_id, data.template_id))
+        else:
+            ft_billing_bsts[worker_id] = [(data.bst_date, data.service_id, data.template_id)]
+        return data
+
+    yield _wrapper
+
+    # Teardown
+    # FactBilling has a compound key comprised of NINE fields. 3 is enough to identify a row for testing purposes...
+    for bst_date, service_id, template_id in ft_billing_bsts[worker_id]:
+        stmt = select(FactBilling).where(FactBilling.bst_date == bst_date)\
+                                  .where(FactBilling.service_id == service_id)\
+                                  .where(FactBilling.template_id == template_id)
+        ft_billing = notify_db_session.session.scalar(stmt)
+        if ft_billing:
+            notify_db_session.session.delete(ft_billing)
+    notify_db_session.session.commit()
+
+
+@pytest.fixture
+def sample_ft_notification_status(notify_db_session, sample_template, worker_id):
+    ft_notifications = {worker_id: []}
+
+    def _wrapper(
+        utc_date,
+        notification_type='sms',
+        service=None,
+        template=None,
+        job=None,
+        key_type='normal',
+        notification_status='delivered',
+        status_reason='',
+        count=1,
+    ):
+        if job:
+            template = job.template
+
+        if template and not service:
+            service = template.service
+            notification_type = template.template_type
+        elif service and not template:
+            template = sample_template(service=service, template_type=notification_type)
+        elif not template and not service:
+            template = sample_template()
+            service = template.service()
+        elif template.service.id != service.id:
+            # Sent mismatched template and service
+            raise NotImplementedError
+
+        data = FactNotificationStatus(
+            bst_date=utc_date,
+            template_id=template.id,
+            service_id=service.id,
+            job_id=job.id if job else UUID(int=0),
+            notification_type=notification_type,
+            key_type=key_type,
+            notification_status=notification_status,
+            status_reason=status_reason,
+            notification_count=count
+        )
+        db.session.add(data)
+        db.session.commit()
+
+        if worker_id in ft_notifications:
+            ft_notifications[worker_id].append(data)
+        else:
+            ft_notifications[worker_id] = [data]
+
+        return data
+
+    yield _wrapper
+
+    # Teardown
+    for ft_notification in ft_notifications[worker_id]:
+        notify_db_session.session.delete(ft_notification)
+    notify_db_session.session.commit()
+
+
+@pytest.fixture
+def set_up_usage_data(
+    # notify_db_session,
+    sample_annual_billing,
+    sample_ft_billing,
+    sample_organisation,
+    sample_service,
+    sample_template,
+
+):
+
+    def _wrapper(start_date):
+        year = int(start_date.strftime('%Y'))
+        one_week_earlier = start_date - timedelta(days=7)
+        two_days_later = start_date + timedelta(days=2)
+        one_week_later = start_date + timedelta(days=7)
+        one_month_later = start_date + timedelta(days=31)
+
+        service = sample_service(service_name='a - with sms and letter')
+        letter_template = sample_template(service=service, template_type=LETTER_TYPE)
+        sms_template_1 = sample_template(service=service, template_type=SMS_TYPE)
+        sample_annual_billing(service_id=service.id, free_sms_fragment_limit=10, financial_year_start=year)
+        org = sample_organisation(name=f"Org for {service.name}")
+        dao_add_service_to_organisation(service=service, organisation_id=org.id)
+
+        service_3 = sample_service(service_name='c - letters only')
+        template_3 = sample_template(service=service_3)
+        org_3 = sample_organisation(name=f"Org for {service_3.name}")
+        dao_add_service_to_organisation(service=service_3, organisation_id=org_3.id)
+
+        service_4 = sample_service(service_name='d - service without org')
+        template_4 = sample_template(service=service_4, template_type=LETTER_TYPE)
+
+        service_sms_only = sample_service(service_name='b - chargeable sms')
+        sms_template = sample_template(service=service_sms_only, template_type=SMS_TYPE)
+        sample_annual_billing(service_id=service_sms_only.id, free_sms_fragment_limit=10, financial_year_start=year)
+
+        sample_ft_billing(utc_date=one_week_earlier, service=service, notification_type=SMS_TYPE,
+                          template=sms_template_1, billable_unit=2, rate=0.11)
+        sample_ft_billing(utc_date=start_date, service=service, notification_type=SMS_TYPE,
+                          template=sms_template_1, billable_unit=2, rate=0.11)
+        sample_ft_billing(utc_date=two_days_later, service=service, notification_type=SMS_TYPE,
+                          template=sms_template_1, billable_unit=1, rate=0.11)
+        sample_ft_billing(utc_date=one_week_later, service=service, notification_type=LETTER_TYPE,
+                          template=letter_template,
+                          notifications_sent=2, billable_unit=1, rate=.35, postage='first')
+        sample_ft_billing(utc_date=one_month_later, service=service, notification_type=LETTER_TYPE,
+                          template=letter_template,
+                          notifications_sent=4, billable_unit=2, rate=.45, postage='second')
+        sample_ft_billing(utc_date=one_week_later, service=service, notification_type=LETTER_TYPE,
+                          template=letter_template,
+                          notifications_sent=2, billable_unit=2, rate=.45, postage='second')
+
+        sample_ft_billing(utc_date=one_week_earlier, service=service_sms_only, notification_type=SMS_TYPE,
+                          template=sms_template, rate=0.11, billable_unit=12)
+        sample_ft_billing(utc_date=two_days_later, service=service_sms_only, notification_type=SMS_TYPE,
+                          template=sms_template, rate=0.11)
+        sample_ft_billing(utc_date=one_week_later, service=service_sms_only, notification_type=SMS_TYPE,
+                          template=sms_template, billable_unit=2, rate=0.11)
+
+        sample_ft_billing(utc_date=start_date, service=service_3, notification_type=LETTER_TYPE,
+                          template=template_3,
+                          notifications_sent=2, billable_unit=3, rate=.50, postage='first')
+        sample_ft_billing(utc_date=one_week_later, service=service_3, notification_type=LETTER_TYPE,
+                          template=template_3,
+                          notifications_sent=8, billable_unit=5, rate=.65, postage='second')
+        sample_ft_billing(utc_date=one_month_later, service=service_3, notification_type=LETTER_TYPE,
+                          template=template_3,
+                          notifications_sent=12, billable_unit=5, rate=.65, postage='second')
+
+        sample_ft_billing(utc_date=two_days_later, service=service_4, notification_type=LETTER_TYPE,
+                          template=template_4,
+                          notifications_sent=15, billable_unit=4, rate=.55, postage='second')
+
+        return org, org_3, service, service_3, service_4, service_sms_only
+
+    yield _wrapper
+
+    # Teardown
+
+
 @pytest.fixture(scope='function')
 def sample_notification_with_job(
         notify_db,
@@ -1240,7 +1505,6 @@ def sample_notification(notify_db_session, sample_api_key, sample_service, sampl
     created_scheduled_notifications = []
     created_service_ids = []
     created_templates = []
-    created_api_keys = []
 
     def _sample_notification(*args, **kwargs):
         if kwargs.get("created_at") is None:
@@ -1264,7 +1528,6 @@ def sample_notification(notify_db_session, sample_api_key, sample_service, sampl
             if not api_key:
                 api_key = sample_api_key(kwargs["template"].service, key_type=kwargs.get("key_type", KEY_TYPE_NORMAL))
                 kwargs["api_key"] = api_key
-                created_api_keys.append(api_key)
 
         notification = create_notification(*args, **kwargs)
         created_notifications.append(notification)
@@ -1302,10 +1565,10 @@ def sample_notification(notify_db_session, sample_api_key, sample_service, sampl
         notify_db_session.session.delete(template_redacted)
         notify_db_session.session.delete(template)
     service_cleanup(created_service_ids, notify_db_session.session)
-    for api_key in created_api_keys:
-        # Other things may delete an API key first.  Check before deleting.
-        if not inspect(api_key).detached:
-            notify_db_session.session.delete(api_key)
+    # for api_key in created_api_keys:
+    #     # Other things may delete an API key first.  Check before deleting.
+    #     if not inspect(api_key).detached:
+    #         notify_db_session.session.delete(api_key)
     notify_db_session.session.commit()
 
 
@@ -1514,8 +1777,8 @@ def current_sms_provider():
 
 
 @pytest.fixture
-def sample_provider(notify_db_session):
-    provider_ids = []
+def sample_provider(notify_db_session, worker_id):
+    provider_ids = {worker_id: []}
 
     def _wrapper(
         identifier: str = PINPOINT_PROVIDER,
@@ -1550,17 +1813,27 @@ def sample_provider(notify_db_session):
             if created_by_id and not created_by:
                 data['created_by'] = notify_db_session.session.get(User, created_by_id)
 
+            # Add provider_details
             provider = ProviderDetails(**data)
             notify_db_session.session.add(provider)
             notify_db_session.session.commit()
-            provider_ids.append(provider.id)
+
+            # Add provider_details_history - Has to happen after the provider_details are commit
+            history = ProviderDetailsHistory.from_original(provider)
+            notify_db_session.session.add(history)
+            notify_db_session.session.commit()
+
+            if worker_id in provider_ids:
+                provider_ids[worker_id].append(provider.id)
+            else:
+                provider_ids[worker_id] = [provider.id]
 
         return provider
 
     yield _wrapper
 
     # Teardown
-    for provider_id in provider_ids:
+    for provider_id in provider_ids[worker_id]:
         provider = notify_db_session.session.get(ProviderDetails, provider_id)
         if provider is None:
             continue
@@ -1840,12 +2113,30 @@ def notify_service(notify_db_session):
 
 
 @pytest.fixture(scope='function')
-def sample_service_whitelist(notify_db_session):
-    service = create_service(check_if_service_exists=True)
-    whitelisted_user = service_whitelist.a_service_whitelist(service_id=service.id)
-    notify_db_session.session.add(whitelisted_user)
+def sample_service_whitelist(notify_db_session, sample_service):
+    whitelist_users = []
+
+    def _wrapper(service: Service = None, email_address: str = '', phone_number: str = ''):
+        if email_address:
+            whitelisted_user = ServiceWhitelist.from_string(service.id, EMAIL_TYPE, email_address)
+        elif phone_number:
+            whitelisted_user = ServiceWhitelist.from_string(service.id, MOBILE_TYPE, phone_number)
+        else:
+            whitelisted_user = ServiceWhitelist.from_string(service.id, EMAIL_TYPE, 'whitelisted_user@va.gov')
+
+        service = service or sample_service(check_if_service_exists=True)
+        notify_db_session.session.add(whitelisted_user)
+        notify_db_session.session.commit()
+        whitelist_users.append(whitelisted_user)
+
+        return whitelisted_user
+
+    yield _wrapper
+
+    # Teardown
+    for wu in whitelist_users:
+        notify_db_session.session.delete(wu)
     notify_db_session.session.commit()
-    return whitelisted_user
 
 
 @pytest.fixture(scope='function')
@@ -1926,7 +2217,7 @@ def sample_inbound_number(notify_db_session, sample_service):
             number=number,
             provider=provider,
             active=active,
-            service_id=service_id or sample_service(),
+            service_id=service_id,
             url_endpoint=url_endpoint,
             self_managed=self_managed
         )
@@ -1960,13 +2251,34 @@ def sample_inbound_numbers(notify_db_session, sample_service):
 
 
 @pytest.fixture(scope="function")
-def sample_organisation(notify_db_session, worker_id):
-    org = Organisation(name=f"sample organisation {worker_id}")
-    dao_create_organisation(org)
+def sample_organisation(
+    notify_db_session,
+    sample_domain,
+    worker_id,
+):
+    orgs = {worker_id: []}
 
-    yield org
+    def _wrapper(name: str = None, domains: Union[list, None] = None, active: bool = True):
+        org = Organisation(name=name or f"sample organisation {uuid4()}{worker_id}", active=active)
+        dao_create_organisation(org)
 
-    notify_db_session.session.delete(org)
+        if worker_id in orgs:
+            orgs[worker_id].append(org.id)
+        else:
+            orgs[worker_id] = [org.id]
+
+        for domain in domains or []:
+            sample_domain(domain, org.id)
+
+        return org
+
+    yield _wrapper
+
+    # Teardown
+    for org_id in orgs[worker_id]:
+        organisation = notify_db_session.session.get(Organisation, org_id)
+        if organisation:
+            notify_db_session.session.delete(organisation)
     notify_db_session.session.commit()
 
 
@@ -2217,39 +2529,30 @@ def sample_communication_item(notify_db_session, worker_id):
 @pytest.fixture
 def sample_service_with_inbound_number(
         notify_db_session,
+        sample_inbound_number,
         sample_service,
-        inbound_number='1234567'
 ):
-    teardown_tuples = []
 
-    def _wrapper(*args, **kwargs):
-        if kwargs.get('service') is None:
-            # Sample service does not accept inbound_number, keep the name
-            inbound_number = kwargs.pop('inbound_number')
+    def _wrapper(*args, service: Service = None, inbound_number='1234567', **kwargs):
+        service = kwargs.pop('service', None)
+        if not service:
             service = sample_service(*args, **kwargs)
+        stmt = select(ServiceSmsSender).where(ServiceSmsSender.service_id == service.id)
+        sms_sender = notify_db_session.session.scalar(stmt)
+        ib = sample_inbound_number(number=inbound_number)
 
-        sms_sender = ServiceSmsSender.query.filter_by(service_id=service.id).first()
-        inbound = create_inbound_number(number=inbound_number)
         dao_update_service_sms_sender(
             service_id=service.id,
             service_sms_sender_id=sms_sender.id,
             sms_sender=inbound_number,
-            inbound_number_id=inbound.id
+            inbound_number_id=ib.id
         )
-        teardown_tuples.append((inbound, sms_sender))
+
         return service
 
     yield _wrapper
 
-    # Teardown
-    for inbound, sms_sender in teardown_tuples:
-        # Cannot delete the sender if there's an inbound attached
-        notify_db_session.session.delete(inbound)
-        # Can't default default senders normally
-        sms_sender.is_default = False
-        notify_db_session.session.delete(sms_sender)
-    notify_db_session.session.commit()
-    # Service is cleaned elsewhere or in teardown of sample_service
+    # Teardown - Not required due to other fixtures cleaning up
 
 
 @pytest.fixture
@@ -2293,27 +2596,22 @@ def sample_service_email_reply_to(notify_db_session, sample_service):
 def sample_notify_service_user_session(
     notify_db, sample_service_session, sample_service_email_reply_to_session, sample_user_session
 ):
-    def _wrapper():
-        u_id = current_app.config['NOTIFY_USER_ID']
-        s_id = current_app.config['NOTIFY_SERVICE_ID']
+    u_id = current_app.config['NOTIFY_USER_ID']
+    s_id = current_app.config['NOTIFY_SERVICE_ID']
 
+    def _wrapper():
         # We only want these created if they are not already made. This was session-scoped before
         user = notify_db.session.get(User, u_id) or sample_user_session(user_id=u_id)
 
-        service = (
-            notify_db.session.get(Service, s_id) or
-            sample_service_session(
-                service_name='Notify Service',
-                email_from='notify.service',
-                user=user,
-                service_id=s_id
-            )
-        )
-
+        service = notify_db.session.get(Service, s_id) or sample_service_session(service_name='Notify Service',
+                                                                                 email_from='notify.service',
+                                                                                 user=user,
+                                                                                 service_id=s_id
+                                                                                 )
         sample_service_email_reply_to_session(service)
         return service, user
 
-    return _wrapper
+    yield _wrapper
     # Teardown not required
 
 
@@ -2361,7 +2659,8 @@ def sample_service_email_reply_to_session(notify_db, sample_service_session):
     # Unsafe to teardown with objects, have to use ids to look up the object
     for sert_id in service_email_reply_to_ids:
         sert = notify_db.session.get(ServiceEmailReplyTo, sert_id)
-        notify_db.session.delete(sert)
+        if sert:
+            notify_db.session.delete(sert)
     notify_db.session.commit()
 
 
@@ -2460,7 +2759,7 @@ def pytest_sessionfinish(session, exitstatus):
             'provider_details': 9,
             'provider_details_history': 9,
             'provider_rates': 5,
-            'rates': 2,
+            # 'rates': 2,
             'service_callback_channel': 2,
             'service_callback_type': 3,
             'service_permission_types': 12,
@@ -2486,24 +2785,27 @@ def pytest_sessionfinish(session, exitstatus):
         table_list = sorted([table for table in db.engine.table_names()
                             if table not in skip_tables and table not in to_be_deleted_tables])
 
-        # Use metadata to query the table and add the table name to the list if there are any records
         tables_with_artifacts = []
+        artifact_counts = []
+
+        # Use metadata to query the table and add the table name to the list if there are any records
         for table_name in table_list:
             row_count = len(db.session.execute(select(meta_data.tables[table_name])).all())
-            # Only way it's okay to have records is if count <= acceptable count
+
             if table_name in acceptable_counts and row_count <= acceptable_counts[table_name]:
                 continue
             elif row_count > 0:
+                artifact_counts.append((row_count))
                 tables_with_artifacts.append(table_name)
                 session.exitstatus = 1
 
         if tables_with_artifacts and TRUNCATE_ARTIFACTS:
             print('\n')
-            for table in tables_with_artifacts:
+            for i, table in enumerate(tables_with_artifacts):
                 # Skip tables that may have necessary information
                 if table not in acceptable_counts:
                     db.session.execute(sa_text(f"""TRUNCATE TABLE {table} CASCADE"""))
-                    print(f'Truncating {color}{table}{reset} with cascade...')
+                    print(f'Truncating {color}{table}{reset} with cascade...{artifact_counts[i]} records removed')
                 else:
                     print(f'Table {table} contains too many records but {color}cannot be truncated{reset}.')
             db.session.commit()
