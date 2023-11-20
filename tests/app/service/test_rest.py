@@ -149,7 +149,9 @@ def test_get_service_list_by_user_should_return_empty_list_if_no_services(admin_
     assert len(json_resp['data']) == 0
 
 
+@pytest.mark.single  # Cannot handle multiple workers
 def test_get_service_list_should_return_empty_list_if_no_services(admin_request):
+    # Tests involving a check on all services cannot be done with multiple workers
     json_resp = admin_request.get('service.get_services')
     assert len(json_resp['data']) == 0
 
@@ -431,6 +433,7 @@ def test_create_service_with_valid_provider(
     assert json_resp['data']['sms_provider_id'] == str(current_sms_provider.id)
 
 
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 @pytest.mark.parametrize('domain, expected_org', (
     (None, False),
     ('', False),
@@ -480,9 +483,6 @@ def test_create_service_with_domain_sets_organisation(
         assert json_resp['data']['organisation'] == str(org.id)
     else:
         assert json_resp['data']['organisation'] is None
-
-    # Teardown
-    # sample_user cleans up any services associated with it, so no need to clean the post
 
 
 def test_should_not_create_service_with_missing_user_id_field(notify_api, fake_uuid):
@@ -1807,31 +1807,41 @@ def test_get_all_notifications_for_service_formatted_for_csv(client, sample_temp
     assert resp['notifications'][0]['status'] == 'Sending'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_get_notification_for_service_without_uuid(client, notify_db, notify_db_session, sample_service):
-    service_1 = sample_service(service_name="1", email_from='1')
+def test_get_notification_for_service_without_uuid(
+    client,
+    sample_service,
+):
+    service = sample_service()
     response = client.get(
-        path='/service/{}/notifications/{}'.format(service_1.id, 'foo'),
+        path='/service/{}/notifications/{}'.format(service.id, 'foo'),
         headers=[create_admin_authorization_header()]
     )
     assert response.status_code == 404
 
 
-def test_get_notification_for_service(client, notify_db_session, sample_service, sample_template):
+def test_get_notification_for_service(
+    client,
+    sample_api_key,
+    sample_notification,
+    sample_service,
+    sample_template,
+):
 
     service_1 = sample_service()
     service_2 = sample_service()
+    api_key_1 = sample_api_key(service=service_1)
+    api_key_2 = sample_api_key(service=service_2)
 
     service_1_template = sample_template(service=service_1)
     service_2_template = sample_template(service=service_2)
 
     s1_notifications = [
-        create_notification(service_1_template),
-        create_notification(service_1_template),
-        create_notification(service_1_template),
+        sample_notification(template=service_1_template, api_key=api_key_1),
+        sample_notification(template=service_1_template, api_key=api_key_1),
+        sample_notification(template=service_1_template, api_key=api_key_1),
     ]
 
-    s2_notification = create_notification(service_2_template)
+    sample_notification(template=service_2_template, api_key=api_key_2)
 
     for notification in s1_notifications:
         response = client.get(
@@ -1850,16 +1860,19 @@ def test_get_notification_for_service(client, notify_db_session, sample_service,
         service_2_response = json.loads(service_2_response.get_data(as_text=True))
         assert service_2_response == {'message': 'No result found', 'result': 'error'}
 
-    for noti in s1_notifications:
-        notify_db_session.session.delete(noti)
-    notify_db_session.session.delete(s2_notification)
-    notify_db_session.session.commit()
 
-
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_get_notification_for_service_includes_created_by(admin_request, sample_notification):
-    user = sample_notification.created_by = sample_notification.service.created_by
-
+def test_get_notification_for_service_includes_created_by(
+    admin_request,
+    sample_api_key,
+    sample_notification,
+    sample_template,
+):
+    template = sample_template()
+    user = template.created_by
+    api_key = sample_api_key(service=template.service, user=user)
+    
+    notification_user = sample_notification(template=template, api_key=api_key).service.created_by
+    
     resp = admin_request.get(
         'service.get_notification_for_service',
         service_id=sample_notification.service_id,
@@ -1868,28 +1881,34 @@ def test_get_notification_for_service_includes_created_by(admin_request, sample_
 
     assert resp['id'] == str(sample_notification.id)
     assert resp['created_by'] == {
-        'id': str(user.id),
-        'name': user.name,
-        'email_address': user.email_address
+        'id': str(notification_user.id),
+        'name': notification_user.name,
+        'email_address': notification_user.email_address
     }
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_get_notification_for_service_returns_old_template_version(admin_request, sample_template):
-    sample_notification = create_notification(sample_template)
-    sample_notification.reference = 'modified-inplace'
-    sample_template.version = 2
-    sample_template.content = 'New template content'
+def test_get_notification_for_service_returns_old_template_version(
+    admin_request,
+    sample_api_key,
+    sample_notification,
+    sample_template,
+):
+    template = sample_template()
+    api_key = sample_api_key(service=template.service)
+    notification = sample_notification(template=template, api_key=api_key)
+    notification.reference = 'modified-inplace'
+    template.version = 2
+    template.content = 'New template content'
 
     resp = admin_request.get(
         'service.get_notification_for_service',
-        service_id=sample_notification.service_id,
-        notification_id=sample_notification.id
+        service_id=notification.service_id,
+        notification_id=notification.id
     )
 
     assert resp['reference'] == 'modified-inplace'
     assert resp['template']['version'] == 1
-    assert resp['template']['content'] == sample_notification.template.content
+    assert resp['template']['content'] == notification.template.content
     assert resp['template']['content'] != sample_template.content
 
 
@@ -1934,23 +1953,26 @@ def test_get_all_notifications_for_service_including_ones_made_by_jobs(
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
 def test_get_only_api_created_notifications_for_service(
     admin_request,
+    sample_api_key,
     sample_job,
+    sample_notification,
     sample_template,
     sample_user,
 ):
+    template = sample_template()
+    api_key = sample_api_key(service=template.service)
     # notification sent as a job
-    create_notification(sample_template, job=sample_job)
+    sample_notification(template=template, job=sample_job(), api_key=api_key)
     # notification sent as a one-off
-    create_notification(sample_template, one_off=True, created_by_id=sample_user.id)
+    sample_notification(template=template, one_off=True, created_by_id=sample_user.id, api_key=api_key)
     # notification sent via API
-    without_job = create_notification(sample_template)
+    without_job = sample_notification(template=template, api_key=api_key)
 
     resp = admin_request.get(
         'service.get_all_notifications_for_service',
-        service_id=sample_template.service_id,
+        service_id=template.service_id,
         include_jobs=False,
         include_one_off=False
     )
@@ -2073,16 +2095,26 @@ def test_get_detailed_service(notify_api, notify_db_session, sample_service, sam
     notify_db_session.session.commit()
 
 
-def test_get_services_with_detailed_flag(client, notify_db_session, sample_api_key, sample_service, sample_template):
+@pytest.mark.single  # Cannot handle multiple workers
+def test_get_services_with_detailed_flag(
+    client,
+    sample_api_key,
+    sample_notification,
+    sample_service,
+    sample_template,
+):
     service = sample_service()
     template = sample_template(service=service, user=service.users[0])
     normal_api_key = sample_api_key(service=service)
     test_api_key = sample_api_key(service=service, key_type=KEY_TYPE_TEST)
+
     notifications = [
-        create_notification(template, api_key=normal_api_key),
-        create_notification(template, api_key=normal_api_key),
-        create_notification(template, api_key=test_api_key),
+        sample_notification(template=template, api_key=normal_api_key),
+        sample_notification(template=template, api_key=normal_api_key),
+        sample_notification(template=template, api_key=test_api_key),
     ]
+
+    # Tests involving a check on all services cannot be done with multiple workers
     resp = client.get(
         '/service?detailed=True',
         headers=[create_admin_authorization_header()]
@@ -2098,11 +2130,6 @@ def test_get_services_with_detailed_flag(client, notify_db_session, sample_api_k
         SMS_TYPE: {'delivered': 0, 'failed': 0, 'requested': 3},
         LETTER_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0}
     }
-
-    # Teardown
-    for notification in notifications:
-        notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
@@ -2766,6 +2793,7 @@ def test_is_service_name_unique_returns_200_if_unique(admin_request, notify_db, 
     assert response == {"result": True}
 
 
+@pytest.mark.single  # Would have to break into multiple tests or many if/else checks in the test if ran w/many workers
 @pytest.mark.parametrize('name, email_from',
                          [("UNIQUE", "unique"),
                           ("Unique.", "unique"),
@@ -2773,12 +2801,14 @@ def test_is_service_name_unique_returns_200_if_unique(admin_request, notify_db, 
                           ])
 def test_is_service_name_unique_returns_200_with_name_capitalized_or_punctuation_added(
     admin_request,
-    notify_db,
-    notify_db_session,
     name,
     email_from,
     sample_service,
 ):
+    """
+    The variations tested in the parameterization do not play nice with a random UUID, so this should be ran with a
+    specific service name that tests various similar naming techniques.
+    """
     service = sample_service(service_name='unique', email_from='unique')
 
     response = admin_request.get(
@@ -2820,17 +2850,16 @@ def test_is_service_name_unique_returns_200_and_false_if_name_or_email_from_exis
 
 def test_is_service_name_unique_returns_200_and_false_if_name_exists_for_the_same_service(
     admin_request,
-    notify_db,
-    notify_db_session,
     sample_service,
 ):
-    service = sample_service(service_name='unique', email_from='unique')
+    service_name = f'unique_name{uuid4()}'
+    service = sample_service(service_name=service_name, email_from=service_name)
 
     response = admin_request.get(
         'service.is_service_name_unique',
         _expected_status=200,
         service_id=service.id,
-        name='unique',
+        name=service_name,
         email_from='unique2'
     )
 
@@ -3278,8 +3307,11 @@ def test_get_monthly_notification_data_by_service(mocker, admin_request):
     assert response == []
 
 
-def test_create_smtp_relay_for_service_if_it_already_has_one(client, notify_db, notify_db_session, sample_service):
-    service = sample_service(service_name="ABCDEF", smtp_user="foo")
+def test_create_smtp_relay_for_service_if_it_already_has_one(
+    client,
+    sample_service,
+):
+    service = sample_service(smtp_user="foo")
 
     resp = client.post(
         '/service/{}/smtp'.format(service.id),
@@ -3289,8 +3321,12 @@ def test_create_smtp_relay_for_service_if_it_already_has_one(client, notify_db, 
     assert resp.status_code == 500
 
 
-def test_create_smtp_relay_for_service(mocker, client, notify_db, notify_db_session, sample_service):
-    service = sample_service(service_name=f"ABCDEF{uuid4()}", smtp_user=None)
+def test_create_smtp_relay_for_service(
+    mocker,
+    client,
+    sample_service,
+):
+    service = sample_service(smtp_user=None)
 
     credentials = {
         "iam": "iam_username",
@@ -3318,8 +3354,12 @@ def test_create_smtp_relay_for_service(mocker, client, notify_db, notify_db_sess
     assert json_resp == credentials
 
 
-def test_get_smtp_relay_for_service(mocker, client, notify_db, notify_db_session, sample_service):
-    service = sample_service(service_name=f"ABCDEF{uuid4()}", smtp_user="FOO-BAR")
+def test_get_smtp_relay_for_service(
+    mocker,
+    client,
+    sample_service,
+):
+    service = sample_service(smtp_user="FOO-BAR")
 
     username_mock = mocker.patch(
         "app.service.rest.smtp_get_user_key",
@@ -3345,8 +3385,12 @@ def test_get_smtp_relay_for_service(mocker, client, notify_db, notify_db_session
     assert json_resp == credentials
 
 
-def test_get_smtp_relay_for_service_returns_empty_if_none(mocker, client, notify_db, notify_db_session, sample_service):
-    service = sample_service(service_name="ABCDEF", smtp_user=None)
+def test_get_smtp_relay_for_service_returns_empty_if_none(
+    mocker,
+    client,
+    sample_service,
+):
+    service = sample_service(smtp_user=None)
 
     resp = client.get(
         '/service/{}/smtp'.format(service.id),
@@ -3359,9 +3403,11 @@ def test_get_smtp_relay_for_service_returns_empty_if_none(mocker, client, notify
 
 
 def test_delete_smtp_relay_for_service_returns_500_if_none(
-    mocker, client, notify_db, notify_db_session, sample_service
+    mocker,
+    client,
+    sample_service,
 ):
-    service = sample_service(service_name="ABCDEF", smtp_user=None)
+    service = sample_service(smtp_user=None)
 
     resp = client.delete(
         '/service/{}/smtp'.format(service.id),
@@ -3372,9 +3418,11 @@ def test_delete_smtp_relay_for_service_returns_500_if_none(
 
 
 def test_delete_smtp_relay_for_service_returns_201_if_success(
-    mocker, client, notify_db, notify_db_session, sample_service
+    mocker,
+    client,
+    sample_service,
 ):
-    service = sample_service(service_name="ABCDEF", smtp_user="foo")
+    service = sample_service(smtp_user=f"foo{uuid4()}")
 
     delete_mock = mocker.patch(
         "app.service.rest.smtp_remove"
