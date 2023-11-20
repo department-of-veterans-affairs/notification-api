@@ -5,7 +5,7 @@ from flask import json
 from freezegun import freeze_time
 from jsonschema import ValidationError
 
-from app.models import NOTIFICATION_CREATED, EMAIL_TYPE
+from app.models import NOTIFICATION_CREATED, EMAIL_TYPE, SMS_TYPE
 from app.schema_validation import validate
 from app.v2.notifications.notification_schemas import (
     get_notifications_request,
@@ -64,7 +64,7 @@ def test_get_notifications_request_invalid_statuses(
     # multiple invalid template_types
     (["orange", "avocado", "banana"], []),
     # one bad template_type and one good template_type
-    (["orange"], ["sms"]),
+    (["orange"], [SMS_TYPE]),
 ])
 def test_get_notifications_request_invalid_template_types(
         client, invalid_template_types, valid_template_types
@@ -84,7 +84,7 @@ def test_get_notifications_request_invalid_statuses_and_template_types(client):
     with pytest.raises(ValidationError) as e:
         validate({
             'status': ["created", "elephant", "giraffe"],
-            'template_type': ["sms", "orange", "avocado"]
+            'template_type': [SMS_TYPE, "orange", "avocado"]
         }, get_notifications_request)
 
     errors = json.loads(str(e.value)).get('errors')
@@ -274,21 +274,21 @@ def test_post_sms_schema_with_personalisation_that_is_not_a_dict(client):
     ({}, 'phone_number {} is not of type string'),
 ])
 def test_post_sms_request_schema_invalid_phone_number(client, invalid_phone_number, err_msg):
-    j = {"phone_number": invalid_phone_number,
-         "template_id": str(uuid.uuid4())
-         }
+    test_schema = {
+        "phone_number": invalid_phone_number,
+        "template_id": str(uuid.uuid4()),
+    }
     with pytest.raises(ValidationError) as e:
-        validate(j, post_sms_request_schema)
+        validate(test_schema, post_sms_request_schema)
     errors = json.loads(str(e.value)).get('errors')
     assert len(errors) == 1
     assert {"error": "ValidationError", "message": err_msg} == errors[0]
 
 
-def test_post_sms_request_schema_invalid_phone_number_and_missing_template():
-    j = {"phone_number": '08515111111',
-         }
+def test_post_sms_request_schema_invalid_phone_number_and_missing_template(client):
+    test_schema = {"phone_number": '08515111111'}
     with pytest.raises(ValidationError) as e:
-        validate(j, post_sms_request_schema)
+        validate(test_schema, post_sms_request_schema)
     errors = json.loads(str(e.value)).get('errors')
     assert len(errors) == 2
     assert {
