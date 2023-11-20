@@ -20,7 +20,6 @@ from app.dao.service_permissions_dao import dao_add_service_permission
 from app.dao.service_sms_sender_dao import dao_update_service_sms_sender
 from app.dao.services_dao import dao_create_service, dao_add_user_to_service
 from app.dao.templates_dao import dao_create_template, dao_update_template
-from app.dao.users_dao import save_model_user
 from app.dao.dao_utils import transactional, version_class
 from app.models import (
     ApiKey,
@@ -78,6 +77,8 @@ def create_user(
     blocked=False,
     platform_admin=False,
     check_if_user_exists=False,
+    idp_name=None,
+    idp_id=None,
 ):
     user = None
     if check_if_user_exists:
@@ -91,16 +92,31 @@ def create_user(
             # This is a unique, non-nullable field.
             'email_address': email if email is not None else f"create_user_{uuid4()}@va.gov",
             'password': 'password',
+            'password_changed_at': datetime.utcnow(),
             # This is a unique, nullable field.
             'identity_provider_user_id': identity_provider_user_id,
             'mobile_number': mobile_number,
             'state': state,
             'blocked': blocked,
             'platform_admin': platform_admin,
+            'idp_name': idp_name,
+            'idp_id': idp_id
         }
 
-        user = User(**data)
-        save_model_user(user)
+        user = transactional_save_user(User(**data))
+
+    return user
+
+
+def transactional_save_user(user: User) -> User:
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except Exception:
+        # Without the rollback some tests fail because they are supposed to raise DB exceptions to trigger rollbacks
+        db.session.rollback()
+        raise
+
     return user
 
 
