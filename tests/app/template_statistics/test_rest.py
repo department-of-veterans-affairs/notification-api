@@ -5,8 +5,6 @@ from unittest.mock import Mock
 import pytest
 from freezegun import freeze_time
 
-from tests.app.db import create_notification
-
 
 def set_up_get_all_from_hash(mock_redis, side_effect):
     """
@@ -45,10 +43,10 @@ def test_get_template_statistics_for_service_by_day_with_bad_arg_returns_400(adm
 
 
 def test_get_template_statistics_for_service_by_day_returns_template_info(
-    admin_request, notify_db_session, sample_notification, sample_template
+    admin_request, notify_db_session, sample_api_key, sample_notification, sample_template
 ):
     template = sample_template()
-    notification = sample_notification(template=template)
+    notification = sample_notification(template=template, api_key=sample_api_key())
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_service_by_day',
         service_id=notification.service_id,
@@ -156,13 +154,17 @@ def test_get_template_statistics_for_service_by_day_returns_empty_list_if_no_tem
 
 
 def test_get_template_statistics_for_template_returns_last_notification(
-    notify_db_session, admin_request, sample_template
+    admin_request,
+    sample_api_key,
+    sample_template,
+    sample_notification,
 ):
     template = sample_template()
+    api_key = sample_api_key(service=template.service)
     # Build notifications
-    notifications = [create_notification(template=template)]
-    notifications.append(create_notification(template=template))
-    notifications.append(create_notification(template=template))
+    notifications = [sample_notification(template=template, api_key=api_key)]
+    notifications.append(sample_notification(template=template, api_key=api_key))
+    notifications.append(sample_notification(template=template, api_key=api_key))
 
     json_resp = admin_request.get(
         'template_statistics.get_template_statistics_for_template_id',
@@ -171,11 +173,6 @@ def test_get_template_statistics_for_template_returns_last_notification(
     )
 
     assert json_resp['data']['id'] == str(notifications[-1].id)
-
-    # Teardown
-    for notification in notifications:
-        notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
 
 
 def test_get_template_statistics_for_template_returns_empty_if_no_statistics(admin_request, sample_template):
