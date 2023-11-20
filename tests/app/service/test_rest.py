@@ -149,7 +149,7 @@ def test_get_service_list_by_user_should_return_empty_list_if_no_services(admin_
     assert len(json_resp['data']) == 0
 
 
-@pytest.mark.single  # Cannot handle multiple workers
+@pytest.mark.serial  # Cannot handle multiple workers
 def test_get_service_list_should_return_empty_list_if_no_services(admin_request):
     # Tests involving a check on all services cannot be done with multiple workers
     json_resp = admin_request.get('service.get_services')
@@ -2095,7 +2095,7 @@ def test_get_detailed_service(notify_api, notify_db_session, sample_service, sam
     notify_db_session.session.commit()
 
 
-@pytest.mark.single  # Cannot handle multiple workers
+@pytest.mark.serial  # Cannot handle multiple workers
 def test_get_services_with_detailed_flag(
     client,
     sample_api_key,
@@ -2793,7 +2793,7 @@ def test_is_service_name_unique_returns_200_if_unique(admin_request, notify_db, 
     assert response == {"result": True}
 
 
-@pytest.mark.single  # Would have to break into multiple tests or many if/else checks in the test if ran w/many workers
+@pytest.mark.serial  # Would have to break into multiple tests or many if/else checks in the test if ran w/many workers
 @pytest.mark.parametrize('name, email_from',
                          [("UNIQUE", "unique"),
                           ("Unique.", "unique"),
