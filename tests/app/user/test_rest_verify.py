@@ -212,7 +212,7 @@ def test_send_user_sms_code(client,
     mocked_task = mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
 
     resp = client.post(
-        url_for('user.send_user_2fa_code', code_type='sms', user_id=sample_user.id),
+        url_for('user.send_user_2fa_code', code_type=SMS_TYPE, user_id=sample_user.id),
         data=json.dumps({}),
         headers=[('Content-Type', 'application/json'), auth_header])
     assert resp.status_code == 204
@@ -249,7 +249,7 @@ def test_send_user_code_for_sms_with_optional_to_field(client,
     auth_header = create_admin_authorization_header()
 
     resp = client.post(
-        url_for('user.send_user_2fa_code', code_type='sms', user_id=sample_user.id),
+        url_for('user.send_user_2fa_code', code_type=SMS_TYPE, user_id=sample_user.id),
         data=json.dumps({'to': to_number}),
         headers=[('Content-Type', 'application/json'), auth_header])
 
@@ -281,7 +281,7 @@ def test_send_user_code_for_sms_respects_a_retry_time_delta(client,
     auth_header = create_admin_authorization_header()
 
     resp = client.post(
-        url_for('user.send_user_2fa_code', code_type='sms', user_id=sample_user.id),
+        url_for('user.send_user_2fa_code', code_type=SMS_TYPE, user_id=sample_user.id),
         data=json.dumps({'to': to_number}),
         headers=[('Content-Type', 'application/json'), auth_header])
 
@@ -291,7 +291,7 @@ def test_send_user_code_for_sms_respects_a_retry_time_delta(client,
     # Inside delta
     auth_header = create_admin_authorization_header()
     resp = client.post(
-        url_for('user.send_user_2fa_code', code_type='sms', user_id=sample_user.id),
+        url_for('user.send_user_2fa_code', code_type=SMS_TYPE, user_id=sample_user.id),
         data=json.dumps({'to': to_number}),
         headers=[('Content-Type', 'application/json'), auth_header])
 
@@ -304,7 +304,7 @@ def test_send_sms_code_returns_404_for_bad_input_data(client):
     uuid_ = uuid.uuid4()
     auth_header = create_admin_authorization_header()
     resp = client.post(
-        url_for('user.send_user_2fa_code', code_type='sms', user_id=uuid_),
+        url_for('user.send_user_2fa_code', code_type=SMS_TYPE, user_id=uuid_),
         data=json.dumps({}),
         headers=[('Content-Type', 'application/json'), auth_header])
     assert resp.status_code == 404
@@ -315,7 +315,7 @@ def test_send_sms_code_returns_404_for_bad_input_data(client):
 def test_send_sms_code_returns_204_when_too_many_codes_already_created(client, sample_user):
     for i in range(10):
         verify_code = VerifyCode(
-            code_type='sms',
+            code_type=SMS_TYPE,
             _code=12345,
             created_at=datetime.utcnow() - timedelta(minutes=10),
             expiry_datetime=datetime.utcnow() + timedelta(minutes=40),
@@ -326,7 +326,7 @@ def test_send_sms_code_returns_204_when_too_many_codes_already_created(client, s
     assert VerifyCode.query.count() == 10
     auth_header = create_admin_authorization_header()
     resp = client.post(
-        url_for('user.send_user_2fa_code', code_type='sms', user_id=sample_user.id),
+        url_for('user.send_user_2fa_code', code_type=SMS_TYPE, user_id=sample_user.id),
         data=json.dumps({}),
         headers=[('Content-Type', 'application/json'), auth_header])
     assert resp.status_code == 204
@@ -451,7 +451,7 @@ def test_send_user_email_code(
 
     admin_request.post(
         'user.send_user_2fa_code',
-        code_type='email',
+        code_type=EMAIL_TYPE,
         user_id=sample_user.id,
         _data=data,
         _expected_status=204
@@ -481,7 +481,7 @@ def test_send_user_email_code_with_urlencoded_next_param(admin_request, mocker, 
     }
     admin_request.post(
         'user.send_user_2fa_code',
-        code_type='email',
+        code_type=EMAIL_TYPE,
         user_id=sample_user.id,
         _data=data,
         _expected_status=204
@@ -494,7 +494,7 @@ def test_send_user_email_code_with_urlencoded_next_param(admin_request, mocker, 
 def test_send_email_code_returns_404_for_bad_input_data(admin_request):
     resp = admin_request.post(
         'user.send_user_2fa_code',
-        code_type='email',
+        code_type=EMAIL_TYPE,
         user_id=uuid.uuid4(),
         _data={},
         _expected_status=404
@@ -509,7 +509,7 @@ def test_user_verify_email_code(admin_request, sample_user):
     verify_code = create_user_code(sample_user, magic_code, EMAIL_TYPE)
 
     data = {
-        'code_type': 'email',
+        'code_type': EMAIL_TYPE,
         'code': magic_code
     }
 
