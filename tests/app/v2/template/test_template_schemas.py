@@ -69,14 +69,14 @@ invalid_json_post_args = [
 
 valid_json_post_response = {
     'id': str(uuid.uuid4()),
-    'type': 'email',
+    'type': EMAIL_TYPE,
     'version': 1,
     'body': 'some body',
 }
 
 valid_json_post_response_with_optionals = {
     'id': str(uuid.uuid4()),
-    'type': 'email',
+    'type': EMAIL_TYPE,
     'version': 1,
     'body': "some body",
     'subject': 'some subject',
