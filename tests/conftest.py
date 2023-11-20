@@ -204,7 +204,7 @@ def database_prep():
     notify_service_id = application.config['NOTIFY_SERVICE_ID']
     notify_user_id = application.config['NOTIFY_USER_ID']
 
-    # Used this format to refence the tables because model availability is inconsistent
+    # Used this format to refence the tables because model availability is inconsistent and it's best not to mix styles
     AB = meta_data.tables['annual_billing']
     db.session.execute(delete(AB).where(AB.c.service_id == notify_service_id))
 
@@ -237,4 +237,7 @@ def database_prep():
 
     U = meta_data.tables['users']
     db.session.execute(delete(U).where(U.c.id == notify_user_id))
+
+    R = meta_data.tables['rates']
+    db.session.execute(delete(R))
     db.session.commit()
