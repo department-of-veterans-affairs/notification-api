@@ -20,7 +20,7 @@ info:
     name: VA Notify team
 servers:
   - url: 'https://{environment}.notifications.va.gov'
-    description: VPC endpoints; use inside the VA network VPC
+    description: PRIVATE, used inside the VA Network
     variables:
       environment:
         enum:
@@ -30,7 +30,7 @@ servers:
           - dev.api
         default: api
   - url: 'https://{environment}.va.gov/vanotify'
-    description: Public Endpoints; use outside of the VA network VPC
+    description: PUBLIC, used outside of the VA Network
     variables:
       environment:
         enum:
