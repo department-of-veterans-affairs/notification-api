@@ -23,13 +23,12 @@ def test_should_have_decorated_tasks_functions():
     assert deliver_email.__wrapped__.__name__ == 'deliver_email'
 
 
-def test_should_call_send_sms_to_provider_from_deliver_sms_task(
-        sample_notification,
-        mocker):
+def test_should_call_send_sms_to_provider_from_deliver_sms_task(mocker, sample_template, sample_notification):
     mocker.patch('app.delivery.send_to_providers.send_sms_to_provider')
-
-    deliver_sms(sample_notification.id)
-    app.delivery.send_to_providers.send_sms_to_provider.assert_called_with(sample_notification, None)
+    template = sample_template()
+    notification = sample_notification(template=template)
+    deliver_sms(notification.id)
+    app.delivery.send_to_providers.send_sms_to_provider.assert_called_with(notification, None)
 
 
 def test_should_add_to_retry_queue_if_notification_not_found_in_deliver_sms_task(notify_db_session, mocker):
