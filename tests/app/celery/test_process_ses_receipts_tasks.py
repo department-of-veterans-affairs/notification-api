@@ -203,7 +203,9 @@ def test_ses_callback_should_not_update_notification_status_if_already_delivered
     assert process_ses_receipts_tasks.process_ses_results(ses_notification_callback(reference='ref')) is None
     assert get_notification_by_id(notification.id).status == 'delivered'
 
-    mock_dup.assert_called_once_with(notification, 'delivered')
+    mock_dup.assert_called_once()
+    assert mock_dup.call_args.args[0].id == notification.id
+    assert mock_dup.call_args.args[1] == 'delivered'
     assert mock_upd.call_count == 0
 
 
@@ -299,6 +301,7 @@ def test_ses_callback_should_set_status_to_temporary_failure(client, mocker, sam
         status='sending',
         reference='ref',
     )
+    assert notification.reference == "ref"
     create_service_callback_api(service=notification.service, url="https://original_url.com")
     assert get_notification_by_id(notification.id).status == 'sending'
     assert process_ses_receipts_tasks.process_ses_results(ses_soft_bounce_callback(reference='ref'))
