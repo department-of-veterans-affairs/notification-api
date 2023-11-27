@@ -77,7 +77,6 @@ class TwilioSMSClient(SmsClient):
         self.logger = logger
         self._callback_notify_url_host = callback_notify_url_host
 
-
         prefix = "dev-"
 
         if environment == "staging":
