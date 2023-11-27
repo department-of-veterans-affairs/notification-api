@@ -81,41 +81,51 @@ def test_should_have_decorated_notifications_dao_functions():
     assert dao_delete_notification_by_id.__wrapped__.__name__ == 'dao_delete_notification_by_id'  # noqa
 
 
-def test_should_by_able_to_update_status_by_reference(sample_template, ses_provider):
+def test_should_by_able_to_update_status_by_reference(notify_db_session, sample_template):
     template = sample_template(template_type=EMAIL_TYPE)
     data = _notification_json(template, status='sending')
 
     notification = Notification(**data)
     dao_create_notification(notification)
 
-    assert Notification.query.get(notification.id).status == 'sending'
-    notification.reference = 'reference'
-    dao_update_notification(notification)
+    try:
+        assert Notification.query.get(notification.id).status == 'sending'
+        notification.reference = 'reference'
+        dao_update_notification(notification)
 
-    updated = update_notification_status_by_reference('reference', 'delivered')
-    assert updated.status == 'delivered'
-    assert Notification.query.get(notification.id).status == 'delivered'
+        updated = update_notification_status_by_reference('reference', 'delivered')
+        assert updated.status == 'delivered'
+        assert Notification.query.get(notification.id).status == 'delivered'
+    finally:
+        # Teardown
+        notify_db_session.session.delete(notification)
+        notify_db_session.session.commit()
 
 
-def test_should_by_able_to_update_status_by_id(sample_template, sample_job, mmg_provider):
+def test_should_by_able_to_update_status_by_id(notify_db_session, sample_template, sample_job):
     template = sample_template()
     job = sample_job(template)
     with freeze_time('2000-01-01 12:00:00'):
         data = _notification_json(template, job_id=job.id, status='sending')
         notification = Notification(**data)
         dao_create_notification(notification)
+
+    try:
         assert notification.status == 'sending'
+        assert Notification.query.get(notification.id).status == 'sending'
 
-    assert Notification.query.get(notification.id).status == 'sending'
+        with freeze_time('2000-01-02 12:00:00'):
+            updated = update_notification_status_by_id(notification.id, 'delivered')
 
-    with freeze_time('2000-01-02 12:00:00'):
-        updated = update_notification_status_by_id(notification.id, 'delivered')
-
-    assert updated.status == 'delivered'
-    assert updated.updated_at == datetime(2000, 1, 2, 12, 0, 0)
-    assert Notification.query.get(notification.id).status == 'delivered'
-    assert notification.updated_at == datetime(2000, 1, 2, 12, 0, 0)
-    assert notification.status == 'delivered'
+        assert updated.status == 'delivered'
+        assert updated.updated_at == datetime(2000, 1, 2, 12, 0, 0)
+        assert Notification.query.get(notification.id).status == 'delivered'
+        assert notification.updated_at == datetime(2000, 1, 2, 12, 0, 0)
+        assert notification.status == 'delivered'
+    finally:
+        # Teardown
+        notify_db_session.session.delete(notification)
+        notify_db_session.session.commit()
 
 
 def test_should_not_update_status_by_id_if_not_sending_and_does_not_update_job(
@@ -145,9 +155,10 @@ def test_should_not_update_status_by_reference_if_not_sending_and_does_not_updat
 
 
 def test_should_update_status_by_id_if_created(sample_template, sample_notification):
-    assert Notification.query.get(sample_notification.id).status == NOTIFICATION_CREATED
-    updated = update_notification_status_by_id(sample_notification.id, NOTIFICATION_PERMANENT_FAILURE)
-    assert Notification.query.get(sample_notification.id).status == NOTIFICATION_PERMANENT_FAILURE
+    notification = sample_notification(template=sample_template())
+    assert Notification.query.get(notification.id).status == NOTIFICATION_CREATED
+    updated = update_notification_status_by_id(notification.id, NOTIFICATION_PERMANENT_FAILURE)
+    assert Notification.query.get(notification.id).status == NOTIFICATION_PERMANENT_FAILURE
     assert updated.status == NOTIFICATION_PERMANENT_FAILURE
 
 
@@ -242,7 +253,9 @@ def test_should_not_update_status_by_reference_if_not_sending(sample_template, s
 def test_should_by_able_to_update_status_by_id_from_pending_to_delivered(
     sample_template, sample_job, sample_notification
 ):
-    notification = sample_notification(template=sample_template(), job=sample_job(), status='sending')
+    template = sample_template()
+    job = sample_job(template)
+    notification = sample_notification(template=template, job=job, status='sending')
 
     assert update_notification_status_by_id(notification_id=notification.id, status='pending')
     assert Notification.query.get(notification.id).status == 'pending'
@@ -254,26 +267,34 @@ def test_should_by_able_to_update_status_by_id_from_pending_to_delivered(
 def test_should_by_able_to_update_status_by_id_from_pending_to_temporary_failure(
     sample_template, sample_job, sample_notification
 ):
-    notification = sample_notification(template=sample_template(), job=sample_job(), status='sending')
+    template = sample_template()
+    job = sample_job(template)
+    notification = sample_notification(template=template, job=job, status='sending')
 
     assert update_notification_status_by_id(notification_id=notification.id, status='pending')
     assert Notification.query.get(notification.id).status == 'pending'
 
     assert update_notification_status_by_id(notification.id, status='permanent-failure')
-
     assert Notification.query.get(notification.id).status == 'temporary-failure'
 
 
-def test_should_by_able_to_update_status_by_id_from_sending_to_permanent_failure(sample_template, sample_job):
+def test_should_by_able_to_update_status_by_id_from_sending_to_permanent_failure(
+    notify_db_session, sample_template, sample_job
+):
     template = sample_template()
     job = sample_job(template)
     data = _notification_json(template, job_id=job.id, status='sending')
     notification = Notification(**data)
     dao_create_notification(notification)
-    assert Notification.query.get(notification.id).status == 'sending'
 
-    assert update_notification_status_by_id(notification.id, status='permanent-failure')
-    assert Notification.query.get(notification.id).status == 'permanent-failure'
+    try:
+        assert Notification.query.get(notification.id).status == 'sending'
+        assert update_notification_status_by_id(notification.id, status='permanent-failure')
+        assert Notification.query.get(notification.id).status == 'permanent-failure'
+    finally:
+        # Teardown
+        notify_db_session.session.delete(notification)
+        notify_db_session.session.commit()
 
 
 def test_should_not_update_status_once_notification_status_is_delivered(sample_template, sample_notification):
@@ -290,11 +311,11 @@ def test_should_not_update_status_once_notification_status_is_delivered(sample_t
     assert Notification.query.get(notification.id).status == 'delivered'
 
 
-def test_should_return_zero_count_if_no_notification_with_id():
+def test_should_return_zero_count_if_no_notification_with_id(notify_api):
     assert not update_notification_status_by_id(str(uuid4()), 'delivered')
 
 
-def test_should_return_zero_count_if_no_notification_with_reference():
+def test_should_return_zero_count_if_no_notification_with_reference(notify_api):
     assert not update_notification_status_by_reference('something', 'delivered')
 
 
@@ -303,9 +324,10 @@ def test_create_notification_creates_notification_with_personalisation(
 ):
     assert Notification.query.count() == 0
 
+    job = sample_job(sample_template_with_placeholders)
     data = sample_notification(
         template=sample_template_with_placeholders,
-        job=sample_job,
+        job=job,
         personalisation={'name': 'Jo'},
         status='created'
     )
@@ -323,7 +345,7 @@ def test_create_notification_creates_notification_with_personalisation(
     assert {'name': 'Jo'} == notification_from_db.personalisation
 
 
-def test_save_notification_creates_sms(sample_template, sample_job):
+def test_save_notification_creates_sms(notify_db_session, sample_template, sample_job):
     assert Notification.query.count() == 0
     template = sample_template()
     job = sample_job(template)
@@ -332,19 +354,24 @@ def test_save_notification_creates_sms(sample_template, sample_job):
     notification = Notification(**data)
     dao_create_notification(notification)
 
-    assert Notification.query.count() == 1
-    notification_from_db = Notification.query.all()[0]
-    assert notification_from_db.id
-    assert data['to'] == notification_from_db.to
-    assert data['job_id'] == notification_from_db.job_id
-    assert data['service'] == notification_from_db.service
-    assert data['template_id'] == notification_from_db.template_id
-    assert data['template_version'] == notification_from_db.template_version
-    assert data['created_at'] == notification_from_db.created_at
-    assert notification_from_db.status == 'created'
+    try:
+        assert Notification.query.count() == 1
+        notification_from_db = Notification.query.all()[0]
+        assert notification_from_db.id
+        assert data['to'] == notification_from_db.to
+        assert data['job_id'] == notification_from_db.job_id
+        assert data['service'] == notification_from_db.service
+        assert data['template_id'] == notification_from_db.template_id
+        assert data['template_version'] == notification_from_db.template_version
+        assert data['created_at'] == notification_from_db.created_at
+        assert notification_from_db.status == 'created'
+    finally:
+        # Teardown
+        notify_db_session.session.delete(notification)
+        notify_db_session.session.commit()
 
 
-def test_save_notification_and_create_email(sample_template, sample_job):
+def test_save_notification_and_create_email(notify_db_session, sample_template, sample_job):
     assert Notification.query.count() == 0
     template = sample_template(template_type=EMAIL_TYPE)
     job = sample_job(template)
@@ -354,19 +381,24 @@ def test_save_notification_and_create_email(sample_template, sample_job):
     notification = Notification(**data)
     dao_create_notification(notification)
 
-    assert Notification.query.count() == 1
-    notification_from_db = Notification.query.all()[0]
-    assert notification_from_db.id
-    assert data['to'] == notification_from_db.to
-    assert data['job_id'] == notification_from_db.job_id
-    assert data['service'] == notification_from_db.service
-    assert data['template_id'] == notification_from_db.template_id
-    assert data['template_version'] == notification_from_db.template_version
-    assert data['created_at'] == notification_from_db.created_at
-    assert notification_from_db.status == 'created'
+    try:
+        assert Notification.query.count() == 1
+        notification_from_db = Notification.query.all()[0]
+        assert notification_from_db.id
+        assert data['to'] == notification_from_db.to
+        assert data['job_id'] == notification_from_db.job_id
+        assert data['service'] == notification_from_db.service
+        assert data['template_id'] == notification_from_db.template_id
+        assert data['template_version'] == notification_from_db.template_version
+        assert data['created_at'] == notification_from_db.created_at
+        assert notification_from_db.status == 'created'
+    finally:
+        # Teardown
+        notify_db_session.session.delete(notification)
+        notify_db_session.session.commit()
 
 
-def test_save_notification(sample_template, sample_job):
+def test_save_notification(notify_db_session, sample_template, sample_job):
     template = sample_template(template_type=EMAIL_TYPE)
     job = sample_job(template)
     assert Notification.query.count() == 0
@@ -376,24 +408,33 @@ def test_save_notification(sample_template, sample_job):
     notification_2 = Notification(**data)
     dao_create_notification(notification_1)
 
-    assert Notification.query.count() == 1
+    try:
+        assert Notification.query.count() == 1
+        dao_create_notification(notification_2)
+        assert Notification.query.count() == 2
+    finally:
+        # Teardown
+        notify_db_session.session.delete(notification_1)
+        notify_db_session.session.delete(notification_2)
+        notify_db_session.session.commit()
 
-    dao_create_notification(notification_2)
 
-    assert Notification.query.count() == 2
-
-
-def test_save_notification_does_not_creates_history(sample_template, sample_job):
+def test_save_notification_does_not_creates_history(notify_db_session, sample_template, sample_job):
     assert Notification.query.count() == 0
     template = sample_template(template_type=EMAIL_TYPE)
     job = sample_job(template)
-    data = _notification_json(template=template, job_id=job.id)
+    data = _notification_json(template, job_id=job.id)
 
     notification_1 = Notification(**data)
     dao_create_notification(notification_1)
 
-    assert Notification.query.count() == 1
-    assert NotificationHistory.query.count() == 0
+    try:
+        assert Notification.query.count() == 1
+        assert NotificationHistory.query.count() == 0
+    finally:
+        # Teardown
+        notify_db_session.session.delete(notification_1)
+        notify_db_session.session.commit()
 
 
 def test_update_notification_with_research_mode_service_does_not_create_or_update_history(
@@ -414,7 +455,7 @@ def test_update_notification_with_research_mode_service_does_not_create_or_updat
     assert NotificationHistory.query.count() == 0
 
 
-def test_not_save_notification_and_not_create_stats_on_commit_error(sample_template, sample_job, mmg_provider):
+def test_not_save_notification_and_not_create_stats_on_commit_error(sample_template, sample_job):
     random_id = str(uuid4())
 
     assert Notification.query.count() == 0
@@ -430,7 +471,7 @@ def test_not_save_notification_and_not_create_stats_on_commit_error(sample_templ
     assert Job.query.get(job.id).notifications_sent == 0
 
 
-def test_save_notification_and_increment_job(sample_template, sample_job, mmg_provider):
+def test_save_notification_and_increment_job(notify_db_session, sample_template, sample_job):
     assert Notification.query.count() == 0
     template = sample_template()
     job = sample_job(template)
@@ -439,23 +480,29 @@ def test_save_notification_and_increment_job(sample_template, sample_job, mmg_pr
     notification = Notification(**data)
     dao_create_notification(notification)
 
-    assert Notification.query.count() == 1
-    notification_from_db = Notification.query.all()[0]
-    assert notification_from_db.id
-    assert data['to'] == notification_from_db.to
-    assert data['job_id'] == notification_from_db.job_id
-    assert data['service'] == notification_from_db.service
-    assert data['template_id'] == notification_from_db.template_id
-    assert data['template_version'] == notification_from_db.template_version
-    assert data['created_at'] == notification_from_db.created_at
-    assert notification_from_db.status == 'created'
+    try:
+        assert Notification.query.count() == 1
+        notification_from_db = Notification.query.all()[0]
+        assert notification_from_db.id
+        assert data['to'] == notification_from_db.to
+        assert data['job_id'] == notification_from_db.job_id
+        assert data['service'] == notification_from_db.service
+        assert data['template_id'] == notification_from_db.template_id
+        assert data['template_version'] == notification_from_db.template_version
+        assert data['created_at'] == notification_from_db.created_at
+        assert notification_from_db.status == 'created'
 
-    notification_2 = Notification(**data)
-    dao_create_notification(notification_2)
-    assert Notification.query.count() == 2
+        notification_2 = Notification(**data)
+        dao_create_notification(notification_2)
+        assert Notification.query.count() == 2
+    finally:
+        # Teardown
+        notify_db_session.session.delete(notification)
+        notify_db_session.session.delete(notification_2)
+        notify_db_session.session.commit()
 
 
-def test_save_notification_and_increment_correct_job(sample_template, sample_job, mmg_provider):
+def test_save_notification_and_increment_correct_job(notify_db_session, sample_template, sample_job):
     template = sample_template()
     job_1 = sample_job(template)
     job_2 = sample_job(template)
@@ -466,35 +513,45 @@ def test_save_notification_and_increment_correct_job(sample_template, sample_job
     notification = Notification(**data)
     dao_create_notification(notification)
 
-    assert Notification.query.count() == 1
-    notification_from_db = Notification.query.all()[0]
-    assert notification_from_db.id
-    assert data['to'] == notification_from_db.to
-    assert data['job_id'] == notification_from_db.job_id
-    assert data['service'] == notification_from_db.service
-    assert data['template_id'] == notification_from_db.template_id
-    assert data['template_version'] == notification_from_db.template_version
-    assert data['created_at'] == notification_from_db.created_at
-    assert notification_from_db.status == 'created'
-    assert job_1.id != job_2.id
+    try:
+        assert Notification.query.count() == 1
+        notification_from_db = Notification.query.all()[0]
+        assert notification_from_db.id
+        assert data['to'] == notification_from_db.to
+        assert data['job_id'] == notification_from_db.job_id
+        assert data['service'] == notification_from_db.service
+        assert data['template_id'] == notification_from_db.template_id
+        assert data['template_version'] == notification_from_db.template_version
+        assert data['created_at'] == notification_from_db.created_at
+        assert notification_from_db.status == 'created'
+        assert job_1.id != job_2.id
+    finally:
+        # Teardown
+        notify_db_session.session.delete(notification)
+        notify_db_session.session.commit()
 
 
-def test_save_notification_with_no_job(sample_template, mmg_provider):
+def test_save_notification_with_no_job(notify_db_session, sample_template):
     assert Notification.query.count() == 0
-    data = _notification_json(sample_template)
+    data = _notification_json(sample_template())
 
     notification = Notification(**data)
     dao_create_notification(notification)
 
-    assert Notification.query.count() == 1
-    notification_from_db = Notification.query.all()[0]
-    assert notification_from_db.id
-    assert data['to'] == notification_from_db.to
-    assert data['service'] == notification_from_db.service
-    assert data['template_id'] == notification_from_db.template_id
-    assert data['template_version'] == notification_from_db.template_version
-    assert data['created_at'] == notification_from_db.created_at
-    assert notification_from_db.status == 'created'
+    try:
+        assert Notification.query.count() == 1
+        notification_from_db = Notification.query.all()[0]
+        assert notification_from_db.id
+        assert data['to'] == notification_from_db.to
+        assert data['service'] == notification_from_db.service
+        assert data['template_id'] == notification_from_db.template_id
+        assert data['template_version'] == notification_from_db.template_version
+        assert data['created_at'] == notification_from_db.created_at
+        assert notification_from_db.status == 'created'
+    finally:
+        # Teardown
+        notify_db_session.session.delete(notification)
+        notify_db_session.session.commit()
 
 
 def test_get_notification_with_personalisation_by_id(sample_template, sample_notification):
@@ -552,22 +609,27 @@ def test_get_notifications_by_reference(sample_template, sample_notification):
     assert len(all_notifications) == 2
 
 
-def test_save_notification_no_job_id(sample_template):
+def test_save_notification_no_job_id(notify_db_session, sample_template):
     assert Notification.query.count() == 0
     data = _notification_json(sample_template())
 
     notification = Notification(**data)
     dao_create_notification(notification)
 
-    assert Notification.query.count() == 1
-    notification_from_db = Notification.query.all()[0]
-    assert notification_from_db.id
-    assert data['to'] == notification_from_db.to
-    assert data['service'] == notification_from_db.service
-    assert data['template_id'] == notification_from_db.template_id
-    assert data['template_version'] == notification_from_db.template_version
-    assert notification_from_db.status == 'created'
-    assert data.get('job_id') is None
+    try:
+        assert Notification.query.count() == 1
+        notification_from_db = Notification.query.all()[0]
+        assert notification_from_db.id
+        assert data['to'] == notification_from_db.to
+        assert data['service'] == notification_from_db.service
+        assert data['template_id'] == notification_from_db.template_id
+        assert data['template_version'] == notification_from_db.template_version
+        assert notification_from_db.status == 'created'
+        assert data.get('job_id') is None
+    finally:
+        # Teardown
+        notify_db_session.session.delete(notification)
+        notify_db_session.session.commit()
 
 
 def test_get_notification_for_job(sample_template, sample_notification):
@@ -745,8 +807,7 @@ def test_should_delete_no_notifications_if_no_matching_ids(
     assert Notification.query.count() == 1
 
 
-def _notification_json(sample_template, job_id=None, id=None, status=None):
-    template = sample_template()
+def _notification_json(template, job_id=None, id=None, status=None):
     data = {
         'to': '+44709123456',
         'service': template.service,
@@ -840,9 +901,9 @@ def test_should_return_notifications_excluding_jobs_by_default(
     assert exclude_jobs_manually[0].id == without_job.id
 
 
-def test_should_return_notifications_including_one_offs_by_default(sample_user, sample_template, sample_notification):
+def test_should_return_notifications_including_one_offs_by_default(sample_template, sample_notification):
     template = sample_template()
-    sample_notification(template=template, one_off=True, created_by_id=sample_user.id)
+    sample_notification(template=template, one_off=True, created_by_id=template.created_by.id)
     not_one_off = sample_notification(template=template)
 
     exclude_one_offs = get_notifications_for_service(template.service_id, include_one_off=False).items
@@ -876,7 +937,7 @@ def test_get_notifications_created_by_api_or_csv_are_returned_correctly_excludin
 ):
     service = sample_service()
     template = sample_template(service=service)
-    job = sample_job(template, service=service)
+    job = sample_job(template)
     sample_notification(template=template, created_at=datetime.utcnow(), job=job)
 
     normal_api_key = sample_api_key()
@@ -887,7 +948,7 @@ def test_get_notifications_created_by_api_or_csv_are_returned_correctly_excludin
         key_type=normal_api_key.key_type
     )
 
-    team_api_key = normal_api_key(key_type=KEY_TYPE_TEAM)
+    team_api_key = sample_api_key(key_type=KEY_TYPE_TEAM)
     sample_notification(
         template=template,
         created_at=datetime.utcnow(),
@@ -895,7 +956,7 @@ def test_get_notifications_created_by_api_or_csv_are_returned_correctly_excludin
         key_type=team_api_key.key_type
     )
 
-    test_api_key = normal_api_key(key_type=KEY_TYPE_TEST)
+    test_api_key = sample_api_key(key_type=KEY_TYPE_TEST)
     sample_notification(
         template=template,
         created_at=datetime.utcnow(),
@@ -1031,7 +1092,7 @@ def test_get_notifications_with_a_team_api_key_type(
         key_type=sample_team_api_key.key_type
     )
     sample_notification(
-        template,
+        template=template,
         created_at=datetime.utcnow(),
         api_key=sample_test_api_key,
         key_type=sample_test_api_key.key_type
