@@ -19,6 +19,7 @@ class MockSmsSenderObject:
     sms_sender = ""
     sms_sender_specifics = {}
 
+
 def build_callback_url(expected_prefix, client):
     test_url = f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus"
     test_url += f"#ct={client._callback_connection_timeout}"
@@ -26,6 +27,7 @@ def build_callback_url(expected_prefix, client):
     test_url += f"&rt={client._callback_read_timeout}"
     test_url += f"&rp={client._callback_retry_policy}"
     return test_url
+
 
 def make_twilio_message_response_dict():
     return {
@@ -273,6 +275,7 @@ MESSAGE_BODY_WITH_INVALID_MESSAGE_STATUS = {
     "mFsaWQmVG89JTJCMTExMTExMTExMTEmTWVzc2FnZVNpZD1TTXl5eSZBY2NvdW50U2lkPUFDenp6JkZyb209JT"
     "JCMTIyMjIyMjIyMjImQXBpVmVyc2lvbj0yMDEwLTA0LTAxIiwgInByb3ZpZGVyIjogInR3aWxpbyJ9fV19",
 }
+
 
 @pytest.fixture
 def twilio_sms_client_mock(mocker):
