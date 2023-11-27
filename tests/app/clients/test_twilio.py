@@ -538,7 +538,7 @@ def test_send_sms_twilio_callback_url(environment, expected_prefix):
     # Test with environment set to "staging"
     client.init_app(None, None, environment)
     test_url = f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus"
-    test_url += f"#ct={client._callback_connection_timeout}" # callback timeout
+    test_url += f"#ct={client._callback_connection_timeout}"
     test_url += f"&rc={client._callback_retry_count}"
     test_url += f"&rt={client._callback_read_timeout}"
     test_url += f"&rp={client._callback_retry_policy}"

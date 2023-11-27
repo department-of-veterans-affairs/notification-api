@@ -24,7 +24,6 @@ def get_twilio_responses(status):
 class TwilioSMSClient(SmsClient):
     def __init__(self, account_sid=None, auth_token=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
         # Twilio docks at.
         # https://www.twilio.com/docs/usage/webhooks/webhooks-connection-overrides
         self.callback_url = None
