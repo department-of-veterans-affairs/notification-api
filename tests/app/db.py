@@ -870,22 +870,21 @@ def create_service_whitelist(service, email_address=None, mobile_number=None):
     return whitelisted_user
 
 
-def create_complaint(service=None,
-                     notification=None,
-                     created_at=None):
+def create_complaint(service=None, notification=None, created_at=None):
     if not service:
         service = create_service()
     if not notification:
         template = create_template(service=service, template_type='email')
         notification = create_notification(template=template)
 
-    complaint = Complaint(notification_id=notification.id,
-                          service_id=service.id,
-                          feedback_id=str(uuid4()),
-                          complaint_type='abuse',
-                          complaint_date=datetime.utcnow(),
-                          created_at=created_at if created_at else datetime.now()
-                          )
+    complaint = Complaint(
+        notification_id=notification.id,
+        service_id=service.id,
+        feedback_id=str(uuid4()),
+        complaint_type='abuse',
+        complaint_date=datetime.utcnow(),
+        created_at=created_at if created_at else datetime.now()
+    )
     db.session.add(complaint)
     db.session.commit()
     return complaint

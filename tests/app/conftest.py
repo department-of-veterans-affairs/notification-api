@@ -29,6 +29,7 @@ from app.model import User, IdentityProviderIdentifier
 from app.models import (
     ApiKey,
     AnnualBilling,
+    Complaint,
     COMPLAINT_CALLBACK_TYPE,
     CommunicationItem,
     Domain,
@@ -530,7 +531,7 @@ def sample_notification_model_with_organization(
 def sample_service(
     notify_db_session, sample_user, sample_permissions, sample_service_permissions, sample_sms_sender_v2
 ):
-    created_service_ids: list = []
+    created_service_ids = []
 
     def _sample_service(*args, **kwargs):
 
@@ -2557,6 +2558,39 @@ def sample_service_email_reply_to(notify_db_session, sample_service):
     for sert_id in service_email_reply_to_ids:
         sert = notify_db_session.session.get(ServiceEmailReplyTo, sert_id)
         notify_db_session.session.delete(sert)
+    notify_db_session.session.commit()
+
+
+@pytest.fixture
+def sample_complaint(notify_db_session, sample_service, sample_template, sample_notification):
+    created_complaints = []
+
+    def _sample_complaint(service=None, notification=None, created_at=None):
+        if service is None:
+            service = sample_service()
+        if notification is None:
+            template = sample_template(service=service, template_type=EMAIL_TYPE)
+            notification = sample_notification(template=template)
+
+        complaint = Complaint(
+            notification_id=notification.id,
+            service_id=service.id,
+            feedback_id=str(uuid4()),
+            complaint_type='abuse',
+            complaint_date=datetime.utcnow(),
+            created_at=created_at if (created_at is not None) else datetime.now()
+        )
+
+        notify_db_session.session.add(complaint)
+        notify_db_session.session.commit()
+        created_complaints.append(complaint)
+        return complaint
+
+    yield _sample_complaint
+
+    # Teardown
+    for complaint in created_complaints:
+        notify_db_session.session.delete(complaint)
     notify_db_session.session.commit()
 
 

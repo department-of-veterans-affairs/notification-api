@@ -63,7 +63,6 @@ from app.va.identifier import IdentifierType
 from tests.app.db import (
     create_job,
     create_notification,
-    create_service,
     create_template,
     create_notification_history,
 )
@@ -484,11 +483,16 @@ def test_get_notification_by_id_when_notification_does_not_exist(notify_db, fake
     assert notification_from_db is None
 
 
-def test_get_notification_by_id_when_notification_exists_for_different_service(sample_notification):
-    another_service = create_service(service_name='Another service')
+def test_get_notification_by_id_when_notification_exists_for_different_service(
+    sample_service, sample_template, sample_notification
+):
+    service1 = sample_service()
+    service2 = sample_service()
+    template = sample_template(service=service1)
+    notification = sample_notification(template=template)
 
     with pytest.raises(NoResultFound):
-        get_notification_by_id(sample_notification.id, another_service.id, _raise=True)
+        get_notification_by_id(notification.id, service2.id, _raise=True)
 
 
 def test_get_notifications_by_reference(sample_template):
@@ -1241,15 +1245,13 @@ def test_dao_get_notifications_by_to_field_search_ignores_spaces(sample_template
     'example', 'eXaMpLe',
 ))
 def test_dao_get_notifications_by_to_field_only_searches_one_notification_type(
-    notify_db_session,
-    phone_search,
-    email_search,
+    phone_search, email_search, sample_service, sample_template, sample_notification
 ):
-    service = create_service()
-    sms_template = create_template(service=service)
-    email_template = create_template(service=service, template_type=EMAIL_TYPE)
-    sms = create_notification(template=sms_template, to_field='6502532222', normalised_to='+16502532222')
-    email = create_notification(
+    service = sample_service()
+    sms_template = sample_template(service=service)
+    email_template = sample_template(service=service, template_type=EMAIL_TYPE)
+    sms = sample_notification(template=sms_template, to_field='6502532222', normalised_to='+16502532222')
+    email = sample_notification(
         template=email_template, to_field='165@example.com', normalised_to='165@example.com'
     )
     results = dao_get_notifications_by_to_field(service.id, phone_search, notification_type=SMS_TYPE)
