@@ -566,7 +566,6 @@ def test_send_sms_twilio_callback(
 
     twilio_sms_client = TwilioSMSClient(account_sid, auth_token)
     twilio_sms_client.init_app(logger, callback_notify_url_host, environment)
-    status_callback
 
     response_dict = {
         "sid": "test_sid",
