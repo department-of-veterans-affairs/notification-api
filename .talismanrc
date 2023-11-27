@@ -339,3 +339,5 @@ fileignoreconfig:
       checksum: 89154b93067ebee63b9022ee67a823ab9ea01697f3f3d03df9ae38af992c249b
     - filename: tests/app/user/test_rest.py
       checksum: 72f4b61d663cea8a2881675ac250bf1e4c8545ba5fca704473533c1a0f99665b
+    - filename: tests/app/dao/notification_dao/test_notification_dao.py
+      checksum: 06707deae1f75c1c94f22cc448556b26fe6e2ba2aec832028817c26f6d2aadb6
