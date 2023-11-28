@@ -409,11 +409,12 @@ def create_service_model(
         organisation=None,
         smtp_user=None
 ) -> Service:
+
     service = Service(
         name=service_name,
         message_limit=message_limit,
         restricted=restricted,
-        email_from=email_from if email_from else service_name.lower().replace(' ', '.'),
+        email_from=email_from or f'{service_name.lower().replace(" ", ".")}@va.gov',
         created_by=user if user else create_user_model(),
         prefix_sms=prefix_sms,
         organisation_type=organisation_type,
@@ -530,7 +531,12 @@ def sample_notification_model_with_organization(
 
 @pytest.fixture
 def sample_service(
-    notify_db_session, sample_user, sample_permissions, sample_service_permissions, sample_sms_sender_v2
+    notify_db_session,
+    sample_user,
+    sample_permissions,
+    sample_service_permissions,
+    sample_sms_sender_v2,
+    sample_service_email_reply_to,
 ):
     created_service_ids: list = []
 
@@ -549,13 +555,15 @@ def sample_service(
         # Remove things that Service does not expect
         service_permissions = kwargs.pop('service_permissions', [EMAIL_TYPE, SMS_TYPE])
         user = kwargs.pop('user')
+        sms_sender = kwargs.pop('sms_sender', None)
 
         service: Service = sample_service_helper(user, *args, **kwargs)
         service.users.append(user)
 
         sample_service_permissions(service, service_permissions)
         sample_permissions(user, service)
-        sample_sms_sender_v2(service.id)
+        sample_sms_sender_v2(service.id, sms_sender)
+        sample_service_email_reply_to(service)
         # Service should be version 1 in the history after calling this
         version_service(service)
 
@@ -587,7 +595,7 @@ def sample_service_helper(
     service_name = service_name or f'sample service {uuid4()}'
     kwargs = locals()
     kwargs['created_by'] = kwargs.pop('user')
-    kwargs['email_from'] = email_from or service_name.lower().replace(' ', '.')
+    kwargs['email_from'] = email_from or f'{service_name.lower().replace(" ", ".")}@va.gov'
     kwargs['id'] = kwargs.pop('service_id') or str(uuid4())
     kwargs['name'] = kwargs.pop('service_name')
 
@@ -773,12 +781,12 @@ def sample_template_helper(
     template_type,
     service,
     user,
-    content="This is a template.",
+    content=None,
     archived=False,
     folder=None,
     hidden=False,
     postage=None,
-    subject_line="Subject",
+    subject_line=None,
     reply_to=None,
     reply_to_email=None,
     process_type=NORMAL,
@@ -792,7 +800,7 @@ def sample_template_helper(
     data = {
         "name": name,
         "template_type": template_type,
-        "content": content,
+        "content": content or "This is a template.",
         "service": service,
         "created_by": user,
         "archived": archived,
@@ -807,7 +815,7 @@ def sample_template_helper(
     }
 
     if template_type == EMAIL_TYPE:
-        data["subject"] = subject_line
+        data["subject"] = subject_line or "Subject"
 
     return data
 
@@ -2461,16 +2469,17 @@ def sample_sms_sender_v2(notify_db_session, worker_id):
 
     def _wrapper(
         service_id,
-        sms_sender=current_app.config['FROM_NUMBER'],
+        sms_sender=None,
         is_default=True,
         inbound_number_id=None,
         rate_limit=None,
         rate_limit_interval=None,
         sms_sender_specifics=None,
     ):
+
         data = {
             'service_id': service_id,
-            'sms_sender': sms_sender,
+            'sms_sender': sms_sender or current_app.config['FROM_NUMBER'],
             'is_default': is_default,
             'inbound_number_id': inbound_number_id,
             'rate_limit': rate_limit,
@@ -2563,14 +2572,15 @@ def sample_service_with_inbound_number(
 
 
 @pytest.fixture
-def sample_service_email_reply_to(notify_db_session, sample_service):
+def sample_service_email_reply_to(notify_db_session):
     service_email_reply_to_ids = []
 
-    def _wrapper(service=None, **kwargs):
+    def _wrapper(service: Service, **kwargs):
         data = {
-            'service': service or sample_service(),
+            'service': service,
             'email_address': kwargs.get('email_address', 'vanotify@va.gov'),
-            'is_default': True
+            'is_default': True,
+            'archived': kwargs.get('archived', False),
         }
         service_email_reply_to = ServiceEmailReplyTo(**data)
 
@@ -2586,7 +2596,8 @@ def sample_service_email_reply_to(notify_db_session, sample_service):
     # Unsafe to teardown with objects, have to use ids to look up the object
     for sert_id in service_email_reply_to_ids:
         sert = notify_db_session.session.get(ServiceEmailReplyTo, sert_id)
-        notify_db_session.session.delete(sert)
+        if sert:
+            notify_db_session.session.delete(sert)
     notify_db_session.session.commit()
 
 
