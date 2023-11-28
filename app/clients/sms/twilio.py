@@ -86,10 +86,10 @@ class TwilioSMSClient(SmsClient):
             prefix = ""
 
         self.callback_url = f"https://{prefix}api.va.gov/vanotify/sms/deliverystatus" \
-        f"#ct={self._callback_connection_timeout}" \
-        f"&rc={self._callback_retry_count}" \
-        f"&rt={self._callback_read_timeout}" \
-        f"&rp={self._callback_retry_policy}"
+            f"#ct={self._callback_connection_timeout}" \
+            f"&rc={self._callback_retry_count}" \
+            f"&rt={self._callback_read_timeout}" \
+            f"&rp={self._callback_retry_policy}"
 
     @property
     def name(self):
