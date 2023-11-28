@@ -28,13 +28,13 @@ def test_process_ses_results_in_complaint(sample_email_template):
     assert complaints[0].notification_id == notification.id
 
 
-def test_handle_complaint_does_not_raise_exception_if_reference_is_missing(notify_api):
+def test_handle_complaint_does_not_raise_exception_if_reference_is_missing():
     response = json.loads(ses_complaint_callback_malformed_message_id()['Message'])
     handle_ses_complaint(response)
     assert len(Complaint.query.all()) == 0
 
 
-def test_handle_complaint_does_raise_exception_if_notification_not_found(notify_api):
+def test_handle_complaint_does_raise_exception_if_notification_not_found():
     response = json.loads(ses_complaint_callback()['Message'])
     with pytest.raises(expected_exception=SQLAlchemyError):
         handle_ses_complaint(response)

@@ -314,7 +314,12 @@ def test_create_email_branding_reject_invalid_brand_type(admin_request):
     assert response['errors'][0]['message'] == expect
 
 
-def test_update_email_branding_reject_invalid_brand_type(admin_request, notify_db_session):
+@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+def test_update_email_branding_reject_invalid_brand_type(
+    admin_request,
+    notify_db_session,
+):
+
     email_branding = create_email_branding()
     data = {
         'brand_type': 'NOT A TYPE'

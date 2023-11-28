@@ -792,6 +792,7 @@ def sample_template_helper(
     process_type=NORMAL,
     version=0,
     id=None,
+    communication_item_id=None,
 ) -> dict:
     """
     Return a dictionary of data for creating a Template or TemplateHistory instance.
@@ -812,6 +813,7 @@ def sample_template_helper(
         "process_type": process_type,
         "version": version,
         "id": id,
+        "communication_item_id": communication_item_id,
     }
 
     if template_type == EMAIL_TYPE:
@@ -821,7 +823,12 @@ def sample_template_helper(
 
 
 @pytest.fixture
-def sample_template(notify_db_session, sample_service, sample_user):
+def sample_template(
+    notify_db_session,
+    sample_communication_item,
+    sample_service,
+    sample_user,
+):
     template_ids = []
 
     def _wrapper(*args, **kwargs):
@@ -836,6 +843,7 @@ def sample_template(notify_db_session, sample_service, sample_user):
 
         if 'subject' in kwargs:
             kwargs['subject_line'] = kwargs.pop('subject')
+        kwargs['communication_item_id'] = kwargs.get('communication_item_id', sample_communication_item.id)
 
         template_data = sample_template_helper(*args, **kwargs)
 
@@ -1384,7 +1392,6 @@ def sample_ft_notification_status(notify_db_session, sample_template, worker_id)
 
 @pytest.fixture
 def set_up_usage_data(
-    # notify_db_session,
     sample_annual_billing,
     sample_ft_billing,
     sample_organisation,
@@ -1400,22 +1407,22 @@ def set_up_usage_data(
         one_week_later = start_date + timedelta(days=7)
         one_month_later = start_date + timedelta(days=31)
 
-        service = sample_service(service_name='a - with sms and letter')
+        service = sample_service()  # with sms and letter
         letter_template = sample_template(service=service, template_type=LETTER_TYPE)
         sms_template_1 = sample_template(service=service, template_type=SMS_TYPE)
         sample_annual_billing(service_id=service.id, free_sms_fragment_limit=10, financial_year_start=year)
         org = sample_organisation(name=f"Org for {service.name}")
         dao_add_service_to_organisation(service=service, organisation_id=org.id)
 
-        service_3 = sample_service(service_name='c - letters only')
+        service_3 = sample_service()  # letters only
         template_3 = sample_template(service=service_3)
         org_3 = sample_organisation(name=f"Org for {service_3.name}")
         dao_add_service_to_organisation(service=service_3, organisation_id=org_3.id)
 
-        service_4 = sample_service(service_name='d - service without org')
+        service_4 = sample_service()  # service without org
         template_4 = sample_template(service=service_4, template_type=LETTER_TYPE)
 
-        service_sms_only = sample_service(service_name='b - chargeable sms')
+        service_sms_only = sample_service()  # chargeable sms
         sms_template = sample_template(service=service_sms_only, template_type=SMS_TYPE)
         sample_annual_billing(service_id=service_sms_only.id, free_sms_fragment_limit=10, financial_year_start=year)
 
@@ -2106,11 +2113,11 @@ def notify_service(notify_db_session, sample_user, sample_service):
 def sample_service_whitelist(notify_db_session, sample_service):
     whitelist_users = []
 
-    def _wrapper(service: Service = None, email_address: str = '', phone_number: str = ''):
+    def _wrapper(service: Service = None, email_address: str = '', phone_number: str = '', mobile_number: str = ''):
         if email_address:
             whitelisted_user = ServiceWhitelist.from_string(service.id, EMAIL_TYPE, email_address)
-        elif phone_number:
-            whitelisted_user = ServiceWhitelist.from_string(service.id, MOBILE_TYPE, phone_number)
+        elif phone_number or mobile_number:
+            whitelisted_user = ServiceWhitelist.from_string(service.id, MOBILE_TYPE, phone_number or mobile_number)
         else:
             whitelisted_user = ServiceWhitelist.from_string(service.id, EMAIL_TYPE, 'whitelisted_user@va.gov')
 
@@ -2509,7 +2516,7 @@ def sample_communication_item(notify_db_session, worker_id):
     # Although unlikely, this can cause a duplicate Profile ID contraint failure.
     # If that happens, re-run the failing tests.
     va_profile_item_id = randint(500, 100000)
-    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=va_profile_item_id, name=worker_id)
+    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=va_profile_item_id, name=uuid4())
     notify_db_session.session.add(communication_item)
     notify_db_session.session.commit()
     assert communication_item.default_send_indicator, "Should be True by default."
@@ -2527,7 +2534,8 @@ def sample_service_with_inbound_number(
         sample_service,
 ):
 
-    def _wrapper(*args, service: Service = None, inbound_number='1234567', **kwargs):
+    def _wrapper(*args, service: Service = None, inbound_number='', **kwargs):
+        inbound_number = inbound_number or randint(10000000, 9999999999)
         service = kwargs.pop('service', None)
         if not service:
             service = sample_service(*args, **kwargs)
@@ -2553,10 +2561,10 @@ def sample_service_with_inbound_number(
 def sample_service_email_reply_to(notify_db_session):
     service_email_reply_to_ids = []
 
-    def _wrapper(service: Service, **kwargs):
+    def _wrapper(service: Service, email_address: str = '', **kwargs):
         data = {
             'service': service,
-            'email_address': kwargs.get('email_address', 'vanotify@va.gov'),
+            'email_address': email_address or 'vanotify@va.gov',
             'is_default': True,
             'archived': kwargs.get('archived', False),
         }

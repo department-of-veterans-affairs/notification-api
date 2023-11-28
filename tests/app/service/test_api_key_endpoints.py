@@ -138,7 +138,12 @@ def test_api_key_should_create_multiple_new_api_key_for_service(notify_api, noti
             notify_db_session.session.commit()
 
 
-def test_get_api_keys_should_return_all_keys_for_service(notify_api, notify_db_session, sample_api_key, sample_service):
+def test_get_api_keys_should_return_all_keys_for_service(
+    notify_api,
+    notify_db_session,
+    sample_api_key,
+    sample_service,
+):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             bogus_service = sample_service(service_name=f'bogus service {uuid4()}')
@@ -157,8 +162,9 @@ def test_get_api_keys_should_return_all_keys_for_service(notify_api, notify_db_s
             # Second bogus key to put data into the DB after adding to the correct service
             sample_api_key(service=bogus_service)
 
-            # Verify 5 keys are are in the table
-            assert len(notify_db_session.session.execute(select(ApiKey)).all()) == 5
+            # Verify 3 keys are are in the table with the given service id
+            stmt = select(ApiKey).where(ApiKey.service_id == service.id)
+            assert len(notify_db_session.session.scalars(stmt).all()) == 3
 
             # Get request verification
             auth_header = create_admin_authorization_header()
