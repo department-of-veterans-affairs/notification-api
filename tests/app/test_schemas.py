@@ -3,7 +3,7 @@ from marshmallow import ValidationError
 from sqlalchemy import desc, select
 
 from app.dao.provider_details_dao import dao_update_provider_details
-from app.models import ProviderDetails, ProviderDetailsHistory, SMS_TYPE, SES_PROVIDER
+from app.models import ProviderDetails, ProviderDetailsHistory, EMAIL_TYPE, SMS_TYPE, SES_PROVIDER
 
 
 @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
@@ -151,7 +151,7 @@ def test_services_schema_includes_providers(
 ):
     service = sample_service()
     from app.schemas import service_schema
-    email_provider = sample_provider(identifier=SES_PROVIDER)
+    email_provider = sample_provider(identifier=SES_PROVIDER, notification_type=EMAIL_TYPE)
     sms_provider = sample_provider()  # Defaults to sms - pinpoint
     service.email_provider_id = email_provider.id
     service.sms_provider_id = sms_provider.id
