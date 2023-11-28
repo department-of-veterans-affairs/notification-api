@@ -27,8 +27,8 @@ class TwilioSMSClient(SmsClient):
         # Twilio docks at.
         # https://www.twilio.com/docs/usage/webhooks/webhooks-connection-overrides
         self.callback_url = None
-        self._callback_connection_timeout = 10000  # miliseconds, 10 seconds
-        self._callback_read_timeout = 15000  # miliseconds, 15 seconds
+        self._callback_connection_timeout = 3000  # miliseconds, 10 seconds
+        self._callback_read_timeout = 1500  # miliseconds, 15 seconds
         self._callback_retry_count = 5
         self._callback_retry_policy = 'all'
         self._callback_notify_url_host = None
