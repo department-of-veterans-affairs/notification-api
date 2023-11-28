@@ -22,10 +22,10 @@ class MockSmsSenderObject:
 
 def build_callback_url(expected_prefix, client):
     test_url = f"https://{expected_prefix}api.va.gov/vanotify/sms/deliverystatus" \
-        f"#ct={client._callback_connection_timeout}" \
-        f"&rc={client._callback_retry_count}" \
-        f"&rt={client._callback_read_timeout}" \
-        f"&rp={client._callback_retry_policy}"
+    f"#ct={client._callback_connection_timeout}" \
+    f"&rc={client._callback_retry_count}" \
+    f"&rt={client._callback_read_timeout}" \
+    f"&rp={client._callback_retry_policy}"
     return test_url
 
 
