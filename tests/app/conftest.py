@@ -30,9 +30,10 @@ from app.models import (
     ApiKey,
     AnnualBilling,
     Complaint,
-    COMPLAINT_CALLBACK_TYPE,
     CommunicationItem,
+    DELIVERY_STATUS_CALLBACK_TYPE,
     Domain,
+    EmailBranding,
     EMAIL_TYPE,
     FactBilling,
     FactNotificationStatus,
@@ -48,6 +49,7 @@ from app.models import (
     LoginEvent,
     MOBILE_TYPE,
     NORMAL,
+    NOTIFICATION_STATUS_TYPES,
     Notification,
     NotificationHistory,
     Organisation,
@@ -185,19 +187,22 @@ def sample_service_callback(notify_db_session, sample_service):
     service_callback_ids = []
 
     def _wrapper(
-            service_id=None,
-            url='',
-            bearer_token="some_super_secret",
-            updated_by_id=None,
-            callback_type=COMPLAINT_CALLBACK_TYPE,
-            callback_channel=WEBHOOK_CHANNEL_TYPE):
+            service_id: str = None,
+            url: str = '',
+            bearer_token: str = "some_super_secret",
+            updated_by_id: UUID = None,
+            callback_type: str = '',
+            callback_channel: str = WEBHOOK_CHANNEL_TYPE,
+            notification_statuses: list = None,
+    ):
         data = {
             'service_id': service_id,
             'url': url or f"https://something{uuid4()}.com",
             'bearer_token': bearer_token,
             'updated_by_id': updated_by_id,
-            'callback_type': callback_type,
+            'callback_type': callback_type or DELIVERY_STATUS_CALLBACK_TYPE,
             'callback_channel': callback_channel,
+            'notification_statuses': notification_statuses or NOTIFICATION_STATUS_TYPES
         }
         service = None
 
@@ -492,7 +497,7 @@ def sample_service(
             kwargs['user'] = sample_user(email=f'sample_service_{uuid4()}@va.gov')
 
         # Remove things that Service does not expect.
-        service_permissions = kwargs.pop('service_permissions', [EMAIL_TYPE, SMS_TYPE])
+        service_permissions = kwargs.pop('service_permissions', DEFAULT_SERVICE_PERMISSIONS)
         user = kwargs.pop('user')
         sms_sender = kwargs.pop('sms_sender', None)
 
@@ -673,8 +678,10 @@ def sample_template(
             template_data["postage"] = kwargs.get("postage", "second")
 
         # Create template object and put it in the DB
-        template = Template(**template_data)
-        dao_create_template(template)
+        template_dao = Template(**template_data)
+        dao_create_template(template_dao)
+        # DAO methods use a different session. Using notify_db_session for consistency
+        template = notify_db_session.session.get(Template, template_dao.id)
         template_ids.append(template.id)
 
         return template
@@ -1124,7 +1131,7 @@ def sample_ft_billing(
 ):
     ft_billing_bsts = {worker_id: []}
 
-    def _wrapper(
+    def _sample_ft_billing(
         utc_date,
         notification_type,
         template=None,
@@ -1162,7 +1169,7 @@ def sample_ft_billing(
             ft_billing_bsts[worker_id] = [(data.bst_date, data.service_id, data.template_id)]
         return data
 
-    yield _wrapper
+    yield _sample_ft_billing
 
     # Teardown
     # FactBilling has a compound key comprised of NINE fields. 3 is enough to identify a row for testing purposes...
@@ -1177,61 +1184,44 @@ def sample_ft_billing(
 
 
 @pytest.fixture
-def sample_ft_notification_status(notify_db_session, sample_template, worker_id):
-    ft_notifications = {worker_id: []}
+def sample_ft_notification_status(notify_db_session, sample_template, sample_job):
+    created_ft_notification_statuses = []
 
-    def _wrapper(
+    def _sample_ft_notification_status(
         utc_date,
-        notification_type='sms',
-        service=None,
-        template=None,
         job=None,
         key_type='normal',
         notification_status='delivered',
         status_reason='',
         count=1,
     ):
-        if job:
-            template = job.template
+        if job is None:
+            job = sample_job(sample_template())
 
-        if template and not service:
-            service = template.service
-            notification_type = template.template_type
-        elif service and not template:
-            template = sample_template(service=service, template_type=notification_type)
-        elif not template and not service:
-            template = sample_template()
-            service = template.service()
-        elif template.service.id != service.id:
-            # Sent mismatched template and service
-            raise NotImplementedError
+        template = job.template
 
-        data = FactNotificationStatus(
+        ft_notification_status = FactNotificationStatus(
             bst_date=utc_date,
             template_id=template.id,
-            service_id=service.id,
-            job_id=job.id if job else UUID(int=0),
-            notification_type=notification_type,
+            service_id=template.service.id,
+            job_id=job.id,
+            notification_type=template.template_type,
             key_type=key_type,
             notification_status=notification_status,
             status_reason=status_reason,
             notification_count=count
         )
-        db.session.add(data)
-        db.session.commit()
+        notify_db_session.session.add(ft_notification_status)
+        notify_db_session.session.commit()
+        created_ft_notification_statuses.append(ft_notification_status)
 
-        if worker_id in ft_notifications:
-            ft_notifications[worker_id].append(data)
-        else:
-            ft_notifications[worker_id] = [data]
+        return ft_notification_status
 
-        return data
-
-    yield _wrapper
+    yield _sample_ft_notification_status
 
     # Teardown
-    for ft_notification in ft_notifications[worker_id]:
-        notify_db_session.session.delete(ft_notification)
+    for ft_notification_status in created_ft_notification_statuses:
+        notify_db_session.session.delete(ft_notification_status)
     notify_db_session.session.commit()
 
 
@@ -1363,35 +1353,37 @@ def sample_notification_with_job(
 
 
 @pytest.fixture
-def sample_notification(notify_db_session, sample_api_key, sample_service, sample_template):  # noqa C901
+def sample_notification(notify_db_session, sample_api_key, sample_template):  # noqa C901
     # TODO: Refactor to use fixtures for teardown purposes
     created_notifications = []
     created_scheduled_notifications = []
     created_service_ids = []
     created_templates = []
 
-    def _sample_notification(*args, **kwargs):
+    def _sample_notification(*args, gen_type: str = SMS_TYPE, **kwargs):
+        # Default behavior with no args or a specified generation type
+        if len(kwargs) == 0:
+            template = sample_template(template_type=gen_type)
+            kwargs['api_key'] = sample_api_key(service=template.service)
+            kwargs['template'] = template
+
         if kwargs.get("created_at") is None:
             kwargs["created_at"] = datetime.utcnow()
 
         if kwargs.get("template") is None:
-            service = sample_service(check_if_service_exists=True)
-            created_service_ids.append(service.id)
-
-            template = sample_template(service=service)
+            template = sample_template()
             kwargs["template"] = template
             created_templates.append(template)
             assert template.template_type == SMS_TYPE, "This is the default template type."
 
         if kwargs.get("job") is None and kwargs.get("api_key") is None:
-            api_key = ApiKey.query.filter(
-                ApiKey.service == kwargs["template"].service,
-                ApiKey.key_type == kwargs.get("key_type", KEY_TYPE_NORMAL)
-            ).first()
+            stmt = select(ApiKey).where(ApiKey.service_id == kwargs["template"].service.id)\
+                                 .where(ApiKey.key_type == kwargs.get("key_type", KEY_TYPE_NORMAL))
+            api_key = notify_db_session.session.scalar(stmt)
 
             if not api_key:
                 api_key = sample_api_key(kwargs["template"].service, key_type=kwargs.get("key_type", KEY_TYPE_NORMAL))
-                kwargs["api_key"] = api_key
+            kwargs["api_key"] = api_key
 
         notification = create_notification(*args, **kwargs)
         created_notifications.append(notification)
@@ -1487,57 +1479,60 @@ def sample_email_notification(notify_db_session):
 
 @pytest.fixture
 def sample_notification_history(
-    notify_db,
     notify_db_session,
-    sample_sms_template_func,
-    status='created',
-    created_at=None,
-    notification_type=None,
-    key_type=KEY_TYPE_NORMAL,
-    sent_at=None,
-    api_key=None,
-    sms_sender_id=None
+    sample_template,
+    sample_api_key,
 ):
-    if created_at is None:
-        created_at = datetime.utcnow()
+    created_notification_histories = []
 
-    if sent_at is None:
-        sent_at = datetime.utcnow()
+    def _sample_notification_history(
+        status='created',
+        template=None,
+        created_at=None,
+        key_type=KEY_TYPE_NORMAL,
+        sent_at=None,
+        api_key=None,
+        sms_sender_id=None
+    ):
+        if template is None:
+            template = sample_template()
+            assert template.template_type == SMS_TYPE, "This is the default."
 
-    if notification_type is None:
-        notification_type = sample_sms_template_func.template_type
-        assert notification_type == SMS_TYPE, "This is the default."
+        if created_at is None:
+            created_at = datetime.utcnow()
 
-    api_key_teardown = None
-    if not api_key:
-        api_key = create_api_key(sample_sms_template_func.service, key_type=key_type)
-        api_key_teardown = api_key
+        if sent_at is None:
+            sent_at = datetime.utcnow()
 
-    notification_history = NotificationHistory(
-        id=uuid4(),
-        service=sample_sms_template_func.service,
-        template_id=sample_sms_template_func.id,
-        template_version=sample_sms_template_func.version,
-        status=status,
-        created_at=created_at,
-        notification_type=notification_type,
-        key_type=key_type,
-        api_key=api_key,
-        api_key_id=api_key and api_key.id,
-        sent_at=sent_at,
-        sms_sender_id=sms_sender_id,
-    )
-    notify_db.session.add(notification_history)
-    notify_db.session.commit()
+        if api_key is None:
+            api_key = sample_api_key(template.service, key_type=key_type)
 
-    yield notification_history
+        notification_history = NotificationHistory(
+            id=uuid4(),
+            service=template.service,
+            template_id=template.id,
+            template_version=template.version,
+            status=status,
+            created_at=created_at,
+            notification_type=template.template_type,
+            key_type=key_type,
+            api_key=api_key,
+            api_key_id=api_key.id,
+            sent_at=sent_at,
+            sms_sender_id=sms_sender_id
+        )
+        notify_db_session.session.add(notification_history)
+        notify_db_session.session.commit()
+        created_notification_histories.append(notification_history)
+
+        return notification_history
+
+    yield _sample_notification_history
 
     # Teardown
-    if api_key_teardown is not None:
-        key_to_delete = notify_db.session.get(ApiKey, api_key.id)
-        notify_db.session.delete(key_to_delete)
-    notify_db.session.delete(notification_history)
-    notify_db.session.commit()
+    for notification_history in created_notification_histories:
+        notify_db_session.session.delete(notification_history)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture(scope='function')
@@ -1617,6 +1612,14 @@ def sample_user_service_permission(
 @pytest.fixture(scope='function')
 def fake_uuid():
     return '6ce466d0-fd6a-11e5-82f5-e0accb9d11a6'
+
+
+@pytest.fixture
+def fake_uuid_v2():
+    """
+    Generates a unique uuid per function
+    """
+    return uuid4()
 
 
 @pytest.fixture(scope='function')
@@ -2041,10 +2044,10 @@ def sample_inbound_sms(notify_db_session, sample_service, sample_inbound_number)
 
 
 @pytest.fixture
-def sample_inbound_number(notify_db_session, sample_service):
+def sample_inbound_number(notify_db_session):
     inbound_number_ids = []
 
-    def _wrapper(
+    def _sample_inbound_number(
         number=None,
         provider='ses',
         active=True,
@@ -2071,7 +2074,7 @@ def sample_inbound_number(notify_db_session, sample_service):
 
         return inbound_number
 
-    yield _wrapper
+    yield _sample_inbound_number
 
     # Teardown
     for inbound_number_id in inbound_number_ids:
@@ -2084,15 +2087,13 @@ def sample_inbound_number(notify_db_session, sample_service):
 
 
 @pytest.fixture
-def sample_inbound_numbers(
-    sample_inbound_number,
-    sample_service,
-):
-    service = sample_service(service_name='sample service 2', check_if_service_exists=True)
-    inbound_numbers = list()
-    inbound_numbers.append(sample_inbound_number(number='1', provider='mmg'))
-    inbound_numbers.append(sample_inbound_number(number='2', provider='mmg', active=False, service_id=service.id))
-    inbound_numbers.append(sample_inbound_number(number='3', provider='firetext', service_id=service.id))
+def sample_inbound_numbers(sample_service, sample_inbound_number):
+    service = sample_service(service_name=str(uuid4()), check_if_service_exists=True)
+    inbound_numbers = [
+        sample_inbound_number(number='1', provider='mmg'),
+        sample_inbound_number(number='2', provider='mmg', active=False, service_id=service.id),
+        sample_inbound_number(number='3', provider='firetext', service_id=service.id),
+    ]
     return inbound_numbers
 
 
@@ -2129,11 +2130,25 @@ def sample_organisation(
 
 
 @pytest.fixture
-def sample_fido2_key(notify_db_session):
-    user = create_user()
-    key = Fido2Key(name='sample key', key='abcd', user_id=user.id)
-    save_fido2_key(key)
-    return key
+def sample_fido2_key(notify_db_session, sample_user):
+    created_fido2_keys = []
+
+    def _sample_fido2_key(user=None, name=None, key="abcd"):
+        if user is None:
+            user = sample_user()
+        if name is None:
+            name = uuid4()
+        key = Fido2Key(name=name, key=key, user_id=user.id)
+        save_fido2_key(key)
+        created_fido2_keys.append(key)
+        return key
+
+    yield _sample_fido2_key
+
+    # Teardown
+    for fido2_key in created_fido2_keys:
+        notify_db_session.session.delete(fido2_key)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture
@@ -2419,6 +2434,31 @@ def sample_complaint(notify_db_session, sample_service, sample_template, sample_
     # Teardown
     for complaint in created_complaints:
         notify_db_session.session.delete(complaint)
+    notify_db_session.session.commit()
+
+
+@pytest.fixture
+def sample_email_branding(notify_db_session):
+    created_email_branding = []
+
+    def _sample_email_branding(colour='blue', logo='test_x2.png', name='test_org_1', text='DisplayName'):
+        data = {
+            'colour': colour,
+            'logo': logo,
+            'name': name,
+            'text': text,
+        }
+        email_branding = EmailBranding(**data)
+        notify_db_session.session.add(email_branding)
+        notify_db_session.session.commit()
+        created_email_branding.append(email_branding)
+        return email_branding
+
+    yield _sample_email_branding
+
+    # Teardown
+    for email_branding in created_email_branding:
+        notify_db_session.session.delete(email_branding)
     notify_db_session.session.commit()
 
 

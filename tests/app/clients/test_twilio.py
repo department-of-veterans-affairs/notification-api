@@ -602,5 +602,6 @@ def test_send_sms_twilio_callback(mocker, service_sms_sender, environment, expec
         # Assert the correct callback URL is used in the request
         expected_callback_url = build_callback_url(expected_prefix, twilio_sms_client)
         assert d['StatusCallback'] == expected_callback_url
+
         # Assert the expected Twilio SID is returned
         assert response_dict['sid'] == twilio_sid
