@@ -151,14 +151,14 @@ def test_send_notification_bypass_route_email_with_recipient(
         service=service,
         template=template,
         notification_type=EMAIL_TYPE,
-        recipient='test@email.com',
+        recipient='test123@email.com',
     )
 
     # Assert the notification received the expected params
     persist_notification_mock.assert_called_with(
         template_id=template.id,
         template_version=template.version,
-        recipient='test@email.com',
+        recipient='test123@email.com',
         service_id=service.id,
         personalisation=None,
         notification_type=EMAIL_TYPE,

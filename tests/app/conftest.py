@@ -180,19 +180,17 @@ def sample_user(notify_db_session, set_user_as_admin, worker_id) -> User:
 def cleanup_user(user_ids: List[int], session: scoped_session):
     # Unsafe to teardown with objects, have to use ids to look up the object
     for user_id in user_ids:
-        try:
-            user = session.get(User, user_id)
-        except Exception as e:
-            print(e)
+        user = session.get(User, user_id)
+        if not user:
             continue
 
         # Clear user_folder_permissions
         session.execute(
-            delete(user_folder_permissions).where(user_folder_permissions.c.user_id == user.id)
+            delete(user_folder_permissions).where(user_folder_permissions.c.user_id == user_id)
         )
 
         # Clear IdentityProviderIdentifier
-        stmt = select(IdentityProviderIdentifier).where(IdentityProviderIdentifier.user_id == user.id)
+        stmt = select(IdentityProviderIdentifier).where(IdentityProviderIdentifier.user_id == user_id)
         for idp in session.scalars(stmt):
             session.delete(idp)
 
@@ -207,11 +205,11 @@ def cleanup_user(user_ids: List[int], session: scoped_session):
             session.delete(pd_hist)
 
         # Clear permissions
-        for user_perm in session.scalars(select(Permission).where(Permission.user_id == user.id)).all():
+        for user_perm in session.scalars(select(Permission).where(Permission.user_id == user_id)).all():
             session.delete(user_perm)
 
         # Clear user_to_service
-        for user_service in session.scalars(select(ServiceUser).where(ServiceUser.user_id == user.id)).all():
+        for user_service in session.scalars(select(ServiceUser).where(ServiceUser.user_id == user_id)).all():
             session.delete(user_service)
 
         # Clear services created by this user
@@ -1795,6 +1793,14 @@ def sample_user_service_permission(
 @pytest.fixture(scope='function')
 def fake_uuid():
     return "6ce466d0-fd6a-11e5-82f5-e0accb9d11a6"
+
+
+@pytest.fixture
+def fake_uuid_v2():
+    """
+    Generates a unique uuid per function
+    """
+    return uuid4()
 
 
 @pytest.fixture(scope='function')
