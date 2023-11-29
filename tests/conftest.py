@@ -208,6 +208,9 @@ def database_prep():
     AB = meta_data.tables['annual_billing']
     db.session.execute(delete(AB).where(AB.c.service_id == notify_service_id))
 
+    C = meta_data.tables['communication_items']
+    db.session.execute(delete(C))
+
     SERT = meta_data.tables['service_email_reply_to']
     db.session.execute(delete(SERT).where(SERT.c.service_id == notify_service_id))
 
