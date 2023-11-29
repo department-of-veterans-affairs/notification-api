@@ -25,8 +25,6 @@ display_result $? 1 "Code style check"
 
 # Run tests in concurrent threads.  Also see the configuration in ../pytest.ini and ../setup.cfg.
 # https://docs.pytest.org/en/stable/reference/customize.html
-params="--disable-pytest-warnings --cov=app --cov-report=term-missing --junitxml=test_results.xml -v --maxfail=10000"
-# pytest ${params} -n7 -m "not serial" tests/ && pytest ${params} -m "serial" tests/
-# pytest --disable-pytest-warnings --cov=app --cov-report=term-missing --junitxml=test_results.xml -v --maxfail=10000 tests/
+params="--disable-pytest-warnings --cov=app --cov-report=term-missing --junitxml=test_results.xml -v --maxfail=10"
+pytest ${params} -n7 -m "not serial" tests/ && pytest ${params} -m "serial" tests/
 display_result $? 2 "Unit tests"
-tail -f
