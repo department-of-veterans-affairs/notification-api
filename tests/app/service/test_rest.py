@@ -2354,6 +2354,7 @@ def test_search_for_notification_by_to_field(client, notify_db_session, sample_t
     # Teardown
     notify_db_session.session.delete(notification1)
     notify_db_session.session.delete(notification2)
+    notify_db_session.session.commit()
 
 
 def test_search_for_notification_by_to_field_return_empty_list_if_there_is_no_match(

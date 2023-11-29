@@ -30,8 +30,8 @@ from app.models import (
     ApiKey,
     AnnualBilling,
     Complaint,
-    COMPLAINT_CALLBACK_TYPE,
     CommunicationItem,
+    DELIVERY_STATUS_CALLBACK_TYPE,
     Domain,
     EMAIL_TYPE,
     FactBilling,
@@ -48,6 +48,7 @@ from app.models import (
     LoginEvent,
     MOBILE_TYPE,
     NORMAL,
+    NOTIFICATION_STATUS_TYPES,
     Notification,
     NotificationHistory,
     Organisation,
@@ -230,19 +231,22 @@ def sample_service_callback(notify_db_session, sample_service):
     service_callback_ids = []
 
     def _wrapper(
-            service_id=None,
-            url='',
-            bearer_token="some_super_secret",
-            updated_by_id=None,
-            callback_type=COMPLAINT_CALLBACK_TYPE,
-            callback_channel=WEBHOOK_CHANNEL_TYPE):
+            service_id: str = None,
+            url: str = '',
+            bearer_token: str = "some_super_secret",
+            updated_by_id: UUID = None,
+            callback_type: str = '',
+            callback_channel: str = WEBHOOK_CHANNEL_TYPE,
+            notification_statuses: list = None,
+    ):
         data = {
             'service_id': service_id,
             'url': url or f"https://something{uuid4()}.com",
             'bearer_token': bearer_token,
             'updated_by_id': updated_by_id,
-            'callback_type': callback_type,
+            'callback_type': callback_type or DELIVERY_STATUS_CALLBACK_TYPE,
             'callback_channel': callback_channel,
+            'notification_statuses': notification_statuses or NOTIFICATION_STATUS_TYPES
         }
         service = None
 
@@ -616,6 +620,9 @@ def service_cleanup(service_ids: list, session: scoped_session) -> None:
         if service is None:
             continue
 
+        # Clear complaints
+        session.execute(delete(Complaint).where(Complaint.service_id == service_id))
+
         # Clear service_data_retention
         session.execute(delete(ServiceDataRetention).where(ServiceDataRetention.service_id == service_id))
 
@@ -851,8 +858,10 @@ def sample_template(
             template_data["postage"] = kwargs.get("postage", "second")
 
         # Create template object and put it in the DB
-        template = Template(**template_data)
-        dao_create_template(template)
+        template_dao = Template(**template_data)
+        dao_create_template(template_dao)
+        # DAO methods use a different session. Using notify_db_session for consistency
+        template = notify_db_session.session.get(Template, template_dao.id)
         template_ids.append(template.id)
 
         return template
@@ -1518,35 +1527,37 @@ def sample_notification_with_job(
 
 
 @pytest.fixture
-def sample_notification(notify_db_session, sample_api_key, sample_service, sample_template):  # noqa C901
+def sample_notification(notify_db_session, sample_api_key, sample_template):  # noqa C901
     # TODO: Refactor to use fixtures for teardown purposes
     created_notifications = []
     created_scheduled_notifications = []
     created_service_ids = []
     created_templates = []
 
-    def _sample_notification(*args, **kwargs):
+    def _sample_notification(*args, gen_type: str = SMS_TYPE, **kwargs):
+        # Default behavior with no args or a specified generation type
+        if len(kwargs) == 0:
+            template = sample_template(template_type=gen_type)
+            kwargs['api_key'] = sample_api_key(service=template.service)
+            kwargs['template'] = template
+
         if kwargs.get("created_at") is None:
             kwargs["created_at"] = datetime.utcnow()
 
         if kwargs.get("template") is None:
-            service = sample_service(check_if_service_exists=True)
-            created_service_ids.append(service.id)
-
-            template = sample_template(service=service)
+            template = sample_template()
             kwargs["template"] = template
             created_templates.append(template)
             assert template.template_type == SMS_TYPE, "This is the default template type."
 
         if kwargs.get("job") is None and kwargs.get("api_key") is None:
-            api_key = ApiKey.query.filter(
-                ApiKey.service == kwargs["template"].service,
-                ApiKey.key_type == kwargs.get("key_type", KEY_TYPE_NORMAL)
-            ).first()
+            stmt = select(ApiKey).where(ApiKey.service_id == kwargs["template"].service.id)\
+                                 .where(ApiKey.key_type == kwargs.get("key_type", KEY_TYPE_NORMAL))
+            api_key = notify_db_session.session.scalar(stmt)
 
             if not api_key:
                 api_key = sample_api_key(kwargs["template"].service, key_type=kwargs.get("key_type", KEY_TYPE_NORMAL))
-                kwargs["api_key"] = api_key
+            kwargs["api_key"] = api_key
 
         notification = create_notification(*args, **kwargs)
         created_notifications.append(notification)

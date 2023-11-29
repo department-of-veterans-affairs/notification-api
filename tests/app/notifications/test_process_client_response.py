@@ -3,7 +3,6 @@ import uuid
 import pytest
 
 from app.clients import ClientException
-from app.models import NOTIFICATION_STATUS_TYPES
 from app.notifications.process_client_response import (
     validate_callback_data,
     process_sms_client_response
@@ -65,9 +64,8 @@ def test_outcome_statistics_called_for_successful_callback(
         'app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async'
     )
     callback_api = sample_service_callback(
-        service=notification.service,
+        service_id=notification.service.id,
         url="https://original_url.com",
-        notification_statuses=NOTIFICATION_STATUS_TYPES
     )
     callback_id = callback_api.id
     reference = str(uuid.uuid4())
@@ -167,7 +165,10 @@ def test_process_sms_response_raises_client_exception_for_unknown_sms_client(moc
     assert error == 'unknown sms client: {}'.format('sms-client')
 
 
-def test_process_sms_response_raises_client_exception_for_unknown_status(mocker):
+def test_process_sms_response_raises_client_exception_for_unknown_status(
+    client,
+    mocker,
+):
     with pytest.raises(ClientException) as e:
         process_sms_client_response(status='000', provider_reference=str(uuid.uuid4()), client_name='Firetext')
 

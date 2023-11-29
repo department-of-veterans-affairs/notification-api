@@ -200,6 +200,10 @@ class TestProcessSNSDeliveryStatus:
 
 class TestSendcCllbackMetrics:
 
+    @pytest.fixture(autouse=True)
+    def use_client(client):
+        pass
+
     @pytest.fixture
     def mocks_statsd(self, mocker):
         return mocker.patch('app.notifications.aws_sns_status_callback.statsd_client')

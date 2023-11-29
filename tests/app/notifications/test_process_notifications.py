@@ -41,6 +41,11 @@ from tests.app.db import create_service, create_template
 from tests.app.factories.feature_flag import mock_feature_flag
 
 
+@pytest.fixture(autouse=True)
+def use_client(client):
+    pass
+
+
 def test_create_content_for_notification_passes(
     notify_db_session,
     sample_template,
