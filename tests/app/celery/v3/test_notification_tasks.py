@@ -293,7 +293,6 @@ def test_v3_send_sms_notification(notify_db_session, mocker, sample_notification
     assert notification.sent_by == "client name"
 
 
-
 def test_v3_process_sms_notification_with_noexistent_template(
     notify_db_session, mocker, sample_service, sample_template, sample_sms_sender
 ):

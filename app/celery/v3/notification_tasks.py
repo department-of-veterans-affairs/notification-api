@@ -277,11 +277,10 @@ def v3_persist_failed_notification(notification: Notification, status: str, stat
     """
     This is a helper to log and persist failed notifications that are not retriable.
     """
-
     current_app.logger.error("Notification %s failed: %s", notification.id, status_reason)
     notification.status = status
     notification.status_reason = status_reason
-    
+
     if status == NOTIFICATION_PERMANENT_FAILURE:
         try:
             notification_json = notification.serialize_permanent_failure()
