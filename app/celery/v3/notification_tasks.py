@@ -286,7 +286,6 @@ def v3_persist_failed_notification(notification: Notification, status: str, stat
 
     if status == NOTIFICATION_PERMANENT_FAILURE:
         try:
-            # notification_json = notification.serialize()
             notification_json = notification.serialize_permanent_failure()
             notification_failure = NotificationFailures(
                 notification_id=notification.id,
