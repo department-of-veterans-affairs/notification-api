@@ -296,4 +296,4 @@ def v3_persist_failed_notification(notification: Notification, status: str, stat
             db.session.commit()
         except Exception as err:
             db.session.rollback()
-            current_app.logger.error("Unable to store permanent failure for Notification '%s'. Error: '%s'", notification.id, err)
+            current_app.logger.error("Unable to store permanent failure. Error: '%s'", err)

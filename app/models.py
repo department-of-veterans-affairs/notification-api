@@ -1588,7 +1588,7 @@ class Notification(db.Model):
         }
 
         return serialized
-    
+
     def serialize_permanent_failure(self):
         return {
             "billing_code": self.billing_code,
