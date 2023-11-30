@@ -1,4 +1,3 @@
-import pytest
 from app.celery.v3.notification_tasks import (
     v3_process_notification,
     v3_send_email_notification,
@@ -48,7 +47,7 @@ def test_v3_process_notification_no_template(notify_db_session, mocker, sample_s
 
 
 def test_v3_process_notification_template_owner_mismatch(
-    notify_db_session, mocker, sample_service, sample_template, sample_template_without_sms_permission
+    notify_db_session, mocker, sample_service, sample_template, sample_template_with_email_only_permission
 ):
     """
     Call the task with request data for a template the service doesn't own.
@@ -57,8 +56,8 @@ def test_v3_process_notification_template_owner_mismatch(
     assert sample_template.template_type == SMS_TYPE
     assert sample_template.service_id == sample_service.id
 
-    assert sample_template_without_sms_permission.template_type == SMS_TYPE
-    assert sample_template_without_sms_permission.service_id != sample_service.id
+    assert sample_template_with_email_only_permission.template_type == SMS_TYPE
+    assert sample_template_with_email_only_permission.service_id != sample_service.id
 
     request_data = {
         "id": str(uuid4()),
