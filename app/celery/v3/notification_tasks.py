@@ -112,7 +112,7 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
                 "Notification %s specified nonexistent template %s.", notification.id, notification.template_id
             )
             v3_persist_failed_notification(
-                notification, NOTIFICATION_PERMANENT_FAILURE, "Notification specified nonexistent template."
+                notification, NOTIFICATION_PERMANENT_FAILURE, notification.status_reason
             )
             return
 
@@ -281,9 +281,7 @@ def v3_persist_failed_notification(notification: Notification, status: str, stat
     current_app.logger.error("Notification %s failed: %s", notification.id, status_reason)
     notification.status = status
     notification.status_reason = status_reason
-    db.session.add(notification)
-    db.session.commit()
-
+    
     if status == NOTIFICATION_PERMANENT_FAILURE:
         try:
             notification_json = notification.serialize_permanent_failure()
@@ -295,4 +293,11 @@ def v3_persist_failed_notification(notification: Notification, status: str, stat
             db.session.commit()
         except Exception as err:
             db.session.rollback()
-            current_app.logger.error("Unable to store permanent failure. Error: '%s'", err)
+            current_app.logger.error("Unable to save permanent failure. Error: '%s'", err)
+    else:
+        try:
+            db.session.add(notification)
+            db.session.commit()
+        except Exception as err:
+            db.session.rollback()
+            current_app.logger.error("Unable to save Notification '%s'. Error: '%s'", notification.id, err)

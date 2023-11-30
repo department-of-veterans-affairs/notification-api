@@ -10,6 +10,7 @@ from app.models import (
     Notification,
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_SENT,
+    NotificationFailures,
     Template,
     SMS_TYPE,
 )
@@ -290,3 +291,29 @@ def test_v3_send_sms_notification(notify_db_session, mocker, sample_notification
     assert notification.status == NOTIFICATION_SENT
     assert notification.reference == "provider reference"
     assert notification.sent_by == "client name"
+
+
+
+def test_v3_process_sms_notification_with_noexistent_template(
+    notify_db_session, mocker, sample_service, sample_template, sample_sms_sender
+):
+    assert sample_template.template_type == SMS_TYPE
+
+    request_data = {
+        "id": str(uuid4()),
+        "notification_type": SMS_TYPE,
+        "phone_number": "+18006982411",
+        "template_id": '111a1111-aaaa-1aa1-aa11-a1111aa1a1a1',
+        "sms_sender_id": '111a1111-aaaa-1aa1-aa11-a1111aa1a1a1',
+    }
+
+    v3_send_sms_notification_mock = mocker.patch("app.celery.v3.notification_tasks.v3_send_sms_notification.delay")
+    v3_process_notification(request_data, sample_service.id, None, KEY_TYPE_TEST)
+    v3_send_sms_notification_mock.assert_not_called()
+
+    query = select(NotificationFailures).where(NotificationFailures.notification_id == request_data["id"])
+    notification_failure = notify_db_session.session.execute(query).one()[0]
+    body = notification_failure.body
+
+    assert body.get('status') == NOTIFICATION_PERMANENT_FAILURE
+    assert body.get('status_reason') == "The template does not exist."
