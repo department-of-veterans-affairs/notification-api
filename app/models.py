@@ -2285,11 +2285,13 @@ class NotificationFailures(db.Model):
     A SQLAlchemy model representing the 'notification_failures' table. This table captures infrequent,
     invalid v3 requests that passed schema checks but failed during processing and could not be added
     to the notifications table.
+
     Attributes:
         notification_id (int): The primary key of the table.
         created_at (DateTime): Record date and time of creation. This field will be used for pg_cron
         job delete records older then 30 days
         body (JSONB): Column used to store the details of the notification failure in a JSON object.
+
     Methods:
         serialize: Converts the 'body' attribute to a dictionary for easier consumption.
     """
