@@ -273,6 +273,20 @@ def v3_send_sms_notification(notification: Notification, sender_phone_number: st
     return
 
 
+def v3_persist_permanent_failure(notification: Notification):
+    try:
+        notification_json = notification.serialize_permanent_failure()
+        notification_failure = NotificationFailures(
+            notification_id=notification.id,
+            body=notification_json
+        )
+        db.session.add(notification_failure)
+        db.session.commit()
+    except Exception as err:
+        db.session.rollback()
+        current_app.logger.error("Unable to save permanent failure. Error: '%s'", err)
+
+
 def v3_persist_failed_notification(notification: Notification, status: str, status_reason: str):
     """
     This is a helper to log and persist failed notifications that are not retriable.
@@ -282,17 +296,7 @@ def v3_persist_failed_notification(notification: Notification, status: str, stat
     notification.status_reason = status_reason
 
     if status == NOTIFICATION_PERMANENT_FAILURE:
-        try:
-            notification_json = notification.serialize_permanent_failure()
-            notification_failure = NotificationFailures(
-                notification_id=notification.id,
-                body=notification_json
-            )
-            db.session.add(notification_failure)
-            db.session.commit()
-        except Exception as err:
-            db.session.rollback()
-            current_app.logger.error("Unable to save permanent failure. Error: '%s'", err)
+        v3_persist_permanent_failure(notification)
     else:
         try:
             db.session.add(notification)
