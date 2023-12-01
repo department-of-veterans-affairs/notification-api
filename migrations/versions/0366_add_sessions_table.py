@@ -22,8 +22,8 @@ def upgrade():
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     )
 
-    op.create_index('unique_session_id', 'sessions', ['session_id'], unique=True)
-    op.create_index('index_session_updated_at', 'sessions', ['updated_at'])
+    op.create_index('index_sessions_on_session_id', 'sessions', ['session_id'], unique=True)
+    op.create_index('index_sessions_on_updated_at', 'sessions', ['updated_at'])
 
 def downgrade():
     op.drop_index('index_session_updated_at', table_name='sessions')
