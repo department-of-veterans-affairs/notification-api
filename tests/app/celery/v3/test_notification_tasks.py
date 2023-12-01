@@ -42,8 +42,8 @@ def test_v3_process_notification_no_template(notify_db_session, mocker, sample_s
     notification_failure = notify_db_session.session.execute(query).one()[0]
     body = notification_failure.body
 
-    assert body.get('status') == NOTIFICATION_PERMANENT_FAILURE
-    assert body.get('status_reason') == "The template does not exist."
+    assert body.get("status") == NOTIFICATION_PERMANENT_FAILURE
+    assert body.get("status_reason") == "The template does not exist."
 
 
 def test_v3_process_notification_template_owner_mismatch(
@@ -74,8 +74,8 @@ def test_v3_process_notification_template_owner_mismatch(
     notification_failure = notify_db_session.session.execute(query).one()[0]
     body = notification_failure.body
 
-    assert body.get('status') == NOTIFICATION_PERMANENT_FAILURE
-    assert body.get('status_reason') == "The template type does not match the notification type."
+    assert body.get("status") == NOTIFICATION_PERMANENT_FAILURE
+    assert body.get("status_reason") == "The template type does not match the notification type."
 
 
 def test_v3_process_notification_template_type_mismatch_1(notify_db_session, mocker, sample_service, sample_template):
@@ -100,8 +100,8 @@ def test_v3_process_notification_template_type_mismatch_1(notify_db_session, moc
     notification_failure = notify_db_session.session.execute(query).one()[0]
     body = notification_failure.body
 
-    assert body.get('status') == NOTIFICATION_PERMANENT_FAILURE
-    assert body.get('status_reason') == "The template type does not match the notification type."
+    assert body.get("status") == NOTIFICATION_PERMANENT_FAILURE
+    assert body.get("status_reason") == "The template type does not match the notification type."
 
 
 def test_v3_process_notification_template_type_mismatch_2(
@@ -128,8 +128,8 @@ def test_v3_process_notification_template_type_mismatch_2(
     notification_failure = notify_db_session.session.execute(query).one()[0]
     body = notification_failure.body
 
-    assert body.get('status') == NOTIFICATION_PERMANENT_FAILURE
-    assert body.get('status_reason') == "The template type does not match the notification type."
+    assert body.get("status") == NOTIFICATION_PERMANENT_FAILURE
+    assert body.get("status_reason") == "The template type does not match the notification type."
 
 
 ############################################################################################
@@ -266,7 +266,7 @@ def test_v3_process_notification_valid_sms_with_invalid_sender_id(
         "notification_type": SMS_TYPE,
         "phone_number": "+18006982411",
         "template_id": sample_template.id,
-        "sms_sender_id": '111a1111-aaaa-1aa1-aa11-a1111aa1a1a1',
+        "sms_sender_id": "111a1111-aaaa-1aa1-aa11-a1111aa1a1a1",
     }
 
     v3_send_sms_notification_mock = mocker.patch("app.celery.v3.notification_tasks.v3_send_sms_notification.delay")
@@ -277,8 +277,8 @@ def test_v3_process_notification_valid_sms_with_invalid_sender_id(
     notification_failure = notify_db_session.session.execute(query).one()[0]
     body = notification_failure.body
 
-    assert body.get('status') == NOTIFICATION_PERMANENT_FAILURE
-    assert body.get('status_reason') == "SMS sender None does not exist."
+    assert body.get("status") == NOTIFICATION_PERMANENT_FAILURE
+    assert body.get("status_reason") == "SMS sender None does not exist."
 
 
 def test_v3_send_sms_notification(notify_db_session, mocker, sample_notification, sample_sms_sender):
@@ -305,7 +305,7 @@ def test_v3_send_sms_notification(notify_db_session, mocker, sample_notification
     assert notification.sent_by == "client name"
 
 
-def test_v3_process_sms_notification_with_noexistent_template(
+def test_v3_process_sms_notification_with_non_existent_template(
     notify_db_session, mocker, sample_service, sample_template, sample_sms_sender
 ):
     """
@@ -317,8 +317,8 @@ def test_v3_process_sms_notification_with_noexistent_template(
         "id": str(uuid4()),
         "notification_type": SMS_TYPE,
         "phone_number": "+18006982411",
-        "template_id": '111a1111-aaaa-1aa1-aa11-a1111aa1a1a1',
-        "sms_sender_id": '111a1111-aaaa-1aa1-aa11-a1111aa1a1a1',
+        "template_id": "111a1111-aaaa-1aa1-aa11-a1111aa1a1a1",
+        "sms_sender_id": "111a1111-aaaa-1aa1-aa11-a1111aa1a1a1",
     }
 
     v3_send_sms_notification_mock = mocker.patch("app.celery.v3.notification_tasks.v3_send_sms_notification.delay")
@@ -329,5 +329,5 @@ def test_v3_process_sms_notification_with_noexistent_template(
     notification_failure = notify_db_session.session.execute(query).one()[0]
     body = notification_failure.body
 
-    assert body.get('status') == NOTIFICATION_PERMANENT_FAILURE
-    assert body.get('status_reason') == "The template does not exist."
+    assert body.get("status") == NOTIFICATION_PERMANENT_FAILURE
+    assert body.get("status_reason") == "The template does not exist."
