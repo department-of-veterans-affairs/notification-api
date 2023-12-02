@@ -278,7 +278,7 @@ def test_v3_process_notification_valid_sms_with_invalid_sender_id(
     body = notification_failure.body
 
     assert body.get("status") == NOTIFICATION_PERMANENT_FAILURE
-    assert body.get("status_reason") == "SMS sender None does not exist."
+    assert body.get("status_reason") == "SMS sender does not exist."
 
 
 def test_v3_send_sms_notification(notify_db_session, mocker, sample_notification, sample_sms_sender):
