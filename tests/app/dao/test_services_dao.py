@@ -46,7 +46,6 @@ from app.models import (
     LETTER_TYPE,
     Notification,
     NotificationHistory,
-    Organisation,
     Permission,
     Service,
     ServicePermission,
@@ -64,7 +63,6 @@ from tests.app.conftest import service_cleanup
 from tests.app.db import (
     create_ft_billing,
     create_inbound_number,
-    create_organisation,
     create_service,
     create_service_with_inbound_number,
     create_service_with_defined_sms_sender,
