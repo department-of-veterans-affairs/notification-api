@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from flask import Flask
 import pytest
 import sqlalchemy
-from sqlalchemy import delete
+from sqlalchemy import delete, text as sa_text
 from sqlalchemy.exc import SAWarning
 import warnings
 
@@ -83,15 +83,15 @@ def create_test_db(database_uri):
         client_encoding='utf8'
     )
 
-    try:
-        result = postgres_db.execute(sqlalchemy.sql.text('CREATE DATABASE {}'.format(db_uri_parts[-1])))
-        result.close()
-    except sqlalchemy.exc.ProgrammingError:
-        # The database "test_notification_api" already exists, which is okay.  This
-        # is the execution path for running unit tests with multiple threads.
-        pass
-    finally:
-        postgres_db.dispose()
+    with postgres_db.connect() as conn:
+        db_names = [name[0] for name in conn.execute(sa_text("""SELECT datname FROM pg_database;""")).all()]
+        db_name = db_uri_parts[-1]
+        if db_name not in db_names:
+            print(f'\nmaking database: {db_name}')
+            result = conn.execute(sa_text(f"""CREATE DATABASE {db_name};"""))
+            result.close()
+
+    postgres_db.dispose()
 
 
 @pytest.fixture(scope="session")
