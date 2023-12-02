@@ -422,9 +422,6 @@ def fetch_todays_total_message_count(service_id):
         Notification.service_id == service_id,
         Notification.key_type != KEY_TYPE_TEST,
         func.date(Notification.created_at) == date.today()
-    ).group_by(
-        Notification.notification_type,
-        Notification.status,
     ).first()
     return 0 if result is None else result.count
 
