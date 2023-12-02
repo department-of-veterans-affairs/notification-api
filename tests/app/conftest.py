@@ -555,7 +555,7 @@ def sample_service(
             kwargs['user'] = sample_user(email=f'sample_service_{uuid4()}@va.gov')
 
         # Remove things that Service does not expect.
-        service_permissions = kwargs.pop('service_permissions', [EMAIL_TYPE, SMS_TYPE])
+        service_permissions = kwargs.pop('service_permissions', DEFAULT_SERVICE_PERMISSIONS)
         user = kwargs.pop('user')
         sms_sender = kwargs.pop('sms_sender', None)
 
