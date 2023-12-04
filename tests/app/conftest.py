@@ -2578,7 +2578,8 @@ def sample_service_with_inbound_number(
 def sample_service_email_reply_to(notify_db_session):
     service_email_reply_to_ids = []
 
-    def _wrapper(service: Service, email_address: str = '', **kwargs):
+    def _wrapper(service: Service, email_address: str = None, **kwargs):
+
         data = {
             'service': service,
             'email_address': email_address or 'vanotify@va.gov',
@@ -2586,6 +2587,16 @@ def sample_service_email_reply_to(notify_db_session):
             'archived': kwargs.get('archived', False),
         }
         service_email_reply_to = ServiceEmailReplyTo(**data)
+
+        # Allow this to overwrite the default if requested
+        if data['is_default']:
+            stmt = select(ServiceEmailReplyTo).where(ServiceEmailReplyTo.service_id == service.id)\
+                                              .where(ServiceEmailReplyTo.is_default)
+            default_reply_to = notify_db_session.session.scalar(stmt)
+
+            if default_reply_to:
+                default_reply_to.is_default = False
+                notify_db_session.session.add(default_reply_to)
 
         notify_db_session.session.add(service_email_reply_to)
         notify_db_session.session.commit()
