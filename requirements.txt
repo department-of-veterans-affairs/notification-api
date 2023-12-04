@@ -84,7 +84,7 @@ pwnedpasswords==2.0.0
 pycparser==2.21
 pycurl==7.45.2
 PyJWT==2.8.0
-pypdf==3.16.0
+pypdf==3.17.1
 python-dateutil==2.8.2
 python-dotenv==1.0.0
 python-json-logger==2.0.7
