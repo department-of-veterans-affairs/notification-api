@@ -2131,6 +2131,8 @@ def sample_service_whitelist(notify_db_session, sample_service):
     whitelist_users = []
 
     def _wrapper(service: Service = None, email_address: str = '', phone_number: str = '', mobile_number: str = ''):
+        service = service or sample_service(check_if_service_exists=True)
+
         if email_address:
             whitelisted_user = ServiceWhitelist.from_string(service.id, EMAIL_TYPE, email_address)
         elif phone_number or mobile_number:
@@ -2138,7 +2140,6 @@ def sample_service_whitelist(notify_db_session, sample_service):
         else:
             whitelisted_user = ServiceWhitelist.from_string(service.id, EMAIL_TYPE, 'whitelisted_user@va.gov')
 
-        service = service or sample_service(check_if_service_exists=True)
         notify_db_session.session.add(whitelisted_user)
         notify_db_session.session.commit()
         whitelist_users.append(whitelisted_user)
