@@ -33,6 +33,7 @@ from app.models import (
     CommunicationItem,
     DELIVERY_STATUS_CALLBACK_TYPE,
     Domain,
+    EmailBranding,
     EMAIL_TYPE,
     FactBilling,
     FactNotificationStatus,
@@ -1286,7 +1287,7 @@ def sample_ft_billing(
 ):
     ft_billing_bsts = {worker_id: []}
 
-    def _wrapper(
+    def _sample_ft_billing(
         utc_date,
         notification_type,
         template=None,
@@ -1324,7 +1325,7 @@ def sample_ft_billing(
             ft_billing_bsts[worker_id] = [(data.bst_date, data.service_id, data.template_id)]
         return data
 
-    yield _wrapper
+    yield _sample_ft_billing
 
     # Teardown
     # FactBilling has a compound key comprised of NINE fields. 3 is enough to identify a row for testing purposes...
@@ -1339,61 +1340,44 @@ def sample_ft_billing(
 
 
 @pytest.fixture
-def sample_ft_notification_status(notify_db_session, sample_template, worker_id):
-    ft_notifications = {worker_id: []}
+def sample_ft_notification_status(notify_db_session, sample_template, sample_job):
+    created_ft_notification_statuses = []
 
-    def _wrapper(
+    def _sample_ft_notification_status(
         utc_date,
-        notification_type='sms',
-        service=None,
-        template=None,
         job=None,
         key_type='normal',
         notification_status='delivered',
         status_reason='',
         count=1,
     ):
-        if job:
-            template = job.template
+        if job is None:
+            job = sample_job(sample_template())
 
-        if template and not service:
-            service = template.service
-            notification_type = template.template_type
-        elif service and not template:
-            template = sample_template(service=service, template_type=notification_type)
-        elif not template and not service:
-            template = sample_template()
-            service = template.service()
-        elif template.service.id != service.id:
-            # Sent mismatched template and service
-            raise NotImplementedError
+        template = job.template
 
-        data = FactNotificationStatus(
+        ft_notification_status = FactNotificationStatus(
             bst_date=utc_date,
             template_id=template.id,
-            service_id=service.id,
-            job_id=job.id if job else UUID(int=0),
-            notification_type=notification_type,
+            service_id=template.service.id,
+            job_id=job.id,
+            notification_type=template.template_type,
             key_type=key_type,
             notification_status=notification_status,
             status_reason=status_reason,
             notification_count=count
         )
-        db.session.add(data)
-        db.session.commit()
+        notify_db_session.session.add(ft_notification_status)
+        notify_db_session.session.commit()
+        created_ft_notification_statuses.append(ft_notification_status)
 
-        if worker_id in ft_notifications:
-            ft_notifications[worker_id].append(data)
-        else:
-            ft_notifications[worker_id] = [data]
+        return ft_notification_status
 
-        return data
-
-    yield _wrapper
+    yield _sample_ft_notification_status
 
     # Teardown
-    for ft_notification in ft_notifications[worker_id]:
-        notify_db_session.session.delete(ft_notification)
+    for ft_notification_status in created_ft_notification_statuses:
+        notify_db_session.session.delete(ft_notification_status)
     notify_db_session.session.commit()
 
 
@@ -1658,59 +1642,58 @@ def sample_email_notification(notify_db_session):
     return notification
 
 
-@pytest.fixture(scope='function')
-def sample_notification_history(
-        notify_db,
-        notify_db_session,
-        sample_sms_template_func,
+@pytest.fixture
+def sample_notification_history(notify_db_session, sample_api_key, sample_template):
+    created_notification_histories = []
+
+    def _sample_notification_history(
         status='created',
+        template=None,
         created_at=None,
-        notification_type=None,
         key_type=KEY_TYPE_NORMAL,
         sent_at=None,
         api_key=None,
         sms_sender_id=None
-):
-    if created_at is None:
-        created_at = datetime.utcnow()
+    ):
+        if template is None:
+            template = sample_template()
+            assert template.template_type == SMS_TYPE, "This is the default."
 
-    if sent_at is None:
-        sent_at = datetime.utcnow()
+        if created_at is None:
+            created_at = datetime.utcnow()
 
-    if notification_type is None:
-        notification_type = sample_sms_template_func.template_type
-        assert notification_type == SMS_TYPE, "This is the default."
+        if sent_at is None:
+            sent_at = datetime.utcnow()
 
-    api_key_teardown = None
-    if not api_key:
-        api_key = create_api_key(sample_sms_template_func.service, key_type=key_type)
-        api_key_teardown = api_key
+        if api_key is None:
+            api_key = sample_api_key(template.service, key_type=key_type)
 
-    notification_history = NotificationHistory(
-        id=uuid4(),
-        service=sample_sms_template_func.service,
-        template_id=sample_sms_template_func.id,
-        template_version=sample_sms_template_func.version,
-        status=status,
-        created_at=created_at,
-        notification_type=notification_type,
-        key_type=key_type,
-        api_key=api_key,
-        api_key_id=api_key and api_key.id,
-        sent_at=sent_at,
-        sms_sender_id=sms_sender_id
-    )
-    notify_db.session.add(notification_history)
-    notify_db.session.commit()
+        notification_history = NotificationHistory(
+            id=uuid4(),
+            service=template.service,
+            template_id=template.id,
+            template_version=template.version,
+            status=status,
+            created_at=created_at,
+            notification_type=template.template_type,
+            key_type=key_type,
+            api_key=api_key,
+            api_key_id=api_key.id,
+            sent_at=sent_at,
+            sms_sender_id=sms_sender_id
+        )
+        notify_db_session.session.add(notification_history)
+        notify_db_session.session.commit()
+        created_notification_histories.append(notification_history)
 
-    yield notification_history
+        return notification_history
+
+    yield _sample_notification_history
 
     # Teardown
-    if api_key_teardown is not None:
-        key_to_delete = notify_db.session.get(ApiKey, api_key.id)
-        notify_db.session.delete(key_to_delete)
-    notify_db.session.delete(notification_history)
-    notify_db.session.commit()
+    for notification_history in created_notification_histories:
+        notify_db_session.session.delete(notification_history)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture(scope='function')
@@ -2634,6 +2617,31 @@ def sample_complaint(notify_db_session, sample_service, sample_template, sample_
     # Teardown
     for complaint in created_complaints:
         notify_db_session.session.delete(complaint)
+    notify_db_session.session.commit()
+
+
+@pytest.fixture
+def sample_email_branding(notify_db_session):
+    created_email_branding = []
+
+    def _sample_email_branding(colour='blue', logo='test_x2.png', name='test_org_1', text='DisplayName'):
+        data = {
+            'colour': colour,
+            'logo': logo,
+            'name': name,
+            'text': text,
+        }
+        email_branding = EmailBranding(**data)
+        notify_db_session.session.add(email_branding)
+        notify_db_session.session.commit()
+        created_email_branding.append(email_branding)
+        return email_branding
+
+    yield _sample_email_branding
+
+    # Teardown
+    for email_branding in created_email_branding:
+        notify_db_session.session.delete(email_branding)
     notify_db_session.session.commit()
 
 

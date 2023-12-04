@@ -128,7 +128,7 @@ fileignoreconfig:
     - filename: tests/conftest.py
       checksum: 81db237c7a3abb49d28f8fe11f2a72b2879096882eb79a6ed2556ec484eaa1e3
     - filename: tests/app/conftest.py
-      checksum: 65c3ba65101c4913cc3325a3f748eee804b2d9d9c9fff785777165b40124669e
+      checksum: dc18d5f47c66b93a3504938515e32390ecb6f42e6360f82aefdc36d3309564b9
     - filename: tests/app/notifications/test_process_client_response.py
       checksum: 6a72967293c852a49f04203c83dd4c2591226874e96f34bebc434d5dfc204215
     - filename: app/celery/service_callback_tasks.py
@@ -276,7 +276,7 @@ fileignoreconfig:
     - filename: tests/lambda_functions/nightly_stats_bigquery_upload/test_nightly_stats_bigquery_upload.py
       checksum: a1925dd119c7a146994d6fff10336263d0d6a5890c8efa8ef60675b7c86c6f4f
     - filename: tests/app/dao/test_fact_notification_status_dao.py
-      checksum: 7f8063a812688f3540ca5eec0d638599e97d881d839c8f1f5c90133657aed977
+      checksum: 14b7f4dcd7402cb937d4ddaf24cf6c608c711a617817db91872119e7c6d1f4df
     - filename: cd/application-deployment/staging/vaec-api-task-definition.json
       checksum: 4f15c8592124e5c6e50c50ce0c872443a3767b601d20cd56d028026a691c0943
     - filename: cd/application-deployment/staging/vaec-celery-task-definition.json
@@ -347,3 +347,5 @@ fileignoreconfig:
       checksum: 283e2909c343a8401d5c0ed2bbc630cc44d7e3cd33cf9b7f8b64ae9a131a0f18
     - filename: tests/app/dao/notification_dao/test_notification_dao_performance_platform.py
       checksum: 529caf7b65f1198f8c335bedf493280bd88175dc11efab117c424d179d43d044
+    - filename: tests/app/dao/test_api_key_dao.py
+      checksum: 411a5ee0a5ddbde80931550067f9b56e3a952da4d570ffc3cc4cc02f738fd2df
