@@ -197,9 +197,11 @@ def version_api_key(
 
 def create_service_with_inbound_number(
         inbound_number='1234567',
+        service: Service = None,
         *args, **kwargs
 ):
-    service = create_service(*args, **kwargs)
+
+    service = service or create_service(*args, **kwargs)
 
     sms_sender = ServiceSmsSender.query.filter_by(service_id=service.id).first()
     inbound = create_inbound_number(number=inbound_number)
