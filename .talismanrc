@@ -276,7 +276,7 @@ fileignoreconfig:
     - filename: tests/lambda_functions/nightly_stats_bigquery_upload/test_nightly_stats_bigquery_upload.py
       checksum: a1925dd119c7a146994d6fff10336263d0d6a5890c8efa8ef60675b7c86c6f4f
     - filename: tests/app/dao/test_fact_notification_status_dao.py
-      checksum: 14b7f4dcd7402cb937d4ddaf24cf6c608c711a617817db91872119e7c6d1f4df
+      checksum: 8197e00cb8c9c905ae1fa2f169015bba67eeb84cac7925d782b310a141557e2c
     - filename: cd/application-deployment/staging/vaec-api-task-definition.json
       checksum: 4f15c8592124e5c6e50c50ce0c872443a3767b601d20cd56d028026a691c0943
     - filename: cd/application-deployment/staging/vaec-celery-task-definition.json
