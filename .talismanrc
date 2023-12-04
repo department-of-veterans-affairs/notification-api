@@ -128,7 +128,7 @@ fileignoreconfig:
     - filename: tests/conftest.py
       checksum: 81db237c7a3abb49d28f8fe11f2a72b2879096882eb79a6ed2556ec484eaa1e3
     - filename: tests/app/conftest.py
-      checksum: dc18d5f47c66b93a3504938515e32390ecb6f42e6360f82aefdc36d3309564b9
+      checksum: bd90aff6e617a524e5b6a37f3690d58c41498b83d3e2cf7c6e88fd260f34c8d9
     - filename: tests/app/notifications/test_process_client_response.py
       checksum: 6a72967293c852a49f04203c83dd4c2591226874e96f34bebc434d5dfc204215
     - filename: app/celery/service_callback_tasks.py
@@ -349,3 +349,5 @@ fileignoreconfig:
       checksum: 529caf7b65f1198f8c335bedf493280bd88175dc11efab117c424d179d43d044
     - filename: tests/app/dao/test_api_key_dao.py
       checksum: ef17bb8ebd03d56a40472a42cd3379f1823b499e307a0eadc5d998f7409bbae0
+    - filename: tests/app/dao/test_fido2_keys_dao.py
+      checksum: 9aad2d998cb310eb9d823ac4f02be821659a82454f576d123954993a88e74d7b

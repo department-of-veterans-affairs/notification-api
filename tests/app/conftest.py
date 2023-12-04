@@ -2283,11 +2283,25 @@ def sample_organisation(
 
 
 @pytest.fixture
-def sample_fido2_key(notify_db_session):
-    user = create_user()
-    key = Fido2Key(name='sample key', key="abcd", user_id=user.id)
-    save_fido2_key(key)
-    return key
+def sample_fido2_key(notify_db_session, sample_user):
+    created_fido2_keys = []
+
+    def _sample_fido2_key(user=None, name=None, key="abcd"):
+        if user is None:
+            user = sample_user()
+        if name is None:
+            name = uuid4()
+        key = Fido2Key(name=name, key=key, user_id=user.id)
+        save_fido2_key(key)
+        created_fido2_keys.append(key)
+        return key
+
+    yield _sample_fido2_key
+
+    # Teardown
+    for fido2_key in created_fido2_keys:
+        notify_db_session.session.delete(fido2_key)
+    notify_db_session.session.commit()
 
 
 @pytest.fixture
