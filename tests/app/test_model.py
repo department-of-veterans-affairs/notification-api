@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app import encryption
 from app.models import (
+    ServiceCallback,
     ServiceWhitelist,
     Notification,
     SMS_TYPE,
@@ -448,11 +449,22 @@ class TestServiceCallback:
         ]
     )
     def test_service_callback_send_uses_queue_strategy(
-            self, mocker, sample_service_callback, callback_channel, callback_strategy_path
+        self,
+        mocker,
+        sample_service,
+        callback_channel,
+        callback_strategy_path,
     ):
-        service_callback = sample_service_callback(callback_type=COMPLAINT_CALLBACK_TYPE,
-                                                   callback_channel=callback_channel)
 
+        service = sample_service()
+        service_callback = ServiceCallback(
+            service_id=service.id,
+            url="https://something.com",
+            bearer_token="some_super_secret",
+            updated_by_id=service.users[0].id,
+            callback_type=COMPLAINT_CALLBACK_TYPE,
+            callback_channel=callback_channel
+        )
         mock_callback_strategy = mocker.patch(callback_strategy_path)
 
         service_callback.send(
