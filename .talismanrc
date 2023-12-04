@@ -348,4 +348,4 @@ fileignoreconfig:
     - filename: tests/app/dao/notification_dao/test_notification_dao_performance_platform.py
       checksum: 529caf7b65f1198f8c335bedf493280bd88175dc11efab117c424d179d43d044
     - filename: tests/app/dao/test_api_key_dao.py
-      checksum: 411a5ee0a5ddbde80931550067f9b56e3a952da4d570ffc3cc4cc02f738fd2df
+      checksum: ef17bb8ebd03d56a40472a42cd3379f1823b499e307a0eadc5d998f7409bbae0
