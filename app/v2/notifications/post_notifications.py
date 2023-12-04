@@ -66,6 +66,7 @@ from app.utils import get_public_notify_type_text
 def post_notification(notification_type):  # noqa: C901
     try:
         request_json = request.get_json()
+        current_app.logger.info('Request URL: %s', request.url)
     except werkzeug.exceptions.BadRequest as e:
         raise BadRequestError(message=f"Error decoding arguments: {e.description}", status_code=400)
 
