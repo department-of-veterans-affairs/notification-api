@@ -126,7 +126,7 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         notification.status_reason = "The template type does not match the notification type."
         v3_persist_failed_notification(
             notification,
-            f"The template type '{request_data.get('notification_type')}' does not match the notification type '{template.template_type}'."
+            f"The template type '{request_data.get('notification_type')}' does not match '{template.template_type}'."
         )
         return
 

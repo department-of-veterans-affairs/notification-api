@@ -102,7 +102,7 @@ def test_v3_process_notification_template_type_mismatch_1(notify_db_session, moc
 
     assert body.get("status") == NOTIFICATION_PERMANENT_FAILURE
     assert body.get("status_reason") == "The template type does not match the notification type."
-    assert body.get("phone_number") == None
+    assert body.get("phone_number") is None
     assert body.get("email_address") == "test@va.gov"
 
 
@@ -334,4 +334,4 @@ def test_v3_process_sms_notification_with_non_existent_template(
     assert body.get("status") == NOTIFICATION_PERMANENT_FAILURE
     assert body.get("status_reason") == "The template does not exist."
     assert body.get("phone_number") == "+18006982411"
-    assert body.get("email_address") == None
+    assert body.get("email_address") is None
