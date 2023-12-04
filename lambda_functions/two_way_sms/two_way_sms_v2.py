@@ -5,7 +5,6 @@ import os
 import psycopg2
 import requests
 import sys
-from datetime import datetime
 
 # Constants
 AWS_REGION = "us-gov-west-1"
@@ -15,7 +14,7 @@ HELP_TYPES = ('HELP',)
 START_TEXT = 'Message service resumed, reply "STOP" to stop receiving messages.'
 STOP_TEXT = 'Message service stopped, reply "START" to start receiving messages.'
 HELP_TEXT = 'Some help text'
-INBOUND_NUMBERS_QUERY = """SELECT number, service_id, url_endpoint, self_managed FROM inbound_numbers;"""
+INBOUND_NUMBERS_QUERY = "SELECT number, service_id, url_endpoint, self_managed, auth_parameter FROM inbound_numbers;"
 SQS_DELAY_SECONDS = 120
 
 # Validation set.  Valid event data must have these attributes.
@@ -28,14 +27,15 @@ DEAD_LETTER_SQS_URL = os.getenv("DEAD_LETTER_SQS_URL")
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 RETRY_SQS_URL = os.getenv('RETRY_SQS_URL')
 TIMEOUT = os.getenv('TIMEOUT', '3')
-VETEXT_API_AUTH_SSM_PATH = os.getenv('VETEXT_API_AUTH_SSM_PATH')
+
+# local variables
+client_auth_token = None
 
 if (
     # TODO - Uncomment this line when the code commented-out at the end is restored.
     # AWS_PINPOINT_APP_ID is None or
-    DEAD_LETTER_SQS_URL is None or
-    RETRY_SQS_URL is None or
-    VETEXT_API_AUTH_SSM_PATH is None
+    DEAD_LETTER_SQS_URL is None
+    or RETRY_SQS_URL is None
 ):
     sys.exit("A required environment variable is not set.")
 
@@ -57,10 +57,9 @@ except (TypeError, ValueError):
 ################################################################################################
 # Get the database URI from SSM Parameter Store.
 ################################################################################################
-
 if os.getenv("NOTIFY_ENVIRONMENT") == "test":
     sqlalchemy_database_uri = os.getenv("SQLALCHEMY_DATABASE_URI")
-    vetext_auth_token = os.getenv("VETEXT_API_AUTH_SSM_PATH")
+    client_auth_token = "test"
 else:
     database_uri_path = os.getenv("DATABASE_URI_PATH")
     if database_uri_path is None:
@@ -80,15 +79,21 @@ else:
     if sqlalchemy_database_uri is None:
         sys.exit("Can't get the database URI from SSM Parameter Store.")
 
-    ssm_vetext_authtoken_path_response: dict = ssm_client.get_parameter(
-        Name=VETEXT_API_AUTH_SSM_PATH,
+
+def get_ssm_param_info(client_api_auth_ssm_path):
+    # according to the docs you must get a parameter using the name
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ssm/client/get_parameter.html
+    ssm_client_authtoken_path_response: dict = ssm_client.get_parameter(
+        Name=client_api_auth_ssm_path,
         WithDecryption=True
     )
-    logger.info(". . . Retrieved the VeText AuthToken from SSM Parameter Store.")
-    vetext_auth_token = ssm_vetext_authtoken_path_response.get("Parameter", {}).get("Value")
+    logger.info(". . . Retrieved the Client AuthToken from SSM Parameter Store.")
+    client_auth_token = ssm_client_authtoken_path_response.get("Parameter", {}).get("Value")
 
-    if vetext_auth_token is None:
-        sys.exit("Can't get the VeText AuthToken from SSM Param Store")
+    if client_auth_token is None:
+        sys.exit("Can't get the Client AuthToken from SSM Param Store")
+
+    return client_auth_token
 
 ################################################################################################
 # Use the database URI to get a 10DLC-to-URL mapping from the database.
@@ -101,6 +106,7 @@ else:
 #        }
 #    }
 ################################################################################################
+
 
 if os.getenv("NOTIFY_ENVIRONMENT") == "test":
     two_way_sms_table_dict = {}
@@ -135,7 +141,8 @@ else:
             'service_id': s,
             'url_endpoint': u,
             'self_managed': sm,
-        } for n, s, u, sm in mapping_data
+            'auth_parameter': ap,
+        } for n, s, u, sm, ap in mapping_data
     }
 
 logger.debug('10DLC-to-URL mapping: %s', two_way_sms_table_dict)
@@ -182,12 +189,13 @@ def notify_incoming_sms_handler(event: dict, context: any):
         if not valid_message_body(inbound_sms):
             logger.error("The record's message body is invalid: %s", inbound_sms)
 
-            # Push the record to the dead letter queue, and return 200 to have the message removed from the feeder queue.
+            # Push the record to the dead letter queue, and return 200 to have the message removed from the feeder queue
             push_to_sqs(record_body, False)
             if len(event["Records"]) > 1:
                 # TODO - Remove this block as part of #1014.  The problem is that the handler returns if any record has
                 # an invalid message.  It's not a problem now because we only expect one record.
-                logger.warning("Multiple records might not be processed correctly until batching is implemented.  See #1014.")
+                logger.warning(
+                    "Multiple records might not be processed correctly until batching is implemented.  See #1014.")
             return create_response(200)
         # Else, the message has all the required fields.
 
@@ -199,10 +207,12 @@ def notify_incoming_sms_handler(event: dict, context: any):
             push_to_sqs(record_body, False)
             continue
 
-        # **Note** - Commenting out this code for self managed checking because right now we are relying on AWS to manage opt out/in functionality.  
-        # **Note** - Eventually we will migrate to self-managed for everything and the config determination will be whether Notify is handling the functionality or if the business line is
+        # **Note** - Commenting out this code for self managed checking because right now we are relying on AWS to
+        #            manage opt out/in functionality.
+        # **Note** - Eventually we will migrate to self-managed for everything and the config determination will be
+        #            whether Notify is handling the functionality or if the business line is.
         # If the number is not self-managed, look for key words
-        #if not two_way_record.get('self_managed'):
+        # if not two_way_record.get('self_managed'):
         #    logger.info('Service is not self-managed')
         #    keyword_phrase = detected_keyword(inbound_sms["messageBody"])
         #    if keyword_phrase:
@@ -220,14 +230,15 @@ def notify_incoming_sms_handler(event: dict, context: any):
         )
 
         try:
-            result_of_forwarding = forward_to_service(inbound_sms, two_way_record.get("url_endpoint"))
-        except Exception as e:
+            result_of_forwarding = forward_to_service(
+                inbound_sms, two_way_record.get("url_endpoint"), two_way_record.get('auth_parameter'))
+        except Exception:
             # Dead letter.  This exception was re-raised and has already been logged.
             push_to_sqs(record_body, False)
             continue
 
         if not result_of_forwarding:
-            logger.error("Failed to make an HTTP request.  Placing the record in the retry queue.")
+            logger.error("Failed to make an HTTP request. Placing the record in the retry queue.")
             batch_item_failures.append({"itemIdentifier": record_body.get("messageId", '')})
             push_to_sqs(record_body, True)
 
@@ -271,10 +282,14 @@ def valid_event(event_data: dict) -> bool:
     return all((record.get("body") is not None) for record in event_data["Records"])
 
 
-def forward_to_service(inbound_sms: dict, url: str) -> bool:
+def forward_to_service(inbound_sms: dict, url: str, auth_parameter: str) -> bool:
     """
     Forwards the inbound SMS to the service that has 2-way SMS setup.
     """
+
+    global client_auth_token
+    if client_auth_token is None:
+        client_auth_token = get_ssm_param_info(client_api_auth_ssm_path=auth_parameter)
 
     # This covers None and the empty string.
     if not url:
@@ -283,12 +298,12 @@ def forward_to_service(inbound_sms: dict, url: str) -> bool:
 
     headers = {
         'Content-type': 'application/json',
-        'Authorization': 'Basic ' + vetext_auth_token
+        'Authorization': 'Basic ' + client_auth_token
     }
 
     try:
         response = requests.post(
-            url,            
+            url,
             verify=False,
             json=inbound_sms,
             timeout=TIMEOUT,
@@ -304,7 +319,7 @@ def forward_to_service(inbound_sms: dict, url: str) -> bool:
         logger.exception(e)
     except Exception as e:
         logger.exception(e)
-        logger.critical("General Exception With Http Request.  The record should go to the dead letter queue.")
+        logger.critical("General Exception With Http Request. The record should go to the dead letter queue.")
 
         # Re-raise to move the message to the dead letter queue instead of the retry queue.
         raise
@@ -315,7 +330,7 @@ def forward_to_service(inbound_sms: dict, url: str) -> bool:
 def push_to_sqs(push_data: dict, is_retry: bool) -> None:
     """
     Pushes an inbound sms or entire event to SQS. Sends to RETRY or DEAD LETTER queue dependent
-    on is_retry variable. 
+    on is_retry variable.
     """
 
     logger.warning("Pushing to the %s queue . . .", "RETRY" if is_retry else "DEAD LETTER")
@@ -352,7 +367,7 @@ def push_to_sqs(push_data: dict, is_retry: bool) -> None:
 
 
 # **Note** - Commented out because it wont be necessary in this initial release
-#def detected_keyword(message: str) -> str:
+# def detected_keyword(message: str) -> str:
 #    """
 #    Parses the string to look for start, stop, or help key words and handles those.
 #    """
@@ -372,9 +387,9 @@ def push_to_sqs(push_data: dict, is_retry: bool) -> None:
 #        return ''
 
 # **Note** - Commented out because it wont be necessary in this initial release
-#def send_message(recipient_number: str, sender: str, message: str) -> dict:
+# def send_message(recipient_number: str, sender: str, message: str) -> dict:
 #    """
-#    Called when we are monitoring for keywords and one was detected. This sends the 
+#    Called when we are monitoring for keywords and one was detected. This sends the
 #    appropriate response to the phone number that requested a message via keyword.
 #    """
 #    try:

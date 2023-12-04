@@ -1495,6 +1495,11 @@ paths:
       summary: Update an inbound number
       parameters:
         - $ref: "#/components/parameters/InboundNumberId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InboundNumberUpdateRequest"
       responses:
         "200":
           description: OK
@@ -2513,6 +2518,24 @@ components:
     InboundNumberCreateResponse:
       type: object
       properties: {} # TODO (issue 965)
+    InboundNumberUpdateRequest:
+      type: object
+      properties:
+        active:
+          type: boolean
+        number:
+          type: string
+        provider:
+          type: string
+        self_managed:
+          type: boolean
+        service_id:
+          type: string
+          format: uuid
+        url_endpoint:
+          type: string
+        auth_parameter:
+          type: string
     Notification:
       type: object
       properties:
