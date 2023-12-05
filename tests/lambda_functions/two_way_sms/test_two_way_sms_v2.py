@@ -34,7 +34,7 @@ def test_validate_event(mocker, event):
     assert response is False
 
 
-# Test valid event body
+# Test invalid event body
 invalid_event_body_empty_body = {}
 invalid_event_missing_destinationNumber = {'originationNumber': '+11111111111', 'messageBody': 'message'}
 invalid_event_missing_originationNumber = {'destinationNumber': '+12222222222', 'messageBody': 'message'}
@@ -70,7 +70,7 @@ def test_forward_to_service_failed_on_empty_url(mocker):
     Test forward to service
     """
 
-    response = forward_to_service({}, '')
+    response = forward_to_service({}, '', None)
     assert response is False
 
 
@@ -79,13 +79,13 @@ def test_forward_to_service_failed_post_on_http_error(mocker):
         f'{LAMBDA_MODULE}.requests.post',
         side_effect=requests.exceptions.HTTPError('http://example.com', 500, 'Error message', {}, None)
     )
-    response = forward_to_service({}, 'https://someurl.com')
+    response = forward_to_service({}, 'https://someurl.com', None)
     assert response is False
 
 
 def test_forward_to_service_failed_post_on_request_exception(mocker):
     mocker.patch(f'{LAMBDA_MODULE}.requests.post', side_effect=requests.exceptions.RequestException())
-    response = forward_to_service({}, 'https://someurl.com')
+    response = forward_to_service({}, 'https://someurl.com', None)
     assert response is False
 
 

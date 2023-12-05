@@ -1452,11 +1452,15 @@ paths:
   /inbound-number:
     get:
       summary: Retrieve an inbound number
+      tags:
+        - inbound-number
       responses:
         "200":
           description: OK
           content:
-            application/json: {} # TODO (issue 965)
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InboundNumbersGetResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "500":
@@ -1467,6 +1471,13 @@ paths:
           $ref: "#/components/responses/ServiceUnavailable"
     post:
       summary: Create an inbound number
+      tags:
+        - inbound-number
+      requestBody:
+        content:
+          application/json:
+            schema: 
+              $ref: "#/components/schemas/InboundNumberRequestData"
       responses:
         "201":
           description: Created
@@ -1484,47 +1495,91 @@ paths:
           $ref: "#/components/responses/ServiceUnavailable"
   /inbound-number/available:
     get:
-      summary: Retrieve available inbound numbers
+      summary: Retrieve available inbound numbers that are not assigned to a service
+      tags:
+        - inbound-number
       responses:
         "200":
           description: OK
           content:
-            application/json: {} # TODO (issue 965)
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InboundNumbersGetResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /inbound-number/{inbound_number_id}:
     post:
       summary: Update an inbound number
+      tags:
+        - inbound-number
       parameters:
         - $ref: "#/components/parameters/InboundNumberId"
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/InboundNumberUpdateRequest"
+              $ref: "#/components/schemas/InboundNumberRequestData"
       responses:
         "200":
           description: OK
           content:
-            application/json: {} # TODO (issue 965)
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InboundNumberCreateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /inbound-number/{inbound_number_id}/off:
     post:
-      summary: Set the inbound number as off
+      summary: Set the inbound number as off (active = false)
+      tags:
+        - inbound-number
       parameters:
         - $ref: "#/components/parameters/InboundNumberId"
       responses:
-        "200":
-          description: OK
-          content:
-            application/json: {} # TODO (issue 965)
+        "204":
+          description: NO CONTENT
+        "401":
+            $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /inbound-number/service/{service_id}:
     get:
       summary:  Get inbound numbers for a service
+      tags:
+        - inbound-number
       parameters:
         - $ref: "#/components/parameters/ServiceId"
       responses:
         "200":
           description: OK
           content:
-            application/json: {} # TODO (issue 965)
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InboundNumbersGetResponse"
+        "401":
+            $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
 components:
   parameters:
     InboundNumberId:
@@ -2515,14 +2570,40 @@ components:
       example:
         "full_name": "John Smith"
         "claim_id": "123456"
-    InboundNumberCreateResponse:
-      type: object
-      properties: {} # TODO (issue 965)
-    InboundNumberUpdateRequest:
+    InboundNumberResponseData:
       type: object
       properties:
         active:
           type: boolean
+        auth_parameter:
+          type: string
+        id:
+          type: string
+          format: uuid
+        number:
+          type: string
+        provider:
+          type: string
+        self_managed:
+          type: boolean
+        service:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+          nullable: true
+        url_endpoint:
+          type: string
+    InboundNumberRequestData:
+      type: object
+      properties:
+        active:
+          type: boolean
+        auth_parameter:
+          type: string
         number:
           type: string
         provider:
@@ -2532,10 +2613,21 @@ components:
         service_id:
           type: string
           format: uuid
+          nullable: true
         url_endpoint:
           type: string
-        auth_parameter:
-          type: string
+    InboundNumberCreateResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#components/schemas/InboundNumberResponseData"
+    InboundNumbersGetResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/InboundNumberResponseData"
     Notification:
       type: object
       properties:
