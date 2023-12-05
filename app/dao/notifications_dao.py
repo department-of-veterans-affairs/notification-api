@@ -764,9 +764,10 @@ def dao_get_notifications_by_to_field(service_id, search_term, notification_type
 
 @statsd(namespace="dao")
 def dao_get_notification_by_reference(reference):
-    return Notification.query.filter(
+    stmt = select(Notification).where(
         Notification.reference == reference
-    ).one()
+    )
+    return db.session.scalars(stmt).one()
 
 
 @statsd(namespace="dao")
@@ -774,20 +775,23 @@ def dao_get_notification_history_by_reference(reference):
     try:
         # This try except is necessary because in test keys and research mode does not create notification history.
         # Otherwise we could just search for the NotificationHistory object
-        return Notification.query.filter(
+        stmt = select(Notification).where(
             Notification.reference == reference
-        ).one()
+        )
+        return db.session.scalars(stmt).one()
     except NoResultFound:
-        return NotificationHistory.query.filter(
+        stmt = select(NotificationHistory).where(
             NotificationHistory.reference == reference
-        ).one()
+        )
+        return db.session.scalars(stmt).one()
 
 
 @statsd(namespace="dao")
 def dao_get_notifications_by_references(references):
-    return Notification.query.filter(
+    stmt = select(Notification).where(
         Notification.reference.in_(references)
-    ).all()
+    )
+    return db.session.scalars(stmt).all()
 
 
 @statsd(namespace="dao")
@@ -798,21 +802,25 @@ def dao_created_scheduled_notification(scheduled_notification):
 
 @statsd(namespace="dao")
 def dao_get_scheduled_notifications():
-    notifications = Notification.query.join(
-        ScheduledNotification
-    ).filter(
-        ScheduledNotification.scheduled_for < datetime.utcnow(),
-        ScheduledNotification.pending).all()
-
+    stmt = (
+        select(Notification)
+        .join(ScheduledNotification)
+        .where(
+            ScheduledNotification.scheduled_for < datetime.utcnow(),
+            ScheduledNotification.pending == True
+        )
+    )
+    notifications = db.session.scalars(stmt).all()
     return notifications
 
 
 def set_scheduled_notification_to_processed(notification_id):
-    db.session.query(ScheduledNotification).filter(
+    stmt = update(ScheduledNotification).where(
         ScheduledNotification.notification_id == notification_id
-    ).update(
-        {'pending': False}
+    ).values(
+        pending=False
     )
+    db.session.execute(stmt)
     db.session.commit()
 
 
@@ -830,7 +838,7 @@ def dao_get_total_notifications_sent_per_day_for_performance_platform(start_date
     notification_type != 'letter';
     """
     under_10_secs = Notification.sent_at - Notification.created_at <= timedelta(seconds=10)
-    sum_column = functions.coalesce(functions.sum(
+    sum_column = functions.coalesce(func.sum(
         case(
             [
                 (under_10_secs, 1)
@@ -838,65 +846,75 @@ def dao_get_total_notifications_sent_per_day_for_performance_platform(start_date
             else_=0
         )
     ), 0)
-
-    return db.session.query(
-        func.count(Notification.id).label('messages_total'),
-        sum_column.label('messages_within_10_secs')
-    ).filter(
-        Notification.created_at >= start_date,
-        Notification.created_at < end_date,
-        Notification.api_key_id.isnot(None),
-        Notification.key_type != KEY_TYPE_TEST,
-        Notification.notification_type != LETTER_TYPE
-    ).one()
+    stmt = (
+        select(
+            func.count(Notification.id).label('messages_total'),
+            sum_column.label('messages_within_10_secs')
+        )
+        .where(
+            Notification.created_at >= start_date,
+            Notification.created_at < end_date,
+            Notification.api_key_id.isnot(None),
+            Notification.key_type != KEY_TYPE_TEST,
+            Notification.notification_type != LETTER_TYPE
+        )
+    )
+    return db.session.execute(stmt).one()
 
 
 @statsd(namespace="dao")
 def dao_get_last_notification_added_for_job_id(job_id):
-    last_notification_added = Notification.query.filter(
-        Notification.job_id == job_id
-    ).order_by(
-        Notification.job_row_number.desc()
-    ).first()
-
+    stmt = (
+        select(Notification)
+        .where(Notification.job_id == job_id)
+        .order_by(Notification.job_row_number.desc())
+    )
+    last_notification_added = db.session.scalars(stmt).first()
     return last_notification_added
 
 
 def notifications_not_yet_sent(should_be_sending_after_seconds, notification_type):
     older_than_date = datetime.utcnow() - timedelta(seconds=should_be_sending_after_seconds)
-
-    notifications = Notification.query.filter(
-        Notification.created_at <= older_than_date,
-        Notification.notification_type == notification_type,
-        Notification.status == NOTIFICATION_CREATED,
-        Notification.to is not None
-    ).all()
+    stmt = (
+        select(Notification)
+        .where(
+            Notification.created_at <= older_than_date,
+            Notification.notification_type == notification_type,
+            Notification.status == NOTIFICATION_CREATED,
+            Notification.to.isnot(None)
+        )
+    )
+    notifications = db.session.scalars(stmt).all()
     return notifications
 
 
 def dao_old_letters_with_created_status():
     yesterday_bst = convert_utc_to_local_timezone(datetime.utcnow()) - timedelta(days=1)
     last_processing_deadline = yesterday_bst.replace(hour=17, minute=30, second=0, microsecond=0)
-
-    notifications = Notification.query.filter(
-        Notification.updated_at < convert_local_timezone_to_utc(last_processing_deadline),
-        Notification.notification_type == LETTER_TYPE,
-        Notification.status == NOTIFICATION_CREATED
-    ).order_by(
-        Notification.updated_at
-    ).all()
+    stmt = (
+        select(Notification)
+        .where(
+            Notification.updated_at < convert_local_timezone_to_utc(last_processing_deadline),
+            Notification.notification_type == LETTER_TYPE,
+            Notification.status == NOTIFICATION_CREATED
+        )
+        .order_by(Notification.updated_at)
+    )
+    notifications = db.session.scalars(stmt).all()
     return notifications
 
 
 def dao_precompiled_letters_still_pending_virus_check():
     ninety_minutes_ago = datetime.utcnow() - timedelta(seconds=5400)
-
-    notifications = Notification.query.filter(
-        Notification.created_at < ninety_minutes_ago,
-        Notification.status == NOTIFICATION_PENDING_VIRUS_CHECK
-    ).order_by(
-        Notification.created_at
-    ).all()
+    stmt = (
+        select(Notification)
+        .where(
+            Notification.created_at < ninety_minutes_ago,
+            Notification.status == NOTIFICATION_PENDING_VIRUS_CHECK
+        )
+        .order_by(Notification.created_at)
+    )
+    notifications = db.session.scalars(stmt).all()
     return notifications
 
 
