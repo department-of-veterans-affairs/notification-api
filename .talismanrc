@@ -264,7 +264,7 @@ fileignoreconfig:
     - filename: tests/app/notifications/test_rest.py
       checksum: ec555c89226d015256bb3186aefa7763282eac14cadbc63f37fe8ff5c9efeef0
     - filename: app/dao/fact_notification_status_dao.py
-      checksum: 1503b15fb58257b12b4857659323a5ca9b97784b2344148097298c70d69d4eca
+      checksum: b6526232073d1b7f96b0ac34b4f71b2cd4a2023cbc4c57e6a706676ad2ca657f
     - filename: app/celery/reporting_tasks.py
       checksum: 67ec9a493909de38cacb8967b84f2b97318fbf51fac93129e46d90dae74e52cf
     - filename: tests/app/va/vetext/test_client.py
