@@ -7,7 +7,6 @@ Create Date: 2023-11-30 21:40:23.546531
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision = '0366_add_sessions_table'
 down_revision = '0365_add_notification_failures'
