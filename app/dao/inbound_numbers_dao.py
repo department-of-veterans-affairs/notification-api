@@ -1,12 +1,13 @@
-from typing import Optional, List
-
 from app import db
 from app.dao.dao_utils import transactional
 from app.models import InboundNumber
+from sqlalchemy import select
+from typing import Optional, List
 
 
 def dao_get_inbound_numbers():
-    return InboundNumber.query.order_by(InboundNumber.updated_at).all()
+    query = select(InboundNumber).order_by(InboundNumber.updated_at)
+    return db.session.scalars(query).all()
 
 
 def dao_get_available_inbound_numbers():

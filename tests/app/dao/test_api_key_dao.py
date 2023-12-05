@@ -48,7 +48,7 @@ def test_save_api_key_should_create_new_api_key_and_history(notify_db_session, s
         for api_key in all_api_keys:
             notify_db_session.session.delete(api_key)
         notify_db_session.session.commit()
-        
+
 
 def test_expire_api_key_should_update_the_api_key_and_create_history_record(sample_api_key):
     api_key = sample_api_key()

@@ -2195,10 +2195,10 @@ def sample_inbound_sms(notify_db_session, sample_service, sample_inbound_number)
 
 
 @pytest.fixture
-def sample_inbound_number(notify_db_session, sample_service):
+def sample_inbound_number(notify_db_session):
     inbound_number_ids = []
 
-    def _wrapper(
+    def _sample_inbound_number(
         number=None,
         provider='ses',
         active=True,
@@ -2225,7 +2225,7 @@ def sample_inbound_number(notify_db_session, sample_service):
 
         return inbound_number
 
-    yield _wrapper
+    yield _sample_inbound_number
 
     # Teardown
     for inbound_number_id in inbound_number_ids:
@@ -2238,15 +2238,13 @@ def sample_inbound_number(notify_db_session, sample_service):
 
 
 @pytest.fixture
-def sample_inbound_numbers(
-    sample_inbound_number,
-    sample_service,
-):
-    service = sample_service(service_name='sample service 2', check_if_service_exists=True)
-    inbound_numbers = list()
-    inbound_numbers.append(sample_inbound_number(number='1', provider='mmg'))
-    inbound_numbers.append(sample_inbound_number(number='2', provider='mmg', active=False, service_id=service.id))
-    inbound_numbers.append(sample_inbound_number(number='3', provider='firetext', service_id=service.id))
+def sample_inbound_numbers(sample_service, sample_inbound_number):
+    service = sample_service(service_name=str(uuid4()), check_if_service_exists=True)
+    inbound_numbers = [
+        sample_inbound_number(number='1', provider='mmg'),
+        sample_inbound_number(number='2', provider='mmg', active=False, service_id=service.id),
+        sample_inbound_number(number='3', provider='firetext', service_id=service.id),
+    ]
     return inbound_numbers
 
 

@@ -1,16 +1,5 @@
-from random import choice
 import string
-
-from app.models import InboundNumber, Service
-
-
-def sample_inbound_number(service: Service = None, number: str = None) -> InboundNumber:
-    return InboundNumber(
-        number=number or _random_phone_number(),
-        provider='some provider',
-        active=True,
-        service=service
-    )
+from random import choice
 
 
 # Should match phonumbers library validations for US
