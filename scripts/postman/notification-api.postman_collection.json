@@ -6118,7 +6118,7 @@
 			"name": "/inbound-number",
 			"item": [
 				{
-					"name": "create inbound number",
+					"name": "create inbound-number",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -6204,7 +6204,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"number\": \"53941\",\n    \"provider\": \"pinpoint\"\n}"
+							"raw": "{\n    \"number\": \"2234567890\",\n    \"provider\": \"pinpoint|twilio\",\n    \"service_id\": \"d6aa2c68-uuid-xxxx-xxx-3ae8eb202553\",\n    \"auth_parameter\": \"two-way/example/param\",\n    \"self_managed\": true,\n    \"url_endpoint\": \"example-url.endpoint\"\n}"
 						},
 						"url": {
 							"raw": "{{notification-api-url}}/inbound-number",
@@ -6501,7 +6501,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"number\": \"53941\",\n    \"provider\": \"pinpoint\"\n}"
+							"raw": "{\n    \"service_id\": \"d6aa2c68-uuid-xxxx-xxx-3ae8eb202553\",\n    \"number\": \"55555\",\n    \"provider\": \"updated-provider-pinpoint\",\n    \"self_managed\": true,\n    \"url_endpoint\": \"updated.url.endpoint\",\n    \"auth_parameter\": \"updated-auth-param\"\n}"
 						},
 						"url": {
 							"raw": "{{notification-api-url}}/inbound-number/:inbound-number-id",
@@ -6515,7 +6515,7 @@
 							"variable": [
 								{
 									"key": "inbound-number-id",
-									"value": ""
+									"value": "2d5f4534-uuid-xxxx-xxxx-79ff0441f241"
 								}
 							]
 						}
