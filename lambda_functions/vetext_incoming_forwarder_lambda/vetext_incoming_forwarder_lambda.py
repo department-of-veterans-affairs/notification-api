@@ -20,7 +20,7 @@ HTTPTIMEOUT = (3.05, 1)
 
 # Duplicated in delivery_status_processor.
 def validate_twilio_event(event):
-    ssm_client = boto3.client('ssm')
+    ssm_client = boto3.client('ssm', 'us-gov-west-1')
     uri = f"https://{event['headers']['host']}/twoway/vettext"
     auth_token = os.getenv('TWILIO_AUTH_TOKEN', '')
     # avoid key error

@@ -38,7 +38,7 @@ except ValueError:
 
 # Duplicated in vetext_incoming_forwarder.
 def validate_twilio_event(event):
-    ssm_client = boto3.client('ssm')
+    ssm_client = boto3.client('ssm', 'us-gov-west-1')
     uri = f"https://{event['headers']['host']}/twoway/vettext"
     auth_ssn_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
     if not auth_ssn_key:
