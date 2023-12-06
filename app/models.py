@@ -482,9 +482,9 @@ class ReplyToInbox(db.Model):
 
 class Session(db.Model):
     __tablename__ = "sessions"
-    id = db.Column(db.Integer, primary_key=True, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.String, nullable=False, index=True)
-    data = db.Column('data', db.Text, nullable=False)
+    data = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=True, index=True, onupdate=datetime.datetime.utcnow)
 
