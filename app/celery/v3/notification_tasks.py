@@ -97,37 +97,37 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
     )
 
     # TODO - Catch db connection errors and retry?
-    query = select(Template).where(Template.id == request_data["template_id"])
     with get_reader_session() as reader_session:
+        query = select(Template).where(Template.id == request_data["template_id"])
         try:
             template = reader_session.execute(query).one().Template
             notification.template_version = template.version
-        except (MultipleResultsFound, NoResultFound):
+        except NoResultFound:
             notification.status = NOTIFICATION_PERMANENT_FAILURE
             notification.status_reason = "The template does not exist."
-            v3_persist_failed_notification(
-                notification,
-                f"Notification {notification.id} specified nonexistent template {notification.template_id}."
-            )
+            err = f"Notification {notification.id} specified nonexistent template {notification.template_id}."
+            v3_persist_failed_notification(notification, err)
+            return
+        except MultipleResultsFound:
+            notification.status = NOTIFICATION_PERMANENT_FAILURE
+            notification.status_reason = "Multiple templates found."
+            err = f"Multiple templates with id {request_data['template_id']} found. Notification {notification.id}."
+            v3_persist_failed_notification(notification, err)
             return
 
     notification.template_version = template.version
     if service_id != template.service_id:
         notification.status = NOTIFICATION_PERMANENT_FAILURE
         notification.status_reason = "The service does not own the template."
-        v3_persist_failed_notification(
-            notification,
-            f"The service with ID '{service_id}' does not own the template with service ID '{template.service_id}'"
-        )
+        err = f"Service {service_id} doesn't own template {template.id}."
+        v3_persist_failed_notification(notification, err)
         return
 
     if request_data["notification_type"] != template.template_type:
         notification.status = NOTIFICATION_PERMANENT_FAILURE
         notification.status_reason = "The template type does not match the notification type."
-        v3_persist_failed_notification(
-            notification,
-            f"The template type '{request_data.get('notification_type')}' does not match '{template.template_type}'."
-        )
+        err = f"The template type '{request_data.get('notification_type')}' does not match '{template.template_type}'."
+        v3_persist_failed_notification(notification, err)
         return
 
     if notification.to is None:
@@ -135,10 +135,8 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
         # TODO
         notification.status = NOTIFICATION_TECHNICAL_FAILURE
         notification.status_reason = "Sending with recipient_identifer is not yet implemented."
-        v3_persist_failed_notification(
-            notification,
-            "notification.to is None. Sending with recipient_identifer is not yet implemented."
-        )
+        err = "notification.to is None. Sending with recipient_identifer is not yet implemented."
+        v3_persist_failed_notification(notification, err)
         return
 
     if notification.notification_type == EMAIL_TYPE:
@@ -286,6 +284,18 @@ def v3_send_sms_notification(notification: Notification, sender_phone_number: st
 
 
 def v3_persist_permanent_failure(notification: Notification):
+    """
+    Function takes a notification object, serializes its permanent failure state,
+    and stores it in the database. It creates a new `NotificationFailures` entry with
+    the serialized data and associates it with the notification's ID.
+
+    Parameters:
+    - notification (Notification): The notification object with a permanent failure.
+
+    Raises:
+    - Exception: If any error occurs during serialization, database addition, or commit,
+      the the database transaction is rolled back.
+    """
     try:
         notification_json = notification.serialize_permanent_failure()
         notification_failure = NotificationFailures(
@@ -296,7 +306,7 @@ def v3_persist_permanent_failure(notification: Notification):
         db.session.commit()
     except Exception as err:
         db.session.rollback()
-        current_app.logger.error("Unable to save permanent failure. Error: '%s'", err)
+        current_app.logger.critical("Unable to save permanent failure. Error: '%s'", err)
 
 
 def v3_persist_failed_notification(notification: Notification, error_reason: str):
@@ -316,4 +326,4 @@ def v3_persist_failed_notification(notification: Notification, error_reason: str
             db.session.commit()
         except Exception as err:
             db.session.rollback()
-            current_app.logger.error("Unable to save Notification '%s'. Error: '%s'", notification.id, err)
+            current_app.logger.critical("Unable to save Notification '%s'. Error: '%s'", notification.id, err)
