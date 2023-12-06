@@ -166,9 +166,8 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
             notification.sms_sender_id = None
             notification.status = NOTIFICATION_PERMANENT_FAILURE
             notification.status_reason = "SMS sender does not exist."
-            v3_persist_failed_notification(
-                notification, f"SMS sender with id '{notification.sms_sender_id}' does not exist."
-            )
+            err = f"SMS sender with id '{notification.sms_sender_id}' does not exist."
+            v3_persist_failed_notification(notification, err)
 
     return
 
