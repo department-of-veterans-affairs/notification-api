@@ -20,10 +20,22 @@ HTTPTIMEOUT = (3.05, 1)
 
 # Duplicated in delivery_status_processor.
 def validate_twilio_event(event):
+    ssm_client = boto3.client('ssm')
     uri = f"https://{event['headers']['host']}/twoway/vettext"
     auth_token = os.getenv('TWILIO_AUTH_TOKEN', '')
     # avoid key error
     signature = event['headers'].get('x-twilio-signature', False)
+    auth_ssn_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
+    if not auth_ssn_key:
+        logger.error('TWILIO_AUTH_TOKEN_SSM_NAME')
+        return False
+
+    response = ssm_client.get_parameter(
+        Name=auth_ssn_key,
+        WithDecryption=True
+    )
+    auth_token = json.loads(response["Parameter"]["Value"])
+
     if not auth_token or not signature:
         logger.error("TWILIO_AUTH_TOKEN not set")
         return False
