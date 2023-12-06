@@ -1,19 +1,38 @@
 """ This module is used to transfer incoming twilio requests to a Vetext endpoint. """
 
 import json
-import requests
-import os
 import logging
-from urllib.parse import parse_qsl
+import os
 from base64 import b64decode
 from functools import lru_cache
+from urllib.parse import parse_qsl
+
 import boto3
+import requests
+from twilio.request_validator import RequestValidator
 
 logger = logging.getLogger("vetext_incoming_forwarder_lambda")
 logger.setLevel(logging.INFO)
 
 # http timeout for calling vetext endpoint
 HTTPTIMEOUT = (3.05, 1)
+
+
+# Duplicated in delivery_status_processor.
+def validate_twilio_event(event):
+    uri = f"https://{event['headers']['host']}/twoway/vettext"
+    auth_token = os.getenv('TWILIO_AUTH_TOKEN', '')
+    # avoid key error
+    signature = event['headers'].get('x-twilio-signature', False)
+    if not auth_token or not signature:
+        logger.error("TWILIO_AUTH_TOKEN not set")
+        return False
+    validator = RequestValidator(auth_token)
+    return validator.validate(
+        uri=uri,
+        params={'body': event['body']},
+        signature=event['headers']['x-twilio-signature']
+    )
 
 
 def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
@@ -30,6 +49,8 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
         #   ALB will submit a single request but to simplify code, it will also return an array of event bodies
         if "requestContext" in event and "elb" in event["requestContext"]:
             logger.info("alb invocation")
+            if context and not validate_twilio_event(event):
+                return create_twilio_response(403)
             event_bodies = process_body_from_alb_invocation(event)
         elif "Records" in event:
             logger.info("sqs invocation")
