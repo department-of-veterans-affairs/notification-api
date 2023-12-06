@@ -22,7 +22,6 @@ HTTPTIMEOUT = (3.05, 1)
 def validate_twilio_event(event):
     ssm_client = boto3.client('ssm', 'us-gov-west-1')
     uri = f"https://{event['headers']['host']}/twoway/vettext"
-    auth_token = os.getenv('TWILIO_AUTH_TOKEN', '')
     # avoid key error
     signature = event['headers'].get('x-twilio-signature', False)
     auth_ssn_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
