@@ -1,11 +1,11 @@
 """ This module is used to transfer incoming twilio requests to a Vetext endpoint. """
-
+import base64
 import json
 import logging
 import os
 from base64 import b64decode
 from functools import lru_cache
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qsl, parse_qs
 
 import boto3
 import requests
@@ -20,10 +20,8 @@ HTTPTIMEOUT = (3.05, 1)
 
 # Duplicated in delivery_status_processor.
 def validate_twilio_event(event):
+    logger.info('validating twilio vetext forwarder event')
     ssm_client = boto3.client('ssm', 'us-gov-west-1')
-    uri = f"https://{event['headers']['host']}/twoway/vettext"
-    # avoid key error
-    signature = event['headers'].get('x-twilio-signature', False)
     auth_ssm_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
     if not auth_ssm_key:
         logger.error('TWILIO_AUTH_TOKEN_SSM_NAME')
@@ -34,14 +32,20 @@ def validate_twilio_event(event):
         WithDecryption=True
     )
     auth_token = response.get("Parameter").get("Value")
+    signature = event['headers'].get('x-twilio-signature', False)
 
     if not auth_token or not signature:
-        logger.error("TWILIO_AUTH_TOKEN not set")
+        logger.error("TWILIO_AUTH_TOKEN or signature not set")
         return False
+
     validator = RequestValidator(auth_token)
+    uri = f"https://{event['headers']['host']}/vanotify/twoway/vettext"
+    decoded = base64.b64decode(event.get("body")).decode()
+    params = parse_qs(decoded)
+    params = {k: v[0] for k, v in params.items()}
     return validator.validate(
         uri=uri,
-        params={'body': event['body']},
+        params=params,
         signature=event['headers']['x-twilio-signature']
     )
 

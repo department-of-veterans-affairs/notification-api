@@ -6,7 +6,7 @@ import sys
 import uuid
 import base64
 from typing import Optional
-
+from urllib.parse import parse_qs
 import boto3
 from twilio.request_validator import RequestValidator
 
@@ -38,32 +38,33 @@ except ValueError:
 
 # Duplicated in vetext_incoming_forwarder.
 def validate_twilio_event(event):
-    logger.info('validating twilio event')
+    logger.info('validating twilio delivery event')
     ssm_client = boto3.client('ssm', 'us-gov-west-1')
-    uri = f"https://{event['headers']['host']}/sms/deliverystatus"
     auth_ssm_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
     if not auth_ssm_key:
         logger.error('TWILIO_AUTH_TOKEN_SSM_NAME not set')
         return False
-    logger.info("have ssn key!")
+
     response = ssm_client.get_parameter(
         Name=auth_ssm_key,
         WithDecryption=True
     )
-
     auth_token = response.get("Parameter").get("Value")
-
-    # avoid key error
     signature = event['headers'].get('x-twilio-signature', '')
-    # take out?
-    logger.info("Have signature %s" % signature)
+
     if not auth_token or not signature:
-        logger.error("TWILIO_AUTH_TOKEN or x-twilio-signature not set")
+        logger.error("TWILIO_AUTH_TOKEN or signature not set")
         return False
+
     validator = RequestValidator(auth_token)
+    uri = f"https://{event['headers']['host']}/vanotify/sms/deliverystatus"
+    decoded = base64.b64decode(event.get("body")).decode()
+    params = parse_qs(decoded)
+    params = {k: v[0] for k, v in params.items()}
+    # logger.info(f'{params=}')
     return validator.validate(
         uri=uri,
-        params={'body': event['body']},
+        params=params,
         signature=signature
     )
 
@@ -74,6 +75,11 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
     @param: context -  contains information regarding information
         regarding what triggered the lambda (context.invoked_function_arn).
     """
+    try:
+        logger.info("KWM delivery zero: %s", event)
+        logger.info("KWM delivery one: %s", base64.b64decode(event['body']))
+    except:
+        logger.critical("Failed to log the event!")
 
     try:
         logger.debug("Event: %s", event)
@@ -93,7 +99,8 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
             return {
                 "statusCode": 403,
             }
-
+        else:
+            logger.info('AUTHENTICATED REQUEST')
         if context:
             logger.info("has context")
 
