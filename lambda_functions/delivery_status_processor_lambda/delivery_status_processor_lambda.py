@@ -38,8 +38,6 @@ except ValueError:
 
 # Duplicated in vetext_incoming_forwarder.
 def validate_twilio_event(event):
-    decoded = base64.b64decode(event.get("body"))
-
     logger.info('validating twilio event')
     ssm_client = boto3.client('ssm', 'us-gov-west-1')
     uri = f"https://{event['headers']['host']}/sms/deliverystatus"
@@ -60,9 +58,8 @@ def validate_twilio_event(event):
     # take out?
     logger.info("Have signature %s" % signature)
     if not auth_token or not signature:
-        logger.error("TWILIO_AUTH_TOKEN not set")
+        logger.error("TWILIO_AUTH_TOKEN or x-twilio-signature not set")
         return False
-    logger.info
     validator = RequestValidator(auth_token)
     return validator.validate(
         uri=uri,
