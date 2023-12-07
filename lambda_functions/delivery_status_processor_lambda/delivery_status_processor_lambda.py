@@ -38,20 +38,23 @@ except ValueError:
 
 # Duplicated in vetext_incoming_forwarder.
 def validate_twilio_event(event):
+    logger.info('validating twilio event')
     ssm_client = boto3.client('ssm', 'us-gov-west-1')
     uri = f"https://{event['headers']['host']}/sms/deliverystatus"
     auth_ssn_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
     if not auth_ssn_key:
-        logger.error('TWILIO_AUTH_TOKEN_SSM_NAME')
+        logger.error('TWILIO_AUTH_TOKEN_SSM_NAME not set')
         return False
-
+    logger.info("have ssn key!")
     response = ssm_client.get_parameter(
         Name=auth_ssn_key,
         WithDecryption=True
     )
     auth_token = json.loads(response["Parameter"]["Value"])
+    logger.info(f"Length auth key {len(auth_token)}")
     # avoid key error
-    signature = event['headers'].get('x-twilio-signature', False)
+    signature = event['headers'].get('x-twilio-signature', '')
+    logger.info(f"Have signature {signature}")
     if not auth_token or not signature:
         logger.error("TWILIO_AUTH_TOKEN not set")
         return False
@@ -59,7 +62,7 @@ def validate_twilio_event(event):
     return validator.validate(
         uri=uri,
         params={'body': event['body']},
-        signature=event['headers']['x-twilio-signature']
+        signature=signature
     )
 
 
@@ -81,7 +84,14 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
         logger.debug(event["body"])
 
         celery_body = event_to_celery_body_mapping(event)
-        if celery_body['provider'] == 'twilio' and not validate_twilio_event(event):
+        has_context = "NO CONTEXT"
+        if context:
+            has_context = "Have context"
+
+        logger.info(f"Provider: {celery_body['provider']} {has_context}")
+        if celery_body['provider'] == 'twilio' \
+                and context \
+                and not validate_twilio_event(event):
             return {
                 "statusCode": 403,
             }
