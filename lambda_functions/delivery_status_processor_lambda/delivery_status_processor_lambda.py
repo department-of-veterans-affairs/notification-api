@@ -41,21 +41,21 @@ def validate_twilio_event(event):
     logger.info('validating twilio event')
     ssm_client = boto3.client('ssm', 'us-gov-west-1')
     uri = f"https://{event['headers']['host']}/sms/deliverystatus"
-    auth_ssn_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
-    if not auth_ssn_key:
+    auth_ssm_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
+    if not auth_ssm_key:
         logger.error('TWILIO_AUTH_TOKEN_SSM_NAME not set')
         return False
     logger.info("have ssn key!")
     response = ssm_client.get_parameter(
-        Name=auth_ssn_key,
+        Name=auth_ssm_key,
         WithDecryption=True
     )
-    logger.info(response)
-    auth_token = json.loads(response["Parameter"]["Value"])
-    auth_length = str(len(auth_token))
-    logger.info("Length auth key %s" % auth_length)
+
+    auth_token = response.get("Parameter").get("Value")
+
     # avoid key error
     signature = event['headers'].get('x-twilio-signature', '')
+    # take out?
     logger.info("Have signature %s" % signature)
     if not auth_token or not signature:
         logger.error("TWILIO_AUTH_TOKEN not set")

@@ -24,16 +24,16 @@ def validate_twilio_event(event):
     uri = f"https://{event['headers']['host']}/twoway/vettext"
     # avoid key error
     signature = event['headers'].get('x-twilio-signature', False)
-    auth_ssn_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
-    if not auth_ssn_key:
+    auth_ssm_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
+    if not auth_ssm_key:
         logger.error('TWILIO_AUTH_TOKEN_SSM_NAME')
         return False
 
     response = ssm_client.get_parameter(
-        Name=auth_ssn_key,
+        Name=auth_ssm_key,
         WithDecryption=True
     )
-    auth_token = json.loads(response["Parameter"]["Value"])
+    auth_token = response.get("Parameter").get("Value")
 
     if not auth_token or not signature:
         logger.error("TWILIO_AUTH_TOKEN not set")
