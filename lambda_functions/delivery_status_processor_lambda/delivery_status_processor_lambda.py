@@ -50,8 +50,10 @@ def validate_twilio_event(event):
         Name=auth_ssn_key,
         WithDecryption=True
     )
+    logger.info(response)
     auth_token = json.loads(response["Parameter"]["Value"])
-    logger.info("Length auth key %s" % str(len(auth_token)))
+    auth_length = str(len(auth_token))
+    logger.info("Length auth key %s" % auth_length)
     # avoid key error
     signature = event['headers'].get('x-twilio-signature', '')
     logger.info("Have signature %s" % signature)
