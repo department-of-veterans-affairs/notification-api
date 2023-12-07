@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: VA Notify API Documentation
-  version: 1.0.4
+  version: 1.0.5
   description: |
     <p>This documents the API schemas for consumption by internal VA developers.</p>
     <h1>Authorization header</h1>
@@ -1477,7 +1477,25 @@ paths:
         content:
           application/json:
             schema: 
-              $ref: "#/components/schemas/InboundNumberRequestData"
+              $ref: "#/components/schemas/InboundNumberCreateRequest"
+            examples:
+              selfManagedFalse:
+                value:
+                  active: true
+                  number: "123456789"
+                  provider: "ExampleProvider"
+                  self_managed: false
+                  service_id: "uuid-service-id"
+                  auth_parameter: "authKey123"
+              selfManagedTrue-url-required:
+                value:
+                  active: true
+                  number: "987654321"
+                  provider: "ExampleProvider"
+                  self_managed: true
+                  service_id: "uuid-service-id"
+                  url_endpoint: "http://example.com/api"
+                  auth_parameter: "authKey987"
       responses:
         "201":
           description: Created
@@ -1524,7 +1542,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/InboundNumberRequestData"
+              $ref: "#/components/schemas/InboundNumberUpdateRequest"
       responses:
         "200":
           description: OK
@@ -2597,7 +2615,7 @@ components:
           nullable: true
         url_endpoint:
           type: string
-    InboundNumberRequestData:
+    InboundNumberUpdateRequest:
       type: object
       properties:
         active:
@@ -2610,17 +2628,44 @@ components:
           type: string
         self_managed:
           type: boolean
+          description: "If this is true, 'url_endpoint' is required."
         service_id:
           type: string
           format: uuid
           nullable: true
         url_endpoint:
           type: string
+          description: "Required when 'self_managed' is true."
+      additionalProperties: false
+      minProperties: 1
+    InboundNumberCreateRequest:
+      type: object
+      properties:
+        active:
+          type: boolean
+        auth_parameter:
+          type: string
+        number:
+          type: string
+        provider:
+          type: string
+        self_managed:
+          type: boolean
+          description: "If this is true, 'url_endpoint' is required."
+        service_id:
+          type: string
+        url_endpoint:
+          type: string
+          description: "Required when 'self_managed' is true."
+      required:
+        - number
+        - provider
+      additionalProperties: false
     InboundNumberCreateResponse:
       type: object
       properties:
         data:
-          $ref: "#components/schemas/InboundNumberResponseData"
+          $ref: "#/components/schemas/InboundNumberResponseData"
     InboundNumbersGetResponse:
       type: object
       properties:
