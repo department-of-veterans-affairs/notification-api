@@ -38,6 +38,8 @@ except ValueError:
 
 # Duplicated in vetext_incoming_forwarder.
 def validate_twilio_event(event):
+    decoded = base64.b64decode(event.get("body"))
+
     logger.info('validating twilio event')
     ssm_client = boto3.client('ssm', 'us-gov-west-1')
     uri = f"https://{event['headers']['host']}/sms/deliverystatus"
@@ -60,6 +62,7 @@ def validate_twilio_event(event):
     if not auth_token or not signature:
         logger.error("TWILIO_AUTH_TOKEN not set")
         return False
+    logger.info
     validator = RequestValidator(auth_token)
     return validator.validate(
         uri=uri,
@@ -87,6 +90,9 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
         if "TwilioProxy" in event["headers"]["user-agent"] \
                 and context \
                 and not validate_twilio_event(event):
+            logger.info(context)
+            logger.info(event["headers"]["user-agent"])
+            logger.info("WE ARE IN THE TWILIO 403")
             return {
                 "statusCode": 403,
             }
