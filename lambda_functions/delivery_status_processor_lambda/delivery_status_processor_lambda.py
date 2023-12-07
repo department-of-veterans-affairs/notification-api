@@ -88,13 +88,11 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
             return {
                 "statusCode": 403,
             }
-        celery_body = event_to_celery_body_mapping(event)
-        has_context = "NO CONTEXT"
-        if context:
-            has_context = "Have context"
 
-        logger.info("Provider: %{provider}" % celery_body['provider'])
-        logger.info("Context %s" % has_context)
+        if context:
+            logger.info("has context")
+
+        celery_body = event_to_celery_body_mapping(event)
 
         if celery_body is None:
             logger.error("Unable to generate the celery body for event: %s", event)
