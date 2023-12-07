@@ -3,7 +3,6 @@ import base64
 import json
 import logging
 import os
-from base64 import b64decode
 from functools import lru_cache
 from urllib.parse import parse_qsl, parse_qs
 
@@ -56,7 +55,6 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
         @param: context -  contains information regarding information
             regarding what triggered the lambda (context.invoked_function_arn).
     """
-
     try:
         logger.debug(event)
         # Determine if the invoker of the lambda is SQS or ALB
@@ -155,7 +153,7 @@ def process_body_from_alb_invocation(event):
         logger.info("event_body from alb record was not present")
         logger.debug(event)
 
-    event_body_decoded = parse_qsl(b64decode(event_body_encoded).decode('utf-8'))
+    event_body_decoded = parse_qsl(base64.b64decode(event_body_encoded).decode('utf-8'))
     logger.debug("Decoded event body %s", event_body_decoded)
 
     event_body = dict(event_body_decoded)
@@ -167,6 +165,7 @@ def process_body_from_alb_invocation(event):
         logger.info("Removed AddOns from event_body")
 
     return [event_body]
+
 
 @lru_cache(maxsize=None)
 def read_from_ssm(key: str) -> str:

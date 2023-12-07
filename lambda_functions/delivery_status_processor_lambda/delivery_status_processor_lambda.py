@@ -76,12 +76,6 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
         regarding what triggered the lambda (context.invoked_function_arn).
     """
     try:
-        logger.info("KWM delivery zero: %s", event)
-        logger.info("KWM delivery one: %s", base64.b64decode(event['body']))
-    except:
-        logger.critical("Failed to log the event!")
-
-    try:
         logger.debug("Event: %s", event)
 
         if not valid_event(event):
