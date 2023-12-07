@@ -51,10 +51,10 @@ def validate_twilio_event(event):
         WithDecryption=True
     )
     auth_token = json.loads(response["Parameter"]["Value"])
-    logger.info(f"Length auth key {len(auth_token)}")
+    logger.info("Length auth key %s" % str(len(auth_token)))
     # avoid key error
     signature = event['headers'].get('x-twilio-signature', '')
-    logger.info(f"Have signature {signature}")
+    logger.info("Have signature %s" % signature)
     if not auth_token or not signature:
         logger.error("TWILIO_AUTH_TOKEN not set")
         return False
@@ -82,19 +82,19 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
 
         logger.info("Valid ALB request received")
         logger.debug(event["body"])
-
-        celery_body = event_to_celery_body_mapping(event)
-        has_context = "NO CONTEXT"
-        if context:
-            has_context = "Have context"
-
-        logger.info(f"Provider: {celery_body['provider']} {has_context}")
-        if celery_body['provider'] == 'twilio' \
+        if "TwilioProxy" in event["headers"]["user-agent"] \
                 and context \
                 and not validate_twilio_event(event):
             return {
                 "statusCode": 403,
             }
+        celery_body = event_to_celery_body_mapping(event)
+        has_context = "NO CONTEXT"
+        if context:
+            has_context = "Have context"
+
+        logger.info("Provider: %{provider}" % celery_body['provider'])
+        logger.info("Context %s" % has_context)
 
         if celery_body is None:
             logger.error("Unable to generate the celery body for event: %s", event)
