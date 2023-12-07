@@ -61,7 +61,7 @@ def validate_twilio_event(event):
     decoded = base64.b64decode(event.get("body")).decode()
     params = parse_qs(decoded)
     params = {k: v[0] for k, v in params.items()}
-    # logger.info(f'{params=}')
+
     return validator.validate(
         uri=uri,
         params=params,
