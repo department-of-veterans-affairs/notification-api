@@ -78,8 +78,10 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
     try:
         if 'sec-datadog' in event['headers']:
             return {"statusCode": 200}
-    except:
+    except Exception as e:
+        logger.debug("Passing on issue with synthetic test payload: %s", e)
         pass
+
     try:
         logger.debug("Event: %s", event)
 
