@@ -76,6 +76,11 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
         regarding what triggered the lambda (context.invoked_function_arn).
     """
     try:
+        if 'sec-datadog' in event['headers']:
+            return {"statusCode": 200}
+    except:
+        pass
+    try:
         logger.debug("Event: %s", event)
 
         if not valid_event(event):
