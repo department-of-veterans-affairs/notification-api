@@ -4,6 +4,7 @@ from app import db
 from app.models import InvitedOrganisationUser
 from sqlalchemy import select, delete
 
+
 def save_invited_org_user(invited_org_user):
     db.session.add(invited_org_user)
     db.session.commit()
@@ -11,7 +12,7 @@ def save_invited_org_user(invited_org_user):
 
 def get_invited_org_user(organisation_id, invited_org_user_id):
     stmt = select(InvitedOrganisationUser).where(
-        InvitedOrganisationUser.organisation_id == organisation_id, 
+        InvitedOrganisationUser.organisation_id == organisation_id,
         InvitedOrganisationUser.id == invited_org_user_id
     )
     return db.session.scalars(stmt).one()

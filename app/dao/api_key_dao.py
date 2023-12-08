@@ -37,8 +37,8 @@ def expire_api_key(service_id, api_key_id):
 def get_model_api_keys(service_id, id=None):
     if id:
         stmt = select(ApiKey).where(
-            ApiKey.id == id, 
-            ApiKey.service_id == service_id, 
+            ApiKey.id == id,
+            ApiKey.service_id == service_id,
             ApiKey.expiry_date.is_(None)
         )
         api_key = db.session.scalars(stmt).one()
@@ -47,7 +47,7 @@ def get_model_api_keys(service_id, id=None):
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
     stmt = select(ApiKey).where(
         or_(
-            ApiKey.expiry_date.is_(None), 
+            ApiKey.expiry_date.is_(None),
             func.date(ApiKey.expiry_date) > seven_days_ago
         ),
         ApiKey.service_id == service_id
@@ -61,7 +61,7 @@ def get_unsigned_secrets(service_id):
     This method can only be exposed to the Authentication of the api calls.
     """
     stmt = select(ApiKey).where(
-        ApiKey.service_id == service_id, 
+        ApiKey.service_id == service_id,
         ApiKey.expiry_date.is_(None)
     )
     api_keys = db.session.scalars(stmt).all()
@@ -74,7 +74,7 @@ def get_unsigned_secret(key_id):
     This method can only be exposed to the Authentication of the api calls.
     """
     stmt = select(ApiKey).where(
-        ApiKey.id == key_id, 
+        ApiKey.id == key_id,
         ApiKey.expiry_date.is_(None)
     )
     api_key = db.session.scalars(stmt).one()
