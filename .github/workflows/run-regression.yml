@@ -1,6 +1,17 @@
 name: Call Notification API QA Regression Tests
 
 on: 
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Notification-api deployment environment to test (dev|perf|staging)'
+        required: true
+        type: string
+      branch:
+        description: 'Will run latest SHA from branch'
+        default: 'master'
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       environment:
@@ -19,7 +30,7 @@ jobs:
     name: Trigger Regression Tests
     steps:
     - name: Trigger Regression Workflow
-      uses: convictional/trigger-workflow-and-wait@v1.6.1
+      uses: ./.github/actions/workflow-trigger-and-wait
       with:
         owner: department-of-veterans-affairs
         repo: notification-api-qa
