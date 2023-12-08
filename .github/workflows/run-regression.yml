@@ -1,0 +1,33 @@
+name: Call Notification API QA Regression Tests
+
+on: 
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Notification-api deployment environment to test (dev|perf|staging)'
+        required: true
+        type: string
+      branch:
+        description: 'Will run latest SHA from branch'
+        default: 'master'
+        required: true
+        type: string
+
+jobs:
+  trigger-regression-tests:
+    runs-on: ubuntu-latest  # specify the runner
+    name: Trigger Regression Tests
+    steps:
+    - name: Trigger Regression Workflow
+      uses: convictional/trigger-workflow-and-wait@v1.6.1
+      with:
+        owner: department-of-veterans-affairs
+        repo: notification-api-qa
+        github_token: ${{ secrets.envPAT }}
+        workflow_file_name: regression.yml
+        ref: ${{ github.event.inputs.branch }}
+        wait_interval: 1
+        client_payload: '{"environment": "${{ github.event.inputs.environment }}", "branch": "${{ github.event.inputs.branch }}"}'
+        propagate_failure: true
+        trigger_workflow: true
+        wait_workflow: true
