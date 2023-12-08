@@ -15,19 +15,19 @@ def dao_create_inbound_sms(inbound_sms):
 
 
 def dao_get_inbound_sms_for_service(service_id, user_number=None, *, limit_days=None, limit=None):
-    q = select(InboundSms).where(InboundSms.service_id == service_id).order_by(InboundSms.created_at.desc())
+    stmt = select(InboundSms).where(InboundSms.service_id == service_id).order_by(InboundSms.created_at.desc())
 
     if limit_days is not None:
         start_date = midnight_n_days_ago(limit_days)
-        q = q.filter(InboundSms.created_at >= start_date)
+        stmt = stmt.where(InboundSms.created_at >= start_date)
 
     if user_number:
-        q = q.filter(InboundSms.user_number == user_number)
+        stmt = stmt.where(InboundSms.user_number == user_number)
 
     if limit:
-        q = q.limit(limit)
+        stmt = stmt.limit(limit)
 
-    return q.all()
+    return db.session.scalars(stmt).all()
 
 
 def dao_get_paginated_inbound_sms_for_service_for_public_api(

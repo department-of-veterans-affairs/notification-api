@@ -19,18 +19,23 @@ def dao_create_or_update_annual_billing_for_year(service_id, free_sms_fragment_l
 
 
 def dao_get_annual_billing(service_id):
-    query = select(AnnualBilling).where(AnnualBilling.service_id == service_id)
-    return db.session.scalars(query).order_by(AnnualBilling.financial_year_start).all()
+    stmt = select(AnnualBilling).where(
+        AnnualBilling.service_id == service_id
+    ).order_by(
+        AnnualBilling.financial_year_start
+    )
+
+    return db.session.scalars(stmt).all()
 
 
 @transactional
 def dao_update_annual_billing_for_future_years(service_id, free_sms_fragment_limit, financial_year_start):
-    query = update(AnnualBilling).where(
+    stmt = update(AnnualBilling).where(
         AnnualBilling.service_id == service_id,
         AnnualBilling.financial_year_start > financial_year_start
     ).values(free_sms_fragment_limit=free_sms_fragment_limit)
 
-    db.session.execute(query)
+    db.session.execute(stmt)
 
 
 def dao_get_free_sms_fragment_limit_for_year(service_id, financial_year_start=None):
@@ -38,14 +43,19 @@ def dao_get_free_sms_fragment_limit_for_year(service_id, financial_year_start=No
     if financial_year_start is None:
         financial_year_start = get_current_financial_year_start_year()
 
-    query = select(AnnualBilling).where(
+    stmt = select(AnnualBilling).where(
         AnnualBilling.service_id == service_id,
         AnnualBilling.financial_year_start == financial_year_start
     )
 
-    return db.session.scalars(query).first()
+    return db.session.scalars(stmt).first()
 
 
 def dao_get_all_free_sms_fragment_limit(service_id):
-    query = select(AnnualBilling).where(AnnualBilling.service_id == service_id)
-    return db.session.scalars(query).order_by(AnnualBilling.financial_year_start).all()
+    stmt = select(AnnualBilling).where(
+        AnnualBilling.service_id == service_id
+    ).order_by(
+        AnnualBilling.financial_year_start
+    )
+
+    return db.session.scalars(stmt).all()

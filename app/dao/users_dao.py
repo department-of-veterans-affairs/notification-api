@@ -245,7 +245,7 @@ def get_user_and_accounts(user_id):
         joinedload('services.organisation'),
     )
 
-    return db.session.scalars(stmt).one()
+    return db.session.scalars(stmt).unique().one()
 
 
 @transactional

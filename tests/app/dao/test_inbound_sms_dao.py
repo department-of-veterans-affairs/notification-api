@@ -25,7 +25,6 @@ def test_get_all_inbound_sms(sample_service):
 def test_get_all_inbound_sms_when_none_exist(sample_service):
     res = dao_get_inbound_sms_for_service(sample_service.id)
     assert len(res) == 0
-    assert False  # TODO
 
 
 def test_get_all_inbound_sms_limits_and_orders(sample_service):
