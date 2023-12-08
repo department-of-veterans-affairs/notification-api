@@ -26,7 +26,7 @@ jobs:
         github_token: ${{ secrets.envPAT }}
         workflow_file_name: regression.yml
         ref: ${{ github.event.inputs.branch }}
-        wait_interval: 1
+        wait_interval: 10
         client_payload: '{"environment": "${{ github.event.inputs.environment }}", "branch": "${{ github.event.inputs.branch }}"}'
         propagate_failure: true
         trigger_workflow: true

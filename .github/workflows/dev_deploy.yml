@@ -65,3 +65,11 @@ jobs:
       environment: "${{ inputs.environment }}"
       ref: "${{ needs.setup-environment.outputs.git-hash }}"
     secrets: inherit
+
+  run-regression:
+    needs: [run-deployment]
+    uses: ./.github/workflows/run-regression.yml
+    with:
+      environment: "${{ inputs.environment }}"
+      # branch: "master"    # This line is unecessary since run-regression will default to master
+    secrets: inherit    # This line is necessary so that the workflow_call can access the envPAT
