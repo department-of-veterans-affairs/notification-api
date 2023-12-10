@@ -72,8 +72,7 @@ def validate_twilio_event(event):
 def delivery_status_processor_lambda_handler(event: any, context: any):
     """this method takes in an event passed in by either an alb.
     @param: event   -  contains data pertaining to an sms delivery status from the external provider
-    @param: context -  contains information regarding information
-        regarding what triggered the lambda (context.invoked_function_arn).
+    @param: context -  AWS context sent by ALB to all events. Over ridden by unit tests as skip trigger.
     """
     try:
         logger.debug("Event: %s", event)
@@ -87,16 +86,12 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
         if "TwilioProxy" in event["headers"]["user-agent"] \
                 and context \
                 and not validate_twilio_event(event):
-            logger.info(context)
-            logger.info(event["headers"]["user-agent"])
-            logger.info("WE ARE IN THE TWILIO 403")
+            logger.info("Returning 403 on unauthenticated Twilio request")
             return {
                 "statusCode": 403,
             }
         else:
-            logger.info('AUTHENTICATED REQUEST')
-        if context:
-            logger.info("has context")
+            logger.info('Authenticated Twilio request')
 
         celery_body = event_to_celery_body_mapping(event)
 
