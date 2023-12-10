@@ -75,6 +75,12 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
     @param: context -  AWS context sent by ALB to all events. Over ridden by unit tests as skip trigger.
     """
     try:
+        if 'sec-datadog' in event['headers']:
+            return {"statusCode": 200}
+    except Exception as e:
+        logger.debug("Passing on issue with synthetic test payload: %s", e)
+
+    try:
         logger.debug("Event: %s", event)
 
         if not valid_event(event):
