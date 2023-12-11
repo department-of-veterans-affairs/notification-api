@@ -82,10 +82,10 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
             return create_twilio_response(500)
 
         logger.info("Successfully processed event to event_bodies")
-        logger.debug(event_bodies)
+        logger.info(event_bodies)
 
         for event_body in event_bodies:
-            logger.debug("Processing event_body: %s", event_body)
+            logger.info("Processing event_body: %s", event_body)
 
             response = make_vetext_request(event_body)
 
@@ -129,7 +129,7 @@ def process_body_from_sqs_invocation(event):
 
             if not event_body:
                 logger.info("event_body from sqs record was not present")
-                logger.debug(record)
+                logger.info(record)
                 continue
 
             logger.debug("Processing record body from SQS: %s", event_body)
@@ -158,13 +158,13 @@ def process_body_from_alb_invocation(event):
 
     if not event_body_encoded:
         logger.info("event_body from alb record was not present")
-        logger.debug(event)
+        logger.info(event)
 
     event_body_decoded = parse_qsl(base64.b64decode(event_body_encoded).decode('utf-8'))
-    logger.debug("Decoded event body %s", event_body_decoded)
+    logger.info("Decoded event body %s", event_body_decoded)
 
     event_body = dict(event_body_decoded)
-    logger.debug("Converted body to dictionary: %s", event_body)
+    logger.info("Converted body to dictionary: %s", event_body)
 
     if 'AddOns' in event_body:
         logger.info("AddOns present in event_body: %s", event_body["AddOns"])
@@ -252,7 +252,7 @@ def make_vetext_request(request_body):
         response.raise_for_status()
         
         logger.info("VeText call complete with response: %d", response.status_code)
-        logger.debug("VeText response: %s", response.content)
+        logger.info("VeText response: %s", response.content)
         return response.content
     except requests.HTTPError as e:
         logger.error("HTTPError With Call To VeText")
