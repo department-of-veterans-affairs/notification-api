@@ -60,7 +60,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
             regarding what triggered the lambda (context.invoked_function_arn).
     """
     try:
-        logger.error(event)
+        logger.info(event)
         # Determine if the invoker of the lambda is SQS or ALB
         #   SQS will submit batches of records so there is potential for multiple events to be processed
         #   ALB will submit a single request but to simplify code, it will also return an array of event bodies
