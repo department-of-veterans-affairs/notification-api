@@ -1,15 +1,15 @@
 """
 
-Revision ID: 0366_add_auth_parameter
-Revises: 0365_add_notification_failures
+Revision ID: 0367_add_auth_parameter
+Revises: 0366_add_sessions_table
 Create Date: 2023-12-04 21:59:53.602687
 
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = '0366_add_auth_parameter'
-down_revision = '0365_add_notification_failures'
+revision = '0367_add_auth_parameter'
+down_revision = '0366_add_sessions_table'
 
 
 def upgrade():
