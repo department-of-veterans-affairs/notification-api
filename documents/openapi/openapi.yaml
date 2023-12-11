@@ -1482,20 +1482,21 @@ paths:
               selfManagedFalse:
                 value:
                   active: true
-                  number: "123456789"
+                  number: "+10123456789"
                   provider: "ExampleProvider"
                   self_managed: false
                   service_id: "uuid-service-id"
-                  auth_parameter: "authKey123"
+                  auth_parameter: "auth-param-name"
               selfManagedTrue-url-required:
                 value:
                   active: true
-                  number: "987654321"
+                  number: "+19876543210"
                   provider: "ExampleProvider"
                   self_managed: true
                   service_id: "uuid-service-id"
                   url_endpoint: "http://example.com/api"
-                  auth_parameter: "authKey987"
+                  auth_parameter: "auth-param-name"
+        required: true
       responses:
         "201":
           description: Created
@@ -1543,6 +1544,7 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/InboundNumberUpdateRequest"
+        required: true
       responses:
         "200":
           description: OK
@@ -2628,14 +2630,14 @@ components:
           type: string
         self_managed:
           type: boolean
-          description: "If this is true, 'url_endpoint' is required."
+          description: "If this is true, 'url_endpoint' must be populated."
         service_id:
           type: string
           format: uuid
           nullable: true
         url_endpoint:
           type: string
-          description: "Required when 'self_managed' is true."
+          description: "Required to be populated when 'self_managed' is true."
       additionalProperties: false
       minProperties: 1
     InboundNumberCreateRequest:

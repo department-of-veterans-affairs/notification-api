@@ -80,7 +80,9 @@ else:
         sys.exit("Can't get the database URI from SSM Parameter Store.")
 
 
-def get_ssm_param_info(client_api_auth_ssm_path):
+def get_ssm_param_info(client_api_auth_ssm_path) -> str:
+    ssm_client = boto3.client("ssm", region_name=AWS_REGION)
+
     # according to the docs you must get a parameter using the name
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ssm/client/get_parameter.html
     ssm_client_authtoken_path_response: dict = ssm_client.get_parameter(

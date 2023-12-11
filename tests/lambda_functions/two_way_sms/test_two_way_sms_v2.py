@@ -6,7 +6,10 @@ from lambda_functions.two_way_sms.two_way_sms_v2 import (
     valid_event,
     valid_message_body,
     forward_to_service,
+    get_ssm_param_info,
 )
+from moto import mock_ssm
+import boto3
 
 LAMBDA_MODULE = "lambda_functions.two_way_sms.two_way_sms_v2"
 DESTINATION_NUMBER = "+12222222222"
@@ -63,6 +66,31 @@ def test_validate_event_body(mocker, event):
     response = valid_message_body(event)
 
     assert response is False
+
+
+@mock_ssm
+def test_get_ssm_param_info(mocker):
+    param_name = "/auth/token"
+    param_value = "xyz"
+
+    ssm_client = boto3.client("ssm", "us-gov-west-1")
+    ssm_client.put_parameter(
+        Name=param_name,
+        Description="auth token test",
+        Value=param_value,
+        Type="SecureString"
+    )
+
+    assert get_ssm_param_info(param_name) == param_value
+
+
+def test_forward_to_service_success(mocker, requests_mock):
+    test_url = 'https://test.url'
+    mocker.patch(f'{LAMBDA_MODULE}.get_ssm_param_info', return_value='auth_token')
+
+    requests_mock.post(test_url, json={'things': 'stuff'})
+
+    assert forward_to_service(inbound_sms={}, url=test_url, auth_parameter='auth_param')
 
 
 def test_forward_to_service_failed_on_empty_url(mocker):
