@@ -7,22 +7,12 @@ on:
         description: 'Notification-api deployment environment to test (dev|perf|staging)'
         required: true
         type: string
-      # branch:
-        # description: 'Will run latest SHA from branch'
-        # default: 'master'
-        # required: false
-        # type: string
   workflow_dispatch:
     inputs:
       environment:
         description: 'Notification-api deployment environment to test (dev|perf|staging)'
         required: true
         type: string
-      # branch:
-        # description: 'Will run latest SHA from branch'
-        # default: 'master'
-        # required: false
-        # type: string
 
 jobs:
   trigger-regression-tests:
