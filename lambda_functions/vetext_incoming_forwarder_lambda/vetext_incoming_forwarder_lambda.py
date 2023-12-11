@@ -43,11 +43,14 @@ def validate_twilio_event(event):
     params = parse_qs(decoded)
     params = {k: v[0] for k, v in params.items()}
     logger.error(params)
-    return validator.validate(
+    success = validator.validate(
         uri=uri,
         params=params,
         signature=event['headers']['x-twilio-signature']
     )
+    if not success:
+        logger.error('Falied Twilio validation')
+    return success
 
 
 def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
