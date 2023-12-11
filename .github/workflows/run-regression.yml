@@ -7,22 +7,22 @@ on:
         description: 'Notification-api deployment environment to test (dev|perf|staging)'
         required: true
         type: string
-      branch:
-        description: 'Will run latest SHA from branch'
-        default: 'master'
-        required: true
-        type: string
+      # branch:
+        # description: 'Will run latest SHA from branch'
+        # default: 'master'
+        # required: false
+        # type: string
   workflow_dispatch:
     inputs:
       environment:
         description: 'Notification-api deployment environment to test (dev|perf|staging)'
         required: true
         type: string
-      branch:
-        description: 'Will run latest SHA from branch'
-        default: 'master'
-        required: false
-        type: string
+      # branch:
+        # description: 'Will run latest SHA from branch'
+        # default: 'master'
+        # required: false
+        # type: string
 
 jobs:
   trigger-regression-tests:
@@ -38,7 +38,7 @@ jobs:
         workflow_file_name: regression.yml
         ref: ${{ github.event.inputs.branch }}
         wait_interval: 10
-        client_payload: '{"environment": "${{ github.event.inputs.environment }}", "branch": "${{ github.event.inputs.branch }}"}'
+        client_payload: '{"environment": "${{ github.event.inputs.environment }}", "branch": "master"}'
         propagate_failure: true
         trigger_workflow: true
         wait_workflow: true
