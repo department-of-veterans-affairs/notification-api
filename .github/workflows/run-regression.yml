@@ -29,6 +29,8 @@ jobs:
     runs-on: ubuntu-latest  # specify the runner
     name: Trigger Regression Tests
     steps:
+    - uses: actions/checkout@v4
+
     - name: Trigger Regression Workflow
       uses: ./.github/actions/workflow-trigger-and-wait
       with:
