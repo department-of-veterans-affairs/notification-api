@@ -21,7 +21,7 @@ on:
       branch:
         description: 'Will run latest SHA from branch'
         default: 'master'
-        required: true
+        required: false
         type: string
 
 jobs:
