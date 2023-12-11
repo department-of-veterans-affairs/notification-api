@@ -40,6 +40,7 @@ def validate_twilio_event(event):
     signature = event['headers'].get('x-twilio-signature', '')
     validator = RequestValidator(auth_token)
     uri = f"https://{event['headers']['host']}/vanotify/twoway/vettext"
+    logger.info(f"URI: {uri}")
     decoded = base64.b64decode(event.get("body")).decode()
     params = parse_qs(decoded)
     params = {k: v[0] for k, v in params.items()}
