@@ -91,6 +91,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
 
         return create_twilio_response()
     except Exception as e:
+        logger.error('in exception for vetext')
         logger.error(event)
         logger.exception(e)
         push_to_dead_letter_sqs(event, "vetext_incoming_forwarder_lambda_handler")
