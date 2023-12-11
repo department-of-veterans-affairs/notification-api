@@ -31,13 +31,12 @@ def validate_twilio_event(event):
         WithDecryption=True
     )
     auth_token = response.get("Parameter").get("Value")
-    signature = event['headers'].get('x-twilio-signature', False)
+    signature = event['headers'].get('x-twilio-signature', '')
 
     if not auth_token or not signature:
         logger.error("TWILIO_AUTH_TOKEN or signature not set")
         return False
 
-    signature = event['headers'].get('x-twilio-signature', '')
     validator = RequestValidator(auth_token)
     uri = f"https://{event['headers']['host']}/vanotify/twoway/vettext"
     logger.info(f"URI: {uri}")

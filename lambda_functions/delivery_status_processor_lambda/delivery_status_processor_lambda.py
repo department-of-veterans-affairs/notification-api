@@ -1,4 +1,5 @@
 """This module is used to determine the source of an external delivery status and route it to the proper queue"""
+import boto3
 import json
 import logging
 import os
@@ -6,9 +7,6 @@ import sys
 import uuid
 import base64
 from typing import Optional
-from urllib.parse import parse_qs
-import boto3
-from twilio.request_validator import RequestValidator
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 CELERY_TASK = os.getenv("CELERY_TASK_NAME", "process-delivery-status-result")
@@ -36,49 +34,12 @@ except ValueError:
     logger.warning("Invalid log level specified, defaulting to INFO")
 
 
-# Duplicated in vetext_incoming_forwarder.
-def validate_twilio_event(event):
-    logger.info('validating twilio delivery event')
-    ssm_client = boto3.client('ssm', 'us-gov-west-1')
-    auth_ssm_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
-    if not auth_ssm_key:
-        logger.error('TWILIO_AUTH_TOKEN_SSM_NAME not set')
-        return False
-
-    response = ssm_client.get_parameter(
-        Name=auth_ssm_key,
-        WithDecryption=True
-    )
-    auth_token = response.get("Parameter").get("Value")
-    signature = event['headers'].get('x-twilio-signature', '')
-
-    if not auth_token or not signature:
-        logger.error("TWILIO_AUTH_TOKEN or signature not set")
-        return False
-
-    validator = RequestValidator(auth_token)
-    uri = f"https://{event['headers']['host']}/vanotify/sms/deliverystatus"
-    decoded = base64.b64decode(event.get("body")).decode()
-    params = parse_qs(decoded)
-    params = {k: v[0] for k, v in params.items()}
-
-    return validator.validate(
-        uri=uri,
-        params=params,
-        signature=signature
-    )
-
-
 def delivery_status_processor_lambda_handler(event: any, context: any):
     """this method takes in an event passed in by either an alb.
     @param: event   -  contains data pertaining to an sms delivery status from the external provider
-    @param: context -  AWS context sent by ALB to all events. Over ridden by unit tests as skip trigger.
+    @param: context -  contains information regarding information
+        regarding what triggered the lambda (context.invoked_function_arn).
     """
-    try:
-        if 'sec-datadog' in event['headers']:
-            return {"statusCode": 200}
-    except Exception as e:
-        logger.debug("Passing on issue with synthetic test payload: %s", e)
 
     try:
         logger.debug("Event: %s", event)
@@ -88,16 +49,6 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
             raise Exception("Invalid event")
 
         logger.info("Valid ALB request received")
-        logger.debug(event["body"])
-        if "TwilioProxy" in event["headers"]["user-agent"] \
-                and context \
-                and not validate_twilio_event(event):
-            logger.info("Returning 403 on unauthenticated Twilio request")
-            return {
-                "statusCode": 403,
-            }
-        else:
-            logger.info('Authenticated Twilio request')
 
         celery_body = event_to_celery_body_mapping(event)
 
