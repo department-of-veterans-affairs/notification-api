@@ -9,7 +9,7 @@ usage_docs() {
   echo "    owner: department-of-veterans-affairs"
   echo "    repo: myrepo"
   echo "    github_token: \${{ secrets.GITHUB_PERSONAL_ACCESS_TOKEN }}"
-  echo "    workflow_file_name: action.yaml"
+  echo "    workflow_file_name: main.yaml"
 }
 GITHUB_API_URL="${API_URL:-https://api.github.com}"
 GITHUB_SERVER_URL="${SERVER_URL:-https://github.com}"
