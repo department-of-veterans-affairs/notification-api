@@ -63,7 +63,9 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
         if "requestContext" in event and "elb" in event["requestContext"]:
             logger.info("alb invocation")
             if context and not validate_twilio_event(event):
+                logger.info("Returning 403 on unauthenticated Twilio request")
                 return create_twilio_response(403)
+            logger.info('Authenticated Twilio request')
             event_bodies = process_body_from_alb_invocation(event)
         elif "Records" in event:
             logger.info("sqs invocation")
