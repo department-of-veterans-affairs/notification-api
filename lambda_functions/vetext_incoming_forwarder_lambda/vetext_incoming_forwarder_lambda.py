@@ -37,16 +37,18 @@ def validate_twilio_event(event):
         logger.error("TWILIO_AUTH_TOKEN or signature not set")
         return False
 
+    signature = event['headers'].get('x-twilio-signature', '')
     validator = RequestValidator(auth_token)
     uri = f"https://{event['headers']['host']}/vanotify/twoway/vettext"
     decoded = base64.b64decode(event.get("body")).decode()
     params = parse_qs(decoded)
     params = {k: v[0] for k, v in params.items()}
+    logger.info(f"signature: {signature}")
     logger.error(params)
     success = validator.validate(
         uri=uri,
         params=params,
-        signature=event['headers']['x-twilio-signature']
+        signature=signature
     )
     if not success:
         logger.error('Falied Twilio validation')
