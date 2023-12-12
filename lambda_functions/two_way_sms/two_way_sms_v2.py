@@ -291,7 +291,10 @@ def forward_to_service(inbound_sms: dict, url: str, auth_parameter: str) -> bool
 
     global client_auth_token
     if client_auth_token is None:
-        client_auth_token = get_ssm_param_info(client_api_auth_ssm_path=auth_parameter)
+        try:
+            client_auth_token = get_ssm_param_info(client_api_auth_ssm_path=auth_parameter)
+        except Exception as e:
+            logger.exception("Issue attempting to get ssm parameter - Exception: %s", e)
 
     # This covers None and the empty string.
     if not url:
@@ -306,7 +309,7 @@ def forward_to_service(inbound_sms: dict, url: str, auth_parameter: str) -> bool
     try:
         response = requests.post(
             url,
-            verify=False,
+            verify=True,
             json=inbound_sms,
             timeout=TIMEOUT,
             headers=headers
