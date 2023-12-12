@@ -19,12 +19,12 @@ HTTPTIMEOUT = (3.05, 1)
 
 # Duplicated in delivery_status_processor.
 def validate_twilio_event(event):
-    logger.info('validating twilio vetext forwarder event')
+    logger.info("validating twilio vetext forwarder event")
     try:
-        ssm_client = boto3.client('ssm', 'us-gov-west-1')
-        auth_ssm_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
+        ssm_client = boto3.client("ssm", "us-gov-west-1")
+        auth_ssm_key = os.getenv("TWILIO_AUTH_TOKEN_SSM_NAME", "")
         if not auth_ssm_key:
-            logger.error('TWILIO_AUTH_TOKEN_SSM_NAME not set')
+            logger.error("TWILIO_AUTH_TOKEN_SSM_NAME not set")
             return False
 
         response = ssm_client.get_parameter(
@@ -32,9 +32,9 @@ def validate_twilio_event(event):
             WithDecryption=True
         )
         auth_token = response.get("Parameter").get("Value")
-        signature = event['headers'].get('x-twilio-signature', '')
+        signature = event["headers"].get("x-twilio-signature", "")
     except Exception as e:
-        logger.error("SMS retrival error")
+        logger.error("SMS retrival error %" % e)
         logger.error(e)
         return False
 
@@ -44,16 +44,16 @@ def validate_twilio_event(event):
             return False
 
         validator = RequestValidator(auth_token)
-        uri = "https://%s/vanotify/twoway/vettext" % event['headers']['host']
+        uri = "https://%s/vanotify/twoway/vettext" % event["headers"]["host"]
         logger.info(f"URI: {uri}")
 
         return validator.validate(
             uri=uri,
-            params=event['body'],
+            params=event["body"],
             signature=signature
         )
     except Exception as e:
-        logger.error('Twilio library error')
+        logger.error("Twilio library error: %" % e)
         logger.error(e)
         return False
 
@@ -74,14 +74,13 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
             if context and not validate_twilio_event(event):
                 logger.info("Returning 403 on unauthenticated Twilio request")
                 return create_twilio_response(403)
-            logger.info('Authenticated Twilio request')
+            logger.info("Authenticated Twilio request")
             event_bodies = process_body_from_alb_invocation(event)
         elif "Records" in event:
             logger.info("sqs invocation")
             event_bodies = process_body_from_sqs_invocation(event)
         else:
-            logger.error("Invalid Event. Expecting the source of an invocation to be from alb or sqs.")
-            logger.debug(event)
+            logger.error("Invalid Event. Expecting the source of an invocation to be from alb or sqs. %", event)
             push_to_dead_letter_sqs(event, "vetext_incoming_forwarder_lambda_handler")
 
             return create_twilio_response(500)
@@ -90,7 +89,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
         logger.info(event_bodies)
 
         for event_body in event_bodies:
-            logger.info("Processing event_body: %s", event_body)
+            logger.info("Processing event_body: %s" % event_body)
 
             response = make_vetext_request(event_body)
 
@@ -99,9 +98,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
 
         return create_twilio_response()
     except Exception as e:
-        logger.error('in exception for vetext')
-        logger.error(event)
-        logger.exception(e)
+        logger.error("in exception for vetext %s" % e)
         push_to_dead_letter_sqs(event, "vetext_incoming_forwarder_lambda_handler")
 
         return create_twilio_response(500)
@@ -142,12 +139,10 @@ def process_body_from_sqs_invocation(event):
             logger.info("Successfully converted record body from sqs to json")
             event_bodies.append(event_body)
         except json.decoder.JSONDecodeError as je:
-            logger.error("Failed to load json event_body")
-            logger.exception(je)
+            logger.error("Failed to load json event_body: %" % je)
             push_to_dead_letter_sqs(event_body, "process_body_from_sqs_invocation")
         except Exception as e:
-            logger.error("Failed to load event from sqs")
-            logger.exception(e)
+            logger.error("Failed to load event from sqs: %" % e)
             push_to_dead_letter_sqs(event_body, "process_body_from_sqs_invocation")
 
     return event_bodies
@@ -165,15 +160,15 @@ def process_body_from_alb_invocation(event):
         logger.info("event_body from alb record was not present")
         logger.info(event)
 
-    event_body_decoded = parse_qsl(base64.b64decode(event_body_encoded).decode('utf-8'))
+    event_body_decoded = parse_qsl(base64.b64decode(event_body_encoded).decode("utf-8"))
     logger.info("Decoded event body %s", event_body_decoded)
 
     event_body = dict(event_body_decoded)
     logger.info("Converted body to dictionary: %s", event_body)
 
-    if 'AddOns' in event_body:
+    if "AddOns" in event_body:
         logger.info("AddOns present in event_body: %s", event_body["AddOns"])
-        del event_body['AddOns']
+        del event_body["AddOns"]
         logger.info("Removed AddOns from event_body")
 
     return [event_body]
@@ -182,7 +177,7 @@ def process_body_from_alb_invocation(event):
 @lru_cache(maxsize=None)
 def read_from_ssm(key: str) -> str:
     try:
-        ssm_client = boto3.client('ssm')
+        ssm_client = boto3.client("ssm")
 
         logger.info("Generated ssm_client")
 
@@ -193,25 +188,25 @@ def read_from_ssm(key: str) -> str:
 
         logger.info("received ssm parameter")
 
-        return response.get("Parameter", {}).get("Value", '')
+        return response.get("Parameter", {}).get("Value", "")
     except Exception as e:
         logger.error("General Exception With Call to VeText")
         logger.exception(e)
-        return ''
+        return ""
 
 
 def make_vetext_request(request_body):
-    ssm_path = os.getenv('vetext_api_auth_ssm_path')
+    ssm_path = os.getenv("vetext_api_auth_ssm_path")
     if ssm_path is None:
         logger.error("Unable to retrieve vetext_api_auth_ssm_path from env variables")
         return None
 
-    domain = os.getenv('vetext_api_endpoint_domain')
+    domain = os.getenv("vetext_api_endpoint_domain")
     if domain is None:
         logger.error("Unable to retrieve vetext_api_endpoint_domain from env variables")
         return None
 
-    path = os.getenv('vetext_api_endpoint_path')
+    path = os.getenv("vetext_api_endpoint_path")
     if path is None:
         logger.error("Unable to retrieve vetext_api_endpoint_path from env variables")
         return None
@@ -219,15 +214,15 @@ def make_vetext_request(request_body):
     # Authorization is basic token authentication that is stored in environment.
     auth_token = read_from_ssm(ssm_path)
 
-    if auth_token == '':
+    if auth_token == "":
         logger.error("Unable to retrieve auth token from SSM")
         return None
 
     logger.info("Retrieved AuthToken from SSM")
 
     headers = {
-        'Content-type': 'application/json',
-        'Authorization': 'Basic ' + auth_token
+        "Content-type": "application/json",
+        "Authorization": "Basic " + auth_token
     }
 
     body = {
@@ -253,7 +248,7 @@ def make_vetext_request(request_body):
             timeout=HTTPTIMEOUT,
             headers=headers
         )
-        logger.info('VeText POST complete')
+        logger.info("VeText POST complete")
         response.raise_for_status()
         
         logger.info("VeText call complete with response: %d", response.status_code)
@@ -277,7 +272,7 @@ def push_to_retry_sqs(event_body):
     logger.info("Placing event_body on retry queue")
     logger.debug("Preparing for Retry SQS: %s", event_body)
 
-    queue_url = os.getenv('vetext_request_drop_sqs_url')
+    queue_url = os.getenv("vetext_request_drop_sqs_url")
 
     if queue_url is None:
         logger.error("Unable to retrieve vetext_request_drop_sqs_url from env variables")
@@ -287,13 +282,13 @@ def push_to_retry_sqs(event_body):
     logger.debug("Retrieved queue_url: %s", queue_url)
 
     try:
-        sqs = boto3.client('sqs')
+        sqs = boto3.client("sqs")
 
         queue_msg = json.dumps(event_body)
         queue_msg_attrs = {
-            'source': {
-                'DataType': 'String',
-                'StringValue': 'twilio'
+            "source": {
+                "DataType": "String",
+                "StringValue": "twilio"
             }
         }
 
@@ -315,7 +310,7 @@ def push_to_dead_letter_sqs(event, source):
     logger.info("Placing event on dead-letter queue")
     logger.debug("Preparing for DeadLetter SQS: %s", event)
 
-    queue_url = os.getenv('vetext_request_dead_letter_sqs_url')
+    queue_url = os.getenv("vetext_request_dead_letter_sqs_url")
 
     if queue_url is None:
         logger.error("Unable to retrieve vetext_request_dead_letter_sqs_url from env variables")
@@ -325,13 +320,13 @@ def push_to_dead_letter_sqs(event, source):
     logger.debug("Retrieved queue_url: %s", queue_url)
 
     try:
-        sqs = boto3.client('sqs')
+        sqs = boto3.client("sqs")
 
         queue_msg = json.dumps(event)
         queue_msg_attrs = {
-            'source': {
-                'DataType': 'String',
-                'StringValue': source
+            "source": {
+                "DataType": "String",
+                "StringValue": source
             }
         }
 

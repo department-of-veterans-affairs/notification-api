@@ -12,7 +12,7 @@ from twilio.request_validator import RequestValidator
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 CELERY_TASK = os.getenv("CELERY_TASK_NAME", "process-delivery-status-result")
 ROUTING_KEY = os.getenv("ROUTING_KEY", "delivery-status-result-tasks")
-DELIVERY_STATUS_RESULT_TASK_QUEUE = os.getenv("DELIVERY_STATUS_RESULT_TASK_QUEUE")
+DELIVERY_STATUS_RESULT_TASK_QUEUE = os.getenv('DELIVERY_STATUS_RESULT_TASK_QUEUE')
 DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER = os.getenv("DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER")
 
 
@@ -37,12 +37,12 @@ except ValueError:
 
 # Duplicated in vetext_incoming_forwarder.
 def validate_twilio_event(event):
-    logger.info('validating twilio delivery event')
+    logger.info("validating twilio delivery event")
     try:
-        ssm_client = boto3.client('ssm', 'us-gov-west-1')
-        auth_ssm_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
+        ssm_client = boto3.client("ssm", "us-gov-west-1")
+        auth_ssm_key = os.getenv("TWILIO_AUTH_TOKEN_SSM_NAME", "")
         if not auth_ssm_key:
-            logger.error('TWILIO_AUTH_TOKEN_SSM_NAME not set')
+            logger.error("TWILIO_AUTH_TOKEN_SSM_NAME not set")
             return False
 
         response = ssm_client.get_parameter(
@@ -50,10 +50,9 @@ def validate_twilio_event(event):
             WithDecryption=True
         )
         auth_token = response.get("Parameter").get("Value")
-        signature = event['headers'].get('x-twilio-signature', '')
+        signature = event["headers"].get("x-twilio-signature", "")
     except Exception as e:
-        logger.error("SMS retrieval error:")
-        logger.error(e)
+        logger.error("SMS retrieval error: %" % e)
         return False
 
     if not auth_token or not signature:
@@ -61,16 +60,15 @@ def validate_twilio_event(event):
         return False
     try:
         validator = RequestValidator(auth_token)
-        uri = "https://%s/vanotify/sms/deliverystatus" % event['headers']['host']
+        uri = "https://%s/vanotify/sms/deliverystatus" % event["headers"]["host"]
 
         return validator.validate(
             uri=uri,
-            params=event['body'],
+            params=event["body"],
             signature=signature
         )
     except Exception as e:
-        logger.error('Twilio library exception: ')
-        logger.error(e)
+        logger.error("Twilio library exception: %" % e)
         return False
 
 
@@ -80,7 +78,7 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
     @param: context -  AWS context sent by ALB to all events. Over ridden by unit tests as skip trigger.
     """
     try:
-        if 'sec-datadog' in event['headers']:
+        if "sec-datadog" in event["headers"]:
             return {"statusCode": 200}
     except Exception as e:
         logger.debug("Passing on issue with synthetic test payload: %s", e)
@@ -102,7 +100,7 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
                 "statusCode": 403,
             }
         else:
-            logger.info('Authenticated Twilio request')
+            logger.info("Authenticated Twilio request")
 
         celery_body = event_to_celery_body_mapping(event)
 
@@ -147,7 +145,7 @@ def valid_event(event: dict) -> bool:
     elif "body" not in event or "headers" not in event:
         logger.error("Missing from event object: %s", event)
     elif "user-agent" not in event["headers"]:
-        logger.error('Missing "user-agent" from: %s', event.get("headers"))
+        logger.error("Missing 'user-agent' from: %s", event.get("headers"))
     else:
         return True
 
