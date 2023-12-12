@@ -294,7 +294,7 @@ def forward_to_service(inbound_sms: dict, url: str, auth_parameter: str) -> bool
         try:
             client_auth_token = get_ssm_param_info(client_api_auth_ssm_path=auth_parameter)
         except Exception as e:
-            logger.exception("Issue attempting to get ssm parameter - Exception: %s", e)
+            logger.exception("Issue attempting to get ssm parameter for incoming two-way sms - Exception: %s", e)
 
     # This covers None and the empty string.
     if not url:
@@ -309,7 +309,7 @@ def forward_to_service(inbound_sms: dict, url: str, auth_parameter: str) -> bool
     try:
         response = requests.post(
             url,
-            verify=True,
+            verify=False if 'vetext' in auth_parameter else True,
             json=inbound_sms,
             timeout=TIMEOUT,
             headers=headers
