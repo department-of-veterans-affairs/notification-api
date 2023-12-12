@@ -20,39 +20,42 @@ HTTPTIMEOUT = (3.05, 1)
 # Duplicated in delivery_status_processor.
 def validate_twilio_event(event):
     logger.info('validating twilio vetext forwarder event')
-    ssm_client = boto3.client('ssm', 'us-gov-west-1')
-    auth_ssm_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
-    if not auth_ssm_key:
-        logger.error('TWILIO_AUTH_TOKEN_SSM_NAME')
+    try:
+        ssm_client = boto3.client('ssm', 'us-gov-west-1')
+        auth_ssm_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
+        if not auth_ssm_key:
+            logger.error('TWILIO_AUTH_TOKEN_SSM_NAME not set')
+            return False
+
+        response = ssm_client.get_parameter(
+            Name=auth_ssm_key,
+            WithDecryption=True
+        )
+        auth_token = response.get("Parameter").get("Value")
+        signature = event['headers'].get('x-twilio-signature', '')
+    except Exception as e:
+        logger.error("SMS retrival error")
+        logger.error(e)
         return False
 
-    response = ssm_client.get_parameter(
-        Name=auth_ssm_key,
-        WithDecryption=True
-    )
-    auth_token = response.get("Parameter").get("Value")
-    signature = event['headers'].get('x-twilio-signature', '')
+    try:
+        if not auth_token or not signature:
+            logger.error("TWILIO_AUTH_TOKEN or signature not set")
+            return False
 
-    if not auth_token or not signature:
-        logger.error("TWILIO_AUTH_TOKEN or signature not set")
+        validator = RequestValidator(auth_token)
+        uri = "https://%s/vanotify/twoway/vettext" % event['headers']['host']
+        logger.info(f"URI: {uri}")
+
+        return validator.validate(
+            uri=uri,
+            params=event['body'],
+            signature=signature
+        )
+    except Exception as e:
+        logger.error('Twilio library error')
+        logger.error(e)
         return False
-
-    validator = RequestValidator(auth_token)
-    uri = f"https://{event['headers']['host']}/vanotify/twoway/vettext"
-    logger.info(f"URI: {uri}")
-    decoded = base64.b64decode(event.get("body")).decode()
-    params = parse_qs(decoded)
-    params = {k: v[0] for k, v in params.items()}
-    logger.info(f"signature: {signature}")
-    logger.error(params)
-    success = validator.validate(
-        uri=uri,
-        params=params,
-        signature=signature
-    )
-    if not success:
-        logger.error('Falied Twilio validation')
-    return success
 
 
 def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):

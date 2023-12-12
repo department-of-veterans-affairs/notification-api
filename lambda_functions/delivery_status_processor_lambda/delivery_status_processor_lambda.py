@@ -6,7 +6,6 @@ import sys
 import uuid
 import base64
 from typing import Optional
-from urllib.parse import parse_qs
 import boto3
 from twilio.request_validator import RequestValidator
 
@@ -39,34 +38,40 @@ except ValueError:
 # Duplicated in vetext_incoming_forwarder.
 def validate_twilio_event(event):
     logger.info('validating twilio delivery event')
-    ssm_client = boto3.client('ssm', 'us-gov-west-1')
-    auth_ssm_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', 'somethign silly')
-    if not auth_ssm_key:
-        logger.error('TWILIO_AUTH_TOKEN_SSM_NAME not set')
-        return False
+    try:
+        ssm_client = boto3.client('ssm', 'us-gov-west-1')
+        auth_ssm_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
+        if not auth_ssm_key:
+            logger.error('TWILIO_AUTH_TOKEN_SSM_NAME not set')
+            return False
 
-    response = ssm_client.get_parameter(
-        Name=auth_ssm_key,
-        WithDecryption=True
-    )
-    auth_token = response.get("Parameter").get("Value")
-    signature = event['headers'].get('x-twilio-signature', '')
+        response = ssm_client.get_parameter(
+            Name=auth_ssm_key,
+            WithDecryption=True
+        )
+        auth_token = response.get("Parameter").get("Value")
+        signature = event['headers'].get('x-twilio-signature', '')
+    except Exception as e:
+        logger.error("SMS retrieval error:")
+        logger.error(e)
+        return False
 
     if not auth_token or not signature:
         logger.error("TWILIO_AUTH_TOKEN or signature not set")
         return False
+    try:
+        validator = RequestValidator(auth_token)
+        uri = "https://%s/vanotify/sms/deliverystatus" % event['headers']['host']
 
-    validator = RequestValidator(auth_token)
-    uri = f"https://{event['headers']['host']}/vanotify/sms/deliverystatus"
-    decoded = base64.b64decode(event.get("body")).decode()
-    params = parse_qs(decoded)
-    params = {k: v[0] for k, v in params.items()}
-
-    return validator.validate(
-        uri=uri,
-        params=params,
-        signature=signature
-    )
+        return validator.validate(
+            uri=uri,
+            params=event['body'],
+            signature=signature
+        )
+    except Exception as e:
+        logger.error('Twilio library exception: ')
+        logger.error(e)
+        return False
 
 
 def delivery_status_processor_lambda_handler(event: any, context: any):
@@ -126,6 +131,9 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
         #   for potential processing at a later time
         logger.critical("Unknown Failure: %s", e)
         push_to_sqs(event, DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER, False)
+        return {
+            "statusCode": 500,
+        }
 
 
 def valid_event(event: dict) -> bool:
