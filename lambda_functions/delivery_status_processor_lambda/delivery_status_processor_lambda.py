@@ -40,7 +40,7 @@ except ValueError:
 def validate_twilio_event(event):
     logger.info('validating twilio delivery event')
     ssm_client = boto3.client('ssm', 'us-gov-west-1')
-    auth_ssm_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
+    auth_ssm_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', 'somethign silly')
     if not auth_ssm_key:
         logger.error('TWILIO_AUTH_TOKEN_SSM_NAME not set')
         return False
