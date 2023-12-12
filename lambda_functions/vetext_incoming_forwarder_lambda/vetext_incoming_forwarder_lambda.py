@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from functools import lru_cache
-from urllib.parse import parse_qsl, parse_qs
+from urllib.parse import parse_qsl
 
 import boto3
 import requests
