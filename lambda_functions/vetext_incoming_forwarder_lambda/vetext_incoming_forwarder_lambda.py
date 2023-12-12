@@ -89,7 +89,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
         logger.info(event_bodies)
 
         for event_body in event_bodies:
-            logger.info("Processing event_body: %s" % event_body)
+            logger.info("Processing event_body")
 
             response = make_vetext_request(event_body)
 
@@ -134,7 +134,7 @@ def process_body_from_sqs_invocation(event):
                 logger.info(record)
                 continue
 
-            logger.debug("Processing record body from SQS: %s", event_body)
+            logger.debug("Processing record body from SQS:")
             event_body = json.loads(event_body)
             logger.info("Successfully converted record body from sqs to json")
             event_bodies.append(event_body)
@@ -142,7 +142,8 @@ def process_body_from_sqs_invocation(event):
             logger.error("Failed to load json event_body: %" % je)
             push_to_dead_letter_sqs(event_body, "process_body_from_sqs_invocation")
         except Exception as e:
-            logger.error("Failed to load event from sqs: %" % e)
+            logger.error("Failed to load event from sqs")
+            logger.exception(e)
             push_to_dead_letter_sqs(event_body, "process_body_from_sqs_invocation")
 
     return event_bodies
