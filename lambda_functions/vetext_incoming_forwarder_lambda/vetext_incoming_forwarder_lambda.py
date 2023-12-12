@@ -80,7 +80,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
             logger.info("sqs invocation")
             event_bodies = process_body_from_sqs_invocation(event)
         else:
-            logger.error("Invalid Event. Expecting the source of an invocation to be from alb or sqs. %", event)
+            logger.error("Invalid Event. Expecting the source of an invocation to be from alb or sqs. %" % event)
             push_to_dead_letter_sqs(event, "vetext_incoming_forwarder_lambda_handler")
 
             return create_twilio_response(500)
@@ -89,7 +89,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
         logger.info(event_bodies)
 
         for event_body in event_bodies:
-            logger.info("Processing event_body")
+            logger.debug("Processing event_body: %s", event_body)
 
             response = make_vetext_request(event_body)
 
