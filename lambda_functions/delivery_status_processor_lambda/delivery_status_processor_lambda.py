@@ -8,7 +8,7 @@ import base64
 from typing import Optional
 import boto3
 from twilio.request_validator import RequestValidator
-from urllib.parse import parse_qsl, parse_qs
+from urllib.parse import parse_qs
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 CELERY_TASK = os.getenv("CELERY_TASK_NAME", "process-delivery-status-result")
