@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from functools import lru_cache
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qsl, parse_qs
 
 import boto3
 import requests
@@ -44,12 +44,14 @@ def validate_twilio_event(event):
             return False
 
         validator = RequestValidator(auth_token)
-        uri = "https://%s/vanotify/twoway/vettext" % event["headers"]["host"]
+        uri = f"https://{event['headers']['host']}/vanotify/twoway/vettext"
         logger.info(f"URI: {uri}")
-
+        decoded = base64.b64decode(event.get("body")).decode()
+        params = parse_qs(decoded)
+        params = {k: v[0] for k, v in (params.items())}
         return validator.validate(
             uri=uri,
-            params=event["body"],
+            params=params,
             signature=signature
         )
     except Exception as e:
