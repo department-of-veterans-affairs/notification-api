@@ -34,7 +34,7 @@ def validate_twilio_event(event):
         auth_token = response.get("Parameter").get("Value")
         signature = event["headers"].get("x-twilio-signature", "")
     except Exception as e:
-        logger.error("SMS retrival error %" % e)
+        logger.error("SMS retrival error %s", e)
         logger.error(e)
         return False
 
@@ -53,7 +53,7 @@ def validate_twilio_event(event):
             signature=signature
         )
     except Exception as e:
-        logger.error("Twilio library error: %" % e)
+        logger.error("Twilio library error: %s" % e)
         logger.error(e)
         return False
 
@@ -80,7 +80,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
             logger.info("sqs invocation")
             event_bodies = process_body_from_sqs_invocation(event)
         else:
-            logger.error("Invalid Event. Expecting the source of an invocation to be from alb or sqs. %" % event)
+            logger.error("Invalid Event. Expecting the source of an invocation to be from alb or sqs. %s" % event)
             push_to_dead_letter_sqs(event, "vetext_incoming_forwarder_lambda_handler")
 
             return create_twilio_response(500)
@@ -139,7 +139,7 @@ def process_body_from_sqs_invocation(event):
             logger.info("Successfully converted record body from sqs to json")
             event_bodies.append(event_body)
         except json.decoder.JSONDecodeError as je:
-            logger.error("Failed to load json event_body: %" % je)
+            logger.error("Failed to load json event_body: %s" % je)
             push_to_dead_letter_sqs(event_body, "process_body_from_sqs_invocation")
         except Exception as e:
             logger.error("Failed to load event from sqs")

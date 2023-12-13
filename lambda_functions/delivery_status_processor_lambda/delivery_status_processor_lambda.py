@@ -68,7 +68,7 @@ def validate_twilio_event(event):
             signature=signature
         )
     except Exception as e:
-        logger.error("Twilio library exception: %" % e)
+        logger.error("Twilio library exception: %s" % e)
         return False
 
 
