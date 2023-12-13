@@ -52,7 +52,7 @@ def validate_twilio_event(event):
         auth_token = response.get("Parameter").get("Value")
         signature = event["headers"].get("x-twilio-signature", "")
     except Exception as e:
-        logger.error("SMS retrieval error: %" % e)
+        logger.error("SMS retrieval error: %s" % e)
         return False
 
     if not auth_token or not signature:
