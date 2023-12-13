@@ -141,7 +141,7 @@ def process_body_from_sqs_invocation(event):
             logger.info("Successfully converted record body from sqs to json")
             event_bodies.append(event_body)
         except json.decoder.JSONDecodeError as je:
-            logger.error("Failed to load json event_body: %s" % je)
+            logger.error("Failed to load json event_body: %s", je)
             push_to_dead_letter_sqs(event_body, "process_body_from_sqs_invocation")
         except Exception as e:
             logger.error("Failed to load event from sqs")
