@@ -8,6 +8,7 @@ import base64
 from typing import Optional
 import boto3
 from twilio.request_validator import RequestValidator
+from urllib.parse import parse_qsl, parse_qs
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 CELERY_TASK = os.getenv("CELERY_TASK_NAME", "process-delivery-status-result")
@@ -38,6 +39,7 @@ except ValueError:
 # Duplicated in vetext_incoming_forwarder.
 def validate_twilio_event(event):
     logger.info("validating twilio delivery event")
+
     try:
         ssm_client = boto3.client("ssm", "us-gov-west-1")
         auth_ssm_key = os.getenv("TWILIO_AUTH_TOKEN_SSM_NAME", "")
@@ -52,7 +54,7 @@ def validate_twilio_event(event):
         auth_token = response.get("Parameter").get("Value")
         signature = event["headers"].get("x-twilio-signature", "")
     except Exception as e:
-        logger.error("SMS retrieval error: %s", e)
+        logger.error("SSM retrieval error: %s", e)
         return False
 
     if not auth_token or not signature:
@@ -61,10 +63,12 @@ def validate_twilio_event(event):
     try:
         validator = RequestValidator(auth_token)
         uri = "https://%s/vanotify/sms/deliverystatus" % event["headers"]["host"]
-
+        decoded = base64.b64decode(event.get("body")).decode()
+        params = parse_qs(decoded)
+        params = {k: v[0] for k, v in sorted(params.items())}
         return validator.validate(
             uri=uri,
-            params=event["body"],
+            params=params,
             signature=signature
         )
     except Exception as e:
