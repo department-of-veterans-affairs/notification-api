@@ -162,10 +162,10 @@ def process_body_from_alb_invocation(event):
         logger.info(event)
 
     event_body_decoded = parse_qsl(base64.b64decode(event_body_encoded).decode("utf-8"))
-    logger.info("Decoded event body %s", event_body_decoded)
+    logger.debug("Decoded event body %s", event_body_decoded)
 
     event_body = dict(event_body_decoded)
-    logger.info("Converted body to dictionary: %s", event_body)
+    logger.debug("Converted body to dictionary: %s", event_body)
 
     if "AddOns" in event_body:
         logger.info("AddOns present in event_body: %s", event_body["AddOns"])
