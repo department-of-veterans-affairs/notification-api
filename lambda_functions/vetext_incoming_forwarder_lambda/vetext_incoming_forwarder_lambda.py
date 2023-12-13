@@ -35,7 +35,6 @@ def validate_twilio_event(event):
         signature = event["headers"].get("x-twilio-signature", "")
     except Exception as e:
         logger.error("SMS retrival error %s", e)
-        logger.error(e)
         return False
 
     try:
@@ -67,7 +66,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
             regarding what triggered the lambda (context.invoked_function_arn).
     """
     try:
-        logger.info(event)
+        logger.debug(event)
         # Determine if the invoker of the lambda is SQS or ALB
         #   SQS will submit batches of records so there is potential for multiple events to be processed
         #   ALB will submit a single request but to simplify code, it will also return an array of event bodies
@@ -88,7 +87,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
             return create_twilio_response(500)
 
         logger.info("Successfully processed event to event_bodies")
-        logger.info(event_bodies)
+        logger.debug(event_bodies)
 
         for event_body in event_bodies:
             logger.debug("Processing event_body: %s", event_body)
@@ -133,7 +132,7 @@ def process_body_from_sqs_invocation(event):
 
             if not event_body:
                 logger.info("event_body from sqs record was not present")
-                logger.info(record)
+                logger.debug(record)
                 continue
 
             logger.debug("Processing record body from SQS:")
@@ -161,7 +160,7 @@ def process_body_from_alb_invocation(event):
 
     if not event_body_encoded:
         logger.info("event_body from alb record was not present")
-        logger.info(event)
+        logger.debug(event)
 
     event_body_decoded = parse_qsl(base64.b64decode(event_body_encoded).decode("utf-8"))
     logger.debug("Decoded event body %s", event_body_decoded)
@@ -255,7 +254,7 @@ def make_vetext_request(request_body):
         response.raise_for_status()
         
         logger.info("VeText call complete with response: %d", response.status_code)
-        logger.info("VeText response: %s", response.content)
+        logger.debug("VeText response: %s", response.content)
         return response.content
     except requests.HTTPError as e:
         logger.error("HTTPError With Call To VeText")
