@@ -36,33 +36,35 @@ except ValueError:
     logger.warning("Invalid log level specified, defaulting to INFO")
 
 
-# Duplicated in vetext_incoming_forwarder.
-def validate_twilio_event(event):
-    logger.info("validating twilio delivery event")
-
+def get_twilio_token():
     try:
         ssm_client = boto3.client("ssm", "us-gov-west-1")
         auth_ssm_key = os.getenv("TWILIO_AUTH_TOKEN_SSM_NAME", "")
         if not auth_ssm_key:
             logger.error("TWILIO_AUTH_TOKEN_SSM_NAME not set")
-            return False
 
         response = ssm_client.get_parameter(
             Name=auth_ssm_key,
             WithDecryption=True
         )
-        auth_token = response.get("Parameter").get("Value")
-        signature = event["headers"].get("x-twilio-signature", "")
+        return response.get("Parameter").get("Value")
     except Exception as e:
-        logger.error("SSM retrieval error: %s", e)
-        return False
+        logger.error('Failed to retrieve Twilio Auth')
+        return None
 
-    if not auth_token or not signature:
-        logger.error("TWILIO_AUTH_TOKEN or signature not set")
-        return False
+
+auth_token = get_twilio_token()
+
+
+# Duplicated in vetext_incoming_forwarder.
+def validate_twilio_event(event):
+    logger.info("validating twilio delivery event")
+
     try:
+        signature = event["headers"].get("x-twilio-signature", "")
+
         validator = RequestValidator(auth_token)
-        uri = "https://%s/vanotify/sms/deliverystatus" % event["headers"]["host"]
+        uri = f"https://{event['headers']['host']}/vanotify/sms/deliverystatus"
         decoded = base64.b64decode(event.get("body")).decode()
         params = parse_qs(decoded)
         params = {k: v[0] for k, v in sorted(params.items())}
