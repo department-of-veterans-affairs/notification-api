@@ -74,7 +74,7 @@ def validate_twilio_event(event):
             signature=signature
         )
     except Exception as e:
-        logger.error("Twilio library exception: %s" % e)
+        logger.error("Error validating request origin: %s", e)
         return False
 
 
@@ -101,7 +101,7 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
         if "TwilioProxy" in event["headers"]["user-agent"] \
                 and context \
                 and not validate_twilio_event(event):
-            logger.info("Returning 403 on unauthenticated Twilio request")
+            logger.error("Returning 403 on unauthenticated Twilio request")
             return {
                 "statusCode": 403,
             }

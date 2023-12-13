@@ -48,7 +48,6 @@ def validate_twilio_event(event):
 
         validator = RequestValidator(auth_token)
         uri = f"https://{event['headers']['host']}/vanotify/twoway/vettext"
-        logger.info(f"URI: {uri}")
         decoded = base64.b64decode(event.get("body")).decode()
         params = parse_qs(decoded)
         params = {k: v[0] for k, v in (params.items())}
@@ -58,8 +57,7 @@ def validate_twilio_event(event):
             signature=signature
         )
     except Exception as e:
-        logger.error("Twilio library error: %s" % e)
-        logger.error(e)
+        logger.error("Error validating request origin: %s", e)
         return False
 
 
@@ -70,7 +68,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
             regarding what triggered the lambda (context.invoked_function_arn).
     """
     try:
-        logger.debug(event)
+        logger.debug("Entrypoint event: %s", event)
         # Determine if the invoker of the lambda is SQS or ALB
         #   SQS will submit batches of records so there is potential for multiple events to be processed
         #   ALB will submit a single request but to simplify code, it will also return an array of event bodies
@@ -85,13 +83,12 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
             logger.info("sqs invocation")
             event_bodies = process_body_from_sqs_invocation(event)
         else:
-            logger.error("Invalid Event. Expecting the source of an invocation to be from alb or sqs. %s" % event)
+            logger.error("Invalid Event. Expecting the source of an invocation to be from alb or sqs. Received: %s", event)
             push_to_dead_letter_sqs(event, "vetext_incoming_forwarder_lambda_handler")
 
             return create_twilio_response(500)
 
-        logger.info("Successfully processed event to event_bodies")
-        logger.debug(event_bodies)
+        logger.debug("Successfully processed event to event_bodies. Received: %s", event_bodies)
 
         for event_body in event_bodies:
             logger.debug("Processing event_body: %s", event_body)
@@ -103,7 +100,7 @@ def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
 
         return create_twilio_response()
     except Exception as e:
-        logger.error("in exception for vetext %s" % e)
+        logger.error("Unexpected exception: %s", e)
         push_to_dead_letter_sqs(event, "vetext_incoming_forwarder_lambda_handler")
 
         return create_twilio_response(500)
@@ -139,7 +136,7 @@ def process_body_from_sqs_invocation(event):
                 logger.debug(record)
                 continue
 
-            logger.debug("Processing record body from SQS:")
+            logger.debug("Processing record body from SQS")
             event_body = json.loads(event_body)
             logger.info("Successfully converted record body from sqs to json")
             event_bodies.append(event_body)
@@ -163,8 +160,7 @@ def process_body_from_alb_invocation(event):
     event_body_encoded = event.get("body", "")
 
     if not event_body_encoded:
-        logger.info("event_body from alb record was not present")
-        logger.debug(event)
+        logger.debug("event_body from alb record was not present: %s", event)
 
     event_body_decoded = parse_qsl(base64.b64decode(event_body_encoded).decode("utf-8"))
     logger.debug("Decoded event body %s", event_body_decoded)
@@ -173,9 +169,8 @@ def process_body_from_alb_invocation(event):
     logger.debug("Converted body to dictionary: %s", event_body)
 
     if "AddOns" in event_body:
-        logger.info("AddOns present in event_body: %s", event_body["AddOns"])
+        logger.debug("AddOns present in event_body: %s", event_body["AddOns"])
         del event_body["AddOns"]
-        logger.info("Removed AddOns from event_body")
 
     return [event_body]
 
