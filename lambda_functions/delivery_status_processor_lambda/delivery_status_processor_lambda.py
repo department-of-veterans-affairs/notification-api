@@ -63,7 +63,7 @@ def get_twilio_token():
 auth_token = get_twilio_token()
 
 
-def validate_twilio_event(event):
+def validate_twilio_event(event: dict):
     """
     Defined both here and in vetext_incoming_forwarder.
     Validates that event was from Twilio.

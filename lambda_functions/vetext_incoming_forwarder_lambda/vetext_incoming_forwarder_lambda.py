@@ -49,7 +49,7 @@ def get_twilio_token():
 auth_token = get_twilio_token()
 
 
-def validate_twilio_event(event):
+def validate_twilio_event(event: dict):
     """
     Defined both here and in delivery_status_processor.
     Validates that event was from Twilio.
