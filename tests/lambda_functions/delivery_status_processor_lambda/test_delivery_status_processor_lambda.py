@@ -9,7 +9,7 @@ def all_path_env_param_set(monkeypatch):
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
     monkeypatch.setenv("CELERY_TASK_NAME", "CELERY_TASK_NAME")
     monkeypatch.setenv("ROUTING_KEY", "ROUTING_KEY")
-    monkeypatch.setenv("TWILIO_AUTH_TOKEN_SSM_NAME", 'unit_test')
+    monkeypatch.setenv("TWILIO_AUTH_TOKEN_SSM_NAME", "unit_test")
 
 
 LAMBDA_MODULE = "lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda"
