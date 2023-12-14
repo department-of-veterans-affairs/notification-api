@@ -418,7 +418,7 @@ def test_unexpected_event_received(mocker, monkeypatch, all_path_env_param_set):
     sqs_dead_letter_mock.assert_called_once()
 
 
-def test_failed_getenv_vetext_api_auth_ssm_path(
+def test_sqs_dead_letter_queue_called(
         mocker, monkeypatch, all_path_env_param_set
 ):
     from lambda_functions.vetext_incoming_forwarder_lambda.vetext_incoming_forwarder_lambda import (
