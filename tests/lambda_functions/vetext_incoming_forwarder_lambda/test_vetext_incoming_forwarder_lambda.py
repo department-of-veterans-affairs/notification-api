@@ -448,7 +448,7 @@ def test_loading_message_from_alb_fails(mocker, monkeypatch, all_path_env_param_
     mocker.patch("base64.b64decode", side_effect=base64.binascii.Error)
     response = vetext_incoming_forwarder_lambda_handler(albInvokedWithoutAddOn, False)
 
-    assert response["statusCode"] == 200
+    assert response["statusCode"] == 500
     assert response["body"] == "<Response />"
     assert response["headers"] != None
     assert response["headers"]["Content-Type"] == "text/xml"
