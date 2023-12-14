@@ -18,14 +18,14 @@ HTTPTIMEOUT = (3.05, 1)
 
 TWILIO_AUTH_TOKEN_SSM_NAME = os.getenv("TWILIO_AUTH_TOKEN_SSM_NAME")
 
-if TWILIO_AUTH_TOKEN_SSM_NAME is None or TWILIO_AUTH_TOKEN_SSM_NAME == 'DEFAULT':
+if TWILIO_AUTH_TOKEN_SSM_NAME is None or TWILIO_AUTH_TOKEN_SSM_NAME == "DEFAULT":
     sys.exit("A required environment variable is not set. Please set TWILIO_AUTH_TOKEN_SSM_NAME")
 
 
 def get_twilio_token():
     try:
         if TWILIO_AUTH_TOKEN_SSM_NAME == 'unit_test':
-            return 'bad_twilio_auth'
+            return "bad_twilio_auth"
         ssm_client = boto3.client("ssm", "us-gov-west-1")
         auth_ssm_key = os.getenv("TWILIO_AUTH_TOKEN_SSM_NAME", "")
         if not auth_ssm_key:
