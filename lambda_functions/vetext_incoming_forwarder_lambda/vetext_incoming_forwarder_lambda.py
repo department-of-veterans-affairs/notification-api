@@ -3,6 +3,7 @@ import base64
 import json
 import logging
 import os
+import sys
 from functools import lru_cache
 from urllib.parse import parse_qsl, parse_qs
 
@@ -15,9 +16,16 @@ logger = logging.getLogger("vetext_incoming_forwarder_lambda")
 # http timeout for calling vetext endpoint
 HTTPTIMEOUT = (3.05, 1)
 
+TWILIO_AUTH_TOKEN_SSM_NAME = os.getenv("TWILIO_AUTH_TOKEN_SSM_NAME")
+
+if TWILIO_AUTH_TOKEN_SSM_NAME is None or TWILIO_AUTH_TOKEN_SSM_NAME == 'DEFAULT':
+    sys.exit("A required environment variable is not set. Please set TWILIO_AUTH_TOKEN_SSM_NAME")
+
 
 def get_twilio_token():
     try:
+        if TWILIO_AUTH_TOKEN_SSM_NAME == 'unit_test':
+            return 'bad_twilio_auth'
         ssm_client = boto3.client("ssm", "us-gov-west-1")
         auth_ssm_key = os.getenv("TWILIO_AUTH_TOKEN_SSM_NAME", "")
         if not auth_ssm_key:
@@ -283,7 +291,7 @@ def push_to_retry_sqs(event_body):
     logger.debug("Retrieved queue_url: %s", queue_url)
 
     try:
-        sqs = boto3.client("sqs")
+        sqs = boto3.client("sqs", "us-west-1")
 
         queue_msg = json.dumps(event_body)
         queue_msg_attrs = {

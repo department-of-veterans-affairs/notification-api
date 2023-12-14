@@ -15,7 +15,7 @@ CELERY_TASK = os.getenv("CELERY_TASK_NAME", "process-delivery-status-result")
 ROUTING_KEY = os.getenv("ROUTING_KEY", "delivery-status-result-tasks")
 DELIVERY_STATUS_RESULT_TASK_QUEUE = os.getenv("DELIVERY_STATUS_RESULT_TASK_QUEUE")
 DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER = os.getenv("DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER")
-
+TWILIO_AUTH_TOKEN_SSM_NAME = os.getenv("TWILIO_AUTH_TOKEN_SSM_NAME")
 
 SQS_DELAY_SECONDS = 10
 
@@ -24,6 +24,9 @@ if DELIVERY_STATUS_RESULT_TASK_QUEUE is None:
 
 if DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER is None:
     sys.exit("A required environment variable is not set. Please set DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER")
+
+if TWILIO_AUTH_TOKEN_SSM_NAME is None or TWILIO_AUTH_TOKEN_SSM_NAME == 'DEFAULT':
+    sys.exit("A required environment variable is not set. Please set TWILIO_AUTH_TOKEN_SSM_NAME")
 
 sqs_client = boto3.client("sqs", region_name="us-gov-west-1")
 
@@ -38,18 +41,17 @@ except ValueError:
 
 def get_twilio_token():
     try:
+        if TWILIO_AUTH_TOKEN_SSM_NAME == 'unit_test':
+            return 'bad_twilio_auth'
         ssm_client = boto3.client("ssm", "us-gov-west-1")
-        auth_ssm_key = os.getenv("TWILIO_AUTH_TOKEN_SSM_NAME", "")
-        if not auth_ssm_key:
-            logger.error("TWILIO_AUTH_TOKEN_SSM_NAME not set")
 
         response = ssm_client.get_parameter(
-            Name=auth_ssm_key,
+            Name=TWILIO_AUTH_TOKEN_SSM_NAME,
             WithDecryption=True
         )
         return response.get("Parameter").get("Value")
     except Exception as e:
-        logger.error('Failed to retrieve Twilio Auth')
+        logger.error('Failed to retrieve Twilio Auth with: %s', e)
         return None
 
 
