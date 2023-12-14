@@ -6204,7 +6204,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"number\": \"2234567890\",\n    \"provider\": \"pinpoint|twilio\",\n    \"service_id\": \"{{service-id}}\",\n    \"auth_parameter\": \"two-way/example/param\",\n    \"self_managed\": true,\n    \"url_endpoint\": \"example-url.endpoint\"\n}"
+							"raw": "{\n    \"number\": \"+12234567890\",\n    \"provider\": \"pinpoint\",\n    \"auth_parameter\": \"/auth/param/name\",\n    \"self_managed\": false,\n    \"url_endpoint\": \"https://example.url.com\"\n}"
 						},
 						"url": {
 							"raw": "{{notification-api-url}}/inbound-number",
@@ -6599,7 +6599,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"active\": true,\n    \"service_id\": \"{{service-id}}\",\n    \"number\": \"55555\",\n    \"provider\": \"updated-provider-pinpoint\",\n    \"self_managed\": true,\n    \"url_endpoint\": \"updated.url.endpoint\",\n    \"auth_parameter\": \"updated-auth-param\"\n}"
+							"raw": "{\n    \"active\": true,\n    \"number\": \"55555\",\n    \"provider\": \"updated-provider-pinpoint\",\n    \"self_managed\": true,\n    \"url_endpoint\": \"https://example.url.com\",\n    \"auth_parameter\": \"updated-auth-param\"\n}"
 						},
 						"url": {
 							"raw": "{{notification-api-url}}/inbound-number/:inbound-number-id",
@@ -6613,7 +6613,7 @@
 							"variable": [
 								{
 									"key": "inbound-number-id",
-									"value": "2d5f4534-be8e-4cd8-9421-79ff0441f241"
+									"value": ""
 								}
 							]
 						}
