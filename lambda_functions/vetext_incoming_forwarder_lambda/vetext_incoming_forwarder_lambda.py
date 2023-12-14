@@ -23,6 +23,11 @@ if TWILIO_AUTH_TOKEN_SSM_NAME is None or TWILIO_AUTH_TOKEN_SSM_NAME == "DEFAULT"
 
 
 def get_twilio_token():
+    """
+    Is run on instantiation.
+    Defined here and in delivery_status_processor
+    @return: Twilio Token from SSM
+    """
     try:
         if TWILIO_AUTH_TOKEN_SSM_NAME == 'unit_test':
             return "bad_twilio_auth"
@@ -44,8 +49,13 @@ def get_twilio_token():
 auth_token = get_twilio_token()
 
 
-# Duplicated in delivery_status_processor.
 def validate_twilio_event(event):
+    """
+    Defined both here and in delivery_status_processor.
+    Validates that event was from Twilio.
+    @param: event
+    @return: bool
+    """
     logger.info("validating twilio vetext forwarder event")
 
     try:
@@ -168,7 +178,7 @@ def process_body_from_alb_invocation(event):
     event_body_encoded = event.get("body", "")
 
     if not event_body_encoded:
-        logger.debug("event_body from alb record was not present: %s", event)
+        logger.error("event_body from alb record was not present: %s", event)
 
     event_body_decoded = parse_qsl(base64.b64decode(event_body_encoded).decode("utf-8"))
     logger.debug("Decoded event body %s", event_body_decoded)

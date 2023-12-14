@@ -40,6 +40,11 @@ except ValueError:
 
 
 def get_twilio_token():
+    """
+        Is run on instantiation.
+        Defined here and in vetext_incoming_forwarder
+        @return: Twilio Token from SSM
+        """
     try:
         if TWILIO_AUTH_TOKEN_SSM_NAME == 'unit_test':
             return 'bad_twilio_auth'
@@ -58,8 +63,13 @@ def get_twilio_token():
 auth_token = get_twilio_token()
 
 
-# Duplicated in vetext_incoming_forwarder.
 def validate_twilio_event(event):
+    """
+    Defined both here and in vetext_incoming_forwarder.
+    Validates that event was from Twilio.
+    @param: event
+    @return: bool
+    """
     logger.info("validating twilio delivery event")
 
     try:
@@ -85,11 +95,15 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
     @param: event   -  contains data pertaining to an sms delivery status from the external provider
     @param: context -  AWS context sent by ALB to all events. Over ridden by unit tests as skip trigger.
     """
+    """
+    Synthetic monitors sometimes hit this endpoint to look for anomalous performance. 
+    Do not process what they send, just respond with a 200
+    """
     try:
         if "sec-datadog" in event["headers"]:
             return {"statusCode": 200}
     except Exception as e:
-        logger.debug("Passing on issue with synthetic test payload: %s", e)
+        logger.info("Passing on issue with synthetic test payload: %s", e)
 
     try:
         logger.debug("Event: %s", event)
