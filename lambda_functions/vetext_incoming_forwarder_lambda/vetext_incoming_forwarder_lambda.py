@@ -22,7 +22,7 @@ if TWILIO_AUTH_TOKEN_SSM_NAME is None or TWILIO_AUTH_TOKEN_SSM_NAME == "DEFAULT"
     sys.exit("A required environment variable is not set. Please set TWILIO_AUTH_TOKEN_SSM_NAME")
 
 
-def get_twilio_token():
+def get_twilio_token() -> str:
     """
     Is run on instantiation.
     Defined here and in delivery_status_processor
@@ -49,7 +49,7 @@ def get_twilio_token():
 auth_token = get_twilio_token()
 
 
-def validate_twilio_event(event: dict):
+def validate_twilio_event(event: dict) -> bool:
     """
     Defined both here and in delivery_status_processor.
     Validates that event was from Twilio.

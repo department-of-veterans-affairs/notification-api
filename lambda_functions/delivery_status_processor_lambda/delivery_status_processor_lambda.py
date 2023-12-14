@@ -39,7 +39,7 @@ except ValueError:
     logger.warning("Invalid log level specified, defaulting to INFO")
 
 
-def get_twilio_token():
+def get_twilio_token() -> str:
     """
         Is run on instantiation.
         Defined here and in vetext_incoming_forwarder
@@ -63,7 +63,7 @@ def get_twilio_token():
 auth_token = get_twilio_token()
 
 
-def validate_twilio_event(event: dict):
+def validate_twilio_event(event: dict) -> bool:
     """
     Defined both here and in vetext_incoming_forwarder.
     Validates that event was from Twilio.
