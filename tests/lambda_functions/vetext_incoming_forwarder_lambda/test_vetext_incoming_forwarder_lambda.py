@@ -456,7 +456,7 @@ def test_loading_message_from_alb_fails(mocker, monkeypatch, all_path_env_param_
     sqs_dead_letter_mock.assert_called_once()
 
 
-def test_loading_message_from_alb_fails(mocker, monkeypatch, all_path_env_param_set):
+def test_loading_message_from_sqs_called_once(mocker, monkeypatch, all_path_env_param_set):
     from lambda_functions.vetext_incoming_forwarder_lambda.vetext_incoming_forwarder_lambda import (
         push_to_retry_sqs
     )
