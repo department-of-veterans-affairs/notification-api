@@ -21,8 +21,6 @@ SQS_DELAY_SECONDS = 120
 EXPECTED_PINPOINT_FIELDS = frozenset(('originationNumber', 'destinationNumber', 'messageBody'))
 
 # Environment variables set by the lambda infrastructure
-# TODO - Uncomment this line when the code commented-out at the end is restored.
-# AWS_PINPOINT_APP_ID = os.getenv("AWS_PINPOINT_APP_ID")
 DEAD_LETTER_SQS_URL = os.getenv("DEAD_LETTER_SQS_URL")
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 RETRY_SQS_URL = os.getenv('RETRY_SQS_URL')
@@ -32,8 +30,6 @@ TIMEOUT = os.getenv('TIMEOUT', '3')
 client_auth_token = None
 
 if (
-    # TODO - Uncomment this line when the code commented-out at the end is restored.
-    # AWS_PINPOINT_APP_ID is None or
     DEAD_LETTER_SQS_URL is None
     or RETRY_SQS_URL is None
 ):
@@ -97,18 +93,6 @@ def get_ssm_param_info(client_api_auth_ssm_path) -> str:
 
     return client_auth_token
 
-################################################################################################
-# Use the database URI to get a 10DLC-to-URL mapping from the database.
-# The format should be:
-#    {
-#        <phone number>: {
-#            'service_id': <value>,
-#            'url_endpoint': <value>,
-#            'self_managed': <value>,
-#        }
-#    }
-################################################################################################
-
 
 if os.getenv("NOTIFY_ENVIRONMENT") == "test":
     two_way_sms_table_dict = {}
@@ -150,9 +134,19 @@ else:
 logger.debug('10DLC-to-URL mapping: %s', two_way_sms_table_dict)
 
 ################################################################################################
+# Above, use the database URI to get a 10DLC-to-URL mapping from the database.
+# The format should be:
+#    {
+#        <phone number>: {
+#            'service_id': <value>,
+#            'url_endpoint': <value>,
+#            'self_managed': <value>,
+#            'auth_parameter': <value>,
+#        }
+#    }
+################################################################################################
 
-# TODO - Uncomment this line when the code commented-out at the end is restored.
-# aws_pinpoint_client = boto3.client('pinpoint', region_name=AWS_REGION)
+
 aws_sqs_client = boto3.client('sqs', region_name=AWS_REGION)
 
 
@@ -208,20 +202,6 @@ def notify_incoming_sms_handler(event: dict, context: any):
             logger.error("Unable to find a two_way_record for %s.", inbound_sms.get("destinationNumber", "unknown"))
             push_to_sqs(record_body, False)
             continue
-
-        # **Note** - Commenting out this code for self managed checking because right now we are relying on AWS to
-        #            manage opt out/in functionality.
-        # **Note** - Eventually we will migrate to self-managed for everything and the config determination will be
-        #            whether Notify is handling the functionality or if the business line is.
-        # If the number is not self-managed, look for key words
-        # if not two_way_record.get('self_managed'):
-        #    logger.info('Service is not self-managed')
-        #    keyword_phrase = detected_keyword(inbound_sms["messageBody"])
-        #    if keyword_phrase:
-        #        # originationNumber is the veteran number.
-        #        send_message(two_way_record.get('originationNumber', ''),
-        #                     two_way_record.get('destinationNumber', ''),
-        #                     keyword_phrase)
 
         # Forward inbound_sms to the associated service.
         logger.info(
@@ -377,45 +357,3 @@ def push_to_sqs(push_data: dict, is_retry: bool) -> None:
         else:
             # The dead letter queue failed.
             logger.critical("The data is being dropped.")
-
-
-# **Note** - Commented out because it wont be necessary in this initial release
-# def detected_keyword(message: str) -> str:
-#    """
-#    Parses the string to look for start, stop, or help key words and handles those.
-#    """
-
-#    message = message.upper()
-#    if message.startswith(START_TYPES):
-#        logger.info('Detected a START_TYPE keyword')
-#        return START_TEXT
-#    elif message.startswith(STOP_TYPES):
-#        logger.info('Detected a STOP_TYPE keyword')
-#        return STOP_TEXT
-#    elif message.startswith(HELP_TEXT):
-#        logger.info('Detected a HELP_TYPE keyword')
-#        return HELP_TEXT
-#    else:
-#        logger.info('No keywords detected...')
-#        return ''
-
-# **Note** - Commented out because it wont be necessary in this initial release
-# def send_message(recipient_number: str, sender: str, message: str) -> dict:
-#    """
-#    Called when we are monitoring for keywords and one was detected. This sends the
-#    appropriate response to the phone number that requested a message via keyword.
-#    """
-#    try:
-#        # Should probably be smsv2
-#        response = aws_pinpoint_client.send_messages(
-#            ApplicationId=AWS_PINPOINT_APP_ID,
-#            MessageRequest={'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
-#                            'MessageConfiguration': {'SMSMessage': {'Body': message,
-#                                                                    'MessageType': 'TRANSACTIONAL',
-#                                                                    'OriginationNumber': sender}}}
-#        )
-#        aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
-#        logging.info('Message sent, reference: %s', aws_reference)
-#    except Exception as e:
-#        logger.critical('Failed to send message: %s to %s from %s', message, recipient_number, sender)
-#        logger.exception(e)
