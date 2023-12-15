@@ -290,11 +290,19 @@ def forward_to_service(inbound_sms: dict, url: str, auth_parameter: str) -> bool
     """
 
     global client_auth_token
-    if client_auth_token is None:
+
+    if client_auth_token != 'test':
         try:
             client_auth_token = get_ssm_param_info(client_api_auth_ssm_path=auth_parameter)
         except Exception as e:
             logger.exception("Issue attempting to get ssm parameter for incoming two-way sms - Exception: %s", e)
+
+        if client_auth_token is None:
+            logger.critical(
+                'Raising execption because client_auth_token could not be retrieved from SSM. client_auth_token = %s',
+                client_auth_token
+            )
+            raise Exception('Raising execption because client_auth_token could not be retrieved from SSM.')
 
     # This covers None and the empty string.
     if not url:
