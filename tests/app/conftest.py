@@ -752,6 +752,15 @@ def sample_permissions(notify_db_session):
     notify_db_session.session.commit()
 
 
+@pytest.fixture
+def sample_phone_number():
+    def _wrapper(is_str: bool = True):
+        number = randint(10000000000, 19999999999)
+        return str(number) if is_str else number
+
+    yield _wrapper
+
+
 @pytest.fixture(scope='function', name='sample_service_full_permissions')
 def _sample_service_full_permissions(notify_db_session):
     service = create_service(
