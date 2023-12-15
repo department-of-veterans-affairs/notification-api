@@ -284,19 +284,6 @@ def dao_archive_service(service_id):
             api_key.expiry_date = datetime.utcnow()
 
 
-def dao_fetch_service_by_id_and_user(service_id, user_id):
-    # TODO - needs a unit test. Didn"t find a place where this is used. Remove?
-    stmt = (
-        select(Service)
-        .where(
-            Service.users.any(id=user_id),
-            Service.id == service_id
-        )
-        .options(joinedload("users"))
-    )
-    return db.session.execute(stmt).scalar_one()
-
-
 @transactional
 @version_class(Service)
 def dao_create_service(
