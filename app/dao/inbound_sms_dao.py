@@ -1,6 +1,6 @@
 from flask import current_app
 from notifications_utils.statsd_decorators import statsd
-from sqlalchemy import and_, desc, select
+from sqlalchemy import and_, delete, desc, func, select
 from sqlalchemy.orm import aliased
 
 from app import db
@@ -40,31 +40,29 @@ def dao_get_paginated_inbound_sms_for_service_for_public_api(
 
     filters = [InboundSms.service_id == service_id]
 
-    if older_than:
-        older_than_created_at = db.session.query(
-            InboundSms.created_at).filter(InboundSms.id == older_than).as_scalar()
+    if older_than is not None:
+        stmt = select(InboundSms.created_at).where(InboundSms.id == older_than)
+        older_than_created_at = db.session.scalars(stmt).first()
+
         filters.append(InboundSms.created_at < older_than_created_at)
 
-    query = InboundSms.query.filter(*filters)
-
-    return query.order_by(desc(InboundSms.created_at)).paginate(
-        per_page=page_size
-    ).items
+    stmt = select(InboundSms).where(*filters).order_by(desc(InboundSms.created_at))
+    return db.paginate(stmt, per_page=page_size).items
 
 
 def dao_count_inbound_sms_for_service(service_id, limit_days):
-    return InboundSms.query.filter(
+    stmt = select(func.count()). select_from(InboundSms).where(
         InboundSms.service_id == service_id,
         InboundSms.created_at >= midnight_n_days_ago(limit_days)
-    ).count()
+    )
+
+    return db.session.scalars(stmt).first()
 
 
 def _delete_inbound_sms(datetime_to_delete_from, query_filter):
     query_limit = 10000
 
-    subquery = db.session.query(
-        InboundSms.id
-    ).filter(
+    subquery = select(InboundSms.id).where(
         InboundSms.created_at < datetime_to_delete_from,
         *query_filter
     ).limit(
@@ -75,7 +73,8 @@ def _delete_inbound_sms(datetime_to_delete_from, query_filter):
     # set to nonzero just to enter the loop
     number_deleted = 1
     while number_deleted > 0:
-        number_deleted = InboundSms.query.filter(InboundSms.id.in_(subquery)).delete(synchronize_session='fetch')
+        stmt = delete(InboundSms).where(InboundSms.id.in_(subquery)).execution_options(synchronize_session='fetch')
+        number_deleted = db.session.execute(stmt).rowcount
         deleted += number_deleted
 
     return deleted
@@ -86,12 +85,15 @@ def _delete_inbound_sms(datetime_to_delete_from, query_filter):
 def delete_inbound_sms_older_than_retention():
     current_app.logger.info('Deleting inbound sms for services with flexible data retention')
 
-    flexible_data_retention = ServiceDataRetention.query.join(
-        ServiceDataRetention.service,
+    stmt = select(ServiceDataRetention).join(
+        ServiceDataRetention.service
+    ).join(
         Service.inbound_numbers
-    ).filter(
+    ).where(
         ServiceDataRetention.notification_type == SMS_TYPE
-    ).all()
+    )
+
+    flexible_data_retention = db.session.scalars(stmt).all()
 
     deleted = 0
     for f in flexible_data_retention:
@@ -114,10 +116,12 @@ def delete_inbound_sms_older_than_retention():
 
 
 def dao_get_inbound_sms_by_id(service_id, inbound_id):
-    return InboundSms.query.filter_by(
-        id=inbound_id,
-        service_id=service_id
-    ).one()
+    stmt = select(InboundSms).where(
+        InboundSms.id == inbound_id,
+        InboundSms.service_id == service_id
+    )
+
+    return db.session.scalars(stmt).one()
 
 
 def dao_get_paginated_most_recent_inbound_sms_by_user_number_for_service(
@@ -143,25 +147,21 @@ def dao_get_paginated_most_recent_inbound_sms_by_user_number_for_service(
     ORDER BY t1.created_at DESC;
     LIMIT 50 OFFSET :page
     """
+ 
     t2 = aliased(InboundSms)
-    q = db.session.query(
-        InboundSms
-    ).outerjoin(
+    stmt = select(InboundSms).outerjoin(
         t2,
         and_(
             InboundSms.user_number == t2.user_number,
             InboundSms.service_id == t2.service_id,
             InboundSms.created_at < t2.created_at,
         )
-    ).filter(
-        t2.id == None,  # noqa
+    ).where(
+        t2.id == None,
         InboundSms.service_id == service_id,
         InboundSms.created_at >= midnight_n_days_ago(limit_days)
     ).order_by(
         InboundSms.created_at.desc()
     )
 
-    return q.paginate(
-        page=page,
-        per_page=current_app.config['PAGE_SIZE']
-    )
+    return db.paginate(stmt, page=page, per_page=current_app.config['PAGE_SIZE'])
