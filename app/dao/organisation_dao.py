@@ -29,11 +29,11 @@ def dao_count_organsations_with_live_services():
 
 
 def dao_get_organisation_services(organisation_id):
-    return db.session.execute(select(Organisation).where(Organisation.id == organisation_id)).one().services
+    return db.session.scalars(select(Organisation).where(Organisation.id == organisation_id)).one().services
 
 
 def dao_get_organisation_by_id(organisation_id):
-    return db.session.execute(select(Organisation).where(Organisation.id == organisation_id)).one()
+    return db.session.scalars(select(Organisation).where(Organisation.id == organisation_id)).one()
 
 
 def dao_get_organisation_by_email_address(email_address):
@@ -97,7 +97,7 @@ def _update_org_type_for_organisation_services(organisation):
 @transactional
 @version_class(Service)
 def dao_add_service_to_organisation(service, organisation_id):
-    organisation = db.session.execute(select(Organisation).where(Organisation.id == organisation_id)).one()
+    organisation = db.session.scalars(select(Organisation).where(Organisation.id == organisation_id)).one()
 
     service.organisation_id = organisation_id
     service.organisation_type = organisation.organisation_type
@@ -122,7 +122,7 @@ def dao_get_users_for_organisation(organisation_id):
 @transactional
 def dao_add_user_to_organisation(organisation_id, user_id):
     organisation = dao_get_organisation_by_id(organisation_id)
-    user = db.session.execute(select(User).where(User.id == user_id)).one()
+    user = db.session.scalars(select(User).where(User.id == user_id)).one()
     user.organisations.append(organisation)
     db.session.add(organisation)
     return user
