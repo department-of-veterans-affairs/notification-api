@@ -157,7 +157,7 @@ def dao_get_paginated_most_recent_inbound_sms_by_user_number_for_service(
             InboundSms.created_at < t2.created_at,
         )
     ).where(
-        t2.id == None,  # noqa E711
+        t2.id.is_(None),
         InboundSms.service_id == service_id,
         InboundSms.created_at >= midnight_n_days_ago(limit_days)
     ).order_by(

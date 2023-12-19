@@ -800,7 +800,7 @@ def fix_billable_units():
     stmt = select(Notification).where(
         Notification.notification_type == SMS_TYPE,
         Notification.status != NOTIFICATION_CREATED,
-        Notification.sent_at == None,  # noqa E711
+        Notification.sent_at.is_(None),
         Notification.billable_units == 0,
         Notification.key_type != KEY_TYPE_TEST,
     )

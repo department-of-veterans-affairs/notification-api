@@ -22,7 +22,7 @@ invalid_event_missing_body = {'Records':[{'no_body': ''}]}
 @pytest.mark.parametrize('event', [(invalid_none_event), (invalid_event_empty_event), (invalid_event_missing_body)])
 def test_validate_event(mocker, event):
     response = valid_event(event)
-    assert response == False
+    assert not response
 
 # Test valid event body
 invalid_event_body_empty_body = {}
@@ -43,7 +43,7 @@ def test_validate_event_body(mocker, event):
         })
     response = valid_message_body(event)
     
-    assert response == False
+    assert not response
 
 def test_forward_to_service_failed_on_empty_url(mocker):
     """
@@ -51,17 +51,17 @@ def test_forward_to_service_failed_on_empty_url(mocker):
     """
 
     response = forward_to_service({}, '')
-    assert response == False
+    assert not response
 
 def test_forward_to_service_failed_post_on_http_error(mocker):
     mocker.patch(f'{LAMBDA_MODULE}.requests.post', side_effect=requests.exceptions.HTTPError('http://example.com', 500, 'Error message', {}, None))
     response = forward_to_service({}, 'https://someurl.com')
-    assert response == False
+    assert not response
 
 def test_forward_to_service_failed_post_on_request_exception(mocker):
     mocker.patch(f'{LAMBDA_MODULE}.requests.post', side_effect=requests.exceptions.RequestException())
     response = forward_to_service({}, 'https://someurl.com')
-    assert response == False
+    assert not response
 
 def test_forward_to_service_failed_on_general_exception(mocker):
     mocker.patch(f'{LAMBDA_MODULE}.requests.post', side_effect=Exception)

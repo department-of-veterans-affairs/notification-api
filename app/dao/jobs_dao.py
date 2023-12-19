@@ -134,7 +134,7 @@ def dao_get_jobs_older_than_data_retention(notification_types):
 
         stmt = select(Job).join(Template).where(
             func.coalesce(Job.scheduled_for, Job.created_at) < end_date,
-            Job.archived == False,  # noqa
+            Job.archived.is_(False),
             Template.template_type == f.notification_type,
             Job.service_id == f.service_id,
         ).order_by(desc(Job.created_at))
@@ -149,7 +149,7 @@ def dao_get_jobs_older_than_data_retention(notification_types):
 
         stmt = select(Job).join(Template).where(
             func.coalesce(Job.scheduled_for, Job.created_at) < end_date,
-            Job.archived == False,  # noqa
+            Job.archived.is_(False),
             Template.template_type == notification_type,
             Job.service_id.notin_(services_with_data_retention),
         ).order_by(desc(Job.created_at))
