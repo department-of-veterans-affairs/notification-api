@@ -402,10 +402,10 @@ def get_notifications_for_service(
         filters.append(Notification.created_at < older_than_created_at)
 
     if not include_jobs:
-        filters.append(Notification.job_id == None)  # noqa
+        filters.append(Notification.job_id.is_(None))
 
     if not include_one_off:
-        filters.append(Notification.created_by_id == None)  # noqa
+        filters.append(Notification.created_by_id.is_(None))
 
     if key_type is not None:
         filters.append(Notification.key_type == key_type)

@@ -12,7 +12,7 @@ def dao_get_callback_include_payload_status(service_id, service_callback_type) -
     stmt = select(ServiceCallback).where(
         ServiceCallback.service_id == service_id,
         ServiceCallback.callback_type == service_callback_type,
-        ServiceCallback.include_provider_payload == True  # noqa E712
+        ServiceCallback.include_provider_payload.is_(True)
     )
 
     row = db.session.scalars(stmt).first()
