@@ -147,7 +147,7 @@ def dao_get_paginated_most_recent_inbound_sms_by_user_number_for_service(
     ORDER BY t1.created_at DESC;
     LIMIT 50 OFFSET :page
     """
- 
+
     t2 = aliased(InboundSms)
     stmt = select(InboundSms).outerjoin(
         t2,
@@ -157,7 +157,7 @@ def dao_get_paginated_most_recent_inbound_sms_by_user_number_for_service(
             InboundSms.created_at < t2.created_at,
         )
     ).where(
-        t2.id == None,
+        t2.id == None,  # noqa E711
         InboundSms.service_id == service_id,
         InboundSms.created_at >= midnight_n_days_ago(limit_days)
     ).order_by(

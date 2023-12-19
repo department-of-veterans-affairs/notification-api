@@ -7,7 +7,7 @@ from sqlalchemy import desc, select, update
 def dao_get_letter_contacts_by_service_id(service_id):
     stmt = select(ServiceLetterContact).where(
         ServiceLetterContact.service_id == service_id,
-        ServiceLetterContact.archived == False
+        ServiceLetterContact.archived == False  # noqa E712
     ).order_by(
         desc(ServiceLetterContact.is_default),
         desc(ServiceLetterContact.created_at)
@@ -20,7 +20,7 @@ def dao_get_letter_contact_by_id(service_id, letter_contact_id):
     stmt = select(ServiceLetterContact).where(
         ServiceLetterContact.service_id == service_id,
         ServiceLetterContact.id == letter_contact_id,
-        ServiceLetterContact.archived == False
+        ServiceLetterContact.archived == False  # noqa E712
     )
 
     return db.session.scalars(stmt).one()
