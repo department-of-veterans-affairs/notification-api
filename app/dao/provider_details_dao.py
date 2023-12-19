@@ -39,7 +39,7 @@ def get_alternative_sms_provider(identifier: str) -> Optional[ProviderDetails]:
 
     stmt = select(ProviderDetails).where(
         ProviderDetails.notification_type == SMS_TYPE,
-        ProviderDetails.active == True,
+        ProviderDetails.active == True,  # noqa E712
         ProviderDetails.identifier != identifier
     ).order_by(
         asc(ProviderDetails.priority)
@@ -51,7 +51,7 @@ def get_alternative_sms_provider(identifier: str) -> Optional[ProviderDetails]:
 def get_current_provider(notification_type):
     stmt = select(ProviderDetails).where(
         ProviderDetails.notification_type == notification_type,
-        ProviderDetails.active == True
+        ProviderDetails.active == True  # noqa E712
     ).order_by(
         asc(ProviderDetails.priority)
     )
@@ -162,7 +162,7 @@ def dao_get_sms_provider_with_equal_priority(identifier, priority):
         ProviderDetails.identifier != identifier,
         ProviderDetails.notification_type == SMS_TYPE,
         ProviderDetails.priority == priority,
-        ProviderDetails.active == True
+        ProviderDetails.active == True  # noqa E712
     ).order_by(
         asc(ProviderDetails.priority)
     )

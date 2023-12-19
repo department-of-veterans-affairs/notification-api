@@ -72,7 +72,7 @@ class PermissionDAO(DAOClass):
             self.Meta.model.service
         ).where(
             self.Meta.model.user_id == user_id,
-            Service.active == True
+            Service.active == True  # noqa E712
         )
 
         return db.session.scalars(stmt).all()
@@ -85,7 +85,7 @@ class PermissionDAO(DAOClass):
         ).where(
             self.Meta.model.user_id == user_id,
             Service.id == service_id,
-            Service.active == True
+            Service.active == True  # noqa E712
         )
 
         return db.session.scalars(stmt).all()

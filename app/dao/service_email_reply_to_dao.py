@@ -9,7 +9,7 @@ from sqlalchemy import desc, select
 def dao_get_reply_to_by_service_id(service_id):
     stmt = select(ServiceEmailReplyTo).where(
         ServiceEmailReplyTo.service_id == service_id,
-        ServiceEmailReplyTo.archived == False
+        ServiceEmailReplyTo.archived == False  # noqa E712
     ).order_by(
         desc(ServiceEmailReplyTo.is_default),
         desc(ServiceEmailReplyTo.created_at)
@@ -22,7 +22,7 @@ def dao_get_reply_to_by_id(service_id, reply_to_id):
     stmt = select(ServiceEmailReplyTo).where(
         ServiceEmailReplyTo.service_id == service_id,
         ServiceEmailReplyTo.id == reply_to_id,
-        ServiceEmailReplyTo.archived == False
+        ServiceEmailReplyTo.archived == False  # noqa E712
     ).order_by(ServiceEmailReplyTo.created_at)
 
     return db.session.scalars(stmt).one()

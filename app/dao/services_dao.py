@@ -81,9 +81,9 @@ def dao_count_live_services():
         select(func.count())
         .select_from(Service)
         .where(
-            Service.active == True,
-            Service.restricted == False,
-            Service.count_as_live == True
+            Service.active == True,  # noqa E712
+            Service.restricted == False,  # noqa E712
+            Service.count_as_live == True  # noqa E712
         )
     )
     return db.session.execute(stmt).scalar_one()
