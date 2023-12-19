@@ -12,12 +12,14 @@ from app.model import User
 
 
 def dao_get_organisations():
+    # Endpoint is unused, query to be removed when endpoint is removed
     return Organisation.query.order_by(
         Organisation.active.desc(), Organisation.name.asc()
     ).all()
 
 
 def dao_count_organsations_with_live_services():
+    # Endpoint is unused, query to be removed when endpoint is removed
     return db.session.query(Organisation.id).join(Organisation.services).filter(
         Service.active.is_(True),
         Service.restricted.is_(False),
@@ -26,6 +28,7 @@ def dao_count_organsations_with_live_services():
 
 
 def dao_get_organisation_services(organisation_id):
+    # Endpoint is unused, query to be removed when endpoint is removed
     return Organisation.query.filter_by(
         id=organisation_id
     ).one().services
