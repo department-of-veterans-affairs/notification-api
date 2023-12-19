@@ -188,10 +188,7 @@ def notify_incoming_sms_handler(event: dict, context: any):
             # Push the record to the dead letter queue, and return 200 to have the message removed from the feeder queue
             push_to_sqs(record_body, False)
             if len(event["Records"]) > 1:
-                # TODO - Remove this block as part of #1014.  The problem is that the handler returns if any record has
-                # an invalid message.  It's not a problem now because we only expect one record.
-                logger.warning(
-                    "Multiple records might not be processed correctly until batching is implemented.  See #1014.")
+                logger.warning("Multiple records might not be processed correctly unless batching is implemented.")
             return create_response(200)
         # Else, the message has all the required fields.
 
