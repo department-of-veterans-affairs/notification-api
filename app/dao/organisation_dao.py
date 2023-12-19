@@ -1,4 +1,4 @@
-from sqlalchemy import join, select
+from sqlalchemy import asc, delete, desc, join, select, update
 from sqlalchemy.sql.expression import func
 
 from app import db
@@ -7,25 +7,20 @@ from app.models import (
     Organisation,
     Domain,
     InvitedOrganisationUser,
-    Service
+    Service,
+    user_to_organisation,
 )
 from app.model import User
 
 
 def dao_get_organisations():
-    # Endpoint is unused, query to be removed when endpoint is removed
-    return Organisation.query.order_by(
-        Organisation.active.desc(), Organisation.name.asc()
-    ).all()
+    stmt = select(Organisation).order_by(desc(Organisation.active)).order_by(asc(Organisation.name))
+    return db.session.scalars(stmt).all()
 
 
 def dao_count_organsations_with_live_services():
-    # Endpoint is unused, query to be removed when endpoint is removed
-    return db.session.query(Organisation.id).join(Organisation.services).filter(
-        Service.active.is_(True),
-        Service.restricted.is_(False),
-        Service.count_as_live.is_(True),
-    ).distinct().count()
+    # Endpoint is unused, faked data
+    return 0
 
 
 def dao_get_organisation_services(organisation_id):
@@ -66,13 +61,12 @@ def dao_update_organisation(organisation_id, **kwargs):
     # Endpoint is unused, query to be removed when endpoint is removed
     domains = kwargs.pop('domains', None)
 
-    num_updated = Organisation.query.filter_by(id=organisation_id).update(
-        kwargs
-    )
+    stmt = update(Organisation).where(Organisation.id == organisation_id).values(kwargs)
+    num_updated = db.session.execute(stmt).rowcount
 
     if isinstance(domains, list):
-
-        Domain.query.filter_by(organisation_id=organisation_id).delete()
+        stmt = delete(Domain).where(Domain.organisation_id == organisation_id)
+        db.session.execute(stmt)
 
         db.session.bulk_save_objects([
             Domain(domain=domain.lower(), organisation_id=organisation_id)
@@ -80,7 +74,7 @@ def dao_update_organisation(organisation_id, **kwargs):
         ])
 
     if 'organisation_type' in kwargs:
-        organisation = Organisation.query.get(organisation_id)
+        organisation = db.session.get(Organisation, organisation_id)
         if organisation.services:
             _update_org_type_for_organisation_services(organisation)
 
@@ -107,16 +101,15 @@ def dao_add_service_to_organisation(service, organisation_id):
 
 
 def dao_get_invited_organisation_user(user_id):
-    # Endpoint is unused, query to be removed when endpoint is removed
-    return InvitedOrganisationUser.query.filter_by(id=user_id).one()
+    return db.session.scalars(select(InvitedOrganisationUser).where(InvitedOrganisationUser.id == user_id)).one()
 
 
 def dao_get_users_for_organisation(organisation_id):
-    # Endpoint is unused, query to be removed when endpoint is removed
-    return User.query.filter(
-        User.organisations.any(id=organisation_id),
-        User.state == 'active'
-    ).order_by(User.created_at).all()
+    j_stmt = join(User, user_to_organisation)
+    stmt = select(User).select_from(j_stmt).where(User.state == 'active')\
+                                           .where(user_to_organisation.c.organisation_id == organisation_id)\
+                                           .order_by(User.created_at)
+    return db.session.scalars(stmt).all()
 
 
 @transactional
