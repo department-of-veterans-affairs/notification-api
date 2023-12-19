@@ -121,9 +121,7 @@ def test_forward_to_service_failed_on_general_exception(mocker):
     mocker.patch(f'{LAMBDA_MODULE}.requests.post', side_effect=Exception)
 
     with pytest.raises(Exception):
-        result = forward_to_service({}, 'https://someurl.com')
-
-        print(f'evan: {result}')
+        forward_to_service({}, 'https://someurl.com')
 
 
 # Test Handler

@@ -282,7 +282,7 @@ def forward_to_service(inbound_sms: dict, url: str, auth_parameter: str) -> bool
                 'Raising execption because client_auth_token could not be retrieved from SSM. client_auth_token = %s',
                 client_auth_token
             )
-            raise Exception('Raising execption because client_auth_token could not be retrieved from SSM.')
+            raise Exception('Raising exception because client_auth_token could not be retrieved from SSM.')
 
     # This covers None and the empty string.
     if not url:
