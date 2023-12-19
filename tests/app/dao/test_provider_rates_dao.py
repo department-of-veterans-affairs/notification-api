@@ -1,5 +1,5 @@
 from app.dao.provider_rates_dao import create_provider_rates
-from app.models import ProviderDetails, ProviderRates
+from app.models import ProviderRates
 from datetime import datetime
 from decimal import Decimal
 
