@@ -107,13 +107,13 @@ def test_forward_to_service_failed_post_on_http_error(mocker):
         f'{LAMBDA_MODULE}.requests.post',
         side_effect=requests.exceptions.HTTPError('http://example.com', 500, 'Error message', {}, None)
     )
-    response = forward_to_service({}, 'https://someurl.com', None)
+    response = forward_to_service({}, 'https://someurl.com', 'None')
     assert response is False
 
 
 def test_forward_to_service_failed_post_on_request_exception(mocker):
     mocker.patch(f'{LAMBDA_MODULE}.requests.post', side_effect=requests.exceptions.RequestException())
-    response = forward_to_service({}, 'https://someurl.com', None)
+    response = forward_to_service({}, 'https://someurl.com', 'None')
     assert response is False
 
 
@@ -121,7 +121,7 @@ def test_forward_to_service_failed_on_general_exception(mocker):
     mocker.patch(f'{LAMBDA_MODULE}.requests.post', side_effect=Exception)
 
     with pytest.raises(Exception):
-        forward_to_service({}, 'https://someurl.com')
+        forward_to_service({}, 'https://someurl.com', 'None')
 
 
 # Test Handler

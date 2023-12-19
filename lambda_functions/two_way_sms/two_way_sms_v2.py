@@ -297,7 +297,7 @@ def forward_to_service(inbound_sms: dict, url: str, auth_parameter: str) -> bool
     try:
         response = requests.post(
             url,
-            verify=False if auth_parameter and 'vetext' in auth_parameter else True,
+            verify=False if 'vetext' in auth_parameter else True,
             json=inbound_sms,
             timeout=TIMEOUT,
             headers=headers
