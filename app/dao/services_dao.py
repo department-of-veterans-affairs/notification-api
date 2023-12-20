@@ -495,14 +495,10 @@ def delete_service_and_all_associated_db_objects(service):
 def dao_fetch_stats_for_service(service_id, limit_days):
     # We always want between seven and eight days
     start_date = midnight_n_days_ago(limit_days)
-    print(start_date)
     stmt = _stats_for_service_query(service_id).where(
-        func.date(Notification.created_at) >= start_date
+        Notification.created_at >= start_date
     )
-    print(stmt)
-    res = db.session.execute(stmt).all()
-    print(res)
-    return res
+    return db.session.execute(stmt).all()
 
 
 @statsd(namespace="dao")
