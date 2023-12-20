@@ -22,3 +22,4 @@ def dao_remove_service_permission(service_id, permission):
     )
 
     db.session.execute(stmt)
+    db.session.commit()
