@@ -39,7 +39,7 @@ def get_alternative_sms_provider(identifier: str) -> Optional[ProviderDetails]:
 
     stmt = select(ProviderDetails).where(
         ProviderDetails.notification_type == SMS_TYPE,
-        ProviderDetails.active == True,
+        ProviderDetails.active.is_(True),
         ProviderDetails.identifier != identifier
     ).order_by(
         asc(ProviderDetails.priority)
@@ -51,7 +51,7 @@ def get_alternative_sms_provider(identifier: str) -> Optional[ProviderDetails]:
 def get_current_provider(notification_type):
     stmt = select(ProviderDetails).where(
         ProviderDetails.notification_type == notification_type,
-        ProviderDetails.active == True
+        ProviderDetails.active.is_(True)
     ).order_by(
         asc(ProviderDetails.priority)
     )
@@ -120,7 +120,7 @@ def get_highest_priority_active_provider_by_notification_type(
 ) -> Optional[ProviderDetails]:
     filters = [
         ProviderDetails.notification_type == notification_type.value,
-        ProviderDetails.active == True # noqa
+        ProviderDetails.active.is_(True)
     ]
 
     if supports_international:
@@ -136,8 +136,8 @@ def get_active_providers_with_weights_by_notification_type(
 ) -> List[ProviderDetails]:
     filters = [
         ProviderDetails.notification_type == notification_type.value,
-        ProviderDetails.load_balancing_weight != None, # noqa
-        ProviderDetails.active == True # noqa
+        ProviderDetails.load_balancing_weight.is_not(None),
+        ProviderDetails.active.is_(True)
     ]
 
     if supports_international:
@@ -162,7 +162,7 @@ def dao_get_sms_provider_with_equal_priority(identifier, priority):
         ProviderDetails.identifier != identifier,
         ProviderDetails.notification_type == SMS_TYPE,
         ProviderDetails.priority == priority,
-        ProviderDetails.active == True
+        ProviderDetails.active.is_(True)
     ).order_by(
         asc(ProviderDetails.priority)
     )

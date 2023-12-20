@@ -98,13 +98,13 @@ def dao_get_template_by_id_and_service_id(template_id, service_id, version=None)
     if version is None:
         stmt = select(Template).where(
             Template.id == template_id,
-            Template.hidden == False,
+            Template.hidden.is_(False),
             Template.service_id == service_id
         )
     else:
         stmt = select(TemplateHistory).where(
             TemplateHistory.id == template_id,
-            TemplateHistory.hidden == False,
+            TemplateHistory.hidden.is_(False),
             TemplateHistory.service_id == service_id,
             TemplateHistory.version == version
         )
@@ -115,13 +115,13 @@ def dao_get_template_by_id_and_service_id(template_id, service_id, version=None)
 def dao_get_number_of_templates_by_service_id_and_name(service_id, template_name, version=None):
     if version is None:
         stmt = select(func.count()).select_from(Template).where(
-            Template.hidden == False,
+            Template.hidden.is_(False),
             Template.service_id == service_id,
             Template.name == template_name
         )
     else:
         stmt = select(func.count()).select_from(TemplateHistory).where(
-            TemplateHistory.hidden == False,
+            TemplateHistory.hidden.is_(False),
             TemplateHistory.service_id == service_id,
             TemplateHistory.name == template_name,
             TemplateHistory.version == version
@@ -146,8 +146,8 @@ def dao_get_all_templates_for_service(service_id, template_type=None):
     if template_type is None:
         stmt = select(Template).where(
             Template.service_id == service_id,
-            Template.hidden == False,
-            Template.archived == False
+            Template.hidden.is_(False),
+            Template.archived.is_(False)
         ).order_by(
             asc(Template.name),
             asc(Template.template_type)
@@ -156,8 +156,8 @@ def dao_get_all_templates_for_service(service_id, template_type=None):
         stmt = select(Template).where(
             Template.service_id == service_id,
             Template.template_type == template_type,
-            Template.hidden == False,
-            Template.archived == False
+            Template.hidden.is_(False),
+            Template.archived.is_(False)
         ).order_by(
             asc(Template.name),
             asc(Template.template_type)
@@ -170,7 +170,7 @@ def dao_get_template_versions(service_id, template_id):
     stmt = select(TemplateHistory).where(
         TemplateHistory.service_id == service_id,
         TemplateHistory.id == template_id,
-        TemplateHistory.hidden == False,
+        TemplateHistory.hidden.is_(False)
     ).order_by(
         desc(TemplateHistory.version)
     )
@@ -182,7 +182,7 @@ def get_precompiled_letter_template(service_id):
     stmt = select(Template).where(
         Template.service_id == service_id,
         Template.template_type == LETTER_TYPE,
-        Template.hidden == True
+        Template.hidden.is_(True)
     )
 
     template = db.session.scalars(stmt).first()

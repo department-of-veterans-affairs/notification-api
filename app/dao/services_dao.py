@@ -81,9 +81,9 @@ def dao_count_live_services():
         select(func.count())
         .select_from(Service)
         .where(
-            Service.active == True,
-            Service.restricted == False,
-            Service.count_as_live == True
+            Service.active.is_(True),
+            Service.restricted.is_(False),
+            Service.count_as_live.is_(True)
         )
     )
     return db.session.execute(stmt).scalar_one()
@@ -282,19 +282,6 @@ def dao_archive_service(service_id):
     for api_key in service.api_keys:
         if not api_key.expiry_date:
             api_key.expiry_date = datetime.utcnow()
-
-
-def dao_fetch_service_by_id_and_user(service_id, user_id):
-    # TODO - needs a unit test. Didn"t find a place where this is used. Remove?
-    stmt = (
-        select(Service)
-        .where(
-            Service.users.any(id=user_id),
-            Service.id == service_id
-        )
-        .options(joinedload("users"))
-    )
-    return db.session.execute(stmt).scalar_one()
 
 
 @transactional
