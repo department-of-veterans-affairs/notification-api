@@ -263,12 +263,12 @@ def dao_archive_service(service_id):
         select(Service)
         .options(
             joinedload(Service.templates),
-            joinedload(Service.templates.template_redacted),
+            joinedload(Service.templates).joinedload(Template.template_redacted),
             joinedload(Service.api_keys),
         )
         .where(Service.id == service_id)
     )
-    service = db.session.scalars(stmt).one()
+    service = db.session.scalars(stmt).unique().one()
 
     time = datetime.utcnow().strftime("%Y-%m-%d_%H:%M:%S")
     service.active = False
