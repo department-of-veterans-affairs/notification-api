@@ -373,41 +373,6 @@ def dao_remove_user_from_service(service, user):
         db.session.commit()
 
 
-# def delete_service_and_all_associated_db_objects(service):
-
-#     def _delete_commit(query):
-#         query.delete(synchronize_session=False)
-#         db.session.commit()
-
-#     subq = db.session.query(Template.id).filter_by(service=service).subquery()
-#     _delete_commit(TemplateRedacted.query.filter(TemplateRedacted.template_id.in_(subq)))
-
-#     _delete_commit(ServiceSmsSender.query.filter_by(service=service))
-#     _delete_commit(InvitedUser.query.filter_by(service=service))
-#     _delete_commit(Permission.query.filter_by(service=service))
-#     _delete_commit(NotificationHistory.query.filter_by(service=service))
-#     _delete_commit(Notification.query.filter_by(service=service))
-#     _delete_commit(Job.query.filter_by(service=service))
-#     _delete_commit(Template.query.filter_by(service=service))
-#     _delete_commit(TemplateHistory.query.filter_by(service_id=service.id))
-#     _delete_commit(ServicePermission.query.filter_by(service_id=service.id))
-#     _delete_commit(ApiKey.query.filter_by(service=service))
-#     _delete_commit(ApiKey.get_history_model().query.filter_by(service_id=service.id))
-#     _delete_commit(AnnualBilling.query.filter_by(service_id=service.id))
-
-#     verify_codes = VerifyCode.query.join(User).filter(User.id.in_([x.id for x in service.users]))
-#     list(map(db.session.delete, verify_codes))
-#     db.session.commit()
-#     users = [x for x in service.users]
-#     map(service.users.remove, users)
-#     [service.users.remove(x) for x in users]
-#     _delete_commit(Service.get_history_model().query.filter_by(id=service.id))
-#     db.session.delete(service)
-#     db.session.commit()
-#     list(map(db.session.delete, users))
-#     db.session.commit()
-
-
 def delete_service_and_all_associated_db_objects(service):
 
     def _delete_commit(stmt):
