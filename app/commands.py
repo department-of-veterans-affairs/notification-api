@@ -822,6 +822,5 @@ def fix_billable_units():
 
         db.session.execute(stmt)
 
-    # TODO - This commit probably isn't necessary because the "update" statement is used. This is not an ORM operation.
     db.session.commit()
     print("End fix_billable_units")
