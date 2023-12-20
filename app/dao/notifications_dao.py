@@ -89,7 +89,7 @@ def dao_get_last_template_usage(template_id, template_type, service_id):
         .order_by(desc(Notification.created_at))
     )
 
-    return db.session.execute(stmt).scalar_one_or_none()
+    return db.session.scalars(stmt).first()
 
 
 @statsd(namespace="dao")
@@ -349,49 +349,19 @@ def get_notification_for_job(service_id, job_id, notification_id):
     return db.session.scalars(stmt).one()
 
 
-# TODO remove this code if new, 2.0 code below passes all the tests
-# @statsd(namespace="dao")
-# def get_notifications_for_job(service_id, job_id, filter_dict=None, page=1, page_size=None):
-#     if page_size is None:
-#         page_size = current_app.config['PAGE_SIZE']
-#     query = Notification.query.filter_by(service_id=service_id, job_id=job_id)
-#     query = _filter_query(query, filter_dict)
-#     return query.order_by(asc(Notification.job_row_number)).paginate(
-#         page=page,
-#         per_page=page_size
-#     )
-
 @statsd(namespace="dao")
 def get_notifications_for_job(service_id, job_id, filter_dict=None, page=1, page_size=None):
     if page_size is None:
         page_size = current_app.config['PAGE_SIZE']
+    stmt = select(Notification).where(Notification.service_id == service_id, Notification.job_id == job_id)
 
-    stmt = select(Notification).where(
-        Notification.service_id == service_id,
-        Notification.job_id == job_id
-    )
     stmt = _filter_query(stmt, filter_dict)
-    stmt = stmt.order_by(asc(Notification.job_row_number))
-    offset = (page - 1) * page_size
-    notifications = db.session.execute(stmt.limit(page_size).offset(offset)).scalars().all()
-
-    stmt = select(func.count()).select_from(Notification).where(
-        Notification.service_id == service_id,
-        Notification.job_id == job_id
+    stmt = stmt.order_by(desc(Notification.job_row_number))
+    return db.paginate(
+        stmt,
+        page=page,
+        per_page=page_size,
     )
-    total_items = db.session.execute(stmt).scalar_one()
-    total_pages = (total_items // page_size) + (1 if total_items % page_size else 0)
-
-    # Creating a custom pagination object to match prev. output
-    Pagination = type('Pagination', (object,), {})
-    pagination = Pagination()
-    pagination.items = notifications
-    pagination.page = page
-    pagination.per_page = page_size
-    pagination.total = total_items
-    pagination.pages = total_pages
-
-    return pagination
 
 
 @statsd(namespace="dao")
@@ -409,6 +379,7 @@ def get_notification_with_personalisation(service_id, notification_id, key_type)
     return db.session.scalars(stmt).one()
 
 
+@statsd(namespace="dao")
 def get_notification_by_id(notification_id, service_id=None, _raise=False):
     filters = [Notification.id == notification_id]
 
@@ -416,8 +387,8 @@ def get_notification_by_id(notification_id, service_id=None, _raise=False):
         filters.append(Notification.service_id == service_id)
 
     stmt = select(Notification).where(*filters)
-    result = db.session.execute(stmt)
-    return result.scalar_one() if _raise else result.scalar_one_or_none()
+    result = db.session.scalars(stmt)
+    return result.one() if _raise else result.first()
 
 
 def get_notifications(filter_dict=None):
