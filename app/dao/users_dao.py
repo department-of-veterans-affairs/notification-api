@@ -137,6 +137,14 @@ def get_users_by_partial_email(email):
     return db.session.scalars(stmt).all()
 
 
+def get_user_by_identity_provider_user_id(identity_provider_user_id):
+    stmt = select(User).where(
+        func.lower(User.identity_provider_user_id) == func.lower(identity_provider_user_id)
+    )
+
+    return db.session.scalars(stmt).one()
+
+
 @transactional
 def update_user_identity_provider_user_id(email, identity_provider_user_id):
     email_matches_condition = func.lower(User.email_address) == func.lower(email)

@@ -17,7 +17,9 @@ from app.dao.users_dao import (
     create_secret_code,
     user_can_be_archived,
     dao_archive_user,
-    verify_within_time, get_user_by_identity_provider_user_id, update_user_identity_provider_user_id,
+    verify_within_time,
+    get_user_by_identity_provider_user_id,
+    update_user_identity_provider_user_id,
     create_or_retrieve_user,
     retrieve_match_or_create_user,
 )
