@@ -424,78 +424,21 @@ def get_notifications(filter_dict=None):
     return _filter_query(Notification.query, filter_dict=filter_dict)
 
 
-# TODO remove this code if new, 2.0 code below passes all the tests
-# @statsd(namespace="dao")
-# def get_notifications_for_service(
-#         service_id,
-#         filter_dict=None,
-#         page=1,
-#         page_size=None,
-#         count_pages=True,
-#         limit_days=None,
-#         key_type=None,
-#         personalisation=False,
-#         include_jobs=False,
-#         include_from_test_key=False,
-#         older_than=None,
-#         client_reference=None,
-#         include_one_off=True
-# ):
-#     if page_size is None:
-#         page_size = current_app.config['PAGE_SIZE']
-
-#     filters = [Notification.service_id == service_id]
-
-#     if limit_days is not None:
-#         filters.append(Notification.created_at >= midnight_n_days_ago(limit_days))
-
-#     if older_than is not None:
-#         older_than_created_at = db.session.query(
-#             Notification.created_at).filter(Notification.id == older_than).as_scalar()
-#         filters.append(Notification.created_at < older_than_created_at)
-
-#     if not include_jobs:
-#         filters.append(Notification.job_id == None)  # noqa
-
-#     if not include_one_off:
-#         filters.append(Notification.created_by_id == None)  # noqa
-
-#     if key_type is not None:
-#         filters.append(Notification.key_type == key_type)
-#     elif not include_from_test_key:
-#         filters.append(Notification.key_type != KEY_TYPE_TEST)
-
-#     if client_reference is not None:
-#         filters.append(Notification.client_reference == client_reference)
-
-#     query = Notification.query.filter(*filters)
-#     query = _filter_query(query, filter_dict)
-#     if personalisation:
-#         query = query.options(
-#             joinedload('template')
-#         )
-
-#     return query.order_by(desc(Notification.created_at)).paginate(
-#         page=page,
-#         per_page=page_size,
-#         count=count_pages
-#     )
-
-
+@statsd(namespace="dao")
 def get_notifications_for_service(
-        service_id,
-        filter_dict=None,
-        page=1,
-        page_size=None,
-        count_pages=True,
-        limit_days=None,
-        key_type=None,
-        personalisation=False,
-        include_jobs=False,
-        include_from_test_key=False,
-        older_than=None,
-        client_reference=None,
-        include_one_off=True
+    service_id,
+    filter_dict=None,
+    page=1,
+    page_size=None,
+    count_pages=True,
+    limit_days=None,
+    key_type=None,
+    personalisation=False,
+    include_jobs=False,
+    include_from_test_key=False,
+    older_than=None,
+    client_reference=None,
+    include_one_off=True
 ):
     if page_size is None:
         page_size = current_app.config['PAGE_SIZE']
@@ -506,16 +449,14 @@ def get_notifications_for_service(
         filters.append(Notification.created_at >= midnight_n_days_ago(limit_days))
 
     if older_than is not None:
-        older_than_created_at = db.session.execute(
-            select(Notification.created_at).filter(Notification.id == older_than)
-        ).scalar_one()
+        older_than_created_at = select(Notification.created_at).where(Notification.id == older_than).as_scalar()
         filters.append(Notification.created_at < older_than_created_at)
 
     if not include_jobs:
-        filters.append(Notification.job_id.is_(None))
+        filters.append(Notification.job_id == None)  # noqa
 
     if not include_one_off:
-        filters.append(Notification.created_by_id.is_(None))
+        filters.append(Notification.created_by_id == None)  # noqa
 
     if key_type is not None:
         filters.append(Notification.key_type == key_type)
@@ -525,47 +466,42 @@ def get_notifications_for_service(
     if client_reference is not None:
         filters.append(Notification.client_reference == client_reference)
 
-    stmt = select(Notification).where(*filters).order_by(desc(Notification.created_at))
+    stmt = select(Notification).where(*filters)
 
+    stmt = _filter_query(stmt, filter_dict)
     if personalisation:
-        stmt = stmt.options(joinedload('template'))
+        stmt = stmt.options(
+            joinedload('template')
+        )
 
-    offset = (page - 1) * page_size
-    notifications = db.session.scalars(stmt.limit(page_size).offset(offset)).all()
+    stmt = stmt.order_by(desc(Notification.created_at))
 
-    total_items = None
-    if count_pages:
-        total_items = db.session.scalars(select(func.count()).select_from(Notification).where(*filters)).one()
-
-    # Simulate the structure of a pagination object like in the pre 2.0 code.
-    pagination = type('Pagination', (), {})()
-    pagination.items = notifications
-    pagination.total = total_items
-    pagination.page = page
-    pagination.per_page = page_size
-    pagination.pages = (total_items // page_size) + (1 if total_items % page_size else 0)
-
-    return pagination
+    return db.paginate(
+        stmt,
+        page=page,
+        per_page=page_size,
+        count=count_pages
+    )
 
 
-def _filter_query(query, filter_dict=None):
+def _filter_query(stmt, filter_dict=None):
     if filter_dict is None:
-        return query
+        return stmt
 
     multidict = MultiDict(filter_dict)
 
     # filter by status
     statuses = multidict.getlist('status')
     if statuses:
-        statuses = Notification.substitute_status(statuses)
-        query = query.filter(Notification.status.in_(statuses))
+        statuses = Notification.substitute_status(statuses)  # list
+        stmt = stmt.where(Notification.status.in_(statuses))
 
     # filter by template
     template_types = multidict.getlist('template_type')
     if template_types:
-        query = query.filter(Notification.notification_type.in_(template_types))
+        stmt = stmt.filter(Notification.notification_type.in_(template_types))
 
-    return query
+    return stmt
 
 
 @statsd(namespace="dao")
