@@ -78,14 +78,18 @@ def dao_get_last_template_usage(template_id, template_type, service_id):
     # By adding the service_id to the filter the performance of the query is greatly improved.
     # Using a max(Notification.created_at) is better than order by and limit one.
     # But the effort to change the endpoint to return a datetime only is more than the gain.
-    return Notification.query.filter(
-        Notification.template_id == template_id,
-        Notification.key_type != KEY_TYPE_TEST,
-        Notification.notification_type == template_type,
-        Notification.service_id == service_id
-    ).order_by(
-        desc(Notification.created_at)
-    ).first()
+    stmt = (
+        select(Notification)
+        .where(
+            Notification.template_id == template_id,
+            Notification.key_type != KEY_TYPE_TEST,
+            Notification.notification_type == template_type,
+            Notification.service_id == service_id
+        )
+        .order_by(desc(Notification.created_at))
+    )
+
+    return db.session.execute(stmt).scalar_one_or_none()
 
 
 @statsd(namespace="dao")
@@ -211,11 +215,11 @@ def update_notification_status_by_id(
         current_status: str = None
 ) -> Notification:
 
-    notification_query = Notification.query.with_for_update().filter(Notification.id == notification_id)
+    stmt = select(Notification).with_for_update().where(Notification.id == notification_id)
     if current_status is not None:
-        notification_query.filter(Notification.status == current_status)
+        stmt = stmt.where(Notification.status == current_status)
 
-    notification = notification_query.first()
+    notification = db.session.execute(stmt).scalar_one_or_none()
     if notification is None:
         current_app.logger.info(
             'notification not found for id %s (update to status %s)',
@@ -249,7 +253,8 @@ def update_notification_status_by_id(
 @transactional
 def update_notification_status_by_reference(reference, status):
     # this is used to update letters and emails
-    notification = Notification.query.filter(Notification.reference == reference).first()
+    stmt = select(Notification).where(Notification.reference == reference)
+    notification = db.session.execute(stmt).scalar_one_or_none()
 
     if not notification:
         current_app.logger.error("Notification not found for reference %s (update to %s)", reference, status)
@@ -259,7 +264,7 @@ def update_notification_status_by_reference(reference, status):
         duplicate_update_warning(notification, status)
         return None
 
-    # don't update status by reference if not at least "sending"
+    # Don't update status by reference if not at least "sending"
     current_index = TRANSIENT_STATUSES.index(notification.status)
     sending_index = TRANSIENT_STATUSES.index(NOTIFICATION_SENDING)
     if current_index < sending_index:
@@ -332,47 +337,151 @@ def dao_update_notification(notification):
 
 @statsd(namespace="dao")
 def get_notification_for_job(service_id, job_id, notification_id):
-    return Notification.query.filter_by(service_id=service_id, job_id=job_id, id=notification_id).one()
+    stmt = (
+        select(Notification)
+        .where(
+            Notification.service_id == service_id,
+            Notification.job_id == job_id,
+            Notification.id == notification_id
+        )
+    )
 
+    return db.session.scalars(stmt).one()
+
+
+# TODO remove this code if new, 2.0 code below passes all the tests
+# @statsd(namespace="dao")
+# def get_notifications_for_job(service_id, job_id, filter_dict=None, page=1, page_size=None):
+#     if page_size is None:
+#         page_size = current_app.config['PAGE_SIZE']
+#     query = Notification.query.filter_by(service_id=service_id, job_id=job_id)
+#     query = _filter_query(query, filter_dict)
+#     return query.order_by(asc(Notification.job_row_number)).paginate(
+#         page=page,
+#         per_page=page_size
+#     )
 
 @statsd(namespace="dao")
 def get_notifications_for_job(service_id, job_id, filter_dict=None, page=1, page_size=None):
     if page_size is None:
         page_size = current_app.config['PAGE_SIZE']
-    query = Notification.query.filter_by(service_id=service_id, job_id=job_id)
-    query = _filter_query(query, filter_dict)
-    return query.order_by(asc(Notification.job_row_number)).paginate(
-        page=page,
-        per_page=page_size
+
+    stmt = select(Notification).where(
+        Notification.service_id == service_id,
+        Notification.job_id == job_id
     )
+    stmt = _filter_query(stmt, filter_dict)
+    stmt = stmt.order_by(asc(Notification.job_row_number))
+    offset = (page - 1) * page_size
+    notifications = db.session.execute(stmt.limit(page_size).offset(offset)).scalars().all()
+
+    stmt = select(func.count()).select_from(Notification).where(
+        Notification.service_id == service_id,
+        Notification.job_id == job_id
+    )
+    total_items = db.session.execute(stmt).scalar_one()
+    total_pages = (total_items // page_size) + (1 if total_items % page_size else 0)
+
+    # Creating a custom pagination object to match prev. output
+    Pagination = type('Pagination', (object,), {})
+    pagination = Pagination()
+    pagination.items = notifications
+    pagination.page = page
+    pagination.per_page = page_size
+    pagination.total = total_items
+    pagination.pages = total_pages
+
+    return pagination
 
 
 @statsd(namespace="dao")
 def get_notification_with_personalisation(service_id, notification_id, key_type):
-    filter_dict = {'service_id': service_id, 'id': notification_id}
+    stmt = select(Notification).where(
+        Notification.service_id == service_id,
+        Notification.id == notification_id
+    )
+
     if key_type:
-        filter_dict['key_type'] = key_type
+        stmt = stmt.where(Notification.key_type == key_type)
 
-    return Notification.query.filter_by(**filter_dict).options(joinedload('template')).one()
+    stmt = stmt.options(joinedload('template'))
+
+    return db.session.scalars(stmt).one()
 
 
-@statsd(namespace="dao")
 def get_notification_by_id(notification_id, service_id=None, _raise=False):
     filters = [Notification.id == notification_id]
 
     if service_id:
         filters.append(Notification.service_id == service_id)
 
-    query = Notification.query.filter(*filters)
-
-    return query.one() if _raise else query.first()
+    stmt = select(Notification).where(*filters)
+    result = db.session.execute(stmt)
+    return result.scalar_one() if _raise else result.scalar_one_or_none()
 
 
 def get_notifications(filter_dict=None):
     return _filter_query(Notification.query, filter_dict=filter_dict)
 
 
-@statsd(namespace="dao")
+# TODO remove this code if new, 2.0 code below passes all the tests
+# @statsd(namespace="dao")
+# def get_notifications_for_service(
+#         service_id,
+#         filter_dict=None,
+#         page=1,
+#         page_size=None,
+#         count_pages=True,
+#         limit_days=None,
+#         key_type=None,
+#         personalisation=False,
+#         include_jobs=False,
+#         include_from_test_key=False,
+#         older_than=None,
+#         client_reference=None,
+#         include_one_off=True
+# ):
+#     if page_size is None:
+#         page_size = current_app.config['PAGE_SIZE']
+
+#     filters = [Notification.service_id == service_id]
+
+#     if limit_days is not None:
+#         filters.append(Notification.created_at >= midnight_n_days_ago(limit_days))
+
+#     if older_than is not None:
+#         older_than_created_at = db.session.query(
+#             Notification.created_at).filter(Notification.id == older_than).as_scalar()
+#         filters.append(Notification.created_at < older_than_created_at)
+
+#     if not include_jobs:
+#         filters.append(Notification.job_id == None)  # noqa
+
+#     if not include_one_off:
+#         filters.append(Notification.created_by_id == None)  # noqa
+
+#     if key_type is not None:
+#         filters.append(Notification.key_type == key_type)
+#     elif not include_from_test_key:
+#         filters.append(Notification.key_type != KEY_TYPE_TEST)
+
+#     if client_reference is not None:
+#         filters.append(Notification.client_reference == client_reference)
+
+#     query = Notification.query.filter(*filters)
+#     query = _filter_query(query, filter_dict)
+#     if personalisation:
+#         query = query.options(
+#             joinedload('template')
+#         )
+
+#     return query.order_by(desc(Notification.created_at)).paginate(
+#         page=page,
+#         per_page=page_size,
+#         count=count_pages
+#     )
+
+
 def get_notifications_for_service(
         service_id,
         filter_dict=None,
@@ -397,8 +506,9 @@ def get_notifications_for_service(
         filters.append(Notification.created_at >= midnight_n_days_ago(limit_days))
 
     if older_than is not None:
-        older_than_created_at = db.session.query(
-            Notification.created_at).filter(Notification.id == older_than).as_scalar()
+        older_than_created_at = db.session.execute(
+            select(Notification.created_at).filter(Notification.id == older_than)
+        ).scalar_one()
         filters.append(Notification.created_at < older_than_created_at)
 
     if not include_jobs:
@@ -415,18 +525,27 @@ def get_notifications_for_service(
     if client_reference is not None:
         filters.append(Notification.client_reference == client_reference)
 
-    query = Notification.query.filter(*filters)
-    query = _filter_query(query, filter_dict)
-    if personalisation:
-        query = query.options(
-            joinedload('template')
-        )
+    stmt = select(Notification).where(*filters).order_by(desc(Notification.created_at))
 
-    return query.order_by(desc(Notification.created_at)).paginate(
-        page=page,
-        per_page=page_size,
-        count=count_pages
-    )
+    if personalisation:
+        stmt = stmt.options(joinedload('template'))
+
+    offset = (page - 1) * page_size
+    notifications = db.session.scalars(stmt.limit(page_size).offset(offset)).all()
+
+    total_items = None
+    if count_pages:
+        total_items = db.session.scalars(select(func.count()).select_from(Notification).where(*filters)).one()
+
+    # Simulate the structure of a pagination object like in the pre 2.0 code.
+    pagination = type('Pagination', (), {})()
+    pagination.items = notifications
+    pagination.total = total_items
+    pagination.page = page
+    pagination.per_page = page_size
+    pagination.pages = (total_items // page_size) + (1 if total_items % page_size else 0)
+
+    return pagination
 
 
 def _filter_query(query, filter_dict=None):
@@ -460,12 +579,12 @@ def delete_notifications_older_than_retention_by_type(notification_type, qry_lim
         'Deleting %s notifications for services with flexible data retention', notification_type
     )
 
-    flexible_data_retention = ServiceDataRetention.query.filter(
+    stmt = select(ServiceDataRetention).where(
         ServiceDataRetention.notification_type == notification_type
-    ).all()
+    )
+    flexible_data_retention = db.session.scalars(stmt).all()
 
     deleted = 0
-
     for f in flexible_data_retention:
         days_of_retention = get_local_timezone_midnight_in_utc(
             convert_utc_to_local_timezone(datetime.utcnow()).date()) - timedelta(days=f.days_of_retention)
@@ -489,7 +608,8 @@ def delete_notifications_older_than_retention_by_type(notification_type, qry_lim
     seven_days_ago = get_local_timezone_midnight_in_utc(
         convert_utc_to_local_timezone(datetime.utcnow()).date()) - timedelta(days=7)
     services_with_data_retention = [x.service_id for x in flexible_data_retention]
-    service_ids_to_purge = db.session.query(Service.id).filter(Service.id.notin_(services_with_data_retention)).all()
+    stmt = select(Service.id).where(Service.id.notin_(services_with_data_retention))
+    service_ids_to_purge = db.session.scalars(stmt).all()
 
     for service_id in service_ids_to_purge:
         if notification_type == LETTER_TYPE:
@@ -508,40 +628,46 @@ def _delete_notifications(notification_type, date_to_delete_from, service_id, qu
     if isinstance(service_id, Row):
         service_id = str(service_id[0])
 
-    subquery = db.session.query(
-        Notification.id
-    ).join(NotificationHistory, NotificationHistory.id == Notification.id).filter(
-        Notification.notification_type == notification_type,
-        Notification.service_id == service_id,
-        Notification.created_at < date_to_delete_from,
-    ).limit(query_limit).subquery()
-
+    subquery = (
+        select(Notification.id)
+        .join(NotificationHistory, NotificationHistory.id == Notification.id)
+        .where(
+            Notification.notification_type == notification_type,
+            Notification.service_id == service_id,
+            Notification.created_at < date_to_delete_from,
+        )
+        .limit(query_limit)
+        .subquery()
+    )
     deleted = _delete_for_query(subquery)
 
-    subquery_for_test_keys = db.session.query(
-        Notification.id
-    ).filter(
-        Notification.notification_type == notification_type,
-        Notification.service_id == service_id,
-        Notification.created_at < date_to_delete_from,
-        Notification.key_type == KEY_TYPE_TEST
-    ).limit(query_limit).subquery()
+    subquery_for_test_keys = (
+        select(Notification.id)
+        .where(
+            Notification.notification_type == notification_type,
+            Notification.service_id == service_id,
+            Notification.created_at < date_to_delete_from,
+            Notification.key_type == KEY_TYPE_TEST
+        )
+        .limit(query_limit)
+        .subquery()
+    )
 
     deleted += _delete_for_query(subquery_for_test_keys)
-
     return deleted
 
 
 def _delete_for_query(subquery):
-    number_deleted = db.session.query(Notification).filter(
-        Notification.id.in_(subquery)).delete(synchronize_session='fetch')
-    deleted = number_deleted
+    stmt = delete(Notification).where(Notification.id.in_(subquery))
+    number_deleted = db.session.execute(stmt, execution_options={"synchronize_session": 'fetch'}).rowcount
     db.session.commit()
+
+    deleted = number_deleted
     while number_deleted > 0:
-        number_deleted = db.session.query(Notification).filter(
-            Notification.id.in_(subquery)).delete(synchronize_session='fetch')
+        number_deleted = db.session.execute(stmt, execution_options={"synchronize_session": 'fetch'}).rowcount
         deleted += number_deleted
         db.session.commit()
+
     return deleted
 
 
