@@ -33,6 +33,7 @@ def save_user_attribute(usr, update_dict={}):
 
     stmt = update(User).where(User.id == usr.id).values(update_dict)
     db.session.execute(stmt)
+    db.session.commit()
 
 
 def save_model_user(usr, pwd=None):
@@ -75,7 +76,9 @@ def get_user_code(user, code, code_type) -> Optional[VerifyCode]:
 
 def delete_codes_older_created_more_than_a_day_ago() -> int:
     stmt = delete(VerifyCode).where(VerifyCode.created_at < datetime.utcnow() - timedelta(hours=24))
-    return db.session.execute(stmt).rowcount
+    rows_deleted = db.session.execute(stmt).rowcount
+    db.session.commit()
+    return rows_deleted
 
 
 def use_user_code(verify_code_id):
@@ -92,7 +95,9 @@ def delete_model_user(user):
 
 def delete_user_verify_codes(user) -> int:
     stmt = delete(VerifyCode).where(VerifyCode.user == user)
-    return db.session.execute(stmt).rowcount
+    rows_deleted = db.session.execute(stmt).rowcount
+    db.session.commit()
+    return rows_deleted
 
 
 def count_user_verify_codes(user) -> int:
