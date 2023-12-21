@@ -649,7 +649,6 @@ def dao_delete_notification_by_id(notification_id):
     notification = db.session.get(Notification, notification_id)
     if notification:
         db.session.delete(notification)
-        db.session.commit()
 
 
 def _timeout_notifications(current_statuses, new_status, timeout_start, updated_at):
@@ -766,8 +765,6 @@ def dao_update_notifications_by_reference(references, update_dict):
             execution_options={"synchronize_session": False}
         ).rowcount
 
-    db.session.commit()
-
     return updated_count, updated_history_count
 
 
@@ -809,7 +806,7 @@ def dao_get_notifications_by_to_field(service_id, search_term, notification_type
         .where(*filters)
         .order_by(desc(Notification.created_at))
     )
-    return db.session.execute(stmt).scalars().all()
+    return db.session.scalars(stmt).all()
 
 
 @statsd(namespace="dao")
