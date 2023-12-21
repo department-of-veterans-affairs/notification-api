@@ -348,7 +348,9 @@ def delete_billing_data_for_service_for_day(process_day, service_id) -> int:
         FactBilling.service_id == service_id
     )
 
-    return db.session.execute(stmt).rowcount
+    rows_deleted = db.session.execute(stmt).rowcount
+    db.session.commit()
+    return rows_deleted
 
 
 def fetch_billing_data_for_day(process_day, service_id=None):
@@ -358,7 +360,7 @@ def fetch_billing_data_for_day(process_day, service_id=None):
     # this is useful if we need to rebuild the ft_billing table for a date older than 7 days ago.
     current_app.logger.info("Populate ft_billing for {} to {}".format(start_date, end_date))
     transit_data = []
-    if service_id is None:
+    if not service_id:
         service_ids = [x.id for x in db.session.scalars(select(Service)).all()]
     else:
         service_ids = [service_id]

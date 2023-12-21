@@ -29,7 +29,7 @@ def expire_api_key(service_id, api_key_id):
         ApiKey.id == api_key_id,
         ApiKey.service_id == service_id
     )
-    api_key = db.session.scalar(stmt)
+    api_key = db.session.scalars(stmt).one()
     api_key.expiry_date = datetime.utcnow()
     db.session.add(api_key)
 
@@ -41,8 +41,7 @@ def get_model_api_keys(service_id, id=None):
             ApiKey.service_id == service_id,
             ApiKey.expiry_date.is_(None)
         )
-        api_key = db.session.scalars(stmt).one()
-        return api_key
+        return db.session.scalars(stmt).one()
 
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
     stmt = select(ApiKey).where(
@@ -52,8 +51,8 @@ def get_model_api_keys(service_id, id=None):
         ),
         ApiKey.service_id == service_id
     )
-    api_keys = db.session.scalars(stmt).all()
-    return api_keys
+
+    return db.session.scalars(stmt).all()
 
 
 def get_unsigned_secrets(service_id):

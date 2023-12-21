@@ -349,3 +349,5 @@ fileignoreconfig:
       checksum: ff99b05e3e85314f988279d7df9ce2627b54aa79d659367e7dcbffb9ee97da4b
     - filename: tests/lambda_functions/two_way_sms/test_two_way_sms_v2.py
       checksum: 468b6d1fe14a7a621a3807ebcaee1d4701e57004e99a0f8c386731dc14df2970
+    - filename: app/dao/api_key_dao.py
+      checksum: c4fc1f579508ef61242d1117d45849b5a51dcd7af07ac79a2f4300084cde7363

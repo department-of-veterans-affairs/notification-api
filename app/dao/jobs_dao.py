@@ -37,7 +37,7 @@ def dao_get_notification_outcomes_for_job(service_id, job_id):
     stmt = select(
         func.count(Notification.status).label('count'),
         Notification.status
-    ).filter(
+    ).where(
         Notification.service_id == service_id,
         Notification.job_id == job_id
     ).group_by(

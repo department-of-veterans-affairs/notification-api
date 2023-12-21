@@ -22,7 +22,7 @@ def get_invited_org_user_by_id(invited_org_user_id):
     stmt = select(InvitedOrganisationUser).where(
         InvitedOrganisationUser.id == invited_org_user_id
     )
-    return db.session.execute(stmt).one()
+    return db.session.scalars(stmt).one()
 
 
 def get_invited_org_users_for_organisation(organisation_id):

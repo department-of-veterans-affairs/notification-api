@@ -40,7 +40,7 @@ def dao_get_paginated_inbound_sms_for_service_for_public_api(
 
     filters = [InboundSms.service_id == service_id]
 
-    if older_than is not None:
+    if older_than:
         stmt = select(InboundSms.created_at).where(InboundSms.id == older_than)
         older_than_created_at = db.session.scalars(stmt).first()
 
@@ -51,15 +51,19 @@ def dao_get_paginated_inbound_sms_for_service_for_public_api(
 
 
 def dao_count_inbound_sms_for_service(service_id, limit_days):
-    stmt = select(func.count()). select_from(InboundSms).where(
+    stmt = select(func.count()).select_from(InboundSms).where(
         InboundSms.service_id == service_id,
         InboundSms.created_at >= midnight_n_days_ago(limit_days)
     )
 
-    return db.session.scalars(stmt).first()
+    return db.session.scalar(stmt)
 
 
 def _delete_inbound_sms(datetime_to_delete_from, query_filter):
+    """
+    This function executes delete queries, but the calling code is responsible for committing the changes.
+    """
+
     query_limit = 10000
 
     subquery = select(InboundSms.id).where(
@@ -77,6 +81,7 @@ def _delete_inbound_sms(datetime_to_delete_from, query_filter):
         number_deleted = db.session.execute(stmt).rowcount
         deleted += number_deleted
 
+    # Intentionally no commit of the deletes.
     return deleted
 
 

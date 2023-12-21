@@ -16,7 +16,7 @@ from notifications_utils.recipients import (
 )
 from notifications_utils.statsd_decorators import statsd
 from notifications_utils.timezones import convert_local_timezone_to_utc, convert_utc_to_local_timezone
-from sqlalchemy import delete, desc, func, select, update, literal_column
+from sqlalchemy import asc, delete, desc, func, select, update, literal_column
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.engine.row import Row
 from sqlalchemy.orm import joinedload
@@ -89,7 +89,7 @@ def dao_get_last_template_usage(template_id, template_type, service_id):
         .order_by(desc(Notification.created_at))
     )
 
-    return db.session.scalars(stmt).first()
+    return db.session.scalar(stmt)
 
 
 @statsd(namespace="dao")
@@ -219,7 +219,7 @@ def update_notification_status_by_id(
     if current_status is not None:
         stmt = stmt.where(Notification.status == current_status)
 
-    notification = db.session.execute(stmt).scalar_one_or_none()
+    notification = db.session.scalar(stmt)
     if notification is None:
         current_app.logger.info(
             'notification not found for id %s (update to status %s)',
@@ -254,9 +254,9 @@ def update_notification_status_by_id(
 def update_notification_status_by_reference(reference, status):
     # this is used to update letters and emails
     stmt = select(Notification).where(Notification.reference == reference)
-    notification = db.session.execute(stmt).scalar_one_or_none()
+    notification = db.session.scalar(stmt)
 
-    if not notification:
+    if notification is None:
         current_app.logger.error("Notification not found for reference %s (update to %s)", reference, status)
         return None
 
@@ -356,7 +356,7 @@ def get_notifications_for_job(service_id, job_id, filter_dict=None, page=1, page
     stmt = select(Notification).where(Notification.service_id == service_id, Notification.job_id == job_id)
 
     stmt = _filter_query(stmt, filter_dict)
-    stmt = stmt.order_by(desc(Notification.job_row_number))
+    stmt = stmt.order_by(asc(Notification.job_row_number))
     return db.paginate(
         stmt,
         page=page,

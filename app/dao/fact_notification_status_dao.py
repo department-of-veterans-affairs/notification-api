@@ -45,7 +45,7 @@ def fetch_notification_status_for_day(process_day, service_id=None):
     current_app.logger.info("Fetch ft_notification_status for {} to {}".format(start_date, end_date))
 
     all_data_for_process_day = []
-    service_ids = (x.id for x in db.session.scalars(select(Service)).all())
+    service_ids = [x.id for x in db.session.scalars(select(Service)).all()]
     # for each service
     # for each notification type
     # query notifications for day
@@ -271,7 +271,7 @@ def get_last_send_for_api_key(api_key_id):
 
     stmt = select(
         func.max(Notification.created_at).label('last_notification_created')
-    ).filter(
+    ).where(
         Notification.api_key_id == api_key_id
     ).group_by(
         Notification.api_key_id
