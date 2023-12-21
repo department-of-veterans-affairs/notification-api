@@ -470,7 +470,7 @@ def _filter_query(stmt, filter_dict=None):
     # filter by template
     template_types = multidict.getlist('template_type')
     if template_types:
-        stmt = stmt.filter(Notification.notification_type.in_(template_types))
+        stmt = stmt.where(Notification.notification_type.in_(template_types))
 
     return stmt
 
