@@ -420,7 +420,7 @@ def get_notifications_for_service(
         filters.append(Notification.created_at >= midnight_n_days_ago(limit_days))
 
     if older_than is not None:
-        older_than_created_at = select(Notification.created_at).where(Notification.id == older_than).as_scalar()
+        older_than_created_at = select(Notification.created_at).where(Notification.id == older_than)
         filters.append(Notification.created_at < older_than_created_at)
 
     if not include_jobs:
