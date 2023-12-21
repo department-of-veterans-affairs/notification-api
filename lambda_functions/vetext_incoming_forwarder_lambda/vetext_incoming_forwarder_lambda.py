@@ -162,8 +162,9 @@ def process_body_from_sqs_invocation(event):
                 continue
 
             logger.debug("Processing record body from SQS")
-            event_body = json.loads(event_body)
-            logger.info("Successfully converted record body from sqs to json")
+            if not isinstance(event_body, dict):
+                event_body = json.loads(event_body)
+                logger.info("Successfully converted record body from sqs to json")
             event_bodies.append(event_body)
         except json.decoder.JSONDecodeError as je:
             logger.error("Failed to load json event_body: %s", je)
