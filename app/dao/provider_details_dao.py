@@ -137,7 +137,7 @@ def get_active_providers_with_weights_by_notification_type(
     filters = [
         ProviderDetails.notification_type == notification_type.value,
         ProviderDetails.load_balancing_weight.is_not(None),
-        ProviderDetails.active.is_(True)
+        ProviderDetails.active.is_(True),
     ]
 
     if supports_international:
@@ -162,7 +162,7 @@ def dao_get_sms_provider_with_equal_priority(identifier, priority):
         ProviderDetails.identifier != identifier,
         ProviderDetails.notification_type == SMS_TYPE,
         ProviderDetails.priority == priority,
-        ProviderDetails.active.is_(True)
+        ProviderDetails.active.is_(True),
     ).order_by(
         asc(ProviderDetails.priority)
     )
