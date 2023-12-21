@@ -513,7 +513,6 @@ def test_get_all_notifications_for_job_in_order_of_job_number(admin_request, sam
         service_id=main_job.service_id,
         job_id=main_job.id
     )
-    resp['notifications'].sort(key=lambda x: x["job_row_number"])
 
     assert len(resp['notifications']) == 3
     assert resp['notifications'][0]['to'] == notification_1.to
