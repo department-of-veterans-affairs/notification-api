@@ -672,7 +672,7 @@ def _timeout_notifications(current_statuses, new_status, timeout_start, updated_
         )
         .values({'status': new_status, 'updated_at': updated_at})
     )
-    db.session.execute(stmt, synchronize_session=False)
+    db.session.execute(stmt, execution_options={"synchronize_session": False})
     return notifications
 
 
@@ -752,7 +752,7 @@ def dao_update_notifications_by_reference(references, update_dict):
     ).values(
         **update_dict
     )
-    updated_count = db.session.execute(stmt, synchronize_session=False).rowcount
+    updated_count = db.session.execute(stmt, execution_options={"synchronize_session": False}).rowcount
 
     updated_history_count = 0
     if updated_count != len(references):
@@ -763,7 +763,7 @@ def dao_update_notifications_by_reference(references, update_dict):
         )
         updated_history_count = db.session.execute(
             stmt,
-            synchronize_session=False
+            execution_options={"synchronize_session": False}
         ).rowcount
 
     db.session.commit()
