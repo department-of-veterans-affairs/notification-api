@@ -252,7 +252,9 @@ def get_user_and_accounts(user_id):
         joinedload('organisations.services'),
         joinedload('services.organisation'),
     )
-
+    print(stmt)
+    print (db.session.scalars(stmt).unique().one())
+    assert False
     return db.session.scalars(stmt).unique().one()
 
 

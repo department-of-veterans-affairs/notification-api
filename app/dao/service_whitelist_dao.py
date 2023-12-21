@@ -14,5 +14,9 @@ def dao_add_and_commit_whitelisted_contacts(objs):
 
 
 def dao_remove_service_whitelist(service_id):
+    """
+    The delete intentionally is not committed.  See the upstream code.
+    """
+
     stmt = delete(ServiceWhitelist).where(ServiceWhitelist.service_id == service_id)
     db.session.execute(stmt)
