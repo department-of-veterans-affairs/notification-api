@@ -28,6 +28,7 @@ def create_secret_code():
 
 
 def save_user_attribute(usr, update_dict={}):
+    # Check that it is there and not empty
     if update_dict.get("blocked"):
         update_dict.update({"current_session_id": '00000000-0000-0000-0000-000000000000'})
 
@@ -95,9 +96,8 @@ def delete_model_user(user):
 
 def delete_user_verify_codes(user) -> int:
     stmt = delete(VerifyCode).where(VerifyCode.user == user)
-    rows_deleted = db.session.execute(stmt).rowcount
+    db.session.execute(stmt)
     db.session.commit()
-    return rows_deleted
 
 
 def count_user_verify_codes(user) -> int:
