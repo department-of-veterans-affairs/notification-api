@@ -4,7 +4,7 @@ import uuid
 import pickle  # nosec
 import pwnedpasswords
 import requests
-from datetime import (datetime, timedelta)
+from datetime import datetime, timedelta
 from fido2 import cbor
 from fido2.webauthn import AuthenticatorData, CollectedClientData
 from flask import (jsonify, request, Blueprint, current_app, abort)

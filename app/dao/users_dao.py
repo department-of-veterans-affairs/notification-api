@@ -8,7 +8,7 @@ from app.models import (VerifyCode)
 from app.model import User, EMAIL_AUTH_TYPE
 from app.oauth.exceptions import IdpAssignmentException, IncorrectGithubIdException
 from app.utils import escape_special_characters
-from datetime import (datetime, timedelta)
+from datetime import datetime, timedelta
 from flask import current_app
 from random import (SystemRandom)
 from sqlalchemy import delete, func, or_, select, update
