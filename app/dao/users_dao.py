@@ -117,7 +117,7 @@ def verify_within_time(user, age=timedelta(seconds=30)):
         VerifyCode.created_at > (datetime.utcnow() - age)
     )
 
-    return db.session.scalars(stmt).first()
+    return db.session.scalar(stmt)
 
 
 def get_user_by_id(user_id=None):
