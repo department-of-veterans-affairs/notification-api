@@ -191,7 +191,7 @@ def dao_fetch_service_by_id(service_id, only_active=False):
     if only_active:
         stmt = stmt.where(Service.active)
 
-    return db.session.execute(stmt).unique().scalar_one()
+    return db.session.scalars(stmt).one()
 
 
 def dao_fetch_service_by_inbound_number(number):
