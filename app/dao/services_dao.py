@@ -379,7 +379,7 @@ def delete_service_and_all_associated_db_objects(service):
         db.session.execute(stmt, execution_options={"synchronize_session": False})
         db.session.commit()
 
-    template_ids_subquery = select(Template.id).where(Template.service == service)
+    template_ids_subquery = select(Template.id).where(Template.service == service).subquery()
     _delete_commit(
         delete(TemplateRedacted)
         .where(TemplateRedacted.template_id.in_(template_ids_subquery))
