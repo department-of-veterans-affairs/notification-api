@@ -441,7 +441,7 @@ def delete_service_and_all_associated_db_objects(service):
         db.session.delete(verify_code)
     db.session.commit()
 
-    for user in list(service.users):
+    for user in users:
         service.users.remove(user)
 
     _delete_commit(
