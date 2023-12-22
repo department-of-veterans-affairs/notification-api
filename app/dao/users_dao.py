@@ -252,9 +252,11 @@ def get_user_and_accounts(user_id):
         joinedload('organisations.services'),
         joinedload('services.organisation'),
     )
-    print(stmt)
-    print(db.session.scalars(stmt).unique().one())
-    assert False
+    # TODO - Dave, I commented out code below to let test run.
+    # I'm assuming you're using this for testing, so leaving this here.
+    # print(stmt)
+    # print(db.session.scalars(stmt).unique().one())
+    # assert False
     return db.session.scalars(stmt).unique().one()
 
 
