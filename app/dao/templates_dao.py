@@ -127,7 +127,7 @@ def dao_get_number_of_templates_by_service_id_and_name(service_id, template_name
             TemplateHistory.version == version
         )
 
-    return db.session.scalars(stmt).first()
+    return db.session.scalar(stmt)
 
 
 def dao_get_template_by_id(template_id, version=None):
