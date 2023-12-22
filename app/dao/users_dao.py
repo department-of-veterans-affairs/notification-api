@@ -95,9 +95,8 @@ def delete_model_user(user):
 
 def delete_user_verify_codes(user) -> int:
     stmt = delete(VerifyCode).where(VerifyCode.user == user)
-    rows_deleted = db.session.execute(stmt).rowcount
+    db.session.execute(stmt)
     db.session.commit()
-    return rows_deleted
 
 
 def count_user_verify_codes(user) -> int:
