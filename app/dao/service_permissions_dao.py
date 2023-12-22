@@ -21,5 +21,6 @@ def dao_remove_service_permission(service_id, permission):
         ServicePermission.permission == permission
     )
 
-    db.session.execute(stmt)
+    deleted = db.session.execute(stmt).rowcount
     db.session.commit()
+    return deleted
