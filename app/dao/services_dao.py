@@ -586,7 +586,6 @@ def dao_suspend_service(service_id):
 @version_class(Service)
 def dao_resume_service(service_id):
     service = db.session.get(Service, service_id)
-    assert service is not None, "Service not found"
     service.active = True
 
 
