@@ -4,13 +4,13 @@ from app.dao.permissions_dao import permission_dao
 from app.dao.service_user_dao import dao_get_service_users_by_user_id
 from app.dao.dao_utils import transactional
 from app.errors import InvalidRequest
-from app.models import (VerifyCode)
+from app.models import VerifyCode
 from app.model import User, EMAIL_AUTH_TYPE
 from app.oauth.exceptions import IdpAssignmentException, IncorrectGithubIdException
 from app.utils import escape_special_characters
 from datetime import datetime, timedelta
 from flask import current_app
-from random import (SystemRandom)
+from random import SystemRandom
 from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import FlushError, NoResultFound
