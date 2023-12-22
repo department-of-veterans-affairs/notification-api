@@ -144,7 +144,7 @@ def is_organisation_name_unique():
     organisation_id, name = check_request_args(request)
 
     stmt = select(Organisation).where(Organisation.name.ilike(name))
-    name_exists = db.session.scalars(stmt).first()
+    name_exists = db.session.scalar(stmt)
 
     result = (not name_exists) or str(name_exists.id) == organisation_id
     return jsonify(result=result), 200

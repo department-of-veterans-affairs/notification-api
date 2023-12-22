@@ -46,6 +46,10 @@ class PermissionDAO(DAOClass):
         db.session.execute(stmt)
 
     def remove_user_service_permissions_for_all_services(self, user):
+        """
+        The deletion is commited in the calling code.
+        """
+
         stmt = delete(self.Meta.model).where(self.Meta.model.user == user)
         db.session.execute(stmt)
 

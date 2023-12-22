@@ -714,7 +714,7 @@ def is_service_name_unique():
         Service.email_from == email_from,
         Service.id != service_id
     )
-    email_from_exists = db.session.scalars(stmt).first()
+    email_from_exists = db.session.scalar(stmt)
 
     result = not (name_exists or email_from_exists)
     return jsonify(result=result), 200

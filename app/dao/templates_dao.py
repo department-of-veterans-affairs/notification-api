@@ -185,7 +185,7 @@ def get_precompiled_letter_template(service_id):
         Template.hidden.is_(True)
     )
 
-    template = db.session.scalars(stmt).first()
+    template = db.session.scalar(stmt)
 
     if template is not None:
         return template

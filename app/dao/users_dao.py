@@ -27,7 +27,7 @@ def create_secret_code():
     return ''.join(map(str, [SystemRandom().randrange(10) for i in range(5)]))
 
 
-def save_user_attribute(usr, update_dict={}):
+def save_user_attribute(usr, update_dict):
     if update_dict.get("blocked"):
         update_dict.update({"current_session_id": '00000000-0000-0000-0000-000000000000'})
 
@@ -123,8 +123,7 @@ def verify_within_time(user, age=timedelta(seconds=30)):
 def get_user_by_id(user_id=None):
     if user_id is None:
         # Get all users.
-        stmt = select(User)
-        return db.session.scalars(stmt).all()
+        return db.session.scalars(select(User)).all()
 
     # Get one user, or raise an exception.
     stmt = select(User).where(User.id == user_id)
@@ -132,19 +131,19 @@ def get_user_by_id(user_id=None):
 
 
 def get_user_by_email(email):
-    stmt = select(User).where(func.lower(User.email_address) == func.lower(email))
+    stmt = select(User).where(func.lower(User.email_address) == email.lower())
     return db.session.scalars(stmt).one()
 
 
 def get_users_by_partial_email(email):
     email = escape_special_characters(email)
-    stmt = select(User).where(User.email_address.ilike("%{}%".format(email)))
+    stmt = select(User).where(User.email_address.ilike(f"%{email}%"))
     return db.session.scalars(stmt).all()
 
 
 def get_user_by_identity_provider_user_id(identity_provider_user_id):
     stmt = select(User).where(
-        func.lower(User.identity_provider_user_id) == func.lower(identity_provider_user_id)
+        func.lower(User.identity_provider_user_id) == identity_provider_user_id.lower()
     )
 
     return db.session.scalars(stmt).one()
@@ -242,21 +241,17 @@ def update_user_password(user, password):
 
 
 def get_user_and_accounts(user_id):
-    stmt = select(User).where(
-        User.id == user_id
-    ).options(
+    stmt = select(User).options(
         # eagerly load the user's services and organisations, and also the service's org and vice versa
         # (so we can see if the user knows about it)
         joinedload('services'),
         joinedload('organisations'),
         joinedload('organisations.services'),
         joinedload('services.organisation'),
+    ).where(
+        User.id == user_id
     )
-    # TODO - Dave, I commented out code below to let test run.
-    # I'm assuming you're using this for testing, so leaving this here.
-    # print(stmt)
-    # print(db.session.scalars(stmt).unique().one())
-    # assert False
+
     return db.session.scalars(stmt).unique().one()
 
 

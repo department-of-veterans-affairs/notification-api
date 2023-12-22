@@ -573,7 +573,6 @@ def dao_suspend_service(service_id):
         .where(Service.id == service_id)
     )
     service = db.session.scalars(stmt).unique().one()
-    assert service is not None, "Service not found"
 
     for api_key in service.api_keys:
         if not api_key.expiry_date:
