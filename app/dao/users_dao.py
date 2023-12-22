@@ -107,7 +107,7 @@ def count_user_verify_codes(user) -> int:
         VerifyCode.code_used.is_(False)
     )
 
-    return db.session.scalars(stmt).first()
+    return db.session.scalar(stmt)
 
 
 def verify_within_time(user, age=timedelta(seconds=30)):
