@@ -409,7 +409,7 @@ def get_notifications_for_service(
     include_from_test_key=False,
     older_than=None,
     client_reference=None,
-    include_one_off=True
+    include_one_off=True,
 ):
     if page_size is None:
         page_size = current_app.config['PAGE_SIZE']

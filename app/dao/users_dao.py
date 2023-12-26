@@ -28,6 +28,7 @@ def create_secret_code():
 
 
 def save_user_attribute(usr, update_dict):
+    # Check that it is there AND not empty
     if update_dict.get("blocked"):
         update_dict.update({"current_session_id": '00000000-0000-0000-0000-000000000000'})
 

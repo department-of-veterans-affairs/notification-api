@@ -49,8 +49,8 @@ def test_dao_get_annual_billing(notify_db_session, sample_service):
     """
 
     stmt = select(func.count()).select_from(AnnualBilling).where(AnnualBilling.service_id == sample_service.id)
-    assert notify_db_session.session.scalars(stmt).first() == 0
+    assert notify_db_session.session.scalar(stmt) == 0
 
     current_year = get_current_financial_year_start_year()
     create_annual_billing(sample_service.id, 1, current_year)
-    assert notify_db_session.session.scalars(stmt).first() == 1
+    assert notify_db_session.session.scalar(stmt) == 1
