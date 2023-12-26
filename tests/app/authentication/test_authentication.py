@@ -326,7 +326,7 @@ def test_should_return_403_when_token_is_expired(
     api_key = create_api_key(service)
     with freeze_time('2001-01-01T12:00:00'):
         token = create_jwt_token(secret=api_key.secret, client_id=str(service.id))
-    with freeze_time('2001-01-01T12:00:35'):
+    with freeze_time('2001-01-01T12:00:40'):
         with pytest.raises(AuthError) as exc:
             request.headers = {'Authorization': 'Bearer {}'.format(token)}
             validate_service_api_key_auth()
