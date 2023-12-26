@@ -322,7 +322,7 @@ def test_should_return_403_when_token_is_expired(
 ):
 
     # Needs a key that is not cached
-    service = create_service('test_should_return_403_when_token_is_expired')
+    service = create_service(service_name='test_should_return_403_when_token_is_expired')
     api_key = create_api_key(service)
     with freeze_time('2001-01-01T12:00:00'):
         token = create_jwt_token(secret=api_key.secret, client_id=str(service.id))
@@ -341,7 +341,7 @@ def test_auth_token_cached(
 ):
 
     # Needs a key that is not cached
-    service = create_service('test_auth_token_cached')
+    service = create_service(service_name='test_auth_token_cached')
     api_key = create_api_key(service)
     with freeze_time('2001-01-01T12:00:00'):
         token = create_jwt_token(secret=api_key.secret, client_id=str(service.id))
