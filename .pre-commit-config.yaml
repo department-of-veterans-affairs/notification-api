@@ -1,6 +1,6 @@
 repos:
     - repo: https://github.com/thoughtworks/talisman
-      rev: 'v1.31.0'
+      rev: 'v1.27.0'
       hooks:
           - id: talisman-commit
     - repo: https://github.com/PyCQA/bandit
