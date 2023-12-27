@@ -89,7 +89,7 @@ def test_send_push_captures_statsd_metrics_on_success(rmock, test_vetext_client)
         template_id,
         icn.id_value)
 
-    test_vetext_client.statsd.incr.assert_called_with(f"clients.vetext.success")
+    test_vetext_client.statsd.incr.assert_called_with("clients.vetext.success")
     test_vetext_client.statsd.timing.assert_called_with("clients.vetext.request_time", mock.ANY)
 
 

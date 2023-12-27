@@ -166,9 +166,7 @@ def test_should_allow_valid_token_when_service_has_multiple_keys(client, sample_
     api_key = ApiKey(**data)
     save_model_api_key(api_key)
     token = __create_token(sample_api_key.service_id)
-    response = client.get(
-        '/notifications'.format(str(sample_api_key.service_id)),
-        headers={'Authorization': 'Bearer {}'.format(token)})
+    response = client.get('/notifications', headers={'Authorization': 'Bearer {}'.format(token)})
     assert response.status_code == 200
 
 

@@ -55,7 +55,7 @@ def test_sys_exit_with_unset_queue_env_var(monkeypatch, all_path_env_param_set):
 
     with pytest.raises(SystemExit):
         from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
-            delivery_status_processor_lambda_handler,
+            delivery_status_processor_lambda_handler,  # noqa: F401
         )
 
 
@@ -64,7 +64,7 @@ def test_sys_exit_with_unset_deadletter_queue_env_var(monkeypatch, all_path_env_
 
     with pytest.raises(SystemExit):
         from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
-            delivery_status_processor_lambda_handler,
+            delivery_status_processor_lambda_handler,  # noqa: F401
         )
 
 
@@ -163,7 +163,7 @@ def test_event_to_celery_body_mapping_non_twilio(event, all_path_env_param_set):
 
     mapping_test = event_to_celery_body_mapping(event)
 
-    assert mapping_test == None
+    assert mapping_test is None
 
 
 def test_delivery_status_processor_lambda_handler_non_twilio_event(mocker, event, all_path_env_param_set):

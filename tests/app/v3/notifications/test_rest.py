@@ -147,7 +147,7 @@ def test_post_v3_notifications_email_denied(notify_db_session, client, mocker, s
     celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
     auth_header = create_authorization_header(service_id=sample_service_sms_permission.id, key_type=KEY_TYPE_TEAM)
     response = client.post(
-        path=url_for(f"v3.v3_notifications.v3_post_notification_email"),
+        path=url_for("v3.v3_notifications.v3_post_notification_email"),
         data=dumps({}),
         headers=(("Content-Type", "application/json"), auth_header)
     )
@@ -176,7 +176,7 @@ def test_post_v3_notifications_sms_denied(notify_db_session, client, mocker, sam
     celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
     auth_header = create_authorization_header(service_id=sample_service_email_permission.id, key_type=KEY_TYPE_TEAM)
     response = client.post(
-        path=url_for(f"v3.v3_notifications.v3_post_notification_sms"),
+        path=url_for("v3.v3_notifications.v3_post_notification_sms"),
         data=dumps({}),
         headers=(("Content-Type", "application/json"), auth_header)
     )

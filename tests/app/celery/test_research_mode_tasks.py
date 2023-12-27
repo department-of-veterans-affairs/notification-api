@@ -75,7 +75,7 @@ def test_make_twilio_callback(notify_api, rmock, phone_number):
 def test_make_sns_callback(notify_api, rmock):
     notification_id = "1234"
     reference = "5678"
-    endpoint = f"http://localhost:6011/notifications/sms/sns"
+    endpoint = "http://localhost:6011/notifications/sms/sns"
     rmock.post(
         endpoint,
         json={},

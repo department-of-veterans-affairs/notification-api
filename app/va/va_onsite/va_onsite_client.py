@@ -23,7 +23,7 @@ class VAOnsiteClient:
 
         :param data: The dict onsite_notifications is expecting to see
         """
-        self.logger.info(f"Calling VAOnsiteClient.post_onsite_notification")
+        self.logger.info("Calling VAOnsiteClient.post_onsite_notification")
         self.logger.info("Sending this data with POST request to onsite_notifications: %s", data)
 
         response = None

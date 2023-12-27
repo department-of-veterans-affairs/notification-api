@@ -115,7 +115,7 @@ class TestPushSending:
     def mobile_app_sids(self, mocker, request):
         if 'disable_autouse' in request.keywords:
             for app in MobileAppType.values():
-                mocker.patch.dict(os.environ, {f'{app}_SID': f''})
+                mocker.patch.dict(os.environ, {f'{app}_SID': ''})
             yield
         else:
             for app in MobileAppType.values():

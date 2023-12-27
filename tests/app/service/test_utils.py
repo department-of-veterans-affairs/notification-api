@@ -12,8 +12,8 @@ DEFAULT_EMAIL_FROM_VALUES = {
 
 
 @pytest.mark.parametrize(
-    f'service_sending_domain, service_email_from, provider_from_domain, provider_from_user,'
-    f'expected_source_email_address',
+    'service_sending_domain, service_email_from, provider_from_domain, provider_from_user,'
+    'expected_source_email_address',
     [
         (None, None, None, None, 'default-email-from@default.domain'),
         ('custom.domain', None, None, None, 'default-email-from@custom.domain'),

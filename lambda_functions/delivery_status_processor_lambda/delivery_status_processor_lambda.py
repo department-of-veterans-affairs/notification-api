@@ -96,7 +96,7 @@ def delivery_status_processor_lambda_handler(event: any, context: any):
     @param: context -  AWS context sent by ALB to all events. Over ridden by unit tests as skip trigger.
     """
     """
-    Synthetic monitors sometimes hit this endpoint to look for anomalous performance. 
+    Synthetic monitors sometimes hit this endpoint to look for anomalous performance.
     Do not process what they send, just respond with a 200
     """
     try:

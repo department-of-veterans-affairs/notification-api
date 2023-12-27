@@ -1,7 +1,5 @@
 import os
 import urllib
-import io
-import csv
 import six
 from typing import Dict
 
@@ -17,7 +15,7 @@ from google.cloud.exceptions import NotFound
 def read_service_account_info_from_ssm() -> Dict:
     ssm_client = boto3.client('ssm')
 
-    key = f"/bigquery/credentials"
+    key = "/bigquery/credentials"
     response = ssm_client.get_parameter(
         Name=key,
         WithDecryption=True

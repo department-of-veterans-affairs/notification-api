@@ -48,7 +48,7 @@ def get_twilio_token() -> str:
             WithDecryption=True
         )
         return response.get("Parameter").get("Value")
-    except Exception as e:
+    except Exception:
         logger.error('Failed to retrieve Twilio Auth')
         return None
 
@@ -75,7 +75,7 @@ def validate_twilio_event(event: dict) -> bool:
         uri = f"https://{event['headers']['host']}/vanotify/twoway/vettext"
         decoded = base64.b64decode(event.get("body")).decode()
         params = parse_qs(decoded, keep_blank_values=True)
-        params = {k: v[0] for k, v in (params.items())}
+        params = {k: v[0] for k, v in params.items()}
         return validator.validate(
             uri=uri,
             params=params,
@@ -267,7 +267,7 @@ def make_vetext_request(request_body):
     logger.info("Making POST Request to VeText using: %s", endpoint_uri)
     logger.debug("json dumps: %s", json.dumps(body))
 
-    try:        
+    try:
         response = requests.post(
             endpoint_uri,
             verify=False,
@@ -277,7 +277,7 @@ def make_vetext_request(request_body):
         )
         logger.info("VeText POST complete")
         response.raise_for_status()
-        
+
         logger.info("VeText call complete with response: %d", response.status_code)
         logger.debug("VeText response: %s", response.content)
         return response.content
@@ -290,7 +290,7 @@ def make_vetext_request(request_body):
     except Exception as e:
         logger.error("General Exception With Call to VeText")
         logger.exception(e)
-    
+
     return None
 
 

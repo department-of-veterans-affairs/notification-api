@@ -414,4 +414,4 @@ def get_reply_to_text(notification_type, form, template):
 
 def strip_keys_from_personalisation_if_send_attach(personalisation):
     return {k: v for (k, v) in personalisation.items() if
-            not (type(v) is dict and v.get('sending_method') == 'attach')}
+            not (isinstance(v, dict) and v.get('sending_method') == 'attach')}

@@ -59,7 +59,7 @@ def test_build_ga_pixel_url_is_escaped(sample_notification_model_with_organizati
     assert f"dt={escaped_subject_name}" in img_src_url
     assert f"cn={escaped_template_name}" in img_src_url
     assert f"cs={escaped_provider_name}" in img_src_url
-    assert f"cm=email" in img_src_url
+    assert "cm=email" in img_src_url
     assert f"ci={sample_notification_model_with_organization.template.id}" in img_src_url
 
 
