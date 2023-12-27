@@ -388,6 +388,14 @@ def test_rejects_api_calls_with_no_recipient():
     assert e.value.message == "Recipient can't be empty"
 
 
+def test_rejects_invalid_international_prefix(mocker):
+    service = create_service(service_permissions=[SMS_TYPE])
+    with pytest.raises(KeyError) as e:
+        mocker.patch('app.notifications.validators.validate_and_format_recipient.service_can_send_to_recipient')
+        validate_and_format_recipient('+808888', 'test', service, SMS_TYPE)
+    assert e.value.status_code == 400
+
+
 @pytest.mark.parametrize('notification_type', ['sms', 'email', 'letter'])
 def test_check_service_email_reply_to_id_where_reply_to_id_is_none(notification_type):
     assert check_service_email_reply_to_id(None, None, notification_type) is None
