@@ -6,7 +6,7 @@ from app.models import ProviderRates, ProviderDetails
 
 def test_create_provider_rates(mmg_provider):
     now = datetime.now()
-    rate = Decimal("1.00000")
+    rate = Decimal('1.00000')
 
     provider = ProviderDetails.query.filter_by(identifier=mmg_provider.identifier).one()
 

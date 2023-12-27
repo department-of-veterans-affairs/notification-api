@@ -7,11 +7,7 @@ from sqlalchemy import asc, desc, func
 
 from app.dao.dao_utils import transactional
 from app.notifications.notification_type import NotificationType
-from app.provider_details.switch_providers import (
-    provider_is_inactive,
-    provider_is_primary,
-    switch_providers
-)
+from app.provider_details.switch_providers import provider_is_inactive, provider_is_primary, switch_providers
 from app.models import FactBilling, ProviderDetails, ProviderDetailsHistory, SMS_TYPE
 from app.model import User
 from app import db
@@ -36,31 +32,25 @@ def get_alternative_sms_provider(identifier: str) -> Optional[ProviderDetails]:
     https://stackoverflow.com/questions/15936111/sqlalchemy-can-you-add-custom-methods-to-the-query-object
     """
 
-    return ProviderDetails.query.filter_by(
-        notification_type=SMS_TYPE,
-        active=True
-    ).filter(
-        ProviderDetails.identifier != identifier
-    ).order_by(
-        asc(ProviderDetails.priority)
-    ).first()
+    return (
+        ProviderDetails.query.filter_by(notification_type=SMS_TYPE, active=True)
+        .filter(ProviderDetails.identifier != identifier)
+        .order_by(asc(ProviderDetails.priority))
+        .first()
+    )
 
 
 def get_current_provider(notification_type):
-    return ProviderDetails.query.filter_by(
-        notification_type=notification_type,
-        active=True
-    ).order_by(
-        asc(ProviderDetails.priority)
-    ).first()
+    return (
+        ProviderDetails.query.filter_by(notification_type=notification_type, active=True)
+        .order_by(asc(ProviderDetails.priority))
+        .first()
+    )
 
 
 def dao_get_provider_versions(provider_id):
-    return ProviderDetailsHistory.query.filter_by(
-        id=provider_id
-    ).order_by(
-        desc(ProviderDetailsHistory.version)
-    ).all()
+    return ProviderDetailsHistory.query.filter_by(id=provider_id).order_by(desc(ProviderDetailsHistory.version)).all()
+
 
 # TODO #962 - Should this be deleted? sms provider swap code
 @transactional
@@ -70,6 +60,7 @@ def dao_toggle_sms_provider(identifier):
         dao_switch_sms_provider_to_provider_with_identifier(alternate_provider.identifier)
     else:
         current_app.logger.warning('Cancelling switch from %s as there is no alternative provider.', identifier)
+
 
 # TODO #962 - Should this be deleted? sms provider swap code
 @transactional
@@ -96,7 +87,6 @@ def dao_switch_sms_provider_to_provider_with_identifier(identifier):
 
 
 def get_provider_details_by_notification_type(notification_type, supports_international=False):
-
     filters = [ProviderDetails.notification_type == notification_type]
 
     if supports_international:
@@ -106,12 +96,11 @@ def get_provider_details_by_notification_type(notification_type, supports_intern
 
 
 def get_highest_priority_active_provider_by_notification_type(
-        notification_type: NotificationType,
-        supports_international: bool = False
+    notification_type: NotificationType, supports_international: bool = False
 ) -> Optional[ProviderDetails]:
     filters = [
         ProviderDetails.notification_type == notification_type.value,
-        ProviderDetails.active == True # noqa
+        ProviderDetails.active == True,  # noqa
     ]
 
     if supports_international:
@@ -121,13 +110,12 @@ def get_highest_priority_active_provider_by_notification_type(
 
 
 def get_active_providers_with_weights_by_notification_type(
-        notification_type: NotificationType,
-        supports_international: bool = False
+    notification_type: NotificationType, supports_international: bool = False
 ) -> List[ProviderDetails]:
     filters = [
         ProviderDetails.notification_type == notification_type.value,
-        ProviderDetails.load_balancing_weight != None, # noqa
-        ProviderDetails.active == True # noqa
+        ProviderDetails.load_balancing_weight != None,  # noqa
+        ProviderDetails.active == True,  # noqa
     ]
 
     if supports_international:
@@ -147,14 +135,17 @@ def dao_update_provider_details(provider_details):
 
 # TODO #962 - Should this be deleted? sms provider swap code
 def dao_get_sms_provider_with_equal_priority(identifier, priority):
-    provider = db.session.query(ProviderDetails).filter(
-        ProviderDetails.identifier != identifier,
-        ProviderDetails.notification_type == 'sms',
-        ProviderDetails.priority == priority,
-        ProviderDetails.active
-    ).order_by(
-        asc(ProviderDetails.priority)
-    ).first()
+    provider = (
+        db.session.query(ProviderDetails)
+        .filter(
+            ProviderDetails.identifier != identifier,
+            ProviderDetails.notification_type == 'sms',
+            ProviderDetails.priority == priority,
+            ProviderDetails.active,
+        )
+        .order_by(asc(ProviderDetails.priority))
+        .first()
+    )
 
     return provider
 
@@ -165,35 +156,37 @@ def dao_get_provider_stats():
     current_local_datetime = convert_utc_to_local_timezone(datetime.utcnow())
     first_day_of_the_month = current_local_datetime.date().replace(day=1)
 
-    subquery = db.session.query(
-        FactBilling.provider,
-        func.sum(FactBilling.billable_units * FactBilling.rate_multiplier).label('current_month_billable_sms')
-    ).filter(
-        FactBilling.notification_type == SMS_TYPE,
-        FactBilling.bst_date >= first_day_of_the_month
-    ).group_by(
-        FactBilling.provider
-    ).subquery()
+    subquery = (
+        db.session.query(
+            FactBilling.provider,
+            func.sum(FactBilling.billable_units * FactBilling.rate_multiplier).label('current_month_billable_sms'),
+        )
+        .filter(FactBilling.notification_type == SMS_TYPE, FactBilling.bst_date >= first_day_of_the_month)
+        .group_by(FactBilling.provider)
+        .subquery()
+    )
 
-    result = db.session.query(
-        ProviderDetails.id,
-        ProviderDetails.display_name,
-        ProviderDetails.identifier,
-        ProviderDetails.priority,
-        ProviderDetails.load_balancing_weight,
-        ProviderDetails.notification_type,
-        ProviderDetails.active,
-        ProviderDetails.updated_at,
-        ProviderDetails.supports_international,
-        User.name.label('created_by_name'),
-        func.coalesce(subquery.c.current_month_billable_sms, 0).label('current_month_billable_sms')
-    ).outerjoin(
-        subquery, ProviderDetails.identifier == subquery.c.provider
-    ).outerjoin(
-        User, ProviderDetails.created_by_id == User.id
-    ).order_by(
-        ProviderDetails.notification_type,
-        ProviderDetails.priority,
-    ).all()
+    result = (
+        db.session.query(
+            ProviderDetails.id,
+            ProviderDetails.display_name,
+            ProviderDetails.identifier,
+            ProviderDetails.priority,
+            ProviderDetails.load_balancing_weight,
+            ProviderDetails.notification_type,
+            ProviderDetails.active,
+            ProviderDetails.updated_at,
+            ProviderDetails.supports_international,
+            User.name.label('created_by_name'),
+            func.coalesce(subquery.c.current_month_billable_sms, 0).label('current_month_billable_sms'),
+        )
+        .outerjoin(subquery, ProviderDetails.identifier == subquery.c.provider)
+        .outerjoin(User, ProviderDetails.created_by_id == User.id)
+        .order_by(
+            ProviderDetails.notification_type,
+            ProviderDetails.priority,
+        )
+        .all()
+    )
 
     return result

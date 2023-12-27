@@ -57,27 +57,22 @@ def _opt_in_number(recipient_number: str, sns: BaseClient) -> dict:
 
 def _send_default_sms_message(recipient_number, sender, pinpoint: BaseClient):
     response = _make_pinpoint_send_message_request(recipient_number, sender, pinpoint)
-    logging.info(f'Handler successfully sent message with message '
-                 f'{response["MessageResponse"]["Result"][recipient_number]}')
+    logging.info(
+        f'Handler successfully sent message with message ' f'{response["MessageResponse"]["Result"][recipient_number]}'
+    )
     return response['MessageResponse']['Result'][recipient_number]
 
 
 def _make_sns_opt_in_request(recipient_number: str, sns: BaseClient) -> dict:
     try:
-        return sns.opt_in_phone_number(
-            phoneNumber=recipient_number
-        )
+        return sns.opt_in_phone_number(phoneNumber=recipient_number)
     except ClientError as error:
         message = {
             'sns_opt_in_request_id': error.response['ResponseMetadata']['RequestId'],
             'error_code': error.response['Error']['Code'],
-            'error_message': error.response['Error']['Message']
+            'error_message': error.response['Error']['Message'],
         }
-        sns.publish(
-            TopicArn=failure_topic_arn,
-            Message=json.dumps(message),
-            Subject='AWS SNS Opt-in Failure'
-        )
+        sns.publish(TopicArn=failure_topic_arn, Message=json.dumps(message), Subject='AWS SNS Opt-in Failure')
         logger.error(error)
         raise OptInFailureException(error)
 
@@ -85,15 +80,17 @@ def _make_sns_opt_in_request(recipient_number: str, sns: BaseClient) -> dict:
 def _parse_response_sns(response: dict, recipient_number: str) -> tuple:
     parsed_response = {
         'RequestId': response['ResponseMetadata']['RequestId'],
-        'StatusCode': response['ResponseMetadata']['HTTPStatusCode']
+        'StatusCode': response['ResponseMetadata']['HTTPStatusCode'],
     }
 
     if 'MessageResponse' in response.keys():
-        parsed_response.update({
-            'DeliveryStatus': response['MessageResponse']['Result'][recipient_number]['DeliveryStatus'],
-            'DeliveryStatusCode': response['MessageResponse']['Result'][recipient_number]['StatusCode'],
-            'DeliveryStatusMessage': response['MessageResponse']['Result'][recipient_number]['StatusMessage']
-        })
+        parsed_response.update(
+            {
+                'DeliveryStatus': response['MessageResponse']['Result'][recipient_number]['DeliveryStatus'],
+                'DeliveryStatusCode': response['MessageResponse']['Result'][recipient_number]['StatusCode'],
+                'DeliveryStatusMessage': response['MessageResponse']['Result'][recipient_number]['StatusMessage'],
+            }
+        )
 
     if 'DeliveryStatusCode' in parsed_response.keys() and parsed_response['DeliveryStatusCode'] in [400]:
         return False, parsed_response
@@ -105,17 +102,13 @@ def _make_pinpoint_send_message_request(recipient_number: str, sender: str, pinp
     return pinpoint.send_messages(
         ApplicationId=pinpoint_project_id,
         MessageRequest={
-            'Addresses': {
-                recipient_number: {
-                    'ChannelType': 'SMS'
-                }
-            },
+            'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
             'MessageConfiguration': {
                 'SMSMessage': {
                     'Body': default_response_message,
                     'MessageType': 'TRANSACTIONAL',
-                    'OriginationNumber': sender
+                    'OriginationNumber': sender,
                 }
-            }
-        }
+            },
+        },
     )

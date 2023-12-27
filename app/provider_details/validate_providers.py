@@ -15,7 +15,7 @@ def validate_template_providers(request: dict):
     provider_id = request.get('provider_id')
     template_type = request.get('template_type')
 
-    if not(provider_id is None or is_provider_valid(provider_id, template_type)):
+    if not (provider_id is None or is_provider_valid(provider_id, template_type)):
         throw_invalid_request_error(template_type)
 
 

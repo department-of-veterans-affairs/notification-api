@@ -1,9 +1,6 @@
 from typing import Tuple
 
-from flask import (
-    current_app,
-    json
-)
+from flask import current_app, json
 
 from app.dao.complaint_dao import save_complaint
 from app.dao.notifications_dao import dao_get_notification_history_by_reference
@@ -19,11 +16,12 @@ def determine_notification_bounce_type(notification_type, ses_message):
 def handle_ses_complaint(ses_message: dict) -> Tuple[Complaint, Notification, str]:
     recipient_email = remove_emails_from_complaint(ses_message)[0]
     current_app.logger.info(
-        "Complaint from SES: \n{}".format(json.dumps(ses_message).replace('{', '(').replace('}', ')')))
+        'Complaint from SES: \n{}'.format(json.dumps(ses_message).replace('{', '(').replace('}', ')'))
+    )
     try:
         reference = ses_message['mail']['messageId']
     except KeyError as e:
-        current_app.logger.exception("Complaint from SES failed to get reference from message", e)
+        current_app.logger.exception('Complaint from SES failed to get reference from message', e)
         return
     notification = dao_get_notification_history_by_reference(reference)
     ses_complaint = ses_message.get('complaint', None)
@@ -38,7 +36,7 @@ def handle_ses_complaint(ses_message: dict) -> Tuple[Complaint, Notification, st
         service_id=notification.service_id,
         feedback_id=ses_complaint.get('feedbackId', None) if ses_complaint else None,
         complaint_type=complaint_type,
-        complaint_date=ses_complaint.get('timestamp', None) if ses_complaint else None
+        complaint_date=ses_complaint.get('timestamp', None) if ses_complaint else None,
     )
     save_complaint(complaint)
     return complaint, notification, recipient_email
@@ -47,11 +45,12 @@ def handle_ses_complaint(ses_message: dict) -> Tuple[Complaint, Notification, st
 def handle_smtp_complaint(ses_message):
     recipient_email = remove_emails_from_complaint(ses_message)[0]
     current_app.logger.info(
-        "Complaint from SES SMTP: \n{}".format(json.dumps(ses_message).replace('{', '(').replace('}', ')')))
+        'Complaint from SES SMTP: \n{}'.format(json.dumps(ses_message).replace('{', '(').replace('}', ')'))
+    )
     try:
         reference = ses_message['mail']['messageId']
     except KeyError as e:
-        current_app.logger.exception("Complaint from SES SMTP failed to get reference from message", e)
+        current_app.logger.exception('Complaint from SES SMTP failed to get reference from message', e)
         return
     notification = dao_get_notification_history_by_reference(reference)
     ses_complaint = ses_message.get('complaint', None)
@@ -61,7 +60,7 @@ def handle_smtp_complaint(ses_message):
         service_id=notification.service_id,
         feedback_id=ses_complaint.get('feedbackId', None) if ses_complaint else None,
         complaint_type=ses_complaint.get('complaintFeedbackType', None) if ses_complaint else None,
-        complaint_date=ses_complaint.get('timestamp', None) if ses_complaint else None
+        complaint_date=ses_complaint.get('timestamp', None) if ses_complaint else None,
     )
     save_complaint(complaint)
     return complaint, notification, recipient_email

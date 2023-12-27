@@ -9,9 +9,10 @@ class SnsClientException(SmsClientResponseException):
 
 
 class AwsSnsClient(SmsClient):
-    '''
+    """
     AwsSns sms client
-    '''
+    """
+
     def __init__(self) -> None:
         self.name = 'sns'
 
@@ -30,19 +31,14 @@ class AwsSnsClient(SmsClient):
             response = self._client.publish(
                 PhoneNumber=to,
                 Message=content,
-                MessageAttributes={
-                    'AWS.SNS.SMS.SMSType': {
-                        'DataType': 'String',
-                        'StringValue': 'Transactional'
-                    }
-                }
+                MessageAttributes={'AWS.SNS.SMS.SMSType': {'DataType': 'String', 'StringValue': 'Transactional'}},
             )
         except (botocore.exceptions.ClientError, Exception) as e:
-            self.statsd_client.incr("clients.sns.error")
+            self.statsd_client.incr('clients.sns.error')
             raise SnsClientException(str(e))
         else:
             elapsed_time = monotonic() - start_time
-            self.logger.info(f"AWS SNS request finished in {elapsed_time}")
-            self.statsd_client.timing("clients.sns.request-time", elapsed_time)
-            self.statsd_client.incr("clients.sns.success")
+            self.logger.info(f'AWS SNS request finished in {elapsed_time}')
+            self.statsd_client.timing('clients.sns.request-time', elapsed_time)
+            self.statsd_client.incr('clients.sns.success')
             return response['MessageId']

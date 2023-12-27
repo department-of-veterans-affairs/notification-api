@@ -22,6 +22,6 @@ def create_letter_notification(letter_data, template, api_key, status, reply_to_
         status=status,
         reply_to_text=reply_to_text,
         billable_units=billable_units,
-        postage=letter_data.get('postage')
+        postage=letter_data.get('postage'),
     )
     return notification

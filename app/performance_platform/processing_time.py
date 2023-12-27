@@ -29,11 +29,7 @@ def send_processing_time_for_start_and_end(start_time, end_time):
 
 def send_processing_time_data(start_time, status, count):
     payload = performance_platform_client.format_payload(
-        dataset='processing-time',
-        start_time=start_time,
-        group_name='status',
-        group_value=status,
-        count=count
+        dataset='processing-time', start_time=start_time, group_name='status', group_value=status, count=count
     )
 
     performance_platform_client.send_stats_to_performance_platform(payload)

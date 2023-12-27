@@ -51,25 +51,23 @@ def query_service_callback(service_id, service_callback_id):
 
 
 def get_service_delivery_status_callback_api_for_service(service_id, notification_status):
-    return db.session.query(ServiceCallback).filter(
-        ServiceCallback.notification_statuses.contains([notification_status]),
-        ServiceCallback.service_id == service_id,
-        ServiceCallback.callback_type == DELIVERY_STATUS_CALLBACK_TYPE
-    ).first()
+    return (
+        db.session.query(ServiceCallback)
+        .filter(
+            ServiceCallback.notification_statuses.contains([notification_status]),
+            ServiceCallback.service_id == service_id,
+            ServiceCallback.callback_type == DELIVERY_STATUS_CALLBACK_TYPE,
+        )
+        .first()
+    )
 
 
 def get_service_complaint_callback_api_for_service(service_id):
-    return ServiceCallback.query.filter_by(
-        service_id=service_id,
-        callback_type=COMPLAINT_CALLBACK_TYPE
-    ).first()
+    return ServiceCallback.query.filter_by(service_id=service_id, callback_type=COMPLAINT_CALLBACK_TYPE).first()
 
 
 def get_service_inbound_sms_callback_api_for_service(service_id):
-    return ServiceCallback.query.filter_by(
-        service_id=service_id,
-        callback_type=INBOUND_SMS_CALLBACK_TYPE
-    ).first()
+    return ServiceCallback.query.filter_by(service_id=service_id, callback_type=INBOUND_SMS_CALLBACK_TYPE).first()
 
 
 @transactional

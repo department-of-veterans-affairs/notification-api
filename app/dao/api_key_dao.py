@@ -4,10 +4,7 @@ from datetime import datetime, timedelta
 from app import db
 from app.models import ApiKey
 
-from app.dao.dao_utils import (
-    transactional,
-    version_class
-)
+from app.dao.dao_utils import transactional, version_class
 
 from sqlalchemy import or_, func
 
@@ -36,7 +33,7 @@ def get_model_api_keys(service_id, id=None):
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
     return ApiKey.query.filter(
         or_(ApiKey.expiry_date == None, func.date(ApiKey.expiry_date) > seven_days_ago),  # noqa
-        ApiKey.service_id == service_id
+        ApiKey.service_id == service_id,
     ).all()
 
 

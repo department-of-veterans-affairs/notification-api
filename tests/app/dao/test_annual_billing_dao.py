@@ -1,4 +1,3 @@
-
 from app.dao.date_util import get_current_financial_year_start_year
 
 from app.dao.annual_billing_dao import (
@@ -19,7 +18,6 @@ def test_dao_update_free_sms_fragment_limit(notify_db_session, sample_service):
 
 
 def test_create_annual_billing(sample_service):
-
     dao_create_or_update_annual_billing_for_year(sample_service.id, 9999, 2016)
 
     free_limit = dao_get_free_sms_fragment_limit_for_year(sample_service.id, 2016)

@@ -6,7 +6,6 @@ from notifications_utils.timezones import convert_utc_to_local_timezone
 
 
 class PerformancePlatformClient:
-
     @property
     def active(self):
         return self._active
@@ -20,26 +19,20 @@ class PerformancePlatformClient:
     def send_stats_to_performance_platform(self, payload):
         if self.active:
             bearer_token = self.performance_platform_endpoints[payload['dataType']]
-            headers = {
-                'Content-Type': "application/json",
-                'Authorization': 'Bearer {}'.format(bearer_token)
-            }
+            headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer {}'.format(bearer_token)}
             resp = requests.post(
-                self.performance_platform_url + payload['dataType'],
-                json=payload,
-                headers=headers,
-                timeout=(3.05, 1)
+                self.performance_platform_url + payload['dataType'], json=payload, headers=headers, timeout=(3.05, 1)
             )
 
             if resp.status_code == 200:
                 current_app.logger.info(
-                    "Updated performance platform successfully with payload %s", json.dumps(payload)
+                    'Updated performance platform successfully with payload %s', json.dumps(payload)
                 )
             else:
                 current_app.logger.error(
                     "Performance platform update request failed for payload with response details: %s '%d'",
                     json.dumps(payload),
-                    resp.status_code
+                    resp.status_code,
                 )
                 resp.raise_for_status()
 
@@ -70,11 +63,7 @@ class PerformancePlatformClient:
         group_name is the name of the group - eg "channel" or "status"
         """
         payload_string = '{}{}{}{}{}'.format(
-            payload['_timestamp'],
-            payload['service'],
-            payload[group_name],
-            payload['dataType'],
-            payload['period']
+            payload['_timestamp'], payload['service'], payload[group_name], payload['dataType'], payload['period']
         )
         _id = base64.b64encode(payload_string.encode('utf-8'))
         return _id.decode('utf-8')

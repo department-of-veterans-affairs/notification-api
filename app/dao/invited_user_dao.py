@@ -9,7 +9,7 @@ def save_invited_user(invited_user):
     elif isinstance(invited_user, InvitedUser):
         invited_user_instance = invited_user
     else:
-        raise TypeError(f"invited_user is of type {type(invited_user)}.")
+        raise TypeError(f'invited_user is of type {type(invited_user)}.')
 
     db.session.add(invited_user_instance)
     db.session.commit()
@@ -29,8 +29,8 @@ def get_invited_users_for_service(service_id):
 
 
 def delete_invitations_created_more_than_two_days_ago():
-    deleted = db.session.query(InvitedUser).filter(
-        InvitedUser.created_at <= datetime.utcnow() - timedelta(days=2)
-    ).delete()
+    deleted = (
+        db.session.query(InvitedUser).filter(InvitedUser.created_at <= datetime.utcnow() - timedelta(days=2)).delete()
+    )
     db.session.commit()
     return deleted

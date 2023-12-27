@@ -19,21 +19,19 @@ from sqlalchemy import asc, desc
 
 
 @transactional
-@version_class(
-    VersionOptions(Template, history_class=TemplateHistory)
-)
+@version_class(VersionOptions(Template, history_class=TemplateHistory))
 def dao_create_template(template):
     template.id = uuid.uuid4()  # must be set now so version history model can use same id
     template.archived = False
 
     redacted_dict = {
-        "template": template,
-        "redact_personalisation": False,
+        'template': template,
+        'redact_personalisation': False,
     }
     if template.created_by:
-        redacted_dict.update({"updated_by": template.created_by})
+        redacted_dict.update({'updated_by': template.created_by})
     else:
-        redacted_dict.update({"updated_by_id": template.created_by_id})
+        redacted_dict.update({'updated_by_id': template.created_by_id})
 
     template.template_redacted = TemplateRedacted(**redacted_dict)
 
@@ -41,9 +39,7 @@ def dao_create_template(template):
 
 
 @transactional
-@version_class(
-    VersionOptions(Template, history_class=TemplateHistory)
-)
+@version_class(VersionOptions(Template, history_class=TemplateHistory))
 def dao_update_template(template):
     if template.archived:
         template.folder = None
@@ -52,30 +48,33 @@ def dao_update_template(template):
 
 @transactional
 def dao_update_template_reply_to(template_id, reply_to):
-    Template.query.filter_by(id=template_id).update({
-        "service_letter_contact_id": reply_to,
-        "updated_at": datetime.utcnow(),
-        "version": Template.version + 1,
-    })
+    Template.query.filter_by(id=template_id).update(
+        {
+            'service_letter_contact_id': reply_to,
+            'updated_at': datetime.utcnow(),
+            'version': Template.version + 1,
+        }
+    )
     template = Template.query.filter_by(id=template_id).one()
 
-    history = TemplateHistory(**
-                              {
-                                  "id": template.id,
-                                  "name": template.name,
-                                  "template_type": template.template_type,
-                                  "created_at": template.created_at,
-                                  "updated_at": template.updated_at,
-                                  "content": template.content,
-                                  "service_id": template.service_id,
-                                  "subject": template.subject,
-                                  "postage": template.postage,
-                                  "created_by_id": template.created_by_id,
-                                  "version": template.version,
-                                  "archived": template.archived,
-                                  "process_type": template.process_type,
-                                  "service_letter_contact_id": template.service_letter_contact_id
-                              })
+    history = TemplateHistory(
+        **{
+            'id': template.id,
+            'name': template.name,
+            'template_type': template.template_type,
+            'created_at': template.created_at,
+            'updated_at': template.updated_at,
+            'content': template.content,
+            'service_id': template.service_id,
+            'subject': template.subject,
+            'postage': template.postage,
+            'created_by_id': template.created_by_id,
+            'version': template.version,
+            'archived': template.archived,
+            'process_type': template.process_type,
+            'service_letter_contact_id': template.service_letter_contact_id,
+        }
+    )
     db.session.add(history)
     return template
 
@@ -91,68 +90,60 @@ def dao_redact_template(template, user_id):
 def dao_get_template_by_id_and_service_id(template_id, service_id, version=None) -> Template:
     if version is not None:
         return TemplateHistory.query.filter_by(
-            id=template_id,
-            hidden=False,
-            service_id=service_id,
-            version=version).one()
+            id=template_id, hidden=False, service_id=service_id, version=version
+        ).one()
     return Template.query.filter_by(id=template_id, hidden=False, service_id=service_id).one()
 
 
 def dao_get_number_of_templates_by_service_id_and_name(service_id, template_name, version=None):
     if version is not None:
         return TemplateHistory.query.filter_by(
-            hidden=False,
-            service_id=service_id,
-            name=template_name,
-            version=version).count()
+            hidden=False, service_id=service_id, name=template_name, version=version
+        ).count()
     return Template.query.filter_by(hidden=False, service_id=service_id, name=template_name).count()
 
 
 def dao_get_template_by_id(template_id, version=None):
     if version is not None:
-        return TemplateHistory.query.filter_by(
-            id=template_id,
-            version=version).one()
+        return TemplateHistory.query.filter_by(id=template_id, version=version).one()
     return Template.query.filter_by(id=template_id).one()
 
 
 def dao_get_all_templates_for_service(service_id, template_type=None):
     if template_type is not None:
-        return Template.query.filter_by(
-            service_id=service_id,
-            template_type=template_type,
-            hidden=False,
-            archived=False
-        ).order_by(
+        return (
+            Template.query.filter_by(service_id=service_id, template_type=template_type, hidden=False, archived=False)
+            .order_by(
+                asc(Template.name),
+                asc(Template.template_type),
+            )
+            .all()
+        )
+
+    return (
+        Template.query.filter_by(service_id=service_id, hidden=False, archived=False)
+        .order_by(
             asc(Template.name),
             asc(Template.template_type),
-        ).all()
-
-    return Template.query.filter_by(
-        service_id=service_id,
-        hidden=False,
-        archived=False
-    ).order_by(
-        asc(Template.name),
-        asc(Template.template_type),
-    ).all()
+        )
+        .all()
+    )
 
 
 def dao_get_template_versions(service_id, template_id):
-    return TemplateHistory.query.filter_by(
-        service_id=service_id, id=template_id,
-        hidden=False,
-    ).order_by(
-        desc(TemplateHistory.version)
-    ).all()
+    return (
+        TemplateHistory.query.filter_by(
+            service_id=service_id,
+            id=template_id,
+            hidden=False,
+        )
+        .order_by(desc(TemplateHistory.version))
+        .all()
+    )
 
 
 def get_precompiled_letter_template(service_id):
-    template = Template.query.filter_by(
-        service_id=service_id,
-        template_type=LETTER_TYPE,
-        hidden=True
-    ).first()
+    template = Template.query.filter_by(service_id=service_id, template_type=LETTER_TYPE, hidden=True).first()
     if template is not None:
         return template
 
@@ -164,7 +155,7 @@ def get_precompiled_letter_template(service_id):
         hidden=True,
         subject='Pre-compiled PDF',
         content='',
-        postage=SECOND_CLASS
+        postage=SECOND_CLASS,
     )
 
     dao_create_template(template)

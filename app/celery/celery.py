@@ -17,8 +17,9 @@ def pool_worker_process_shutdown(pid, exitcode, *args, **kwargs):
 
 @worker_shutting_down.connect
 def main_proc_graceful_stop(signal, how, exitcode, *args, **kwargs):
-    current_app.logger.info('Main process worker graceful stop: signal = %s, how = %s, exitcode = %s',
-                            signal, how, exitcode)
+    current_app.logger.info(
+        'Main process worker graceful stop: signal = %s, how = %s, exitcode = %s', signal, how, exitcode
+    )
 
 
 def make_task(app):
@@ -28,13 +29,13 @@ def make_task(app):
 
         def on_success(self, retval, task_id, args, kwargs):
             elapsed_time = time.time() - self.start
-            app.logger.info("celery task success: %s took %.4f seconds", self.name, elapsed_time)
+            app.logger.info('celery task success: %s took %.4f seconds', self.name, elapsed_time)
 
         def on_failure(self, exc, task_id, args, kwargs, einfo):
             elapsed_time = time.time() - self.start
 
             # ensure task will log exceptions to correct handlers
-            app.logger.exception("celery task failure: %s took %.4f seconds", self.name, elapsed_time)
+            app.logger.exception('celery task failure: %s took %.4f seconds', self.name, elapsed_time)
             super().on_failure(exc, task_id, args, kwargs, einfo)
 
         def __call__(self, *args, **kwargs):
@@ -47,7 +48,6 @@ def make_task(app):
 
 
 class NotifyCelery(Celery):
-
     def init_app(self, app):
         super().__init__(
             app.import_name,

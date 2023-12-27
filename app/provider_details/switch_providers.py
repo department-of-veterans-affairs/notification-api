@@ -5,9 +5,11 @@ from app.dao.users_dao import get_user_by_id
 
 def provider_is_inactive(new_provider):
     if not new_provider.active:
-        current_app.logger.warning('Cancelling switch to {} as they are inactive'.format(
-            new_provider.identifier,
-        ))
+        current_app.logger.warning(
+            'Cancelling switch to {} as they are inactive'.format(
+                new_provider.identifier,
+            )
+        )
         return True
 
 
@@ -38,17 +40,14 @@ def switch_providers(current_provider, new_provider):
 
 
 def _print_provider_switch_logs(current_provider, new_provider):
-    current_app.logger.warning('Switching provider from {} to {}'.format(
-        current_provider.identifier,
-        new_provider.identifier
-    ))
+    current_app.logger.warning(
+        'Switching provider from {} to {}'.format(current_provider.identifier, new_provider.identifier)
+    )
 
-    current_app.logger.warning('Provider {} now updated with priority of {}'.format(
-        current_provider.identifier,
-        current_provider.priority
-    ))
+    current_app.logger.warning(
+        'Provider {} now updated with priority of {}'.format(current_provider.identifier, current_provider.priority)
+    )
 
-    current_app.logger.warning('Provider {} now updated with priority of {}'.format(
-        new_provider.identifier,
-        new_provider.priority
-    ))
+    current_app.logger.warning(
+        'Provider {} now updated with priority of {}'.format(new_provider.identifier, new_provider.priority)
+    )
