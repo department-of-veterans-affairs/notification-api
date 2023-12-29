@@ -3,5 +3,3 @@ fileignoreconfig:
   checksum: e00bc5bb1c2acaa6a14d0d2a1261f9c28fed229981524fac89d6e48a0b090f24
 - filename: app/celery/v3/notification_tasks.py
   checksum: f291bd34628b3ea2abdb00dcd560156d79a4e3e040af2c56370f083707132718
-- filename: app/celery/letters_pdf_tasks.py
-  checksum: c33ed58c2b9a9031198b749c4c0eb2ca2469948497b82fc1bd6bb24a65ba86ef
