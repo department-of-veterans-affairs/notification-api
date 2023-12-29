@@ -101,7 +101,7 @@ def delete_template_folder(service_id, template_folder_id):
 @template_folder_blueprint.route('/contents', methods=['POST'])
 @template_folder_blueprint.route('/<uuid:target_template_folder_id>/contents', methods=['POST'])
 @transactional
-def move_to_template_folder(service_id, target_template_folder_id=None):  # noqa: C901
+def move_to_template_folder(service_id, target_template_folder_id=None):
     data = request.get_json()
 
     validate(data, post_move_template_folder_schema)

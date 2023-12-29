@@ -22,7 +22,7 @@ from requests import Timeout
     retry_backoff_max=60,
 )
 @statsd(namespace='tasks')
-def lookup_contact_info(self, notification_id):  # noqa: C901
+def lookup_contact_info(self, notification_id):
     current_app.logger.info(f'Looking up contact information for notification_id:{notification_id}.')
 
     notification = get_notification_by_id(notification_id)

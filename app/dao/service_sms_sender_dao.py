@@ -39,7 +39,7 @@ def dao_get_service_sms_sender_by_service_id_and_number(service_id: str, number:
 
 
 @transactional
-def dao_add_sms_sender_for_service(  # noqa: C901
+def dao_add_sms_sender_for_service(
     service_id,
     sms_sender,
     is_default,

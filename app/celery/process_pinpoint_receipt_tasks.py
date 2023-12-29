@@ -57,7 +57,7 @@ def _map_record_status_to_notification_status(record_status):
     retry_backoff_max=300,
 )
 @statsd(namespace='tasks')
-def process_pinpoint_results(self, response):  # noqa: C901
+def process_pinpoint_results(self, response):
     """
     Process a Pinpoint SMS stream event.  Messages long enough to require multiple segments only
     result in one event that contains the aggregate cost.

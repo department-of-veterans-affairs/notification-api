@@ -169,7 +169,7 @@ def test_post_sms_notification_uses_inbound_number_reply_to_as_sender(client, no
 
 
 @pytest.mark.parametrize('sms_sender_id', [None, 'user provided'])
-def test_post_sms_notification_returns_201_with_sms_sender_id(  # noqa: C901
+def test_post_sms_notification_returns_201_with_sms_sender_id(
     client, sample_template_with_placeholders, mocker, sms_sender_id
 ):
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')

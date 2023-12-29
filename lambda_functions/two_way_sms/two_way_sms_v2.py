@@ -145,7 +145,7 @@ aws_sqs_client = boto3.client('sqs', region_name=AWS_REGION)
 
 
 # ------------------------------------------- Begin Invocation --------------------------------------------
-def notify_incoming_sms_handler(event: dict, context: any):  # noqa: C901
+def notify_incoming_sms_handler(event: dict, context: any):
     """
     Handler for inbound messages from SQS.
     """
@@ -252,7 +252,7 @@ def valid_event(event_data: dict) -> bool:
     return all((record.get('body') is not None) for record in event_data['Records'])
 
 
-def forward_to_service(inbound_sms: dict, url: str, auth_parameter: str) -> bool:  # noqa: C901
+def forward_to_service(inbound_sms: dict, url: str, auth_parameter: str) -> bool:
     """
     Forwards the inbound SMS to the service that has 2-way SMS setup.
     """

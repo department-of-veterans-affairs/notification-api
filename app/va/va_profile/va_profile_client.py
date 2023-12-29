@@ -161,7 +161,7 @@ class VAProfileClient:
         self.statsd_client.incr('clients.va-profile.get-communication-item-permission.no-permissions')
         raise CommunicationItemNotFoundException
 
-    def _make_request(self, url: str, va_profile_id: str, bio_type: str = None):  # noqa: C901
+    def _make_request(self, url: str, va_profile_id: str, bio_type: str = None):
         start_time = monotonic()
 
         self.logger.info('Querying VA Profile with ID %s', va_profile_id)

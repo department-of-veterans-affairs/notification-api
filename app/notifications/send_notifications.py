@@ -9,7 +9,7 @@ from app.notifications.process_notifications import (
 )
 
 
-def send_notification_bypass_route(  # noqa: C901
+def send_notification_bypass_route(
     service: Service,
     template: Template,
     notification_type: str,

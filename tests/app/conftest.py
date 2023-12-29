@@ -327,7 +327,7 @@ def sample_notification_model_with_organization(
     return notification
 
 
-def sample_service_helper(  # noqa: C901
+def sample_service_helper(
     notify_db_session,
     service_name='Sample service',
     user=None,
@@ -405,7 +405,7 @@ def sample_service_data(sample_service):
 
 
 @pytest.fixture(scope='function')
-def sample_template(  # noqa: C901
+def sample_template(
     notify_db,
     notify_db_session,
     template_name='Template Name',
@@ -752,7 +752,7 @@ def sample_notification_with_job(
 
 
 @pytest.fixture(scope='function')
-def sample_notification(  # noqa: C901
+def sample_notification(
     notify_db,
     notify_db_session,
     sample_sms_sender,

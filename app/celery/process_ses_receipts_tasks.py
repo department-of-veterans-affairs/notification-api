@@ -223,7 +223,7 @@ def process_ses_results(self, response):  # noqa: C901
 
 @notify_celery.task(bind=True, name='process-ses-smtp-results', max_retries=5, default_retry_delay=300)
 @statsd(namespace='tasks')
-def process_ses_smtp_results(self, response):  # noqa: C901
+def process_ses_smtp_results(self, response):
     try:
         ses_message = json.loads(response['Message'])
 

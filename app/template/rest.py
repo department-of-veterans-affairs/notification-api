@@ -122,7 +122,7 @@ def create_template(service_id):
 
 @template_blueprint.route('/<uuid:template_id>', methods=['POST'])
 @requires_admin_auth_or_user_in_service(required_permission='edit_templates')
-def update_template(service_id, template_id):  # noqa: C901
+def update_template(service_id, template_id):
     fetched_template = dao_get_template_by_id_and_service_id(template_id=template_id, service_id=service_id)
 
     if not service_has_permission(fetched_template.template_type, fetched_template.service.permissions):
@@ -297,7 +297,7 @@ def redact_template(template, data):
 
 @template_blueprint.route('/preview/<uuid:notification_id>/<file_type>', methods=['GET'])
 @requires_admin_auth_or_user_in_service(required_permission='manage_templates')
-def preview_letter_template_by_notification_id(service_id, notification_id, file_type):  # noqa: C901
+def preview_letter_template_by_notification_id(service_id, notification_id, file_type):
     if file_type not in ('pdf', 'png'):
         raise InvalidRequest({'content': ['file_type must be pdf or png']}, status_code=400)
 

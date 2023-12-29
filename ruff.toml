@@ -48,8 +48,8 @@ unfixable = []
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [lint.mccabe]
-# Flag errors (`C901`) whenever the complexity level exceeds 6.
-max-complexity = 6
+# Default complexity
+max-complexity = 10
 
 [format]
 docstring-code-format = false

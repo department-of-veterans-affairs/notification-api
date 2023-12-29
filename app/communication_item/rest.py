@@ -102,7 +102,7 @@ def get_communication_item(communication_item_id):
 
 
 @communication_item_blueprint.route('/<communication_item_id>', methods=['PATCH'])
-def partially_update_communication_item(communication_item_id):  # noqa: C901
+def partially_update_communication_item(communication_item_id):
     request_data = request.get_json()
 
     try:

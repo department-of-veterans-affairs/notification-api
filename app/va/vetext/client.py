@@ -23,7 +23,7 @@ class VETextClient:
         self.logger = logger
         self.statsd = statsd
 
-    def send_push_notification(self, mobile_app: str, template_id: str, icn: str, personalization: Dict = None) -> None:  # noqa: C901
+    def send_push_notification(self, mobile_app: str, template_id: str, icn: str, personalization: Dict = None) -> None:
         formatted_personalization = None
         if personalization:
             formatted_personalization = {}

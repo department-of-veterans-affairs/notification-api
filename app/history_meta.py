@@ -150,7 +150,7 @@ class Versioned(object):
         return history_mapper.class_
 
 
-def create_history(obj, history_cls=None):  # noqa: C901
+def create_history(obj, history_cls=None):
     if not history_cls:
         history_mapper = obj.__history_mapper__
         history_cls = history_mapper.class_

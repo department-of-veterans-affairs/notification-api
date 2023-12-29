@@ -34,7 +34,7 @@ class VersionOptions:
         self.must_write_history = must_write_history
 
 
-def version_class(*version_options):  # noqa: C901
+def version_class(*version_options):
     if len(version_options) == 1 and not isinstance(version_options[0], VersionOptions):
         version_options = (VersionOptions(version_options[0]),)
 

@@ -20,7 +20,7 @@ register_errors(govdelivery_callback_blueprint)
 
 
 @govdelivery_callback_blueprint.route('', methods=['POST'])
-def process_govdelivery_response():  # noqa: C901
+def process_govdelivery_response():
     try:
         data = validate(request.form, govdelivery_webhook_schema)
         sid = data['sid']

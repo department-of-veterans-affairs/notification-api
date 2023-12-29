@@ -204,7 +204,7 @@ def _update_notification_status(notification, status):
 
 @statsd(namespace='dao')
 @transactional
-def update_notification_status_by_id(  # noqa: C901
+def update_notification_status_by_id(
     notification_id: uuid, status: str, sent_by: str = None, status_reason: str = None, current_status: str = None
 ) -> Notification:
     notification_query = Notification.query.with_for_update().filter(Notification.id == notification_id)
@@ -353,7 +353,7 @@ def get_notifications(filter_dict=None):
 
 
 @statsd(namespace='dao')
-def get_notifications_for_service(  # noqa: C901
+def get_notifications_for_service(
     service_id,
     filter_dict=None,
     page=1,
@@ -702,7 +702,7 @@ def dao_update_notifications_by_reference(references, update_dict):
 
 
 @statsd(namespace='dao')
-def dao_get_notifications_by_to_field(service_id, search_term, notification_type=None, statuses=None):  # noqa: C901
+def dao_get_notifications_by_to_field(service_id, search_term, notification_type=None, statuses=None):
     if notification_type is None:
         notification_type = guess_notification_type(search_term)
 
