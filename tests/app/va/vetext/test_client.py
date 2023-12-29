@@ -112,12 +112,11 @@ class TestRequestExceptions:
     def test_logs_warning_on_read_timeout(self, rmock, test_vetext_client):
         rmock.post(url=f"{MOCK_VETEXT_URL}/mobile/push/send", exc=requests.exceptions.ReadTimeout)
 
-        with pytest.raises(VETextRetryableException):
-            test_vetext_client.send_push_notification(
-                "app_sid",
-                "template_sid",
-                "icn",
-            )
+        test_vetext_client.send_push_notification(
+            "app_sid",
+            "template_sid",
+            "icn",
+        )
         assert test_vetext_client.logger.warning.called
 
     def test_increments_statsd_and_timing_on_request_exception(self, rmock, test_vetext_client):

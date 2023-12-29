@@ -65,10 +65,12 @@ class VETextClient:
             else:
                 raise VETextNonRetryableException from e
         except requests.RequestException as e:
-            self.logger.critical('RequestException raised sending push notification - payload: %s', payload)
+            self.logger.critical(
+                'RequestException raised sending push notification. Not retrying - payload: %s',
+                payload,
+            )
             self.statsd.incr(f"{self.STATSD_KEY}.error.request_exception")
-            raise VETextRetryableException from e
-            # TODO: add retries?
+            raise VETextNonRetryableException from e
         else:
             self.statsd.incr(f"{self.STATSD_KEY}.success")
         finally:
