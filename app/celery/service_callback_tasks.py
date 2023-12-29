@@ -74,6 +74,7 @@ def send_delivery_status_to_service(
         current_app.logger.critical(
             "Not retrying: %s failed for %s, url: %s. ", self.name, logging_tags, service_callback.url
         )
+        raise
 
 
 @notify_celery.task(bind=True, name="send-complaint",
@@ -230,6 +231,7 @@ def send_inbound_sms_to_service(self, inbound_sms_id, service_id):
             service_callback.url,
             e,
         )
+        raise
 
 
 def create_delivery_status_callback_data(
