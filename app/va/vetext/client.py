@@ -53,6 +53,11 @@ class VETextClient:
             self.logger.warning('ReadTimeout raised sending push notification - Still processed, returning 201')
             # Logging as error.read_timeout so we can easily track it
             self.statsd.incr(f"{self.STATSD_KEY}.error.read_timeout")
+        except requests.exceptions.ConnectTimeout as e:
+            self.logger.warning('ConnectTimeout raised sending push notification - Retrying')
+            # Logging as error.read_timeout so we can easily track it
+            self.statsd.incr(f"{self.STATSD_KEY}.error.connection_timeout")
+            raise VETextRetryableException from e
         except requests.HTTPError as e:
             self.logger.warning('HTTPError raised sending push notification')
             self.statsd.incr(f"{self.STATSD_KEY}.error.{e.response.status_code}")
