@@ -63,6 +63,11 @@ class VETextClient:
             elif e.response.status_code == 400:
                 self._decode_bad_request_response(e)
             else:
+                self.logger.critical(
+                    'Status: %s - Not retrying - payload: %s',
+                    e.response.status_code,
+                    payload,
+                )
                 raise VETextNonRetryableException from e
         except requests.RequestException as e:
             self.logger.critical(
