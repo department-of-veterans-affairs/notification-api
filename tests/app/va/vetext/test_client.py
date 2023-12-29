@@ -151,7 +151,7 @@ class TestHTTPExceptions:
     def test_raises_nonretryable_on_request_exception_and_logs(self, rmock, test_vetext_client, http_status_code):
         rmock.post(url=f"{MOCK_VETEXT_URL}/mobile/push/send", status_code=http_status_code)
 
-        with pytest.raises(VETextRetryableException):
+        with pytest.raises(VETextNonRetryableException):
             test_vetext_client.send_push_notification(
                 "app_sid",
                 "template_sid",
