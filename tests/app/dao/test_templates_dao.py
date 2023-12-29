@@ -296,7 +296,7 @@ def test_dao_update_template_reply_to_some_to_some(
     stmt = select(TemplateHistory).where(TemplateHistory.id == created.id).where(TemplateHistory.version == 2)
     updated_history = notify_db_session.session.scalars(stmt).one()
     assert updated_history.service_letter_contact_id == letter_contact_2.id
-    assert updated_history.updated_at == updated_history.updated_at
+    assert updated_history.updated_at == updated_history.updated_at  # TODO: KWM - Fix this!
 
     # Teardown
     template_cleanup(notify_db_session.session, template)
