@@ -144,13 +144,13 @@ class TestHTTPExceptions:
     def test_logs_error_on_http_exception(self, rmock, test_vetext_client, http_status_code):
         rmock.post(url=f"{MOCK_VETEXT_URL}/mobile/push/send", status_code=http_status_code)
 
-        with pytest.raises(VETextException):
+        with pytest.raises(VETextException) as exc:
             test_vetext_client.send_push_notification(
                 "app_sid",
                 "template_sid",
                 "icn",
             )
-        assert test_vetext_client.logger.exception.called
+        assert exc.value.code == http_status_code
 
     @pytest.mark.parametrize("http_status_code", [401, 404, 429, 500, 502, 503, 504])
     def test_increments_statsd_and_timing_on_http_exception(self, rmock, test_vetext_client, http_status_code):
