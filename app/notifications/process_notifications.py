@@ -60,7 +60,7 @@ def check_placeholders(template_object):
         raise BadRequestError(fields=[{'template': message}], message=message)
 
 
-def persist_notification(
+def persist_notification(  # noqa: C901
     *,
     template_id,
     template_version,
@@ -196,7 +196,7 @@ def send_notification_to_queue(
     )
 
 
-def _get_delivery_task(notification, research_mode=False, queue=None, sms_sender_id=None):
+def _get_delivery_task(notification, research_mode=False, queue=None, sms_sender_id=None):  # noqa: C901
     """
     The return value "deliver_task" is a function decorated to be a Celery task.
     """

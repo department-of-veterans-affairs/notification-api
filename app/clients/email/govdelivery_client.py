@@ -37,7 +37,7 @@ class GovdeliveryClient(EmailClient):
     def get_name(self):
         return self.name
 
-    def send_email(self, source, to_addresses, subject, body, html_body, reply_to_address=None, attachments=[]):
+    def send_email(self, source, to_addresses, subject, body, html_body, reply_to_address=None, attachments=[]):  # noqa: C901
         try:
             if isinstance(to_addresses, str):
                 to_addresses = [to_addresses]

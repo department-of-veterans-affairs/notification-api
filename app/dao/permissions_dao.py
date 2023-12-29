@@ -45,7 +45,7 @@ class PermissionDAO(DAOClass):
         query = self.Meta.model.query.filter_by(user=user)
         query.delete()
 
-    def set_user_service_permission(self, user, service, permissions, _commit=False, replace=False):
+    def set_user_service_permission(self, user, service, permissions, _commit=False, replace=False):  # noqa: C901
         try:
             if replace:
                 query = self.Meta.model.query.filter_by(user=user, service=service)

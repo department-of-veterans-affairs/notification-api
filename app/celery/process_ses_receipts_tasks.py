@@ -143,7 +143,7 @@ def sns_smtp_callback_handler():
 
 @notify_celery.task(bind=True, name='process-ses-result', max_retries=5, default_retry_delay=300)
 @statsd(namespace='tasks')
-def process_ses_results(self, response):
+def process_ses_results(self, response):  # noqa: C901
     try:
         ses_message = json.loads(response['Message'])
         notification_type = ses_message.get('eventType')
@@ -223,7 +223,7 @@ def process_ses_results(self, response):
 
 @notify_celery.task(bind=True, name='process-ses-smtp-results', max_retries=5, default_retry_delay=300)
 @statsd(namespace='tasks')
-def process_ses_smtp_results(self, response):
+def process_ses_smtp_results(self, response):  # noqa: C901
     try:
         ses_message = json.loads(response['Message'])
 

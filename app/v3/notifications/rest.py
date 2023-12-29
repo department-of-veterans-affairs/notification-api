@@ -60,7 +60,7 @@ def v3_post_notification_sms():
         raise BadRequest from e
 
 
-def v3_send_notification(request_data: dict, service_data: ServiceData) -> str:
+def v3_send_notification(request_data: dict, service_data: ServiceData) -> str:  # noqa: C901
     """
     This function can be called directly to send notifications without having to make API requests.
     In that use case, the upstream code is responsbile for populating notification_type and for

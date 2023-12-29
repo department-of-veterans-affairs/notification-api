@@ -60,7 +60,7 @@ class PDFNotReadyError(BadRequestError):
         super().__init__(message='PDF not available yet, try again later', status_code=400)
 
 
-def register_errors(blueprint):
+def register_errors(blueprint):  # noqa: C901
     @blueprint.errorhandler(InvalidEmailError)
     def invalid_format(error):
         # Note that InvalidEmailError is re-raised for InvalidEmail or InvalidPhone.

@@ -149,7 +149,7 @@ def requires_admin_auth():
     return decorator
 
 
-def validate_service_api_key_auth():
+def validate_service_api_key_auth():  # noqa: C901
     request_helper.check_proxy_header_before_request()
 
     auth_token = get_auth_token(request)

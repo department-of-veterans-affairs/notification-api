@@ -83,7 +83,7 @@ def validate_twilio_event(event: dict) -> bool:
         return False
 
 
-def delivery_status_processor_lambda_handler(event: any, context: any):
+def delivery_status_processor_lambda_handler(event: any, context: any):  # noqa: C901
     """this method takes in an event passed in by either an alb.
     @param: event   -  contains data pertaining to an sms delivery status from the external provider
     @param: context -  AWS context sent by ALB to all events. Over ridden by unit tests as skip trigger.

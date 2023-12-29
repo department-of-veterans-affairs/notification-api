@@ -63,7 +63,7 @@ def get_default_sms_sender_id(service_id: str) -> Tuple[Optional[str], Optional[
 
 # TODO - Error handler for sqlalchemy.exc.IntegrityError.  This happens when a foreign key references a nonexistent ID.
 @notify_celery.task(serializer='json')
-def v3_process_notification(request_data: dict, service_id: str, api_key_id: str, api_key_type: str):
+def v3_process_notification(request_data: dict, service_id: str, api_key_id: str, api_key_type: str):  # noqa: C901
     """
     This is the first task used to process request data send to POST /v3/notification/(email|sms).  It performs
     additional, non-schema verifications that require database queries:

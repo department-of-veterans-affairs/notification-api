@@ -256,7 +256,7 @@ def replay_create_pdf_letters(notification_id):
               notifications that need the status to be sent to the service.""",
 )
 @click.option('-s', '--service_id', required=True, help="""The service that the callbacks are for""")
-def replay_service_callbacks(file_name, service_id, notification_status):
+def replay_service_callbacks(file_name, service_id, notification_status):  # noqa: C901
     print('Start send service callbacks for service: ', service_id)
     callback_api = get_service_delivery_status_callback_api_for_service(
         service_id=service_id, notification_status=notification_status
@@ -654,7 +654,7 @@ def replay_daily_sorted_count_files(file_extension):
     required=True,
     help='Pipe delimited file containing organisation name, sector, crown, argeement_signed, domains',
 )
-def populate_organisations_from_file(file_name):
+def populate_organisations_from_file(file_name):  # noqa: C901
     # [0] organisation name:: name of the organisation insert if organisation is missing.
     # [1] sector:: Central | Local | NHS only
     # [2] crown:: TRUE | FALSE only

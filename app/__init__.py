@@ -394,7 +394,7 @@ def register_v3_blueprints(application):
     application.register_blueprint(v3_blueprint)
 
 
-def init_app(app):
+def init_app(app):  # noqa: C901
     @app.before_request
     def record_user_agent():
         statsd_client.incr('user-agent.{}'.format(process_user_agent(request.headers.get('User-Agent', None))))

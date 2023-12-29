@@ -95,7 +95,7 @@ def send_sms_to_provider(notification, sms_sender_id=None):
     statsd_client.timing('sms.total-time', delta_milliseconds)
 
 
-def send_email_to_provider(notification: Notification):
+def send_email_to_provider(notification: Notification):  # noqa: C901
     # This is a relationship to a Service instance.
     service = notification.service
 

@@ -89,7 +89,7 @@ class AwsSesClient(EmailClient):
     def email_from_user(self):
         return self._email_from_user
 
-    def send_email(
+    def send_email(  # noqa: C901
         self,
         source,
         to_addresses,

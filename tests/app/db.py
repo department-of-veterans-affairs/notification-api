@@ -223,7 +223,7 @@ def create_template(
     return template
 
 
-def create_notification(
+def create_notification(  # noqa: C901
     template=None,
     job=None,
     job_row_number=None,

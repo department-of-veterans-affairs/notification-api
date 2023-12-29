@@ -39,7 +39,7 @@ def dao_get_service_sms_sender_by_service_id_and_number(service_id: str, number:
 
 
 @transactional
-def dao_add_sms_sender_for_service(
+def dao_add_sms_sender_for_service(  # noqa: C901
     service_id,
     sms_sender,
     is_default,
@@ -92,7 +92,7 @@ def dao_add_sms_sender_for_service(
 
 
 @transactional
-def dao_update_service_sms_sender(service_id, service_sms_sender_id, **kwargs):
+def dao_update_service_sms_sender(service_id, service_sms_sender_id, **kwargs):  # noqa: C901
     if 'is_default' in kwargs:
         default_sms_sender = _get_default_sms_sender_for_service(service_id)
         is_default = kwargs['is_default']

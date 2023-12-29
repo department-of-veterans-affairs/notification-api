@@ -72,7 +72,7 @@ def login_with_password():
 
 
 @oauth_blueprint.route('/authorize')
-def authorize():
+def authorize():  # noqa: C901
     _assert_toggle_enabled(FeatureFlag.GITHUB_LOGIN_ENABLED)
     try:
         github_token = oauth_registry.github.authorize_access_token()

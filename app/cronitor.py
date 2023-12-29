@@ -3,9 +3,9 @@ from flask import current_app
 from functools import wraps
 
 
-def cronitor(task_name):
+def cronitor(task_name):  # noqa: C901
     # check if task_name is in config
-    def decorator(func):
+    def decorator(func):  # noqa: C901
         def ping_cronitor(command):
             if not current_app.config['CRONITOR_ENABLED']:
                 return

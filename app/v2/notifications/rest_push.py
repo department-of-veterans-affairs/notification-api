@@ -14,7 +14,7 @@ from app.utils import get_public_notify_type_text
 
 
 @v2_notification_blueprint.route('/push', methods=['POST'])
-def send_push_notification():
+def send_push_notification():  # noqa: C901
     if not is_feature_enabled(FeatureFlag.PUSH_NOTIFICATIONS_ENABLED):
         raise NotImplementedError()
 

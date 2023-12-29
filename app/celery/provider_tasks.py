@@ -28,7 +28,7 @@ from notifications_utils.statsd_decorators import statsd
     retry_backoff_max=60,
 )
 @statsd(namespace='tasks')
-def deliver_sms(self, notification_id, sms_sender_id=None):
+def deliver_sms(self, notification_id, sms_sender_id=None):  # noqa: C901
     try:
         current_app.logger.info('Start sending SMS for notification id: %s', notification_id)
         notification = notifications_dao.get_notification_by_id(notification_id)
@@ -81,7 +81,7 @@ def deliver_sms(self, notification_id, sms_sender_id=None):
     retry_backoff_max=60,
 )
 @statsd(namespace='tasks')
-def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
+def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):  # noqa: C901
     from app.notifications.validators import check_sms_sender_over_rate_limit
 
     try:
@@ -151,7 +151,7 @@ def deliver_sms_with_rate_limiting(self, notification_id, sms_sender_id=None):
     retry_backoff_max=60,
 )
 @statsd(namespace='tasks')
-def deliver_email(self, notification_id: str, sms_sender_id=None):
+def deliver_email(self, notification_id: str, sms_sender_id=None):  # noqa: C901
     try:
         current_app.logger.info('Start sending email for notification id: %s', notification_id)
         notification = notifications_dao.get_notification_by_id(notification_id)

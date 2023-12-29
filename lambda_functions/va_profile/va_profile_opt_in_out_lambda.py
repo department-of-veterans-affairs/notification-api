@@ -165,7 +165,7 @@ def make_database_connection(worker_id):
     return connection
 
 
-def va_profile_opt_in_out_lambda_handler(event: dict, context, worker_id=None) -> dict:
+def va_profile_opt_in_out_lambda_handler(event: dict, context, worker_id=None) -> dict:  # noqa: C901
     """
     Use the event data to process veterans' opt-in/out requests as relayed by VA Profile.  The event is as
     proxied by the API gateway or application load balancer:

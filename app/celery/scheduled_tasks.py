@@ -236,7 +236,7 @@ def _get_dynamodb_comp_pen_messages(table, message_limit: int) -> list:
 
 @notify_celery.task(name='send-scheduled-comp-and-pen-sms')
 @statsd(namespace='tasks')
-def send_scheduled_comp_and_pen_sms():
+def send_scheduled_comp_and_pen_sms():  # noqa: C901
     if not is_feature_enabled(FeatureFlag.COMP_AND_PEN_MESSAGES_ENABLED):
         current_app.logger.warning('Attempted to run send_scheduled_comp_and_pen_sms task, but feature flag disabled.')
         return

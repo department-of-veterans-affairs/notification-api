@@ -79,7 +79,7 @@ def validate_twilio_event(event: dict) -> bool:
         return False
 
 
-def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
+def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):  # noqa: C901
     """this method takes in an event passed in by either an alb or sqs.
     @param: event   -  contains data pertaining to an incoming sms from Twilio
     @param: context -  contains information regarding information
@@ -208,7 +208,7 @@ def read_from_ssm(key: str) -> str:
         return ''
 
 
-def make_vetext_request(request_body):
+def make_vetext_request(request_body):  # noqa: C901
     ssm_path = os.getenv('vetext_api_auth_ssm_path')
     if ssm_path is None:
         logger.error('Unable to retrieve vetext_api_auth_ssm_path from env variables')

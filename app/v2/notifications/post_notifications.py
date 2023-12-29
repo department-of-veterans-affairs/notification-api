@@ -252,7 +252,7 @@ def process_notification_with_recipient_identifier(
     return notification
 
 
-def process_document_uploads(personalisation_data, service, simulated=False):
+def process_document_uploads(personalisation_data, service, simulated=False):  # noqa: C901
     file_keys = [k for k, v in (personalisation_data or {}).items() if isinstance(v, dict) and 'file' in v]
     if not file_keys:
         return personalisation_data
@@ -365,7 +365,7 @@ def process_precompiled_letter_notifications(*, letter_data, api_key, template, 
     return notification
 
 
-def get_reply_to_text(notification_type, form, template):
+def get_reply_to_text(notification_type, form, template):  # noqa: C901
     reply_to = None
     if notification_type == EMAIL_TYPE:
         if template.reply_to_email is not None:

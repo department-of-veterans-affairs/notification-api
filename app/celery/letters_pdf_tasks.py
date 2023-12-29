@@ -182,7 +182,7 @@ def letter_in_created_state(filename):
 
 
 @notify_celery.task(bind=True, name='process-virus-scan-passed', max_retries=15, default_retry_delay=300)
-def process_virus_scan_passed(self, filename):
+def process_virus_scan_passed(self, filename):  # noqa: C901
     reference = get_reference_from_filename(filename)
     notification = dao_get_notification_by_reference(reference)
     current_app.logger.info('notification id %s Virus scan passed: %s', notification.id, filename)

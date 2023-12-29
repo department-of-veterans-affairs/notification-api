@@ -37,8 +37,7 @@ indent-width = 4
 target-version = "py38"
 
 [lint]
-# Enable "C901" (complexity) after we fix them
-select = ["E4", "E7", "E9", "F", "W", ]
+select = ["E4", "E7", "E9", "F", "W", "C901"]
 ignore = []
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
@@ -49,8 +48,8 @@ unfixable = []
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [lint.mccabe]
-# Flag errors (`C901`) whenever the complexity level exceeds 14.
-max-complexity = 14
+# Flag errors (`C901`) whenever the complexity level exceeds 6.
+max-complexity = 6
 
 [format]
 docstring-code-format = false

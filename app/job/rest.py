@@ -111,7 +111,7 @@ def get_jobs_by_service(service_id):
 
 
 @job_blueprint.route('', methods=['POST'])
-def create_job(service_id):
+def create_job(service_id):  # noqa: C901
     service = dao_fetch_service_by_id(service_id)
     if not service.active:
         raise InvalidRequest('Create job is not allowed: service is inactive ', 403)
