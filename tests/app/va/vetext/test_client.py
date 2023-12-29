@@ -128,7 +128,7 @@ class TestRequestExceptions:
                 "template_sid",
                 "icn",
             )
-        test_vetext_client.statsd.incr.assert_called_with("clients.vetext.error.request_exception")
+        test_vetext_client.statsd.incr.assert_called_with("clients.vetext.error.connection_timeout")
         test_vetext_client.statsd.timing.assert_called_with("clients.vetext.request_time", mock.ANY)
 
 
