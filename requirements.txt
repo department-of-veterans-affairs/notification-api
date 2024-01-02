@@ -49,7 +49,7 @@ flupy==1.2.0
 frozenlist==1.4.1
 future==0.18.3
 greenlet==3.0.3
-gunicorn @ git+https://github.com/benoitc/gunicorn.git@6a8ebb4844b2f28596ffe7421eb9f7d08c8dc4d8
+gunicorn==21.2.0
 idna==3.6
 importlib-metadata==6.11.0
 iso8601==2.1.0
