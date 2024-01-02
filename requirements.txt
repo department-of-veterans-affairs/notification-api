@@ -67,7 +67,7 @@ mistune==0.8.4
 monotonic==1.6
 multidict==6.0.4
 nanoid==2.0.0
-notification-utils @ git+https://github.com/department-of-veterans-affairs/notification-utils.git@3738c8c32a16ff42f98d9ed92c877dbbe2063a64
+notification-utils @ git+https://github.com/department-of-veterans-affairs/notification-utils.git@a31647d1029ec40bddf9ce1c0dfdc352e77d9b2d
 notifications-python-client==8.1.0
 opentelemetry-api==1.22.0
 orderedset==2.0.3
