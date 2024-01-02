@@ -96,7 +96,7 @@ referencing==0.30.2
 requests==2.31.0
 rfc3339-validator==0.1.4
 rpds-py==0.10.3
-s3transfer==0.6.2
+s3transfer==0.10.0
 sentry-sdk==1.31.0
 six==1.16.0
 smartypants==2.0.1
