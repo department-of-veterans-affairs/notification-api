@@ -129,6 +129,7 @@ def send_complaint_to_service(self, service_callback_id, complaint_data):
             service_callback.url,
             e,
         )
+        raise
 
 
 @notify_celery.task(bind=True, name="send-complaint-to-vanotify",
