@@ -70,7 +70,7 @@ def send_delivery_status_to_service(self, service_callback_id, notification_id, 
             raise
     except NonRetryableException:
         current_app.logger.critical(
-            "Not retrying: %s failed for %s, url: %s. ", self.name, logging_tags, service_callback.url
+            'Not retrying: %s failed for %s, url: %s. ', self.name, logging_tags, service_callback.url
         )
         raise
 
@@ -221,7 +221,7 @@ def send_inbound_sms_to_service(self, inbound_sms_id, service_id):
             raise e
     except NonRetryableException as e:
         current_app.logger.critical(
-            "Not retrying: %s failed for %s, url: %s. exc: %s",
+            'Not retrying: %s failed for %s, url: %s. exc: %s',
             self.name,
             logging_tags,
             service_callback.url,

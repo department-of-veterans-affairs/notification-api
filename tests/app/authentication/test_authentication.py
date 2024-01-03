@@ -279,7 +279,6 @@ def test_should_attach_the_current_api_key_to_current_app(notify_api, sample_ser
 def test_should_return_403_when_token_is_expired(
     client,
 ):
-
     # Needs a key that is not cached
     service = create_service(service_name='test_should_return_403_when_token_is_expired')
     api_key = create_api_key(service)
@@ -298,7 +297,6 @@ def test_auth_token_cached(
     client,
     mocker,
 ):
-
     # Needs a key that is not cached
     service = create_service(service_name='test_auth_token_cached')
     api_key = create_api_key(service)

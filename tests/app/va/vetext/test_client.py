@@ -86,12 +86,12 @@ class TestRequestExceptions:
             )
 
     def test_logs_warning_on_read_timeout(self, rmock, test_vetext_client):
-        rmock.post(url=f"{MOCK_VETEXT_URL}/mobile/push/send", exc=requests.exceptions.ReadTimeout)
+        rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', exc=requests.exceptions.ReadTimeout)
 
         test_vetext_client.send_push_notification(
-            "app_sid",
-            "template_sid",
-            "icn",
+            'app_sid',
+            'template_sid',
+            'icn',
         )
         assert test_vetext_client.logger.warning.called
 
@@ -104,15 +104,14 @@ class TestRequestExceptions:
                 'template_sid',
                 'icn',
             )
-        test_vetext_client.statsd.incr.assert_called_with("clients.vetext.error.connection_timeout")
-        test_vetext_client.statsd.timing.assert_called_with("clients.vetext.request_time", mock.ANY)
+        test_vetext_client.statsd.incr.assert_called_with('clients.vetext.error.connection_timeout')
+        test_vetext_client.statsd.timing.assert_called_with('clients.vetext.request_time', mock.ANY)
 
 
 class TestHTTPExceptions:
-
-    @pytest.mark.parametrize("http_status_code", [429, 500, 502, 503, 504])
+    @pytest.mark.parametrize('http_status_code', [429, 500, 502, 503, 504])
     def test_raises_on_retryable_http_exception_and_logs(self, rmock, test_vetext_client, http_status_code):
-        rmock.post(url=f"{MOCK_VETEXT_URL}/mobile/push/send", status_code=http_status_code)
+        rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', status_code=http_status_code)
 
         with pytest.raises(VETextRetryableException):
             test_vetext_client.send_push_notification(
@@ -122,9 +121,9 @@ class TestHTTPExceptions:
             )
         assert test_vetext_client.logger.warning.called
 
-    @pytest.mark.parametrize("http_status_code", [401, 404])
+    @pytest.mark.parametrize('http_status_code', [401, 404])
     def test_raises_nonretryable_on_request_exception_and_logs(self, rmock, test_vetext_client, http_status_code):
-        rmock.post(url=f"{MOCK_VETEXT_URL}/mobile/push/send", status_code=http_status_code)
+        rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', status_code=http_status_code)
 
         with pytest.raises(VETextNonRetryableException):
             test_vetext_client.send_push_notification(
