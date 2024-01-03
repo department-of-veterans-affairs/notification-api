@@ -13,7 +13,7 @@ from app.models import NOTIFICATION_TECHNICAL_FAILURE, NOTIFICATION_PERMANENT_FA
 from app.v2.errors import RateLimitError
 from flask import current_app
 from notifications_utils.field import NullValueForNonConditionalPlaceholderException
-from notifications_utils.recipients import InvalidEmailError
+from notifications_utils.recipients import InvalidEmailError, InvalidPhoneError
 from notifications_utils.statsd_decorators import statsd
 
 
@@ -56,7 +56,7 @@ def deliver_sms(self, notification_id, sms_sender_id=None):
         )
         notification = notifications_dao.get_notification_by_id(notification_id)
         check_and_queue_callback_task(notification)
-    except (NullValueForNonConditionalPlaceholderException, AttributeError, RuntimeError) as e:
+    except (NullValueForNonConditionalPlaceholderException, AttributeError, RuntimeError, InvalidPhoneError) as e:
         handle_non_retryable(notification_id, 'deliver_sms')
         raise NotificationTechnicalFailureException(f'Found {type(e).__name__}, NOT retrying...', e, e.args)
     except Exception as e:
