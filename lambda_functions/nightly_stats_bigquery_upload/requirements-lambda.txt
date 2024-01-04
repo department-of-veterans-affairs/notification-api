@@ -1,2 +1,3 @@
 # https://github.com/googleapis/python-bigquery/blob/main/CHANGELOG.md
-google-cloud-bigquery==3.10.0
+google-cloud-bigquery>=3.14.1
+urllib3<2.0.0  # needs to be <2 until we can use python3.10 for lambdas

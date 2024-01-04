@@ -1,1 +1,2 @@
-twilio ~= 8.8.0
+twilio>=8.11.0  # includes the requests package
+urllib3<2.0.0  # needs to be <2 until we can use python3.10 for lambdas

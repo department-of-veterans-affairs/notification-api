@@ -1,3 +1,3 @@
-boto3
-psycopg2-binary ~= 2.9.6
-requests ~= 2.28.2
+psycopg2-binary>=2.9.9
+requests>=2.31.0
+urllib3<2.0.0  # needs to be <2 until we can use python3.10 for lambdas
