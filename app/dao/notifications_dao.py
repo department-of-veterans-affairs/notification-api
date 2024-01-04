@@ -216,8 +216,8 @@ def update_notification_status_by_id(
 ) -> Notification:
 
     stmt = select(Notification).with_for_update().where(Notification.id == notification_id)
-    if current_status is not None:
-        stmt = stmt.where(Notification.status == current_status)
+    if current_status:
+        stmt.where(Notification.status == current_status)
 
     notification = db.session.scalar(stmt)
     if notification is None:
@@ -247,6 +247,53 @@ def update_notification_status_by_id(
         status_reason=notification.status_reason,
         sent_by=notification.sent_by
     )
+
+
+@statsd(namespace="dao")
+def update_notification_delivery_status(
+    notification_id: uuid,
+    new_status: str,
+) -> None:
+    """
+    Update a notification's delivery status.
+
+    Based on the desired update status, a query is constructed that cannot put the notification in an incorrect state.
+
+    Arguments:
+        notification_id: Notification id,
+        new_status: Status to update the notification to,
+    """
+
+    current_app.logger.info('Update notification: %s to status: %s', notification_id, new_status)
+    stmt = update(Notification).where(Notification.id == notification_id).values(notification_status=new_status)
+    should_update = True
+
+    # If new status is <value> don't update where it <status XYZ> (race condition, distributed & async systems)
+    match new_status:
+        case NOTIFICATION_SENT:
+            stmt.where(Notification.status != NOTIFICATION_DELIVERED)
+        case NOTIFICATION_TEMPORARY_FAILURE:
+            stmt.where(Notification.status != NOTIFICATION_DELIVERED)
+            stmt.where(Notification.status != NOTIFICATION_SENT)
+        case NOTIFICATION_CREATED | NOTIFICATION_SENDING | NOTIFICATION_PENDING:
+            stmt.where(Notification.status != NOTIFICATION_DELIVERED)
+            stmt.where(Notification.status != NOTIFICATION_SENT)
+            stmt.where(Notification.status != NOTIFICATION_TEMPORARY_FAILURE)
+        case _:
+            if new_status != NOTIFICATION_DELIVERED:
+                # Don't run any updates if it does not match the other cases
+                should_update = False
+                current_app.warning('Did not find match for: %s - Not updating', new_status)
+
+    if should_update:
+        try:
+            db.session.execute(stmt)
+            db.session.commit()
+        except Exception as exc:
+            current_app.logger.critical(
+                'Update notification: %s to status: %s - Failed for: %s', notification_id, new_status, exc
+            )
+            db.session.rollback()
 
 
 @statsd(namespace="dao")
