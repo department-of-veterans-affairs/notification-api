@@ -122,7 +122,7 @@ jobs:
           zip -j vetext_incoming_forwarder_lambda vetext_incoming_forwarder_lambda/vetext_incoming_forwarder_lambda.py
           aws lambda update-function-code --function-name project-${{ inputs.environment }}-vetext-incoming-forwarder-lambda --zip-file fileb://vetext_incoming_forwarder_lambda.zip
 
-        # This function does not have any dependencies.
+        # This function uses lambda layers for dependencies.
       - name: Package and deploy delivery status processing lambda
         if: ${{ (inputs.lambdaName == 'DeliveryStatusProcessor') || (inputs.lambdaName == 'All') }}
         run: |
