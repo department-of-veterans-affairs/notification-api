@@ -1,6 +1,6 @@
 import functools
 import string
-import uuid
+from uuid import UUID
 from datetime import (
     datetime,
     timedelta,
@@ -208,7 +208,7 @@ def _update_notification_status(notification, status):
 @statsd(namespace="dao")
 @transactional
 def update_notification_status_by_id(
-        notification_id: uuid,
+        notification_id: UUID,
         status: str,
         sent_by: str = None,
         status_reason: str = None,
@@ -251,7 +251,7 @@ def update_notification_status_by_id(
 
 @statsd(namespace="dao")
 def update_notification_delivery_status(
-    notification_id: uuid,
+    notification_id: UUID,
     new_status: str,
 ) -> None:
     """
@@ -269,21 +269,20 @@ def update_notification_delivery_status(
     should_update = True
 
     # If new status is <value> don't update where it <status XYZ> (race condition, distributed & async systems)
-    match new_status:
-        case NOTIFICATION_SENT:
-            stmt.where(Notification.status != NOTIFICATION_DELIVERED)
-        case NOTIFICATION_TEMPORARY_FAILURE:
-            stmt.where(Notification.status != NOTIFICATION_DELIVERED)
-            stmt.where(Notification.status != NOTIFICATION_SENT)
-        case NOTIFICATION_CREATED | NOTIFICATION_SENDING | NOTIFICATION_PENDING:
-            stmt.where(Notification.status != NOTIFICATION_DELIVERED)
-            stmt.where(Notification.status != NOTIFICATION_SENT)
-            stmt.where(Notification.status != NOTIFICATION_TEMPORARY_FAILURE)
-        case _:
-            if new_status != NOTIFICATION_DELIVERED:
-                # Don't run any updates if it does not match the other cases
-                should_update = False
-                current_app.warning('Did not find match for: %s - Not updating', new_status)
+    if new_status == NOTIFICATION_SENT:
+        stmt.where(Notification.status != NOTIFICATION_DELIVERED)
+    elif new_status == NOTIFICATION_TEMPORARY_FAILURE:
+        stmt.where(Notification.status != NOTIFICATION_DELIVERED)
+        stmt.where(Notification.status != NOTIFICATION_SENT)
+    elif new_status in (NOTIFICATION_CREATED, NOTIFICATION_SENDING, NOTIFICATION_PENDING):
+        stmt.where(Notification.status != NOTIFICATION_DELIVERED)
+        stmt.where(Notification.status != NOTIFICATION_SENT)
+        stmt.where(Notification.status != NOTIFICATION_TEMPORARY_FAILURE)
+    else:
+        if new_status != NOTIFICATION_DELIVERED:
+            # Don't run any updates if it does not match the other cases
+            should_update = False
+            current_app.warning('Did not find match for: %s - Not updating', new_status)
 
     if should_update:
         try:
