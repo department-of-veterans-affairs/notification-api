@@ -265,27 +265,29 @@ def update_notification_delivery_status(
     """
 
     current_app.logger.info('Update notification: %s to status: %s', notification_id, new_status)
-    stmt = update(Notification).where(Notification.id == notification_id).values(notification_status=new_status)
+    stmt = update(Notification).where(Notification.id == notification_id)\
+                               .where(Notification.status != NOTIFICATION_DELIVERED)\
+                               .where(Notification.status != NOTIFICATION_PERMANENT_FAILURE)
     should_update = True
 
-    # If new status is <value> don't update where it <status XYZ> (race condition, distributed & async systems)
-    if new_status == NOTIFICATION_SENT:
-        stmt.where(Notification.status != NOTIFICATION_DELIVERED)
-    elif new_status == NOTIFICATION_TEMPORARY_FAILURE:
-        stmt.where(Notification.status != NOTIFICATION_DELIVERED)
-        stmt.where(Notification.status != NOTIFICATION_SENT)
-    elif new_status in (NOTIFICATION_CREATED, NOTIFICATION_SENDING, NOTIFICATION_PENDING):
-        stmt.where(Notification.status != NOTIFICATION_DELIVERED)
-        stmt.where(Notification.status != NOTIFICATION_SENT)
-        stmt.where(Notification.status != NOTIFICATION_TEMPORARY_FAILURE)
-    else:
-        if new_status != NOTIFICATION_DELIVERED:
-            # Don't run any updates if it does not match the other cases
-            should_update = False
-            current_app.warning('Did not find match for: %s - Not updating', new_status)
+    if new_status in (NOTIFICATION_CREATED, NOTIFICATION_SENDING, NOTIFICATION_PENDING):
+        # For these stauses, in addition to the stmt above, do not allow overriding sent/temp-failure
+        stmt = stmt.where(Notification.status != NOTIFICATION_SENT)\
+                   .where(Notification.status != NOTIFICATION_TEMPORARY_FAILURE)
+    elif new_status not in (
+        NOTIFICATION_DELIVERED,
+        NOTIFICATION_PERMANENT_FAILURE,
+        NOTIFICATION_SENT,
+        NOTIFICATION_TEMPORARY_FAILURE,
+    ):
+        # Do not run updates if it does not match the other cases
+        should_update = False
+        current_app.logger.warning('Did not find match for: %s - Not updating', new_status)
+    # Otherwise only use the base stmt that was set.
 
     if should_update:
         try:
+            stmt = stmt.values(status=new_status, updated_at=datetime.utcnow())
             db.session.execute(stmt)
             db.session.commit()
         except Exception as exc:
