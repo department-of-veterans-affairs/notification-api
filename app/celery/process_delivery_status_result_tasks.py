@@ -6,8 +6,8 @@ from app.celery.process_pinpoint_inbound_sms import CeleryEvent
 from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
     dao_update_notification_by_id,
-    update_notification_status_by_id,
-    FINAL_STATUS_STATES,
+    update_notification_delivery_status,
+    FINAL_STATUS_STATES
 )
 
 from typing import Tuple
@@ -204,11 +204,9 @@ def _calculate_pricing(
             updated_at=datetime.utcnow(),
         )
     else:
-        # notification_id -  is the UID in the database for the notification
-        # status - is the notification platform status generated earlier
-        # current_status - is the notification.status
-        update_notification_status_by_id(
-            notification_id=notification.id, status=notification_status, current_status=notification.status
+        update_notification_delivery_status(
+            notification_id=notification.id,
+            new_status=notification_status
         )
 
 

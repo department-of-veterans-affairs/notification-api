@@ -1,32 +1,35 @@
-from datetime import datetime
-
 from app import db
 from app.dao.dao_utils import transactional
 from app.models import ServiceDataRetention
+from datetime import datetime
+from sqlalchemy import select, update
 
 
 def fetch_service_data_retention_by_id(service_id, data_retention_id):
-    data_retention = ServiceDataRetention.query.filter_by(service_id=service_id, id=data_retention_id).first()
-    return data_retention
+    stmt = select(ServiceDataRetention).where(
+        ServiceDataRetention.service_id == service_id,
+        ServiceDataRetention.id == data_retention_id
+    )
+    return db.session.scalars(stmt).first()
 
 
 def fetch_service_data_retention(service_id):
-    data_retention_list = (
-        ServiceDataRetention.query.filter_by(service_id=service_id)
-        .order_by(
-            # in the order that models.notification_types are created (email, sms, letter)
-            ServiceDataRetention.notification_type
-        )
-        .all()
+    stmt = select(ServiceDataRetention).where(
+        ServiceDataRetention.service_id == service_id
+    ).order_by(
+        # in the order that models.notification_types are created (email, sms, letter)
+        ServiceDataRetention.notification_type
     )
-    return data_retention_list
+
+    return db.session.scalars(stmt).all()
 
 
 def fetch_service_data_retention_by_notification_type(service_id, notification_type):
-    data_retention_list = ServiceDataRetention.query.filter_by(
-        service_id=service_id, notification_type=notification_type
-    ).first()
-    return data_retention_list
+    stmt = select(ServiceDataRetention).where(
+        ServiceDataRetention.service_id == service_id,
+        ServiceDataRetention.notification_type == notification_type
+    )
+    return db.session.scalars(stmt).first()
 
 
 @transactional
@@ -41,7 +44,12 @@ def insert_service_data_retention(service_id, notification_type, days_of_retenti
 
 @transactional
 def update_service_data_retention(service_data_retention_id, service_id, days_of_retention):
-    updated_count = ServiceDataRetention.query.filter(
-        ServiceDataRetention.id == service_data_retention_id, ServiceDataRetention.service_id == service_id
-    ).update({'days_of_retention': days_of_retention, 'updated_at': datetime.utcnow()})
-    return updated_count
+    stmt = update(ServiceDataRetention).where(
+        ServiceDataRetention.id == service_data_retention_id,
+        ServiceDataRetention.service_id == service_id
+    ).values(
+        days_of_retention=days_of_retention,
+        updated_at=datetime.utcnow()
+    )
+
+    return db.session.execute(stmt).rowcount

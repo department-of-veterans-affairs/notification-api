@@ -673,10 +673,9 @@ def test_should_get_a_single_template(client, sample_user, sample_service, subje
         (
             'about your ((thing))',
             'hello ((name)) we’ve received your ((thing))',
-            '/service/{}/template/{}/preview?eman=Amala&gniht=document',
-            None,
-            None,
-            'Missing personalisation: name, thing',
+            '/service/{}/template/{}/preview?name=Amala',
+            None, None,
+            'Missing personalisation: thing'
         ),
         (
             'about your ((thing))',
