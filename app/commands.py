@@ -280,11 +280,7 @@ def replay_service_callbacks(file_name, service_id, notification_status):
             notification = db.session.scalars(stmt).one()
             notifications.append(notification)
         except NoResultFound:
-<<<<<<< HEAD
-            errors.append('Reference: {} was not found in notifications.'.format(ref))
-=======
             errors.append(f"Reference: {ref} was not found in notifications.")
->>>>>>> master
 
     for e in errors:
         print(e)
@@ -756,13 +752,9 @@ def get_letter_details_from_zips_sent_file(file_paths):
 
 @notify_command(name='associate-services-to-organisations')
 def associate_services_to_organisations():
-<<<<<<< HEAD
-    services = Service.get_history_model().query.filter_by(version=1).all()
-=======
     service_history_model = Service.get_history_model()
     stmt = select(service_history_model).where(service_history_model.version == 1)
     services = db.session.scalars(stmt).all()
->>>>>>> master
 
     for s in services:
         stmt = select(User).where(User.id == s.created_by_id)
@@ -856,13 +848,8 @@ def fix_billable_units():
         )
         print('Updating notification: {} with {} billable_units'.format(notification.id, template.fragment_count))
 
-<<<<<<< HEAD
-        Notification.query.filter(Notification.id == notification.id).update(
-            {'billable_units': template.fragment_count}
-=======
         stmt = update(Notification).where(Notification.id == notification.id).values(
             billable_units=template.fragment_count
->>>>>>> master
         )
 
         db.session.execute(stmt)
