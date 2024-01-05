@@ -737,7 +737,7 @@ def get_orgs_and_services(user):
     }
 
 
-def _update_alert(user_to_update, change_type=""):
+def _update_alert(user_to_update, change_type=''):
     service = db.session.get(Service, current_app.config['NOTIFY_SERVICE_ID'])
     template = dao_get_template_by_id(current_app.config['ACCOUNT_CHANGE_TEMPLATE_ID'])
     recipient = user_to_update.email_address

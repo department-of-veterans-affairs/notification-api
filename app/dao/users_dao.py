@@ -29,8 +29,8 @@ def create_secret_code():
 
 def save_user_attribute(usr, update_dict):
     # Check that it is there AND not empty
-    if update_dict.get("blocked"):
-        update_dict.update({"current_session_id": '00000000-0000-0000-0000-000000000000'})
+    if update_dict.get('blocked'):
+        update_dict.update({'current_session_id': '00000000-0000-0000-0000-000000000000'})
 
     stmt = update(User).where(User.id == usr.id).values(update_dict)
     db.session.execute(stmt)
@@ -59,11 +59,10 @@ def get_user_code(user, code, code_type) -> Optional[VerifyCode]:
     Get the most recent codes to try and reduce the time searching for the correct code.
     """
 
-    stmt = select(VerifyCode).where(
-        VerifyCode.user == user,
-        VerifyCode.code_type == code_type
-    ).order_by(
-        VerifyCode.created_at.desc()
+    stmt = (
+        select(VerifyCode)
+        .where(VerifyCode.user == user, VerifyCode.code_type == code_type)
+        .order_by(VerifyCode.created_at.desc())
     )
 
     for verify_code in db.session.scalars(stmt).all():
@@ -99,20 +98,22 @@ def delete_user_verify_codes(user) -> int:
 
 
 def count_user_verify_codes(user) -> int:
-    stmt = select(func.count()).select_from(VerifyCode).where(
-        VerifyCode.user == user,
-        VerifyCode.expiry_datetime > datetime.utcnow(),
-        VerifyCode.code_used.is_(False)
+    stmt = (
+        select(func.count())
+        .select_from(VerifyCode)
+        .where(VerifyCode.user == user, VerifyCode.expiry_datetime > datetime.utcnow(), VerifyCode.code_used.is_(False))
     )
 
     return db.session.scalar(stmt)
 
 
 def verify_within_time(user, age=timedelta(seconds=30)):
-    stmt = select(func.count()).select_from(VerifyCode).where(
-        VerifyCode.user == user,
-        VerifyCode.code_used.is_(False),
-        VerifyCode.created_at > (datetime.utcnow() - age)
+    stmt = (
+        select(func.count())
+        .select_from(VerifyCode)
+        .where(
+            VerifyCode.user == user, VerifyCode.code_used.is_(False), VerifyCode.created_at > (datetime.utcnow() - age)
+        )
     )
 
     return db.session.scalar(stmt)
@@ -135,14 +136,12 @@ def get_user_by_email(email):
 
 def get_users_by_partial_email(email):
     email = escape_special_characters(email)
-    stmt = select(User).where(User.email_address.ilike(f"%{email}%"))
+    stmt = select(User).where(User.email_address.ilike(f'%{email}%'))
     return db.session.scalars(stmt).all()
 
 
 def get_user_by_identity_provider_user_id(identity_provider_user_id):
-    stmt = select(User).where(
-        func.lower(User.identity_provider_user_id) == identity_provider_user_id.lower()
-    )
+    stmt = select(User).where(func.lower(User.identity_provider_user_id) == identity_provider_user_id.lower())
 
     return db.session.scalars(stmt).one()
 
@@ -177,11 +176,7 @@ def create_or_retrieve_user(email_address, identity_provider_user_id, name):
     try:
         return update_user_identity_provider_user_id(email_address, identity_provider_user_id)
     except NoResultFound:
-        data = {
-            'email_address': email_address,
-            'identity_provider_user_id': identity_provider_user_id,
-            'name': name
-        }
+        data = {'email_address': email_address, 'identity_provider_user_id': identity_provider_user_id, 'name': name}
         user = User(**data)
         save_model_user(user)
 
@@ -233,15 +228,17 @@ def update_user_password(user, password):
 
 
 def get_user_and_accounts(user_id):
-    stmt = select(User).options(
-        # eagerly load the user's services and organisations, and also the service's org and vice versa
-        # (so we can see if the user knows about it)
-        joinedload('services'),
-        joinedload('organisations'),
-        joinedload('organisations.services'),
-        joinedload('services.organisation'),
-    ).where(
-        User.id == user_id
+    stmt = (
+        select(User)
+        .options(
+            # eagerly load the user's services and organisations, and also the service's org and vice versa
+            # (so we can see if the user knows about it)
+            joinedload('services'),
+            joinedload('organisations'),
+            joinedload('organisations.services'),
+            joinedload('services.organisation'),
+        )
+        .where(User.id == user_id)
     )
 
     return db.session.scalars(stmt).unique().one()

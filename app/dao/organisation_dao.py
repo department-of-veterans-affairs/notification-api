@@ -102,9 +102,13 @@ def dao_get_invited_organisation_user(user_id):
 
 def dao_get_users_for_organisation(organisation_id):
     j_stmt = join(User, user_to_organisation)
-    stmt = select(User).select_from(j_stmt).where(User.state == 'active')\
-                                           .where(user_to_organisation.c.organisation_id == organisation_id)\
-                                           .order_by(User.created_at)
+    stmt = (
+        select(User)
+        .select_from(j_stmt)
+        .where(User.state == 'active')
+        .where(user_to_organisation.c.organisation_id == organisation_id)
+        .order_by(User.created_at)
+    )
     return db.session.scalars(stmt).all()
 
 

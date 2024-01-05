@@ -46,30 +46,30 @@ def test_name():
 
 def test_get_user_code(notify_db_session, sample_user):
     verify_code = make_verify_code(
-        notify_db_session,
-        sample_user,
-        age=timedelta(hours=23, minutes=59, seconds=59),
-        code="test"
+        notify_db_session, sample_user, age=timedelta(hours=23, minutes=59, seconds=59), code='test'
     )
 
-    verify_code_from_dao = get_user_code(sample_user, "test", SMS_TYPE)
+    verify_code_from_dao = get_user_code(sample_user, 'test', SMS_TYPE)
     assert verify_code.id == verify_code_from_dao.id
 
 
 def test_create_user_code(notify_db_session, sample_user):
-    verify_code = create_user_code(sample_user, "test", SMS_TYPE)
+    verify_code = create_user_code(sample_user, 'test', SMS_TYPE)
     assert verify_code.user_id == sample_user.id
-    assert verify_code.check_code("test")
+    assert verify_code.check_code('test')
     assert verify_code.code_type == SMS_TYPE
     assert isinstance(verify_code.expiry_datetime, datetime)
     assert not verify_code.code_used
     assert isinstance(verify_code.created_at, datetime)
 
 
-@pytest.mark.parametrize('phone_number', [
-    '+447700900986',
-    '+1-800-555-5555',
-])
+@pytest.mark.parametrize(
+    'phone_number',
+    [
+        '+447700900986',
+        '+1-800-555-5555',
+    ],
+)
 def test_create_user(notify_db_session, phone_number, test_name, test_email):
     data = {'name': test_name, 'email_address': test_email, 'password': 'password', 'mobile_number': phone_number}
     user = User(**data)
@@ -177,20 +177,20 @@ def test_get_user_by_email_is_case_insensitive(sample_user):
 
 
 def test_should_delete_all_verification_codes_more_than_one_day_old(notify_db_session, sample_user):
-    make_verify_code(notify_db_session, sample_user, age=timedelta(hours=24), code="54321")
-    make_verify_code(notify_db_session, sample_user, age=timedelta(hours=24), code="54321")
+    make_verify_code(notify_db_session, sample_user, age=timedelta(hours=24), code='54321')
+    make_verify_code(notify_db_session, sample_user, age=timedelta(hours=24), code='54321')
     assert VerifyCode.query.count() == 2
     delete_codes_older_created_more_than_a_day_ago()
     assert VerifyCode.query.count() == 0
 
 
 def test_should_not_delete_verification_codes_less_than_one_day_old(notify_db_session, sample_user):
-    make_verify_code(notify_db_session, sample_user, age=timedelta(hours=23, minutes=59, seconds=59), code="12345")
-    make_verify_code(notify_db_session, sample_user, age=timedelta(hours=24), code="54321")
+    make_verify_code(notify_db_session, sample_user, age=timedelta(hours=23, minutes=59, seconds=59), code='12345')
+    make_verify_code(notify_db_session, sample_user, age=timedelta(hours=24), code='54321')
 
     assert VerifyCode.query.count() == 2
     delete_codes_older_created_more_than_a_day_ago()
-    assert VerifyCode.query.one().check_code("12345")
+    assert VerifyCode.query.one().check_code('12345')
 
 
 def test_will_find_verify_codes_sent_within_seconds(notify_db_session, sample_user):
@@ -203,7 +203,7 @@ def test_will_find_verify_codes_sent_within_seconds(notify_db_session, sample_us
 
 
 def make_verify_code(
-    notify_db_session, user, age=timedelta(hours=0), expiry_age=timedelta(0), code="12335", code_used=False
+    notify_db_session, user, age=timedelta(hours=0), expiry_age=timedelta(0), code='12335', code_used=False
 ):
     verify_code = VerifyCode(
         code_type=SMS_TYPE,
@@ -234,7 +234,7 @@ def test_update_user_attribute(client, sample_user, user_attribute, user_value):
 
 
 def test_update_user_attribute_blocked(notify_api):
-    user = create_user(email='allowed@test.com', mobile_number="+4407700900460")
+    user = create_user(email='allowed@test.com', mobile_number='+4407700900460')
     assert user.current_session_id is None
     save_user_attribute(user, {'blocked': True, 'mobile_number': '+2407700900460'})
     print(user.mobile_number, user.current_session_id)

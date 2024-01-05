@@ -240,7 +240,7 @@ def raise_alert_if_letter_notifications_still_sending():
             Notification.notification_type == LETTER_TYPE,
             Notification.status == NOTIFICATION_SENDING,
             Notification.key_type == KEY_TYPE_NORMAL,
-            func.date(Notification.sent_at) <= today - timedelta(days=offset_days)
+            func.date(Notification.sent_at) <= today - timedelta(days=offset_days),
         )
     )
     still_sending = db.session.scalar(stmt)

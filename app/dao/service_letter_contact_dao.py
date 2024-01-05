@@ -5,12 +5,10 @@ from sqlalchemy import desc, select, update
 
 
 def dao_get_letter_contacts_by_service_id(service_id):
-    stmt = select(ServiceLetterContact).where(
-        ServiceLetterContact.service_id == service_id,
-        ServiceLetterContact.archived.is_(False)
-    ).order_by(
-        desc(ServiceLetterContact.is_default),
-        desc(ServiceLetterContact.created_at)
+    stmt = (
+        select(ServiceLetterContact)
+        .where(ServiceLetterContact.service_id == service_id, ServiceLetterContact.archived.is_(False))
+        .order_by(desc(ServiceLetterContact.is_default), desc(ServiceLetterContact.created_at))
     )
 
     return db.session.scalars(stmt).all()
@@ -20,7 +18,7 @@ def dao_get_letter_contact_by_id(service_id, letter_contact_id):
     stmt = select(ServiceLetterContact).where(
         ServiceLetterContact.service_id == service_id,
         ServiceLetterContact.id == letter_contact_id,
-        ServiceLetterContact.archived.is_(False)
+        ServiceLetterContact.archived.is_(False),
     )
 
     return db.session.scalars(stmt).one()
@@ -53,13 +51,14 @@ def update_letter_contact(service_id, letter_contact_id, contact_block, is_defau
 
 @transactional
 def archive_letter_contact(service_id, letter_contact_id):
-    db.session.execute(update(Template).where(
-        Template.service_letter_contact_id == letter_contact_id
-    ).values(service_letter_contact_id=None))
+    db.session.execute(
+        update(Template)
+        .where(Template.service_letter_contact_id == letter_contact_id)
+        .values(service_letter_contact_id=None)
+    )
 
     stmt = select(ServiceLetterContact).where(
-        ServiceLetterContact.id == letter_contact_id,
-        ServiceLetterContact.service_id == service_id
+        ServiceLetterContact.id == letter_contact_id, ServiceLetterContact.service_id == service_id
     )
 
     letter_contact_to_archive = db.session.scalars(stmt).one()

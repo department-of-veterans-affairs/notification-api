@@ -84,7 +84,7 @@ def dao_get_last_template_usage(template_id, template_type, service_id):
             Notification.template_id == template_id,
             Notification.key_type != KEY_TYPE_TEST,
             Notification.notification_type == template_type,
-            Notification.service_id == service_id
+            Notification.service_id == service_id,
         )
         .order_by(desc(Notification.created_at))
     )
@@ -207,13 +207,8 @@ def _update_notification_status(notification, status):
 @statsd(namespace='dao')
 @transactional
 def update_notification_status_by_id(
-        notification_id: UUID,
-        status: str,
-        sent_by: str = None,
-        status_reason: str = None,
-        current_status: str = None
+    notification_id: UUID, status: str, sent_by: str = None, status_reason: str = None, current_status: str = None
 ) -> Notification:
-
     stmt = select(Notification).with_for_update().where(Notification.id == notification_id)
     if current_status:
         stmt = stmt.where(Notification.status == current_status)
@@ -244,7 +239,7 @@ def update_notification_status_by_id(
     )
 
 
-@statsd(namespace="dao")
+@statsd(namespace='dao')
 def update_notification_delivery_status(
     notification_id: UUID,
     new_status: str,
@@ -260,15 +255,19 @@ def update_notification_delivery_status(
     """
 
     current_app.logger.info('Update notification: %s to status: %s', notification_id, new_status)
-    stmt = update(Notification).where(Notification.id == notification_id)\
-                               .where(Notification.status != NOTIFICATION_DELIVERED)\
-                               .where(Notification.status != NOTIFICATION_PERMANENT_FAILURE)
+    stmt = (
+        update(Notification)
+        .where(Notification.id == notification_id)
+        .where(Notification.status != NOTIFICATION_DELIVERED)
+        .where(Notification.status != NOTIFICATION_PERMANENT_FAILURE)
+    )
     should_update = True
 
     if new_status in (NOTIFICATION_CREATED, NOTIFICATION_SENDING, NOTIFICATION_PENDING):
         # For these stauses, in addition to the stmt above, do not allow overriding sent/temp-failure
-        stmt = stmt.where(Notification.status != NOTIFICATION_SENT)\
-                   .where(Notification.status != NOTIFICATION_TEMPORARY_FAILURE)
+        stmt = stmt.where(Notification.status != NOTIFICATION_SENT).where(
+            Notification.status != NOTIFICATION_TEMPORARY_FAILURE
+        )
     elif new_status not in (
         NOTIFICATION_DELIVERED,
         NOTIFICATION_PERMANENT_FAILURE,
@@ -292,7 +291,7 @@ def update_notification_delivery_status(
             db.session.rollback()
 
 
-@statsd(namespace="dao")
+@statsd(namespace='dao')
 @transactional
 def update_notification_status_by_reference(reference, status):
     # this is used to update letters and emails
@@ -300,7 +299,7 @@ def update_notification_status_by_reference(reference, status):
     notification = db.session.scalar(stmt)
 
     if notification is None:
-        current_app.logger.error("Notification not found for reference %s (update to %s)", reference, status)
+        current_app.logger.error('Notification not found for reference %s (update to %s)', reference, status)
         return None
 
     if notification.status not in TRANSIENT_STATUSES:
@@ -371,13 +370,8 @@ def dao_update_notification(notification):
 
 @statsd(namespace='dao')
 def get_notification_for_job(service_id, job_id, notification_id):
-    stmt = (
-        select(Notification)
-        .where(
-            Notification.service_id == service_id,
-            Notification.job_id == job_id,
-            Notification.id == notification_id
-        )
+    stmt = select(Notification).where(
+        Notification.service_id == service_id, Notification.job_id == job_id, Notification.id == notification_id
     )
 
     return db.session.scalars(stmt).one()
@@ -400,10 +394,7 @@ def get_notifications_for_job(service_id, job_id, filter_dict=None, page=1, page
 
 @statsd(namespace='dao')
 def get_notification_with_personalisation(service_id, notification_id, key_type):
-    stmt = select(Notification).where(
-        Notification.service_id == service_id,
-        Notification.id == notification_id
-    )
+    stmt = select(Notification).where(Notification.service_id == service_id, Notification.id == notification_id)
 
     if key_type:
         stmt = stmt.where(Notification.key_type == key_type)
@@ -475,18 +466,11 @@ def get_notifications_for_service(
 
     stmt = _filter_query(stmt, filter_dict)
     if personalisation:
-        stmt = stmt.options(
-            joinedload('template')
-        )
+        stmt = stmt.options(joinedload('template'))
 
     stmt = stmt.order_by(desc(Notification.created_at))
 
-    return db.paginate(
-        stmt,
-        page=page,
-        per_page=page_size,
-        count=count_pages
-    )
+    return db.paginate(stmt, page=page, per_page=page_size, count=count_pages)
 
 
 def _filter_query(stmt, filter_dict=None):
@@ -518,9 +502,7 @@ def delete_notifications_older_than_retention_by_type(notification_type, qry_lim
 
     current_app.logger.info('Deleting %s notifications for services with flexible data retention', notification_type)
 
-    stmt = select(ServiceDataRetention).where(
-        ServiceDataRetention.notification_type == notification_type
-    )
+    stmt = select(ServiceDataRetention).where(ServiceDataRetention.notification_type == notification_type)
     flexible_data_retention = db.session.scalars(stmt).all()
 
     deleted = 0
@@ -580,7 +562,7 @@ def _delete_notifications(notification_type, date_to_delete_from, service_id, qu
             Notification.notification_type == notification_type,
             Notification.service_id == service_id,
             Notification.created_at < date_to_delete_from,
-            Notification.key_type == KEY_TYPE_TEST
+            Notification.key_type == KEY_TYPE_TEST,
         )
         .limit(query_limit)
         .subquery()
@@ -592,12 +574,12 @@ def _delete_notifications(notification_type, date_to_delete_from, service_id, qu
 
 def _delete_for_query(subquery):
     stmt = delete(Notification).where(Notification.id.in_(subquery))
-    number_deleted = db.session.execute(stmt, execution_options={"synchronize_session": 'fetch'}).rowcount
+    number_deleted = db.session.execute(stmt, execution_options={'synchronize_session': 'fetch'}).rowcount
     db.session.commit()
 
     deleted = number_deleted
     while number_deleted > 0:
-        number_deleted = db.session.execute(stmt, execution_options={"synchronize_session": 'fetch'}).rowcount
+        number_deleted = db.session.execute(stmt, execution_options={'synchronize_session': 'fetch'}).rowcount
         deleted += number_deleted
         db.session.commit()
 
@@ -614,10 +596,7 @@ def insert_update_notification_history(notification_type, date_to_delete_from, s
         Notification.created_at < date_to_delete_from,
         Notification.key_type != KEY_TYPE_TEST,
     )
-    stmt = insert(NotificationHistory).from_select(
-        NotificationHistory.__table__.c,
-        notifications
-    )
+    stmt = insert(NotificationHistory).from_select(NotificationHistory.__table__.c, notifications)
     stmt = stmt.on_conflict_do_update(
         constraint='notification_history_pkey',
         set_={
@@ -678,13 +657,10 @@ def dao_delete_notification_by_id(notification_id):
 
 
 def _timeout_notifications(current_statuses, new_status, timeout_start, updated_at):
-    stmt = (
-        select(Notification)
-        .where(
-            Notification.created_at < timeout_start,
-            Notification.status.in_(current_statuses),
-            Notification.notification_type != LETTER_TYPE
-        )
+    stmt = select(Notification).where(
+        Notification.created_at < timeout_start,
+        Notification.status.in_(current_statuses),
+        Notification.notification_type != LETTER_TYPE,
     )
     notifications = db.session.scalars(stmt).all()
 
@@ -693,11 +669,11 @@ def _timeout_notifications(current_statuses, new_status, timeout_start, updated_
         .where(
             Notification.created_at < timeout_start,
             Notification.status.in_(current_statuses),
-            Notification.notification_type != LETTER_TYPE
+            Notification.notification_type != LETTER_TYPE,
         )
         .values({'status': new_status, 'updated_at': updated_at})
     )
-    db.session.execute(stmt, execution_options={"synchronize_session": False})
+    db.session.execute(stmt, execution_options={'synchronize_session': False})
     return notifications
 
 
@@ -738,10 +714,14 @@ def is_delivery_slow_for_provider(
     delivery_time,
 ):
     case_stmt = case(
-        [(Notification.status == NOTIFICATION_DELIVERED,
-            (Notification.updated_at - Notification.sent_at) >= delivery_time)],
-        else_=(datetime.utcnow() - Notification.sent_at) >= delivery_time
-    ).label("slow")
+        [
+            (
+                Notification.status == NOTIFICATION_DELIVERED,
+                (Notification.updated_at - Notification.sent_at) >= delivery_time,
+            )
+        ],
+        else_=(datetime.utcnow() - Notification.sent_at) >= delivery_time,
+    ).label('slow')
 
     stmt = (
         select(case_stmt, func.count())
@@ -750,9 +730,9 @@ def is_delivery_slow_for_provider(
             Notification.sent_at.isnot(None),
             Notification.status.in_([NOTIFICATION_DELIVERED, NOTIFICATION_PENDING, NOTIFICATION_SENDING]),
             Notification.sent_by == provider,
-            Notification.key_type != KEY_TYPE_TEST
+            Notification.key_type != KEY_TYPE_TEST,
         )
-        .group_by(literal_column("slow"))
+        .group_by(literal_column('slow'))
     )
     count = db.session.execute(stmt).all()
 
@@ -776,24 +756,13 @@ def is_delivery_slow_for_provider(
 @statsd(namespace='dao')
 @transactional
 def dao_update_notifications_by_reference(references, update_dict):
-    stmt = update(Notification).where(
-        Notification.reference.in_(references)
-    ).values(
-        **update_dict
-    )
-    updated_count = db.session.execute(stmt, execution_options={"synchronize_session": False}).rowcount
+    stmt = update(Notification).where(Notification.reference.in_(references)).values(**update_dict)
+    updated_count = db.session.execute(stmt, execution_options={'synchronize_session': False}).rowcount
 
     updated_history_count = 0
     if updated_count != len(references):
-        stmt = update(NotificationHistory).where(
-            NotificationHistory.reference.in_(references)
-        ).values(
-            **update_dict
-        )
-        updated_history_count = db.session.execute(
-            stmt,
-            execution_options={"synchronize_session": False}
-        ).rowcount
+        stmt = update(NotificationHistory).where(NotificationHistory.reference.in_(references)).values(**update_dict)
+        updated_history_count = db.session.execute(stmt, execution_options={'synchronize_session': False}).rowcount
 
     return updated_count, updated_history_count
 
@@ -831,19 +800,13 @@ def dao_get_notifications_by_to_field(service_id, search_term, notification_type
     if notification_type:
         filters.append(Notification.notification_type == notification_type)
 
-    stmt = (
-        select(Notification)
-        .where(*filters)
-        .order_by(desc(Notification.created_at))
-    )
+    stmt = select(Notification).where(*filters).order_by(desc(Notification.created_at))
     return db.session.scalars(stmt).all()
 
 
 @statsd(namespace='dao')
 def dao_get_notification_by_reference(reference):
-    stmt = select(Notification).where(
-        Notification.reference == reference
-    )
+    stmt = select(Notification).where(Notification.reference == reference)
     return db.session.scalars(stmt).one()
 
 
@@ -852,22 +815,16 @@ def dao_get_notification_history_by_reference(reference):
     try:
         # This try except is necessary because in test keys and research mode does not create notification history.
         # Otherwise we could just search for the NotificationHistory object
-        stmt = select(Notification).where(
-            Notification.reference == reference
-        )
+        stmt = select(Notification).where(Notification.reference == reference)
         return db.session.scalars(stmt).one()
     except NoResultFound:
-        stmt = select(NotificationHistory).where(
-            NotificationHistory.reference == reference
-        )
+        stmt = select(NotificationHistory).where(NotificationHistory.reference == reference)
         return db.session.scalars(stmt).one()
 
 
 @statsd(namespace='dao')
 def dao_get_notifications_by_references(references):
-    stmt = select(Notification).where(
-        Notification.reference.in_(references)
-    )
+    stmt = select(Notification).where(Notification.reference.in_(references))
     return db.session.scalars(stmt).all()
 
 
@@ -882,20 +839,17 @@ def dao_get_scheduled_notifications():
     stmt = (
         select(Notification)
         .join(ScheduledNotification)
-        .where(
-            ScheduledNotification.scheduled_for < datetime.utcnow(),
-            ScheduledNotification.pending
-        )
+        .where(ScheduledNotification.scheduled_for < datetime.utcnow(), ScheduledNotification.pending)
     )
     notifications = db.session.scalars(stmt).all()
     return notifications
 
 
 def set_scheduled_notification_to_processed(notification_id):
-    stmt = update(ScheduledNotification).where(
-        ScheduledNotification.notification_id == notification_id
-    ).values(
-        pending=False
+    stmt = (
+        update(ScheduledNotification)
+        .where(ScheduledNotification.notification_id == notification_id)
+        .values(pending=False)
     )
     db.session.execute(stmt)
     db.session.commit()
@@ -915,51 +869,33 @@ def dao_get_total_notifications_sent_per_day_for_performance_platform(start_date
     notification_type != 'letter';
     """
     under_10_secs = Notification.sent_at - Notification.created_at <= timedelta(seconds=10)
-    sum_column = functions.coalesce(func.sum(
-        case(
-            [
-                (under_10_secs, 1)
-            ],
-            else_=0
-        )
-    ), 0)
-    stmt = (
-        select(
-            func.count(Notification.id).label('messages_total'),
-            sum_column.label('messages_within_10_secs')
-        )
-        .where(
-            Notification.created_at >= start_date,
-            Notification.created_at < end_date,
-            Notification.api_key_id.isnot(None),
-            Notification.key_type != KEY_TYPE_TEST,
-            Notification.notification_type != LETTER_TYPE
-        )
+    sum_column = functions.coalesce(func.sum(case([(under_10_secs, 1)], else_=0)), 0)
+    stmt = select(
+        func.count(Notification.id).label('messages_total'), sum_column.label('messages_within_10_secs')
+    ).where(
+        Notification.created_at >= start_date,
+        Notification.created_at < end_date,
+        Notification.api_key_id.isnot(None),
+        Notification.key_type != KEY_TYPE_TEST,
+        Notification.notification_type != LETTER_TYPE,
     )
     return db.session.execute(stmt).one()
 
 
 @statsd(namespace='dao')
 def dao_get_last_notification_added_for_job_id(job_id):
-    stmt = (
-        select(Notification)
-        .where(Notification.job_id == job_id)
-        .order_by(Notification.job_row_number.desc())
-    )
+    stmt = select(Notification).where(Notification.job_id == job_id).order_by(Notification.job_row_number.desc())
     last_notification_added = db.session.scalars(stmt).first()
     return last_notification_added
 
 
 def notifications_not_yet_sent(should_be_sending_after_seconds, notification_type):
     older_than_date = datetime.utcnow() - timedelta(seconds=should_be_sending_after_seconds)
-    stmt = (
-        select(Notification)
-        .where(
-            Notification.created_at <= older_than_date,
-            Notification.notification_type == notification_type,
-            Notification.status == NOTIFICATION_CREATED,
-            Notification.to.isnot(None)
-        )
+    stmt = select(Notification).where(
+        Notification.created_at <= older_than_date,
+        Notification.notification_type == notification_type,
+        Notification.status == NOTIFICATION_CREATED,
+        Notification.to.isnot(None),
     )
     notifications = db.session.scalars(stmt).all()
     return notifications
@@ -973,7 +909,7 @@ def dao_old_letters_with_created_status():
         .where(
             Notification.updated_at < convert_local_timezone_to_utc(last_processing_deadline),
             Notification.notification_type == LETTER_TYPE,
-            Notification.status == NOTIFICATION_CREATED
+            Notification.status == NOTIFICATION_CREATED,
         )
         .order_by(Notification.updated_at)
     )
@@ -985,10 +921,7 @@ def dao_precompiled_letters_still_pending_virus_check():
     ninety_minutes_ago = datetime.utcnow() - timedelta(seconds=5400)
     stmt = (
         select(Notification)
-        .where(
-            Notification.created_at < ninety_minutes_ago,
-            Notification.status == NOTIFICATION_PENDING_VIRUS_CHECK
-        )
+        .where(Notification.created_at < ninety_minutes_ago, Notification.status == NOTIFICATION_PENDING_VIRUS_CHECK)
         .order_by(Notification.created_at)
     )
     notifications = db.session.scalars(stmt).all()

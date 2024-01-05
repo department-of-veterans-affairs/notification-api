@@ -7,18 +7,19 @@ from sqlalchemy import select, update
 
 def fetch_service_data_retention_by_id(service_id, data_retention_id):
     stmt = select(ServiceDataRetention).where(
-        ServiceDataRetention.service_id == service_id,
-        ServiceDataRetention.id == data_retention_id
+        ServiceDataRetention.service_id == service_id, ServiceDataRetention.id == data_retention_id
     )
     return db.session.scalars(stmt).first()
 
 
 def fetch_service_data_retention(service_id):
-    stmt = select(ServiceDataRetention).where(
-        ServiceDataRetention.service_id == service_id
-    ).order_by(
-        # in the order that models.notification_types are created (email, sms, letter)
-        ServiceDataRetention.notification_type
+    stmt = (
+        select(ServiceDataRetention)
+        .where(ServiceDataRetention.service_id == service_id)
+        .order_by(
+            # in the order that models.notification_types are created (email, sms, letter)
+            ServiceDataRetention.notification_type
+        )
     )
 
     return db.session.scalars(stmt).all()
@@ -26,8 +27,7 @@ def fetch_service_data_retention(service_id):
 
 def fetch_service_data_retention_by_notification_type(service_id, notification_type):
     stmt = select(ServiceDataRetention).where(
-        ServiceDataRetention.service_id == service_id,
-        ServiceDataRetention.notification_type == notification_type
+        ServiceDataRetention.service_id == service_id, ServiceDataRetention.notification_type == notification_type
     )
     return db.session.scalars(stmt).first()
 
@@ -44,12 +44,10 @@ def insert_service_data_retention(service_id, notification_type, days_of_retenti
 
 @transactional
 def update_service_data_retention(service_data_retention_id, service_id, days_of_retention):
-    stmt = update(ServiceDataRetention).where(
-        ServiceDataRetention.id == service_data_retention_id,
-        ServiceDataRetention.service_id == service_id
-    ).values(
-        days_of_retention=days_of_retention,
-        updated_at=datetime.utcnow()
+    stmt = (
+        update(ServiceDataRetention)
+        .where(ServiceDataRetention.id == service_data_retention_id, ServiceDataRetention.service_id == service_id)
+        .values(days_of_retention=days_of_retention, updated_at=datetime.utcnow())
     )
 
     return db.session.execute(stmt).rowcount

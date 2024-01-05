@@ -109,7 +109,7 @@ def purge_functional_test_data(user_email_prefix):
     users, services, etc. Give an email prefix. Probably "notify-test-preview".
     """
 
-    stmt = select(User).where(User.email_address.like(f"{user_email_prefix}%"))
+    stmt = select(User).where(User.email_address.like(f'{user_email_prefix}%'))
     users = db.session.scalars(stmt).all()
 
     for usr in users:
@@ -280,7 +280,7 @@ def replay_service_callbacks(file_name, service_id, notification_status):
             notification = db.session.scalars(stmt).one()
             notifications.append(notification)
         except NoResultFound:
-            errors.append(f"Reference: {ref} was not found in notifications.")
+            errors.append(f'Reference: {ref} was not found in notifications.')
 
     for e in errors:
         print(e)
@@ -848,8 +848,10 @@ def fix_billable_units():
         )
         print('Updating notification: {} with {} billable_units'.format(notification.id, template.fragment_count))
 
-        stmt = update(Notification).where(Notification.id == notification.id).values(
-            billable_units=template.fragment_count
+        stmt = (
+            update(Notification)
+            .where(Notification.id == notification.id)
+            .values(billable_units=template.fragment_count)
         )
 
         db.session.execute(stmt)

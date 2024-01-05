@@ -6,22 +6,12 @@ from sqlalchemy import select
 
 
 def dao_get_service_user(user_id, service_id):
-    stmt = select(ServiceUser).where(
-        ServiceUser.user_id == user_id,
-        ServiceUser.service_id == service_id
-    )
+    stmt = select(ServiceUser).where(ServiceUser.user_id == user_id, ServiceUser.service_id == service_id)
     return db.session.scalars(stmt).one()
 
 
 def dao_get_active_service_users(service_id):
-    stmt = (
-        select(ServiceUser)
-        .join(User)
-        .where(
-            ServiceUser.service_id == service_id,
-            User.state == 'active'
-        )
-    )
+    stmt = select(ServiceUser).join(User).where(ServiceUser.service_id == service_id, User.state == 'active')
     return db.session.scalars(stmt).all()
 
 

@@ -7,23 +7,25 @@ from sqlalchemy import desc, select
 
 
 def dao_get_reply_to_by_service_id(service_id):
-    stmt = select(ServiceEmailReplyTo).where(
-        ServiceEmailReplyTo.service_id == service_id,
-        ServiceEmailReplyTo.archived.is_(False)
-    ).order_by(
-        desc(ServiceEmailReplyTo.is_default),
-        desc(ServiceEmailReplyTo.created_at)
+    stmt = (
+        select(ServiceEmailReplyTo)
+        .where(ServiceEmailReplyTo.service_id == service_id, ServiceEmailReplyTo.archived.is_(False))
+        .order_by(desc(ServiceEmailReplyTo.is_default), desc(ServiceEmailReplyTo.created_at))
     )
 
     return db.session.scalars(stmt).all()
 
 
 def dao_get_reply_to_by_id(service_id, reply_to_id):
-    stmt = select(ServiceEmailReplyTo).where(
-        ServiceEmailReplyTo.service_id == service_id,
-        ServiceEmailReplyTo.id == reply_to_id,
-        ServiceEmailReplyTo.archived.is_(False)
-    ).order_by(ServiceEmailReplyTo.created_at)
+    stmt = (
+        select(ServiceEmailReplyTo)
+        .where(
+            ServiceEmailReplyTo.service_id == service_id,
+            ServiceEmailReplyTo.id == reply_to_id,
+            ServiceEmailReplyTo.archived.is_(False),
+        )
+        .order_by(ServiceEmailReplyTo.created_at)
+    )
 
     return db.session.scalars(stmt).one()
 
@@ -60,8 +62,7 @@ def update_reply_to_email_address(service_id, reply_to_id, email_address, is_def
 @transactional
 def archive_reply_to_email_address(service_id, reply_to_id):
     stmt = select(ServiceEmailReplyTo).where(
-        ServiceEmailReplyTo.id == reply_to_id,
-        ServiceEmailReplyTo.service_id == service_id
+        ServiceEmailReplyTo.id == reply_to_id, ServiceEmailReplyTo.service_id == service_id
     )
 
     reply_to_archive = db.session.scalars(stmt).one()

@@ -24,17 +24,18 @@ def dao_get_service_sms_sender_by_id(service_id, service_sms_sender_id):
     stmt = select(ServiceSmsSender).where(
         ServiceSmsSender.id == service_sms_sender_id,
         ServiceSmsSender.service_id == service_id,
-        ServiceSmsSender.archived.is_(False)
+        ServiceSmsSender.archived.is_(False),
     )
 
     return db.session.scalars(stmt).one()
 
 
 def dao_get_sms_senders_by_service_id(service_id):
-    stmt = select(ServiceSmsSender).where(
-        ServiceSmsSender.service_id == service_id,
-        ServiceSmsSender.archived.is_(False)
-    ).order_by(desc(ServiceSmsSender.is_default))
+    stmt = (
+        select(ServiceSmsSender)
+        .where(ServiceSmsSender.service_id == service_id, ServiceSmsSender.archived.is_(False))
+        .order_by(desc(ServiceSmsSender.is_default))
+    )
 
     return db.session.scalars(stmt).all()
 
@@ -45,7 +46,7 @@ def dao_get_service_sms_sender_by_service_id_and_number(service_id: str, number:
     stmt = select(ServiceSmsSender).where(
         ServiceSmsSender.service_id == service_id,
         ServiceSmsSender.sms_sender == number,
-        ServiceSmsSender.archived.is_(False)
+        ServiceSmsSender.archived.is_(False),
     )
 
     return db.session.scalars(stmt).first()
@@ -161,8 +162,7 @@ def dao_update_service_sms_sender(service_id, service_sms_sender_id, **kwargs): 
 @transactional
 def archive_sms_sender(service_id, sms_sender_id):
     stmt = select(ServiceSmsSender).where(
-        ServiceSmsSender.id == sms_sender_id,
-        ServiceSmsSender.service_id == service_id
+        ServiceSmsSender.id == sms_sender_id, ServiceSmsSender.service_id == service_id
     )
 
     sms_sender_to_archive = db.session.scalars(stmt).one()
@@ -199,15 +199,17 @@ def _set_default_sms_sender_to_not_default(existing_default_sms_sender: Optional
 
 
 def _allocate_inbound_number_for_service(service_id, inbound_number_id) -> InboundNumber:
-    stmt = update(InboundNumber).where(
-        InboundNumber.id == inbound_number_id,
-        InboundNumber.active.is_(True),
-        InboundNumber.service_id.is_(None)
-    ).values(service_id=service_id)
+    stmt = (
+        update(InboundNumber)
+        .where(
+            InboundNumber.id == inbound_number_id, InboundNumber.active.is_(True), InboundNumber.service_id.is_(None)
+        )
+        .values(service_id=service_id)
+    )
 
     updated = db.session.execute(stmt)
 
     if updated.rowcount == 0:
-        raise SmsSenderInboundNumberIntegrityException(f"Inbound number: {inbound_number_id} is not available.")
+        raise SmsSenderInboundNumberIntegrityException(f'Inbound number: {inbound_number_id} is not available.')
 
     return db.session.get(InboundNumber, inbound_number_id)

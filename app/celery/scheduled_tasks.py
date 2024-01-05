@@ -118,7 +118,7 @@ def check_job_status():
         select(Job)
         .where(
             Job.job_status == JOB_STATUS_IN_PROGRESS,
-            and_(thirty_five_minutes_ago < Job.processing_started, Job.processing_started < thirty_minutes_ago)
+            and_(thirty_five_minutes_ago < Job.processing_started, Job.processing_started < thirty_minutes_ago),
         )
         .order_by(Job.processing_started)
     )

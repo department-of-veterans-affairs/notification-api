@@ -76,11 +76,10 @@ class User(db.Model):
 
     @classmethod
     def find_by_idp(cls, idp_name: str, idp_id: str) -> 'User':
-        stmt = select(cls).join(
-            cls.idp_ids
-        ).where(
-            IdentityProviderIdentifier.idp_name == idp_name,
-            IdentityProviderIdentifier.idp_id == str(idp_id)
+        stmt = (
+            select(cls)
+            .join(cls.idp_ids)
+            .where(IdentityProviderIdentifier.idp_name == idp_name, IdentityProviderIdentifier.idp_id == str(idp_id))
         )
 
         return db.session.scalars(stmt).one()

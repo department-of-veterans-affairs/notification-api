@@ -702,10 +702,7 @@ def is_service_name_unique():
     stmt = select(Service).where(Service.name == name)
     name_exists = db.session.scalars(stmt).first()
 
-    stmt = select(Service).where(
-        Service.email_from == email_from,
-        Service.id != service_id
-    )
+    stmt = select(Service).where(Service.email_from == email_from, Service.id != service_id)
     email_from_exists = db.session.scalar(stmt)
 
     result = not (name_exists or email_from_exists)

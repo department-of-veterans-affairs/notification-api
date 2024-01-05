@@ -47,9 +47,10 @@ def dao_get_paginated_inbound_sms_for_service_for_public_api(service_id, older_t
 
 
 def dao_count_inbound_sms_for_service(service_id, limit_days):
-    stmt = select(func.count()).select_from(InboundSms).where(
-        InboundSms.service_id == service_id,
-        InboundSms.created_at >= midnight_n_days_ago(limit_days)
+    stmt = (
+        select(func.count())
+        .select_from(InboundSms)
+        .where(InboundSms.service_id == service_id, InboundSms.created_at >= midnight_n_days_ago(limit_days))
     )
 
     return db.session.scalar(stmt)
@@ -62,12 +63,12 @@ def _delete_inbound_sms(datetime_to_delete_from, query_filter):
 
     query_limit = 10000
 
-    subquery = select(InboundSms.id).where(
-        InboundSms.created_at < datetime_to_delete_from,
-        *query_filter
-    ).limit(
-        query_limit
-    ).subquery()
+    subquery = (
+        select(InboundSms.id)
+        .where(InboundSms.created_at < datetime_to_delete_from, *query_filter)
+        .limit(query_limit)
+        .subquery()
+    )
 
     deleted = 0
     # set to nonzero just to enter the loop
@@ -86,12 +87,11 @@ def _delete_inbound_sms(datetime_to_delete_from, query_filter):
 def delete_inbound_sms_older_than_retention():
     current_app.logger.info('Deleting inbound sms for services with flexible data retention')
 
-    stmt = select(ServiceDataRetention).join(
-        ServiceDataRetention.service
-    ).join(
-        Service.inbound_numbers
-    ).where(
-        ServiceDataRetention.notification_type == SMS_TYPE
+    stmt = (
+        select(ServiceDataRetention)
+        .join(ServiceDataRetention.service)
+        .join(Service.inbound_numbers)
+        .where(ServiceDataRetention.notification_type == SMS_TYPE)
     )
 
     flexible_data_retention = db.session.scalars(stmt).all()
@@ -120,10 +120,7 @@ def delete_inbound_sms_older_than_retention():
 
 
 def dao_get_inbound_sms_by_id(service_id, inbound_id):
-    stmt = select(InboundSms).where(
-        InboundSms.id == inbound_id,
-        InboundSms.service_id == service_id
-    )
+    stmt = select(InboundSms).where(InboundSms.id == inbound_id, InboundSms.service_id == service_id)
 
     return db.session.scalars(stmt).one()
 
@@ -149,19 +146,22 @@ def dao_get_paginated_most_recent_inbound_sms_by_user_number_for_service(service
     """
 
     t2 = aliased(InboundSms)
-    stmt = select(InboundSms).outerjoin(
-        t2,
-        and_(
-            InboundSms.user_number == t2.user_number,
-            InboundSms.service_id == t2.service_id,
-            InboundSms.created_at < t2.created_at,
+    stmt = (
+        select(InboundSms)
+        .outerjoin(
+            t2,
+            and_(
+                InboundSms.user_number == t2.user_number,
+                InboundSms.service_id == t2.service_id,
+                InboundSms.created_at < t2.created_at,
+            ),
         )
-    ).where(
-        t2.id.is_(None),
-        InboundSms.service_id == service_id,
-        InboundSms.created_at >= midnight_n_days_ago(limit_days)
-    ).order_by(
-        InboundSms.created_at.desc()
+        .where(
+            t2.id.is_(None),
+            InboundSms.service_id == service_id,
+            InboundSms.created_at >= midnight_n_days_ago(limit_days),
+        )
+        .order_by(InboundSms.created_at.desc())
     )
 
     return db.paginate(stmt, page=page, per_page=current_app.config['PAGE_SIZE'])

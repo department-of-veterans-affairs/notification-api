@@ -17,8 +17,7 @@ def dao_add_service_permission(service_id, permission):
 
 def dao_remove_service_permission(service_id, permission):
     stmt = delete(ServicePermission).where(
-        ServicePermission.service_id == service_id,
-        ServicePermission.permission == permission
+        ServicePermission.service_id == service_id, ServicePermission.permission == permission
     )
 
     deleted = db.session.execute(stmt).rowcount

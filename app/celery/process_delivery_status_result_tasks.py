@@ -7,7 +7,7 @@ from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
     dao_update_notification_by_id,
     update_notification_delivery_status,
-    FINAL_STATUS_STATES
+    FINAL_STATUS_STATES,
 )
 
 from typing import Tuple
@@ -204,10 +204,7 @@ def _calculate_pricing(
             updated_at=datetime.utcnow(),
         )
     else:
-        update_notification_delivery_status(
-            notification_id=notification.id,
-            new_status=notification_status
-        )
+        update_notification_delivery_status(notification_id=notification.id, new_status=notification_status)
 
 
 def _get_notification_platform_status(self, provider: any, body: str, sqs_message: dict) -> dict:
