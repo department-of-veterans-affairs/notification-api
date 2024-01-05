@@ -192,7 +192,7 @@ def _calculate_pricing(price_in_millicents_usd: float, notification: Notificatio
     else:
         update_notification_delivery_status(
             notification_id=notification.id,
-            status=notification_status
+            new_status=notification_status
         )
 
 
