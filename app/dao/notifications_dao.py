@@ -217,7 +217,7 @@ def update_notification_status_by_id(
 
     stmt = select(Notification).with_for_update().where(Notification.id == notification_id)
     if current_status:
-        stmt.where(Notification.status == current_status)
+        stmt = stmt.where(Notification.status == current_status)
 
     notification = db.session.scalar(stmt)
     if notification is None:
