@@ -36,13 +36,19 @@ class SendEmail(HttpUser):
         self.email_limit = self.environment.parsed_options.email_limit
         self.email_status_query_interval = self.environment.parsed_options.email_status_query_interval
 
-    def read_configuration(self, key: str) -> str:
+    def read_configuration(
+        self,
+        key: str,
+    ) -> str:
         if f'LOAD_TESTING_{self.short_env}_{key}' in os.environ:
             return os.getenv(f'LOAD_TESTING_{self.short_env}_{key}')
         else:
             return self.read_from_ssm(key)
 
-    def read_from_ssm(self, key: str) -> str:
+    def read_from_ssm(
+        self,
+        key: str,
+    ) -> str:
         if not hasattr(self, 'boto_client'):
             self.boto_client = boto3.client('ssm')
 
@@ -59,7 +65,14 @@ class SendEmail(HttpUser):
         encoded_jwt = jwt.encode(combo, self.api_key, algorithm='HS256')
         return encoded_jwt
 
-    def report_status(self, response, start_time, name='email delivery time, async', context=None, message=None):
+    def report_status(
+        self,
+        response,
+        start_time,
+        name='email delivery time, async',
+        context=None,
+        message=None,
+    ):
         events.request.fire(
             request_type=response.request.method,
             name=name,
@@ -74,7 +87,10 @@ class SendEmail(HttpUser):
         if self.email_completed_counter == self.email_limit:
             self.environment.runner.quit()
 
-    def _async_send_email(self, timeout=600):
+    def _async_send_email(
+        self,
+        timeout=600,
+    ):
         notification_creation_response = self.client.post(
             '/v2/notifications/email',
             json={'template_id': self.email_template_id, 'email_address': 'test-email@not-a-real-email.com'},

@@ -36,7 +36,10 @@ register_errors(job_blueprint)
 
 
 @job_blueprint.route('/<job_id>', methods=['GET'])
-def get_job_by_service_and_job_id(service_id, job_id):
+def get_job_by_service_and_job_id(
+    service_id,
+    job_id,
+):
     job = dao_get_job_by_service_id_and_job_id(service_id, job_id)
     statistics = dao_get_notification_outcomes_for_job(service_id, job_id)
     data = job_schema.dump(job).data
@@ -47,7 +50,10 @@ def get_job_by_service_and_job_id(service_id, job_id):
 
 
 @job_blueprint.route('/<job_id>/cancel', methods=['POST'])
-def cancel_job(service_id, job_id):
+def cancel_job(
+    service_id,
+    job_id,
+):
     job = dao_get_future_scheduled_job_by_id_and_service_id(job_id, service_id)
     job.job_status = JOB_STATUS_CANCELLED
     dao_update_job(job)
@@ -56,7 +62,10 @@ def cancel_job(service_id, job_id):
 
 
 @job_blueprint.route('/<job_id>/cancel-letter-job', methods=['POST'])
-def cancel_letter_job(service_id, job_id):
+def cancel_letter_job(
+    service_id,
+    job_id,
+):
     job = dao_get_job_by_service_id_and_job_id(service_id, job_id)
     can_we_cancel, errors = can_letter_job_be_cancelled(job)
     if can_we_cancel:
@@ -67,7 +76,10 @@ def cancel_letter_job(service_id, job_id):
 
 
 @job_blueprint.route('/<job_id>/notifications', methods=['GET'])
-def get_all_notifications_for_service_job(service_id, job_id):
+def get_all_notifications_for_service_job(
+    service_id,
+    job_id,
+):
     data = notifications_filter_schema.load(request.args).data
     page = data['page'] if 'page' in data else 1
     page_size = data['page_size'] if 'page_size' in data else current_app.config.get('PAGE_SIZE')
@@ -158,7 +170,12 @@ def create_job(service_id):
     return jsonify(data=job_json), 201
 
 
-def get_paginated_jobs(service_id, limit_days, statuses, page):
+def get_paginated_jobs(
+    service_id,
+    limit_days,
+    statuses,
+    page,
+):
     pagination = dao_get_jobs_by_service_id(
         service_id, limit_days=limit_days, page=page, page_size=current_app.config['PAGE_SIZE'], statuses=statuses
     )

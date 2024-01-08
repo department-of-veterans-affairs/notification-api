@@ -52,7 +52,10 @@ def create_stats_dict():
     return stats_dict
 
 
-def format_monthly_template_notification_stats(year, rows):
+def format_monthly_template_notification_stats(
+    year,
+    rows,
+):
     stats = {
         datetime.strftime(date, '%Y-%m'): {}
         for date in [datetime(year, month, 1) for month in range(4, 13)]
@@ -79,7 +82,10 @@ def create_zeroed_stats_dicts():
     }
 
 
-def _update_statuses_from_row(update_dict, row):
+def _update_statuses_from_row(
+    update_dict,
+    row,
+):
     if row.status != 'cancelled':
         update_dict['requested'] += row.count
     if row.status in ('delivered', 'sent'):
@@ -106,7 +112,10 @@ def create_empty_monthly_notification_status_stats_dict(year):
     }
 
 
-def add_monthly_notification_status_stats(data, stats):
+def add_monthly_notification_status_stats(
+    data,
+    stats,
+):
     for row in stats:
         month = row.month.strftime('%Y-%m')
 

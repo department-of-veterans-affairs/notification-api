@@ -143,10 +143,10 @@ def sns_smtp_callback_handler():
 
 @notify_celery.task(bind=True, name='process-ses-result', max_retries=5, default_retry_delay=300)
 @statsd(namespace='tasks')
-def process_ses_results(
+def process_ses_results(  # noqa: C901
     self,
     response,
-):  # noqa: C901
+):
     try:
         ses_message = json.loads(response['Message'])
         notification_type = ses_message.get('eventType')

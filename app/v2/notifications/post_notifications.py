@@ -168,7 +168,15 @@ def post_notification(notification_type):  # noqa: C901
     return jsonify(resp), 201
 
 
-def process_sms_or_email_notification(*, form, notification_type, api_key, template, service, reply_to_text=None):
+def process_sms_or_email_notification(
+    *,
+    form,
+    notification_type,
+    api_key,
+    template,
+    service,
+    reply_to_text=None,
+):
     form_send_to = form['email_address' if (notification_type == EMAIL_TYPE) else 'phone_number']
 
     send_to = validate_and_format_recipient(
@@ -252,7 +260,11 @@ def process_notification_with_recipient_identifier(
     return notification
 
 
-def process_document_uploads(personalisation_data, service, simulated=False):
+def process_document_uploads(
+    personalisation_data,
+    service,
+    simulated=False,
+):
     file_keys = [k for k, v in (personalisation_data or {}).items() if isinstance(v, dict) and 'file' in v]
     if not file_keys:
         return personalisation_data
@@ -300,7 +312,14 @@ def process_document_uploads(personalisation_data, service, simulated=False):
     return personalisation_data
 
 
-def process_letter_notification(*, letter_data, api_key, template, reply_to_text, precompiled=False):
+def process_letter_notification(
+    *,
+    letter_data,
+    api_key,
+    template,
+    reply_to_text,
+    precompiled=False,
+):
     if api_key.key_type == KEY_TYPE_TEAM:
         raise BadRequestError(message='Cannot send letters with a team api key', status_code=403)
 
@@ -333,7 +352,13 @@ def process_letter_notification(*, letter_data, api_key, template, reply_to_text
     return notification
 
 
-def process_precompiled_letter_notifications(*, letter_data, api_key, template, reply_to_text):
+def process_precompiled_letter_notifications(
+    *,
+    letter_data,
+    api_key,
+    template,
+    reply_to_text,
+):
     try:
         status = NOTIFICATION_PENDING_VIRUS_CHECK
         letter_content = base64.b64decode(letter_data['content'])
@@ -365,7 +390,11 @@ def process_precompiled_letter_notifications(*, letter_data, api_key, template, 
     return notification
 
 
-def get_reply_to_text(notification_type, form, template):
+def get_reply_to_text(
+    notification_type,
+    form,
+    template,
+):
     reply_to = None
     if notification_type == EMAIL_TYPE:
         if template.reply_to_email is not None:

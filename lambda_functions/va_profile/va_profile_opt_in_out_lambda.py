@@ -165,7 +165,11 @@ def make_database_connection(worker_id):
     return connection
 
 
-def va_profile_opt_in_out_lambda_handler(event: dict, context, worker_id=None) -> dict:  # noqa: C901
+def va_profile_opt_in_out_lambda_handler(  # noqa: C901
+    event: dict,
+    context,
+    worker_id=None,
+) -> dict:
     """
     Use the event data to process veterans' opt-in/out requests as relayed by VA Profile.  The event is as
     proxied by the API gateway or application load balancer:
@@ -365,7 +369,10 @@ def va_profile_opt_in_out_lambda_handler(event: dict, context, worker_id=None) -
     return post_response
 
 
-def jwt_is_valid(auth_header_value: str, public_key: Certificate) -> bool:
+def jwt_is_valid(
+    auth_header_value: str,
+    public_key: Certificate,
+) -> bool:
     """
     The POST request should have sent an asymmetrically signed JWT.  Attempt to verify the signature.
     """
@@ -403,7 +410,10 @@ def jwt_is_valid(auth_header_value: str, public_key: Certificate) -> bool:
     return False
 
 
-def make_PUT_request(tx_audit_id: str, body: dict):
+def make_PUT_request(
+    tx_audit_id: str,
+    body: dict,
+):
     global ssl_context
     assert isinstance(VA_PROFILE_DOMAIN, str), 'What is the domain of the PUT request?'
     assert isinstance(tx_audit_id, str)

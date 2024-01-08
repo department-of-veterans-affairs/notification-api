@@ -18,7 +18,10 @@ from sqlalchemy.exc import IntegrityError
 from typing import Optional
 
 
-def _remove_values_for_keys_if_present(dict, keys):
+def _remove_values_for_keys_if_present(
+    dict,
+    keys,
+):
     for key in keys:
         dict.pop(key, None)
 
@@ -27,7 +30,10 @@ def create_secret_code():
     return ''.join(map(str, [SystemRandom().randrange(10) for i in range(5)]))
 
 
-def save_user_attribute(usr, update_dict):
+def save_user_attribute(
+    usr,
+    update_dict,
+):
     # Check that it is there AND not empty
     if update_dict.get('blocked'):
         update_dict.update({'current_session_id': '00000000-0000-0000-0000-000000000000'})
@@ -37,7 +43,10 @@ def save_user_attribute(usr, update_dict):
     db.session.commit()
 
 
-def save_model_user(usr, pwd=None):
+def save_model_user(
+    usr,
+    pwd=None,
+):
     if pwd:
         usr.password = pwd
         usr.password_changed_at = datetime.utcnow()
@@ -46,7 +55,11 @@ def save_model_user(usr, pwd=None):
     db.session.commit()
 
 
-def create_user_code(user, code, code_type):
+def create_user_code(
+    user,
+    code,
+    code_type,
+):
     verify_code = VerifyCode(code_type=code_type, expiry_datetime=datetime.utcnow() + timedelta(minutes=30), user=user)
     verify_code.code = code
     db.session.add(verify_code)
@@ -54,7 +67,11 @@ def create_user_code(user, code, code_type):
     return verify_code
 
 
-def get_user_code(user, code, code_type) -> Optional[VerifyCode]:
+def get_user_code(
+    user,
+    code,
+    code_type,
+) -> Optional[VerifyCode]:
     """
     Get the most recent codes to try and reduce the time searching for the correct code.
     """
@@ -107,7 +124,10 @@ def count_user_verify_codes(user) -> int:
     return db.session.scalar(stmt)
 
 
-def verify_within_time(user, age=timedelta(seconds=30)):
+def verify_within_time(
+    user,
+    age=timedelta(seconds=30),
+):
     stmt = (
         select(func.count())
         .select_from(VerifyCode)
@@ -147,7 +167,10 @@ def get_user_by_identity_provider_user_id(identity_provider_user_id):
 
 
 @transactional
-def update_user_identity_provider_user_id(email, identity_provider_user_id):
+def update_user_identity_provider_user_id(
+    email,
+    identity_provider_user_id,
+):
     email_matches_condition = func.lower(User.email_address) == func.lower(email)
     id_matches_condition = func.lower(User.identity_provider_user_id) == func.lower(str(identity_provider_user_id))
     stmt = select(User).where(or_(email_matches_condition, id_matches_condition))
@@ -172,7 +195,11 @@ def update_user_identity_provider_user_id(email, identity_provider_user_id):
     return user
 
 
-def create_or_retrieve_user(email_address, identity_provider_user_id, name):
+def create_or_retrieve_user(
+    email_address,
+    identity_provider_user_id,
+    name,
+):
     try:
         return update_user_identity_provider_user_id(email_address, identity_provider_user_id)
     except NoResultFound:
@@ -219,7 +246,10 @@ def reset_failed_login_count(user):
         db.session.commit()
 
 
-def update_user_password(user, password):
+def update_user_password(
+    user,
+    password,
+):
     # reset failed login count - they've just reset their password so should be fine
     user.password = password
     user.password_changed_at = datetime.utcnow()

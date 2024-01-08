@@ -38,7 +38,10 @@ from app.utils import (
 )
 
 
-def fetch_notification_status_for_day(process_day, service_id=None):
+def fetch_notification_status_for_day(
+    process_day,
+    service_id=None,
+):
     start_date = convert_local_timezone_to_utc(datetime.combine(process_day, time.min))
     end_date = convert_local_timezone_to_utc(datetime.combine(process_day + timedelta(days=1), time.min))
     # use notification_history if process day is older than 7 days
@@ -74,7 +77,13 @@ def fetch_notification_status_for_day(process_day, service_id=None):
     return all_data_for_process_day
 
 
-def _query_for_fact_status_data(table, start_date, end_date, notification_type, service_id):
+def _query_for_fact_status_data(
+    table,
+    start_date,
+    end_date,
+    notification_type,
+    service_id,
+):
     stmt = (
         select(
             table.template_id,
@@ -107,7 +116,10 @@ def _query_for_fact_status_data(table, start_date, end_date, notification_type, 
     return db.session.execute(stmt).all()
 
 
-def update_fact_notification_status(data, process_day):
+def update_fact_notification_status(
+    data,
+    process_day,
+):
     stmt = delete(FactNotificationStatus).where(FactNotificationStatus.bst_date == process_day)
     db.session.execute(stmt)
     db.session.commit()
@@ -131,7 +143,11 @@ def update_fact_notification_status(data, process_day):
     db.session.commit()
 
 
-def fetch_notification_status_for_service_by_month(start_date, end_date, service_id):
+def fetch_notification_status_for_service_by_month(
+    start_date,
+    end_date,
+    service_id,
+):
     stmt = (
         select(
             func.date_trunc('month', FactNotificationStatus.bst_date).label('month'),
@@ -181,7 +197,10 @@ def fetch_delivered_notification_stats_by_month():
     return db.session.execute(stmt).all()
 
 
-def fetch_notification_status_for_service_for_day(bst_day, service_id):
+def fetch_notification_status_for_service_for_day(
+    bst_day,
+    service_id,
+):
     stmt = (
         select(
             # return current month as a datetime so the data has the same shape as the ft_notification_status query
@@ -202,7 +221,11 @@ def fetch_notification_status_for_service_for_day(bst_day, service_id):
     return db.session.execute(stmt).all()
 
 
-def fetch_notification_status_for_service_for_today_and_7_previous_days(service_id, by_template=False, limit_days=7):
+def fetch_notification_status_for_service_for_today_and_7_previous_days(
+    service_id,
+    by_template=False,
+    limit_days=7,
+):
     start_date = midnight_n_days_ago(limit_days)
     now = datetime.now()
 
@@ -399,7 +422,10 @@ def get_api_key_ranked_by_notifications_created(n_days_back):
     return db.session.execute(stmt).all()
 
 
-def fetch_notification_status_totals_for_all_services(start_date, end_date):
+def fetch_notification_status_totals_for_all_services(
+    start_date,
+    end_date,
+):
     stats = (
         select(
             FactNotificationStatus.notification_type.label('notification_type'),
@@ -470,7 +496,11 @@ def fetch_notification_statuses_for_job(job_id):
     return db.session.execute(stmt).all()
 
 
-def fetch_stats_for_all_services_by_date_range(start_date, end_date, include_from_test_key=True):
+def fetch_stats_for_all_services_by_date_range(
+    start_date,
+    end_date,
+    include_from_test_key=True,
+):
     stats = (
         select(
             FactNotificationStatus.service_id.label('service_id'),
@@ -567,7 +597,12 @@ def fetch_stats_for_all_services_by_date_range(start_date, end_date, include_fro
     return db.session.execute(stmt).all()
 
 
-def fetch_template_usage_for_service_with_given_template(service_id, template_id, start_date=None, end_date=None):
+def fetch_template_usage_for_service_with_given_template(
+    service_id,
+    template_id,
+    start_date=None,
+    end_date=None,
+):
     fns_filter = _get_fact_notification_status_filters(end_date, service_id, start_date, template_id)
 
     stats = (
@@ -639,7 +674,11 @@ def fetch_notification_statuses_per_service_and_template_for_date(date):
     return db.session.execute(stmt).all()
 
 
-def fetch_monthly_template_usage_for_service(start_date, end_date, service_id):
+def fetch_monthly_template_usage_for_service(
+    start_date,
+    end_date,
+    service_id,
+):
     # services_dao.replaces dao_fetch_monthly_historical_usage_by_template_for_service
     stats = (
         select(
@@ -730,7 +769,10 @@ def fetch_monthly_template_usage_for_service(start_date, end_date, service_id):
     return db.session.execute(stmt).all()
 
 
-def get_total_sent_notifications_for_day_and_type(day, notification_type):
+def get_total_sent_notifications_for_day_and_type(
+    day,
+    notification_type,
+):
     stmt = select(func.sum(FactNotificationStatus.notification_count).label('count')).where(
         FactNotificationStatus.notification_type == notification_type,
         FactNotificationStatus.key_type != KEY_TYPE_TEST,
@@ -740,7 +782,10 @@ def get_total_sent_notifications_for_day_and_type(day, notification_type):
     return db.session.scalar(stmt) or 0
 
 
-def fetch_monthly_notification_statuses_per_service(start_date, end_date):
+def fetch_monthly_notification_statuses_per_service(
+    start_date,
+    end_date,
+):
     stmt = (
         select(
             func.date_trunc('month', FactNotificationStatus.bst_date).cast(Date).label('date_created'),
@@ -842,7 +887,12 @@ def fetch_monthly_notification_statuses_per_service(start_date, end_date):
     return db.session.execute(stmt).all()
 
 
-def _get_fact_notification_status_filters(end_date, service_id, start_date, template_id):
+def _get_fact_notification_status_filters(
+    end_date,
+    service_id,
+    start_date,
+    template_id,
+):
     fns_filter = [
         FactNotificationStatus.service_id == service_id,
         FactNotificationStatus.template_id == template_id,
@@ -856,7 +906,10 @@ def _get_fact_notification_status_filters(end_date, service_id, start_date, temp
     return fns_filter
 
 
-def _should_get_todays_stats(start_date=None, end_date=None):
+def _should_get_todays_stats(
+    start_date=None,
+    end_date=None,
+):
     current_time = datetime.utcnow().date()
     if not start_date and not end_date:
         return True

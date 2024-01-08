@@ -12,12 +12,18 @@ import pickle  # nosec
 import base64
 
 
-def delete_fido2_key(user_id, id):
+def delete_fido2_key(
+    user_id,
+    id,
+):
     db.session.query(Fido2Key).filter(and_(Fido2Key.user_id == user_id, Fido2Key.id == id)).delete()
     db.session.commit()
 
 
-def get_fido2_key(user_id, id):
+def get_fido2_key(
+    user_id,
+    id,
+):
     return Fido2Key.query.filter(and_(Fido2Key.user_id == user_id, Fido2Key.id == id)).one()
 
 
@@ -31,7 +37,10 @@ def save_fido2_key(fido2_key):
 
 
 @transactional
-def create_fido2_session(user_id, session):
+def create_fido2_session(
+    user_id,
+    session,
+):
     delete_fido2_session(user_id)
     db.session.add(Fido2Session(user_id=user_id, session=json.dumps(session)))
 
@@ -46,7 +55,10 @@ def get_fido2_session(user_id):
     return json.loads(session.session)
 
 
-def decode_and_register(data, state):
+def decode_and_register(
+    data,
+    state,
+):
     client_data = CollectedClientData(data['clientDataJSON'])
     att_obj = AttestationObject(data['attestationObject'])
 

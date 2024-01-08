@@ -6,7 +6,12 @@ import uuid
 import argparse
 
 
-def send_task(task_name, queue_prefix, routing_key, task_args):
+def send_task(
+    task_name,
+    queue_prefix,
+    routing_key,
+    task_args,
+):
     sqs = boto3.resource('sqs', region_name='us-gov-west-1')
     queue = sqs.get_queue_by_name(QueueName=f'{queue_prefix}{routing_key}')
 

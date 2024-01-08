@@ -258,7 +258,10 @@ def create_api_key(service_id=None):
 
 @service_blueprint.route('/<uuid:service_id>/api-key/revoke/<uuid:api_key_id>', methods=['POST'])
 @requires_admin_auth()
-def revoke_api_key(service_id, api_key_id):
+def revoke_api_key(
+    service_id,
+    api_key_id,
+):
     expire_api_key(service_id=service_id, api_key_id=api_key_id)
     return jsonify(), 202
 
@@ -266,7 +269,10 @@ def revoke_api_key(service_id, api_key_id):
 @service_blueprint.route('/<uuid:service_id>/api-keys', methods=['GET'])
 @service_blueprint.route('/<uuid:service_id>/api-keys/<uuid:key_id>', methods=['GET'])
 @requires_admin_auth()
-def get_api_keys(service_id, key_id=None):
+def get_api_keys(
+    service_id,
+    key_id=None,
+):
     dao_fetch_service_by_id(service_id=service_id)
 
     try:
@@ -290,7 +296,10 @@ def get_users_for_service(service_id):
 
 @service_blueprint.route('/<uuid:service_id>/users/<user_id>', methods=['POST'])
 @requires_admin_auth()
-def add_user_to_service(service_id, user_id):
+def add_user_to_service(
+    service_id,
+    user_id,
+):
     service = dao_fetch_service_by_id(service_id)
     user = get_user_by_id(user_id=user_id)
 
@@ -313,7 +322,10 @@ def add_user_to_service(service_id, user_id):
 
 @service_blueprint.route('/<uuid:service_id>/users/<user_id>', methods=['DELETE'])
 @requires_admin_auth()
-def remove_user_from_service(service_id, user_id):
+def remove_user_from_service(
+    service_id,
+    user_id,
+):
     service = dao_fetch_service_by_id(service_id)
     user = get_user_by_id(user_id=user_id)
     if user not in service.users:
@@ -414,7 +426,10 @@ def get_all_notifications_for_service(service_id):
 
 @service_blueprint.route('/<uuid:service_id>/notifications/<uuid:notification_id>', methods=['GET'])
 @requires_admin_auth()
-def get_notification_for_service(service_id, notification_id):
+def get_notification_for_service(
+    service_id,
+    notification_id,
+):
     notification = notifications_dao.get_notification_with_personalisation(
         service_id,
         notification_id,
@@ -427,7 +442,10 @@ def get_notification_for_service(service_id, notification_id):
 
 @service_blueprint.route('/<uuid:service_id>/notifications/<uuid:notification_id>/cancel', methods=['POST'])
 @requires_admin_auth()
-def cancel_notification_for_service(service_id, notification_id):
+def cancel_notification_for_service(
+    service_id,
+    notification_id,
+):
     notification = notifications_dao.get_notification_by_id(notification_id, service_id)
 
     if not notification:
@@ -449,7 +467,12 @@ def cancel_notification_for_service(service_id, notification_id):
     return jsonify(notification_with_template_schema.dump(updated_notification).data), 200
 
 
-def search_for_notification_by_to_field(service_id, search_term, statuses, notification_type):
+def search_for_notification_by_to_field(
+    service_id,
+    search_term,
+    statuses,
+    notification_type,
+):
     results = notifications_dao.dao_get_notifications_by_to_field(
         service_id=service_id, search_term=search_term, statuses=statuses, notification_type=notification_type
     )
@@ -484,14 +507,21 @@ def get_monthly_notification_stats(service_id):
     return jsonify(data=data)
 
 
-def get_detailed_service(service_id, today_only=False):
+def get_detailed_service(
+    service_id,
+    today_only=False,
+):
     service = dao_fetch_service_by_id(service_id)
 
     service.statistics = get_service_statistics(service_id, today_only)
     return detailed_service_schema.dump(service).data
 
 
-def get_service_statistics(service_id, today_only, limit_days=7):
+def get_service_statistics(
+    service_id,
+    today_only,
+    limit_days=7,
+):
     # today_only flag is used by the send page to work out if the service will exceed their daily usage by sending a job
     if today_only:
         stats = dao_fetch_todays_stats_for_service(service_id)
@@ -501,7 +531,12 @@ def get_service_statistics(service_id, today_only, limit_days=7):
     return statistics.format_statistics(stats)
 
 
-def get_detailed_services(start_date, end_date, only_active=False, include_from_test_key=True):
+def get_detailed_services(
+    start_date,
+    end_date,
+    only_active=False,
+    include_from_test_key=True,
+):
     if start_date == datetime.utcnow().date():
         stats = dao_fetch_todays_stats_for_all_services(
             include_from_test_key=include_from_test_key, only_active=only_active
@@ -622,7 +657,10 @@ def get_email_reply_to_addresses(service_id):
 
 @service_blueprint.route('/<uuid:service_id>/email-reply-to/<uuid:reply_to_id>', methods=['GET'])
 @requires_admin_auth()
-def get_email_reply_to_address(service_id, reply_to_id):
+def get_email_reply_to_address(
+    service_id,
+    reply_to_id,
+):
     result = dao_get_reply_to_by_id(service_id=service_id, reply_to_id=reply_to_id)
     return jsonify(result.serialize()), 200
 
@@ -666,7 +704,10 @@ def add_service_reply_to_email_address(service_id):
 
 @service_blueprint.route('/<uuid:service_id>/email-reply-to/<uuid:reply_to_email_id>', methods=['POST'])
 @requires_admin_auth()
-def update_service_reply_to_email_address(service_id, reply_to_email_id):
+def update_service_reply_to_email_address(
+    service_id,
+    reply_to_email_id,
+):
     # validate the service exists, throws ResultNotFound exception.
     dao_fetch_service_by_id(service_id)
     form = validate(request.get_json(), add_service_email_reply_to_request)
@@ -681,7 +722,10 @@ def update_service_reply_to_email_address(service_id, reply_to_email_id):
 
 @service_blueprint.route('/<uuid:service_id>/email-reply-to/<uuid:reply_to_email_id>/archive', methods=['POST'])
 @requires_admin_auth()
-def delete_service_reply_to_email_address(service_id, reply_to_email_id):
+def delete_service_reply_to_email_address(
+    service_id,
+    reply_to_email_id,
+):
     archived_reply_to = archive_reply_to_email_address(service_id, reply_to_email_id)
 
     return jsonify(data=archived_reply_to.serialize()), 200
@@ -718,14 +762,20 @@ def get_data_retention_for_service(service_id):
 
 @service_blueprint.route('/<uuid:service_id>/data-retention/notification-type/<notification_type>', methods=['GET'])
 @requires_admin_auth()
-def get_data_retention_for_service_notification_type(service_id, notification_type):
+def get_data_retention_for_service_notification_type(
+    service_id,
+    notification_type,
+):
     data_retention = fetch_service_data_retention_by_notification_type(service_id, notification_type)
     return jsonify(data_retention.serialize() if data_retention else {}), 200
 
 
 @service_blueprint.route('/<uuid:service_id>/data-retention/<uuid:data_retention_id>', methods=['GET'])
 @requires_admin_auth()
-def get_data_retention_for_service_by_id(service_id, data_retention_id):
+def get_data_retention_for_service_by_id(
+    service_id,
+    data_retention_id,
+):
     data_retention = fetch_service_data_retention_by_id(service_id, data_retention_id)
     return jsonify(data_retention.serialize() if data_retention else {}), 200
 
@@ -751,7 +801,10 @@ def create_service_data_retention(service_id):
 
 @service_blueprint.route('/<uuid:service_id>/data-retention/<uuid:data_retention_id>', methods=['POST'])
 @requires_admin_auth()
-def modify_service_data_retention(service_id, data_retention_id):
+def modify_service_data_retention(
+    service_id,
+    data_retention_id,
+):
     form = validate(request.get_json(), update_service_data_retention_request)
 
     update_count = update_service_data_retention(
@@ -845,7 +898,10 @@ def check_request_args(request):
     return service_id, name, email_from
 
 
-def check_if_reply_to_address_already_in_use(service_id, email_address):
+def check_if_reply_to_address_already_in_use(
+    service_id,
+    email_address,
+):
     existing_reply_to_addresses = dao_get_reply_to_by_service_id(service_id)
     if email_address in [i.email_address for i in existing_reply_to_addresses]:
         raise InvalidRequest(

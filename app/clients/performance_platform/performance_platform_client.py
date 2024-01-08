@@ -10,13 +10,19 @@ class PerformancePlatformClient:
     def active(self):
         return self._active
 
-    def init_app(self, app):
+    def init_app(
+        self,
+        app,
+    ):
         self._active = app.config.get('PERFORMANCE_PLATFORM_ENABLED')
         if self.active:
             self.performance_platform_url = app.config.get('PERFORMANCE_PLATFORM_URL')
             self.performance_platform_endpoints = app.config.get('PERFORMANCE_PLATFORM_ENDPOINTS')
 
-    def send_stats_to_performance_platform(self, payload):
+    def send_stats_to_performance_platform(
+        self,
+        payload,
+    ):
         if self.active:
             bearer_token = self.performance_platform_endpoints[payload['dataType']]
             headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer {}'.format(bearer_token)}
@@ -37,7 +43,15 @@ class PerformancePlatformClient:
                 resp.raise_for_status()
 
     @staticmethod
-    def format_payload(*, dataset, start_time, group_name, group_value, count, period='day'):
+    def format_payload(
+        *,
+        dataset,
+        start_time,
+        group_name,
+        group_value,
+        count,
+        period='day',
+    ):
         """
         :param dataset - the name of the overall graph, as referred to in the endpoint.
         :param start_time - UTC midnight of the day we're sending stats for
@@ -58,7 +72,10 @@ class PerformancePlatformClient:
         return payload
 
     @staticmethod
-    def generate_payload_id(payload, group_name):
+    def generate_payload_id(
+        payload,
+        group_name,
+    ):
         """
         group_name is the name of the group - eg "channel" or "status"
         """

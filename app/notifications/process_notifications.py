@@ -47,7 +47,10 @@ from app.utils import get_template_instance
 from app.va.identifier import IdentifierType
 
 
-def create_content_for_notification(template, personalisation):
+def create_content_for_notification(
+    template,
+    personalisation,
+):
     template_object = get_template_instance(template.__dict__, personalisation)
     check_placeholders(template_object)
 
@@ -196,7 +199,12 @@ def send_notification_to_queue(
     )
 
 
-def _get_delivery_task(notification, research_mode=False, queue=None, sms_sender_id=None):
+def _get_delivery_task(
+    notification,
+    research_mode=False,
+    queue=None,
+    sms_sender_id=None,
+):
     """
     The return value "deliver_task" is a function decorated to be a Celery task.
     """
@@ -292,7 +300,10 @@ def send_to_queue_for_recipient_info_based_on_recipient_identifier(
     )
 
 
-def simulated_recipient(to_address, notification_type):
+def simulated_recipient(
+    to_address,
+    notification_type,
+):
     if notification_type == SMS_TYPE:
         formatted_simulated_numbers = [
             validate_and_format_phone_number(number) for number in current_app.config['SIMULATED_SMS_NUMBERS']
@@ -302,7 +313,10 @@ def simulated_recipient(to_address, notification_type):
         return to_address in current_app.config['SIMULATED_EMAIL_ADDRESSES']
 
 
-def persist_scheduled_notification(notification_id, scheduled_for):
+def persist_scheduled_notification(
+    notification_id,
+    scheduled_for,
+):
     scheduled_datetime = convert_local_timezone_to_utc(datetime.strptime(scheduled_for, '%Y-%m-%d %H:%M'))
     scheduled_notification = ScheduledNotification(notification_id=notification_id, scheduled_for=scheduled_datetime)
     dao_created_scheduled_notification(scheduled_notification)

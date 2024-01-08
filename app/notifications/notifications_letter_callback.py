@@ -31,7 +31,10 @@ dvla_sns_callback_schema = {
 def validate_schema(schema):
     def decorator(f):
         @wraps(f)
-        def wrapper(*args, **kw):
+        def wrapper(
+            *args,
+            **kw,
+        ):
             validate(request.get_json(force=True), schema)
             return f(*args, **kw)
 

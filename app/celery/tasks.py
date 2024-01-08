@@ -251,7 +251,13 @@ def save_sms(
 
 @notify_celery.task(bind=True, name='save-email', max_retries=5, default_retry_delay=300)
 @statsd(namespace='tasks')
-def save_email(self, service_id, notification_id, encrypted_notification, sender_id=None):
+def save_email(
+    self,
+    service_id,
+    notification_id,
+    encrypted_notification,
+    sender_id=None,
+):
     notification = encryption.decrypt(encrypted_notification)
 
     service = dao_fetch_service_by_id(service_id)

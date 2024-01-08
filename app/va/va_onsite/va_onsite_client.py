@@ -7,7 +7,12 @@ import time
 class VAOnsiteClient:
     __VA_ONSITE_USER = 'va_notify'
 
-    def init_app(self, logger, url: str, va_onsite_secret: str):
+    def init_app(
+        self,
+        logger,
+        url: str,
+        va_onsite_secret: str,
+    ):
         """Initializes the VAOnsiteClient with appropriate data.
 
         :param logger: the application logger
@@ -18,7 +23,10 @@ class VAOnsiteClient:
         self.url_base = url
         self.va_onsite_secret = va_onsite_secret
 
-    def post_onsite_notification(self, data: dict):
+    def post_onsite_notification(
+        self,
+        data: dict,
+    ):
         """Returns the JSON that is retrieved from the `POST` request sent to onsite_notifications
 
         :param data: The dict onsite_notifications is expecting to see
@@ -52,7 +60,12 @@ class VAOnsiteClient:
             'Authorization': f'Bearer {self._encode_jwt(self.__VA_ONSITE_USER, self.va_onsite_secret)}',
         }
 
-    def _encode_jwt(self, user: str, secret_key: str, algo: str = 'ES256'):
+    def _encode_jwt(
+        self,
+        user: str,
+        secret_key: str,
+        algo: str = 'ES256',
+    ):
         """Returns the JWT encoded using the given algorithm
 
         :param user: string that will be used for the `user` value in the `data` dict

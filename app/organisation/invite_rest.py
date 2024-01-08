@@ -67,7 +67,10 @@ def get_invited_org_users_by_organisation(organisation_id):
 
 
 @organisation_invite_blueprint.route('/<invited_org_user_id>', methods=['POST'])
-def update_org_invite_status(organisation_id, invited_org_user_id):
+def update_org_invite_status(
+    organisation_id,
+    invited_org_user_id,
+):
     fetched = get_invited_org_user(organisation_id=organisation_id, invited_org_user_id=invited_org_user_id)
 
     data = request.get_json()
@@ -79,7 +82,10 @@ def update_org_invite_status(organisation_id, invited_org_user_id):
     return jsonify(data=fetched.serialize()), 200
 
 
-def invited_org_user_url(invited_org_user_id, invite_link_host=None):
+def invited_org_user_url(
+    invited_org_user_id,
+    invite_link_host=None,
+):
     token = generate_token(
         str(invited_org_user_id), current_app.config['SECRET_KEY'], current_app.config['DANGEROUS_SALT']
     )

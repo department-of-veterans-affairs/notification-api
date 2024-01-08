@@ -60,11 +60,18 @@ def update_whitelist(service_id):
         return '', 204
 
 
-def _get_recipients_from_request(request_json, key, type):
+def _get_recipients_from_request(
+    request_json,
+    key,
+    type,
+):
     return [(type, recipient) for recipient in request_json.get(key)]
 
 
-def _get_whitelist_objects(service_id, request_json):
+def _get_whitelist_objects(
+    service_id,
+    request_json,
+):
     return [
         ServiceWhitelist.from_string(service_id, type, recipient)
         for type, recipient in (

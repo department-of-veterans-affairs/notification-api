@@ -7,7 +7,10 @@ from app.dao.notifications_dao import dao_get_notification_history_by_reference
 from app.models import Complaint, Notification
 
 
-def determine_notification_bounce_type(notification_type, ses_message):
+def determine_notification_bounce_type(
+    notification_type,
+    ses_message,
+):
     remove_emails_from_bounce(ses_message)
     current_app.logger.info('SES bounce dict: {}'.format(json.dumps(ses_message).replace('{', '(').replace('}', ')')))
     return 'Permanent' if ses_message['bounce']['bounceType'] == 'Permanent' else 'Temporary'

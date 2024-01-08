@@ -67,7 +67,10 @@ def fetch_sms_free_allowance_remainder(start_date):
     )
 
 
-def fetch_sms_billing_for_all_services(start_date, end_date):
+def fetch_sms_billing_for_all_services(
+    start_date,
+    end_date,
+):
     # ASSUMPTION: AnnualBilling has been populated for year.
     free_allowance_remainder = fetch_sms_free_allowance_remainder(start_date).subquery()
 
@@ -170,7 +173,10 @@ def fetch_nightly_billing_counts(process_day: date):
     return db.session.execute(stmt).all()
 
 
-def fetch_letter_costs_for_all_services(start_date, end_date):
+def fetch_letter_costs_for_all_services(
+    start_date,
+    end_date,
+):
     stmt = (
         select(
             Organisation.name.label('organisation_name'),
@@ -203,7 +209,10 @@ def fetch_letter_costs_for_all_services(start_date, end_date):
     return db.session.execute(stmt).all()
 
 
-def fetch_letter_line_items_for_all_services(start_date, end_date):
+def fetch_letter_line_items_for_all_services(
+    start_date,
+    end_date,
+):
     stmt = (
         select(
             Organisation.name.label('organisation_name'),
@@ -237,7 +246,10 @@ def fetch_letter_line_items_for_all_services(start_date, end_date):
     return db.session.execute(stmt).all()
 
 
-def fetch_billing_totals_for_year(service_id, year):
+def fetch_billing_totals_for_year(
+    service_id,
+    year,
+):
     year_start_date, year_end_date = get_financial_year(year)
     print(year_start_date, year_end_date)
 
@@ -287,7 +299,10 @@ def fetch_billing_totals_for_year(service_id, year):
     return db.session.execute(union_all(email_and_letters_stmt, sms_stmt).order_by('notification_type', 'rate')).all()
 
 
-def fetch_monthly_billing_for_year(service_id, year):
+def fetch_monthly_billing_for_year(
+    service_id,
+    year,
+):
     year_start_date, year_end_date = get_financial_year(year)
     utcnow = datetime.utcnow()
     today = convert_utc_to_local_timezone(utcnow)
@@ -340,7 +355,10 @@ def fetch_monthly_billing_for_year(service_id, year):
     ).all()
 
 
-def delete_billing_data_for_service_for_day(process_day, service_id) -> int:
+def delete_billing_data_for_service_for_day(
+    process_day,
+    service_id,
+) -> int:
     """
     Delete all ft_billing data for a given service on a given bst_date, and return how many rows were deleted.
     """
@@ -352,7 +370,10 @@ def delete_billing_data_for_service_for_day(process_day, service_id) -> int:
     return rows_deleted
 
 
-def fetch_billing_data_for_day(process_day, service_id=None):
+def fetch_billing_data_for_day(
+    process_day,
+    service_id=None,
+):
     start_date = convert_local_timezone_to_utc(datetime.combine(process_day, time.min))
     end_date = convert_local_timezone_to_utc(datetime.combine(process_day + timedelta(days=1), time.min))
     # use notification_history if process day is older than 7 days
@@ -387,7 +408,13 @@ def fetch_billing_data_for_day(process_day, service_id=None):
     return transit_data
 
 
-def _query_for_billing_data(table, notification_type, start_date, end_date, service_id):
+def _query_for_billing_data(
+    table,
+    notification_type,
+    start_date,
+    end_date,
+    service_id,
+):
     billable_type_list = {
         SMS_TYPE: NOTIFICATION_STATUS_TYPES_BILLABLE,
         EMAIL_TYPE: NOTIFICATION_STATUS_TYPES_BILLABLE,
@@ -452,7 +479,10 @@ def get_rates_for_billing():
     return non_letter_rates, letter_rates
 
 
-def get_service_ids_that_need_billing_populated(start_date, end_date):
+def get_service_ids_that_need_billing_populated(
+    start_date,
+    end_date,
+):
     stmt = (
         select(NotificationHistory.service_id)
         .where(
@@ -495,7 +525,10 @@ def get_rate(
         return 0
 
 
-def update_fact_billing(data, process_day):
+def update_fact_billing(
+    data,
+    process_day,
+):
     non_letter_rates, letter_rates = get_rates_for_billing()
     rate = get_rate(
         non_letter_rates,
@@ -541,7 +574,11 @@ def update_fact_billing(data, process_day):
     db.session.commit()
 
 
-def create_billing_record(data, rate, process_day):
+def create_billing_record(
+    data,
+    rate,
+    process_day,
+):
     billing_record = FactBilling(
         bst_date=process_day,
         template_id=data.template_id,

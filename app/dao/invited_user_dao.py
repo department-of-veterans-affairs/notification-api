@@ -17,7 +17,10 @@ def save_invited_user(invited_user):
     return invited_user_instance
 
 
-def get_invited_user(service_id, invited_user_id):
+def get_invited_user(
+    service_id,
+    invited_user_id,
+):
     stmt = select(InvitedUser).where(InvitedUser.service_id == service_id, InvitedUser.id == invited_user_id)
     return db.session.scalars(stmt).one()
 

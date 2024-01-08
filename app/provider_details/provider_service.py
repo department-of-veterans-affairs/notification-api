@@ -46,7 +46,10 @@ class ProviderService:
         for notification_type, strategy in self.strategies.items():
             strategy.validate(notification_type)
 
-    def get_provider(self, notification: Notification) -> ProviderDetails:
+    def get_provider(
+        self,
+        notification: Notification,
+    ) -> ProviderDetails:
         """
         Return an instance of ProviderDetails that is appropriate for the given notification.
         """

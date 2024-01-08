@@ -11,7 +11,11 @@ def get_mmg_responses(status):
 
 
 class MMGClientResponseException(SmsClientResponseException):
-    def __init__(self, response, exception):
+    def __init__(
+        self,
+        response,
+        exception,
+    ):
         status_code = response.status_code if response is not None else 504
         text = response.text if response is not None else 'Gateway Time-out'
 
@@ -31,7 +35,13 @@ class MMGClient(SmsClient):
     def __init__(self) -> None:
         self.name = 'mmg'
 
-    def init_app(self, current_app, statsd_client, *args, **kwargs):
+    def init_app(
+        self,
+        current_app,
+        statsd_client,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.current_app = current_app
         self.api_key = current_app.config.get('MMG_API_KEY')
@@ -39,7 +49,11 @@ class MMGClient(SmsClient):
         self.statsd_client = statsd_client
         self.mmg_url = current_app.config.get('MMG_URL')
 
-    def record_outcome(self, success, response):
+    def record_outcome(
+        self,
+        success,
+        response,
+    ):
         status_code = response.status_code if response else 503
         log_message = 'API POST request {} on {} response status_code {}'.format(
             'succeeded' if success else 'failed', self.mmg_url, status_code
@@ -55,7 +69,15 @@ class MMGClient(SmsClient):
     def get_name(self):
         return self.name
 
-    def send_sms(self, to, content, reference, multi=True, sender=None, **kwargs):
+    def send_sms(
+        self,
+        to,
+        content,
+        reference,
+        multi=True,
+        sender=None,
+        **kwargs,
+    ):
         data = {
             'reqType': 'BULK',
             'MSISDN': to,

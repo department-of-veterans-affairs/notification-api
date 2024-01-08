@@ -58,7 +58,10 @@ def get_inbound_sms_summary_for_service(service_id):
 
 
 @inbound_sms.route('/<uuid:inbound_sms_id>', methods=['GET'])
-def get_inbound_by_id(service_id, inbound_sms_id):
+def get_inbound_by_id(
+    service_id,
+    inbound_sms_id,
+):
     message = dao_get_inbound_sms_by_id(service_id, inbound_sms_id)
 
     return jsonify(message.serialize()), 200

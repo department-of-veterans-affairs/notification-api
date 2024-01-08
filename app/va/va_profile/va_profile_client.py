@@ -34,14 +34,24 @@ class VAProfileClient:
     PHONE_BIO_TYPE = 'telephones'
     TX_AUDIT_ID = 'txAuditId'
 
-    def init_app(self, logger, va_profile_url, ssl_cert_path, ssl_key_path, statsd_client):
+    def init_app(
+        self,
+        logger,
+        va_profile_url,
+        ssl_cert_path,
+        ssl_key_path,
+        statsd_client,
+    ):
         self.logger = logger
         self.va_profile_url = va_profile_url
         self.ssl_cert_path = ssl_cert_path
         self.ssl_key_path = ssl_key_path
         self.statsd_client = statsd_client
 
-    def get_email(self, va_profile_id) -> str:
+    def get_email(
+        self,
+        va_profile_id,
+    ) -> str:
         """
         Return the e-mail address for a given Profile ID, or raise NoContactInfoException.
         Upstream code should catch and appropriately handle the requests.Timeout exception.
@@ -71,7 +81,10 @@ class VAProfileClient:
         self.statsd_client.incr('clients.va-profile.get-email.failure')
         self._raise_no_contact_info_exception(self.EMAIL_BIO_TYPE, va_profile_id, response.get(self.TX_AUDIT_ID))
 
-    def get_telephone(self, va_profile_id) -> str:
+    def get_telephone(
+        self,
+        va_profile_id,
+    ) -> str:
         """
         Return the phone number for a given Profile ID, or raise NoContactInfoException.
         Upstream code should catch and appropriately handle the requests.Timeout exception.
@@ -161,7 +174,12 @@ class VAProfileClient:
         self.statsd_client.incr('clients.va-profile.get-communication-item-permission.no-permissions')
         raise CommunicationItemNotFoundException
 
-    def _make_request(self, url: str, va_profile_id: str, bio_type: str = None):
+    def _make_request(
+        self,
+        url: str,
+        va_profile_id: str,
+        bio_type: str = None,
+    ):
         start_time = monotonic()
 
         self.logger.info('Querying VA Profile with ID %s', va_profile_id)
@@ -226,12 +244,22 @@ class VAProfileClient:
             elapsed_time = monotonic() - start_time
             self.statsd_client.timing('clients.va-profile.request-time', elapsed_time)
 
-    def _raise_no_contact_info_exception(self, bio_type: str, va_profile_id: str, tx_audit_id: str):
+    def _raise_no_contact_info_exception(
+        self,
+        bio_type: str,
+        va_profile_id: str,
+        tx_audit_id: str,
+    ):
         self.statsd_client.incr(f'clients.va-profile.get-{bio_type}.no-{bio_type}')
         raise NoContactInfoException(
             f'No {bio_type} in response for VA Profile ID {va_profile_id} ' f'with AuditId {tx_audit_id}'
         )
 
-    def _validate_response(self, response, va_profile_id, bio_type):
+    def _validate_response(
+        self,
+        response,
+        va_profile_id,
+        bio_type,
+    ):
         if response.get('messages'):
             self._raise_no_contact_info_exception(bio_type, va_profile_id, response.get(self.TX_AUDIT_ID))

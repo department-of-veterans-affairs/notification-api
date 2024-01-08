@@ -38,7 +38,10 @@ def fetch_service_callbacks(service_id):
 
 
 @service_callback_blueprint.route('/<uuid:callback_id>', methods=['GET'])
-def fetch_service_callback(service_id, callback_id):
+def fetch_service_callback(
+    service_id,
+    callback_id,
+):
     service_callback = query_service_callback(service_id, callback_id)
 
     return jsonify(data=service_callback_api_schema.dump(service_callback).data), 200
@@ -63,7 +66,10 @@ def create_service_callback(service_id):
 
 
 @service_callback_blueprint.route('/<uuid:callback_id>', methods=['POST'])
-def update_service_callback(service_id, callback_id):
+def update_service_callback(
+    service_id,
+    callback_id,
+):
     data = request.get_json()
     data['service_id'] = service_id
     data['updated_by_id'] = current_user.id
@@ -82,14 +88,20 @@ def update_service_callback(service_id, callback_id):
 
 
 @service_callback_blueprint.route('/<uuid:callback_id>', methods=['DELETE'])
-def remove_service_callback(service_id, callback_id):
+def remove_service_callback(
+    service_id,
+    callback_id,
+):
     callback = query_service_callback(service_id, callback_id)
 
     delete_service_callback_api(callback)
     return '', 204
 
 
-def handle_sql_error(e, table_name):
+def handle_sql_error(
+    e,
+    table_name,
+):
     if (
         hasattr(e, 'orig')
         and hasattr(e.orig, 'pgerror')

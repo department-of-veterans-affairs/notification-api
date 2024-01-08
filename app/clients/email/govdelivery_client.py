@@ -28,7 +28,14 @@ class GovdeliveryClientException(EmailClientException):
 class GovdeliveryClient(EmailClient):
     """Govdelivery email client"""
 
-    def init_app(self, token, url, statsd_client, *args, **kwargs):
+    def init_app(
+        self,
+        token,
+        url,
+        statsd_client,
+        *args,
+        **kwargs,
+    ):
         self.name = 'govdelivery'
         self.token = token
         self.statsd_client = statsd_client
@@ -37,7 +44,16 @@ class GovdeliveryClient(EmailClient):
     def get_name(self):
         return self.name
 
-    def send_email(self, source, to_addresses, subject, body, html_body, reply_to_address=None, attachments=[]):
+    def send_email(
+        self,
+        source,
+        to_addresses,
+        subject,
+        body,
+        html_body,
+        reply_to_address=None,
+        attachments=[],
+    ):
         try:
             if isinstance(to_addresses, str):
                 to_addresses = [to_addresses]

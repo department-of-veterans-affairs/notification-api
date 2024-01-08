@@ -22,7 +22,13 @@ def get_twilio_responses(status):
 
 
 class TwilioSMSClient(SmsClient):
-    def __init__(self, account_sid=None, auth_token=None, *args, **kwargs):
+    def __init__(
+        self,
+        account_sid=None,
+        auth_token=None,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         # Twilio docs at.
         # https://www.twilio.com/docs/usage/webhooks/webhooks-connection-overrides
@@ -73,7 +79,14 @@ class TwilioSMSClient(SmsClient):
             'canceled': NOTIFICATION_TECHNICAL_FAILURE,
         }
 
-    def init_app(self, logger, callback_notify_url_host, environment, *args, **kwargs):
+    def init_app(
+        self,
+        logger,
+        callback_notify_url_host,
+        environment,
+        *args,
+        **kwargs,
+    ):
         self.logger = logger
         self._callback_notify_url_host = callback_notify_url_host
 
@@ -100,7 +113,13 @@ class TwilioSMSClient(SmsClient):
     def get_name(self):
         return self.name
 
-    def send_sms(self, to, content, reference, **kwargs) -> str:
+    def send_sms(
+        self,
+        to,
+        content,
+        reference,
+        **kwargs,
+    ) -> str:
         """
         Twilio supports sending messages with a sender phone number
         or messaging_service_sid.
@@ -180,7 +199,10 @@ class TwilioSMSClient(SmsClient):
                 elapsed_time,
             )
 
-    def translate_delivery_status(self, twilio_delivery_status_message: str) -> dict:
+    def translate_delivery_status(
+        self,
+        twilio_delivery_status_message: str,
+    ) -> dict:
         """
         Parses the base64 encoded delivery status message from Twilio and returns a dictionary.
         The dictionary contains the following keys:

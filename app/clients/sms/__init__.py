@@ -6,7 +6,10 @@ class SmsClientResponseException(ClientException):
     Base Exception for SmsClientsResponses
     """
 
-    def __init__(self, message):
+    def __init__(
+        self,
+        message,
+    ):
         self.message = message
 
     def __str__(self):
@@ -18,7 +21,11 @@ class SmsClient(Client):
     Base Sms client for sending smss.
     """
 
-    def send_sms(self, *args, **kwargs):
+    def send_sms(
+        self,
+        *args,
+        **kwargs,
+    ):
         raise NotImplementedError('TODO Need to implement.')
 
     # TODO: refactor to use property instead of manual getter

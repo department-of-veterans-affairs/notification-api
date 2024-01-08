@@ -13,11 +13,19 @@ def get_branch_points(migrations):
     return [m for m in migrations.walk_revisions() if m.is_branch_point]
 
 
-def get_branches(migrations, branch_point, heads):
+def get_branches(
+    migrations,
+    branch_point,
+    heads,
+):
     return [list(migrations.iterate_revisions(m, branch_point.revision))[::-1] for m in heads]
 
 
-def choice(prompt, options, option_fmt=lambda x: x):
+def choice(
+    prompt,
+    options,
+    option_fmt=lambda x: x,
+):
     print('{}:\n'.format(prompt))
     for i, option in enumerate(options):
         print('{}. {}'.format(i + 1, option_fmt(option)))
@@ -28,12 +36,19 @@ def choice(prompt, options, option_fmt=lambda x: x):
     return options[int(choice) - 1]
 
 
-def rename_revision(current_revision, new_base):
+def rename_revision(
+    current_revision,
+    new_base,
+):
     new_id = int(new_base[:4]) + 1
     return '{:04d}{}'.format(new_id, current_revision[4:])
 
 
-def reorder_revisions(revisions, old_base, new_base):
+def reorder_revisions(
+    revisions,
+    old_base,
+    new_base,
+):
     if not revisions:
         return
 
@@ -58,7 +73,11 @@ def reorder_revisions(revisions, old_base, new_base):
     reorder_revisions(tail, head.revision, new_revision_id)
 
 
-def fix_branch_point(migrations, branch_point, heads):
+def fix_branch_point(
+    migrations,
+    branch_point,
+    heads,
+):
     print('Migrations directory has a branch point at {}'.format(branch_point.revision))
 
     branches = get_branches(migrations, branch_point, heads)

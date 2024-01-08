@@ -79,7 +79,10 @@ def validate_twilio_event(event: dict) -> bool:
         return False
 
 
-def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
+def vetext_incoming_forwarder_lambda_handler(
+    event: dict,
+    context: any,
+):
     """this method takes in an event passed in by either an alb or sqs.
     @param: event   -  contains data pertaining to an incoming sms from Twilio
     @param: context -  contains information regarding information
@@ -303,7 +306,10 @@ def push_to_retry_sqs(event_body):
         push_to_dead_letter_sqs(event_body, 'push_to_retry_sqs')
 
 
-def push_to_dead_letter_sqs(event, source):
+def push_to_dead_letter_sqs(
+    event,
+    source,
+):
     """Places unaccounted for event on dead-letter queue to be inspected"""
 
     logger.info('Placing event on dead-letter queue')

@@ -61,7 +61,10 @@ def get_monthly_platform_stats():
     return jsonify(notify_monthly_stats)
 
 
-def validate_date_range_is_within_a_financial_year(start_date, end_date):
+def validate_date_range_is_within_a_financial_year(
+    start_date,
+    end_date,
+):
     try:
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()

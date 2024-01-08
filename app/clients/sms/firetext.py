@@ -21,7 +21,11 @@ def get_firetext_responses(status):
 
 
 class FiretextClientResponseException(SmsClientResponseException):
-    def __init__(self, response, exception):
+    def __init__(
+        self,
+        response,
+        exception,
+    ):
         status_code = response.status_code if response is not None else 504
         text = response.text if response is not None else 'Gateway Time-out'
         self.status_code = status_code
@@ -40,7 +44,13 @@ class FiretextClient(SmsClient):
     def __init__(self) -> None:
         self.name = 'firetext'
 
-    def init_app(self, current_app, statsd_client, *args, **kwargs):
+    def init_app(
+        self,
+        current_app,
+        statsd_client,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.current_app = current_app
         self.api_key = current_app.config.get('FIRETEXT_API_KEY')
@@ -51,7 +61,11 @@ class FiretextClient(SmsClient):
     def get_name(self):
         return self.name
 
-    def record_outcome(self, success, response):
+    def record_outcome(
+        self,
+        success,
+        response,
+    ):
         status_code = response.status_code if response else 503
 
         log_message = 'API POST request {} on {} response status_code {}'.format(
@@ -65,7 +79,14 @@ class FiretextClient(SmsClient):
             self.statsd_client.incr('clients.firetext.error')
             self.current_app.logger.error(log_message)
 
-    def send_sms(self, to, content, reference, sender=None, **kwargs):
+    def send_sms(
+        self,
+        to,
+        content,
+        reference,
+        sender=None,
+        **kwargs,
+    ):
         data = {
             'apiKey': self.api_key,
             'from': self.from_number if sender is None else sender,

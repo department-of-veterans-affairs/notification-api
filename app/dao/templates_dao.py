@@ -47,7 +47,10 @@ def dao_update_template(template):
 
 
 @transactional
-def dao_update_template_reply_to(template_id, reply_to):
+def dao_update_template_reply_to(
+    template_id,
+    reply_to,
+):
     stmt = (
         update(Template)
         .where(Template.id == template_id)
@@ -86,14 +89,21 @@ def dao_update_template_reply_to(template_id, reply_to):
 
 
 @transactional
-def dao_redact_template(template, user_id):
+def dao_redact_template(
+    template,
+    user_id,
+):
     template.template_redacted.redact_personalisation = True
     template.template_redacted.updated_at = datetime.utcnow()
     template.template_redacted.updated_by_id = user_id
     db.session.add(template.template_redacted)
 
 
-def dao_get_template_by_id_and_service_id(template_id, service_id, version=None) -> Template:
+def dao_get_template_by_id_and_service_id(
+    template_id,
+    service_id,
+    version=None,
+) -> Template:
     if version is None:
         stmt = select(Template).where(
             Template.id == template_id, Template.hidden.is_(False), Template.service_id == service_id
@@ -109,7 +119,11 @@ def dao_get_template_by_id_and_service_id(template_id, service_id, version=None)
     return db.session.scalars(stmt).one()
 
 
-def dao_get_number_of_templates_by_service_id_and_name(service_id, template_name, version=None):
+def dao_get_number_of_templates_by_service_id_and_name(
+    service_id,
+    template_name,
+    version=None,
+):
     if version is None:
         stmt = (
             select(func.count())
@@ -131,7 +145,10 @@ def dao_get_number_of_templates_by_service_id_and_name(service_id, template_name
     return db.session.scalar(stmt)
 
 
-def dao_get_template_by_id(template_id, version=None):
+def dao_get_template_by_id(
+    template_id,
+    version=None,
+):
     if version is None:
         stmt = select(Template).where(Template.id == template_id)
     else:
@@ -140,7 +157,10 @@ def dao_get_template_by_id(template_id, version=None):
     return db.session.scalars(stmt).one()
 
 
-def dao_get_all_templates_for_service(service_id, template_type=None):
+def dao_get_all_templates_for_service(
+    service_id,
+    template_type=None,
+):
     if template_type is None:
         stmt = (
             select(Template)
@@ -162,7 +182,10 @@ def dao_get_all_templates_for_service(service_id, template_type=None):
     return db.session.scalars(stmt).all()
 
 
-def dao_get_template_versions(service_id, template_id):
+def dao_get_template_versions(
+    service_id,
+    template_id,
+):
     stmt = (
         select(TemplateHistory)
         .where(

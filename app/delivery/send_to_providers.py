@@ -35,7 +35,10 @@ from app.models import (
 from app.service.utils import compute_source_email_address
 
 
-def send_sms_to_provider(notification, sms_sender_id=None):
+def send_sms_to_provider(
+    notification,
+    sms_sender_id=None,
+):
     """
     Send an HTTP request to an SMS backend provider to initiate an SMS message to a veteran.  Do not attempt to
     switch providers if one fails.
@@ -164,7 +167,10 @@ def send_email_to_provider(notification: Notification):
     statsd_client.timing('email.total-time', delta_milliseconds)
 
 
-def update_notification_to_sending(notification, client):
+def update_notification_to_sending(
+    notification,
+    client,
+):
     notification.sent_at = datetime.utcnow()
     notification.sent_by = client.get_name()
     notification.status = NOTIFICATION_SENDING
@@ -241,13 +247,19 @@ def get_provider_id(notification: Notification) -> str:
     return next((provider for provider in providers if provider is not None), None)
 
 
-def get_logo_url(base_url, logo_file):
+def get_logo_url(
+    base_url,
+    logo_file,
+):
     bucket = current_app.config['ASSET_UPLOAD_BUCKET_NAME']
     domain = current_app.config['ASSET_DOMAIN']
     return 'https://{}.{}/{}'.format(bucket, domain, logo_file)
 
 
-def get_html_email_options(notification, provider):
+def get_html_email_options(
+    notification,
+    provider,
+):
     options_dict = {}
     if is_gapixel_enabled(current_app):
         options_dict['ga_pixel_url'] = gapixels.build_ga_pixel_url(notification, provider)
@@ -296,14 +308,20 @@ def malware_failure(notification):
     )
 
 
-def contains_pii(notification, text_content):
+def contains_pii(
+    notification,
+    text_content,
+):
     for sin in re.findall(r'\s\d{3}-\d{3}-\d{3}\s', text_content):
         if luhn(sin.replace('-', '').strip()):
             fail_pii(notification, 'Social Insurance Number')
             return
 
 
-def fail_pii(notification, pii_type):
+def fail_pii(
+    notification,
+    pii_type,
+):
     notification.status = NOTIFICATION_CONTAINS_PII
     dao_update_notification(notification)
     raise NotificationTechnicalFailureException(

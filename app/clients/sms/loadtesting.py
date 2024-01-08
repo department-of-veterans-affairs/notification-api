@@ -12,7 +12,13 @@ class LoadtestingClient(FiretextClient):
     Loadtest sms client.
     """
 
-    def init_app(self, config, statsd_client, *args, **kwargs):
+    def init_app(
+        self,
+        config,
+        statsd_client,
+        *args,
+        **kwargs,
+    ):
         super(FiretextClient, self).__init__(*args, **kwargs)
         self.current_app = current_app
         self.api_key = config.config.get('LOADTESTING_API_KEY')

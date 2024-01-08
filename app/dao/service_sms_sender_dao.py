@@ -11,7 +11,10 @@ from sqlalchemy import desc, select, update
 from typing import Optional
 
 
-def insert_service_sms_sender(service, sms_sender):
+def insert_service_sms_sender(
+    service,
+    sms_sender,
+):
     """
     This method is called from create_service, which is wrapped in a transaction.
     """
@@ -20,7 +23,10 @@ def insert_service_sms_sender(service, sms_sender):
     db.session.add(new_sms_sender)
 
 
-def dao_get_service_sms_sender_by_id(service_id, service_sms_sender_id):
+def dao_get_service_sms_sender_by_id(
+    service_id,
+    service_sms_sender_id,
+):
     stmt = select(ServiceSmsSender).where(
         ServiceSmsSender.id == service_sms_sender_id,
         ServiceSmsSender.service_id == service_id,
@@ -40,7 +46,10 @@ def dao_get_sms_senders_by_service_id(service_id):
     return db.session.scalars(stmt).all()
 
 
-def dao_get_service_sms_sender_by_service_id_and_number(service_id: str, number: str) -> Optional[ServiceSmsSender]:
+def dao_get_service_sms_sender_by_service_id_and_number(
+    service_id: str,
+    number: str,
+) -> Optional[ServiceSmsSender]:
     """Return an instance of ServiceSmsSender, if available."""
 
     stmt = select(ServiceSmsSender).where(
@@ -106,7 +115,11 @@ def dao_add_sms_sender_for_service(
 
 
 @transactional
-def dao_update_service_sms_sender(service_id, service_sms_sender_id, **kwargs):  # noqa: C901
+def dao_update_service_sms_sender(  # noqa: C901
+    service_id,
+    service_sms_sender_id,
+    **kwargs,
+):
     if 'is_default' in kwargs:
         default_sms_sender = _get_default_sms_sender_for_service(service_id)
         is_default = kwargs['is_default']
@@ -160,7 +173,10 @@ def dao_update_service_sms_sender(service_id, service_sms_sender_id, **kwargs): 
 
 
 @transactional
-def archive_sms_sender(service_id, sms_sender_id):
+def archive_sms_sender(
+    service_id,
+    sms_sender_id,
+):
     stmt = select(ServiceSmsSender).where(
         ServiceSmsSender.id == sms_sender_id, ServiceSmsSender.service_id == service_id
     )
@@ -198,7 +214,10 @@ def _set_default_sms_sender_to_not_default(existing_default_sms_sender: Optional
         db.session.add(existing_default_sms_sender)
 
 
-def _allocate_inbound_number_for_service(service_id, inbound_number_id) -> InboundNumber:
+def _allocate_inbound_number_for_service(
+    service_id,
+    inbound_number_id,
+) -> InboundNumber:
     stmt = (
         update(InboundNumber)
         .where(

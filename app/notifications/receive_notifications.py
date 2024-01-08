@@ -214,7 +214,10 @@ class NoSuitableServiceForInboundSms(Exception):
     pass
 
 
-def fetch_potential_service(inbound_number: str, provider_name: str) -> Service:
+def fetch_potential_service(
+    inbound_number: str,
+    provider_name: str,
+) -> Service:
     service = dao_fetch_service_by_inbound_number(inbound_number)
 
     if not service:

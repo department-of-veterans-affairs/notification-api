@@ -3,7 +3,10 @@ from .mobile_app_types import MobileAppType
 
 
 class MobileApp:
-    def __init__(self, type: MobileAppType):
+    def __init__(
+        self,
+        type: MobileAppType,
+    ):
         self.type: MobileAppType = type
         self.sid = self._get_sid_from_env()
 

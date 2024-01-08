@@ -83,7 +83,10 @@ def validate_twilio_event(event: dict) -> bool:
         return False
 
 
-def delivery_status_processor_lambda_handler(event: any, context: any):
+def delivery_status_processor_lambda_handler(
+    event: any,
+    context: any,
+):
     """this method takes in an event passed in by either an alb.
     @param: event   -  contains data pertaining to an sms delivery status from the external provider
     @param: context -  AWS context sent by ALB to all events. Over ridden by unit tests as skip trigger.
@@ -214,7 +217,11 @@ def celery_body_to_celery_task(task_message: dict) -> dict:
     return envelope
 
 
-def push_to_sqs(push_data: dict, queue_url: str, encode: bool) -> None:
+def push_to_sqs(
+    push_data: dict,
+    queue_url: str,
+    encode: bool,
+) -> None:
     """
     Pushes an inbound sms or entire event to SQS. Sends to RETRY or DEAD LETTER queue dependent
     on is_retry variable.

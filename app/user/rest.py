@@ -249,7 +249,10 @@ def verify_user_code(user_id):
 
 
 @user_blueprint.route('/<uuid:user_id>/<code_type>-code', methods=['POST'])
-def send_user_2fa_code(user_id, code_type):
+def send_user_2fa_code(
+    user_id,
+    code_type,
+):
     user_to_send_to = get_user_by_id(user_id=user_id)
 
     if verify_within_time(user_to_send_to, age=timedelta(seconds=10)) >= 1:
@@ -272,7 +275,10 @@ def send_user_2fa_code(user_id, code_type):
     return '{}', 204
 
 
-def send_user_sms_code(user_to_send_to, data):
+def send_user_sms_code(
+    user_to_send_to,
+    data,
+):
     recipient = data.get('to') or user_to_send_to.mobile_number
 
     secret_code = create_secret_code()
@@ -283,7 +289,10 @@ def send_user_sms_code(user_to_send_to, data):
     )
 
 
-def send_user_email_code(user_to_send_to, data):
+def send_user_email_code(
+    user_to_send_to,
+    data,
+):
     recipient = user_to_send_to.email_address
 
     secret_code = str(uuid.uuid4())
@@ -297,7 +306,13 @@ def send_user_email_code(user_to_send_to, data):
     )
 
 
-def create_2fa_code(template_id, user_to_send_to, secret_code, recipient, personalisation):
+def create_2fa_code(
+    template_id,
+    user_to_send_to,
+    secret_code,
+    recipient,
+    personalisation,
+):
     template = dao_get_template_by_id(template_id)
 
     # save the code in the VerifyCode table
@@ -472,7 +487,10 @@ def get_user(user_id=None):
 
 
 @user_blueprint.route('/<uuid:user_id>/service/<uuid:service_id>/permission', methods=['POST'])
-def set_permissions(user_id, service_id):
+def set_permissions(
+    user_id,
+    service_id,
+):
     """This route requires admin authorization.  This is setup in app/__init__.py."""
 
     service_user = dao_get_service_user(user_id, service_id)
@@ -673,7 +691,10 @@ def fido2_keys_user_validate(user_id):
 
 
 @user_blueprint.route('/<uuid:user_id>/fido2_keys/<uuid:key_id>', methods=['DELETE'])
-def delete_fido2_keys_user(user_id, key_id):
+def delete_fido2_keys_user(
+    user_id,
+    key_id,
+):
     user = get_user_and_accounts(user_id)
     delete_fido2_key(user_id, key_id)
     _update_alert(user)
@@ -698,13 +719,21 @@ def _create_verification_url(user):
     return url_with_token(data, url, current_app.config)
 
 
-def _create_confirmation_url(user, email_address):
+def _create_confirmation_url(
+    user,
+    email_address,
+):
     data = json.dumps({'user_id': str(user.id), 'email': email_address})
     url = '/user-profile/email/confirm/'
     return url_with_token(data, url, current_app.config)
 
 
-def _create_2fa_url(user, secret_code, next_redir, email_auth_link_host):
+def _create_2fa_url(
+    user,
+    secret_code,
+    next_redir,
+    email_auth_link_host,
+):
     data = json.dumps({'user_id': str(user.id), 'secret_code': secret_code})
     url = '/email-auth/'
     ret = url_with_token(data, url, current_app.config, base_url=email_auth_link_host)
@@ -737,7 +766,10 @@ def get_orgs_and_services(user):
     }
 
 
-def _update_alert(user_to_update, change_type=''):
+def _update_alert(
+    user_to_update,
+    change_type='',
+):
     service = db.session.get(Service, current_app.config['NOTIFY_SERVICE_ID'])
     template = dao_get_template_by_id(current_app.config['ACCOUNT_CHANGE_TEMPLATE_ID'])
     recipient = user_to_update.email_address

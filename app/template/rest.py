@@ -51,7 +51,10 @@ template_blueprint = Blueprint('template', __name__, url_prefix='/service/<uuid:
 register_errors(template_blueprint)
 
 
-def _content_count_greater_than_limit(content, template_type):
+def _content_count_greater_than_limit(
+    content,
+    template_type,
+):
     if template_type != SMS_TYPE:
         return False
     template = SMSMessageTemplate({'content': content, 'template_type': template_type})
@@ -122,7 +125,10 @@ def create_template(service_id):
 
 @template_blueprint.route('/<uuid:template_id>', methods=['POST'])
 @requires_admin_auth_or_user_in_service(required_permission='edit_templates')
-def update_template(service_id, template_id):
+def update_template(
+    service_id,
+    template_id,
+):
     fetched_template = dao_get_template_by_id_and_service_id(template_id=template_id, service_id=service_id)
 
     if not service_has_permission(fetched_template.template_type, fetched_template.service.permissions):
@@ -191,7 +197,10 @@ def get_all_templates_for_service(service_id):
 
 @template_blueprint.route('/<uuid:template_id>', methods=['GET'])
 @requires_admin_auth_or_user_in_service(required_permission='manage_templates')
-def get_template_by_id_and_service_id(service_id, template_id):
+def get_template_by_id_and_service_id(
+    service_id,
+    template_id,
+):
     fetched_template = dao_get_template_by_id_and_service_id(template_id=template_id, service_id=service_id)
     data = template_schema.dump(fetched_template).data
     return jsonify(data=data)
@@ -199,7 +208,10 @@ def get_template_by_id_and_service_id(service_id, template_id):
 
 @template_blueprint.route('/<uuid:template_id>/preview', methods=['GET'])
 @requires_admin_auth_or_user_in_service(required_permission='manage_templates')
-def preview_template_by_id_and_service_id(service_id, template_id):
+def preview_template_by_id_and_service_id(
+    service_id,
+    template_id,
+):
     fetched_template = dao_get_template_by_id_and_service_id(template_id=template_id, service_id=service_id)
     data = template_schema.dump(fetched_template).data
     template_object = get_template_instance(data, values=request.args.to_dict())
@@ -217,7 +229,10 @@ def preview_template_by_id_and_service_id(service_id, template_id):
 
 @template_blueprint.route('/<template_id>/preview-html', methods=['GET'])
 @requires_admin_auth_or_user_in_service(required_permission='manage_templates')
-def get_html_template(service_id, template_id):
+def get_html_template(
+    service_id,
+    template_id,
+):
     template_dict = dao_get_template_by_id(template_id).__dict__
 
     html_email = HTMLEmailTemplate(template_dict, values={}, preview_mode=True)
@@ -247,7 +262,11 @@ def generate_html_preview_for_template_content(service_id):
 
 @template_blueprint.route('/<uuid:template_id>/version/<int:version>')
 @requires_admin_auth_or_user_in_service(required_permission='manage_templates')
-def get_template_version(service_id, template_id, version):
+def get_template_version(
+    service_id,
+    template_id,
+    version,
+):
     data = template_history_schema.dump(
         dao_get_template_by_id_and_service_id(template_id=template_id, service_id=service_id, version=version)
     ).data
@@ -256,14 +275,20 @@ def get_template_version(service_id, template_id, version):
 
 @template_blueprint.route('/<uuid:template_id>/versions')
 @requires_admin_auth_or_user_in_service(required_permission='manage_templates')
-def get_template_versions(service_id, template_id):
+def get_template_versions(
+    service_id,
+    template_id,
+):
     data = template_history_schema.dump(
         dao_get_template_versions(service_id=service_id, template_id=template_id), many=True
     ).data
     return jsonify(data=data)
 
 
-def _template_has_not_changed(current_data, updated_template):
+def _template_has_not_changed(
+    current_data,
+    updated_template,
+):
     return all(
         current_data[key] == updated_template[key]
         for key in (
@@ -282,7 +307,10 @@ def _template_has_not_changed(current_data, updated_template):
     )
 
 
-def redact_template(template, data):
+def redact_template(
+    template,
+    data,
+):
     # we also don't need to check what was passed in redact_personalisation - its presence in the dict is enough.
     if 'created_by' not in data:
         message = 'Field is required'
@@ -297,7 +325,11 @@ def redact_template(template, data):
 
 @template_blueprint.route('/preview/<uuid:notification_id>/<file_type>', methods=['GET'])
 @requires_admin_auth_or_user_in_service(required_permission='manage_templates')
-def preview_letter_template_by_notification_id(service_id, notification_id, file_type):
+def preview_letter_template_by_notification_id(
+    service_id,
+    notification_id,
+    file_type,
+):
     if file_type not in ('pdf', 'png'):
         raise InvalidRequest({'content': ['file_type must be pdf or png']}, status_code=400)
 
@@ -376,7 +408,10 @@ def preview_letter_template_by_notification_id(service_id, notification_id, file
 
 @template_blueprint.route('/<uuid:template_id>/stats', methods=['GET'])
 @requires_admin_auth_or_user_in_service(required_permission='manage_templates')
-def get_specific_template_usage_stats(service_id, template_id):
+def get_specific_template_usage_stats(
+    service_id,
+    template_id,
+):
     start_date = None
     end_date = None
 
@@ -402,7 +437,12 @@ def get_specific_template_usage_stats(service_id, template_id):
     return jsonify(data=stats), 200
 
 
-def _get_png_preview_or_overlaid_pdf(url, data, notification_id, json=True):
+def _get_png_preview_or_overlaid_pdf(
+    url,
+    data,
+    notification_id,
+    json=True,
+):
     if json:
         resp = requests_post(
             url,

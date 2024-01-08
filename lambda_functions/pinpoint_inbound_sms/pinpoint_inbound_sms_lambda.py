@@ -8,7 +8,10 @@ ROUTING_KEY = 'notify-internal-tasks'
 TASK_NAME = 'process-pinpoint-inbound-sms'
 
 
-def lambda_handler(event, context):
+def lambda_handler(
+    event,
+    context,
+):
     sqs = boto3.resource('sqs')
     queue = sqs.get_queue_by_name(QueueName=f"{os.getenv('QUEUE_PREFIX')}{ROUTING_KEY}")
 

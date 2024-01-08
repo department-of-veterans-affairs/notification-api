@@ -17,7 +17,10 @@ class OptInFailureException(Exception):
 
 
 # context type is LambdaContext which reqs an import from a pkg we don't have, so omitted
-def two_way_sms_handler(event: dict, context) -> dict:
+def two_way_sms_handler(
+    event: dict,
+    context,
+) -> dict:
     logger.setLevel(logging.INFO)
 
     region = os.getenv('AWS_REGION')
@@ -44,7 +47,10 @@ def two_way_sms_handler(event: dict, context) -> dict:
         pass
 
 
-def _opt_in_number(recipient_number: str, sns: BaseClient) -> dict:
+def _opt_in_number(
+    recipient_number: str,
+    sns: BaseClient,
+) -> dict:
     response = _make_sns_opt_in_request(recipient_number, sns)
     ok, parsed_response = _parse_response_sns(response, recipient_number)
 
@@ -55,7 +61,11 @@ def _opt_in_number(recipient_number: str, sns: BaseClient) -> dict:
         raise Exception(f'SnsException: {parsed_response}')
 
 
-def _send_default_sms_message(recipient_number, sender, pinpoint: BaseClient):
+def _send_default_sms_message(
+    recipient_number,
+    sender,
+    pinpoint: BaseClient,
+):
     response = _make_pinpoint_send_message_request(recipient_number, sender, pinpoint)
     logging.info(
         f'Handler successfully sent message with message ' f'{response["MessageResponse"]["Result"][recipient_number]}'
@@ -63,7 +73,10 @@ def _send_default_sms_message(recipient_number, sender, pinpoint: BaseClient):
     return response['MessageResponse']['Result'][recipient_number]
 
 
-def _make_sns_opt_in_request(recipient_number: str, sns: BaseClient) -> dict:
+def _make_sns_opt_in_request(
+    recipient_number: str,
+    sns: BaseClient,
+) -> dict:
     try:
         return sns.opt_in_phone_number(phoneNumber=recipient_number)
     except ClientError as error:
@@ -77,7 +90,10 @@ def _make_sns_opt_in_request(recipient_number: str, sns: BaseClient) -> dict:
         raise OptInFailureException(error)
 
 
-def _parse_response_sns(response: dict, recipient_number: str) -> tuple:
+def _parse_response_sns(
+    response: dict,
+    recipient_number: str,
+) -> tuple:
     parsed_response = {
         'RequestId': response['ResponseMetadata']['RequestId'],
         'StatusCode': response['ResponseMetadata']['HTTPStatusCode'],
@@ -98,7 +114,11 @@ def _parse_response_sns(response: dict, recipient_number: str) -> tuple:
     return True, parsed_response
 
 
-def _make_pinpoint_send_message_request(recipient_number: str, sender: str, pinpoint: BaseClient) -> dict:
+def _make_pinpoint_send_message_request(
+    recipient_number: str,
+    sender: str,
+    pinpoint: BaseClient,
+) -> dict:
     return pinpoint.send_messages(
         ApplicationId=pinpoint_project_id,
         MessageRequest={

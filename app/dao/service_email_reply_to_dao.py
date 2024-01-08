@@ -16,7 +16,10 @@ def dao_get_reply_to_by_service_id(service_id):
     return db.session.scalars(stmt).all()
 
 
-def dao_get_reply_to_by_id(service_id, reply_to_id):
+def dao_get_reply_to_by_id(
+    service_id,
+    reply_to_id,
+):
     stmt = (
         select(ServiceEmailReplyTo)
         .where(
@@ -31,7 +34,11 @@ def dao_get_reply_to_by_id(service_id, reply_to_id):
 
 
 @transactional
-def add_reply_to_email_address_for_service(service_id, email_address, is_default):
+def add_reply_to_email_address_for_service(
+    service_id,
+    email_address,
+    is_default,
+):
     old_default = _get_existing_default(service_id)
     if is_default:
         _reset_old_default_to_false(old_default)
@@ -44,7 +51,12 @@ def add_reply_to_email_address_for_service(service_id, email_address, is_default
 
 
 @transactional
-def update_reply_to_email_address(service_id, reply_to_id, email_address, is_default):
+def update_reply_to_email_address(
+    service_id,
+    reply_to_id,
+    email_address,
+    is_default,
+):
     old_default = _get_existing_default(service_id)
     if is_default:
         _reset_old_default_to_false(old_default)
@@ -60,7 +72,10 @@ def update_reply_to_email_address(service_id, reply_to_id, email_address, is_def
 
 
 @transactional
-def archive_reply_to_email_address(service_id, reply_to_id):
+def archive_reply_to_email_address(
+    service_id,
+    reply_to_id,
+):
     stmt = select(ServiceEmailReplyTo).where(
         ServiceEmailReplyTo.id == reply_to_id, ServiceEmailReplyTo.service_id == service_id
     )

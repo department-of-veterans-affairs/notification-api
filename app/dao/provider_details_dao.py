@@ -104,7 +104,10 @@ def dao_switch_sms_provider_to_provider_with_identifier(identifier):
             dao_update_provider_details(provider)
 
 
-def get_provider_details_by_notification_type(notification_type, supports_international=False):
+def get_provider_details_by_notification_type(
+    notification_type,
+    supports_international=False,
+):
     filters = [ProviderDetails.notification_type == notification_type]
 
     if supports_international:
@@ -152,7 +155,10 @@ def dao_update_provider_details(provider_details):
 
 
 # TODO #962 - Should this be deleted? sms provider swap code
-def dao_get_sms_provider_with_equal_priority(identifier, priority):
+def dao_get_sms_provider_with_equal_priority(
+    identifier,
+    priority,
+):
     stmt = (
         select(ProviderDetails)
         .where(
