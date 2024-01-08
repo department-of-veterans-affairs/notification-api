@@ -1,4 +1,4 @@
-# Lambdas and the Layers they use
+# Lambdas and Layers
 
 | Lambda Name | Layers Used |
 | ---- | ---- |
