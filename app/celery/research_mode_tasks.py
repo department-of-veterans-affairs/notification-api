@@ -30,7 +30,12 @@ temp_fail_email = 'temp-fail@simulator.notify'
 
 
 # TODO: Add support for other providers - Twilio / Granicus
-def send_sms_response(provider, notification_id, to, reference=None):
+def send_sms_response(
+    provider,
+    notification_id,
+    to,
+    reference=None,
+):
     path = None
     if provider == 'mmg':
         body = mmg_callback(notification_id, to)
@@ -59,7 +64,10 @@ def send_sms_response(provider, notification_id, to, reference=None):
     make_request(SMS_TYPE, provider, body, headers, path)
 
 
-def send_email_response(reference, to):
+def send_email_response(
+    reference,
+    to,
+):
     if to == perm_fail_email:
         body = ses_hard_bounce_callback(reference)
     elif to == temp_fail_email:
@@ -70,7 +78,13 @@ def send_email_response(reference, to):
     process_ses_receipts_tasks.process_ses_results.apply_async([body], queue=QueueNames.RESEARCH_MODE)
 
 
-def make_request(notification_type, provider, data, headers, path=None):
+def make_request(
+    notification_type,
+    provider,
+    data,
+    headers,
+    path=None,
+):
     callback_url = f"{current_app.config['API_HOST_NAME']}/notifications/{notification_type}/{provider}"
     if path:
         callback_url += f'/{path}'
@@ -86,7 +100,10 @@ def make_request(notification_type, provider, data, headers, path=None):
         current_app.logger.info('Mocked provider callback request finished')
 
 
-def mmg_callback(notification_id, to):
+def mmg_callback(
+    notification_id,
+    to,
+):
     """
     status: 3 - delivered
     status: 4 - expired (temp failure)
@@ -111,7 +128,10 @@ def mmg_callback(notification_id, to):
     )
 
 
-def firetext_callback(notification_id, to):
+def firetext_callback(
+    notification_id,
+    to,
+):
     """
     status: 0 - delivered
     status: 1 - perm failure
@@ -125,7 +145,10 @@ def firetext_callback(notification_id, to):
     return {'mobile': to, 'status': status, 'time': '2016-03-10 14:17:00', 'reference': notification_id}
 
 
-def twilio_callback(notification_id, to):
+def twilio_callback(
+    notification_id,
+    to,
+):
     if to.strip().endswith(temp_fail):
         status = 'failed'
     elif to.strip().endswith(perm_fail):
@@ -140,7 +163,10 @@ def twilio_callback(notification_id, to):
     }
 
 
-def sns_callback(reference, to):
+def sns_callback(
+    reference,
+    to,
+):
     from app.notifications.aws_sns_status_callback import SNS_STATUS_FAILURE, SNS_STATUS_SUCCESS
 
     if to.strip().endswith(temp_fail) or to.strip().endswith(perm_fail):
@@ -167,7 +193,11 @@ def sns_callback(reference, to):
     )
 
 
-def pinpoint_notification_callback_record(reference, event_type='_SMS.SUCCESS', record_status='DELIVERED'):
+def pinpoint_notification_callback_record(
+    reference,
+    event_type='_SMS.SUCCESS',
+    record_status='DELIVERED',
+):
     pinpoint_message = {
         'event_type': event_type,
         'event_timestamp': 1553104954322,
@@ -198,7 +228,10 @@ def pinpoint_notification_callback_record(reference, event_type='_SMS.SUCCESS', 
 
 
 @notify_celery.task(bind=True, name='create-fake-letter-response-file', max_retries=5, default_retry_delay=300)
-def create_fake_letter_response_file(self, reference):
+def create_fake_letter_response_file(
+    self,
+    reference,
+):
     now = datetime.utcnow()
     dvla_response_data = '{}|Sent|0|Sorted'.format(reference)
 
@@ -297,7 +330,10 @@ def ses_soft_bounce_callback(reference):
     return _ses_bounce_callback(reference, 'Temporary')
 
 
-def _ses_bounce_callback(reference, bounce_type):
+def _ses_bounce_callback(
+    reference,
+    bounce_type,
+):
     ses_message_body = {
         'bounce': {
             'bounceSubType': 'General',

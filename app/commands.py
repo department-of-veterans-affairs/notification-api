@@ -63,17 +63,26 @@ def command_group():
 
 
 class notify_command:
-    def __init__(self, name=None):
+    def __init__(
+        self,
+        name=None,
+    ):
         self.name = name
 
-    def __call__(self, func):
+    def __call__(
+        self,
+        func,
+    ):
         # we need to call the flask with_appcontext decorator to ensure the config is loaded, db connected etc etc.
         # we also need to use functools.wraps to carry through the names and docstrings etc of the functions.
         # Then we need to turn it into a click.Command - that's what command_group.add_command expects.
         @click.command(name=self.name)
         @functools.wraps(func)
         @flask.cli.with_appcontext
-        def wrapper(*args, **kwargs):
+        def wrapper(
+            *args,
+            **kwargs,
+        ):
             return func(*args, **kwargs)
 
         command_group.add_command(wrapper)
@@ -85,7 +94,11 @@ class notify_command:
 @click.option('-p', '--provider_name', required=True, type=click.Choice(PROVIDERS))
 @click.option('-c', '--cost', required=True, help='Cost (pence) per message including decimals', type=float)
 @click.option('-d', '--valid_from', required=True, type=click_dt(format='%Y-%m-%dT%H:%M:%S'))
-def create_provider_rates(provider_name, cost, valid_from):
+def create_provider_rates(
+    provider_name,
+    cost,
+    valid_from,
+):
     """
     Backfill rates for a given provider
     """
@@ -132,7 +145,10 @@ def purge_functional_test_data(user_email_prefix):
 @notify_command()
 @click.option('-s', '--start_date', required=True, help='start date inclusive', type=click_dt(format='%Y-%m-%d'))
 @click.option('-e', '--end_date', required=True, help='end date inclusive', type=click_dt(format='%Y-%m-%d'))
-def backfill_performance_platform_totals(start_date, end_date):
+def backfill_performance_platform_totals(
+    start_date,
+    end_date,
+):
     """
     Send historical total messages sent to Performance Platform.
 
@@ -155,7 +171,10 @@ def backfill_performance_platform_totals(start_date, end_date):
 @notify_command()
 @click.option('-s', '--start_date', required=True, help='start date inclusive', type=click_dt(format='%Y-%m-%d'))
 @click.option('-e', '--end_date', required=True, help='end date inclusive', type=click_dt(format='%Y-%m-%d'))
-def backfill_processing_time(start_date, end_date):
+def backfill_processing_time(
+    start_date,
+    end_date,
+):
     """
     Send historical processing time to Performance Platform.
     """
@@ -260,7 +279,11 @@ def replay_create_pdf_letters(notification_id):
               notifications that need the status to be sent to the service.""",
 )
 @click.option('-s', '--service_id', required=True, help="""The service that the callbacks are for""")
-def replay_service_callbacks(file_name, service_id, notification_status):
+def replay_service_callbacks(
+    file_name,
+    service_id,
+    notification_status,
+):
     print('Start send service callbacks for service: ', service_id)
     callback_api = get_service_delivery_status_callback_api_for_service(
         service_id=service_id, notification_status=notification_status
@@ -320,7 +343,10 @@ def setup_commands(application):
 @click.option('-s', '--start_date', required=True, help='start date inclusive', type=click_dt(format='%Y-%m-%d'))
 @click.option('-e', '--end_date', required=True, help='end date inclusive', type=click_dt(format='%Y-%m-%d'))
 @statsd(namespace='tasks')
-def migrate_data_to_ft_billing(start_date, end_date):
+def migrate_data_to_ft_billing(
+    start_date,
+    end_date,
+):
     current_app.logger.info('Billing migration from date {} to {}'.format(start_date, end_date))
 
     process_date = start_date
@@ -403,12 +429,18 @@ def migrate_data_to_ft_billing(start_date, end_date):
 @click.option(
     '-d', '--day', help='The date to recalculate, as YYYY-MM-DD', required=True, type=click_dt(format='%Y-%m-%d')
 )
-def rebuild_ft_billing_for_day(service_id, day):
+def rebuild_ft_billing_for_day(
+    service_id,
+    day,
+):
     """
     Rebuild the data in ft_billing for the given service_id and date
     """
 
-    def rebuild_ft_data(process_day, service):
+    def rebuild_ft_data(
+        process_day,
+        service,
+    ):
         deleted_rows = delete_billing_data_for_service_for_day(process_day, service)
         current_app.logger.info(
             'deleted {} existing billing rows for {} on {}'.format(deleted_rows, service, process_day)
@@ -438,7 +470,10 @@ def rebuild_ft_billing_for_day(service_id, day):
 @click.option('-s', '--start_date', required=True, help='start date inclusive', type=click_dt(format='%Y-%m-%d'))
 @click.option('-e', '--end_date', required=True, help='end date inclusive', type=click_dt(format='%Y-%m-%d'))
 @statsd(namespace='tasks')
-def migrate_data_to_ft_notification_status(start_date, end_date):
+def migrate_data_to_ft_notification_status(
+    start_date,
+    end_date,
+):
     print('Notification statuses migration from date {} to {}'.format(start_date, end_date))
 
     process_date = start_date
@@ -500,7 +535,13 @@ def migrate_data_to_ft_notification_status(start_date, end_date):
     help='The authentication type for the user, sms_auth or email_auth. Defaults to sms_auth if not provided',
 )
 @click.option('-p', '--permissions', required=True, help='Comma separated list of permissions.')
-def bulk_invite_user_to_service(file_name, service_id, user_id, auth_type, permissions):
+def bulk_invite_user_to_service(
+    file_name,
+    service_id,
+    user_id,
+    auth_type,
+    permissions,
+):
     #  permissions
     #  manage_users | manage_templates | manage_settings
     #  send messages ==> send_texts | send_emails | send_letters
@@ -585,7 +626,10 @@ def populate_notification_postage(start_date):
 @click.option('-s', '--start_date', required=True, help='start date inclusive', type=click_dt(format='%Y-%m-%d'))
 @click.option('-e', '--end_date', required=True, help='end date inclusive', type=click_dt(format='%Y-%m-%d'))
 @statsd(namespace='tasks')
-def update_jobs_archived_flag(start_date, end_date):
+def update_jobs_archived_flag(
+    start_date,
+    end_date,
+):
     current_app.logger.info('Archiving jobs created between {} to {}'.format(start_date, end_date))
 
     process_date = start_date

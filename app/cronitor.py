@@ -33,7 +33,10 @@ def cronitor(task_name):
                 current_app.logger.exception(e)
 
         @wraps(func)
-        def inner_decorator(*args, **kwargs):
+        def inner_decorator(
+            *args,
+            **kwargs,
+        ):
             ping_cronitor('run')
             try:
                 ret = func(*args, **kwargs)

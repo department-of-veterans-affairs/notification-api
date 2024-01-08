@@ -9,7 +9,10 @@ from app.exceptions import ArchiveValidationError
 
 
 class VirusScanError(Exception):
-    def __init__(self, message):
+    def __init__(
+        self,
+        message,
+    ):
         super().__init__(message)
 
 
@@ -17,7 +20,11 @@ class InvalidRequest(Exception):
     code = None
     fields = []
 
-    def __init__(self, message, status_code):
+    def __init__(
+        self,
+        message,
+        status_code,
+    ):
         super().__init__()
         self.message = message
         self.status_code = status_code

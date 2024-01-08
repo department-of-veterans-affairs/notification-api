@@ -74,12 +74,18 @@ def filter_null_value_fields(obj):
 
 class HistoryModel:
     @classmethod
-    def from_original(cls, original):
+    def from_original(
+        cls,
+        original,
+    ):
         history = cls()
         history.update_from_original(original)
         return history
 
-    def update_from_original(self, original):
+    def update_from_original(
+        self,
+        original,
+    ):
         for c in self.__table__.columns:
             # in some cases, columns may have different names to their underlying db column -  so only copy those
             # that we can, and leave it up to subclasses to deal with any oddities/properties etc.
@@ -359,7 +365,10 @@ class Service(db.Model, Versioned):
     )
 
     @classmethod
-    def from_json(cls, data):
+    def from_json(
+        cls,
+        data,
+    ):
         """
         Assumption: data has been validated appropriately.
 
@@ -411,7 +420,10 @@ class Service(db.Model, Versioned):
 
         return None
 
-    def has_permissions(self, permissions_to_check_for):
+    def has_permissions(
+        self,
+        permissions_to_check_for,
+    ):
         if isinstance(permissions_to_check_for, InstrumentedList):
             _permissions_to_check_for = [p.permission for p in permissions_to_check_for]
         elif not isinstance(permissions_to_check_for, list):
@@ -612,7 +624,12 @@ class ServiceWhitelist(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     @classmethod
-    def from_string(cls, service_id, recipient_type, recipient):
+    def from_string(
+        cls,
+        service_id,
+        recipient_type,
+        recipient,
+    ):
         instance = cls(service_id=service_id, recipient_type=recipient_type)
 
         try:
@@ -638,7 +655,10 @@ class ServiceWhitelist(db.Model):
 class ServiceCallback(db.Model, Versioned):
     __tablename__ = 'service_callback'
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        **kwargs,
+    ):
         if 'notification_statuses' not in kwargs:
             if kwargs.get('callback_type') == DELIVERY_STATUS_CALLBACK_TYPE:
                 self.notification_statuses = NOTIFICATION_STATUS_TYPES_COMPLETED
@@ -670,11 +690,18 @@ class ServiceCallback(db.Model, Versioned):
         return None
 
     @bearer_token.setter
-    def bearer_token(self, bearer_token):
+    def bearer_token(
+        self,
+        bearer_token,
+    ):
         if bearer_token:
             self._bearer_token = encryption.encrypt(str(bearer_token))
 
-    def send(self, payload: dict, logging_tags: dict):
+    def send(
+        self,
+        payload: dict,
+        logging_tags: dict,
+    ):
         from app.callback.queue_callback_strategy import QueueCallbackStrategy
         from app.callback.webhook_callback_strategy import WebhookCallbackStrategy
 
@@ -722,7 +749,10 @@ class ApiKey(db.Model, Versioned):
         return None
 
     @secret.setter
-    def secret(self, secret):
+    def secret(
+        self,
+        secret,
+    ):
         if secret:
             self._secret = encryption.encrypt(str(secret))
 
@@ -772,7 +802,10 @@ class TemplateFolder(db.Model):
             'users_with_permission': self.get_users_with_permission(),
         }
 
-    def is_parent_of(self, other):
+    def is_parent_of(
+        self,
+        other,
+    ):
         while other.parent is not None:
             if other.parent == self:
                 return True
@@ -800,7 +833,10 @@ PRECOMPILED_TEMPLATE_NAME = 'Pre-compiled PDF'
 class TemplateBase(db.Model):
     __abstract__ = True
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        **kwargs,
+    ):
         if 'template_type' in kwargs:
             self.template_type = kwargs.pop('template_type')
 
@@ -873,7 +909,10 @@ class TemplateBase(db.Model):
             return None
 
     @reply_to.setter
-    def reply_to(self, value):
+    def reply_to(
+        self,
+        value,
+    ):
         if self.template_type == LETTER_TYPE:
             self.service_letter_contact_id = value
         elif value is None:
@@ -911,7 +950,10 @@ class TemplateBase(db.Model):
         return and_(cls.hidden, cls.name == PRECOMPILED_TEMPLATE_NAME, cls.template_type == LETTER_TYPE)
 
     @is_precompiled_letter.setter
-    def is_precompiled_letter(self, value):
+    def is_precompiled_letter(
+        self,
+        value,
+    ):
         pass
 
     def _as_utils_template(self):
@@ -973,7 +1015,11 @@ class Template(TemplateBase):
         )
 
     @classmethod
-    def from_json(cls, data, folder):
+    def from_json(
+        cls,
+        data,
+        folder,
+    ):
         """
         Assumption: data has been validated appropriately.
         Returns a Template object based on the provided data.
@@ -1151,10 +1197,16 @@ class VerifyCode(db.Model):
         raise AttributeError('Code not readable')
 
     @code.setter
-    def code(self, cde):
+    def code(
+        self,
+        cde,
+    ):
         self._code = hashpw(cde)
 
-    def check_code(self, cde):
+    def check_code(
+        self,
+        cde,
+    ):
         return check_hash(cde, self._code)
 
 
@@ -1351,7 +1403,10 @@ class Notification(db.Model):
         return {}
 
     @personalisation.setter
-    def personalisation(self, personalisation):
+    def personalisation(
+        self,
+        personalisation,
+    ):
         self._personalisation = encryption.encrypt(personalisation or {})
 
     def completed_at(self):
@@ -1649,12 +1704,18 @@ class NotificationHistory(db.Model, HistoryModel):
     )
 
     @classmethod
-    def from_original(cls, notification):
+    def from_original(
+        cls,
+        notification,
+    ):
         history = super().from_original(notification)
         history.status = notification.status
         return history
 
-    def update_from_original(self, original):
+    def update_from_original(
+        self,
+        original,
+    ):
         super().update_from_original(original)
         self.status = original.status
 
@@ -1832,7 +1893,10 @@ class InboundSms(db.Model):
         return encryption.decrypt(self._content)
 
     @content.setter
-    def content(self, content):
+    def content(
+        self,
+        content,
+    ):
         self._content = encryption.encrypt(content)
 
     def serialize(self):

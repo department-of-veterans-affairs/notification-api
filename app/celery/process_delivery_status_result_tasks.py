@@ -33,7 +33,10 @@ from app.models import Notification
     retry_backoff_max=300,
 )
 @statsd(namespace='tasks')
-def process_delivery_status(self, event: CeleryEvent) -> bool:
+def process_delivery_status(
+    self,
+    event: CeleryEvent,
+) -> bool:
     """Celery task for updating the delivery status of a notification"""
 
     # preset variables to address "unbounded local variable"
@@ -141,7 +144,10 @@ def attempt_to_get_notification(
     return notification, should_exit
 
 
-def log_notification_status_warning(notification: Notification, status: str) -> None:
+def log_notification_status_warning(
+    notification: Notification,
+    status: str,
+) -> None:
     time_diff = datetime.datetime.utcnow() - (notification.updated_at or notification.created_at)
     current_app.logger.warning(
         'Invalid callback received. Notification id %s received a status update to %s '
@@ -155,7 +161,10 @@ def log_notification_status_warning(notification: Notification, status: str) -> 
     )
 
 
-def check_notification_status(notification: Notification, notification_status: str) -> bool:
+def check_notification_status(
+    notification: Notification,
+    notification_status: str,
+) -> bool:
     """Check if the SQS callback received the same status as the notification reports"""
     # Do not update if the status has not changed.
     if notification_status == notification.status:
@@ -207,7 +216,12 @@ def _calculate_pricing(
         update_notification_delivery_status(notification_id=notification.id, new_status=notification_status)
 
 
-def _get_notification_platform_status(self, provider: any, body: str, sqs_message: dict) -> dict:
+def _get_notification_platform_status(
+    self,
+    provider: any,
+    body: str,
+    sqs_message: dict,
+) -> dict:
     """Performs a translation on the body"""
 
     current_app.logger.info('Get Notification Platform Status')
@@ -231,7 +245,10 @@ def _get_notification_platform_status(self, provider: any, body: str, sqs_messag
     return notification_platform_status
 
 
-def _get_include_payload_status(self, notification: Notification) -> bool:
+def _get_include_payload_status(
+    self,
+    notification: Notification,
+) -> bool:
     """Determines whether payload should be included in delivery status callback data"""
     include_payload_status = False
     current_app.logger.info('Determine if payload should be included')
@@ -251,7 +268,11 @@ def _get_include_payload_status(self, notification: Notification) -> bool:
     return include_payload_status
 
 
-def _increment_statsd(notification: Notification, provider_name: str, notification_status: str) -> None:
+def _increment_statsd(
+    notification: Notification,
+    provider_name: str,
+    notification_status: str,
+) -> None:
     """increment statsd client"""
     # Small docstring + annotations please.
 

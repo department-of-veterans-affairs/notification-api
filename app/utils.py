@@ -10,7 +10,11 @@ from sqlalchemy import func
 local_timezone = pytz.timezone(os.getenv('TIMEZONE', 'America/Toronto'))
 
 
-def pagination_links(pagination, endpoint, **kwargs):
+def pagination_links(
+    pagination,
+    endpoint,
+    **kwargs,
+):
     if 'page' in kwargs:
         kwargs.pop('page', None)
     links = {}
@@ -22,7 +26,12 @@ def pagination_links(pagination, endpoint, **kwargs):
     return links
 
 
-def url_with_token(data, url, config, base_url=None):
+def url_with_token(
+    data,
+    url,
+    config,
+    base_url=None,
+):
     from notifications_utils.url_safe_token import generate_token
 
     token = generate_token(data, config['SECRET_KEY'], config['DANGEROUS_SALT'])
@@ -30,7 +39,10 @@ def url_with_token(data, url, config, base_url=None):
     return base_url + token
 
 
-def get_template_instance(template, values):
+def get_template_instance(
+    template,
+    values,
+):
     from app.models import SMS_TYPE, EMAIL_TYPE, LETTER_TYPE
 
     return {SMS_TYPE: SMSMessageTemplate, EMAIL_TYPE: WithSubjectTemplate, LETTER_TYPE: WithSubjectTemplate}[
@@ -95,7 +107,10 @@ def get_local_timezone_month_from_utc_column(column):
     )
 
 
-def get_public_notify_type_text(notify_type, plural=False):
+def get_public_notify_type_text(
+    notify_type,
+    plural=False,
+):
     from app.models import SMS_TYPE, UPLOAD_DOCUMENT, PRECOMPILED_LETTER, PUSH_TYPE
 
     notify_type_text = notify_type

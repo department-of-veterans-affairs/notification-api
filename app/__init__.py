@@ -89,7 +89,10 @@ api_user = LocalProxy(lambda: g.api_user)
 authenticated_service = LocalProxy(lambda: g.authenticated_service)
 
 
-def create_app(application, worker_id=None):
+def create_app(
+    application,
+    worker_id=None,
+):
     from app.config import configs
 
     notify_environment = os.getenv('NOTIFY_ENVIRONMENT', 'development')

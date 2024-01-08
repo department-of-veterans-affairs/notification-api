@@ -17,7 +17,13 @@ from app.dao.services_dao import dao_fetch_service_by_id_with_api_keys
 
 
 class AuthError(Exception):
-    def __init__(self, message, code, service_id=None, api_key_id=None):
+    def __init__(
+        self,
+        message,
+        code,
+        service_id=None,
+        api_key_id=None,
+    ):
         self.message = message
         self.short_message = message
         self.code = code
@@ -110,7 +116,10 @@ def create_validator_for_admin_auth_or_user_in_service(required_permission: str 
 def requires_user_in_service_or_admin(required_permission: str = None):
     def decorator(function):
         @functools.wraps(function)
-        def wrapper(*args, **kwargs):
+        def wrapper(
+            *args,
+            **kwargs,
+        ):
             validate = create_validator_for_user_in_service_or_admin(required_permission)
             validate()
 
@@ -125,7 +134,10 @@ def requires_user_in_service_or_admin(required_permission: str = None):
 def requires_admin_auth_or_user_in_service(required_permission: str = None):
     def decorator(function):
         @functools.wraps(function)
-        def wrapper(*args, **kwargs):
+        def wrapper(
+            *args,
+            **kwargs,
+        ):
             validate = create_validator_for_admin_auth_or_user_in_service(required_permission)
             validate()
 
@@ -140,7 +152,10 @@ def requires_admin_auth_or_user_in_service(required_permission: str = None):
 def requires_admin_auth():
     def decorator(function):
         @functools.wraps(function)
-        def wrapper(*args, **kwargs):
+        def wrapper(
+            *args,
+            **kwargs,
+        ):
             validate_admin_auth()
             return function(*args, **kwargs)
 
@@ -205,7 +220,10 @@ def __get_token_issuer(auth_token):
     return client
 
 
-def handle_admin_key(auth_token, secret):
+def handle_admin_key(
+    auth_token,
+    secret,
+):
     try:
         decode_jwt_token(auth_token, secret)
     except TokenExpiredError:

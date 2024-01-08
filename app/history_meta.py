@@ -22,7 +22,10 @@ from sqlalchemy import Table, Column, ForeignKeyConstraint, Integer
 from sqlalchemy import util
 
 
-def col_references_table(col, table):
+def col_references_table(
+    col,
+    table,
+):
     for fk in col.foreign_keys:
         if fk.references(table):
             return True
@@ -137,7 +140,11 @@ def _history_mapper(local_mapper):  # noqa (C901 too complex)
 class Versioned(object):
     @declared_attr
     def __mapper_cls__(cls):
-        def map(cls, *arg, **kw):
+        def map(
+            cls,
+            *arg,
+            **kw,
+        ):
             mp = mapper(cls, *arg, **kw)
             _history_mapper(mp)
             return mp
@@ -150,7 +157,10 @@ class Versioned(object):
         return history_mapper.class_
 
 
-def create_history(obj, history_cls=None):
+def create_history(
+    obj,
+    history_cls=None,
+):
     if not history_cls:
         history_mapper = obj.__history_mapper__
         history_cls = history_mapper.class_

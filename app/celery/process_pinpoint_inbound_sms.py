@@ -25,7 +25,10 @@ class CeleryEvent(TypedDict):
 
 @notify_celery.task(bind=True, name='process-pinpoint-inbound-sms', max_retries=5, default_retry_delay=300)
 @statsd(namespace='tasks')
-def process_pinpoint_inbound_sms(self, event: CeleryEvent):
+def process_pinpoint_inbound_sms(
+    self,
+    event: CeleryEvent,
+):
     provider_name = 'pinpoint'
 
     if not is_feature_enabled(FeatureFlag.PINPOINT_INBOUND_SMS_ENABLED):

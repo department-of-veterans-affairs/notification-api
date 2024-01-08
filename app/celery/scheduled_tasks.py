@@ -201,7 +201,10 @@ def check_templated_letter_state():
             )
 
 
-def _get_dynamodb_comp_pen_messages(table, message_limit: int) -> list:
+def _get_dynamodb_comp_pen_messages(
+    table,
+    message_limit: int,
+) -> list:
     """
     Helper function to get the Comp and Pen data from our dynamodb cache table.
 

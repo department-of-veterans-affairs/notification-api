@@ -66,7 +66,10 @@ from app.service.utils import service_allowed_to_send_to
 
 @notify_celery.task(name='process-job')
 @statsd(namespace='tasks')
-def process_job(job_id, sender_id=None):
+def process_job(
+    job_id,
+    sender_id=None,
+):
     start = datetime.utcnow()
     job = dao_get_job_by_id(job_id)
 
@@ -105,7 +108,11 @@ def process_job(job_id, sender_id=None):
     job_complete(job, start=start)
 
 
-def job_complete(job, resumed=False, start=None):
+def job_complete(
+    job,
+    resumed=False,
+    start=None,
+):
     job.job_status = JOB_STATUS_FINISHED
 
     finished = datetime.utcnow()
@@ -120,7 +127,13 @@ def job_complete(job, resumed=False, start=None):
         )
 
 
-def process_row(row, template, job, service, sender_id=None):
+def process_row(
+    row,
+    template,
+    job,
+    service,
+    sender_id=None,
+):
     template_type = template.template_type
     encrypted = encryption.encrypt(
         {
@@ -152,7 +165,11 @@ def process_row(row, template, job, service, sender_id=None):
     )
 
 
-def __sending_limits_for_job_exceeded(service, job, job_id):
+def __sending_limits_for_job_exceeded(
+    service,
+    job,
+    job_id,
+):
     total_sent = fetch_todays_total_message_count(service.id)
 
     if total_sent + job.notification_count > service.message_limit:
@@ -170,7 +187,13 @@ def __sending_limits_for_job_exceeded(service, job, job_id):
 
 @notify_celery.task(bind=True, name='save-sms', max_retries=5, default_retry_delay=300)
 @statsd(namespace='tasks')
-def save_sms(self, service_id, notification_id, encrypted_notification, sender_id=None):
+def save_sms(
+    self,
+    service_id,
+    notification_id,
+    encrypted_notification,
+    sender_id=None,
+):
     notification = encryption.decrypt(encrypted_notification)
     service = dao_fetch_service_by_id(service_id)
     template = dao_get_template_by_id(notification['template'], version=notification['template_version'])
@@ -327,7 +350,10 @@ def save_letter(
 
 @notify_celery.task(bind=True, name='update-letter-notifications-to-sent')
 @statsd(namespace='tasks')
-def update_letter_notifications_to_sent_to_dvla(self, notification_references):
+def update_letter_notifications_to_sent_to_dvla(
+    self,
+    notification_references,
+):
     # This task will be called by the FTP app to update notifications as sent to DVLA
     provider = get_current_provider(LETTER_TYPE)
 
@@ -346,7 +372,10 @@ def update_letter_notifications_to_sent_to_dvla(self, notification_references):
 
 @notify_celery.task(bind=True, name='update-letter-notifications-to-error')
 @statsd(namespace='tasks')
-def update_letter_notifications_to_error(self, notification_references):
+def update_letter_notifications_to_error(
+    self,
+    notification_references,
+):
     # This task will be called by the FTP app to update notifications as sent to DVLA
 
     updated_count, _ = dao_update_notifications_by_reference(
@@ -358,7 +387,12 @@ def update_letter_notifications_to_error(self, notification_references):
     raise NotificationTechnicalFailureException(message)
 
 
-def handle_exception(task, notification, notification_id, exc):
+def handle_exception(
+    task,
+    notification,
+    notification_id,
+    exc,
+):
     if not get_notification_by_id(notification_id):
         retry_msg = '{task} notification for job {job} row number {row} and notification id {noti}'.format(
             task=task.__name__,
@@ -387,7 +421,10 @@ def get_template_class(template_type):
 
 @notify_celery.task(bind=True, name='update-letter-notifications-statuses')
 @statsd(namespace='tasks')
-def update_letter_notifications_statuses(self, filename):
+def update_letter_notifications_statuses(
+    self,
+    filename,
+):
     notification_updates = parse_dvla_file(filename)
 
     temporary_failures = []
@@ -405,7 +442,10 @@ def update_letter_notifications_statuses(self, filename):
 
 @notify_celery.task(bind=True, name='record-daily-sorted-counts')
 @statsd(namespace='tasks')
-def record_daily_sorted_counts(self, filename):
+def record_daily_sorted_counts(
+    self,
+    filename,
+):
     sorted_letter_counts = defaultdict(int)
     notification_updates = parse_dvla_file(filename)
     for update in notification_updates:
@@ -437,7 +477,11 @@ def get_billing_date_in_est_from_filename(filename):
     return convert_utc_to_local_timezone(datetime_obj).date()
 
 
-def persist_daily_sorted_letter_counts(day, file_name, sorted_letter_counts):
+def persist_daily_sorted_letter_counts(
+    day,
+    file_name,
+    sorted_letter_counts,
+):
     daily_letter_count = DailySortedLetter(
         billing_day=day,
         file_name=file_name,
@@ -453,7 +497,11 @@ def process_updates_from_file(response_file):
     return notification_updates
 
 
-def update_letter_notification(filename, temporary_failures, update):
+def update_letter_notification(
+    filename,
+    temporary_failures,
+    update,
+):
     if update.status == DVLA_RESPONSE_STATUS_SENT:
         status = NOTIFICATION_DELIVERED
     else:

@@ -13,19 +13,34 @@ class AttachmentStoreError(Exception):
 
 
 class AttachmentStore:
-    def __init__(self, bucket=None):
+    def __init__(
+        self,
+        bucket=None,
+    ):
         self.bucket = bucket
         self.s3 = None
         self.logger = None
         self.statsd_client = None
 
-    def init_app(self, endpoint_url: str, bucket: str, logger, statsd_client: StatsdClient):
+    def init_app(
+        self,
+        endpoint_url: str,
+        bucket: str,
+        logger,
+        statsd_client: StatsdClient,
+    ):
         self.s3 = boto3.client('s3', endpoint_url=endpoint_url)
         self.bucket = bucket
         self.logger = logger
         self.statsd_client = statsd_client
 
-    def put(self, service_id: uuid.UUID, attachment_stream, sending_method: SendingMethod, mimetype: str) -> PutReturn:
+    def put(
+        self,
+        service_id: uuid.UUID,
+        attachment_stream,
+        sending_method: SendingMethod,
+        mimetype: str,
+    ) -> PutReturn:
         encryption_key = self.generate_encryption_key()
         attachment_id = uuid.uuid4()
 
