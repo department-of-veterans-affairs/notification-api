@@ -10,6 +10,7 @@
 | pinpoint_callback_lambda |  |
 | pinpoint_inbound_sms_lambda |  |
 | ses_callback_lambda |  |
+| two_way_sms_lambda |  |
 | two_way_sms_v2 | psycopg2-binary, requests |
 | va_profile_opt_in_out_lambda | psycopg2-binary, pyjwt |
 | va_profile_remove_old_opt_outs_lambda | psycopg2-binary |
