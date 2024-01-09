@@ -72,6 +72,7 @@ class VAProfileClient:
             self.logger.error("Received a garbled response from VA Profile for ID %s.", va_profile_id)
             self.logger.exception(e)
 
+        self.logger.critical('Failed to process bios: %s', response)
         self.statsd_client.incr("clients.va-profile.get-email.failure")
         self._raise_no_contact_info_exception(self.EMAIL_BIO_TYPE, va_profile_id, response.get(self.TX_AUDIT_ID))
 
