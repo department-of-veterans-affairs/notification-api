@@ -4,10 +4,10 @@
 // Access the environment input from environment variables
 const { ENVIRONMENT } = process.env;
 
-const inputs = {
-  environment: ENVIRONMENT,
-  branch: 'master',
-};
+// const inputs = {
+  // environment: ENVIRONMENT,
+  // branch: 'master',
+// };
 
 const triggerAndWait = async ({ github, context, core }) => {
   const owner = 'department-of-veterans-affairs'; // user of private repo 
@@ -24,7 +24,7 @@ const triggerAndWait = async ({ github, context, core }) => {
     repo,
     workflow_id,
     ref,
-    inputs,
+    // inputs,
   });
 
   // Wait a moment for the workflow run to be initialized
