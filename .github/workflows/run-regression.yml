@@ -16,21 +16,20 @@ on:
 
 jobs:
   trigger-regression-tests:
+    name: "Run regression for ${{ inputs.environment }}"
     runs-on: ubuntu-latest  # specify the runner
     name: Trigger Regression Tests
     steps:
     - uses: actions/checkout@v4
 
     - name: Trigger Regression Workflow
-      uses: ./.github/actions/workflow-trigger-and-wait
+      uses: actions/github-script@v6
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
       with:
-        owner: department-of-veterans-affairs
-        repo: notification-api-qa
-        github_token: ${{ secrets.envPAT }}
-        workflow_file_name: regression.yml
-        ref: ${{ github.event.inputs.branch }}
-        wait_interval: 10
-        client_payload: '{"environment": "${{ github.event.inputs.environment }}", "branch": "master"}'
-        propagate_failure: true
-        trigger_workflow: true
-        wait_workflow: true
+        github-token: ${{ secrets.DISPATCH_PAT }}
+        script: |
+          const path = '.github/scripts/trigger-regression.js';
+          const triggerAndWait = require(path);
+          triggerAndWait({github, context, core});
+
