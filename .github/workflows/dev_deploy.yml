@@ -72,3 +72,4 @@ jobs:
     with:
       environment: "${{ inputs.environment }}"
     secrets: inherit    # This line is necessary so that the workflow_call can access the envPAT
+
