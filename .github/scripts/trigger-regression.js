@@ -6,6 +6,7 @@ const { ENVIRONMENT } = process.env;
 
 const inputs = {
   environment: ENVIRONMENT,
+  branch: 'master',
 };
 
 const triggerAndWait = async ({ github, context, core }) => {
