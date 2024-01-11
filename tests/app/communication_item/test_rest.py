@@ -123,7 +123,10 @@ def test_create_communication_item_duplicate_va_profile_item_id(admin_request, s
 # Retrieve
 #############
 
-def test_get_all_communication_items(admin_request, sample_communication_item):
+def test_get_all_communication_items(
+    admin_request,
+    sample_communication_item,
+):
     """
     The sample_communication_item fixture ensures the table contains at least one
     row, but it might have more.

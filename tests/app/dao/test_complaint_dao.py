@@ -141,7 +141,7 @@ def test_fetch_complaint_by_id(sample_complaint, sample_template, sample_notific
         created_at=datetime(2018, 1, 1)
     )
 
-    complaints_from_db = fetch_complaint_by_id(complaint.id)
+    complaints_from_db = fetch_complaint_by_id(complaint.id).all()
 
     assert complaints_from_db[0].id == complaint.id
 
@@ -150,6 +150,6 @@ def test_fetch_complaint_by_id_does_not_return_anything(sample_template, sample_
     template = sample_template(template_type=EMAIL_TYPE)
     sample_notification(template=template)
 
-    complaints_from_db = fetch_complaint_by_id(uuid4())
+    complaints_from_db = fetch_complaint_by_id(uuid4()).all()
 
-    assert complaints_from_db.count() == 0
+    assert len(complaints_from_db) == 0

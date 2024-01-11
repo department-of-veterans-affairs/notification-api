@@ -11,7 +11,7 @@ from app.models import CommunicationItem
 from app.schemas import communication_item_schema
 from flask import Blueprint, current_app, jsonify, request
 from jsonschema import validate, ValidationError
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import SQLAlchemyError
 
 communication_item_blueprint = Blueprint("communication_item", __name__, url_prefix="/communication-item")
@@ -77,7 +77,7 @@ def create_communication_item():
 
 @communication_item_blueprint.route('', methods=["GET"])
 def get_all_communication_items():
-    communication_items = db.session.execute(select(CommunicationItem)).scalars()
+    communication_items = db.session.scalars(select(CommunicationItem)).all()
     return jsonify(data=communication_item_schema.dump(communication_items, many=True).data)
 
 
@@ -171,11 +171,11 @@ def partially_update_communication_item(communication_item_id):
 
 @communication_item_blueprint.route("/<communication_item_id>", methods=["DELETE"])
 def delete_communication_item(communication_item_id):
-    communication_item = db.session.get(CommunicationItem, communication_item_id)
+    query = delete(CommunicationItem).where(CommunicationItem.id == communication_item_id)
+    rows_deleted = db.session.execute(query).rowcount
+    db.session.commit()
 
-    if communication_item is not None:
-        db.session.delete(communication_item)
-        db.session.commit()
+    if rows_deleted > 0:
         return {}, 202
 
     return {

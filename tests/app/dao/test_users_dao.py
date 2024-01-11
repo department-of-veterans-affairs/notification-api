@@ -1,18 +1,12 @@
-from datetime import datetime, timedelta
-import uuid
-
-from freezegun import freeze_time
-from sqlalchemy import select, or_
-from sqlalchemy.exc import DataError, IntegrityError
-from sqlalchemy.orm.exc import NoResultFound
 import pytest
-
-from app import db
+import uuid
 from app.dao.service_user_dao import dao_get_service_user, dao_update_service_user
 from app.dao.users_dao import (
+    create_user_code,
     save_model_user,
     save_user_attribute,
     get_user_by_id,
+    get_user_code,
     delete_model_user,
     increment_failed_login_count,
     reset_failed_login_count,
@@ -23,16 +17,22 @@ from app.dao.users_dao import (
     create_secret_code,
     user_can_be_archived,
     dao_archive_user,
-    verify_within_time, get_user_by_identity_provider_user_id, update_user_identity_provider_user_id,
+    verify_within_time,
+    get_user_by_identity_provider_user_id,
+    update_user_identity_provider_user_id,
     create_or_retrieve_user,
-    retrieve_match_or_create_user
+    retrieve_match_or_create_user,
 )
 from app.errors import InvalidRequest
-from app.models import VerifyCode
 from app.model import User, EMAIL_AUTH_TYPE
+from app.models import SMS_TYPE, VerifyCode
 from app.oauth.exceptions import IdpAssignmentException, IncorrectGithubIdException
-
-from tests.app.db import create_permissions, create_template_folder
+from datetime import datetime, timedelta
+from freezegun import freeze_time
+from sqlalchemy import or_, select
+from sqlalchemy.exc import DataError, IntegrityError
+from sqlalchemy.orm.exc import NoResultFound
+from tests.app.db import create_permissions, create_service, create_template_folder, create_user
 
 
 @pytest.fixture
@@ -67,6 +67,28 @@ def test_create_only_one_user(
     if user:
         notify_db_session.session.delete(user)
         notify_db_session.session.commit()
+
+
+def test_get_user_code(notify_db_session, sample_user):
+    verify_code = make_verify_code(
+        notify_db_session,
+        sample_user,
+        age=timedelta(hours=23, minutes=59, seconds=59),
+        code="test"
+    )
+
+    verify_code_from_dao = get_user_code(sample_user, "test", SMS_TYPE)
+    assert verify_code.id == verify_code_from_dao.id
+
+
+def test_create_user_code(notify_db_session, sample_user):
+    verify_code = create_user_code(sample_user, "test", SMS_TYPE)
+    assert verify_code.user_id == sample_user.id
+    assert verify_code.check_code("test")
+    assert verify_code.code_type == SMS_TYPE
+    assert isinstance(verify_code.expiry_datetime, datetime)
+    assert not verify_code.code_used
+    assert isinstance(verify_code.created_at, datetime)
 
 
 @pytest.mark.parametrize('phone_number', [
@@ -290,34 +312,33 @@ def test_should_not_delete_verification_codes_less_than_one_day_old(
     stmt = select(VerifyCode).where(or_(VerifyCode.user_id == user_0.id, VerifyCode.user_id == user_1.id))
     assert len(notify_db_session.session.scalars(stmt).all()) == 2
     delete_codes_older_created_more_than_a_day_ago()
-    assert notify_db_session.session.scalar(select(VerifyCode).where(VerifyCode.user_id == user_0))._code == "12345"
+    assert VerifyCode.query.one().check_code("12345")
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_will_find_verify_codes_sent_within_seconds(
-    sample_user,
-):
-
+def test_will_find_verify_codes_sent_within_seconds(notify_db_session, sample_user):
     user = sample_user()
-    make_verify_code(user)
-    make_verify_code(user, timedelta(seconds=10))
-    make_verify_code(user, timedelta(seconds=32))
-    make_verify_code(user, timedelta(hours=1))
+    make_verify_code(notify_db_session, user)
+    make_verify_code(notify_db_session, user, timedelta(seconds=10))
+    make_verify_code(notify_db_session, user, timedelta(seconds=32))
+    make_verify_code(notify_db_session, user, timedelta(hours=1))
     count = verify_within_time(user)
     assert count == 2
 
 
-def make_verify_code(user, age=timedelta(hours=0), expiry_age=timedelta(0), code="12335", code_used=False):
+def make_verify_code(
+    notify_db_session, user, age=timedelta(hours=0), expiry_age=timedelta(0), code="12335", code_used=False
+):
     verify_code = VerifyCode(
-        code_type='sms',
-        _code=code,
+        code_type=SMS_TYPE,
+        code=code,
         created_at=datetime.utcnow() - age,
         expiry_datetime=datetime.utcnow() - expiry_age,
         user=user,
         code_used=code_used
     )
-    db.session.add(verify_code)
-    db.session.commit()
+    notify_db_session.session.add(verify_code)
+    notify_db_session.session.commit()
+    return verify_code
 
 
 @pytest.mark.parametrize('user_attribute, user_value', [
@@ -363,16 +384,12 @@ def test_update_user_password(
     assert user.check_password(password)
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_count_user_verify_codes(
-    sample_user,
-):
-
+def test_count_user_verify_codes(notify_db_session, sample_user):
     with freeze_time(datetime.utcnow() + timedelta(hours=1)):
         user = sample_user()
-        make_verify_code(user, code_used=True)
-        make_verify_code(user, expiry_age=timedelta(hours=2))
-        [make_verify_code(user) for i in range(5)]
+        make_verify_code(notify_db_session, user, code_used=True)
+        make_verify_code(notify_db_session, user, expiry_age=timedelta(hours=2))
+        [make_verify_code(notify_db_session, user) for i in range(5)]
 
     assert count_user_verify_codes(user) == 5
 

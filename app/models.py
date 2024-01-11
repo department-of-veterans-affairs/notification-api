@@ -480,6 +480,15 @@ class ReplyToInbox(db.Model):
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.datetime.utcnow)
 
 
+class Session(db.Model):
+    __tablename__ = "sessions"
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String, nullable=False, index=True)
+    data = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=True, index=True, onupdate=datetime.datetime.utcnow)
+
+
 class TemplateP2PChecklist(db.Model):
     __tablename__ = "template_p2p_checklist"
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -537,6 +546,7 @@ class InboundNumber(db.Model):
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.datetime.utcnow)
     url_endpoint = db.Column(db.String(), nullable=True)
     self_managed = db.Column(db.Boolean, nullable=False, default=False)
+    auth_parameter = db.Column(db.String(), nullable=True)
 
     def serialize(self):
         return {
@@ -550,6 +560,7 @@ class InboundNumber(db.Model):
             "active": self.active,
             "url_endpoint": self.url_endpoint,
             "self_managed": self.self_managed,
+            "auth_parameter": self.auth_parameter,
         }
 
 
@@ -1589,6 +1600,27 @@ class Notification(db.Model):
         }
 
         return serialized
+
+    def serialize_permanent_failure(self):
+        return {
+            "billing_code": self.billing_code,
+            "completed_at": self.completed_at(),
+            "created_at": self.created_at.strftime(DATETIME_FORMAT),
+            "id": str(self.id),
+            "notification_type": self.notification_type,
+            "personalisation": self.personalisation,
+            "email_address": self.to if self.notification_type == EMAIL_TYPE else None,
+            "phone_number": self.to if self.notification_type == SMS_TYPE else None,
+            "reference": self.reference,
+            "sms_sender_id": str(self.sms_sender_id),
+            "status": self.status,
+            "status_reason": self.status_reason,
+            "template": {
+                "id": str(self.template_id),
+                "version": self.template_version
+            },
+            "type": self.notification_type
+        }
 
     def serialize(self):
         template_dict = {

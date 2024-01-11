@@ -359,6 +359,27 @@ def test_should_return_403_when_token_is_expired(client, sample_user_service_api
     assert exc.value.api_key_id == api_key.id
 
 
+def test_auth_token_cached(
+    client,
+    mocker,
+):
+
+    # Needs a key that is not cached
+    service = create_service(service_name='test_auth_token_cached')
+    api_key = create_api_key(service)
+    with freeze_time('2001-01-01T12:00:00'):
+        token = create_jwt_token(secret=api_key.secret, client_id=str(service.id))
+        request.headers = {'Authorization': 'Bearer {}'.format(token)}
+        validate_service_api_key_auth()
+
+    authed_service = mocker.patch('app.dao.services_dao.dao_fetch_service_by_id_with_api_keys')
+    token = create_jwt_token(secret=api_key.secret, client_id=str(service.id))
+    request.headers = {'Authorization': 'Bearer {}'.format(token)}
+    validate_service_api_key_auth()
+    # Should not call the method because it is cached
+    authed_service.assert_not_called()
+
+
 def __create_token(service_id):
     return create_jwt_token(
         secret=get_unsigned_secrets(service_id)[0],

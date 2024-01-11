@@ -1036,6 +1036,16 @@ def sample_sms_template_with_html(sample_service, sample_template):
     return sample_template(sample_service, content="Hello (( Name))\nHere is <em>some HTML</em> & entities")
 
 
+@pytest.fixture(scope='function')
+def other_sample_template(notify_db_session):
+    service = create_service(
+        service_permissions=[SMS_TYPE],
+        service_name="OTHER_SMS_SERVICE",
+        check_if_service_exists=False
+    )
+    return create_template(service, template_type=SMS_TYPE, template_name="OTHER_SMS_TEMLATE")
+
+
 @pytest.fixture
 def sample_template_without_email_permission(notify_db_session, sample_service, sample_template):
     service = sample_service(service_permissions=[SMS_TYPE], check_if_service_exists=True)
