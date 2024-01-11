@@ -17,6 +17,7 @@ from app.authentication.auth import (
 )
 from app.dao.api_key_dao import get_unsigned_secrets
 from app.dao.permissions_dao import permission_dao
+from tests.app.db import create_api_key, create_service
 from app.models import PERMISSION_LIST, SERVICE_PERMISSION_TYPES, Permission
 from app.service.service_data import ServiceDataApiKey
 from flask import json, current_app, request

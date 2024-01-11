@@ -60,7 +60,7 @@ from app.models import (
 )
 from app.notifications.process_notifications import persist_notification
 from app.va.identifier import IdentifierType
-from tests.app.db import create_notification_history
+from tests.app.db import create_notification_history, create_notification
 
 
 def test_should_have_decorated_notifications_dao_functions():

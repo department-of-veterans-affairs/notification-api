@@ -161,15 +161,23 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
             with get_reader_session() as reader_session:
                 sms_sender = reader_session.execute(query).one().ServiceSmsSender
                 v3_send_sms_notification.delay(notification, sms_sender.sms_sender)
-        except (MultipleResultsFound, NoResultFound):
-            status_reason = f"SMS sender {notification.sms_sender_id} does not exist."
+        except NoResultFound:
+            err = f"SMS sender with id '{notification.sms_sender_id}' does not exist."
 
             # Set sms_sender_id to None so persisting it doesn't raise sqlalchemy.exc.IntegrityError
             # This happens in case user provides invalid sms_sender_id in the request data
             notification.sms_sender_id = None
             notification.status = NOTIFICATION_PERMANENT_FAILURE
             notification.status_reason = "SMS sender does not exist."
-            err = f"SMS sender with id '{notification.sms_sender_id}' does not exist."
+            v3_persist_failed_notification(notification, err)
+        except MultipleResultsFound:
+            err = f"Multiple SMS sender ids matched with: {notification.sms_sender_id}"
+
+            # Set sms_sender_id to None so persisting it doesn't raise sqlalchemy.exc.IntegrityError
+            # This happens in case user provides invalid sms_sender_id in the request data
+            notification.sms_sender_id = None
+            notification.status = NOTIFICATION_PERMANENT_FAILURE
+            notification.status_reason = "SMS sender is invalid"
             v3_persist_failed_notification(notification, err)
 
     return

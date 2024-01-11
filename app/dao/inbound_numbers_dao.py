@@ -5,8 +5,6 @@ from sqlalchemy import select, update
 from app import db
 from app.dao.dao_utils import transactional
 from app.models import InboundNumber
-from sqlalchemy import select
-from typing import Optional, List
 
 
 def dao_get_inbound_numbers() -> List[InboundNumber]:

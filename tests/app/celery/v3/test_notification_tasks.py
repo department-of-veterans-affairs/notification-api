@@ -11,7 +11,6 @@ from app.models import (
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_SENT,
     NotificationFailures,
-    Template,
     SMS_TYPE,
 )
 from sqlalchemy import select
@@ -115,7 +114,7 @@ def test_v3_process_notification_template_type_mismatch_1(notify_db_session, moc
     assert body.get("email_address") == "test@va.gov"
 
     # Teardown
-    notify_db_session.session.delete(notification)
+    notify_db_session.session.delete(notification_failure)
     notify_db_session.session.commit()
 
 

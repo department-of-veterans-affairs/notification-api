@@ -32,7 +32,7 @@ from freezegun import freeze_time
 from sqlalchemy import or_, select
 from sqlalchemy.exc import DataError, IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
-from tests.app.db import create_permissions, create_service, create_template_folder, create_user
+from tests.app.db import create_permissions, create_template_folder
 
 
 @pytest.fixture

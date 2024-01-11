@@ -339,7 +339,6 @@ class TestSsoCommon:
         assert response.json == {"error": "Unauthorized", "description": "Authentication failure"}
         assert mock_statsd.incr.called_with('oauth.authorization.failure')
 
-
     @pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
     @pytest.mark.parametrize('path', [
         'authorize',
