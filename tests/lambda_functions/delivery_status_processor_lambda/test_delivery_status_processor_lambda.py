@@ -50,14 +50,18 @@ def test_sys_exit_with_unset_queue_env_var(monkeypatch, all_path_env_param_set):
     monkeypatch.delenv('DELIVERY_STATUS_RESULT_TASK_QUEUE')
 
     with pytest.raises(SystemExit):
-        pass
+        from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+            delivery_status_processor_lambda_handler,  # noqa: F401
+        )
 
 
 def test_sys_exit_with_unset_deadletter_queue_env_var(monkeypatch, all_path_env_param_set):
     monkeypatch.delenv('DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER')
 
     with pytest.raises(SystemExit):
-        pass
+        from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+            delivery_status_processor_lambda_handler,  # noqa: F401
+        )
 
 
 def test_invalid_event_event_none(mocker, all_path_env_param_set):

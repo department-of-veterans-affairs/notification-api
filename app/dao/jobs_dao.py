@@ -33,7 +33,10 @@ from app.models import (
 
 
 @statsd(namespace='dao')
-def dao_get_notification_outcomes_for_job(service_id, job_id):
+def dao_get_notification_outcomes_for_job(
+    service_id,
+    job_id,
+):
     stmt = (
         select(func.count(Notification.status).label('count'), Notification.status)
         .where(Notification.service_id == service_id, Notification.job_id == job_id)
@@ -43,11 +46,20 @@ def dao_get_notification_outcomes_for_job(service_id, job_id):
     return db.session.execute(stmt).all()
 
 
-def dao_get_job_by_service_id_and_job_id(service_id, job_id):
+def dao_get_job_by_service_id_and_job_id(
+    service_id,
+    job_id,
+):
     return db.session.scalars(select(Job).where(Job.service_id == service_id, Job.id == job_id)).one()
 
 
-def dao_get_jobs_by_service_id(service_id, limit_days=None, page=1, page_size=50, statuses=None):
+def dao_get_jobs_by_service_id(
+    service_id,
+    limit_days=None,
+    page=1,
+    page_size=50,
+    statuses=None,
+):
     query_filter = [
         Job.service_id == service_id,
         Job.original_file_name != current_app.config['TEST_MESSAGE_FILENAME'],
@@ -99,7 +111,10 @@ def dao_set_scheduled_jobs_to_pending():
     return jobs
 
 
-def dao_get_future_scheduled_job_by_id_and_service_id(job_id, service_id):
+def dao_get_future_scheduled_job_by_id_and_service_id(
+    job_id,
+    service_id,
+):
     stmt = select(Job).where(
         Job.service_id == service_id,
         Job.id == job_id,

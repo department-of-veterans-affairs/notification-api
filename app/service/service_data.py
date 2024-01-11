@@ -18,7 +18,12 @@ class ServiceDataException(Exception):
         raise ServiceDataException("Description...")
     """
 
-    def __init__(self, message='Unable to create ServiceData object.', *args, **kwargs):
+    def __init__(
+        self,
+        message='Unable to create ServiceData object.',
+        *args,
+        **kwargs,
+    ):
         super().__init__(message, *args, **kwargs)
 
 
@@ -50,7 +55,10 @@ class ServiceDataApiKey:
         updated_at (datetime): The timestamp when the API key was last updated.
     """
 
-    def __init__(self, key) -> None:
+    def __init__(
+        self,
+        key,
+    ) -> None:
         """
         Args:
             key (object): The object containing the necessary attributes for the API key.
@@ -85,7 +93,10 @@ class ServiceDataApiKey:
 
         return lazyload
 
-    def __eq__(self, other: 'ServiceDataApiKey') -> bool:
+    def __eq__(
+        self,
+        other: 'ServiceDataApiKey',
+    ) -> bool:
         """
         Determines equality between two instances of ServiceDataApiKey.
 
@@ -143,7 +154,10 @@ class ServiceData:
         <List the methods here, if applicable>
     """
 
-    def __init__(self, result=None):
+    def __init__(
+        self,
+        result=None,
+    ):
         self.active = None
         self.permissions = None
         self.api_keys = None
@@ -161,7 +175,10 @@ class ServiceData:
             except Exception as err:
                 raise ServiceDataException(err)
 
-    def extract(self, result: Service) -> None:
+    def extract(
+        self,
+        result: Service,
+    ) -> None:
         """
         Extracts the necessary data from an authenticated service ORM object.
 
@@ -194,7 +211,10 @@ class ServiceData:
         """
         return json.dumps(self.__dict__)
 
-    def has_permissions(self, permissions_to_check_for: Union[str, List[str]]) -> bool:
+    def has_permissions(
+        self,
+        permissions_to_check_for: Union[str, List[str]],
+    ) -> bool:
         """
         Checks if the object has the specified permissions.
 
@@ -210,7 +230,10 @@ class ServiceData:
         return frozenset(permissions_to_check_for).issubset(frozenset(self.permissions))
 
     @classmethod
-    def deserialize(cls, json_string: str) -> 'ServiceData':
+    def deserialize(
+        cls,
+        json_string: str,
+    ) -> 'ServiceData':
         """
         Creates a new instance of the class using a JSON string.
         This method might be used after retrieval from caching, allowing the object to be reconstructed.

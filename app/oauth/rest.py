@@ -153,7 +153,12 @@ def callback():
         return response
 
 
-def _process_sso_user(email: str, name: str, identity_provider: str, identity_provider_user_id: str) -> Response:
+def _process_sso_user(
+    email: str,
+    name: str,
+    identity_provider: str,
+    identity_provider_user_id: str,
+) -> Response:
     try:
         user = retrieve_match_or_create_user(
             email_address=email,
@@ -189,7 +194,10 @@ def _successful_sso_login_response(user: User) -> Response:
     return response
 
 
-def make_github_get_request(endpoint: str, github_token) -> json:
+def make_github_get_request(
+    endpoint: str,
+    github_token,
+) -> json:
     resp = oauth_registry.github.get(endpoint, token=github_token)
 
     if not does_user_have_sufficient_scope(resp):
@@ -219,7 +227,10 @@ def does_user_have_sufficient_scope(response: RequestsResponse) -> bool:
         return True
 
 
-def _extract_github_user_info(email_resp: json, user_resp: json) -> Tuple[str, str, str]:
+def _extract_github_user_info(
+    email_resp: json,
+    user_resp: json,
+) -> Tuple[str, str, str]:
     verified_email = next(
         email.get('email') for email in email_resp.json() if email.get('primary') and email.get('verified')
     )

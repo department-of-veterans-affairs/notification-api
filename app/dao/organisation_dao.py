@@ -54,7 +54,10 @@ def dao_create_organisation(organisation):
 
 
 @transactional
-def dao_update_organisation(organisation_id, **kwargs):
+def dao_update_organisation(
+    organisation_id,
+    **kwargs,
+):
     # Endpoint is unused, query to be removed when endpoint is removed
     domains = kwargs.pop('domains', None)
 
@@ -86,7 +89,10 @@ def _update_org_type_for_organisation_services(organisation):
 
 @transactional
 @version_class(Service)
-def dao_add_service_to_organisation(service, organisation_id):
+def dao_add_service_to_organisation(
+    service,
+    organisation_id,
+):
     organisation = db.session.scalars(select(Organisation).where(Organisation.id == organisation_id)).one()
 
     service.organisation_id = organisation_id
@@ -113,7 +119,10 @@ def dao_get_users_for_organisation(organisation_id):
 
 
 @transactional
-def dao_add_user_to_organisation(organisation_id, user_id):
+def dao_add_user_to_organisation(
+    organisation_id,
+    user_id,
+):
     organisation = dao_get_organisation_by_id(organisation_id)
     user = db.session.scalars(select(User).where(User.id == user_id)).one()
     user.organisations.append(organisation)

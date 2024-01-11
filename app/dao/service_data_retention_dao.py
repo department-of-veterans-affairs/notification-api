@@ -5,7 +5,10 @@ from datetime import datetime
 from sqlalchemy import select, update
 
 
-def fetch_service_data_retention_by_id(service_id, data_retention_id):
+def fetch_service_data_retention_by_id(
+    service_id,
+    data_retention_id,
+):
     stmt = select(ServiceDataRetention).where(
         ServiceDataRetention.service_id == service_id, ServiceDataRetention.id == data_retention_id
     )
@@ -25,7 +28,10 @@ def fetch_service_data_retention(service_id):
     return db.session.scalars(stmt).all()
 
 
-def fetch_service_data_retention_by_notification_type(service_id, notification_type):
+def fetch_service_data_retention_by_notification_type(
+    service_id,
+    notification_type,
+):
     stmt = select(ServiceDataRetention).where(
         ServiceDataRetention.service_id == service_id, ServiceDataRetention.notification_type == notification_type
     )
@@ -33,7 +39,11 @@ def fetch_service_data_retention_by_notification_type(service_id, notification_t
 
 
 @transactional
-def insert_service_data_retention(service_id, notification_type, days_of_retention):
+def insert_service_data_retention(
+    service_id,
+    notification_type,
+    days_of_retention,
+):
     new_data_retention = ServiceDataRetention(
         service_id=service_id, notification_type=notification_type, days_of_retention=days_of_retention
     )
@@ -43,7 +53,11 @@ def insert_service_data_retention(service_id, notification_type, days_of_retenti
 
 
 @transactional
-def update_service_data_retention(service_data_retention_id, service_id, days_of_retention):
+def update_service_data_retention(
+    service_data_retention_id,
+    service_id,
+    days_of_retention,
+):
     stmt = (
         update(ServiceDataRetention)
         .where(ServiceDataRetention.id == service_data_retention_id, ServiceDataRetention.service_id == service_id)

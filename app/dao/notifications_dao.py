@@ -74,7 +74,11 @@ FINAL_STATUS_STATES = (
 
 
 @statsd(namespace='dao')
-def dao_get_last_template_usage(template_id, template_type, service_id):
+def dao_get_last_template_usage(
+    template_id,
+    template_type,
+    service_id,
+):
     # By adding the service_id to the filter the performance of the query is greatly improved.
     # Using a max(Notification.created_at) is better than order by and limit one.
     # But the effort to change the endpoint to return a datetime only is more than the gain.
@@ -104,7 +108,10 @@ def dao_create_notification(notification):
     db.session.add(notification)
 
 
-def _decide_permanent_temporary_failure(current_status, status):
+def _decide_permanent_temporary_failure(
+    current_status,
+    status,
+):
     # Firetext will send pending, then send either succes or fail.
     # If we go from pending to delivered we need to set failure type as temporary-failure
     if current_status == NOTIFICATION_PENDING and status == NOTIFICATION_PERMANENT_FAILURE:
@@ -117,7 +124,11 @@ def country_records_delivery(phone_prefix):
     return dlr and dlr.lower() == 'yes'
 
 
-def _get_notification_status_update_statement(notification_id: str, incoming_status: str, **kwargs):
+def _get_notification_status_update_statement(
+    notification_id: str,
+    incoming_status: str,
+    **kwargs,
+):
     """
     Generates an update statement for the given notification id and status.
     Preserves status order and ensures a transient status will not override a final status.
@@ -164,7 +175,10 @@ def _get_notification_status_update_statement(notification_id: str, incoming_sta
     return update_statement
 
 
-def _update_notification_status(notification, status):
+def _update_notification_status(
+    notification,
+    status,
+):
     """
     Update the notification status if it should be updated.
     """
@@ -293,7 +307,10 @@ def update_notification_delivery_status(
 
 @statsd(namespace='dao')
 @transactional
-def update_notification_status_by_reference(reference, status):
+def update_notification_status_by_reference(
+    reference,
+    status,
+):
     # this is used to update letters and emails
     stmt = select(Notification).where(Notification.reference == reference)
     notification = db.session.scalar(stmt)
@@ -317,7 +334,10 @@ def update_notification_status_by_reference(reference, status):
 
 @statsd(namespace='dao')
 @transactional
-def dao_update_notification_by_id(notification_id: str, **kwargs):
+def dao_update_notification_by_id(
+    notification_id: str,
+    **kwargs,
+):
     """
     Update the notification by ID, ensure kwargs paramaters are named appropriately according to the notification model.
     :param notification_id: The notification uuid in string form
@@ -369,7 +389,11 @@ def dao_update_notification(notification):
 
 
 @statsd(namespace='dao')
-def get_notification_for_job(service_id, job_id, notification_id):
+def get_notification_for_job(
+    service_id,
+    job_id,
+    notification_id,
+):
     stmt = select(Notification).where(
         Notification.service_id == service_id, Notification.job_id == job_id, Notification.id == notification_id
     )
@@ -378,7 +402,13 @@ def get_notification_for_job(service_id, job_id, notification_id):
 
 
 @statsd(namespace='dao')
-def get_notifications_for_job(service_id, job_id, filter_dict=None, page=1, page_size=None):
+def get_notifications_for_job(
+    service_id,
+    job_id,
+    filter_dict=None,
+    page=1,
+    page_size=None,
+):
     if page_size is None:
         page_size = current_app.config['PAGE_SIZE']
     stmt = select(Notification).where(Notification.service_id == service_id, Notification.job_id == job_id)
@@ -393,7 +423,11 @@ def get_notifications_for_job(service_id, job_id, filter_dict=None, page=1, page
 
 
 @statsd(namespace='dao')
-def get_notification_with_personalisation(service_id, notification_id, key_type):
+def get_notification_with_personalisation(
+    service_id,
+    notification_id,
+    key_type,
+):
     stmt = select(Notification).where(Notification.service_id == service_id, Notification.id == notification_id)
 
     if key_type:
@@ -405,7 +439,11 @@ def get_notification_with_personalisation(service_id, notification_id, key_type)
 
 
 @statsd(namespace='dao')
-def get_notification_by_id(notification_id, service_id=None, _raise=False):
+def get_notification_by_id(
+    notification_id,
+    service_id=None,
+    _raise=False,
+):
     filters = [Notification.id == notification_id]
 
     if service_id:
@@ -473,7 +511,10 @@ def get_notifications_for_service(
     return db.paginate(stmt, page=page, per_page=page_size, count=count_pages)
 
 
-def _filter_query(stmt, filter_dict=None):
+def _filter_query(
+    stmt,
+    filter_dict=None,
+):
     if filter_dict is None:
         return stmt
 
@@ -494,7 +535,10 @@ def _filter_query(stmt, filter_dict=None):
 
 
 @statsd(namespace='dao')
-def delete_notifications_older_than_retention_by_type(notification_type, qry_limit=10000):
+def delete_notifications_older_than_retention_by_type(
+    notification_type,
+    qry_limit=10000,
+):
     """
     TODO - This seems unnecessarily complicated.  It can probably be reduced to a single "delete"
     query with a "join" and a compound "where" clause.  See #1102.
@@ -539,7 +583,12 @@ def delete_notifications_older_than_retention_by_type(notification_type, qry_lim
     return deleted
 
 
-def _delete_notifications(notification_type, date_to_delete_from, service_id, query_limit):
+def _delete_notifications(
+    notification_type,
+    date_to_delete_from,
+    service_id,
+    query_limit,
+):
     if isinstance(service_id, Row):
         service_id = str(service_id[0])
 
@@ -586,7 +635,11 @@ def _delete_for_query(subquery):
     return deleted
 
 
-def insert_update_notification_history(notification_type, date_to_delete_from, service_id):
+def insert_update_notification_history(
+    notification_type,
+    date_to_delete_from,
+    service_id,
+):
     if isinstance(service_id, Row):
         service_id = str(service_id[0])
 
@@ -613,7 +666,12 @@ def insert_update_notification_history(notification_type, date_to_delete_from, s
     db.session.commit()
 
 
-def _delete_letters_from_s3(notification_type, service_id, date_to_delete_from, query_limit):
+def _delete_letters_from_s3(
+    notification_type,
+    service_id,
+    date_to_delete_from,
+    query_limit,
+):
     if isinstance(service_id, Row):
         service_id = str(service_id[0])
 
@@ -656,7 +714,12 @@ def dao_delete_notification_by_id(notification_id):
         db.session.delete(notification)
 
 
-def _timeout_notifications(current_statuses, new_status, timeout_start, updated_at):
+def _timeout_notifications(
+    current_statuses,
+    new_status,
+    timeout_start,
+    updated_at,
+):
     stmt = select(Notification).where(
         Notification.created_at < timeout_start,
         Notification.status.in_(current_statuses),
@@ -755,7 +818,10 @@ def is_delivery_slow_for_provider(
 
 @statsd(namespace='dao')
 @transactional
-def dao_update_notifications_by_reference(references, update_dict):
+def dao_update_notifications_by_reference(
+    references,
+    update_dict,
+):
     stmt = update(Notification).where(Notification.reference.in_(references)).values(**update_dict)
     updated_count = db.session.execute(stmt, execution_options={'synchronize_session': False}).rowcount
 
@@ -768,7 +834,12 @@ def dao_update_notifications_by_reference(references, update_dict):
 
 
 @statsd(namespace='dao')
-def dao_get_notifications_by_to_field(service_id, search_term, notification_type=None, statuses=None):
+def dao_get_notifications_by_to_field(
+    service_id,
+    search_term,
+    notification_type=None,
+    statuses=None,
+):
     if notification_type is None:
         notification_type = guess_notification_type(search_term)
 
@@ -855,7 +926,10 @@ def set_scheduled_notification_to_processed(notification_id):
     db.session.commit()
 
 
-def dao_get_total_notifications_sent_per_day_for_performance_platform(start_date, end_date):
+def dao_get_total_notifications_sent_per_day_for_performance_platform(
+    start_date,
+    end_date,
+):
     """
     SELECT
     count(notification_history),
@@ -889,7 +963,10 @@ def dao_get_last_notification_added_for_job_id(job_id):
     return last_notification_added
 
 
-def notifications_not_yet_sent(should_be_sending_after_seconds, notification_type):
+def notifications_not_yet_sent(
+    should_be_sending_after_seconds,
+    notification_type,
+):
     older_than_date = datetime.utcnow() - timedelta(seconds=should_be_sending_after_seconds)
     stmt = select(Notification).where(
         Notification.created_at <= older_than_date,
@@ -935,7 +1012,10 @@ def guess_notification_type(search_term):
         return SMS_TYPE
 
 
-def duplicate_update_warning(notification, status):
+def duplicate_update_warning(
+    notification,
+    status,
+):
     # This is a log, so this is not SQL injection
     time_diff = datetime.utcnow() - (notification.updated_at or notification.created_at)
 

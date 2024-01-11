@@ -1,6 +1,7 @@
 import pytest
 from app import DATETIME_FORMAT
-from app.models import TEMPLATE_TYPES, EMAIL_TYPE, SMS_TYPE
+from app.models import EMAIL_TYPE, SMS_TYPE
+from tests.app.conftest import TEMPLATE_TYPES
 from flask import json
 from tests import create_authorization_header
 

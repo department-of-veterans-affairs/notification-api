@@ -119,21 +119,30 @@ def smtp_remove(name):
         raise e
 
 
-def create_domain_identity(client, name):
+def create_domain_identity(
+    client,
+    name,
+):
     try:
         return client.verify_domain_identity(Domain=name)['VerificationToken']
     except Exception as e:
         raise e
 
 
-def get_dkim(client, name):
+def get_dkim(
+    client,
+    name,
+):
     try:
         return client.verify_domain_dkim(Domain=name)['DkimTokens']
     except Exception as e:
         raise e
 
 
-def add_user(client, name):
+def add_user(
+    client,
+    name,
+):
     try:
         user_name = name + '-' + str(int(time.time()))
         client.create_user(
@@ -165,7 +174,12 @@ def add_user(client, name):
         raise e
 
 
-def add_record(client, name, value, record_type='CNAME'):
+def add_record(
+    client,
+    name,
+    value,
+    record_type='CNAME',
+):
     try:
         client.change_resource_record_sets(
             HostedZoneId=current_app.config['AWS_ROUTE53_ZONE'],
@@ -188,7 +202,10 @@ def add_record(client, name, value, record_type='CNAME'):
         raise e
 
 
-def delete_record(client, record):
+def delete_record(
+    client,
+    record,
+):
     try:
         client.change_resource_record_sets(
             HostedZoneId=current_app.config['AWS_ROUTE53_ZONE'],

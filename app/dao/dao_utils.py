@@ -12,7 +12,10 @@ def transactional(func):
     """
 
     @wraps(func)
-    def commit_or_rollback(*args, **kwargs):
+    def commit_or_rollback(
+        *args,
+        **kwargs,
+    ):
         from flask import current_app
 
         try:
@@ -28,7 +31,12 @@ def transactional(func):
 
 
 class VersionOptions:
-    def __init__(self, model_class, history_class=None, must_write_history=True):
+    def __init__(
+        self,
+        model_class,
+        history_class=None,
+        must_write_history=True,
+    ):
         self.model_class = model_class
         self.history_class = history_class
         self.must_write_history = must_write_history
@@ -40,7 +48,10 @@ def version_class(*version_options):
 
     def versioned(func):
         @wraps(func)
-        def record_version(*args, **kwargs):
+        def record_version(
+            *args,
+            **kwargs,
+        ):
             func(*args, **kwargs)
 
             session_objects = []

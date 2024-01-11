@@ -121,7 +121,10 @@ def get_organisation_services(organisation_id):
 
 
 @organisation_blueprint.route('/<uuid:organisation_id>/users/<uuid:user_id>', methods=['POST'])
-def add_user_to_organisation(organisation_id, user_id):
+def add_user_to_organisation(
+    organisation_id,
+    user_id,
+):
     new_org_user = dao_add_user_to_organisation(organisation_id, user_id)
     return jsonify(data=new_org_user.serialize())
 
@@ -160,7 +163,11 @@ def send_notifications_on_mou_signed(organisation_id):
     organisation = dao_get_organisation_by_id(organisation_id)
     notify_service = dao_fetch_service_by_id(current_app.config['NOTIFY_SERVICE_ID'])
 
-    def _send_notification(template_id, recipient, personalisation):
+    def _send_notification(
+        template_id,
+        recipient,
+        personalisation,
+    ):
         template = dao_get_template_by_id(template_id)
 
         saved_notification = persist_notification(

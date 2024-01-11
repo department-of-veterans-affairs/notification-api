@@ -3,7 +3,11 @@ from app.models import EMAIL_TYPE, LETTER_TYPE, SMS_TYPE
 from app.dao.fact_notification_status_dao import get_total_sent_notifications_for_day_and_type
 
 
-def send_total_notifications_sent_for_day_stats(start_time, notification_type, count):
+def send_total_notifications_sent_for_day_stats(
+    start_time,
+    notification_type,
+    count,
+):
     payload = performance_platform_client.format_payload(
         dataset='notifications', start_time=start_time, group_name='channel', group_value=notification_type, count=count
     )

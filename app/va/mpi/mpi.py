@@ -30,7 +30,11 @@ exception_code_mapping = {
 exception_substring = {NoSuchIdentifierException: 'no_such_identifier'}
 
 
-def _get_nested_value_from_response_body(response_body, keys, default=None):
+def _get_nested_value_from_response_body(
+    response_body,
+    keys,
+    default=None,
+):
     return reduce(
         lambda d, key: d.get(key, default) if isinstance(d, dict) else None if not d else d[0],
         keys.split('.'),
@@ -41,14 +45,24 @@ def _get_nested_value_from_response_body(response_body, keys, default=None):
 class MpiClient:
     SYSTEM_IDENTIFIER = '200ENTF'
 
-    def init_app(self, logger, url, ssl_cert_path, ssl_key_path, statsd_client):
+    def init_app(
+        self,
+        logger,
+        url,
+        ssl_cert_path,
+        ssl_key_path,
+        statsd_client,
+    ):
         self.logger = logger
         self.base_url = url
         self.ssl_cert_path = ssl_cert_path
         self.ssl_key_path = ssl_key_path
         self.statsd_client = statsd_client
 
-    def get_va_profile_id(self, notification):
+    def get_va_profile_id(
+        self,
+        notification,
+    ):
         recipient_identifiers = notification.recipient_identifiers.values()
         if len(recipient_identifiers) != 1:
             error_message = (
@@ -72,7 +86,11 @@ class MpiClient:
         self.statsd_client.incr('clients.mpi.get_va_profile_id.success')
         return va_profile_id
 
-    def _make_request(self, fhir_identifier, notification_id):
+    def _make_request(
+        self,
+        fhir_identifier,
+        notification_id,
+    ):
         self.logger.info('Querying MPI with %s for notification %s', fhir_identifier, notification_id)
         start_time = monotonic()
         try:
@@ -114,7 +132,11 @@ class MpiClient:
             elapsed_time = monotonic() - start_time
             self.statsd_client.timing('clients.mpi.request-time', elapsed_time)
 
-    def _get_active_va_profile_id(self, identifiers, fhir_identifier):
+    def _get_active_va_profile_id(
+        self,
+        identifiers,
+        fhir_identifier,
+    ):
         active_va_profile_suffix = FHIR_FORMAT_SUFFIXES[IdentifierType.VA_PROFILE_ID] + '^A'
         va_profile_ids = [
             transform_from_fhir_format(identifier['value'])
@@ -131,7 +153,12 @@ class MpiClient:
             )
         return va_profile_ids[0]
 
-    def _validate_response(self, response_json, notification_id, fhir_identifier):
+    def _validate_response(
+        self,
+        response_json,
+        notification_id,
+        fhir_identifier,
+    ):
         if response_json.get('severity'):
             error_code = _get_nested_value_from_response_body(response_json, 'details.coding.index.code')
             error_message = (
@@ -149,7 +176,11 @@ class MpiClient:
                 self.statsd_client.incr('clients.mpi.error')
                 raise MpiNonRetryableException(error_message)
 
-    def _assert_not_deceased(self, response_json, fhir_identifier):
+    def _assert_not_deceased(
+        self,
+        response_json,
+        fhir_identifier,
+    ):
         if response_json.get('deceasedDateTime'):
             self.statsd_client.incr('clients.mpi.get_va_profile_id.beneficiary_deceased')
             raise BeneficiaryDeceasedException(f'Beneficiary deceased for identifier: {fhir_identifier}')

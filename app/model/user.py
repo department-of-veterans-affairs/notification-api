@@ -18,7 +18,12 @@ USER_AUTH_TYPE = [SMS_AUTH_TYPE, EMAIL_AUTH_TYPE]
 class User(db.Model):
     __tablename__ = 'users'
 
-    def __init__(self, idp_name: str = None, idp_id: str = None, **kwargs):
+    def __init__(
+        self,
+        idp_name: str = None,
+        idp_id: str = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         if idp_name and idp_id:
             self.idp_ids.append(IdentityProviderIdentifier(self.id, idp_name, str(idp_id)))
@@ -61,7 +66,10 @@ class User(db.Model):
         raise AttributeError('Password not readable')
 
     @password.setter
-    def password(self, password):
+    def password(
+        self,
+        password,
+    ):
         self._password = hashpw(password)
 
     @hybrid_property
@@ -69,13 +77,20 @@ class User(db.Model):
         return self._identity_provider_user_id
 
     @identity_provider_user_id.setter
-    def identity_provider_user_id(self, id):
+    def identity_provider_user_id(
+        self,
+        id,
+    ):
         self._identity_provider_user_id = id
         if id:
             self.idp_ids.append(IdentityProviderIdentifier(self.id, 'github', id))
 
     @classmethod
-    def find_by_idp(cls, idp_name: str, idp_id: str) -> 'User':
+    def find_by_idp(
+        cls,
+        idp_name: str,
+        idp_id: str,
+    ) -> 'User':
         stmt = (
             select(cls)
             .join(cls.idp_ids)
@@ -88,18 +103,28 @@ class User(db.Model):
         db.session.add(self)
         db.session.commit()
 
-    def add_idp(self, idp_name: str, idp_id: str) -> None:
+    def add_idp(
+        self,
+        idp_name: str,
+        idp_id: str,
+    ) -> None:
         if not idp_name or not idp_id:
             raise ValueError('Must provide IDP name and id')
         self.idp_ids.append(IdentityProviderIdentifier(self.id, idp_name, str(idp_id)))
 
-    def check_password(self, password):
+    def check_password(
+        self,
+        password,
+    ):
         if self.blocked:
             return False
 
         return check_hash(password, self._password)
 
-    def get_permissions(self, service_id=None):
+    def get_permissions(
+        self,
+        service_id=None,
+    ):
         from app.dao.permissions_dao import permission_dao
 
         if service_id:

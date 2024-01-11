@@ -7,7 +7,10 @@ import uuid
 ROUTING_KEY = 'delivery-receipts'
 
 
-def lambda_handler(event, context):
+def lambda_handler(
+    event,
+    context,
+):
     sqs = boto3.resource('sqs')
     queue = sqs.get_queue_by_name(QueueName=f"{os.getenv('NOTIFICATION_QUEUE_PREFIX')}{ROUTING_KEY}")
 

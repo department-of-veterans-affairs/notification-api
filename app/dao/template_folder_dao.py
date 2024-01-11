@@ -4,7 +4,10 @@ from app.models import TemplateFolder
 from sqlalchemy import select
 
 
-def dao_get_template_folder_by_id_and_service_id(template_folder_id, service_id):
+def dao_get_template_folder_by_id_and_service_id(
+    template_folder_id,
+    service_id,
+):
     stmt = select(TemplateFolder).where(
         TemplateFolder.id == template_folder_id, TemplateFolder.service_id == service_id
     )

@@ -29,7 +29,10 @@ from app.celery.service_callback_tasks import check_and_queue_callback_task
     retry_backoff_max=60,
 )
 @statsd(namespace='tasks')
-def lookup_va_profile_id(self, notification_id):
+def lookup_va_profile_id(
+    self,
+    notification_id,
+):
     current_app.logger.info(f'Retrieving VA Profile ID from MPI for notification {notification_id}')
     notification = notifications_dao.get_notification_by_id(notification_id)
 

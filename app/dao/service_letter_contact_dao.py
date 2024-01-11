@@ -14,7 +14,10 @@ def dao_get_letter_contacts_by_service_id(service_id):
     return db.session.scalars(stmt).all()
 
 
-def dao_get_letter_contact_by_id(service_id, letter_contact_id):
+def dao_get_letter_contact_by_id(
+    service_id,
+    letter_contact_id,
+):
     stmt = select(ServiceLetterContact).where(
         ServiceLetterContact.service_id == service_id,
         ServiceLetterContact.id == letter_contact_id,
@@ -25,7 +28,11 @@ def dao_get_letter_contact_by_id(service_id, letter_contact_id):
 
 
 @transactional
-def add_letter_contact_for_service(service_id, contact_block, is_default):
+def add_letter_contact_for_service(
+    service_id,
+    contact_block,
+    is_default,
+):
     old_default = _get_existing_default(service_id)
     if is_default:
         _reset_old_default_to_false(old_default)
@@ -36,7 +43,12 @@ def add_letter_contact_for_service(service_id, contact_block, is_default):
 
 
 @transactional
-def update_letter_contact(service_id, letter_contact_id, contact_block, is_default):
+def update_letter_contact(
+    service_id,
+    letter_contact_id,
+    contact_block,
+    is_default,
+):
     old_default = _get_existing_default(service_id)
     # if we want to make this the default, ensure there are no other existing defaults
     if is_default:
@@ -50,7 +62,10 @@ def update_letter_contact(service_id, letter_contact_id, contact_block, is_defau
 
 
 @transactional
-def archive_letter_contact(service_id, letter_contact_id):
+def archive_letter_contact(
+    service_id,
+    letter_contact_id,
+):
     db.session.execute(
         update(Template)
         .where(Template.service_letter_contact_id == letter_contact_id)

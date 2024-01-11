@@ -27,7 +27,10 @@ class FeatureFlag(Enum):
     COMP_AND_PEN_MESSAGES_ENABLED = 'COMP_AND_PEN_MESSAGES_ENABLED'
 
 
-def is_provider_enabled(current_app, provider_identifier):
+def is_provider_enabled(
+    current_app,
+    provider_identifier,
+):
     if provider_identifier in PROVIDER_FEATURE_FLAGS:
         return current_app.config.get(PROVIDER_FEATURE_FLAGS[provider_identifier])
     else:

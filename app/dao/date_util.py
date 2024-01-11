@@ -14,7 +14,11 @@ def get_months_for_financial_year(year):
     ]
 
 
-def get_months_for_year(start, end, year):
+def get_months_for_year(
+    start,
+    end,
+    year,
+):
     return [datetime(year, month, 1) for month in range(start, end)]
 
 

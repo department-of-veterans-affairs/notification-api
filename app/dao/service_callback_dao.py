@@ -5,7 +5,10 @@ from sqlalchemy import select
 
 
 @statsd(namespace='dao')
-def dao_get_callback_include_payload_status(service_id, service_callback_type) -> bool:
+def dao_get_callback_include_payload_status(
+    service_id,
+    service_callback_type,
+) -> bool:
     """Return whether the ServiceCallback has indicated that the provider should include the payload"""
     include_provider_payload = False
 

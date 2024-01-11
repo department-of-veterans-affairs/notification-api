@@ -58,7 +58,10 @@ def get_invited_users_by_service(service_id):
 
 
 @invite.route('/<invited_user_id>', methods=['POST'])
-def update_invited_user(service_id, invited_user_id):
+def update_invited_user(
+    service_id,
+    invited_user_id,
+):
     fetched = get_invited_user(service_id=service_id, invited_user_id=invited_user_id)
     current_data = dict(invited_user_schema.dump(fetched).data.items())
     current_data.update(request.get_json())
@@ -67,7 +70,10 @@ def update_invited_user(service_id, invited_user_id):
     return jsonify(data=invited_user_schema.dump(fetched).data), 200
 
 
-def invited_user_url(invited_user_id, invite_link_host=None):
+def invited_user_url(
+    invited_user_id,
+    invite_link_host=None,
+):
     from notifications_utils.url_safe_token import generate_token
 
     token = generate_token(str(invited_user_id), current_app.config['SECRET_KEY'], current_app.config['DANGEROUS_SALT'])

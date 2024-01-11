@@ -12,7 +12,10 @@ from app.errors import InvalidRequest
 
 
 class JobIncompleteError(Exception):
-    def __init__(self, message):
+    def __init__(
+        self,
+        message,
+    ):
         self.message = message
         self.status_code = 500
 
@@ -24,7 +27,10 @@ class TooManyRequestsError(InvalidRequest):
     status_code = 429
     message_template = 'Exceeded send limits ({}) for today'
 
-    def __init__(self, sending_limit):
+    def __init__(
+        self,
+        sending_limit,
+    ):
         self.message = self.message_template.format(sending_limit)
 
 
@@ -33,7 +39,12 @@ class RateLimitError(InvalidRequest):
     message_template = 'Exceeded rate limit for key type {} of {} requests per {} seconds'
     message_template_without_key_type = 'Exceeded rate limit of {} requests per {} seconds'
 
-    def __init__(self, sending_limit, interval, key_type=None):
+    def __init__(
+        self,
+        sending_limit,
+        interval,
+        key_type=None,
+    ):
         # normal keys are spoken of as "live" in the documentation
         # so using this in the error messaging
         if key_type and key_type == 'normal':
@@ -49,7 +60,12 @@ class RateLimitError(InvalidRequest):
 class BadRequestError(InvalidRequest):
     message = 'An error occurred'
 
-    def __init__(self, fields=[], message=None, status_code=400):
+    def __init__(
+        self,
+        fields=[],
+        message=None,
+        status_code=400,
+    ):
         self.status_code = status_code
         self.fields = fields
         self.message = message if message else self.message

@@ -585,7 +585,10 @@ def sample_service_helper(
     return Service(**kwargs)
 
 
-def service_cleanup(service_ids: list, session: scoped_session) -> None:
+def service_cleanup(  # noqa: C901
+    service_ids: list,
+    session: scoped_session,
+) -> None:
     """
     Cleans up a list of services by deleting all dependencies then clearing the services. Services are used for almost
     everything we do, so the list below is extensive. Without all these here we will need specific ordering on the

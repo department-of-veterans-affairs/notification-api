@@ -37,10 +37,12 @@ def test_send_processing_time_to_performance_platform_generates_correct_calls(
 
 # This test assumes the local timezone is EST
 def test_send_processing_time_to_performance_platform_creates_correct_call_to_perf_platform(mocker):
-    send_stats = mocker.patch((
-        'app.performance_platform.total_sent_notifications.'
-        'performance_platform_client.send_stats_to_performance_platform'
-    ))
+    send_stats = mocker.patch(
+        (
+            'app.performance_platform.total_sent_notifications.'
+            'performance_platform_client.send_stats_to_performance_platform'
+        )
+    )
 
     send_processing_time_data(start_time=datetime(2016, 10, 16, 4, 0, 0), status='foo', count=142)
 

@@ -14,13 +14,19 @@ class SendSms(HttpUser):
         self.sms_sender_id = self.read_configuration('sms_sender_id')
         self.api_key = self.read_configuration('api_key')
 
-    def read_configuration(self, key: str) -> str:
+    def read_configuration(
+        self,
+        key: str,
+    ) -> str:
         if f'LOAD_TESTING_{self.short_env}_{key}' in os.environ:
             return os.getenv(f'LOAD_TESTING_{self.short_env}_{key}')
         else:
             return self.read_from_ssm(key)
 
-    def read_from_ssm(self, key: str) -> str:
+    def read_from_ssm(
+        self,
+        key: str,
+    ) -> str:
         if not hasattr(self, 'boto_client'):
             self.boto_client = boto3.client('ssm')
 

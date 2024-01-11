@@ -51,7 +51,10 @@ from json import JSONDecodeError
 
 @notify_celery.task(bind=True, name='create-letters-pdf', max_retries=15, default_retry_delay=300)
 @statsd(namespace='tasks')
-def create_letters_pdf(self, notification_id):
+def create_letters_pdf(
+    self,
+    notification_id,
+):
     try:
         notification = get_notification_by_id(notification_id, _raise=True)
         pdf_data, billable_units = get_letters_pdf(
@@ -82,7 +85,12 @@ def create_letters_pdf(self, notification_id):
             update_notification_status_by_id(notification_id, 'technical-failure', status_reason='Retries exceeded')
 
 
-def get_letters_pdf(template, contact_block, filename, values):
+def get_letters_pdf(
+    template,
+    contact_block,
+    filename,
+    values,
+):
     template_for_letter_print = {'subject': template.subject, 'content': template.content}
 
     data = {
@@ -182,7 +190,10 @@ def letter_in_created_state(filename):
 
 
 @notify_celery.task(bind=True, name='process-virus-scan-passed', max_retries=15, default_retry_delay=300)
-def process_virus_scan_passed(self, filename):
+def process_virus_scan_passed(
+    self,
+    filename,
+):
     reference = get_reference_from_filename(filename)
     notification = dao_get_notification_by_reference(reference)
     current_app.logger.info('notification id %s Virus scan passed: %s', notification.id, filename)
@@ -247,7 +258,11 @@ def process_virus_scan_passed(self, filename):
         )
 
 
-def _move_invalid_letter_and_update_status(notification, filename, scan_pdf_object):
+def _move_invalid_letter_and_update_status(
+    notification,
+    filename,
+    scan_pdf_object,
+):
     try:
         move_scan_to_invalid_pdf_bucket(filename)
         scan_pdf_object.delete()
@@ -262,7 +277,11 @@ def _move_invalid_letter_and_update_status(notification, filename, scan_pdf_obje
         )
 
 
-def _upload_pdf_to_test_or_live_pdf_bucket(pdf_data, filename, is_test_letter):
+def _upload_pdf_to_test_or_live_pdf_bucket(
+    pdf_data,
+    filename,
+    is_test_letter,
+):
     target_bucket_config = 'TEST_LETTERS_BUCKET_NAME' if is_test_letter else 'LETTERS_PDF_BUCKET_NAME'
     target_bucket_name = current_app.config[target_bucket_config]
     target_filename = get_folder_name(datetime.utcnow(), is_test_letter) + filename
@@ -275,7 +294,11 @@ def _upload_pdf_to_test_or_live_pdf_bucket(pdf_data, filename, is_test_letter):
     )
 
 
-def _sanitise_precompiled_pdf(self, notification, precompiled_pdf):
+def _sanitise_precompiled_pdf(
+    self,
+    notification,
+    precompiled_pdf,
+):
     try:
         response = requests_post(
             '{}/precompiled/sanitise'.format(current_app.config['TEMPLATE_PREVIEW_API_HOST']),
@@ -349,7 +372,11 @@ def process_virus_scan_error(filename):
     raise error
 
 
-def update_letter_pdf_status(reference, status, billable_units):
+def update_letter_pdf_status(
+    reference,
+    status,
+    billable_units,
+):
     return dao_update_notifications_by_reference(
         references=[reference],
         update_dict={'status': status, 'billable_units': billable_units, 'updated_at': datetime.utcnow()},

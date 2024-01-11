@@ -29,19 +29,30 @@ def get_bucket_name(event) -> str:
     return event['Records'][0]['s3']['bucket']['name']
 
 
-def read_nightly_stats_from_s3(bucket_name: str, object_key: str) -> bytes:
+def read_nightly_stats_from_s3(
+    bucket_name: str,
+    object_key: str,
+) -> bytes:
     s3_client = boto3.client('s3')
 
     return s3_client.get_object(Bucket=bucket_name, Key=object_key)['Body'].read()
 
 
-def delete_existing_rows_for_date(bigquery_client: bigquery.Client, table_id: str, object_key: str) -> None:
+def delete_existing_rows_for_date(
+    bigquery_client: bigquery.Client,
+    table_id: str,
+    object_key: str,
+) -> None:
     date, _extension = object_key.split('.')
     dml_statement = f"DELETE FROM `{table_id}` WHERE date = '{date}'"
     bigquery_client.query(dml_statement).result()
 
 
-def add_updated_rows_for_date(bigquery_client: bigquery.Client, table_id: str, nightly_stats: bytes) -> None:
+def add_updated_rows_for_date(
+    bigquery_client: bigquery.Client,
+    table_id: str,
+    nightly_stats: bytes,
+) -> None:
     job_config = bigquery.LoadJobConfig(
         schema=[
             bigquery.SchemaField('date', 'DATE'),
@@ -65,7 +76,10 @@ def add_updated_rows_for_date(bigquery_client: bigquery.Client, table_id: str, n
     ).result()
 
 
-def lambda_handler(event, _context):
+def lambda_handler(
+    event,
+    _context,
+):
     service_account_info = read_service_account_info_from_ssm()
     credentials = service_account.Credentials.from_service_account_info(service_account_info)
 

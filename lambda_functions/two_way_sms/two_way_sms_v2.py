@@ -145,7 +145,10 @@ aws_sqs_client = boto3.client('sqs', region_name=AWS_REGION)
 
 
 # ------------------------------------------- Begin Invocation --------------------------------------------
-def notify_incoming_sms_handler(event: dict, context: any):
+def notify_incoming_sms_handler(
+    event: dict,
+    context: any,
+):
     """
     Handler for inbound messages from SQS.
     """
@@ -252,7 +255,11 @@ def valid_event(event_data: dict) -> bool:
     return all((record.get('body') is not None) for record in event_data['Records'])
 
 
-def forward_to_service(inbound_sms: dict, url: str, auth_parameter: str) -> bool:
+def forward_to_service(
+    inbound_sms: dict,
+    url: str,
+    auth_parameter: str,
+) -> bool:
     """
     Forwards the inbound SMS to the service that has 2-way SMS setup.
     """
@@ -309,7 +316,10 @@ def forward_to_service(inbound_sms: dict, url: str, auth_parameter: str) -> bool
     return False
 
 
-def push_to_sqs(push_data: dict, is_retry: bool) -> None:
+def push_to_sqs(
+    push_data: dict,
+    is_retry: bool,
+) -> None:
     """
     Pushes an inbound sms or entire event to SQS. Sends to RETRY or DEAD LETTER queue dependent
     on is_retry variable.

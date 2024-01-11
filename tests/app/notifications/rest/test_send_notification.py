@@ -860,7 +860,6 @@ def test_should_persist_notification(
         'template': template.id,
         'sms_sender_id': str(sample_sms_sender_v2(service_id=template.service.id).id),
     }
-
     auth_header = create_jwt_token(secret=api_key.secret, client_id=str(api_key.service_id))
 
     response = client.post(
@@ -919,7 +918,6 @@ def test_should_delete_notification_and_return_error_if_sqs_fails(
         'template': template.id,
         'sms_sender_id': str(sample_sms_sender_v2(service_id=template.service.id).id),
     }
-
     auth_header = create_jwt_token(secret=api_key.secret, client_id=str(api_key.service_id))
 
     with pytest.raises(Exception) as e:

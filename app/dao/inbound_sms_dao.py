@@ -14,7 +14,13 @@ def dao_create_inbound_sms(inbound_sms):
     db.session.add(inbound_sms)
 
 
-def dao_get_inbound_sms_for_service(service_id, user_number=None, *, limit_days=None, limit=None):
+def dao_get_inbound_sms_for_service(
+    service_id,
+    user_number=None,
+    *,
+    limit_days=None,
+    limit=None,
+):
     stmt = select(InboundSms).where(InboundSms.service_id == service_id).order_by(InboundSms.created_at.desc())
 
     if limit_days is not None:
@@ -30,7 +36,11 @@ def dao_get_inbound_sms_for_service(service_id, user_number=None, *, limit_days=
     return db.session.scalars(stmt).all()
 
 
-def dao_get_paginated_inbound_sms_for_service_for_public_api(service_id, older_than=None, page_size=None):
+def dao_get_paginated_inbound_sms_for_service_for_public_api(
+    service_id,
+    older_than=None,
+    page_size=None,
+):
     if page_size is None:
         page_size = current_app.config['PAGE_SIZE']
 
@@ -46,7 +56,10 @@ def dao_get_paginated_inbound_sms_for_service_for_public_api(service_id, older_t
     return db.paginate(stmt, per_page=page_size).items
 
 
-def dao_count_inbound_sms_for_service(service_id, limit_days):
+def dao_count_inbound_sms_for_service(
+    service_id,
+    limit_days,
+):
     stmt = (
         select(func.count())
         .select_from(InboundSms)
@@ -56,7 +69,10 @@ def dao_count_inbound_sms_for_service(service_id, limit_days):
     return db.session.scalar(stmt)
 
 
-def _delete_inbound_sms(datetime_to_delete_from, query_filter):
+def _delete_inbound_sms(
+    datetime_to_delete_from,
+    query_filter,
+):
     """
     This function executes delete queries, but the calling code is responsible for committing the changes.
     """
@@ -119,13 +135,20 @@ def delete_inbound_sms_older_than_retention():
     return deleted
 
 
-def dao_get_inbound_sms_by_id(service_id, inbound_id):
+def dao_get_inbound_sms_by_id(
+    service_id,
+    inbound_id,
+):
     stmt = select(InboundSms).where(InboundSms.id == inbound_id, InboundSms.service_id == service_id)
 
     return db.session.scalars(stmt).one()
 
 
-def dao_get_paginated_most_recent_inbound_sms_by_user_number_for_service(service_id, page, limit_days):
+def dao_get_paginated_most_recent_inbound_sms_by_user_number_for_service(
+    service_id,
+    page,
+    limit_days,
+):
     """
     This query starts from inbound_sms and joins on to itself to find the most recent row for each user_number.
 

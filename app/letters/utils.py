@@ -24,7 +24,10 @@ LETTERS_PDF_FILE_LOCATION_STRUCTURE = '{folder}NOTIFY.{reference}.{duplex}.{lett
 PRECOMPILED_BUCKET_PREFIX = '{folder}NOTIFY.{reference}'
 
 
-def get_folder_name(_now, is_test_or_scan_letter=False):
+def get_folder_name(
+    _now,
+    is_test_or_scan_letter=False,
+):
     if is_test_or_scan_letter:
         folder_name = ''
     else:
@@ -35,7 +38,12 @@ def get_folder_name(_now, is_test_or_scan_letter=False):
     return folder_name
 
 
-def get_letter_pdf_filename(reference, crown, is_scan_letter=False, postage=SECOND_CLASS):
+def get_letter_pdf_filename(
+    reference,
+    crown,
+    is_scan_letter=False,
+    postage=SECOND_CLASS,
+):
     now = datetime.utcnow()
 
     upload_file_name = LETTERS_PDF_FILE_LOCATION_STRUCTURE.format(
@@ -77,7 +85,11 @@ def get_reference_from_filename(filename):
     return filename_parts[1]
 
 
-def upload_letter_pdf(notification, pdf_data, precompiled=False):
+def upload_letter_pdf(
+    notification,
+    pdf_data,
+    precompiled=False,
+):
     current_app.logger.info(
         'PDF Letter {} reference {} created at {}, {} bytes'.format(
             notification.id, notification.reference, notification.created_at, len(pdf_data)
@@ -111,7 +123,10 @@ def upload_letter_pdf(notification, pdf_data, precompiled=False):
     return upload_file_name
 
 
-def move_failed_pdf(source_filename, scan_error_type):
+def move_failed_pdf(
+    source_filename,
+    scan_error_type,
+):
     scan_bucket = current_app.config['LETTERS_SCAN_BUCKET_NAME']
 
     target_filename = ('ERROR/' if scan_error_type == ScanErrorType.ERROR else 'FAILURE/') + source_filename
@@ -140,7 +155,10 @@ def move_scan_to_invalid_pdf_bucket(source_filename):
     _move_s3_object(scan_bucket, source_filename, invalid_pdf_bucket, source_filename)
 
 
-def move_uploaded_pdf_to_letters_bucket(source_filename, upload_filename):
+def move_uploaded_pdf_to_letters_bucket(
+    source_filename,
+    upload_filename,
+):
     _move_s3_object(
         source_bucket=current_app.config['TRANSIENT_UPLOADED_LETTERS'],
         source_filename=source_filename,
@@ -168,7 +186,12 @@ def get_letter_pdf(notification):
     return obj.get()['Body'].read()
 
 
-def _move_s3_object(source_bucket, source_filename, target_bucket, target_filename):
+def _move_s3_object(
+    source_bucket,
+    source_filename,
+    target_bucket,
+    target_filename,
+):
     s3 = boto3.resource('s3')
     copy_source = {'Bucket': source_bucket, 'Key': source_filename}
 
@@ -187,7 +210,12 @@ def _move_s3_object(source_bucket, source_filename, target_bucket, target_filena
     )
 
 
-def _copy_s3_object(source_bucket, source_filename, target_bucket, target_filename):
+def _copy_s3_object(
+    source_bucket,
+    source_filename,
+    target_bucket,
+    target_filename,
+):
     s3 = boto3.resource('s3')
     copy_source = {'Bucket': source_bucket, 'Key': source_filename}
 

@@ -6,7 +6,11 @@ from sqlalchemy import select, update
 
 
 @transactional
-def dao_create_or_update_annual_billing_for_year(service_id, free_sms_fragment_limit, financial_year_start):
+def dao_create_or_update_annual_billing_for_year(
+    service_id,
+    free_sms_fragment_limit,
+    financial_year_start,
+):
     result = dao_get_free_sms_fragment_limit_for_year(service_id, financial_year_start)
 
     if result:
@@ -30,7 +34,11 @@ def dao_get_annual_billing(service_id):
 
 
 @transactional
-def dao_update_annual_billing_for_future_years(service_id, free_sms_fragment_limit, financial_year_start):
+def dao_update_annual_billing_for_future_years(
+    service_id,
+    free_sms_fragment_limit,
+    financial_year_start,
+):
     stmt = (
         update(AnnualBilling)
         .where(AnnualBilling.service_id == service_id, AnnualBilling.financial_year_start > financial_year_start)
@@ -40,7 +48,10 @@ def dao_update_annual_billing_for_future_years(service_id, free_sms_fragment_lim
     db.session.execute(stmt)
 
 
-def dao_get_free_sms_fragment_limit_for_year(service_id, financial_year_start=None):
+def dao_get_free_sms_fragment_limit_for_year(
+    service_id,
+    financial_year_start=None,
+):
     if not financial_year_start:
         financial_year_start = get_current_financial_year_start_year()
 

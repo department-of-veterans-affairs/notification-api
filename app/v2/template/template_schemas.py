@@ -60,7 +60,10 @@ post_template_preview_response = {
 }
 
 
-def create_post_template_preview_response(template, template_object):
+def create_post_template_preview_response(
+    template,
+    template_object,
+):
     subject = template_object.subject if template.template_type != SMS_TYPE else None
 
     return {

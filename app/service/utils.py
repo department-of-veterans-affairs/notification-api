@@ -8,7 +8,12 @@ from notifications_utils.recipients import allowed_to_send_to
 from app.models import KEY_TYPE_TEST, KEY_TYPE_TEAM, KEY_TYPE_NORMAL, Service
 
 
-def service_allowed_to_send_to(recipient, service, key_type, allow_whitelisted_recipients=True):
+def service_allowed_to_send_to(
+    recipient,
+    service,
+    key_type,
+    allow_whitelisted_recipients=True,
+):
     if key_type == KEY_TYPE_TEST:
         return True
 
@@ -22,7 +27,10 @@ def service_allowed_to_send_to(recipient, service, key_type, allow_whitelisted_r
         return allowed_to_send_to(recipient, itertools.chain(team_members, whitelist_members))
 
 
-def compute_source_email_address(service: Service, provider: EmailClient) -> str:
+def compute_source_email_address(
+    service: Service,
+    provider: EmailClient,
+) -> str:
     sending_domain = next(
         domain
         for domain in [

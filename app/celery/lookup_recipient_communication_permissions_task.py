@@ -26,7 +26,10 @@ from app.va.identifier import IdentifierType
     retry_backoff_max=60,
 )
 @statsd(namespace='tasks')
-def lookup_recipient_communication_permissions(self, notification_id: str) -> None:
+def lookup_recipient_communication_permissions(
+    self,
+    notification_id: str,
+) -> None:
     current_app.logger.info(f'Looking up communication preferences for notification_id:{notification_id}')
 
     notification = get_notification_by_id(notification_id)

@@ -168,7 +168,10 @@ def dao_fetch_live_services_data():
     return results
 
 
-def dao_fetch_service_by_id(service_id, only_active=False):
+def dao_fetch_service_by_id(
+    service_id,
+    only_active=False,
+):
     stmt = select(Service).where(Service.id == service_id).options(joinedload('users'))
 
     if only_active:
@@ -189,7 +192,10 @@ def dao_fetch_service_by_inbound_number(number):
 
 
 @cached(cache=TTLCache(maxsize=1024, ttl=600))
-def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
+def dao_fetch_service_by_id_with_api_keys(
+    service_id,
+    only_active=False,
+):
     with get_reader_session() as session:
         # Constructing the query
         stmt = select(Service).where(Service.id == service_id).options(joinedload('api_keys'))
@@ -211,7 +217,10 @@ def dao_fetch_service_by_id_with_api_keys(service_id, only_active=False):
             raise
 
 
-def dao_fetch_all_services_by_user(user_id, only_active=False):
+def dao_fetch_all_services_by_user(
+    user_id,
+    only_active=False,
+):
     stmt = (
         select(Service)
         .where(Service.users.any(id=user_id))
@@ -315,7 +324,12 @@ def dao_update_service(service):
     db.session.add(service)
 
 
-def dao_add_user_to_service(service, user, permissions=None, folder_permissions=None):
+def dao_add_user_to_service(
+    service,
+    user,
+    permissions=None,
+    folder_permissions=None,
+):
     permissions = permissions or []
     folder_permissions = folder_permissions or []
 
@@ -338,7 +352,10 @@ def dao_add_user_to_service(service, user, permissions=None, folder_permissions=
         db.session.commit()
 
 
-def dao_remove_user_from_service(service, user):
+def dao_remove_user_from_service(
+    service,
+    user,
+):
     try:
         from app.dao.permissions_dao import permission_dao
 
@@ -394,7 +411,10 @@ def delete_service_and_all_associated_db_objects(service):
 
 
 @statsd(namespace='dao')
-def dao_fetch_stats_for_service(service_id, limit_days):
+def dao_fetch_stats_for_service(
+    service_id,
+    limit_days,
+):
     # We always want between seven and eight days
     start_date = midnight_n_days_ago(limit_days)
     stmt = _stats_for_service_query(service_id).where(Notification.created_at >= start_date)
@@ -436,7 +456,10 @@ def _stats_for_service_query(service_id):
 
 
 @statsd(namespace='dao')
-def dao_fetch_todays_stats_for_all_services(include_from_test_key=True, only_active=True):
+def dao_fetch_todays_stats_for_all_services(
+    include_from_test_key=True,
+    only_active=True,
+):
     today = convert_utc_to_local_timezone(datetime.utcnow())
     start_date = get_local_timezone_midnight_in_utc(today)
     end_date = get_local_timezone_midnight_in_utc(today + timedelta(days=1))

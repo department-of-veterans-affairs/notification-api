@@ -72,14 +72,17 @@ def validate_twilio_event(event: dict) -> bool:
         uri = f"https://{event['headers']['host']}/vanotify/twoway/vettext"
         decoded = base64.b64decode(event.get('body')).decode()
         params = parse_qs(decoded, keep_blank_values=True)
-        params = {k: v[0] for k, v in (params.items())}
+        params = {k: v[0] for k, v in params.items()}
         return validator.validate(uri=uri, params=params, signature=signature)
     except Exception as e:
         logger.error('Error validating request origin: %s', e)
         return False
 
 
-def vetext_incoming_forwarder_lambda_handler(event: dict, context: any):
+def vetext_incoming_forwarder_lambda_handler(
+    event: dict,
+    context: any,
+):
     """this method takes in an event passed in by either an alb or sqs.
     @param: event   -  contains data pertaining to an incoming sms from Twilio
     @param: context -  contains information regarding information
@@ -303,7 +306,10 @@ def push_to_retry_sqs(event_body):
         push_to_dead_letter_sqs(event_body, 'push_to_retry_sqs')
 
 
-def push_to_dead_letter_sqs(event, source):
+def push_to_dead_letter_sqs(
+    event,
+    source,
+):
     """Places unaccounted for event on dead-letter queue to be inspected"""
 
     logger.info('Placing event on dead-letter queue')

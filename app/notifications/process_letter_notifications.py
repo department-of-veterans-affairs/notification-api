@@ -3,7 +3,14 @@ from app.models import LETTER_TYPE
 from app.notifications.process_notifications import persist_notification
 
 
-def create_letter_notification(letter_data, template, api_key, status, reply_to_text=None, billable_units=None):
+def create_letter_notification(
+    letter_data,
+    template,
+    api_key,
+    status,
+    reply_to_text=None,
+    billable_units=None,
+):
     notification = persist_notification(
         template_id=template.id,
         template_version=template.version,

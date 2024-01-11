@@ -33,16 +33,27 @@ class PermissionDAO(DAOClass):
     class Meta:
         model = Permission
 
-    def add_default_service_permissions_for_user(self, user, service):
+    def add_default_service_permissions_for_user(
+        self,
+        user,
+        service,
+    ):
         for name in default_service_permissions:
             permission = Permission(permission=name, user=user, service=service)
             self.create_instance(permission, _commit=False)
 
-    def remove_user_service_permissions(self, user, service):
+    def remove_user_service_permissions(
+        self,
+        user,
+        service,
+    ):
         stmt = delete(self.Meta.model).where(self.Meta.model.user == user, self.Meta.model.service == service)
         db.session.execute(stmt)
 
-    def remove_user_service_permissions_for_all_services(self, user):
+    def remove_user_service_permissions_for_all_services(
+        self,
+        user,
+    ):
         """
         The deletion is commited in the calling code.
         """
@@ -50,7 +61,14 @@ class PermissionDAO(DAOClass):
         stmt = delete(self.Meta.model).where(self.Meta.model.user == user)
         db.session.execute(stmt)
 
-    def set_user_service_permission(self, user, service, permissions, _commit=False, replace=False):
+    def set_user_service_permission(
+        self,
+        user,
+        service,
+        permissions,
+        _commit=False,
+        replace=False,
+    ):
         try:
             if replace:
                 self.remove_user_service_permissions(user, service)
@@ -66,7 +84,10 @@ class PermissionDAO(DAOClass):
             if _commit:
                 db.session.commit()
 
-    def get_permissions_by_user_id(self, user_id) -> List[Permission]:
+    def get_permissions_by_user_id(
+        self,
+        user_id,
+    ) -> List[Permission]:
         stmt = (
             select(self.Meta.model)
             .join(self.Meta.model.service)
@@ -75,7 +96,11 @@ class PermissionDAO(DAOClass):
 
         return db.session.scalars(stmt).all()
 
-    def get_permissions_by_user_id_and_service_id(self, user_id, service_id) -> List[Permission]:
+    def get_permissions_by_user_id_and_service_id(
+        self,
+        user_id,
+        service_id,
+    ) -> List[Permission]:
         stmt = (
             select(self.Meta.model)
             .join(self.Meta.model.service)

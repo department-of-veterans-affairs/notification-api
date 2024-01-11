@@ -12,7 +12,11 @@ from app import statsd_client
 
 class QueueCallbackStrategy(ServiceCallbackStrategyInterface):
     @staticmethod
-    def send_callback(callback: ServiceCallback, payload: dict, logging_tags: dict) -> None:
+    def send_callback(
+        callback: ServiceCallback,
+        payload: dict,
+        logging_tags: dict,
+    ) -> None:
         tags = ', '.join([f'{key}: {value}' for key, value in logging_tags.items()])
 
         try:

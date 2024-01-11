@@ -147,7 +147,11 @@ def send_notification(notification_type):
     return jsonify(data=get_notification_return_data(notification_model.id, notification_form, template_object)), 201
 
 
-def get_notification_return_data(notification_id, notification, template):
+def get_notification_return_data(
+    notification_id,
+    notification,
+    template,
+):
     output = {
         'body': str(template),
         'template_version': notification['template_version'],
@@ -162,14 +166,20 @@ def get_notification_return_data(notification_id, notification, template):
     return output
 
 
-def _service_can_send_internationally(service, number):
+def _service_can_send_internationally(
+    service,
+    number,
+):
     phone_info = get_international_phone_info(number)
 
     if phone_info.international and not service.has_permissions(INTERNATIONAL_SMS_TYPE):
         raise InvalidRequest({'to': ['Cannot send to international mobile numbers']}, status_code=400)
 
 
-def _service_allowed_to_send_to(notification, service):
+def _service_allowed_to_send_to(
+    notification,
+    service,
+):
     if not service_allowed_to_send_to(notification['to'], service, api_user.key_type):
         if api_user.key_type == KEY_TYPE_TEAM:
             message = 'Can’t send to this recipient using a team-only API key'
@@ -181,7 +191,10 @@ def _service_allowed_to_send_to(notification, service):
         raise InvalidRequest({'to': [message]}, status_code=400)
 
 
-def create_template_object_for_notification(template, personalisation):
+def create_template_object_for_notification(
+    template,
+    personalisation,
+):
     template_object = get_template_instance(template.__dict__, personalisation)
 
     if template_object.missing_data:

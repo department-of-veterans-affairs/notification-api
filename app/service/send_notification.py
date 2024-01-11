@@ -24,7 +24,10 @@ from app.v2.errors import BadRequestError
 from sqlalchemy.orm.exc import NoResultFound
 
 
-def validate_created_by(service, created_by_id):
+def validate_created_by(
+    service,
+    created_by_id,
+):
     user = get_user_by_id(created_by_id)
     if service not in user.services:
         message = 'Can’t create notification - {} is not part of the "{}" service'.format(user.name, service.name)
@@ -37,7 +40,10 @@ def create_one_off_reference(template_type):
     return None
 
 
-def send_one_off_notification(service_id, post_data):
+def send_one_off_notification(
+    service_id,
+    post_data,
+):
     service = dao_fetch_service_by_id(service_id)
     template = dao_get_template_by_id_and_service_id(template_id=post_data['template_id'], service_id=service_id)
 
@@ -93,7 +99,12 @@ def send_one_off_notification(service_id, post_data):
     return {'id': str(notification.id)}
 
 
-def get_reply_to_text(notification_type, sender_id, service, template):
+def get_reply_to_text(
+    notification_type,
+    sender_id,
+    service,
+    template,
+):
     reply_to = None
     if sender_id:
         try:

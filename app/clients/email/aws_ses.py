@@ -89,7 +89,7 @@ class AwsSesClient(EmailClient):
     def email_from_user(self):
         return self._email_from_user
 
-    def send_email(
+    def send_email(  # noqa: C901
         self,
         source,
         to_addresses,
@@ -99,7 +99,10 @@ class AwsSesClient(EmailClient):
         reply_to_address=None,
         attachments=None,
     ):
-        def create_mime_base(attachments, html):
+        def create_mime_base(
+            attachments,
+            html,
+        ):
             msg_type = 'mixed' if attachments or (not attachments and not html) else 'alternative'
             ret = MIMEMultipart(msg_type)
             ret['Subject'] = subject
@@ -109,7 +112,10 @@ class AwsSesClient(EmailClient):
                 ret.add_header('reply-to', punycode_encode_email(reply_to_address))
             return ret
 
-        def attach_html(m, content):
+        def attach_html(
+            m,
+            content,
+        ):
             if content:
                 parts = MIMEText(content, 'html')
                 m.attach(parts)
@@ -168,7 +174,11 @@ class AwsSesClient(EmailClient):
             self.logger.info('AWS SES request finished in {}'.format(elapsed_time))
             self.statsd_client.timing('clients.ses.request-time', elapsed_time)
 
-    def _check_error_code(self, e, to_addresses):
+    def _check_error_code(
+        self,
+        e,
+        to_addresses,
+    ):
         # http://docs.aws.amazon.com/ses/latest/DeveloperGuide/api-error-codes.html
         if e.response['Error']['Code'] == 'InvalidParameterValue':
             self.statsd_client.incr('clients.ses.error.invalid-email')

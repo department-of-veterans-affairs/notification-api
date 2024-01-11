@@ -12,7 +12,12 @@ class IdentityProviderIdentifier(db.Model):
     idp_name = db.Column(db.String, primary_key=True, nullable=False)
     idp_id = db.Column(db.String, nullable=False)
 
-    def __init__(self, user_id, idp_name, idp_id):
+    def __init__(
+        self,
+        user_id,
+        idp_name,
+        idp_id,
+    ):
         self.user_id = user_id
         self.idp_name = idp_name
         self.idp_id = idp_id

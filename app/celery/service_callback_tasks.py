@@ -26,7 +26,12 @@ from app.models import Complaint, Notification, ServiceCallback
     retry_backoff_max=3600,
 )
 @statsd(namespace='tasks')
-def send_delivery_status_to_service(self, service_callback_id, notification_id, encrypted_status_update):
+def send_delivery_status_to_service(
+    self,
+    service_callback_id,
+    notification_id,
+    encrypted_status_update,
+):
     service_callback = get_service_callback(service_callback_id)
     # create_delivery_status_callback
     status_update = encryption.decrypt(encrypted_status_update)
@@ -85,7 +90,11 @@ def send_delivery_status_to_service(self, service_callback_id, notification_id, 
     retry_backoff_max=3600,
 )
 @statsd(namespace='tasks')
-def send_complaint_to_service(self, service_callback_id, complaint_data):
+def send_complaint_to_service(
+    self,
+    service_callback_id,
+    complaint_data,
+):
     complaint = encryption.decrypt(complaint_data)
     service_callback = get_service_callback(service_callback_id)
 
@@ -139,7 +148,11 @@ def send_complaint_to_service(self, service_callback_id, complaint_data):
     retry_backoff_max=3600,
 )
 @statsd(namespace='tasks')
-def send_complaint_to_vanotify(self, complaint_id: str, complaint_template_name: str) -> None:
+def send_complaint_to_vanotify(
+    self,
+    complaint_id: str,
+    complaint_template_name: str,
+) -> None:
     from app.service.sender import send_notification_to_service_users
 
     complaint = fetch_complaint_by_id(complaint_id).one()
@@ -175,7 +188,11 @@ def send_complaint_to_vanotify(self, complaint_id: str, complaint_template_name:
     retry_backoff_max=3600,
 )
 @statsd(namespace='tasks')
-def send_inbound_sms_to_service(self, inbound_sms_id, service_id):
+def send_inbound_sms_to_service(
+    self,
+    inbound_sms_id,
+    service_id,
+):
     service_callback = get_service_inbound_sms_callback_api_for_service(service_id=service_id)
     if not service_callback:
         current_app.logger.error(
@@ -261,7 +278,12 @@ def create_delivery_status_callback_data(
     return encryption.encrypt(data)
 
 
-def create_complaint_callback_data(complaint, notification, service_callback_api, recipient):
+def create_complaint_callback_data(
+    complaint,
+    notification,
+    service_callback_api,
+    recipient,
+):
     from app import DATETIME_FORMAT, encryption
 
     data = {
@@ -276,7 +298,10 @@ def create_complaint_callback_data(complaint, notification, service_callback_api
     return encryption.encrypt(data)
 
 
-def check_and_queue_callback_task(notification, payload=None):
+def check_and_queue_callback_task(
+    notification,
+    payload=None,
+):
     # https://peps.python.org/pep-0557/#mutable-default-values
     # do not want to have mutable type in definition so we set provider_payload to empty dictionary
     # when one was not provided by the caller
@@ -297,7 +322,11 @@ def check_and_queue_callback_task(notification, payload=None):
         )
 
 
-def _check_and_queue_complaint_callback_task(complaint, notification, recipient):
+def _check_and_queue_complaint_callback_task(
+    complaint,
+    notification,
+    recipient,
+):
     # queue callback task only if the service_callback_api exists
     service_callback_api = get_service_complaint_callback_api_for_service(service_id=notification.service_id)
     if service_callback_api:
@@ -305,7 +334,11 @@ def _check_and_queue_complaint_callback_task(complaint, notification, recipient)
         send_complaint_to_service.apply_async([service_callback_api.id, complaint_data], queue=QueueNames.CALLBACKS)
 
 
-def publish_complaint(complaint: Complaint, notification: Notification, recipient_email: str) -> bool:
+def publish_complaint(
+    complaint: Complaint,
+    notification: Notification,
+    recipient_email: str,
+) -> bool:
     provider_name = notification.sent_by
     _check_and_queue_complaint_callback_task(complaint, notification, recipient_email)
     send_complaint_to_vanotify.apply_async([str(complaint.id), notification.template.name], queue=QueueNames.NOTIFY)

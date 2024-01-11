@@ -23,7 +23,11 @@ from app.models import NOTIFICATION_PENDING
 sms_response_mapper = {'MMG': get_mmg_responses, 'Firetext': get_firetext_responses, 'Twilio': get_twilio_responses}
 
 
-def validate_callback_data(data, fields, client_name):
+def validate_callback_data(
+    data,
+    fields,
+    client_name,
+):
     errors = []
     for f in fields:
         if not str(data.get(f, '')):
@@ -32,7 +36,11 @@ def validate_callback_data(data, fields, client_name):
     return errors if len(errors) > 0 else None
 
 
-def process_sms_client_response(status, provider_reference, client_name):
+def process_sms_client_response(
+    status,
+    provider_reference,
+    client_name,
+):
     success = None
     errors = None
     # validate reference
@@ -69,7 +77,11 @@ def process_sms_client_response(status, provider_reference, client_name):
     return success, errors
 
 
-def _process_for_status(notification_status, client_name, provider_reference):
+def _process_for_status(
+    notification_status,
+    client_name,
+    provider_reference,
+):
     # record stats
     notification = notifications_dao.update_notification_status_by_id(
         notification_id=provider_reference, status=notification_status, sent_by=client_name.lower()
@@ -123,6 +135,9 @@ def process_service_callback(notification):
             )
 
 
-def set_notification_sent_by(notification, client_name):
+def set_notification_sent_by(
+    notification,
+    client_name,
+):
     notification.sent_by = client_name
     dao_update_notification(notification)

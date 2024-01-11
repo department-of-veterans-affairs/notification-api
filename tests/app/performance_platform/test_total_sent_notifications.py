@@ -11,10 +11,12 @@ from tests.app.db import EMAIL_TYPE, LETTER_TYPE, SMS_TYPE
 
 # This test assumes the local timezone is EST
 def test_send_total_notifications_sent_for_day_stats_stats_creates_correct_call(mocker, client):
-    send_stats = mocker.patch((
-        'app.performance_platform.total_sent_notifications.'
-        'performance_platform_client.send_stats_to_performance_platform'
-    ))
+    send_stats = mocker.patch(
+        (
+            'app.performance_platform.total_sent_notifications.'
+            'performance_platform_client.send_stats_to_performance_platform'
+        )
+    )
 
     send_total_notifications_sent_for_day_stats(
         start_time=datetime(2016, 10, 16, 4, 0, 0), notification_type='sms', count=142

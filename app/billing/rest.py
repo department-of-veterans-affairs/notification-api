@@ -98,7 +98,11 @@ def create_or_update_free_sms_fragment_limit(service_id):
     return jsonify(form), 201
 
 
-def update_free_sms_fragment_limit_data(service_id, free_sms_fragment_limit, financial_year_start):
+def update_free_sms_fragment_limit_data(
+    service_id,
+    free_sms_fragment_limit,
+    financial_year_start,
+):
     current_year = get_current_financial_year_start_year()
     if not financial_year_start:
         financial_year_start = current_year

@@ -17,13 +17,25 @@ class VETextClient:
     STATSD_KEY = 'clients.vetext'
     TIMEOUT = 3.05
 
-    def init_app(self, url: str, credentials: Credentials, logger: Logger, statsd: StatsdClient):
+    def init_app(
+        self,
+        url: str,
+        credentials: Credentials,
+        logger: Logger,
+        statsd: StatsdClient,
+    ):
         self.base_url = url
         self.auth = HTTPBasicAuth(**credentials)
         self.logger = logger
         self.statsd = statsd
 
-    def send_push_notification(self, mobile_app: str, template_id: str, icn: str, personalization: Dict = None) -> None:
+    def send_push_notification(
+        self,
+        mobile_app: str,
+        template_id: str,
+        icn: str,
+        personalization: Dict = None,
+    ) -> None:
         formatted_personalization = None
         if personalization:
             formatted_personalization = {}
@@ -83,7 +95,10 @@ class VETextClient:
             elapsed_time = monotonic() - start_time
             self.statsd.timing(f'{self.STATSD_KEY}.request_time', elapsed_time)
 
-    def _decode_bad_request_response(self, http_exception):
+    def _decode_bad_request_response(
+        self,
+        http_exception,
+    ):
         try:
             payload = http_exception.response.json()
         except Exception:

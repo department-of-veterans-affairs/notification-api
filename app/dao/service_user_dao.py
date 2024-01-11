@@ -5,7 +5,10 @@ from app.model import User
 from sqlalchemy import select
 
 
-def dao_get_service_user(user_id, service_id):
+def dao_get_service_user(
+    user_id,
+    service_id,
+):
     stmt = select(ServiceUser).where(ServiceUser.user_id == user_id, ServiceUser.service_id == service_id)
     return db.session.scalars(stmt).one()
 

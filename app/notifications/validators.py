@@ -32,7 +32,10 @@ from app.dao.service_email_reply_to_dao import dao_get_reply_to_by_id
 from app.dao.service_letter_contact_dao import dao_get_letter_contact_by_id
 
 
-def check_service_over_api_rate_limit(service, api_key):
+def check_service_over_api_rate_limit(
+    service,
+    api_key,
+):
     if current_app.config['API_RATE_LIMIT_ENABLED'] and current_app.config['REDIS_ENABLED']:
         cache_key = rate_limit_cache_key(service.id, api_key.key_type)
         rate_limit = service.rate_limit
@@ -42,7 +45,10 @@ def check_service_over_api_rate_limit(service, api_key):
             raise RateLimitError(rate_limit, interval, key_type=api_key.key_type)
 
 
-def check_service_over_daily_message_limit(key_type, service):
+def check_service_over_daily_message_limit(
+    key_type,
+    service,
+):
     if (
         current_app.config['API_MESSAGE_LIMIT_ENABLED']
         and key_type != KEY_TYPE_TEST
@@ -67,7 +73,10 @@ def check_service_over_daily_message_limit(key_type, service):
             raise TooManyRequestsError(service.message_limit)
 
 
-def check_sms_sender_over_rate_limit(service_id, sms_sender):
+def check_sms_sender_over_rate_limit(
+    service_id,
+    sms_sender,
+):
     if not is_feature_enabled(FeatureFlag.SMS_SENDER_RATE_LIMIT_ENABLED) or sms_sender is None:
         current_app.logger.info('Skipping sms sender rate limit check')
         return
@@ -83,12 +92,18 @@ def check_sms_sender_over_rate_limit(service_id, sms_sender):
             raise RateLimitError(rate_limit, interval)
 
 
-def check_rate_limiting(service, api_key):
+def check_rate_limiting(
+    service,
+    api_key,
+):
     check_service_over_api_rate_limit(service, api_key)
     check_service_over_daily_message_limit(api_key.key_type, service)
 
 
-def check_template_is_for_notification_type(notification_type, template_type):
+def check_template_is_for_notification_type(
+    notification_type,
+    template_type,
+):
     if notification_type != template_type:
         message = '{0} template is not suitable for {1} notification'.format(template_type, notification_type)
         raise BadRequestError(fields=[{'template': message}], message=message)
@@ -99,7 +114,12 @@ def check_template_is_active(template):
         raise BadRequestError(fields=[{'template': 'Template has been deleted'}], message='Template has been deleted')
 
 
-def service_can_send_to_recipient(send_to, key_type, service, allow_whitelisted_recipients=True):
+def service_can_send_to_recipient(
+    send_to,
+    key_type,
+    service,
+    allow_whitelisted_recipients=True,
+):
     if not service_allowed_to_send_to(send_to, service, key_type, allow_whitelisted_recipients):
         if key_type == KEY_TYPE_TEAM:
             message = 'Can’t send to this recipient using a team-only API key'
@@ -112,18 +132,30 @@ def service_can_send_to_recipient(send_to, key_type, service, allow_whitelisted_
 
 
 # TODO #1410 clean up and remove
-def service_has_permission(notify_type, permissions):
+def service_has_permission(
+    notify_type,
+    permissions,
+):
     return notify_type in [p.permission for p in permissions]
 
 
 # TODO #1410 clean up and remove
-def check_service_can_schedule_notification(permissions, scheduled_for):
+def check_service_can_schedule_notification(
+    permissions,
+    scheduled_for,
+):
     if scheduled_for:
         if not service_has_permission(SCHEDULE_NOTIFICATIONS, permissions):
             raise BadRequestError(message='Cannot schedule notifications (this feature is invite-only)')
 
 
-def validate_and_format_recipient(send_to, key_type, service, notification_type, allow_whitelisted_recipients=True):
+def validate_and_format_recipient(
+    send_to,
+    key_type,
+    service,
+    notification_type,
+    allow_whitelisted_recipients=True,
+):
     if send_to is None:
         raise BadRequestError(message="Recipient can't be empty")
 
@@ -144,7 +176,12 @@ def validate_and_format_recipient(send_to, key_type, service, notification_type,
         return validate_and_format_email_address(email_address=send_to)
 
 
-def validate_template(template_id, personalisation, service, notification_type):
+def validate_template(
+    template_id,
+    personalisation,
+    service,
+    notification_type,
+):
     try:
         template = templates_dao.dao_get_template_by_id_and_service_id(template_id=template_id, service_id=service.id)
     except NoResultFound:
@@ -163,7 +200,11 @@ def validate_template(template_id, personalisation, service, notification_type):
     return template, template_with_content
 
 
-def check_reply_to(service_id, reply_to_id, type_):
+def check_reply_to(
+    service_id,
+    reply_to_id,
+    type_,
+):
     if type_ == EMAIL_TYPE:
         return check_service_email_reply_to_id(service_id, reply_to_id, type_)
     elif type_ == SMS_TYPE:
@@ -172,7 +213,11 @@ def check_reply_to(service_id, reply_to_id, type_):
         return check_service_letter_contact_id(service_id, reply_to_id, type_)
 
 
-def check_service_email_reply_to_id(service_id, reply_to_id, notification_type):
+def check_service_email_reply_to_id(
+    service_id,
+    reply_to_id,
+    notification_type,
+):
     if reply_to_id:
         try:
             return dao_get_reply_to_by_id(service_id, reply_to_id).email_address
@@ -183,7 +228,11 @@ def check_service_email_reply_to_id(service_id, reply_to_id, notification_type):
             raise BadRequestError(message=message)
 
 
-def check_service_sms_sender_id(service_id, sms_sender_id, notification_type):
+def check_service_sms_sender_id(
+    service_id,
+    sms_sender_id,
+    notification_type,
+):
     if sms_sender_id is not None:
         try:
             return dao_get_service_sms_sender_by_id(service_id, sms_sender_id).sms_sender
@@ -192,7 +241,11 @@ def check_service_sms_sender_id(service_id, sms_sender_id, notification_type):
             raise BadRequestError(message=message)
 
 
-def check_service_letter_contact_id(service_id, letter_contact_id, notification_type):
+def check_service_letter_contact_id(
+    service_id,
+    letter_contact_id,
+    notification_type,
+):
     if letter_contact_id:
         try:
             return dao_get_letter_contact_by_id(service_id, letter_contact_id).contact_block
@@ -214,5 +267,8 @@ def decode_personalisation_files(personalisation_data):
     return personalisation_data, errors
 
 
-def template_name_already_exists_on_service(service_id, template_name):
+def template_name_already_exists_on_service(
+    service_id,
+    template_name,
+):
     return dao_get_number_of_templates_by_service_id_and_name(service_id, template_name) > 0

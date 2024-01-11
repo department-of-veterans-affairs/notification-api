@@ -1,22 +1,44 @@
-def create_post_sms_response_from_notification(notification, content, from_number, url_root, scheduled_for):
+def create_post_sms_response_from_notification(
+    notification,
+    content,
+    from_number,
+    url_root,
+    scheduled_for,
+):
     noti = __create_notification_response(notification, url_root, scheduled_for)
     noti['content'] = {'from_number': from_number, 'body': content}
     return noti
 
 
-def create_post_email_response_from_notification(notification, content, subject, url_root, scheduled_for):
+def create_post_email_response_from_notification(
+    notification,
+    content,
+    subject,
+    url_root,
+    scheduled_for,
+):
     noti = __create_notification_response(notification, url_root, scheduled_for)
     noti['content'] = {'body': content, 'subject': subject}
     return noti
 
 
-def create_post_letter_response_from_notification(notification, content, subject, url_root, scheduled_for):
+def create_post_letter_response_from_notification(
+    notification,
+    content,
+    subject,
+    url_root,
+    scheduled_for,
+):
     noti = __create_notification_response(notification, url_root, scheduled_for)
     noti['content'] = {'body': content, 'subject': subject}
     return noti
 
 
-def __create_notification_response(notification, url_root, scheduled_for):
+def __create_notification_response(
+    notification,
+    url_root,
+    scheduled_for,
+):
     return {
         'id': notification.id,
         'reference': notification.client_reference,

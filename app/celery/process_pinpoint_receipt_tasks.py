@@ -57,7 +57,10 @@ def _map_record_status_to_notification_status(record_status):
     retry_backoff_max=300,
 )
 @statsd(namespace='tasks')
-def process_pinpoint_results(self, response):
+def process_pinpoint_results(
+    self,
+    response,
+):
     """
     Process a Pinpoint SMS stream event.  Messages long enough to require multiple segments only
     result in one event that contains the aggregate cost.
@@ -137,7 +140,11 @@ def process_pinpoint_results(self, response):
         raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...')
 
 
-def get_notification_status(event_type: str, record_status: str, reference: str) -> str:
+def get_notification_status(
+    event_type: str,
+    record_status: str,
+    reference: str,
+) -> str:
     if event_type == '_SMS.OPTOUT':
         current_app.logger.info('event type is OPTOUT for notification with reference %s', reference)
         statsd_client.incr('callback.pinpoint.optout')
@@ -180,7 +187,10 @@ def attempt_to_get_notification(
     return notification, should_exit
 
 
-def check_notification_status(notification: Notification, notification_status: str) -> bool:
+def check_notification_status(
+    notification: Notification,
+    notification_status: str,
+) -> bool:
     # Do not update if the status has not changed.
     if notification_status == notification.status:
         current_app.logger.info(
@@ -198,7 +208,10 @@ def check_notification_status(notification: Notification, notification_status: s
     return False
 
 
-def log_notification_status_warning(notification, status: str) -> None:
+def log_notification_status_warning(
+    notification,
+    status: str,
+) -> None:
     time_diff = datetime.datetime.utcnow() - (notification.updated_at or notification.created_at)
     current_app.logger.warning(
         'Invalid callback received. Notification id %s received a status update to %s '

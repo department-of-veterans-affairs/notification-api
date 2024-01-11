@@ -21,14 +21,20 @@ def save_model_api_key(api_key):
 
 @transactional
 @version_class(ApiKey)
-def expire_api_key(service_id, api_key_id):
+def expire_api_key(
+    service_id,
+    api_key_id,
+):
     stmt = select(ApiKey).where(ApiKey.id == api_key_id, ApiKey.service_id == service_id)
     api_key = db.session.scalars(stmt).one()
     api_key.expiry_date = datetime.utcnow()
     db.session.add(api_key)
 
 
-def get_model_api_keys(service_id, id=None):
+def get_model_api_keys(
+    service_id,
+    id=None,
+):
     if id:
         stmt = select(ApiKey).where(ApiKey.id == id, ApiKey.service_id == service_id, ApiKey.expiry_date.is_(None))
         return db.session.scalars(stmt).one()

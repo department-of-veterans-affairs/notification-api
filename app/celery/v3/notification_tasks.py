@@ -63,7 +63,12 @@ def get_default_sms_sender_id(service_id: str) -> Tuple[Optional[str], Optional[
 
 # TODO - Error handler for sqlalchemy.exc.IntegrityError.  This happens when a foreign key references a nonexistent ID.
 @notify_celery.task(serializer='json')
-def v3_process_notification(request_data: dict, service_id: str, api_key_id: str, api_key_type: str):
+def v3_process_notification(  # noqa: C901
+    request_data: dict,
+    service_id: str,
+    api_key_id: str,
+    api_key_type: str,
+):
     """
     This is the first task used to process request data send to POST /v3/notification/(email|sms).  It performs
     additional, non-schema verifications that require database queries:
@@ -188,7 +193,10 @@ def v3_process_notification(request_data: dict, service_id: str, api_key_id: str
     max_retries=2886,
 )
 @notify_celery.task(serializer='pickle')
-def v3_send_email_notification(notification: Notification, template: Template):
+def v3_send_email_notification(
+    notification: Notification,
+    template: Template,
+):
     # TODO - Determine the provider.  For now, assume SES.
     client = clients.get_email_client('ses')
     if client is None:
@@ -255,7 +263,10 @@ def v3_send_email_notification(notification: Notification, template: Template):
     retry_backoff_max=60,
     max_retries=2886,
 )
-def v3_send_sms_notification(notification: Notification, sender_phone_number: str):
+def v3_send_sms_notification(
+    notification: Notification,
+    sender_phone_number: str,
+):
     # TODO - Determine the provider.  For now, assume Pinpoint.
     client = clients.get_sms_client('pinpoint')
     if client is None:
@@ -307,7 +318,10 @@ def v3_persist_permanent_failure(notification: Notification):
         current_app.logger.critical("Unable to save permanent failure. Error: '%s'", err)
 
 
-def v3_persist_failed_notification(notification: Notification, error_reason: str):
+def v3_persist_failed_notification(
+    notification: Notification,
+    error_reason: str,
+):
     """
     This is a helper to log and persist failed notifications that are not retriable.
     """

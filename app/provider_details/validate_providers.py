@@ -2,7 +2,10 @@ from app.dao.provider_details_dao import get_provider_details_by_id
 from app.errors import InvalidRequest
 
 
-def is_provider_valid(provider_id: str, notification_type: str) -> bool:
+def is_provider_valid(
+    provider_id: str,
+    notification_type: str,
+) -> bool:
     provider_details = get_provider_details_by_id(provider_id)
     return (
         provider_details is not None

@@ -70,7 +70,10 @@ def create_template_folder(service_id):
 
 
 @template_folder_blueprint.route('/<uuid:template_folder_id>', methods=['POST'])
-def update_template_folder(service_id, template_folder_id):
+def update_template_folder(
+    service_id,
+    template_folder_id,
+):
     data = request.get_json()
 
     validate(data, post_update_template_folder_schema)
@@ -86,7 +89,10 @@ def update_template_folder(service_id, template_folder_id):
 
 
 @template_folder_blueprint.route('/<uuid:template_folder_id>', methods=['DELETE'])
-def delete_template_folder(service_id, template_folder_id):
+def delete_template_folder(
+    service_id,
+    template_folder_id,
+):
     template_folder = dao_get_template_folder_by_id_and_service_id(template_folder_id, service_id)
 
     # don't allow deleting if there's anything in the folder (even if it's just more empty subfolders)
@@ -101,7 +107,10 @@ def delete_template_folder(service_id, template_folder_id):
 @template_folder_blueprint.route('/contents', methods=['POST'])
 @template_folder_blueprint.route('/<uuid:target_template_folder_id>/contents', methods=['POST'])
 @transactional
-def move_to_template_folder(service_id, target_template_folder_id=None):
+def move_to_template_folder(
+    service_id,
+    target_template_folder_id=None,
+):
     data = request.get_json()
 
     validate(data, post_move_template_folder_schema)
@@ -137,7 +146,12 @@ def move_to_template_folder(service_id, target_template_folder_id=None):
     return '', 204
 
 
-def _validate_folder_move(target_template_folder, target_template_folder_id, template_folder, template_folder_id):
+def _validate_folder_move(
+    target_template_folder,
+    target_template_folder_id,
+    template_folder,
+    template_folder_id,
+):
     if str(target_template_folder_id) == str(template_folder_id):
         msg = 'You cannot move a folder to itself'
         raise InvalidRequest(msg, status_code=400)
