@@ -26,7 +26,7 @@ jobs:
       env:
         ENVIRONMENT: ${{ inputs.environment }}
       with:
-        github-token: ${{ secrets.envPAT }}
+        github-token: ${{ secrets.DISPATCH_PAT }}
         script: |
           const path = '.github/scripts/trigger-regression.js';
           const triggerAndWait = require(path);
