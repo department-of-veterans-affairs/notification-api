@@ -17,7 +17,7 @@ on:
 jobs:
   trigger-regression-tests:
     name: "Run regression for ${{ inputs.environment }}"
-    runs-on: ubuntu-latest  # specify the runner
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
 
