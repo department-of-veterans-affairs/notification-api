@@ -7,7 +7,6 @@ Create Date: 2021-09-07 15:28:07.577379
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision = '0336_add_rate_limit_sms_sender'
 down_revision = '0335_add_billing_code'

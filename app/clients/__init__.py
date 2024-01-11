@@ -5,6 +5,7 @@ class ClientException(Exception):
     """
     Base Exceptions for sending notifications that fail.
     """
+
     pass
 
 
@@ -12,6 +13,7 @@ class Client:
     """
     Base client for sending notifications.
     """
+
     pass
 
 
@@ -45,4 +47,4 @@ class Clients:
         elif notification_type == 'sms':
             return self.get_sms_client(name)
 
-        raise ValueError(f"Unrecognized notification type: {notification_type}")
+        raise ValueError(f'Unrecognized notification type: {notification_type}')

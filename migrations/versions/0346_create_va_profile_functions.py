@@ -4,7 +4,6 @@ Revises: 0345_alter_VAProfileLocalCache
 Create Date: 2022-04-29 21:38:57.302588
 """
 
-import sqlalchemy as sa
 from alembic import op
 from alembic_utils.pg_function import PGFunction
 

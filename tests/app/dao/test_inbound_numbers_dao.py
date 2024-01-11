@@ -20,21 +20,22 @@ def test_get_inbound_numbers(notify_api, sample_inbound_number):
 
 
 class TestGetAvailableInboundNumbers:
-
     def test_gets_available_inbound_number(self, sample_inbound_number):
-        inbound_number = sample_inbound_number(number='1', url_endpoint="https://example.foo", self_managed=True)
+        inbound_number = sample_inbound_number(number='1', url_endpoint='https://example.foo', self_managed=True)
         res = dao_get_available_inbound_numbers()
 
         assert len(res) == 1
         assert res[0] == inbound_number
-        assert hasattr(res[0], "url_endpoint")
-        assert hasattr(res[0], "self_managed") and isinstance(res[0].self_managed, bool) and res[0].self_managed
+        assert hasattr(res[0], 'url_endpoint')
+        assert hasattr(res[0], 'self_managed') and isinstance(res[0].self_managed, bool) and res[0].self_managed
 
     def test_after_setting_service_id_that_inbound_number_is_unavailable(self, sample_service, sample_inbound_numbers):
         assert isinstance(sample_inbound_numbers, list) and len(sample_inbound_numbers) == 3
-        assert sample_inbound_numbers[0].service is None and \
-            sample_inbound_numbers[1].service is not None and \
-            sample_inbound_numbers[2].service is not None
+        assert (
+            sample_inbound_numbers[0].service is None
+            and sample_inbound_numbers[1].service is not None
+            and sample_inbound_numbers[2].service is not None
+        )
         numbers = dao_get_available_inbound_numbers()
 
         assert len(numbers) == 1
@@ -48,8 +49,7 @@ class TestGetAvailableInboundNumbers:
 
 
 class TestSetInboundNumberActiveFlag:
-
-    @pytest.mark.parametrize("active", [True, False])
+    @pytest.mark.parametrize('active', [True, False])
     def test_set_inbound_number_active_flag(self, notify_db_session, active, sample_inbound_number):
         inbound_number = sample_inbound_number()
         dao_set_inbound_number_active_flag(inbound_number.id, active=active)
@@ -58,7 +58,7 @@ class TestSetInboundNumberActiveFlag:
 
 
 def test_create_inbound_number(notify_db_session):
-    inbound_number = InboundNumber(number=1, provider="test")
+    inbound_number = InboundNumber(number=1, provider='test')
 
     dao_create_inbound_number(inbound_number)
     created_in_database = notify_db_session.session.get(InboundNumber, inbound_number.id)
@@ -72,7 +72,6 @@ def test_create_inbound_number(notify_db_session):
 
 
 class TestUpdateInboundNumber:
-
     @pytest.fixture
     def existing_inbound_number(self, sample_inbound_number):
         return sample_inbound_number()
@@ -88,7 +87,7 @@ class TestUpdateInboundNumber:
         assert InboundNumber.query.get(existing_inbound_number.id).provider == 'new-provider'
 
     def test_updates_service_id(self, existing_inbound_number, sample_service):
-        new_service_id = sample_service(service_name="new service").id
+        new_service_id = sample_service(service_name='new service').id
         dao_update_inbound_number(existing_inbound_number.id, service_id=new_service_id)
 
         assert InboundNumber.query.get(existing_inbound_number.id).service_id == new_service_id
@@ -108,7 +107,6 @@ class TestUpdateInboundNumber:
 
 
 class TestGetInboundNumbersForService:
-
     def test_gets_empty_list_when_no_inbound_numbers_for_service(self, sample_service):
         assert dao_get_inbound_numbers_for_service(sample_service().id) == []
 

@@ -8,17 +8,9 @@ from app.models import Notification, EMAIL_TYPE, SMS_TYPE, User
 from app.service.sender import send_notification_to_service_users
 
 
-@pytest.mark.parametrize('notification_type', [
-    EMAIL_TYPE,
-    SMS_TYPE
-])
+@pytest.mark.parametrize('notification_type', [EMAIL_TYPE, SMS_TYPE])
 def test_send_notification_to_service_users_persists_notifications_correctly(
-    notify_db_session,
-    notification_type,
-    sample_notify_service_user_session,
-    sample_service,
-    sample_template,
-    mocker
+    notify_db_session, notification_type, sample_notify_service_user_session, sample_service, sample_template, mocker
 ):
     service = sample_service()
     user = service.users[0]
@@ -30,8 +22,7 @@ def test_send_notification_to_service_users_persists_notifications_correctly(
     send_notification_to_service_users(service_id=service.id, template_id=template.id)
     to = user.email_address if notification_type == EMAIL_TYPE else user.mobile_number
 
-    stmt = select(Notification).where(Notification.service_id == notify_service.id)\
-                               .where(Notification.to == to)
+    stmt = select(Notification).where(Notification.service_id == notify_service.id).where(Notification.to == to)
     notifications = notify_db_session.session.scalars(stmt).all()
     notification = notifications[0]
 
@@ -49,11 +40,7 @@ def test_send_notification_to_service_users_persists_notifications_correctly(
 
 
 def test_send_notification_to_service_users_sends_to_queue(
-    notify_db_session,
-    sample_notify_service_user_session,
-    sample_service,
-    sample_template,
-    mocker
+    notify_db_session, sample_notify_service_user_session, sample_service, sample_template, mocker
 ):
     notify_service, _ = sample_notify_service_user_session()
     send_mock = mocker.patch('app.service.sender.send_notification_to_queue')
@@ -67,20 +54,19 @@ def test_send_notification_to_service_users_sends_to_queue(
     assert send_mock.call_count == 1
 
     # Teardown
-    stmt = select(Notification).where(Notification.service_id == notify_service.id)\
-                               .where(Notification.to == user.email_address)
+    stmt = (
+        select(Notification)
+        .where(Notification.service_id == notify_service.id)
+        .where(Notification.to == user.email_address)
+    )
     notification = notify_db_session.session.scalars(stmt).one()
     notify_db_session.session.delete(notification)
     notify_db_session.session.commit()
 
 
 def test_send_notification_to_service_users_includes_user_fields_in_personalisation(
-    sample_notify_service_user_session,
-    sample_service,
-    sample_template,
-    mocker
+    sample_notify_service_user_session, sample_service, sample_template, mocker
 ):
-
     sample_notify_service_user_session()  # Needs the Notify service to exist
     persist_mock = mocker.patch('app.service.sender.persist_notification')
     mocker.patch('app.service.sender.send_notification_to_queue')
@@ -90,9 +76,7 @@ def test_send_notification_to_service_users_includes_user_fields_in_personalisat
 
     template = sample_template(service=service, template_type=EMAIL_TYPE)
     send_notification_to_service_users(
-        service_id=service.id,
-        template_id=template.id,
-        include_user_fields=['name', 'email_address', 'state']
+        service_id=service.id, template_id=template.id, include_user_fields=['name', 'email_address', 'state']
     )
 
     persist_call = persist_mock.call_args_list[0][1]
@@ -108,12 +92,7 @@ def test_send_notification_to_service_users_includes_user_fields_in_personalisat
 
 
 def test_send_notification_to_service_users_sends_to_active_users_only(
-    notify_db_session,
-    sample_notify_service_user_session,
-    sample_service,
-    sample_template,
-    sample_user,
-    mocker
+    notify_db_session, sample_notify_service_user_session, sample_service, sample_template, sample_user, mocker
 ):
     notify_service, _ = sample_notify_service_user_session()
     mocker.patch('app.service.sender.send_notification_to_queue')
@@ -132,9 +111,12 @@ def test_send_notification_to_service_users_sends_to_active_users_only(
     send_notification_to_service_users(service_id=service.id, template_id=template.id)
 
     # FK does not get populated, so we can't join. Using a filter
-    stmt = select(Notification).filter(Notification.to == User.email_address)\
-                               .where(User.email_address.in_(email_addresses))\
-                               .where(Notification.service_id == notify_service.id)
+    stmt = (
+        select(Notification)
+        .filter(Notification.to == User.email_address)
+        .where(User.email_address.in_(email_addresses))
+        .where(Notification.service_id == notify_service.id)
+    )
     notifications = notify_db_session.session.scalars(stmt).all()
     notifications_recipients = [notification.to for notification in notifications]
 

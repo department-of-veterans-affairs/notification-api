@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, date
 from freezegun import freeze_time
 from app.performance_platform.processing_time import (
     send_processing_time_to_performance_platform,
-    send_processing_time_data
+    send_processing_time_data,
 )
 
 
@@ -21,12 +21,13 @@ def test_send_processing_time_to_performance_platform_generates_correct_calls(
 
     api_key = sample_api_key()
     template = sample_template()
-    sample_notification(template=template, created_at=created_at,
-                        sent_at=created_at + timedelta(seconds=5), api_key=api_key)
-    sample_notification(template=template, created_at=created_at,
-                        sent_at=created_at + timedelta(seconds=15), api_key=api_key)
-    sample_notification(template=template, created_at=datetime.utcnow() - timedelta(days=2),
-                        api_key=api_key)
+    sample_notification(
+        template=template, created_at=created_at, sent_at=created_at + timedelta(seconds=5), api_key=api_key
+    )
+    sample_notification(
+        template=template, created_at=created_at, sent_at=created_at + timedelta(seconds=15), api_key=api_key
+    )
+    sample_notification(template=template, created_at=datetime.utcnow() - timedelta(days=2), api_key=api_key)
 
     send_processing_time_to_performance_platform(date(2016, 10, 17))
 
@@ -36,13 +37,12 @@ def test_send_processing_time_to_performance_platform_generates_correct_calls(
 
 # This test assumes the local timezone is EST
 def test_send_processing_time_to_performance_platform_creates_correct_call_to_perf_platform(mocker):
-    send_stats = mocker.patch('app.performance_platform.total_sent_notifications.performance_platform_client.send_stats_to_performance_platform')  # noqa
+    send_stats = mocker.patch((
+        'app.performance_platform.total_sent_notifications.'
+        'performance_platform_client.send_stats_to_performance_platform'
+    ))
 
-    send_processing_time_data(
-        start_time=datetime(2016, 10, 16, 4, 0, 0),
-        status='foo',
-        count=142
-    )
+    send_processing_time_data(start_time=datetime(2016, 10, 16, 4, 0, 0), status='foo', count=142)
 
     assert send_stats.call_count == 1
 

@@ -13,8 +13,6 @@ down_revision = '0012_complete_provider_details'
 import uuid
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 def upgrade():
 

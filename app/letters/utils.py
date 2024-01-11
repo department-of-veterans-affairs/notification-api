@@ -19,8 +19,7 @@ class ScanErrorType(Enum):
     FAILURE = 2
 
 
-LETTERS_PDF_FILE_LOCATION_STRUCTURE = \
-    '{folder}NOTIFY.{reference}.{duplex}.{letter_class}.{colour}.{crown}.{date}.pdf'
+LETTERS_PDF_FILE_LOCATION_STRUCTURE = '{folder}NOTIFY.{reference}.{duplex}.{letter_class}.{colour}.{crown}.{date}.pdf'
 
 PRECOMPILED_BUCKET_PREFIX = '{folder}NOTIFY.{reference}'
 
@@ -42,11 +41,11 @@ def get_letter_pdf_filename(reference, crown, is_scan_letter=False, postage=SECO
     upload_file_name = LETTERS_PDF_FILE_LOCATION_STRUCTURE.format(
         folder=get_folder_name(now, is_scan_letter),
         reference=reference,
-        duplex="D",
+        duplex='D',
         letter_class=RESOLVE_POSTAGE_FOR_FILE_NAME[postage],
-        colour="C",
-        crown="C" if crown else "N",
-        date=now.strftime('%Y%m%d%H%M%S')
+        colour='C',
+        crown='C' if crown else 'N',
+        date=now.strftime('%Y%m%d%H%M%S'),
     ).upper()
 
     return upload_file_name
@@ -61,16 +60,13 @@ def get_bucket_name_and_prefix_for_notification(notification):
     else:
         bucket_name = current_app.config['LETTERS_PDF_BUCKET_NAME']
         if notification.sent_at:
-            folder = "{}/".format(notification.sent_at.date())
+            folder = '{}/'.format(notification.sent_at.date())
         elif notification.updated_at:
             folder = get_folder_name(notification.updated_at, False)
         else:
             folder = get_folder_name(notification.created_at, False)
 
-    upload_file_name = PRECOMPILED_BUCKET_PREFIX.format(
-        folder=folder,
-        reference=notification.reference
-    ).upper()
+    upload_file_name = PRECOMPILED_BUCKET_PREFIX.format(folder=folder, reference=notification.reference).upper()
 
     return bucket_name, upload_file_name
 
@@ -82,14 +78,17 @@ def get_reference_from_filename(filename):
 
 
 def upload_letter_pdf(notification, pdf_data, precompiled=False):
-    current_app.logger.info("PDF Letter {} reference {} created at {}, {} bytes".format(
-        notification.id, notification.reference, notification.created_at, len(pdf_data)))
+    current_app.logger.info(
+        'PDF Letter {} reference {} created at {}, {} bytes'.format(
+            notification.id, notification.reference, notification.created_at, len(pdf_data)
+        )
+    )
 
     upload_file_name = get_letter_pdf_filename(
         notification.reference,
         notification.service.crown,
         is_scan_letter=precompiled or notification.key_type == KEY_TYPE_TEST,
-        postage=notification.postage
+        postage=notification.postage,
     )
 
     if precompiled:
@@ -103,11 +102,12 @@ def upload_letter_pdf(notification, pdf_data, precompiled=False):
         filedata=pdf_data,
         region=current_app.config['AWS_REGION'],
         bucket_name=bucket_name,
-        file_location=upload_file_name
+        file_location=upload_file_name,
     )
 
-    current_app.logger.info("Uploaded letters PDF {} to {} for notification id {}".format(
-        upload_file_name, bucket_name, notification.id))
+    current_app.logger.info(
+        'Uploaded letters PDF {} to {} for notification id {}'.format(upload_file_name, bucket_name, notification.id)
+    )
     return upload_file_name
 
 
@@ -145,7 +145,7 @@ def move_uploaded_pdf_to_letters_bucket(source_filename, upload_filename):
         source_bucket=current_app.config['TRANSIENT_UPLOADED_LETTERS'],
         source_filename=source_filename,
         target_bucket=current_app.config['LETTERS_PDF_BUCKET_NAME'],
-        target_filename=upload_filename
+        target_filename=upload_filename,
     )
 
 
@@ -154,7 +154,7 @@ def get_file_names_from_error_bucket():
     scan_bucket = current_app.config['LETTERS_SCAN_BUCKET_NAME']
     bucket = s3.Bucket(scan_bucket)
 
-    return bucket.objects.filter(Prefix="ERROR")
+    return bucket.objects.filter(Prefix='ERROR')
 
 
 def get_letter_pdf(notification):
@@ -164,11 +164,8 @@ def get_letter_pdf(notification):
     bucket = s3.Bucket(bucket_name)
     item = next(x for x in bucket.objects.filter(Prefix=prefix))
 
-    obj = s3.Object(
-        bucket_name=bucket_name,
-        key=item.key
-    )
-    return obj.get()["Body"].read()
+    obj = s3.Object(bucket_name=bucket_name, key=item.key)
+    return obj.get()['Body'].read()
 
 
 def _move_s3_object(source_bucket, source_filename, target_bucket, target_filename):
@@ -185,8 +182,9 @@ def _move_s3_object(source_bucket, source_filename, target_bucket, target_filena
 
     s3.Object(source_bucket, source_filename).delete()
 
-    current_app.logger.info("Moved letter PDF: {}/{} to {}/{}".format(
-        source_bucket, source_filename, target_bucket, target_filename))
+    current_app.logger.info(
+        'Moved letter PDF: {}/{} to {}/{}'.format(source_bucket, source_filename, target_bucket, target_filename)
+    )
 
 
 def _copy_s3_object(source_bucket, source_filename, target_bucket, target_filename):
@@ -201,8 +199,9 @@ def _copy_s3_object(source_bucket, source_filename, target_bucket, target_filena
     # in the destination bucket the expiration time will be reset to 7 days left to expire
     obj.copy(copy_source, ExtraArgs={'ServerSideEncryption': 'AES256'})
 
-    current_app.logger.info("Copied letter PDF: {}/{} to {}/{}".format(
-        source_bucket, source_filename, target_bucket, target_filename))
+    current_app.logger.info(
+        'Copied letter PDF: {}/{} to {}/{}'.format(source_bucket, source_filename, target_bucket, target_filename)
+    )
 
 
 def letter_print_day(created_at):

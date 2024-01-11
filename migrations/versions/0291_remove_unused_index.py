@@ -6,7 +6,6 @@ Create Date: 2019-05-16 14:05:18.104274
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = '0291_remove_unused_index'

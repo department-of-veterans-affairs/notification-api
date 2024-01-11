@@ -9,10 +9,7 @@ def post_send_notification(
     payload,
 ):
     return client.post(
-        path=f"/v2/notifications/{notification_type}",
+        path=f'/v2/notifications/{notification_type}',
         data=json.dumps(payload),
-        headers=[
-            ('Content-Type', 'application/json'),
-            create_authorization_header(api_key)
-        ]
+        headers=[('Content-Type', 'application/json'), create_authorization_header(api_key)],
     )

@@ -6,7 +6,6 @@ Create Date: 2019-02-13 13:45:00.782500
 
 """
 from alembic import op
-from itertools import product
 import sqlalchemy as sa
 
 

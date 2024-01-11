@@ -6,8 +6,6 @@ Create Date: 2018-05-22 14:34:27.852096
 
 """
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision = '0194_ft_billing_created_at'
 down_revision = '0193_add_ft_billing_timestamps'

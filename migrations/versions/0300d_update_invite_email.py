@@ -11,7 +11,6 @@ revision = '0300d_update_invite_email'
 down_revision = '0300c_remove_email_branding'
 
 from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

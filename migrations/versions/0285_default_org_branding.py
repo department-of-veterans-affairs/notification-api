@@ -11,7 +11,6 @@ revision = '0285_default_org_branding'
 down_revision = '0284_0283_retry'
 
 from alembic import op
-import sqlalchemy as sa
 
 
 BRANDING_TABLES = ('email_branding', 'letter_branding')

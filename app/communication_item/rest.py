@@ -14,7 +14,7 @@ from jsonschema import validate, ValidationError
 from sqlalchemy import delete, select
 from sqlalchemy.exc import SQLAlchemyError
 
-communication_item_blueprint = Blueprint("communication_item", __name__, url_prefix="/communication-item")
+communication_item_blueprint = Blueprint('communication_item', __name__, url_prefix='/communication-item')
 register_errors(communication_item_blueprint)
 
 
@@ -22,7 +22,8 @@ register_errors(communication_item_blueprint)
 # Create
 #############
 
-@communication_item_blueprint.route('', methods=["POST"])
+
+@communication_item_blueprint.route('', methods=['POST'])
 def create_communication_item():
     request_data = request.get_json()
 
@@ -30,10 +31,10 @@ def create_communication_item():
         validate(request_data, communication_item_post_schema)
     except ValidationError as e:
         return {
-            "errors": [
+            'errors': [
                 {
-                    "error": "ValidationError",
-                    "message": e.message,
+                    'error': 'ValidationError',
+                    'message': e.message,
                 }
             ]
         }, 400
@@ -46,20 +47,20 @@ def create_communication_item():
     except SQLAlchemyError as e:
         db.session.rollback()
         return {
-            "errors": [
+            'errors': [
                 {
-                    "error": e.__class__.__name__,
-                    "message": str(e.orig).split('\n')[0],
+                    'error': e.__class__.__name__,
+                    'message': str(e.orig).split('\n')[0],
                 }
             ]
         }, 400
     except psycopg2.Error as e:
         db.session.rollback()
         return {
-            "errors": [
+            'errors': [
                 {
-                    "error": e.__class__.__name__,
-                    "message": e.pgerror,
+                    'error': e.__class__.__name__,
+                    'message': e.pgerror,
                 }
             ]
         }, 400
@@ -75,22 +76,23 @@ def create_communication_item():
 # Retrieve
 #############
 
-@communication_item_blueprint.route('', methods=["GET"])
+
+@communication_item_blueprint.route('', methods=['GET'])
 def get_all_communication_items():
     communication_items = db.session.scalars(select(CommunicationItem)).all()
     return jsonify(data=communication_item_schema.dump(communication_items, many=True).data)
 
 
-@communication_item_blueprint.route("/<communication_item_id>", methods=["GET"])
+@communication_item_blueprint.route('/<communication_item_id>', methods=['GET'])
 def get_communication_item(communication_item_id):
     communication_item = db.session.get(CommunicationItem, communication_item_id)
 
     if communication_item is None:
         return {
-            "errors": [
+            'errors': [
                 {
-                    "error": "NotFound",
-                    "message": "That communication item does not exist.",
+                    'error': 'NotFound',
+                    'message': 'That communication item does not exist.',
                 }
             ]
         }, 404
@@ -102,7 +104,8 @@ def get_communication_item(communication_item_id):
 # Update
 #############
 
-@communication_item_blueprint.route("/<communication_item_id>", methods=["PATCH"])
+
+@communication_item_blueprint.route('/<communication_item_id>', methods=['PATCH'])
 def partially_update_communication_item(communication_item_id):
     request_data = request.get_json()
 
@@ -110,10 +113,10 @@ def partially_update_communication_item(communication_item_id):
         validate(request_data, communication_item_patch_schema)
     except ValidationError as e:
         return {
-            "errors": [
+            'errors': [
                 {
-                    "error": "ValidationError",
-                    "message": e.message,
+                    'error': 'ValidationError',
+                    'message': e.message,
                 }
             ]
         }, 400
@@ -122,10 +125,10 @@ def partially_update_communication_item(communication_item_id):
 
     if communication_item is None:
         return {
-            "errors": [
+            'errors': [
                 {
-                    "error": "NotFound",
-                    "message": "That communication item does not exist.",
+                    'error': 'NotFound',
+                    'message': 'That communication item does not exist.',
                 }
             ]
         }, 404
@@ -140,20 +143,20 @@ def partially_update_communication_item(communication_item_id):
     except SQLAlchemyError as e:
         db.session.rollback()
         return {
-            "errors": [
+            'errors': [
                 {
-                    "error": e.__class__.__name__,
-                    "message": str(e.orig).split('\n')[0],
+                    'error': e.__class__.__name__,
+                    'message': str(e.orig).split('\n')[0],
                 }
             ]
         }, 400
     except psycopg2.Error as e:
         db.session.rollback()
         return {
-            "errors": [
+            'errors': [
                 {
-                    "error": e.__class__.__name__,
-                    "message": e.pgerror,
+                    'error': e.__class__.__name__,
+                    'message': e.pgerror,
                 }
             ]
         }, 400
@@ -169,7 +172,8 @@ def partially_update_communication_item(communication_item_id):
 # Delete
 #############
 
-@communication_item_blueprint.route("/<communication_item_id>", methods=["DELETE"])
+
+@communication_item_blueprint.route('/<communication_item_id>', methods=['DELETE'])
 def delete_communication_item(communication_item_id):
     query = delete(CommunicationItem).where(CommunicationItem.id == communication_item_id)
     rows_deleted = db.session.execute(query).rowcount
@@ -179,10 +183,10 @@ def delete_communication_item(communication_item_id):
         return {}, 202
 
     return {
-        "errors": [
+        'errors': [
             {
-                "error": "NotFound",
-                "message": "That communication item does not exist.",
+                'error': 'NotFound',
+                'message': 'That communication item does not exist.',
             }
         ]
     }, 404

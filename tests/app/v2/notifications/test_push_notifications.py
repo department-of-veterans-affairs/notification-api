@@ -15,10 +15,7 @@ def feature_toggle_enabled(mocker):
     mock_feature_flag(mocker, feature_flag=FeatureFlag.PUSH_NOTIFICATIONS_ENABLED, enabled='True')
 
 
-push_request = {
-    "template_id": "some-template-id",
-    "recipient_identifier": {"id_type": "ICN", "id_value": "some-icn"}
-}
+push_request = {'template_id': 'some-template-id', 'recipient_identifier': {'id_type': 'ICN', 'id_value': 'some-icn'}}
 
 
 def push_request_without(key: str) -> dict:
@@ -41,7 +38,6 @@ def test_returns_not_implemented_if_feature_flag_disabled(
 
 
 class TestValidations:
-
     def test_checks_service_permissions(
         self,
         client,
@@ -54,12 +50,15 @@ class TestValidations:
         assert response.status_code == 400
         assert response.headers['Content-type'] == 'application/json'
         resp_json = response.get_json()
-        assert "Service is not allowed to send push notifications" in resp_json["errors"][0]["message"]
+        assert 'Service is not allowed to send push notifications' in resp_json['errors'][0]['message']
 
-    @pytest.mark.parametrize("payload, error_msg", [
-        (push_request_without('template_id'), "template_id is a required property"),
-        (push_request_without('recipient_identifier'), "recipient_identifier is a required property"),
-    ])
+    @pytest.mark.parametrize(
+        'payload, error_msg',
+        [
+            (push_request_without('template_id'), 'template_id is a required property'),
+            (push_request_without('recipient_identifier'), 'recipient_identifier is a required property'),
+        ],
+    )
     def test_required_fields(
         self,
         client,
@@ -74,16 +73,16 @@ class TestValidations:
         assert response.status_code == 400
         assert response.headers['Content-type'] == 'application/json'
         resp_json = response.get_json()
-        assert {
-            'error': 'ValidationError',
-            'message': error_msg
-        } in resp_json['errors']
+        assert {'error': 'ValidationError', 'message': error_msg} in resp_json['errors']
 
-    @pytest.mark.parametrize("recipient_identifier, error_msg", [
-        ({"id_type": "ICN"}, "recipient_identifier id_value is a required property"),
-        ({"id_value": "foo"}, "recipient_identifier id_type is a required property"),
-        ({"id_type": "PID", "id_value": 'foo'}, "recipient_identifier PID is not one of [ICN]"),
-    ])
+    @pytest.mark.parametrize(
+        'recipient_identifier, error_msg',
+        [
+            ({'id_type': 'ICN'}, 'recipient_identifier id_value is a required property'),
+            ({'id_value': 'foo'}, 'recipient_identifier id_type is a required property'),
+            ({'id_type': 'PID', 'id_value': 'foo'}, 'recipient_identifier PID is not one of [ICN]'),
+        ],
+    )
     def test_recipient_identifier(
         self,
         client,
@@ -93,17 +92,14 @@ class TestValidations:
         error_msg,
     ):
         payload = {**push_request}
-        payload["recipient_identifier"] = recipient_identifier
+        payload['recipient_identifier'] = recipient_identifier
         service = sample_service(service_permissions=[PUSH_TYPE])
         response = post_send_notification(client, sample_api_key(service), 'push', payload)
 
         assert response.status_code == 400
         assert response.headers['Content-type'] == 'application/json'
         resp_json = response.get_json()
-        assert {
-            'error': 'ValidationError',
-            'message': error_msg
-        } in resp_json['errors']
+        assert {'error': 'ValidationError', 'message': error_msg} in resp_json['errors']
 
     def test_accepts_only_mobile_app_enum(
         self,
@@ -112,14 +108,14 @@ class TestValidations:
         sample_service,
     ):
         payload = {**push_request}
-        payload["mobile_app"] = "some_mobile_app"
+        payload['mobile_app'] = 'some_mobile_app'
         service = sample_service(service_permissions=[PUSH_TYPE])
         response = post_send_notification(client, sample_api_key(service), 'push', payload)
 
         assert response.status_code == 400
         assert response.headers['Content-type'] == 'application/json'
         resp_json = response.get_json()
-        assert "mobile_app some_mobile_app is not one of [VA_FLAGSHIP_APP, VETEXT]" in resp_json["errors"][0]["message"]
+        assert 'mobile_app some_mobile_app is not one of [VA_FLAGSHIP_APP, VETEXT]' in resp_json['errors'][0]['message']
 
     def test_does_not_accept_extra_fields(
         self,
@@ -128,14 +124,14 @@ class TestValidations:
         sample_service,
     ):
         payload = {**push_request}
-        payload["foo"] = "bar"
+        payload['foo'] = 'bar'
         service = sample_service(service_permissions=[PUSH_TYPE])
         response = post_send_notification(client, sample_api_key(service), 'push', payload)
 
         assert response.status_code == 400
         assert response.headers['Content-type'] == 'application/json'
         resp_json = response.get_json()
-        assert "Additional properties are not allowed (foo was unexpected)" in resp_json["errors"][0]["message"]
+        assert 'Additional properties are not allowed (foo was unexpected)' in resp_json['errors'][0]['message']
 
 
 class TestPushSending:
@@ -143,7 +139,7 @@ class TestPushSending:
     def mobile_app_sids(self, mocker, request):
         if 'disable_autouse' in request.keywords:
             for app in MobileAppType.values():
-                mocker.patch.dict(os.environ, {f'{app}_SID': f''})
+                mocker.patch.dict(os.environ, {f'{app}_SID': ''})
             yield
         else:
             for app in MobileAppType.values():
@@ -183,12 +179,17 @@ class TestPushSending:
 
         assert response.status_code == 201
 
-    @pytest.mark.parametrize('payload, personalisation, app', [
-        (push_request, None, DEAFULT_MOBILE_APP_TYPE.value),
-        ({**push_request, 'personalisation': {'foo': 'bar'},
-            'mobile_app': MobileAppType.VETEXT.value}, {'foo': 'bar'},
-            MobileAppType.VETEXT.value)
-    ])
+    @pytest.mark.parametrize(
+        'payload, personalisation, app',
+        [
+            (push_request, None, DEAFULT_MOBILE_APP_TYPE.value),
+            (
+                {**push_request, 'personalisation': {'foo': 'bar'}, 'mobile_app': MobileAppType.VETEXT.value},
+                {'foo': 'bar'},
+                MobileAppType.VETEXT.value,
+            ),
+        ],
+    )
     def test_makes_call_to_vetext_client(
         self,
         client,
@@ -203,16 +204,10 @@ class TestPushSending:
         post_send_notification(client, sample_api_key(service), 'push', payload)
 
         vetext_client.send_push_notification.assert_called_once_with(
-            f'some_sid_for_{app}',
-            payload['template_id'],
-            payload['recipient_identifier']['id_value'],
-            personalisation
+            f'some_sid_for_{app}', payload['template_id'], payload['recipient_identifier']['id_value'], personalisation
         )
 
-    @pytest.mark.parametrize('exception', [
-        VETextRetryableException,
-        VETextNonRetryableException
-    ])
+    @pytest.mark.parametrize('exception', [VETextRetryableException, VETextNonRetryableException])
     def test_returns_502_on_exception_other_than_bad_request(
         self,
         client,
@@ -230,10 +225,13 @@ class TestPushSending:
         assert resp_json['result'] == 'error'
         assert resp_json['message'] == 'Invalid response from downstream service'
 
-    @pytest.mark.parametrize('exception', [
-        VETextBadRequestException(message='Invalid Application SID'),
-        VETextBadRequestException(message='Invalid Template SID'),
-    ])
+    @pytest.mark.parametrize(
+        'exception',
+        [
+            VETextBadRequestException(message='Invalid Application SID'),
+            VETextBadRequestException(message='Invalid Template SID'),
+        ],
+    )
     def test_maps_bad_request_exception(
         self,
         client,
@@ -248,10 +246,7 @@ class TestPushSending:
 
         assert response.status_code == 400
         resp_json = response.get_json()
-        assert {
-            'error': 'BadRequestError',
-            'message': exception.message
-        } in resp_json['errors']
+        assert {'error': 'BadRequestError', 'message': exception.message} in resp_json['errors']
 
     @pytest.mark.disable_autouse
     def test_returns_503_if_mobile_app_not_initiliazed(
@@ -264,7 +259,4 @@ class TestPushSending:
         response = post_send_notification(client, sample_api_key(service), 'push', push_request)
         assert response.status_code == 503
         resp_json = response.get_json()
-        assert resp_json == {
-            'result': 'error',
-            'message': 'Mobile app is not initialized'
-        }
+        assert resp_json == {'result': 'error', 'message': 'Mobile app is not initialized'}

@@ -66,8 +66,7 @@ def test_update_fact_notification_status(
     update_fact_notification_status(data=data, process_day=process_day.date())
 
     new_fact_data = FactNotificationStatus.query.order_by(
-        FactNotificationStatus.bst_date,
-        FactNotificationStatus.notification_type
+        FactNotificationStatus.bst_date, FactNotificationStatus.notification_type
     ).all()
 
     try:
@@ -113,8 +112,7 @@ def test_update_fact_notification_status_updates_row(
     update_fact_notification_status(data=data, process_day=process_day.date())
 
     new_fact_data = FactNotificationStatus.query.order_by(
-        FactNotificationStatus.bst_date,
-        FactNotificationStatus.notification_type
+        FactNotificationStatus.bst_date, FactNotificationStatus.notification_type
     ).all()
 
     try:
@@ -133,8 +131,7 @@ def test_update_fact_notification_status_updates_row(
     update_fact_notification_status(data=data, process_day=process_day.date())
 
     updated_fact_data = FactNotificationStatus.query.order_by(
-        FactNotificationStatus.bst_date,
-        FactNotificationStatus.notification_type
+        FactNotificationStatus.bst_date, FactNotificationStatus.notification_type
     ).all()
 
     try:
@@ -177,7 +174,7 @@ def test_fetch_notification_status_for_service_by_month(
 
     results = sorted(
         fetch_notification_status_for_service_by_month(date(2018, 1, 1), date(2018, 2, 28), service1.id),
-        key=lambda x: (x.month, x.notification_type, x.notification_status)
+        key=lambda x: (x.month, x.notification_type, x.notification_status),
     )
 
     assert len(results) == 4
@@ -234,7 +231,7 @@ def test_fetch_notification_status_for_service_for_day(sample_service, sample_te
 
     results = sorted(
         fetch_notification_status_for_service_for_day(datetime(2018, 6, 1), service_1.id),
-        key=lambda x: x.notification_status
+        key=lambda x: x.notification_status,
     )
     assert len(results) == 2
 
@@ -278,7 +275,7 @@ def test_fetch_notification_status_for_service_for_today_and_7_previous_days(
 
     results = sorted(
         fetch_notification_status_for_service_for_today_and_7_previous_days(service.id),
-        key=lambda x: (x.notification_type, x.status)
+        key=lambda x: (x.notification_type, x.status),
     )
 
     assert len(results) == 4
@@ -308,8 +305,8 @@ def test_fetch_notification_status_by_template_for_service_for_today_and_7_previ
     service = sample_service()
 
     # The names of the SMS templates are chosen to guarantee sorted order, which is used below.
-    sms_template = sample_template(service=service, template_type=SMS_TYPE, name=f"a {uuid4()}")
-    sms_template_2 = sample_template(service=service, template_type=SMS_TYPE, name=f"b {uuid4()}")
+    sms_template = sample_template(service=service, template_type=SMS_TYPE, name=f'a {uuid4()}')
+    sms_template_2 = sample_template(service=service, template_type=SMS_TYPE, name=f'b {uuid4()}')
     email_template = sample_template(service=service, template_type=EMAIL_TYPE)
     letter_template = sample_template(service=service, template_type=LETTER_TYPE)
 
@@ -359,7 +356,9 @@ def test_get_total_notifications_sent_for_api_key(sample_api_key, sample_service
         sample_notification(template=template_email, api_key=api_key)
 
     api_key_stats_2 = get_total_notifications_sent_for_api_key(str(api_key.id))
-    assert api_key_stats_2 == [(EMAIL_TYPE, total_sends), ]
+    assert api_key_stats_2 == [
+        (EMAIL_TYPE, total_sends),
+    ]
 
     for x in range(total_sends):
         sample_notification(template=template_sms, api_key=api_key)
@@ -391,8 +390,8 @@ def test_get_api_key_ranked_by_notifications_created(
     sample_api_key, sample_service, sample_template, sample_notification
 ):
     service = sample_service()
-    api_key_1 = sample_api_key(service, key_type=KEY_TYPE_NORMAL, key_name="Key 1")
-    api_key_2 = sample_api_key(service, key_type=KEY_TYPE_NORMAL, key_name="Key 2")
+    api_key_1 = sample_api_key(service, key_type=KEY_TYPE_NORMAL, key_name='Key 1')
+    api_key_2 = sample_api_key(service, key_type=KEY_TYPE_NORMAL, key_name='Key 2')
     template_email = sample_template(service=service, template_type=EMAIL_TYPE)
     template_sms = sample_template(service=service, template_type=SMS_TYPE)
     email_sends = 1
@@ -430,33 +429,33 @@ def test_get_api_key_ranked_by_notifications_created(
 
 
 @pytest.mark.parametrize(
-    "start_date, end_date, expected_email, expected_letters, expected_sms, expected_created_sms",
+    'start_date, end_date, expected_email, expected_letters, expected_sms, expected_created_sms',
     [
         (29, 30, 3, 10, 10, 1),  # not including today
         (29, 31, 4, 10, 11, 2),  # today included
         (26, 31, 4, 15, 11, 2),
-    ]
-
+    ],
 )
 @freeze_time('2018-10-31 14:00')
 def test_fetch_notification_status_totals_for_all_services(
-        sample_service,
-        sample_template,
-        sample_job,
-        sample_notification,
-        sample_ft_notification_status,
-        start_date,
-        end_date,
-        expected_email,
-        expected_letters,
-        expected_sms,
-        expected_created_sms
+    sample_service,
+    sample_template,
+    sample_job,
+    sample_notification,
+    sample_ft_notification_status,
+    start_date,
+    end_date,
+    expected_email,
+    expected_letters,
+    expected_sms,
+    expected_created_sms,
 ):
     set_up_data(sample_service, sample_template, sample_job, sample_notification, sample_ft_notification_status)
     results = sorted(
         fetch_notification_status_totals_for_all_services(
-            start_date=date(2018, 10, start_date), end_date=date(2018, 10, end_date)),
-        key=lambda x: (x.notification_type, x.status)
+            start_date=date(2018, 10, start_date), end_date=date(2018, 10, end_date)
+        ),
+        key=lambda x: (x.notification_type, x.status),
     )
 
     assert len(results) == 4
@@ -493,9 +492,8 @@ def test_fetch_notification_status_totals_for_all_services_works_in_bst(
     sample_notification(template=email_template, created_at=datetime(2018, 4, 21, 14, 0, 0), status='delivered')
 
     results = sorted(
-        fetch_notification_status_totals_for_all_services(
-            start_date=date(2018, 4, 21), end_date=date(2018, 4, 21)),
-        key=lambda x: (x.notification_type, x.status)
+        fetch_notification_status_totals_for_all_services(start_date=date(2018, 4, 21), end_date=date(2018, 4, 21)),
+        key=lambda x: (x.notification_type, x.status),
     )
 
     assert len(results) == 3
@@ -513,15 +511,13 @@ def test_fetch_notification_status_totals_for_all_services_works_in_bst(
     assert results[2].count == 1
 
 
-def set_up_data(
-    sample_service, sample_template, sample_job, sample_notification, sample_ft_notification_status
-):
+def set_up_data(sample_service, sample_template, sample_job, sample_notification, sample_ft_notification_status):
     # Giving the services and templates names is useful for sorting query results downstream.
-    service_1 = sample_service(service_name=f"service 1 {uuid4()}")
-    service_2 = sample_service(service_name=f"service 2 {uuid4()}")
-    sms_template = sample_template(service=service_1, template_type=SMS_TYPE, name=f"sms {uuid4()}")
-    email_template = sample_template(service=service_1, template_type=EMAIL_TYPE, name=f"email {uuid4()}")
-    letter_template = sample_template(service=service_1, template_type=LETTER_TYPE, name=f"letter {uuid4()}")
+    service_1 = sample_service(service_name=f'service 1 {uuid4()}')
+    service_2 = sample_service(service_name=f'service 2 {uuid4()}')
+    sms_template = sample_template(service=service_1, template_type=SMS_TYPE, name=f'sms {uuid4()}')
+    email_template = sample_template(service=service_1, template_type=EMAIL_TYPE, name=f'email {uuid4()}')
+    letter_template = sample_template(service=service_1, template_type=LETTER_TYPE, name=f'letter {uuid4()}')
 
     job_sms = sample_job(sms_template)
     job_email = sample_job(email_template)
@@ -556,10 +552,7 @@ def test_fetch_notification_statuses_for_job(sample_template, sample_job, sample
     sample_ft_notification_status(date(2018, 10, 2), job=j1, notification_status='created', count=4)
     sample_ft_notification_status(date(2018, 10, 1), job=j2, notification_status='created', count=8)
 
-    assert {x.status: x.count for x in fetch_notification_statuses_for_job(j1.id)} == {
-        'created': 5,
-        'delivered': 2
-    }
+    assert {x.status: x.count for x in fetch_notification_statuses_for_job(j1.id)} == {'created': 5, 'delivered': 2}
 
 
 @freeze_time('2018-10-31 14:00')
@@ -573,7 +566,7 @@ def test_fetch_stats_for_all_services_by_date_range(
     results = sorted(
         fetch_stats_for_all_services_by_date_range(start_date=date(2018, 10, 29), end_date=date(2018, 10, 31)),
         # key=lambda x: (x.created_at, x.name, x.notification_type, x.status, x.count)
-        key=lambda x: (x.created_at, x.name)
+        key=lambda x: (x.created_at, x.name),
     )
     assert len(results) == 5
 
@@ -610,9 +603,9 @@ def test_fetch_monthly_template_usage_for_service(
     service = sample_service()
 
     # The names of the templates are chosen to guarantee sorted order, which is used below.
-    template_one = sample_template(service=service, template_type=SMS_TYPE, name=f"a {uuid4()}")
-    template_two = sample_template(service=service, template_type=EMAIL_TYPE, name=f"b {uuid4()}")
-    template_three = sample_template(service=service, template_type=LETTER_TYPE, name=f"c {uuid4()}")
+    template_one = sample_template(service=service, template_type=SMS_TYPE, name=f'a {uuid4()}')
+    template_two = sample_template(service=service, template_type=EMAIL_TYPE, name=f'b {uuid4()}')
+    template_three = sample_template(service=service, template_type=LETTER_TYPE, name=f'c {uuid4()}')
 
     job_one = sample_job(template_one)
     job_two = sample_job(template_two)
@@ -625,9 +618,7 @@ def test_fetch_monthly_template_usage_for_service(
 
     sample_notification(template=template_three, created_at=datetime.utcnow() - timedelta(days=1))
     sample_notification(template=template_three, created_at=datetime.utcnow())
-    results = fetch_monthly_template_usage_for_service(
-        datetime(2017, 4, 1), datetime(2018, 3, 31), service.id
-    )
+    results = fetch_monthly_template_usage_for_service(datetime(2017, 4, 1), datetime(2018, 3, 31), service.id)
 
     assert len(results) == 4
 
@@ -670,8 +661,8 @@ def test_fetch_delivered_notification_stats_by_month(
     service = sample_service()
 
     # The names of the templates are chosen to guarantee sorted order, which is used below.
-    sms_template = sample_template(service=service, template_type=SMS_TYPE, name=f"a {uuid4()}")
-    email_template = sample_template(service=service, template_type=EMAIL_TYPE, name=f"b {uuid4()}")
+    sms_template = sample_template(service=service, template_type=SMS_TYPE, name=f'a {uuid4()}')
+    email_template = sample_template(service=service, template_type=EMAIL_TYPE, name=f'b {uuid4()}')
 
     job_sms = sample_job(sms_template)
     job_email = sample_job(email_template)
@@ -682,36 +673,22 @@ def test_fetch_delivered_notification_stats_by_month(
     sample_ft_notification_status(utc_date=date(2020, 12, 10), job=job_email, count=3)
 
     sample_ft_notification_status(
-        utc_date=date(2021, 12, 5),
-        job=job_sms,
-        notification_status=NOTIFICATION_DELIVERED,
-        count=6
+        utc_date=date(2021, 12, 5), job=job_sms, notification_status=NOTIFICATION_DELIVERED, count=6
     )
 
     sample_ft_notification_status(
-        utc_date=date(2021, 1, 1),
-        job=job_sms,
-        notification_status=NOTIFICATION_SENT,
-        status_reason='foo',
-        count=4
+        utc_date=date(2021, 1, 1), job=job_sms, notification_status=NOTIFICATION_SENT, status_reason='foo', count=4
     )
 
     # Not counted: failed notifications
     sample_ft_notification_status(
-        utc_date=date(2021, 1, 1),
-        job=job_sms,
-        notification_status=NOTIFICATION_FAILED,
-        count=10
+        utc_date=date(2021, 1, 1), job=job_sms, notification_status=NOTIFICATION_FAILED, count=10
     )
 
-    sample_ft_notification_status(
-        utc_date=date(2021, 3, 1),
-        job=job_email,
-        count=5
-    )
+    sample_ft_notification_status(utc_date=date(2021, 3, 1), job=job_email, count=5)
 
     results = fetch_delivered_notification_stats_by_month()
-    print("These are the results: ", results)
+    print('These are the results: ', results)
 
     assert len(results) == 5
     assert results[2].count == 4
@@ -728,8 +705,8 @@ def test_fetch_monthly_template_usage_for_service_does_join_to_notifications_if_
     service = sample_service()
 
     # The names of the templates are chosen to guarantee sorted order, which is used below.
-    template_one = sample_template(service=service, template_type=SMS_TYPE, name=f"a {uuid4()}")
-    template_two = sample_template(service=service, template_type=EMAIL_TYPE, name=f"b {uuid4()}")
+    template_one = sample_template(service=service, template_type=SMS_TYPE, name=f'a {uuid4()}')
+    template_two = sample_template(service=service, template_type=EMAIL_TYPE, name=f'b {uuid4()}')
 
     job_one = sample_job(template_one)
     job_two = sample_job(template_two)
@@ -773,9 +750,7 @@ def test_fetch_monthly_template_usage_for_service_does_not_include_cancelled_sta
     sample_notification(template=template, created_at=datetime.utcnow(), status='cancelled')
     sample_notification(template=template, created_at=datetime.utcnow(), status='cancelled', status_reason='foo')
 
-    results = fetch_monthly_template_usage_for_service(
-        datetime(2018, 1, 1), datetime(2018, 3, 31), template.service_id
-    )
+    results = fetch_monthly_template_usage_for_service(datetime(2018, 1, 1), datetime(2018, 3, 31), template.service_id)
 
     assert len(results) == 0
 
@@ -788,50 +763,52 @@ def test_fetch_monthly_template_usage_for_service_does_not_include_test_notifica
     job = sample_job(template)
 
     sample_ft_notification_status(
-        utc_date=date(2018, 3, 1),
-        job=job,
-        notification_status='delivered',
+        utc_date=date(2018, 3, 1), job=job, notification_status='delivered', key_type='test', count=15
+    )
+
+    sample_notification(
+        template=template,
+        created_at=datetime.utcnow(),
+        status='delivered',
         key_type='test',
-        count=15
     )
 
-    sample_notification(template=template, created_at=datetime.utcnow(), status='delivered', key_type='test',)
-
-    results = fetch_monthly_template_usage_for_service(
-        datetime(2018, 1, 1), datetime(2018, 3, 31), template.service_id
-    )
+    results = fetch_monthly_template_usage_for_service(datetime(2018, 1, 1), datetime(2018, 3, 31), template.service_id)
 
     assert len(results) == 0
 
 
-@pytest.mark.parametrize("notification_type, count", [
-    (SMS_TYPE, 3),
-    (EMAIL_TYPE, 5),
-])
+@pytest.mark.parametrize(
+    'notification_type, count',
+    [
+        (SMS_TYPE, 3),
+        (EMAIL_TYPE, 5),
+    ],
+)
 def test_get_total_sent_notifications_for_day_and_type_returns_right_notification_type(
     notification_type, count, sample_template, sample_job, sample_ft_notification_status
 ):
     sms_template = sample_template()
     job_sms = sample_job(sms_template)
-    sample_ft_notification_status(utc_date="2019-03-27", job=job_sms, count=3)
+    sample_ft_notification_status(utc_date='2019-03-27', job=job_sms, count=3)
 
     email_template = sample_template(template_type=EMAIL_TYPE)
     job_email = sample_job(email_template)
-    sample_ft_notification_status(utc_date="2019-03-27", job=job_email, count=5)
+    sample_ft_notification_status(utc_date='2019-03-27', job=job_email, count=5)
 
     result = get_total_sent_notifications_for_day_and_type(day='2019-03-27', notification_type=notification_type)
 
     assert result == count
 
 
-@pytest.mark.parametrize("day", ["2019-01-27", "2019-04-02"])
+@pytest.mark.parametrize('day', ['2019-01-27', '2019-04-02'])
 def test_get_total_sent_notifications_for_day_and_type_returns_total_for_right_day(
     day, sample_template, sample_job, sample_ft_notification_status
 ):
     template = sample_template()
     job = sample_job(template)
 
-    date = datetime.strptime(day, "%Y-%m-%d")
+    date = datetime.strptime(day, '%Y-%m-%d')
     sample_ft_notification_status(utc_date=date - timedelta(days=1), job=job, count=1)
     sample_ft_notification_status(utc_date=date, job=job, count=2)
     sample_ft_notification_status(utc_date=date + timedelta(days=1), job=job, count=3)
@@ -845,7 +822,7 @@ def test_get_total_sent_notifications_for_day_and_type_returns_total_for_right_d
 
 
 def test_get_total_sent_notifications_for_day_and_type_returns_zero_when_no_counts():
-    total = get_total_sent_notifications_for_day_and_type("2019-03-27", SMS_TYPE)
+    total = get_total_sent_notifications_for_day_and_type('2019-03-27', SMS_TYPE)
     assert total == 0
 
 
@@ -856,8 +833,8 @@ def test_fetch_notification_statuses_per_service_and_template_for_date(
     service = sample_service()
 
     # The names of the templates are chosen to guarantee sorted order, which is used below.
-    sms_template = sample_template(service=service, name=f"a {uuid4()}")
-    email_template = sample_template(service=service, template_type=EMAIL_TYPE, name=f"b {uuid4()}")
+    sms_template = sample_template(service=service, name=f'a {uuid4()}')
+    email_template = sample_template(service=service, template_type=EMAIL_TYPE, name=f'b {uuid4()}')
 
     job_sms = sample_job(sms_template)
     job_email = sample_job(email_template)
@@ -866,31 +843,20 @@ def test_fetch_notification_statuses_per_service_and_template_for_date(
         date(2019, 4, 30),
         job=job_email,
         notification_status=NOTIFICATION_PERMANENT_FAILURE,
-        status_reason="baz",
-        count=4
+        status_reason='baz',
+        count=4,
     )
 
     sample_ft_notification_status(
-        date(2019, 4, 30),
-        job=job_sms,
-        notification_status=NOTIFICATION_DELIVERED,
-        status_reason="foo",
-        count=2
+        date(2019, 4, 30), job=job_sms, notification_status=NOTIFICATION_DELIVERED, status_reason='foo', count=2
     )
 
     sample_ft_notification_status(
-        date(2019, 4, 30),
-        job=job_sms,
-        notification_status=NOTIFICATION_TECHNICAL_FAILURE,
-        count=5
+        date(2019, 4, 30), job=job_sms, notification_status=NOTIFICATION_TECHNICAL_FAILURE, count=5
     )
 
     sample_ft_notification_status(
-        date(2019, 4, 30),
-        job=job_sms,
-        notification_status=NOTIFICATION_PERMANENT_FAILURE,
-        status_reason="bar",
-        count=5
+        date(2019, 4, 30), job=job_sms, notification_status=NOTIFICATION_PERMANENT_FAILURE, status_reason='bar', count=5
     )
 
     results = fetch_notification_statuses_per_service_and_template_for_date(date(2019, 4, 30))
@@ -898,21 +864,27 @@ def test_fetch_notification_statuses_per_service_and_template_for_date(
 
     # "service id", "service name", "template id", "template name", "status", "reason", "count", "channel_type"
     assert [
+        (service.id, service.name, sms_template.id, sms_template.name, NOTIFICATION_DELIVERED, 'foo', 2, SMS_TYPE),
         (
-            service.id, service.name, sms_template.id,
-            sms_template.name, NOTIFICATION_DELIVERED, 'foo', 2, SMS_TYPE
+            service.id,
+            service.name,
+            sms_template.id,
+            sms_template.name,
+            NOTIFICATION_PERMANENT_FAILURE,
+            'bar',
+            5,
+            SMS_TYPE,
         ),
+        (service.id, service.name, sms_template.id, sms_template.name, NOTIFICATION_TECHNICAL_FAILURE, '', 5, SMS_TYPE),
         (
-            service.id, service.name, sms_template.id,
-            sms_template.name, NOTIFICATION_PERMANENT_FAILURE, 'bar', 5, SMS_TYPE
-        ),
-        (
-            service.id, service.name, sms_template.id,
-            sms_template.name, NOTIFICATION_TECHNICAL_FAILURE, '', 5, SMS_TYPE
-        ),
-        (
-            service.id, service.name, email_template.id,
-            email_template.name, NOTIFICATION_PERMANENT_FAILURE, 'baz', 4, EMAIL_TYPE
+            service.id,
+            service.name,
+            email_template.id,
+            email_template.name,
+            NOTIFICATION_PERMANENT_FAILURE,
+            'baz',
+            4,
+            EMAIL_TYPE,
         ),
     ] == sorted(results, key=lambda x: (x.template_name, x.status, x.status_reason, x.count, x.channel_type))
 
@@ -929,8 +901,8 @@ def test_fetch_notif_statuses_per_service_and_template_for_date_ignores_research
         date(2019, 4, 30),
         job=job_research,
         notification_status=NOTIFICATION_PERMANENT_FAILURE,
-        status_reason="baz",
-        count=4
+        status_reason='baz',
+        count=4,
     )
 
     service = sample_service()
@@ -942,8 +914,8 @@ def test_fetch_notif_statuses_per_service_and_template_for_date_ignores_research
         job=job,
         notification_status=NOTIFICATION_PERMANENT_FAILURE,
         key_type=KEY_TYPE_TEST,
-        status_reason="baz",
-        count=4
+        status_reason='baz',
+        count=4,
     )
 
     results = fetch_notification_statuses_per_service_and_template_for_date(date(2019, 4, 30))
@@ -955,13 +927,13 @@ def test_fetch_monthly_notification_statuses_per_service(
     sample_service, sample_template, sample_job, sample_ft_notification_status
 ):
     # The names of the services and templates are chosen to guarantee sorted order, which is used below.
-    service_one = sample_service(service_name=f"one {uuid4()}")
-    service_two = sample_service(service_name=f"two {uuid4()}")
+    service_one = sample_service(service_name=f'one {uuid4()}')
+    service_two = sample_service(service_name=f'two {uuid4()}')
 
-    sms_template = sample_template(service=service_one, template_type=SMS_TYPE, name=f"a {uuid4()}")
-    email_template = sample_template(service=service_one, template_type=EMAIL_TYPE, name=f"b {uuid4()}")
-    letter_template = sample_template(service=service_one, template_type=LETTER_TYPE, name=f"c {uuid4()}")
-    letter_template2 = sample_template(service=service_two, template_type=LETTER_TYPE, name=f"d {uuid4()}")
+    sms_template = sample_template(service=service_one, template_type=SMS_TYPE, name=f'a {uuid4()}')
+    email_template = sample_template(service=service_one, template_type=EMAIL_TYPE, name=f'b {uuid4()}')
+    letter_template = sample_template(service=service_one, template_type=LETTER_TYPE, name=f'c {uuid4()}')
+    letter_template2 = sample_template(service=service_two, template_type=LETTER_TYPE, name=f'd {uuid4()}')
 
     job_sms = sample_job(sms_template)
     job_email = sample_job(email_template)
@@ -969,69 +941,84 @@ def test_fetch_monthly_notification_statuses_per_service(
     job2_letter = sample_job(letter_template2)
 
     sample_ft_notification_status(date(2019, 4, 30), job=job_letter, notification_status=NOTIFICATION_DELIVERED)
+    sample_ft_notification_status(date(2019, 3, 1), job=job_email, notification_status=NOTIFICATION_SENDING, count=4)
     sample_ft_notification_status(
-        date(2019, 3, 1),
-        job=job_email,
-        notification_status=NOTIFICATION_SENDING,
-        count=4
+        date(2019, 3, 2), job=job_email, notification_status=NOTIFICATION_TECHNICAL_FAILURE, count=2
     )
-    sample_ft_notification_status(
-        date(2019, 3, 2),
-        job=job_email,
-        notification_status=NOTIFICATION_TECHNICAL_FAILURE,
-        count=2
-    )
-    sample_ft_notification_status(
-        date(2019, 3, 7),
-        job=job_email,
-        notification_status=NOTIFICATION_FAILED,
-        count=1
-    )
+    sample_ft_notification_status(date(2019, 3, 7), job=job_email, notification_status=NOTIFICATION_FAILED, count=1)
     sample_ft_notification_status(
         date(2019, 3, 7),
         job=job2_letter,
         notification_status=NOTIFICATION_PERMANENT_FAILURE,
         status_reason='fleens',
-        count=1
+        count=1,
     )
     sample_ft_notification_status(
-        date(2019, 3, 10),
-        job=job2_letter,
-        notification_status=NOTIFICATION_PERMANENT_FAILURE,
-        count=1
+        date(2019, 3, 10), job=job2_letter, notification_status=NOTIFICATION_PERMANENT_FAILURE, count=1
     )
     sample_ft_notification_status(date(2019, 3, 13), job=job_sms, notification_status=NOTIFICATION_SENT, count=1)
     sample_ft_notification_status(
-        date(2019, 4, 1),
-        job=job2_letter,
-        notification_status=NOTIFICATION_TEMPORARY_FAILURE,
-        count=10
+        date(2019, 4, 1), job=job2_letter, notification_status=NOTIFICATION_TEMPORARY_FAILURE, count=10
     )
     sample_ft_notification_status(date(2019, 3, 31), job=job_letter, notification_status=NOTIFICATION_DELIVERED)
 
     results = sorted(
         fetch_monthly_notification_statuses_per_service(date(2019, 3, 1), date(2019, 4, 30)),
-        key=lambda x: (x.date_created, x.service_name, x.notification_type, x.count)
+        key=lambda x: (x.date_created, x.service_name, x.notification_type, x.count),
     )
     assert len(results) == 6
 
     # column order: date, service_id, service_name, notifaction_type, count_sending, count_delivered,
     # count_technical_failure, count_temporary_failure, count_permanent_failure, count_sent
-    assert [x for x in results[0]] == [
-        date(2019, 3, 1), service_one.id, service_one.name, EMAIL_TYPE, 4, 0, 3, 0, 0, 0
-    ]
+    assert [x for x in results[0]] == [date(2019, 3, 1), service_one.id, service_one.name, EMAIL_TYPE, 4, 0, 3, 0, 0, 0]
     assert [x for x in results[1]] == [
-        date(2019, 3, 1), service_one.id, service_one.name, LETTER_TYPE, 0, 1, 0, 0, 0, 0
+        date(2019, 3, 1),
+        service_one.id,
+        service_one.name,
+        LETTER_TYPE,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
     ]
     assert [x for x in results[2]] == [date(2019, 3, 1), service_one.id, service_one.name, SMS_TYPE, 0, 0, 0, 0, 0, 1]
     assert [x for x in results[3]] == [
-        date(2019, 3, 1), service_two.id, service_two.name, LETTER_TYPE, 0, 0, 0, 0, 2, 0
+        date(2019, 3, 1),
+        service_two.id,
+        service_two.name,
+        LETTER_TYPE,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
     ]
     assert [x for x in results[4]] == [
-        date(2019, 4, 1), service_one.id, service_one.name, LETTER_TYPE, 0, 1, 0, 0, 0, 0
+        date(2019, 4, 1),
+        service_one.id,
+        service_one.name,
+        LETTER_TYPE,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
     ]
     assert [x for x in results[5]] == [
-        date(2019, 4, 1), service_two.id, service_two.name, LETTER_TYPE, 0, 0, 0, 10, 0, 0
+        date(2019, 4, 1),
+        service_two.id,
+        service_two.name,
+        LETTER_TYPE,
+        0,
+        0,
+        0,
+        10,
+        0,
+        0,
     ]
 
 

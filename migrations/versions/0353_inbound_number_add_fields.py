@@ -6,7 +6,6 @@ Create Date: 2022-11-07 19:30:54.448803
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision = '0353_inbound_number_add_fields'
 down_revision = '0352_updated_at_default'

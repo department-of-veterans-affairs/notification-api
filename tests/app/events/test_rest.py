@@ -12,18 +12,14 @@ def test_create_event(
     data = {
         'id': str(uuid4()),
         'event_type': 'sucessful_login',
-        'data': {'something': 'random', 'in_fact': 'could be anything'}
+        'data': {'something': 'random', 'in_fact': 'could be anything'},
     }
 
     path = '/events'
     auth_header = create_admin_authorization_header()
     headers = [('Content-Type', 'application/json'), auth_header]
 
-    response = client.post(
-        path,
-        data=json.dumps(data),
-        headers=headers
-    )
+    response = client.post(path, data=json.dumps(data), headers=headers)
 
     assert response.status_code == 201
     resp_json = response.get_json()

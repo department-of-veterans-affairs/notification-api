@@ -12,7 +12,6 @@ down_revision = '0001_restart_migrations'
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.sql import table, column
 
 
 def upgrade():

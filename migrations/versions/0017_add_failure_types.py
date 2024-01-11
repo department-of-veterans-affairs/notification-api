@@ -16,7 +16,6 @@ import sqlalchemy as sa
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 def upgrade():
     status_type = sa.Enum('sending', 'delivered', 'failed',

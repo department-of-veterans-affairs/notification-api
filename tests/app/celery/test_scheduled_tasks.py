@@ -23,10 +23,7 @@ from app.celery.scheduled_tasks import (
 from app.config import QueueNames, TaskNames
 from app.dao.jobs_dao import dao_get_job_by_id
 from app.dao.notifications_dao import dao_get_scheduled_notifications
-from app.dao.provider_details_dao import (
-    dao_update_provider_details,
-    get_current_provider
-)
+from app.dao.provider_details_dao import dao_update_provider_details, get_current_provider
 from app.models import (
     EMAIL_TYPE,
     JOB_STATUS_IN_PROGRESS,
@@ -77,7 +74,7 @@ def test_should_update_scheduled_jobs_and_put_on_queue(mocker, sample_template, 
 
     updated_job = dao_get_job_by_id(job.id)
     assert updated_job.job_status == 'pending'
-    mocked.assert_called_with([str(job.id)], queue="job-tasks")
+    mocked.assert_called_with([str(job.id)], queue='job-tasks')
 
 
 def test_should_update_all_scheduled_jobs_and_put_on_queue(mocker, sample_template, sample_job):
@@ -97,24 +94,27 @@ def test_should_update_all_scheduled_jobs_and_put_on_queue(mocker, sample_templa
     assert dao_get_job_by_id(job_2.id).job_status == 'pending'
     assert dao_get_job_by_id(job_2.id).job_status == 'pending'
 
-    mocked.assert_has_calls([
-        call([str(job_3.id)], queue="job-tasks"),
-        call([str(job_2.id)], queue="job-tasks"),
-        call([str(job_1.id)], queue="job-tasks")
-    ])
+    mocked.assert_has_calls(
+        [
+            call([str(job_3.id)], queue='job-tasks'),
+            call([str(job_2.id)], queue='job-tasks'),
+            call([str(job_1.id)], queue='job-tasks'),
+        ]
+    )
 
 
-@freeze_time("2017-05-01 14:00:00")
+@freeze_time('2017-05-01 14:00:00')
 def test_should_send_all_scheduled_notifications_to_deliver_queue(mocker, sample_template, sample_notification):
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
-    mock_sms_sender = mocker.patch('app.notifications.process_notifications.'
-                                   'dao_get_service_sms_sender_by_service_id_and_number')
+    mock_sms_sender = mocker.patch(
+        'app.notifications.process_notifications.' 'dao_get_service_sms_sender_by_service_id_and_number'
+    )
     mock_sms_sender.rate_limit = mocker.Mock()
     template = sample_template()
-    message_to_deliver = sample_notification(template=template, scheduled_for="2017-05-01 13:15")
-    sample_notification(template=template, scheduled_for="2017-05-01 10:15", status='delivered')
+    message_to_deliver = sample_notification(template=template, scheduled_for='2017-05-01 13:15')
+    sample_notification(template=template, scheduled_for='2017-05-01 10:15', status='delivered')
     sample_notification(template=template)
-    sample_notification(template=template, scheduled_for="2017-05-01 14:15")
+    sample_notification(template=template, scheduled_for='2017-05-01 14:15')
 
     scheduled_notifications = dao_get_scheduled_notifications()
     assert len(scheduled_notifications) == 1
@@ -133,19 +133,20 @@ def test_should_send_all_scheduled_notifications_to_deliver_queue(mocker, sample
 def test_check_job_status_task_raises_job_incomplete_error(mocker, sample_template, sample_job, sample_notification):
     mock_celery = mocker.patch(SEND_TASK_MOCK_PATH)
     template = sample_template()
-    job = sample_job(template, notification_count=3,
-                     created_at=datetime.utcnow() - timedelta(minutes=31),
-                     processing_started=datetime.utcnow() - timedelta(minutes=31),
-                     job_status=JOB_STATUS_IN_PROGRESS)
+    job = sample_job(
+        template,
+        notification_count=3,
+        created_at=datetime.utcnow() - timedelta(minutes=31),
+        processing_started=datetime.utcnow() - timedelta(minutes=31),
+        job_status=JOB_STATUS_IN_PROGRESS,
+    )
     sample_notification(template=template, job=job)
     with pytest.raises(expected_exception=JobIncompleteError) as e:
         check_job_status()
     assert e.value.message == "Job(s) ['{}'] have not completed.".format(str(job.id))
 
     mock_celery.assert_called_once_with(
-        name=TaskNames.PROCESS_INCOMPLETE_JOBS,
-        args=([str(job.id)],),
-        queue=QueueNames.JOBS
+        name=TaskNames.PROCESS_INCOMPLETE_JOBS, args=([str(job.id)],), queue=QueueNames.JOBS
     )
 
 
@@ -154,44 +155,49 @@ def test_check_job_status_task_raises_job_incomplete_error_when_scheduled_job_is
 ):
     mock_celery = mocker.patch(SEND_TASK_MOCK_PATH)
     template = sample_template()
-    job = sample_job(template, notification_count=3,
-                     created_at=datetime.utcnow() - timedelta(hours=2),
-                     scheduled_for=datetime.utcnow() - timedelta(minutes=31),
-                     processing_started=datetime.utcnow() - timedelta(minutes=31),
-                     job_status=JOB_STATUS_IN_PROGRESS)
+    job = sample_job(
+        template,
+        notification_count=3,
+        created_at=datetime.utcnow() - timedelta(hours=2),
+        scheduled_for=datetime.utcnow() - timedelta(minutes=31),
+        processing_started=datetime.utcnow() - timedelta(minutes=31),
+        job_status=JOB_STATUS_IN_PROGRESS,
+    )
     with pytest.raises(expected_exception=JobIncompleteError) as e:
         check_job_status()
     assert e.value.message == "Job(s) ['{}'] have not completed.".format(str(job.id))
 
     mock_celery.assert_called_once_with(
-        name=TaskNames.PROCESS_INCOMPLETE_JOBS,
-        args=([str(job.id)],),
-        queue=QueueNames.JOBS
+        name=TaskNames.PROCESS_INCOMPLETE_JOBS, args=([str(job.id)],), queue=QueueNames.JOBS
     )
 
 
 def test_check_job_status_task_raises_job_incomplete_error_for_multiple_jobs(mocker, sample_template, sample_job):
     mock_celery = mocker.patch(SEND_TASK_MOCK_PATH)
     template = sample_template()
-    job = sample_job(template, notification_count=3,
-                     created_at=datetime.utcnow() - timedelta(hours=2),
-                     scheduled_for=datetime.utcnow() - timedelta(minutes=31),
-                     processing_started=datetime.utcnow() - timedelta(minutes=31),
-                     job_status=JOB_STATUS_IN_PROGRESS)
-    job_2 = sample_job(template, notification_count=3,
-                       created_at=datetime.utcnow() - timedelta(hours=2),
-                       scheduled_for=datetime.utcnow() - timedelta(minutes=31),
-                       processing_started=datetime.utcnow() - timedelta(minutes=31),
-                       job_status=JOB_STATUS_IN_PROGRESS)
+    job = sample_job(
+        template,
+        notification_count=3,
+        created_at=datetime.utcnow() - timedelta(hours=2),
+        scheduled_for=datetime.utcnow() - timedelta(minutes=31),
+        processing_started=datetime.utcnow() - timedelta(minutes=31),
+        job_status=JOB_STATUS_IN_PROGRESS,
+    )
+    job_2 = sample_job(
+        template,
+        notification_count=3,
+        created_at=datetime.utcnow() - timedelta(hours=2),
+        scheduled_for=datetime.utcnow() - timedelta(minutes=31),
+        processing_started=datetime.utcnow() - timedelta(minutes=31),
+        job_status=JOB_STATUS_IN_PROGRESS,
+    )
     with pytest.raises(expected_exception=JobIncompleteError) as e:
         check_job_status()
     assert str(job.id) in e.value.message
     assert str(job_2.id) in e.value.message
 
     mock_celery.assert_called_once_with(
-        name=TaskNames.PROCESS_INCOMPLETE_JOBS,
-        args=([str(job.id), str(job_2.id)],),
-        queue=QueueNames.JOBS
+        name=TaskNames.PROCESS_INCOMPLETE_JOBS, args=([str(job.id), str(job_2.id)],), queue=QueueNames.JOBS
     )
 
 
@@ -204,14 +210,14 @@ def test_check_job_status_task_only_sends_old_tasks(mocker, sample_template, sam
         created_at=datetime.utcnow() - timedelta(hours=2),
         scheduled_for=datetime.utcnow() - timedelta(minutes=31),
         processing_started=datetime.utcnow() - timedelta(minutes=31),
-        job_status=JOB_STATUS_IN_PROGRESS
+        job_status=JOB_STATUS_IN_PROGRESS,
     )
     job_2 = sample_job(
         template,
         notification_count=3,
         created_at=datetime.utcnow() - timedelta(minutes=31),
         processing_started=datetime.utcnow() - timedelta(minutes=29),
-        job_status=JOB_STATUS_IN_PROGRESS
+        job_status=JOB_STATUS_IN_PROGRESS,
     )
     with pytest.raises(expected_exception=JobIncompleteError) as e:
         check_job_status()
@@ -220,9 +226,7 @@ def test_check_job_status_task_only_sends_old_tasks(mocker, sample_template, sam
 
     # job 2 not in celery task
     mock_celery.assert_called_once_with(
-        name=TaskNames.PROCESS_INCOMPLETE_JOBS,
-        args=([str(job.id)],),
-        queue=QueueNames.JOBS
+        name=TaskNames.PROCESS_INCOMPLETE_JOBS, args=([str(job.id)],), queue=QueueNames.JOBS
     )
 
 
@@ -235,14 +239,14 @@ def test_check_job_status_task_sets_jobs_to_error(mocker, sample_template, sampl
         created_at=datetime.utcnow() - timedelta(hours=2),
         scheduled_for=datetime.utcnow() - timedelta(minutes=31),
         processing_started=datetime.utcnow() - timedelta(minutes=31),
-        job_status=JOB_STATUS_IN_PROGRESS
+        job_status=JOB_STATUS_IN_PROGRESS,
     )
     job_2 = sample_job(
         template,
         notification_count=3,
         created_at=datetime.utcnow() - timedelta(minutes=31),
         processing_started=datetime.utcnow() - timedelta(minutes=29),
-        job_status=JOB_STATUS_IN_PROGRESS
+        job_status=JOB_STATUS_IN_PROGRESS,
     )
     with pytest.raises(expected_exception=JobIncompleteError) as e:
         check_job_status()
@@ -251,18 +255,19 @@ def test_check_job_status_task_sets_jobs_to_error(mocker, sample_template, sampl
 
     # job 2 not in celery task
     mock_celery.assert_called_once_with(
-        name=TaskNames.PROCESS_INCOMPLETE_JOBS,
-        args=([str(job.id)],),
-        queue=QueueNames.JOBS
+        name=TaskNames.PROCESS_INCOMPLETE_JOBS, args=([str(job.id)],), queue=QueueNames.JOBS
     )
     assert job.job_status == JOB_STATUS_ERROR
     assert job_2.job_status == JOB_STATUS_IN_PROGRESS
 
 
-@pytest.mark.parametrize("notification_type, expected_delivery_status", [
-    (EMAIL_TYPE, 'delivered'),
-    (SMS_TYPE, 'sending'),
-])
+@pytest.mark.parametrize(
+    'notification_type, expected_delivery_status',
+    [
+        (EMAIL_TYPE, 'delivered'),
+        (SMS_TYPE, 'sending'),
+    ],
+)
 def test_replay_created_notifications(
     mocker, notification_type, expected_delivery_status, sample_template, sample_notification
 ):
@@ -271,35 +276,23 @@ def test_replay_created_notifications(
     template = sample_template(template_type=notification_type)
 
     old_notification = sample_notification(
-        template=template,
-        created_at=datetime.utcnow() - timedelta(seconds=older_than),
-        status='created'
+        template=template, created_at=datetime.utcnow() - timedelta(seconds=older_than), status='created'
     )
 
     sample_notification(
-        template=template,
-        created_at=datetime.utcnow() - timedelta(seconds=older_than),
-        status=expected_delivery_status
+        template=template, created_at=datetime.utcnow() - timedelta(seconds=older_than), status=expected_delivery_status
     )
 
-    sample_notification(
-        template=template,
-        created_at=datetime.utcnow(),
-        status='created'
-    )
+    sample_notification(template=template, created_at=datetime.utcnow(), status='created')
 
-    sample_notification(
-        template=template,
-        created_at=datetime.utcnow(),
-        status='created'
-    )
+    sample_notification(template=template, created_at=datetime.utcnow(), status='created')
 
     mock_sms_sender = mocker.Mock()
     mock_sms_sender.rate_limit = 1
 
     mocker.patch(
         'app.notifications.process_notifications.dao_get_service_sms_sender_by_service_id_and_number',
-        return_value=mock_sms_sender
+        return_value=mock_sms_sender,
     )
 
     replay_created_notifications()
@@ -318,18 +311,20 @@ def test_check_job_status_task_does_not_raise_error(sample_template, sample_job)
         created_at=datetime.utcnow() - timedelta(hours=2),
         scheduled_for=datetime.utcnow() - timedelta(minutes=31),
         processing_started=datetime.utcnow() - timedelta(minutes=31),
-        job_status=JOB_STATUS_FINISHED)
+        job_status=JOB_STATUS_FINISHED,
+    )
     sample_job(
         template,
         notification_count=3,
         created_at=datetime.utcnow() - timedelta(minutes=31),
         processing_started=datetime.utcnow() - timedelta(minutes=31),
-        job_status=JOB_STATUS_FINISHED)
+        job_status=JOB_STATUS_FINISHED,
+    )
 
     check_job_status()
 
 
-@freeze_time("2019-05-30 14:00:00")
+@freeze_time('2019-05-30 14:00:00')
 def test_check_precompiled_letter_state(mocker, sample_template, sample_notification):
     mock_logger = mocker.patch(LOGGER_EXCEPTION_MOCK_PATH)
     mock_create_ticket = mocker.patch(ZENDEKS_CLIENT_CRREATE_TICKET_MOCK_PATH)
@@ -338,39 +333,37 @@ def test_check_precompiled_letter_state(mocker, sample_template, sample_notifica
     sample_notification(
         template=template,
         status=NOTIFICATION_PENDING_VIRUS_CHECK,
-        created_at=datetime.utcnow() - timedelta(seconds=5400)
+        created_at=datetime.utcnow() - timedelta(seconds=5400),
     )
     sample_notification(
-        template=template,
-        status=NOTIFICATION_DELIVERED,
-        created_at=datetime.utcnow() - timedelta(seconds=6000)
+        template=template, status=NOTIFICATION_DELIVERED, created_at=datetime.utcnow() - timedelta(seconds=6000)
     )
     noti_1 = sample_notification(
         template=template,
         status=NOTIFICATION_PENDING_VIRUS_CHECK,
-        created_at=datetime.utcnow() - timedelta(seconds=5401)
+        created_at=datetime.utcnow() - timedelta(seconds=5401),
     )
     noti_2 = sample_notification(
         template=template,
         status=NOTIFICATION_PENDING_VIRUS_CHECK,
-        created_at=datetime.utcnow() - timedelta(seconds=70000)
+        created_at=datetime.utcnow() - timedelta(seconds=70000),
     )
 
     check_precompiled_letter_state()
 
-    message = "2 precompiled letters have been pending-virus-check for over 90 minutes. " \
-              "Notifications: ['{}', '{}']".format(noti_2.id, noti_1.id)
+    message = (
+        '2 precompiled letters have been pending-virus-check for over 90 minutes. '
+        "Notifications: ['{}', '{}']".format(noti_2.id, noti_1.id)
+    )
 
     mock_logger.assert_called_once_with(message)
     mock_create_ticket.assert_called_with(
-        message=message,
-        subject='[test] Letters still pending virus check',
-        ticket_type='incident'
+        message=message, subject='[test] Letters still pending virus check', ticket_type='incident'
     )
 
 
-@freeze_time("2019-05-30 14:00:00")
-@pytest.mark.skip(reason="Letter feature")
+@freeze_time('2019-05-30 14:00:00')
+@pytest.mark.skip(reason='Letter feature')
 def test_check_templated_letter_state_during_bst(mocker, sample_template, sample_notification):
     mock_logger = mocker.patch(LOGGER_EXCEPTION_MOCK_PATH)
     mock_create_ticket = mocker.patch(ZENDEKS_CLIENT_CRREATE_TICKET_MOCK_PATH)
@@ -385,19 +378,19 @@ def test_check_templated_letter_state_during_bst(mocker, sample_template, sample
 
     check_templated_letter_state()
 
-    message = "2 letters were created before 17.30 yesterday and still have 'created' status. " \
-              "Notifications: ['{}', '{}']".format(noti_1.id, noti_2.id)
+    message = (
+        "2 letters were created before 17.30 yesterday and still have 'created' status. "
+        "Notifications: ['{}', '{}']".format(noti_1.id, noti_2.id)
+    )
 
     mock_logger.assert_called_once_with(message)
     mock_create_ticket.assert_called_with(
-        message=message,
-        subject="[test] Letters still in 'created' status",
-        ticket_type='incident'
+        message=message, subject="[test] Letters still in 'created' status", ticket_type='incident'
     )
 
 
-@freeze_time("2019-01-30 14:00:00")
-@pytest.mark.skip(reason="Letter feature")
+@freeze_time('2019-01-30 14:00:00')
+@pytest.mark.skip(reason='Letter feature')
 def test_check_templated_letter_state_during_utc(mocker, sample_template, sample_notification):
     mock_logger = mocker.patch(LOGGER_EXCEPTION_MOCK_PATH)
     mock_create_ticket = mocker.patch(ZENDEKS_CLIENT_CRREATE_TICKET_MOCK_PATH)
@@ -412,14 +405,14 @@ def test_check_templated_letter_state_during_utc(mocker, sample_template, sample
 
     check_templated_letter_state()
 
-    message = "2 letters were created before 17.30 yesterday and still have 'created' status. " \
-              "Notifications: ['{}', '{}']".format(noti_1.id, noti_2.id)
+    message = (
+        "2 letters were created before 17.30 yesterday and still have 'created' status. "
+        "Notifications: ['{}', '{}']".format(noti_1.id, noti_2.id)
+    )
 
     mock_logger.assert_called_once_with(message)
     mock_create_ticket.assert_called_with(
-        message=message,
-        subject="[test] Letters still in 'created' status",
-        ticket_type='incident'
+        message=message, subject="[test] Letters still in 'created' status", ticket_type='incident'
     )
 
 
@@ -432,22 +425,9 @@ def dynamodb_mock():
         # Create a mock DynamoDB table
         table = dynamodb.create_table(
             TableName='TestTable',
-            KeySchema=[
-                {
-                    'AttributeName': 'id',
-                    'KeyType': 'HASH'
-                }
-            ],
-            AttributeDefinitions=[
-                {
-                    'AttributeName': 'id',
-                    'AttributeType': 'S'
-                }
-            ],
-            ProvisionedThroughput={
-                'ReadCapacityUnits': 1,
-                'WriteCapacityUnits': 1
-            }
+            KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+            AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
+            ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
         )
 
         # Wait for table to be created
@@ -477,7 +457,7 @@ def test_get_dynamodb_comp_pen_messages_with_empty_table(dynamodb_mock):
     # Invoke the function with the mocked table and application
     messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=1)
 
-    assert messages == [], "Expected no messages from an empty table"
+    assert messages == [], 'Expected no messages from an empty table'
 
 
 def test_get_dynamodb_comp_pen_messages_with_data(dynamodb_mock, sample_dynamodb_insert):
@@ -496,9 +476,9 @@ def test_get_dynamodb_comp_pen_messages_with_data(dynamodb_mock, sample_dynamodb
     # Invoke the function with the mocked table and application
     messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=message_limit)
 
-    assert len(messages) == message_limit, "Expected same number of messages as inserted"
+    assert len(messages) == message_limit, 'Expected same number of messages as inserted'
     for msg in messages:
-        assert not msg['is_processed'], "Expected messages to not be processed"
+        assert not msg['is_processed'], 'Expected messages to not be processed'
 
 
 def test_send_scheduled_comp_and_pen_sms_does_not_call_send_notification(
@@ -520,10 +500,7 @@ def test_send_scheduled_comp_and_pen_sms_does_not_call_send_notification(
 
 
 def test_send_scheduled_comp_and_pen_sms_calls_send_notification(
-        mocker,
-        dynamodb_mock,
-        sample_service_sms_permission,
-        sample_template
+    mocker, dynamodb_mock, sample_service_sms_permission, sample_template
 ):
     # Set up test data
     dynamo_data = [
@@ -536,10 +513,7 @@ def test_send_scheduled_comp_and_pen_sms_calls_send_notification(
         },
     ]
 
-    recipient_item = {
-        'id_type': IdentifierType.VA_PROFILE_ID.value,
-        'id_value': '123'
-    }
+    recipient_item = {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': '123'}
 
     mocker.patch('app.celery.scheduled_tasks.is_feature_enabled', return_value=True)
 
@@ -549,9 +523,11 @@ def test_send_scheduled_comp_and_pen_sms_calls_send_notification(
 
     # Mock the various functions called
     mock_get_dynamodb_messages = mocker.patch(
-        'app.celery.scheduled_tasks._get_dynamodb_comp_pen_messages', return_value=dynamo_data)
+        'app.celery.scheduled_tasks._get_dynamodb_comp_pen_messages', return_value=dynamo_data
+    )
     mock_fetch_service = mocker.patch(
-        'app.celery.scheduled_tasks.dao_fetch_service_by_id', return_value=sample_service_sms_permission)
+        'app.celery.scheduled_tasks.dao_fetch_service_by_id', return_value=sample_service_sms_permission
+    )
     template = sample_template()
     mock_get_template = mocker.patch('app.celery.scheduled_tasks.dao_get_template_by_id', return_value=template)
 

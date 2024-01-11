@@ -5,7 +5,6 @@ Revises: 0305f_sending_domain_for_service
 Create Date: 2019-12-05 17:08:21.019759
 
 """
-import sqlalchemy as sa
 from alembic import op
 
 revision = '0305g_remove_letter_branding'

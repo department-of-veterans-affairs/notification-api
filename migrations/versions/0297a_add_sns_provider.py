@@ -6,7 +6,6 @@ Create Date: 2019-07-09 08:49:20.630174
 
 """
 from alembic import op
-import sqlalchemy as sa
 import uuid
 
 revision = '0297a_add_sns_provider'

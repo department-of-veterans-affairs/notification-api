@@ -33,7 +33,7 @@ sql = """
         UPDATE {}
         SET content = '{}', updated_at = now()
         WHERE id='{}'
-        """;
+        """
 
 def upgrade():
     op.execute(sql.format('templates', content, templates[0]['id']))

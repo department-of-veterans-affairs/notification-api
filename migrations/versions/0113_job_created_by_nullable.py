@@ -11,8 +11,6 @@ revision = '0113_job_created_by_nullable'
 down_revision = '0112_add_start_end_dates'
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 def upgrade():
     op.alter_column('jobs', 'created_by_id', nullable=True)

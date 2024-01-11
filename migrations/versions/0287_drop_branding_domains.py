@@ -7,7 +7,6 @@ Create Date: 2019-04-05 16:25:11.535816
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision = '0287_drop_branding_domains'
 down_revision = '0286_add_unique_email_name'

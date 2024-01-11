@@ -12,7 +12,7 @@ from tests.app.db import (
     ses_complaint_callback_malformed_message_id,
     ses_complaint_callback_with_missing_complaint_type,
     ses_complaint_callback,
-    create_notification_history
+    create_notification_history,
 )
 
 
@@ -34,7 +34,6 @@ def test_process_ses_results_in_complaint(
     notify_db_session,
     sample_notification,
 ):
-
     ref = str(uuid4())
     notification = sample_notification(gen_type=EMAIL_TYPE, reference=ref)
     complaint = ses_complaint_callback()['Message'].replace('ref1', ref)
@@ -61,7 +60,6 @@ def test_process_ses_results_in_complaint_if_notification_history_does_not_exist
     notify_db_session,
     sample_notification,
 ):
-
     ref = str(uuid4())
     notification = sample_notification(gen_type=EMAIL_TYPE, reference=ref)
     complaint = ses_complaint_callback()['Message'].replace('ref1', ref)
@@ -77,7 +75,6 @@ def test_process_ses_results_in_complaint_if_notification_does_not_exist(
     notify_db_session,
     sample_template,
 ):
-
     ref = str(uuid4())
     notification = create_notification_history(template=sample_template(template_type=EMAIL_TYPE), reference=ref)
     complaint = ses_complaint_callback()['Message'].replace('ref1', ref)
@@ -98,7 +95,6 @@ def test_process_ses_results_in_complaint_save_complaint_with_null_complaint_typ
     notify_db_session,
     sample_notification,
 ):
-
     ref = str(uuid4())
     notification = sample_notification(gen_type=EMAIL_TYPE, reference=ref)
     complaint = ses_complaint_callback_with_missing_complaint_type()['Message'].replace('ref1', ref)
@@ -115,7 +111,6 @@ def test_process_ses_smtp_results_in_complaint(
     notify_db_session,
     sample_notification,
 ):
-
     ref = str(uuid4())
     notification = sample_notification(gen_type=EMAIL_TYPE, reference=ref)
     complaint = ses_complaint_callback()['Message'].replace('ref1', ref)
@@ -135,7 +130,6 @@ def test_handle_smtp_complaint_does_not_raise_exception_if_reference_is_missing(
 def test_handle_smtp_complaint_does_raise_exception_if_notification_not_found(
     notify_api,
 ):
-
     ref = str(uuid4())
     complaint = ses_complaint_callback()['Message'].replace('ref1', ref)
     response = json.loads(complaint)
@@ -147,7 +141,6 @@ def test_process_ses_smtp_results_in_complaint_if_notification_history_does_not_
     notify_db_session,
     sample_notification,
 ):
-
     ref = str(uuid4())
     notification = sample_notification(gen_type=EMAIL_TYPE, reference=ref)
     complaint = ses_complaint_callback()['Message'].replace('ref1', ref)
@@ -163,7 +156,6 @@ def test_process_ses_smtp_results_in_complaint_if_notification_does_not_exist(
     notify_db_session,
     sample_template,
 ):
-
     ref = str(uuid4())
     complaint = ses_complaint_callback()['Message'].replace('ref1', ref)
     notification = create_notification_history(template=sample_template(template_type=EMAIL_TYPE), reference=ref)
@@ -184,7 +176,6 @@ def test_process_smtp_results_in_complaint_save_complaint_with_null_complaint_ty
     notify_db_session,
     sample_notification,
 ):
-
     ref = str(uuid4())
     notification = sample_notification(gen_type=EMAIL_TYPE, reference=ref)
     complaint = ses_complaint_callback_with_missing_complaint_type()['Message'].replace('ref1', ref)

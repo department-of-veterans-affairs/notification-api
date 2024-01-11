@@ -11,7 +11,6 @@ revision = '0024_add_research_mode_defaults'
 down_revision = '0023_add_research_mode'
 
 from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

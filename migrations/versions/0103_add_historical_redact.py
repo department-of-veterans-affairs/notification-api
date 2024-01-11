@@ -11,8 +11,6 @@ revision = '0103_add_historical_redact'
 down_revision = 'db6d9d9f06bc'
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 from flask import current_app
 
 def upgrade():

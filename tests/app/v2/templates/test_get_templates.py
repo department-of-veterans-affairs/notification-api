@@ -25,8 +25,7 @@ def test_get_all_templates_returns_200(
 
     auth_header = create_authorization_header(api_key)
 
-    response = client.get(path='/v2/templates',
-                          headers=[('Content-Type', 'application/json'), auth_header])
+    response = client.get(path='/v2/templates', headers=[('Content-Type', 'application/json'), auth_header])
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -43,7 +42,7 @@ def test_get_all_templates_returns_200(
             assert template['subject'] == templates[index].subject
 
 
-@pytest.mark.parametrize("tmp_type", TEMPLATE_TYPES)
+@pytest.mark.parametrize('tmp_type', TEMPLATE_TYPES)
 def test_get_all_templates_for_valid_type_returns_200(
     client,
     sample_api_key,
@@ -51,22 +50,22 @@ def test_get_all_templates_for_valid_type_returns_200(
     sample_template,
     tmp_type,
 ):
-
     api_key = sample_api_key()
     templates = [
         sample_template(
             service=api_key.service,
             template_type=tmp_type,
             name=f'Template {i}_{uuid4()}',
-            subject='subject_{}'.format(i) if tmp_type == EMAIL_TYPE else ''
+            subject='subject_{}'.format(i) if tmp_type == EMAIL_TYPE else '',
         )
         for i in range(3)
     ]
 
     auth_header = create_authorization_header(api_key)
 
-    response = client.get(path='/v2/templates?type={}'.format(tmp_type),
-                          headers=[('Content-Type', 'application/json'), auth_header])
+    response = client.get(
+        path='/v2/templates?type={}'.format(tmp_type), headers=[('Content-Type', 'application/json'), auth_header]
+    )
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -83,7 +82,7 @@ def test_get_all_templates_for_valid_type_returns_200(
             assert template['subject'] == templates[index].subject
 
 
-@pytest.mark.parametrize("tmp_type", TEMPLATE_TYPES)
+@pytest.mark.parametrize('tmp_type', TEMPLATE_TYPES)
 def test_get_correct_num_templates_for_valid_type_returns_200(
     client,
     sample_api_key,
@@ -103,8 +102,9 @@ def test_get_correct_num_templates_for_valid_type_returns_200(
 
     auth_header = create_authorization_header(api_key)
 
-    response = client.get(path='/v2/templates?type={}'.format(tmp_type),
-                          headers=[('Content-Type', 'application/json'), auth_header])
+    response = client.get(
+        path='/v2/templates?type={}'.format(tmp_type), headers=[('Content-Type', 'application/json'), auth_header]
+    )
 
     assert response.status_code == 200
 
@@ -121,8 +121,9 @@ def test_get_all_templates_for_invalid_type_returns_400(
 
     invalid_type = 'coconut'
 
-    response = client.get(path='/v2/templates?type={}'.format(invalid_type),
-                          headers=[('Content-Type', 'application/json'), auth_header])
+    response = client.get(
+        path='/v2/templates?type={}'.format(invalid_type), headers=[('Content-Type', 'application/json'), auth_header]
+    )
 
     assert response.status_code == 400
     assert response.headers['Content-type'] == 'application/json'
@@ -131,10 +132,5 @@ def test_get_all_templates_for_invalid_type_returns_400(
 
     assert json_response == {
         'status_code': 400,
-        'errors': [
-            {
-                'message': 'type coconut is not one of [sms, email, letter]',
-                'error': 'ValidationError'
-            }
-        ]
+        'errors': [{'message': 'type coconut is not one of [sms, email, letter]', 'error': 'ValidationError'}],
     }

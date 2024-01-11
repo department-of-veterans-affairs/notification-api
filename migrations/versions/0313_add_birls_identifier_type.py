@@ -7,7 +7,6 @@ Create Date: 2020-12-08 09:09:09.093272
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision = '0313_add_birls_identifier_type'
 down_revision = '0312_recipient_identifiers_table'

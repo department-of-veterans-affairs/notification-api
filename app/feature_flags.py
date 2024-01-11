@@ -2,9 +2,7 @@ from enum import Enum
 import os
 
 
-PROVIDER_FEATURE_FLAGS = {
-    'govdelivery': 'GOVDELIVERY_EMAIL_CLIENT_ENABLED'
-}
+PROVIDER_FEATURE_FLAGS = {'govdelivery': 'GOVDELIVERY_EMAIL_CLIENT_ENABLED'}
 
 
 class FeatureFlag(Enum):

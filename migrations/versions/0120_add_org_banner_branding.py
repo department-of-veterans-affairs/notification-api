@@ -6,8 +6,6 @@ Create Date: 2017-09-18 14:18:49.087143
 
 """
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision = '0120_add_org_banner_branding'
 down_revision = '0119_add_email_reply_to'

@@ -6,7 +6,6 @@ Create Date: 2021-07-15
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 revision = '0332a_bearer_token_nullable'
 down_revision = '0332_service_callback_channel'

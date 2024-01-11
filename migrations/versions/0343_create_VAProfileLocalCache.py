@@ -6,7 +6,6 @@ Create Date: 2022-04-06 21:54:43.488085
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision = '0343_create_VAProfileLocalCache'
 down_revision = '0342_add_reply_to_field'

@@ -6,7 +6,6 @@ Create Date: 2017-10-17 16:47:37.826333
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 revision = '0127_remove_unique_constraint'
 down_revision = '0126_add_annual_billing'

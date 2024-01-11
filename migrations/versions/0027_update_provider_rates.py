@@ -11,7 +11,6 @@ revision = '0027_update_provider_rates'
 down_revision = '0026_rename_notify_service'
 
 from alembic import op
-import sqlalchemy as sa
 from datetime import datetime
 import uuid
 

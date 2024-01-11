@@ -8,9 +8,7 @@ Create Date: 2021-07-15
 import json
 
 from alembic import op
-import sqlalchemy as sa
 from sqlalchemy import text
-from sqlalchemy.dialects.postgresql import JSONB
 
 from app.models import NOTIFICATION_STATUS_TYPES_COMPLETED
 
@@ -21,7 +19,7 @@ down_revision = '0331a_notification_statuses'
 def upgrade():
     op.drop_constraint('ck_statuses_not_null_if_delivery_status', 'service_callback')
 
-    op.execute(f"""
+    op.execute("""
             UPDATE service_callback
             SET notification_statuses = NULL 
             WHERE callback_type != 'delivery_status'

@@ -6,7 +6,6 @@ Create Date: 2018-09-28 15:39:21.115358
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = '0235_add_postage_to_pk'

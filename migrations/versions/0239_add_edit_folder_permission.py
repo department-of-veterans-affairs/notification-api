@@ -6,7 +6,6 @@ Create Date: 2018-09-03 11:24:58.773824
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = '0239_add_edit_folder_permission'

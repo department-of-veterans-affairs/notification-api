@@ -6,10 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
 from app import DATETIME_FORMAT
 from app.db import db
-from app.encryption import (
-    hashpw,
-    check_hash
-)
+from app.encryption import hashpw, check_hash
 from .identity_provider_identifier import IdentityProviderIdentifier
 
 
@@ -29,53 +26,39 @@ class User(db.Model):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = db.Column(db.String, nullable=False, index=True, unique=False)
     email_address = db.Column(db.String(255), nullable=False, index=True, unique=True)
-    created_at = db.Column(
-        db.DateTime,
-        index=False,
-        unique=False,
-        nullable=False,
-        default=datetime.datetime.utcnow)
-    updated_at = db.Column(
-        db.DateTime,
-        index=False,
-        unique=False,
-        nullable=True,
-        onupdate=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, index=False, unique=False, nullable=False, default=datetime.datetime.utcnow)
+    updated_at = db.Column(db.DateTime, index=False, unique=False, nullable=True, onupdate=datetime.datetime.utcnow)
     _password = db.Column(db.String, index=False, unique=False, nullable=True)
     mobile_number = db.Column(db.String, index=False, unique=False, nullable=True)
-    password_changed_at = db.Column(db.DateTime, index=False, unique=False, nullable=True,
-                                    default=datetime.datetime.utcnow)
+    password_changed_at = db.Column(
+        db.DateTime, index=False, unique=False, nullable=True, default=datetime.datetime.utcnow
+    )
     logged_in_at = db.Column(db.DateTime, nullable=True)
     failed_login_count = db.Column(db.Integer, nullable=False, default=0)
     state = db.Column(db.String, nullable=False, default='pending')
     platform_admin = db.Column(db.Boolean, nullable=False, default=False)
     current_session_id = db.Column(UUID(as_uuid=True), nullable=True)
     auth_type = db.Column(
-        db.String, db.ForeignKey('auth_type.name'), index=True, nullable=True, default=EMAIL_AUTH_TYPE)
+        db.String, db.ForeignKey('auth_type.name'), index=True, nullable=True, default=EMAIL_AUTH_TYPE
+    )
     blocked = db.Column(db.Boolean, nullable=False, default=False)
     additional_information = db.Column(JSONB(none_as_null=True), nullable=True, default={})
-    _identity_provider_user_id = db.Column("identity_provider_user_id", db.String,
-                                           index=True, unique=True, nullable=True)
+    _identity_provider_user_id = db.Column(
+        'identity_provider_user_id', db.String, index=True, unique=True, nullable=True
+    )
     idp_ids = db.relationship('IdentityProviderIdentifier', cascade='all, delete-orphan')
 
     # a mobile number must be provided if using sms auth
     CheckConstraint(
-        sqltext="auth_type != 'sms_auth' or mobile_number is not null",
-        name='ck_users_mobile_number_if_sms_auth'
+        sqltext="auth_type != 'sms_auth' or mobile_number is not null", name='ck_users_mobile_number_if_sms_auth'
     )
 
-    services = db.relationship(
-        'Service',
-        secondary='user_to_service',
-        backref='users')
-    organisations = db.relationship(
-        'Organisation',
-        secondary='user_to_organisation',
-        backref='users')
+    services = db.relationship('Service', secondary='user_to_service', backref='users')
+    organisations = db.relationship('Organisation', secondary='user_to_organisation', backref='users')
 
     @property
     def password(self):
-        raise AttributeError("Password not readable")
+        raise AttributeError('Password not readable')
 
     @password.setter
     def password(self, password):
@@ -93,11 +76,10 @@ class User(db.Model):
 
     @classmethod
     def find_by_idp(cls, idp_name: str, idp_id: str) -> 'User':
-        stmt = select(cls).join(
-            cls.idp_ids
-        ).where(
-            IdentityProviderIdentifier.idp_name == idp_name,
-            IdentityProviderIdentifier.idp_id == str(idp_id)
+        stmt = (
+            select(cls)
+            .join(cls.idp_ids)
+            .where(IdentityProviderIdentifier.idp_name == idp_name, IdentityProviderIdentifier.idp_id == str(idp_id))
         )
 
         return db.session.scalars(stmt).one()
@@ -108,7 +90,7 @@ class User(db.Model):
 
     def add_idp(self, idp_name: str, idp_id: str) -> None:
         if not idp_name or not idp_id:
-            raise ValueError("Must provide IDP name and id")
+            raise ValueError('Must provide IDP name and id')
         self.idp_ids.append(IdentityProviderIdentifier(self.id, idp_name, str(idp_id)))
 
     def check_password(self, password):
@@ -121,9 +103,7 @@ class User(db.Model):
         from app.dao.permissions_dao import permission_dao
 
         if service_id:
-            return [
-                x.permission for x in permission_dao.get_permissions_by_user_id_and_service_id(self.id, service_id)
-            ]
+            return [x.permission for x in permission_dao.get_permissions_by_user_id_and_service_id(self.id, service_id)]
 
         retval = {}
         for x in permission_dao.get_permissions_by_user_id(self.id):
@@ -145,9 +125,7 @@ class User(db.Model):
             'mobile_number': self.mobile_number,
             'organisations': [x.id for x in self.organisations if x.active],
             'password_changed_at': (
-                self.password_changed_at.strftime('%Y-%m-%d %H:%M:%S.%f')
-                if self.password_changed_at
-                else None
+                self.password_changed_at.strftime('%Y-%m-%d %H:%M:%S.%f') if self.password_changed_at else None
             ),
             'permissions': self.get_permissions(),
             'platform_admin': self.platform_admin,
@@ -155,7 +133,7 @@ class User(db.Model):
             'state': self.state,
             'blocked': self.blocked,
             'additional_information': self.additional_information,
-            'identity_provider_user_id': self.identity_provider_user_id
+            'identity_provider_user_id': self.identity_provider_user_id,
         }
 
     def serialize_for_users_list(self):
@@ -169,9 +147,4 @@ class User(db.Model):
     def serialize_for_user_services(self):
         services = [service.serialize_for_user() for service in self.services if service.active]
 
-        return {
-            'id': str(self.id),
-            'name': self.name,
-            'email_address': self.email_address,
-            'services': services
-        }
+        return {'id': str(self.id), 'name': self.name, 'email_address': self.email_address, 'services': services}

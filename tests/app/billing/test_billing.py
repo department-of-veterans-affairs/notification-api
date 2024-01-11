@@ -37,7 +37,7 @@ def test_create_update_free_sms_fragment_limit_invalid_schema(client, sample_ser
     response = client.post(
         f'service/{service.id}/billing/free-sms-fragment-limit',
         data={},
-        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()]
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
     )
 
     assert response.status_code == 400
@@ -55,7 +55,7 @@ def test_create_free_sms_fragment_limit_current_year_updates_future_years(
         'billing.create_or_update_free_sms_fragment_limit',
         service_id=service.id,
         _data={'free_sms_fragment_limit': 9999},
-        _expected_status=201
+        _expected_status=201,
     )
 
     current_billing = dao_get_free_sms_fragment_limit_for_year(service.id, current_year)
@@ -86,10 +86,7 @@ def test_create_or_update_free_sms_fragment_limit_past_year_doenst_update_other_
     }
 
     admin_request.post(
-        'billing.create_or_update_free_sms_fragment_limit',
-        service_id=service.id,
-        _data=data,
-        _expected_status=201
+        'billing.create_or_update_free_sms_fragment_limit', service_id=service.id, _data=data, _expected_status=201
     )
 
     assert dao_get_free_sms_fragment_limit_for_year(service.id, current_year - 1).free_sms_fragment_limit == 9999
@@ -105,7 +102,7 @@ def test_create_free_sms_fragment_limit_updates_existing_year(admin_request, sam
         'billing.create_or_update_free_sms_fragment_limit',
         service_id=service.id,
         _data={'financial_year_start': current_year, 'free_sms_fragment_limit': 2},
-        _expected_status=201
+        _expected_status=201,
     )
 
     assert annual_billing.free_sms_fragment_limit == 2
@@ -118,7 +115,7 @@ def test_get_free_sms_fragment_limit_current_year_creates_new_row(client, notify
 
     response_get = client.get(
         'service/{}/billing/free-sms-fragment-limit'.format(service.id),
-        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()]
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
     )
 
     assert response_get.status_code == 200
@@ -142,9 +139,8 @@ def test_get_free_sms_fragment_limit_past_year_not_exist(client, notify_db_sessi
     assert annual_billing is None
 
     res_get = client.get(
-        'service/{}/billing/free-sms-fragment-limit?financial_year_start={}'
-        .format(service.id, current_year - 2),
-        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()]
+        'service/{}/billing/free-sms-fragment-limit?financial_year_start={}'.format(service.id, current_year - 2),
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
     )
 
     assert res_get.status_code == 200
@@ -168,9 +164,9 @@ def test_get_free_sms_fragment_limit_future_year_not_exist(client, sample_servic
     assert annual_billing is None
 
     res_get = client.get(
-        'service/{}/billing/free-sms-fragment-limit?financial_year_start={}'
-        .format(service.id, current_year + 2),
-        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()])
+        'service/{}/billing/free-sms-fragment-limit?financial_year_start={}'.format(service.id, current_year + 2),
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
+    )
 
     assert res_get.status_code == 200
     json_resp = res_get.get_json()
@@ -196,8 +192,8 @@ def test_get_yearly_usage_by_monthly_from_ft_billing_populates_deltas(
     assert sms_template.template_type == SMS_TYPE
     create_rate(start_date=datetime.utcnow() - timedelta(days=1), value=0.158, notification_type=SMS_TYPE)
 
-    notification = sample_notification(template=sms_template, status="delivered")
-    assert notification.status == "delivered"
+    notification = sample_notification(template=sms_template, status='delivered')
+    assert notification.status == 'delivered'
 
     stmt = select(FactBilling).where(FactBilling.service_id == service.id)
     assert len(notify_db_session.session.execute(stmt).all()) == 0
@@ -206,7 +202,7 @@ def test_get_yearly_usage_by_monthly_from_ft_billing_populates_deltas(
     # But it's a GET request?
     response = client.get(
         f'service/{service.id}/billing/ft-monthly-usage?year=2018',
-        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()]
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
     )
 
     assert response.status_code == 200
@@ -243,7 +239,7 @@ def test_get_yearly_usage_by_monthly_from_ft_billing(notify_db_session, client, 
                 template=sms_template,
                 notification_type=SMS_TYPE,
                 billable_unit=1,
-                rate=0.162
+                rate=0.162,
             )
             created_fact_billings.append(ft)
 
@@ -252,7 +248,7 @@ def test_get_yearly_usage_by_monthly_from_ft_billing(notify_db_session, client, 
                 service=service,
                 template=email_template,
                 notification_type=EMAIL_TYPE,
-                rate=0
+                rate=0,
             )
             created_fact_billings.append(ft)
 
@@ -263,13 +259,13 @@ def test_get_yearly_usage_by_monthly_from_ft_billing(notify_db_session, client, 
                 notification_type=LETTER_TYPE,
                 billable_unit=1,
                 rate=0.33,
-                postage='second'
+                postage='second',
             )
             created_fact_billings.append(ft)
 
     response = client.get(
         f'service/{service.id}/billing/ft-monthly-usage?year=2016',
-        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()]
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
     )
 
     json_resp = response.get_json()
@@ -279,19 +275,19 @@ def test_get_yearly_usage_by_monthly_from_ft_billing(notify_db_session, client, 
     keys = [x.keys() for x in ft_sms][0]
 
     expected_sms_april = {
-        "month": "April",
-        "notification_type": SMS_TYPE,
-        "billing_units": 30,
-        "rate": 0.162,
-        "postage": "none",
+        'month': 'April',
+        'notification_type': SMS_TYPE,
+        'billing_units': 30,
+        'rate': 0.162,
+        'postage': 'none',
     }
 
     expected_letter_april = {
-        "month": "April",
-        "notification_type": LETTER_TYPE,
-        "billing_units": 30,
-        "rate": 0.33,
-        "postage": "second",
+        'month': 'April',
+        'notification_type': LETTER_TYPE,
+        'billing_units': 30,
+        'rate': 0.33,
+        'postage': 'second',
     }
 
     try:
@@ -310,24 +306,19 @@ def test_get_yearly_billing_usage_summary_from_ft_billing_returns_400_if_missing
     service = sample_service()
 
     response = client.get(
-        f'/service/{service.id}/billing/ft-yearly-usage-summary',
-        headers=[create_admin_authorization_header()]
+        f'/service/{service.id}/billing/ft-yearly-usage-summary', headers=[create_admin_authorization_header()]
     )
 
     assert response.status_code == 400
-    assert response.get_json() == {
-        'message': 'No valid year provided', 'result': 'error'
-    }
+    assert response.get_json() == {'message': 'No valid year provided', 'result': 'error'}
 
 
-def test_get_yearly_billing_usage_summary_from_ft_billing_returns_empty_list_if_no_billing_data(
-        client, sample_service
-):
+def test_get_yearly_billing_usage_summary_from_ft_billing_returns_empty_list_if_no_billing_data(client, sample_service):
     service = sample_service()
 
     response = client.get(
         f'/service/{service.id}/billing/ft-yearly-usage-summary?year=2016',
-        headers=[create_admin_authorization_header()]
+        headers=[create_admin_authorization_header()],
     )
 
     assert response.status_code == 200
@@ -353,7 +344,7 @@ def test_get_yearly_billing_usage_summary_from_ft_billing(notify_db_session, cli
                 service=service,
                 template=sms_template,
                 notification_type=SMS_TYPE,
-                rate=0.0162
+                rate=0.0162,
             )
             created_fact_billings.append(ft)
 
@@ -363,7 +354,7 @@ def test_get_yearly_billing_usage_summary_from_ft_billing(notify_db_session, cli
                 template=sms_template,
                 notification_type=SMS_TYPE,
                 rate_multiplier=2,
-                rate=0.0162
+                rate=0.0162,
             )
             created_fact_billings.append(ft)
 
@@ -373,7 +364,7 @@ def test_get_yearly_billing_usage_summary_from_ft_billing(notify_db_session, cli
                 template=email_template,
                 notification_type=EMAIL_TYPE,
                 billable_unit=0,
-                rate=0
+                rate=0,
             )
             created_fact_billings.append(ft)
 
@@ -383,7 +374,7 @@ def test_get_yearly_billing_usage_summary_from_ft_billing(notify_db_session, cli
                 template=letter_template,
                 notification_type=LETTER_TYPE,
                 rate=0.33,
-                postage='second'
+                postage='second',
             )
             created_fact_billings.append(ft)
 
@@ -391,7 +382,7 @@ def test_get_yearly_billing_usage_summary_from_ft_billing(notify_db_session, cli
 
     response = client.get(
         f'/service/{service.id}/billing/ft-yearly-usage-summary?year=2016',
-        headers=[create_admin_authorization_header()]
+        headers=[create_admin_authorization_header()],
     )
 
     try:
@@ -424,7 +415,7 @@ def test_get_yearly_usage_by_monthly_from_ft_billing_all_cases(
 
     response = client.get(
         f'service/{service.id}/billing/ft-monthly-usage?year=2018',
-        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()]
+        headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
     )
 
     try:
@@ -474,7 +465,7 @@ def test_get_yearly_billing_usage_summary_from_ft_billing_all_cases(
 
     response = client.get(
         f'/service/{service.id}/billing/ft-yearly-usage-summary?year=2018',
-        headers=[create_admin_authorization_header()]
+        headers=[create_admin_authorization_header()],
     )
 
     try:
@@ -482,35 +473,35 @@ def test_get_yearly_billing_usage_summary_from_ft_billing_all_cases(
         json_response = response.get_json()
 
         assert len(json_response) == 6
-        assert json_response[0]["notification_type"] == EMAIL_TYPE
-        assert json_response[0]["billing_units"] == 1
-        assert json_response[0]["rate"] == 0
-        assert json_response[0]["letter_total"] == 0
+        assert json_response[0]['notification_type'] == EMAIL_TYPE
+        assert json_response[0]['billing_units'] == 1
+        assert json_response[0]['rate'] == 0
+        assert json_response[0]['letter_total'] == 0
 
-        assert json_response[1]["notification_type"] == LETTER_TYPE
-        assert json_response[1]["billing_units"] == 1
-        assert json_response[1]["rate"] == 0.33
-        assert json_response[1]["letter_total"] == 0.33
+        assert json_response[1]['notification_type'] == LETTER_TYPE
+        assert json_response[1]['billing_units'] == 1
+        assert json_response[1]['rate'] == 0.33
+        assert json_response[1]['letter_total'] == 0.33
 
-        assert json_response[2]["notification_type"] == LETTER_TYPE
-        assert json_response[2]["billing_units"] == 1
-        assert json_response[2]["rate"] == 0.36
-        assert json_response[2]["letter_total"] == 0.36
+        assert json_response[2]['notification_type'] == LETTER_TYPE
+        assert json_response[2]['billing_units'] == 1
+        assert json_response[2]['rate'] == 0.36
+        assert json_response[2]['letter_total'] == 0.36
 
-        assert json_response[3]["notification_type"] == LETTER_TYPE
-        assert json_response[3]["billing_units"] == 1
-        assert json_response[3]["rate"] == 0.39
-        assert json_response[3]["letter_total"] == 0.39
+        assert json_response[3]['notification_type'] == LETTER_TYPE
+        assert json_response[3]['billing_units'] == 1
+        assert json_response[3]['rate'] == 0.39
+        assert json_response[3]['letter_total'] == 0.39
 
-        assert json_response[4]["notification_type"] == SMS_TYPE
-        assert json_response[4]["billing_units"] == 4
-        assert json_response[4]["rate"] == 0.0150
-        assert json_response[4]["letter_total"] == 0
+        assert json_response[4]['notification_type'] == SMS_TYPE
+        assert json_response[4]['billing_units'] == 4
+        assert json_response[4]['rate'] == 0.0150
+        assert json_response[4]['letter_total'] == 0
 
-        assert json_response[5]["notification_type"] == SMS_TYPE
-        assert json_response[5]["billing_units"] == 5
-        assert json_response[5]["rate"] == 0.162
-        assert json_response[5]["letter_total"] == 0
+        assert json_response[5]['notification_type'] == SMS_TYPE
+        assert json_response[5]['billing_units'] == 5
+        assert json_response[5]['rate'] == 0.162
+        assert json_response[5]['letter_total'] == 0
     finally:
         # Test clean-up
         for fb in created_fact_billings:
@@ -538,7 +529,7 @@ def set_up_data_for_all_cases(sample_service, sample_template) -> Tuple[Service,
         international=False,
         rate=0.162,
         billable_unit=1,
-        notifications_sent=1
+        notifications_sent=1,
     )
     created_fact_billings.append(ft)
 
@@ -551,7 +542,7 @@ def set_up_data_for_all_cases(sample_service, sample_template) -> Tuple[Service,
         international=False,
         rate=0.162,
         billable_unit=2,
-        notifications_sent=1
+        notifications_sent=1,
     )
     created_fact_billings.append(ft)
 
@@ -564,7 +555,7 @@ def set_up_data_for_all_cases(sample_service, sample_template) -> Tuple[Service,
         international=False,
         rate=0.0150,
         billable_unit=2,
-        notifications_sent=1
+        notifications_sent=1,
     )
     created_fact_billings.append(ft)
 
@@ -577,7 +568,7 @@ def set_up_data_for_all_cases(sample_service, sample_template) -> Tuple[Service,
         international=False,
         rate=0,
         billable_unit=0,
-        notifications_sent=1
+        notifications_sent=1,
     )
     created_fact_billings.append(ft)
 
@@ -591,7 +582,7 @@ def set_up_data_for_all_cases(sample_service, sample_template) -> Tuple[Service,
         rate=0.33,
         billable_unit=1,
         notifications_sent=1,
-        postage='second'
+        postage='second',
     )
     created_fact_billings.append(ft)
 
@@ -605,7 +596,7 @@ def set_up_data_for_all_cases(sample_service, sample_template) -> Tuple[Service,
         rate=0.36,
         billable_unit=2,
         notifications_sent=1,
-        postage='second'
+        postage='second',
     )
     created_fact_billings.append(ft)
 
@@ -619,7 +610,7 @@ def set_up_data_for_all_cases(sample_service, sample_template) -> Tuple[Service,
         rate=0.39,
         billable_unit=3,
         notifications_sent=1,
-        postage='first'
+        postage='first',
     )
     created_fact_billings.append(ft)
 

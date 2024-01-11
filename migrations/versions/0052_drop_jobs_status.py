@@ -12,7 +12,6 @@ down_revision = '0051_set_job_status'
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 
 def upgrade():

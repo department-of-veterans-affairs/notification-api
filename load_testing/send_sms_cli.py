@@ -5,11 +5,8 @@ from notifications_python_client.notifications import NotificationsAPIClient
 
 def read_from_ssm(key: str) -> str:
     boto_client = boto3.client('ssm')
-    resp = boto_client.get_parameter(
-        Name=f"/utility/locust/perf/{key}",
-        WithDecryption=True
-    )
-    return resp["Parameter"]["Value"]
+    resp = boto_client.get_parameter(Name=f'/utility/locust/perf/{key}', WithDecryption=True)
+    return resp['Parameter']['Value']
 
 
 @click.command()
@@ -25,9 +22,7 @@ def send_sms(count, phone):
     notifications_client = NotificationsAPIClient(api_key, base_url='https://perf.api.notifications.va.gov')
     for x in range(count):
         response = notifications_client.send_sms_notification(
-            phone_number=phone,
-            template_id=sms_template_id,
-            sms_sender_id=sms_sender_id
+            phone_number=phone, template_id=sms_template_id, sms_sender_id=sms_sender_id
         )
         print(f'Sent sms with id: {response["id"]}')
 

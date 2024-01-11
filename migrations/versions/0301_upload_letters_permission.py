@@ -6,7 +6,6 @@ Create Date: 2019-08-05 10:49:27.467361
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = '0301_upload_letters_permission'

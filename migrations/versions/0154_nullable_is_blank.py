@@ -6,7 +6,6 @@ Create Date: 2018-01-05 15:49:36.522210
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = '0154_nullable_is_blank'

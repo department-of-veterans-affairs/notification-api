@@ -11,8 +11,6 @@ revision = '0301a_merge_heads'
 down_revision = ('0300e_account_change_email', '0301_upload_letters_permission')
 branch_labels = None
 
-from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

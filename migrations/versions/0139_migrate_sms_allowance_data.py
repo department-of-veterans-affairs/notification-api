@@ -7,7 +7,6 @@ Create Date: 2017-11-10 21:42:59.715203
 """
 from datetime import datetime
 from alembic import op
-import uuid
 from app.dao.date_util import get_current_financial_year_start_year
 
 

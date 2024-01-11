@@ -13,7 +13,6 @@ revision = '0028_fix_reg_template_history'
 down_revision = '0027_update_provider_rates'
 
 from alembic import op
-import sqlalchemy as sa
 
 service_id = 'd6aa2c68-a2d9-4437-ab19-3ae8eb202553'
 user_id= '6af522d0-2915-4e52-83a3-3690455a5fe6'

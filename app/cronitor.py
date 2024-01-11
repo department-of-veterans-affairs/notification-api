@@ -12,9 +12,7 @@ def cronitor(task_name):
 
             task_slug = current_app.config['CRONITOR_KEYS'].get(task_name)
             if not task_slug:
-                current_app.logger.error(
-                    'Cronitor enabled but task_name %s not found in environment', task_name
-                )
+                current_app.logger.error('Cronitor enabled but task_name %s not found in environment', task_name)
                 return
 
             if command not in {'run', 'complete', 'fail'}:
@@ -27,7 +25,7 @@ def cronitor(task_name):
                     params={
                         'host': current_app.config['API_HOST_NAME'],
                     },
-                    timeout=(3.05, 1)
+                    timeout=(3.05, 1),
                 )
                 resp.raise_for_status()
             except requests.RequestException as e:
@@ -48,4 +46,5 @@ def cronitor(task_name):
                 ping_cronitor(status)
 
         return inner_decorator
+
     return decorator

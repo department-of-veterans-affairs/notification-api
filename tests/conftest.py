@@ -49,7 +49,7 @@ def pytest_sessionstart(session):
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
     ALEMBIC_CONFIG = os.path.join(BASE_DIR, 'migrations')
     config = Config(ALEMBIC_CONFIG + '/alembic.ini')
-    config.set_main_option("script_location", ALEMBIC_CONFIG)
+    config.set_main_option('script_location', ALEMBIC_CONFIG)
 
     with application.app_context():
         upgrade(config, 'head')
@@ -77,10 +77,7 @@ def create_test_db(database_uri):
     postgres_db_uri = '/'.join(db_uri_parts[:-1] + ['postgres'])
 
     postgres_db = sqlalchemy.create_engine(
-        postgres_db_uri,
-        echo=False,
-        isolation_level='AUTOCOMMIT',
-        client_encoding='utf8'
+        postgres_db_uri, echo=False, isolation_level='AUTOCOMMIT', client_encoding='utf8'
     )
 
     with postgres_db.connect() as conn:
@@ -94,7 +91,7 @@ def create_test_db(database_uri):
     postgres_db.dispose()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope='session')
 def notify_db(notify_api):
     """
     Yield an instance of flask_sqlalchemy.SQLAlchemy.
@@ -114,7 +111,7 @@ def notify_db(notify_api):
     # Given this fixture is session scope, manually deleting the databse should also work.
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope='function')
 def notify_db_session(notify_db):
     """
     Use this fixture with other function-scoped fixtures.
@@ -197,7 +194,7 @@ def database_prep():
     """
     # Setup metadata with reflection so we can get tables from their string names
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=SAWarning)
+        warnings.simplefilter('ignore', category=SAWarning)
         meta_data = db.MetaData(bind=db.engine)
         db.MetaData.reflect(meta_data)
 

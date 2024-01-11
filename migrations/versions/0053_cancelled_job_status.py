@@ -11,8 +11,6 @@ revision = '0053_cancelled_job_status'
 down_revision = '0052_drop_jobs_status'
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 def upgrade():
     op.execute("INSERT INTO job_status VALUES ('cancelled')")

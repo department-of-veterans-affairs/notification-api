@@ -11,7 +11,6 @@ revision = '0018_remove_subject_uniqueness'
 down_revision = '0017_add_failure_types'
 
 from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

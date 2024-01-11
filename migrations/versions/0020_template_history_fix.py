@@ -11,7 +11,6 @@ revision = '0020_template_history_fix'
 down_revision = '0019_add_job_row_number'
 
 from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

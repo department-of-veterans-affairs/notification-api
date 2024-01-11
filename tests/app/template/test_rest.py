@@ -40,22 +40,23 @@ from tests.app.factories.feature_flag import mock_feature_flag
 from tests.conftest import set_config_values
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
-@pytest.mark.parametrize('template_type, subject', [
-    (SMS_TYPE, None),
-    (EMAIL_TYPE, 'subject'),
-    (LETTER_TYPE, 'subject'),
-])
-def test_should_create_a_new_template_for_a_service(
-    client, sample_service, sample_user, template_type, subject
-):
+@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
+@pytest.mark.parametrize(
+    'template_type, subject',
+    [
+        (SMS_TYPE, None),
+        (EMAIL_TYPE, 'subject'),
+        (LETTER_TYPE, 'subject'),
+    ],
+)
+def test_should_create_a_new_template_for_a_service(client, sample_service, sample_user, template_type, subject):
     service = sample_service(service_permissions=[template_type])
     data = {
         'name': 'my template',
         'template_type': template_type,
         'content': 'template <b>content</b>',
         'service': str(service.id),
-        'created_by': str(sample_user.id)
+        'created_by': str(sample_user.id),
     }
     if subject:
         data.update({'subject': subject})
@@ -67,7 +68,7 @@ def test_should_create_a_new_template_for_a_service(
     response = client.post(
         '/service/{}/template'.format(service.id),
         headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
+        data=data,
     )
     assert response.status_code == 201
     json_resp = response.get_json()
@@ -91,10 +92,11 @@ def test_should_create_a_new_template_for_a_service(
 
     template = Template.query.get(json_resp['data']['id'])
     from app.schemas import template_schema
+
     assert sorted(json_resp['data']) == sorted(template_schema.dump(template).data)
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
 def test_should_create_a_new_template_with_a_valid_provider(client, sample_service, sample_user, ses_provider):
     service = sample_service(service_permissions=[EMAIL_TYPE])
     data = {
@@ -104,15 +106,13 @@ def test_should_create_a_new_template_with_a_valid_provider(client, sample_servi
         'service': str(service.id),
         'created_by': str(sample_user.id),
         'provider_id': str(ses_provider.id),
-        'subject': 'subject'
+        'subject': 'subject',
     }
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
 
     response = client.post(
-        f'/service/{service.id}/template',
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
+        f'/service/{service.id}/template', headers=[('Content-Type', 'application/json'), auth_header], data=data
     )
     assert response.status_code == 201
     json_resp = response.get_json()
@@ -122,16 +122,9 @@ def test_should_create_a_new_template_with_a_valid_provider(client, sample_servi
     assert template.provider_id == ses_provider.id
 
 
-@pytest.mark.parametrize('template_type', (
-    EMAIL_TYPE,
-    SMS_TYPE
-))
+@pytest.mark.parametrize('template_type', (EMAIL_TYPE, SMS_TYPE))
 def test_should_not_create_template_with_non_existent_provider(
-    client,
-    sample_service,
-    sample_user,
-    fake_uuid,
-    template_type
+    client, sample_service, sample_user, fake_uuid, template_type
 ):
     user = sample_user()
     service = sample_service(user=user, service_permissions=[template_type])
@@ -142,7 +135,7 @@ def test_should_not_create_template_with_non_existent_provider(
         'service': str(service.id),
         'created_by': str(user.id),
         'provider_id': str(fake_uuid),
-        'subject': 'subject'
+        'subject': 'subject',
     }
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
@@ -150,28 +143,18 @@ def test_should_not_create_template_with_non_existent_provider(
     # Requires a context block because the calling method expects current_user in the request
     with client.application.app_context():
         response = client.post(
-            f'/service/{service.id}/template',
-            headers=[('Content-Type', 'application/json'), auth_header],
-            data=data
+            f'/service/{service.id}/template', headers=[('Content-Type', 'application/json'), auth_header], data=data
         )
     assert response.status_code == 400
 
     json_resp = response.get_json()
     assert json_resp['result'] == 'error'
-    assert json_resp['message'] == f"invalid {template_type}_provider_id"
+    assert json_resp['message'] == f'invalid {template_type}_provider_id'
 
 
-@pytest.mark.parametrize('template_type', (
-    EMAIL_TYPE,
-    SMS_TYPE
-))
+@pytest.mark.parametrize('template_type', (EMAIL_TYPE, SMS_TYPE))
 def test_should_not_create_template_with_inactive_provider(
-    client,
-    sample_service,
-    sample_user,
-    fake_uuid,
-    template_type,
-    mocker
+    client, sample_service, sample_user, fake_uuid, template_type, mocker
 ):
     user = sample_user()
     service = sample_service(user=user, service_permissions=[template_type])
@@ -182,7 +165,7 @@ def test_should_not_create_template_with_inactive_provider(
         'service': str(service.id),
         'created_by': str(user.id),
         'provider_id': str(fake_uuid),
-        'subject': 'subject'
+        'subject': 'subject',
     }
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
@@ -192,35 +175,24 @@ def test_should_not_create_template_with_inactive_provider(
     mocked_provider_details.notification_type = template_type
     mocked_provider_details.id = fake_uuid
     mocker.patch(
-        'app.template.rest.validate_providers.get_provider_details_by_id',
-        return_value=mocked_provider_details
+        'app.template.rest.validate_providers.get_provider_details_by_id', return_value=mocked_provider_details
     )
 
     # Requires a context block because the calling method expects current_user in the request
     with client.application.app_context():
         response = client.post(
-            f'/service/{service.id}/template',
-            headers=[('Content-Type', 'application/json'), auth_header],
-            data=data
+            f'/service/{service.id}/template', headers=[('Content-Type', 'application/json'), auth_header], data=data
         )
     assert response.status_code == 400
 
     json_resp = response.get_json()
     assert json_resp['result'] == 'error'
-    assert json_resp['message'] == f"invalid {template_type}_provider_id"
+    assert json_resp['message'] == f'invalid {template_type}_provider_id'
 
 
-@pytest.mark.parametrize('template_type', (
-    EMAIL_TYPE,
-    SMS_TYPE
-))
+@pytest.mark.parametrize('template_type', (EMAIL_TYPE, SMS_TYPE))
 def test_should_not_create_template_with_incorrect_provider_type(
-    client,
-    sample_service,
-    sample_user,
-    fake_uuid,
-    template_type,
-    mocker
+    client, sample_service, sample_user, fake_uuid, template_type, mocker
 ):
     user = sample_user()
     service = sample_service(user=user, service_permissions=[template_type])
@@ -231,7 +203,7 @@ def test_should_not_create_template_with_incorrect_provider_type(
         'service': str(service.id),
         'created_by': str(user.id),
         'provider_id': str(fake_uuid),
-        'subject': 'subject'
+        'subject': 'subject',
     }
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
@@ -241,28 +213,23 @@ def test_should_not_create_template_with_incorrect_provider_type(
     mocked_provider_details.notification_type = LETTER_TYPE
     mocked_provider_details.id = fake_uuid
     mocker.patch(
-        'app.template.rest.validate_providers.get_provider_details_by_id',
-        return_value=mocked_provider_details
+        'app.template.rest.validate_providers.get_provider_details_by_id', return_value=mocked_provider_details
     )
 
     # Requires a context block because the calling method expects current_user in the request
     with client.application.app_context():
         response = client.post(
-            f'/service/{service.id}/template',
-            headers=[('Content-Type', 'application/json'), auth_header],
-            data=data
+            f'/service/{service.id}/template', headers=[('Content-Type', 'application/json'), auth_header], data=data
         )
     assert response.status_code == 400
 
     json_resp = response.get_json()
     assert json_resp['result'] == 'error'
-    assert json_resp['message'] == f"invalid {template_type}_provider_id"
+    assert json_resp['message'] == f'invalid {template_type}_provider_id'
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
-def test_create_a_new_template_for_a_service_adds_folder_relationship(
-    client, sample_service
-):
+@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
+def test_create_a_new_template_for_a_service_adds_folder_relationship(client, sample_service):
     service = sample_service()
     parent_folder = create_template_folder(service=service, name='parent folder')
 
@@ -272,7 +239,7 @@ def test_create_a_new_template_for_a_service_adds_folder_relationship(
         'content': 'template <b>content</b>',
         'service': str(service.id),
         'created_by': str(service.users[0].id),
-        'parent_folder_id': str(parent_folder.id)
+        'parent_folder_id': str(parent_folder.id),
     }
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
@@ -280,17 +247,17 @@ def test_create_a_new_template_for_a_service_adds_folder_relationship(
     response = client.post(
         '/service/{}/template'.format(service.id),
         headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
+        data=data,
     )
     assert response.status_code == 201
     template = Template.query.filter(Template.name == 'my template').first()
     assert template.folder == parent_folder
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
-@pytest.mark.parametrize("template_type, expected_postage", [
-    (SMS_TYPE, None), (EMAIL_TYPE, None), (LETTER_TYPE, "second")
-])
+@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
+@pytest.mark.parametrize(
+    'template_type, expected_postage', [(SMS_TYPE, None), (EMAIL_TYPE, None), (LETTER_TYPE, 'second')]
+)
 def test_create_a_new_template_for_a_service_adds_postage_for_letters_only(
     client, sample_service, template_type, expected_postage
 ):
@@ -301,10 +268,10 @@ def test_create_a_new_template_for_a_service_adds_postage_for_letters_only(
         'template_type': template_type,
         'content': 'template <b>content</b>',
         'service': str(service.id),
-        'created_by': str(service.users[0].id)
+        'created_by': str(service.users[0].id),
     }
     if template_type in [EMAIL_TYPE, LETTER_TYPE]:
-        data["subject"] = "Hi, I have good news"
+        data['subject'] = 'Hi, I have good news'
 
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
@@ -312,16 +279,14 @@ def test_create_a_new_template_for_a_service_adds_postage_for_letters_only(
     response = client.post(
         '/service/{}/template'.format(service.id),
         headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
+        data=data,
     )
     assert response.status_code == 201
     template = Template.query.filter(Template.name == 'my template').first()
     assert template.postage == expected_postage
 
 
-def test_create_template_should_return_400_if_folder_is_for_a_different_service(
-        client, sample_service
-):
+def test_create_template_should_return_400_if_folder_is_for_a_different_service(client, sample_service):
     service = sample_service()
     service2 = sample_service()
     parent_folder = create_template_folder(service=service2)
@@ -332,7 +297,7 @@ def test_create_template_should_return_400_if_folder_is_for_a_different_service(
         'content': 'template <b>content</b>',
         'service': str(service.id),
         'created_by': str(service.users[0].id),
-        'parent_folder_id': str(parent_folder.id)
+        'parent_folder_id': str(parent_folder.id),
     }
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
@@ -342,15 +307,13 @@ def test_create_template_should_return_400_if_folder_is_for_a_different_service(
         response = client.post(
             '/service/{}/template'.format(service.id),
             headers=[('Content-Type', 'application/json'), auth_header],
-            data=data
+            data=data,
         )
     assert response.status_code == 400
     assert response.get_json()['message'] == 'parent_folder_id not found'
 
 
-def test_create_template_should_return_400_if_folder_does_not_exist(
-        client, sample_service
-):
+def test_create_template_should_return_400_if_folder_does_not_exist(client, sample_service):
     service = sample_service()
     data = {
         'name': 'my template',
@@ -358,7 +321,7 @@ def test_create_template_should_return_400_if_folder_does_not_exist(
         'content': 'template <b>content</b>',
         'service': str(service.id),
         'created_by': str(service.users[0].id),
-        'parent_folder_id': str(uuid.uuid4())
+        'parent_folder_id': str(uuid.uuid4()),
     }
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
@@ -368,7 +331,7 @@ def test_create_template_should_return_400_if_folder_does_not_exist(
         response = client.post(
             '/service/{}/template'.format(service.id),
             headers=[('Content-Type', 'application/json'), auth_header],
-            data=data
+            data=data,
         )
     assert response.status_code == 400
     assert response.get_json()['message'] == 'parent_folder_id not found'
@@ -380,15 +343,13 @@ def test_should_raise_error_if_service_does_not_exist_on_create(client, sample_u
         'template_type': SMS_TYPE,
         'content': 'template content',
         'service': fake_uuid,
-        'created_by': str(sample_user().id)
+        'created_by': str(sample_user().id),
     }
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
 
     response = client.post(
-        '/service/{}/template'.format(fake_uuid),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
+        '/service/{}/template'.format(fake_uuid), headers=[('Content-Type', 'application/json'), auth_header], data=data
     )
     json_resp = response.get_json()
     assert response.status_code == 404
@@ -396,20 +357,24 @@ def test_should_raise_error_if_service_does_not_exist_on_create(client, sample_u
     assert json_resp['message'] == 'No result found'
 
 
-@pytest.mark.parametrize('permissions, template_type, subject, expected_error', [
-    ([EMAIL_TYPE], SMS_TYPE, None, {'template_type': ['Creating text message templates is not allowed']}),
-    ([SMS_TYPE], EMAIL_TYPE, 'subject', {'template_type': ['Creating email templates is not allowed']}),
-    ([SMS_TYPE], LETTER_TYPE, 'subject', {'template_type': ['Creating letter templates is not allowed']}),
-])
+@pytest.mark.parametrize(
+    'permissions, template_type, subject, expected_error',
+    [
+        ([EMAIL_TYPE], SMS_TYPE, None, {'template_type': ['Creating text message templates is not allowed']}),
+        ([SMS_TYPE], EMAIL_TYPE, 'subject', {'template_type': ['Creating email templates is not allowed']}),
+        ([SMS_TYPE], LETTER_TYPE, 'subject', {'template_type': ['Creating letter templates is not allowed']}),
+    ],
+)
 def test_should_raise_error_on_create_if_no_permission(
-        client, sample_service, sample_user, permissions, template_type, subject, expected_error):
+    client, sample_service, sample_user, permissions, template_type, subject, expected_error
+):
     service = sample_service(service_permissions=permissions)
     data = {
         'name': 'my template',
         'template_type': template_type,
         'content': 'template content',
         'service': str(service.id),
-        'created_by': str(sample_user().id)
+        'created_by': str(sample_user().id),
     }
     if subject:
         data.update({'subject': subject})
@@ -422,7 +387,7 @@ def test_should_raise_error_on_create_if_no_permission(
         response = client.post(
             '/service/{}/template'.format(service.id),
             headers=[('Content-Type', 'application/json'), auth_header],
-            data=data
+            data=data,
         )
     json_resp = response.get_json()
     assert response.status_code == 403
@@ -430,11 +395,14 @@ def test_should_raise_error_on_create_if_no_permission(
     assert json_resp['message'] == expected_error
 
 
-@pytest.mark.parametrize('template_type, permissions, expected_error', [
-    (SMS_TYPE, [EMAIL_TYPE], {'template_type': ['Updating text message templates is not allowed']}),
-    (EMAIL_TYPE, [LETTER_TYPE], {'template_type': ['Updating email templates is not allowed']}),
-    # (LETTER_TYPE, [SMS_TYPE], {'template_type': ['Updating letter templates is not allowed']})
-])
+@pytest.mark.parametrize(
+    'template_type, permissions, expected_error',
+    [
+        (SMS_TYPE, [EMAIL_TYPE], {'template_type': ['Updating text message templates is not allowed']}),
+        (EMAIL_TYPE, [LETTER_TYPE], {'template_type': ['Updating email templates is not allowed']}),
+        # (LETTER_TYPE, [SMS_TYPE], {'template_type': ['Updating letter templates is not allowed']})
+    ],
+)
 def test_should_be_error_on_update_if_no_permission(
     client,
     template_type,
@@ -448,19 +416,15 @@ def test_should_be_error_on_update_if_no_permission(
     service = sample_service(user=user, service_permissions=permissions)
     template = sample_template(service=service, template_type=template_type)
 
-    data = {
-        'content': 'new template content',
-        'created_by': str(user.id)
-    }
+    data = {'content': 'new template content', 'created_by': str(user.id)}
 
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
 
     update_response = client.post(
-        '/service/{}/template/{}'.format(
-            service.id, template.id),
+        '/service/{}/template/{}'.format(service.id, template.id),
         headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
+        data=data,
     )
 
     json_resp = json.loads(update_response.get_data(as_text=True))
@@ -469,41 +433,34 @@ def test_should_be_error_on_update_if_no_permission(
     assert json_resp['message'] == expected_error
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
 # def test_should_error_if_created_by_missing(client, sample_user, sample_service):
 def test_should_error_if_created_by_missing(client, sample_service):
     service_id = str(sample_service().id)
-    data = {
-        'name': 'my template',
-        'template_type': SMS_TYPE,
-        'content': 'template content',
-        'service': service_id
-    }
+    data = {'name': 'my template', 'template_type': SMS_TYPE, 'content': 'template content', 'service': service_id}
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
 
     response = client.post(
         '/service/{}/template'.format(service_id),
         headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
+        data=data,
     )
     json_resp = response.get_json()
     assert response.status_code == 400
-    assert json_resp["errors"][0]["error"] == 'ValidationError'
-    assert json_resp["errors"][0]["message"] == 'created_by is a required property'
+    assert json_resp['errors'][0]['error'] == 'ValidationError'
+    assert json_resp['errors'][0]['message'] == 'created_by is a required property'
 
 
 def test_should_be_error_if_service_does_not_exist_on_update(client, fake_uuid):
-    data = {
-        'name': 'my template'
-    }
+    data = {'name': 'my template'}
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
 
     response = client.post(
         '/service/{}/template/{}'.format(fake_uuid, fake_uuid),
         headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
+        data=data,
     )
     json_resp = response.get_json()
     assert response.status_code == 404
@@ -519,7 +476,7 @@ def test_must_have_a_subject_on_an_email_or_letter_template(client, sample_user,
         'template_type': template_type,
         'content': 'template content',
         'service': str(service.id),
-        'created_by': str(sample_user().id)
+        'created_by': str(sample_user().id),
     }
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
@@ -529,31 +486,33 @@ def test_must_have_a_subject_on_an_email_or_letter_template(client, sample_user,
         response = client.post(
             '/service/{}/template'.format(service.id),
             headers=[('Content-Type', 'application/json'), auth_header],
-            data=data
+            data=data,
         )
     json_resp = response.get_json()
-    assert json_resp['errors'][0]['error'] == "ValidationError"
-    assert json_resp['errors'][0]["message"] == 'subject is a required property'
+    assert json_resp['errors'][0]['error'] == 'ValidationError'
+    assert json_resp['errors'][0]['message'] == 'subject is a required property'
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
 def test_update_should_update_a_template(client, sample_user, sample_service, sample_template):
     service = sample_service(service_permissions=[LETTER_TYPE])
-    template = sample_template(service=service, template_type=LETTER_TYPE, postage="second")
+    template = sample_template(service=service, template_type=LETTER_TYPE, postage='second')
 
-    new_content = "My template has new content."
-    data = json.dumps({
-        'content': new_content,
-        'created_by': str(sample_user().id),
-        'postage': 'first',
-    })
+    new_content = 'My template has new content.'
+    data = json.dumps(
+        {
+            'content': new_content,
+            'created_by': str(sample_user().id),
+            'postage': 'first',
+        }
+    )
 
     auth_header = create_admin_authorization_header()
 
     update_response = client.post(
         '/service/{}/template/{}'.format(service.id, template.id),
         headers=[('Content-Type', 'application/json'), auth_header],
-        data=data
+        data=data,
     )
 
     assert update_response.status_code == 200
@@ -565,7 +524,7 @@ def test_update_should_update_a_template(client, sample_user, sample_service, sa
     assert update_json_resp['data']['version'] == 2
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
 def test_should_be_able_to_archive_template(client, sample_template):
     template = sample_template()
     data = {
@@ -574,7 +533,7 @@ def test_should_be_able_to_archive_template(client, sample_template):
         'content': template.content,
         'archived': True,
         'service': str(template.service.id),
-        'created_by': str(template.created_by.id)
+        'created_by': str(template.created_by.id),
     }
 
     json_data = json.dumps(data)
@@ -584,14 +543,14 @@ def test_should_be_able_to_archive_template(client, sample_template):
     resp = client.post(
         '/service/{}/template/{}'.format(template.service.id, template.id),
         headers=[('Content-Type', 'application/json'), auth_header],
-        data=json_data
+        data=json_data,
     )
 
     assert resp.status_code == 200
     assert Template.query.first().archived
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_get_precompiled_template_for_service(client, notify_db_session, sample_service):
     service = sample_service()
     assert len(service.templates) == 0
@@ -621,16 +580,14 @@ def test_get_precompiled_template_for_service(client, notify_db_session, sample_
 
 
 def test_get_precompiled_template_for_service_when_service_has_existing_precompiled_template(
-    client,
-    sample_service,
-    sample_template
+    client, sample_service, sample_template
 ):
     service = sample_service()
     template = sample_template(
         service=service,
         name=f'Exisiting precompiled template {str(uuid.uuid4())}',
         template_type=LETTER_TYPE,
-        hidden=True
+        hidden=True,
     )
     assert len(service.templates) == 1
 
@@ -647,7 +604,7 @@ def test_get_precompiled_template_for_service_when_service_has_existing_precompi
     assert data['hidden'] is True
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
 def test_should_be_able_to_get_all_templates_for_a_service(client, sample_user, sample_service):
     service = sample_service()
     data = {
@@ -656,7 +613,7 @@ def test_should_be_able_to_get_all_templates_for_a_service(client, sample_user, 
         'subject': 'subject 1',
         'content': 'template content',
         'service': str(service.id),
-        'created_by': str(sample_user.id)
+        'created_by': str(sample_user.id),
     }
     data_1 = json.dumps(data)
     data = {
@@ -665,29 +622,26 @@ def test_should_be_able_to_get_all_templates_for_a_service(client, sample_user, 
         'subject': 'subject 2',
         'content': 'template content',
         'service': str(service.id),
-        'created_by': str(sample_user.id)
+        'created_by': str(sample_user.id),
     }
     data_2 = json.dumps(data)
     auth_header = create_admin_authorization_header()
     client.post(
         '/service/{}/template'.format(service.id),
         headers=[('Content-Type', 'application/json'), auth_header],
-        data=data_1
+        data=data_1,
     )
     auth_header = create_admin_authorization_header()
 
     client.post(
         '/service/{}/template'.format(service.id),
         headers=[('Content-Type', 'application/json'), auth_header],
-        data=data_2
+        data=data_2,
     )
 
     auth_header = create_admin_authorization_header()
 
-    response = client.get(
-        '/service/{}/template'.format(service.id),
-        headers=[auth_header]
-    )
+    response = client.get('/service/{}/template'.format(service.id), headers=[auth_header])
 
     assert response.status_code == 200
     update_json_resp = response.get_json()
@@ -699,9 +653,7 @@ def test_should_be_able_to_get_all_templates_for_a_service(client, sample_user, 
     assert update_json_resp['data'][1]['created_at']
 
 
-def test_should_get_only_templates_for_that_service(
-    admin_request, sample_service, sample_template
-):
+def test_should_get_only_templates_for_that_service(admin_request, sample_service, sample_template):
     service_grp_0 = sample_service()
     service_grp_1 = sample_service()
     templates = [
@@ -711,18 +663,14 @@ def test_should_get_only_templates_for_that_service(
     ]
     ids = [str(t.id) for t in templates]
 
-    json_resp_0 = admin_request.get('template.get_all_templates_for_service',
-                                    service_id=service_grp_0.id)
-    json_resp_1 = admin_request.get('template.get_all_templates_for_service',
-                                    service_id=service_grp_1.id)
+    json_resp_0 = admin_request.get('template.get_all_templates_for_service', service_id=service_grp_0.id)
+    json_resp_1 = admin_request.get('template.get_all_templates_for_service', service_id=service_grp_1.id)
 
     assert {template['id'] for template in json_resp_0['data']} == {ids[0], ids[1]}
     assert {template['id'] for template in json_resp_1['data']} == {ids[2]}
 
 
-@pytest.mark.parametrize(
-    "template_type", [EMAIL_TYPE, SMS_TYPE]
-)
+@pytest.mark.parametrize('template_type', [EMAIL_TYPE, SMS_TYPE])
 def test_should_get_a_single_template(
     client,
     template_type,
@@ -730,8 +678,7 @@ def test_should_get_a_single_template(
 ):
     template = sample_template(template_type=template_type)
     response = client.get(
-        f'/service/{template.service_id}/template/{template.id}',
-        headers=[create_admin_authorization_header()]
+        f'/service/{template.service_id}/template/{template.id}', headers=[create_admin_authorization_header()]
     )
 
     data = response.get_json()['data']
@@ -742,20 +689,21 @@ def test_should_get_a_single_template(
     assert data['process_type'] == 'normal'
     assert data['service'] == str(template.service_id)
     assert not data['redact_personalisation']
-    assert "folder" in data
-    assert "service_letter_contact" in data
-    assert "template_redacted" in data
+    assert 'folder' in data
+    assert 'service_letter_contact' in data
+    assert 'template_redacted' in data
 
 
 @pytest.mark.parametrize(
-    "subject, content, path, expected_subject, expected_content, expected_error", [
+    'subject, content, path, expected_subject, expected_content, expected_error',
+    [
         (
             'about your thing',
             'hello user we’ve received your thing',
             '/service/{}/template/{}/preview',
             'about your thing',
             'hello user we’ve received your thing',
-            None
+            None,
         ),
         (
             'about your ((thing))',
@@ -763,14 +711,15 @@ def test_should_get_a_single_template(
             '/service/{}/template/{}/preview?name=Amala&thing=document',
             'about your document',
             'hello Amala we’ve received your document',
-            None
+            None,
         ),
         (
             'about your ((thing))',
             'hello ((name)) we’ve received your ((thing))',
             '/service/{}/template/{}/preview?name=Amala',
-            None, None,
-            'Missing personalisation: thing'
+            None,
+            None,
+            'Missing personalisation: thing',
         ),
         (
             'about your ((thing))',
@@ -779,25 +728,15 @@ def test_should_get_a_single_template(
             'about your document',
             'hello Amala we’ve received your document',
             None,
-        )
-    ]
+        ),
+    ],
 )
 def test_should_preview_a_single_template(
-    client,
-    subject,
-    content,
-    path,
-    expected_subject,
-    expected_content,
-    expected_error,
-    sample_template
+    client, subject, content, path, expected_subject, expected_content, expected_error, sample_template
 ):
     template = sample_template(template_type=EMAIL_TYPE, subject=subject, content=content)
 
-    response = client.get(
-        path.format(template.service_id, template.id),
-        headers=[create_admin_authorization_header()]
-    )
+    response = client.get(path.format(template.service_id, template.id), headers=[create_admin_authorization_header()])
 
     content = response.get_json()
 
@@ -811,13 +750,9 @@ def test_should_preview_a_single_template(
 
 
 def test_should_return_empty_array_if_no_templates_for_service(client, sample_service):
-
     auth_header = create_admin_authorization_header()
 
-    response = client.get(
-        '/service/{}/template'.format(sample_service().id),
-        headers=[auth_header]
-    )
+    response = client.get('/service/{}/template'.format(sample_service().id), headers=[auth_header])
 
     assert response.status_code == 200
     json_resp = response.get_json()
@@ -825,13 +760,9 @@ def test_should_return_empty_array_if_no_templates_for_service(client, sample_se
 
 
 def test_should_return_404_if_no_templates_for_service_with_id(client, sample_service, fake_uuid):
-
     auth_header = create_admin_authorization_header()
 
-    response = client.get(
-        '/service/{}/template/{}'.format(sample_service().id, fake_uuid),
-        headers=[auth_header]
-    )
+    response = client.get('/service/{}/template/{}'.format(sample_service().id, fake_uuid), headers=[auth_header])
 
     assert response.status_code == 404
     json_resp = response.get_json()
@@ -842,14 +773,15 @@ def test_should_return_404_if_no_templates_for_service_with_id(client, sample_se
 def test_create_400_for_over_limit_content(client, notify_db_session, sample_service, sample_user):
     service = sample_service()
     content = ''.join(
-        random.choice(string.ascii_uppercase + string.digits) for _ in range(SMS_CHAR_COUNT_LIMIT + 1)  # nosec
+        random.choice(string.ascii_uppercase + string.digits)
+        for _ in range(SMS_CHAR_COUNT_LIMIT + 1)  # nosec
     )
     data = {
         'name': 'too big template',
         'template_type': SMS_TYPE,
         'content': content,
         'service': str(service.id),
-        'created_by': str(sample_user().id)
+        'created_by': str(sample_user().id),
     }
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
@@ -859,13 +791,13 @@ def test_create_400_for_over_limit_content(client, notify_db_session, sample_ser
         response = client.post(
             '/service/{}/template'.format(service.id),
             headers=[('Content-Type', 'application/json'), auth_header],
-            data=data
+            data=data,
         )
     assert response.status_code == 400
     json_resp = response.get_json()
-    assert (
-        f'Content has a character count greater than the limit of {SMS_CHAR_COUNT_LIMIT}'
-    ) in json_resp['message']['content']
+    assert (f'Content has a character count greater than the limit of {SMS_CHAR_COUNT_LIMIT}') in json_resp['message'][
+        'content'
+    ]
 
     # Teardown
     template = notify_db_session.session.scalar(select(Template).where(Template.service_id == service.id))
@@ -875,38 +807,44 @@ def test_create_400_for_over_limit_content(client, notify_db_session, sample_ser
 
 def test_update_400_for_over_limit_content(client, sample_template):
     template = sample_template()
-    json_data = json.dumps({
-        'content': ''.join(
-            random.choice(string.ascii_uppercase + string.digits) for _ in range(SMS_CHAR_COUNT_LIMIT + 1)  # nosec
-        ),
-        'created_by': str(template.created_by_id)
-    })
+    json_data = json.dumps(
+        {
+            'content': ''.join(
+                random.choice(string.ascii_uppercase + string.digits)
+                for _ in range(SMS_CHAR_COUNT_LIMIT + 1)  # nosec
+            ),
+            'created_by': str(template.created_by_id),
+        }
+    )
     auth_header = create_admin_authorization_header()
     resp = client.post(
         '/service/{}/template/{}'.format(template.service.id, template.id),
         headers=[('Content-Type', 'application/json'), auth_header],
-        data=json_data
+        data=json_data,
     )
     assert resp.status_code == 400
     json_resp = json.loads(resp.get_data(as_text=True))
-    assert (
-        'Content has a character count greater than the limit of {}'
-    ).format(SMS_CHAR_COUNT_LIMIT) in json_resp['message']['content']
+    assert ('Content has a character count greater than the limit of {}').format(SMS_CHAR_COUNT_LIMIT) in json_resp[
+        'message'
+    ]['content']
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
 def test_should_return_all_template_versions_for_service_and_template_id(client, sample_template):
     template = sample_template()
     original_content = template.content
     from app.dao.templates_dao import dao_update_template
+
     template.content = original_content + '1'
     dao_update_template(template)
     template.content = original_content + '2'
     dao_update_template(template)
 
     auth_header = create_admin_authorization_header()
-    resp = client.get('/service/{}/template/{}/versions'.format(template.service_id, template.id),
-                      headers=[('Content-Type', 'application/json'), auth_header])
+    resp = client.get(
+        '/service/{}/template/{}/versions'.format(template.service_id, template.id),
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
     assert resp.status_code == 200
     resp_json = json.loads(resp.get_data(as_text=True))['data']
     assert len(resp_json) == 3
@@ -926,34 +864,36 @@ def test_update_does_not_create_new_version_when_there_is_no_change(client, samp
         'template_type': template.template_type,
         'content': template.content,
     }
-    resp = client.post(f'/service/{template.service_id}/template/{template.id}',
-                       data=json.dumps(data),
-                       headers=[('Content-Type', 'application/json'), auth_header])
+    resp = client.post(
+        f'/service/{template.service_id}/template/{template.id}',
+        data=json.dumps(data),
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
     assert resp.status_code == 200
 
     dao_template = dao_get_template_by_id(template.id)
     assert dao_template.version == 1
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
 def test_update_set_process_type_on_template(client, sample_template):
     auth_header = create_admin_authorization_header()
-    data = {
-        'process_type': 'priority'
-    }
-    resp = client.post('/service/{}/template/{}'.format(sample_template.service_id, sample_template.id),
-                       data=json.dumps(data),
-                       headers=[('Content-Type', 'application/json'), auth_header])
+    data = {'process_type': 'priority'}
+    resp = client.post(
+        '/service/{}/template/{}'.format(sample_template.service_id, sample_template.id),
+        data=json.dumps(data),
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
     assert resp.status_code == 200
 
     template = dao_get_template_by_id(sample_template.id)
     assert template.process_type == 'priority'
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
 def test_create_a_template_with_reply_to(admin_request, sample_service, sample_user):
     service = sample_service(service_permissions=['letter'])
-    letter_contact = create_letter_contact(service, "Edinburgh, ED1 1AA")
+    letter_contact = create_letter_contact(service, 'Edinburgh, ED1 1AA')
     data = {
         'name': 'my template',
         'subject': 'subject',
@@ -972,17 +912,21 @@ def test_create_a_template_with_reply_to(admin_request, sample_service, sample_u
 
     template = Template.query.get(json_resp['data']['id'])
     from app.schemas import template_schema
+
     assert sorted(json_resp['data']) == sorted(template_schema.dump(template).data)
     th = TemplateHistory.query.filter_by(id=template.id, version=1).one()
     assert th.service_letter_contact_id == letter_contact.id
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
 def test_create_a_template_with_foreign_service_reply_to(admin_request, sample_service, sample_user):
     service = sample_service(service_permissions=[LETTER_TYPE])
-    service2 = sample_service(service_name=f'test service {str(uuid.uuid4())}', email_from='test@example.com',
-                              service_permissions=[LETTER_TYPE])
-    letter_contact = create_letter_contact(service2, "Edinburgh, ED1 1AA")
+    service2 = sample_service(
+        service_name=f'test service {str(uuid.uuid4())}',
+        email_from='test@example.com',
+        service_permissions=[LETTER_TYPE],
+    )
+    letter_contact = create_letter_contact(service2, 'Edinburgh, ED1 1AA')
     data = {
         'name': 'my template',
         'subject': 'subject',
@@ -995,24 +939,20 @@ def test_create_a_template_with_foreign_service_reply_to(admin_request, sample_s
 
     json_resp = admin_request.post('template.create_template', service_id=service.id, _data=data, _expected_status=400)
 
-    assert json_resp['message'] == "letter_contact_id {} does not exist in database for service id {}".format(
+    assert json_resp['message'] == 'letter_contact_id {} does not exist in database for service id {}'.format(
         str(letter_contact.id), str(service.id)
     )
 
 
-@pytest.mark.parametrize('template_default, service_default',
-                         [('template address', 'service address'),
-                          (None, 'service address'),
-                          ('template address', None),
-                          (None, None)
-                          ])
+@pytest.mark.parametrize(
+    'template_default, service_default',
+    [('template address', 'service address'), (None, 'service address'), ('template address', None), (None, None)],
+)
 def test_get_template_reply_to(client, sample_service, sample_template, template_default, service_default):
     service = sample_service()
     auth_header = create_admin_authorization_header()
     if service_default:
-        create_letter_contact(
-            service=service, contact_block=service_default, is_default=True
-        )
+        create_letter_contact(service=service, contact_block=service_default, is_default=True)
     if template_default:
         template_default_contact = create_letter_contact(
             service=service, contact_block=template_default, is_default=False
@@ -1020,8 +960,7 @@ def test_get_template_reply_to(client, sample_service, sample_template, template
     reply_to_id = str(template_default_contact.id) if template_default else None
     template = sample_template(service=service, template_type='letter', reply_to=reply_to_id)
 
-    resp = client.get('/service/{}/template/{}'.format(template.service_id, template.id),
-                      headers=[auth_header])
+    resp = client.get('/service/{}/template/{}'.format(template.service_id, template.id), headers=[auth_header])
 
     assert resp.status_code == 200, resp.get_data(as_text=True)
     json_resp = json.loads(resp.get_data(as_text=True))
@@ -1033,17 +972,19 @@ def test_get_template_reply_to(client, sample_service, sample_template, template
 
 def test_update_template_reply_to(client, notify_db_session, sample_template, sample_service):
     service = sample_service(service_permissions=SERVICE_PERMISSION_TYPES)
-    template = sample_template(service=service, template_type=LETTER_TYPE, postage="second")
+    template = sample_template(service=service, template_type=LETTER_TYPE, postage='second')
 
     auth_header = create_admin_authorization_header()
-    letter_contact = create_letter_contact(template.service, "Edinburgh, ED1 1AA")
+    letter_contact = create_letter_contact(template.service, 'Edinburgh, ED1 1AA')
     data = {
         'reply_to': str(letter_contact.id),
     }
 
-    resp = client.post('/service/{}/template/{}'.format(template.service_id, template.id),
-                       data=json.dumps(data),
-                       headers=[('Content-Type', 'application/json'), auth_header])
+    resp = client.post(
+        '/service/{}/template/{}'.format(template.service_id, template.id),
+        data=json.dumps(data),
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
 
     assert resp.status_code == 200, resp.get_data(as_text=True)
 
@@ -1064,16 +1005,18 @@ def test_update_template_reply_to(client, notify_db_session, sample_template, sa
 def test_update_template_reply_to_set_to_blank(client, notify_db_session, sample_service, sample_template):
     service = sample_service(service_permissions=['letter'])
     auth_header = create_admin_authorization_header()
-    letter_contact = create_letter_contact(service, "Edinburgh, ED1 1AA")
+    letter_contact = create_letter_contact(service, 'Edinburgh, ED1 1AA')
     template = sample_template(service=service, template_type='letter', reply_to=letter_contact.id)
 
     data = {
         'reply_to': None,
     }
 
-    resp = client.post('/service/{}/template/{}'.format(template.service_id, template.id),
-                       data=json.dumps(data),
-                       headers=[('Content-Type', 'application/json'), auth_header])
+    resp = client.post(
+        '/service/{}/template/{}'.format(template.service_id, template.id),
+        data=json.dumps(data),
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
 
     assert resp.status_code == 200, resp.get_data(as_text=True)
 
@@ -1083,8 +1026,9 @@ def test_update_template_reply_to_set_to_blank(client, notify_db_session, sample
     assert th.service_letter_contact_id is None
 
     # One of the create methods above generates a template history
-    template_history = notify_db_session.session.scalar(select(TemplateHistory)
-                                                        .where(TemplateHistory.id == template.id))
+    template_history = notify_db_session.session.scalar(
+        select(TemplateHistory).where(TemplateHistory.id == template.id)
+    )
     notify_db_session.session.delete(template_history)
     notify_db_session.session.commit()
 
@@ -1092,23 +1036,26 @@ def test_update_template_reply_to_set_to_blank(client, notify_db_session, sample
 def test_update_template_with_foreign_service_reply_to(client, sample_service, sample_template):
     auth_header = create_admin_authorization_header()
 
-    service = sample_service(service_name=f'test service {str(uuid.uuid4())}', email_from='test@example.com',
-                             service_permissions=['letter'])
+    service = sample_service(
+        service_name=f'test service {str(uuid.uuid4())}', email_from='test@example.com', service_permissions=['letter']
+    )
     service_all_perms = sample_service(service_permissions=SERVICE_PERMISSION_TYPES)
-    letter_contact = create_letter_contact(service_all_perms, "Edinburgh, ED1 1AA")
-    template = sample_template(service=service, template_type=LETTER_TYPE, postage="second")
+    letter_contact = create_letter_contact(service_all_perms, 'Edinburgh, ED1 1AA')
+    template = sample_template(service=service, template_type=LETTER_TYPE, postage='second')
     data = {
         'reply_to': str(letter_contact.id),
     }
 
-    resp = client.post('/service/{}/template/{}'.format(template.service_id, template.id),
-                       data=json.dumps(data),
-                       headers=[('Content-Type', 'application/json'), auth_header])
+    resp = client.post(
+        '/service/{}/template/{}'.format(template.service_id, template.id),
+        data=json.dumps(data),
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
 
     assert resp.status_code == 400, resp.get_data(as_text=True)
     json_resp = json.loads(resp.get_data(as_text=True))
 
-    assert json_resp['message'] == "letter_contact_id {} does not exist in database for service id {}".format(
+    assert json_resp['message'] == 'letter_contact_id {} does not exist in database for service id {}'.format(
         str(letter_contact.id), str(template.service_id)
     )
 
@@ -1117,19 +1064,13 @@ def test_update_redact_template(admin_request, sample_template):
     template = sample_template()
     assert template.redact_personalisation is False
 
-    data = {
-        'redact_personalisation': True,
-        'created_by': str(template.created_by_id)
-    }
+    data = {'redact_personalisation': True, 'created_by': str(template.created_by_id)}
 
     dt = datetime.now()
 
     with freeze_time(dt):
         resp = admin_request.post(
-            'template.update_template',
-            service_id=template.service_id,
-            template_id=template.id,
-            _data=data
+            'template.update_template', service_id=template.service_id, template_id=template.id, _data=data
         )
 
     assert resp is None
@@ -1143,18 +1084,9 @@ def test_update_redact_template(admin_request, sample_template):
 
 def test_update_redact_template_ignores_other_properties(admin_request, sample_template):
     template = sample_template()
-    data = {
-        'name': 'Foo',
-        'redact_personalisation': True,
-        'created_by': str(template.created_by_id)
-    }
+    data = {'name': 'Foo', 'redact_personalisation': True, 'created_by': str(template.created_by_id)}
 
-    admin_request.post(
-        'template.update_template',
-        service_id=template.service_id,
-        template_id=template.id,
-        _data=data
-    )
+    admin_request.post('template.update_template', service_id=template.service_id, template_id=template.id, _data=data)
 
     assert template.redact_personalisation is True
     assert template.name != 'Foo'
@@ -1166,17 +1098,11 @@ def test_update_redact_template_does_nothing_if_already_redacted(admin_request, 
     with freeze_time(dt):
         dao_redact_template(template, template.created_by_id)
 
-    data = {
-        'redact_personalisation': True,
-        'created_by': str(template.created_by_id)
-    }
+    data = {'redact_personalisation': True, 'created_by': str(template.created_by_id)}
 
     with freeze_time(dt + timedelta(days=1)):
         resp = admin_request.post(
-            'template.update_template',
-            service_id=template.service_id,
-            template_id=template.id,
-            _data=data
+            'template.update_template', service_id=template.service_id, template_id=template.id, _data=data
         )
 
     assert resp is None
@@ -1194,13 +1120,10 @@ def test_update_redact_template_400s_if_no_created_by(admin_request, sample_temp
         service_id=template.service_id,
         template_id=template.id,
         _data={'redact_personalisation': True},
-        _expected_status=400
+        _expected_status=400,
     )
 
-    assert resp == {
-        'result': 'error',
-        'message': {'created_by': ['Field is required']}
-    }
+    assert resp == {'result': 'error', 'message': {'created_by': ['Field is required']}}
 
     assert template.redact_personalisation is False
     assert template.template_redacted.updated_at == original_updated_time
@@ -1208,32 +1131,31 @@ def test_update_redact_template_400s_if_no_created_by(admin_request, sample_temp
 
 def test_preview_letter_template_by_id_invalid_file_type(admin_request, sample_service, sample_template):
     service = sample_service(service_permissions=SERVICE_PERMISSION_TYPES)
-    template = sample_template(service=service, template_type=LETTER_TYPE, postage="second")
+    template = sample_template(service=service, template_type=LETTER_TYPE, postage='second')
     resp = admin_request.get(
         'template.preview_letter_template_by_notification_id',
         service_id=template.service_id,
         template_id=template.id,
         notification_id=template.id,
         file_type='doc',
-        _expected_status=400
+        _expected_status=400,
     )
 
     assert ['file_type must be pdf or png'] == resp['message']['content']
 
 
-@pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
+@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
 def test_should_update_template_with_a_valid_provider(admin_request, sample_template, ses_provider):
     template = sample_template(template_type=EMAIL_TYPE)
     provider_id = str(ses_provider.id)
-    data = {
-        'provider_id': provider_id
-    }
+    data = {'provider_id': provider_id}
     json_resp = admin_request.post(
         'template.update_template',
         service_id=template.service_id,
         template_id=template.id,
         _data=data,
-        _expected_status=200)
+        _expected_status=200,
+    )
 
     assert json_resp['data']['provider_id'] == provider_id
 
@@ -1243,89 +1165,72 @@ def test_should_update_template_with_a_valid_provider(admin_request, sample_temp
 
 def test_should_not_update_template_with_non_existent_provider(admin_request, sample_template, fake_uuid):
     template = sample_template(template_type=EMAIL_TYPE)
-    data = {
-        'provider_id': fake_uuid
-    }
+    data = {'provider_id': fake_uuid}
     admin_request.post(
         'template.update_template',
         service_id=template.service_id,
         template_id=template.id,
         _data=data,
-        _expected_status=400)
+        _expected_status=400,
+    )
 
 
-def test_should_not_update_template_with_non_existent_communication_item(
-        admin_request, sample_template, fake_uuid
-):
+def test_should_not_update_template_with_non_existent_communication_item(admin_request, sample_template, fake_uuid):
     template = sample_template(template_type=EMAIL_TYPE)
-    data = {
-        'communication_item_id': fake_uuid
-    }
+    data = {'communication_item_id': fake_uuid}
     admin_request.post(
         'template.update_template',
         service_id=template.service_id,
         template_id=template.id,
         _data=data,
-        _expected_status=400)
+        _expected_status=400,
+    )
 
 
-@pytest.mark.parametrize('template_type', (
-    EMAIL_TYPE,
-    SMS_TYPE
-))
+@pytest.mark.parametrize('template_type', (EMAIL_TYPE, SMS_TYPE))
 def test_should_not_update_template_with_inactive_provider(
-        mocker, admin_request, sample_template, fake_uuid, template_type
+    mocker, admin_request, sample_template, fake_uuid, template_type
 ):
     template = sample_template(template_type=template_type)
-    data = {
-        'provider_id': fake_uuid
-    }
+    data = {'provider_id': fake_uuid}
     mocked_provider_details = mocker.Mock(ProviderDetails)
     mocked_provider_details.active = False
     mocked_provider_details.notification_type = template_type
     mocked_provider_details.id = fake_uuid
-    mocker.patch(
-        'app.schemas.validate_providers.get_provider_details_by_id',
-        return_value=mocked_provider_details
-    )
+    mocker.patch('app.schemas.validate_providers.get_provider_details_by_id', return_value=mocked_provider_details)
 
     json_resp = admin_request.post(
         'template.update_template',
         service_id=template.service_id,
         template_id=template.id,
         _data=data,
-        _expected_status=400)
+        _expected_status=400,
+    )
     assert json_resp['result'] == 'error'
-    assert json_resp['message']['provider_id'][0] == f"Invalid provider id: {fake_uuid}"
+    assert json_resp['message']['provider_id'][0] == f'Invalid provider id: {fake_uuid}'
 
 
-def test_should_not_update_template_with_incorrect_provider_type(
-        mocker, admin_request, sample_template, fake_uuid
-):
+def test_should_not_update_template_with_incorrect_provider_type(mocker, admin_request, sample_template, fake_uuid):
     template = sample_template(template_type=EMAIL_TYPE)
-    data = {
-        'provider_id': fake_uuid
-    }
+    data = {'provider_id': fake_uuid}
     mocked_provider_details = mocker.Mock(ProviderDetails)
     mocked_provider_details.active = True
     mocked_provider_details.notification_type = SMS_TYPE
     mocked_provider_details.id = fake_uuid
-    mocker.patch(
-        'app.schemas.validate_providers.get_provider_details_by_id',
-        return_value=mocked_provider_details
-    )
+    mocker.patch('app.schemas.validate_providers.get_provider_details_by_id', return_value=mocked_provider_details)
 
     json_resp = admin_request.post(
         'template.update_template',
         service_id=template.service_id,
         template_id=template.id,
         _data=data,
-        _expected_status=400)
+        _expected_status=400,
+    )
     assert json_resp['result'] == 'error'
-    assert json_resp['message']['provider_id'][0] == f"Invalid provider id: {fake_uuid}"
+    assert json_resp['message']['provider_id'][0] == f'Invalid provider id: {fake_uuid}'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 @freeze_time('2012-12-12')
 @pytest.mark.parametrize('file_type', ('png', 'pdf'))
 def test_preview_letter_template_by_id_valid_file_type(
@@ -1336,10 +1241,13 @@ def test_preview_letter_template_by_id_valid_file_type(
     file_type,
 ):
     sample_letter_notification.created_at = datetime.utcnow()
-    with set_config_values(notify_api, {
-        'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
-        'TEMPLATE_PREVIEW_API_KEY': 'test-key'
-    }):
+    with set_config_values(
+        notify_api,
+        {
+            'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
+            'TEMPLATE_PREVIEW_API_KEY': 'test-key',
+        },
+    ):
         with requests_mock.Mocker() as request_mock:
             content = b'\x00\x01'
 
@@ -1347,7 +1255,7 @@ def test_preview_letter_template_by_id_valid_file_type(
                 'http://localhost/notifications-template-preview/preview.{}'.format(file_type),
                 content=content,
                 headers={'X-pdf-page-count': '1'},
-                status_code=200
+                status_code=200,
             )
 
             resp = admin_request.get(
@@ -1387,19 +1295,19 @@ def test_preview_letter_template_by_id_valid_file_type(
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_preview_letter_template_by_id_template_preview_500(
+    notify_api, client, admin_request, notify_db_session, sample_letter_notification
+):
+    with set_config_values(
         notify_api,
-        client,
-        admin_request,
-        notify_db_session,
-        sample_letter_notification):
-
-    with set_config_values(notify_api, {
-        'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
-        'TEMPLATE_PREVIEW_API_KEY': 'test-key'
-    }):
+        {
+            'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
+            'TEMPLATE_PREVIEW_API_KEY': 'test-key',
+        },
+    ):
         import requests_mock
+
         with requests_mock.Mocker() as request_mock:
             content = b'\x00\x01'
 
@@ -1407,7 +1315,7 @@ def test_preview_letter_template_by_id_template_preview_500(
                 'http://localhost/notifications-template-preview/preview.pdf',
                 content=content,
                 headers={'X-pdf-page-count': '1'},
-                status_code=404
+                status_code=404,
             )
 
             resp = admin_request.get(
@@ -1415,7 +1323,7 @@ def test_preview_letter_template_by_id_template_preview_500(
                 service_id=sample_letter_notification.service_id,
                 notification_id=sample_letter_notification.id,
                 file_type='pdf',
-                _expected_status=500
+                _expected_status=500,
             )
 
             assert mock_post.last_request.json()
@@ -1439,34 +1347,35 @@ def test_preview_letter_template_by_id_template_preview_500(
 
 
 def test_preview_letter_template_precompiled_pdf_file_type(
-        notify_api,
-        client,
-        admin_request,
-        notify_db_session,
-        sample_api_key,
-        sample_notification,
-        sample_service,
-        sample_template,
-        mocker,
+    notify_api,
+    client,
+    admin_request,
+    notify_db_session,
+    sample_api_key,
+    sample_notification,
+    sample_service,
+    sample_template,
+    mocker,
 ):
-
     template = sample_template(
         service=sample_service(),
         template_type='letter',
         name='Pre-compiled PDF',
         subject='Pre-compiled PDF',
-        hidden=True
+        hidden=True,
     )
 
     api_key = sample_api_key(service=template.service)
     notification = sample_notification(template=template, api_key=api_key)
 
-    with set_config_values(notify_api, {
-        'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
-        'TEMPLATE_PREVIEW_API_KEY': 'test-key'
-    }):
+    with set_config_values(
+        notify_api,
+        {
+            'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
+            'TEMPLATE_PREVIEW_API_KEY': 'test-key',
+        },
+    ):
         with requests_mock.Mocker():
-
             content = b'\x00\x01'
 
             mock_get_letter_pdf = mocker.patch('app.template.rest.get_letter_pdf', return_value=content)
@@ -1475,7 +1384,7 @@ def test_preview_letter_template_precompiled_pdf_file_type(
                 'template.preview_letter_template_by_notification_id',
                 service_id=notification.service_id,
                 notification_id=notification.id,
-                file_type='pdf'
+                file_type='pdf',
             )
 
             assert mock_get_letter_pdf.called_once_with(notification)
@@ -1483,93 +1392,99 @@ def test_preview_letter_template_precompiled_pdf_file_type(
 
 
 def test_preview_letter_template_precompiled_s3_error(
-        notify_api,
-        client,
-        admin_request,
-        notify_db_session,
-        sample_api_key,
-        sample_notification,
-        sample_service,
-        mocker,
-        sample_template
+    notify_api,
+    client,
+    admin_request,
+    notify_db_session,
+    sample_api_key,
+    sample_notification,
+    sample_service,
+    mocker,
+    sample_template,
 ):
-
     template = sample_template(
         service=sample_service(),
         template_type='letter',
         name='Pre-compiled PDF',
         subject='Pre-compiled PDF',
-        hidden=True
+        hidden=True,
     )
 
     api_key = sample_api_key(service=template.service)
     notification = sample_notification(template=template, api_key=api_key)
 
-    with set_config_values(notify_api, {
-        'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
-        'TEMPLATE_PREVIEW_API_KEY': 'test-key'
-    }):
+    with set_config_values(
+        notify_api,
+        {
+            'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
+            'TEMPLATE_PREVIEW_API_KEY': 'test-key',
+        },
+    ):
         with requests_mock.Mocker():
-
-            mocker.patch('app.template.rest.get_letter_pdf',
-                         side_effect=botocore.exceptions.ClientError(
-                             {'Error': {'Code': '403', 'Message': 'Unauthorized'}},
-                             'GetObject'
-                         ))
+            mocker.patch(
+                'app.template.rest.get_letter_pdf',
+                side_effect=botocore.exceptions.ClientError(
+                    {'Error': {'Code': '403', 'Message': 'Unauthorized'}}, 'GetObject'
+                ),
+            )
 
             request = admin_request.get(
                 'template.preview_letter_template_by_notification_id',
                 service_id=notification.service_id,
                 notification_id=notification.id,
                 file_type='pdf',
-                _expected_status=500
+                _expected_status=500,
             )
 
-            assert request['message'] == "Error extracting requested page from PDF file for notification_id {} type " \
-                                         "<class 'botocore.exceptions.ClientError'> An error occurred (403) " \
-                                         "when calling the GetObject operation: Unauthorized".format(notification.id)
+            assert (
+                request['message']
+                == 'Error extracting requested page from PDF file for notification_id {} type '
+                "<class 'botocore.exceptions.ClientError'> An error occurred (403) "
+                'when calling the GetObject operation: Unauthorized'.format(notification.id)
+            )
 
 
 @pytest.mark.parametrize(
-    "filetype, post_url, overlay",
+    'filetype, post_url, overlay',
     [
         ('png', 'precompiled-preview.png', None),
         ('png', 'precompiled/overlay.png?page_number=1', 1),
-        ('pdf', 'precompiled/overlay.pdf', 1)
-    ]
+        ('pdf', 'precompiled/overlay.pdf', 1),
+    ],
 )
 def test_preview_letter_template_precompiled_png_file_type_or_pdf_with_overlay(
-        notify_api,
-        client,
-        admin_request,
-        notify_db_session,
-        sample_api_key,
-        sample_notification,
-        sample_service,
-        mocker,
-        filetype,
-        post_url,
-        overlay,
-        sample_template
+    notify_api,
+    client,
+    admin_request,
+    notify_db_session,
+    sample_api_key,
+    sample_notification,
+    sample_service,
+    mocker,
+    filetype,
+    post_url,
+    overlay,
+    sample_template,
 ):
-
     template = sample_template(
         service=sample_service(),
         template_type='letter',
         name='Pre-compiled PDF',
         subject='Pre-compiled PDF',
-        hidden=True
+        hidden=True,
     )
 
     api_key = sample_api_key(service=template.service)
     notification = sample_notification(template=template, api_key=api_key)
 
-    with set_config_values(notify_api, {
-        'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
-        'TEMPLATE_PREVIEW_API_KEY': 'test-key'
-    }):
+    with set_config_values(
+        notify_api,
+        {
+            'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
+            'TEMPLATE_PREVIEW_API_KEY': 'test-key',
+        },
+    ):
         with requests_mock.Mocker() as request_mock:
-
             pdf_content = b'\x00\x01'
             expected_returned_content = b'\x00\x02'
 
@@ -1581,7 +1496,7 @@ def test_preview_letter_template_precompiled_png_file_type_or_pdf_with_overlay(
                 'http://localhost/notifications-template-preview/{}'.format(post_url),
                 content=expected_returned_content,
                 headers={'X-pdf-page-count': '1'},
-                status_code=200
+                status_code=200,
             )
 
             resp = admin_request.get(
@@ -1598,39 +1513,45 @@ def test_preview_letter_template_precompiled_png_file_type_or_pdf_with_overlay(
             assert base64.b64decode(resp['content']) == expected_returned_content
 
 
-@pytest.mark.parametrize('page_number,expect_preview_url', [
-    ('', 'http://localhost/notifications-template-preview/precompiled-preview.png?hide_notify=true'),
-    ('1', 'http://localhost/notifications-template-preview/precompiled-preview.png?hide_notify=true'),
-    ('2', 'http://localhost/notifications-template-preview/precompiled-preview.png')
-])
+@pytest.mark.parametrize(
+    'page_number,expect_preview_url',
+    [
+        ('', 'http://localhost/notifications-template-preview/precompiled-preview.png?hide_notify=true'),
+        ('1', 'http://localhost/notifications-template-preview/precompiled-preview.png?hide_notify=true'),
+        ('2', 'http://localhost/notifications-template-preview/precompiled-preview.png'),
+    ],
+)
 def test_preview_letter_template_precompiled_png_file_type_hide_notify_tag_only_on_first_page(
-        notify_api,
-        client,
-        admin_request,
-        notify_db_session,
-        sample_api_key,
-        sample_notification,
-        sample_service,
-        mocker,
-        page_number,
-        expect_preview_url,
-        sample_template
+    notify_api,
+    client,
+    admin_request,
+    notify_db_session,
+    sample_api_key,
+    sample_notification,
+    sample_service,
+    mocker,
+    page_number,
+    expect_preview_url,
+    sample_template,
 ):
     template = sample_template(
         service=sample_service(),
         template_type='letter',
         name='Pre-compiled PDF',
         subject='Pre-compiled PDF',
-        hidden=True
+        hidden=True,
     )
 
     api_key = sample_api_key(service=template.service)
     notification = sample_notification(template=template, api_key=api_key)
 
-    with set_config_values(notify_api, {
-        'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
-        'TEMPLATE_PREVIEW_API_KEY': 'test-key'
-    }):
+    with set_config_values(
+        notify_api,
+        {
+            'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
+            'TEMPLATE_PREVIEW_API_KEY': 'test-key',
+        },
+    ):
         pdf_content = b'\x00\x01'
         png_content = b'\x00\x02'
         encoded = base64.b64encode(png_content).decode('utf-8')
@@ -1644,43 +1565,42 @@ def test_preview_letter_template_precompiled_png_file_type_hide_notify_tag_only_
             service_id=notification.service_id,
             notification_id=notification.id,
             file_type='png',
-            page=page_number
+            page=page_number,
         )
 
-        mock_get_png_preview.assert_called_once_with(
-            expect_preview_url, encoded, notification.id, json=False
-        )
+        mock_get_png_preview.assert_called_once_with(expect_preview_url, encoded, notification.id, json=False)
 
 
 def test_preview_letter_template_precompiled_png_template_preview_500_error(
-        notify_api,
-        client,
-        admin_request,
-        notify_db_session,
-        sample_api_key,
-        sample_notification,
-        sample_service,
-        mocker,
-        sample_template
+    notify_api,
+    client,
+    admin_request,
+    notify_db_session,
+    sample_api_key,
+    sample_notification,
+    sample_service,
+    mocker,
+    sample_template,
 ):
-
     template = sample_template(
         service=sample_service(),
         template_type='letter',
         name='Pre-compiled PDF',
         subject='Pre-compiled PDF',
-        hidden=True
+        hidden=True,
     )
 
     api_key = sample_api_key(service=template.service)
     notification = sample_notification(template=template, api_key=api_key)
 
-    with set_config_values(notify_api, {
-        'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
-        'TEMPLATE_PREVIEW_API_KEY': 'test-key'
-    }):
+    with set_config_values(
+        notify_api,
+        {
+            'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
+            'TEMPLATE_PREVIEW_API_KEY': 'test-key',
+        },
+    ):
         with requests_mock.Mocker() as request_mock:
-
             pdf_content = b'\x00\x01'
             png_content = b'\x00\x02'
 
@@ -1692,7 +1612,7 @@ def test_preview_letter_template_precompiled_png_template_preview_500_error(
                 'http://localhost/notifications-template-preview/precompiled-preview.png',
                 content=png_content,
                 headers={'X-pdf-page-count': '1'},
-                status_code=500
+                status_code=500,
             )
 
             admin_request.get(
@@ -1700,8 +1620,7 @@ def test_preview_letter_template_precompiled_png_template_preview_500_error(
                 service_id=notification.service_id,
                 notification_id=notification.id,
                 file_type='png',
-                _expected_status=500
-
+                _expected_status=500,
             )
 
             with pytest.raises(ValueError):
@@ -1709,34 +1628,35 @@ def test_preview_letter_template_precompiled_png_template_preview_500_error(
 
 
 def test_preview_letter_template_precompiled_png_template_preview_400_error(
-        notify_api,
-        client,
-        admin_request,
-        notify_db_session,
-        sample_api_key,
-        sample_notification,
-        sample_service,
-        mocker,
-        sample_template
+    notify_api,
+    client,
+    admin_request,
+    notify_db_session,
+    sample_api_key,
+    sample_notification,
+    sample_service,
+    mocker,
+    sample_template,
 ):
-
     template = sample_template(
         service=sample_service(),
         template_type='letter',
         name='Pre-compiled PDF',
         subject='Pre-compiled PDF',
-        hidden=True
+        hidden=True,
     )
 
     api_key = sample_api_key(service=template.service)
     notification = sample_notification(template=template, api_key=api_key)
 
-    with set_config_values(notify_api, {
-        'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
-        'TEMPLATE_PREVIEW_API_KEY': 'test-key'
-    }):
+    with set_config_values(
+        notify_api,
+        {
+            'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
+            'TEMPLATE_PREVIEW_API_KEY': 'test-key',
+        },
+    ):
         with requests_mock.Mocker() as request_mock:
-
             pdf_content = b'\x00\x01'
             png_content = b'\x00\x02'
 
@@ -1748,7 +1668,7 @@ def test_preview_letter_template_precompiled_png_template_preview_400_error(
                 'http://localhost/notifications-template-preview/precompiled-preview.png',
                 content=png_content,
                 headers={'X-pdf-page-count': '1'},
-                status_code=404
+                status_code=404,
             )
 
             admin_request.get(
@@ -1756,7 +1676,7 @@ def test_preview_letter_template_precompiled_png_template_preview_400_error(
                 service_id=notification.service_id,
                 notification_id=notification.id,
                 file_type='png',
-                _expected_status=500
+                _expected_status=500,
             )
 
             with pytest.raises(ValueError):
@@ -1764,47 +1684,48 @@ def test_preview_letter_template_precompiled_png_template_preview_400_error(
 
 
 def test_preview_letter_template_precompiled_png_template_preview_pdf_error(
-        notify_api,
-        client,
-        admin_request,
-        notify_db_session,
-        sample_api_key,
-        sample_notification,
-        sample_service,
-        mocker,
-        sample_template
+    notify_api,
+    client,
+    admin_request,
+    notify_db_session,
+    sample_api_key,
+    sample_notification,
+    sample_service,
+    mocker,
+    sample_template,
 ):
-
     template = sample_template(
         service=sample_service(),
         template_type='letter',
         name='Pre-compiled PDF',
         subject='Pre-compiled PDF',
-        hidden=True
+        hidden=True,
     )
 
     api_key = sample_api_key(service=template.service)
     notification = sample_notification(template=template, api_key=api_key)
 
-    with set_config_values(notify_api, {
-        'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
-        'TEMPLATE_PREVIEW_API_KEY': 'test-key'
-    }):
+    with set_config_values(
+        notify_api,
+        {
+            'TEMPLATE_PREVIEW_API_HOST': 'http://localhost/notifications-template-preview',
+            'TEMPLATE_PREVIEW_API_KEY': 'test-key',
+        },
+    ):
         with requests_mock.Mocker() as request_mock:
-
             pdf_content = b'\x00\x01'
             png_content = b'\x00\x02'
 
             mocker.patch('app.template.rest.get_letter_pdf', return_value=pdf_content)
 
-            error_message = "PDF Error message"
+            error_message = 'PDF Error message'
             mocker.patch('app.template.rest.extract_page_from_pdf', side_effect=PdfReadError(error_message))
 
             request_mock.post(
                 'http://localhost/notifications-template-preview/precompiled-preview.png',
                 content=png_content,
                 headers={'X-pdf-page-count': '1'},
-                status_code=404
+                status_code=404,
             )
 
             request = admin_request.get(
@@ -1812,11 +1733,14 @@ def test_preview_letter_template_precompiled_png_template_preview_pdf_error(
                 service_id=notification.service_id,
                 notification_id=notification.id,
                 file_type='png',
-                _expected_status=500
+                _expected_status=500,
             )
 
-            assert request['message'] == "Error extracting requested page from PDF file for notification_id {} type " \
-                                         "{} {}".format(notification.id, type(PdfReadError()), error_message)
+            assert request[
+                'message'
+            ] == 'Error extracting requested page from PDF file for notification_id {} type ' '{} {}'.format(
+                notification.id, type(PdfReadError()), error_message
+            )
 
 
 def test_should_create_template_without_created_by_using_current_user_id(
@@ -1824,33 +1748,29 @@ def test_should_create_template_without_created_by_using_current_user_id(
     notify_db_session,
     sample_service,
 ):
-    service = sample_service(service_name=f'sample service full permissions {uuid.uuid4()}',
-                             service_permissions=set(SERVICE_PERMISSION_TYPES),
-                             check_if_service_exists=True)
+    service = sample_service(
+        service_name=f'sample service full permissions {uuid.uuid4()}',
+        service_permissions=set(SERVICE_PERMISSION_TYPES),
+        check_if_service_exists=True,
+    )
     user = service.users[0]
     permission_dao.set_user_service_permission(
-        user,
-        service,
-        [Permission(
-            service_id=service.id,
-            user_id=user.id,
-            permission=EDIT_TEMPLATES
-        )])
+        user, service, [Permission(service_id=service.id, user_id=user.id, permission=EDIT_TEMPLATES)]
+    )
 
     data = {
         'name': 'my template',
         'template_type': SMS_TYPE,
         'content': 'template <b>content</b>',
         'service': str(service.id),
-        'created_by': None
+        'created_by': None,
     }
     data = json.dumps(data)
 
     response = client.post(
         '/service/{}/template'.format(service.id),
-        headers=[('Content-Type', 'application/json'),
-                 ('Authorization', f'Bearer {create_access_token(user)}')],
-        data=data
+        headers=[('Content-Type', 'application/json'), ('Authorization', f'Bearer {create_access_token(user)}')],
+        data=data,
     )
     assert response.status_code == 201
     json_resp = response.get_json()
@@ -1858,6 +1778,7 @@ def test_should_create_template_without_created_by_using_current_user_id(
 
     template = notify_db_session.session.get(Template, json_resp['data']['id'])
     from app.schemas import template_schema
+
     assert sorted(json_resp['data']) == sorted(template_schema.dump(template).data)
 
     # Teardown
@@ -1871,7 +1792,6 @@ def test_should_create_template_without_created_by_using_current_user_id(
 
 
 class TestGenerateHtmlPreviewForContent:
-
     def test_should_generate_html_preview_for_content(
         self,
         client,
@@ -1883,30 +1803,17 @@ class TestGenerateHtmlPreviewForContent:
 
         response = client.post(
             url_for('template.generate_html_preview_for_content', service_id=sample_service().id),
-            data=json.dumps({
-                'content': 'Foo'
-            }),
-            headers=[
-                ('Content-Type', 'application/json'),
-                ('Authorization', f'Bearer {token}')
-            ]
+            data=json.dumps({'content': 'Foo'}),
+            headers=[('Content-Type', 'application/json'), ('Authorization', f'Bearer {token}')],
         )
 
-        expected_preview_html = HTMLEmailTemplate(
-            {
-                'content': 'Foo',
-                'subject': ''
-            },
-            values={},
-            preview_mode=True
-        )
+        expected_preview_html = HTMLEmailTemplate({'content': 'Foo', 'subject': ''}, values={}, preview_mode=True)
 
         assert response.data.decode('utf-8') == str(expected_preview_html)
         assert response.headers['Content-type'] == 'text/html; charset=utf-8'
 
 
 class TestGenerateHtmlPreviewForTemplateContent:
-
     def test_should_generate_html_preview_for_template_content(
         self,
         client,
@@ -1918,23 +1825,11 @@ class TestGenerateHtmlPreviewForTemplateContent:
 
         response = client.post(
             url_for('template.generate_html_preview_for_template_content', service_id=sample_service().id),
-            data=json.dumps({
-                'content': 'Foo'
-            }),
-            headers=[
-                ('Content-Type', 'application/json'),
-                ('Authorization', f'Bearer {token}')
-            ]
+            data=json.dumps({'content': 'Foo'}),
+            headers=[('Content-Type', 'application/json'), ('Authorization', f'Bearer {token}')],
         )
 
-        expected_preview_html = HTMLEmailTemplate(
-            {
-                'content': 'Foo',
-                'subject': ''
-            },
-            values={},
-            preview_mode=True
-        )
+        expected_preview_html = HTMLEmailTemplate({'content': 'Foo', 'subject': ''}, values={}, preview_mode=True)
 
         assert response.data.decode('utf-8') == str(expected_preview_html)
         assert response.headers['Content-type'] == 'text/html; charset=utf-8'
@@ -1958,7 +1853,7 @@ class TestTemplateNameAlreadyExists:
             'content': 'template <b>content</b>',
             'service': str(service.id),
             'created_by': str(sample_user().id),
-            'subject': 'subject'
+            'subject': 'subject',
         }
 
         data = json.dumps(data)
@@ -1969,7 +1864,7 @@ class TestTemplateNameAlreadyExists:
             response = client.post(
                 f'/service/{service.id}/template',
                 headers=[('Content-Type', 'application/json'), auth_header],
-                data=data
+                data=data,
             )
 
         assert response.status_code == 400
@@ -1990,16 +1885,14 @@ class TestTemplateNameAlreadyExists:
 
         service = sample_service(service_permissions=[EMAIL_TYPE])
         template = sample_template(service=service, template_type=EMAIL_TYPE)
-        data = {
-            'name': template.name
-        }
+        data = {'name': template.name}
         data = json.dumps(data)
         auth_header = create_admin_authorization_header()
 
         update_response = client.post(
             f'/service/{service.id}/template/{template.id}',
             headers=[('Content-Type', 'application/json'), auth_header],
-            data=data
+            data=data,
         )
 
         assert update_response.status_code == 400
@@ -2017,7 +1910,7 @@ class TestServiceTemplateUsageStats:
         sample_service,
         sample_template,
     ):
-        service = sample_service(service_name=str(uuid.uuid4()), smtp_user="foo")
+        service = sample_service(service_name=str(uuid.uuid4()), smtp_user='foo')
         template = sample_template(service=service)
 
         sample_ft_notification_status(date(2021, 3, 15), service=service, template=template)
@@ -2033,11 +1926,7 @@ class TestServiceTemplateUsageStats:
             'template.get_specific_template_usage_stats', service_id=service.id, template_id=template.id
         )
 
-        assert resp['data'] == {
-            'delivered': 2,
-            'permanent_failure': 1,
-            'sent': 1
-        }
+        assert resp['data'] == {'delivered': 2, 'permanent_failure': 1, 'sent': 1}
 
     @freeze_time('2021-10-18 14:00')
     def test_get_specific_template_usage_with_start_date(
@@ -2047,7 +1936,7 @@ class TestServiceTemplateUsageStats:
         sample_service,
         sample_template,
     ):
-        service = sample_service(service_name=str(uuid.uuid4()), smtp_user="foo")
+        service = sample_service(service_name=str(uuid.uuid4()), smtp_user='foo')
         template = sample_template(service=service)
 
         sample_ft_notification_status(date(2021, 3, 15), service=service, template=template)
@@ -2063,14 +1952,10 @@ class TestServiceTemplateUsageStats:
             'template.get_specific_template_usage_stats',
             service_id=service.id,
             template_id=template.id,
-            start_date=date(2021, 3, 16)
+            start_date=date(2021, 3, 16),
         )
 
-        assert resp['data'] == {
-            'delivered': 1,
-            'permanent_failure': 1,
-            'sent': 1
-        }
+        assert resp['data'] == {'delivered': 1, 'permanent_failure': 1, 'sent': 1}
 
     @freeze_time('2021-10-18 14:00')
     def test_get_specific_template_usage_with_end_date(
@@ -2080,7 +1965,7 @@ class TestServiceTemplateUsageStats:
         sample_service,
         sample_template,
     ):
-        service = sample_service(service_name=str(uuid.uuid4()), smtp_user="foo")
+        service = sample_service(service_name=str(uuid.uuid4()), smtp_user='foo')
         template = sample_template(service=service)
 
         sample_ft_notification_status(date(2021, 3, 15), service=service, template=template)
@@ -2096,12 +1981,10 @@ class TestServiceTemplateUsageStats:
             'template.get_specific_template_usage_stats',
             service_id=service.id,
             template_id=template.id,
-            end_date=date(2021, 3, 18)
+            end_date=date(2021, 3, 18),
         )
 
-        assert resp['data'] == {
-            'delivered': 2
-        }
+        assert resp['data'] == {'delivered': 2}
 
     @freeze_time('2021-10-18 14:00')
     def test_get_specific_template_usage_with_start_and_end_date(
@@ -2111,7 +1994,7 @@ class TestServiceTemplateUsageStats:
         sample_service,
         sample_template,
     ):
-        service = sample_service(service_name=str(uuid.uuid4()), smtp_user="foo")
+        service = sample_service(service_name=str(uuid.uuid4()), smtp_user='foo')
         template = sample_template(service=service)
 
         sample_ft_notification_status(date(2021, 3, 15), service=service, template=template)
@@ -2128,10 +2011,7 @@ class TestServiceTemplateUsageStats:
             service_id=service.id,
             template_id=template.id,
             start_date=date(2021, 3, 17),
-            end_date=date(2021, 10, 11)
+            end_date=date(2021, 10, 11),
         )
 
-        assert resp['data'] == {
-            'delivered': 1,
-            'sent': 1
-        }
+        assert resp['data'] == {'delivered': 1, 'sent': 1}

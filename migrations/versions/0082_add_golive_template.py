@@ -12,7 +12,6 @@ from datetime import datetime
 from flask import current_app
 
 from alembic import op
-import sqlalchemy as sa
 
 revision = '0082_add_go_live_template'
 down_revision = '0081_noti_status_as_enum'

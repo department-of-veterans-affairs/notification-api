@@ -6,7 +6,6 @@ Create Date: 2018-07-18 10:43:43.864835
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = '0207_set_callback_history_type'

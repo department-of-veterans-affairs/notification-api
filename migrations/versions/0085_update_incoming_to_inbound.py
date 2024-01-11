@@ -11,8 +11,6 @@ revision = '0085_update_incoming_to_inbound'
 down_revision = '0084_add_job_stats'
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 def upgrade():
     op.execute("UPDATE service_permission_types SET name='inbound_sms' WHERE name='incoming_sms'")

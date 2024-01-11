@@ -65,10 +65,11 @@ def test_should_add_to_retry_queue_if_notification_not_found_in_deliver_email_ta
 
 # DO THESE FOR THE 4 TYPES OF TASK
 
+
 def test_should_go_into_technical_error_if_exceeds_retries_on_deliver_sms_task(
     mocker, sample_template, sample_notification
 ):
-    mocker.patch('app.delivery.send_to_providers.send_sms_to_provider', side_effect=Exception("EXPECTED"))
+    mocker.patch('app.delivery.send_to_providers.send_sms_to_provider', side_effect=Exception('EXPECTED'))
     mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
     mocker.patch('app.celery.provider_tasks.can_retry', return_value=False)
 
@@ -104,7 +105,7 @@ def test_should_technical_error_and_not_retry_if_invalid_email(mocker, sample_te
 def test_should_queue_callback_task_if_non_retryable_exception_is_thrown(mocker, sample_template, sample_notification):
     mocker.patch(
         'app.celery.provider_tasks.send_to_providers.send_sms_to_provider',
-        side_effect=NonRetryableException('Exception')
+        side_effect=NonRetryableException('Exception'),
     )
 
     mock_callback = mocker.patch('app.celery.provider_tasks.check_and_queue_callback_task')
@@ -121,7 +122,7 @@ def test_should_queue_callback_task_if_non_retryable_exception_is_thrown(mocker,
 def test_should_go_into_technical_error_if_exceeds_retries_on_deliver_email_task(
     mocker, sample_template, sample_notification
 ):
-    mocker.patch('app.delivery.send_to_providers.send_email_to_provider', side_effect=Exception("EXPECTED"))
+    mocker.patch('app.delivery.send_to_providers.send_email_to_provider', side_effect=Exception('EXPECTED'))
     mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
     mocker.patch('app.celery.provider_tasks.can_retry', return_value=False)
 
@@ -141,7 +142,7 @@ def test_should_go_into_technical_error_if_exceeds_retries_on_deliver_email_task
 def test_should_technical_error_and_not_retry_if_invalid_email_provider(mocker, sample_template, sample_notification):
     mocker.patch(
         'app.delivery.send_to_providers.send_email_to_provider',
-        side_effect=InvalidProviderException('invalid provider')
+        side_effect=InvalidProviderException('invalid provider'),
     )
     mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
 
@@ -159,8 +160,7 @@ def test_should_technical_error_and_not_retry_if_invalid_email_provider(mocker, 
 
 def test_should_technical_error_and_not_retry_if_invalid_sms_provider(mocker, sample_template, sample_notification):
     mocker.patch(
-        'app.delivery.send_to_providers.send_sms_to_provider',
-        side_effect=InvalidProviderException('invalid provider')
+        'app.delivery.send_to_providers.send_sms_to_provider', side_effect=InvalidProviderException('invalid provider')
     )
     mocker.patch('app.celery.provider_tasks.deliver_sms.retry')
     mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
@@ -179,8 +179,7 @@ def test_should_technical_error_and_not_retry_if_invalid_sms_provider(mocker, sa
 
 def test_should_retry_and_log_exception(mocker, sample_template, sample_notification):
     mocker.patch(
-        'app.delivery.send_to_providers.send_email_to_provider',
-        side_effect=AwsSesClientThrottlingSendRateException
+        'app.delivery.send_to_providers.send_email_to_provider', side_effect=AwsSesClientThrottlingSendRateException
     )
 
     template = sample_template()
@@ -203,8 +202,7 @@ def test_deliver_sms_with_rate_limiting_should_deliver_if_rate_limit_not_exceede
     mocker.patch('app.notifications.validators.check_sms_sender_over_rate_limit')
     send_sms_to_provider = mocker.patch('app.delivery.send_to_providers.send_sms_to_provider')
     mocker.patch(
-        'app.celery.provider_tasks.dao_get_service_sms_sender_by_service_id_and_number',
-        return_value=sms_sender
+        'app.celery.provider_tasks.dao_get_service_sms_sender_by_service_id_and_number', return_value=sms_sender
     )
 
     template = sample_template()
@@ -225,13 +223,12 @@ def test_deliver_sms_with_rate_limiting_should_retry_if_rate_limit_exceeded(
 
     mocker.patch(
         'app.notifications.validators.check_sms_sender_over_rate_limit',
-        side_effect=RateLimitError('Non Provider Exception', sms_sender.rate_limit)
+        side_effect=RateLimitError('Non Provider Exception', sms_sender.rate_limit),
     )
 
     mocker.patch('app.delivery.send_to_providers.send_sms_to_provider')
     mocker.patch(
-        'app.celery.provider_tasks.dao_get_service_sms_sender_by_service_id_and_number',
-        return_value=sms_sender
+        'app.celery.provider_tasks.dao_get_service_sms_sender_by_service_id_and_number', return_value=sms_sender
     )
 
     retry = mocker.patch('app.celery.provider_tasks.deliver_sms_with_rate_limiting.retry')
@@ -242,14 +239,13 @@ def test_deliver_sms_with_rate_limiting_should_retry_if_rate_limit_exceeded(
     deliver_sms_with_rate_limiting(notification.id)
 
     retry.assert_called_once_with(
-        queue=QueueNames.RATE_LIMIT_RETRY, max_retries=None,
-        countdown=sms_sender.rate_limit_interval / sms_sender.rate_limit
+        queue=QueueNames.RATE_LIMIT_RETRY,
+        max_retries=None,
+        countdown=sms_sender.rate_limit_interval / sms_sender.rate_limit,
     )
 
 
-def test_deliver_sms_with_rate_limiting_should_retry_generic_exceptions(
-    mocker, sample_template, sample_notification
-):
+def test_deliver_sms_with_rate_limiting_should_retry_generic_exceptions(mocker, sample_template, sample_notification):
     mocker.patch('app.celery.provider_tasks.send_to_providers.send_sms_to_provider', side_effect=Exception)
     mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
     template = sample_template()

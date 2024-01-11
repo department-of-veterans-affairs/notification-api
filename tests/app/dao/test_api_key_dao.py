@@ -14,12 +14,9 @@ from sqlalchemy.orm.exc import NoResultFound
 
 def test_save_api_key_should_create_new_api_key_and_history(notify_db_session, sample_service):
     service = sample_service()
-    api_key = ApiKey(**{
-        'service': service,
-        'name': service.name,
-        'created_by': service.created_by,
-        'key_type': KEY_TYPE_NORMAL
-    })
+    api_key = ApiKey(
+        **{'service': service, 'name': service.name, 'created_by': service.created_by, 'key_type': KEY_TYPE_NORMAL}
+    )
     save_model_api_key(api_key)
 
     all_api_keys = get_model_api_keys(service_id=service.id)
@@ -99,33 +96,39 @@ def test_get_unsigned_secret_returns_key(sample_api_key):
 
 def test_should_not_allow_duplicate_key_names_per_service(sample_api_key, fake_uuid):
     api_key = sample_api_key()
-    api_key = ApiKey(**{
-        'id': fake_uuid,
-        'service': api_key.service,
-        'name': api_key.name,
-        'created_by': api_key.created_by,
-        'key_type': KEY_TYPE_NORMAL
-    })
+    api_key = ApiKey(
+        **{
+            'id': fake_uuid,
+            'service': api_key.service,
+            'name': api_key.name,
+            'created_by': api_key.created_by,
+            'key_type': KEY_TYPE_NORMAL,
+        }
+    )
     with pytest.raises(IntegrityError):
         save_model_api_key(api_key)
 
 
 def test_save_api_key_can_create_key_with_same_name_if_other_is_expired(notify_db_session, sample_service):
     service = sample_service()
-    expired_api_key = ApiKey(**{
-        'service': service,
-        'name': "normal api key",
-        'created_by': service.created_by,
-        'key_type': KEY_TYPE_NORMAL,
-        'expiry_date': datetime.utcnow(),
-    })
+    expired_api_key = ApiKey(
+        **{
+            'service': service,
+            'name': 'normal api key',
+            'created_by': service.created_by,
+            'key_type': KEY_TYPE_NORMAL,
+            'expiry_date': datetime.utcnow(),
+        }
+    )
     save_model_api_key(expired_api_key)
-    api_key = ApiKey(**{
-        'service': service,
-        'name': "normal api key",
-        'created_by': service.created_by,
-        'key_type': KEY_TYPE_NORMAL,
-    })
+    api_key = ApiKey(
+        **{
+            'service': service,
+            'name': 'normal api key',
+            'created_by': service.created_by,
+            'key_type': KEY_TYPE_NORMAL,
+        }
+    )
     save_model_api_key(api_key)
     keys = ApiKey.query.all()
     api_key_histories = api_key.get_history_model().query.all()
@@ -152,12 +155,9 @@ def test_save_api_key_should_not_create_new_service_history(notify_db_session, s
     assert Service.query.count() == 1
     assert Service.get_history_model().query.count() == 1
 
-    api_key = ApiKey(**{
-        'service': service,
-        'name': service.name,
-        'created_by': service.created_by,
-        'key_type': KEY_TYPE_NORMAL
-    })
+    api_key = ApiKey(
+        **{'service': service, 'name': service.name, 'created_by': service.created_by, 'key_type': KEY_TYPE_NORMAL}
+    )
     save_model_api_key(api_key)
 
     api_key_histories = api_key.get_history_model().query.all()
@@ -179,13 +179,15 @@ def test_should_not_return_revoked_api_keys_older_than_7_days(
     notify_db_session, sample_service, days_old, expected_length
 ):
     service = sample_service()
-    expired_api_key = ApiKey(**{
-        'service': service,
-        'name': service.name,
-        'created_by': service.created_by,
-        'key_type': KEY_TYPE_NORMAL,
-        'expiry_date': datetime.utcnow() - timedelta(days=days_old),
-    })
+    expired_api_key = ApiKey(
+        **{
+            'service': service,
+            'name': service.name,
+            'created_by': service.created_by,
+            'key_type': KEY_TYPE_NORMAL,
+            'expiry_date': datetime.utcnow() - timedelta(days=days_old),
+        }
+    )
     save_model_api_key(expired_api_key)
 
     all_api_keys = get_model_api_keys(service_id=service.id)

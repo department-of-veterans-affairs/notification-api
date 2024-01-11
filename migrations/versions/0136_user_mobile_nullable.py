@@ -6,9 +6,6 @@ Create Date: 2017-11-08 11:49:05.773974
 
 """
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.sql import column
-from sqlalchemy.dialects import postgresql
 
 revision = '0136_user_mobile_nullable'
 down_revision = '0135_stats_template_usage'

@@ -11,7 +11,6 @@ revision = '0026_rename_notify_service'
 down_revision = '0025_notify_service_data'
 
 from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

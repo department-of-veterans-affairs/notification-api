@@ -11,7 +11,6 @@ revision = '0029_fix_email_from'
 down_revision = '0028_fix_reg_template_history'
 
 from alembic import op
-import sqlalchemy as sa
 
 service_id = 'd6aa2c68-a2d9-4437-ab19-3ae8eb202553'
 def upgrade():

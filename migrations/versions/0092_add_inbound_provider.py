@@ -12,7 +12,6 @@ down_revision = '0091_letter_billing'
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 def upgrade():
     op.add_column('inbound_sms', sa.Column('provider', sa.String(), nullable=True))

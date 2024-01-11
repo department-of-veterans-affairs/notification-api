@@ -11,12 +11,11 @@ revision = '0300c_remove_email_branding'
 down_revision = '0300b_support_email_templates'
 
 from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():
     # UK Visas & Immigration
-    op.execute(f"""
+    op.execute("""
         DELETE FROM 
           email_branding
         WHERE 
@@ -24,7 +23,7 @@ def upgrade():
     """)
 
     # data gov.uk
-    op.execute(f"""
+    op.execute("""
         DELETE FROM 
           email_branding
         WHERE 
@@ -32,7 +31,7 @@ def upgrade():
     """)
 
     # tfl
-    op.execute(f"""
+    op.execute("""
         DELETE FROM 
           email_branding
         WHERE 
@@ -40,7 +39,7 @@ def upgrade():
     """)
 
     # een
-    op.execute(f"""
+    op.execute("""
         DELETE FROM 
           email_branding
         WHERE 

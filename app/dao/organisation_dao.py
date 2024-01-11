@@ -36,10 +36,7 @@ def dao_get_organisation_by_email_address(email_address):
     email_address = email_address.lower().replace('.gsi.gov.uk', '.gov.uk')
 
     for domain in Domain.query.order_by(func.char_length(Domain.domain).desc()).all():
-
-        if (
-            email_address.endswith("@{}".format(domain.domain)) or email_address.endswith(".{}".format(domain.domain))
-        ):
+        if email_address.endswith('@{}'.format(domain.domain)) or email_address.endswith('.{}'.format(domain.domain)):
             return Organisation.query.filter_by(id=domain.organisation_id).one()
 
     return None
@@ -68,10 +65,9 @@ def dao_update_organisation(organisation_id, **kwargs):
         stmt = delete(Domain).where(Domain.organisation_id == organisation_id)
         db.session.execute(stmt)
 
-        db.session.bulk_save_objects([
-            Domain(domain=domain.lower(), organisation_id=organisation_id)
-            for domain in domains
-        ])
+        db.session.bulk_save_objects(
+            [Domain(domain=domain.lower(), organisation_id=organisation_id) for domain in domains]
+        )
 
     if 'organisation_type' in kwargs:
         organisation = db.session.get(Organisation, organisation_id)
@@ -106,9 +102,13 @@ def dao_get_invited_organisation_user(user_id):
 
 def dao_get_users_for_organisation(organisation_id):
     j_stmt = join(User, user_to_organisation)
-    stmt = select(User).select_from(j_stmt).where(User.state == 'active')\
-                                           .where(user_to_organisation.c.organisation_id == organisation_id)\
-                                           .order_by(User.created_at)
+    stmt = (
+        select(User)
+        .select_from(j_stmt)
+        .where(User.state == 'active')
+        .where(user_to_organisation.c.organisation_id == organisation_id)
+        .order_by(User.created_at)
+    )
     return db.session.scalars(stmt).all()
 
 

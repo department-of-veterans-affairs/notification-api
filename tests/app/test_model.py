@@ -25,82 +25,81 @@ from app.models import (
     PRECOMPILED_TEMPLATE_NAME,
     COMPLAINT_CALLBACK_TYPE,
     QUEUE_CHANNEL_TYPE,
-    WEBHOOK_CHANNEL_TYPE
+    WEBHOOK_CHANNEL_TYPE,
 )
 from app.va.identifier import IdentifierType
 
-from tests.app.db import (
-    create_letter_contact,
-    create_template_folder
-)
+from tests.app.db import create_letter_contact, create_template_folder
 
 
-@pytest.mark.parametrize('mobile_number', [
-    '650 253 2222',
-    '+1 650 253 2222'
-])
+@pytest.mark.parametrize('mobile_number', ['650 253 2222', '+1 650 253 2222'])
 def test_should_build_service_whitelist_from_mobile_number(mobile_number):
     service_whitelist = ServiceWhitelist.from_string('service_id', MOBILE_TYPE, mobile_number)
 
     assert service_whitelist.recipient == mobile_number
 
 
-@pytest.mark.parametrize('email_address', [
-    'test@example.com'
-])
+@pytest.mark.parametrize('email_address', ['test@example.com'])
 def test_should_build_service_whitelist_from_email_address(email_address):
     service_whitelist = ServiceWhitelist.from_string('service_id', EMAIL_TYPE, email_address)
 
     assert service_whitelist.recipient == email_address
 
 
-@pytest.mark.parametrize('contact, recipient_type', [
-    ('', None),
-    ('07700dsadsad', MOBILE_TYPE),
-    ('gmail.com', EMAIL_TYPE)
-])
+@pytest.mark.parametrize(
+    'contact, recipient_type', [('', None), ('07700dsadsad', MOBILE_TYPE), ('gmail.com', EMAIL_TYPE)]
+)
 def test_should_not_build_service_whitelist_from_invalid_contact(recipient_type, contact):
     with pytest.raises(ValueError):
         ServiceWhitelist.from_string('service_id', recipient_type, contact)
 
 
-@pytest.mark.parametrize('initial_statuses, expected_statuses', [
-    # passing in single statuses as strings
-    (NOTIFICATION_FAILED, NOTIFICATION_STATUS_TYPES_FAILED),
-    (NOTIFICATION_STATUS_LETTER_ACCEPTED, [NOTIFICATION_SENDING, NOTIFICATION_CREATED]),
-    (NOTIFICATION_CREATED, [NOTIFICATION_CREATED]),
-    (NOTIFICATION_TECHNICAL_FAILURE, [NOTIFICATION_TECHNICAL_FAILURE]),
-    # passing in lists containing single statuses
-    ([NOTIFICATION_FAILED], NOTIFICATION_STATUS_TYPES_FAILED),
-    ([NOTIFICATION_CREATED], [NOTIFICATION_CREATED]),
-    ([NOTIFICATION_TECHNICAL_FAILURE], [NOTIFICATION_TECHNICAL_FAILURE]),
-    (NOTIFICATION_STATUS_LETTER_RECEIVED, NOTIFICATION_DELIVERED),
-    # passing in lists containing multiple statuses
-    ([NOTIFICATION_FAILED, NOTIFICATION_CREATED], NOTIFICATION_STATUS_TYPES_FAILED + [NOTIFICATION_CREATED]),
-    ([NOTIFICATION_CREATED, NOTIFICATION_PENDING], [NOTIFICATION_CREATED, NOTIFICATION_PENDING]),
-    ([NOTIFICATION_CREATED, NOTIFICATION_TECHNICAL_FAILURE], [NOTIFICATION_CREATED, NOTIFICATION_TECHNICAL_FAILURE]),
-    (
-        [NOTIFICATION_FAILED, NOTIFICATION_STATUS_LETTER_ACCEPTED],
-        NOTIFICATION_STATUS_TYPES_FAILED + [NOTIFICATION_SENDING, NOTIFICATION_CREATED]
-    ),
-    # checking we don't end up with duplicates
-    (
-        [NOTIFICATION_FAILED, NOTIFICATION_CREATED, NOTIFICATION_TECHNICAL_FAILURE],
-        NOTIFICATION_STATUS_TYPES_FAILED + [NOTIFICATION_CREATED]
-    ),
-])
+@pytest.mark.parametrize(
+    'initial_statuses, expected_statuses',
+    [
+        # passing in single statuses as strings
+        (NOTIFICATION_FAILED, NOTIFICATION_STATUS_TYPES_FAILED),
+        (NOTIFICATION_STATUS_LETTER_ACCEPTED, [NOTIFICATION_SENDING, NOTIFICATION_CREATED]),
+        (NOTIFICATION_CREATED, [NOTIFICATION_CREATED]),
+        (NOTIFICATION_TECHNICAL_FAILURE, [NOTIFICATION_TECHNICAL_FAILURE]),
+        # passing in lists containing single statuses
+        ([NOTIFICATION_FAILED], NOTIFICATION_STATUS_TYPES_FAILED),
+        ([NOTIFICATION_CREATED], [NOTIFICATION_CREATED]),
+        ([NOTIFICATION_TECHNICAL_FAILURE], [NOTIFICATION_TECHNICAL_FAILURE]),
+        (NOTIFICATION_STATUS_LETTER_RECEIVED, NOTIFICATION_DELIVERED),
+        # passing in lists containing multiple statuses
+        ([NOTIFICATION_FAILED, NOTIFICATION_CREATED], NOTIFICATION_STATUS_TYPES_FAILED + [NOTIFICATION_CREATED]),
+        ([NOTIFICATION_CREATED, NOTIFICATION_PENDING], [NOTIFICATION_CREATED, NOTIFICATION_PENDING]),
+        (
+            [NOTIFICATION_CREATED, NOTIFICATION_TECHNICAL_FAILURE],
+            [NOTIFICATION_CREATED, NOTIFICATION_TECHNICAL_FAILURE],
+        ),
+        (
+            [NOTIFICATION_FAILED, NOTIFICATION_STATUS_LETTER_ACCEPTED],
+            NOTIFICATION_STATUS_TYPES_FAILED + [NOTIFICATION_SENDING, NOTIFICATION_CREATED],
+        ),
+        # checking we don't end up with duplicates
+        (
+            [NOTIFICATION_FAILED, NOTIFICATION_CREATED, NOTIFICATION_TECHNICAL_FAILURE],
+            NOTIFICATION_STATUS_TYPES_FAILED + [NOTIFICATION_CREATED],
+        ),
+    ],
+)
 def test_status_conversion(initial_statuses, expected_statuses):
     converted_statuses = Notification.substitute_status(initial_statuses)
     assert len(converted_statuses) == len(expected_statuses)
     assert set(converted_statuses) == set(expected_statuses)
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@freeze_time("2016-01-01 11:09:00.000000")
-@pytest.mark.parametrize('template_type, recipient', [
-    ('sms', '+16502532222'),
-    ('email', 'foo@bar.com'),
-])
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@freeze_time('2016-01-01 11:09:00.000000')
+@pytest.mark.parametrize(
+    'template_type, recipient',
+    [
+        ('sms', '+16502532222'),
+        ('email', 'foo@bar.com'),
+    ],
+)
 def test_notification_for_csv_returns_correct_type(
     notify_db_session,
     sample_template,
@@ -119,8 +118,8 @@ def test_notification_for_csv_returns_correct_type(
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@freeze_time("2016-01-01 11:09:00.000000")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@freeze_time('2016-01-01 11:09:00.000000')
 def test_notification_for_csv_returns_correct_job_row_number(sample_job, sample_notification):
     notification = sample_notification(sample_job.template, sample_job, job_row_number=0)
 
@@ -128,28 +127,31 @@ def test_notification_for_csv_returns_correct_job_row_number(sample_job, sample_
     assert serialized['row_number'] == 1
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@freeze_time("2016-01-30 12:39:58.321312")
-@pytest.mark.parametrize('template_type, status, expected_status', [
-    ('email', 'failed', 'Failed'),
-    ('email', 'technical-failure', 'Technical failure'),
-    ('email', 'temporary-failure', 'Inbox not accepting messages right now'),
-    ('email', 'permanent-failure', 'Email address doesn’t exist'),
-    ('sms', 'temporary-failure', 'Phone not accepting messages right now'),
-    ('sms', 'permanent-failure', 'Phone number doesn’t exist'),
-    ('sms', 'sent', 'Sent internationally'),
-    ('letter', 'created', 'Accepted'),
-    ('letter', 'sending', 'Accepted'),
-    ('letter', 'technical-failure', 'Technical failure'),
-    ('letter', 'delivered', 'Received')
-])
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@freeze_time('2016-01-30 12:39:58.321312')
+@pytest.mark.parametrize(
+    'template_type, status, expected_status',
+    [
+        ('email', 'failed', 'Failed'),
+        ('email', 'technical-failure', 'Technical failure'),
+        ('email', 'temporary-failure', 'Inbox not accepting messages right now'),
+        ('email', 'permanent-failure', 'Email address doesn’t exist'),
+        ('sms', 'temporary-failure', 'Phone not accepting messages right now'),
+        ('sms', 'permanent-failure', 'Phone number doesn’t exist'),
+        ('sms', 'sent', 'Sent internationally'),
+        ('letter', 'created', 'Accepted'),
+        ('letter', 'sending', 'Accepted'),
+        ('letter', 'technical-failure', 'Technical failure'),
+        ('letter', 'delivered', 'Received'),
+    ],
+)
 def test_notification_for_csv_returns_formatted_status(
-        sample_service,
-        sample_template,
-        template_type,
-        status,
-        expected_status,
-        sample_notification,
+    sample_service,
+    sample_template,
+    template_type,
+    status,
+    expected_status,
+    sample_notification,
 ):
     template = sample_template(sample_service(), template_type=template_type)
     notification = sample_notification(template, status=status)
@@ -158,7 +160,7 @@ def test_notification_for_csv_returns_formatted_status(
     assert serialized['status'] == expected_status
 
 
-@freeze_time("2017-03-26 23:01:53.321312")
+@freeze_time('2017-03-26 23:01:53.321312')
 def test_notification_for_csv_returns_est_correctly(notify_db_session, sample_template, sample_notification):
     notification = sample_notification(template=sample_template())
 
@@ -182,10 +184,7 @@ def test_notification_personalisation_getter_always_returns_empty_dict(notify_ap
     assert noti.personalisation == {}
 
 
-@pytest.mark.parametrize('input_value', [
-    None,
-    {}
-])
+@pytest.mark.parametrize('input_value', [None, {}])
 def test_notification_personalisation_setter_always_sets_empty_dict(notify_api, input_value):
     noti = Notification()
     noti.personalisation = input_value
@@ -207,13 +206,13 @@ def test_notification_subject_fills_in_placeholders(notify_db_session, sample_te
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_letter_notification_serializes_with_address(client, sample_letter_notification):
     sample_letter_notification.personalisation = {
         'address_line_1': 'foo',
         'address_line_3': 'bar',
         'address_line_5': None,
-        'postcode': 'SW1 1AA'
+        'postcode': 'SW1 1AA',
     }
     res = sample_letter_notification.serialize()
     assert res['line_1'] == 'foo'
@@ -249,7 +248,7 @@ def test_email_notification_serializes_with_subject(client, sample_template):
     assert res['subject'] == 'Subject'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_letter_notification_serializes_with_subject(client, sample_letter_template):
     res = sample_letter_template.serialize()
     assert res['subject'] == 'Template subject'
@@ -258,7 +257,7 @@ def test_letter_notification_serializes_with_subject(client, sample_letter_templ
 def test_user_service_role_serializes_without_updated(client, sample_user_service_role):
     res = sample_user_service_role.serialize()
     assert res['id'] is not None
-    assert res['role'] == "admin"
+    assert res['role'] == 'admin'
     assert res['user_id'] == str(sample_user_service_role.user_id)
     assert res['service_id'] == str(sample_user_service_role.service_id)
     assert res['updated_at'] is None
@@ -267,7 +266,7 @@ def test_user_service_role_serializes_without_updated(client, sample_user_servic
 def test_user_service_role_serializes_with_updated(client, sample_service_role_udpated):
     res = sample_service_role_udpated.serialize()
     assert res['id'] is not None
-    assert res['role'] == "admin"
+    assert res['role'] == 'admin'
     assert res['user_id'] == str(sample_service_role_udpated.user_id)
     assert res['service_id'] == str(sample_service_role_udpated.service_id)
     assert res['updated_at'] == sample_service_role_udpated.updated_at.isoformat() + 'Z'
@@ -292,14 +291,8 @@ def test_notification_references_template_history(client, notify_db_session, sam
 
 def test_email_notification_serializes_with_recipient_identifiers(client, sample_template, sample_notification):
     recipient_identifiers = [
-        {
-            "id_type": IdentifierType.VA_PROFILE_ID.value,
-            "id_value": "some vaprofileid"
-        },
-        {
-            "id_type": IdentifierType.ICN.value,
-            "id_value": "some icn"
-        }
+        {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': 'some vaprofileid'},
+        {'id_type': IdentifierType.ICN.value, 'id_value': 'some icn'},
     ]
     template = sample_template(template_type=EMAIL_TYPE)
     noti = sample_notification(template=template, recipient_identifiers=recipient_identifiers)
@@ -350,7 +343,7 @@ def test_service_get_default_reply_to_email_address(sample_service, sample_servi
     assert service.get_default_reply_to_email_address() == email
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_service_get_default_contact_letter(sample_service):
     create_letter_contact(service=sample_service, contact_block='London,\nNW1A 1AA')
 
@@ -362,7 +355,7 @@ def test_service_get_default_sms_sender(sample_service):
     assert service.get_default_sms_sender() == 'testing'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_letter_notification_serializes_correctly(client, sample_letter_notification):
     sample_letter_notification.personalisation = {
         'addressline1': 'test',
@@ -376,7 +369,7 @@ def test_letter_notification_serializes_correctly(client, sample_letter_notifica
     assert json['postcode'] == 'N1'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_letter_notification_postcode_can_be_null_for_precompiled_letters(client, sample_letter_notification):
     sample_letter_notification.personalisation = {
         'address_line_1': 'test',
@@ -389,31 +382,31 @@ def test_letter_notification_postcode_can_be_null_for_precompiled_letters(client
     assert json['postcode'] is None
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_is_precompiled_letter_false(sample_letter_template):
     assert not sample_letter_template.is_precompiled_letter
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_is_precompiled_letter_true(sample_letter_template):
     sample_letter_template.hidden = True
     sample_letter_template.name = PRECOMPILED_TEMPLATE_NAME
     assert sample_letter_template.is_precompiled_letter
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_is_precompiled_letter_hidden_true_not_name(sample_letter_template):
     sample_letter_template.hidden = True
     assert not sample_letter_template.is_precompiled_letter
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_is_precompiled_letter_name_correct_not_hidden(sample_letter_template):
     sample_letter_template.name = PRECOMPILED_TEMPLATE_NAME
     assert not sample_letter_template.is_precompiled_letter
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_template_folder_is_parent(sample_service):
     x = None
     folders = []
@@ -445,8 +438,8 @@ class TestServiceCallback:
         ['callback_channel', 'callback_strategy_path'],
         [
             (QUEUE_CHANNEL_TYPE, 'app.callback.queue_callback_strategy.QueueCallbackStrategy'),
-            (WEBHOOK_CHANNEL_TYPE, 'app.callback.webhook_callback_strategy.WebhookCallbackStrategy')
-        ]
+            (WEBHOOK_CHANNEL_TYPE, 'app.callback.webhook_callback_strategy.WebhookCallbackStrategy'),
+        ],
     )
     def test_service_callback_send_uses_queue_strategy(
         self,
@@ -455,23 +448,17 @@ class TestServiceCallback:
         callback_channel,
         callback_strategy_path,
     ):
-
         service = sample_service()
         service_callback = ServiceCallback(
             service_id=service.id,
-            url="https://something.com",
-            bearer_token="some_super_secret",
+            url='https://something.com',
+            bearer_token='some_super_secret',
             updated_by_id=service.users[0].id,
             callback_type=COMPLAINT_CALLBACK_TYPE,
-            callback_channel=callback_channel
+            callback_channel=callback_channel,
         )
         mock_callback_strategy = mocker.patch(callback_strategy_path)
 
-        service_callback.send(
-            payload={},
-            logging_tags={}
-        )
+        service_callback.send(payload={}, logging_tags={})
 
-        mock_callback_strategy.send_callback.assert_called_with(
-            service_callback, {}, {}
-        )
+        mock_callback_strategy.send_callback.assert_called_with(service_callback, {}, {})

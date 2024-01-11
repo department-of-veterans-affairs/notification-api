@@ -13,13 +13,13 @@ def test_get_inbound_sms_returns_200(
         sample_inbound_sms(service, notify_number='447700900115', content='Hi'),
         sample_inbound_sms(service, notify_number='447700900116'),
         sample_inbound_sms(service, notify_number='447700900117', content='Bye'),
-        sample_inbound_sms(service, notify_number='07700900113')
+        sample_inbound_sms(service, notify_number='07700900113'),
     ]
 
     auth_header = create_authorization_header(sample_api_key(service=service))
     response = client.get(
-        path='/v2/received-text-messages',
-        headers=[('Content-Type', 'application/json'), auth_header])
+        path='/v2/received-text-messages', headers=[('Content-Type', 'application/json'), auth_header]
+    )
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -41,10 +41,7 @@ def test_get_inbound_sms_generate_page_links(
     mocker,
 ):
     service = sample_service()
-    mocker.patch.dict(
-        "app.v2.inbound_sms.get_inbound_sms.current_app.config",
-        {"API_PAGE_SIZE": 2}
-    )
+    mocker.patch.dict('app.v2.inbound_sms.get_inbound_sms.current_app.config', {'API_PAGE_SIZE': 2})
     all_inbound_sms = [
         sample_inbound_sms(service, notify_number='447700900211', content='Hi'),
         sample_inbound_sms(service, notify_number='447700900312'),
@@ -55,8 +52,8 @@ def test_get_inbound_sms_generate_page_links(
 
     auth_header = create_authorization_header(sample_api_key(service=service))
     response = client.get(
-        url_for('v2_inbound_sms.get_inbound_sms'),
-        headers=[('Content-Type', 'application/json'), auth_header])
+        url_for('v2_inbound_sms.get_inbound_sms'), headers=[('Content-Type', 'application/json'), auth_header]
+    )
 
     assert response.status_code == 200
 
@@ -64,13 +61,11 @@ def test_get_inbound_sms_generate_page_links(
     expected_inbound_sms_list = [i.serialize() for i in reversed_inbound_sms[:2]]
 
     assert json_response['received_text_messages'] == expected_inbound_sms_list
-    assert url_for(
-        'v2_inbound_sms.get_inbound_sms',
-        _external=True) == json_response['links']['current']
-    assert url_for(
-        'v2_inbound_sms.get_inbound_sms',
-        older_than=reversed_inbound_sms[1].id,
-        _external=True) == json_response['links']['next']
+    assert url_for('v2_inbound_sms.get_inbound_sms', _external=True) == json_response['links']['current']
+    assert (
+        url_for('v2_inbound_sms.get_inbound_sms', older_than=reversed_inbound_sms[1].id, _external=True)
+        == json_response['links']['next']
+    )
 
 
 def test_get_next_inbound_sms_will_get_correct_inbound_sms_list(
@@ -81,10 +76,7 @@ def test_get_next_inbound_sms_will_get_correct_inbound_sms_list(
     mocker,
 ):
     service = sample_service()
-    mocker.patch.dict(
-        "app.v2.inbound_sms.get_inbound_sms.current_app.config",
-        {"API_PAGE_SIZE": 2}
-    )
+    mocker.patch.dict('app.v2.inbound_sms.get_inbound_sms.current_app.config', {'API_PAGE_SIZE': 2})
     all_inbound_sms = [
         sample_inbound_sms(service, notify_number='447700900111', content='1'),
         sample_inbound_sms(service, notify_number='447700900112', content='2'),
@@ -96,7 +88,8 @@ def test_get_next_inbound_sms_will_get_correct_inbound_sms_list(
     auth_header = create_authorization_header(sample_api_key(service=service))
     response = client.get(
         path=url_for('v2_inbound_sms.get_inbound_sms', older_than=reversed_inbound_sms[1].id),
-        headers=[('Content-Type', 'application/json'), auth_header])
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
 
     assert response.status_code == 200
 
@@ -104,13 +97,11 @@ def test_get_next_inbound_sms_will_get_correct_inbound_sms_list(
     expected_inbound_sms_list = [i.serialize() for i in reversed_inbound_sms[2:]]
 
     assert json_response['received_text_messages'] == expected_inbound_sms_list
-    assert url_for(
-        'v2_inbound_sms.get_inbound_sms',
-        _external=True) == json_response['links']['current']
-    assert url_for(
-        'v2_inbound_sms.get_inbound_sms',
-        older_than=reversed_inbound_sms[3].id,
-        _external=True) == json_response['links']['next']
+    assert url_for('v2_inbound_sms.get_inbound_sms', _external=True) == json_response['links']['current']
+    assert (
+        url_for('v2_inbound_sms.get_inbound_sms', older_than=reversed_inbound_sms[3].id, _external=True)
+        == json_response['links']['next']
+    )
 
 
 def test_get_next_inbound_sms_at_end_will_return_empty_inbound_sms_list(
@@ -120,24 +111,20 @@ def test_get_next_inbound_sms_at_end_will_return_empty_inbound_sms_list(
     mocker,
 ):
     inbound_sms = sample_inbound_sms()
-    mocker.patch.dict(
-        "app.v2.inbound_sms.get_inbound_sms.current_app.config",
-        {"API_PAGE_SIZE": 1}
-    )
+    mocker.patch.dict('app.v2.inbound_sms.get_inbound_sms.current_app.config', {'API_PAGE_SIZE': 1})
 
     auth_header = create_authorization_header(sample_api_key(service=inbound_sms.service))
     response = client.get(
         path=url_for('v2_inbound_sms.get_inbound_sms', older_than=inbound_sms.id),
-        headers=[('Content-Type', 'application/json'), auth_header])
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
 
     assert response.status_code == 200
 
     json_response = json.loads(response.get_data(as_text=True))
     expected_inbound_sms_list = []
     assert json_response['received_text_messages'] == expected_inbound_sms_list
-    assert url_for(
-        'v2_inbound_sms.get_inbound_sms',
-        _external=True) == json_response['links']['current']
+    assert url_for('v2_inbound_sms.get_inbound_sms', _external=True) == json_response['links']['current']
     assert 'next' not in json_response['links'].keys()
 
 
@@ -147,8 +134,8 @@ def test_get_inbound_sms_for_no_inbound_sms_returns_empty_list(
 ):
     auth_header = create_authorization_header(sample_api_key())
     response = client.get(
-        path='/v2/received-text-messages',
-        headers=[('Content-Type', 'application/json'), auth_header])
+        path='/v2/received-text-messages', headers=[('Content-Type', 'application/json'), auth_header]
+    )
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -167,7 +154,8 @@ def test_get_inbound_sms_with_invalid_query_string_returns_400(
     auth_header = create_authorization_header(sample_api_key())
     response = client.get(
         path='/v2/received-text-messages?user_number=447700900000',
-        headers=[('Content-Type', 'application/json'), auth_header])
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
 
     assert response.status_code == 400
     assert response.headers['Content-type'] == 'application/json'
@@ -176,5 +164,4 @@ def test_get_inbound_sms_with_invalid_query_string_returns_400(
 
     assert json_response['status_code'] == 400
     assert json_response['errors'][0]['error'] == 'ValidationError'
-    assert json_response['errors'][0]['message'] == \
-        'Additional properties are not allowed (user_number was unexpected)'
+    assert json_response['errors'][0]['message'] == 'Additional properties are not allowed (user_number was unexpected)'

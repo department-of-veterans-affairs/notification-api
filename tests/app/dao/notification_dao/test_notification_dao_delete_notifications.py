@@ -25,32 +25,40 @@ def create_test_data(
     service_with_default_data_retention = sample_service(service_name='default data retention')
     email_template, letter_template, sms_template = _create_templates(sample_service, sample_template)
     default_email_template, default_letter_template, default_sms_template = _create_templates(
-        service_with_default_data_retention,
-        sample_template
+        service_with_default_data_retention, sample_template
     )
     sample_notification(template=email_template, status='delivered')
     sample_notification(template=sms_template, status='permanent-failure')
-    sample_notification(template=letter_template, status='temporary-failure',
-                        reference='LETTER_REF', sent_at=datetime.utcnow())
-    sample_notification(template=email_template, status='delivered',
-                        created_at=datetime.utcnow() - timedelta(days=4))
-    sample_notification(template=sms_template, status='permanent-failure',
-                        created_at=datetime.utcnow() - timedelta(days=4))
-    sample_notification(template=letter_template, status='temporary-failure',
-                        reference='LETTER_REF', sent_at=datetime.utcnow(),
-                        created_at=datetime.utcnow() - timedelta(days=4))
-    sample_notification(template=default_email_template, status='delivered',
-                        created_at=datetime.utcnow() - timedelta(days=8))
-    sample_notification(template=default_sms_template, status='permanent-failure',
-                        created_at=datetime.utcnow() - timedelta(days=8))
-    sample_notification(template=default_letter_template, status='temporary-failure',
-                        reference='LETTER_REF', sent_at=datetime.utcnow(),
-                        created_at=datetime.utcnow() - timedelta(days=8))
+    sample_notification(
+        template=letter_template, status='temporary-failure', reference='LETTER_REF', sent_at=datetime.utcnow()
+    )
+    sample_notification(template=email_template, status='delivered', created_at=datetime.utcnow() - timedelta(days=4))
+    sample_notification(
+        template=sms_template, status='permanent-failure', created_at=datetime.utcnow() - timedelta(days=4)
+    )
+    sample_notification(
+        template=letter_template,
+        status='temporary-failure',
+        reference='LETTER_REF',
+        sent_at=datetime.utcnow(),
+        created_at=datetime.utcnow() - timedelta(days=4),
+    )
+    sample_notification(
+        template=default_email_template, status='delivered', created_at=datetime.utcnow() - timedelta(days=8)
+    )
+    sample_notification(
+        template=default_sms_template, status='permanent-failure', created_at=datetime.utcnow() - timedelta(days=8)
+    )
+    sample_notification(
+        template=default_letter_template,
+        status='temporary-failure',
+        reference='LETTER_REF',
+        sent_at=datetime.utcnow(),
+        created_at=datetime.utcnow() - timedelta(days=8),
+    )
 
     sdr = create_service_data_retention(
-        service=sample_service,
-        notification_type=notification_type,
-        days_of_retention=days_of_retention
+        service=sample_service, notification_type=notification_type, days_of_retention=days_of_retention
     )
 
     yield
@@ -68,15 +76,21 @@ def _create_templates(sample_service, sample_template):
     return email_template, letter_template, sms_template
 
 
-@pytest.mark.parametrize('month, delete_run_time', [
-    (4, '2016-04-10 23:40'),
-    (1, '2016-01-11 00:40'),
-])
-@pytest.mark.parametrize('notification_type, expected_sms_count, expected_email_count, expected_letter_count', [
-    (EMAIL_TYPE, 10, 7, 10),
-    (LETTER_TYPE, 10, 10, 7),
-    (SMS_TYPE, 7, 10, 10),
-])
+@pytest.mark.parametrize(
+    'month, delete_run_time',
+    [
+        (4, '2016-04-10 23:40'),
+        (1, '2016-01-11 00:40'),
+    ],
+)
+@pytest.mark.parametrize(
+    'notification_type, expected_sms_count, expected_email_count, expected_letter_count',
+    [
+        (EMAIL_TYPE, 10, 7, 10),
+        (LETTER_TYPE, 10, 10, 7),
+        (SMS_TYPE, 7, 10, 10),
+    ],
+)
 def test_should_delete_notifications_by_type_after_seven_days(
     mocker,
     sample_service,
@@ -87,18 +101,18 @@ def test_should_delete_notifications_by_type_after_seven_days(
     notification_type,
     expected_sms_count,
     expected_email_count,
-    expected_letter_count
+    expected_letter_count,
 ):
-    mocker.patch("app.dao.notifications_dao.get_s3_bucket_objects")
+    mocker.patch('app.dao.notifications_dao.get_s3_bucket_objects')
     email_template, letter_template, sms_template = _create_templates(sample_service, sample_template)
 
     # For each notification type, create one notification a day between the 1st and 10th from 11:00 to 19:00.
     for i in range(1, 11):
         past_date = '2016-0{0}-{1:02d}  {1:02d}:00:00.000000'.format(month, i)
         with freeze_time(past_date):
-            sample_notification(template=email_template, created_at=datetime.utcnow(), status="permanent-failure")
-            sample_notification(template=sms_template, created_at=datetime.utcnow(), status="delivered")
-            sample_notification(template=letter_template, created_at=datetime.utcnow(), status="temporary-failure")
+            sample_notification(template=email_template, created_at=datetime.utcnow(), status='permanent-failure')
+            sample_notification(template=sms_template, created_at=datetime.utcnow(), status='delivered')
+            sample_notification(template=letter_template, created_at=datetime.utcnow(), status='temporary-failure')
     assert Notification.query.count() == 30
 
     # Records from before the 3rd should be deleted.
@@ -123,14 +137,20 @@ def test_should_delete_notifications_by_type_after_seven_days(
         assert notification.created_at.date() >= date(2016, month, 3)
 
 
-@pytest.mark.parametrize('month, delete_run_time', [
-    (4, '2016-04-10 23:40'),
-    (1, '2016-01-11 00:40'),
-])
-@pytest.mark.parametrize('notification_type, expected_count', [
-    (EMAIL_TYPE, 7),
-    (SMS_TYPE, 7),
-])
+@pytest.mark.parametrize(
+    'month, delete_run_time',
+    [
+        (4, '2016-04-10 23:40'),
+        (1, '2016-01-11 00:40'),
+    ],
+)
+@pytest.mark.parametrize(
+    'notification_type, expected_count',
+    [
+        (EMAIL_TYPE, 7),
+        (SMS_TYPE, 7),
+    ],
+)
 def test_should_delete_notification_and_recipient_identifiers_when_bulk_deleting(
     month,
     delete_run_time,
@@ -139,12 +159,9 @@ def test_should_delete_notification_and_recipient_identifiers_when_bulk_deleting
     sample_template,
     sample_api_key,
     mocker,
-    notify_db_session
+    notify_db_session,
 ):
-    mocker.patch(
-        'app.notifications.process_notifications.accept_recipient_identifiers_enabled',
-        return_value=True
-    )
+    mocker.patch('app.notifications.process_notifications.accept_recipient_identifiers_enabled', return_value=True)
 
     api_key = sample_api_key()
     template = sample_template(template_type=notification_type)
@@ -153,7 +170,7 @@ def test_should_delete_notification_and_recipient_identifiers_when_bulk_deleting
     for i in range(1, 11):
         past_date = '2016-0{0}-{1:02d}  {1:02d}:00:00.000000'.format(month, i)
         with freeze_time(past_date):
-            recipient_identifier = {"id_type": IdentifierType.VA_PROFILE_ID.value, "id_value": "foo"}
+            recipient_identifier = {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': 'foo'}
             notification = persist_notification(
                 template_id=template.id,
                 template_version=template.version,
@@ -163,7 +180,7 @@ def test_should_delete_notification_and_recipient_identifiers_when_bulk_deleting
                 api_key_id=api_key.id,
                 key_type=api_key.key_type,
                 recipient_identifier=recipient_identifier,
-                created_at=datetime.utcnow()
+                created_at=datetime.utcnow(),
             )
 
     assert Notification.query.count() == 10
@@ -188,9 +205,9 @@ def test_should_delete_notification_and_recipient_identifiers_when_bulk_deleting
         notify_db_session.session.commit()
 
 
-@freeze_time("2016-01-10 12:00:00.000000")
+@freeze_time('2016-01-10 12:00:00.000000')
 def test_should_not_delete_notification_history(sample_service, sample_template, sample_notification, mocker):
-    mocker.patch("app.dao.notifications_dao.get_s3_bucket_objects")
+    mocker.patch('app.dao.notifications_dao.get_s3_bucket_objects')
     with freeze_time('2016-01-01 12:00'):
         email_template, letter_template, sms_template = _create_templates(sample_service, sample_template)
         sample_notification(template=email_template, status='permanent-failure')
@@ -206,16 +223,17 @@ def test_should_not_delete_notification_history(sample_service, sample_template,
 def test_delete_notifications_for_days_of_retention(
     notify_db_session, sample_service, sample_template, sample_notification, notification_type, mocker
 ):
-    mock_get_s3 = mocker.patch("app.dao.notifications_dao.get_s3_bucket_objects")
+    mock_get_s3 = mocker.patch('app.dao.notifications_dao.get_s3_bucket_objects')
     create_test_data(notify_db_session, notification_type, sample_service, sample_template, sample_notification)
     assert Notification.query.count() == 9
     delete_notifications_older_than_retention_by_type(notification_type)
     assert Notification.query.count() == 7
     assert Notification.query.filter_by(notification_type=notification_type).count() == 1
     if notification_type == LETTER_TYPE:
-        mock_get_s3.assert_called_with(bucket_name=current_app.config['LETTERS_PDF_BUCKET_NAME'],
-                                       subfolder="{}/NOTIFY.LETTER_REF.D.2.C.C".format(str(datetime.utcnow().date()))
-                                       )
+        mock_get_s3.assert_called_with(
+            bucket_name=current_app.config['LETTERS_PDF_BUCKET_NAME'],
+            subfolder='{}/NOTIFY.LETTER_REF.D.2.C.C'.format(str(datetime.utcnow().date())),
+        )
         assert mock_get_s3.call_count == 2
     else:
         mock_get_s3.assert_not_called()
@@ -233,17 +251,18 @@ def test_delete_notifications_inserts_notification_history(
 
 
 def test_delete_notifications_updates_notification_history(sample_template, sample_notification, mocker):
-    mocker.patch("app.dao.notifications_dao.get_s3_bucket_objects")
+    mocker.patch('app.dao.notifications_dao.get_s3_bucket_objects')
     template = sample_template(template_type=EMAIL_TYPE)
     notification = sample_notification(template=template, created_at=datetime.utcnow() - timedelta(days=8))
     Notification.query.filter_by(id=notification.id).update(
-        {"status": "delivered",
-         "reference": "ses_reference",
-         "billable_units": 1,  # I know we don't update this for emails but this is a unit test
-         "updated_at": datetime.utcnow(),
-         "sent_at": datetime.utcnow(),
-         "sent_by": "ses"
-         }
+        {
+            'status': 'delivered',
+            'reference': 'ses_reference',
+            'billable_units': 1,  # I know we don't update this for emails but this is a unit test
+            'updated_at': datetime.utcnow(),
+            'sent_at': datetime.utcnow(),
+            'sent_by': 'ses',
+        }
     )
 
     delete_notifications_older_than_retention_by_type(EMAIL_TYPE)
@@ -268,14 +287,14 @@ def test_delete_notifications_keep_data_for_days_of_retention_is_longer(
 
 
 def test_delete_notifications_with_test_keys(sample_template, sample_notification, mocker):
-    mocker.patch("app.dao.notifications_dao.get_s3_bucket_objects")
+    mocker.patch('app.dao.notifications_dao.get_s3_bucket_objects')
     sample_notification(template=sample_template(), key_type='test', created_at=datetime.utcnow() - timedelta(days=8))
     delete_notifications_older_than_retention_by_type(SMS_TYPE)
     assert Notification.query.count() == 0
 
 
 def test_delete_notifications_delete_notification_type_for_default_time_if_no_days_of_retention_for_type(
-        sample_service, sample_template, sample_notification
+    sample_service, sample_template, sample_notification
 ):
     email_template, letter_template, sms_template = _create_templates(sample_service, sample_template)
 
@@ -287,12 +306,13 @@ def test_delete_notifications_delete_notification_type_for_default_time_if_no_da
     sample_notification(template=email_template, status='delivered')
     sample_notification(template=sms_template, status='permanent-failure')
     sample_notification(template=letter_template, status='temporary-failure')
-    sample_notification(template=email_template, status='delivered',
-                        created_at=datetime.utcnow() - timedelta(days=14))
-    sample_notification(template=sms_template, status='permanent-failure',
-                        created_at=datetime.utcnow() - timedelta(days=14))
-    sample_notification(template=letter_template, status='temporary-failure',
-                        created_at=datetime.utcnow() - timedelta(days=14))
+    sample_notification(template=email_template, status='delivered', created_at=datetime.utcnow() - timedelta(days=14))
+    sample_notification(
+        template=sms_template, status='permanent-failure', created_at=datetime.utcnow() - timedelta(days=14)
+    )
+    sample_notification(
+        template=letter_template, status='temporary-failure', created_at=datetime.utcnow() - timedelta(days=14)
+    )
     assert Notification.query.count() == 6
     delete_notifications_older_than_retention_by_type(EMAIL_TYPE)
     assert Notification.query.count() == 5
@@ -302,21 +322,20 @@ def test_delete_notifications_delete_notification_type_for_default_time_if_no_da
 def test_delete_notifications_does_try_to_delete_from_s3_when_letter_has_not_been_sent(
     mocker, sample_template, sample_notification
 ):
-    mock_get_s3 = mocker.patch("app.dao.notifications_dao.get_s3_bucket_objects")
+    mock_get_s3 = mocker.patch('app.dao.notifications_dao.get_s3_bucket_objects')
     letter_template = sample_template(template_type=LETTER_TYPE)
 
-    sample_notification(template=letter_template, status='sending',
-                        reference='LETTER_REF')
+    sample_notification(template=letter_template, status='sending', reference='LETTER_REF')
     delete_notifications_older_than_retention_by_type(EMAIL_TYPE, qry_limit=1)
     mock_get_s3.assert_not_called()
 
 
-@freeze_time("2016-01-10 12:00:00.000000")
+@freeze_time('2016-01-10 12:00:00.000000')
 def test_should_not_delete_notification_if_history_does_not_exist(
     mocker, sample_service, sample_template, sample_notification
 ):
-    mocker.patch("app.dao.notifications_dao.get_s3_bucket_objects")
-    mocker.patch("app.dao.notifications_dao.insert_update_notification_history")
+    mocker.patch('app.dao.notifications_dao.get_s3_bucket_objects')
+    mocker.patch('app.dao.notifications_dao.insert_update_notification_history')
     with freeze_time('2016-01-01 12:00'):
         email_template, letter_template, sms_template = _create_templates(sample_service, sample_template)
         sample_notification(template=email_template, status='permanent-failure')
@@ -367,8 +386,8 @@ def test_insert_update_notification_history(sample_service, sample_template, sam
         sample_notification(template=t, created_at=datetime.utcnow() - timedelta(days=8))
 
     insert_update_notification_history(
-        notification_type=SMS_TYPE, date_to_delete_from=datetime.utcnow() - timedelta(days=7),
-        service_id=service.id)
+        notification_type=SMS_TYPE, date_to_delete_from=datetime.utcnow() - timedelta(days=7), service_id=service.id
+    )
     history = NotificationHistory.query.all()
     assert len(history) == 2
 
@@ -403,10 +422,10 @@ def test_insert_update_notification_history_only_insert_update_given_service(
 def test_insert_update_notification_history_updates_history_with_new_status(sample_template, sample_notification):
     template = sample_template()
     notification_1 = sample_notification(template=template, created_at=datetime.utcnow() - timedelta(days=3))
-    notification_2 = sample_notification(template=template, created_at=datetime.utcnow() - timedelta(days=8),
-                                         status='delivered')
-    insert_update_notification_history(
-        SMS_TYPE, datetime.utcnow() - timedelta(days=7), template.service_id)
+    notification_2 = sample_notification(
+        template=template, created_at=datetime.utcnow() - timedelta(days=8), status='delivered'
+    )
+    insert_update_notification_history(SMS_TYPE, datetime.utcnow() - timedelta(days=7), template.service_id)
     history = NotificationHistory.query.get(notification_2.id)
     assert history.status == 'delivered'
     assert not NotificationHistory.query.get(notification_1.id)
@@ -415,10 +434,10 @@ def test_insert_update_notification_history_updates_history_with_new_status(samp
 def test_insert_update_notification_history_updates_history_with_billing_code(sample_template, sample_notification):
     template = sample_template()
     notification_1 = sample_notification(template=template, created_at=datetime.utcnow() - timedelta(days=3))
-    notification_2 = sample_notification(template=template, created_at=datetime.utcnow() - timedelta(days=8),
-                                         billing_code='TESTCODE')
-    insert_update_notification_history(
-        SMS_TYPE, datetime.utcnow() - timedelta(days=7), template.service_id)
+    notification_2 = sample_notification(
+        template=template, created_at=datetime.utcnow() - timedelta(days=8), billing_code='TESTCODE'
+    )
+    insert_update_notification_history(SMS_TYPE, datetime.utcnow() - timedelta(days=7), template.service_id)
     history = NotificationHistory.query.get(notification_2.id)
     assert history.billing_code == 'TESTCODE'
     assert not NotificationHistory.query.get(notification_1.id)

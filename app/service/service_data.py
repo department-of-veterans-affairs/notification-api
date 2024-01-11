@@ -18,12 +18,7 @@ class ServiceDataException(Exception):
         raise ServiceDataException("Description...")
     """
 
-    def __init__(
-        self,
-        message="Unable to create ServiceData object.",
-        *args,
-        **kwargs
-    ):
+    def __init__(self, message='Unable to create ServiceData object.', *args, **kwargs):
         super().__init__(message, *args, **kwargs)
 
 
@@ -69,9 +64,9 @@ class ServiceDataApiKey:
         self.secret = key.secret
 
         _service = {
-            "research_mode": key.service.research_mode,
-            "restricted": key.service.restricted,
-            "active": key.service.active,
+            'research_mode': key.service.research_mode,
+            'restricted': key.service.restricted,
+            'active': key.service.active,
         }
         self.service = SimpleNamespace(**_service)
         self.service_id = key.service_id
@@ -82,10 +77,12 @@ class ServiceDataApiKey:
         """
         Returns the User object for the API Key creator
         """
+
         # Without the wrapper function the ORM object detaches in some cases
         def lazyload():
             with get_reader_session() as session:
                 return session.execute(select(User).filter_by(id=self.created_by_id)).one()
+
         return lazyload
 
     def __eq__(self, other: 'ServiceDataApiKey') -> bool:
@@ -108,12 +105,14 @@ class ServiceDataApiKey:
             bool: True if the instances have the same values for the relevant attributes, False otherwise.
         """
         if isinstance(other, ServiceDataApiKey):
-            return self.id == other.id\
-                and self.key_type == other.key_type\
-                and self.name == other.name\
-                and self.service_id == other.service_id\
-                and self.created_by_id == other.created_by_id\
+            return (
+                self.id == other.id
+                and self.key_type == other.key_type
+                and self.name == other.name
+                and self.service_id == other.service_id
+                and self.created_by_id == other.created_by_id
                 and self.secret == other.secret
+            )
         return False
 
 

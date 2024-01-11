@@ -11,9 +11,6 @@ revision = '0104_more_letter_orgs'
 down_revision = '0103_add_historical_redact'
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
-from flask import current_app
 
 def upgrade():
     op.execute("""

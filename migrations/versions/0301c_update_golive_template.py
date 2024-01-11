@@ -7,12 +7,9 @@ Create Date: 2019-08-13 07:42:00.0000
 """
 
 # revision identifiers, used by Alembic.
-from datetime import datetime
 
-from flask import current_app
 
 from alembic import op
-import sqlalchemy as sa
 
 revision = '0301c_update_golive_template'
 down_revision = '0301b_fido2_table'

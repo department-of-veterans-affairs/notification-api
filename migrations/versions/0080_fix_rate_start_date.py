@@ -11,7 +11,6 @@ revision = '0080_fix_rate_start_date'
 down_revision = '0079_update_rates'
 
 from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

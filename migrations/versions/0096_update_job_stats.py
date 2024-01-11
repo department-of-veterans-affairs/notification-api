@@ -11,8 +11,6 @@ revision = '0096_update_job_stats'
 down_revision = '0095_migrate_existing_svc_perms'
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 
 def upgrade():

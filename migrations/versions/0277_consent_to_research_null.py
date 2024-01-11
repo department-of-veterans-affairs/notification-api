@@ -7,7 +7,6 @@ Create Date: 2019-03-01 13:47:15.720238
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision = '0277_consent_to_research_null'
 down_revision = '0266_user_folder_perms_table'

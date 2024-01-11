@@ -12,7 +12,6 @@ down_revision = '0110_monthly_billing'
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 def upgrade():
     op.drop_column('services', 'can_send_letters')

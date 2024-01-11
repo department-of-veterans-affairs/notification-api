@@ -11,7 +11,6 @@ revision = '0039_fix_notifications'
 down_revision = '0038_test_api_key_type'
 
 from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

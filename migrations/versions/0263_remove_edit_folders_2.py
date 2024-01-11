@@ -6,7 +6,6 @@ Create Date: 2019-02-15 14:38:13.823432
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = '0263_remove_edit_folders_2'

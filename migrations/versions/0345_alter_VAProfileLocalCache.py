@@ -6,7 +6,6 @@ Create Date: 2022-04-20 17.48:14.050637
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision = '0345_alter_VAProfileLocalCache'
 down_revision = '0344_add_onsite_notification'

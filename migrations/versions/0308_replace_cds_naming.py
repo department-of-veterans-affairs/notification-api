@@ -32,7 +32,7 @@ def upgrade():
             id='6af522d0-2915-4e52-83a3-3690455a5fe6'
     """)
 
-    op.execute(f"""
+    op.execute("""
         UPDATE 
           templates
         SET 
@@ -44,7 +44,7 @@ def upgrade():
     """)
 
     # For GOV.UK having different period characters
-    op.execute(f"""
+    op.execute("""
         UPDATE 
           templates
         SET 
@@ -76,7 +76,7 @@ def downgrade():
             id='6af522d0-2915-4e52-83a3-3690455a5fe6'
     """)
 
-    op.execute(f"""
+    op.execute("""
         UPDATE 
           templates
         SET 
@@ -88,7 +88,7 @@ def downgrade():
     """)
 
     # For GOV.UK having different period characters
-    op.execute(f"""
+    op.execute("""
         UPDATE 
           templates
         SET 

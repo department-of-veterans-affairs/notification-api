@@ -6,7 +6,6 @@ Create Date: 2019-02-05 14:51:30.808067
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = '0256_set_postage_tmplt_hstr'

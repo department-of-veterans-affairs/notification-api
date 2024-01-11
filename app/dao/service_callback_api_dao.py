@@ -52,8 +52,7 @@ def get_service_callback(service_callback_id):
 
 def query_service_callback(service_id, service_callback_id):
     stmt = select(ServiceCallback).where(
-        ServiceCallback.service_id == service_id,
-        ServiceCallback.id == service_callback_id
+        ServiceCallback.service_id == service_id, ServiceCallback.id == service_callback_id
     )
     return db.session.scalars(stmt).one()
 
@@ -62,7 +61,7 @@ def get_service_delivery_status_callback_api_for_service(service_id, notificatio
     stmt = select(ServiceCallback).where(
         ServiceCallback.notification_statuses.contains([notification_status]),
         ServiceCallback.service_id == service_id,
-        ServiceCallback.callback_type == DELIVERY_STATUS_CALLBACK_TYPE
+        ServiceCallback.callback_type == DELIVERY_STATUS_CALLBACK_TYPE,
     )
 
     return db.session.scalars(stmt).first()
@@ -70,8 +69,7 @@ def get_service_delivery_status_callback_api_for_service(service_id, notificatio
 
 def get_service_complaint_callback_api_for_service(service_id):
     stmt = select(ServiceCallback).where(
-        ServiceCallback.service_id == service_id,
-        ServiceCallback.callback_type == COMPLAINT_CALLBACK_TYPE
+        ServiceCallback.service_id == service_id, ServiceCallback.callback_type == COMPLAINT_CALLBACK_TYPE
     )
 
     return db.session.scalars(stmt).first()
@@ -79,8 +77,7 @@ def get_service_complaint_callback_api_for_service(service_id):
 
 def get_service_inbound_sms_callback_api_for_service(service_id):
     stmt = select(ServiceCallback).where(
-        ServiceCallback.service_id == service_id,
-        ServiceCallback.callback_type == INBOUND_SMS_CALLBACK_TYPE
+        ServiceCallback.service_id == service_id, ServiceCallback.callback_type == INBOUND_SMS_CALLBACK_TYPE
     )
 
     return db.session.scalars(stmt).first()

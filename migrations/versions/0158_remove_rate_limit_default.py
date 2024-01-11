@@ -6,7 +6,6 @@ Create Date: 2018-01-09 14:33:08.313893
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = '0158_remove_rate_limit_default'

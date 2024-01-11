@@ -5,7 +5,6 @@ Create Date: 2023-06-07 21:53:38.930162
 """
 
 from alembic import op
-import sqlalchemy as sa
 
 revision = "0359_communication_items_unique"
 down_revision = "0358_default_send_field"

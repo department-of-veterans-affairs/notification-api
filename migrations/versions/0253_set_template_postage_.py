@@ -6,7 +6,6 @@ Create Date: 2019-01-30 16:47:08.599448
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = '0253_set_template_postage'

@@ -11,8 +11,6 @@ revision = '0304a_merge'
 down_revision = ('0304_remove_org_to_service', '0303a_merge')
 branch_labels = None
 
-from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

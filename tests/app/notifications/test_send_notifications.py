@@ -12,8 +12,7 @@ def test_send_notification_bypass_route_no_recipient(
 ):
     template = sample_template()
     persist_notification_mock = mocker.patch('app.notifications.send_notifications.persist_notification')
-    mock_logger = mocker.patch(
-        'app.notifications.send_notifications.current_app.logger.critical')
+    mock_logger = mocker.patch('app.notifications.send_notifications.current_app.logger.critical')
 
     # Test the case where recipient and recipient_item are None, should log critical error.
     with pytest.raises(NotificationTechnicalFailureException):
@@ -30,14 +29,12 @@ def test_send_notification_bypass_route_sms_with_recipient_and_default_sms_sende
     mocker,
     sample_notification,
 ):
-
     notification = sample_notification()
     template = notification.template
     service = notification.template.service
 
     persist_notification_mock = mocker.patch(
-        'app.notifications.send_notifications.persist_notification',
-        return_value=notification
+        'app.notifications.send_notifications.persist_notification', return_value=notification
     )
     send_notification_to_queue_mock = mocker.patch('app.notifications.send_notifications.send_notification_to_queue')
 
@@ -79,22 +76,18 @@ def test_send_notification_bypass_route_sms_with_recipient_item(
     mocker,
     sample_notification,
 ):
-
     notification = sample_notification()
     template = notification.template
     service = notification.template.service
 
     persist_notification_mock = mocker.patch(
-        'app.notifications.send_notifications.persist_notification',
-        return_value=notification
+        'app.notifications.send_notifications.persist_notification', return_value=notification
     )
     send_to_queue_for_recipient_info_based_on_recipient_identifier_mock = mocker.patch(
-        'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier')
+        'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier'
+    )
 
-    recipient_item = {
-        'id_type': 'VAPROFILEID',
-        'id_value': '1234'
-    }
+    recipient_item = {'id_type': 'VAPROFILEID', 'id_value': '1234'}
 
     # Test sending an SMS notification using the recipient_item
     send_notification_bypass_route(
@@ -102,7 +95,7 @@ def test_send_notification_bypass_route_sms_with_recipient_item(
         template=template,
         notification_type=SMS_TYPE,
         recipient_item=recipient_item,
-        sms_sender_id='test_sms_sender'
+        sms_sender_id='test_sms_sender',
     )
 
     # Assert the notification received the expected params
@@ -125,7 +118,7 @@ def test_send_notification_bypass_route_sms_with_recipient_item(
         id_type=recipient_item['id_type'],
         id_value=recipient_item['id_value'],
         communication_item_id=template.communication_item_id,
-        onsite_enabled=False
+        onsite_enabled=False,
     )
 
 
@@ -136,7 +129,6 @@ def test_send_notification_bypass_route_email_with_recipient(
     mocker,
     sample_notification,
 ):
-
     notification = sample_notification(gen_type=EMAIL_TYPE)
     template = notification.template
     service = template.service
@@ -182,7 +174,6 @@ def test_send_notification_bypass_route_email_with_recipient_item(
     mocker,
     sample_notification,
 ):
-
     notification = sample_notification(gen_type=EMAIL_TYPE)
     template = notification.template
     service = template.service
@@ -193,10 +184,7 @@ def test_send_notification_bypass_route_email_with_recipient_item(
     send_to_queue_for_recipient_info_based_on_recipient_identifier_mock = mocker.patch(
         'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier'
     )
-    recipient_item = {
-        'id_type': IdentifierType.VA_PROFILE_ID.value,
-        'id_value': '1234'
-    }
+    recipient_item = {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': '1234'}
 
     # Test sending an email notification, with recipient_item
     send_notification_bypass_route(
@@ -226,8 +214,9 @@ def test_send_notification_bypass_route_email_with_recipient_item(
         id_type=recipient_item['id_type'],
         id_value=recipient_item['id_value'],
         communication_item_id=template.communication_item_id,
-        onsite_enabled=False
+        onsite_enabled=False,
     )
+
 
 # More tests can be added to test other things like:
 # - Error cases and exception handling

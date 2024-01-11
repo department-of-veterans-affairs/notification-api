@@ -11,7 +11,6 @@ revision = '0034_pwd_changed_at_not_null'
 down_revision = '0033_api_key_type'
 
 from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

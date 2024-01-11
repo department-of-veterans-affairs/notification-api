@@ -11,7 +11,6 @@ revision = '0071_add_job_error_state'
 down_revision = '0070_fix_notify_user_email'
 
 from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

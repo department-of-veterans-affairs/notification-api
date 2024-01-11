@@ -11,8 +11,6 @@ revision = '0300a_merge_heads'
 down_revision = ('0298c_replace_name_in_history', '0300_migrate_org_types')
 branch_labels = None
 
-from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

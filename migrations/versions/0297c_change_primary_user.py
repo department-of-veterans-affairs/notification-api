@@ -6,7 +6,6 @@ Create Date: 2019-07-09 13:22:46.993577
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = '0297c_change_primary_user'

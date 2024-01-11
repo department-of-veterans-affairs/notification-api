@@ -14,6 +14,7 @@ class AwsPinpointClient(SmsClient):
     """
     AwsSns pinpoint client
     """
+
     def __init__(self):
         self.name = 'pinpoint'
 
@@ -37,37 +38,30 @@ class AwsPinpointClient(SmsClient):
             response = self._post_message_request(recipient_number, content, sender_id)
 
         except (botocore.exceptions.ClientError, Exception) as e:
-            self.statsd_client.incr("clients.pinpoint.error")
+            self.statsd_client.incr('clients.pinpoint.error')
             raise AwsPinpointException(str(e))
         else:
             self._validate_response(response['MessageResponse']['Result'][recipient_number])
             aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
             elapsed_time = monotonic() - start_time
-            self.logger.info(f"AWS Pinpoint SMS request finished in {elapsed_time} for notificationId:{reference}"
-                             f" and reference:{aws_reference}")
-            self.statsd_client.timing("clients.pinpoint.request-time", elapsed_time)
-            self.statsd_client.incr("clients.pinpoint.success")
+            self.logger.info(
+                f'AWS Pinpoint SMS request finished in {elapsed_time} for notificationId:{reference}'
+                f' and reference:{aws_reference}'
+            )
+            self.statsd_client.timing('clients.pinpoint.request-time', elapsed_time)
+            self.statsd_client.incr('clients.pinpoint.success')
             return aws_reference
 
     def _post_message_request(self, recipient_number, content, sender):
         message_request_payload = {
-            "Addresses": {
-                recipient_number: {
-                    "ChannelType": "SMS"
-                }
+            'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
+            'MessageConfiguration': {
+                'SMSMessage': {'Body': content, 'MessageType': 'TRANSACTIONAL', 'OriginationNumber': sender}
             },
-            "MessageConfiguration": {
-                "SMSMessage": {
-                    "Body": content,
-                    "MessageType": "TRANSACTIONAL",
-                    "OriginationNumber": sender
-                }
-            }
         }
 
         return self._client.send_messages(
-            ApplicationId=self.aws_pinpoint_app_id,
-            MessageRequest=message_request_payload
+            ApplicationId=self.aws_pinpoint_app_id, MessageRequest=message_request_payload
         )
 
     def _validate_response(self, result: dict) -> None:
@@ -75,7 +69,7 @@ class AwsPinpointClient(SmsClient):
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint.html#Pinpoint.Client.send_messages
         delivery_status = result['DeliveryStatus']
         if delivery_status != 'SUCCESSFUL':
-            self.statsd_client.incr(f"clients.pinpoint.delivery-status.{delivery_status.lower()}")
+            self.statsd_client.incr(f'clients.pinpoint.delivery-status.{delivery_status.lower()}')
 
             error_message = f'StatusCode: {result["StatusCode"]}, StatusMessage:{result["StatusMessage"]}'
 

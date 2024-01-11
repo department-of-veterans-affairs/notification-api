@@ -18,30 +18,22 @@ def test_post_to_get_inbound_sms_with_no_params(
     one = sample_inbound_sms(service)
     two = sample_inbound_sms(service)
 
-    sms = admin_request.post(
-        'inbound_sms.post_inbound_sms_for_service',
-        service_id=service.id,
-        _data={}
-    )['data']
+    sms = admin_request.post('inbound_sms.post_inbound_sms_for_service', service_id=service.id, _data={})['data']
 
     assert len(sms) == 2
     assert {inbound['id'] for inbound in sms} == {str(one.id), str(two.id)}
     assert sms[0]['content'] == 'Hello'
-    assert set(sms[0].keys()) == {
-        'id',
-        'created_at',
-        'service_id',
-        'notify_number',
-        'user_number',
-        'content'
-    }
+    assert set(sms[0].keys()) == {'id', 'created_at', 'service_id', 'notify_number', 'user_number', 'content'}
 
 
-@pytest.mark.parametrize('user_number', [
-    '6502532222',
-    '+16502532222',
-    '+16502532222',
-])
+@pytest.mark.parametrize(
+    'user_number',
+    [
+        '6502532222',
+        '+16502532222',
+        '+16502532222',
+    ],
+)
 def test_post_to_get_inbound_sms_filters_user_number(
     admin_request,
     sample_inbound_sms,
@@ -53,15 +45,9 @@ def test_post_to_get_inbound_sms_filters_user_number(
     one = sample_inbound_sms(service, user_number='+16502532222')
     sample_inbound_sms(service, user_number='+16502532223')
 
-    data = {
-        'phone_number': user_number
-    }
+    data = {'phone_number': user_number}
 
-    sms = admin_request.post(
-        'inbound_sms.post_inbound_sms_for_service',
-        service_id=service.id,
-        _data=data
-    )['data']
+    sms = admin_request.post('inbound_sms.post_inbound_sms_for_service', service_id=service.id, _data=data)['data']
 
     assert len(sms) == 1
     assert sms[0]['id'] == str(one.id)
@@ -78,15 +64,9 @@ def test_post_to_get_inbound_sms_filters_international_user_number(
     one = sample_inbound_sms(service, user_number='+16502532223')
     sample_inbound_sms(service)
 
-    data = {
-        'phone_number': '+1 (650) 253-2223'
-    }
+    data = {'phone_number': '+1 (650) 253-2223'}
 
-    sms = admin_request.post(
-        'inbound_sms.post_inbound_sms_for_service',
-        service_id=service.id,
-        _data=data
-    )['data']
+    sms = admin_request.post('inbound_sms.post_inbound_sms_for_service', service_id=service.id, _data=data)['data']
 
     assert len(sms) == 1
     assert sms[0]['id'] == str(one.id)
@@ -102,9 +82,7 @@ def test_post_to_get_inbound_sms_allows_badly_formatted_number(
     one = sample_inbound_sms(service, user_number='ALPHANUM3R1C')
 
     sms = admin_request.post(
-        'inbound_sms.post_inbound_sms_for_service',
-        service_id=service.id,
-        _data={'phone_number': 'ALPHANUM3R1C'}
+        'inbound_sms.post_inbound_sms_for_service', service_id=service.id, _data={'phone_number': 'ALPHANUM3R1C'}
     )['data']
 
     assert len(sms) == 1
@@ -129,18 +107,16 @@ def test_post_to_get_most_recent_inbound_sms_for_service_limits_to_a_week(
     assert sms['data'][0]['id'] == str(returned_inbound.id)
 
 
-@pytest.mark.parametrize('days_of_retention, too_old_date, returned_date', [
-    (5, datetime(2017, 4, 4, 22, 59), datetime(2017, 4, 5, 12, 0)),
-    (14, datetime(2017, 3, 26, 22, 59), datetime(2017, 3, 27, 12, 0)),
-])
+@pytest.mark.parametrize(
+    'days_of_retention, too_old_date, returned_date',
+    [
+        (5, datetime(2017, 4, 4, 22, 59), datetime(2017, 4, 5, 12, 0)),
+        (14, datetime(2017, 3, 26, 22, 59), datetime(2017, 3, 27, 12, 0)),
+    ],
+)
 @freeze_time('Monday 10th April 2017 12:00')
 def test_post_to_get_inbound_sms_for_service_respects_data_retention(
-    admin_request,
-    sample_inbound_sms,
-    sample_service,
-    days_of_retention,
-    too_old_date,
-    returned_date
+    admin_request, sample_inbound_sms, sample_service, days_of_retention, too_old_date, returned_date
 ):
     service = sample_service()
     create_service_data_retention(service, SMS_TYPE, days_of_retention)
@@ -167,27 +143,15 @@ def test_get_inbound_sms_summary(
     with freeze_time('2017-01-03'):
         sample_inbound_sms(other_service)
 
-        summary = admin_request.get(
-            'inbound_sms.get_inbound_sms_summary_for_service',
-            service_id=service.id
-        )
+        summary = admin_request.get('inbound_sms.get_inbound_sms_summary_for_service', service_id=service.id)
 
-    assert summary == {
-        'count': 2,
-        'most_recent': datetime(2017, 1, 2).isoformat()
-    }
+    assert summary == {'count': 2, 'most_recent': datetime(2017, 1, 2).isoformat()}
 
 
 def test_get_inbound_sms_summary_with_no_inbound(admin_request, sample_service):
-    summary = admin_request.get(
-        'inbound_sms.get_inbound_sms_summary_for_service',
-        service_id=sample_service().id
-    )
+    summary = admin_request.get('inbound_sms.get_inbound_sms_summary_for_service', service_id=sample_service().id)
 
-    assert summary == {
-        'count': 0,
-        'most_recent': None
-    }
+    assert summary == {'count': 0, 'most_recent': None}
 
 
 def test_get_inbound_sms_by_id_returns_200(
@@ -210,10 +174,7 @@ def test_get_inbound_sms_by_id_returns_200(
 
 def test_get_inbound_sms_by_id_invalid_id_returns_404(admin_request, sample_service):
     assert admin_request.get(
-        'inbound_sms.get_inbound_by_id',
-        service_id=sample_service().id,
-        inbound_sms_id='bar',
-        _expected_status=404
+        'inbound_sms.get_inbound_by_id', service_id=sample_service().id, inbound_sms_id='bar', _expected_status=404
     )
 
 
@@ -222,14 +183,11 @@ def test_get_inbound_sms_by_id_with_invalid_service_id_returns_404(admin_request
         'inbound_sms.get_inbound_by_id',
         service_id='foo',
         inbound_sms_id='2cfbd6a1-1575-4664-8969-f27be0ea40d9',
-        _expected_status=404
+        _expected_status=404,
     )
 
 
-@pytest.mark.parametrize('page_given, expected_rows, has_next_link', [
-    (True, 10, False),
-    (False, 50, True)
-])
+@pytest.mark.parametrize('page_given, expected_rows, has_next_link', [(True, 10, False), (False, 50, True)])
 def test_get_most_recent_inbound_sms_for_service(
     admin_request,
     page_given,
@@ -244,9 +202,7 @@ def test_get_most_recent_inbound_sms_for_service(
 
     request_args = {'page': 2} if page_given else {}
     response = admin_request.get(
-        'inbound_sms.get_most_recent_inbound_sms_for_service',
-        service_id=service.id,
-        **request_args
+        'inbound_sms.get_most_recent_inbound_sms_for_service', service_id=service.id, **request_args
     )
 
     assert len(response['data']) == expected_rows

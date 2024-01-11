@@ -12,7 +12,6 @@ down_revision = '0013_add_loadtest_client'
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 def upgrade():
     op.add_column('jobs', sa.Column('template_version', sa.Integer(), nullable=True))
