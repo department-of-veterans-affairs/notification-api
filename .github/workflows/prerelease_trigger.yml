@@ -28,10 +28,10 @@ jobs:
       git-tag: "${{ github.event.release.tag_name }}"
     secrets: inherit
 
-  run-regression:
+  run-qa-suite:
     needs: [run-deployment]
     uses: ./.github/workflows/run-regression.yml
     with:
-      environment: "${{ inputs.environment }}"
-    secrets: inherit    # This line is necessary so that the workflow_call can access the envPAT
+      environment: "staging"
+    secrets: inherit
 

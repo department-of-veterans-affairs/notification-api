@@ -66,10 +66,10 @@ jobs:
       ref: "${{ needs.setup-environment.outputs.git-hash }}"
     secrets: inherit
 
-  run-regression:
+  run-qa-suite:
     needs: [run-deployment]
+    if: ${{ (inputs.environment == 'perf') || (inputs.environment == 'staging') }} (inputs.environment == 'dev')
     uses: ./.github/workflows/run-regression.yml
     with:
       environment: "${{ inputs.environment }}"
-    secrets: inherit    # This line is necessary so that the workflow_call can access the envPAT
-
+    secrets: inherit
