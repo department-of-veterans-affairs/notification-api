@@ -54,7 +54,7 @@ const triggerAndWait = async ({ github, context, core }) => {
   let conclusion;
   let workflow_url = `https://github.com/${owner}/${repo}/actions/runs/${run_id}`;
   do {
-    await new Promise(r => setTimeout(r, 10000)); // Poll every 10 seconds
+    await new Promise(r => setTimeout(r, 30000)); // Poll every 30 seconds
     const result = await github.rest.actions.getWorkflowRun({
       owner,
       repo,
