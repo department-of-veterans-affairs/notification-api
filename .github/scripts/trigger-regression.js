@@ -8,7 +8,7 @@ const inputs = {
   environment: ENVIRONMENT,
 };
 
-const triggerAndWait = async ({ github, context, core }) => {
+const triggerAndWait = async ({ github, core }) => {
   const owner = 'department-of-veterans-affairs'; // user of private repo 
   const repo = 'notification-api-qa'; // private repo to contact
   const workflow_id = 'regression.yml'; // Replace with your workflow file name or ID
