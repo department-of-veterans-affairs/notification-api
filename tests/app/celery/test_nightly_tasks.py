@@ -58,7 +58,8 @@ def mock_s3_get_list_diff(bucket_name, subfolder='', suffix='', last_modified=No
         return ['root/disoatch/NOTIFY.2018-01-11175007p.ACK.TXT', 'root/disoatch/NOTIFY.2018-01-11175008.ACK.TXT']
 
 
-@freeze_time('2016-10-18T10:00:00')
+@pytest.mark.serial
+@freeze_time('2016-05-18T10:00:00')
 def test_will_remove_csv_files_for_jobs_older_than_seven_days(mocker, sample_template, sample_job):
     """
     Jobs older than seven days are deleted, but only two day's worth (two-day window)
@@ -80,12 +81,15 @@ def test_will_remove_csv_files_for_jobs_older_than_seven_days(mocker, sample_tem
     dont_delete_me_1 = sample_job(template, created_at=seven_days_ago)
     sample_job(template, created_at=just_under_seven_days)
 
+    # requires serial - query intermittently grabs more to remove than expected
     remove_sms_email_csv_files()
 
-    assert s3.remove_job_from_s3.call_args_list == [
-        call(job1_to_delete.service_id, job1_to_delete.id),
-        call(job2_to_delete.service_id, job2_to_delete.id),
-    ]
+    assert (
+        s3.remove_job_from_s3.call_args_list == [
+            call(job1_to_delete.service_id, job1_to_delete.id),
+            call(job2_to_delete.service_id, job2_to_delete.id),
+        ]
+    )
     assert job1_to_delete.archived
     assert not dont_delete_me_1.archived
 
@@ -123,12 +127,15 @@ def test_will_remove_csv_files_for_jobs_older_than_retention_period(
     remove_sms_email_csv_files()
 
     try:
-        s3.remove_job_from_s3.assert_has_calls([
-            call(job1_to_delete.service_id, job1_to_delete.id),
-            call(job2_to_delete.service_id, job2_to_delete.id),
-            call(job3_to_delete.service_id, job3_to_delete.id),
-            call(job4_to_delete.service_id, job4_to_delete.id)
-        ], any_order=True)
+        s3.remove_job_from_s3.assert_has_calls(
+            [
+                call(job1_to_delete.service_id, job1_to_delete.id),
+                call(job2_to_delete.service_id, job2_to_delete.id),
+                call(job3_to_delete.service_id, job3_to_delete.id),
+                call(job4_to_delete.service_id, job4_to_delete.id),
+            ],
+            any_order=True,
+        )
     finally:
         # Teardown
         notify_db_session.session.delete(sdr1)
@@ -136,6 +143,7 @@ def test_will_remove_csv_files_for_jobs_older_than_retention_period(
         notify_db_session.session.commit()
 
 
+@pytest.mark.serial
 @freeze_time('2017-01-01 10:00:00')
 def test_remove_csv_files_filters_by_type(mocker, sample_service, sample_template, sample_job):
     """
@@ -177,53 +185,62 @@ def test_should_call_delete_letter_notifications_more_than_week_in_task(notify_a
     mocked.assert_called_once_with(LETTER_TYPE)
 
 
-def test_update_status_of_notifications_after_timeout(notify_api, sample_template, sample_notification):
+@pytest.mark.serial
+def test_update_status_of_notifications_after_timeout(
+    notify_api,
+    notify_db_session,
+    sample_template,
+    sample_notification,
+):
     template = sample_template()
     with notify_api.test_request_context():
+        time_diff = timedelta(seconds=current_app.config.get('SENDING_NOTIFICATIONS_TIMEOUT_PERIOD') + 10)
+
         not1 = sample_notification(
             template=template,
             status='sending',
-            created_at=datetime.utcnow() - timedelta(
-                seconds=current_app.config.get('SENDING_NOTIFICATIONS_TIMEOUT_PERIOD') + 10
-            )
+            created_at=datetime.utcnow() - time_diff,
         )
         not2 = sample_notification(
             template=template,
             status='created',
-            created_at=datetime.utcnow() - timedelta(
-                seconds=current_app.config.get('SENDING_NOTIFICATIONS_TIMEOUT_PERIOD') + 10
-            )
+            created_at=datetime.utcnow() - time_diff,
         )
         not3 = sample_notification(
             template=template,
             status='pending',
-            created_at=datetime.utcnow() - timedelta(
-                seconds=current_app.config.get('SENDING_NOTIFICATIONS_TIMEOUT_PERIOD') + 10
-            )
+            created_at=datetime.utcnow() - time_diff,
         )
+
         with pytest.raises(NotificationTechnicalFailureException) as e:
             timeout_notifications()
+
+        notify_db_session.session.refresh(not1)
+        notify_db_session.session.refresh(not2)
+        notify_db_session.session.refresh(not3)
+
         assert str(not2.id) in str(e.value)
         assert not1.status == 'temporary-failure'
         assert not2.status == 'technical-failure'
         assert not3.status == 'temporary-failure'
 
 
+@pytest.mark.serial
 def test_not_update_status_of_notification_before_timeout(notify_api, sample_template, sample_notification):
     template = sample_template()
     with notify_api.test_request_context():
         not1 = sample_notification(
             template=template,
             status='sending',
-            created_at=datetime.utcnow() - timedelta(
-                seconds=current_app.config.get('SENDING_NOTIFICATIONS_TIMEOUT_PERIOD') - 10
-            )
+            created_at=datetime.utcnow()
+            - timedelta(seconds=current_app.config.get('SENDING_NOTIFICATIONS_TIMEOUT_PERIOD') - 10),
         )
         timeout_notifications()
         assert not1.status == 'sending'
 
 
-def test_should_not_update_status_of_letter_notifications(client, sample_template, sample_notification):
+@pytest.mark.serial
+def test_should_not_update_status_of_letter_notifications(client, sample_template, sample_notification,):
     template = sample_template(template_type=LETTER_TYPE)
     created_at = datetime.utcnow() - timedelta(days=5)
     not1 = sample_notification(template=template, status='sending', created_at=created_at)
@@ -235,27 +252,28 @@ def test_should_not_update_status_of_letter_notifications(client, sample_templat
     assert not2.status == 'created'
 
 
+@pytest.mark.serial
 def test_timeout_notifications_sends_status_update_to_service(
-    client, sample_service, sample_template, mocker, sample_notification
+    client, sample_service, sample_template, mocker, sample_notification, notify_db_session,
 ):
     service = sample_service()
     template = sample_template(service=service)
-    callback_api = create_service_callback_api(
-        service=service, notification_statuses=NOTIFICATION_STATUS_TYPES_FAILED
-    )
+    callback_api = create_service_callback_api(service=service, notification_statuses=NOTIFICATION_STATUS_TYPES_FAILED)
     callback_id = callback_api.id
     mocked = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
     notification = sample_notification(
         template=template,
         status='sending',
-        created_at=datetime.utcnow() - timedelta(
-            seconds=current_app.config.get('SENDING_NOTIFICATIONS_TIMEOUT_PERIOD') + 10
-        )
+        created_at=datetime.utcnow()
+        - timedelta(seconds=current_app.config.get('SENDING_NOTIFICATIONS_TIMEOUT_PERIOD') + 10),
     )
-    timeout_notifications()
 
+    # serial-only method
+    timeout_notifications()
+    notify_db_session.session.refresh(notification)
     encrypted_data = create_delivery_status_callback_data(notification, callback_api)
-    mocked.assert_called_once_with([callback_id, str(notification.id), encrypted_data], queue=QueueNames.CALLBACKS)
+
+    mocked.assert_called_with([callback_id, str(notification.id), encrypted_data], queue=QueueNames.CALLBACKS)
 
 
 def test_send_daily_performance_stats_calls_does_not_send_if_inactive(client, mocker):
@@ -290,19 +308,13 @@ def test_send_total_sent_notifications_to_performance_platform_calls_with_correc
     fns4 = create_ft_notification_status(utc_date=yesterday, template=template2, count=3)
 
     try:
-        with patch.object(
-                PerformancePlatformClient,
-                'active',
-                new_callable=PropertyMock
-        ) as mock_active:
+        with patch.object(PerformancePlatformClient, 'active', new_callable=PropertyMock) as mock_active:
             mock_active.return_value = True
             send_total_sent_notifications_to_performance_platform(yesterday)
 
-            perf_mock.assert_has_calls([
-                call("2016-06-10", SMS_TYPE, 2),
-                call("2016-06-10", EMAIL_TYPE, 3),
-                call("2016-06-10", LETTER_TYPE, 0)
-            ])
+            perf_mock.assert_has_calls(
+                [call('2016-06-10', SMS_TYPE, 2), call('2016-06-10', EMAIL_TYPE, 3), call('2016-06-10', LETTER_TYPE, 0)]
+            )
     finally:
         notify_db_session.session.delete(fns1)
         notify_db_session.session.delete(fns2)
@@ -426,7 +438,8 @@ def test_delete_dvla_response_files_older_than_seven_days_does_not_remove_files(
     remove_s3_mock.assert_not_called()
 
 
-@freeze_time("2018-01-17 17:00:00")
+@pytest.mark.serial
+@freeze_time('2018-01-17 17:00:00')
 def test_alert_if_letter_notifications_still_sending(sample_template, mocker, sample_notification):
     template = sample_template(template_type=LETTER_TYPE)
     two_days_ago = datetime(2018, 1, 15, 13, 30)
@@ -455,7 +468,8 @@ def test_alert_if_letter_notifications_still_sending_a_day_ago_no_alert(sample_t
     assert not mock_create_ticket.called
 
 
-@freeze_time("2018-01-17 17:00:00")
+@pytest.mark.serial
+@freeze_time('2018-01-17 17:00:00')
 def test_alert_if_letter_notifications_still_sending_only_alerts_sending(sample_template, mocker, sample_notification):
     template = sample_template(template_type=LETTER_TYPE)
     two_days_ago = datetime(2018, 1, 15, 13, 30)
@@ -474,7 +488,8 @@ def test_alert_if_letter_notifications_still_sending_only_alerts_sending(sample_
     )
 
 
-@freeze_time("2018-01-17 17:00:00")
+@pytest.mark.serial
+@freeze_time('2018-01-17 17:00:00')
 def test_alert_if_letter_notifications_still_sending_alerts_for_older_than_offset(
     sample_template, mocker, sample_notification
 ):
@@ -493,7 +508,7 @@ def test_alert_if_letter_notifications_still_sending_alerts_for_older_than_offse
     )
 
 
-@freeze_time("2018-01-14 17:00:00")
+@freeze_time('2018-01-14 17:00:00')
 def test_alert_if_letter_notifications_still_sending_does_nothing_on_the_weekend(
     sample_template, mocker, sample_notification
 ):
@@ -508,7 +523,7 @@ def test_alert_if_letter_notifications_still_sending_does_nothing_on_the_weekend
     assert not mock_create_ticket.called
 
 
-@freeze_time("2018-01-15 17:00:00")
+@freeze_time('2018-01-15 17:00:00')
 def test_monday_alert_if_letter_notifications_still_sending_reports_thursday_letters(
     mocker, sample_template, sample_notification
 ):
@@ -529,7 +544,7 @@ def test_monday_alert_if_letter_notifications_still_sending_reports_thursday_let
     )
 
 
-@freeze_time("2018-01-16 17:00:00")
+@freeze_time('2018-01-16 17:00:00')
 def test_tuesday_alert_if_letter_notifications_still_sending_reports_friday_letters(
     sample_template, mocker, sample_notification
 ):

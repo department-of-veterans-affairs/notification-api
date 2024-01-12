@@ -9,7 +9,7 @@ from tests.app.db import (
 )
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_get_all_organisations(
     admin_request,
     sample_organisation,
@@ -85,22 +85,19 @@ def test_get_organisation_by_id(
     assert response['agreement_signed_on_behalf_of_email_address'] is None
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_get_organisation_by_id_returns_domains(
     admin_request,
     sample_organisation,
 ):
-
-    org = sample_organisation(domains=[
-        'foo.va.gov',
-        'bar.va.gov',
-    ])
-
-    response = admin_request.get(
-        'organisation.get_organisation_by_id',
-        _expected_status=200,
-        organisation_id=org.id
+    org = sample_organisation(
+        domains=[
+            'foo.va.gov',
+            'bar.va.gov',
+        ]
     )
+
+    response = admin_request.get('organisation.get_organisation_by_id', _expected_status=200, organisation_id=org.id)
 
     response = admin_request.get('organisation.get_organisation_by_id', _expected_status=200, organisation_id=org.id)
 
@@ -110,18 +107,22 @@ def test_get_organisation_by_id_returns_domains(
     }
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@pytest.mark.parametrize('domain, expected_status', (
-    ('foo.va.gov', 200),
-    ('bar.va.gov', 200),
-    ('oof.va.gov', 404),
-    pytest.param(
-        'rab.va.gov', 200,
-        marks=pytest.mark.xfail(raises=AssertionError),
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@pytest.mark.parametrize(
+    'domain, expected_status',
+    (
+        ('foo.va.gov', 200),
+        ('bar.va.gov', 200),
+        ('oof.va.gov', 404),
+        pytest.param(
+            'rab.va.gov',
+            200,
+            marks=pytest.mark.xfail(raises=AssertionError),
+        ),
+        (None, 400),
+        ('personally.identifying.information@example.com', 400),
     ),
-    (None, 400),
-    ('personally.identifying.information@example.com', 400),
-))
+)
 def test_get_organisation_by_domain(
     admin_request,
     sample_domain,
@@ -150,7 +151,7 @@ def test_get_organisation_by_domain(
         assert response['result'] == 'error'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 @pytest.mark.parametrize('crown', [True, False])
 def test_post_create_organisation(admin_request, notify_db_session, crown):
     data = {
@@ -172,7 +173,7 @@ def test_post_create_organisation(admin_request, notify_db_session, crown):
     assert len(organisation) == 1
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_post_create_organisation_existing_name_raises_400(admin_request, sample_organisation):
     data = {
         'name': sample_organisation().name,
@@ -249,10 +250,8 @@ def test_post_create_organisation_with_missing_data_gives_validation_error(
     assert response['errors'][0]['message'] == expected_error
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@pytest.mark.parametrize('crown', (
-    None, True, False
-))
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@pytest.mark.parametrize('crown', (None, True, False))
 def test_post_update_organisation_updates_fields(
     admin_request,
     sample_organisation,
@@ -280,12 +279,15 @@ def test_post_update_organisation_updates_fields(
     assert organisation[0].organisation_type == 'other'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@pytest.mark.parametrize('domain_list', (
-    ['example.com'],
-    ['example.com', 'example.org', 'example.net'],
-    [],
-))
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@pytest.mark.parametrize(
+    'domain_list',
+    (
+        ['example.com'],
+        ['example.com', 'example.org', 'example.net'],
+        [],
+    ),
+)
 def test_post_update_organisation_updates_domains(
     admin_request,
     sample_organisation,
@@ -304,7 +306,7 @@ def test_post_update_organisation_updates_domains(
     assert [domain.domain for domain in organisation[0].domains] == domain_list
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_update_other_organisation_attributes_doesnt_clear_domains(
     admin_request,
     sample_domain,
@@ -325,7 +327,7 @@ def test_update_other_organisation_attributes_doesnt_clear_domains(
     assert [domain.domain for domain in org.domains] == ['example.gov.uk']
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_update_organisation_default_branding(
     admin_request,
     sample_organisation,
@@ -350,10 +352,7 @@ def test_post_update_organisation_raises_400_on_existing_org_name(
     sample_organisation,
 ):
     org = sample_organisation()
-    data = {
-        'name': sample_organisation().name,
-        'active': False
-    }
+    data = {'name': sample_organisation().name, 'active': False}
 
     response = admin_request.post(
         'organisation.update_organisation', _data=data, organisation_id=org.id, _expected_status=400
@@ -362,7 +361,7 @@ def test_post_update_organisation_raises_400_on_existing_org_name(
     assert response['message'] == 'Organisation name already exists'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_post_update_organisation_gives_404_status_if_org_does_not_exist(admin_request, notify_db_session):
     data = {'name': 'new organisation name'}
 
@@ -378,7 +377,7 @@ def test_post_update_organisation_gives_404_status_if_org_does_not_exist(admin_r
     assert not organisation
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_post_update_organisation_returns_400_if_domain_is_duplicate(
     admin_request,
     sample_organisation,
@@ -403,35 +402,35 @@ def test_post_update_organisation_set_mou_doesnt_email_if_no_signed_by(sample_or
     data = {'agreement_signed': True}
 
     admin_request.post(
-        'organisation.update_organisation',
-        _data=data,
-        organisation_id=sample_organisation().id,
-        _expected_status=204
+        'organisation.update_organisation', _data=data, organisation_id=sample_organisation().id, _expected_status=204
     )
 
     assert queue_mock.called is False
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@pytest.mark.parametrize('on_behalf_of_name, on_behalf_of_email_address, templates_and_recipients', [
-    (
-        None,
-        None,
-        {
-            'MOU_NOTIFY_TEAM_ALERT_TEMPLATE_ID': 'notify-support+test@digital.cabinet-office.gov.uk',
-            'MOU_SIGNER_RECEIPT_TEMPLATE_ID': 'notify@digital.cabinet-office.gov.uk',
-        }
-    ),
-    (
-        'Important Person',
-        'important@person.com',
-        {
-            'MOU_NOTIFY_TEAM_ALERT_TEMPLATE_ID': 'notify-support+test@digital.cabinet-office.gov.uk',
-            'MOU_SIGNED_ON_BEHALF_ON_BEHALF_RECEIPT_TEMPLATE_ID': 'important@person.com',
-            'MOU_SIGNED_ON_BEHALF_SIGNER_RECEIPT_TEMPLATE_ID': 'notify@digital.cabinet-office.gov.uk',
-        }
-    ),
-])
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@pytest.mark.parametrize(
+    'on_behalf_of_name, on_behalf_of_email_address, templates_and_recipients',
+    [
+        (
+            None,
+            None,
+            {
+                'MOU_NOTIFY_TEAM_ALERT_TEMPLATE_ID': 'notify-support+test@digital.cabinet-office.gov.uk',
+                'MOU_SIGNER_RECEIPT_TEMPLATE_ID': 'notify@digital.cabinet-office.gov.uk',
+            },
+        ),
+        (
+            'Important Person',
+            'important@person.com',
+            {
+                'MOU_NOTIFY_TEAM_ALERT_TEMPLATE_ID': 'notify-support+test@digital.cabinet-office.gov.uk',
+                'MOU_SIGNED_ON_BEHALF_ON_BEHALF_RECEIPT_TEMPLATE_ID': 'important@person.com',
+                'MOU_SIGNED_ON_BEHALF_SIGNER_RECEIPT_TEMPLATE_ID': 'notify@digital.cabinet-office.gov.uk',
+            },
+        ),
+    ],
+)
 def test_post_update_organisation_set_mou_emails_signed_by(
     sample_organisation,
     admin_request,
@@ -452,7 +451,7 @@ def test_post_update_organisation_set_mou_emails_signed_by(
         'organisation.update_organisation',
         _data={'agreement_signed': True, 'agreement_signed_by_id': str(sample_user().id)},
         organisation_id=org.id,
-        _expected_status=204
+        _expected_status=204,
     )
 
     notifications = [x[0][0] for x in queue_mock.call_args_list]
@@ -474,16 +473,11 @@ def test_post_link_service_to_organisation(
     sample_service,
     sample_organisation,
 ):
-    data = {
-        'service_id': str(sample_service().id)
-    }
+    data = {'service_id': str(sample_service().id)}
 
     org = sample_organisation()
     admin_request.post(
-        'organisation.link_service_to_organisation',
-        _data=data,
-        organisation_id=org.id,
-        _expected_status=204
+        'organisation.link_service_to_organisation', _data=data, organisation_id=org.id, _expected_status=204
     )
 
     assert len(org.services) == 1
@@ -494,16 +488,11 @@ def test_post_link_service_to_another_org(
     sample_service,
     sample_organisation,
 ):
-    data = {
-        'service_id': str(sample_service().id)
-    }
+    data = {'service_id': str(sample_service().id)}
 
     org = sample_organisation()
     admin_request.post(
-        'organisation.link_service_to_organisation',
-        _data=data,
-        organisation_id=org.id,
-        _expected_status=204
+        'organisation.link_service_to_organisation', _data=data, organisation_id=org.id, _expected_status=204
     )
 
     assert len(org.services) == 1
@@ -516,11 +505,8 @@ def test_post_link_service_to_another_org(
     assert len(new_org.services) == 1
 
 
-def test_post_link_service_to_organisation_nonexistent_organisation(
-        admin_request, sample_service, fake_uuid):
-    data = {
-        'service_id': str(sample_service().id)
-    }
+def test_post_link_service_to_organisation_nonexistent_organisation(admin_request, sample_service, fake_uuid):
+    data = {'service_id': str(sample_service().id)}
 
     admin_request.post(
         'organisation.link_service_to_organisation', _data=data, organisation_id=fake_uuid, _expected_status=404
@@ -532,15 +518,13 @@ def test_post_link_service_to_organisation_nonexistent_service(
     sample_organisation,
     fake_uuid,
 ):
-    data = {
-        'service_id': fake_uuid
-    }
+    data = {'service_id': fake_uuid}
 
     admin_request.post(
         'organisation.link_service_to_organisation',
         _data=data,
         organisation_id=str(sample_organisation().id),
-        _expected_status=404
+        _expected_status=404,
     )
 
 
@@ -550,9 +534,7 @@ def test_post_link_service_to_organisation_missing_payload(
     fake_uuid,
 ):
     admin_request.post(
-        'organisation.link_service_to_organisation',
-        organisation_id=str(sample_organisation().id),
-        _expected_status=400
+        'organisation.link_service_to_organisation', organisation_id=str(sample_organisation().id), _expected_status=400
     )
 
 
@@ -565,15 +547,13 @@ def test_rest_get_organisation_services(
     service = sample_service()
     dao_add_service_to_organisation(service, org.id)
     response = admin_request.get(
-        'organisation.get_organisation_services',
-        organisation_id=str(org.id),
-        _expected_status=200
+        'organisation.get_organisation_services', organisation_id=str(org.id), _expected_status=200
     )
 
     assert response == [service.serialize_for_org_dashboard()]
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_rest_get_organisation_services_is_ordered_by_name(
     admin_request,
     sample_organisation,
@@ -589,9 +569,7 @@ def test_rest_get_organisation_services_is_ordered_by_name(
     dao_add_service_to_organisation(service_0, org.id)
 
     response = admin_request.get(
-        'organisation.get_organisation_services',
-        organisation_id=str(org.id),
-        _expected_status=200
+        'organisation.get_organisation_services', organisation_id=str(org.id), _expected_status=200
     )
 
     assert response[0]['name'] == service_0.name
@@ -599,7 +577,7 @@ def test_rest_get_organisation_services_is_ordered_by_name(
     assert response[2]['name'] == service_2.name
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_rest_get_organisation_services_inactive_services_at_end(
     admin_request,
     sample_organisation,
@@ -615,9 +593,7 @@ def test_rest_get_organisation_services_inactive_services_at_end(
     dao_add_service_to_organisation(inactive_service_1, org.id)
 
     response = admin_request.get(
-        'organisation.get_organisation_services',
-        organisation_id=str(org.id),
-        _expected_status=200
+        'organisation.get_organisation_services', organisation_id=str(org.id), _expected_status=200
     )
 
     assert response[0]['name'] == service.name
@@ -633,10 +609,7 @@ def test_add_user_to_organisation_returns_added_user(
     org = sample_organisation()
     user = sample_user()
     response = admin_request.post(
-        'organisation.add_user_to_organisation',
-        organisation_id=str(org.id),
-        user_id=str(user.id),
-        _expected_status=200
+        'organisation.add_user_to_organisation', organisation_id=str(org.id), user_id=str(user.id), _expected_status=200
     )
 
     assert response['data']['id'] == str(user.id)
@@ -664,11 +637,7 @@ def test_get_organisation_users_returns_users_for_organisation(
     dao_add_user_to_organisation(organisation_id=org.id, user_id=first.id)
     dao_add_user_to_organisation(organisation_id=org.id, user_id=second.id)
 
-    response = admin_request.get(
-        'organisation.get_organisation_users',
-        organisation_id=org.id,
-        _expected_status=200
-    )
+    response = admin_request.get('organisation.get_organisation_users', organisation_id=org.id, _expected_status=200)
 
     assert len(response['data']) == 2
     assert response['data'][0]['id'] == str(first.id)
@@ -687,12 +656,10 @@ def test_is_organisation_name_unique_returns_200_if_unique(
     assert response == {'result': True}
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@pytest.mark.parametrize('name', ["UNIQUE", "Unique.", "**uniQUE**"])
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@pytest.mark.parametrize('name', ['UNIQUE', 'Unique.', '**uniQUE**'])
 def test_is_organisation_name_unique_returns_200_and_name_capitalized_or_punctuation_added(
-    admin_request,
-    sample_organisation,
-    name
+    admin_request, sample_organisation, name
 ):
     organisation = sample_organisation(name='unique')
 
@@ -703,8 +670,8 @@ def test_is_organisation_name_unique_returns_200_and_name_capitalized_or_punctua
     assert response == {'result': True}
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@pytest.mark.parametrize('name', ["UNIQUE", "Unique"])
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@pytest.mark.parametrize('name', ['UNIQUE', 'Unique'])
 def test_is_organisation_name_unique_returns_200_and_false_with_same_name_and_different_case_of_other_organisation(
     admin_request,
     sample_organisation,
@@ -737,7 +704,7 @@ def test_is_organisation_name_unique_returns_200_and_false_if_name_exists_for_a_
     assert response == {'result': False}
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_is_organisation_name_unique_returns_200_and_true_if_name_exists_for_the_same_organisation(
     admin_request,
     sample_organisation,

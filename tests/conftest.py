@@ -49,7 +49,7 @@ def pytest_sessionstart(session):
     BASE_DIR = os.path.dirname(os.path.dirname(__file__))
     ALEMBIC_CONFIG = os.path.join(BASE_DIR, 'migrations')
     config = Config(ALEMBIC_CONFIG + '/alembic.ini')
-    config.set_main_option("script_location", ALEMBIC_CONFIG)
+    config.set_main_option('script_location', ALEMBIC_CONFIG)
 
     with application.app_context():
         upgrade(config, 'head')
@@ -91,7 +91,7 @@ def create_test_db(database_uri):
     postgres_db.dispose()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope='session')
 def notify_db(notify_api):
     """
     Yield an instance of flask_sqlalchemy.SQLAlchemy.
@@ -194,7 +194,7 @@ def database_prep():
     """
     # Setup metadata with reflection so we can get tables from their string names
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=SAWarning)
+        warnings.simplefilter('ignore', category=SAWarning)
         meta_data = db.MetaData(bind=db.engine)
         db.MetaData.reflect(meta_data)
 
@@ -240,4 +240,8 @@ def database_prep():
 
     R = meta_data.tables['rates']
     db.session.execute(delete(R))
+
+    LR = meta_data.tables['letter_rates']
+    db.session.execute(delete(LR))
+
     db.session.commit()

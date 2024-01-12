@@ -3,10 +3,10 @@ from marshmallow import ValidationError
 from sqlalchemy import desc, select
 
 from app.dao.provider_details_dao import dao_update_provider_details
-from app.models import ProviderDetails, ProviderDetailsHistory, EMAIL_TYPE, SMS_TYPE, SES_PROVIDER
+from app.models import ProviderDetails, ProviderDetailsHistory, EMAIL_TYPE, SES_PROVIDER
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_job_schema_doesnt_return_notifications(sample_notification_with_job):
     from app.schemas import job_schema
 
@@ -21,6 +21,7 @@ def test_job_schema_doesnt_return_notifications(sample_notification_with_job):
 
 def test_notification_schema_ignores_absent_api_key(sample_notification, sample_template):
     from app.schemas import notification_with_template_schema
+
     notification = sample_notification(template=sample_template())
     notification.api_key = None
     data = notification_with_template_schema.dump(notification).data
@@ -30,6 +31,7 @@ def test_notification_schema_ignores_absent_api_key(sample_notification, sample_
 
 def test_notification_schema_adds_api_key_name(sample_api_key, sample_notification):
     from app.schemas import notification_with_template_schema
+
     notification = sample_notification()
     api_key = sample_api_key(service=notification.service, key_name='Test key')
     notification.api_key = api_key
@@ -119,13 +121,12 @@ def test_provider_details_schema_returns_user_details(
     sample_provider,
 ):
     from app.schemas import provider_details_schema
-    user = sample_user()
-    sample_provider(created_by=user)
 
-    stmt = select(ProviderDetails).where(ProviderDetails.notification_type == SMS_TYPE)\
-                                  .order_by(ProviderDetails.priority)
-    priority_provider = notify_db_session.session.scalar(stmt)
-    data = provider_details_schema.dump(priority_provider).data
+    user = sample_user()
+    provider = sample_provider(created_by=user)
+
+    provider_from_db = ProviderDetails.query.get(provider.id)
+    data = provider_details_schema.dump(provider_from_db).data
 
     assert sorted(data['created_by'].keys()) == sorted(['id', 'email_address', 'name'])
 
@@ -134,11 +135,11 @@ def test_provider_details_history_schema_returns_user_details(
     mocker,
     notify_db_session,
     sample_user,
-    restore_provider_details,
     sample_provider,
 ):
     user = sample_user()
     from app.schemas import provider_details_schema
+
     mocker.patch('app.provider_details.switch_providers.get_user_by_id', return_value=user)
     provider = sample_provider()
     provider.created_by_id = user.id
@@ -146,8 +147,11 @@ def test_provider_details_history_schema_returns_user_details(
 
     dao_update_provider_details(provider)
 
-    stmt = select(ProviderDetailsHistory).where(ProviderDetailsHistory.id == provider.id)\
-                                         .order_by(desc(ProviderDetailsHistory.version))
+    stmt = (
+        select(ProviderDetailsHistory)
+        .where(ProviderDetailsHistory.id == provider.id)
+        .order_by(desc(ProviderDetailsHistory.version))
+    )
 
     current_sms_provider_in_history = notify_db_session.session.scalar(stmt)
     data = provider_details_schema.dump(current_sms_provider_in_history).data
@@ -161,6 +165,7 @@ def test_services_schema_includes_providers(
 ):
     service = sample_service()
     from app.schemas import service_schema
+
     email_provider = sample_provider(identifier=SES_PROVIDER, notification_type=EMAIL_TYPE)
     sms_provider = sample_provider()  # Defaults to sms - pinpoint
     service.email_provider_id = email_provider.id

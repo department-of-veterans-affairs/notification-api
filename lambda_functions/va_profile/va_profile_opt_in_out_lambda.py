@@ -141,6 +141,7 @@ if not should_make_put_request:
 
 db_connection = None
 
+
 def make_database_connection():
     """
     Return a connection to the database, or return None.
@@ -152,9 +153,9 @@ def make_database_connection():
     connection = None
 
     try:
-        logger.debug("Connecting to the database . . .")
+        logger.debug('Connecting to the database . . .')
         connection = psycopg2.connect(sqlalchemy_database_uri)
-        logger.debug(". . . Connected to the database.")
+        logger.debug('. . . Connected to the database.')
     except psycopg2.Warning as e:
         logger.warning(e)
     except psycopg2.Error as e:
@@ -384,7 +385,7 @@ def jwt_is_valid(
         return False
 
     if bearer.title() != 'Bearer':
-        logger.debug('Malformed Authorization header value: ', auth_header_value)
+        logger.debug('Malformed Authorization header value: %s', auth_header_value)
         return False
 
     options = {

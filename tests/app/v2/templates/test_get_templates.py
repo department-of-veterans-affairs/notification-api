@@ -42,7 +42,7 @@ def test_get_all_templates_returns_200(
             assert template['subject'] == templates[index].subject
 
 
-@pytest.mark.parametrize("tmp_type", TEMPLATE_TYPES)
+@pytest.mark.parametrize('tmp_type', TEMPLATE_TYPES)
 def test_get_all_templates_for_valid_type_returns_200(
     client,
     sample_api_key,
@@ -50,14 +50,13 @@ def test_get_all_templates_for_valid_type_returns_200(
     sample_template,
     tmp_type,
 ):
-
     api_key = sample_api_key()
     templates = [
         sample_template(
             service=api_key.service,
             template_type=tmp_type,
             name=f'Template {i}_{uuid4()}',
-            subject='subject_{}'.format(i) if tmp_type == EMAIL_TYPE else ''
+            subject='subject_{}'.format(i) if tmp_type == EMAIL_TYPE else '',
         )
         for i in range(3)
     ]
@@ -83,7 +82,7 @@ def test_get_all_templates_for_valid_type_returns_200(
             assert template['subject'] == templates[index].subject
 
 
-@pytest.mark.parametrize("tmp_type", TEMPLATE_TYPES)
+@pytest.mark.parametrize('tmp_type', TEMPLATE_TYPES)
 def test_get_correct_num_templates_for_valid_type_returns_200(
     client,
     sample_api_key,

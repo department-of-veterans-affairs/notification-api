@@ -3,8 +3,6 @@ from sqlalchemy import select
 from app.dao.service_user_dao import dao_get_service_user
 from app.dao.template_folder_dao import (
     dao_delete_template_folder,
-    dao_get_template_folder_by_id_and_service_id,
-    dao_get_valid_template_folders_by_id,
     dao_update_template_folder,
 )
 from app.models import user_folder_permissions

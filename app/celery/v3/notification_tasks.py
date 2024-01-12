@@ -78,26 +78,7 @@ def v3_process_notification(  # noqa: C901
     3. The given service owns the specified template.
     """
 
-    right_now = datetime.utcnow()
-    notification = Notification(
-        id=request_data['id'],
-        to=request_data.get('email_address' if request_data['notification_type'] == EMAIL_TYPE else 'phone_number'),
-        service_id=service_id,
-        template_id=request_data['template_id'],
-        template_version=0,
-        api_key_id=api_key_id,
-        key_type=api_key_type,
-        notification_type=request_data['notification_type'],
-        created_at=right_now,
-        updated_at=right_now,
-        status=NOTIFICATION_PERMANENT_FAILURE,
-        status_reason=None,
-        client_reference=request_data.get('client_reference'),
-        reference=request_data.get('reference'),
-        personalisation=request_data.get('personalisation'),
-        sms_sender_id=request_data.get('sms_sender_id'),
-        billing_code=request_data.get('billing_code'),
-    )
+    notification = v3_create_notification_instance(request_data, service_id, api_key_id, api_key_type)
 
     # TODO - Catch db connection errors and retry?
     with get_reader_session() as reader_session:
@@ -163,15 +144,23 @@ def v3_process_notification(  # noqa: C901
             with get_reader_session() as reader_session:
                 sms_sender = reader_session.execute(query).one().ServiceSmsSender
                 v3_send_sms_notification.delay(notification, sms_sender.sms_sender)
-        except (MultipleResultsFound, NoResultFound):
-            status_reason = f"SMS sender {notification.sms_sender_id} does not exist."
+        except NoResultFound:
+            err = f"SMS sender with id '{notification.sms_sender_id}' does not exist."
 
             # Set sms_sender_id to None so persisting it doesn't raise sqlalchemy.exc.IntegrityError
             # This happens in case user provides invalid sms_sender_id in the request data
             notification.sms_sender_id = None
             notification.status = NOTIFICATION_PERMANENT_FAILURE
             notification.status_reason = 'SMS sender does not exist.'
-            err = f"SMS sender with id '{notification.sms_sender_id}' does not exist."
+            v3_persist_failed_notification(notification, err)
+        except MultipleResultsFound:
+            err = f'Multiple SMS sender ids matched with: {notification.sms_sender_id}'
+
+            # Set sms_sender_id to None so persisting it doesn't raise sqlalchemy.exc.IntegrityError
+            # This happens in case user provides invalid sms_sender_id in the request data
+            notification.sms_sender_id = None
+            notification.status = NOTIFICATION_PERMANENT_FAILURE
+            notification.status_reason = 'SMS sender is invalid'
             v3_persist_failed_notification(notification, err)
 
     return
@@ -199,6 +188,7 @@ def v3_send_email_notification(
     # Persist the notification so related model instances are available to downstream code.
     notification.status = NOTIFICATION_CREATED
     db.session.add(notification)
+    # TODO - Is this necessary?  The template isn't being modified.  Refreshing fails.
     db.session.add(template)
     db.session.commit()
 
@@ -316,6 +306,7 @@ def v3_persist_failed_notification(
     """
     This is a helper to log and persist failed notifications that are not retriable.
     """
+
     assert notification.status is not None
     assert notification.status_reason is not None
 
@@ -330,3 +321,38 @@ def v3_persist_failed_notification(
         except Exception as err:
             db.session.rollback()
             current_app.logger.critical("Unable to save Notification '%s'. Error: '%s'", notification.id, err)
+
+
+def v3_create_notification_instance(
+    request_data: dict,
+    service_id: str,
+    api_key_id: str,
+    api_key_type: str,
+    template_version: int = None,
+) -> Notification:
+    """
+    Create and return a Notification instance, but do not persist it in the database.  The "template_version"
+    parameter is not None when used from unit tests that don't call v3_process_notification, which might change
+    the value of Notification.template_version to something other than 0.
+    """
+
+    right_now = datetime.utcnow()
+    return Notification(
+        id=request_data['id'],
+        to=request_data.get('email_address' if request_data['notification_type'] == EMAIL_TYPE else 'phone_number'),
+        service_id=service_id,
+        template_id=request_data['template_id'],
+        template_version=template_version if (template_version is not None) else 0,
+        api_key_id=api_key_id,
+        key_type=api_key_type,
+        notification_type=request_data['notification_type'],
+        created_at=right_now,
+        updated_at=right_now,
+        status=NOTIFICATION_PERMANENT_FAILURE,
+        status_reason=None,
+        client_reference=request_data.get('client_reference'),
+        reference=request_data.get('reference'),
+        personalisation=request_data.get('personalisation'),
+        sms_sender_id=request_data.get('sms_sender_id'),
+        billing_code=request_data.get('billing_code'),
+    )

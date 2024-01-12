@@ -415,7 +415,7 @@ def test_send_sms_calls_twilio_correctly(notify_db_session, requests_mock):
     assert d['Body'] == content
 
 
-@pytest.mark.parametrize("sms_sender_id", ["test_sender_id", None], ids=["has sender id", "no sender id"])
+@pytest.mark.parametrize('sms_sender_id', ['test_sender_id', None], ids=['has sender id', 'no sender id'])
 def test_send_sms_call_with_sender_id_and_specifics(
     notify_db_session, sample_service, notify_api, mocker, sms_sender_id, requests_mock
 ):

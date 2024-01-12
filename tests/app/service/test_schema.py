@@ -77,9 +77,12 @@ def test_create_service_callback_api_schema_validate_fails_when_missing_properti
         assert 'is a required property' in message['message']
 
 
-@pytest.mark.parametrize('key, wrong_key, value', [
-    ("url", "urls", "https://some_url.for_service"),
-])
+@pytest.mark.parametrize(
+    'key, wrong_key, value',
+    [
+        ('url', 'urls', 'https://some_url.for_service'),
+    ],
+)
 def test_create_service_callback_api_schema_validate_fails_with_misspelled_keys(client, key, wrong_key, value):
     under_test = {
         'url': 'https://some_url.for_service',

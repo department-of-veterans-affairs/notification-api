@@ -3,17 +3,14 @@ from app.models import Notification, INVITE_PENDING
 from tests.app.db import create_invited_org_user
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@pytest.mark.parametrize('extra_args, expected_start_of_invite_url', [
-    (
-        {},
-        'http://localhost:6012/organisation-invitation/'
-    ),
-    (
-        {'invite_link_host': 'https://www.example.com'},
-        'https://www.example.com/organisation-invitation/'
-    ),
-])
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@pytest.mark.parametrize(
+    'extra_args, expected_start_of_invite_url',
+    [
+        ({}, 'http://localhost:6012/organisation-invitation/'),
+        ({'invite_link_host': 'https://www.example.com'}, 'https://www.example.com/organisation-invitation/'),
+    ],
+)
 def test_create_invited_org_user(
     admin_request,
     sample_organisation,
@@ -29,12 +26,7 @@ def test_create_invited_org_user(
     user = sample_user()
     email_address = 'invited_user@example.com'
 
-    data = dict(
-        organisation=str(org.id),
-        email_address=email_address,
-        invited_by=str(user.id),
-        **extra_args
-    )
+    data = dict(organisation=str(org.id), email_address=email_address, invited_by=str(user.id), **extra_args)
 
     json_resp = admin_request.post(
         'organisation_invite.invite_user_to_org',
@@ -90,22 +82,15 @@ def test_create_invited_user_invalid_email(admin_request, sample_organisation, s
     assert mocked.call_count == 0
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_get_all_invited_users_by_service(admin_request, sample_organisation, sample_user):
     org = sample_organisation()
     user = sample_user()
 
     for i in range(5):
-        create_invited_org_user(
-            org,
-            user,
-            email_address='invited_user_{}@service.va.gov'.format(i)
-        )
+        create_invited_org_user(org, user, email_address='invited_user_{}@service.va.gov'.format(i))
 
-    json_resp = admin_request.get(
-        'organisation_invite.get_invited_org_users_by_organisation',
-        organisation_id=org.id
-    )
+    json_resp = admin_request.get('organisation_invite.get_invited_org_users_by_organisation', organisation_id=org.id)
 
     assert len(json_resp['data']) == 5
     for invite in json_resp['data']:
@@ -116,13 +101,12 @@ def test_get_all_invited_users_by_service(admin_request, sample_organisation, sa
 
 def test_get_invited_users_by_service_with_no_invites(admin_request, sample_organisation):
     json_resp = admin_request.get(
-        'organisation_invite.get_invited_org_users_by_organisation',
-        organisation_id=sample_organisation().id
+        'organisation_invite.get_invited_org_users_by_organisation', organisation_id=sample_organisation().id
     )
     assert len(json_resp['data']) == 0
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_update_org_invited_user_set_status_to_cancelled(admin_request, sample_invited_org_user):
     data = {'status': 'cancelled'}
 
@@ -135,7 +119,7 @@ def test_update_org_invited_user_set_status_to_cancelled(admin_request, sample_i
     assert json_resp['data']['status'] == 'cancelled'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_update_org_invited_user_for_wrong_service_returns_404(admin_request, sample_invited_org_user, fake_uuid):
     data = {'status': 'cancelled'}
 
@@ -149,7 +133,7 @@ def test_update_org_invited_user_for_wrong_service_returns_404(admin_request, sa
     assert json_resp['message'] == 'No result found'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_update_org_invited_user_for_invalid_data_returns_400(admin_request, sample_invited_org_user):
     data = {'status': 'garbage'}
 

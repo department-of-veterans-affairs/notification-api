@@ -1,12 +1,15 @@
 import base64
-import urllib
 from datetime import datetime
+from random import randint
+import urllib
+from uuid import uuid4
 
 import pytest
 from flask import json
 from freezegun import freeze_time
 
 from app.notifications.receive_notifications import (
+    create_inbound_sms_object,
     format_mmg_message,
     format_mmg_datetime,
     strip_leading_forty_four,
@@ -79,11 +82,14 @@ def test_receive_notification_returns_received_to_mmg(client, mocker, sample_ser
     )
 
 
-@pytest.mark.parametrize('permissions,expected_response', [
-    ([SMS_TYPE, INBOUND_SMS_TYPE], True),
-    ([INBOUND_SMS_TYPE], False),
-    ([SMS_TYPE], False),
-])
+@pytest.mark.parametrize(
+    'permissions,expected_response',
+    [
+        ([SMS_TYPE, INBOUND_SMS_TYPE], True),
+        ([INBOUND_SMS_TYPE], False),
+        ([SMS_TYPE], False),
+    ],
+)
 def test_check_permissions_for_inbound_sms(
     permissions,
     expected_response,
@@ -133,7 +139,8 @@ def test_receive_notification_from_twilio_without_permissions_does_not_persist(
 
 @pytest.mark.skip(reason='Endpoint disabled and slated for removal')
 def test_twilio_receive_notification_without_permissions_does_not_create_inbound_even_with_inbound_number_set(
-        client, mocker, sample_service):
+    client, mocker, sample_service
+):
     pass
     # mocker.patch('twilio.request_validator.RequestValidator.validate', return_value=True)
 
@@ -290,22 +297,26 @@ def test_twilio_inbound_sms_fails_if_incorrect_signature(notify_db_session, noti
     assert response.status_code == 400
 
 
-@pytest.mark.skip(reason="Endpoint disabled and slated for removal")
-@pytest.mark.parametrize("auth, usernames, passwords, status_code", [
-    ["username:password", ["username"], ["password"], 200],
-    ["username2:password", ["username", "username2"], ["password"], 200],
-    ["username:password2", ["username"], ["password", "password2"], 200],
-    ["", ["username"], ["password"], 401],
-    ["", [], [], 401],
-    ["username", ["username"], ["password"], 401],
-    ["username:", ["username"], ["password"], 403],
-    [":password", ["username"], ["password"], 403],
-    ["wrong:password", ["username"], ["password"], 403],
-    ["username:wrong", ["username"], ["password"], 403],
-    ["username:password", [], [], 403],
-])
-def test_twilio_inbound_sms_auth(notify_db_session, notify_api, client, mocker, auth, usernames, passwords,
-                                 status_code):
+@pytest.mark.skip(reason='Endpoint disabled and slated for removal')
+@pytest.mark.parametrize(
+    'auth, usernames, passwords, status_code',
+    [
+        ['username:password', ['username'], ['password'], 200],
+        ['username2:password', ['username', 'username2'], ['password'], 200],
+        ['username:password2', ['username'], ['password', 'password2'], 200],
+        ['', ['username'], ['password'], 401],
+        ['', [], [], 401],
+        ['username', ['username'], ['password'], 401],
+        ['username:', ['username'], ['password'], 403],
+        [':password', ['username'], ['password'], 403],
+        ['wrong:password', ['username'], ['password'], 403],
+        ['username:wrong', ['username'], ['password'], 403],
+        ['username:password', [], [], 403],
+    ],
+)
+def test_twilio_inbound_sms_auth(
+    notify_db_session, notify_api, client, mocker, auth, usernames, passwords, status_code
+):
     pass
     # mocker.patch('twilio.request_validator.RequestValidator.validate', return_value=True)
     # mocker.patch("app.notifications.receive_notifications.send_inbound_sms_to_service.apply_async")
@@ -363,7 +374,8 @@ def test_receive_notification_from_firetext_without_permissions_does_not_persist
 
 @pytest.mark.skip(reason='Endpoint disabled and slated for removal')
 def test_receive_notification_without_permissions_does_not_create_inbound_even_with_inbound_number_set(
-    client, mocker,
+    client,
+    mocker,
     sample_service,
 ):
     pass
@@ -456,7 +468,6 @@ def test_create_inbound_mmg_sms_object(
     sample_service,
     sample_inbound_sms,
 ):
-
     service = sample_service()
     data = {
         'Message': 'hello+there+%F0%9F%93%A9',
@@ -467,12 +478,12 @@ def test_create_inbound_mmg_sms_object(
     }
     inbound_sms = sample_inbound_sms(
         service=service,
-        content=format_mmg_message(data["Message"]),
-        notify_number=data["Number"],
-        user_number=data["MSISDN"],
-        provider_reference=data["ID"],
-        provider_date=format_mmg_datetime(data["DateReceived"]),
-        provider="mmg",
+        content=format_mmg_message(data['Message']),
+        notify_number=data['Number'],
+        user_number=data['MSISDN'],
+        provider_reference=data['ID'],
+        provider_date=format_mmg_datetime(data['DateReceived']),
+        provider='mmg',
     )
 
     assert inbound_sms.service_id == service.id
@@ -693,35 +704,37 @@ def test_mmg_inbound_sms_auth(notify_db_session, notify_api, client, mocker, aut
 
 @freeze_time('2017-01-01T16:00:00')
 def test_create_inbound_sms_object(
-    sample_inbound_sms,
     sample_service,
 ):
     service = sample_service()
-    inbound_sms = sample_inbound_sms(
+    ref = str(uuid4())
+    number = f'+1{randint(1000000000, 9999999999)}'
+    inbound_sms = create_inbound_sms_object(
         service=service,
         content='hello there 📩',
-        notify_number='+15551234567',
-        user_number='+61412345678',
-        provider_reference='bar',
-        provider_date=datetime.utcnow(),
-        provider="twilio",
+        notify_number=number,
+        from_number='+61412345678',
+        provider_ref=ref,
+        date_received=datetime.utcnow(),
+        provider_name='twilio',
     )
 
     assert inbound_sms.service_id == service.id
-    assert inbound_sms.notify_number == '+15551234567'
+    assert inbound_sms.notify_number == number
     assert inbound_sms.user_number == '+61412345678'
     assert inbound_sms.provider_date == datetime(2017, 1, 1, 16, 00, 00)
-    assert inbound_sms.provider_reference == 'bar'
+    assert inbound_sms.provider_reference == ref
     assert inbound_sms._content != 'hello there 📩'
     assert inbound_sms.content == 'hello there 📩'
     assert inbound_sms.provider == 'twilio'
+
+    # Teardown
 
 
 def test_create_inbound_sms_object_works_with_alphanumeric_sender(
     sample_inbound_sms,
     sample_service,
 ):
-
     service = sample_service()
     data = {
         'Message': 'hello',
@@ -738,7 +751,7 @@ def test_create_inbound_sms_object_works_with_alphanumeric_sender(
         user_number='ALPHANUM3R1C',
         provider_reference='foo',
         provider_date=None,
-        provider="mmg",
+        provider='mmg',
     )
 
     assert inbound_sms.user_number == 'ALPHANUM3R1C'

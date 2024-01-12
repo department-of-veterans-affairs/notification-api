@@ -1,6 +1,7 @@
 import base64
 import datetime
 import json
+from uuid import uuid4
 
 import pytest
 
@@ -61,13 +62,10 @@ def test_process_pinpoint_results_notification_final_status(
     mocker.patch('app.celery.process_pinpoint_receipt_tasks.is_feature_enabled', return_value=True)
     mock_callback = mocker.patch('app.celery.process_pinpoint_receipt_tasks.check_and_queue_callback_task')
 
-    test_reference = 'sms-reference-1'
+    test_reference = str(uuid4())
     template = sample_template()
     sample_notification(
-        template=template,
-        reference=test_reference,
-        sent_at=datetime.datetime.utcnow(),
-        status='sending'
+        template=template, reference=test_reference, sent_at=datetime.datetime.utcnow(), status='sending'
     )
     process_pinpoint_receipt_tasks.process_pinpoint_results(
         response=pinpoint_notification_callback_record(
@@ -93,10 +91,7 @@ def test_process_pinpoint_results_should_not_update_notification_status_if_uncha
     test_reference = 'sms-reference-1'
     template = sample_template()
     sample_notification(
-        template=template,
-        reference=test_reference,
-        sent_at=datetime.datetime.utcnow(),
-        status='sending'
+        template=template, reference=test_reference, sent_at=datetime.datetime.utcnow(), status='sending'
     )
     process_pinpoint_receipt_tasks.process_pinpoint_results(
         response=pinpoint_notification_callback_record(
@@ -140,7 +135,7 @@ def test_process_pinpoint_results_should_not_update_notification_status_if_statu
     mock_callback.assert_not_called()
 
 
-def test_process_pinpoint_results_segments_and_price_buffered_first(mocker, sample_template, sample_notification):
+def test_process_pinpoint_results_segments_and_price_buffered_first(mocker, sample_template, sample_notification, notify_db_session):
     """
     Test process a Pinpoint SMS stream event.  Messages long enough to require multiple segments only
     result in one event that contains the aggregate cost.
@@ -152,8 +147,8 @@ def test_process_pinpoint_results_segments_and_price_buffered_first(mocker, samp
     notification = sample_notification(
         template=template, reference=test_reference, sent_at=datetime.datetime.utcnow(), status='sending'
     )
-    assert notification.segments_count == 0, "This is the default."
-    assert notification.cost_in_millicents == 0.0, "This is the default."
+    assert notification.segments_count == 0, 'This is the default.'
+    assert notification.cost_in_millicents == 0.0, 'This is the default.'
 
     # Receiving a _SMS.BUFFERED+SUCCESSFUL event first should update the notification.
     process_pinpoint_receipt_tasks.process_pinpoint_results(
@@ -167,6 +162,8 @@ def test_process_pinpoint_results_segments_and_price_buffered_first(mocker, samp
     )
 
     notification = notifications_dao.dao_get_notification_by_reference(test_reference)
+    notify_db_session.session.refresh(notification)
+
     assert notification.segments_count == 6
     assert notification.cost_in_millicents == 4986.0
 
@@ -199,10 +196,7 @@ def test_process_pinpoint_results_segments_and_price_success_first(mocker, sampl
     test_reference = 'sms-reference-1'
     template = sample_template()
     sample_notification(
-        template=template,
-        reference=test_reference,
-        sent_at=datetime.datetime.utcnow(),
-        status='sending'
+        template=template, reference=test_reference, sent_at=datetime.datetime.utcnow(), status='sending'
     )
 
     process_pinpoint_receipt_tasks.process_pinpoint_results(

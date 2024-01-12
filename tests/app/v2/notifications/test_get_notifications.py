@@ -9,11 +9,7 @@ from tests import create_authorization_header
 from tests.app.db import create_notification
 
 
-@pytest.mark.parametrize('billable_units, provider', [
-    (1, 'mmg'),
-    (0, 'mmg'),
-    (1, None)
-])
+@pytest.mark.parametrize('billable_units, provider', [(1, 'mmg'), (0, 'mmg'), (1, None)])
 def test_get_notification_by_id_returns_200(
     client,
     billable_units,
@@ -22,8 +18,7 @@ def test_get_notification_by_id_returns_200(
     sample_api_key,
     sample_template,
 ):
-
-    """ This test assumes the local timezone is EST. """
+    """This test assumes the local timezone is EST."""
     template = sample_template()
     first_notification = create_notification(
         template=template,
@@ -34,16 +29,14 @@ def test_get_notification_by_id_returns_200(
     )
 
     second_notification = create_notification(
-        template=template,
-        billable_units=billable_units,
-        sent_by=provider,
-        scheduled_for="2017-06-12 15:15"
+        template=template, billable_units=billable_units, sent_by=provider, scheduled_for='2017-06-12 15:15'
     )
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
         path='/v2/notifications/{}'.format(first_notification.id),
-        headers=[('Content-Type', 'application/json'), auth_header])
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -53,7 +46,7 @@ def test_get_notification_by_id_returns_200(
     expected_template_response = {
         'id': '{}'.format(first_notification.serialize()['template']['id']),
         'version': first_notification.serialize()['template']['version'],
-        'uri': first_notification.serialize()['template']['uri']
+        'uri': first_notification.serialize()['template']['uri'],
     }
 
     expected_response = {
@@ -76,7 +69,7 @@ def test_get_notification_by_id_returns_200(
         'created_at': first_notification.created_at.strftime(DATETIME_FORMAT),
         'created_by_name': None,
         'body': first_notification.template.content,
-        "subject": None,
+        'subject': None,
         'sent_at': first_notification.sent_at,
         'sent_by': provider,
         'completed_at': first_notification.completed_at(),
@@ -117,15 +110,13 @@ def test_get_notification_by_id_with_placeholders_and_recipient_identifiers_retu
 ):
     template = sample_template(template_type=EMAIL_TYPE, content='Hello ((name))\nThis is an email from va.gov')
     notification = create_notification(
-        template=template,
-        personalisation={"name": "Bob"},
-        recipient_identifiers=recipient_identifiers
+        template=template, personalisation={'name': 'Bob'}, recipient_identifiers=recipient_identifiers
     )
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
-        path='/v2/notifications/{}'.format(notification.id),
-        headers=[('Content-Type', 'application/json'), auth_header])
+        path='/v2/notifications/{}'.format(notification.id), headers=[('Content-Type', 'application/json'), auth_header]
+    )
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -135,7 +126,7 @@ def test_get_notification_by_id_with_placeholders_and_recipient_identifiers_retu
     expected_template_response = {
         'id': '{}'.format(notification.serialize()['template']['id']),
         'version': notification.serialize()['template']['version'],
-        'uri': notification.serialize()['template']['uri']
+        'uri': notification.serialize()['template']['uri'],
     }
 
     expected_response = {
@@ -157,8 +148,8 @@ def test_get_notification_by_id_with_placeholders_and_recipient_identifiers_retu
         'template': expected_template_response,
         'created_at': notification.created_at.strftime(DATETIME_FORMAT),
         'created_by_name': None,
-        'body': "Hello Bob\nThis is an email from va.gov",
-        "subject": 'Subject',
+        'body': 'Hello Bob\nThis is an email from va.gov',
+        'subject': 'Subject',
         'sent_at': notification.sent_at,
         'sent_by': None,
         'completed_at': notification.completed_at(),
@@ -184,8 +175,9 @@ def test_get_notification_by_reference_returns_200(
     sample_api_key,
     sample_template,
 ):
-    sample_notification_with_reference = create_notification(template=sample_template(),
-                                                             client_reference='some-client-reference')
+    sample_notification_with_reference = create_notification(
+        template=sample_template(), client_reference='some-client-reference'
+    )
 
     auth_header = create_authorization_header(sample_api_key(service=sample_notification_with_reference.service))
     response = client.get(
@@ -239,14 +231,15 @@ def test_get_notifications_returns_scheduled_for(
     sample_api_key,
     sample_template,
 ):
-    notification_with_ref = create_notification(template=sample_template(),
-                                                client_reference='some-client-reference',
-                                                scheduled_for='2017-05-23 17:15')
+    notification_with_ref = create_notification(
+        template=sample_template(), client_reference='some-client-reference', scheduled_for='2017-05-23 17:15'
+    )
 
     auth_header = create_authorization_header(sample_api_key(service=notification_with_ref.service))
     response = client.get(
         path='/v2/notifications?reference={}'.format(notification_with_ref.client_reference),
-        headers=[('Content-Type', 'application/json'), auth_header])
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -255,7 +248,7 @@ def test_get_notifications_returns_scheduled_for(
     assert len(json_response['notifications']) == 1
 
     assert json_response['notifications'][0]['id'] == str(notification_with_ref.id)
-    assert json_response['notifications'][0]['scheduled_for'] == "2017-05-23T21:15:00.000000Z"
+    assert json_response['notifications'][0]['scheduled_for'] == '2017-05-23T21:15:00.000000Z'
 
     # Teardown
     first_sched = notify_db_session.session.scalars(
@@ -270,7 +263,6 @@ def test_get_notification_by_reference_nonexistent_reference_returns_no_notifica
     client,
     sample_api_key,
 ):
-
     auth_header = create_authorization_header(sample_api_key())
     response = client.get(
         path='/v2/notifications?reference={}'.format('nonexistent-reference'),
@@ -289,7 +281,6 @@ def test_get_notification_by_id_nonexistent_id(
     sample_api_key,
     sample_template,
 ):
-
     template = sample_template()
     auth_header = create_authorization_header(sample_api_key(service=template.service))
 
@@ -305,14 +296,13 @@ def test_get_notification_by_id_nonexistent_id(
     assert json_response == {'errors': [{'error': 'NoResultFound', 'message': 'No result found'}], 'status_code': 404}
 
 
-@pytest.mark.parametrize("id", ["1234-badly-formatted-id-7890", "0"])
+@pytest.mark.parametrize('id', ['1234-badly-formatted-id-7890', '0'])
 def test_get_notification_by_id_invalid_id(
     client,
     sample_api_key,
     sample_template,
     id,
 ):
-
     template = sample_template()
     auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
@@ -329,14 +319,16 @@ def test_get_notification_by_id_invalid_id(
     }
 
 
-@pytest.mark.parametrize('created_at_month, postage, estimated_delivery', [
-    (12, 'second', '2000-12-06T16:00:00.000000Z'),  # 4pm GMT in winter
-    (6, 'second', '2000-06-05T15:00:00.000000Z'),  # 4pm BST in summer
-
-    (12, 'first', '2000-12-05T16:00:00.000000Z'),  # 4pm GMT in winter
-    (6, 'first', '2000-06-03T15:00:00.000000Z'),  # 4pm BST in summer (two days before 2nd class due to weekends)
-])
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.parametrize(
+    'created_at_month, postage, estimated_delivery',
+    [
+        (12, 'second', '2000-12-06T16:00:00.000000Z'),  # 4pm GMT in winter
+        (6, 'second', '2000-06-05T15:00:00.000000Z'),  # 4pm BST in summer
+        (12, 'first', '2000-12-05T16:00:00.000000Z'),  # 4pm GMT in winter
+        (6, 'first', '2000-06-03T15:00:00.000000Z'),  # 4pm BST in summer (two days before 2nd class due to weekends)
+    ],
+)
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_get_notification_adds_delivery_estimate_for_letters(
     client,
     sample_api_key,
@@ -345,7 +337,6 @@ def test_get_notification_adds_delivery_estimate_for_letters(
     postage,
     estimated_delivery,
 ):
-
     sample_letter_notification.created_at = datetime.date(2000, created_at_month, 1)
     sample_letter_notification.postage = postage
 
@@ -385,7 +376,7 @@ def test_get_notification_doesnt_have_delivery_estimate_for_non_letters(
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_get_all_notifications_except_job_notifications_returns_200(
     client,
     sample_api_key,
@@ -398,9 +389,7 @@ def test_get_all_notifications_except_job_notifications_returns_200(
     notification = notifications[-1]
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
-    response = client.get(
-        path='/v2/notifications',
-        headers=[('Content-Type', 'application/json'), auth_header])
+    response = client.get(path='/v2/notifications', headers=[('Content-Type', 'application/json'), auth_header])
 
     json_response = json.loads(response.get_data(as_text=True))
 
@@ -417,12 +406,12 @@ def test_get_all_notifications_except_job_notifications_returns_200(
         'uri': notification.template.get_link(),
         'version': 1,
     }
-    assert json_response['notifications'][0]['phone_number'] == "+16502532222"
+    assert json_response['notifications'][0]['phone_number'] == '+16502532222'
     assert json_response['notifications'][0]['type'] == SMS_TYPE
     assert not json_response['notifications'][0]['scheduled_for']
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_get_all_notifications_with_include_jobs_arg_returns_200(
     client,
     sample_api_key,
@@ -430,10 +419,7 @@ def test_get_all_notifications_with_include_jobs_arg_returns_200(
     sample_job,
 ):
     template = sample_template()
-    notifications = [
-        create_notification(template=template, job=sample_job),
-        create_notification(template=template)
-    ]
+    notifications = [create_notification(template=template, job=sample_job), create_notification(template=template)]
     notification = notifications[-1]
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
@@ -460,11 +446,8 @@ def test_get_all_notifications_no_notifications_if_no_notifications(
     client,
     sample_api_key,
 ):
-
     auth_header = create_authorization_header(sample_api_key())
-    response = client.get(
-        path='/v2/notifications',
-        headers=[('Content-Type', 'application/json'), auth_header])
+    response = client.get(path='/v2/notifications', headers=[('Content-Type', 'application/json'), auth_header])
 
     json_response = json.loads(response.get_data(as_text=True))
 
@@ -486,7 +469,7 @@ def test_get_all_notifications_filter_by_template_type(
     email_template = sample_template(service=service, template_type=EMAIL_TYPE)
     sms_template = sample_template(service=service, template_type=SMS_TYPE)
 
-    notification = create_notification(template=email_template, to_field="don.draper@scdp.biz")
+    notification = create_notification(template=email_template, to_field='don.draper@scdp.biz')
     sms_notification = create_notification(template=sms_template)
 
     auth_header = create_authorization_header(sample_api_key(service=email_template.service))
@@ -509,7 +492,7 @@ def test_get_all_notifications_filter_by_template_type(
         'uri': notification.template.get_link(),
         'version': 1,
     }
-    assert json_response['notifications'][0]['email_address'] == "don.draper@scdp.biz"
+    assert json_response['notifications'][0]['email_address'] == 'don.draper@scdp.biz'
     assert json_response['notifications'][0]['type'] == EMAIL_TYPE
 
     # Teardown
@@ -522,7 +505,6 @@ def test_get_all_notifications_filter_by_template_type_invalid_template_type(
     client,
     sample_api_key,
 ):
-
     auth_header = create_authorization_header(sample_api_key())
     response = client.get(
         path='/v2/notifications?template_type=orange', headers=[('Content-Type', 'application/json'), auth_header]
@@ -545,7 +527,7 @@ def test_get_all_notifications_filter_by_single_status(
     sample_template,
 ):
     template = sample_template()
-    notification = create_notification(template=template, status="pending")
+    notification = create_notification(template=template, status='pending')
     non_pending_notification = create_notification(template=template)
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
@@ -612,10 +594,9 @@ def test_get_all_notifications_filter_by_multiple_statuses(
 ):
     template = sample_template()
     notifications = [
-        create_notification(template=template, status=_status)
-        for _status in ["created", "pending", "sending"]
+        create_notification(template=template, status=_status) for _status in ['created', 'pending', 'sending']
     ]
-    failed_notification = create_notification(template=template, status="permanent-failure")
+    failed_notification = create_notification(template=template, status='permanent-failure')
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
@@ -651,10 +632,10 @@ def test_get_all_notifications_filter_by_failed_status(
     sample_template,
 ):
     template = sample_template()
-    created_notification = create_notification(template=template, status="created")
+    created_notification = create_notification(template=template, status='created')
     failed_notifications = [
         create_notification(template=template, status=_status)
-        for _status in ["technical-failure", "temporary-failure", "permanent-failure"]
+        for _status in ['technical-failure', 'temporary-failure', 'permanent-failure']
     ]
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
@@ -719,7 +700,6 @@ def test_get_all_notifications_filter_by_id_invalid_id(
     client,
     sample_api_key,
 ):
-
     auth_header = create_authorization_header(sample_api_key())
     response = client.get(
         path='/v2/notifications?older_than=1234-badly-formatted-id-7890',
@@ -800,20 +780,19 @@ def test_get_all_notifications_filter_multiple_query_parameters(
     template = sample_template(template_type=EMAIL_TYPE)
     api_key = sample_api_key(service=template.service)
     # this is the notification we are looking for
-    older_notification = create_notification(
-        template=template, status="pending")
+    older_notification = create_notification(template=template, status='pending')
 
     # wrong status
     wrong_status_notification = create_notification(template=template)
     wrong_template = sample_template(service=template.service, template_type=SMS_TYPE)
     # wrong template
-    wrong_template_notification = create_notification(template=wrong_template, status="pending")
+    wrong_template_notification = create_notification(template=wrong_template, status='pending')
 
     # we only want notifications created before this one
     newer_notification = create_notification(template=template)
 
     # this notification was created too recently
-    recent_notification = create_notification(template=template, status="pending")
+    recent_notification = create_notification(template=template, status='pending')
 
     auth_header = create_authorization_header(api_key)
     response = client.get(
@@ -849,11 +828,8 @@ def test_get_all_notifications_filter_multiple_query_parameters(
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-def test_get_all_notifications_renames_letter_statuses(
-    client,
-    sample_letter_notification
-):
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+def test_get_all_notifications_renames_letter_statuses(client, sample_letter_notification):
     auth_header = create_authorization_header(service_id=sample_letter_notification.service_id)
     response = client.get(
         path=url_for('v2_notifications.get_notifications'), headers=[('Content-Type', 'application/json'), auth_header]
@@ -871,14 +847,17 @@ def test_get_all_notifications_renames_letter_statuses(
             pytest.fail()
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@pytest.mark.parametrize('db_status,expected_status', [
-    ('created', 'accepted'),
-    ('sending', 'accepted'),
-    ('delivered', 'received'),
-    ('pending', 'pending'),
-    ('technical-failure', 'technical-failure')
-])
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@pytest.mark.parametrize(
+    'db_status,expected_status',
+    [
+        ('created', 'accepted'),
+        ('sending', 'accepted'),
+        ('delivered', 'received'),
+        ('pending', 'pending'),
+        ('technical-failure', 'technical-failure'),
+    ],
+)
 def test_get_notifications_renames_letter_statuses(client, sample_letter_template, db_status, expected_status):
     letter_noti = create_notification(
         sample_letter_template,

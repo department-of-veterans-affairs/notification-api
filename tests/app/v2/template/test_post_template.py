@@ -53,11 +53,7 @@ def test_valid_post_template_returns_200(
     expected_content,
 ):
     api_key = sample_api_key()
-    template = sample_template(
-        service=api_key.service,
-        template_type=tmp_type,
-        subject=subject,
-        content=content)
+    template = sample_template(service=api_key.service, template_type=tmp_type, subject=subject, content=content)
 
     auth_header = create_authorization_header(api_key)
 
@@ -84,19 +80,19 @@ def test_valid_post_template_returns_200(
     assert expected_content in resp_json['body']
 
 
-@pytest.mark.parametrize("tmp_type", TEMPLATE_TYPES)
+@pytest.mark.parametrize('tmp_type', TEMPLATE_TYPES)
 def test_invalid_post_template_returns_400(
     client,
     sample_api_key,
     sample_template,
     tmp_type,
 ):
-
     api_key = sample_api_key()
     template = sample_template(
         service=api_key.service,
         template_type=tmp_type,
-        content='Dear ((Name)), Hello ((Missing)). Yours Truly, The Government.')
+        content='Dear ((Name)), Hello ((Missing)). Yours Truly, The Government.',
+    )
 
     auth_header = create_authorization_header(api_key)
 

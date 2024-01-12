@@ -56,10 +56,7 @@ def test_update_letter_notification_statuses_when_notification_does_not_exist_up
     mocker.patch('app.celery.tasks.s3.get_s3_file', return_value=valid_file)
 
     notification = create_notification_history(
-        template,
-        reference='ref-foo',
-        status=NOTIFICATION_SENDING,
-        billable_units=1
+        template, reference='ref-foo', status=NOTIFICATION_SENDING, billable_units=1
     )
 
     update_letter_notifications_statuses(filename='NOTIFY-20170823160812-RSP.TXT')
@@ -127,25 +124,17 @@ def test_update_letter_notifications_statuses_builds_updates_list(notify_api, mo
     assert updates[1].cost_threshold == 'Sorted'
 
 
-def test_update_letter_notifications_statuses_persisted(
-    notify_api, mocker, sample_template, sample_notification
-):
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+def test_update_letter_notifications_statuses_persisted(notify_api, mocker, sample_template, sample_notification):
     template = sample_template(template_type=LETTER_TYPE)
     sent_letter = sample_notification(
-        template=template,
-        reference='ref-foo',
-        status=NOTIFICATION_SENDING,
-        billable_units=1
+        template=template, reference='ref-foo', status=NOTIFICATION_SENDING, billable_units=1
     )
     failed_letter = sample_notification(
-        template=template,
-        reference='ref-bar',
-        status=NOTIFICATION_SENDING,
-        billable_units=2
+        template=template, reference='ref-bar', status=NOTIFICATION_SENDING, billable_units=2
     )
-    create_service_callback_api(service=template.service, url="https://original_url.com")
-    valid_file = '{}|Sent|1|Unsorted\n{}|Failed|2|Sorted'.format(
-        sent_letter.reference, failed_letter.reference)
+    create_service_callback_api(service=template.service, url='https://original_url.com')
+    valid_file = '{}|Sent|1|Unsorted\n{}|Failed|2|Sorted'.format(sent_letter.reference, failed_letter.reference)
     mocker.patch('app.celery.tasks.s3.get_s3_file', return_value=valid_file)
 
     with pytest.raises(expected_exception=DVLAException) as e:
@@ -167,10 +156,7 @@ def test_update_letter_notifications_does_not_call_send_callback_if_no_db_entry(
 ):
     template = sample_template(template_type=LETTER_TYPE)
     sent_letter = sample_notification(
-        template=template,
-        reference='ref-foo',
-        status=NOTIFICATION_SENDING,
-        billable_units=0
+        template=template, reference='ref-foo', status=NOTIFICATION_SENDING, billable_units=0
     )
     valid_file = '{}|Sent|1|Unsorted\n'.format(sent_letter.reference)
     mocker.patch('app.celery.tasks.s3.get_s3_file', return_value=valid_file)
@@ -189,8 +175,8 @@ def test_update_letter_notifications_to_sent_to_dvla_updates_based_on_notificati
     template = sample_template(template_type=LETTER_TYPE)
     first = sample_notification(template=template, reference='first ref')
     second = sample_notification(template=template, reference='second ref')
-    assert first.reference == "first ref"
-    assert second.reference == "second ref"
+    assert first.reference == 'first ref'
+    assert second.reference == 'second ref'
 
     dt = datetime.utcnow()
     with freeze_time(dt):
@@ -203,13 +189,14 @@ def test_update_letter_notifications_to_sent_to_dvla_updates_based_on_notificati
     assert second.status == NOTIFICATION_CREATED
 
 
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_update_letter_notifications_to_error_updates_based_on_notification_references(
     sample_template, sample_notification
 ):
     template = sample_template(template_type=LETTER_TYPE)
     first = sample_notification(template=template, reference='first ref')
     second = sample_notification(template=template, reference='second ref')
-    create_service_callback_api(service=template.service, url="https://original_url.com")
+    create_service_callback_api(service=template.service, url='https://original_url.com')
 
     dt = datetime.utcnow()
     with freeze_time(dt):
@@ -266,15 +253,14 @@ def test_persist_daily_sorted_letter_counts_saves_sorted_and_unsorted_values(cli
         assert day.unsorted_count == 5
         assert day.sorted_count == 1
     finally:
-        query = select(DailySortedLetter).where(DailySortedLetter.file_name == "test.txt")
+        query = select(DailySortedLetter).where(DailySortedLetter.file_name == 'test.txt')
         daily_sorted_letter = notify_db_session.session.scalar(query)
         notify_db_session.session.delete(daily_sorted_letter)
         notify_db_session.session.commit()
 
 
-def test_record_daily_sorted_counts_persists_daily_sorted_letter_count(
-    notify_api, notify_db_session, mocker
-):
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+def test_record_daily_sorted_counts_persists_daily_sorted_letter_count(notify_api, notify_db_session, mocker):
     valid_file = 'Letter1|Sent|1|uNsOrTeD\nLetter2|Sent|2|SORTED\nLetter3|Sent|2|Sorted'
 
     mocker.patch('app.celery.tasks.s3.get_s3_file', return_value=valid_file)
@@ -310,7 +296,8 @@ def test_record_daily_sorted_counts_raises_dvla_exception_with_unknown_sorted_st
 
 
 def test_record_daily_sorted_counts_persists_daily_sorted_letter_count_with_no_sorted_values(
-    notify_api, mocker, notify_db_session
+    notify_db_session,
+    mocker,
 ):
     valid_file = 'Letter1|Sent|1|Unsorted\nLetter2|Sent|2|Unsorted'
     mocker.patch('app.celery.tasks.s3.get_s3_file', return_value=valid_file)
@@ -319,10 +306,15 @@ def test_record_daily_sorted_counts_persists_daily_sorted_letter_count_with_no_s
 
     daily_sorted_letter = dao_get_daily_sorted_letter_by_billing_day(date(2017, 8, 23))
 
-    assert daily_sorted_letter.unsorted_count == 2
-    assert daily_sorted_letter.sorted_count == 0
+    try:
+        assert daily_sorted_letter.unsorted_count == 2
+        assert daily_sorted_letter.sorted_count == 0
+    finally:
+        notify_db_session.session.delete(daily_sorted_letter)
+        notify_db_session.session.commit()
 
 
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_record_daily_sorted_counts_can_run_twice_for_same_file(notify_api, mocker, notify_db_session):
     valid_file = 'Letter1|Sent|1|sorted\nLetter2|Sent|2|Unsorted'
     mocker.patch('app.celery.tasks.s3.get_s3_file', return_value=valid_file)

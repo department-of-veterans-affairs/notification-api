@@ -60,11 +60,7 @@ def test_can_find_by_idp_id(
     sample_user,
 ):
     idp_id = str(uuid4())
-    data = {
-        'name': f'{uuid4()}Foo Bar',
-        'idp_name': 'va_sso',
-        'idp_id': idp_id
-    }
+    data = {'name': f'{uuid4()}Foo Bar', 'idp_name': 'va_sso', 'idp_id': idp_id}
     sample_user(**data)
 
     user = User.find_by_idp(idp_name='va_sso', idp_id=idp_id)
@@ -91,11 +87,7 @@ def test_find_by_idp_id_raises_exception_if_not_found(
     sample_user,
 ):
     idp_id = str(randint(1, 999999999))
-    data = {
-        'name': f'{uuid4()}Foo Bar',
-        'idp_name': 'va_sso',
-        'idp_id': idp_id
-    }
+    data = {'name': f'{uuid4()}Foo Bar', 'idp_name': 'va_sso', 'idp_id': idp_id}
     sample_user(**data)
 
     with pytest.raises(NoResultFound):
@@ -106,18 +98,10 @@ def test_cannot_create_users_with_same_idp_id(
     sample_user,
 ):
     idp_id = str(randint(1, 999999999))
-    sample_user(**{
-        'name': f'{uuid4()}Foo Bar',
-        'idp_name': 'va_sso',
-        'idp_id': idp_id
-    })
+    sample_user(**{'name': f'{uuid4()}Foo Bar', 'idp_name': 'va_sso', 'idp_id': idp_id})
 
     with pytest.raises(IntegrityError):
-        sample_user(**{
-            'name': f'{uuid4()}Winnie the Pooh',
-            'idp_name': 'va_sso',
-            'idp_id': idp_id
-        })
+        sample_user(**{'name': f'{uuid4()}Winnie the Pooh', 'idp_name': 'va_sso', 'idp_id': idp_id})
 
 
 class TestIdentityProviders:

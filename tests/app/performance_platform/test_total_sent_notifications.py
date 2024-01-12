@@ -37,6 +37,7 @@ def test_get_total_sent_notifications_yesterday_returns_expected_totals_dict(
     sample_ft_notification_status,
     sample_service,
     sample_template,
+    sample_job,
 ):
     service = sample_service()
     sms = sample_template(service=service, template_type=SMS_TYPE)
@@ -47,14 +48,14 @@ def test_get_total_sent_notifications_yesterday_returns_expected_totals_dict(
     yesterday = date(2018, 6, 9)
 
     # todays is excluded
-    sample_ft_notification_status(utc_date=today, template=sms)
-    sample_ft_notification_status(utc_date=today, template=email)
-    sample_ft_notification_status(utc_date=today, template=letter)
+    sample_ft_notification_status(today, sample_job(sms))
+    sample_ft_notification_status(today, sample_job(email))
+    sample_ft_notification_status(today, sample_job(letter))
 
     # yesterdays is included
-    sample_ft_notification_status(utc_date=yesterday, template=sms, count=2)
-    sample_ft_notification_status(utc_date=yesterday, template=email, count=3)
-    sample_ft_notification_status(utc_date=yesterday, template=letter, count=1)
+    sample_ft_notification_status(yesterday, sample_job(sms), count=2)
+    sample_ft_notification_status(yesterday, sample_job(email), count=3)
+    sample_ft_notification_status(yesterday, sample_job(letter), count=1)
 
     total_count_dict = get_total_sent_notifications_for_day(yesterday)
 

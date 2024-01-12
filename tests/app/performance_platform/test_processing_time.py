@@ -7,7 +7,7 @@ from app.performance_platform.processing_time import (
 )
 
 
-@freeze_time('2016-10-18T06:00')
+@freeze_time('2016-10-17T06:00')
 # This test assumes the local timezone is EST
 def test_send_processing_time_to_performance_platform_generates_correct_calls(
     mocker,
@@ -21,17 +21,18 @@ def test_send_processing_time_to_performance_platform_generates_correct_calls(
 
     api_key = sample_api_key()
     template = sample_template()
-    sample_notification(template=template, created_at=created_at,
-                        sent_at=created_at + timedelta(seconds=5), api_key=api_key)
-    sample_notification(template=template, created_at=created_at,
-                        sent_at=created_at + timedelta(seconds=15), api_key=api_key)
-    sample_notification(template=template, created_at=datetime.utcnow() - timedelta(days=2),
-                        api_key=api_key)
+    sample_notification(
+        template=template, created_at=created_at, sent_at=created_at + timedelta(seconds=5), api_key=api_key
+    )
+    sample_notification(
+        template=template, created_at=created_at, sent_at=created_at + timedelta(seconds=15), api_key=api_key
+    )
+    sample_notification(template=template, created_at=datetime.utcnow() - timedelta(days=2), api_key=api_key)
 
-    send_processing_time_to_performance_platform(date(2016, 10, 17))
+    send_processing_time_to_performance_platform(date(2016, 10, 16))
 
-    send_mock.assert_any_call(datetime(2016, 10, 17, 4, 0), 'messages-total', 2)
-    send_mock.assert_any_call(datetime(2016, 10, 17, 4, 0), 'messages-within-10-secs', 1)
+    send_mock.assert_any_call(datetime(2016, 10, 16, 4, 0), 'messages-total', 2)
+    send_mock.assert_any_call(datetime(2016, 10, 16, 4, 0), 'messages-within-10-secs', 1)
 
 
 # This test assumes the local timezone is EST

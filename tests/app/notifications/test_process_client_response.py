@@ -2,11 +2,7 @@ import pytest
 import uuid
 from app.celery.service_callback_tasks import create_delivery_status_callback_data
 from app.clients import ClientException
-from app.notifications.process_client_response import (
-    validate_callback_data,
-    process_sms_client_response
-)
-from app.celery.service_callback_tasks import create_delivery_status_callback_data
+from app.notifications.process_client_response import validate_callback_data, process_sms_client_response
 
 
 def test_validate_callback_data_returns_none_when_valid():
@@ -52,18 +48,15 @@ def test_outcome_statistics_called_for_successful_callback(
     sample_notification,
     sample_service_callback,
 ):
-
     notification = sample_notification()
     mocker.patch(
         'app.notifications.process_client_response.notifications_dao.update_notification_status_by_id',
-        return_value=notification
+        return_value=notification,
     )
-    send_mock = mocker.patch(
-        'app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async'
-    )
+    send_mock = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
     callback_api = sample_service_callback(
-        service_id=notification.service.id,
-        url="https://original_url.com",
+        service=notification.service,
+        url='https://original_url.com',
     )
     callback_id = callback_api.id
     reference = str(uuid.uuid4())
@@ -72,22 +65,18 @@ def test_outcome_statistics_called_for_successful_callback(
     assert success == 'MMG callback succeeded. reference {} updated'.format(str(reference))
     assert error is None
     encrypted_data = create_delivery_status_callback_data(notification, callback_api)
-    send_mock.assert_called_once_with([callback_id, str(notification.id), encrypted_data],
-                                      queue="service-callbacks")
+    send_mock.assert_called_once_with([callback_id, str(notification.id), encrypted_data], queue='service-callbacks')
 
 
 def test_sms_resonse_does_not_call_send_callback_if_no_db_entry(
     mocker,
     sample_notification,
 ):
-
     mocker.patch(
         'app.notifications.process_client_response.notifications_dao.update_notification_status_by_id',
-        return_value=sample_notification()
+        return_value=sample_notification(),
     )
-    send_mock = mocker.patch(
-        'app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async'
-    )
+    send_mock = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
     send_mock = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
     reference = str(uuid.uuid4())
     process_sms_client_response(status='3', provider_reference=reference, client_name='MMG')
@@ -106,7 +95,6 @@ def test_process_sms_response_does_not_send_status_update_for_pending(
     mocker,
     sample_notification,
 ):
-
     send_mock = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
     process_sms_client_response(
         status='2',
@@ -119,7 +107,6 @@ def test_process_sms_response_does_not_send_status_update_for_pending(
 def test_process_sms_updates_sent_by_with_client_name_if_not_in_noti(
     sample_notification,
 ):
-
     notification = sample_notification()
     notification.sent_by = None
     success, error = process_sms_client_response(

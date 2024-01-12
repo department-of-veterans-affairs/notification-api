@@ -78,7 +78,7 @@ def test_post_create_email_branding(
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_post_create_email_branding_without_brand_type_defaults(
     admin_request,
     notify_db_session,
@@ -97,7 +97,7 @@ def test_post_create_email_branding_without_brand_type_defaults(
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_post_create_email_branding_without_logo_is_ok(
     admin_request,
     notify_db_session,
@@ -118,15 +118,8 @@ def test_post_create_email_branding_colour_is_valid(
     admin_request,
     notify_db_session,
 ):
-    data = {
-        'logo': 'images/text_x2.png',
-        'name': 'test branding'
-    }
-    response = admin_request.post(
-        'email_branding.create_email_branding',
-        _data=data,
-        _expected_status=201
-    )
+    data = {'logo': 'images/text_x2.png', 'name': 'test branding'}
+    response = admin_request.post('email_branding.create_email_branding', _data=data, _expected_status=201)
 
     assert response['data']['logo'] == data['logo']
     assert response['data']['name'] == 'test branding'
@@ -139,7 +132,7 @@ def test_post_create_email_branding_colour_is_valid(
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_post_create_email_branding_with_text(admin_request, notify_db_session):
     data = {'text': 'text for brand', 'logo': 'images/text_x2.png', 'name': 'test branding'}
     response = admin_request.post('email_branding.create_email_branding', _data=data, _expected_status=201)
@@ -166,7 +159,7 @@ def test_post_create_email_branding_with_text_and_name(admin_request, notify_db_
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_post_create_email_branding_with_text_as_none_and_name(admin_request, notify_db_session):
     data = {'name': 'name for brand', 'text': None, 'logo': 'images/text_x2.png'}
     response = admin_request.post('email_branding.create_email_branding', _data=data, _expected_status=201)
@@ -184,14 +177,17 @@ def test_post_create_email_branding_returns_400_when_name_is_missing(admin_reque
     assert response['errors'][0]['message'] == 'name is a required property'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@pytest.mark.parametrize('data_update', [
-    ({'name': 'test email_branding 1'}),
-    ({'logo': 'images/text_x3.png', 'colour': '#ffffff'}),
-    ({'logo': 'images/text_x3.png'}),
-    ({'logo': 'images/text_x3.png'}),
-    ({'logo': 'images/text_x3.png'}),
-])
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@pytest.mark.parametrize(
+    'data_update',
+    [
+        ({'name': 'test email_branding 1'}),
+        ({'logo': 'images/text_x3.png', 'colour': '#ffffff'}),
+        ({'logo': 'images/text_x3.png'}),
+        ({'logo': 'images/text_x3.png'}),
+        ({'logo': 'images/text_x3.png'}),
+    ],
+)
 def test_post_update_email_branding_updates_field(admin_request, notify_db_session, data_update):
     data = {'name': 'test email_branding', 'logo': 'images/text_x2.png'}
     response = admin_request.post('email_branding.create_email_branding', _data=data, _expected_status=201)
@@ -209,12 +205,15 @@ def test_post_update_email_branding_updates_field(admin_request, notify_db_sessi
     assert email_branding[0].text == email_branding[0].name
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@pytest.mark.parametrize('data_update', [
-    ({'text': 'text email branding'}),
-    ({'text': 'new text', 'name': 'new name'}),
-    ({'text': None, 'name': 'test name'}),
-])
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@pytest.mark.parametrize(
+    'data_update',
+    [
+        ({'text': 'text email branding'}),
+        ({'text': 'new text', 'name': 'new name'}),
+        ({'text': None, 'name': 'test name'}),
+    ],
+)
 def test_post_update_email_branding_updates_field_with_text(admin_request, notify_db_session, data_update):
     data = {'name': 'test email_branding', 'logo': 'images/text_x2.png'}
     response = admin_request.post('email_branding.create_email_branding', _data=data, _expected_status=201)
@@ -239,12 +238,11 @@ def test_create_email_branding_reject_invalid_brand_type(admin_request):
     assert response['errors'][0]['message'] == expect
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_update_email_branding_reject_invalid_brand_type(
     admin_request,
     notify_db_session,
 ):
-
     email_branding = create_email_branding()
     data = {'brand_type': 'NOT A TYPE'}
     response = admin_request.post(

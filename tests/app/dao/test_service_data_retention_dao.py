@@ -1,7 +1,8 @@
-import uuid
 from datetime import datetime
+import uuid
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.dao.service_data_retention_dao import (
@@ -12,7 +13,7 @@ from app.dao.service_data_retention_dao import (
     fetch_service_data_retention_by_notification_type,
 )
 from app.models import ServiceDataRetention
-from tests.app.db import create_service, create_service_data_retention
+from tests.app.db import create_service_data_retention
 
 
 def test_fetch_service_data_retention(sample_service):
@@ -31,7 +32,7 @@ def test_fetch_service_data_retention(sample_service):
 
 def test_fetch_service_data_retention_only_returns_row_for_service(sample_service):
     service = sample_service()
-    another_service = create_service(service_name="Another service")
+    another_service = sample_service()
     email_data_retention = insert_service_data_retention(service.id, 'email', 3)
     letter_data_retention = insert_service_data_retention(service.id, 'letter', 30)
     insert_service_data_retention(another_service.id, 'sms', 5)
@@ -61,21 +62,22 @@ def test_fetch_service_data_retention_by_id_returns_none_if_not_found(sample_ser
 
 
 def test_fetch_service_data_retention_by_id_returns_none_if_id_not_for_service(sample_service):
-    another_service = create_service(service_name="Another service")
+    another_service = sample_service()
     email_data_retention = insert_service_data_retention(sample_service().id, 'email', 3)
     result = fetch_service_data_retention_by_id(another_service.id, email_data_retention.id)
     assert not result
 
 
-def test_insert_service_data_retention(sample_service):
+def test_insert_service_data_retention(
+    notify_db_session,
+    sample_service,
+):
     service = sample_service()
-    insert_service_data_retention(
-        service_id=service.id,
-        notification_type='email',
-        days_of_retention=3
-    )
+    insert_service_data_retention(service_id=service.id, notification_type='email', days_of_retention=3)
 
-    results = ServiceDataRetention.query.all()
+    stmt = select(ServiceDataRetention).where(ServiceDataRetention.service_id == service.id)
+    results = notify_db_session.session.scalars(stmt).all()
+
     assert len(results) == 1
     assert results[0].service_id == service.id
     assert results[0].notification_type == 'email'
@@ -83,29 +85,27 @@ def test_insert_service_data_retention(sample_service):
     assert results[0].created_at.date() == datetime.utcnow().date()
 
 
-def test_insert_service_data_retention_throws_unique_constraint(service):
-    insert_service_data_retention(service_id=service.id,
-                                  notification_type='email',
-                                  days_of_retention=3
-                                  )
+def test_insert_service_data_retention_throws_unique_constraint(sample_service):
+    service = sample_service()
+    insert_service_data_retention(service_id=service.id, notification_type='email', days_of_retention=3)
     with pytest.raises(expected_exception=IntegrityError):
-        insert_service_data_retention(service_id=service.id,
-                                      notification_type='email',
-                                      days_of_retention=5
-                                      )
+        insert_service_data_retention(service_id=service.id, notification_type='email', days_of_retention=5)
 
 
-def test_update_service_data_retention(service):
-    data_retention = insert_service_data_retention(service_id=service.id,
-                                                   notification_type='sms',
-                                                   days_of_retention=3
-                                                   )
-    updated_count = update_service_data_retention(service_data_retention_id=data_retention.id,
-                                                  service_id=service.id,
-                                                  days_of_retention=5
-                                                  )
+def test_update_service_data_retention(
+    notify_db_session,
+    sample_service,
+):
+    service = sample_service()
+    data_retention = insert_service_data_retention(service_id=service.id, notification_type='sms', days_of_retention=3)
+    updated_count = update_service_data_retention(
+        service_data_retention_id=data_retention.id, service_id=service.id, days_of_retention=5
+    )
     assert updated_count == 1
-    results = ServiceDataRetention.query.all()
+
+    stmt = select(ServiceDataRetention).where(ServiceDataRetention.service_id == service.id)
+    results = notify_db_session.session.scalars(stmt).all()
+
     assert len(results) == 1
     assert results[0].id == data_retention.id
     assert results[0].service_id == service.id
@@ -115,26 +115,28 @@ def test_update_service_data_retention(service):
     assert results[0].updated_at.date() == datetime.utcnow().date()
 
 
-def test_update_service_data_retention_does_not_update_if_row_does_not_exist(sample_service):
-    updated_count = update_service_data_retention(
-        service_data_retention_id=uuid.uuid4(),
-        service_id=sample_service().id,
-        days_of_retention=5
-    )
-    assert updated_count == 0
-    assert len(ServiceDataRetention.query.all()) == 0
-
-
-def test_update_service_data_retention_does_not_update_row_if_data_retention_is_for_different_service(
-    sample_service
+def test_update_service_data_retention_does_not_update_if_row_does_not_exist(
+    notify_db_session,
+    sample_service,
 ):
-    data_retention = insert_service_data_retention(service_id=sample_service().id,
-                                                   notification_type='email',
-                                                   days_of_retention=3
-                                                   )
-    updated_count = update_service_data_retention(service_data_retention_id=data_retention.id,
-                                                  service_id=uuid.uuid4(),
-                                                  days_of_retention=5)
+    service = sample_service()
+    updated_count = update_service_data_retention(
+        service_data_retention_id=uuid.uuid4(), service_id=service.id, days_of_retention=5
+    )
+
+    assert updated_count == 0
+
+    stmt = select(ServiceDataRetention).where(ServiceDataRetention.service_id == service.id)
+    assert len(notify_db_session.session.scalars(stmt).all()) == 0
+
+
+def test_update_service_data_retention_does_not_update_row_if_data_retention_is_for_different_service(sample_service):
+    data_retention = insert_service_data_retention(
+        service_id=sample_service().id, notification_type='email', days_of_retention=3
+    )
+    updated_count = update_service_data_retention(
+        service_data_retention_id=data_retention.id, service_id=uuid.uuid4(), days_of_retention=5
+    )
     assert updated_count == 0
 
 

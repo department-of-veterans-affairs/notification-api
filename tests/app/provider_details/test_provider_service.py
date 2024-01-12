@@ -143,12 +143,7 @@ class TestGetProvider:
         [(NotificationType.EMAIL.value, 'email-provider-id'), (NotificationType.SMS.value, 'sms-provider-id')],
     )
     def test_returns_service_provider_for_notification_type_if_no_template_provider(
-        self,
-        client,
-        mocker,
-        provider_service,
-        notification_type,
-        expected_provider_id
+        self, client, mocker, provider_service, notification_type, expected_provider_id
     ):
         template_without_provider = mocker.Mock(Template, provider_id=None)
 
@@ -173,10 +168,7 @@ class TestGetProvider:
         mock_get_provider_details.assert_called_with(expected_provider_id)
 
     def test_uses_strategy_for_notification_type_when_no_template_or_service_providers_email(
-        self,
-        client,
-        mocker,
-        provider_service
+        self, client, mocker, provider_service
     ):
         """
         For e-mail notifications that do not have a provider_id associated with the template or
@@ -212,13 +204,7 @@ class TestGetProvider:
         ],
     )
     def test_get_template_or_service_provider_id(
-        self,
-        client,
-        mocker,
-        notification_type,
-        template_provider_id,
-        service_provider_id,
-        expected_id
+        self, client, mocker, notification_type, template_provider_id, service_provider_id, expected_id
     ):
         """
         Test the static method ProviderService._get_template_or_service_provider_id.
@@ -233,10 +219,7 @@ class TestGetProvider:
         assert ProviderService._get_template_or_service_provider_id(notification) == expected_id
 
     def test_no_strategy_for_notification_type_when_no_template_or_service_providers_sms(
-        self,
-        client,
-        mocker,
-        provider_service
+        self, client, mocker, provider_service
     ):
         """
         For SMS messages, there is no fallback method if neither the notification's template

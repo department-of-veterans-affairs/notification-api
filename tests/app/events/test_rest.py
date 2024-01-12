@@ -11,7 +11,7 @@ def test_create_event(
     data = {
         'id': str(uuid4()),
         'event_type': 'sucessful_login',
-        'data': {'something': 'random', 'in_fact': 'could be anything'}
+        'data': {'something': 'random', 'in_fact': 'could be anything'},
     }
 
     path = '/events'

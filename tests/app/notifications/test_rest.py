@@ -19,7 +19,7 @@ from freezegun import freeze_time
 from tests import create_authorization_header
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 @pytest.mark.parametrize('notification_type', (EMAIL_TYPE, SMS_TYPE))
 def test_get_notification_by_id(
     client,
@@ -32,9 +32,7 @@ def test_get_notification_by_id(
 
     api_key = sample_api_key(service=notification_to_get.service)
     auth_header = create_authorization_header(api_key)
-    response = client.get(
-        f'/notifications/{notification_to_get.id}',
-        headers=[auth_header])
+    response = client.get(f'/notifications/{notification_to_get.id}', headers=[auth_header])
 
     assert response.status_code == 200
     notification = response.get_json()['data']['notification']
@@ -55,8 +53,8 @@ def test_get_notification_by_id(
         assert notification['sms_sender_id'] == sms_sender_id
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@pytest.mark.parametrize("notification_id", ["1234-badly-formatted-id-7890", "0"])
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@pytest.mark.parametrize('notification_id', ['1234-badly-formatted-id-7890', '0'])
 @pytest.mark.parametrize('notification_type', (EMAIL_TYPE, SMS_TYPE))
 def test_get_notification_by_invalid_id(
     client,
@@ -95,15 +93,18 @@ def test_get_notification_empty_result(
     assert response_json['message'] == 'No result found'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@pytest.mark.parametrize('api_key_type, notification_key_type', [
-    (KEY_TYPE_NORMAL, KEY_TYPE_TEAM),
-    (KEY_TYPE_NORMAL, KEY_TYPE_TEST),
-    (KEY_TYPE_TEST, KEY_TYPE_NORMAL),
-    (KEY_TYPE_TEST, KEY_TYPE_TEAM),
-    (KEY_TYPE_TEAM, KEY_TYPE_NORMAL),
-    (KEY_TYPE_TEAM, KEY_TYPE_TEST),
-])
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@pytest.mark.parametrize(
+    'api_key_type, notification_key_type',
+    [
+        (KEY_TYPE_NORMAL, KEY_TYPE_TEAM),
+        (KEY_TYPE_NORMAL, KEY_TYPE_TEST),
+        (KEY_TYPE_TEST, KEY_TYPE_NORMAL),
+        (KEY_TYPE_TEST, KEY_TYPE_TEAM),
+        (KEY_TYPE_TEAM, KEY_TYPE_NORMAL),
+        (KEY_TYPE_TEAM, KEY_TYPE_TEST),
+    ],
+)
 def test_get_notification_from_different_api_key_works(
     client,
     sample_api_key,
@@ -119,24 +120,19 @@ def test_get_notification_from_different_api_key_works(
     sample_notification.key_type = notification_key_type
 
     response = client.get(
-        path='/notifications/{}'.format(sample_notification.id),
-        headers=create_authorization_header(api_key_1)
+        path='/notifications/{}'.format(sample_notification.id), headers=create_authorization_header(api_key_1)
     )
 
     assert response.status_code == 200
-    response_json = response.get_json()["data"]["notification"]
-    assert response_json["notification_type"] == SMS_TYPE, "This is the default for the sample_notification fixture."
-    assert response_json["sms_sender_id"] == str(notification.sms_sender_id)
+    response_json = response.get_json()['data']['notification']
+    assert response_json['notification_type'] == SMS_TYPE, 'This is the default for the sample_notification fixture.'
+    assert response_json['sms_sender_id'] == str(notification.sms_sender_id)
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 @pytest.mark.parametrize('key_type', [KEY_TYPE_NORMAL, KEY_TYPE_TEAM, KEY_TYPE_TEST])
 def test_get_notification_from_different_api_key_of_same_type_succeeds(
-    client,
-    sample_api_key,
-    sample_notification,
-    key_type,
-    sample_sms_sender
+    client, sample_api_key, sample_notification, key_type, sample_sms_sender
 ):
     notification = sample_notification()
 
@@ -156,16 +152,16 @@ def test_get_notification_from_different_api_key_of_same_type_succeeds(
     assert notification.api_key_id != querying_api_key.id
 
     response = client.get(
-        path=f'/notifications/{notification.id}',
-        headers=create_authorization_header(querying_api_key))
+        path=f'/notifications/{notification.id}', headers=create_authorization_header(querying_api_key)
+    )
 
     assert response.status_code == 200
-    response_json = response.get_json()["data"]["notification"]
-    assert response_json["id"] == str(notification.id)
-    assert response_json["sms_sender_id"] == str(sample_sms_sender.id)
+    response_json = response.get_json()['data']['notification']
+    assert response_json['id'] == str(notification.id)
+    assert response_json['sms_sender_id'] == str(sample_sms_sender.id)
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_get_all_notifications(
     client,
     sample_api_key,
@@ -184,16 +180,16 @@ def test_get_all_notifications(
         'id': str(notification.template.id),
         'name': notification.template.name,
         'template_type': notification.template.template_type,
-        'version': 1
+        'version': 1,
     }
 
     assert response_json['to'] == '+16502532222'
     assert response_json['service'] == str(notification.service_id)
     assert response_json['body'] == notification.content
-    assert response_json["sms_sender_id"] == str(sample_sms_sender_v2().id)
+    assert response_json['sms_sender_id'] == str(sample_sms_sender_v2().id)
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_normal_api_key_returns_notifications_created_from_jobs_and_from_api(
     client,
     sample_template,
@@ -204,15 +200,9 @@ def test_normal_api_key_returns_notifications_created_from_jobs_and_from_api(
     template = sample_template()
     api_key = sample_api_key(service=template.service)
 
-    sample_notification(
-        template=template,
-        api_key=api_key,
-        sms_sender_id=sample_sms_sender.id
-    )
+    sample_notification(template=template, api_key=api_key, sms_sender_id=sample_sms_sender.id)
 
-    response = client.get(
-        path='/notifications',
-        headers=create_authorization_header(api_key))
+    response = client.get(path='/notifications', headers=create_authorization_header(api_key))
 
     assert response.status_code == 200
     response_json = response.get_json()['notifications']
@@ -220,7 +210,7 @@ def test_normal_api_key_returns_notifications_created_from_jobs_and_from_api(
     assert all(x['sms_sender_id'] == str(sample_sms_sender.id) for x in response_json)
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 @pytest.mark.parametrize('key_type', [KEY_TYPE_NORMAL, KEY_TYPE_TEAM, KEY_TYPE_TEST])
 def test_get_all_notifications_only_returns_notifications_of_matching_type(
     client,
@@ -235,21 +225,21 @@ def test_get_all_notifications_only_returns_notifications_of_matching_type(
         template=template,
         api_key=sample_api_key(key_type=KEY_TYPE_NORMAL),
         key_type=KEY_TYPE_NORMAL,
-        sms_sender_id=sample_sms_sender.id
+        sms_sender_id=sample_sms_sender.id,
     )
 
     team_notification = sample_notification(
         template=template,
         api_key=sample_api_key(key_type=KEY_TYPE_TEAM),
         key_type=KEY_TYPE_TEAM,
-        sms_sender_id=sample_sms_sender.id
+        sms_sender_id=sample_sms_sender.id,
     )
 
     test_notification = sample_notification(
         template=template,
         api_key=sample_api_key(key_type=KEY_TYPE_TEST),
         key_type=KEY_TYPE_TEST,
-        sms_sender_id=sample_sms_sender.id
+        sms_sender_id=sample_sms_sender.id,
     )
 
     notification_objs = {
@@ -259,8 +249,8 @@ def test_get_all_notifications_only_returns_notifications_of_matching_type(
     }
 
     response = client.get(
-        path='/notifications',
-        headers=create_authorization_header(notification_objs[key_type].api_key))
+        path='/notifications', headers=create_authorization_header(notification_objs[key_type].api_key)
+    )
 
     assert response.status_code == 200
     response_json = response.get_json()['notifications']
@@ -269,7 +259,7 @@ def test_get_all_notifications_only_returns_notifications_of_matching_type(
     assert all(x['sms_sender_id'] == str(sample_sms_sender.id) for x in response_json)
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 @pytest.mark.parametrize('key_type', [KEY_TYPE_NORMAL, KEY_TYPE_TEAM, KEY_TYPE_TEST])
 def test_do_not_return_job_notifications_by_default(
     client,
@@ -285,28 +275,13 @@ def test_do_not_return_job_notifications_by_default(
     normal_api_key = sample_api_key(service=template.service, key_type=KEY_TYPE_NORMAL)
     test_api_key = sample_api_key(service=template.service, key_type=KEY_TYPE_TEST)
 
-    sample_notification(
-        template=template,
-        sms_sender_id=sms_sender.id
-    )
+    sample_notification(template=template, sms_sender_id=sms_sender.id)
 
-    normal_notification = sample_notification(
-        template=template,
-        api_key=normal_api_key,
-        sms_sender_id=sms_sender.id
-    )
+    normal_notification = sample_notification(template=template, api_key=normal_api_key, sms_sender_id=sms_sender.id)
 
-    team_notification = sample_notification(
-        template=template,
-        api_key=team_api_key,
-        sms_sender_id=sms_sender.id
-    )
+    team_notification = sample_notification(template=template, api_key=team_api_key, sms_sender_id=sms_sender.id)
 
-    test_notification = sample_notification(
-        template=template,
-        api_key=test_api_key,
-        sms_sender_id=sms_sender.id
-    )
+    test_notification = sample_notification(template=template, api_key=test_api_key, sms_sender_id=sms_sender.id)
 
     notification_objs = {
         KEY_TYPE_NORMAL: normal_notification,
@@ -315,22 +290,18 @@ def test_do_not_return_job_notifications_by_default(
     }
 
     response = client.get(
-        path='/notifications',
-        headers=create_authorization_header(notification_objs[key_type].api_key))
+        path='/notifications', headers=create_authorization_header(notification_objs[key_type].api_key)
+    )
 
     assert response.status_code == 200
     response_json = response.get_json()['notifications']
     assert len(response_json) == 1
     assert response_json[0]['id'] == str(notification_objs[key_type].id)
-    assert all(x["sms_sender_id"] == str(sms_sender.id) for x in response_json)
+    assert all(x['sms_sender_id'] == str(sms_sender.id) for x in response_json)
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@pytest.mark.parametrize('key_type', [
-    (KEY_TYPE_NORMAL, 2),
-    (KEY_TYPE_TEAM, 1),
-    (KEY_TYPE_TEST, 1)
-])
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@pytest.mark.parametrize('key_type', [(KEY_TYPE_NORMAL, 2), (KEY_TYPE_TEAM, 1), (KEY_TYPE_TEST, 1)])
 def test_only_normal_api_keys_can_return_job_notifications(
     client,
     sample_notification_with_job,
@@ -347,7 +318,7 @@ def test_only_normal_api_keys_can_return_job_notifications(
         template=template,
         api_key=sample_api_key(key_type=KEY_TYPE_NORMAL),
         key_type=KEY_TYPE_NORMAL,
-        sms_sender_id=sample_sms_sender.id
+        sms_sender_id=sample_sms_sender.id,
     )
 
     team_notification = sample_notification(
@@ -372,7 +343,8 @@ def test_only_normal_api_keys_can_return_job_notifications(
 
     response = client.get(
         path='/notifications?include_jobs=true',
-        headers=create_authorization_header(notification_objs[key_type[0]].api_key))
+        headers=create_authorization_header(notification_objs[key_type[0]].api_key),
+    )
 
     assert response.status_code == 200
     response_json = response.get_json()['notifications']
@@ -381,7 +353,7 @@ def test_only_normal_api_keys_can_return_job_notifications(
     assert all(x['sms_sender_id'] == str(sample_sms_sender.id) for x in response_json)
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_get_all_notifications_newest_first(
     client,
     sample_api_key,
@@ -419,7 +391,7 @@ def test_should_reject_invalid_page_param(
     assert 'Not a valid integer.' in response_json['message']['page']
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_valid_page_size_param(
     notify_api,
     sample_api_key,
@@ -442,7 +414,7 @@ def test_valid_page_size_param(
             assert response_json['page_size'] == 1
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_invalid_page_size_param(
     client,
     sample_api_key,
@@ -463,7 +435,7 @@ def test_invalid_page_size_param(
     assert 'Not a valid integer.' in response_json['message']['page_size']
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_should_return_pagination_links(
     client,
     sample_api_key,
@@ -509,7 +481,7 @@ def test_get_all_notifications_returns_empty_list(
     assert len(response_json['notifications']) == 0
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_filter_by_template_type(
     client,
     sample_api_key,
@@ -550,7 +522,7 @@ def test_filter_by_multiple_template_types(
     assert {SMS_TYPE, EMAIL_TYPE} == set(x['template']['template_type'] for x in response_json)
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_filter_by_status(
     client,
     sample_api_key,
@@ -558,7 +530,7 @@ def test_filter_by_status(
     sample_notification,
 ):
     template = sample_template(template_type=EMAIL_TYPE)
-    sample_notification(template, status="delivered")
+    sample_notification(template, status='delivered')
     sample_notification(template)
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
@@ -571,7 +543,7 @@ def test_filter_by_status(
     assert response_json[0]['status'] == 'delivered'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_filter_by_multiple_statuses(
     client,
     sample_api_key,
@@ -579,7 +551,7 @@ def test_filter_by_multiple_statuses(
     sample_notification,
 ):
     template = sample_template(template_type=EMAIL_TYPE)
-    sample_notification(template, status="delivered")
+    sample_notification(template, status='delivered')
     sample_notification(template, status='sending')
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
@@ -592,7 +564,7 @@ def test_filter_by_multiple_statuses(
     assert {'delivered', 'sending'} == set(x['status'] for x in response_json)
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_filter_by_status_and_template_type(
     client,
     sample_api_key,
@@ -602,7 +574,7 @@ def test_filter_by_status_and_template_type(
     email_template = sample_template(template_type=EMAIL_TYPE)
     sample_notification(sample_template())
     sample_notification(email_template)
-    sample_notification(email_template, status="delivered")
+    sample_notification(email_template, status='delivered')
 
     auth_header = create_authorization_header(sample_api_key(email_template.service))
 
@@ -615,7 +587,7 @@ def test_filter_by_status_and_template_type(
     assert response_json[0]['status'] == 'delivered'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_get_notification_by_id_returns_merged_template_content(
     client,
     sample_api_key,
@@ -624,45 +596,36 @@ def test_get_notification_by_id_returns_merged_template_content(
     sample_sms_sender_v2,
 ):
     sms_sender = sample_sms_sender_v2()
-    template = sample_template(content="Hello (( Name))\nYour thing is due soon")
+    template = sample_template(content='Hello (( Name))\nYour thing is due soon')
 
     notification = sample_notification(
-        template=template,
-        personalisation={"name": "world"},
-        sms_sender_id=sms_sender.id
+        template=template, personalisation={'name': 'world'}, sms_sender_id=sms_sender.id
     )
-    assert notification.notification_type == SMS_TYPE, "This is the default."
+    assert notification.notification_type == SMS_TYPE, 'This is the default.'
 
     auth_header = create_authorization_header(sample_api_key(notification.service))
 
-    response = client.get(
-        '/notifications/{}'.format(notification.id),
-        headers=[auth_header])
+    response = client.get('/notifications/{}'.format(notification.id), headers=[auth_header])
 
     assert response.status_code == 200
     response_json = response.get_json()['data']['notification']
     assert response_json['body'] == 'Hello world\nYour thing is due soon'
     assert 'subject' not in response_json
     assert response_json['content_char_count'] == 34
-    assert response_json["sms_sender_id"] == str(sms_sender.id)
+    assert response_json['sms_sender_id'] == str(sms_sender.id)
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_get_notification_by_id_returns_merged_template_content_for_email(
     client,
     sample_api_key,
     sample_email_template_with_placeholders,
     sample_notification,
 ):
-    notification = sample_notification(
-        sample_email_template_with_placeholders,
-        personalisation={"name": "world"}
-    )
+    notification = sample_notification(sample_email_template_with_placeholders, personalisation={'name': 'world'})
     auth_header = create_authorization_header(sample_api_key(service=notification.service))
 
-    response = client.get(
-        '/notifications/{}'.format(notification.id),
-        headers=[auth_header])
+    response = client.get('/notifications/{}'.format(notification.id), headers=[auth_header])
 
     assert response.status_code == 200
     response_json = response.get_json()['data']['notification']
@@ -671,7 +634,7 @@ def test_get_notification_by_id_returns_merged_template_content_for_email(
     assert response_json['content_char_count'] is None
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_get_notifications_for_service_returns_merged_template_content(
     client,
     sample_api_key,
@@ -679,10 +642,10 @@ def test_get_notifications_for_service_returns_merged_template_content(
     sample_notification,
 ):
     with freeze_time('2001-01-01T12:00:00'):
-        sample_notification(sample_template_with_placeholders, personalisation={"name": "merged with first"})
+        sample_notification(sample_template_with_placeholders, personalisation={'name': 'merged with first'})
 
     with freeze_time('2001-01-01T12:00:01'):
-        sample_notification(sample_template_with_placeholders, personalisation={"name": "merged with second"})
+        sample_notification(sample_template_with_placeholders, personalisation={'name': 'merged with second'})
 
     auth_header = create_authorization_header(sample_api_key(service=sample_template_with_placeholders.service))
 
@@ -695,7 +658,7 @@ def test_get_notifications_for_service_returns_merged_template_content(
     }
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_get_notification_selects_correct_template_for_personalisation(
     client,
     sample_api_key,
@@ -708,7 +671,7 @@ def test_get_notification_selects_correct_template_for_personalisation(
     template.content = '((name))'
     dao_update_template(template)
 
-    sample_notification(template=template, personalisation={"name": "foo"})
+    sample_notification(template=template, personalisation={'name': 'foo'})
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
 

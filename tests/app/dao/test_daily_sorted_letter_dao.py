@@ -44,10 +44,7 @@ def test_dao_create_or_update_daily_sorted_letter_creates_a_new_entry(notify_db_
 
 def test_dao_create_or_update_daily_sorted_letter_updates_an_existing_entry(notify_db_session):
     create_daily_sorted_letter(
-        billing_day=date(2018, 1, 18),
-        file_name='Notify-20180118123.rs.txt',
-        unsorted_count=2,
-        sorted_count=3
+        billing_day=date(2018, 1, 18), file_name='Notify-20180118123.rs.txt', unsorted_count=2, sorted_count=3
     )
 
     dsl = DailySortedLetter(

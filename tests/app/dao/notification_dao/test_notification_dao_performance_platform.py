@@ -41,6 +41,8 @@ def test_get_total_notifications_only_counts_api_notifications(
     api_key = sample_api_key()
     template = sample_template()
     job = sample_job(template)
+
+    # All the non-job notifications will have a non-null API key because of how the fixtures work.
     sample_notification(template=template, one_off=True)
     sample_notification(template=template, one_off=True)
     sample_notification(template=template, job=job)
@@ -49,7 +51,7 @@ def test_get_total_notifications_only_counts_api_notifications(
 
     result = dao_get_total_notifications_sent_per_day_for_performance_platform(BEGINNING_OF_DAY, END_OF_DAY)
 
-    assert result.messages_total == 1
+    assert result.messages_total == 3
 
 
 @freeze_time('2016-10-18T10:00')
@@ -115,7 +117,7 @@ def test_get_total_notifications_counts_messages_that_have_not_sent(sample_templ
 
 
 @freeze_time('2016-10-18T10:00')
-def test_get_total_notifications_returns_zero_if_no_data():
+def test_get_total_notifications_returns_zero_if_no_data(notify_api):
     result = dao_get_total_notifications_sent_per_day_for_performance_platform(BEGINNING_OF_DAY, END_OF_DAY)
 
     assert result.messages_total == 0

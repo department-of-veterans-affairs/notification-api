@@ -47,4 +47,29 @@ fileignoreconfig:
   checksum: a6b9dbff04ca357fed37bb800544195355555c5b5bc5f14e30965121403e5907
 - filename: documents/postman/staging-simplified.postman_environment.json
   checksum: d69f7b3dfd46f9d8fe17c1ec8429fa1a90cd8acea452e2de2f0936f1c0013474
-version: "1.0"
+- filename: app/celery/letters_pdf_tasks.py
+  checksum: 3430294d1d4e37f8886c3103557355d4c89c13bf1186a97709b1cfb86b78b5a3
+- filename: tests/app/template_statistics/test_rest.py
+  checksum: 2cc46d9785849898d614a2d5502cd4934ce54ba85264d0f74f73b7d2952ab78d
+- filename: tests/__init__.py
+  checksum: c95d2ef8fe7b19d074f64070a078b3e44e5fe9500b5601eab93a44e09c7fceac
+- filename: tests/app/conftest.py
+  checksum: 171620a2805d6220305e421cc157be21e8bce7de848f4dc4c71b1136f52927e8
+- filename: tests/app/test_model.py
+  checksum: 4bb0dcb3d87c8a0d2f86cc8b0c110f3d9755a5e589e91d164d79a198607ebeec
+- filename: tests/app/v2/notifications/test_post_notifications.py
+  checksum: e3ec08bd7034c77354f90c7a04b45d43a38e78fff187836ec403d88c1c71c3dc
+- filename: tests/app/notifications/rest/test_send_notification.py
+  checksum: 7ce2246012c5bb46b104c13fa81eb08b4fdec41843fd18e57c34290f6160176f
+- filename: tests/app/notifications/test_process_notifications.py
+  checksum: 98a2894e5d1ed716089cddfed3cecd90d6c968b679be23c3c66d4353d51b9117
+- filename: tests/app/dao/test_ft_billing_dao.py
+  checksum: a6b03b34c13501b03e4f091cf092c4561bf7bf038eca6944a4615a87cde67068
+- filename: app/celery/v3/notification_tasks.py
+  checksum: 968d614d0e6732db265dd2eb448cc566386a7edd55c96575b12c395c6f41a3a4
+- filename: tests/app/dao/test_login_event_dao.py
+  checksum: 6ff592b8e416eb2481fe0733c01d9c91f4c409a878414f8581aefea7f675bc2d
+- filename: tests/app/dao/test_api_key_dao.py
+  checksum: 9a97adf107dbbf0d821a5d210f19b55a27c8b22d0593be3224a10770cd78d4e1
+- filename: tests/app/api_key/test_rest.py
+  checksum: 6169bbe28b30f2521b878b5ff0d31bd5b45a28cacfd5d89848aaa78cbdab5edb

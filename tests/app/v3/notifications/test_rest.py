@@ -100,7 +100,7 @@ def test_post_v3_notifications(client, mocker, sample_api_key, sample_service, r
 
     service = sample_service()
     api_key = sample_api_key(service=service, key_type=KEY_TYPE_TEAM)
-    celery_mock = mocker.patch("app.v3.notifications.rest.v3_process_notification.delay")
+    celery_mock = mocker.patch('app.v3.notifications.rest.v3_process_notification.delay')
     auth_header = create_authorization_header(api_key)
 
     response = client.post(
@@ -115,9 +115,7 @@ def test_post_v3_notifications(client, mocker, sample_api_key, sample_service, r
     if expected_status_code == 202:
         assert isinstance(UUID(response_json['id']), UUID)
         request_data['id'] = response_json['id']
-        celery_mock.assert_called_once_with(
-            request_data, service.id, service.api_keys[0].id, KEY_TYPE_TEAM
-        )
+        celery_mock.assert_called_once_with(request_data, service.id, service.api_keys[0].id, KEY_TYPE_TEAM)
 
         # For the same request data, calling v3_send_notification directly, rather than through a route
         # handler, should also succeed.
@@ -125,9 +123,7 @@ def test_post_v3_notifications(client, mocker, sample_api_key, sample_service, r
         del request_data['id']
         request_data['id'] = v3_send_notification(request_data, service_data)
         assert isinstance(UUID(request_data['id']), UUID)
-        celery_mock.assert_called_once_with(
-            request_data, service.id, service.api_keys[0].id, KEY_TYPE_TEAM
-        )
+        celery_mock.assert_called_once_with(request_data, service.id, service.api_keys[0].id, KEY_TYPE_TEAM)
     elif expected_status_code == 400:
         assert response_json['errors'][0]['error'] == 'ValidationError'
 
@@ -152,7 +148,7 @@ def test_post_v3_notifications_email_denied(client, mocker, sample_api_key, samp
     celery_mock = mocker.patch('app.v3.notifications.rest.v3_process_notification.delay')
     auth_header = create_authorization_header(api_key)
     response = client.post(
-        path=url_for("v3.v3_notifications.v3_post_notification_email"),
+        path=url_for('v3.v3_notifications.v3_post_notification_email'),
         data=dumps({}),
         headers=(('Content-Type', 'application/json'), auth_header),
     )
@@ -185,7 +181,7 @@ def test_post_v3_notifications_sms_denied(client, mocker, sample_api_key, sample
     celery_mock = mocker.patch('app.v3.notifications.rest.v3_process_notification.delay')
     auth_header = create_authorization_header(api_key)
     response = client.post(
-        path=url_for("v3.v3_notifications.v3_post_notification_sms"),
+        path=url_for('v3.v3_notifications.v3_post_notification_sms'),
         data=dumps({}),
         headers=(('Content-Type', 'application/json'), auth_header),
     )

@@ -30,17 +30,18 @@ def test_get_notifications_valid_json(data):
     assert validate(data, get_notifications_request) == data
 
 
-@pytest.mark.parametrize('invalid_statuses, valid_statuses', [
-    # one invalid status
-    (["elephant"], []),
-    # multiple invalid statuses
-    (["elephant", "giraffe", "cheetah"], []),
-    # one bad status and one good status
-    (["elephant"], ["created"]),
-])
-def test_get_notifications_request_invalid_statuses(
-        client, invalid_statuses, valid_statuses
-):
+@pytest.mark.parametrize(
+    'invalid_statuses, valid_statuses',
+    [
+        # one invalid status
+        (['elephant'], []),
+        # multiple invalid statuses
+        (['elephant', 'giraffe', 'cheetah'], []),
+        # one bad status and one good status
+        (['elephant'], ['created']),
+    ],
+)
+def test_get_notifications_request_invalid_statuses(client, invalid_statuses, valid_statuses):
     partial_error_status = (
         'is not one of '
         '[cancelled, created, sending, sent, delivered, pending, failed, '
@@ -58,18 +59,19 @@ def test_get_notifications_request_invalid_statuses(
         assert errors[index]['message'] == 'status {} {}'.format(value, partial_error_status)
 
 
-@pytest.mark.parametrize('invalid_template_types, valid_template_types', [
-    # one invalid template_type
-    (["orange"], []),
-    # multiple invalid template_types
-    (["orange", "avocado", "banana"], []),
-    # one bad template_type and one good template_type
-    (["orange"], [SMS_TYPE]),
-])
-def test_get_notifications_request_invalid_template_types(
-        client, invalid_template_types, valid_template_types
-):
-    partial_error_template_type = "is not one of [sms, email, letter]"
+@pytest.mark.parametrize(
+    'invalid_template_types, valid_template_types',
+    [
+        # one invalid template_type
+        (['orange'], []),
+        # multiple invalid template_types
+        (['orange', 'avocado', 'banana'], []),
+        # one bad template_type and one good template_type
+        (['orange'], [SMS_TYPE]),
+    ],
+)
+def test_get_notifications_request_invalid_template_types(client, invalid_template_types, valid_template_types):
+    partial_error_template_type = 'is not one of [sms, email, letter]'
 
     with pytest.raises(ValidationError) as e:
         validate({'template_type': invalid_template_types + valid_template_types}, get_notifications_request)
@@ -82,10 +84,10 @@ def test_get_notifications_request_invalid_template_types(
 
 def test_get_notifications_request_invalid_statuses_and_template_types(client):
     with pytest.raises(ValidationError) as e:
-        validate({
-            'status': ["created", "elephant", "giraffe"],
-            'template_type': [SMS_TYPE, "orange", "avocado"]
-        }, get_notifications_request)
+        validate(
+            {'status': ['created', 'elephant', 'giraffe'], 'template_type': [SMS_TYPE, 'orange', 'avocado']},
+            get_notifications_request,
+        )
 
     errors = json.loads(str(e.value)).get('errors')
 
@@ -153,10 +155,7 @@ def test_post_sms_schema_is_valid(data):
     ids=['new line', 'trailing space', 'return', 'tab indent', 'too few chars', 'string not uuid'],
 )
 def test_post_sms_json_schema_bad_uuid(client, template_id):
-    j = {
-        "template_id": template_id,
-        "phone_number": "6502532222"
-    }
+    j = {'template_id': template_id, 'phone_number': '6502532222'}
     with pytest.raises(ValidationError) as e:
         validate(j, post_sms_request_schema)
     error = json.loads(str(e.value))
@@ -171,18 +170,18 @@ missing_value_json = {'id_type': IdentifierType.VA_PROFILE_ID.value}
 missing_id_type_and_value_json = {}
 
 
-@pytest.mark.parametrize('recipient_identifier, missing_key_name', [
-    (missing_id_type_json, ["id_type"]),
-    (missing_value_json, ["id_value"]),
-    (missing_id_type_and_value_json, ["id_type", "id_value"])
-])
+@pytest.mark.parametrize(
+    'recipient_identifier, missing_key_name',
+    [
+        (missing_id_type_json, ['id_type']),
+        (missing_value_json, ['id_value']),
+        (missing_id_type_and_value_json, ['id_type', 'id_value']),
+    ],
+)
 def test_post_sms_json_schema_missing_recipient_identifier_required_fields(
     client, recipient_identifier, missing_key_name
 ):
-    j = {
-        "recipient_identifier": recipient_identifier,
-        "template_id": str(uuid.uuid4())
-    }
+    j = {'recipient_identifier': recipient_identifier, 'template_id': str(uuid.uuid4())}
     with pytest.raises(ValidationError) as e:
         validate(j, post_sms_request_schema)
     error = json.loads(str(e.value))
@@ -196,7 +195,7 @@ def test_post_sms_json_schema_missing_recipient_identifier_required_fields(
         } in error['errors']
 
 
-@pytest.mark.parametrize("id_type", IdentifierType.values() + ["INVALID"])
+@pytest.mark.parametrize('id_type', IdentifierType.values() + ['INVALID'])
 def test_post_sms_schema_id_type_should_only_use_enum_values(client, id_type):
     id_type_as_parameter_json = {
         'recipient_identifier': {'id_type': id_type, 'id_value': 'bar'},
@@ -216,7 +215,7 @@ def test_post_sms_schema_id_type_should_only_use_enum_values(client, id_type):
 
 
 def test_post_sms_json_schema_bad_uuid_and_missing_phone_number_and_recipient_identifier(client):
-    j = {"template_id": "notUUID"}
+    j = {'template_id': 'notUUID'}
     with pytest.raises(ValidationError) as e:
         validate(j, post_sms_request_schema)
     error = json.loads(str(e.value))
@@ -258,21 +257,17 @@ def test_post_sms_schema_with_personalisation_that_is_not_a_dict(client):
                 'an impossible combination of area code and/or telephone prefix.'
             ),
         ),
-        (
-            'phone_number Field contains an invalid number due to either formatting or '
-            'an impossible combination of area code and/or telephone prefix.'
-        )
-    ),
-    ('notaphoneumber', 'phone_number Not a valid number'),
-    (7700900001, 'phone_number 7700900001 is not of type string'),
-    (None, 'phone_number None is not of type string'),
-    ([], 'phone_number [] is not of type string'),
-    ({}, 'phone_number {} is not of type string'),
-])
+        ('notaphoneumber', 'phone_number Not a valid number'),
+        (7700900001, 'phone_number 7700900001 is not of type string'),
+        (None, 'phone_number None is not of type string'),
+        ([], 'phone_number [] is not of type string'),
+        ({}, 'phone_number {} is not of type string'),
+    ],
+)
 def test_post_sms_request_schema_invalid_phone_number(client, invalid_phone_number, err_msg):
     test_schema = {
-        "phone_number": invalid_phone_number,
-        "template_id": str(uuid.uuid4()),
+        'phone_number': invalid_phone_number,
+        'template_id': str(uuid.uuid4()),
     }
     with pytest.raises(ValidationError) as e:
         validate(test_schema, post_sms_request_schema)
@@ -282,7 +277,7 @@ def test_post_sms_request_schema_invalid_phone_number(client, invalid_phone_numb
 
 
 def test_post_sms_request_schema_invalid_phone_number_and_missing_template(client):
-    test_schema = {"phone_number": '08515111111'}
+    test_schema = {'phone_number': '08515111111'}
     with pytest.raises(ValidationError) as e:
         validate(test_schema, post_sms_request_schema)
     errors = json.loads(str(e.value)).get('errors')
@@ -329,21 +324,24 @@ def test_post_email_schema_is_valid(data):
 
 
 def test_post_email_schema_bad_uuid_and_missing_email_address(client):
-    j = {"template_id": "bad_template"}
+    j = {'template_id': 'bad_template'}
     with pytest.raises(ValidationError):
         validate(j, post_email_request_schema)
 
 
-@pytest.mark.parametrize('email_address, err_msg', [
-    ('example', 'email_address Not a valid email address'),
-    (12345, 'email_address 12345 is not of type string'),
-    ('with(brackets)@example.com', 'email_address Not a valid email address'),
-    (None, 'email_address None is not of type string'),
-    ([], 'email_address [] is not of type string'),
-    ({}, 'email_address {} is not of type string'),
-])
+@pytest.mark.parametrize(
+    'email_address, err_msg',
+    [
+        ('example', 'email_address Not a valid email address'),
+        (12345, 'email_address 12345 is not of type string'),
+        ('with(brackets)@example.com', 'email_address Not a valid email address'),
+        (None, 'email_address None is not of type string'),
+        ([], 'email_address [] is not of type string'),
+        ({}, 'email_address {} is not of type string'),
+    ],
+)
 def test_post_email_schema_invalid_email_address(client, email_address, err_msg):
-    j = {"template_id": str(uuid.uuid4()), "email_address": email_address}
+    j = {'template_id': str(uuid.uuid4()), 'email_address': email_address}
     with pytest.raises(ValidationError) as e:
         validate(j, post_email_request_schema)
 
@@ -357,18 +355,18 @@ missing_value_json = {'id_type': IdentifierType.VA_PROFILE_ID.value}
 missing_id_type_and_value_json = {}
 
 
-@pytest.mark.parametrize('recipient_identifier, missing_key_name', [
-    (missing_id_type_json, ["id_type"]),
-    (missing_value_json, ["id_value"]),
-    (missing_id_type_and_value_json, ["id_type", "id_value"])
-])
+@pytest.mark.parametrize(
+    'recipient_identifier, missing_key_name',
+    [
+        (missing_id_type_json, ['id_type']),
+        (missing_value_json, ['id_value']),
+        (missing_id_type_and_value_json, ['id_type', 'id_value']),
+    ],
+)
 def test_post_email_json_schema_missing_recipient_identifier_required_fields(
     client, recipient_identifier, missing_key_name
 ):
-    j = {
-        "recipient_identifier": recipient_identifier,
-        "template_id": str(uuid.uuid4())
-    }
+    j = {'recipient_identifier': recipient_identifier, 'template_id': str(uuid.uuid4())}
     with pytest.raises(ValidationError) as e:
         validate(j, post_email_request_schema)
     error = json.loads(str(e.value))
@@ -382,7 +380,7 @@ def test_post_email_json_schema_missing_recipient_identifier_required_fields(
         } in error['errors']
 
 
-@pytest.mark.parametrize("id_type", IdentifierType.values() + ["INVALID"])
+@pytest.mark.parametrize('id_type', IdentifierType.values() + ['INVALID'])
 def test_post_email_schema_id_type_should_only_use_enum_values(client, id_type):
     id_type_as_parameter_json = {
         'recipient_identifier': {'id_type': id_type, 'id_value': 'bar'},
@@ -426,16 +424,12 @@ def test_post_schema_valid_scheduled_for(schema):
     assert validate(j, schema) == j
 
 
-@pytest.mark.parametrize("invalid_datetime",
-                         ["13:00:00 2017-01-01",
-                          "2017-31-12 13:00:00",
-                          "01-01-2017T14:00:00.0000Z"
-                          ])
-@pytest.mark.parametrize("schema",
-                         [post_email_request_schema, post_sms_request_schema])
+@pytest.mark.parametrize(
+    'invalid_datetime', ['13:00:00 2017-01-01', '2017-31-12 13:00:00', '01-01-2017T14:00:00.0000Z']
+)
+@pytest.mark.parametrize('schema', [post_email_request_schema, post_sms_request_schema])
 def test_post_email_schema_invalid_scheduled_for(client, invalid_datetime, schema):
-    j = {"template_id": str(uuid.uuid4()),
-         "scheduled_for": invalid_datetime}
+    j = {'template_id': str(uuid.uuid4()), 'scheduled_for': invalid_datetime}
     if schema == post_email_request_schema:
         j.update({'email_address': 'joe@gmail.com'})
     else:
@@ -454,11 +448,9 @@ def test_post_email_schema_invalid_scheduled_for(client, invalid_datetime, schem
     ]
 
 
-@freeze_time("2017-05-12 13:00:00")
+@freeze_time('2017-05-12 13:00:00')
 def test_scheduled_for_raises_validation_error_when_in_the_past(client):
-    j = {"phone_number": "6502532222",
-         "template_id": str(uuid.uuid4()),
-         "scheduled_for": "2017-05-12 10:00"}
+    j = {'phone_number': '6502532222', 'template_id': str(uuid.uuid4()), 'scheduled_for': '2017-05-12 10:00'}
     with pytest.raises(ValidationError) as e:
         validate(j, post_sms_request_schema)
     error = json.loads(str(e.value))
@@ -466,11 +458,9 @@ def test_scheduled_for_raises_validation_error_when_in_the_past(client):
     assert error['errors'] == [{'error': 'ValidationError', 'message': 'scheduled_for datetime can not be in the past'}]
 
 
-@freeze_time("2017-05-12 13:00:00")
+@freeze_time('2017-05-12 13:00:00')
 def test_scheduled_for_raises_validation_error_when_more_than_24_hours_in_the_future(client):
-    j = {"phone_number": "6502532222",
-         "template_id": str(uuid.uuid4()),
-         "scheduled_for": "2017-05-13 14:00"}
+    j = {'phone_number': '6502532222', 'template_id': str(uuid.uuid4()), 'scheduled_for': '2017-05-13 14:00'}
     with pytest.raises(ValidationError) as e:
         validate(j, post_sms_request_schema)
     error = json.loads(str(e.value))

@@ -89,11 +89,14 @@ def test_get_letters_pdf_calls_notifications_template_preview_service_correctly(
 
 
 @pytest.mark.xfail(reason="Not fixed during #1436 because letter functionality isn't used.", run=False)
-@pytest.mark.parametrize('page_count,expected_billable_units', [
-    ('1', 1),
-    ('2', 1),
-    ('3', 2),
-])
+@pytest.mark.parametrize(
+    'page_count,expected_billable_units',
+    [
+        ('1', 1),
+        ('2', 1),
+        ('3', 2),
+    ],
+)
 def test_get_letters_pdf_calculates_billing_units(
     notify_api, mocker, client, sample_letter_template, page_count, expected_billable_units
 ):
@@ -123,7 +126,7 @@ def test_get_letters_pdf_calculates_billing_units(
 
 
 @pytest.mark.xfail(reason="Not fixed during #1436 because letter functionality isn't used.", run=False)
-@freeze_time("2017-12-04 17:31:00")
+@freeze_time('2017-12-04 17:31:00')
 def test_create_letters_pdf_calls_s3upload(mocker, sample_letter_notification):
     mocker.patch('app.celery.letters_pdf_tasks.get_letters_pdf', return_value=(b'\x00\x01', '1'))
     mock_s3 = mocker.patch('app.letters.utils.s3upload')
@@ -139,7 +142,7 @@ def test_create_letters_pdf_calls_s3upload(mocker, sample_letter_notification):
 
 
 @pytest.mark.xfail(reason="Not fixed during #1436 because letter functionality isn't used.", run=False)
-@freeze_time("2017-12-04 17:31:00")
+@freeze_time('2017-12-04 17:31:00')
 def test_create_letters_pdf_calls_s3upload_for_test_letters(mocker, sample_letter_notification):
     mocker.patch('app.celery.letters_pdf_tasks.get_letters_pdf', return_value=(b'\x00\x01', '1'))
     mock_s3 = mocker.patch('app.letters.utils.s3upload')
@@ -212,9 +215,7 @@ def test_create_letters_pdf_sets_technical_failure_max_retries(mocker, sample_le
 
 
 @pytest.mark.xfail(reason="Not fixed during #1436 because letter functionality isn't used.", run=False)
-def test_create_letters_gets_the_right_logo_when_service_has_no_logo(
-        notify_api, mocker, sample_letter_notification
-):
+def test_create_letters_gets_the_right_logo_when_service_has_no_logo(notify_api, mocker, sample_letter_notification):
     mock_get_letters_pdf = mocker.patch('app.celery.letters_pdf_tasks.get_letters_pdf', return_value=(b'\x00\x01', 1))
     mocker.patch('app.letters.utils.s3upload')
     mocker.patch('app.celery.letters_pdf_tasks.update_notification_status_by_id')

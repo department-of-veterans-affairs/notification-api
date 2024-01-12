@@ -6,6 +6,7 @@ from tests import create_authorization_header
 
 # v2
 
+
 def test_get_v2_sms_contract(
     client,
     sample_api_key,

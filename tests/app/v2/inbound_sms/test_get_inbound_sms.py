@@ -13,7 +13,7 @@ def test_get_inbound_sms_returns_200(
         sample_inbound_sms(service, notify_number='447700900115', content='Hi'),
         sample_inbound_sms(service, notify_number='447700900116'),
         sample_inbound_sms(service, notify_number='447700900117', content='Bye'),
-        sample_inbound_sms(service, notify_number='07700900113')
+        sample_inbound_sms(service, notify_number='07700900113'),
     ]
 
     auth_header = create_authorization_header(sample_api_key(service=service))
@@ -41,10 +41,7 @@ def test_get_inbound_sms_generate_page_links(
     mocker,
 ):
     service = sample_service()
-    mocker.patch.dict(
-        "app.v2.inbound_sms.get_inbound_sms.current_app.config",
-        {"API_PAGE_SIZE": 2}
-    )
+    mocker.patch.dict('app.v2.inbound_sms.get_inbound_sms.current_app.config', {'API_PAGE_SIZE': 2})
     all_inbound_sms = [
         sample_inbound_sms(service, notify_number='447700900211', content='Hi'),
         sample_inbound_sms(service, notify_number='447700900312'),
@@ -79,10 +76,7 @@ def test_get_next_inbound_sms_will_get_correct_inbound_sms_list(
     mocker,
 ):
     service = sample_service()
-    mocker.patch.dict(
-        "app.v2.inbound_sms.get_inbound_sms.current_app.config",
-        {"API_PAGE_SIZE": 2}
-    )
+    mocker.patch.dict('app.v2.inbound_sms.get_inbound_sms.current_app.config', {'API_PAGE_SIZE': 2})
     all_inbound_sms = [
         sample_inbound_sms(service, notify_number='447700900111', content='1'),
         sample_inbound_sms(service, notify_number='447700900112', content='2'),
@@ -117,10 +111,7 @@ def test_get_next_inbound_sms_at_end_will_return_empty_inbound_sms_list(
     mocker,
 ):
     inbound_sms = sample_inbound_sms()
-    mocker.patch.dict(
-        "app.v2.inbound_sms.get_inbound_sms.current_app.config",
-        {"API_PAGE_SIZE": 1}
-    )
+    mocker.patch.dict('app.v2.inbound_sms.get_inbound_sms.current_app.config', {'API_PAGE_SIZE': 1})
 
     auth_header = create_authorization_header(sample_api_key(service=inbound_sms.service))
     response = client.get(

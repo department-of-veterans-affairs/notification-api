@@ -27,7 +27,7 @@ def test_validate_invitation_token_for_expired_token_returns_400(client, invitat
     }
 
 
-@pytest.mark.skip(reason="Endpoint disabled and slated for removal")
+@pytest.mark.skip(reason='Endpoint disabled and slated for removal')
 @pytest.mark.parametrize('invitation_type', ['service', 'organisation'])
 def test_validate_invitation_token_returns_200_when_token_valid(
     client, invitation_type, sample_invited_user, sample_invited_org_user

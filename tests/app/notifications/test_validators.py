@@ -44,7 +44,6 @@ def test_should_not_enforce_message_limit_if_limiting_is_disabled(
     sample_service,
     mocker,
 ):
-
     current_app.config['API_MESSAGE_LIMIT_ENABLED'] = False
 
     mocker.patch('app.notifications.validators.redis_store.get')
@@ -111,7 +110,7 @@ def test_should_set_cache_value_as_value_from_database_if_cache_not_set(
         mocker.patch('app.notifications.validators.redis_store.set')
         check_service_over_daily_message_limit(key_type, service)
         app.notifications.validators.redis_store.set.assert_called_with(
-            str(service.id) + "-2016-01-01-count", 5, ex=3600
+            str(service.id) + '-2016-01-01-count', 5, ex=3600
         )
 
 
@@ -136,7 +135,7 @@ def test_check_service_message_limit_over_message_limit_fails(
     sample_api_key,
     mocker,
 ):
-    with freeze_time("2016-01-01 12:00:00.000000"):
+    with freeze_time('2016-01-01 12:00:00.000000'):
         current_app.config['API_MESSAGE_LIMIT_ENABLED'] = True
         mocker.patch('app.redis_store.get', return_value=None)
         mocker.patch('app.notifications.validators.redis_store.set')
@@ -155,7 +154,7 @@ def test_check_service_message_limit_over_message_limit_fails(
         assert e.value.message == 'Exceeded send limits (4) for today'
         assert e.value.fields == []
         app.notifications.validators.redis_store.set.assert_called_with(
-            str(service.id) + "-2016-01-01-count", 5, ex=3600
+            str(service.id) + '-2016-01-01-count', 5, ex=3600
         )
 
 
@@ -165,7 +164,7 @@ def test_check_service_message_limit_in_cache_over_message_limit_fails(
     key_type,
     mocker,
 ):
-    with freeze_time("2016-01-01 12:00:00.000000"):
+    with freeze_time('2016-01-01 12:00:00.000000'):
         current_app.config['API_MESSAGE_LIMIT_ENABLED'] = True
 
         mocker.patch('app.redis_store.get', return_value=5)
@@ -210,6 +209,7 @@ def test_check_template_is_active_fails(sample_template):
     template = sample_template()
     template.archived = True
     from app.dao.templates_dao import dao_update_template
+
     dao_update_template(template)
     with pytest.raises(BadRequestError) as e:
         check_template_is_active(template)
@@ -218,30 +218,25 @@ def test_check_template_is_active_fails(sample_template):
     assert e.value.fields == [{'template': 'Template has been deleted'}]
 
 
-@pytest.mark.parametrize('key_type',
-                         ['test', 'normal'])
+@pytest.mark.parametrize('key_type', ['test', 'normal'])
 def test_service_can_send_to_recipient_passes(
     sample_service,
     key_type,
 ):
     trial_mode_service = sample_service(restricted=True)
-    assert service_can_send_to_recipient(trial_mode_service.users[0].email_address,
-                                         key_type,
-                                         trial_mode_service) is None
-    assert service_can_send_to_recipient(trial_mode_service.users[0].mobile_number,
-                                         key_type,
-                                         trial_mode_service) is None
+    assert (
+        service_can_send_to_recipient(trial_mode_service.users[0].email_address, key_type, trial_mode_service) is None
+    )
+    assert (
+        service_can_send_to_recipient(trial_mode_service.users[0].mobile_number, key_type, trial_mode_service) is None
+    )
 
 
 @pytest.mark.parametrize('key_type', ['test', 'normal'])
 def test_service_can_send_to_recipient_passes_for_live_service_non_team_member(key_type, sample_service):
     service = sample_service()
-    assert service_can_send_to_recipient("some_other_email@test.com",
-                                         key_type,
-                                         service) is None
-    assert service_can_send_to_recipient('07513332413',
-                                         key_type,
-                                         service) is None
+    assert service_can_send_to_recipient('some_other_email@test.com', key_type, service) is None
+    assert service_can_send_to_recipient('07513332413', key_type, service) is None
 
 
 def test_service_can_send_to_recipient_passes_for_whitelisted_recipient_passes(
@@ -249,14 +244,10 @@ def test_service_can_send_to_recipient_passes_for_whitelisted_recipient_passes(
     sample_service_whitelist,
 ):
     service = sample_service()
-    sample_service_whitelist(service, email_address="some_other_email@test.com")
-    assert service_can_send_to_recipient("some_other_email@test.com",
-                                         'team',
-                                         service) is None
+    sample_service_whitelist(service, email_address='some_other_email@test.com')
+    assert service_can_send_to_recipient('some_other_email@test.com', 'team', service) is None
     sample_service_whitelist(service, mobile_number='6502532222')
-    assert service_can_send_to_recipient('6502532222',
-                                         'team',
-                                         service) is None
+    assert service_can_send_to_recipient('6502532222', 'team', service) is None
 
 
 @pytest.mark.parametrize(
@@ -312,7 +303,7 @@ def test_service_can_send_to_recipient_fails_when_recipient_is_not_on_team(
 
 def test_service_can_send_to_recipient_fails_when_mobile_number_is_not_on_team(sample_service):
     with pytest.raises(BadRequestError) as e:
-        service_can_send_to_recipient("0758964221", 'team', sample_service())
+        service_can_send_to_recipient('0758964221', 'team', sample_service())
     assert e.value.status_code == 400
     assert e.value.message == 'Can’t send to this recipient using a team-only API key'
     assert e.value.fields == []
@@ -325,7 +316,7 @@ def test_that_when_exceed_rate_limit_request_fails(
     sample_service,
     mocker,
 ):
-    with freeze_time("2016-01-01 12:00:00.000000"):
+    with freeze_time('2016-01-01 12:00:00.000000'):
         current_app.config['API_RATE_LIMIT_ENABLED'] = True
 
         if key_type == 'live':
@@ -344,9 +335,7 @@ def test_that_when_exceed_rate_limit_request_fails(
             check_service_over_api_rate_limit(service, api_key)
 
         assert app.redis_store.exceeded_rate_limit.called_with(
-            "{}-{}".format(str(service.id), api_key.key_type),
-            service.rate_limit,
-            60
+            '{}-{}'.format(str(service.id), api_key.key_type), service.rate_limit, 60
         )
         assert e.value.status_code == 429
         assert e.value.message == 'Exceeded rate limit for key type {} of {} requests per {} seconds'.format(
@@ -360,7 +349,7 @@ def test_that_when_not_exceeded_rate_limit_request_succeeds(
     sample_service,
     mocker,
 ):
-    with freeze_time("2016-01-01 12:00:00.000000"):
+    with freeze_time('2016-01-01 12:00:00.000000'):
         mocker.patch('app.redis_store.exceeded_rate_limit', return_value=False)
         mocker.patch('app.notifications.validators.services_dao')
 
@@ -370,9 +359,7 @@ def test_that_when_not_exceeded_rate_limit_request_succeeds(
 
         check_service_over_api_rate_limit(service, api_key)
         assert app.redis_store.exceeded_rate_limit.called_with(
-            "{}-{}".format(str(service.id), api_key.key_type),
-            3000,
-            60
+            '{}-{}'.format(str(service.id), api_key.key_type), 3000, 60
         )
 
 
@@ -413,8 +400,7 @@ def test_allows_api_calls_with_international_numbers_if_service_does_allow_int_s
     sample_service,
 ):
     service = sample_service(
-        service_name=f'sample service full permissions {uuid4()}',
-        service_permissions=SERVICE_PERMISSION_TYPES
+        service_name=f'sample service full permissions {uuid4()}', service_permissions=SERVICE_PERMISSION_TYPES
     )
     result = validate_and_format_recipient('+20-12-1234-1234', key_type, service, SMS_TYPE)
     assert result == '+201212341234'
@@ -437,8 +423,9 @@ def test_check_service_email_reply_to_where_email_reply_to_is_found(
     sample_service_email_reply_to,
 ):
     service = sample_service()
-    reply_to_address = sample_service_email_reply_to(service, email_address="test@test.com")
-    assert check_service_email_reply_to_id(service.id, reply_to_address.id, EMAIL_TYPE) == "test@test.com"
+    email_address = f'{uuid4()}@test.va.gov'
+    reply_to_address = sample_service_email_reply_to(service, email_address=email_address)
+    assert check_service_email_reply_to_id(service.id, reply_to_address.id, EMAIL_TYPE) == email_address
 
 
 def test_check_service_email_reply_to_id_where_service_id_is_not_found(
@@ -446,12 +433,13 @@ def test_check_service_email_reply_to_id_where_service_id_is_not_found(
     sample_service_email_reply_to,
 ):
     fake_service_id = uuid4()
-    reply_to_address = sample_service_email_reply_to(sample_service(), email_address="test@test.com")
+    reply_to_address = sample_service_email_reply_to(sample_service(), email_address=f'{uuid4()}@test.va.gov')
     with pytest.raises(BadRequestError) as e:
         check_service_email_reply_to_id(fake_service_id, reply_to_address.id, EMAIL_TYPE)
     assert e.value.status_code == 400
-    assert e.value.message == 'email_reply_to_id {} does not exist in database for service id {}' \
-        .format(reply_to_address.id, fake_service_id)
+    assert e.value.message == 'email_reply_to_id {} does not exist in database for service id {}'.format(
+        reply_to_address.id, fake_service_id
+    )
 
 
 def test_check_service_email_reply_to_id_where_reply_to_id_is_not_found(
@@ -462,8 +450,9 @@ def test_check_service_email_reply_to_id_where_reply_to_id_is_not_found(
     with pytest.raises(BadRequestError) as e:
         check_service_email_reply_to_id(service.id, fake_id, EMAIL_TYPE)
     assert e.value.status_code == 400
-    assert e.value.message == 'email_reply_to_id {} does not exist in database for service id {}' \
-        .format(fake_id, service.id)
+    assert e.value.message == 'email_reply_to_id {} does not exist in database for service id {}'.format(
+        fake_id, service.id
+    )
 
 
 @pytest.mark.parametrize('notification_type', [SMS_TYPE, EMAIL_TYPE, LETTER_TYPE])
@@ -490,8 +479,9 @@ def test_check_service_sms_sender_id_where_service_id_is_not_found(
     with pytest.raises(BadRequestError) as e:
         check_service_sms_sender_id(fake_service_id, sms_sender_id, SMS_TYPE)
     assert e.value.status_code == 400
-    assert e.value.message == 'sms_sender_id {} does not exist in database for service id {}' \
-        .format(sms_sender_id, fake_service_id)
+    assert e.value.message == 'sms_sender_id {} does not exist in database for service id {}'.format(
+        sms_sender_id, fake_service_id
+    )
 
 
 def test_check_service_sms_sender_id_where_sms_sender_is_not_found(sample_service, fake_uuid):
@@ -499,8 +489,9 @@ def test_check_service_sms_sender_id_where_sms_sender_is_not_found(sample_servic
     with pytest.raises(BadRequestError) as e:
         check_service_sms_sender_id(service.id, fake_uuid, SMS_TYPE)
     assert e.value.status_code == 400
-    assert e.value.message == 'sms_sender_id {} does not exist in database for service id {}' \
-        .format(fake_uuid, service.id)
+    assert e.value.message == 'sms_sender_id {} does not exist in database for service id {}'.format(
+        fake_uuid, service.id
+    )
 
 
 def test_check_service_letter_contact_id_where_letter_contact_id_is_none():
@@ -528,8 +519,9 @@ def test_check_service_letter_contact_id_where_letter_contact_is_not_found(sampl
     with pytest.raises(BadRequestError) as e:
         check_service_letter_contact_id(service.id, fake_uuid, LETTER_TYPE)
     assert e.value.status_code == 400
-    assert e.value.message == 'letter_contact_id {} does not exist in database for service id {}' \
-        .format(fake_uuid, service.id)
+    assert e.value.message == 'letter_contact_id {} does not exist in database for service id {}'.format(
+        fake_uuid, service.id
+    )
 
 
 @pytest.mark.parametrize('notification_type', [SMS_TYPE, EMAIL_TYPE, LETTER_TYPE])
@@ -542,8 +534,9 @@ def test_check_reply_to_email_type(
     sample_service_email_reply_to,
 ):
     service = sample_service()
-    reply_to_address = sample_service_email_reply_to(service, email_address="test@test.com")
-    assert check_reply_to(service.id, reply_to_address.id, EMAIL_TYPE) == 'test@test.com'
+    email_address = f'{uuid4()}@test.va.gov'
+    reply_to_address = sample_service_email_reply_to(service, email_address=email_address)
+    assert check_reply_to(service.id, reply_to_address.id, EMAIL_TYPE) == email_address
 
 
 def test_check_reply_to_sms_type(
@@ -593,9 +586,7 @@ class TestSmsSenderRateLimit:
             with pytest.raises(RateLimitError) as e:
                 check_sms_sender_over_rate_limit(service, sms_sender)
 
-            should_throttle.assert_called_once_with(
-                sms_sender.sms_sender, service.rate_limit, 60
-            )
+            should_throttle.assert_called_once_with(sms_sender.sms_sender, service.rate_limit, 60)
             assert e.value.status_code == 429
             assert e.value.message == ('Exceeded rate limit of ' f'{sms_sender.rate_limit} requests per 60 seconds')
             assert e.value.fields == []
@@ -622,9 +613,7 @@ class TestSmsSenderRateLimit:
             service.restricted = True
 
             check_sms_sender_over_rate_limit(service, sms_sender)
-            should_throttle.assert_called_once_with(
-                str(sms_sender.sms_sender), 10, 60
-            )
+            should_throttle.assert_called_once_with(str(sms_sender.sms_sender), 10, 60)
 
 
 class TestTemplateNameAlreadyExistsOnService:

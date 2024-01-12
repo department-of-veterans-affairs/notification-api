@@ -6,7 +6,6 @@ from app.provider_details.load_balancing_strategy import LoadBalancingStrategy
 
 
 class TestValidate:
-
     def test_validate_passes_if_there_are_providers_with_weights_for_notification_type(self, client, mocker):
         mock_dao_get_providers = mocker.patch(
             'app.provider_details.load_balancing_strategy.get_active_providers_with_weights_by_notification_type',
@@ -33,7 +32,6 @@ class TestValidate:
 
 
 class TestGetProvider:
-
     def test_returns_single_provider(self, client, mocker):
         mock_provider = mocker.Mock(ProviderDetails, load_balancing_weight=10)
         mock_dao_get_providers = mocker.patch(
@@ -77,8 +75,10 @@ class TestGetProvider:
 
         mock_choices.assert_called_with([mock_provider_1, mock_provider_2], [10, 90])
 
-    @pytest.mark.skip('Due to randomness, there is a very small chance that this test will fail. '
-                      'Leaving it here as peace of mind that our approach works')
+    @pytest.mark.skip(
+        'Due to randomness, there is a very small chance that this test will fail. '
+        'Leaving it here as peace of mind that our approach works'
+    )
     def test_random_distribution(self, client, mocker):
         mock_provider_1 = mocker.Mock(ProviderDetails, load_balancing_weight=10)
         mock_provider_2 = mocker.Mock(ProviderDetails, load_balancing_weight=90)

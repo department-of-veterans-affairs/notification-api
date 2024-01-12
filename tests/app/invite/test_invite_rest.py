@@ -8,17 +8,14 @@ from tests import create_admin_authorization_header
 from tests.app.db import create_invited_user
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
-@pytest.mark.parametrize('extra_args, expected_start_of_invite_url', [
-    (
-        {},
-        'http://localhost:6012/invitation/'
-    ),
-    (
-        {'invite_link_host': 'https://www.example.com'},
-        'https://www.example.com/invitation/'
-    ),
-])
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
+@pytest.mark.parametrize(
+    'extra_args, expected_start_of_invite_url',
+    [
+        ({}, 'http://localhost:6012/invitation/'),
+        ({'invite_link_host': 'https://www.example.com'}, 'https://www.example.com/invitation/'),
+    ],
+)
 def test_create_invited_user(
     admin_request,
     sample_service,
@@ -92,7 +89,7 @@ def test_create_invited_user_without_auth_type(admin_request, sample_service, mo
     assert json_resp['data']['auth_type'] == EMAIL_AUTH_TYPE
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_create_invited_user_invalid_email(client, sample_service, mocker, fake_uuid):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     service = sample_service()
@@ -123,7 +120,7 @@ def test_create_invited_user_invalid_email(client, sample_service, mocker, fake_
     assert mocked.call_count == 0
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_get_all_invited_users_by_service(
     client,
     sample_service,
@@ -172,22 +169,19 @@ def test_update_invited_user_set_status_to_cancelled(client, sample_invited_user
     data = {'status': 'cancelled'}
     url = '/service/{0}/invite/{1}'.format(sample_invited_user.service_id, sample_invited_user.id)
     auth_header = create_admin_authorization_header()
-    response = client.post(url,
-                           data=json.dumps(data),
-                           headers=[('Content-Type', 'application/json'), auth_header])
+    response = client.post(url, data=json.dumps(data), headers=[('Content-Type', 'application/json'), auth_header])
 
     assert response.status_code == 200
     json_resp = json.loads(response.get_data(as_text=True))['data']
     assert json_resp['status'] == 'cancelled'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_update_invited_user_for_wrong_service_returns_404(client, sample_invited_user, fake_uuid):
     data = {'status': 'cancelled'}
     url = '/service/{0}/invite/{1}'.format(fake_uuid, sample_invited_user.id)
     auth_header = create_admin_authorization_header()
-    response = client.post(url, data=json.dumps(data),
-                           headers=[('Content-Type', 'application/json'), auth_header])
+    response = client.post(url, data=json.dumps(data), headers=[('Content-Type', 'application/json'), auth_header])
     assert response.status_code == 404
     json_response = json.loads(response.get_data(as_text=True))['message']
     assert json_response == 'No result found'

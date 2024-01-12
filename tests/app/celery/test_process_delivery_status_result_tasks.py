@@ -118,7 +118,7 @@ def test_celery_event_with_invalid_body_attribute(sample_delivery_status_result_
 
 
 def test_get_provider_info_with_no_provider_retries(notify_api, sample_sqs_message_without_provider):
-    """ Test get_provider_info() retries when no provider is given by the celery event """
+    """Test get_provider_info() retries when no provider is given by the celery event"""
 
     with pytest.raises(Exception) as exc_info:
         _get_provider_info(sample_sqs_message_without_provider)
@@ -153,10 +153,7 @@ def test_attempt_to_get_notification_with_good_data(sample_template, sample_noti
     reference = 'SMyyy'
 
     sample_notification(
-        template=sample_template(),
-        reference=reference,
-        sent_at=datetime.datetime.utcnow(),
-        status=notification_status
+        template=sample_template(), reference=reference, sent_at=datetime.datetime.utcnow(), status=notification_status
     )
 
     notification, should_exit = attempt_to_get_notification(reference, notification_status, 0)
@@ -172,24 +169,18 @@ def test_attempt_to_get_notification_with_good_data(sample_template, sample_noti
 def test_attempt_to_get_notification_duplicate_notification(
     sample_notification_platform_status, sample_template, sample_notification
 ):
-    """ Test that duplicate notifications will make notification = None, should_exit=True """
+    """Test that duplicate notifications will make notification = None, should_exit=True"""
 
     template = sample_template()
     notification_status = 'delivered'
     reference = 'SMyyy'
 
     sample_notification(
-        template=template,
-        reference=reference,
-        sent_at=datetime.datetime.utcnow(),
-        status=notification_status
+        template=template, reference=reference, sent_at=datetime.datetime.utcnow(), status=notification_status
     )
 
     sample_notification(
-        template=template,
-        reference=reference,
-        sent_at=datetime.datetime.utcnow(),
-        status=notification_status
+        template=template, reference=reference, sent_at=datetime.datetime.utcnow(), status=notification_status
     )
 
     # should trigger a "MultipleResultsFound" when we attempt to get the notification object
@@ -202,19 +193,14 @@ def test_attempt_to_get_notification_duplicate_notification(
     assert should_exit
 
 
-def test_process_delivery_status_with_invalid_notification_retries(
-        sample_delivery_status_result_message
-):
+def test_process_delivery_status_with_invalid_notification_retries(sample_delivery_status_result_message):
     """Notification is invalid because there are no notifications in the database"""
     with pytest.raises(Exception) as exc_info:
         process_delivery_status(event=sample_delivery_status_result_message)
     assert exc_info.type is AutoRetryException
 
 
-def test_none_notification_platform_status_triggers_retry(
-    mocker,
-    sample_delivery_status_result_message
-):
+def test_none_notification_platform_status_triggers_retry(mocker, sample_delivery_status_result_message):
     """Verify that retry is triggered if translate_delivery_status returns None"""
 
     mocker.patch('app.clients')
@@ -225,7 +211,7 @@ def test_none_notification_platform_status_triggers_retry(
     assert exc_info.type is AutoRetryException
 
 
-@pytest.mark.parametrize("event_duration_in_seconds", [-1, 0, 299, 300])
+@pytest.mark.parametrize('event_duration_in_seconds', [-1, 0, 299, 300])
 def test_attempt_to_get_notification_NoResultFound(event_duration_in_seconds):
     """
     The Celery Task should retry whenever attempt_to_get_notification could not find a matching notification
@@ -258,10 +244,7 @@ def test_process_delivery_status_with_valid_message_with_no_payload(
     """
 
     notification = sample_notification(
-        template=sample_template(),
-        reference='SMyyy',
-        sent_at=datetime.datetime.utcnow(),
-        status='sent'
+        template=sample_template(), reference='SMyyy', sent_at=datetime.datetime.utcnow(), status='sent'
     )
 
     callback_mock = mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
@@ -279,10 +262,7 @@ def test_process_delivery_status_with_valid_message_with_payload(
     """Test that celery task will complete if correct data is provided"""
 
     sample_notification(
-        template=sample_template(),
-        reference='SMyyy',
-        sent_at=datetime.datetime.utcnow(),
-        status='sent'
+        template=sample_template(), reference='SMyyy', sent_at=datetime.datetime.utcnow(), status='sent'
     )
 
     mocker.patch('app.celery.process_delivery_status_result_tasks._get_include_payload_status', returns=True)

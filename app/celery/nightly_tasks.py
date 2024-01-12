@@ -107,7 +107,6 @@ def timeout_notifications():
     technical_failure_notifications, temporary_failure_notifications = dao_timeout_notifications(
         current_app.config.get('SENDING_NOTIFICATIONS_TIMEOUT_PERIOD')
     )
-
     notifications = technical_failure_notifications + temporary_failure_notifications
     for notification in notifications:
         # queue callback task only if the service_callback_api exists

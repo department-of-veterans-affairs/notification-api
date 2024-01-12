@@ -1,7 +1,7 @@
 from app import db
 from app.dao.dao_utils import transactional
 from app.models import InboundNumber
-from sqlalchemy import select
+from sqlalchemy import select, update
 from typing import Optional, List
 
 

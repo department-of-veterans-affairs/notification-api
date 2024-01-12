@@ -6,7 +6,7 @@ from app.models import NOTIFICATION_CREATED
 from app.notifications.process_letter_notifications import create_letter_notification
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_create_letter_notification_creates_notification(sample_letter_template, sample_api_key):
     data = {
         'personalisation': {
@@ -31,7 +31,7 @@ def test_create_letter_notification_creates_notification(sample_letter_template,
     assert notification.postage == 'second'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_create_letter_notification_sets_reference(sample_letter_template, sample_api_key):
     data = {
         'personalisation': {
@@ -47,7 +47,7 @@ def test_create_letter_notification_sets_reference(sample_letter_template, sampl
     assert notification.client_reference == 'foo'
 
 
-@pytest.mark.skip(reason="Endpoint slated for removal. Test not updated.")
+@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_create_letter_notification_sets_billable_units(sample_letter_template, sample_api_key):
     data = {
         'personalisation': {

@@ -38,7 +38,6 @@ def test_returns_not_implemented_if_feature_flag_disabled(
 
 
 class TestValidations:
-
     def test_checks_service_permissions(
         self,
         client,
@@ -53,10 +52,13 @@ class TestValidations:
         resp_json = response.get_json()
         assert 'Service is not allowed to send push notifications' in resp_json['errors'][0]['message']
 
-    @pytest.mark.parametrize("payload, error_msg", [
-        (push_request_without('template_id'), "template_id is a required property"),
-        (push_request_without('recipient_identifier'), "recipient_identifier is a required property"),
-    ])
+    @pytest.mark.parametrize(
+        'payload, error_msg',
+        [
+            (push_request_without('template_id'), 'template_id is a required property'),
+            (push_request_without('recipient_identifier'), 'recipient_identifier is a required property'),
+        ],
+    )
     def test_required_fields(
         self,
         client,
@@ -73,11 +75,14 @@ class TestValidations:
         resp_json = response.get_json()
         assert {'error': 'ValidationError', 'message': error_msg} in resp_json['errors']
 
-    @pytest.mark.parametrize("recipient_identifier, error_msg", [
-        ({"id_type": "ICN"}, "recipient_identifier id_value is a required property"),
-        ({"id_value": "foo"}, "recipient_identifier id_type is a required property"),
-        ({"id_type": "PID", "id_value": 'foo'}, "recipient_identifier PID is not one of [ICN]"),
-    ])
+    @pytest.mark.parametrize(
+        'recipient_identifier, error_msg',
+        [
+            ({'id_type': 'ICN'}, 'recipient_identifier id_value is a required property'),
+            ({'id_value': 'foo'}, 'recipient_identifier id_type is a required property'),
+            ({'id_type': 'PID', 'id_value': 'foo'}, 'recipient_identifier PID is not one of [ICN]'),
+        ],
+    )
     def test_recipient_identifier(
         self,
         client,
@@ -87,7 +92,7 @@ class TestValidations:
         error_msg,
     ):
         payload = {**push_request}
-        payload["recipient_identifier"] = recipient_identifier
+        payload['recipient_identifier'] = recipient_identifier
         service = sample_service(service_permissions=[PUSH_TYPE])
         response = post_send_notification(client, sample_api_key(service), 'push', payload)
 
@@ -103,7 +108,7 @@ class TestValidations:
         sample_service,
     ):
         payload = {**push_request}
-        payload["mobile_app"] = "some_mobile_app"
+        payload['mobile_app'] = 'some_mobile_app'
         service = sample_service(service_permissions=[PUSH_TYPE])
         response = post_send_notification(client, sample_api_key(service), 'push', payload)
 
@@ -119,7 +124,7 @@ class TestValidations:
         sample_service,
     ):
         payload = {**push_request}
-        payload["foo"] = "bar"
+        payload['foo'] = 'bar'
         service = sample_service(service_permissions=[PUSH_TYPE])
         response = post_send_notification(client, sample_api_key(service), 'push', payload)
 
@@ -174,12 +179,17 @@ class TestPushSending:
 
         assert response.status_code == 201
 
-    @pytest.mark.parametrize('payload, personalisation, app', [
-        (push_request, None, DEAFULT_MOBILE_APP_TYPE.value),
-        ({**push_request, 'personalisation': {'foo': 'bar'},
-            'mobile_app': MobileAppType.VETEXT.value}, {'foo': 'bar'},
-            MobileAppType.VETEXT.value)
-    ])
+    @pytest.mark.parametrize(
+        'payload, personalisation, app',
+        [
+            (push_request, None, DEAFULT_MOBILE_APP_TYPE.value),
+            (
+                {**push_request, 'personalisation': {'foo': 'bar'}, 'mobile_app': MobileAppType.VETEXT.value},
+                {'foo': 'bar'},
+                MobileAppType.VETEXT.value,
+            ),
+        ],
+    )
     def test_makes_call_to_vetext_client(
         self,
         client,
@@ -197,10 +207,7 @@ class TestPushSending:
             f'some_sid_for_{app}', payload['template_id'], payload['recipient_identifier']['id_value'], personalisation
         )
 
-    @pytest.mark.parametrize('exception', [
-        VETextRetryableException,
-        VETextNonRetryableException
-    ])
+    @pytest.mark.parametrize('exception', [VETextRetryableException, VETextNonRetryableException])
     def test_returns_502_on_exception_other_than_bad_request(
         self,
         client,
@@ -218,10 +225,13 @@ class TestPushSending:
         assert resp_json['result'] == 'error'
         assert resp_json['message'] == 'Invalid response from downstream service'
 
-    @pytest.mark.parametrize('exception', [
-        VETextBadRequestException(message='Invalid Application SID'),
-        VETextBadRequestException(message='Invalid Template SID'),
-    ])
+    @pytest.mark.parametrize(
+        'exception',
+        [
+            VETextBadRequestException(message='Invalid Application SID'),
+            VETextBadRequestException(message='Invalid Template SID'),
+        ],
+    )
     def test_maps_bad_request_exception(
         self,
         client,

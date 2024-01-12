@@ -44,22 +44,16 @@ def test_last_template_usage_should_ignore_test_keys(sample_template, sample_api
     template = sample_template()
 
     team_key_notification = sample_notification(
-        template=template,
-        created_at=two_minutes_ago,
-        api_key=sample_api_key(key_type=KEY_TYPE_TEAM)
+        template=template, created_at=two_minutes_ago, api_key=sample_api_key(key_type=KEY_TYPE_TEAM)
     )
-    sample_notification(
-        template=template,
-        created_at=one_minute_ago,
-        api_key=sample_api_key(key_type=KEY_TYPE_TEST)
-    )
+    sample_notification(template=template, created_at=one_minute_ago, api_key=sample_api_key(key_type=KEY_TYPE_TEST))
 
     results = dao_get_last_template_usage(template.id, SMS_TYPE, template.service_id)
     assert results.id == team_key_notification.id
 
 
 def test_last_template_usage_should_be_able_to_get_no_template_usage_history_if_no_notifications_using_template(
-    sample_template
+    sample_template,
 ):
     template = sample_template()
     results = dao_get_last_template_usage(template.id, SMS_TYPE, template.service_id)

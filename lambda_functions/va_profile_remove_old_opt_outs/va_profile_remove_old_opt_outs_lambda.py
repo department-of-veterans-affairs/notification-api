@@ -7,7 +7,7 @@ import sys
 logger = logging.getLogger('va_profile_remove_old_opt_outs')
 logger.setLevel(logging.DEBUG)
 
-REMOVE_OPTED_OUT_RECORDS_QUERY = """SELECT va_profile_remove_old_opt_outs();"""
+REMOVE_OPTED_OUT_RECORDS_QUERY = "SELECT va_profile_remove_old_opt_outs();"
 
 # Get the database URI.  The environment variable SQLALCHEMY_DATABASE_URI is
 # set during unit testing.
@@ -47,9 +47,9 @@ def va_profile_remove_old_opt_outs_handler(
 
     # https://www.psycopg.org/docs/module.html#exceptions
     try:
-        logger.info("Connecting to the database...")
+        logger.info('Connecting to the database...')
         connection = psycopg2.connect(sqlalchemy_database_uri)
-        logger.info(". . . Connected to the database.")
+        logger.info('. . . Connected to the database.')
 
         with connection.cursor() as c:
             logger.info('Executing the stored function')
