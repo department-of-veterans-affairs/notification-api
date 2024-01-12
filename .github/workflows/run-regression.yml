@@ -16,6 +16,7 @@ on:
 
 jobs:
   trigger-regression-tests:
+    if: ${{ (inputs.environment == 'perf') || (inputs.environment == 'staging') || (inputs.environment == 'dev') }}
     name: "Run regression for ${{ inputs.environment }}"
     runs-on: ubuntu-latest
     steps:
