@@ -8,15 +8,15 @@ The intention of this collection is to provide quick, easy functionality to send
 
 The postman scripts use the environment variables and populate or update them as the scripts are executed.
 
-The basic development environment variables are in this folder which you can import along with the scripts. In order to send a notification one needs a service-api-key, service-name
+The basic development environment variables are in this folder which you can import along with the scripts. 
 
 ## basic environment variables
 
 These environment variables should be defined before you can execute any of the scripts
 - notification-api-url: `{environment}-api.va.gov/vanotify`
-- serivce-api-key : retrieve this from portal. 
+- service-api-key : retrieve this from portal. 
 - service-id : retrieve this from the portal
-- serivce-name : retrieve this from the portal. 
+- service-name : retrieve this from the portal. 
 
 ## basic notification calls
 

@@ -1,9 +1,3 @@
 fileignoreconfig:
-- filename: app/celery/letters_pdf_tasks.py
-  checksum: 3430294d1d4e37f8886c3103557355d4c89c13bf1186a97709b1cfb86b78b5a3
-- filename: documents/postman/integration_developers/development.postman_environment.json
-  checksum: fc3c4a01310696029d6011379d2413cdf7d3889eae75a58712af558f4f484f0f
 - filename: documents/postman/integration_developers/README.md
-  checksum: 65446d99b9539a9b343ae94453db3db599e118421ad36c763759c3bcb9f0949e
-- filename: documents/postman/integration_developers/notification-api-simplified.postman_collection.json
-  checksum: 544ae8af631964c370ceba416a15f5b1c09519a8b8df82997b78aef505eeb4e6
+  checksum: 58a6362ab9b75653330c5cf066f1d4ee6628c32ce2b85b9b87bfa39a696753fb
