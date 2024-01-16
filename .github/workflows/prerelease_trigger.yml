@@ -2,6 +2,9 @@ name: Pre-release to Staging
 on:
   release:
     types: [published]
+  push:
+    branches:
+      - 1526-regression-bug
 
 jobs:
   setup-release:
@@ -21,17 +24,30 @@ jobs:
           echo "is a prerelease? (github.event.release.prerelease): ${{ github.event.release.prerelease }}"
 
   pre-release:
-    needs: [setup-release]
-    uses: ./.github/workflows/release.yml
-    with:
-      environment: "staging"
-      git-tag: "${{ github.event.release.tag_name }}"
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo Hello World
+        run: echo "Hello World from pre-release"
+
+  # pre-release:
+    # needs: [setup-release]
+    # uses: ./.github/workflows/release.yml
+    # with:
+      # environment: "staging"
+      # git-tag: "${{ github.event.release.tag_name }}"
+    # secrets: inherit
 
   run-qa-suite:
     needs: [pre-release]
-    uses: ./.github/workflows/run-regression.yml
-    with:
-      environment: "staging"
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo Hello World
+        run: echo "Hello World from run-qa-suite"
+
+  # run-qa-suite:
+    # needs: [pre-release]
+    # uses: ./.github/workflows/run-regression.yml
+    # with:
+      # environment: "staging"
+    # secrets: inherit
 
