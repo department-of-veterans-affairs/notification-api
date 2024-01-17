@@ -1,3 +1,4 @@
+import http
 import requests
 from time import monotonic
 from http.client import responses
@@ -49,6 +50,15 @@ class MpiClient:
         self.ssl_cert_path = ssl_cert_path
         self.ssl_key_path = ssl_key_path
         self.statsd_client = statsd_client
+
+        # enable debug logging for requests
+        http.client.HTTPConnection.debuglevel = 1
+
+        # patch http print function to print out to logs instead of console
+        def print_to_log(*args):
+            logger.info(" ".join(args))
+        http.client.print = print_to_log
+
 
     def get_va_profile_id(self, notification):
         recipient_identifiers = notification.recipient_identifiers.values()
