@@ -51,9 +51,7 @@ class MpiClient:
         self.ssl_key_path = ssl_key_path
         self.statsd_client = statsd_client
 
-        # enable debug logging for requests
-        http.client.HTTPConnection.debuglevel = 1
-
+        # TODO remove extra logging
         # patch http print function to print out to logs instead of console
         def print_to_log(*args):
             logger.info(" ".join(args))
@@ -91,14 +89,39 @@ class MpiClient:
         )
         start_time = monotonic()
         try:
+            # TODO remove extra logging
+            http.client.HTTPConnection.debuglevel = 1
+            self.logger.info(
+                'Making GET request to MPI url: %s/psim_webservice/fhir/Patient/%s',
+                self.base_url, fhir_identifier
+            )
+
             response = requests.get(
                 f"{self.base_url}/psim_webservice/fhir/Patient/{fhir_identifier}",
                 params={'-sender': self.SYSTEM_IDENTIFIER},
                 cert=(self.ssl_cert_path, self.ssl_key_path),
                 timeout=(3.05, 2)
             )
+
+            # TODO remove extra logging for the response from mpi
+            try:
+                self.logger.info(
+                    'MPI response from url: %s/psim_webservice/fhir/Patient/%s - status code: %s response json: %s',
+                    self.base_url, fhir_identifier, response.status_code, response.json()
+                )
+            except requests.exceptions.JSONDecodeError as e:
+                self.logger.exception('JSONDecodeError attempting to log MPI response %s', e)
+            except Exception as e:
+                self.logger.exception('Unknown Exception attempting to log MPI response %s', e)
+
             response.raise_for_status()
         except requests.HTTPError as e:
+            # TODO remove extra logging
+            self.logger.exception(
+                'MPI returned HTTPError when querying for notification: %s - Exception: %s',
+                notification_id, e
+            )
+
             self.statsd_client.incr(f"clients.mpi.error.{e.response.status_code}")
             message = f"MPI returned {str(e)} while querying for notification {notification_id}"
 
@@ -116,6 +139,12 @@ class MpiClient:
                 exception.failure_reason = failure_reason
                 raise exception from e
         except requests.RequestException as e:
+            # TODO remove extra logging
+            self.logger.exception(
+                'MPI returned RequestException when querying for notification: %s - Exception: %s',
+                notification_id, e
+            )
+
             self.statsd_client.incr("clients.mpi.error.request_exception")
             message = f"MPI returned RequestException while querying for FHIR identifier: {str(e)}"
             exception = MpiRetryableException(message)
@@ -128,6 +157,7 @@ class MpiClient:
         finally:
             elapsed_time = monotonic() - start_time
             self.statsd_client.timing("clients.mpi.request-time", elapsed_time)
+            http.client.HTTPConnection.debuglevel = 0
 
     def _get_active_va_profile_id(self, identifiers, fhir_identifier):
         active_va_profile_suffix = FHIR_FORMAT_SUFFIXES[IdentifierType.VA_PROFILE_ID] + '^A'
