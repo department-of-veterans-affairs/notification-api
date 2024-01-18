@@ -22,8 +22,8 @@ These environment variables should be defined before you can execute any of the 
 
 See Postman collection for details of call to send email, sms, or mobile push. The following are the actions allowed to non-admin users. 
 
-- You can send either an email to either an email address or to a known recipient-id.
-- You can send a text to a sms to either a phone number or a known recipient-id. 
+- You can send an email with an email address or a recipient-identifier, so VA Notify can look up the email address.
+- You can send a text with a phone number or a recipient-identifier, so VA Notify can look up the email address. 
 - You can push a notification to an application user. 
 - You can get information regarding the status of a notification.
 
@@ -46,11 +46,11 @@ curl -x POST https:://api-staging.va.gov/vanotify/v2/notifications/email \
     "body": "Test",
     "subject": "Test"
   },
-  "id": "<notification-di>",
+  "id": "<notification-id>",
   "reference": null,
   "scheduled_for": null,
   "template": {
-    "id": "7afa4092-d96f-4389-9373-b969abe3ec49",
+    "id": "<template-id>",
     "uri": "https://dev-api.va.gov/services/<service-id>/templates/<template-id>",
     "version": 1
   },
