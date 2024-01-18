@@ -27,3 +27,33 @@ See Postman collection for details of call to send email, sms, or mobile push. T
 - You can push a notification to an application user. 
 - You can get information regarding the status of a notification.
 
+### Example
+`````
+
+curl -x POST https:://api-staging.va.gov/vanotify/v2/notifications/email \
+ -h 
+ -d '{
+    "template_id": "{{email-template-id}}",
+    "email_address": "john.smith@fake-domain.com"
+}
+`````
+
+#### Response
+`````
+{
+  "billing_code": null,
+  "content": {
+    "body": "Test",
+    "subject": "Test"
+  },
+  "id": "<notification-di>",
+  "reference": null,
+  "scheduled_for": null,
+  "template": {
+    "id": "7afa4092-d96f-4389-9373-b969abe3ec49",
+    "uri": "https://dev-api.va.gov/services/<service-id>/templates/<template-id>",
+    "version": 1
+  },
+  "uri": "https://dev-api.va.gov/v2/notifications/<notification-id>"
+}
+`````
