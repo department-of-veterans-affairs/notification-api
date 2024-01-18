@@ -6,15 +6,15 @@ To download Postman, go [here](https://www.postman.com/downloads/). Postman allo
 
 The intention of this collection is to provide quick, easy functionality to send email, sms, and push notifications.  This collection can be used by business line users integrating with VA Notify to get familiar with the API and send test notifications.  
 
-The postman scripts use the environment variables and populate or update them as the scripts are executed.
+The postman scripts use the environment variables and populate or update them as the scripts are executed. These files can be imported into Postman and allow you to 
+execute the basic endpoints once the environmental variables below are populated. 
 
 Creation, viewing and editing of templates can be done in the Self Service Portal.
 ## basic environment variables
 
 These environment variables should be defined before you can execute any of the scripts
-- notification-api-url: `{environment}-api.va.gov/vanotify`
-- notification-api-url-private: `https://{environment}.api.notifications.va.gov
-`
+- notification-api-url: `{environment}-api.va.gov/vanotify` - Publically available outside the VPN. 
+- notification-api-url-private: `https://{environment}.api.notifications.va.gov - Privately available inside the VPN. 
 - service-api-key : The VA Notify team creates an api key and sends it via encrypted email.
 - service-id : Retrieve this from the portal.
 - template-id : Retrieve this from the portal. 
