@@ -24,7 +24,7 @@ See Postman collection for details of call to send email, sms, or mobile push. T
 
 - You can send an email with an email address or a recipient-identifier, so VA Notify can look up the email address.
 - You can send a text with a phone number or a recipient-identifier, so VA Notify can look up the email address. 
-- You can push a notification to an application user. 
+- You can send a push notification to a Mobile App user. 
 - You can get information regarding the status of a notification.
 
 ### Example

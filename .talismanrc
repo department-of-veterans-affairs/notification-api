@@ -1,3 +1,3 @@
 fileignoreconfig:
-- filename: documents/postman/integration_developers/README.md
-  checksum: 58a6362ab9b75653330c5cf066f1d4ee6628c32ce2b85b9b87bfa39a696753fb
+- filename: documents/postman/staging-simplified.postman_environment.json
+  checksum: d868d22c046a720714cbde217f9828a93e264051815d9a7a89c80ddd9ddc9774
