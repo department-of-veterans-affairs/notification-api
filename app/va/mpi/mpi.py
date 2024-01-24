@@ -52,6 +52,7 @@ CIPHERS = (
 )
 
 
+# create a custom HTTPAdapter to connect to MPI using an expanded cipher list
 class MPIAdapter(HTTPAdapter):
     """
     A TransportAdapter that uses an expanded cipher list in Requests.
@@ -116,17 +117,10 @@ class MpiClient:
         )
         start_time = monotonic()
         try:
-            # TODO remove extra logging
-            self.logger.info(
-                'Making GET request to MPI url: %s/psim_webservice/fhir/Patient/%s',
-                self.base_url, fhir_identifier
-            )
-
-            # TODO changing this causes a unit test failure
+            # Need to make the request with an expanded list of ciphers to make sure we can connect to MPI in Prod
             with requests.session() as s:
                 s.mount(self.base_url, adapter=MPIAdapter())
 
-                # response = requests.get(
                 response = s.get(
                     f"{self.base_url}/psim_webservice/fhir/Patient/{fhir_identifier}",
                     params={'-sender': self.SYSTEM_IDENTIFIER},
@@ -134,25 +128,8 @@ class MpiClient:
                     timeout=(3.05, 2)
                 )
 
-            # TODO remove extra logging for the response from mpi
-            try:
-                self.logger.info(
-                    'MPI response from url: %s/psim_webservice/fhir/Patient/%s - status code: %s response json: %s',
-                    self.base_url, fhir_identifier, response.status_code, response.json()
-                )
-            except requests.exceptions.JSONDecodeError as e:
-                self.logger.exception('JSONDecodeError attempting to log MPI response %s', e)
-            except Exception as e:
-                self.logger.exception('Unknown Exception attempting to log MPI response %s', e)
-
-            response.raise_for_status()
+                response.raise_for_status()
         except requests.HTTPError as e:
-            # TODO remove extra logging
-            self.logger.exception(
-                'MPI returned HTTPError when querying for notification: %s - Exception: %s',
-                notification_id, e
-            )
-
             self.statsd_client.incr(f"clients.mpi.error.{e.response.status_code}")
             message = f"MPI returned {str(e)} while querying for notification {notification_id}"
 
@@ -170,12 +147,6 @@ class MpiClient:
                 exception.failure_reason = failure_reason
                 raise exception from e
         except requests.RequestException as e:
-            # TODO remove extra logging
-            self.logger.exception(
-                'MPI returned RequestException when querying for notification: %s - Exception: %s',
-                notification_id, e
-            )
-
             self.statsd_client.incr("clients.mpi.error.request_exception")
             message = f"MPI returned RequestException while querying for FHIR identifier: {str(e)}"
             exception = MpiRetryableException(message)
