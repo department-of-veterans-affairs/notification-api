@@ -1,4 +1,3 @@
-import http
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.ssl_ import create_urllib3_context
@@ -123,15 +122,17 @@ class MpiClient:
                 self.base_url, fhir_identifier
             )
 
-            s = requests.session()
-            s.mount(self.base_url, adapter=MPIAdapter())
+            # TODO changing this causes a unit test failure
+            with requests.session() as s:
+                s.mount(self.base_url, adapter=MPIAdapter())
 
-            response = s.get(
-                f"{self.base_url}/psim_webservice/fhir/Patient/{fhir_identifier}",
-                params={'-sender': self.SYSTEM_IDENTIFIER},
-                cert=(self.ssl_cert_path, self.ssl_key_path),
-                timeout=(3.05, 2)
-            )
+                # response = requests.get(
+                response = s.get(
+                    f"{self.base_url}/psim_webservice/fhir/Patient/{fhir_identifier}",
+                    params={'-sender': self.SYSTEM_IDENTIFIER},
+                    cert=(self.ssl_cert_path, self.ssl_key_path),
+                    timeout=(3.05, 2)
+                )
 
             # TODO remove extra logging for the response from mpi
             try:
