@@ -1,4 +1,6 @@
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.ssl_ import create_urllib3_context
 from time import monotonic
 from http.client import responses
 from functools import reduce
@@ -29,12 +31,41 @@ exception_code_mapping = {
 
 exception_substring = {NoSuchIdentifierException: 'no_such_identifier'}
 
+# This is the openssl cipher string, containing all ciphers.
+CIPHERS = 'TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:\
+    ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:\
+    DHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:\
+    ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA256:ECDHE-ECDSA-AES128-SHA256:\
+    ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES256-SHA:\
+    ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA:RSA-PSK-AES256-GCM-SHA384:DHE-PSK-AES256-GCM-SHA384:\
+    RSA-PSK-CHACHA20-POLY1305:DHE-PSK-CHACHA20-POLY1305:ECDHE-PSK-CHACHA20-POLY1305:AES256-GCM-SHA384:\
+    PSK-AES256-GCM-SHA384:PSK-CHACHA20-POLY1305:RSA-PSK-AES128-GCM-SHA256:DHE-PSK-AES128-GCM-SHA256:AES128-GCM-SHA256:\
+    PSK-AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:ECDHE-PSK-AES256-CBC-SHA384:ECDHE-PSK-AES256-CBC-SHA:\
+    SRP-RSA-AES-256-CBC-SHA:SRP-AES-256-CBC-SHA:RSA-PSK-AES256-CBC-SHA384:DHE-PSK-AES256-CBC-SHA384:\
+    RSA-PSK-AES256-CBC-SHA:DHE-PSK-AES256-CBC-SHA:AES256-SHA:PSK-AES256-CBC-SHA384:PSK-AES256-CBC-SHA:\
+    ECDHE-PSK-AES128-CBC-SHA256:ECDHE-PSK-AES128-CBC-SHA:SRP-RSA-AES-128-CBC-SHA:SRP-AES-128-CBC-SHA:\
+    RSA-PSK-AES128-CBC-SHA256:DHE-PSK-AES128-CBC-SHA256:RSA-PSK-AES128-CBC-SHA:DHE-PSK-AES128-CBC-SHA:AES128-SHA:\
+    PSK-AES128-CBC-SHA256:PSK-AES128-CBC-SHA'
 
-def _get_nested_value_from_response_body(
-    response_body,
-    keys,
-    default=None,
-):
+
+# create a custom HTTPAdapter to connect to MPI using an expanded cipher list
+class MPIAdapter(HTTPAdapter):
+    """
+    A TransportAdapter that uses an expanded cipher list in Requests.
+    """
+
+    def init_poolmanager(self, *args, **kwargs):
+        context = create_urllib3_context(ciphers=CIPHERS)
+        kwargs['ssl_context'] = context
+        return super(MPIAdapter, self).init_poolmanager(*args, **kwargs)
+
+    def proxy_manager_for(self, *args, **kwargs):
+        context = create_urllib3_context(ciphers=CIPHERS)
+        kwargs['ssl_context'] = context
+        return super(MPIAdapter, self).proxy_manager_for(*args, **kwargs)
+
+
+def _get_nested_value_from_response_body(response_body, keys, default=None):
     return reduce(
         lambda d, key: d.get(key, default) if isinstance(d, dict) else None if not d else d[0],
         keys.split('.'),
@@ -45,24 +76,14 @@ def _get_nested_value_from_response_body(
 class MpiClient:
     SYSTEM_IDENTIFIER = '200ENTF'
 
-    def init_app(
-        self,
-        logger,
-        url,
-        ssl_cert_path,
-        ssl_key_path,
-        statsd_client,
-    ):
+    def init_app(self, logger, url, ssl_cert_path, ssl_key_path, statsd_client):
         self.logger = logger
         self.base_url = url
         self.ssl_cert_path = ssl_cert_path
         self.ssl_key_path = ssl_key_path
         self.statsd_client = statsd_client
 
-    def get_va_profile_id(
-        self,
-        notification,
-    ):
+    def get_va_profile_id(self, notification):
         recipient_identifiers = notification.recipient_identifiers.values()
         if len(recipient_identifiers) != 1:
             error_message = (
@@ -86,21 +107,22 @@ class MpiClient:
         self.statsd_client.incr('clients.mpi.get_va_profile_id.success')
         return va_profile_id
 
-    def _make_request(
-        self,
-        fhir_identifier,
-        notification_id,
-    ):
+    def _make_request(self, fhir_identifier, notification_id):
         self.logger.info('Querying MPI with %s for notification %s', fhir_identifier, notification_id)
         start_time = monotonic()
         try:
-            response = requests.get(
-                f'{self.base_url}/psim_webservice/fhir/Patient/{fhir_identifier}',
-                params={'-sender': self.SYSTEM_IDENTIFIER},
-                cert=(self.ssl_cert_path, self.ssl_key_path),
-                timeout=(3.05, 2),
-            )
-            response.raise_for_status()
+            # Need to make the request with an expanded list of ciphers to make sure we can connect to MPI in Prod
+            with requests.session() as s:
+                s.mount(self.base_url, adapter=MPIAdapter())
+
+                response = s.get(
+                    f'{self.base_url}/psim_webservice/fhir/Patient/{fhir_identifier}',
+                    params={'-sender': self.SYSTEM_IDENTIFIER},
+                    cert=(self.ssl_cert_path, self.ssl_key_path),
+                    timeout=(3.05, 2),
+                )
+
+                response.raise_for_status()
         except requests.HTTPError as e:
             self.statsd_client.incr(f'clients.mpi.error.{e.response.status_code}')
             message = f'MPI returned {str(e)} while querying for notification {notification_id}'
@@ -132,11 +154,7 @@ class MpiClient:
             elapsed_time = monotonic() - start_time
             self.statsd_client.timing('clients.mpi.request-time', elapsed_time)
 
-    def _get_active_va_profile_id(
-        self,
-        identifiers,
-        fhir_identifier,
-    ):
+    def _get_active_va_profile_id(self, identifiers, fhir_identifier):
         active_va_profile_suffix = FHIR_FORMAT_SUFFIXES[IdentifierType.VA_PROFILE_ID] + '^A'
         va_profile_ids = [
             transform_from_fhir_format(identifier['value'])
@@ -153,12 +171,7 @@ class MpiClient:
             )
         return va_profile_ids[0]
 
-    def _validate_response(
-        self,
-        response_json,
-        notification_id,
-        fhir_identifier,
-    ):
+    def _validate_response(self, response_json, notification_id, fhir_identifier):
         if response_json.get('severity'):
             error_code = _get_nested_value_from_response_body(response_json, 'details.coding.index.code')
             error_message = (
@@ -176,11 +189,7 @@ class MpiClient:
                 self.statsd_client.incr('clients.mpi.error')
                 raise MpiNonRetryableException(error_message)
 
-    def _assert_not_deceased(
-        self,
-        response_json,
-        fhir_identifier,
-    ):
+    def _assert_not_deceased(self, response_json, fhir_identifier):
         if response_json.get('deceasedDateTime'):
             self.statsd_client.incr('clients.mpi.get_va_profile_id.beneficiary_deceased')
             raise BeneficiaryDeceasedException(f'Beneficiary deceased for identifier: {fhir_identifier}')
