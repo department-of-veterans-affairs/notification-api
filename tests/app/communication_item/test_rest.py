@@ -156,8 +156,16 @@ def test_get_communication_item_not_found(notify_db_session, admin_request, comm
         ({'name': 'different name', 'va_profile_item_id': 2, 'default_send_indicator': False}, 805, 200),
     ],
 )
-def test_partially_update_communication_item(notify_db_session, admin_request, post_data, expected_status):
-    communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=1, name='communication item tests')
+def test_partially_update_communication_item(
+    notify_db_session,
+    admin_request,
+    post_data,
+    starting_profile_id,
+    expected_status,
+):
+    communication_item = CommunicationItem(
+        id=uuid4(), va_profile_item_id=starting_profile_id, name='communication item tests'
+    )
     notify_db_session.session.add(communication_item)
     notify_db_session.session.commit()
     assert communication_item.default_send_indicator, 'Should be True by default.'
