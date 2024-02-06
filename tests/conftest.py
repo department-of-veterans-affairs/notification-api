@@ -105,11 +105,6 @@ def notify_db(notify_api):
     db.session.remove()
     db.engine.dispose()
 
-    # TODO - We should delete the test database after all tests finish, but how do we do this
-    # with multiple test threads?  Search for "finalizer" on this page for one possibility:
-    #   https://pypi.org/project/pytest-flask-sqlalchemy/#configuration
-    # Given this fixture is session scope, manually deleting the databse should also work.
-
 
 @pytest.fixture
 def notify_db_session(notify_db):

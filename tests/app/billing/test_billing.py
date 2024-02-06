@@ -222,7 +222,7 @@ def test_get_yearly_usage_by_monthly_from_ft_billing_populates_deltas(
         notify_db_session.session.commit()
 
 
-# TODO - Why does this test take so long to run?
+# This test takes a long time to run.
 @pytest.mark.serial
 def test_get_yearly_usage_by_monthly_from_ft_billing(
     client,
@@ -335,7 +335,7 @@ def test_get_yearly_billing_usage_summary_from_ft_billing_returns_empty_list_if_
     assert response.get_json() == []
 
 
-# TODO - Why does this test take so long to run?
+# This test takes a long time to run.
 @pytest.mark.serial
 def test_get_yearly_billing_usage_summary_from_ft_billing(
     notify_db_session,

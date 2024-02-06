@@ -1661,7 +1661,6 @@ def sample_notification_with_job(
 
 @pytest.fixture
 def sample_notification(notify_db_session, sample_api_key, sample_template):  # noqa C901
-    # TODO: Refactor to use fixtures for teardown purposes
     created_notification_ids = []
 
     def _sample_notification(*args, gen_type: str = SMS_TYPE, **kwargs):
@@ -2966,7 +2965,7 @@ def sample_service_session(notify_db, sample_user_session):
         if len(args) == 0 and 'user' not in kwargs:
             kwargs['user'] = sample_user_session()
 
-        # TODO: Fix issue with history -- duplicate key value violates unique constraint "services_history_pkey"
+        # TODO 1635: Fix issue with history -- duplicate key value violates unique constraint "services_history_pkey"
         service: Service = create_service(*args, **kwargs)
 
         # The session is different (dao) so we can't just use save the

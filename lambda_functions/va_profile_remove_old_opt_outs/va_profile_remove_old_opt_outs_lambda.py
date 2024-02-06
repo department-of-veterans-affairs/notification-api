@@ -7,7 +7,7 @@ import sys
 logger = logging.getLogger('va_profile_remove_old_opt_outs')
 logger.setLevel(logging.DEBUG)
 
-REMOVE_OPTED_OUT_RECORDS_QUERY = "SELECT va_profile_remove_old_opt_outs();"
+REMOVE_OPTED_OUT_RECORDS_QUERY = """SELECT va_profile_remove_old_opt_outs();"""
 
 # Get the database URI.  The environment variable SQLALCHEMY_DATABASE_URI is
 # set during unit testing.

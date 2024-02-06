@@ -1877,7 +1877,7 @@ def test_set_sms_prefixing_for_service_cant_be_none(
     assert resp['message'] == {'prefix_sms': ['Field may not be null.']}
 
 
-# TODO: This always returns 0. Does not appear to be used
+# This always returns 0. Does not appear to be used
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 @pytest.mark.parametrize(
     'today_only,stats',
@@ -1996,7 +1996,7 @@ def test_get_services_with_detailed_flag_defaults_to_today(client, mocker):
     assert resp.status_code == 200
 
 
-@pytest.mark.skip(reason='TODO: Do we utilzie this?')
+@pytest.mark.skip(reason='Do we utilize this?')
 def test_get_detailed_services_groups_by_service(notify_db_session, sample_api_key, sample_service, sample_template):
     from app.service.rest import get_detailed_services
 
@@ -2038,7 +2038,7 @@ def test_get_detailed_services_groups_by_service(notify_db_session, sample_api_k
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason='TODO: Do we utilzie this?')
+@pytest.mark.skip(reason='Do we utilize this?')
 def test_get_detailed_services_includes_services_with_no_notifications(
     notify_db_session, sample_api_key, sample_service, sample_template
 ):
@@ -2073,7 +2073,7 @@ def test_get_detailed_services_includes_services_with_no_notifications(
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason='TODO: Do we utilzie this?')
+@pytest.mark.skip(reason='Do we utilize this?')
 # This test assumes the local timezone is EST
 def test_get_detailed_services_only_includes_todays_notifications(notify_db_session, sample_api_key, sample_template):
     from app.service.rest import get_detailed_services
@@ -2104,7 +2104,7 @@ def test_get_detailed_services_only_includes_todays_notifications(notify_db_sess
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason='TODO: Do we utilzie this?')
+@pytest.mark.skip(reason='Do we utilize this?')
 @pytest.mark.parametrize('start_date_delta, end_date_delta', [(2, 1), (3, 2), (1, 0)])
 @freeze_time('2017-03-28T12:00:00')
 def test_get_detailed_services_for_date_range(

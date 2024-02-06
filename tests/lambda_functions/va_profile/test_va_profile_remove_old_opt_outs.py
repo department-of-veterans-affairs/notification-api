@@ -23,12 +23,14 @@ def test_remove_opted_out_records_query(notify_db_session, sample_va_profile_loc
     opt_out = sample_va_profile_local_cache(source_datetime, False)
     opt_out_id = opt_out.id
 
-    # TODO - opt-out < 24 hours old
+    # This should not be deleted.
+    opt_out_newer = sample_va_profile_local_cache(datetime.now(), False)
 
     # This should not be deleted.
     opt_in = sample_va_profile_local_cache(source_datetime, True)
 
     assert notify_db_session.session.get(VAProfileLocalCache, opt_out_id) is not None
+    assert notify_db_session.session.get(VAProfileLocalCache, opt_out_newer.id) is not None
     assert notify_db_session.session.get(VAProfileLocalCache, opt_in.id) is not None
 
     if method == 'stored_procedure':
@@ -39,5 +41,8 @@ def test_remove_opted_out_records_query(notify_db_session, sample_va_profile_loc
         # This tests the lambda handler, which calls the stored procedure.
         va_profile_remove_old_opt_outs_handler()
 
-    #assert notify_db_session.session.get(VAProfileLocalCache, opt_out_id) is None
+    # TODO 1636 - This should not be commented out.
+    # assert notify_db_session.session.get(VAProfileLocalCache, opt_out_id) is None
+    assert notify_db_session.session.get(VAProfileLocalCache, opt_out_newer.id) is not None
     assert notify_db_session.session.get(VAProfileLocalCache, opt_in.id) is not None
+

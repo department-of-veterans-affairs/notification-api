@@ -250,8 +250,6 @@ def test_process_delivery_status_with_valid_message_with_no_payload(
     callback_mock = mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
     assert process_delivery_status(event=sample_delivery_status_result_message)
 
-    # TODO - This is failing with output that shows the "notification" was as expected but fails anyways???
-    # callback_mock.assert_called_once_with(notification, {})
     assert callback_mock.call_args.args[0].id == notification.id
     assert callback_mock.call_args.args[1] == {}
 

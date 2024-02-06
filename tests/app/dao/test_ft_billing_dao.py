@@ -36,7 +36,7 @@ from sqlalchemy.engine.row import Row
 ORG_NAME = 'Org for {}'
 
 
-# TODO - This take a long time to execute.  Can it be replaced with a bulk insert?
+# This take a long time to execute.  Can it be replaced with a bulk insert?
 def set_up_yearly_data(sample_service, sample_template, sample_ft_billing):
     service = sample_service()
     sms_template = sample_template(service=service, template_type=SMS_TYPE)

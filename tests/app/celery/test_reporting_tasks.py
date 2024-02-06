@@ -620,7 +620,6 @@ def test_generate_nightly_billing_csv_report(mocker, sample_service, sample_temp
     """
 
     process_day = datetime(2022, 5, 8, 7, 30, 0)
-    # service = sample_service_with_defined_sms_sender()  TODO
     service = sample_service()
     template = sample_template(name='test_sms_template', service=service, template_type=SMS_TYPE)
 
