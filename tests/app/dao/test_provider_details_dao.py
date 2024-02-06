@@ -619,7 +619,7 @@ def test_toggle_sms_provider_updates_provider_history(notify_db_session, mocker,
     )
 
 
-@pytest.mark.skip(reason="#1436 - This test leaves a ProviderDetailsHistory instance that fails other tests.")
+@pytest.mark.skip(reason="#1631 - This test leaves a ProviderDetailsHistory instance that fails other tests.")
 @pytest.mark.serial
 def test_toggle_sms_provider_switches_provider_stores_notify_user_id(mocker, sample_user, setup_sms_providers):
     user = sample_user()
@@ -627,7 +627,7 @@ def test_toggle_sms_provider_switches_provider_stores_notify_user_id(mocker, sam
     mocker.patch('app.provider_details.switch_providers.get_user_by_id', return_value=user)
     mocker.patch('app.dao.provider_details_dao.get_alternative_sms_provider', return_value=alternative_provider)
 
-    # TODO 1436 - This seems to be creating an updated Twilio row in provider_details_history.
+    # TODO 1631 - This seems to be creating an updated Twilio row in provider_details_history.
     dao_toggle_sms_provider(current_provider.identifier)
     new_provider = get_current_provider(SMS_TYPE)
 

@@ -357,37 +357,3 @@ def send_scheduled_comp_and_pen_sms():
                 type(e),
                 e,
             )
-
-
-def _get_dynamodb_comp_pen_messages(table, message_limit: int) -> list:
-    """
-    Helper function to get the Comp and Pen data from our dynamodb cache table.
-
-    :param table: the dynamodb table to grab the data from
-    :param message_limit: the number of rows to search at a time and the max number of items that should be returned
-    :return: a list of entries from the table that have not been processed yet
-    """
-
-    results = table.scan(FilterExpression=boto3.dynamodb.conditions.Attr('is_processed').eq(False), Limit=message_limit)
-
-    items: list = results.get('Items')
-
-    if items is None:
-        current_app.logger.critical(
-            'Error in _get_dynamodb_comp_pen_messages trying to read "Items" from dynamodb table scan result. '
-            'Returned results does not include "Items" - results: %s',
-            results,
-        )
-        return []
-
-    # Keep getting items from the table until we have the number we want to send, or run out of items
-    while 'LastEvaluatedKey' in results and len(items) < message_limit:
-        results = table.scan(
-            FilterExpression=boto3.dynamodb.conditions.Attr('is_processed').eq(False),
-            Limit=message_limit,
-            ExclusiveStartKey=results['LastEvaluatedKey'],
-        )
-
-        items.extend(results['Items'])
-
-    return items[:message_limit]

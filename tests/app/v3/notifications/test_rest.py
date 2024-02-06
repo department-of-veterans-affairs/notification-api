@@ -295,12 +295,12 @@ def test_post_v3_notifications_scheduled_for(client, mocker, sample_api_key):
     )
     response_json = response.get_json()
 
-    # TODO - Delete when scheduled sending is implemented.
+    # TODO 1602 - Delete when scheduled sending is implemented.
     assert response.status_code == 501, response_json
     assert response_json['errors'][0]['message'] == 'Scheduled sending is not implemented.'
     celery_mock.assert_not_called()
 
-    # TODO - Uncomment when scheduled sending is implemented.
+    # TODO 1602 - Uncomment when scheduled sending is implemented.
     # assert response.status_code == 202, response_json
     # email_request_data["id"] = response_json["id"]
     # celery_mock.assert_called_once_with(
@@ -316,12 +316,12 @@ def test_post_v3_notifications_scheduled_for(client, mocker, sample_api_key):
     )
     response_json = response.get_json()
 
-    # TODO - Delete when scheduled sending is implemented.
+    # TODO 1602 - Delete when scheduled sending is implemented.
     assert response.status_code == 501, response_json
     assert response_json['errors'][0]['message'] == 'Scheduled sending is not implemented.'
     celery_mock.assert_not_called()
 
-    # TODO - Uncomment when scheduled sending is implemented.
+    # TODO 1602 - Uncomment when scheduled sending is implemented.
     # assert response.status_code == 202, response_json
     # sms_request_data["id"] = response_json["id"]
     # celery_mock.assert_called_once_with(

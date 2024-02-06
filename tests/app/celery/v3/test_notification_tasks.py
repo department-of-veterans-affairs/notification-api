@@ -24,7 +24,6 @@ from uuid import uuid4
 ############################################################################################
 
 
-# TODO - Make the Notification.template_id field nullable?  Have a default template?
 def test_v3_process_notification_no_template(notify_db_session, mocker, sample_service):
     """
     Call the task with request data referencing a nonexistent template.
@@ -175,7 +174,7 @@ def test_v3_process_notification_valid_email(notify_db_session, mocker, sample_s
     assert isinstance(v3_send_email_notification_mock.call_args.args[0], Notification)
 
 
-@pytest.mark.xfail(reason='#xxxx')
+@pytest.mark.xfail(reason='#1634')
 def test_v3_send_email_notification(mocker, notify_db_session, sample_template):
     """
     Given a valid, not-persisted Notification instance, the task v3_send_email_notification should

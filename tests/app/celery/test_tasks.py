@@ -349,7 +349,6 @@ def test_should_process_all_sms_job(mocker, notify_db_session, sample_template, 
     assert job.job_status == 'finished'
 
 
-# TODO - This test seems inappropriately named given what it's doing.
 @pytest.mark.parametrize(
     'template_type, research_mode, expected_function, expected_queue',
     [
