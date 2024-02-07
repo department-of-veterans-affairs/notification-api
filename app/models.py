@@ -102,7 +102,7 @@ class ServiceUser(db.Model):
 
     __table_args__ = (UniqueConstraint('user_id', 'service_id', name='uix_user_to_service'),)
 
-    user = db.relationship('User')
+    # user = db.relationship('User')
 
 
 user_to_organisation = db.Table(
