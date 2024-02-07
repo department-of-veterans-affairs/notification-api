@@ -600,7 +600,7 @@ class ServicePermission(db.Model):
     permission = db.Column(
         db.String(255), db.ForeignKey('service_permission_types.name'), index=True, primary_key=True, nullable=False
     )
-    service = db.relationship('Service')
+    # service = db.relationship('Service')
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
 
     service_permission_types = db.relationship(Service, backref=db.backref('permissions', cascade='all, delete-orphan'))
@@ -1726,7 +1726,7 @@ class ScheduledNotification(db.Model):
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     notification_id = db.Column(UUID(as_uuid=True), db.ForeignKey('notifications.id'), index=True, nullable=False)
-    notification = db.relationship('Notification', uselist=False)
+    # notification = db.relationship('Notification', uselist=False)
     scheduled_for = db.Column(db.DateTime, index=False, nullable=False)
     pending = db.Column(db.Boolean, nullable=False, default=True)
 
