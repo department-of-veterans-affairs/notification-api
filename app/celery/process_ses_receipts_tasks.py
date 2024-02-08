@@ -202,6 +202,24 @@ def process_ses_results(  # noqa: C901
             check_and_queue_callback_task(notification)
             return
 
+        # Prevent regressing bounce status
+        if (
+            notification.status_reason
+            and 'bounce' in notification.status_reason
+            and notification.status
+            in {
+                NOTIFICATION_TEMPORARY_FAILURE,
+                NOTIFICATION_PERMANENT_FAILURE,
+            }
+        ):
+            # async from AWS means we may get a delivered status after a bounce, in rare cases
+            current_app.logger.warning(
+                'Notification: %s was was marked as a bounce, cannot be updated to: %s',
+                notification.id,
+                notification_status,
+            )
+            return
+
         if notification.status not in {NOTIFICATION_SENDING, NOTIFICATION_PENDING}:
             notifications_dao.duplicate_update_warning(notification, notification_status)
             return

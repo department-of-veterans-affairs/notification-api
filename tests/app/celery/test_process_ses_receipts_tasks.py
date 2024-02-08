@@ -313,8 +313,9 @@ def test_ses_callback_should_set_status_to_temporary_failure(
     sample_service_callback(service=template.service, url='https://original_url.com')
 
     assert process_ses_receipts_tasks.process_ses_results(ses_soft_bounce_callback(reference=ref)) is None
-    assert get_notification_by_id(notification_id).status == NOTIFICATION_TEMPORARY_FAILURE
-    assert get_notification_by_id(notification_id).status_reason == 'Failed to deliver email due to soft bounce'
+    db_notification = get_notification_by_id(notification_id)
+    assert db_notification.status == NOTIFICATION_TEMPORARY_FAILURE
+    assert db_notification.status_reason == 'Failed to deliver email due to soft bounce'
     assert send_mock.called
 
 
@@ -338,11 +339,39 @@ def test_ses_callback_should_set_status_to_permanent_failure(
     ).id
     sample_service_callback(service=template.service, url='https://original_url.com')
 
-    assert get_notification_by_id(notification_id).status == status
     assert process_ses_receipts_tasks.process_ses_results(ses_hard_bounce_callback(reference=ref)) is None
-    assert get_notification_by_id(notification_id).status == NOTIFICATION_PERMANENT_FAILURE
-    assert get_notification_by_id(notification_id).status_reason == 'Failed to deliver email due to hard bounce'
+    db_notification = get_notification_by_id(notification_id)
+    assert db_notification.status == NOTIFICATION_PERMANENT_FAILURE
+    assert db_notification.status_reason == 'Failed to deliver email due to hard bounce'
     assert send_mock.called
+
+
+@pytest.mark.parametrize('bounce_status', [NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_PERMANENT_FAILURE])
+def test_ses_does_not_update_if_already_bounced(
+    client,
+    mocker,
+    sample_notification,
+    sample_template,
+    bounce_status,
+):
+    send_mock = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
+
+    template = sample_template(template_type=EMAIL_TYPE)
+    ref = str(uuid4())
+    bounce_type = 'hard' if bounce_status == NOTIFICATION_PERMANENT_FAILURE else 'soft'
+    status_reason = f'Failed to deliver email due to {bounce_type} bounce'
+    notification_id = sample_notification(
+        template=template,
+        status=bounce_status,
+        status_reason=status_reason,
+        reference=ref,
+    ).id
+
+    assert process_ses_receipts_tasks.process_ses_results(ses_notification_callback(reference=ref)) is None
+    db_notification = get_notification_by_id(notification_id)
+    assert db_notification.status == bounce_status
+    assert db_notification.status_reason == status_reason
+    assert not send_mock.called
 
 
 @pytest.mark.skip(reason='Endpoint disabled and slated for removal')
