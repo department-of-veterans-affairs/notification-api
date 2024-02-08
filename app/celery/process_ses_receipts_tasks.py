@@ -184,10 +184,11 @@ def process_ses_results(  # noqa: C901
 
         # Add status reason to notification if the status is some kind of failure
         if notification_status in {NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_PERMANENT_FAILURE}:
-            status_reason = (
-                f'Failed to deliver email due to '
-                f'{"hard" if notification_status == NOTIFICATION_PERMANENT_FAILURE else "soft"} bounce'
-            )
+            if notification_status == NOTIFICATION_PERMANENT_FAILURE:
+                status_reason = 'Failed to deliver email due to hard bounce'
+            else:
+                status_reason = 'Temporarily failed to deliver email due to soft bounce'
+
             notification.status_reason = status_reason
             notification.status = notification_status
 

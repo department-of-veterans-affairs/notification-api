@@ -315,7 +315,7 @@ def test_ses_callback_should_set_status_to_temporary_failure(
     assert process_ses_receipts_tasks.process_ses_results(ses_soft_bounce_callback(reference=ref)) is None
     db_notification = get_notification_by_id(notification_id)
     assert db_notification.status == NOTIFICATION_TEMPORARY_FAILURE
-    assert db_notification.status_reason == 'Failed to deliver email due to soft bounce'
+    assert db_notification.status_reason == 'Temporarily failed to deliver email due to soft bounce'
     assert send_mock.called
 
 
@@ -358,8 +358,13 @@ def test_ses_does_not_update_if_already_bounced(
 
     template = sample_template(template_type=EMAIL_TYPE)
     ref = str(uuid4())
-    bounce_type = 'hard' if bounce_status == NOTIFICATION_PERMANENT_FAILURE else 'soft'
-    status_reason = f'Failed to deliver email due to {bounce_type} bounce'
+    if bounce_status == NOTIFICATION_PERMANENT_FAILURE:
+        status_reason = 'Failed to deliver email due to hard bounce'
+    elif bounce_status == NOTIFICATION_TEMPORARY_FAILURE:
+        status_reason = 'Temporarily failed to deliver email due to hard bounce'
+    else:
+        raise NotImplementedError
+
     notification_id = sample_notification(
         template=template,
         status=bounce_status,
