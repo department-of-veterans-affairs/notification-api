@@ -183,7 +183,7 @@ def process_ses_results(  # noqa: C901
             return
 
         # Add status reason to notification if the status is some kind of failure
-        if notification_status in {NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_PERMANENT_FAILURE}:
+        if notification_status in (NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_PERMANENT_FAILURE):
             if notification_status == NOTIFICATION_PERMANENT_FAILURE:
                 status_reason = 'Failed to deliver email due to hard bounce'
             else:
@@ -221,7 +221,7 @@ def process_ses_results(  # noqa: C901
             )
             return
 
-        if notification.status not in {NOTIFICATION_SENDING, NOTIFICATION_PENDING}:
+        if notification.status not in (NOTIFICATION_SENDING, NOTIFICATION_PENDING):
             notifications_dao.duplicate_update_warning(notification, notification_status)
             return
 

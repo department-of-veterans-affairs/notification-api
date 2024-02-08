@@ -227,7 +227,11 @@ def test_ses_callback_should_log_if_notification_is_missing(client, notify_db, m
         ref = str(uuid4())
         assert process_ses_receipts_tasks.process_ses_results(ses_notification_callback(reference=ref)) is None
         assert mock_retry.call_count == 0
-        mock_logger.assert_called_once_with('notification not found for reference: %s (update to %s)', ref, 'delivered')
+        mock_logger.assert_called_once_with(
+            'notification not found for reference: %s (update to %s)',
+            ref,
+            NOTIFICATION_DELIVERED,
+        )
 
 
 def test_ses_callback_should_not_retry_if_notification_is_old(client, notify_db, mocker):
@@ -295,6 +299,7 @@ def test_ses_callback_should_update_multiple_notification_status_sent(
 def test_ses_callback_should_set_status_to_temporary_failure(
     client,
     mocker,
+    notify_db_session,
     sample_template,
     sample_notification,
     sample_service_callback,
@@ -313,7 +318,7 @@ def test_ses_callback_should_set_status_to_temporary_failure(
     sample_service_callback(service=template.service, url='https://original_url.com')
 
     assert process_ses_receipts_tasks.process_ses_results(ses_soft_bounce_callback(reference=ref)) is None
-    db_notification = get_notification_by_id(notification_id)
+    db_notification = notify_db_session.session.get(Notification, notification_id)
     assert db_notification.status == NOTIFICATION_TEMPORARY_FAILURE
     assert db_notification.status_reason == 'Temporarily failed to deliver email due to soft bounce'
     assert send_mock.called
@@ -323,6 +328,7 @@ def test_ses_callback_should_set_status_to_temporary_failure(
 def test_ses_callback_should_set_status_to_permanent_failure(
     client,
     mocker,
+    notify_db_session,
     sample_template,
     sample_notification,
     sample_service_callback,
@@ -340,7 +346,7 @@ def test_ses_callback_should_set_status_to_permanent_failure(
     sample_service_callback(service=template.service, url='https://original_url.com')
 
     assert process_ses_receipts_tasks.process_ses_results(ses_hard_bounce_callback(reference=ref)) is None
-    db_notification = get_notification_by_id(notification_id)
+    db_notification = notify_db_session.session.get(Notification, notification_id)
     assert db_notification.status == NOTIFICATION_PERMANENT_FAILURE
     assert db_notification.status_reason == 'Failed to deliver email due to hard bounce'
     assert send_mock.called
@@ -350,6 +356,7 @@ def test_ses_callback_should_set_status_to_permanent_failure(
 def test_ses_does_not_update_if_already_bounced(
     client,
     mocker,
+    notify_db_session,
     sample_notification,
     sample_template,
     bounce_status,
@@ -373,7 +380,7 @@ def test_ses_does_not_update_if_already_bounced(
     ).id
 
     assert process_ses_receipts_tasks.process_ses_results(ses_notification_callback(reference=ref)) is None
-    db_notification = get_notification_by_id(notification_id)
+    db_notification = notify_db_session.session.get(Notification, notification_id)
     assert db_notification.status == bounce_status
     assert db_notification.status_reason == status_reason
     assert not send_mock.called
