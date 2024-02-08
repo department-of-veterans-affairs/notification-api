@@ -215,7 +215,7 @@ def process_ses_results(  # noqa: C901
         ):
             # async from AWS means we may get a delivered status after a bounce, in rare cases
             current_app.logger.warning(
-                'Notification: %s was was marked as a bounce, cannot be updated to: %s',
+                'Notification: %s was marked as a bounce, cannot be updated to: %s',
                 notification.id,
                 notification_status,
             )
