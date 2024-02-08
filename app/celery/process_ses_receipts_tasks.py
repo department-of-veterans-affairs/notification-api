@@ -18,7 +18,14 @@ from app.celery.service_callback_tasks import publish_complaint
 from app.config import QueueNames
 from app.clients.email.aws_ses import get_aws_responses
 from app.dao import notifications_dao, services_dao, templates_dao
-from app.models import NOTIFICATION_SENDING, NOTIFICATION_PENDING, EMAIL_TYPE, KEY_TYPE_NORMAL
+from app.models import (
+    EMAIL_TYPE,
+    KEY_TYPE_NORMAL,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_PENDING,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_TEMPORARY_FAILURE,
+)
 from json import decoder
 from app.notifications import process_notifications
 from app.notifications.notifications_ses_callback import (
@@ -152,6 +159,7 @@ def process_ses_results(  # noqa: C901
         notification_type = ses_message.get('eventType')
 
         if notification_type == 'Bounce':
+            # Bounces have ran their course with AWS and should be considered done. Clients can retry soft bounces.
             notification_type = determine_notification_bounce_type(notification_type, ses_message)
         elif notification_type == 'Complaint':
             complaint, notification, recipient_email = handle_ses_complaint(ses_message)
@@ -175,18 +183,24 @@ def process_ses_results(  # noqa: C901
             return
 
         # Add status reason to notification if the status is some kind of failure
-        if 'temporary-failure' in notification_status:
-            notification.status_reason = 'Temporarily failed to deliver email due to soft bounce'
-            notifications_dao.dao_update_notification(notification)
-            current_app.logger.info(
-                'temporary-failure - soft bounce - in process_ses_results for notification %s', notification.id
+        if notification_status in {NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_PERMANENT_FAILURE}:
+            status_reason = (
+                f'Failed to deliver email due to '
+                f'{"hard" if notification_status == NOTIFICATION_PERMANENT_FAILURE else "soft"} bounce'
             )
-        elif 'permanent-failure' in notification_status:
-            notification.status_reason = 'Failed to deliver email due to hard bounce'
-            notifications_dao.dao_update_notification(notification)
-            current_app.logger.info(
-                'permanent-failure - hard bounce - in process_ses_results for notification %s', notification.id
+            notification.status_reason = status_reason
+            notification.status = notification_status
+
+            current_app.logger.warning(
+                '%s - %s - in process_ses_results for notification %s',
+                notification_status,
+                status_reason,
+                notification.id,
             )
+
+            notifications_dao.dao_update_notification(notification)
+            check_and_queue_callback_task(notification)
+            return
 
         if notification.status not in {NOTIFICATION_SENDING, NOTIFICATION_PENDING}:
             notifications_dao.duplicate_update_warning(notification, notification_status)

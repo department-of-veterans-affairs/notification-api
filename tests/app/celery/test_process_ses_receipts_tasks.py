@@ -10,7 +10,18 @@ from app.celery import process_ses_receipts_tasks
 from app.celery.research_mode_tasks import ses_hard_bounce_callback, ses_soft_bounce_callback, ses_notification_callback
 from app.celery.service_callback_tasks import create_delivery_status_callback_data
 from app.dao.notifications_dao import get_notification_by_id
-from app.models import Complaint, EMAIL_TYPE, Notification, Service, Template
+from app.models import (
+    Complaint,
+    EMAIL_TYPE,
+    Notification,
+    Service,
+    Template,
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_SENT,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_TEMPORARY_FAILURE,
+)
 from app.model import User
 from app.notifications.notifications_ses_callback import remove_emails_from_complaint, remove_emails_from_bounce
 
@@ -216,9 +227,7 @@ def test_ses_callback_should_log_if_notification_is_missing(client, notify_db, m
         ref = str(uuid4())
         assert process_ses_receipts_tasks.process_ses_results(ses_notification_callback(reference=ref)) is None
         assert mock_retry.call_count == 0
-        mock_logger.assert_called_once_with(
-            'notification not found for reference: %s (update to %s)', ref, 'delivered'
-        )
+        mock_logger.assert_called_once_with('notification not found for reference: %s (update to %s)', ref, 'delivered')
 
 
 def test_ses_callback_should_not_retry_if_notification_is_old(client, notify_db, mocker):
@@ -282,43 +291,56 @@ def test_ses_callback_should_update_multiple_notification_status_sent(
     assert send_mock.called
 
 
-def test_ses_callback_should_set_status_to_temporary_failure(client, mocker, sample_template, sample_notification):
+@pytest.mark.parametrize('status', [NOTIFICATION_DELIVERED, NOTIFICATION_SENDING, NOTIFICATION_SENT])
+def test_ses_callback_should_set_status_to_temporary_failure(
+    client,
+    mocker,
+    sample_template,
+    sample_notification,
+    sample_service_callback,
+    status,
+):
     send_mock = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
 
     template = sample_template(template_type=EMAIL_TYPE)
     ref = str(uuid4())
     notification_id = sample_notification(
         template=template,
-        status='sending',
+        status=status,
         reference=ref,
     ).id
 
-    create_service_callback_api(service=template.service, url='https://original_url.com')
+    sample_service_callback(service=template.service, url='https://original_url.com')
 
-    assert process_ses_receipts_tasks.process_ses_results(ses_soft_bounce_callback(reference=ref))
-    assert get_notification_by_id(notification_id).status == 'temporary-failure'
-    assert (
-        get_notification_by_id(notification_id).status_reason
-        == 'Temporarily failed to deliver email due to soft bounce'
-    )
+    assert process_ses_receipts_tasks.process_ses_results(ses_soft_bounce_callback(reference=ref)) is None
+    assert get_notification_by_id(notification_id).status == NOTIFICATION_TEMPORARY_FAILURE
+    assert get_notification_by_id(notification_id).status_reason == 'Failed to deliver email due to soft bounce'
     assert send_mock.called
 
 
-def test_ses_callback_should_set_status_to_permanent_failure(client, mocker, sample_template, sample_notification):
+@pytest.mark.parametrize('status', [NOTIFICATION_DELIVERED, NOTIFICATION_SENDING, NOTIFICATION_SENT])
+def test_ses_callback_should_set_status_to_permanent_failure(
+    client,
+    mocker,
+    sample_template,
+    sample_notification,
+    sample_service_callback,
+    status,
+):
     send_mock = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
 
     template = sample_template(template_type=EMAIL_TYPE)
     ref = str(uuid4())
     notification_id = sample_notification(
         template=template,
-        status='sending',
+        status=status,
         reference=ref,
     ).id
-    create_service_callback_api(service=template.service, url='https://original_url.com')
+    sample_service_callback(service=template.service, url='https://original_url.com')
 
-    assert get_notification_by_id(notification_id).status == 'sending'
-    assert process_ses_receipts_tasks.process_ses_results(ses_hard_bounce_callback(reference=ref))
-    assert get_notification_by_id(notification_id).status == 'permanent-failure'
+    assert get_notification_by_id(notification_id).status == status
+    assert process_ses_receipts_tasks.process_ses_results(ses_hard_bounce_callback(reference=ref)) is None
+    assert get_notification_by_id(notification_id).status == NOTIFICATION_PERMANENT_FAILURE
     assert get_notification_by_id(notification_id).status_reason == 'Failed to deliver email due to hard bounce'
     assert send_mock.called
 
@@ -415,7 +437,6 @@ def test_process_ses_smtp_results_in_complaint(
     mocker,
     sample_smtp_template,
 ):
-
     template = sample_smtp_template()
     sample_notification(template=template, reference=str(uuid4()))
 
