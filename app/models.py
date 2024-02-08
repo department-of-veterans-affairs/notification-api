@@ -2034,7 +2034,7 @@ Index('ix_dm_datetime_yearmonth', DateTimeDimension.year, DateTimeDimension.mont
 class FactNotificationStatus(db.Model):
     __tablename__ = 'ft_notification_status'
 
-    bst_date = db.Column(db.Date, index=True, primary_key=True, nullable=False)
+    bst_date = db.Column(db.Date, index=True, primary_key=True, nullable=False, default=datetime.datetime.utcnow)
     template_id = db.Column(UUID(as_uuid=True), primary_key=True, index=True, nullable=False)
     service_id = db.Column(
         UUID(as_uuid=True),
