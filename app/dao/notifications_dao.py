@@ -601,7 +601,8 @@ def _delete_notifications(
             Notification.created_at < date_to_delete_from,
         )
         .limit(query_limit)
-        .subquery().element
+        .subquery()
+        .element
     )
     deleted = _delete_for_query(subquery)
 
@@ -614,7 +615,8 @@ def _delete_notifications(
             Notification.key_type == KEY_TYPE_TEST,
         )
         .limit(query_limit)
-        .subquery().element
+        .subquery()
+        .element
     )
 
     deleted += _delete_for_query(subquery_for_test_keys)
