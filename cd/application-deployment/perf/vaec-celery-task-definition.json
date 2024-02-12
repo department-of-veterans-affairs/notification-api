@@ -233,6 +233,14 @@
         {
           "name": "VA_ONSITE_SECRET",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/perf/notification-api/onsite/notification-priv"
+        },
+        {
+          "name": "VETEXT_USERNAME",
+          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/prod/notification-api/vetext/user"
+        },
+        {
+          "name": "VETEXT_PASSWORD",
+          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/prod/notification-api/vetext/password"
         }
       ],
       "command": [
