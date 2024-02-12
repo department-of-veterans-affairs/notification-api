@@ -270,11 +270,11 @@
         },
         {
           "name": "VETEXT_USERNAME",
-          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/prod/notification-api/vetext/user"
+          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/perf/notification-api/vetext/user"
         },
         {
           "name": "VETEXT_PASSWORD",
-          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/prod/notification-api/vetext/password"
+          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/perf/notification-api/vetext/password"
         },
         {
           "name": "VA_SSO_CLIENT_ID",
