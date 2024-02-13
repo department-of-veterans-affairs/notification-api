@@ -315,7 +315,7 @@ class Config(object):
             },
             'delete-inbound-sms': {
                 'task': 'delete-inbound-sms',
-                'schedule': crontab(hour=1, minute=40),
+                'schedule': crontab(hour=17, minute=0),
                 'options': {'queue': QueueNames.PERIODIC},
             },
             'send-daily-performance-platform-stats': {
