@@ -84,6 +84,7 @@ def _delete_inbound_sms(
         .where(InboundSms.created_at < datetime_to_delete_from, *query_filter)
         .limit(query_limit)
         .subquery()
+        .element
     )
 
     deleted = 0
