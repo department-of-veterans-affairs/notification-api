@@ -76,22 +76,19 @@ def _delete_inbound_sms(
     """
     This function executes delete queries, but the calling code is responsible for committing the changes.
     """
-
-    query_limit = 10000
-
-    subquery = (
-        select(InboundSms.id)
-        .where(InboundSms.created_at < datetime_to_delete_from, *query_filter)
-        .limit(query_limit)
-        .subquery()
-        .element
+    stmt = (
+        delete(InboundSms)
+        .where(
+            InboundSms.created_at < datetime_to_delete_from,
+            *query_filter
+        )
+        .execution_options(synchronize_session='fetch')
     )
-
-    deleted = 0
+    
     # set to nonzero just to enter the loop
     number_deleted = 1
+    deleted = 0
     while number_deleted > 0:
-        stmt = delete(InboundSms).where(InboundSms.id.in_(subquery)).execution_options(synchronize_session='fetch')
         number_deleted = db.session.execute(stmt).rowcount
         deleted += number_deleted
 
