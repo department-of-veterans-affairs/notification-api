@@ -32,4 +32,8 @@ set -euo pipefail
     done
 
     update-ca-certificates --fresh
+
+    # Display VA Internal certificates that are now trusted.
+    awk -v cmd='openssl x509 -noout -subject' '/BEGIN/{close(cmd)};{print | cmd}' < /etc/ssl/certs/ca-certificates.crt \
+    | grep -i 'VA-Internal'
 )
