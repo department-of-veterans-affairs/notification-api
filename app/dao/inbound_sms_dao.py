@@ -78,10 +78,7 @@ def _delete_inbound_sms(
     """
     stmt = (
         delete(InboundSms)
-        .where(
-            InboundSms.created_at < datetime_to_delete_from,
-            *query_filter
-        )
+        .where(InboundSms.created_at < datetime_to_delete_from, *query_filter)
         .execution_options(synchronize_session='fetch')
     )
 
