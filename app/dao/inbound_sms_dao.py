@@ -84,7 +84,7 @@ def _delete_inbound_sms(
         )
         .execution_options(synchronize_session='fetch')
     )
-    
+
     # set to nonzero just to enter the loop
     number_deleted = 1
     deleted = 0
