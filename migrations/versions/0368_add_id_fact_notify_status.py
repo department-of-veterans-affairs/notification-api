@@ -14,6 +14,9 @@ down_revision = '0367_add_auth_parameter'
 
 
 def upgrade():
+    # Create the ossp-uuid extension if it doesn't exist
+    op.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";')
+    
     op.add_column('ft_notification_status', sa.Column('id', postgresql.UUID(as_uuid=True)))
     op.execute('ALTER TABLE ft_notification_status DROP CONSTRAINT ft_notification_status_pkey;')
     op.execute('UPDATE ft_notification_status SET id = uuid_generate_v4();')
