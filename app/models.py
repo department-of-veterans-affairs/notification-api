@@ -2041,7 +2041,7 @@ class FactNotificationStatus(db.Model):
         primary_key=True,
         index=True,
         nullable=False,
-        default='00000000-0000-0000-0000-000000000000',
+        default=uuid.uuid4,
     )
     job_id = db.Column(UUID(as_uuid=True), primary_key=True, index=True, nullable=False, default=uuid.uuid4)
     notification_type = db.Column(db.Text, primary_key=True, nullable=False, default=SMS_TYPE)
@@ -2051,6 +2051,7 @@ class FactNotificationStatus(db.Model):
     notification_count = db.Column(db.Integer(), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.datetime.utcnow)
+
 
 class Complaint(db.Model):
     __tablename__ = 'complaints'
