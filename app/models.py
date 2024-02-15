@@ -2035,24 +2035,35 @@ class FactNotificationStatus(db.Model):
     __tablename__ = 'ft_notification_status'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    bst_date = db.Column(db.Date, index=True, nullable=False, default=datetime.datetime.utcnow)
-    template_id = db.Column(UUID(as_uuid=True), index=True, nullable=False, default=uuid.uuid4)
+    bst_date = db.Column(db.Date, index=True, nullable=False)
+    template_id = db.Column(UUID(as_uuid=True), index=True, nullable=False)
     service_id = db.Column(
         UUID(as_uuid=True),
         index=True,
         nullable=False,
-        default=uuid.uuid4,
     )
-    job_id = db.Column(UUID(as_uuid=True), index=True, nullable=False, default=uuid.uuid4)
-    notification_type = db.Column(db.Text, nullable=False, default=SMS_TYPE)
-    key_type = db.Column(db.Text, nullable=False, default=KEY_TYPE_NORMAL)
-    notification_status = db.Column(db.Text, nullable=False, default=NOTIFICATION_CREATED)
-    status_reason = db.Column(db.Text, nullable=False, default='')
+    job_id = db.Column(UUID(as_uuid=True), index=True, nullable=False)
+    notification_type = db.Column(db.Text, nullable=False)
+    key_type = db.Column(db.Text, nullable=False)
+    notification_status = db.Column(db.Text, nullable=False)
+    status_reason = db.Column(db.Text, nullable=False)
     notification_count = db.Column(db.Integer(), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.datetime.utcnow)
 
-    __table_args__ = (UniqueConstraint('bst_date', 'template_id', 'service_id', 'job_id', 'notification_type', 'key_type', 'notification_status', name='uix_fact_notification_status'),)
+    __table_args__ = (
+        UniqueConstraint(
+            'bst_date',
+            'template_id',
+            'service_id',
+            'job_id',
+            'notification_type',
+            'key_type',
+            'notification_status',
+            name='uix_fact_notification_status',
+        ),
+    )
+
 
 class Complaint(db.Model):
     __tablename__ = 'complaints'
