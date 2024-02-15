@@ -2035,7 +2035,9 @@ class FactNotificationStatus(db.Model):
     __tablename__ = 'ft_notification_status'
 
     bst_date = db.Column(db.Date, index=True, primary_key=True, nullable=False, default=datetime.date.today)
-    template_id = db.Column(UUID(as_uuid=True), primary_key=True, index=True, nullable=False, default='00000000-0000-0000-0000-000000000000')
+    template_id = db.Column(
+        UUID(as_uuid=True), primary_key=True, index=True, nullable=False, default='00000000-0000-0000-0000-000000000000'
+    )
     service_id = db.Column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -2043,7 +2045,9 @@ class FactNotificationStatus(db.Model):
         nullable=False,
         default='00000000-0000-0000-0000-000000000000',
     )
-    job_id = db.Column(UUID(as_uuid=True), primary_key=True, index=True, nullable=False, default='00000000-0000-0000-0000-000000000000')
+    job_id = db.Column(
+        UUID(as_uuid=True), primary_key=True, index=True, nullable=False, default='00000000-0000-0000-0000-000000000000'
+    )
     notification_type = db.Column(db.Text, primary_key=True, nullable=False, default='')
     key_type = db.Column(db.Text, primary_key=True, nullable=False, default='')
     notification_status = db.Column(db.Text, primary_key=True, nullable=False, default=NOTIFICATION_CREATED)
@@ -2051,6 +2055,7 @@ class FactNotificationStatus(db.Model):
     notification_count = db.Column(db.Integer(), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.datetime.utcnow)
+
 
 class Complaint(db.Model):
     __tablename__ = 'complaints'
