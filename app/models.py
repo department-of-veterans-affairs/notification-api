@@ -2035,7 +2035,7 @@ class FactNotificationStatus(db.Model):
     __tablename__ = 'ft_notification_status'
 
     bst_date = db.Column(db.Date, index=True, primary_key=True, nullable=False, default=datetime.date.today)
-    template_id = db.Column(UUID(as_uuid=True), primary_key=True, index=True, nullable=False, default='00000000-0000-0000-0000-000000000000')
+    template_id = db.Column(UUID(as_uuid=True), primary_key=True, index=True, nullable=False, default=uuid.uuid4)
     service_id = db.Column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -2043,7 +2043,7 @@ class FactNotificationStatus(db.Model):
         nullable=False,
         default='00000000-0000-0000-0000-000000000000',
     )
-    job_id = db.Column(UUID(as_uuid=True), primary_key=True, index=True, nullable=False, default='00000000-0000-0000-0000-000000000000')
+    job_id = db.Column(UUID(as_uuid=True), primary_key=True, index=True, nullable=False, default=uuid.uuid4)
     notification_type = db.Column(db.Text, primary_key=True, nullable=False, default=SMS_TYPE)
     key_type = db.Column(db.Text, primary_key=True, nullable=False, default=KEY_TYPE_NORMAL)
     notification_status = db.Column(db.Text, primary_key=True, nullable=False, default=NOTIFICATION_CREATED)
