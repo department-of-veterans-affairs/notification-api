@@ -13,7 +13,7 @@ from app.models import NOTIFICATION_TECHNICAL_FAILURE, NOTIFICATION_PERMANENT_FA
 from app.v2.errors import RateLimitError
 from flask import current_app
 from notifications_utils.field import NullValueForNonConditionalPlaceholderException
-from notifications_utils.recipients import InvalidEmailError
+from notifications_utils.recipients import InvalidEmailError, InvalidPhoneError
 from notifications_utils.statsd_decorators import statsd
 
 
@@ -52,8 +52,12 @@ def deliver_sms(
             notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason='SMS provider configuration invalid'
         )
         raise NotificationTechnicalFailureException(str(e))
-    except NonRetryableException:
-        current_app.logger.exception('SMS notification delivery for id: %s failed. Not retrying.', notification_id)
+    except (NonRetryableException, InvalidPhoneError) as e:
+        current_app.logger.warning(
+            'Found %s - SMS notification delivery for id: %s failed. Not retrying.',
+            type(e).__name__,
+            notification_id,
+        )
         update_notification_status_by_id(
             notification_id,
             NOTIFICATION_PERMANENT_FAILURE,
@@ -114,8 +118,12 @@ def deliver_sms_with_rate_limiting(
             notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason='SMS provider configuration invalid'
         )
         raise NotificationTechnicalFailureException(str(e))
-    except NonRetryableException:
-        current_app.logger.exception('SMS delivery for notification id: %s failed. Not retrying.', notification_id)
+    except (NonRetryableException, InvalidPhoneError) as e:
+        current_app.logger.warning(
+            'Found %s - SMS notification delivery for id: %s failed. Not retrying.',
+            type(e).__name__,
+            notification_id,
+        )
         update_notification_status_by_id(
             notification_id,
             NOTIFICATION_PERMANENT_FAILURE,
