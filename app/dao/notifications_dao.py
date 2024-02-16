@@ -655,7 +655,7 @@ def insert_update_notification_history(
     stmt = stmt.on_conflict_do_update(
         constraint='notification_history_pkey',
         set_={
-            'notification_status': stmt.excluded.status,
+            'status': stmt.excluded.status,
             'reference': stmt.excluded.reference,
             'billable_units': stmt.excluded.billable_units,
             'billing_code': stmt.excluded.billing_code,
