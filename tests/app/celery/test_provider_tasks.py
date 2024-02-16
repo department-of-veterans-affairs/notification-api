@@ -10,13 +10,14 @@ from app.exceptions import NotificationTechnicalFailureException, InvalidProvide
 from app.models import (
     EMAIL_TYPE,
     Notification,
+    NOTIFICATION_CREATED,
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_TECHNICAL_FAILURE,
     SMS_TYPE,
 )
 from app.v2.errors import RateLimitError
 from collections import namedtuple
-from notifications_utils.recipients import InvalidEmailError
+from notifications_utils.recipients import InvalidEmailError, InvalidPhoneError
 from uuid import uuid4
 
 
@@ -115,15 +116,17 @@ def test_should_technical_error_and_not_retry_if_invalid_email(
     assert notification.status_reason == 'Email address is in invalid format'
 
 
+@pytest.mark.parametrize('exception', [NonRetryableException, InvalidPhoneError])
 def test_should_queue_callback_task_if_non_retryable_exception_is_thrown(
     notify_db_session,
     mocker,
     sample_template,
     sample_notification,
+    exception,
 ):
     mocker.patch(
         'app.celery.provider_tasks.send_to_providers.send_sms_to_provider',
-        side_effect=NonRetryableException('Exception'),
+        side_effect=exception,
     )
 
     mock_callback = mocker.patch('app.celery.provider_tasks.check_and_queue_callback_task')
@@ -313,3 +316,26 @@ def test_deliver_sms_with_rate_limiting_max_retries_exceeded(
     assert exc_info.type is NotificationTechnicalFailureException
     assert notification.status == NOTIFICATION_TECHNICAL_FAILURE
     assert notification.status_reason == RETRIES_EXCEEDED
+
+
+@pytest.mark.parametrize('exception', [NonRetryableException, InvalidPhoneError])
+def test_should_mark_permanent_failure_when_non_retryable_exception_is_thrown(
+    notify_db_session,
+    mocker,
+    sample_template,
+    sample_notification,
+    exception,
+):
+    mocker.patch(
+        'app.celery.provider_tasks.send_to_providers.send_sms_to_provider',
+        side_effect=exception,
+    )
+
+    mocker.patch('app.celery.provider_tasks.check_and_queue_callback_task')
+    template = sample_template()
+    notification = sample_notification(template=template)
+
+    deliver_sms(notification.id)
+
+    notify_db_session.session.refresh(notification)
+    assert notification.status == NOTIFICATION_PERMANENT_FAILURE
