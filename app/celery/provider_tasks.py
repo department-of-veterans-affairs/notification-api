@@ -52,16 +52,28 @@ def deliver_sms(
             notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason='SMS provider configuration invalid'
         )
         raise NotificationTechnicalFailureException(str(e))
-    except (NonRetryableException, InvalidPhoneError) as e:
+    except InvalidPhoneError:
         current_app.logger.warning(
-            'Found %s - SMS notification delivery for id: %s failed. Not retrying.',
-            type(e).__name__,
+            'Found InvalidPhoneError - SMS notification delivery for id: %s failed. Not retrying.',
             notification_id,
         )
         update_notification_status_by_id(
             notification_id,
             NOTIFICATION_PERMANENT_FAILURE,
-            status_reason='ERROR: NonRetryableException - permenant failure, not retrying',
+            status_reason='Phone number is invalid',
+        )
+        notification = notifications_dao.get_notification_by_id(notification_id)
+        check_and_queue_callback_task(notification)
+    except NonRetryableException:
+        # Max retries exceeded, celery raised exception
+        current_app.logger.warning(
+            'SMS notification delivery for id: %s failed. Not retrying.',
+            notification_id,
+        )
+        update_notification_status_by_id(
+            notification_id,
+            NOTIFICATION_PERMANENT_FAILURE,
+            status_reason='ERROR: NonRetryableException - permanent failure, not retrying',
         )
         notification = notifications_dao.get_notification_by_id(notification_id)
         check_and_queue_callback_task(notification)
@@ -118,16 +130,28 @@ def deliver_sms_with_rate_limiting(
             notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason='SMS provider configuration invalid'
         )
         raise NotificationTechnicalFailureException(str(e))
-    except (NonRetryableException, InvalidPhoneError) as e:
+    except InvalidPhoneError:
         current_app.logger.warning(
-            'Found %s - SMS notification delivery for id: %s failed. Not retrying.',
-            type(e).__name__,
+            'Found InvalidPhoneError - SMS notification delivery for id: %s failed. Not retrying.',
             notification_id,
         )
         update_notification_status_by_id(
             notification_id,
             NOTIFICATION_PERMANENT_FAILURE,
-            status_reason='ERROR: NonRetryableException - permenant failure, not retrying',
+            status_reason='Phone number is invalid',
+        )
+        notification = notifications_dao.get_notification_by_id(notification_id)
+        check_and_queue_callback_task(notification)
+    except NonRetryableException:
+        # Max retries exceeded, celery raised exception
+        current_app.logger.warning(
+            'SMS notification delivery for id: %s failed. Not retrying.',
+            notification_id,
+        )
+        update_notification_status_by_id(
+            notification_id,
+            NOTIFICATION_PERMANENT_FAILURE,
+            status_reason='ERROR: NonRetryableException - permanent failure, not retrying',
         )
         notification = notifications_dao.get_notification_by_id(notification_id)
         check_and_queue_callback_task(notification)
