@@ -1,12 +1,10 @@
-from datetime import timedelta
-
-from flask import current_app
-from sqlalchemy import desc, func, select
-
 from app import db
 from app.dao.dao_utils import transactional
 from app.models import Complaint
 from app.utils import get_local_timezone_midnight_in_utc
+from datetime import timedelta
+from flask import current_app
+from sqlalchemy import desc, func, select
 
 
 @transactional
@@ -15,9 +13,8 @@ def save_complaint(complaint):
 
 
 def fetch_paginated_complaints(page=1):
-    return Complaint.query.order_by(desc(Complaint.created_at)).paginate(
-        page=page, per_page=current_app.config['PAGE_SIZE']
-    )
+    stmt = select(Complaint).order_by(desc(Complaint.created_at))
+    return db.paginate(stmt, page=page, per_page=current_app.config['PAGE_SIZE'])
 
 
 def fetch_complaint_by_id(complaint_id):

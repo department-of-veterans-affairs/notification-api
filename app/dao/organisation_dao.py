@@ -1,8 +1,6 @@
-from sqlalchemy import asc, delete, desc, join, select, update
-from sqlalchemy.sql.expression import func
-
 from app import db
 from app.dao.dao_utils import transactional, version_class
+from app.model import User
 from app.models import (
     Organisation,
     Domain,
@@ -10,7 +8,7 @@ from app.models import (
     Service,
     user_to_organisation,
 )
-from app.model import User
+from sqlalchemy import asc, delete, desc, func, join, select, update
 
 
 def dao_get_organisations():
@@ -24,20 +22,24 @@ def dao_count_organsations_with_live_services():
 
 
 def dao_get_organisation_services(organisation_id):
-    return db.session.scalars(select(Organisation).where(Organisation.id == organisation_id)).one().services
+    stmt = select(Organisation).where(Organisation.id == organisation_id)
+    return db.session.scalars(stmt).one().services
 
 
 def dao_get_organisation_by_id(organisation_id):
-    return db.session.scalars(select(Organisation).where(Organisation.id == organisation_id)).one()
+    stmt = select(Organisation).where(Organisation.id == organisation_id)
+    return db.session.scalars(stmt).one()
 
 
 def dao_get_organisation_by_email_address(email_address):
     # Endpoint is unused, query to be removed when endpoint is removed
     email_address = email_address.lower().replace('.gsi.gov.uk', '.gov.uk')
 
-    for domain in Domain.query.order_by(func.char_length(Domain.domain).desc()).all():
+    stmt = select(Domain).order_by(desc(func.char_length(Domain.domain)))
+    for domain in db.session.scalars(stmt).all():
         if email_address.endswith('@{}'.format(domain.domain)) or email_address.endswith('.{}'.format(domain.domain)):
-            return Organisation.query.filter_by(id=domain.organisation_id).one()
+            stmt = select(Organisation).where(Organisation.id == domain.organisation_id)
+            return db.session.scalars(stmt).one()
 
     return None
 

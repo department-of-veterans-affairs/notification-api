@@ -1,16 +1,5 @@
 import uuid
-from datetime import date, datetime, timedelta
 from app.service.service_data import ServiceData, ServiceDataException
-
-from cachetools import cached, TTLCache
-from notifications_utils.statsd_decorators import statsd
-from notifications_utils.timezones import convert_utc_to_local_timezone
-from sqlalchemy.sql.expression import asc, case, and_, func
-from sqlalchemy.orm import joinedload
-from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-from sqlalchemy import select, delete
-from flask import current_app
-
 from app import db
 from app.dao.dao_utils import (
     get_reader_session,
@@ -22,6 +11,7 @@ from app.dao.organisation_dao import dao_get_organisation_by_email_address
 from app.dao.service_sms_sender_dao import insert_service_sms_sender
 from app.dao.service_user_dao import dao_get_service_user
 from app.dao.template_folder_dao import dao_get_valid_template_folders_by_id
+from app.model import User
 from app.models import (
     AnnualBilling,
     ApiKey,
@@ -45,8 +35,17 @@ from app.models import (
     KEY_TYPE_TEST,
     SMS_TYPE,
 )
-from app.model import User
 from app.utils import escape_special_characters, get_local_timezone_midnight_in_utc, midnight_n_days_ago
+from cachetools import cached, TTLCache
+from datetime import date, datetime, timedelta
+from flask import current_app
+from notifications_utils.statsd_decorators import statsd
+from notifications_utils.timezones import convert_utc_to_local_timezone
+from sqlalchemy import func, select, delete
+from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from sqlalchemy.sql.expression import asc, case, and_
+
 
 # Do not confuse this with "default_service_permissions" in app/dao/permissions_dao.py.
 DEFAULT_SERVICE_PERMISSIONS = [
@@ -526,4 +525,5 @@ def dao_fetch_active_users_for_service(service_id):
 
 def dao_services_by_partial_smtp_name(smtp_name):
     smtp_name = escape_special_characters(smtp_name)
-    return Service.query.filter(Service.smtp_user.ilike('%{}%'.format(smtp_name))).one()
+    stmt = select(Service).where(Service.smtp_user.ilike(f'%{smtp_name}%'))
+    return db.session.scalars(stmt).one()
