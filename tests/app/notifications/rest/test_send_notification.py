@@ -24,6 +24,7 @@ from flask import json
 from freezegun import freeze_time
 from notifications_python_client.authentication import create_jwt_token
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
+from sqlalchemy import func, select
 from tests import create_authorization_header
 
 
@@ -888,6 +889,7 @@ def test_should_persist_notification(
 
 @pytest.mark.parametrize('template_type,queue_name', [(SMS_TYPE, 'send-sms-tasks'), (EMAIL_TYPE, 'send-email-tasks')])
 def test_should_delete_notification_and_return_error_if_sqs_fails(
+    notify_db_session,
     client,
     sample_api_key,
     sample_template,
@@ -933,7 +935,7 @@ def test_should_delete_notification_and_return_error_if_sqs_fails(
     assert result_queue['queue'] == queue_name
 
     assert not notifications_dao.get_notification_by_id(mocked_uuid)
-    assert not NotificationHistory.query.get(mocked_uuid)
+    assert not notify_db_session.session.get(NotificationHistory, mocked_uuid)
 
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
@@ -946,6 +948,7 @@ def test_should_delete_notification_and_return_error_if_sqs_fails(
     ],
 )
 def test_should_not_persist_notification_or_send_email_if_simulated_email(
+    notify_db_session,
     client,
     to_email,
     sample_api_key,
@@ -964,12 +967,15 @@ def test_should_not_persist_notification_or_send_email_if_simulated_email(
 
     assert response.status_code == 201
     apply_async.assert_not_called()
-    assert Notification.query.count() == 0
+
+    stmt = select(func.count()).select_from(Notification)
+    assert notify_db_session.session.scalar(stmt) == 0
 
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 @pytest.mark.parametrize('to_sms', ['6132532222', '6132532223', '6132532224'])
 def test_should_not_persist_notification_or_send_sms_if_simulated_number(
+    notify_db_session,
     client,
     to_sms,
     sample_api_key,
@@ -993,7 +999,9 @@ def test_should_not_persist_notification_or_send_sms_if_simulated_number(
 
     assert response.status_code == 201
     apply_async.assert_not_called()
-    assert Notification.query.count() == 0
+
+    stmt = select(func.count()).select_from(Notification)
+    assert notify_db_session.session.scalar(stmt) == 0
 
 
 @pytest.mark.parametrize('key_type', [KEY_TYPE_NORMAL, KEY_TYPE_TEAM])
@@ -1157,9 +1165,10 @@ def test_should_error_if_notification_type_does_not_match_template_type(
 
 
 def test_create_template_raises_invalid_request_exception_with_missing_personalisation(
+    notify_db_session,
     sample_template_with_placeholders,
 ):
-    template = Template.query.get(sample_template_with_placeholders.id)
+    template = notify_db_session.session.get(Template, sample_template_with_placeholders.id)
     from app.notifications.rest import create_template_object_for_notification
 
     with pytest.raises(InvalidRequest) as e:
@@ -1167,21 +1176,25 @@ def test_create_template_raises_invalid_request_exception_with_missing_personali
     assert {'template': ['Missing personalisation:  Name']} == e.value.message
 
 
-def test_create_template_doesnt_raise_with_too_much_personalisation(sample_template_with_placeholders):
+def test_create_template_doesnt_raise_with_too_much_personalisation(
+    notify_db_session,
+    sample_template_with_placeholders,
+):
     from app.notifications.rest import create_template_object_for_notification
 
-    template = Template.query.get(sample_template_with_placeholders.id)
+    template = notify_db_session.session.get(Template, sample_template_with_placeholders.id)
     create_template_object_for_notification(template, {'name': 'Jo', 'extra': 'stuff'})
 
 
 @pytest.mark.parametrize('template_type, should_error', [(SMS_TYPE, True), (EMAIL_TYPE, False)])
 def test_create_template_raises_invalid_request_when_content_too_large(
+    notify_db_session,
     sample_template,
     template_type,
     should_error,
 ):
     sample = sample_template(template_type=template_type, content='((long_text))')
-    template = Template.query.get(sample.id)
+    template = notify_db_session.session.get(Template, sample.id)
     from app.notifications.rest import create_template_object_for_notification
 
     try:
@@ -1323,6 +1336,7 @@ def test_send_sms_returns_a_429_limit_exceeded_if_sms_sender_rate_limit_exceeded
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_should_allow_store_original_number_on_sms_notification(
+    notify_db_session,
     client,
     sample_api_key,
     sample_template,
@@ -1355,7 +1369,8 @@ def test_should_allow_store_original_number_on_sms_notification(
 
     assert response.status_code == 201
     assert notification_id
-    notifications = Notification.query.all()
+    stmt = select(Notification)
+    notifications = notify_db_session.session.scalars(stmt).all()
     assert len(notifications) == 1
     assert notifications[0].to == '+16502532222'
 
@@ -1510,6 +1525,7 @@ def test_should_throw_exception_if_notification_type_is_invalid(
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 @pytest.mark.parametrize('notification_type, recipient', [('sms', '6502532222'), ('email', 'test@va.gov')])
 def test_post_notification_should_set_reply_to_text(
+    notify_db_session,
     client,
     sample_api_key,
     sample_service_email_reply_to,
@@ -1542,6 +1558,7 @@ def test_post_notification_should_set_reply_to_text(
     )
 
     assert response.status_code == 201
-    notifications = Notification.query.all()
+    stmt = select(Notification)
+    notifications = notify_db_session.session.scalars(stmt).all()
     assert len(notifications) == 1
     assert notifications[0].reply_to_text == expected_reply_to
