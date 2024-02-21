@@ -1,12 +1,14 @@
 import pytest
-
 from app.dao.communication_item_dao import get_communication_items
 from app.models import CommunicationItem
+from sqlalchemy import delete
 
 
 @pytest.fixture
 def db_session_with_empty_communication_items(notify_db_session):
-    notify_db_session.session.query(CommunicationItem).delete()
+    stmt = delete(CommunicationItem)
+    notify_db_session.session.execute(stmt)
+    notify_db_session.session.commit()
     return notify_db_session
 
 

@@ -1,11 +1,12 @@
 import json
 import pytest
-from uuid import uuid4
 
 from app.model import EMAIL_AUTH_TYPE
 from app.models import Notification
+from sqlalchemy import select
 from tests import create_admin_authorization_header
 from tests.app.db import create_invited_user
+from uuid import uuid4
 
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
@@ -17,6 +18,7 @@ from tests.app.db import create_invited_user
     ],
 )
 def test_create_invited_user(
+    notify_db_session,
     admin_request,
     sample_service,
     mocker,
@@ -50,7 +52,8 @@ def test_create_invited_user(
     assert json_resp['data']['id']
     assert json_resp['data']['folder_permissions'] == ['folder_1', 'folder_2', 'folder_3']
 
-    notification = Notification.query.first()
+    stmt = select(Notification)
+    notification = notify_db_session.session.scalars(stmt).first()
 
     assert notification.reply_to_text == invite_from.email_address
 
