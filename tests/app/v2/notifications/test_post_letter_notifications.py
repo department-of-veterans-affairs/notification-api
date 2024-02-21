@@ -1,7 +1,5 @@
-import uuid
-from flask import json
-from flask import url_for
 import pytest
+import uuid
 from app.config import QueueNames
 from app.models import (
     Job,
@@ -19,7 +17,8 @@ from app.models import (
 from app.schema_validation import validate
 from app.v2.errors import RateLimitError
 from app.v2.notifications.notification_schemas import post_letter_response
-
+from flask import json, url_for
+from sqlalchemy import func, select
 from tests import create_authorization_header
 from tests.app.db import create_service, create_template, create_letter_contact
 from tests.conftest import set_config_values
@@ -48,7 +47,7 @@ def letter_request(client, data, service_id, key_type=KEY_TYPE_NORMAL, _expected
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 @pytest.mark.parametrize('reference', [None, 'reference_from_client'])
-def test_post_letter_notification_returns_201(client, sample_letter_template, mocker, reference):
+def test_post_letter_notification_returns_201(notify_db_session, client, sample_letter_template, mocker, reference):
     mock = mocker.patch('app.celery.tasks.letters_pdf_tasks.create_letters_pdf.apply_async')
     data = {
         'template_id': str(sample_letter_template.id),
@@ -67,8 +66,13 @@ def test_post_letter_notification_returns_201(client, sample_letter_template, mo
     resp_json = letter_request(client, data, service_id=sample_letter_template.service_id)
 
     assert validate(resp_json, post_letter_response) == resp_json
-    assert Job.query.count() == 0
-    notification = Notification.query.one()
+
+    stmt = select(func.count()).select_from(Job)
+    assert notify_db_session.session.scalar(stmt) == 0
+
+    stmt = select(Notification)
+    notification = notify_db_session.session.scalars(stmt).one()
+
     assert notification.status == NOTIFICATION_CREATED
     assert resp_json['id'] == str(notification.id)
     assert resp_json['reference'] == reference
@@ -105,7 +109,10 @@ def test_post_letter_notification_sets_postage(client, notify_db_session, mocker
     resp_json = letter_request(client, data, service_id=service.id)
 
     assert validate(resp_json, post_letter_response) == resp_json
-    notification = Notification.query.one()
+
+    stmt = select(Notification)
+    notification = notify_db_session.session.scalars(stmt).one()
+
     assert notification.postage == 'first'
 
 
@@ -118,7 +125,7 @@ def test_post_letter_notification_sets_postage(client, notify_db_session, mocker
     ],
 )
 def test_post_letter_notification_with_test_key_creates_pdf_and_sets_status_to_delivered(
-    notify_api, client, sample_letter_template, mocker, env
+    notify_db_session, notify_api, client, sample_letter_template, mocker, env
 ):
     data = {
         'template_id': str(sample_letter_template.id),
@@ -140,7 +147,8 @@ def test_post_letter_notification_with_test_key_creates_pdf_and_sets_status_to_d
     with set_config_values(notify_api, {'NOTIFY_ENVIRONMENT': env}):
         letter_request(client, data, service_id=sample_letter_template.service_id, key_type=KEY_TYPE_TEST)
 
-    notification = Notification.query.one()
+    stmt = select(Notification)
+    notification = notify_db_session.session.scalars(stmt).one()
 
     fake_create_letter_task.assert_called_once_with([str(notification.id)], queue='research-mode-tasks')
     assert not fake_create_dvla_response_task.called
@@ -156,7 +164,7 @@ def test_post_letter_notification_with_test_key_creates_pdf_and_sets_status_to_d
     ],
 )
 def test_post_letter_notification_with_test_key_creates_pdf_and_sets_status_to_sending_and_sends_fake_response_file(
-    notify_api, client, sample_letter_template, mocker, env
+    notify_db_session, notify_api, client, sample_letter_template, mocker, env
 ):
     data = {
         'template_id': str(sample_letter_template.id),
@@ -178,7 +186,8 @@ def test_post_letter_notification_with_test_key_creates_pdf_and_sets_status_to_s
     with set_config_values(notify_api, {'NOTIFY_ENVIRONMENT': env}):
         letter_request(client, data, service_id=sample_letter_template.service_id, key_type=KEY_TYPE_TEST)
 
-    notification = Notification.query.one()
+    stmt = select(Notification)
+    notification = notify_db_session.session.scalars(stmt).one()
 
     fake_create_letter_task.assert_called_once_with([str(notification.id)], queue='research-mode-tasks')
     assert fake_create_dvla_response_task.called
@@ -322,7 +331,7 @@ def test_post_letter_notification_doesnt_send_in_trial(client, sample_trial_lett
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_post_letter_notification_is_delivered_but_still_creates_pdf_if_in_trial_mode_and_using_test_key(
-    client, sample_trial_letter_template, mocker
+    notify_db_session, client, sample_trial_letter_template, mocker
 ):
     fake_create_letter_task = mocker.patch('app.celery.letters_pdf_tasks.create_letters_pdf.apply_async')
 
@@ -333,7 +342,9 @@ def test_post_letter_notification_is_delivered_but_still_creates_pdf_if_in_trial
 
     letter_request(client, data=data, service_id=sample_trial_letter_template.service_id, key_type=KEY_TYPE_TEST)
 
-    notification = Notification.query.one()
+    stmt = select(Notification)
+    notification = notify_db_session.session.scalars(stmt).one()
+
     assert notification.status == NOTIFICATION_DELIVERED
     fake_create_letter_task.assert_called_once_with([str(notification.id)], queue='research-mode-tasks')
 
@@ -352,6 +363,8 @@ def test_post_letter_notification_persists_notification_reply_to_text(client, no
     }
     letter_request(client, data=data, service_id=service.id, key_type=KEY_TYPE_NORMAL)
 
-    notifications = Notification.query.all()
+    stmt = select(Notification)
+    notifications = notify_db_session.session.scalars(stmt).all()
+
     assert len(notifications) == 1
     assert notifications[0].reply_to_text == service_address

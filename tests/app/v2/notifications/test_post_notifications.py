@@ -1,7 +1,5 @@
 import base64
-from random import randint
 import pytest
-from sqlalchemy import delete, select
 import uuid
 from . import post_send_notification
 from app.attachments.exceptions import UnsupportedMimeTypeException
@@ -28,6 +26,8 @@ from app.v2.notifications.notification_schemas import post_sms_response, post_em
 from app.va.identifier import IdentifierType
 from flask import json, current_app
 from freezegun import freeze_time
+from random import randint
+from sqlalchemy import delete, select
 from tests import create_authorization_header
 from tests.app.db import create_reply_to_email, create_service_sms_sender
 from tests.app.factories.feature_flag import mock_feature_flag
@@ -828,7 +828,10 @@ def test_post_notification_with_scheduled_for(
     response = post_send_notification(client, sample_api_key(service=service), notification_type, data)
     assert response.status_code == 201
     resp_json = response.get_json()
-    scheduled_notification = ScheduledNotification.query.filter_by(notification_id=resp_json['id']).all()
+
+    stmt = select(ScheduledNotification).where(ScheduledNotification.notification_id == resp_json['id'])
+    scheduled_notification = notify_db_session.session.scalars(stmt).all()
+
     assert len(scheduled_notification) == 1
     assert resp_json['id'] == str(scheduled_notification[0].notification_id)
     assert resp_json['scheduled_for'] == '2017-05-14 14:15'
@@ -1412,7 +1415,10 @@ def test_should_process_notification_successfully_with_recipient_identifiers(
 
     assert response.status_code == 201
     assert len(notifications) == 1
-    assert RecipientIdentifier.query.count() == 1
+
+    stmt = select(func.count()).select_from(RecipientIdentifier)
+    assert notify_db_session.session.scalar(stmt) == 1
+
     notification = notifications[0]
     assert notification.status == NOTIFICATION_CREATED
     assert notification.recipient_identifiers[expected_type].id_type == expected_type
@@ -1428,6 +1434,7 @@ def test_should_process_notification_successfully_with_recipient_identifiers(
 @pytest.mark.skip(reason='test failing in pipeline but no where else')
 @pytest.mark.parametrize('notification_type', [EMAIL_TYPE, SMS_TYPE])
 def test_should_post_notification_successfully_with_recipient_identifier_and_contact_info(
+    notify_db_session,
     client,
     mocker,
     enable_accept_recipient_identifiers_enabled_feature_flag,
@@ -1470,8 +1477,13 @@ def test_should_post_notification_successfully_with_recipient_identifier_and_con
     )
 
     assert response.status_code == 201
-    assert Notification.query.count() == 1
-    notification = Notification.query.one()
+
+    stmt = select(func.count()).select_from(Notification)
+    assert notify_db_session.session.scalar(stmt) == 1
+
+    stmt = select(Notification)
+    notification = notify_db_session.session.scalars(stmt).one()
+
     assert notification.status == NOTIFICATION_CREATED
 
     # Commenting out these assertions because of funky failures in pipeline

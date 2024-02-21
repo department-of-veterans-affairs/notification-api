@@ -169,12 +169,12 @@ def test_send_email_to_provider_should_compute_source_email_address(
 
 def test_should_send_personalised_template_to_correct_email_provider_and_persist(
     notify_db_session,
-    sample_api_key, 
-    sample_notification, 
-    sample_template, 
-    mock_email_client, 
-    notify_api, 
-    mock_source_email_address
+    sample_api_key,
+    sample_notification,
+    sample_template,
+    mock_email_client,
+    notify_api,
+    mock_source_email_address,
 ):
     template = sample_template(
         template_type=EMAIL_TYPE,
