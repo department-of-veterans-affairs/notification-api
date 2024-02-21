@@ -1,18 +1,16 @@
 import json
-import uuid
-from datetime import datetime, timedelta
-
 import pytest
+import uuid
+from app import db
+from app.dao.login_event_dao import list_login_events
+from app.dao.services_dao import dao_update_service, dao_fetch_service_by_id
+from app.dao.users_dao import create_user_code
+from app.model import User
+from app.models import Notification, VerifyCode, EMAIL_TYPE, SMS_TYPE
+from datetime import datetime, timedelta
 from flask import url_for, current_app
 from freezegun import freeze_time
-
-from app.dao.login_event_dao import list_login_events
-from app.dao.users_dao import create_user_code
-from app.dao.services_dao import dao_update_service, dao_fetch_service_by_id
-from app.models import Notification, VerifyCode, EMAIL_TYPE, SMS_TYPE
-from app.model import User
-from app import db
-
+from sqlalchemy import func, select
 from tests import create_admin_authorization_header
 
 
@@ -20,7 +18,8 @@ from tests import create_admin_authorization_header
 @freeze_time('2016-01-01T12:00:00')
 def test_user_verify_sms_code(client, sample_sms_code):
     sample_sms_code.user.logged_in_at = datetime.utcnow() - timedelta(days=1)
-    assert not VerifyCode.query.first().code_used
+    stmt = select(VerifyCode)
+    assert not db.session.scalars(stmt).first().code_used
     assert sample_sms_code.user.current_session_id is None
     data = json.dumps({'code_type': sample_sms_code.code_type, 'code': sample_sms_code.txt_code})
     auth_header = create_admin_authorization_header()
@@ -30,14 +29,15 @@ def test_user_verify_sms_code(client, sample_sms_code):
         headers=[('Content-Type', 'application/json'), auth_header],
     )
     assert resp.status_code == 204
-    assert VerifyCode.query.first().code_used
+    assert db.session.scalars(stmt).first().code_used
     assert sample_sms_code.user.logged_in_at == datetime.utcnow()
     assert sample_sms_code.user.current_session_id is not None
 
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_user_verify_code_missing_code(client, sample_sms_code):
-    assert not VerifyCode.query.first().code_used
+    stmt = select(VerifyCode)
+    assert not db.session.scalars(stmt).first().code_used
     data = json.dumps({'code_type': sample_sms_code.code_type})
     auth_header = create_admin_authorization_header()
     resp = client.post(
@@ -46,13 +46,14 @@ def test_user_verify_code_missing_code(client, sample_sms_code):
         headers=[('Content-Type', 'application/json'), auth_header],
     )
     assert resp.status_code == 400
-    assert not VerifyCode.query.first().code_used
-    assert User.query.get(sample_sms_code.user.id).failed_login_count == 0
+    assert not db.session.scalars(stmt).first().code_used
+    assert db.session.get(User, sample_sms_code.user.id).failed_login_count == 0
 
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_user_verify_code_bad_code_and_increments_failed_login_count(client, sample_sms_code):
-    assert not VerifyCode.query.first().code_used
+    stmt = select(VerifyCode)
+    assert not db.session.scalars(stmt).first().code_used
     data = json.dumps({'code_type': sample_sms_code.code_type, 'code': 'blah'})
     auth_header = create_admin_authorization_header()
     resp = client.post(
@@ -61,13 +62,14 @@ def test_user_verify_code_bad_code_and_increments_failed_login_count(client, sam
         headers=[('Content-Type', 'application/json'), auth_header],
     )
     assert resp.status_code == 404
-    assert not VerifyCode.query.first().code_used
-    assert User.query.get(sample_sms_code.user.id).failed_login_count == 1
+    assert not db.session.scalars(stmt).first().code_used
+    assert db.session.get(User, sample_sms_code.user.id).failed_login_count == 1
 
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_user_verify_code_expired_code_and_increments_failed_login_count(client, sample_sms_code):
-    assert not VerifyCode.query.first().code_used
+    stmt = select(VerifyCode)
+    assert not db.session.scalars(stmt).first().code_used
     sample_sms_code.expiry_datetime = datetime.utcnow() - timedelta(hours=1)
     db.session.add(sample_sms_code)
     db.session.commit()
@@ -79,8 +81,8 @@ def test_user_verify_code_expired_code_and_increments_failed_login_count(client,
         headers=[('Content-Type', 'application/json'), auth_header],
     )
     assert resp.status_code == 400
-    assert not VerifyCode.query.first().code_used
-    assert User.query.get(sample_sms_code.user.id).failed_login_count == 1
+    assert not db.session.scalars(stmt).first().code_used
+    assert db.session.get(User, sample_sms_code.user.id).failed_login_count == 1
 
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
@@ -96,7 +98,7 @@ def test_user_verify_password(client, sample_user):
         headers=[('Content-Type', 'application/json'), auth_header],
     )
     assert resp.status_code == 204
-    assert User.query.get(sample_user.id).logged_in_at == yesterday
+    assert db.session.get(User, sample_user.id).logged_in_at == yesterday
 
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
@@ -112,7 +114,7 @@ def test_user_verify_password_creates_login_event(client, sample_user):
         headers=[('Content-Type', 'application/json'), auth_header],
     )
     assert resp.status_code == 204
-    assert User.query.get(sample_user.id).logged_in_at == yesterday
+    assert db.session.get(User, sample_user.id).logged_in_at == yesterday
 
     events = list_login_events(sample_user.id)
     assert len(events) == 1
@@ -203,9 +205,13 @@ def test_send_user_sms_code(client, sample_user, sms_code_template, mocker, rese
     assert resp.status_code == 204
 
     mocked.assert_called_once()
-    assert VerifyCode.query.one().check_code('11111')
 
-    notification = Notification.query.one()
+    stmt = select(VerifyCode)
+    assert db.session.scalars(stmt).one().check_code('11111')
+
+    stmt = select(Notification)
+    notification = db.session.scalars(stmt).one()
+
     assert notification.personalisation == {'verify_code': '11111'}
     assert notification.to == sample_user.mobile_number
     assert str(notification.service_id) == current_app.config['NOTIFY_SERVICE_ID']
@@ -238,7 +244,10 @@ def test_send_user_code_for_sms_with_optional_to_field(client, sample_user, sms_
 
     assert resp.status_code == 204
     mocked.assert_called_once()
-    notification = Notification.query.first()
+
+    stmt = select(Notification)
+    notification = db.session.scalars(stmt).first()
+
     assert notification.to == to_number
 
     result_notification_id, result_queue = mocked_task.call_args
@@ -306,7 +315,10 @@ def test_send_sms_code_returns_204_when_too_many_codes_already_created(client, s
         )
         db.session.add(verify_code)
         db.session.commit()
-    assert VerifyCode.query.count() == 10
+
+    stmt = select(func.count()).select_from(VerifyCode)
+    assert db.session.scalar(stmt) == 10
+
     auth_header = create_admin_authorization_header()
     resp = client.post(
         url_for('user.send_user_2fa_code', code_type=SMS_TYPE, user_id=sample_user.id),
@@ -314,7 +326,7 @@ def test_send_sms_code_returns_204_when_too_many_codes_already_created(client, s
         headers=[('Content-Type', 'application/json'), auth_header],
     )
     assert resp.status_code == 204
-    assert VerifyCode.query.count() == 10
+    assert db.session.scalar(stmt) == 10
 
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
@@ -328,8 +340,12 @@ def test_send_new_user_email_verification(client, sample_user, mocker, email_ver
     )
     notify_service = email_verification_template.service
     assert resp.status_code == 204
-    notification = Notification.query.first()
-    assert VerifyCode.query.count() == 0
+
+    stmt = select(Notification)
+    notification = db.session.scalars(stmt).first()
+
+    stmt = select(func.count()).select_from(VerifyCode)
+    assert db.session.scalar(stmt) == 0
 
     result_notification_id, result_queue = mocked.call_args
     result_id, *rest = result_notification_id[0]
@@ -440,7 +456,10 @@ def test_send_user_email_code(
     admin_request.post(
         'user.send_user_2fa_code', code_type=EMAIL_TYPE, user_id=sample_user.id, _data=data, _expected_status=204
     )
-    notification = Notification.query.one()
+
+    stmt = select(Notification)
+    notification = db.session.scalars(stmt).one()
+
     assert notification.reply_to_text == email_2fa_code_template.service.get_default_reply_to_email_address()
     assert notification.to == sample_user.email_address
     assert str(notification.template_id) == current_app.config['EMAIL_2FA_TEMPLATE_ID']
@@ -463,7 +482,10 @@ def test_send_user_email_code_with_urlencoded_next_param(admin_request, mocker, 
     admin_request.post(
         'user.send_user_2fa_code', code_type=EMAIL_TYPE, user_id=sample_user.id, _data=data, _expected_status=204
     )
-    noti = Notification.query.one()
+
+    stmt = select(Notification)
+    noti = db.session.scalars(stmt).one()
+
     assert noti.personalisation['url'].endswith('?next=%2Fservices')
 
 

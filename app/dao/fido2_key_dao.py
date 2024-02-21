@@ -13,10 +13,7 @@ def delete_fido2_key(
     user_id,
     fido_key_id,
 ):
-    stmt = delete(Fido2Key).where(
-        Fido2Key.user_id == user_id,
-        Fido2Key.id == fido_key_id
-    )
+    stmt = delete(Fido2Key).where(Fido2Key.user_id == user_id, Fido2Key.id == fido_key_id)
     db.session.execute(stmt)
     db.session.commit()
 
@@ -25,10 +22,7 @@ def get_fido2_key(
     user_id,
     fido_key_id,
 ):
-    stmt = select(Fido2Key).where(
-        Fido2Key.user_id == user_id,
-        Fido2Key.id == fido_key_id
-    )
+    stmt = select(Fido2Key).where(Fido2Key.user_id == user_id, Fido2Key.id == fido_key_id)
     return db.session.scalars(stmt).one()
 
 
@@ -58,7 +52,8 @@ def delete_fido2_session(user_id):
 
 
 def get_fido2_session(user_id):
-    session = db.session.query(Fido2Session).filter(Fido2Session.user_id == user_id).one()
+    stmt = select(Fido2Session).where(Fido2Session.user_id == user_id)
+    session = db.session.scalars(stmt).one()
     delete_fido2_session(user_id)
     return json.loads(session.session)
 

@@ -1,6 +1,7 @@
 import base64
 import json
 import pytest
+from app import db
 from app.dao.fido2_key_dao import save_fido2_key, create_fido2_session
 from app.dao.login_event_dao import save_login_event
 from app.dao.permissions_dao import default_service_permissions
@@ -19,10 +20,11 @@ from app.models import (
 from fido2 import cbor
 from flask import current_app, url_for
 from freezegun import freeze_time
+from sqlalchemy import func, select
 from tests import create_admin_authorization_header
 from tests.app.db import create_template_folder, create_organisation, create_reply_to_email
-from uuid import UUID, uuid4
 from unittest import mock
+from uuid import UUID, uuid4
 
 
 def test_get_user_list(admin_request, sample_service):
@@ -107,7 +109,9 @@ def test_post_user(client):
     Tests POST endpoint '/' to create a user.
     """
 
-    assert User.query.count() == 0
+    stmt = select(func.count()).select_from(User)
+    assert db.session.scalar(stmt) == 0
+
     data = {
         'name': 'Test User',
         'email_address': 'user@digital.cabinet-office.gov.uk',
@@ -123,7 +127,10 @@ def test_post_user(client):
     headers = [('Content-Type', 'application/json'), auth_header]
     resp = client.post(url_for('user.create_user'), data=json.dumps(data), headers=headers)
     assert resp.status_code == 201
-    user = User.query.filter_by(email_address='user@digital.cabinet-office.gov.uk').first()
+
+    stmt = select(User).where(User.email_address == 'user@digital.cabinet-office.gov.uk')
+    user = db.session.scalars(stmt).first()
+
     json_resp = resp.get_json()
     assert json_resp['data']['email_address'] == user.email_address
     assert json_resp['data']['id'] == str(user.id)
@@ -133,7 +140,9 @@ def test_post_user(client):
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 # @pytest.mark.xfail(reason="Failing after Flask upgrade.  Not fixed because not used.", run=False)
 def test_post_user_without_auth_type(admin_request):
-    assert User.query.count() == 0
+    stmt = select(func.count()).select_from(User)
+    assert db.session.scalar(stmt) == 0
+
     data = {
         'name': 'Test User',
         'email_address': 'user@digital.cabinet-office.gov.uk',
@@ -144,7 +153,9 @@ def test_post_user_without_auth_type(admin_request):
 
     json_resp = admin_request.post('user.create_user', _data=data, _expected_status=201)
 
-    user = User.query.filter_by(email_address='user@digital.cabinet-office.gov.uk').first()
+    stmt = select(User).where(User.email_address == 'user@digital.cabinet-office.gov.uk')
+    user = db.session.scalars(stmt).first()
+
     assert json_resp['data']['id'] == str(user.id)
     assert user.auth_type == EMAIL_AUTH_TYPE
 
@@ -154,7 +165,10 @@ def test_post_user_missing_attribute_email(client):
     """
     Tests POST endpoint '/' missing attribute email.
     """
-    assert User.query.count() == 0
+
+    stmt = select(func.count()).select_from(User)
+    assert db.session.scalar(stmt) == 0
+
     data = {
         'name': 'Test User',
         'password': 'tQETOgIO8yzDMyCsDjLZIEVZHAvkFArYfmSI1KTsJnlnPohI2tfIa8kfng7bxCm',
@@ -168,7 +182,7 @@ def test_post_user_missing_attribute_email(client):
     headers = [('Content-Type', 'application/json'), auth_header]
     resp = client.post(url_for('user.create_user'), data=json.dumps(data), headers=headers)
     assert resp.status_code == 400
-    assert User.query.count() == 0
+    assert db.session.scalar(stmt) == 0
     json_resp = resp.get_json()
     assert {'email_address': ['Missing data for required field.']} == json_resp['message']
 
@@ -179,7 +193,10 @@ def test_post_user_with_identity_provider_user_id_without_password(client):
     """
     Tests POST endpoint '/' to create a user with an identity_provider_user_id.
     """
-    assert User.query.count() == 0
+
+    stmt = select(func.count()).select_from(User)
+    assert db.session.scalar(stmt) == 0
+
     data = {
         'name': 'Test User',
         'email_address': 'user@digital.cabinet-office.gov.uk',
@@ -195,7 +212,10 @@ def test_post_user_with_identity_provider_user_id_without_password(client):
     headers = [('Content-Type', 'application/json'), auth_header]
     resp = client.post(url_for('user.create_user'), data=json.dumps(data), headers=headers)
     assert resp.status_code == 201
-    user = User.query.filter_by(identity_provider_user_id='test-id').first()
+
+    stmt = select(User).where(User.identity_provider_user_id == 'test-id')
+    user = db.session.scalars(stmt).first()
+
     json_resp = resp.get_json()['data']
     assert json_resp['identity_provider_user_id'] == user.identity_provider_user_id
     assert json_resp['email_address'] == user.email_address
@@ -208,7 +228,10 @@ def test_create_user_missing_attribute_password(client):
     """
     Tests POST endpoint '/' missing attribute password.
     """
-    assert User.query.count() == 0
+
+    stmt = select(func.count()).select_from(User)
+    assert db.session.scalar(stmt) == 0
+
     data = {
         'name': 'Test User',
         'email_address': 'user@digital.cabinet-office.gov.uk',
@@ -222,7 +245,7 @@ def test_create_user_missing_attribute_password(client):
     headers = [('Content-Type', 'application/json'), auth_header]
     resp = client.post(url_for('user.create_user'), data=json.dumps(data), headers=headers)
     assert resp.status_code == 400
-    assert User.query.count() == 0
+    assert db.session.scalar(stmt) == 0
     json_resp = resp.get_json()
     assert {'password': ['Missing data for required field.']} == json_resp['message']
 
@@ -232,7 +255,10 @@ def test_create_user_with_known_bad_password(client):
     """
     Tests POST endpoint '/' missing attribute password.
     """
-    assert User.query.count() == 0
+
+    stmt = select(func.count()).select_from(User)
+    assert db.session.scalar(stmt) == 0
+
     data = {
         'name': 'Test User',
         'password': 'Password',
@@ -247,7 +273,7 @@ def test_create_user_with_known_bad_password(client):
     headers = [('Content-Type', 'application/json'), auth_header]
     resp = client.post(url_for('user.create_user'), data=json.dumps(data), headers=headers)
     assert resp.status_code == 400
-    assert User.query.count() == 0
+    assert db.session.scalar(stmt) == 0
     json_resp = resp.get_json()
     assert {'password': ['Password is blacklisted.']} == json_resp['message']
 
@@ -590,7 +616,10 @@ def test_set_user_permissions(client, sample_service, sample_user):
     )
 
     assert response.status_code == 204
-    permission = Permission.query.filter_by(permission=MANAGE_SETTINGS).first()
+
+    stmt = select(Permission).where(Permission.permission == MANAGE_SETTINGS)
+    permission = db.session.scalars(stmt).first()
+
     assert permission.user == user
     assert permission.service == service
     assert permission.permission == MANAGE_SETTINGS
@@ -610,11 +639,17 @@ def test_set_user_permissions_multiple(client, sample_service, sample_user):
     )
 
     assert response.status_code == 204
-    permission = Permission.query.filter_by(permission=MANAGE_SETTINGS).first()
+
+    stmt = select(Permission).where(Permission.permission == MANAGE_SETTINGS)
+    permission = db.session.scalars(stmt).first()
+
     assert permission.user == user
     assert permission.service == service
     assert permission.permission == MANAGE_SETTINGS
-    permission = Permission.query.filter_by(permission=MANAGE_TEMPLATES).first()
+
+    stmt = select(Permission).where(Permission.permission == MANAGE_TEMPLATES)
+    permission = db.session.scalars(stmt).first()
+
     assert permission.user == user
     assert permission.service == service
     assert permission.permission == MANAGE_TEMPLATES
@@ -633,9 +668,12 @@ def test_set_user_permissions_remove_old(client, sample_service, sample_user):
     )
 
     assert response.status_code == 204
-    query = Permission.query.filter_by(user=user)
-    assert query.count() == 1
-    assert query.first().permission == MANAGE_SETTINGS
+
+    stmt = select(func.count()).select_from(Permission).where(Permission.user == user)
+    assert db.session.scalar(stmt) == 1
+
+    stmt = select(Permission).where(Permission.user == user)
+    assert db.session.scalars(stmt).first().permission == MANAGE_SETTINGS
 
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
@@ -776,7 +814,9 @@ def test_send_user_reset_password_should_send_reset_password_link(
     )
 
     assert resp.status_code == 204
-    notification = Notification.query.first()
+
+    stmt = select(Notification)
+    notification = db.session.scalars(stmt).first()
 
     result_notification_id, result_queue = mocked.call_args
     result_id, *rest = result_notification_id[0]
@@ -850,7 +890,9 @@ def test_send_already_registered_email(client, sample_user, already_registered_t
     )
     assert resp.status_code == 204
 
-    notification = Notification.query.first()
+    stmt = select(Notification)
+    notification = db.session.scalars(stmt).first()
+
     result_notification_id, result_queue = mocked.call_args
     result_id, *rest = result_notification_id[0]
     assert result_id == str(notification.id)
@@ -891,7 +933,9 @@ def test_send_support_email(client, sample_user, contact_us_template, mocker):
     )
     assert resp.status_code == 204
 
-    notification = Notification.query.first()
+    stmt = select(Notification)
+    notification = db.session.scalars(stmt).first()
+
     mocked.assert_called_once_with(([str(notification.id)]), queue='notify-internal-tasks')
     assert notification.reply_to_text == notify_service.get_default_reply_to_email_address()
 
@@ -928,7 +972,9 @@ def test_send_user_confirm_new_email_returns_204(client, sample_user, change_ema
         headers=[('Content-Type', 'application/json'), auth_header],
     )
     assert resp.status_code == 204
-    notification = Notification.query.first()
+
+    stmt = select(Notification)
+    notification = db.session.scalars(stmt).first()
 
     result_notification_id, result_queue = mocked.call_args
     result_id, *rest = result_notification_id[0]
@@ -1418,7 +1464,10 @@ def test_delete_fido2_keys_for_a_user(client, sample_service, mocker, account_ch
         url_for('user.delete_fido2_keys_user', user_id=sample_user.id, key_id=data[0]['id']),
         headers=[('Content-Type', 'application/json'), auth_header],
     )
-    assert Fido2Key.query.count() == 0
+
+    stmt = select(func.count()).select_from(Fido2Key)
+    assert db.session.scalar(stmt) == 0
+
     assert response.status_code == 200
     assert json.loads(response.get_data(as_text=True))['id'] == data[0]['id']
 

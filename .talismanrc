@@ -28,7 +28,7 @@ fileignoreconfig:
 - filename: tests/app/dao/test_fact_notification_status_dao.py
   checksum: 2cad8d3b4a53bad53c3adeb9c81968d11b21e75d729976120bdd66ca91031738
 - filename: tests/app/dao/test_fido2_keys_dao.py
-  checksum: 590f239cf9cfec2028e46f039f079b90517c69be312620257f876cf375d31383
+  checksum: d31637bf80436d874d1bd8291c62a0ada156fa71620c2299b0cee4e4c746eaeb
 - filename: tests/app/dao/test_api_key_dao.py
   checksum: 2a5c8291ae13fffac0f6820880d0891248f7b958ef4106a23bd8d0bf3d17e15b
 - filename: tests/app/v2/notifications/test_push_broadcast_notifications.py
