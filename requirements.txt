@@ -38,7 +38,7 @@ envier==0.5.1
 eventlet==0.33.3
 exceptiongroup==1.2.0
 fido2==1.1.2
-Flask==2.3.3
+Flask==3.0.2
 Flask-Bcrypt==1.0.1
 Flask-Cors==4.0.0
 Flask-JWT-Extended==4.6.0
@@ -108,7 +108,7 @@ validatesns==0.1.1
 vine==5.1.0
 wcwidth==0.2.13
 webencodings==0.5.1
-Werkzeug==2.3.8
+Werkzeug==3.0.1
 wrapt==1.16.0
 xmltodict==0.13.0
 yarl==1.9.4
