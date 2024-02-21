@@ -30,7 +30,7 @@ click-repl==0.3.0
 cryptography==42.0.4
 Cython==0.29.37
 ddsketch==2.0.4
-ddtrace==2.6.3
+ddtrace==1.18.2
 Deprecated==1.2.14
 dnspython==2.6.1
 docopt==0.6.2
