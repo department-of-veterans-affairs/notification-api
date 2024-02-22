@@ -31,7 +31,7 @@ cryptography==42.0.4
 ddsketch==2.0.4
 ddtrace==1.18.2
 Deprecated==1.2.14
-dnspython==2.6.1
+dnspython==2.4.2
 docopt==0.6.2
 envier==0.4.0
 eventlet==0.33.3
