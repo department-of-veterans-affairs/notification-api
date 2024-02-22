@@ -1,13 +1,7 @@
 import base64
-from datetime import datetime
-from random import randint
-import urllib
-from uuid import uuid4
-
 import pytest
-from flask import json
-from freezegun import freeze_time
-
+import urllib
+from app.models import InboundSms, SMS_TYPE, INBOUND_SMS_TYPE, Service, Permission
 from app.notifications.receive_notifications import (
     create_inbound_sms_object,
     format_mmg_message,
@@ -17,8 +11,12 @@ from app.notifications.receive_notifications import (
     fetch_potential_service,
     NoSuitableServiceForInboundSms,
 )
-
-from app.models import InboundSms, SMS_TYPE, INBOUND_SMS_TYPE, Service, Permission
+from datetime import datetime
+from flask import json
+from freezegun import freeze_time
+from random import randint
+from sqlalchemy import select
+from uuid import uuid4
 
 
 def firetext_post(client, data, auth=True, password='testkey'):  # nosec
@@ -59,7 +57,12 @@ def twilio_post(client, data, auth='username:password', signature='signature'):
 
 
 @pytest.mark.skip(reason='Endpoint disabled and slated for removal')
-def test_receive_notification_returns_received_to_mmg(client, mocker, sample_service_full_permissions):
+def test_receive_notification_returns_received_to_mmg(
+    notify_db_session,
+    client,
+    mocker,
+    sample_service_full_permissions,
+):
     mocked = mocker.patch('app.notifications.receive_notifications.send_inbound_sms_to_service.apply_async')
     data = {
         'ID': '1234',
@@ -76,7 +79,8 @@ def test_receive_notification_returns_received_to_mmg(client, mocker, sample_ser
     result = json.loads(response.get_data(as_text=True))
     assert result['status'] == 'ok'
 
-    inbound_sms_id = InboundSms.query.all()[0].id
+    stmt = select(InboundSms)
+    inbound_sms_id = notify_db_session.session.scalars(stmt).all()[0].id
     mocked.assert_called_once_with(
         [str(inbound_sms_id), str(sample_service_full_permissions.id)], queue='notify-internal-tasks'
     )

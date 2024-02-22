@@ -12,6 +12,7 @@ import requests_mock
 from botocore.exceptions import ClientError
 from celery.exceptions import MaxRetriesExceededError, Retry
 from requests import RequestException
+from sqlalchemy import select
 from sqlalchemy.orm.exc import NoResultFound
 
 from app.errors import VirusScanError
@@ -159,12 +160,13 @@ def test_create_letters_pdf_calls_s3upload_for_test_letters(mocker, sample_lette
 
 
 @pytest.mark.xfail(reason="Not fixed during #1436 because letter functionality isn't used.", run=False)
-def test_create_letters_pdf_sets_billable_units(mocker, sample_letter_notification):
+def test_create_letters_pdf_sets_billable_units(notify_db_session, mocker, sample_letter_notification):
     mocker.patch('app.celery.letters_pdf_tasks.get_letters_pdf', return_value=(b'\x00\x01', 1))
     mocker.patch('app.letters.utils.s3upload')
 
     create_letters_pdf(sample_letter_notification.id)
-    noti = Notification.query.filter(Notification.reference == sample_letter_notification.reference).one()
+    stmt = select(Notification).where(Notification.reference == sample_letter_notification.reference)
+    noti = notify_db_session.session.scalars(stmt).one()
     assert noti.billable_units == 1
 
 

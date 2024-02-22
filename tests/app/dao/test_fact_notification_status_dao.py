@@ -38,6 +38,7 @@ from app.models import (
 from datetime import timedelta, datetime, date
 from freezegun import freeze_time
 from notifications_utils.timezones import convert_utc_to_local_timezone
+from sqlalchemy import select
 from uuid import UUID, uuid4
 from unittest import mock
 
@@ -66,9 +67,10 @@ def test_update_fact_notification_status(
     data = fetch_notification_status_for_day(process_day=process_day)
     update_fact_notification_status(data=data, process_day=process_day.date())
 
-    new_fact_data = FactNotificationStatus.query.order_by(
+    stmt = select(FactNotificationStatus).order_by(
         FactNotificationStatus.bst_date, FactNotificationStatus.notification_type
-    ).all()
+    )
+    new_fact_data = notify_db_session.session.scalars(stmt).all()
 
     try:
         assert len(new_fact_data) == 3
@@ -116,9 +118,10 @@ def test_update_fact_notification_status_updates_row(
     data = fetch_notification_status_for_day(process_day=process_day)
     update_fact_notification_status(data=data, process_day=process_day.date())
 
-    new_fact_data = FactNotificationStatus.query.order_by(
+    stmt = select(FactNotificationStatus).order_by(
         FactNotificationStatus.bst_date, FactNotificationStatus.notification_type
-    ).all()
+    )
+    new_fact_data = notify_db_session.session.scalars(stmt).all()
 
     try:
         assert len(new_fact_data) == 1
@@ -135,9 +138,7 @@ def test_update_fact_notification_status_updates_row(
     data = fetch_notification_status_for_day(process_day=process_day)
     update_fact_notification_status(data=data, process_day=process_day.date())
 
-    updated_fact_data = FactNotificationStatus.query.order_by(
-        FactNotificationStatus.bst_date, FactNotificationStatus.notification_type
-    ).all()
+    updated_fact_data = notify_db_session.session.scalars(stmt).all()
 
     try:
         assert len(updated_fact_data) == 1
