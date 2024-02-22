@@ -1,8 +1,3 @@
-"""
-TODO - This file has multiple uses of using the notify_db_session fixture only for the
-side-effect of clearing tables after the test.  See #1106.
-"""
-
 import datetime
 import pytest
 from app.dao.organisation_dao import (

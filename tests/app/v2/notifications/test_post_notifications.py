@@ -76,9 +76,7 @@ def mock_deliver_sms(mocker):
     'data',
     [
         {'phone_number': '+16502532222'},
-        # TODO - Testing recipient_identifier requires an active feature flag that is not
-        # active in the testing environment.
-        # {"recipient_identifier": {"id_type": IdentifierType.VA_PROFILE_ID.value, "id_value": "bar"}},
+        {"recipient_identifier": {"id_type": IdentifierType.VA_PROFILE_ID.value, "id_value": "bar"}},
     ],
 )
 def test_post_sms_notification_returns_201(
@@ -89,12 +87,18 @@ def test_post_sms_notification_returns_201(
     mock_deliver_sms,
     reference,
     data,
+    mocker,
 ):
     template = sample_template(content='Hello (( Name))\nYour thing is due soon')
     data.update({'template_id': str(template.id), 'personalisation': {' Name': 'Jo'}})
     if reference is not None:
         data['reference'] = reference
 
+    if 'recipient_identifier' in data:
+        mocker.patch('app.v2.notifications.post_notifications.accept_recipient_identifiers_enabled', return_value=True)
+        mocker.patch('app.celery.lookup_va_profile_id_task.lookup_va_profile_id.apply_async')
+        mocker.patch('app.celery.onsite_notification_tasks.send_va_onsite_notification_task.apply_async')
+        mocker.patch('app.celery.contact_information_tasks.lookup_contact_info.apply_async')
     response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
 
     assert response.status_code == 201
@@ -116,7 +120,11 @@ def test_post_sms_notification_returns_201(
     assert resp_json['template']['version'] == template.version
     assert 'services/{}/templates/{}'.format(template.service_id, template.id) in resp_json['template']['uri']
     assert not resp_json['scheduled_for']
-    assert mock_deliver_sms.called
+
+    if 'recipient_identifier' not in data:
+        assert mock_deliver_sms.called
+    # Else, for sending with a recipient ID, the delivery function won't get called because the preceeding
+    # tasks in the chain are mocked.
 
     # Teardown
     notify_db_session.session.delete(notifications[0])

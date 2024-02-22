@@ -885,9 +885,6 @@ def test_send_sms_to_provider_should_format_phone_number(
     notification = sample_notification(template=template, api_key=api_key, to_field='+1 650 253 2222')
 
     send_to_providers.send_sms_to_provider(notification)
-
-    # TODO: don't test the actual return value of notification_utils.recipients.validate_and_format_phone_number
-    # instead, mock that dependency and check that it's used properly
     assert mock_sms_client.send_sms.call_args[1]['to'] == '+16502532222'
 
 
