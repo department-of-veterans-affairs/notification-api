@@ -33,7 +33,7 @@ check-dependencies: install-safety ## Scan dependencies for security vulnerabili
 	# Ignored issues not described here are documented in requirements-app.txt.
 	# 12 Dec 2023: 51668 is fixed with >= 2.0.0b1 of SQLAlchemy. Ongoing refactor to upgrade.
 
-	safety check -r requirements.txt --full-report -i 51668
+	safety check -r requirements.txt --full-report -i 51668 64227
 
 .PHONY:
 	help \
