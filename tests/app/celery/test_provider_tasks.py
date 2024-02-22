@@ -151,17 +151,37 @@ def test_should_queue_callback_task_if_permanent_failure_exception_is_thrown(
     assert mock_callback.call_args.args[0].id == notification.id
 
 
-@pytest.mark.parametrize('exception', [NonRetryableException, InvalidPhoneError])
-def test_should_mark_permanent_failure_when_non_retryable_exception_is_thrown(
+def test_should_mark_permanent_failure_when_utils_raises_invalid_phone_error(
     notify_db_session,
     mocker,
     sample_template,
     sample_notification,
-    exception,
 ):
     mocker.patch(
         'app.celery.provider_tasks.send_to_providers.send_sms_to_provider',
-        side_effect=exception,
+        side_effect=InvalidPhoneError,
+    )
+
+    mocker.patch('app.celery.common.check_and_queue_callback_task')
+    template = sample_template()
+    notification = sample_notification(template=template)
+
+    deliver_sms(notification.id)
+
+    notify_db_session.session.refresh(notification)
+    assert notification.status == NOTIFICATION_PERMANENT_FAILURE
+
+
+def test_should_mark_permanent_failure_when_celery_retries_exceeded(
+    notify_db_session,
+    mocker,
+    sample_template,
+    sample_notification,
+):
+    # NonRetryableException is a celery exception
+    mocker.patch(
+        'app.celery.provider_tasks.send_to_providers.send_sms_to_provider',
+        side_effect=NonRetryableException,
     )
 
     mocker.patch('app.celery.common.check_and_queue_callback_task')
