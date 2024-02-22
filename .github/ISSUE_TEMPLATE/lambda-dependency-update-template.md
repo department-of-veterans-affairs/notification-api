@@ -28,7 +28,7 @@ In the kafka repo there is a script that can be used to update the lambda layers
 - [ ] Lambda dependencies are updated and we have no broken functionality. 
 - [ ] Issues opened by Dependabot and related to lambdas are resolved. 
 - [ ] Tickets created for any updates that interfere with current functionality.
-
+- [ ] In AWS Lambda console, verify that lambdas with updated dependency layers are actually using the newest revisions of the layers.  (This might require a manual change.)
 ## QA Considerations
 - [ ] Check to see if these updates cancel out any Twistlock issues
 - [ ] QA Regression tests pass after deploying this code.
