@@ -10,16 +10,16 @@ We wish to keep our lambda dependencies up to date so we do not need such massiv
 **So that** we are secure and as free of bugs as possible
 
 ### Additional Info and Resources
-In the kafka / commons repo there is a script that can be used to update the lambda layers, find it [here](https://github.com/department-of-veterans-affairs/notification-kafka/blob/main/scripts/create-update-lambda-layers.sh) 
+In the kafka repo there is a script that can be used to update the lambda layers, find it [here](https://github.com/department-of-veterans-affairs/notification-kafka/blob/main/scripts/create-update-lambda-layers.sh) 
 
 ## Engineering Checklist
 **Please note, layers are in infra, so you may need PRs in multiple repos to address updates.**
 
 - [ ] Check Dependabot issues for lambda dependency updates - ensure they will be closed with updates
-- [ ] Use [this script](https://github.com/department-of-veterans-affairs/notification-kafka/blob/main/scripts/create-update-lambda-layers.sh) in the kafka / commons repo to update lambda layers
+- [ ] Use [this script](https://github.com/department-of-veterans-affairs/notification-kafka/blob/main/scripts/create-update-lambda-layers.sh) in the kafka repo to update lambda layers
 	- [ ] copy the updated lambda layers to the infra repo and override the existing layers in `cd/application-infrastructure/lambda_layers/` so they can be deployed
-	- [ ] Update the requirements files in the `lambda_layer_requirements` folder in the kafka / commons repo with updated versions
-- [ ] Create infra and kafka / commons repo PRs with updated lambda layers
+	- [ ] Update the requirements files in the `lambda_layer_requirements` folder in the kafka repo with updated versions
+- [ ] Create infra and kafka repo PRs with updated lambda layers
 - [ ] Any major version changes are investigated (compare version change logs)
 	- [ ] Any questionable version changes are removed and a ticket is created
 - [ ] Test in Dev environment (or staging if required for specific lambdas)
