@@ -33,8 +33,6 @@ git+https://github.com/department-of-veterans-affairs/notification-utils.git
 
 # The production image defined by Dockerfile uses Gunicorn.  The development image defined by Dockerfile.local
 # runs the application with the Flask development server by default.
-#
-# This is Gunicorn v20.1.0 with additional fixes for import errors that occur with eventlet > 0.30.2.
 gunicorn[eventlet] >= 21.2.0
 
 iso8601 >= 2.0.0
@@ -80,4 +78,5 @@ validatesns >= 0.1.1
 # it's directly imported in v3 error handling code to reference the exception BadRequest.
 Werkzeug
 
+# eventlet uses this package, but upgrading past 2.4.2 causes DNS errors.
 dnspython == 2.4.2
