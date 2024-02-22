@@ -99,6 +99,7 @@ def test_post_sms_notification_returns_201(
         mocker.patch('app.celery.lookup_va_profile_id_task.lookup_va_profile_id.apply_async')
         mocker.patch('app.celery.onsite_notification_tasks.send_va_onsite_notification_task.apply_async')
         mocker.patch('app.celery.contact_information_tasks.lookup_contact_info.apply_async')
+
     response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
 
     assert response.status_code == 201

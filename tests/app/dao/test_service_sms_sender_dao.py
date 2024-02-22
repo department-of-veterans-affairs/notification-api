@@ -130,7 +130,6 @@ class TestDaoAddSmsSenderForService:
             service_id=service.id, sms_sender='new_sms', is_default=False, inbound_number_id=None
         )
 
-        stmt = select(ServiceSmsSender).where(ServiceSmsSender.service_id == service.id)
         service_sms_senders_after_updates = notify_db_session.session.scalars(stmt).all()
 
         assert len(service_sms_senders_after_updates) == 2
@@ -289,7 +288,6 @@ class TestDaoUpdateServiceUpdateSmsSender:
             sms_sender_specifics=sender_specifics,
         )
 
-        stmt = select(ServiceSmsSender).where(ServiceSmsSender.service_id == service.id)
         existing_sms_sender_after_updates = notify_db_session.session.scalars(stmt).one()
 
         assert existing_sms_sender_after_updates.is_default
