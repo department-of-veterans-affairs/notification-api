@@ -35,7 +35,7 @@ git+https://github.com/department-of-veterans-affairs/notification-utils.git
 # runs the application with the Flask development server by default.
 #
 # This is Gunicorn v20.1.0 with additional fixes for import errors that occur with eventlet > 0.30.2.
-gunicorn[eventlet]
+gunicorn[eventlet] >= 21.2.0
 
 iso8601 >= 2.0.0
 itsdangerous >= 1.1.0
