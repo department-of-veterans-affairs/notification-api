@@ -76,7 +76,7 @@ def mock_deliver_sms(mocker):
     'data',
     [
         {'phone_number': '+16502532222'},
-        {"recipient_identifier": {"id_type": IdentifierType.VA_PROFILE_ID.value, "id_value": "bar"}},
+        {'recipient_identifier': {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': 'bar'}},
     ],
 )
 def test_post_sms_notification_returns_201(
