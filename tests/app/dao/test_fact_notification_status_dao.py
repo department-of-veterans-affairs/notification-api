@@ -878,6 +878,7 @@ def test_get_total_sent_notifications_for_day_and_type_returns_right_notificatio
     assert result == count
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize('day', ['2019-01-27', '2019-04-02'])
 def test_get_total_sent_notifications_for_day_and_type_returns_total_for_right_day(
     day,
@@ -896,6 +897,7 @@ def test_get_total_sent_notifications_for_day_and_type_returns_total_for_right_d
         utc_date=date + timedelta(days=1), job=job, notification_status='foo', status_reason='bar', count=3
     )
 
+    # Can raise deadlock if called in parallel
     total = get_total_sent_notifications_for_day_and_type(day, template.template_type)
 
     assert total == 2
