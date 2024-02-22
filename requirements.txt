@@ -38,7 +38,7 @@ envier==0.5.1
 eventlet==0.33.3
 exceptiongroup==1.2.0
 fido2==1.1.2
-Flask==3.0.2
+Flask==2.3.3
 Flask-Bcrypt==1.0.1
 Flask-Cors==4.0.0
 Flask-JWT-Extended==4.6.0
@@ -88,7 +88,7 @@ python-json-logger==2.0.7
 python-magic==0.4.27
 pytz==2024.1
 PyYAML==6.0
-redis==5.0.1
+redis==4.6.0
 referencing==0.33.0
 requests==2.31.0
 rfc3339-validator==0.1.4
@@ -108,7 +108,7 @@ validatesns==0.1.1
 vine==5.1.0
 wcwidth==0.2.13
 webencodings==0.5.1
-Werkzeug==3.0.1
+Werkzeug==2.3.8
 wrapt==1.16.0
 xmltodict==0.13.0
 yarl==1.9.4
