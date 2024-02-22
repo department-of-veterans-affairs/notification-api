@@ -162,7 +162,7 @@ def test_should_mark_permanent_failure_when_utils_raises_invalid_phone_error(
         side_effect=InvalidPhoneError,
     )
 
-    mocker.patch('app.celery.common.check_and_queue_callback_task')
+    callback_mocker = mocker.patch('app.celery.common.check_and_queue_callback_task')
     template = sample_template()
     notification = sample_notification(template=template)
 
@@ -170,6 +170,7 @@ def test_should_mark_permanent_failure_when_utils_raises_invalid_phone_error(
 
     notify_db_session.session.refresh(notification)
     assert notification.status == NOTIFICATION_PERMANENT_FAILURE
+    assert callback_mocker.called_once
 
 
 def test_should_mark_permanent_failure_when_celery_retries_exceeded(
@@ -184,7 +185,7 @@ def test_should_mark_permanent_failure_when_celery_retries_exceeded(
         side_effect=NonRetryableException,
     )
 
-    mocker.patch('app.celery.common.check_and_queue_callback_task')
+    callback_mocker = mocker.patch('app.celery.common.check_and_queue_callback_task')
     template = sample_template()
     notification = sample_notification(template=template)
 
@@ -192,6 +193,7 @@ def test_should_mark_permanent_failure_when_celery_retries_exceeded(
 
     notify_db_session.session.refresh(notification)
     assert notification.status == NOTIFICATION_PERMANENT_FAILURE
+    assert callback_mocker.called_once
 
 
 def test_should_go_into_technical_error_if_exceeds_retries_on_deliver_email_task(
@@ -254,6 +256,7 @@ def test_should_queue_callback_task_if_technical_failure_exception_is_thrown(
         side_effect=InvalidProviderException('invalid provider'),
     )
     mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
+    callback_mocker = mocker.patch('app.celery.common.check_and_queue_callback_task')
 
     template = sample_template(template_type=EMAIL_TYPE)
     assert template.template_type == EMAIL_TYPE
@@ -266,6 +269,7 @@ def test_should_queue_callback_task_if_technical_failure_exception_is_thrown(
     assert exc_info.type is NotificationTechnicalFailureException
     assert notification.status == NOTIFICATION_TECHNICAL_FAILURE
     assert notification.status_reason == 'Email provider configuration invalid'
+    assert callback_mocker.called_once
 
 
 def test_should_technical_error_and_not_retry_if_invalid_sms_provider(
