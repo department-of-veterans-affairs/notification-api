@@ -26,7 +26,11 @@ def test_should_have_decorated_tasks_functions():
     assert deliver_email.__wrapped__.__name__ == 'deliver_email'
 
 
-def test_should_call_send_sms_to_provider_from_deliver_sms_task(mocker, sample_template, sample_notification):
+def test_should_call_send_sms_to_provider_from_deliver_sms_task(
+    mocker,
+    sample_template,
+    sample_notification,
+):
     send_sms_to_provider = mocker.patch('app.delivery.send_to_providers.send_sms_to_provider')
     template = sample_template()
     assert template.template_type == SMS_TYPE
@@ -49,7 +53,11 @@ def test_should_add_to_retry_queue_if_notification_not_found_in_deliver_sms_task
     send_sms_to_provider.assert_not_called()
 
 
-def test_should_call_send_email_to_provider_from_deliver_email_task(mocker, sample_template, sample_notification):
+def test_should_call_send_email_to_provider_from_deliver_email_task(
+    mocker,
+    sample_template,
+    sample_notification,
+):
     send_email_to_provider = mocker.patch('app.delivery.send_to_providers.send_email_to_provider')
     template = sample_template(template_type=EMAIL_TYPE)
     notification = sample_notification(template=template)
@@ -74,7 +82,10 @@ def test_should_add_to_retry_queue_if_notification_not_found_in_deliver_email_ta
 
 
 def test_should_go_into_technical_error_if_exceeds_retries_on_deliver_sms_task(
-    notify_db_session, mocker, sample_template, sample_notification
+    notify_db_session,
+    mocker,
+    sample_template,
+    sample_notification,
 ):
     mocker.patch('app.delivery.send_to_providers.send_sms_to_provider', side_effect=Exception('EXPECTED'))
     mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
@@ -117,7 +128,31 @@ def test_should_technical_error_and_not_retry_if_invalid_email(
 
 
 @pytest.mark.parametrize('exception', [NonRetryableException, InvalidPhoneError])
-def test_should_queue_callback_task_if_non_retryable_exception_is_thrown(
+def test_should_queue_callback_task_if_permanent_failure_exception_is_thrown(
+    mocker,
+    sample_template,
+    sample_notification,
+    exception,
+):
+    mocker.patch(
+        'app.celery.provider_tasks.send_to_providers.send_sms_to_provider',
+        side_effect=exception,
+    )
+
+    mock_callback = mocker.patch('app.celery.common.check_and_queue_callback_task')
+    template = sample_template()
+    assert template.template_type == SMS_TYPE
+    notification = sample_notification(template=template)
+
+    deliver_sms(notification.id)
+
+    mock_callback.assert_called_once()
+    assert isinstance(mock_callback.call_args.args[0], Notification)
+    assert mock_callback.call_args.args[0].id == notification.id
+
+
+@pytest.mark.parametrize('exception', [NonRetryableException, InvalidPhoneError])
+def test_should_mark_permanent_failure_when_non_retryable_exception_is_thrown(
     notify_db_session,
     mocker,
     sample_template,
@@ -129,22 +164,21 @@ def test_should_queue_callback_task_if_non_retryable_exception_is_thrown(
         side_effect=exception,
     )
 
-    mock_callback = mocker.patch('app.celery.provider_tasks.check_and_queue_callback_task')
+    mocker.patch('app.celery.common.check_and_queue_callback_task')
     template = sample_template()
-    assert template.template_type == SMS_TYPE
     notification = sample_notification(template=template)
 
     deliver_sms(notification.id)
 
     notify_db_session.session.refresh(notification)
     assert notification.status == NOTIFICATION_PERMANENT_FAILURE
-    mock_callback.assert_called_once()
-    assert isinstance(mock_callback.call_args.args[0], Notification)
-    assert mock_callback.call_args.args[0].id == notification.id
 
 
 def test_should_go_into_technical_error_if_exceeds_retries_on_deliver_email_task(
-    notify_db_session, mocker, sample_template, sample_notification
+    notify_db_session,
+    mocker,
+    sample_template,
+    sample_notification,
 ):
     mocker.patch('app.delivery.send_to_providers.send_email_to_provider', side_effect=Exception('EXPECTED'))
     mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
@@ -165,6 +199,31 @@ def test_should_go_into_technical_error_if_exceeds_retries_on_deliver_email_task
 
 
 def test_should_technical_error_and_not_retry_if_invalid_email_provider(
+    notify_db_session,
+    mocker,
+    sample_template,
+    sample_notification,
+):
+    mocker.patch(
+        'app.delivery.send_to_providers.send_email_to_provider',
+        side_effect=InvalidProviderException('invalid provider'),
+    )
+    mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
+
+    template = sample_template(template_type=EMAIL_TYPE)
+    assert template.template_type == EMAIL_TYPE
+    notification = sample_notification(template=template)
+
+    with pytest.raises(Exception) as exc_info:
+        deliver_email(notification.id)
+
+    notify_db_session.session.refresh(notification)
+    assert exc_info.type is NotificationTechnicalFailureException
+    assert notification.status == NOTIFICATION_TECHNICAL_FAILURE
+    assert notification.status_reason == 'Email provider configuration invalid'
+
+
+def test_should_queue_callback_task_if_technical_failure_exception_is_thrown(
     notify_db_session,
     mocker,
     sample_template,
@@ -231,7 +290,9 @@ def test_should_retry_and_log_exception(mocker, sample_template, sample_notifica
 
 
 def test_deliver_sms_with_rate_limiting_should_deliver_if_rate_limit_not_exceeded(
-    mocker, sample_template, sample_notification
+    mocker,
+    sample_template,
+    sample_notification,
 ):
     MockSmsSender = namedtuple('ServiceSmsSender', ['id', 'rate_limit', 'sms_sender'])
     sms_sender = MockSmsSender(id=uuid4(), rate_limit=50, sms_sender='+11111111111')
@@ -253,7 +314,9 @@ def test_deliver_sms_with_rate_limiting_should_deliver_if_rate_limit_not_exceede
 
 
 def test_deliver_sms_with_rate_limiting_should_retry_if_rate_limit_exceeded(
-    mocker, sample_template, sample_notification
+    mocker,
+    sample_template,
+    sample_notification,
 ):
     MockSmsSender = namedtuple('ServiceSmsSender', ['id', 'rate_limit', 'rate_limit_interval'])
     sms_sender = MockSmsSender(id=uuid4(), rate_limit=50, rate_limit_interval=1)
@@ -282,7 +345,11 @@ def test_deliver_sms_with_rate_limiting_should_retry_if_rate_limit_exceeded(
     )
 
 
-def test_deliver_sms_with_rate_limiting_should_retry_generic_exceptions(mocker, sample_template, sample_notification):
+def test_deliver_sms_with_rate_limiting_should_retry_generic_exceptions(
+    mocker,
+    sample_template,
+    sample_notification,
+):
     mocker.patch('app.celery.provider_tasks.send_to_providers.send_sms_to_provider', side_effect=Exception)
     mocker.patch.dict(os.environ, {'NOTIFICATION_FAILURE_REASON_ENABLED': 'True'})
     template = sample_template()
@@ -316,26 +383,3 @@ def test_deliver_sms_with_rate_limiting_max_retries_exceeded(
     assert exc_info.type is NotificationTechnicalFailureException
     assert notification.status == NOTIFICATION_TECHNICAL_FAILURE
     assert notification.status_reason == RETRIES_EXCEEDED
-
-
-@pytest.mark.parametrize('exception', [NonRetryableException, InvalidPhoneError])
-def test_should_mark_permanent_failure_when_non_retryable_exception_is_thrown(
-    notify_db_session,
-    mocker,
-    sample_template,
-    sample_notification,
-    exception,
-):
-    mocker.patch(
-        'app.celery.provider_tasks.send_to_providers.send_sms_to_provider',
-        side_effect=exception,
-    )
-
-    mocker.patch('app.celery.provider_tasks.check_and_queue_callback_task')
-    template = sample_template()
-    notification = sample_notification(template=template)
-
-    deliver_sms(notification.id)
-
-    notify_db_session.session.refresh(notification)
-    assert notification.status == NOTIFICATION_PERMANENT_FAILURE
