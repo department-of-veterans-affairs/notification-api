@@ -49,7 +49,7 @@ flupy==1.2.0
 frozenlist==1.4.1
 future==1.0.0
 greenlet==3.0.3
-gunicorn @ git+https://github.com/benoitc/gunicorn.git@6a8ebb4844b2f28596ffe7421eb9f7d08c8dc4d8
+gunicorn==21.2.0
 idna==3.6
 importlib-metadata==6.11.0
 iso8601==2.1.0
@@ -71,9 +71,9 @@ notification-utils @ git+https://github.com/department-of-veterans-affairs/notif
 notifications-python-client==9.0.0
 opentelemetry-api==1.22.0
 oscrypto==1.3.0
+packaging==23.2
 parse==1.20.1
 phonenumbers==8.12.57
-pipdeptree==2.14.0
 prompt-toolkit==3.0.43
 protobuf==4.25.3
 psycopg2-binary==2.9.9
