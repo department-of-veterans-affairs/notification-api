@@ -12,8 +12,8 @@ bcrypt==4.1.2
 billiard==4.2.0
 bleach==6.1.0
 blinker==1.7.0
-boto3==1.34.46
-botocore==1.34.46
+boto3==1.34.47
+botocore==1.34.47
 bytecode==0.15.1
 cachelib==0.12.0
 cachetools==5.3.2
@@ -28,9 +28,8 @@ click-didyoumean==0.3.0
 click-plugins==1.1.1
 click-repl==0.3.0
 cryptography==42.0.4
-Cython==0.29.37
 ddsketch==2.0.4
-ddtrace==1.18.2
+ddtrace==1.18.8
 Deprecated==1.2.14
 dnspython==2.6.1
 docopt==0.6.2
@@ -50,7 +49,7 @@ flupy==1.2.0
 frozenlist==1.4.1
 future==1.0.0
 greenlet==3.0.3
-gunicorn @ git+https://github.com/benoitc/gunicorn.git@6a8ebb4844b2f28596ffe7421eb9f7d08c8dc4d8
+gunicorn==20.1.0
 idna==3.6
 importlib-metadata==6.11.0
 iso8601==2.1.0
@@ -62,13 +61,13 @@ jsonschema-specifications==2023.12.1
 kombu==5.3.5
 Mako==1.3.2
 MarkupSafe==2.1.5
-marshmallow==2.21.0
+marshmallow==2.20.5
 marshmallow-sqlalchemy==0.22.3
 mistune==0.8.4
 monotonic==1.6
 multidict==6.0.5
 nanoid==2.0.0
-notification-utils @ git+https://github.com/department-of-veterans-affairs/notification-utils.git@8a6f18c55be4022d955b80e1ee9b3acd07297a49
+notification-utils==1.1.1
 notifications-python-client==9.0.0
 opentelemetry-api==1.22.0
 oscrypto==1.3.0
@@ -88,7 +87,7 @@ python-json-logger==2.0.7
 python-magic==0.4.27
 pytz==2024.1
 PyYAML==6.0
-redis==4.6.0
+redis==5.0.1
 referencing==0.33.0
 requests==2.31.0
 rfc3339-validator==0.1.4
@@ -108,7 +107,7 @@ validatesns==0.1.1
 vine==5.1.0
 wcwidth==0.2.13
 webencodings==0.5.1
-Werkzeug==2.3.8
+Werkzeug==3.0.1
 wrapt==1.16.0
 xmltodict==0.13.0
 yarl==1.9.4
