@@ -12,7 +12,7 @@ click-datetime >= 0.2
 # Datadog Tracer and Profiler
 ddtrace == 1.18.2
 
-# eventlet uses this package, but upgrading past 2.4.2 causes DNS errors.
+# 23 February, 2024: eventlet uses dnspython, but upgrading past 2.4.2 causes DNS errors.
 dnspython == 2.4.2
 
 docopt >= 0.6.2
