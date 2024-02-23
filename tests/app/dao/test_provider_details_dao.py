@@ -143,6 +143,7 @@ def setup_equal_priority_sms_providers(restore_provider_details):
         ),
     ]
     restore_provider_details.session.add_all(providers)
+    restore_provider_details.session.commit()
     return providers
 
 
@@ -382,6 +383,7 @@ class TestGetActiveProvidersWithWeightsByNotificationType:
 def test_should_not_error_if_any_provider_in_code_not_in_database(restore_provider_details):
     stmt = delete(ProviderDetails).where(ProviderDetails.identifier == 'sns')
     restore_provider_details.session.execute(stmt)
+    restore_provider_details.session.commit()
 
     assert clients.get_sms_client('sns')
 

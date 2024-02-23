@@ -1,9 +1,12 @@
+import pytest
+
 from sqlalchemy import func, select
 
 from app.dao.events_dao import dao_create_event
 from app.models import Event
 
 
+@pytest.mark.serial
 def test_create_event(notify_db_session):
     stmt = select(func.count()).select_from(Event)
 
