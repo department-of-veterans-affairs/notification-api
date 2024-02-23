@@ -2230,7 +2230,6 @@ class NotificationFailures(db.Model):
     notification_id = db.Column(UUID(as_uuid=True), primary_key=True, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     body = db.Column(JSONB, nullable=False)
-    junk = db.Column(db.String(1), nullable=True, unique=False, index=False)
 
     def serialize(self) -> Dict[str, Any]:
         return self.body
