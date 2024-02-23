@@ -79,4 +79,4 @@ validatesns >= 0.1.1
 Werkzeug
 
 # eventlet uses this package, but upgrading past 2.4.2 causes DNS errors.
-dnspython == 2.5.0
+dnspython == 2.4.2
