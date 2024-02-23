@@ -266,6 +266,7 @@ The Docker image used in production, ci/Dockerfile, builds with the Python packa
 3. Run `docker run --rm -i notification_api pip freeze > requirements.txt`.
 4. Open requirements.txt, and manually remove any warning messages at the start of the file.
 5. Assuming all unit tests are passing, note any top level dependency updates.  Update requirements-app.txt to make their minimum version equal to the version actually installed according to requirements.txt.
+6. Restore Dockerfile.local to use requirements.txt.
 
 ## Creating a PR
 
