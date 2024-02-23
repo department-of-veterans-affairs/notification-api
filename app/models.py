@@ -2226,7 +2226,6 @@ class NotificationFailures(db.Model):
     """
 
     __tablename__ = 'notification_failures'
-
     notification_id = db.Column(UUID(as_uuid=True), primary_key=True, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     body = db.Column(JSONB, nullable=False)
