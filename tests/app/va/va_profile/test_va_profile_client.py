@@ -680,7 +680,7 @@ class TestCommunicationPermissions:
 
     def test_should_raise_exception_if_recipient_has_no_permissions(self, test_va_profile_client, rmock):
         """
-        This behavior will change once we starting using default communication item permissions.
+        TODO 893 - This behavior will change once we starting using default communication item permissions.
         """
 
         response = {'txAuditId': '37df9590-e791-4392-ae77-eaffc782276c', 'status': 'COMPLETED_SUCCESS'}

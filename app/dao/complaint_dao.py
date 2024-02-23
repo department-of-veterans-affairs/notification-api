@@ -1,10 +1,12 @@
+from datetime import timedelta
+
+from flask import current_app
+from sqlalchemy import desc, func, select
+
 from app import db
 from app.dao.dao_utils import transactional
 from app.models import Complaint
 from app.utils import get_local_timezone_midnight_in_utc
-from datetime import timedelta
-from flask import current_app
-from sqlalchemy import desc, func, select
 
 
 @transactional

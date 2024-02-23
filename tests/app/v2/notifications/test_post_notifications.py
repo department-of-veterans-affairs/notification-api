@@ -1,36 +1,31 @@
 import base64
-import pytest
 import uuid
-from . import post_send_notification
+from random import randint
+
+import pytest
+from flask import current_app, json
+from freezegun import freeze_time
+from sqlalchemy import delete, select
+
 from app.attachments.exceptions import UnsupportedMimeTypeException
 from app.attachments.store import AttachmentStoreError
 from app.config import QueueNames
 from app.dao.service_sms_sender_dao import dao_update_service_sms_sender
 from app.feature_flags import FeatureFlag
-from app.models import (
-    EMAIL_TYPE,
-    INTERNATIONAL_SMS_TYPE,
-    KEY_TYPE_TEAM,
-    Notification,
-    NOTIFICATION_CREATED,
-    RecipientIdentifier,
-    SCHEDULE_NOTIFICATIONS,
-    ScheduledNotification,
-    ServiceEmailReplyTo,
-    SMS_TYPE,
-    UPLOAD_DOCUMENT,
-)
+from app.models import (EMAIL_TYPE, INTERNATIONAL_SMS_TYPE, KEY_TYPE_TEAM,
+                        NOTIFICATION_CREATED, SCHEDULE_NOTIFICATIONS, SMS_TYPE,
+                        UPLOAD_DOCUMENT, Notification, RecipientIdentifier,
+                        ScheduledNotification, ServiceEmailReplyTo)
 from app.schema_validation import validate
 from app.v2.errors import RateLimitError
-from app.v2.notifications.notification_schemas import post_sms_response, post_email_response
+from app.v2.notifications.notification_schemas import (post_email_response,
+                                                       post_sms_response)
 from app.va.identifier import IdentifierType
-from flask import json, current_app
-from freezegun import freeze_time
-from random import randint
-from sqlalchemy import delete, select
 from tests import create_authorization_header
 from tests.app.db import create_reply_to_email, create_service_sms_sender
 from tests.app.factories.feature_flag import mock_feature_flag
+
+from . import post_send_notification
 
 
 @pytest.fixture

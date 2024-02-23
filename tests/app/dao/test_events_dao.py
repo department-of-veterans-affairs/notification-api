@@ -1,6 +1,7 @@
+from sqlalchemy import func, select
+
 from app.dao.events_dao import dao_create_event
 from app.models import Event
-from sqlalchemy import func, select
 
 
 def test_create_event(notify_db_session):

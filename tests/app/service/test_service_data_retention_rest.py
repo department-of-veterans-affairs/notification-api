@@ -1,9 +1,10 @@
 import json
-import pytest
 import uuid
 
-from app.models import ServiceDataRetention
+import pytest
 from sqlalchemy import select
+
+from app.models import ServiceDataRetention
 from tests import create_admin_authorization_header
 from tests.app.db import create_service_data_retention
 

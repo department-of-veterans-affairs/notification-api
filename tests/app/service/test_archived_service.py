@@ -1,10 +1,12 @@
-import pytest
 import uuid
+from datetime import datetime
+
+import pytest
+from sqlalchemy import desc, select
+
 from app import db
 from app.dao.services_dao import dao_archive_service
 from app.models import Service
-from datetime import datetime
-from sqlalchemy import desc, select
 from tests import create_admin_authorization_header, unwrap_function
 
 

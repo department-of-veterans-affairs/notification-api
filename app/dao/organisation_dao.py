@@ -1,14 +1,10 @@
+from sqlalchemy import asc, delete, desc, func, join, select, update
+
 from app import db
 from app.dao.dao_utils import transactional, version_class
 from app.model import User
-from app.models import (
-    Organisation,
-    Domain,
-    InvitedOrganisationUser,
-    Service,
-    user_to_organisation,
-)
-from sqlalchemy import asc, delete, desc, func, join, select, update
+from app.models import (Domain, InvitedOrganisationUser, Organisation, Service,
+                        user_to_organisation)
 
 
 def dao_get_organisations():

@@ -1,12 +1,14 @@
 import base64
 import json
 import pickle  # nosec
+
+from fido2.webauthn import AttestationObject, CollectedClientData
+from sqlalchemy import asc, delete, select
+
 from app import db
 from app.config import Config
 from app.dao.dao_utils import transactional
 from app.models import Fido2Key, Fido2Session
-from fido2.webauthn import AttestationObject, CollectedClientData
-from sqlalchemy import asc, delete, select
 
 
 def delete_fido2_key(

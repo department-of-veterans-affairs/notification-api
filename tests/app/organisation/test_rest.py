@@ -1,8 +1,11 @@
-import pytest
 import uuid
-from app.models import Organisation
-from app.dao.organisation_dao import dao_add_service_to_organisation, dao_add_user_to_organisation
+
+import pytest
 from sqlalchemy import select
+
+from app.dao.organisation_dao import (dao_add_service_to_organisation,
+                                      dao_add_user_to_organisation)
+from app.models import Organisation
 from tests.app.db import create_email_branding
 
 

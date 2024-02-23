@@ -1,12 +1,13 @@
 import json
+from uuid import uuid4
+
 import pytest
+from sqlalchemy import select
 
 from app.model import EMAIL_AUTH_TYPE
 from app.models import Notification
-from sqlalchemy import select
 from tests import create_admin_authorization_header
 from tests.app.db import create_invited_user
-from uuid import uuid4
 
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')

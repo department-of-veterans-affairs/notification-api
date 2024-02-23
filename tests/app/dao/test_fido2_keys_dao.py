@@ -1,14 +1,10 @@
 import pytest
-from app.dao.fido2_key_dao import (
-    save_fido2_key,
-    list_fido2_keys,
-    get_fido2_key,
-    delete_fido2_key,
-    create_fido2_session,
-    get_fido2_session,
-)
-from app.models import Fido2Key, Fido2Session
 from sqlalchemy import func, select
+
+from app.dao.fido2_key_dao import (create_fido2_session, delete_fido2_key,
+                                   get_fido2_key, get_fido2_session,
+                                   list_fido2_keys, save_fido2_key)
+from app.models import Fido2Key, Fido2Session
 
 
 def test_save_fido2_key_should_create_new_fido2_key(notify_db_session, sample_user):

@@ -1,22 +1,22 @@
 import datetime
+from uuid import uuid4
+
 import pytest
-from app.dao.organisation_dao import (
-    dao_get_organisations,
-    dao_get_organisation_by_email_address,
-    dao_get_organisation_by_id,
-    dao_get_organisation_by_service_id,
-    dao_get_organisation_services,
-    dao_update_organisation,
-    dao_add_service_to_organisation,
-    dao_get_invited_organisation_user,
-    dao_get_users_for_organisation,
-    dao_add_user_to_organisation,
-)
-from app.dao.services_dao import dao_create_service, dao_add_user_to_service
-from app.models import Organisation, OrganisationTypes, Service
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from uuid import uuid4
+
+from app.dao.organisation_dao import (dao_add_service_to_organisation,
+                                      dao_add_user_to_organisation,
+                                      dao_get_invited_organisation_user,
+                                      dao_get_organisation_by_email_address,
+                                      dao_get_organisation_by_id,
+                                      dao_get_organisation_by_service_id,
+                                      dao_get_organisation_services,
+                                      dao_get_organisations,
+                                      dao_get_users_for_organisation,
+                                      dao_update_organisation)
+from app.dao.services_dao import dao_add_user_to_service, dao_create_service
+from app.models import Organisation, OrganisationTypes, Service
 
 
 def test_get_organisations_gets_all_organisations_alphabetically_with_active_organisations_first(sample_organisation):

@@ -1,23 +1,18 @@
-import pytest
 import uuid
-from app.config import QueueNames
-from app.dao.service_whitelist_dao import dao_add_and_commit_whitelisted_contacts
-from app.models import (
-    EMAIL_TYPE,
-    KEY_TYPE_NORMAL,
-    LETTER_TYPE,
-    MOBILE_TYPE,
-    PRIORITY,
-    SMS_TYPE,
-    Notification,
-    ServiceWhitelist,
-)
-from app.service.send_notification import send_one_off_notification
-from app.v2.errors import BadRequestError, TooManyRequestsError
+from unittest.mock import Mock
+
+import pytest
 from notifications_utils.recipients import InvalidPhoneError
 from sqlalchemy import delete
+
+from app.config import QueueNames
+from app.dao.service_whitelist_dao import \
+    dao_add_and_commit_whitelisted_contacts
+from app.models import (EMAIL_TYPE, KEY_TYPE_NORMAL, LETTER_TYPE, MOBILE_TYPE,
+                        PRIORITY, SMS_TYPE, Notification, ServiceWhitelist)
+from app.service.send_notification import send_one_off_notification
+from app.v2.errors import BadRequestError, TooManyRequestsError
 from tests.app.db import create_letter_contact
-from unittest.mock import Mock
 
 
 @pytest.fixture

@@ -1,13 +1,13 @@
-import pytest
-from app.dao.email_branding_dao import (
-    dao_get_email_branding_options,
-    dao_get_email_branding_by_id,
-    dao_get_email_branding_by_name,
-    dao_update_email_branding,
-)
-from app.models import EmailBranding
-from sqlalchemy import select
 from uuid import uuid4
+
+import pytest
+from sqlalchemy import select
+
+from app.dao.email_branding_dao import (dao_get_email_branding_by_id,
+                                        dao_get_email_branding_by_name,
+                                        dao_get_email_branding_options,
+                                        dao_update_email_branding)
+from app.models import EmailBranding
 
 
 def test_get_email_branding_options_gets_all_email_branding(sample_email_branding):

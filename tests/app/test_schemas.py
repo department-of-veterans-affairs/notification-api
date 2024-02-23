@@ -1,8 +1,10 @@
 import pytest
-from app.dao.provider_details_dao import dao_update_provider_details
-from app.models import ProviderDetails, ProviderDetailsHistory, EMAIL_TYPE, SES_PROVIDER
 from marshmallow import ValidationError
 from sqlalchemy import desc, select
+
+from app.dao.provider_details_dao import dao_update_provider_details
+from app.models import (EMAIL_TYPE, SES_PROVIDER, ProviderDetails,
+                        ProviderDetailsHistory)
 
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')

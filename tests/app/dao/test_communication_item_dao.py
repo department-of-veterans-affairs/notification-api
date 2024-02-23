@@ -1,7 +1,8 @@
 import pytest
+from sqlalchemy import delete
+
 from app.dao.communication_item_dao import get_communication_items
 from app.models import CommunicationItem
-from sqlalchemy import delete
 
 
 @pytest.fixture

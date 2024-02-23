@@ -1,15 +1,17 @@
 import json
-import pytest
 import uuid
-from app.dao.login_event_dao import list_login_events
-from app.dao.services_dao import dao_update_service, dao_fetch_service_by_id
-from app.dao.users_dao import create_user_code
-from app.model import User
-from app.models import Notification, VerifyCode, EMAIL_TYPE, SMS_TYPE
 from datetime import datetime, timedelta
-from flask import url_for, current_app
+
+import pytest
+from flask import current_app, url_for
 from freezegun import freeze_time
 from sqlalchemy import func, select
+
+from app.dao.login_event_dao import list_login_events
+from app.dao.services_dao import dao_fetch_service_by_id, dao_update_service
+from app.dao.users_dao import create_user_code
+from app.model import User
+from app.models import EMAIL_TYPE, SMS_TYPE, Notification, VerifyCode
 from tests import create_admin_authorization_header
 
 

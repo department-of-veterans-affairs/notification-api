@@ -1,8 +1,10 @@
-import pytest
 import uuid
+
+import pytest
+from sqlalchemy import func, select
+
 from app.dao.service_user_dao import dao_get_service_user
 from app.models import TemplateFolder
-from sqlalchemy import func, select
 from tests.app.conftest import template_folder_cleanup
 from tests.app.db import create_template_folder
 

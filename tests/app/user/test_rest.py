@@ -1,29 +1,26 @@
 import base64
 import json
+from unittest import mock
+from uuid import UUID, uuid4
+
 import pytest
-from app.dao.fido2_key_dao import save_fido2_key, create_fido2_session
-from app.dao.login_event_dao import save_login_event
-from app.dao.permissions_dao import default_service_permissions
-from app.dao.service_user_dao import dao_get_service_user, dao_update_service_user
-from app.model import User, SMS_AUTH_TYPE, EMAIL_AUTH_TYPE
-from app.models import (
-    EMAIL_TYPE,
-    Fido2Key,
-    LoginEvent,
-    MANAGE_SETTINGS,
-    MANAGE_TEMPLATES,
-    Notification,
-    Permission,
-    SMS_TYPE,
-)
 from fido2 import cbor
 from flask import current_app, url_for
 from freezegun import freeze_time
 from sqlalchemy import func, select
+
+from app.dao.fido2_key_dao import create_fido2_session, save_fido2_key
+from app.dao.login_event_dao import save_login_event
+from app.dao.permissions_dao import default_service_permissions
+from app.dao.service_user_dao import (dao_get_service_user,
+                                      dao_update_service_user)
+from app.model import EMAIL_AUTH_TYPE, SMS_AUTH_TYPE, User
+from app.models import (EMAIL_TYPE, MANAGE_SETTINGS, MANAGE_TEMPLATES,
+                        SMS_TYPE, Fido2Key, LoginEvent, Notification,
+                        Permission)
 from tests import create_admin_authorization_header
-from tests.app.db import create_template_folder, create_organisation, create_reply_to_email
-from unittest import mock
-from uuid import UUID, uuid4
+from tests.app.db import (create_organisation, create_reply_to_email,
+                          create_template_folder)
 
 
 def test_get_user_list(admin_request, sample_service):

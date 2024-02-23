@@ -1,22 +1,20 @@
 import base64
-import pytest
 import urllib
-from app.models import InboundSms, SMS_TYPE, INBOUND_SMS_TYPE, Service, Permission
-from app.notifications.receive_notifications import (
-    create_inbound_sms_object,
-    format_mmg_message,
-    format_mmg_datetime,
-    strip_leading_forty_four,
-    unescape_string,
-    fetch_potential_service,
-    NoSuitableServiceForInboundSms,
-)
 from datetime import datetime
+from random import randint
+from uuid import uuid4
+
+import pytest
 from flask import json
 from freezegun import freeze_time
-from random import randint
 from sqlalchemy import select
-from uuid import uuid4
+
+from app.models import (INBOUND_SMS_TYPE, SMS_TYPE, InboundSms, Permission,
+                        Service)
+from app.notifications.receive_notifications import (
+    NoSuitableServiceForInboundSms, create_inbound_sms_object,
+    fetch_potential_service, format_mmg_datetime, format_mmg_message,
+    strip_leading_forty_four, unescape_string)
 
 
 def firetext_post(client, data, auth=True, password='testkey'):  # nosec

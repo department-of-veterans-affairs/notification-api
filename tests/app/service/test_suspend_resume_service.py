@@ -1,9 +1,11 @@
-import pytest
 import uuid
-from app.models import Service
 from datetime import datetime
+
+import pytest
 from freezegun import freeze_time
 from sqlalchemy import desc, select
+
+from app.models import Service
 from tests import create_admin_authorization_header
 
 

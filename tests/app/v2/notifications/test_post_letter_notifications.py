@@ -1,26 +1,19 @@
-import pytest
 import uuid
+
+import pytest
+from flask import json, url_for
+from sqlalchemy import func, select
+
 from app.config import QueueNames
-from app.models import (
-    Job,
-    Notification,
-    EMAIL_TYPE,
-    KEY_TYPE_NORMAL,
-    KEY_TYPE_TEAM,
-    KEY_TYPE_TEST,
-    LETTER_TYPE,
-    NOTIFICATION_CREATED,
-    NOTIFICATION_SENDING,
-    NOTIFICATION_DELIVERED,
-    SMS_TYPE,
-)
+from app.models import (EMAIL_TYPE, KEY_TYPE_NORMAL, KEY_TYPE_TEAM,
+                        KEY_TYPE_TEST, LETTER_TYPE, NOTIFICATION_CREATED,
+                        NOTIFICATION_DELIVERED, NOTIFICATION_SENDING, SMS_TYPE,
+                        Job, Notification)
 from app.schema_validation import validate
 from app.v2.errors import RateLimitError
 from app.v2.notifications.notification_schemas import post_letter_response
-from flask import json, url_for
-from sqlalchemy import func, select
 from tests import create_authorization_header
-from tests.app.db import create_service, create_template, create_letter_contact
+from tests.app.db import create_letter_contact, create_service, create_template
 from tests.conftest import set_config_values
 
 test_address = {'address_line_1': 'test 1', 'address_line_2': 'test 2', 'postcode': 'test pc'}
