@@ -9,12 +9,16 @@ from flask import json
 from freezegun import freeze_time
 from sqlalchemy import select
 
-from app.models import (INBOUND_SMS_TYPE, SMS_TYPE, InboundSms, Permission,
-                        Service)
+from app.models import INBOUND_SMS_TYPE, SMS_TYPE, InboundSms, Permission, Service
 from app.notifications.receive_notifications import (
-    NoSuitableServiceForInboundSms, create_inbound_sms_object,
-    fetch_potential_service, format_mmg_datetime, format_mmg_message,
-    strip_leading_forty_four, unescape_string)
+    NoSuitableServiceForInboundSms,
+    create_inbound_sms_object,
+    fetch_potential_service,
+    format_mmg_datetime,
+    format_mmg_message,
+    strip_leading_forty_four,
+    unescape_string,
+)
 
 
 def firetext_post(client, data, auth=True, password='testkey'):  # nosec

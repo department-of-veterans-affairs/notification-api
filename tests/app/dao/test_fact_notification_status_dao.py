@@ -20,17 +20,29 @@ from app.dao.fact_notification_status_dao import (
     fetch_notification_statuses_per_service_and_template_for_date,
     fetch_stats_for_all_services_by_date_range,
     fetch_template_usage_for_service_with_given_template,
-    get_api_key_ranked_by_notifications_created, get_last_send_for_api_key,
+    get_api_key_ranked_by_notifications_created,
+    get_last_send_for_api_key,
     get_total_notifications_sent_for_api_key,
     get_total_sent_notifications_for_day_and_type,
-    update_fact_notification_status)
-from app.models import (EMAIL_TYPE, KEY_TYPE_NORMAL, KEY_TYPE_TEAM,
-                        KEY_TYPE_TEST, LETTER_TYPE, NOTIFICATION_CREATED,
-                        NOTIFICATION_DELIVERED, NOTIFICATION_FAILED,
-                        NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_SENDING,
-                        NOTIFICATION_SENT, NOTIFICATION_TECHNICAL_FAILURE,
-                        NOTIFICATION_TEMPORARY_FAILURE, SMS_TYPE,
-                        FactNotificationStatus)
+    update_fact_notification_status,
+)
+from app.models import (
+    EMAIL_TYPE,
+    KEY_TYPE_NORMAL,
+    KEY_TYPE_TEAM,
+    KEY_TYPE_TEST,
+    LETTER_TYPE,
+    NOTIFICATION_CREATED,
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_FAILED,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_SENT,
+    NOTIFICATION_TECHNICAL_FAILURE,
+    NOTIFICATION_TEMPORARY_FAILURE,
+    SMS_TYPE,
+    FactNotificationStatus,
+)
 
 
 @pytest.mark.serial

@@ -8,18 +8,29 @@ from sqlalchemy import asc, delete, desc, select
 
 from app import clients
 from app.dao.provider_details_dao import (
-    dao_get_provider_stats, dao_get_provider_versions,
+    dao_get_provider_stats,
+    dao_get_provider_versions,
     dao_get_sms_provider_with_equal_priority,
     dao_switch_sms_provider_to_provider_with_identifier,
-    dao_toggle_sms_provider, dao_update_provider_details,
+    dao_toggle_sms_provider,
+    dao_update_provider_details,
     get_active_providers_with_weights_by_notification_type,
-    get_alternative_sms_provider, get_current_provider,
+    get_alternative_sms_provider,
+    get_current_provider,
     get_highest_priority_active_provider_by_notification_type,
     get_provider_details_by_identifier,
-    get_provider_details_by_notification_type)
-from app.models import (EMAIL_TYPE, PINPOINT_PROVIDER, SES_PROVIDER, SMS_TYPE,
-                        SNS_PROVIDER, ProviderDetails, ProviderDetailsHistory,
-                        ProviderRates)
+    get_provider_details_by_notification_type,
+)
+from app.models import (
+    EMAIL_TYPE,
+    PINPOINT_PROVIDER,
+    SES_PROVIDER,
+    SMS_TYPE,
+    SNS_PROVIDER,
+    ProviderDetails,
+    ProviderDetailsHistory,
+    ProviderRates,
+)
 from app.notifications.notification_type import NotificationType
 
 

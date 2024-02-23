@@ -12,12 +12,20 @@ from sqlalchemy import func, select
 import app
 from app.dao import notifications_dao
 from app.dao.services_dao import dao_update_service
-from app.dao.templates_dao import (dao_get_all_templates_for_service,
-                                   dao_update_template)
+from app.dao.templates_dao import dao_get_all_templates_for_service, dao_update_template
 from app.errors import InvalidRequest
-from app.models import (EMAIL_TYPE, INTERNATIONAL_SMS_TYPE, KEY_TYPE_NORMAL,
-                        KEY_TYPE_TEAM, KEY_TYPE_TEST, SERVICE_PERMISSION_TYPES,
-                        SMS_TYPE, Notification, NotificationHistory, Template)
+from app.models import (
+    EMAIL_TYPE,
+    INTERNATIONAL_SMS_TYPE,
+    KEY_TYPE_NORMAL,
+    KEY_TYPE_TEAM,
+    KEY_TYPE_TEST,
+    SERVICE_PERMISSION_TYPES,
+    SMS_TYPE,
+    Notification,
+    NotificationHistory,
+    Template,
+)
 from app.v2.errors import RateLimitError, TooManyRequestsError
 from tests import create_authorization_header
 

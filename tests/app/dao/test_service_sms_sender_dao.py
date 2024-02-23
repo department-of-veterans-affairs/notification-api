@@ -11,15 +11,20 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.dao.service_sms_sender_dao import (
-    archive_sms_sender, dao_add_sms_sender_for_service,
+    archive_sms_sender,
+    dao_add_sms_sender_for_service,
     dao_get_service_sms_sender_by_id,
     dao_get_service_sms_sender_by_service_id_and_number,
-    dao_get_sms_senders_by_service_id, dao_update_service_sms_sender)
+    dao_get_sms_senders_by_service_id,
+    dao_update_service_sms_sender,
+)
 from app.exceptions import ArchiveValidationError
 from app.models import InboundNumber, ServiceSmsSender
-from app.service.exceptions import (SmsSenderDefaultValidationException,
-                                    SmsSenderInboundNumberIntegrityException,
-                                    SmsSenderRateLimitIntegrityException)
+from app.service.exceptions import (
+    SmsSenderDefaultValidationException,
+    SmsSenderInboundNumberIntegrityException,
+    SmsSenderRateLimitIntegrityException,
+)
 from tests.app.db import create_service_sms_sender
 from tests.conftest import notify_db_session
 

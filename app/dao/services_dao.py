@@ -11,22 +11,37 @@ from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.sql.expression import and_, asc, case
 
 from app import db
-from app.dao.dao_utils import (VersionOptions, get_reader_session,
-                               transactional, version_class)
+from app.dao.dao_utils import VersionOptions, get_reader_session, transactional, version_class
 from app.dao.organisation_dao import dao_get_organisation_by_email_address
 from app.dao.service_sms_sender_dao import insert_service_sms_sender
 from app.dao.service_user_dao import dao_get_service_user
 from app.dao.template_folder_dao import dao_get_valid_template_folders_by_id
 from app.model import User
-from app.models import (EMAIL_TYPE, INTERNATIONAL_SMS_TYPE, KEY_TYPE_TEST,
-                        SMS_TYPE, AnnualBilling, ApiKey, FactBilling,
-                        InboundNumber, InvitedUser, Job, Notification,
-                        NotificationHistory, Organisation, Permission, Service,
-                        ServicePermission, ServiceSmsSender, Template,
-                        TemplateHistory, TemplateRedacted, VerifyCode)
+from app.models import (
+    EMAIL_TYPE,
+    INTERNATIONAL_SMS_TYPE,
+    KEY_TYPE_TEST,
+    SMS_TYPE,
+    AnnualBilling,
+    ApiKey,
+    FactBilling,
+    InboundNumber,
+    InvitedUser,
+    Job,
+    Notification,
+    NotificationHistory,
+    Organisation,
+    Permission,
+    Service,
+    ServicePermission,
+    ServiceSmsSender,
+    Template,
+    TemplateHistory,
+    TemplateRedacted,
+    VerifyCode,
+)
 from app.service.service_data import ServiceData, ServiceDataException
-from app.utils import (escape_special_characters,
-                       get_local_timezone_midnight_in_utc, midnight_n_days_ago)
+from app.utils import escape_special_characters, get_local_timezone_midnight_in_utc, midnight_n_days_ago
 
 # Do not confuse this with "default_service_permissions" in app/dao/permissions_dao.py.
 DEFAULT_SERVICE_PERMISSIONS = [

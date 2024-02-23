@@ -16,19 +16,33 @@ from sqlalchemy import select
 from sqlalchemy.orm.exc import NoResultFound
 
 from app.celery.letters_pdf_tasks import (
-    _move_invalid_letter_and_update_status, _sanitise_precompiled_pdf,
-    collate_letter_pdfs_for_day, create_letters_pdf, get_letters_pdf,
-    group_letters, letter_in_created_state, process_virus_scan_error,
-    process_virus_scan_failed, process_virus_scan_passed,
-    replay_letters_in_error)
+    _move_invalid_letter_and_update_status,
+    _sanitise_precompiled_pdf,
+    collate_letter_pdfs_for_day,
+    create_letters_pdf,
+    get_letters_pdf,
+    group_letters,
+    letter_in_created_state,
+    process_virus_scan_error,
+    process_virus_scan_failed,
+    process_virus_scan_passed,
+    replay_letters_in_error,
+)
 from app.errors import VirusScanError
 from app.letters.utils import ScanErrorType
-from app.models import (KEY_TYPE_NORMAL, KEY_TYPE_TEST, LETTER_TYPE,
-                        NOTIFICATION_CREATED, NOTIFICATION_DELIVERED,
-                        NOTIFICATION_PENDING_VIRUS_CHECK, NOTIFICATION_SENDING,
-                        NOTIFICATION_TECHNICAL_FAILURE,
-                        NOTIFICATION_VALIDATION_FAILED,
-                        NOTIFICATION_VIRUS_SCAN_FAILED, Notification)
+from app.models import (
+    KEY_TYPE_NORMAL,
+    KEY_TYPE_TEST,
+    LETTER_TYPE,
+    NOTIFICATION_CREATED,
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_PENDING_VIRUS_CHECK,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_TECHNICAL_FAILURE,
+    NOTIFICATION_VALIDATION_FAILED,
+    NOTIFICATION_VIRUS_SCAN_FAILED,
+    Notification,
+)
 from tests.app.db import create_notification
 from tests.conftest import set_config_values
 

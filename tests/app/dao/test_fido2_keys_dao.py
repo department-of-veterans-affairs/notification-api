@@ -1,9 +1,14 @@
 import pytest
 from sqlalchemy import func, select
 
-from app.dao.fido2_key_dao import (create_fido2_session, delete_fido2_key,
-                                   get_fido2_key, get_fido2_session,
-                                   list_fido2_keys, save_fido2_key)
+from app.dao.fido2_key_dao import (
+    create_fido2_session,
+    delete_fido2_key,
+    get_fido2_key,
+    get_fido2_session,
+    list_fido2_keys,
+    save_fido2_key,
+)
 from app.models import Fido2Key, Fido2Session
 
 

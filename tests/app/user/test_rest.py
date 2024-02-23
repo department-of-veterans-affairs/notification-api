@@ -12,15 +12,20 @@ from sqlalchemy import func, select
 from app.dao.fido2_key_dao import create_fido2_session, save_fido2_key
 from app.dao.login_event_dao import save_login_event
 from app.dao.permissions_dao import default_service_permissions
-from app.dao.service_user_dao import (dao_get_service_user,
-                                      dao_update_service_user)
+from app.dao.service_user_dao import dao_get_service_user, dao_update_service_user
 from app.model import EMAIL_AUTH_TYPE, SMS_AUTH_TYPE, User
-from app.models import (EMAIL_TYPE, MANAGE_SETTINGS, MANAGE_TEMPLATES,
-                        SMS_TYPE, Fido2Key, LoginEvent, Notification,
-                        Permission)
+from app.models import (
+    EMAIL_TYPE,
+    MANAGE_SETTINGS,
+    MANAGE_TEMPLATES,
+    SMS_TYPE,
+    Fido2Key,
+    LoginEvent,
+    Notification,
+    Permission,
+)
 from tests import create_admin_authorization_header
-from tests.app.db import (create_organisation, create_reply_to_email,
-                          create_template_folder)
+from tests.app.db import create_organisation, create_reply_to_email, create_template_folder
 
 
 def test_get_user_list(admin_request, sample_service):

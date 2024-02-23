@@ -6,14 +6,11 @@ from flask import url_for
 from flask_jwt_extended import create_access_token
 from sqlalchemy import select
 
-from app.dao.service_whitelist_dao import \
-    dao_add_and_commit_whitelisted_contacts
+from app.dao.service_whitelist_dao import dao_add_and_commit_whitelisted_contacts
 from app.dao.services_dao import dao_add_user_to_service
-from app.models import (EMAIL_TYPE, MANAGE_SETTINGS, MOBILE_TYPE, Permission,
-                        ServiceWhitelist)
+from app.models import EMAIL_TYPE, MANAGE_SETTINGS, MOBILE_TYPE, Permission, ServiceWhitelist
 from tests.app.db import create_user
-from tests.app.factories.service_whitelist import (a_service_whitelist,
-                                                   email_service_whitelist)
+from tests.app.factories.service_whitelist import a_service_whitelist, email_service_whitelist
 
 
 def _create_auth_header(service=None, platform_admin: bool = False):

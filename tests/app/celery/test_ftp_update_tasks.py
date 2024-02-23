@@ -6,24 +6,29 @@ from flask import current_app
 from freezegun import freeze_time
 from sqlalchemy import func, select
 
-from app.celery.tasks import (check_billable_units,
-                              get_billing_date_in_est_from_filename,
-                              persist_daily_sorted_letter_counts,
-                              process_updates_from_file,
-                              record_daily_sorted_counts,
-                              update_letter_notifications_statuses,
-                              update_letter_notifications_to_error,
-                              update_letter_notifications_to_sent_to_dvla)
-from app.dao.daily_sorted_letter_dao import \
-    dao_get_daily_sorted_letter_by_billing_day
+from app.celery.tasks import (
+    check_billable_units,
+    get_billing_date_in_est_from_filename,
+    persist_daily_sorted_letter_counts,
+    process_updates_from_file,
+    record_daily_sorted_counts,
+    update_letter_notifications_statuses,
+    update_letter_notifications_to_error,
+    update_letter_notifications_to_sent_to_dvla,
+)
+from app.dao.daily_sorted_letter_dao import dao_get_daily_sorted_letter_by_billing_day
 from app.exceptions import DVLAException, NotificationTechnicalFailureException
-from app.models import (LETTER_TYPE, NOTIFICATION_CREATED,
-                        NOTIFICATION_DELIVERED, NOTIFICATION_SENDING,
-                        NOTIFICATION_TECHNICAL_FAILURE,
-                        NOTIFICATION_TEMPORARY_FAILURE, DailySortedLetter,
-                        NotificationHistory)
-from tests.app.db import (create_notification_history,
-                          create_service_callback_api)
+from app.models import (
+    LETTER_TYPE,
+    NOTIFICATION_CREATED,
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_TECHNICAL_FAILURE,
+    NOTIFICATION_TEMPORARY_FAILURE,
+    DailySortedLetter,
+    NotificationHistory,
+)
+from tests.app.db import create_notification_history, create_service_callback_api
 from tests.conftest import set_config
 
 
