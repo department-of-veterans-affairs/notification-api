@@ -99,6 +99,7 @@ class ServiceUser(db.Model):
     __tablename__ = 'user_to_service'
     user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), primary_key=True)
     service_id = db.Column(UUID(as_uuid=True), db.ForeignKey('services.id'), primary_key=True)
+
     __table_args__ = (UniqueConstraint('user_id', 'service_id', name='uix_user_to_service'),)
 
 
@@ -2226,6 +2227,7 @@ class NotificationFailures(db.Model):
     """
 
     __tablename__ = 'notification_failures'
+
     notification_id = db.Column(UUID(as_uuid=True), primary_key=True, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     body = db.Column(JSONB, nullable=False)
