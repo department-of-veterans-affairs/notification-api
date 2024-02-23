@@ -12,6 +12,9 @@ click-datetime >= 0.2
 # Datadog Tracer and Profiler
 ddtrace == 1.18.2
 
+# eventlet uses this package, but upgrading past 2.4.2 causes DNS errors.
+dnspython == 2.4.2
+
 docopt >= 0.6.2
 eventlet ~= 0.33.3
 
@@ -77,6 +80,3 @@ validatesns >= 0.1.1
 # Flask depends on this package.  It's listed here as a top level dependency--intentionally with no version--because
 # it's directly imported in v3 error handling code to reference the exception BadRequest.
 Werkzeug
-
-# eventlet uses this package, but upgrading past 2.4.2 causes DNS errors.
-dnspython == 2.4.2
