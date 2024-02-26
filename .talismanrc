@@ -45,3 +45,5 @@ fileignoreconfig:
   checksum: 92502261ced9c795c54b1a5d60032a18db14f67d55cd081b94af1532cacb274e
 - filename: ci/docker-compose-local.yml
   checksum: 390dd529d1cf3fd88ba2a509bcb13815c0ede8d333ed93220f53bb3b87a0f08e
+- filename: poetry.lock
+  checksum: 78832280bff6bc81d67e7b4800746c2b23806fbc1acb3db173255217ef894ce0
