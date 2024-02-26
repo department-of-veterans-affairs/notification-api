@@ -1,46 +1,99 @@
 version: "3"
 services:
   app:
+    profiles: 
+      - app
     build:
       context: ..
-      dockerfile: ci/Dockerfile.local
-    image: notification_api
-    volumes:
-      - "../:/app:ro"
-    ports:
+      dockerfile: &dockerfile ci/Dockerfile.kwm
+    image: &notify_image notification_api
+    ports: &notify_ports
       - 6011:6011
+    command: ./scripts/run_app.sh
+
+  local:
+    profiles: 
+      - local
+    build:
+      context: ..
+      dockerfile: *dockerfile
+      args:
+        POETRY_ARGS: --with static_tools
+    image: *notify_image
+    volumes: &notify_volumes
+      - "../:/app:ro"
+    ports: *notify_ports
     env_file:
-      - .docker-env
+      - .local.env
     depends_on:
       - migrations
       - localstack
+    command: ./scripts/run_app.sh
+
+  test:
+    profiles:
+      - test
+    build:
+      context: ..
+      dockerfile: *dockerfile
+      args:
+        POETRY_ARGS: --with static_tools,test
+    image: *notify_image
+    volumes: 
+      - "../:/app:rw"
+    ports: *notify_ports
+    env_file:
+      - .local.env
+      - ../tests/env_vars
+    depends_on:
+      - test-db
+    command: make test
 
   db:
+    profiles:
+      - local
     image: postgres:15
     restart: unless-stopped
     ports:
       - 5432:5432
     environment:
-      - POSTGRES_PASSWORD=LocalPassword
       - POSTGRES_DB=notification_api
+      - POSTGRES_PASSWORD=LocalPassword
+
+  test-db:
+    profiles:
+      - test
+    image: postgres:15
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=test_notification_api
+      - POSTGRES_PASSWORD=LocalPassword
 
   migrations:
-    image: notification_api
+    profiles:
+      - local
+    build:
+      context: ..
+    image: *notify_image
     env_file:
-      - .docker-env
+      - .local.env
     volumes:
       - "../:/app:ro"
-    command: ["bash", "-c", "flask db upgrade"]
     depends_on:
       - db
+    command: ["bash", "-c", "flask db upgrade"]
 
   localstack:
+    profiles:
+      - local
     image: localstack/localstack
     container_name: localstack
     ports:
       - "4566:4566"
     env_file:
-      - .docker-env
+      - .local.env
     environment:
       - SERVICES=ec2,iam,lambda,s3,ses,sqs,sts
       - DEFAULT_REGION=us-east-2
@@ -51,15 +104,16 @@ services:
       - './localstack_setup.sh:/docker-entrypoint-initaws.d/setup.sh'
 
   celery:
-    image: notification_api
+    profiles:
+      - local
+    image: *notify_image
+    volumes: *notify_volumes
     env_file:
-      - .docker-env
-    volumes:
-      - "../:/app:ro"
+      - .local.env
     command: >
       sh -c "/app/scripts/wait_for_it.sh localstack:4566 --timeout=30 -- /app/scripts/run_celery.sh"
     depends_on:
-      - app
+      - local
       - localstack
       - mountebank
     healthcheck:
@@ -69,6 +123,8 @@ services:
       retries: 5
 
   mountebank:
+    profiles:
+    - local
     container_name: mountebank
     image: bbyars/mountebank:2.4.0
     volumes:
@@ -82,6 +138,8 @@ services:
     command: start --configfile /mountebank/imposters.ejs --allowInjection
 
   redis:
+    profiles:
+    - local
     image: redis
     ports:
       - "6379:6379"
