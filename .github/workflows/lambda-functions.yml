@@ -38,7 +38,7 @@ jobs:
           ref: ${{ inputs.ref }}
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4.0.1
+        uses: aws-actions/configure-aws-credentials@v4.0.2
         with:
           aws-access-key-id: ${{ secrets.VAEC_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.VAEC_AWS_SECRET_ACCESS_KEY }}
@@ -48,7 +48,7 @@ jobs:
           role-duration-seconds: 1800
 
       - name: Set Python version
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.8"
 
