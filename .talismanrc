@@ -10,7 +10,7 @@ fileignoreconfig:
 - filename: tests/app/conftest.py
   checksum: 96c0f09e85dc957d90da2728911d684744559fb08069c4d8763aa99329f26511
 - filename: tests/app/service/test_rest.py
-  checksum: c4331cbc7d3c935ceca4fa94c40034348f00369e50540b02a36dbf6d98bc4fe9
+  checksum: 2222f8eb3cdf77a9f7d114dab178dca097a72852b8c14727365d77e5d1336487
 - filename: tests/app/dao/notification_dao/test_notification_dao.py
   checksum: b32000cfe4245fb5080d1744789913d53b73d68fb0573b6c2e6eaf424ae8255d
 - filename: tests/app/delivery/test_send_to_providers.py

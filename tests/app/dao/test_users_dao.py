@@ -247,36 +247,6 @@ def test_should_delete_all_verification_codes_more_than_one_day_old(
     assert len(notify_db_session.session.scalars(stmt).all()) == 0
 
 
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-def test_should_not_delete_verification_codes_less_than_one_day_old(
-    notify_db_session,
-    sample_user,
-):
-    user_0 = sample_user()
-    user_1 = sample_user()
-
-    make_verify_code(notify_db_session, user_0, age=timedelta(hours=23, minutes=59, seconds=59), code='12345')
-    make_verify_code(notify_db_session, user_1, age=timedelta(hours=24), code='54321')
-
-    stmt = select(VerifyCode).where(or_(VerifyCode.user_id == user_0.id, VerifyCode.user_id == user_1.id))
-    assert len(notify_db_session.session.scalars(stmt).all()) == 2
-    delete_codes_older_created_more_than_a_day_ago()
-    assert notify_db_session.session.scalar(select(VerifyCode).where(VerifyCode.user_id == user_0))._code == '12345'
-
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-def test_will_find_verify_codes_sent_within_seconds(
-    sample_user,
-):
-    user = sample_user()
-    make_verify_code(user)
-    make_verify_code(user, timedelta(seconds=10))
-    make_verify_code(user, timedelta(seconds=32))
-    make_verify_code(user, timedelta(hours=1))
-    count = verify_within_time(user)
-    assert count == 2
-
-
 def make_verify_code(
     notify_db_session, user, age=timedelta(hours=0), expiry_age=timedelta(0), code='12335', code_used=False
 ):
@@ -333,19 +303,6 @@ def test_update_user_password(
     assert not user.check_password(password)
     update_user_password(user, password)
     assert user.check_password(password)
-
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-def test_count_user_verify_codes(
-    sample_user,
-):
-    with freeze_time(datetime.utcnow() + timedelta(hours=1)):
-        user = sample_user()
-        make_verify_code(user, code_used=True)
-        make_verify_code(user, expiry_age=timedelta(hours=2))
-        [make_verify_code(user) for i in range(5)]
-
-    assert count_user_verify_codes(user) == 5
 
 
 def test_create_secret_code_different_subsequent_codes():
@@ -604,51 +561,6 @@ def test_create_or_update_user_by_identity_provider_user_id_for_existing_user(
 
 
 class TestRetrieveMatchCreateUsedForSSO:
-    @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-    @pytest.mark.parametrize('idp_id, idp_id_str', [('some-id', 'some-id'), (1234, '1234')])
-    def test_should_return_user_if_matches_idp(self, notify_db_session, sample_user, idp_id, idp_id_str):
-        user = sample_user()
-        user.add_idp(idp_name='va_sso', idp_id=idp_id_str)
-        user.save_to_db()
-
-        created_user = retrieve_match_or_create_user(
-            email_address='does_not_matter',
-            name='does not matter',
-            identity_provider='va_sso',
-            identity_provider_user_id=idp_id,
-        )
-
-        assert created_user.id == user.id
-
-        # Teardown - retrieve_match_or_create_user leaves artifacts
-        if created_user:
-            notify_db_session.session.delete(created_user)
-            notify_db_session.session.commit()
-
-    @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-    def test_should_match_by_email_and_assign_idp(
-        self,
-        notify_db_session,
-        sample_user,
-    ):
-        user = sample_user()
-        assert len(user.idp_ids) == 0
-        created_user = retrieve_match_or_create_user(
-            email_address=user.email_address,
-            name='does not matter',
-            identity_provider='va_sso',
-            identity_provider_user_id='some-id',
-        )
-
-        assert user.id == user.id
-        assert user.idp_ids[0].idp_name == 'va_sso'
-        assert user.idp_ids[0].idp_id == 'some-id'
-
-        # Teardown - retrieve_match_or_create_user leaves artifacts
-        if created_user:
-            notify_db_session.session.delete(created_user)
-            notify_db_session.session.commit()
-
     def test_should_match_by_email_and_assign_other_idp(
         self,
         notify_db_session,
@@ -691,30 +603,3 @@ class TestRetrieveMatchCreateUsedForSSO:
 
         db_user = notify_db_session.session.get(User, user.id)
         assert db_user.idp_ids[0].idp_id == 'some-id'
-
-    @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-    def test_creates_new_user_if_no_match_by_idp_or_email(
-        self,
-        notify_db_session,
-        sample_user,
-    ):
-        random_user = sample_user()
-        created_user = retrieve_match_or_create_user(
-            email_address='test@email.com',
-            name='Winnie the Pooh',
-            identity_provider='va_sso',
-            identity_provider_user_id='some-id',
-        )
-
-        user = notify_db_session.session.get(User, created_user.id)
-
-        assert user.id != random_user.id
-        assert user.name == 'Winnie the Pooh'
-        assert user.email_address == 'test@email.com'
-        assert user.idp_ids[0].idp_name == 'va_sso'
-        assert user.idp_ids[0].idp_id == 'some-id'
-
-        # Teardown - retrieve_match_or_create_user leaves artifacts
-        if created_user:
-            notify_db_session.session.delete(created_user)
-            notify_db_session.session.commit()

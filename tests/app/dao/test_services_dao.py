@@ -127,36 +127,6 @@ def test_create_service(
     # Teardown handled by sample_user
 
 
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-def test_create_service_with_organisation(
-    notify_db_session,
-    sample_user,
-):
-    user = sample_user()
-
-    service_name = str(uuid.uuid4())
-    service = Service(
-        name=service_name,
-        email_from='email_from',
-        message_limit=1000,
-        restricted=False,
-        organisation_type='some-org-type',
-        created_by=user,
-    )
-    dao_create_service(service, user)
-
-    service_db = notify_db_session.session.scalar(select(Service).where(Service.name == service_name))
-    assert service_db.name == service_name
-    assert service_db.id == service.id
-    assert service_db.email_from == 'email_from'
-    assert service_db.research_mode is False
-    assert service_db.prefix_sms is False
-    assert service.active is True
-    assert user in service_db.users
-    assert service_db.organisation_type == 'other'
-    assert service_db.crown is None
-
-
 def test_cannot_create_two_services_with_same_name(
     notify_db_session,
     sample_user,

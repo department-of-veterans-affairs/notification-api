@@ -787,37 +787,6 @@ def test_persist_sms_notification_stores_normalised_number(
         notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-@pytest.mark.parametrize(
-    'recipient, expected_recipient_normalised', [('FOO@bar.com', 'foo@bar.com'), ('BAR@foo.com', 'bar@foo.com')]
-)
-def test_persist_email_notification_stores_normalised_email(
-    notify_db_session, sample_template, sample_api_key, mocker, recipient, expected_recipient_normalised
-):
-    template = sample_template()
-    api_key = sample_api_key(service=template.service)
-
-    notification = persist_notification(
-        template_id=template.id,
-        template_version=template.version,
-        recipient=recipient,
-        service_id=api_key.service.id,
-        personalisation=None,
-        notification_type=EMAIL_TYPE,
-        api_key_id=api_key.id,
-        key_type=api_key.key_type,
-    )
-    persisted_notification = notify_db_session.session.get(Notification, notification.id)
-
-    try:
-        assert persisted_notification.to == recipient
-        assert persisted_notification.normalised_to == expected_recipient_normalised
-    finally:
-        # Teardown
-        notify_db_session.session.delete(notification)
-        notify_db_session.session.commit()
-
-
 @pytest.mark.parametrize(
     'postage_argument, template_postage, expected_postage',
     [
@@ -860,35 +829,6 @@ def test_persist_letter_notification_finds_correct_postage(
 
     try:
         assert persisted_notification.postage == expected_postage
-    finally:
-        # Teardown
-        notify_db_session.session.delete(persisted_notification)
-        notify_db_session.session.commit()
-
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-def test_persist_notification_with_billable_units_stores_correct_info(notify_db_session, mocker):
-    service = create_service(service_permissions=[LETTER_TYPE])
-    template = create_template(service, template_type=LETTER_TYPE)
-    mocker.patch('app.dao.templates_dao.dao_get_template_by_id', return_value=template)
-    persist_notification(
-        template_id=template.id,
-        template_version=template.version,
-        recipient='123 Main Street',
-        service_id=template.service.id,
-        personalisation=None,
-        notification_type=template.template_type,
-        api_key_id=None,
-        key_type='normal',
-        billable_units=3,
-        template_postage=template.postage,
-    )
-
-    stmt = select(Notification)
-    persisted_notification = notify_db_session.session.scalars(stmt).all()[0]
-
-    try:
-        assert persisted_notification.billable_units == 3
     finally:
         # Teardown
         notify_db_session.session.delete(persisted_notification)

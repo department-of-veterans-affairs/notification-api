@@ -119,54 +119,6 @@ def test_get_bucket_name_and_prefix_for_notification_from_created_at_date(
     assert bucket_prefix == f'2019-08-03/NOTIFY.{notification.reference}'.upper()
 
 
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-@freeze_time(FROZEN_DATE_TIME)
-def test_get_bucket_name_and_prefix_for_notification_precompiled_letter_using_test_key(
-    sample_precompiled_letter_notification_using_test_key,
-):
-    bucket, bucket_prefix = get_bucket_name_and_prefix_for_notification(
-        sample_precompiled_letter_notification_using_test_key
-    )
-
-    assert bucket == current_app.config['TEST_LETTERS_BUCKET_NAME']
-    assert bucket_prefix == 'NOTIFY.{}'.format(sample_precompiled_letter_notification_using_test_key.reference).upper()
-
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-@freeze_time(FROZEN_DATE_TIME)
-def test_get_bucket_name_and_prefix_for_notification_templated_letter_using_test_key(sample_letter_notification):
-    sample_letter_notification.key_type = KEY_TYPE_TEST
-
-    bucket, bucket_prefix = get_bucket_name_and_prefix_for_notification(sample_letter_notification)
-
-    assert bucket == current_app.config['TEST_LETTERS_BUCKET_NAME']
-    assert bucket_prefix == 'NOTIFY.{}'.format(sample_letter_notification.reference).upper()
-
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-@freeze_time(FROZEN_DATE_TIME)
-def test_get_bucket_name_and_prefix_for_failed_validation(sample_precompiled_letter_notification):
-    sample_precompiled_letter_notification.status = NOTIFICATION_VALIDATION_FAILED
-    bucket, bucket_prefix = get_bucket_name_and_prefix_for_notification(sample_precompiled_letter_notification)
-
-    assert bucket == current_app.config['INVALID_PDF_BUCKET_NAME']
-    assert bucket_prefix == 'NOTIFY.{}'.format(sample_precompiled_letter_notification.reference).upper()
-
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-@freeze_time(FROZEN_DATE_TIME)
-def test_get_bucket_name_and_prefix_for_test_noti_with_failed_validation(
-    sample_precompiled_letter_notification_using_test_key,
-):
-    sample_precompiled_letter_notification_using_test_key.status = NOTIFICATION_VALIDATION_FAILED
-    bucket, bucket_prefix = get_bucket_name_and_prefix_for_notification(
-        sample_precompiled_letter_notification_using_test_key
-    )
-
-    assert bucket == current_app.config['INVALID_PDF_BUCKET_NAME']
-    assert bucket_prefix == 'NOTIFY.{}'.format(sample_precompiled_letter_notification_using_test_key.reference).upper()
-
-
 def test_get_bucket_name_and_prefix_for_notification_invalid_notification():
     with pytest.raises(AttributeError):
         get_bucket_name_and_prefix_for_notification(None)
@@ -213,57 +165,6 @@ def test_get_letter_pdf_filename_returns_tomorrows_filename(notify_api, mocker):
     filename = get_letter_pdf_filename(reference='foo', crown=True)
 
     assert filename == '2017-12-05/NOTIFY.FOO.D.2.C.C.20171204173100.PDF'
-
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-@mock_s3
-@pytest.mark.parametrize(
-    'bucket_config_name,filename_format',
-    [
-        ('TEST_LETTERS_BUCKET_NAME', 'NOTIFY.FOO.D.2.C.C.%Y%m%d%H%M%S.PDF'),
-        ('LETTERS_PDF_BUCKET_NAME', '%Y-%m-%d/NOTIFY.FOO.D.2.C.C.%Y%m%d%H%M%S.PDF'),
-    ],
-)
-@freeze_time(FROZEN_DATE_TIME)
-def test_get_letter_pdf_gets_pdf_from_correct_bucket(
-    sample_precompiled_letter_notification_using_test_key, bucket_config_name, filename_format, aws_credentials
-):
-    if bucket_config_name == 'LETTERS_PDF_BUCKET_NAME':
-        sample_precompiled_letter_notification_using_test_key.key_type = KEY_TYPE_NORMAL
-
-    bucket_name = current_app.config[bucket_config_name]
-    filename = datetime.utcnow().strftime(filename_format)
-    conn = boto3.resource('s3', region_name='us-east-1')
-    conn.create_bucket(Bucket=bucket_name)
-    s3 = boto3.client('s3', region_name='us-east-1')
-    s3.put_object(Bucket=bucket_name, Key=filename, Body=b'pdf_content')
-
-    ret = get_letter_pdf(sample_precompiled_letter_notification_using_test_key)
-
-    assert ret == b'pdf_content'
-
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-@pytest.mark.parametrize(
-    'is_precompiled_letter,bucket_config_name', [(False, 'LETTERS_PDF_BUCKET_NAME'), (True, 'LETTERS_SCAN_BUCKET_NAME')]
-)
-def test_upload_letter_pdf_to_correct_bucket(
-    sample_letter_notification, mocker, is_precompiled_letter, bucket_config_name
-):
-    if is_precompiled_letter:
-        sample_letter_notification.template.hidden = True
-        sample_letter_notification.template.name = PRECOMPILED_TEMPLATE_NAME
-
-    mock_s3 = mocker.patch('app.letters.utils.s3upload')
-
-    filename = upload_letter_pdf(sample_letter_notification, b'\x00\x01', precompiled=is_precompiled_letter)
-
-    mock_s3.assert_called_once_with(
-        bucket_name=current_app.config[bucket_config_name],
-        file_location=filename,
-        filedata=b'\x00\x01',
-        region=current_app.config['AWS_REGION'],
-    )
 
 
 @pytest.mark.parametrize('postage,expected_postage', [('second', 2), ('first', 1)])
