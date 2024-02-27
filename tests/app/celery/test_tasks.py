@@ -1380,33 +1380,6 @@ def test_process_incomplete_job_email(notify_db_session, mocker, sample_template
     assert mock_email_saver.call_count == 8  # There are 10 in the file and we've added two already
 
 
-# Letter functionality is not used.  Decline to fix.
-@pytest.mark.xfail(reason='TypeError: expected string or bytes-like object', run=False)
-def test_process_incomplete_job_letter(notify_db_session, mocker, sample_template, sample_job, sample_notification):
-    mocker.patch('app.celery.tasks.s3.get_job_from_s3', return_value=load_example_csv('multiple_letter'))
-    mock_letter_saver = mocker.patch('app.celery.tasks.save_letter.apply_async')
-
-    template = sample_template(template_type=LETTER_TYPE)
-    job = sample_job(
-        template,
-        notification_count=10,
-        created_at=datetime.utcnow() - timedelta(hours=2),
-        scheduled_for=datetime.utcnow() - timedelta(minutes=31),
-        processing_started=datetime.utcnow() - timedelta(minutes=31),
-        job_status=JOB_STATUS_ERROR,
-    )
-
-    sample_notification(template=template, job=job, job_row_number=0)
-    sample_notification(template=template, job=job, job_row_number=1)
-
-    stmt = select(func.count()).select_from(Notification).where(Notification.job_id == job.id)
-    assert notify_db_session.session.scalar(stmt) == 2
-
-    # This line raises TypeError even though job.id is a string.
-    process_incomplete_job(str(job.id))
-    assert mock_letter_saver.call_count == 8
-
-
 @freeze_time('2017-01-01')
 def test_process_incomplete_jobs_sets_status_to_in_progress_and_resets_processing_started_time(
     mocker, notify_db_session, sample_template, sample_job

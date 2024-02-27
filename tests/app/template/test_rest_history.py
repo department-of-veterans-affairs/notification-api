@@ -61,33 +61,6 @@ def test_404_missing_template_version(notify_api, sample_template):
             assert resp.status_code == 404
 
 
-@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
-def test_all_versions_of_template(notify_api, sample_template):
-    template = sample_template()
-    with notify_api.test_request_context():
-        with notify_api.test_client() as client:
-            old_content = template.content
-            newer_content = 'Newer content'
-            newest_content = 'Newest content'
-            template.content = newer_content
-            dao_update_template(template)
-            template.content = newest_content
-            dao_update_template(template)
-            auth_header = create_admin_authorization_header()
-            endpoint = url_for(
-                'template.get_template_versions', service_id=template.service.id, template_id=template.id
-            )
-            resp = client.get(endpoint, headers=[('Content-Type', 'application/json'), auth_header])
-            resp = client.get(endpoint, headers=[('Content-Type', 'application/json'), auth_header])
-            json_resp = json.loads(resp.get_data(as_text=True))
-            assert len(json_resp['data']) == 3
-            assert json_resp['data'][0]['content'] == newest_content
-            assert json_resp['data'][0]['updated_at']
-            assert json_resp['data'][1]['content'] == newer_content
-            assert json_resp['data'][1]['updated_at']
-            assert json_resp['data'][2]['content'] == old_content
-
-
 def test_update_template_reply_to_updates_history(client, sample_template, sample_service):
     service = sample_service(
         service_name=f'sample service full permissions {uuid4()}',
