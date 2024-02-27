@@ -46,7 +46,7 @@ services:
       - .local.env
       - ../tests/env_vars
     depends_on:
-      - test-db
+      - db
     command: make test
 
   db:

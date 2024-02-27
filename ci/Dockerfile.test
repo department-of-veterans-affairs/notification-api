@@ -1,0 +1,48 @@
+# multi-stage build
+FROM python:3.10-alpine3.19 AS builder
+
+ENV POETRY_HOME="/opt/poetry" \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_NO_INTERACTION=1
+    
+
+# Add poetry home location to path
+ENV PATH="$POETRY_HOME/bin:$PATH"
+
+WORKDIR /opt
+
+# copy only necessary files
+COPY poetry.lock pyproject.toml .
+
+RUN apk add --no-cache bash build-base curl-dev g++ git libcurl libffi-dev libmagic make postgresql-dev python3-dev openssl openssl-dev wget
+
+# Arguments for this poetry install
+ARG POETRY_ARGS
+
+# RUN apk add --no-cache --virtual .build-deps gcc musl-dev rust cargo curl \
+RUN apk add --no-cache --virtual .build-deps cargo curl gcc musl-dev rust \
+    && curl -sSL https://install.python-poetry.org | python3 - \
+    && poetry install --no-root --no-ansi $POETRY_ARGS \
+    && apk del --no-cache .build-deps
+
+########################################################################################################################
+
+# Python 3.10 is supported until October 2026.
+# Alpine Linux 3.19 is supported until 1 November 2025
+FROM python:3.10-alpine3.19
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    # https://flask.palletsprojects.com/en/2.2.x/config/?highlight=flask_debug#DEBUG
+    FLASK_DEBUG="true" \
+    PATH="/opt/.venv/bin:$PATH"
+
+# copy the venv that was built from builder image
+COPY --from=builder /opt/.venv /opt/.venv
+
+RUN apk add --no-cache bash build-base libcurl openssl-dev \
+    && adduser -h /app -D vanotify
+
+WORKDIR /app
+
+USER vanotify
+# CMD ["./scripts/run_app.sh"]

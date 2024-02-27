@@ -51,3 +51,5 @@ fileignoreconfig:
   checksum: ee833533b35e63159b05d1d2d900b3883a77700f14cbeaa15134a852774614b7
 - filename: tests/app/dao/test_fido2_keys_dao.py
   checksum: 2eb7fea379aa24082ffb8b4afa186a372b40f18459d861756a85f6f505c2e2e3
+- filename: ci/docker-compose-test.yml
+  checksum: c5d18637dab9c702e987bdd08f8c99b720bad3279a551ccb5325c41810fc92d7

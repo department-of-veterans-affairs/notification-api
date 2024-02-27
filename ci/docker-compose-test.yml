@@ -1,0 +1,30 @@
+version: "3"
+services:
+  test:
+    build:
+      context: ..
+      dockerfile: ci/Dockerfile.local
+      args:
+        POETRY_ARGS: --with static_tools,test
+    image: notification_api
+    volumes:
+      - "../:/app:rw"
+    ports:
+      - 6011:6011
+    env_file:
+      - .local.env
+      - ../tests/env_vars
+    depends_on:
+      - db
+    command: make test
+
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    logging:
+      driver: "none"
+    environment:
+      - POSTGRES_DB=test_notification_api
+      - POSTGRES_PASSWORD=LocalPassword
