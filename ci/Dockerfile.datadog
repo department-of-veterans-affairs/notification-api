@@ -13,4 +13,3 @@ COPY ./scripts/datadog_expose_task_arn.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
-
