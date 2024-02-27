@@ -2,6 +2,11 @@ name: Datadog image update
 
 on:
   workflow_dispatch:
+    ref:
+      required: true
+      type: string
+      default: master
+
   workflow_call:
 
 jobs:
@@ -11,7 +16,11 @@ jobs:
       IMAGE_REPOSITORY: "datadog/agent"
       IMAGE_TAG: "latest"
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4.0.2
         with:
