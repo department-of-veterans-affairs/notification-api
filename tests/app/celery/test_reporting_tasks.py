@@ -469,56 +469,6 @@ def test_create_nightly_billing_for_day_use_BST(
     assert records[0].billable_units == 3
 
 
-@freeze_time('2018-01-15T03:30:00')
-@pytest.mark.skip(reason='Not in use')
-def test_create_nightly_billing_for_day_update_when_record_exists(
-    notify_db_session,
-    mocker,
-    sample_template,
-    sample_notification,
-):
-    mocker.patch('app.dao.fact_billing_dao.get_rate', side_effect=mocker_get_rate)
-    template = sample_template()
-
-    sample_notification(
-        created_at=datetime.now() - timedelta(days=1),
-        template=template,
-        status='delivered',
-        sent_by=None,
-        international=False,
-        rate_multiplier=1.0,
-        billable_units=1,
-    )
-
-    stmt = select(FactBilling).where(FactBilling.template_id == template.id)
-    assert (notify_db_session.session.scalars(stmt).all()) == 0
-
-    create_nightly_billing_for_day('2018-01-14')
-    records = notify_db_session.session.scalars(stmt).all()
-
-    assert len(records) == 1
-    assert records[0].bst_date == date(2018, 1, 13)
-    assert records[0].billable_units == 1
-    assert not records[0].updated_at
-
-    sample_notification(
-        created_at=datetime.now() - timedelta(days=1),
-        template=template,
-        status='delivered',
-        sent_by=None,
-        international=False,
-        rate_multiplier=1.0,
-        billable_units=1,
-    )
-
-    # run again, make sure create_nightly_billing() updates with no error
-    create_nightly_billing_for_day('2018-01-14')
-    records = notify_db_session.session.scalars(stmt).all()
-    assert len(records) == 1
-    assert records[0].billable_units == 2
-    assert records[0].updated_at
-
-
 @freeze_time('1994-01-05')
 def test_create_nightly_notification_status_for_day(
     notify_db_session, sample_service, sample_template, sample_notification
