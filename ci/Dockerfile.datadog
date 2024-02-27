@@ -6,25 +6,10 @@ RUN \
       ca-certificates jq \
     && apt-get clean
 
-# Copy the host's build context directory (notification-api/) to the image's working directory (/app).
-COPY --chown=vanotify ./scripts/import-va-certs.sh .
-RUN chmod +x ./import-va-certs.sh
-
-# Transfer VA certificates to the image.  These certificates are grabbed from a public VA HTTP server.
-RUN bash scripts/import-va-certs.sh \
-  && apk del --no-cache wget openssl
-
-# Generate the version file, app/version.py.  This overwrites the default file needed for local development.
-# The safe.directory modification eliminates the error, "fatal: detected dubious ownership in repository at '/app'".
-RUN apk add --no-cache make \
-  && git config --global --add safe.directory /app \
-  && make generate-version-file \
-  && apk del --no-cache make wget
-
-# RUN /usr/sbin/update-ca-certificates
+COPY ./certs/VA-Internal-S2-RCA1-v1.cer /usr/local/share/ca-certificates/VA-Internal-S2-RCA1-v1.cer
+RUN /usr/sbin/update-ca-certificates
 
 COPY ./scripts/datadog_expose_task_arn.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
-
