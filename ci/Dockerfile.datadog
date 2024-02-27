@@ -9,7 +9,7 @@ RUN \
 # Transfer VA certificates to the image.  These certificates are grabbed from a public VA HTTP server.
 COPY --chown=vanotify ./scripts/import-va-certs.sh .
 RUN chmod +x ./import-va-certs.sh
-RUN bash scripts/import-va-certs.sh \
+RUN bash ./import-va-certs.sh \
   && apk del --no-cache wget openssl
 
 # Generate the version file, app/version.py.  This overwrites the default file needed for local development.
