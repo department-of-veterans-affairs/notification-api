@@ -1,42 +1,31 @@
 from datetime import datetime, timedelta
 from unittest.mock import call
 
+import boto3
 import pytest
 from freezegun import freeze_time
-import boto3
 from moto import mock_dynamodb
 
 from app.celery import scheduled_tasks
-from app.celery.scheduled_tasks import (
-    send_scheduled_comp_and_pen_sms,
-    _get_dynamodb_comp_pen_messages,
-    check_job_status,
-    delete_invitations,
-    delete_verify_codes,
-    run_scheduled_jobs,
-    send_scheduled_notifications,
-    replay_created_notifications,
-    check_precompiled_letter_state,
-    check_templated_letter_state,
-)
+from app.celery.scheduled_tasks import (_get_dynamodb_comp_pen_messages,
+                                        check_job_status,
+                                        check_precompiled_letter_state,
+                                        delete_invitations,
+                                        delete_verify_codes,
+                                        replay_created_notifications,
+                                        run_scheduled_jobs,
+                                        send_scheduled_comp_and_pen_sms,
+                                        send_scheduled_notifications)
 from app.config import QueueNames, TaskNames
 from app.dao.jobs_dao import dao_get_job_by_id
 from app.dao.notifications_dao import dao_get_scheduled_notifications
-from app.models import (
-    EMAIL_TYPE,
-    JOB_STATUS_ERROR,
-    JOB_STATUS_FINISHED,
-    JOB_STATUS_IN_PROGRESS,
-    JOB_STATUS_PENDING,
-    JOB_STATUS_SCHEDULED,
-    LETTER_TYPE,
-    NOTIFICATION_DELIVERED,
-    NOTIFICATION_PENDING_VIRUS_CHECK,
-    SMS_TYPE,
-)
+from app.models import (EMAIL_TYPE, JOB_STATUS_ERROR, JOB_STATUS_FINISHED,
+                        JOB_STATUS_IN_PROGRESS, JOB_STATUS_PENDING,
+                        JOB_STATUS_SCHEDULED, LETTER_TYPE,
+                        NOTIFICATION_DELIVERED,
+                        NOTIFICATION_PENDING_VIRUS_CHECK, SMS_TYPE)
 from app.v2.errors import JobIncompleteError
 from app.va.identifier import IdentifierType
-
 
 SEND_TASK_MOCK_PATH = 'app.celery.tasks.notify_celery.send_task'
 LOGGER_EXCEPTION_MOCK_PATH = 'app.celery.tasks.current_app.logger.exception'
@@ -357,60 +346,6 @@ def test_check_precompiled_letter_state(mocker, sample_template, sample_notifica
     mock_logger.assert_called_once_with(message)
     mock_create_ticket.assert_called_with(
         message=message, subject='[test] Letters still pending virus check', ticket_type='incident'
-    )
-
-
-@freeze_time('2019-05-30 14:00:00')
-@pytest.mark.skip(reason='Letter feature')
-def test_check_templated_letter_state_during_bst(mocker, sample_template, sample_notification):
-    mock_logger = mocker.patch(LOGGER_EXCEPTION_MOCK_PATH)
-    mock_create_ticket = mocker.patch(ZENDEKS_CLIENT_CRREATE_TICKET_MOCK_PATH)
-    template = sample_template(template_type=LETTER_TYPE)
-
-    noti_1 = sample_notification(template=template, updated_at=datetime(2019, 5, 1, 12, 0))
-    noti_2 = sample_notification(template=template, updated_at=datetime(2019, 5, 29, 16, 29))
-    sample_notification(template=template, updated_at=datetime(2019, 5, 29, 16, 30))
-    sample_notification(template=template, updated_at=datetime(2019, 5, 29, 17, 29))
-    sample_notification(template=template, status='delivered', updated_at=datetime(2019, 5, 28, 10, 0))
-    sample_notification(template=template, updated_at=datetime(2019, 5, 30, 10, 0))
-
-    check_templated_letter_state()
-
-    message = (
-        "2 letters were created before 17.30 yesterday and still have 'created' status. "
-        "Notifications: ['{}', '{}']".format(noti_1.id, noti_2.id)
-    )
-
-    mock_logger.assert_called_once_with(message)
-    mock_create_ticket.assert_called_with(
-        message=message, subject="[test] Letters still in 'created' status", ticket_type='incident'
-    )
-
-
-@freeze_time('2019-01-30 14:00:00')
-@pytest.mark.skip(reason='Letter feature')
-def test_check_templated_letter_state_during_utc(mocker, sample_template, sample_notification):
-    mock_logger = mocker.patch(LOGGER_EXCEPTION_MOCK_PATH)
-    mock_create_ticket = mocker.patch(ZENDEKS_CLIENT_CRREATE_TICKET_MOCK_PATH)
-    template = sample_template(template_type=LETTER_TYPE)
-
-    noti_1 = sample_notification(template=template, updated_at=datetime(2018, 12, 1, 12, 0))
-    noti_2 = sample_notification(template=template, updated_at=datetime(2019, 1, 29, 17, 29))
-    sample_notification(template=template, updated_at=datetime(2019, 1, 29, 17, 30))
-    sample_notification(template=template, updated_at=datetime(2019, 1, 29, 18, 29))
-    sample_notification(template=template, status='delivered', updated_at=datetime(2019, 1, 29, 10, 0))
-    sample_notification(template=template, updated_at=datetime(2019, 1, 30, 10, 0))
-
-    check_templated_letter_state()
-
-    message = (
-        "2 letters were created before 17.30 yesterday and still have 'created' status. "
-        "Notifications: ['{}', '{}']".format(noti_1.id, noti_2.id)
-    )
-
-    mock_logger.assert_called_once_with(message)
-    mock_create_ticket.assert_called_with(
-        message=message, subject="[test] Letters still in 'created' status", ticket_type='incident'
     )
 
 
