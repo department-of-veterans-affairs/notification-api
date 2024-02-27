@@ -1,27 +1,19 @@
-import pytest
 import uuid
-from app.dao.jobs_dao import (
-    can_letter_job_be_cancelled,
-    dao_cancel_letter_job,
-    dao_create_job,
-    dao_get_future_scheduled_job_by_id_and_service_id,
-    dao_get_job_by_service_id_and_job_id,
-    dao_get_jobs_by_service_id,
-    dao_get_jobs_older_than_data_retention,
-    dao_get_notification_outcomes_for_job,
-    dao_set_scheduled_jobs_to_pending,
-    dao_update_job,
-)
-from app.models import (
-    EMAIL_TYPE,
-    Job,
-    JOB_STATUS_SCHEDULED,
-    LETTER_TYPE,
-    SMS_TYPE,
-)
 from datetime import datetime, timedelta
-from freezegun import freeze_time
 from functools import partial
+
+import pytest
+from freezegun import freeze_time
+
+from app.dao.jobs_dao import (
+    can_letter_job_be_cancelled, dao_cancel_letter_job, dao_create_job,
+    dao_get_future_scheduled_job_by_id_and_service_id,
+    dao_get_job_by_service_id_and_job_id, dao_get_jobs_by_service_id,
+    dao_get_jobs_older_than_data_retention,
+    dao_get_notification_outcomes_for_job, dao_set_scheduled_jobs_to_pending,
+    dao_update_job)
+from app.models import (EMAIL_TYPE, JOB_STATUS_SCHEDULED, LETTER_TYPE,
+                        SMS_TYPE, Job)
 
 
 def test_should_have_decorated_notifications_dao_functions():
@@ -421,24 +413,6 @@ def test_can_letter_job_be_cancelled_returns_false_and_error_message_if_notifica
     result, errors = can_letter_job_be_cancelled(job)
     assert not result
     assert errors == 'It’s too late to cancel sending, these letters have already been sent.'
-
-
-@pytest.mark.skip(reason='Letter feature')
-def test_can_letter_job_be_cancelled_returns_false_and_error_message_if_letters_already_sent_to_dvla(
-    sample_letter_template,
-    sample_notification,
-    sample_job,
-):
-    with freeze_time('2019-06-13 13:00'):
-        job = sample_job(sample_letter_template, notification_count=1, job_status='finished')
-        letter = sample_notification(template=job.template, job=job, status='created')
-
-    with freeze_time('2019-06-13 17:32'):
-        result, errors = can_letter_job_be_cancelled(job)
-    assert not result
-    assert errors == 'It’s too late to cancel sending, these letters have already been sent.'
-    assert letter.status == 'created'
-    assert job.job_status == 'finished'
 
 
 @freeze_time('2019-06-13 13:00')
