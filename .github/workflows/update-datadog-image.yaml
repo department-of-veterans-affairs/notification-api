@@ -9,10 +9,6 @@ on:
           default: master
     workflow_call:
 
-on:
-  workflow_dispatch:
-  workflow_call:
-
 jobs:
   update-image:
     runs-on: ubuntu-latest
