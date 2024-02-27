@@ -89,10 +89,10 @@ jobs:
           task-definition: ./cd/application-deployment/${{ inputs.environment }}/vaec-api-task-definition.json
           container-name: notification-api
           image: ${{ steps.login-ecr-vaec.outputs.registry }}/notification_api:${{ inputs.ref }}_${{ inputs.environment}}
-        environment-variables: |
-          DD_VERSION=${{ inputs.ref }}
-        docker-labels: |
-          VERSION=${{ inputs.ref }}
+          environment-variables: |
+            DD_VERSION=${{ inputs.ref }}
+          docker-labels: |
+            VERSION=${{ inputs.ref }}
 
       - name: Deploy API task definition to Fargate
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
