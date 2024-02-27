@@ -5,7 +5,7 @@ services:
       - app
     build:
       context: ..
-      dockerfile: &dockerfile ci/Dockerfile.kwm
+      dockerfile: &dockerfile ci/Dockerfile.local
     image: &notify_image notification_api
     ports: &notify_ports
       - 6011:6011
