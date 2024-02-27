@@ -10,7 +10,6 @@ from app.letters.utils import (
     copy_redaction_failed_pdf,
     get_bucket_name_and_prefix_for_notification,
     get_letter_pdf_filename,
-    get_letter_pdf,
     letter_print_day,
     upload_letter_pdf,
     ScanErrorType,
@@ -18,10 +17,8 @@ from app.letters.utils import (
     get_folder_name,
 )
 from app.models import (
-    KEY_TYPE_NORMAL,
     KEY_TYPE_TEST,
     PRECOMPILED_TEMPLATE_NAME,
-    NOTIFICATION_VALIDATION_FAILED,
     SERVICE_PERMISSION_TYPES,
 )
 from tests.app.db import LETTER_TYPE
@@ -44,38 +41,6 @@ def _sample_precompiled_letter_notification(sample_letter_notification):
 def _sample_precompiled_letter_notification_using_test_key(sample_precompiled_letter_notification):
     sample_precompiled_letter_notification.key_type = KEY_TYPE_TEST
     return sample_precompiled_letter_notification
-
-
-@pytest.mark.parametrize(
-    'created_at,folder',
-    [
-        (datetime(2017, 1, 1, 17, 29), '2017-01-01'),
-        (datetime(2017, 1, 1, 17, 31), '2017-01-02'),
-    ],
-)
-@pytest.mark.skip(reason='Letter feature')
-def test_get_bucket_name_and_prefix_for_notification_valid_notification(
-    sample_api_key,
-    sample_template,
-    sample_notification,
-    created_at,
-    folder,
-):
-    template = sample_template()
-    api_key = sample_api_key(service=template.service)
-    notification = sample_notification(
-        template=template,
-        api_key=api_key,
-        created_at=created_at,
-        updated_at=created_at,
-    )
-
-    bucket, bucket_prefix = get_bucket_name_and_prefix_for_notification(notification)
-
-    assert bucket == current_app.config['LETTERS_PDF_BUCKET_NAME']
-    assert (
-        bucket_prefix == '{folder}/NOTIFY.{reference}'.format(folder=folder, reference=notification.reference).upper()
-    )
 
 
 def test_get_bucket_name_and_prefix_for_notification_get_from_sent_at_date(
@@ -159,14 +124,6 @@ def test_get_letter_pdf_filename_returns_correct_filename_for_test_letters(notif
     assert filename == 'NOTIFY.FOO.D.2.C.C.20171204172900.PDF'
 
 
-@freeze_time('2017-12-04 17:31:00')
-@pytest.mark.skip(reason='Letter feature')
-def test_get_letter_pdf_filename_returns_tomorrows_filename(notify_api, mocker):
-    filename = get_letter_pdf_filename(reference='foo', crown=True)
-
-    assert filename == '2017-12-05/NOTIFY.FOO.D.2.C.C.20171204173100.PDF'
-
-
 @pytest.mark.parametrize('postage,expected_postage', [('second', 2), ('first', 1)])
 def test_upload_letter_pdf_uses_postage_from_notification(
     sample_api_key,
@@ -247,40 +204,8 @@ def test_copy_redaction_failed_pdf(notify_api, aws_credentials):
     assert filename in [o.key for o in bucket.objects.all()]
 
 
-@pytest.mark.parametrize(
-    'freeze_date, expected_folder_name',
-    [
-        ('2018-04-01 17:50:00', '2018-04-02/'),
-        ('2018-07-02 16:29:00', '2018-07-02/'),
-        ('2018-07-02 16:30:00', '2018-07-02/'),
-        ('2018-07-02 16:31:00', '2018-07-03/'),
-        ('2018-01-02 16:31:00', '2018-01-02/'),
-        ('2018-01-02 17:31:00', '2018-01-03/'),
-        ('2018-07-02 22:30:00', '2018-07-03/'),
-        ('2018-07-02 23:30:00', '2018-07-03/'),
-        ('2018-07-03 00:30:00', '2018-07-03/'),
-        ('2018-01-02 22:30:00', '2018-01-03/'),
-        ('2018-01-02 23:30:00', '2018-01-03/'),
-        ('2018-01-03 00:30:00', '2018-01-03/'),
-    ],
-)
-@pytest.mark.skip(reason='Letter feature')
-def test_get_folder_name_in_british_summer_time(notify_api, freeze_date, expected_folder_name):
-    with freeze_time(freeze_date):
-        now = datetime.utcnow()
-        folder_name = get_folder_name(_now=now, is_test_or_scan_letter=False)
-    assert folder_name == expected_folder_name
-
-
 def test_get_folder_name_returns_empty_string_for_test_letter():
     assert '' == get_folder_name(datetime.utcnow(), is_test_or_scan_letter=True)
-
-
-@freeze_time('2017-07-07 20:00:00')
-@pytest.mark.skip(reason='Letter feature')
-def test_letter_print_day_returns_today_if_letter_was_printed_after_1730_yesterday():
-    created_at = datetime(2017, 7, 6, 17, 30)
-    assert letter_print_day(created_at) == 'today'
 
 
 @freeze_time('2017-07-07 16:30:00')
@@ -288,18 +213,3 @@ def test_letter_print_day_returns_today_if_letter_was_printed_today():
     created_at = datetime(2017, 7, 7, 12, 0)
     assert letter_print_day(created_at) == 'today'
 
-
-@pytest.mark.parametrize(
-    'created_at, formatted_date',
-    [
-        (datetime(2017, 7, 5, 16, 30), 'on 6 July'),
-        (datetime(2017, 7, 6, 16, 29), 'on 6 July'),
-        (datetime(2016, 8, 8, 10, 00), 'on 8 August'),
-        (datetime(2016, 12, 12, 17, 29), 'on 12 December'),
-        (datetime(2016, 12, 12, 17, 30), 'on 13 December'),
-    ],
-)
-@freeze_time('2017-07-07 16:30:00')
-@pytest.mark.skip(reason='Letter feature')
-def test_letter_print_day_returns_formatted_date_if_letter_printed_before_1730_yesterday(created_at, formatted_date):
-    assert letter_print_day(created_at) == formatted_date
