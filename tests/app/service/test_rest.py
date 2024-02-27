@@ -1,26 +1,16 @@
 import json
 import pytest
 import uuid
-from app.dao.organisation_dao import dao_add_service_to_organisation
-from app.dao.service_user_dao import dao_get_service_user
 from app.dao.services_dao import (
-    dao_add_user_to_service,
     dao_remove_user_from_service,
     DEFAULT_SERVICE_PERMISSIONS,
 )
 from app.dao.templates_dao import dao_redact_template
-from app.dao.users_dao import save_model_user
-from app.model import User
 from app.models import (
-    EmailBranding,
     Notification,
-    Permission,
     Service,
-    ServiceEmailReplyTo,
     ServicePermission,
     ServiceSmsSender,
-    KEY_TYPE_NORMAL,
-    KEY_TYPE_TEAM,
     KEY_TYPE_TEST,
     EMAIL_TYPE,
     SMS_TYPE,
@@ -35,13 +25,8 @@ from freezegun import freeze_time
 from sqlalchemy import select
 from tests import create_admin_authorization_header
 from tests.app.db import (
-    create_ft_billing,
     create_ft_notification_status,
-    create_template_folder,
     create_notification,
-    create_reply_to_email,
-    create_organisation,
-    create_annual_billing,
 )
 from unittest.mock import ANY
 from uuid import uuid4
@@ -1263,7 +1248,7 @@ def test_get_services_with_detailed_flag_defaults_to_today(client, mocker):
     assert resp.status_code == 200
 
 
-@pytest.mark.skip(reason='Do we utilize this?')
+@pytest.mark.skip(reason='Used by GET /service if arg detailed TRUE- keeping route for v3, unsure if keep optional arg detailed.')
 def test_get_detailed_services_groups_by_service(notify_db_session, sample_api_key, sample_service, sample_template):
     from app.service.rest import get_detailed_services
 
@@ -1305,7 +1290,7 @@ def test_get_detailed_services_groups_by_service(notify_db_session, sample_api_k
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason='Do we utilize this?')
+@pytest.mark.skip(reason='Used by GET /service if arg detailed TRUE- keeping route for v3, unsure if keep optional arg detailed.')
 def test_get_detailed_services_includes_services_with_no_notifications(
     notify_db_session, sample_api_key, sample_service, sample_template
 ):
@@ -1340,7 +1325,7 @@ def test_get_detailed_services_includes_services_with_no_notifications(
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason='Do we utilize this?')
+@pytest.mark.skip(reason='Used by GET /service if arg detailed TRUE- keeping route for v3, unsure if keep optional arg detailed.')
 # This test assumes the local timezone is EST
 def test_get_detailed_services_only_includes_todays_notifications(notify_db_session, sample_api_key, sample_template):
     from app.service.rest import get_detailed_services
@@ -1371,7 +1356,7 @@ def test_get_detailed_services_only_includes_todays_notifications(notify_db_sess
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason='Do we utilize this?')
+@pytest.mark.skip(reason='Used by GET /service if arg detailed TRUE- keeping route for v3, unsure if keep optional arg detailed.')
 @pytest.mark.parametrize('start_date_delta, end_date_delta', [(2, 1), (3, 2), (1, 0)])
 @freeze_time('2017-03-28T12:00:00')
 def test_get_detailed_services_for_date_range(
