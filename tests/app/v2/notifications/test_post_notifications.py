@@ -12,14 +12,21 @@ from app.attachments.store import AttachmentStoreError
 from app.config import QueueNames
 from app.dao.service_sms_sender_dao import dao_update_service_sms_sender
 from app.feature_flags import FeatureFlag
-from app.models import (EMAIL_TYPE, INTERNATIONAL_SMS_TYPE, KEY_TYPE_TEAM,
-                        NOTIFICATION_CREATED, SCHEDULE_NOTIFICATIONS, SMS_TYPE,
-                        UPLOAD_DOCUMENT, Notification, ScheduledNotification,
-                        ServiceEmailReplyTo)
+from app.models import (
+    EMAIL_TYPE,
+    INTERNATIONAL_SMS_TYPE,
+    KEY_TYPE_TEAM,
+    NOTIFICATION_CREATED,
+    SCHEDULE_NOTIFICATIONS,
+    SMS_TYPE,
+    UPLOAD_DOCUMENT,
+    Notification,
+    ScheduledNotification,
+    ServiceEmailReplyTo,
+)
 from app.schema_validation import validate
 from app.v2.errors import RateLimitError
-from app.v2.notifications.notification_schemas import (post_email_response,
-                                                       post_sms_response)
+from app.v2.notifications.notification_schemas import post_email_response, post_sms_response
 from app.va.identifier import IdentifierType
 from tests import create_authorization_header
 from tests.app.db import create_reply_to_email, create_service_sms_sender

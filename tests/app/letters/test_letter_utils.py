@@ -212,4 +212,3 @@ def test_get_folder_name_returns_empty_string_for_test_letter():
 def test_letter_print_day_returns_today_if_letter_was_printed_today():
     created_at = datetime(2017, 7, 7, 12, 0)
     assert letter_print_day(created_at) == 'today'
-

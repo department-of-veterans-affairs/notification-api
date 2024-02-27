@@ -19,10 +19,18 @@ from sqlalchemy import select
 from app.dao.permissions_dao import permission_dao
 from app.dao.templates_dao import dao_get_template_by_id, dao_redact_template
 from app.feature_flags import FeatureFlag
-from app.models import (EDIT_TEMPLATES, EMAIL_TYPE, LETTER_TYPE,
-                        SERVICE_PERMISSION_TYPES, SMS_TYPE, Permission,
-                        ProviderDetails, Template, TemplateHistory,
-                        TemplateRedacted)
+from app.models import (
+    EDIT_TEMPLATES,
+    EMAIL_TYPE,
+    LETTER_TYPE,
+    SERVICE_PERMISSION_TYPES,
+    SMS_TYPE,
+    Permission,
+    ProviderDetails,
+    Template,
+    TemplateHistory,
+    TemplateRedacted,
+)
 from tests import create_admin_authorization_header
 from tests.app.db import create_letter_contact, create_template_folder
 from tests.app.factories.feature_flag import mock_feature_flag

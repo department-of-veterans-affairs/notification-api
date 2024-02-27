@@ -7,23 +7,32 @@ from freezegun import freeze_time
 from moto import mock_dynamodb
 
 from app.celery import scheduled_tasks
-from app.celery.scheduled_tasks import (_get_dynamodb_comp_pen_messages,
-                                        check_job_status,
-                                        check_precompiled_letter_state,
-                                        delete_invitations,
-                                        delete_verify_codes,
-                                        replay_created_notifications,
-                                        run_scheduled_jobs,
-                                        send_scheduled_comp_and_pen_sms,
-                                        send_scheduled_notifications)
+from app.celery.scheduled_tasks import (
+    _get_dynamodb_comp_pen_messages,
+    check_job_status,
+    check_precompiled_letter_state,
+    delete_invitations,
+    delete_verify_codes,
+    replay_created_notifications,
+    run_scheduled_jobs,
+    send_scheduled_comp_and_pen_sms,
+    send_scheduled_notifications,
+)
 from app.config import QueueNames, TaskNames
 from app.dao.jobs_dao import dao_get_job_by_id
 from app.dao.notifications_dao import dao_get_scheduled_notifications
-from app.models import (EMAIL_TYPE, JOB_STATUS_ERROR, JOB_STATUS_FINISHED,
-                        JOB_STATUS_IN_PROGRESS, JOB_STATUS_PENDING,
-                        JOB_STATUS_SCHEDULED, LETTER_TYPE,
-                        NOTIFICATION_DELIVERED,
-                        NOTIFICATION_PENDING_VIRUS_CHECK, SMS_TYPE)
+from app.models import (
+    EMAIL_TYPE,
+    JOB_STATUS_ERROR,
+    JOB_STATUS_FINISHED,
+    JOB_STATUS_IN_PROGRESS,
+    JOB_STATUS_PENDING,
+    JOB_STATUS_SCHEDULED,
+    LETTER_TYPE,
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_PENDING_VIRUS_CHECK,
+    SMS_TYPE,
+)
 from app.v2.errors import JobIncompleteError
 from app.va.identifier import IdentifierType
 

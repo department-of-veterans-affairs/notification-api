@@ -365,4 +365,3 @@ def test_move_to_folder_itself_is_rejected(admin_request, sample_service, sample
         _expected_status=400,
     )
     assert response['message'] == 'You cannot move a folder to itself'
-

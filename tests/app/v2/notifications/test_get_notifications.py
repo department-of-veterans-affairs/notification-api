@@ -727,4 +727,3 @@ def test_get_all_notifications_filter_multiple_query_parameters(
     notify_db_session.session.delete(newer_notification)
     notify_db_session.session.delete(recent_notification)
     notify_db_session.session.commit()
-

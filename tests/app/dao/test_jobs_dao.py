@@ -6,14 +6,18 @@ import pytest
 from freezegun import freeze_time
 
 from app.dao.jobs_dao import (
-    can_letter_job_be_cancelled, dao_cancel_letter_job, dao_create_job,
+    can_letter_job_be_cancelled,
+    dao_cancel_letter_job,
+    dao_create_job,
     dao_get_future_scheduled_job_by_id_and_service_id,
-    dao_get_job_by_service_id_and_job_id, dao_get_jobs_by_service_id,
+    dao_get_job_by_service_id_and_job_id,
+    dao_get_jobs_by_service_id,
     dao_get_jobs_older_than_data_retention,
-    dao_get_notification_outcomes_for_job, dao_set_scheduled_jobs_to_pending,
-    dao_update_job)
-from app.models import (EMAIL_TYPE, JOB_STATUS_SCHEDULED, LETTER_TYPE,
-                        SMS_TYPE, Job)
+    dao_get_notification_outcomes_for_job,
+    dao_set_scheduled_jobs_to_pending,
+    dao_update_job,
+)
+from app.models import EMAIL_TYPE, JOB_STATUS_SCHEDULED, LETTER_TYPE, SMS_TYPE, Job
 
 
 def test_should_have_decorated_notifications_dao_functions():
