@@ -1,10 +1,10 @@
-import datetime
 import pytest
+from flask import json, url_for
 from sqlalchemy import select
+
 from app import DATETIME_FORMAT
 from app.models import EMAIL_TYPE, SMS_TYPE, ScheduledNotification
 from app.va.identifier import IdentifierType
-from flask import json, url_for
 from tests import create_authorization_header
 from tests.app.db import create_notification
 
@@ -319,39 +319,6 @@ def test_get_notification_by_id_invalid_id(
     }
 
 
-@pytest.mark.parametrize(
-    'created_at_month, postage, estimated_delivery',
-    [
-        (12, 'second', '2000-12-06T16:00:00.000000Z'),  # 4pm GMT in winter
-        (6, 'second', '2000-06-05T15:00:00.000000Z'),  # 4pm BST in summer
-        (12, 'first', '2000-12-05T16:00:00.000000Z'),  # 4pm GMT in winter
-        (6, 'first', '2000-06-03T15:00:00.000000Z'),  # 4pm BST in summer (two days before 2nd class due to weekends)
-    ],
-)
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-def test_get_notification_adds_delivery_estimate_for_letters(
-    client,
-    sample_api_key,
-    sample_letter_notification,
-    created_at_month,
-    postage,
-    estimated_delivery,
-):
-    sample_letter_notification.created_at = datetime.date(2000, created_at_month, 1)
-    sample_letter_notification.postage = postage
-
-    auth_header = create_authorization_header(sample_api_key(service=sample_letter_notification.service))
-    response = client.get(
-        path='/v2/notifications/{}'.format(sample_letter_notification.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-    )
-
-    json_response = json.loads(response.get_data(as_text=True))
-    assert response.status_code == 200
-    assert json_response['postage'] == postage
-    assert json_response['estimated_delivery'] == estimated_delivery
-
-
 @pytest.mark.parametrize('template_type', [SMS_TYPE, EMAIL_TYPE])
 def test_get_notification_doesnt_have_delivery_estimate_for_non_letters(
     client,
@@ -374,72 +341,6 @@ def test_get_notification_doesnt_have_delivery_estimate_for_non_letters(
     # Teardown
     notify_db_session.session.delete(mocked_notification)
     notify_db_session.session.commit()
-
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-def test_get_all_notifications_except_job_notifications_returns_200(
-    client,
-    sample_api_key,
-    sample_template,
-    sample_job,
-):
-    template = sample_template()
-    create_notification(template=template, job=sample_job)  # should not return this job notification
-    notifications = [create_notification(template=template) for _ in range(2)]
-    notification = notifications[-1]
-
-    auth_header = create_authorization_header(sample_api_key(service=template.service))
-    response = client.get(path='/v2/notifications', headers=[('Content-Type', 'application/json'), auth_header])
-
-    json_response = json.loads(response.get_data(as_text=True))
-
-    assert response.status_code == 200
-    assert response.headers['Content-type'] == 'application/json'
-    assert json_response['links']['current'].endswith('/v2/notifications')
-    assert 'next' in json_response['links'].keys()
-    assert len(json_response['notifications']) == 2
-
-    assert json_response['notifications'][0]['id'] == str(notification.id)
-    assert json_response['notifications'][0]['status'] == 'created'
-    assert json_response['notifications'][0]['template'] == {
-        'id': str(notification.template.id),
-        'uri': notification.template.get_link(),
-        'version': 1,
-    }
-    assert json_response['notifications'][0]['phone_number'] == '+16502532222'
-    assert json_response['notifications'][0]['type'] == SMS_TYPE
-    assert not json_response['notifications'][0]['scheduled_for']
-
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-def test_get_all_notifications_with_include_jobs_arg_returns_200(
-    client,
-    sample_api_key,
-    sample_template,
-    sample_job,
-):
-    template = sample_template()
-    notifications = [create_notification(template=template, job=sample_job), create_notification(template=template)]
-    notification = notifications[-1]
-
-    auth_header = create_authorization_header(sample_api_key(service=template.service))
-    # We are not using the "jobs" functionality
-    response = client.get(
-        path='/v2/notifications?include_jobs=true', headers=[('Content-Type', 'application/json'), auth_header]
-    )
-
-    json_response = json.loads(response.get_data(as_text=True))
-
-    assert response.status_code == 200
-    assert json_response['links']['current'].endswith('/v2/notifications?include_jobs=true')
-    assert 'next' in json_response['links'].keys()
-    assert len(json_response['notifications']) == 2
-
-    assert json_response['notifications'][0]['id'] == str(notification.id)
-    assert json_response['notifications'][0]['status'] == notification.status
-    assert json_response['notifications'][0]['phone_number'] == notification.to
-    assert json_response['notifications'][0]['type'] == notification.template.template_type
-    assert not json_response['notifications'][0]['scheduled_for']
 
 
 def test_get_all_notifications_no_notifications_if_no_notifications(
@@ -827,49 +728,3 @@ def test_get_all_notifications_filter_multiple_query_parameters(
     notify_db_session.session.delete(recent_notification)
     notify_db_session.session.commit()
 
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-def test_get_all_notifications_renames_letter_statuses(client, sample_letter_notification):
-    auth_header = create_authorization_header(service_id=sample_letter_notification.service_id)
-    response = client.get(
-        path=url_for('v2_notifications.get_notifications'), headers=[('Content-Type', 'application/json'), auth_header]
-    )
-
-    json_response = json.loads(response.get_data(as_text=True))
-    assert response.status_code == 200
-
-    for noti in json_response['notifications']:
-        if noti['type'] == SMS_TYPE or noti['type'] == EMAIL_TYPE:
-            assert noti['status'] == 'created'
-        elif noti['type'] == 'letter':
-            assert noti['status'] == 'accepted'
-        else:
-            pytest.fail()
-
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-@pytest.mark.parametrize(
-    'db_status,expected_status',
-    [
-        ('created', 'accepted'),
-        ('sending', 'accepted'),
-        ('delivered', 'received'),
-        ('pending', 'pending'),
-        ('technical-failure', 'technical-failure'),
-    ],
-)
-def test_get_notifications_renames_letter_statuses(client, sample_letter_template, db_status, expected_status):
-    letter_noti = create_notification(
-        sample_letter_template,
-        status=db_status,
-        personalisation={'address_line_1': 'Mr Foo', 'address_line_2': '1 Bar Street', 'postcode': 'N1'},
-    )
-    auth_header = create_authorization_header(service_id=letter_noti.service_id)
-    response = client.get(
-        path=url_for('v2_notifications.get_notification_by_id', notification_id=letter_noti.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-    )
-
-    json_response = json.loads(response.get_data(as_text=True))
-    assert response.status_code == 200
-    assert json_response['status'] == expected_status
