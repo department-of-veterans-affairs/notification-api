@@ -1,29 +1,13 @@
 import base64
-import botocore
 import json
-import pytest
 import random
-import requests_mock
 import string
 import uuid
-from app.dao.permissions_dao import permission_dao
-from app.dao.service_permissions_dao import dao_add_service_permission
-from app.dao.templates_dao import dao_get_template_by_id, dao_redact_template
-from app.feature_flags import FeatureFlag
-from app.models import (
-    EMAIL_TYPE,
-    LETTER_TYPE,
-    SMS_TYPE,
-    Notification,
-    Template,
-    TemplateHistory,
-    TemplateRedacted,
-    ProviderDetails,
-    Permission,
-    EDIT_TEMPLATES,
-    SERVICE_PERMISSION_TYPES,
-)
-from datetime import datetime, timedelta, date
+from datetime import date, datetime, timedelta
+
+import botocore
+import pytest
+import requests_mock
 from flask import url_for
 from flask_jwt_extended import create_access_token
 from freezegun import freeze_time
@@ -31,108 +15,18 @@ from notifications_utils import SMS_CHAR_COUNT_LIMIT
 from notifications_utils.template import HTMLEmailTemplate
 from pypdf.errors import PdfReadError
 from sqlalchemy import select
+
+from app.dao.permissions_dao import permission_dao
+from app.dao.templates_dao import dao_get_template_by_id, dao_redact_template
+from app.feature_flags import FeatureFlag
+from app.models import (EDIT_TEMPLATES, EMAIL_TYPE, LETTER_TYPE,
+                        SERVICE_PERMISSION_TYPES, SMS_TYPE, Permission,
+                        ProviderDetails, Template, TemplateHistory,
+                        TemplateRedacted)
 from tests import create_admin_authorization_header
-from tests.app.db import (
-    create_letter_contact,
-    create_template_folder,
-)
+from tests.app.db import create_letter_contact, create_template_folder
 from tests.app.factories.feature_flag import mock_feature_flag
 from tests.conftest import set_config_values
-
-
-@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
-@pytest.mark.parametrize(
-    'template_type, subject',
-    [
-        (SMS_TYPE, None),
-        (EMAIL_TYPE, 'subject'),
-        (LETTER_TYPE, 'subject'),
-    ],
-)
-def test_should_create_a_new_template_for_a_service(
-    notify_db_session,
-    client,
-    sample_service,
-    sample_user,
-    template_type,
-    subject,
-):
-    service = sample_service(service_permissions=[template_type])
-    data = {
-        'name': 'my template',
-        'template_type': template_type,
-        'content': 'template <b>content</b>',
-        'service': str(service.id),
-        'created_by': str(sample_user.id),
-    }
-    if subject:
-        data.update({'subject': subject})
-    if template_type == LETTER_TYPE:
-        data.update({'postage': 'first'})
-    data = json.dumps(data)
-    auth_header = create_admin_authorization_header()
-
-    response = client.post(
-        '/service/{}/template'.format(service.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data,
-    )
-    assert response.status_code == 201
-    json_resp = response.get_json()
-    assert json_resp['data']['name'] == 'my template'
-    assert json_resp['data']['template_type'] == template_type
-    assert json_resp['data']['content'] == 'template <b>content</b>'
-    assert json_resp['data']['service'] == str(service.id)
-    assert json_resp['data']['id']
-    assert json_resp['data']['version'] == 1
-    assert json_resp['data']['process_type'] == 'normal'
-    assert json_resp['data']['created_by'] == str(sample_user.id)
-    if subject:
-        assert json_resp['data']['subject'] == 'subject'
-    else:
-        assert not json_resp['data']['subject']
-
-    if template_type == LETTER_TYPE:
-        assert json_resp['data']['postage'] == 'first'
-    else:
-        assert not json_resp['data']['postage']
-
-    template = notify_db_session.session.get(Template, json_resp['data']['id'])
-    from app.schemas import template_schema
-
-    assert sorted(json_resp['data']) == sorted(template_schema.dump(template).data)
-
-
-@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
-def test_should_create_a_new_template_with_a_valid_provider(
-    notify_db_session,
-    client,
-    sample_service,
-    sample_user,
-    ses_provider,
-):
-    service = sample_service(service_permissions=[EMAIL_TYPE])
-    data = {
-        'name': 'my template',
-        'template_type': EMAIL_TYPE,
-        'content': 'template <b>content</b>',
-        'service': str(service.id),
-        'created_by': str(sample_user.id),
-        'provider_id': str(ses_provider.id),
-        'subject': 'subject',
-    }
-    data = json.dumps(data)
-    auth_header = create_admin_authorization_header()
-
-    response = client.post(
-        f'/service/{service.id}/template', headers=[('Content-Type', 'application/json'), auth_header], data=data
-    )
-    assert response.status_code == 201
-    json_resp = response.get_json()
-    assert json_resp['data']['provider_id'] == str(ses_provider.id)
-
-    template = notify_db_session.session.get(Template, json_resp['data']['id'])
-    assert template.provider_id == ses_provider.id
 
 
 @pytest.mark.parametrize('template_type', (EMAIL_TYPE, SMS_TYPE))
@@ -239,70 +133,6 @@ def test_should_not_create_template_with_incorrect_provider_type(
     json_resp = response.get_json()
     assert json_resp['result'] == 'error'
     assert json_resp['message'] == f'invalid {template_type}_provider_id'
-
-
-@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
-def test_create_a_new_template_for_a_service_adds_folder_relationship(notify_db_session, client, sample_service):
-    service = sample_service()
-    parent_folder = create_template_folder(service=service, name='parent folder')
-
-    data = {
-        'name': 'my template',
-        'template_type': SMS_TYPE,
-        'content': 'template <b>content</b>',
-        'service': str(service.id),
-        'created_by': str(service.users[0].id),
-        'parent_folder_id': str(parent_folder.id),
-    }
-    data = json.dumps(data)
-    auth_header = create_admin_authorization_header()
-
-    response = client.post(
-        '/service/{}/template'.format(service.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data,
-    )
-    assert response.status_code == 201
-
-    stmt = select(Template).where(Template.name == 'my template')
-    template = notify_db_session.session.scalars(stmt).first()
-
-    assert template.folder == parent_folder
-
-
-@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
-@pytest.mark.parametrize(
-    'template_type, expected_postage', [(SMS_TYPE, None), (EMAIL_TYPE, None), (LETTER_TYPE, 'second')]
-)
-def test_create_a_new_template_for_a_service_adds_postage_for_letters_only(
-    notify_db_session, client, sample_service, template_type, expected_postage
-):
-    service = sample_service()
-    dao_add_service_permission(service_id=service.id, permission=LETTER_TYPE)
-    data = {
-        'name': 'my template',
-        'template_type': template_type,
-        'content': 'template <b>content</b>',
-        'service': str(service.id),
-        'created_by': str(service.users[0].id),
-    }
-    if template_type in [EMAIL_TYPE, LETTER_TYPE]:
-        data['subject'] = 'Hi, I have good news'
-
-    data = json.dumps(data)
-    auth_header = create_admin_authorization_header()
-
-    response = client.post(
-        '/service/{}/template'.format(service.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data,
-    )
-    assert response.status_code == 201
-
-    stmt = select(Template).where(Template.name == 'my template')
-    template = notify_db_session.session.scalars(stmt).first()
-
-    assert template.postage == expected_postage
 
 
 def test_create_template_should_return_400_if_folder_is_for_a_different_service(client, sample_service):
@@ -452,25 +282,6 @@ def test_should_be_error_on_update_if_no_permission(
     assert json_resp['message'] == expected_error
 
 
-@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
-# def test_should_error_if_created_by_missing(client, sample_user, sample_service):
-def test_should_error_if_created_by_missing(client, sample_service):
-    service_id = str(sample_service().id)
-    data = {'name': 'my template', 'template_type': SMS_TYPE, 'content': 'template content', 'service': service_id}
-    data = json.dumps(data)
-    auth_header = create_admin_authorization_header()
-
-    response = client.post(
-        '/service/{}/template'.format(service_id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data,
-    )
-    json_resp = response.get_json()
-    assert response.status_code == 400
-    assert json_resp['errors'][0]['error'] == 'ValidationError'
-    assert json_resp['errors'][0]['message'] == 'created_by is a required property'
-
-
 def test_should_be_error_if_service_does_not_exist_on_update(client, fake_uuid):
     data = {'name': 'my template'}
     data = json.dumps(data)
@@ -512,64 +323,6 @@ def test_must_have_a_subject_on_an_email_or_letter_template(client, sample_user,
     assert json_resp['errors'][0]['message'] == 'subject is a required property'
 
 
-@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
-def test_update_should_update_a_template(client, sample_user, sample_service, sample_template):
-    service = sample_service(service_permissions=[LETTER_TYPE])
-    template = sample_template(service=service, template_type=LETTER_TYPE, postage='second')
-
-    new_content = 'My template has new content.'
-    data = json.dumps(
-        {
-            'content': new_content,
-            'created_by': str(sample_user().id),
-            'postage': 'first',
-        }
-    )
-
-    auth_header = create_admin_authorization_header()
-
-    update_response = client.post(
-        '/service/{}/template/{}'.format(service.id, template.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data,
-    )
-
-    assert update_response.status_code == 200
-    update_json_resp = update_response.get_json()
-    assert update_json_resp['data']['content'] == new_content
-    assert update_json_resp['data']['postage'] == 'first'
-    assert update_json_resp['data']['name'] == template.name
-    assert update_json_resp['data']['template_type'] == template.template_type
-    assert update_json_resp['data']['version'] == 2
-
-
-@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
-def test_should_be_able_to_archive_template(notify_db_session, client, sample_template):
-    template = sample_template()
-    data = {
-        'name': template.name,
-        'template_type': template.template_type,
-        'content': template.content,
-        'archived': True,
-        'service': str(template.service.id),
-        'created_by': str(template.created_by.id),
-    }
-
-    json_data = json.dumps(data)
-
-    auth_header = create_admin_authorization_header()
-
-    resp = client.post(
-        '/service/{}/template/{}'.format(template.service.id, template.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=json_data,
-    )
-
-    assert resp.status_code == 200
-    stmt = select(Template)
-    assert notify_db_session.session.scalars(stmt).first().archived
-
-
 def test_get_precompiled_template_for_service_when_service_has_existing_precompiled_template(
     client, sample_service, sample_template
 ):
@@ -593,55 +346,6 @@ def test_get_precompiled_template_for_service_when_service_has_existing_precompi
     data = response.get_json()
     assert data['name'] == template.name
     assert data['hidden'] is True
-
-
-@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
-def test_should_be_able_to_get_all_templates_for_a_service(client, sample_user, sample_service):
-    service = sample_service()
-    data = {
-        'name': 'my template 1',
-        'template_type': EMAIL_TYPE,
-        'subject': 'subject 1',
-        'content': 'template content',
-        'service': str(service.id),
-        'created_by': str(sample_user.id),
-    }
-    data_1 = json.dumps(data)
-    data = {
-        'name': 'my template 2',
-        'template_type': EMAIL_TYPE,
-        'subject': 'subject 2',
-        'content': 'template content',
-        'service': str(service.id),
-        'created_by': str(sample_user.id),
-    }
-    data_2 = json.dumps(data)
-    auth_header = create_admin_authorization_header()
-    client.post(
-        '/service/{}/template'.format(service.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data_1,
-    )
-    auth_header = create_admin_authorization_header()
-
-    client.post(
-        '/service/{}/template'.format(service.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data_2,
-    )
-
-    auth_header = create_admin_authorization_header()
-
-    response = client.get('/service/{}/template'.format(service.id), headers=[auth_header])
-
-    assert response.status_code == 200
-    update_json_resp = response.get_json()
-    assert update_json_resp['data'][0]['name'] == 'my template 1'
-    assert update_json_resp['data'][0]['version'] == 1
-    assert update_json_resp['data'][0]['created_at']
-    assert update_json_resp['data'][1]['name'] == 'my template 2'
-    assert update_json_resp['data'][1]['version'] == 1
-    assert update_json_resp['data'][1]['created_at']
 
 
 def test_should_get_only_templates_for_that_service(admin_request, sample_service, sample_template):
@@ -820,34 +524,6 @@ def test_update_400_for_over_limit_content(client, sample_template):
     ]['content']
 
 
-@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
-def test_should_return_all_template_versions_for_service_and_template_id(client, sample_template):
-    template = sample_template()
-    original_content = template.content
-    from app.dao.templates_dao import dao_update_template
-
-    template.content = original_content + '1'
-    dao_update_template(template)
-    template.content = original_content + '2'
-    dao_update_template(template)
-
-    auth_header = create_admin_authorization_header()
-    resp = client.get(
-        '/service/{}/template/{}/versions'.format(template.service_id, template.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-    )
-    assert resp.status_code == 200
-    resp_json = json.loads(resp.get_data(as_text=True))['data']
-    assert len(resp_json) == 3
-    for x in resp_json:
-        if x['version'] == 1:
-            assert x['content'] == original_content
-        elif x['version'] == 2:
-            assert x['content'] == original_content + '1'
-        else:
-            assert x['content'] == original_content + '2'
-
-
 def test_update_does_not_create_new_version_when_there_is_no_change(client, sample_template):
     template = sample_template()
     auth_header = create_admin_authorization_header()
@@ -864,78 +540,6 @@ def test_update_does_not_create_new_version_when_there_is_no_change(client, samp
 
     dao_template = dao_get_template_by_id(template.id)
     assert dao_template.version == 1
-
-
-@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
-def test_update_set_process_type_on_template(client, sample_template):
-    auth_header = create_admin_authorization_header()
-    data = {'process_type': 'priority'}
-    resp = client.post(
-        '/service/{}/template/{}'.format(sample_template.service_id, sample_template.id),
-        data=json.dumps(data),
-        headers=[('Content-Type', 'application/json'), auth_header],
-    )
-    assert resp.status_code == 200
-
-    template = dao_get_template_by_id(sample_template.id)
-    assert template.process_type == 'priority'
-
-
-@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
-def test_create_a_template_with_reply_to(notify_db_session, admin_request, sample_service, sample_user):
-    service = sample_service(service_permissions=['letter'])
-    letter_contact = create_letter_contact(service, 'Edinburgh, ED1 1AA')
-    data = {
-        'name': 'my template',
-        'subject': 'subject',
-        'template_type': 'letter',
-        'content': 'template <b>content</b>',
-        'service': str(service.id),
-        'created_by': str(sample_user.id),
-        'reply_to': str(letter_contact.id),
-    }
-
-    json_resp = admin_request.post('template.create_template', service_id=service.id, _data=data, _expected_status=201)
-
-    assert json_resp['data']['template_type'] == 'letter'
-    assert json_resp['data']['reply_to'] == str(letter_contact.id)
-    assert json_resp['data']['reply_to_text'] == letter_contact.contact_block
-
-    template = notify_db_session.session.get(Template, json_resp['data']['id'])
-    from app.schemas import template_schema
-
-    assert sorted(json_resp['data']) == sorted(template_schema.dump(template).data)
-
-    stmt = select(TemplateHistory).where(TemplateHistory.id == template.id, TemplateHistory.version == 1)
-    th = notify_db_session.session.scalars(stmt).one()
-
-    assert th.service_letter_contact_id == letter_contact.id
-
-
-@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
-def test_create_a_template_with_foreign_service_reply_to(admin_request, sample_service, sample_user):
-    service = sample_service(service_permissions=[LETTER_TYPE])
-    service2 = sample_service(
-        service_name=f'test service {str(uuid.uuid4())}',
-        email_from='test@example.com',
-        service_permissions=[LETTER_TYPE],
-    )
-    letter_contact = create_letter_contact(service2, 'Edinburgh, ED1 1AA')
-    data = {
-        'name': 'my template',
-        'subject': 'subject',
-        'template_type': 'letter',
-        'content': 'template <b>content</b>',
-        'service': str(service.id),
-        'created_by': str(sample_user.id),
-        'reply_to': str(letter_contact.id),
-    }
-
-    json_resp = admin_request.post('template.create_template', service_id=service.id, _data=data, _expected_status=400)
-
-    assert json_resp['message'] == 'letter_contact_id {} does not exist in database for service id {}'.format(
-        str(letter_contact.id), str(service.id)
-    )
 
 
 @pytest.mark.parametrize(
@@ -1142,25 +746,6 @@ def test_preview_letter_template_by_id_invalid_file_type(admin_request, sample_s
     )
 
     assert ['file_type must be pdf or png'] == resp['message']['content']
-
-
-@pytest.mark.xfail(reason='Failing after Flask upgrade.  Not fixed because not used.', run=False)
-def test_should_update_template_with_a_valid_provider(admin_request, sample_template, ses_provider):
-    template = sample_template(template_type=EMAIL_TYPE)
-    provider_id = str(ses_provider.id)
-    data = {'provider_id': provider_id}
-    json_resp = admin_request.post(
-        'template.update_template',
-        service_id=template.service_id,
-        template_id=template.id,
-        _data=data,
-        _expected_status=200,
-    )
-
-    assert json_resp['data']['provider_id'] == provider_id
-
-    updated_template = dao_get_template_by_id(template.id)
-    assert updated_template.provider_id == ses_provider.id
 
 
 def test_should_not_update_template_with_non_existent_provider(admin_request, sample_template, fake_uuid):
