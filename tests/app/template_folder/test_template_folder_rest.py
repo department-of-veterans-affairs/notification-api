@@ -1,12 +1,9 @@
 import uuid
 
 import pytest
-from sqlalchemy import func, select
 
 from app.dao.service_user_dao import dao_get_service_user
-from app.models import TemplateFolder
 from tests.app.conftest import template_folder_cleanup
-from tests.app.db import create_template_folder
 
 
 def test_get_folders_for_service(admin_request, sample_service, sample_template_folder):
