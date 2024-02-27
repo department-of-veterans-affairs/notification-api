@@ -249,6 +249,11 @@ def test_service_get_default_reply_to_email_address(sample_service, sample_servi
     assert service.get_default_reply_to_email_address() == email
 
 
+def test_service_get_default_sms_sender(sample_service):
+    service = sample_service()
+    assert service.get_default_sms_sender() == 'testing'
+
+
 def test_fido2_key_serialization(sample_fido2_key):
     fido2_key = sample_fido2_key()
     json = fido2_key.serialize()
