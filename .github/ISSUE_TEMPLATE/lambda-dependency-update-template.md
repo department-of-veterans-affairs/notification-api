@@ -1,5 +1,5 @@
 ---
-name: Lambda Dependency Update Template
+name: Notify Lambda Dependency Update Template
 about: Regular lambda dependency updates
 title: Lambdas - Regular Update for Dependencies
 labels: Notify, QA, Tech Debt
