@@ -3,7 +3,7 @@ services:
   test:
     build:
       context: ..
-      dockerfile: ci/Dockerfile.test
+      dockerfile: ci/Dockerfile
       args:
         POETRY_ARGS: --with static_tools,test
     image: &notify_image test-notification-api
@@ -26,5 +26,5 @@ services:
     logging:
       driver: "none"
     environment:
-      - POSTGRES_DB=test_notification_api
+      - POSTGRES_DB=notification_api
       - POSTGRES_PASSWORD=LocalPassword

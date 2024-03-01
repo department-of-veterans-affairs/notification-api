@@ -6,7 +6,6 @@ from uuid import UUID, uuid4
 import pytest
 import pytz
 import requests_mock
-import warnings
 
 from app import db
 from app.clients.email import EmailClient
@@ -92,7 +91,6 @@ from datetime import datetime, timedelta
 from flask import current_app, url_for
 from random import randint, randrange
 from sqlalchemy import asc, delete, update, select, Table
-from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm.session import make_transient
 from tests import create_admin_authorization_header
@@ -856,27 +854,42 @@ def sample_template(
     yield _sample_template
 
     # Teardown
+    template_cleanup(notify_db_session.session, template_ids)
+
+
+def template_cleanup(
+    session: scoped_session,
+    template_ids: Union[UUID, List[UUID]],
+    commit: bool = True,
+):
+    """
+    Cleans the database of templates
+    """
+    if not isinstance(template_ids, list):
+        template_ids = [template_ids]
+
     # Remove job for this template
     stmt = delete(Job).where(Job.template_id.in_(template_ids))
-    notify_db_session.session.execute(stmt)
+    session.execute(stmt)
 
     # Remove notifications for this template
     stmt = delete(Notification).where(Notification.template_id.in_(template_ids))
-    notify_db_session.session.execute(stmt)
+    session.execute(stmt)
 
     # Remove history
     stmt = delete(TemplateHistory).where(TemplateHistory.id.in_(template_ids))
-    notify_db_session.session.execute(stmt)
+    session.execute(stmt)
 
     # Remove Redacted
     stmt = delete(TemplateRedacted).where(TemplateRedacted.template_id.in_(template_ids))
-    notify_db_session.session.execute(stmt)
+    session.execute(stmt)
 
     # Remove template
     stmt = delete(Template).where(Template.id.in_(template_ids))
-    notify_db_session.session.execute(stmt)
+    session.execute(stmt)
 
-    notify_db_session.session.commit()
+    if commit:
+        session.commit()
 
 
 @pytest.fixture
@@ -1670,6 +1683,8 @@ def sample_notification(notify_db_session, sample_api_key, sample_template):  # 
     created_notification_ids = []
 
     def _sample_notification(*args, gen_type: str = SMS_TYPE, **kwargs):
+        # sample_notification should have been split into API called notifications and non-api notifications
+        # Some behavior can be shared
         # Default behavior with no args or a specified generation type
         if len(kwargs) == 0:
             template = sample_template(template_type=gen_type)
@@ -1684,7 +1699,7 @@ def sample_notification(notify_db_session, sample_api_key, sample_template):  # 
             kwargs['template'] = template
             assert template.template_type == SMS_TYPE, 'This is the default template type.'
 
-        if kwargs.get('job') is None and kwargs.get('api_key') is None:
+        if kwargs.get('job') is None and kwargs.get('api_key') is None and kwargs.get('one_off') is None:
             stmt = select(ApiKey).where(
                 ApiKey.service_id == kwargs['template'].service.id,
                 ApiKey.key_type == kwargs.get('key_type', KEY_TYPE_NORMAL),
@@ -3090,98 +3105,3 @@ def sample_user_session(notify_db):
     yield _sample_user
 
     cleanup_user(created_user_ids, notify_db.session)
-
-
-def pytest_sessionfinish(session, exitstatus):
-    """
-    A pytest hook that runs after all tests. Reports database is clear of extra entries after all tests have ran.
-    Exit code is set to 1 if anything is left in any table.
-    """
-
-    from tests.conftest import application
-    from sqlalchemy.sql import text as sa_text
-    from time import sleep
-
-    sleep(2)  # Allow fixtures to finish their work, multi-worker fails otherwise
-
-    color = '\033[91m'
-    reset = '\033[0m'
-    TRUNCATE_ARTIFACTS = True
-
-    with application.app_context():
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', category=SAWarning)
-            meta_data = db.MetaData(bind=db.engine)
-            db.MetaData.reflect(meta_data)
-
-        acceptable_counts = {
-            'communication_items': 4,
-            'job_status': 9,
-            'key_types': 3,
-            # 'provider_details': 9,  # TODO: 1631
-            # 'provider_details_history': 9,  # TODO: 1631
-            'provider_rates': 5,
-            # 'rates': 2,
-            'service_callback_channel': 2,
-            'service_callback_type': 3,
-            'service_permission_types': 12,
-        }
-
-        skip_tables = (
-            'alembic_version',
-            'auth_type',
-            'branding_type',
-            'dm_datetime',
-            'key_types',
-            'notification_status_types',
-            'template_process_type',
-            'provider_details',
-            'provider_details_history',
-        )
-        to_be_deleted_tables = (
-            'organisation_types',
-            'invite_status_type',
-            'job_status',
-        )
-
-        # Gather tablenames & sort
-        table_list = sorted(
-            [
-                table
-                for table in db.engine.table_names()
-                if table not in skip_tables and table not in to_be_deleted_tables
-            ]
-        )
-
-        tables_with_artifacts = []
-        artifact_counts = []
-
-        # Use metadata to query the table and add the table name to the list if there are any records
-        for table_name in table_list:
-            row_count = len(db.session.execute(select(meta_data.tables[table_name])).all())
-
-            if table_name in acceptable_counts and row_count <= acceptable_counts[table_name]:
-                continue
-            elif row_count > 0:
-                artifact_counts.append((row_count))
-                tables_with_artifacts.append(table_name)
-                session.exitstatus = 1
-
-        if tables_with_artifacts and TRUNCATE_ARTIFACTS:
-            print('\n')
-            for i, table in enumerate(tables_with_artifacts):
-                # Skip tables that may have necessary information
-                if table not in acceptable_counts:
-                    db.session.execute(sa_text(f"""TRUNCATE TABLE {table} CASCADE"""))
-                    print(f'Truncating {color}{table}{reset} with cascade...{artifact_counts[i]} records removed')
-                else:
-                    print(f'Table {table} contains too many records but {color}cannot be truncated{reset}.')
-            db.session.commit()
-            print(
-                f'\n\nThese tables contained artifacts: ' f'{tables_with_artifacts}\n\n{color}UNIT TESTS FAILED{reset}'
-            )
-        elif tables_with_artifacts:
-            print(f'\n\nThese tables contain artifacts: ' f'{color}{tables_with_artifacts}\n\nUNIT TESTS FAILED{reset}')
-        else:
-            color = '\033[32m'  # Green - pulled out for clarity
-            print(f'\n\n{color}DATABASE IS CLEAN{reset}')

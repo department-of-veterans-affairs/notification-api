@@ -1510,6 +1510,7 @@ def test_process_incomplete_job_with_notifications_all_sent(
     sample_template,
     sample_job,
     sample_notification,
+    sample_api_key,
 ):
     mocker.patch('app.celery.tasks.s3.get_job_from_s3', return_value=load_example_csv('multiple_sms'))
     mock_save_sms = mocker.patch('app.celery.tasks.save_sms.apply_async')
@@ -1524,16 +1525,9 @@ def test_process_incomplete_job_with_notifications_all_sent(
         job_status=JOB_STATUS_ERROR,
     )
 
-    sample_notification(template=template, job=job, job_row_number=0)
-    sample_notification(template=template, job=job, job_row_number=1)
-    sample_notification(template=template, job=job, job_row_number=2)
-    sample_notification(template=template, job=job, job_row_number=3)
-    sample_notification(template=template, job=job, job_row_number=4)
-    sample_notification(template=template, job=job, job_row_number=5)
-    sample_notification(template=template, job=job, job_row_number=6)
-    sample_notification(template=template, job=job, job_row_number=7)
-    sample_notification(template=template, job=job, job_row_number=8)
-    sample_notification(template=template, job=job, job_row_number=9)
+    api_key = sample_api_key(service=template.service)
+    for i in range(10):
+        sample_notification(template=template, job=job, job_row_number=i, api_key=api_key)
 
     stmt = select(func.count()).select_from(Notification).where(Notification.job_id == job.id)
     assert notify_db_session.session.scalar(stmt) == 10
@@ -1547,7 +1541,14 @@ def test_process_incomplete_job_with_notifications_all_sent(
     assert mock_save_sms.call_count == 0  # There are 10 in the file and we've added 10 it should not have been called
 
 
-def test_process_incomplete_jobs_sms(mocker, notify_db_session, sample_template, sample_job, sample_notification):
+def test_process_incomplete_jobs_sms(
+    mocker,
+    notify_db_session,
+    sample_template,
+    sample_job,
+    sample_notification,
+    sample_api_key,
+):
     mocker.patch('app.celery.tasks.s3.get_job_from_s3', return_value=load_example_csv('multiple_sms'))
     mock_save_sms = mocker.patch('app.celery.tasks.save_sms.apply_async')
 
@@ -1561,9 +1562,9 @@ def test_process_incomplete_jobs_sms(mocker, notify_db_session, sample_template,
         job_status=JOB_STATUS_ERROR,
     )
 
-    sample_notification(template=template, job=job, job_row_number=0)
-    sample_notification(template=template, job=job, job_row_number=1)
-    sample_notification(template=template, job=job, job_row_number=2)
+    api_key = sample_api_key(service=template.service)
+    for i in range(3):
+        sample_notification(template=template, job=job, job_row_number=i, api_key=api_key)
 
     stmt = select(func.count()).select_from(Notification).where(Notification.job_id == job.id)
     assert notify_db_session.session.scalar(stmt) == 3
@@ -1577,11 +1578,8 @@ def test_process_incomplete_jobs_sms(mocker, notify_db_session, sample_template,
         job_status=JOB_STATUS_ERROR,
     )
 
-    sample_notification(template=template, job=job2, job_row_number=0)
-    sample_notification(template=template, job=job2, job_row_number=1)
-    sample_notification(template=template, job=job2, job_row_number=2)
-    sample_notification(template=template, job=job2, job_row_number=3)
-    sample_notification(template=template, job=job2, job_row_number=4)
+    for i in range(5):
+        sample_notification(template=template, job=job2, job_row_number=i, api_key=api_key)
 
     stmt = select(func.count()).select_from(Notification).where(Notification.job_id == job2.id)
     assert notify_db_session.session.scalar(stmt) == 5

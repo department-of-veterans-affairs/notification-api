@@ -1,3 +1,7 @@
+from datetime import date, datetime, timedelta
+
+from freezegun import freeze_time
+
 from app.dao.notifications_dao import dao_get_total_notifications_sent_per_day_for_performance_platform
 from app.models import (
     EMAIL_TYPE,
@@ -6,8 +10,6 @@ from app.models import (
     KEY_TYPE_TEST,
     LETTER_TYPE,
 )
-from datetime import date, datetime, timedelta
-from freezegun import freeze_time
 
 BEGINNING_OF_DAY = date(2016, 10, 18)
 END_OF_DAY = date(2016, 10, 19)
@@ -42,7 +44,7 @@ def test_get_total_notifications_only_counts_api_notifications(
     template = sample_template()
     job = sample_job(template)
 
-    # All the non-job notifications will have a non-null API key because of how the fixtures work.
+    # Only the one with an API Key will result it counting as a notification sent
     sample_notification(template=template, one_off=True)
     sample_notification(template=template, one_off=True)
     sample_notification(template=template, job=job)
@@ -51,7 +53,7 @@ def test_get_total_notifications_only_counts_api_notifications(
 
     result = dao_get_total_notifications_sent_per_day_for_performance_platform(BEGINNING_OF_DAY, END_OF_DAY)
 
-    assert result.messages_total == 3
+    assert result.messages_total == 1
 
 
 @freeze_time('2016-10-18T10:00')

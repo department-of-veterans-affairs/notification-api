@@ -5,7 +5,7 @@ from random import randint
 import pytest
 from flask import current_app, json
 from freezegun import freeze_time
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 
 from app.attachments.exceptions import UnsupportedMimeTypeException
 from app.attachments.store import AttachmentStoreError
@@ -74,66 +74,66 @@ def mock_deliver_sms(mocker):
     return mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
 
 
-# @pytest.mark.parametrize('reference', [None, 'not none'])
-# @pytest.mark.parametrize(
-#     'data',
-#     [
-#         {'phone_number': '+16502532222'},
-#         {'recipient_identifier': {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': 'bar'}},
-#     ],
-# )
-# def test_post_sms_notification_returns_201(
-#     client,
-#     notify_db_session,
-#     sample_api_key,
-#     sample_template,
-#     mock_deliver_sms,
-#     reference,
-#     data,
-#     mocker,
-# ):
-#     template = sample_template(content='Hello (( Name))\nYour thing is due soon')
-#     data.update({'template_id': str(template.id), 'personalisation': {' Name': 'Jo'}})
-#     if reference is not None:
-#         # Have to set reference for the asserts below, can't add it to data in the None case
-#         reference = str(uuid.uuid4())
-#         data['reference'] = reference
+@pytest.mark.parametrize('reference', [None, 'not none'])
+@pytest.mark.parametrize(
+    'data',
+    [
+        {'phone_number': '+16502532222'},
+        {'recipient_identifier': {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': 'bar'}},
+    ],
+)
+def test_post_sms_notification_returns_201(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+    mock_deliver_sms,
+    reference,
+    data,
+    mocker,
+):
+    template = sample_template(content='Hello (( Name))\nYour thing is due soon')
+    data.update({'template_id': str(template.id), 'personalisation': {' Name': 'Jo'}})
+    if reference is not None:
+        # Have to set reference for the asserts below, can't add it to data in the None case
+        reference = str(uuid.uuid4())
+        data['reference'] = reference
 
-#     if 'recipient_identifier' in data:
-#         mocker.patch('app.v2.notifications.post_notifications.accept_recipient_identifiers_enabled', return_value=True)
-#         mocker.patch('app.celery.lookup_va_profile_id_task.lookup_va_profile_id.apply_async')
-#         mocker.patch('app.celery.onsite_notification_tasks.send_va_onsite_notification_task.apply_async')
-#         mocker.patch('app.celery.contact_information_tasks.lookup_contact_info.apply_async')
+    if 'recipient_identifier' in data:
+        mocker.patch('app.v2.notifications.post_notifications.accept_recipient_identifiers_enabled', return_value=True)
+        mocker.patch('app.celery.lookup_va_profile_id_task.lookup_va_profile_id.apply_async')
+        mocker.patch('app.celery.onsite_notification_tasks.send_va_onsite_notification_task.apply_async')
+        mocker.patch('app.celery.contact_information_tasks.lookup_contact_info.apply_async')
 
-#     response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
+    response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
 
-#     assert response.status_code == 201
-#     resp_json = response.get_json()
-#     assert validate(resp_json, post_sms_response) == resp_json
+    assert response.status_code == 201
+    resp_json = response.get_json()
+    assert validate(resp_json, post_sms_response) == resp_json
 
-#     notifications = notify_db_session.session.scalars(
-#         select(Notification).where(Notification.service_id == template.service_id)
-#     ).all()
-#     # DB checks
-#     assert len(notifications) == 1
-#     assert notifications[0].status == NOTIFICATION_CREATED
-#     assert notifications[0].postage is None
+    notifications = notify_db_session.session.scalars(
+        select(Notification).where(Notification.service_id == template.service_id)
+    ).all()
+    # DB checks
+    assert len(notifications) == 1
+    assert notifications[0].status == NOTIFICATION_CREATED
+    assert notifications[0].postage is None
 
-#     # endpoint checks
-#     assert resp_json['id'] == str(notifications[0].id)
-#     assert resp_json['reference'] == reference
-#     assert resp_json['content']['body'] == template.content.replace('(( Name))', 'Jo')
-#     assert resp_json['content']['from_number'] == current_app.config['FROM_NUMBER']
-#     assert f'v2/notifications/{notifications[0].id}' in resp_json['uri']
-#     assert resp_json['template']['id'] == str(template.id)
-#     assert resp_json['template']['version'] == template.version
-#     assert 'services/{}/templates/{}'.format(template.service_id, template.id) in resp_json['template']['uri']
-#     assert not resp_json['scheduled_for']
+    # endpoint checks
+    assert resp_json['id'] == str(notifications[0].id)
+    assert resp_json['reference'] == reference
+    assert resp_json['content']['body'] == template.content.replace('(( Name))', 'Jo')
+    assert resp_json['content']['from_number'] == current_app.config['FROM_NUMBER']
+    assert f'v2/notifications/{notifications[0].id}' in resp_json['uri']
+    assert resp_json['template']['id'] == str(template.id)
+    assert resp_json['template']['version'] == template.version
+    assert 'services/{}/templates/{}'.format(template.service_id, template.id) in resp_json['template']['uri']
+    assert not resp_json['scheduled_for']
 
-#     if 'recipient_identifier' not in data:
-#         assert mock_deliver_sms.called
-# Else, for sending with a recipient ID, the delivery function won't get called because the preceeding
-# tasks in the chain are mocked.
+    if 'recipient_identifier' not in data:
+        assert mock_deliver_sms.called
+    # Else, for sending with a recipient ID, the delivery function won't get called because the preceeding
+    # tasks in the chain are mocked.
 
 
 def test_post_sms_notification_uses_inbound_number_as_sender(

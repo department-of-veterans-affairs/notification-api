@@ -5,7 +5,6 @@ import pytest
 
 
 def test_get_api_key_stats_with_sends(
-    notify_db_session,
     admin_request,
     sample_template,
     sample_api_key,

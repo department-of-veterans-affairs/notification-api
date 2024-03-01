@@ -33,8 +33,6 @@ fileignoreconfig:
   checksum: b32eae40a0fb22d71ef585eaf56983ced8abfa24087f6d1d03e4a3e7b7d48cb0
 - filename: cd/application-deployment/perf/vaec-celery-task-definition.json
   checksum: c7d10bd01c45d4f2199a0a89d6d94fa1c222d5770187051320a0a0e2a5ca5d30
-- filename: tests/env_vars
-  checksum: cf451b2571080553ca74f9aadc80579c677d5ece3200a2f94e8e35ae511e4430
 - filename: ci/.local.env
   checksum: 92502261ced9c795c54b1a5d60032a18db14f67d55cd081b94af1532cacb274e
 - filename: ci/docker-compose-local.yml
@@ -51,7 +49,11 @@ fileignoreconfig:
   checksum: 2eb7fea379aa24082ffb8b4afa186a372b40f18459d861756a85f6f505c2e2e3
 - filename: ci/docker-compose-test.yml
   checksum: c5d18637dab9c702e987bdd08f8c99b720bad3279a551ccb5325c41810fc92d7
-- filename: tests/app/v2/notifications/test_post_notifications.py
-  checksum: c296af77bd19f99d419f151579fa4322a98eca58ffac5dc54fc04fa197ca4b6b
 - filename: poetry.lock
-  checksum: c45aa99918497db90e7402c49c710cb867797583c25179a065f8f6b811367b14
+  checksum: 844ddbfd4c38c5d13eac6fe64ba8dea57d04ec81672892b373f61464ac806856
+- filename: tests/app/celery/test_tasks.py
+  checksum: a3ec3df9bc78a52112c7df4b012c662412b656adf47b248ff5c0c7993a89f9a0
+- filename: tests/app/v2/notifications/test_post_notifications.py
+  checksum: e1b416a72acf39e2e6f853d17aea70f4d4511e03f703a19d0a84d29f5de709b9
+- filename: tests/env_vars
+  checksum: 6995f10e7ab9a1b4005e58ea70ba5a1e7e20e3eb5c77ceaf21a9de0e39c2065e
