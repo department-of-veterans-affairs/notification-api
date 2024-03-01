@@ -53,3 +53,5 @@ fileignoreconfig:
   checksum: 2eb7fea379aa24082ffb8b4afa186a372b40f18459d861756a85f6f505c2e2e3
 - filename: ci/docker-compose-test.yml
   checksum: c5d18637dab9c702e987bdd08f8c99b720bad3279a551ccb5325c41810fc92d7
+- filename: tests/app/v2/notifications/test_post_notifications.py
+  checksum: c296af77bd19f99d419f151579fa4322a98eca58ffac5dc54fc04fa197ca4b6b
