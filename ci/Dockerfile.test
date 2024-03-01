@@ -45,4 +45,3 @@ RUN apk add --no-cache bash build-base libcurl openssl-dev \
 WORKDIR /app
 
 USER vanotify
-# CMD ["./scripts/run_app.sh"]

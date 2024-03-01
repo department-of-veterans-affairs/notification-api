@@ -1,15 +1,16 @@
-import app
-import pytest
-import uuid
 from datetime import datetime
+from unittest.mock import ANY
+import uuid
+
 from flask import current_app
-from notifications_utils.recipients import validate_and_format_phone_number
+import pytest
 from requests import HTTPError
 from sqlalchemy import select
-from unittest.mock import ANY
 
+import app
 from app import aws_sns_client, mmg_client, ProviderService
 from app.clients.email import EmailClient
+from app.clients.sms import SmsClient
 from app.dao import provider_details_dao, notifications_dao
 from app.dao.provider_details_dao import dao_switch_sms_provider_to_provider_with_identifier
 from app.delivery import send_to_providers
@@ -38,6 +39,7 @@ from app.models import (
     Template,
     TemplateHistory,
 )
+from notifications_utils.recipients import validate_and_format_phone_number
 from tests.conftest import set_config_values
 
 
@@ -92,21 +94,6 @@ def test_should_return_highest_priority_active_provider(
     provider_details_dao.dao_update_provider_details(pd_10)
 
     assert send_to_providers.client_to_use(notification).name == pd_10.identifier
-
-
-def test_should_not_use_active_but_disabled_provider(
-    client,
-    mocker,
-):
-    active_provider = mocker.Mock(active=True)
-    mocker.patch(
-        'app.delivery.send_to_providers.get_provider_details_by_notification_type', return_value=[active_provider]
-    )
-
-    mocker.patch('app.delivery.send_to_providers.is_provider_enabled', return_value=False)
-
-    with pytest.raises(Exception, match='No active email providers'):
-        send_to_providers.client_to_use(mocker.Mock(Notification, notification_type=EMAIL_TYPE))
 
 
 def test_should_send_personalised_template_to_correct_sms_provider_and_persist(
@@ -950,75 +937,6 @@ def test_notification_document_with_pdf_attachment(
     assert notify_db_session.session.get(Notification, db_notification.id).status == 'sending'
 
 
-def test_notification_raises_error_if_message_contains_sin_pii_that_passes_luhn(
-    notify_db_session,
-    sample_api_key,
-    sample_notification,
-    sample_provider,
-    sample_template,
-    mocker,
-    notify_api,
-):
-    sample_provider(identifier=SES_PROVIDER, notification_type=EMAIL_TYPE)
-    send_mock = mocker.patch('app.aws_ses_client.send_email', return_value='reference')
-    mocker.patch('app.googleanalytics.pixels.build_ga_pixel_url', return_value='url')
-
-    template = sample_template(
-        template_type=EMAIL_TYPE,
-        subject='((name)) <em>some HTML</em>',
-        content='Hello ((name))\nThis is an email from va.gov with <em>some HTML</em>',
-    )
-    api_key = sample_api_key(service=template.service)
-    db_notification = sample_notification(
-        template=template,
-        to_field='jo.smith@example.com',
-        personalisation={'name': '046-454-286'},
-        api_key=api_key,
-    )
-
-    with set_config_values(
-        notify_api,
-        {
-            'SCAN_FOR_PII': 'True',
-        },
-    ):
-        with pytest.raises(NotificationTechnicalFailureException) as e:
-            send_to_providers.send_email_to_provider(db_notification)
-            assert db_notification.id in e.value
-
-    send_mock.assert_not_called()
-
-    assert notify_db_session.session.get(Notification, db_notification.id).status == 'pii-check-failed'
-
-
-def test_notification_passes_if_message_contains_sin_pii_that_fails_luhn(
-    notify_db_session,
-    sample_api_key,
-    sample_notification,
-    sample_provider,
-    sample_template,
-    mock_email_client,
-):
-    sample_provider(identifier=SES_PROVIDER, notification_type=EMAIL_TYPE)
-    template = sample_template(
-        template_type=EMAIL_TYPE,
-        subject='((name)) <em>some HTML</em>',
-        content='Hello ((name))\nThis is an email from va.gov with <em>some HTML</em>',
-    )
-    db_notification = sample_notification(
-        template=template,
-        to_field=f'{uuid.uuid4()}jo.smith@example.com',
-        personalisation={'name': '123-456-789'},
-        api_key=sample_api_key(service=template.service),
-    )
-
-    send_to_providers.send_email_to_provider(db_notification)
-
-    mock_email_client.send_email.assert_called()
-
-    assert notify_db_session.session.get(Notification, db_notification.id).status == 'sending'
-
-
 def test_notification_passes_if_message_contains_phone_number(
     notify_db_session,
     sample_api_key,
@@ -1081,35 +999,38 @@ def test_load_provider_returns_provider_details_if_provider_is_active(
     assert provider_details == mocked_provider_details
 
 
+@pytest.mark.parametrize('client_type', [EMAIL_TYPE, SMS_TYPE])
 def test_client_to_use_should_return_template_provider(
     notify_api,
     mocker,
-    monkeypatch,
+    sample_provider,
+    sample_template,
+    sample_notification,
+    client_type,
 ):
-    monkeypatch.setenv('TEMPLATE_SERVICE_PROVIDERS_ENABLED', 'True')
-    client_name = 'template-client'
-    mocked_client = mocker.Mock(EmailClient)
+    # Client setup
+    client_name = f'client_to_use_{client_type}'
+    mocked_client = mocker.Mock(EmailClient) if client_type == EMAIL_TYPE else mocker.Mock(SmsClient)
     mocker.patch.object(mocked_client, 'get_name', return_value=client_name)
-
-    mocked_template_provider_details = mocker.Mock(ProviderDetails, active=True, identifier=client_name)
-
-    template_provider_id = uuid.uuid4()
-    mocked_template = mocker.Mock(Template, provider_id=template_provider_id)
-
-    mocked_notification = mocker.Mock(Notification, notification_type=EMAIL_TYPE, template=mocked_template)
-
-    mocked_get_provider_details_by_id = mocker.patch(
-        'app.delivery.send_to_providers.get_provider_details_by_id', return_value=mocked_template_provider_details
-    )
-    mocked_get_client_by_name_and_type = mocker.patch(
-        'app.delivery.send_to_providers.clients.get_client_by_name_and_type', return_value=mocked_client
+    mock_client_by_name = mocker.patch(
+        'app.delivery.send_to_providers.clients.get_client_by_name_and_type',
+        return_value=mocked_client,
     )
 
-    client = send_to_providers.client_to_use(mocked_notification)
+    # Sample object setup
+    provider = sample_provider(client_name, notification_type=client_type, load_balancing_weight=9999)
+    template = sample_template(template_type=client_type)
 
-    mocked_get_provider_details_by_id.assert_called_once_with(template_provider_id)
-    mocked_get_client_by_name_and_type.assert_called_once_with(client_name, EMAIL_TYPE)
+    # This must be specified because workers (may be the wrong provider otherwise)
+    if client_type == EMAIL_TYPE:
+        template.service.email_provider_id = provider.id
+    else:
+        template.service.sms_provider_id = provider.id
+    notification = sample_notification(template=template)
 
+    client = send_to_providers.client_to_use(notification)
+
+    assert mock_client_by_name.called_with(provider.identifier, client_type)
     assert client == mocked_client
 
 

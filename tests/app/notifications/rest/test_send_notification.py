@@ -1221,7 +1221,13 @@ def test_create_template_raises_invalid_request_when_content_too_large(
 
 @pytest.mark.parametrize('notification_type, send_to', [('sms', '6502532222'), ('email', 'sample@email.com')])
 def test_send_notification_uses_priority_queue_when_template_is_marked_as_priority(
-    client, notify_db_session, sample_api_key, sample_template, mocker, notification_type, send_to, sample_sms_sender_v2
+    client,
+    sample_api_key,
+    sample_template,
+    mocker,
+    notification_type,
+    send_to,
+    sample_sms_sender_v2,
 ):
     template = sample_template(template_type=notification_type, process_type='priority')
     mocked = mocker.patch('app.celery.provider_tasks.deliver_{}.apply_async'.format(notification_type))
@@ -1251,12 +1257,6 @@ def test_send_notification_uses_priority_queue_when_template_is_marked_as_priori
     result_id, *rest = result_notification_id[0]
     assert result_id == notification_id
     assert result_queue['queue'] == 'priority-tasks'
-
-    # Teardown
-    notification = notify_db_session.session.get(Notification, notification_id)
-    if notification:
-        notify_db_session.session.delete(notification)
-        notify_db_session.session.commit()
 
 
 @pytest.mark.parametrize('notification_type, send_to', [('sms', '6502532222'), ('email', 'sample@email.com')])

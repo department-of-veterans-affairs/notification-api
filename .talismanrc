@@ -39,8 +39,6 @@ fileignoreconfig:
   checksum: 92502261ced9c795c54b1a5d60032a18db14f67d55cd081b94af1532cacb274e
 - filename: ci/docker-compose-local.yml
   checksum: 390dd529d1cf3fd88ba2a509bcb13815c0ede8d333ed93220f53bb3b87a0f08e
-- filename: poetry.lock
-  checksum: 78832280bff6bc81d67e7b4800746c2b23806fbc1acb3db173255217ef894ce0
 - filename: tests/app/user/test_rest.py
   checksum: 7b38eb886ed9d52c32af5b8696ff44718d64c9be9301d9bf0c5b1d0112fbfa2d
 - filename: tests/app/user/test_rest_verify.py
@@ -55,3 +53,5 @@ fileignoreconfig:
   checksum: c5d18637dab9c702e987bdd08f8c99b720bad3279a551ccb5325c41810fc92d7
 - filename: tests/app/v2/notifications/test_post_notifications.py
   checksum: c296af77bd19f99d419f151579fa4322a98eca58ffac5dc54fc04fa197ca4b6b
+- filename: poetry.lock
+  checksum: c45aa99918497db90e7402c49c710cb867797583c25179a065f8f6b811367b14

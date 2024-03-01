@@ -1,9 +1,13 @@
 import json
 import os
+from typing import List, Union
+from uuid import UUID, uuid4
+
 import pytest
 import pytz
 import requests_mock
 import warnings
+
 from app import db
 from app.clients.email import EmailClient
 from app.clients.sms import SmsClient
@@ -104,8 +108,6 @@ from tests.app.db import (
     version_api_key,
     version_service,
 )
-from typing import List, Union
-from uuid import UUID, uuid4
 
 
 # Tests only run against email/sms. API also considers letters
@@ -182,10 +184,10 @@ def set_user_as_admin(notify_db_session):
 
 
 @pytest.fixture
-def sample_user(notify_db_session, set_user_as_admin) -> User:
+def sample_user(notify_db_session, set_user_as_admin):
     created_user_ids = []
 
-    def _sample_user(*args, platform_admin=False, **kwargs):
+    def _sample_user(*args, platform_admin=False, **kwargs) -> User:
         # Cannot set platform admin when creating a user (schema)
         user = create_user(*args, **kwargs)
         if platform_admin:
@@ -1946,6 +1948,7 @@ def sample_provider(notify_db_session, worker_id):
         supports_international: bool = False,
         created_by: User = None,
         created_by_id: UUID = None,
+        load_balancing_weight: int = None,
     ):
         """
         Return a ProviderDetails instance.  If the paramter "get" is True, this function will attempt
@@ -1969,6 +1972,7 @@ def sample_provider(notify_db_session, worker_id):
             'supports_international': supports_international,
             'created_by': created_by,
             'created_by_id': created_by_id,
+            'load_balancing_weight': load_balancing_weight,
         }
 
         # Set created_by or created_by_id if the other exists
@@ -2370,7 +2374,12 @@ def sample_inbound_number(notify_db_session):
     inbound_number_ids = []
 
     def _sample_inbound_number(
-        number=None, provider='ses', active=True, service_id=None, url_endpoint=None, self_managed=False
+        number=None,
+        provider='ses',
+        active=True,
+        service_id=None,
+        url_endpoint=None,
+        self_managed=False,
     ):
         # Default to the correct amount of characters
         number = number or f'1{randint(100000000, 999999999)}'
@@ -2691,6 +2700,7 @@ def sample_sms_sender_v2(notify_db_session):
         rate_limit=None,
         rate_limit_interval=None,
         sms_sender_specifics=None,
+        archived=None,
     ):
         data = {
             'service_id': service_id,
@@ -2700,6 +2710,7 @@ def sample_sms_sender_v2(notify_db_session):
             'rate_limit': rate_limit,
             'rate_limit_interval': rate_limit_interval,
             'sms_sender_specifics': sms_sender_specifics,
+            'archived': archived,
         }
 
         service_sms_sender = ServiceSmsSender(**data)
@@ -3091,7 +3102,7 @@ def pytest_sessionfinish(session, exitstatus):
     from sqlalchemy.sql import text as sa_text
     from time import sleep
 
-    sleep(2)  # Allow fixtures to finish their work
+    sleep(2)  # Allow fixtures to finish their work, multi-worker fails otherwise
 
     color = '\033[91m'
     reset = '\033[0m'

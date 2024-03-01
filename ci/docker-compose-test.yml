@@ -3,11 +3,11 @@ services:
   test:
     build:
       context: ..
-      dockerfile: ci/Dockerfile.local
+      dockerfile: ci/Dockerfile.test
       args:
         POETRY_ARGS: --with static_tools,test
-    image: notification_api
-    volumes:
+    image: &notify_image test-notification-api
+    volumes: &notify_volumes
       - "../:/app:rw"
     ports:
       - 6011:6011
