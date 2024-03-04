@@ -332,7 +332,7 @@ def test_v3_send_sms_notification(mocker, notify_db_session, sample_service, sam
     call "send_email" using a provider client.
     """
 
-    template = 'sample_tests/app/dao/test_ft_billing_dao'.pytemplate()
+    template = sample_template()
     assert template.template_type == SMS_TYPE
     assert (
         notify_db_session.session.get(TemplateHistory, (template.id, template.version)) is not None

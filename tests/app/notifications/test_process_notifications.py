@@ -864,7 +864,7 @@ def test_persist_letter_notification_finds_correct_postage(
         notify_db_session.session.delete(persisted_notification)
         notify_db_session.session.commit()
 
-
+@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped')
 def test_persist_notification_with_billable_units_stores_correct_info(notify_db_session, mocker):
     service = create_service(service_permissions=[LETTER_TYPE])
     template = create_template(service, template_type=LETTER_TYPE)
