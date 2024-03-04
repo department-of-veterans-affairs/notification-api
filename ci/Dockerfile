@@ -72,6 +72,9 @@ RUN apk add --no-cache ca-certificates bash build-base libcurl openssl-dev \
 
 RUN apk add --no-cache bash build-base libcurl openssl-dev
 
+# Copy the host's build context directory (notification-api/) to the image's working directory (/app).
+COPY --chown=vanotify . .
+
 WORKDIR /app
 
 USER vanotify
