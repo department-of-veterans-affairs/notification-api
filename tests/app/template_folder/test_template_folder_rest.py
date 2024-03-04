@@ -283,7 +283,7 @@ def test_delete_template_folder_fails_if_folder_has_subfolders(notify_db_session
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_delete_template_folder_fails_if_folder_contains_templates(
-    admin_request, sample_service, sample_email_template_func
+    notify_db_session, admin_request, sample_service, sample_email_template_func
 ):
     service = sample_service()
     existing_folder = create_template_folder(service)
