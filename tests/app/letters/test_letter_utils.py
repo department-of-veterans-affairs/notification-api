@@ -63,7 +63,6 @@ def test_get_bucket_name_and_prefix_for_notification_from_created_at_date(
     assert bucket_prefix == f'2019-08-03/NOTIFY.{notification.reference}'.upper()
 
 
-
 def test_get_bucket_name_and_prefix_for_notification_invalid_notification():
     with pytest.raises(AttributeError):
         get_bucket_name_and_prefix_for_notification(None)
@@ -188,4 +187,3 @@ def test_copy_redaction_failed_pdf(notify_api, aws_credentials):
 def test_letter_print_day_returns_today_if_letter_was_printed_today():
     created_at = datetime(2017, 7, 7, 12, 0)
     assert letter_print_day(created_at) == 'today'
-
