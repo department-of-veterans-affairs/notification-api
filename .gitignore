@@ -73,6 +73,7 @@ environment.sh
 
 # Docker
 ci/.docker-env
+certs/ssl_*
 
 celerybeat-schedule
 
