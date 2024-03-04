@@ -44,7 +44,7 @@ jsonschema >= 4.21.1
 kombu >= 5.3.5
 
 # 31 March 2023: marshmallow 2.x has not been supported since 18 August 2020.
-marshmallow ~= 2.21.0
+marshmallow ~= 3.21.0
 
 marshmallow-sqlalchemy ~= 0.22.3
 nanoid >= 2.0.0
