@@ -53,7 +53,7 @@ jobs:
           export PATH="$POETRY_HOME/bin:$PATH"
           curl -sSL https://install.python-poetry.org | python3 - && poetry install --no-root --no-ansi $POETRY_ARGS
           # Set path to poetry venv
-          export PATH="/opt/.venv/bin:$PATH"
+          export PATH="$(pwd)/.venv/bin:$PATH"
 
       - name: Run tests
         run: |
