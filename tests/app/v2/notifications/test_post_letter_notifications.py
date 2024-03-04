@@ -48,51 +48,6 @@ def letter_request(client, data, service_id, key_type=KEY_TYPE_NORMAL, _expected
 
 
 @pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-@pytest.mark.parametrize('reference', [None, 'reference_from_client'])
-def test_post_letter_notification_returns_201(notify_db_session, client, sample_letter_template, mocker, reference):
-    mock = mocker.patch('app.celery.tasks.letters_pdf_tasks.create_letters_pdf.apply_async')
-    data = {
-        'template_id': str(sample_letter_template.id),
-        'personalisation': {
-            'address_line_1': 'Her Royal Highness Queen Elizabeth II',
-            'address_line_2': 'Buckingham Palace',
-            'address_line_3': 'London',
-            'postcode': 'SW1 1AA',
-            'name': 'Lizzie',
-        },
-    }
-
-    if reference:
-        data.update({'reference': reference})
-
-    resp_json = letter_request(client, data, service_id=sample_letter_template.service_id)
-
-    assert validate(resp_json, post_letter_response) == resp_json
-
-    stmt = select(func.count()).select_from(Job)
-    assert notify_db_session.session.scalar(stmt) == 0
-
-    stmt = select(Notification)
-    notification = notify_db_session.session.scalars(stmt).one()
-
-    assert notification.status == NOTIFICATION_CREATED
-    assert resp_json['id'] == str(notification.id)
-    assert resp_json['reference'] == reference
-    assert resp_json['content']['subject'] == sample_letter_template.subject
-    assert resp_json['content']['body'] == sample_letter_template.content
-    assert 'v2/notifications/{}'.format(notification.id) in resp_json['uri']
-    assert resp_json['template']['id'] == str(sample_letter_template.id)
-    assert resp_json['template']['version'] == sample_letter_template.version
-    assert (
-        'services/{}/templates/{}'.format(sample_letter_template.service_id, sample_letter_template.id)
-        in resp_json['template']['uri']
-    )
-    assert not resp_json['scheduled_for']
-    assert not notification.reply_to_text
-    mock.assert_called_once_with([str(notification.id)], queue=QueueNames.CREATE_LETTERS_PDF)
-
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_post_letter_notification_sets_postage(client, notify_db_session, mocker):
     service = create_service(service_permissions=[LETTER_TYPE])
     template = create_template(service, template_type='letter', postage='first')
