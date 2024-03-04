@@ -49,6 +49,8 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          # Prepare path to use environmental variable specified and install with poetry.lock
+          export PATH="$POETRY_HOME/bin:$PATH"
           curl -sSL https://install.python-poetry.org | python3 - && poetry install --no-root --no-ansi $POETRY_ARGS
           # Set path to poetry venv
           export PATH="$(pwd)/.venv/bin:$PATH"
@@ -56,6 +58,7 @@ jobs:
 
       - name: Run tests
         run: |
+          echo which python
           make test
 
   code-scan:
