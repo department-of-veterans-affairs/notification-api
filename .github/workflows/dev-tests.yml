@@ -54,11 +54,11 @@ jobs:
           curl -sSL https://install.python-poetry.org | python3 - && poetry install --no-root --no-ansi $POETRY_ARGS
           # Set path to poetry venv
           export PATH="$(pwd)/.venv/bin:$PATH"
-          echo which python
+          which python
 
       - name: Run tests
         run: |
-          echo which python
+          which python
           make test
 
   code-scan:
