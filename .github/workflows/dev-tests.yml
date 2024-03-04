@@ -37,32 +37,9 @@ jobs:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-      - name: Install libcurl
-        run: sudo apt-get update && sudo apt-get install libssl-dev libcurl4-openssl-dev
-
-      - name: Checkout Repo
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
-      - name: Install Dependencies
+      - name: Run Tests
         run: |
-          # Get current CA from the VA
-          bash ./scripts/import-va-certs.sh
-          # Prepare path to use environmental variable specified and install with poetry.lock
-          export PATH="$POETRY_HOME/bin:$PATH"
-          curl -sSL https://install.python-poetry.org | python3 - && poetry install --no-root --no-ansi $POETRY_ARGS
-          # Set path to poetry venv
-          export PATH="/opt/.venv/bin:$PATH"
-
-      - name: Run tests
-        run: |
-          make test
+          docker compose -f ci/docker-compose-test.yml up --build
 
   code-scan:
     runs-on: ubuntu-latest
