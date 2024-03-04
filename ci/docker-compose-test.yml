@@ -15,10 +15,10 @@ services:
       - .local.env
       - ../tests/env_vars
     depends_on:
-      - db
+      - postgres
     command: make test
 
-  db:
+  postgres:
     image: postgres:15
     restart: unless-stopped
     ports:
