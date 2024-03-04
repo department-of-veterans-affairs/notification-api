@@ -1,10 +1,3 @@
-import pytest
-from sqlalchemy import select
-
-from app.models import INVITE_PENDING, Notification
-from tests.app.db import create_invited_org_user
-
-
 def test_create_invited_user_invalid_email(admin_request, sample_organisation, sample_user, mocker):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
 
