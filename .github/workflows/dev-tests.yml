@@ -44,8 +44,6 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          # Get current CA from the VA
-          bash ./scripts/import-va-certs.sh
           # Prepare path to use environmental variable specified and install with poetry.lock
           export PATH="$POETRY_HOME/bin:$PATH"
           curl -sSL https://install.python-poetry.org | python3 - && poetry install --no-root --no-ansi $POETRY_ARGS
