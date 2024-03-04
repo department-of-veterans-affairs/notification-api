@@ -790,7 +790,7 @@ def test_persist_sms_notification_stores_normalised_number(
 @pytest.mark.parametrize(
     'recipient, expected_recipient_normalised', [('FOO@bar.com', 'foo@bar.com'), ('BAR@foo.com', 'bar@foo.com')]
 )
-def test_persist_email_notification_stores_normalised_email( 
+def test_persist_email_notification_stores_normalised_email(
     notify_db_session, sample_template, sample_api_key, mocker, recipient, expected_recipient_normalised
 ):
     template = sample_template()
