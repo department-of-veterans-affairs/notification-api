@@ -1,8 +1,6 @@
 import pytest
-from sqlalchemy import select
 
 from app.models import BRANDING_ORG, EmailBranding
-from tests.app.db import create_email_branding
 
 
 @pytest.mark.serial  # Has to be ran with a single worker
@@ -120,83 +118,9 @@ def test_post_create_email_branding_returns_400_when_name_is_missing(admin_reque
     assert response['errors'][0]['message'] == 'name is a required property'
 
 
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-@pytest.mark.parametrize(
-    'data_update',
-    [
-        ({'name': 'test email_branding 1'}),
-        ({'logo': 'images/text_x3.png', 'colour': '#ffffff'}),
-        ({'logo': 'images/text_x3.png'}),
-        ({'logo': 'images/text_x3.png'}),
-        ({'logo': 'images/text_x3.png'}),
-    ],
-)
-def test_post_update_email_branding_updates_field(admin_request, notify_db_session, data_update):
-    data = {'name': 'test email_branding', 'logo': 'images/text_x2.png'}
-    response = admin_request.post('email_branding.create_email_branding', _data=data, _expected_status=201)
-
-    email_branding_id = response['data']['id']
-
-    admin_request.post('email_branding.update_email_branding', _data=data_update, email_branding_id=email_branding_id)
-
-    stmt = select(EmailBranding)
-    email_branding = notify_db_session.session.scalars(stmt).all()
-
-    assert len(email_branding) == 1
-    assert str(email_branding[0].id) == email_branding_id
-    for key in data_update.keys():
-        assert getattr(email_branding[0], key) == data_update[key]
-    assert email_branding[0].text == email_branding[0].name
-
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-@pytest.mark.parametrize(
-    'data_update',
-    [
-        ({'text': 'text email branding'}),
-        ({'text': 'new text', 'name': 'new name'}),
-        ({'text': None, 'name': 'test name'}),
-    ],
-)
-def test_post_update_email_branding_updates_field_with_text(admin_request, notify_db_session, data_update):
-    data = {'name': 'test email_branding', 'logo': 'images/text_x2.png'}
-    response = admin_request.post('email_branding.create_email_branding', _data=data, _expected_status=201)
-
-    email_branding_id = response['data']['id']
-
-    admin_request.post('email_branding.update_email_branding', _data=data_update, email_branding_id=email_branding_id)
-
-    stmt = select(EmailBranding)
-    email_branding = notify_db_session.session.scalars(stmt).all()
-
-    assert len(email_branding) == 1
-    assert str(email_branding[0].id) == email_branding_id
-    for key in data_update.keys():
-        assert getattr(email_branding[0], key) == data_update[key]
-
-
 def test_create_email_branding_reject_invalid_brand_type(admin_request):
     data = {'name': 'test email_branding', 'brand_type': 'NOT A TYPE'}
     response = admin_request.post('email_branding.create_email_branding', _data=data, _expected_status=400)
 
     expect = 'brand_type NOT A TYPE is not one of [org, both, org_banner, no_branding]'
     assert response['errors'][0]['message'] == expect
-
-
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
-def test_update_email_branding_reject_invalid_brand_type(
-    admin_request,
-    notify_db_session,
-):
-    email_branding = create_email_branding()
-    data = {'brand_type': 'NOT A TYPE'}
-    response = admin_request.post(
-        'email_branding.update_email_branding', _data=data, _expected_status=400, email_branding_id=email_branding.id
-    )
-
-    expect = 'brand_type NOT A TYPE is not one of [org, both, org_banner, no_branding]'
-    assert response['errors'][0]['message'] == expect
-
-    # Teardown
-    notify_db_session.session.delete(email_branding)
-    notify_db_session.session.commit()
