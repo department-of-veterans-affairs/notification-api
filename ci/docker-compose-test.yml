@@ -28,3 +28,5 @@ services:
     environment:
       - POSTGRES_DB=notification_api
       - POSTGRES_PASSWORD=LocalPassword
+    profiles:
+      - test
