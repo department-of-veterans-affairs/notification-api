@@ -43,17 +43,5 @@ fileignoreconfig:
   checksum: 7dd9aa70321bce7c8353ef4d2a215aa9b5e7d75ea41e452496edd238ab68d6a4
 - filename: tests/app/db.py
   checksum: df9a020fece4a10601c2e3200e663eed4bf327e2f0b16eac2d028aff56bca2ef
-- filename: app/dao/fido2_key_dao.py
-  checksum: ee833533b35e63159b05d1d2d900b3883a77700f14cbeaa15134a852774614b7
-- filename: tests/app/dao/test_fido2_keys_dao.py
-  checksum: 2eb7fea379aa24082ffb8b4afa186a372b40f18459d861756a85f6f505c2e2e3
-- filename: ci/docker-compose-test.yml
-  checksum: c5d18637dab9c702e987bdd08f8c99b720bad3279a551ccb5325c41810fc92d7
-- filename: poetry.lock
-  checksum: 844ddbfd4c38c5d13eac6fe64ba8dea57d04ec81672892b373f61464ac806856
-- filename: tests/app/celery/test_tasks.py
-  checksum: a3ec3df9bc78a52112c7df4b012c662412b656adf47b248ff5c0c7993a89f9a0
-- filename: tests/app/v2/notifications/test_post_notifications.py
-  checksum: e1b416a72acf39e2e6f853d17aea70f4d4511e03f703a19d0a84d29f5de709b9
-- filename: tests/env_vars
-  checksum: 6995f10e7ab9a1b4005e58ea70ba5a1e7e20e3eb5c77ceaf21a9de0e39c2065e
+- filename: .github/workflows/dev-tests.yml
+  checksum: 0700d2eba3138fc34ef5bf2787ce5403cbd06797200922d35ce1f3f6ff8aaf74
