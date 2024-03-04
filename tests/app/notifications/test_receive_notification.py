@@ -16,6 +16,7 @@ from app.notifications.receive_notifications import (
     unescape_string,
 )
 
+
 @pytest.mark.parametrize(
     'permissions,expected_response',
     [
@@ -31,7 +32,6 @@ def test_check_permissions_for_inbound_sms(
 ):
     service = sample_service(service_permissions=permissions)
     assert service.has_permissions([INBOUND_SMS_TYPE, SMS_TYPE]) is expected_response
-
 
 
 @pytest.mark.parametrize(
@@ -124,7 +124,6 @@ def test_create_inbound_mmg_sms_object(
     assert inbound_sms._content != 'hello there 📩'
     assert inbound_sms.content == 'hello there 📩'
     assert inbound_sms.provider == 'mmg'
-
 
 
 @pytest.mark.parametrize(

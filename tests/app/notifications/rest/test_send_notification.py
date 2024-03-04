@@ -1039,7 +1039,6 @@ def test_returns_a_429_limit_exceeded_if_rate_limit_exceeded(
     assert response_json['message'] == 'Exceeded rate limit for key type TYPE of LIMIT requests per INTERVAL seconds'
 
 
-
 def test_should_not_allow_international_number_on_sms_notification(
     client,
     sample_api_key,
@@ -1185,4 +1184,3 @@ def test_should_throw_exception_if_notification_type_is_invalid(
     )
     assert response.status_code == 400
     assert json.loads(response.get_data(as_text=True))['message'] == err_msg
-
