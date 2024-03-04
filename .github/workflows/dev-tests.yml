@@ -42,6 +42,11 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
       - name: Install Dependencies
         run: |
           # Prepare path to use environmental variable specified and install with poetry.lock
