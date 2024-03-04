@@ -787,11 +787,10 @@ def test_persist_sms_notification_stores_normalised_number(
         notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 @pytest.mark.parametrize(
     'recipient, expected_recipient_normalised', [('FOO@bar.com', 'foo@bar.com'), ('BAR@foo.com', 'bar@foo.com')]
 )
-def test_persist_email_notification_stores_normalised_email(
+def test_persist_email_notification_stores_normalised_email( 
     notify_db_session, sample_template, sample_api_key, mocker, recipient, expected_recipient_normalised
 ):
     template = sample_template()
@@ -866,7 +865,6 @@ def test_persist_letter_notification_finds_correct_postage(
         notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason='Endpoint slated for removal. Test not updated.')
 def test_persist_notification_with_billable_units_stores_correct_info(notify_db_session, mocker):
     service = create_service(service_permissions=[LETTER_TYPE])
     template = create_template(service, template_type=LETTER_TYPE)
