@@ -230,21 +230,6 @@ def test_get_user_by_email_is_case_insensitive(
     assert user == user_from_db
 
 
-def test_should_delete_all_verification_codes_more_than_one_day_old(
-    notify_db_session,
-    sample_user,
-):
-    user_0 = sample_user()
-    user_1 = sample_user()
-
-    make_verify_code(notify_db_session, user_0, age=timedelta(hours=24), code='54321')
-    make_verify_code(notify_db_session, user_1, age=timedelta(hours=24), code='54321')
-    stmt = select(VerifyCode).where(or_(VerifyCode.user_id == user_0.id, VerifyCode.user_id == user_1.id))
-    assert len(notify_db_session.session.scalars(stmt).all()) == 2
-    delete_codes_older_created_more_than_a_day_ago()
-    assert len(notify_db_session.session.scalars(stmt).all()) == 0
-
-
 def make_verify_code(
     notify_db_session, user, age=timedelta(hours=0), expiry_age=timedelta(0), code='12335', code_used=False
 ):
@@ -259,6 +244,21 @@ def make_verify_code(
     notify_db_session.session.add(verify_code)
     notify_db_session.session.commit()
     return verify_code
+
+
+def test_should_delete_all_verification_codes_more_than_one_day_old(
+    notify_db_session,
+    sample_user,
+):
+    user_0 = sample_user()
+    user_1 = sample_user()
+
+    make_verify_code(notify_db_session, user_0, age=timedelta(hours=24), code='54321')
+    make_verify_code(notify_db_session, user_1, age=timedelta(hours=24), code='54321')
+    stmt = select(VerifyCode).where(or_(VerifyCode.user_id == user_0.id, VerifyCode.user_id == user_1.id))
+    assert len(notify_db_session.session.scalars(stmt).all()) == 2
+    delete_codes_older_created_more_than_a_day_ago()
+    assert len(notify_db_session.session.scalars(stmt).all()) == 0
 
 
 def test_update_user_attribute_blocked(
