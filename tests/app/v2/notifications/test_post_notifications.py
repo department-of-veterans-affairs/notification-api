@@ -143,12 +143,12 @@ def test_post_sms_notification_uses_inbound_number_as_sender(
     sample_service,
     sample_template,
     sample_inbound_number,
-    sample_sms_sender_v2,
+    sample_sms_sender,
 ):
     service = sample_service()
     template = sample_template(service=service, content='Hello (( Name))\nYour thing is due soon')
     inbound_number = sample_inbound_number(service_id=service.id, number=str(randint(1, 999999999)))
-    sms_sender = sample_sms_sender_v2(
+    sms_sender = sample_sms_sender(
         service_id=service.id, inbound_number_id=inbound_number.id, sms_sender=str(randint(1, 999999999))
     )
 

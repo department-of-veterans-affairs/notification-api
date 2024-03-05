@@ -1308,13 +1308,13 @@ def test_save_sms_uses_sms_sender_reply_to_text(mocker, notify_db_session, sampl
 
 
 def test_save_sms_uses_non_default_sms_sender_reply_to_text_if_provided(
-    mocker, notify_db_session, sample_service, sample_template, sample_sms_sender_v2
+    mocker, notify_db_session, sample_service, sample_template, sample_sms_sender
 ):
     mock_feature_flag(mocker, FeatureFlag.SMS_SENDER_RATE_LIMIT_ENABLED, 'True')
     service = sample_service(sms_sender='07123123123')
     template = sample_template(service=service)
     # new_sender = service_sms_sender_dao.dao_add_sms_sender_for_service(service.id, 'new-sender', False)
-    new_sender = sample_sms_sender_v2(service.id, sms_sender='new-sender', is_default=False)
+    new_sender = sample_sms_sender(service.id, sms_sender='new-sender', is_default=False)
     sms_sender = mocker.Mock()
     sms_sender.rate_limit = 1
     sms_sender.sms_sender = 'new-sender'

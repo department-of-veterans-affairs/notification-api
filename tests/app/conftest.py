@@ -531,7 +531,7 @@ def sample_service(
     sample_user,
     sample_permissions,
     sample_service_permissions,
-    sample_sms_sender_v2,
+    sample_sms_sender,
     sample_service_email_reply_to,
 ):
     created_service_ids = []
@@ -558,7 +558,7 @@ def sample_service(
 
         sample_service_permissions(service, service_permissions)
         sample_permissions(user, service)
-        sample_sms_sender_v2(service.id, sms_sender)
+        sample_sms_sender(service.id, sms_sender)
         if email_address is not None:
             sample_service_email_reply_to(service, email_address=email_address)
         # Service should be version 1 in the history after calling this
@@ -928,139 +928,6 @@ def template_folder_cleanup(
         session.commit()
 
 
-# @pytest.fixture
-# def sample_sms_template_func(notify_db_session, sample_service, sample_user):
-#     """
-#     Use this function-scoped SMS template for tests that don't need to modify the template.
-#     """
-
-#     template_data = sample_template_helper(
-#         f'function sms template {uuid4()}', SMS_TYPE, sample_service(), sample_user()
-#     )
-#     template = Template(**template_data)
-#     dao_create_template(template)
-
-#     yield template
-
-#     # Teardown
-#     template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
-#     notify_db_session.session.delete(template_history)
-#     template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
-#     notify_db_session.session.delete(template_redacted)
-#     notify_db_session.session.delete(template)
-#     notify_db_session.session.commit()
-
-
-# @pytest.fixture(scope='session')
-# def sample_sms_template(notify_db, sample_service, sample_user, worker_id):
-#     """
-#     Use this session-scoped SMS template for tests that don't need to modify the template.
-#     """
-
-#     template_data = sample_template_helper(f'session sms template {worker_id}', SMS_TYPE, sample_service, sample_user)
-#     template = Template(**template_data)
-#     notify_db.session.add(template)
-#     notify_db.session.commit()
-
-#     yield template
-
-#     notify_db.session.delete(template)
-#     notify_db.session.commit()
-
-
-# @pytest.fixture(scope='session')
-# def sample_sms_template_history(notify_db, sample_service, sample_user, worker_id):
-#     """
-#     Use this session-scoped SMS TemplateHistory for tests that don't need to modify templates.
-#     Create a template history instance for any template instance used to create a Notification instance.
-#     Otherwise, attempting to create a Notification will lead to an InegrityError.
-
-#     Note that Notification instances have foreign keys to TemplateHistory instances rather than
-#     Template instances.
-#     """
-
-#     template_data = sample_template_helper(
-#         f'session sms template history {worker_id}', SMS_TYPE, sample_service, sample_user
-#     )
-#     template_history = TemplateHistory(**template_data)
-#     notify_db.session.add(template_history)
-#     notify_db.session.commit()
-
-#     yield template_history
-
-#     notify_db.session.delete(template_history)
-#     notify_db.session.commit()
-
-
-# @pytest.fixture
-# def sample_email_template_func(notify_db_session, sample_service, sample_user):
-#     """
-#     Use this function-scoped e-mail template for tests that don't need to modify the template.
-#     """
-
-#     template_data = sample_template_helper(
-#         f'function e-mail template {uuid4()}', EMAIL_TYPE, sample_service(), sample_user()
-#     )
-#     template = Template(**template_data)
-#     dao_create_template(template)
-
-#     yield template
-
-#     # Teardown
-#     template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
-#     notify_db_session.session.delete(template_history)
-#     template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
-#     notify_db_session.session.delete(template_redacted)
-#     notify_db_session.session.delete(template)
-#     notify_db_session.session.commit()
-
-
-# @pytest.fixture(scope='session')
-# def sample_email_template(notify_db, sample_service, sample_user, worker_id):
-#     """
-#     Use this session-scoped e-mail template for tests that don't need to modify the template.
-#     """
-
-#     template_data = sample_template_helper(
-#         f'session e-mail template {worker_id}', EMAIL_TYPE, sample_service, sample_user
-#     )
-#     template = Template(**template_data)
-#     notify_db.session.add(template)
-#     notify_db.session.commit()
-
-#     yield template
-
-#     notify_db.session.delete(template)
-#     notify_db.session.commit()
-
-
-# @pytest.fixture
-# def sample_email_template_history(notify_db, sample_service, sample_user, worker_id):
-#     """
-#     Use this e-mail TemplateHistory for tests that don't need to modify templates.
-#     Create a template history instance for any template instance used to create a Notification instance.
-#     Otherwise, attempting to create a Notification will lead to an InegrityError.
-
-#     Note that Notification instances have foreign keys to TemplateHistory instances rather than
-#     Template instances.
-#     """
-
-#     templates = []
-#     template_data = sample_template_helper(
-#         f'session e-mail template history {worker_id}', EMAIL_TYPE, sample_service(), sample_user()
-#     )
-#     template_history = TemplateHistory(**template_data)
-#     notify_db.session.add(template_history)
-#     notify_db.session.commit()
-#     templates.append(template_history)
-
-#     yield template_history
-
-#     for template in templates:
-#         notify_db.session.delete(template)
-#         notify_db.session.commit()
-
-
 @pytest.fixture
 def sample_template_without_sms_permission(notify_db_session, sample_service, sample_template):
     service = sample_service(service_permissions=[EMAIL_TYPE], check_if_service_exists=True)
@@ -1080,13 +947,6 @@ def sample_template_without_sms_permission(notify_db_session, sample_service, sa
 @pytest.fixture
 def sample_template_with_placeholders(sample_template):
     return sample_template(content='Hello (( Name))\nYour thing is due soon')
-
-
-# @pytest.fixture
-# def sample_sms_template_with_html(sample_service, sample_template):
-#     # deliberate space and title case in placeholder
-#     sample_service.prefix_sms = True
-#     return sample_template(sample_service, content='Hello (( Name))\nHere is <em>some HTML</em> & entities')
 
 
 @pytest.fixture
@@ -2680,7 +2540,7 @@ def datetime_in_past(days=0, seconds=0):
 
 
 @pytest.fixture
-def sample_sms_sender_v2(notify_db_session):
+def sample_sms_sender(notify_db_session):
     sms_sender_ids = []
 
     def _wrapper(
@@ -2717,21 +2577,21 @@ def sample_sms_sender_v2(notify_db_session):
     notify_db_session.session.commit()
 
 
-@pytest.fixture
-def sample_sms_sender(notify_db_session, sample_service):
-    created_sms_senders = []
+# @pytest.fixture
+# def sample_sms_sender(notify_db_session, sample_service):
+#     created_sms_senders = []
 
-    def _sample_sms_sender(service_id: str):
-        service_sms_sender = dao_add_sms_sender_for_service(service_id, '+12025555555', True)
-        created_sms_senders.append(service_sms_sender)
-        return service_sms_sender
+#     def _sample_sms_sender(service_id: str):
+#         service_sms_sender = dao_add_sms_sender_for_service(service_id, '+12025555555', True)
+#         created_sms_senders.append(service_sms_sender)
+#         return service_sms_sender
 
-    yield _sample_sms_sender
+#     yield _sample_sms_sender
 
-    # Teardown
-    for sms_sender in created_sms_senders:
-        notify_db_session.session.delete(sms_sender)
-    notify_db_session.session.commit()
+#     # Teardown
+#     for sms_sender in created_sms_senders:
+#         notify_db_session.session.delete(sms_sender)
+#     notify_db_session.session.commit()
 
 
 @pytest.fixture
