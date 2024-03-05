@@ -16,7 +16,6 @@ services:
     command: make test
 
   db:
-    condition: 
     image: postgres:15
     restart: unless-stopped
     ports:

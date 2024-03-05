@@ -49,3 +49,5 @@ fileignoreconfig:
   checksum: ed3014378ae0ec8168f6d0530c557c2a6402dd41dc14a3e16965f143cf45a551
 - filename: ci/docker-compose-test.yml
   checksum: b830f2865139c0a5b638d0feddef370c25cf2cea154cdf66afb8e2120a75baff
+- filename: pytest.ini
+  checksum: 5fe3b1e8dd47429380b6a9639707f76df2ae526c4021d10921d9c6792adf5e41
