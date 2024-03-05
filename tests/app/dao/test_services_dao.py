@@ -939,7 +939,7 @@ def test_delete_service_and_associated_objects(
     service_cleanup([service_id], notify_db_session.session)
 
 
-pytest.mark.skip(reason='failing in pipeline only for some reason')
+@pytest.mark.skip(reason='failing in pipeline only for some reason')
 def test_update_service_permission_creates_a_history_record_with_current_data(
     notify_db_session,
     sample_user,
