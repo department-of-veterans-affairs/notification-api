@@ -1,12 +1,16 @@
 import json
-import pytest
+from uuid import uuid4
+
+from botocore.stub import ANY
+
 from flask import url_for
 from flask_jwt_extended import create_access_token
+
+import pytest
 
 from app.celery.process_pinpoint_inbound_sms import CeleryEvent, process_pinpoint_inbound_sms
 from app.dao.permissions_dao import permission_dao
 from app.models import QUEUE_CHANNEL_TYPE, INBOUND_SMS_CALLBACK_TYPE, PLATFORM_ADMIN, Permission
-from botocore.stub import ANY
 
 
 # @pytest.fixture()
@@ -69,9 +73,13 @@ class AnySms(object):
 
 @pytest.mark.skip(reason='Integration test fails when run in suite, passes when run alone')
 def test_sqs_callback(
-    integration_celery_config, sqs_stub, sample_service_full_permissions, client, pinpoint_inbound_sms_toggle_enabled
+    integration_celery_config, sqs_stub, sample_service, client, pinpoint_inbound_sms_toggle_enabled
 ):
-    sample_service = sample_service_full_permissions
+    service = sample_service(
+        service_name=f'sample service full permissions {uuid4()}',
+        service_permissions=set(SERVICE_PERMISSION_TYPES),
+        check_if_service_exists=True,
+    )
     user = sample_service.users[0]
     permission_dao.set_user_service_permission(
         user, sample_service, [Permission(service_id=sample_service.id, user_id=user.id, permission=PLATFORM_ADMIN)]

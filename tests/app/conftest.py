@@ -63,7 +63,6 @@ from app.models import (
     Rate,
     SMS_TYPE,
     ScheduledNotification,
-    SERVICE_PERMISSION_TYPES,
     ServiceCallback,
     ServiceDataRetention,
     ServiceEmailReplyTo,
@@ -736,24 +735,24 @@ def sample_permissions(notify_db_session, worker_id):
     notify_db_session.session.commit()
 
 
-@pytest.fixture
-def sample_service_full_permissions(notify_db_session, sample_service):
-    service = sample_service(
-        service_name=f'sample service full permissions {uuid4()}',
-        service_permissions=set(SERVICE_PERMISSION_TYPES),
-        check_if_service_exists=True,
-    )
+# @pytest.fixture
+# def sample_service_full_permissions(notify_db_session, sample_service):
+#     service = sample_service(
+#         service_name=f'sample service full permissions {uuid4()}',
+#         service_permissions=set(SERVICE_PERMISSION_TYPES),
+#         check_if_service_exists=True,
+#     )
 
-    # The inbound number is a unique, non-nullable 12-digit string.  With tests running
-    # in parallel, this could result in a collision, although that's unlikely.
-    number = str(randint(100000000000, 999999999999))
-    inbound_number = create_inbound_number(number, service_id=service.id)
+#     # The inbound number is a unique, non-nullable 12-digit string.  With tests running
+#     # in parallel, this could result in a collision, although that's unlikely.
+#     number = str(randint(100000000000, 999999999999))
+#     inbound_number = create_inbound_number(number, service_id=service.id)
 
-    yield service
+#     yield service
 
-    # Teardown
-    notify_db_session.session.delete(inbound_number)
-    notify_db_session.session.commit()
+#     # Teardown
+#     notify_db_session.session.delete(inbound_number)
+#     notify_db_session.session.commit()
 
 
 def sample_template_helper(
@@ -953,8 +952,9 @@ def template_folder_cleanup(
 
 
 @pytest.fixture
-def sample_letter_template(sample_service_full_permissions, sample_template):
-    return sample_template(service=sample_service_full_permissions, template_type=LETTER_TYPE, postage='second')
+def sample_letter_template(sample_service, sample_template):
+    
+    return sample_template(service=sample_service, template_type=LETTER_TYPE, postage='second')
 
 
 # @pytest.fixture
