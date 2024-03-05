@@ -1277,6 +1277,13 @@ def test_dao_fetch_todays_total_message_count_returns_count_for_today(
     assert fetch_todays_total_message_count(service.id) == sms_qty * 2 + email_qty * 2 + 2  # 38 notifications
 
 
+@pytest.mark.xfail('Mislabelled for route removal, fails when unskipped.')
+def test_dao_fetch_todays_total_message_count_returns_0_when_no_messages_for_today(
+    sample_service,
+):
+    assert fetch_todays_total_message_count(sample_service().id) == 0
+
+
 @pytest.mark.skip('The query is malformed and the functionality is unused')
 def test_dao_fetch_todays_stats_for_all_services_no_notifications(
     sample_service,
