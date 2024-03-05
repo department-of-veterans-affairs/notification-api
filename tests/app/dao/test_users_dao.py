@@ -21,9 +21,9 @@ from app.dao.users_dao import (
 )
 from app.errors import InvalidRequest
 from app.model import User, EMAIL_AUTH_TYPE
-from app.models import VerifyCode
+from app.models import SMS_TYPE, VerifyCode
 from app.oauth.exceptions import IdpAssignmentException, IncorrectGithubIdException
-from datetime import timedelta
+from datetime import datetime, timedelta
 from freezegun import freeze_time
 from sqlalchemy import or_, select
 from sqlalchemy.exc import DataError, IntegrityError
@@ -243,6 +243,22 @@ def test_should_delete_all_verification_codes_more_than_one_day_old(
     assert len(notify_db_session.session.scalars(stmt).all()) == 2
     delete_codes_older_created_more_than_a_day_ago()
     assert len(notify_db_session.session.scalars(stmt).all()) == 0
+
+
+def make_verify_code(
+    notify_db_session, user, age=timedelta(hours=0), expiry_age=timedelta(0), code='12335', code_used=False
+):
+    verify_code = VerifyCode(
+        code_type=SMS_TYPE,
+        code=code,
+        created_at=datetime.utcnow() - age,
+        expiry_datetime=datetime.utcnow() - expiry_age,
+        user=user,
+        code_used=code_used,
+    )
+    notify_db_session.session.add(verify_code)
+    notify_db_session.session.commit()
+    return verify_code
 
 
 def test_update_user_attribute_blocked(
