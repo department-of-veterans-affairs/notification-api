@@ -46,7 +46,7 @@ fileignoreconfig:
 - filename: .github/workflows/dev-tests.yml
   checksum: 37d8f0e93d404be3b0339faa4ec0c88a9156b63e84b59d572949ebd88b592ccc
 - filename: ci/.local.env
-  checksum: ed3014378ae0ec8168f6d0530c557c2a6402dd41dc14a3e16965f143cf45a551
+  checksum: 55266f35ee53e36b47ed9759c5a130eb2922d0c4ef36222aed690d9f4cfe9a3f
 - filename: ci/docker-compose-test.yml
   checksum: b830f2865139c0a5b638d0feddef370c25cf2cea154cdf66afb8e2120a75baff
 - filename: pytest.ini
