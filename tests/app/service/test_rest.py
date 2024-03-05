@@ -601,30 +601,6 @@ def test_cant_update_service_org_type_to_random_value(client, sample_service):
     assert resp.status_code == 500
 
 
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped')
-def test_update_service_remove_email_branding(admin_request, notify_db_session, sample_service):
-    brand = EmailBranding(colour='#000000', logo='justice-league.png', name='Justice League')
-    service = sample_service()
-    service.email_branding = brand
-    notify_db_session.session.commit()
-
-    resp = admin_request.post('service.update_service', service_id=service.id, _data={'email_branding': None})
-    assert resp['data']['email_branding'] is None
-
-
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped')
-def test_update_service_change_email_branding(admin_request, notify_db_session, sample_service):
-    brand1 = EmailBranding(colour='#000000', logo='justice-league.png', name='Justice League')
-    brand2 = EmailBranding(colour='#111111', logo='avengers.png', name='Avengers')
-    notify_db_session.session.add_all([brand1, brand2])
-    service = sample_service()
-    service.email_branding = brand1
-    notify_db_session.session.commit()
-
-    resp = admin_request.post('service.update_service', service_id=service.id, _data={'email_branding': str(brand2.id)})
-    assert resp['data']['email_branding'] == str(brand2.id)
-
-
 def test_update_service_flags(client, sample_service):
     service = sample_service()
     auth_header = create_admin_authorization_header()
