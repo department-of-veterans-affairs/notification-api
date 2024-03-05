@@ -1146,13 +1146,17 @@ def test_should_not_allow_email_notifications_if_service_permission_not_set(
     client,
     mocker,
     sample_api_key,
-    sample_template_without_email_permission,
+    sample_service,
+    sample_template,
 ):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
 
-    data = {'to': 'notify@digital.cabinet-office.gov.uk', 'template': str(sample_template_without_email_permission.id)}
+    service = sample_service(service_permissions=[SMS_TYPE], check_if_service_exists=True)
+    template = sample_template(service=service, template_type=EMAIL_TYPE)
 
-    auth_header = create_authorization_header(sample_api_key(service=sample_template_without_email_permission.service))
+    data = {'to': 'notify@digital.cabinet-office.gov.uk', 'template': str(template.id)}
+
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
 
     response = client.post(
         path='/notifications/email', data=json.dumps(data), headers=[('Content-Type', 'application/json'), auth_header]

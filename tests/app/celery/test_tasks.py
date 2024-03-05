@@ -449,10 +449,13 @@ def test_process_row_when_sender_id_is_provided(mocker, fake_uuid):
 
 
 def test_should_send_template_to_correct_sms_task_and_persist(
-    notify_db_session, sample_template_with_placeholders, mocker
+    notify_db_session, sample_service, sample_template, mocker
 ):
+    service = sample_service()
+    template = sample_template(service=service)
+
     notification = _notification_json(
-        sample_template_with_placeholders, to='+1 650 253 2222', personalisation={'name': 'Jo'}
+        template, to='+1 650 253 2222', personalisation={'name': 'Jo'}
     )
 
     mocked_deliver_sms = mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
@@ -460,7 +463,7 @@ def test_should_send_template_to_correct_sms_task_and_persist(
     notification_id = uuid4()
 
     save_sms(
-        sample_template_with_placeholders.service_id,
+        template.service_id,
         notification_id,
         encryption.encrypt(notification),
     )
@@ -469,8 +472,8 @@ def test_should_send_template_to_correct_sms_task_and_persist(
 
     try:
         assert persisted_notification.to == '+1 650 253 2222'
-        assert persisted_notification.template_id == sample_template_with_placeholders.id
-        assert persisted_notification.template_version == sample_template_with_placeholders.version
+        assert persisted_notification.template_id == template.id
+        assert persisted_notification.template_version == template.version
         assert persisted_notification.status == 'created'
         assert persisted_notification.created_at <= datetime.utcnow()
         assert not persisted_notification.sent_at

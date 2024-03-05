@@ -933,15 +933,15 @@ def template_folder_cleanup(
 #     notify_db_session.session.commit()
 
 
-@pytest.fixture
-def sample_template_with_placeholders(sample_template):
-    return sample_template(content='Hello (( Name))\nYour thing is due soon')
+# @pytest.fixture
+# def sample_template_with_placeholders(sample_template):
+#     return sample_template(content='Hello (( Name))\nYour thing is due soon')
 
 
-@pytest.fixture
-def sample_template_without_email_permission(sample_service, sample_template):
-    service = sample_service(service_permissions=[SMS_TYPE], check_if_service_exists=True)
-    return sample_template(service=service, template_type=EMAIL_TYPE)
+# @pytest.fixture
+# def sample_template_without_email_permission(sample_service, sample_template):
+#     service = sample_service(service_permissions=[SMS_TYPE], check_if_service_exists=True)
+#     return sample_template(service=service, template_type=EMAIL_TYPE)
 
 
 # @pytest.fixture
