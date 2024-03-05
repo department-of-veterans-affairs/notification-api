@@ -11,6 +11,8 @@ services:
       - "../:/app:rw"
     ports:
       - 6011:6011
+    env_file:
+      - .local.env
     depends_on:
       - db
     command: make test

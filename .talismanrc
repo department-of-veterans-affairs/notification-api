@@ -44,7 +44,7 @@ fileignoreconfig:
 - filename: .github/workflows/tests.yaml
   checksum: bcc75d9c47813266b4735e37f597d23dce78ed357d930ca24c296ffd8583b385
 - filename: .github/workflows/dev-tests.yml
-  checksum: 175613e3f3adb693435e023f29d0c2d38d7bf6114bda2393060c2eb8103709fc
+  checksum: 4a3fe9e6585619f0c6b17fbb334b6b308e708d11ce4b3e3d9d800e6ad03ab1a4
 - filename: ci/.local.env
   checksum: ed3014378ae0ec8168f6d0530c557c2a6402dd41dc14a3e16965f143cf45a551
 - filename: ci/docker-compose-test.yml
