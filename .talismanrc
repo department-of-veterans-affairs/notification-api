@@ -33,8 +33,6 @@ fileignoreconfig:
   checksum: b32eae40a0fb22d71ef585eaf56983ced8abfa24087f6d1d03e4a3e7b7d48cb0
 - filename: cd/application-deployment/perf/vaec-celery-task-definition.json
   checksum: c7d10bd01c45d4f2199a0a89d6d94fa1c222d5770187051320a0a0e2a5ca5d30
-- filename: ci/.local.env
-  checksum: 92502261ced9c795c54b1a5d60032a18db14f67d55cd081b94af1532cacb274e
 - filename: ci/docker-compose-local.yml
   checksum: 390dd529d1cf3fd88ba2a509bcb13815c0ede8d333ed93220f53bb3b87a0f08e
 - filename: tests/app/user/test_rest.py
@@ -49,3 +47,5 @@ fileignoreconfig:
   checksum: 175613e3f3adb693435e023f29d0c2d38d7bf6114bda2393060c2eb8103709fc
 - filename: ci/docker-compose-test.yml
   checksum: f1def229c98abd65e2188460edb36181efba84c122e8f9a63099a2c0dd8d5770
+- filename: ci/.local.env
+  checksum: ed3014378ae0ec8168f6d0530c557c2a6402dd41dc14a3e16965f143cf45a551
