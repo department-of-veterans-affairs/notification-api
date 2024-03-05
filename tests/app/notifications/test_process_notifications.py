@@ -1,5 +1,5 @@
 import datetime
-from uuid import uuid4
+import uuid
 
 import pytest
 from boto3.exceptions import Boto3Error
@@ -839,7 +839,7 @@ def test_persist_letter_notification_finds_correct_postage(
 ):
     api_key = sample_api_key()
     service = sample_service(
-        service_name=f'sample service full permissions {uuid4()}',
+        service_name=f'sample service full permissions {uuid.uuid4()}',
         service_permissions=set(SERVICE_PERMISSION_TYPES),
         check_if_service_exists=True,
     )

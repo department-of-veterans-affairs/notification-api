@@ -909,10 +909,11 @@ def test_should_error_if_notification_type_does_not_match_template_type(
 
 def test_create_template_raises_invalid_request_exception_with_missing_personalisation(
     notify_db_session,
-    sample_template_with_placeholders,
+    sample_template,
 ):
-    template = notify_db_session.session.get(Template, sample_template_with_placeholders.id)
     from app.notifications.rest import create_template_object_for_notification
+    
+    template = sample_template(content='Hello (( Name))\nYour thing is due soon')
 
     with pytest.raises(InvalidRequest) as e:
         create_template_object_for_notification(template, {})
@@ -921,11 +922,11 @@ def test_create_template_raises_invalid_request_exception_with_missing_personali
 
 def test_create_template_doesnt_raise_with_too_much_personalisation(
     notify_db_session,
-    sample_template_with_placeholders,
+    sample_template,
 ):
     from app.notifications.rest import create_template_object_for_notification
 
-    template = notify_db_session.session.get(Template, sample_template_with_placeholders.id)
+    template = sample_template(content='Hello (( Name))\nYour thing is due soon')
     create_template_object_for_notification(template, {'name': 'Jo', 'extra': 'stuff'})
 
 

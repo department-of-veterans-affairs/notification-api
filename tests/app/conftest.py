@@ -953,8 +953,8 @@ def template_folder_cleanup(
 
 @pytest.fixture
 def sample_letter_template(sample_service, sample_template):
-    
-    return sample_template(service=sample_service, template_type=LETTER_TYPE, postage='second')
+    service = sample_service(service_permissions=[LETTER_TYPE], check_if_service_exists=True)
+    return sample_template(service=service, template_type=LETTER_TYPE, postage='second')
 
 
 # @pytest.fixture
@@ -1086,9 +1086,9 @@ def sample_job(notify_db_session):
 
 
 @pytest.fixture
-def sample_scheduled_job(sample_job, sample_template_with_placeholders):
+def sample_scheduled_job(sample_job, sample_template):
     return sample_job(
-        sample_template_with_placeholders,
+        sample_template(content='Hello (( Name))\nYour thing is due soon'),
         job_status=JOB_STATUS_SCHEDULED,
         scheduled_for=(datetime.utcnow() + timedelta(minutes=60)).isoformat(),
     )
