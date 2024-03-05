@@ -10,8 +10,6 @@ RUN \
 COPY --chown=vanotify ./scripts/import-va-certs.sh /scripts/
 RUN chmod +x /scripts/import-va-certs.sh
 
-# RUN /usr/sbin/update-ca-certificates
-
 # Transfer VA certificates to the image.  These certificates are grabbed from a public VA HTTP server.
 RUN /scripts/import-va-certs.sh \
   && apt-get remove --auto-remove -y wget openssl \
