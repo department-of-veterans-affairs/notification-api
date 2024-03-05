@@ -56,10 +56,11 @@ jobs:
       - name: Run tests
         run: |
           # Set path to poetry venv
-          export PATH="$(pwd)/.venv/bin:$PATH"
-          # Prepare test env variables
-          echo "env = " >> pytest.ini && cat ci/.local.env >> pytest.ini
-          sed -i 's/LocalPassword@db:5432/postgres@localhost/g' pytest.ini
+          export PATH="$PWD/.venv/bin:$PATH"
+          # Prepare env variables
+          mv ci/.local.env .env
+          # Adjust for GHA service "postgres"
+          sed -i 's/LocalPassword@db:5432/postgres@localhost/g' .env
           make test
 
   code-scan:
