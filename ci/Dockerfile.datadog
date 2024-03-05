@@ -8,7 +8,6 @@ RUN \
 
 # Copy the host's build context directory (notification-api/) to the image's working directory (/app).
 COPY --chown=vanotify ./scripts/import-va-certs.sh /scripts/
-RUN chmod +x /scripts/import-va-certs.sh
 
 # Transfer VA certificates to the image.  These certificates are grabbed from a public VA HTTP server.
 RUN /scripts/import-va-certs.sh \
@@ -16,6 +15,5 @@ RUN /scripts/import-va-certs.sh \
   && apt-get clean
 
 COPY ./scripts/datadog_expose_task_arn.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
