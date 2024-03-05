@@ -756,17 +756,6 @@ def sample_service_full_permissions(notify_db_session, sample_service):
     notify_db_session.session.commit()
 
 
-# @pytest.fixture(scope='function', name='sample_service_custom_letter_contact_block')
-# def _sample_service_custom_letter_contact_block(sample_service):
-#     create_letter_contact(sample_service, contact_block='((contact block))')
-#     return sample_service
-
-
-# @pytest.fixture(scope='function')
-# def sample_service_data(sample_service):
-#     return ServiceData(sample_service)
-
-
 def sample_template_helper(
     name,
     template_type,
@@ -928,20 +917,20 @@ def template_folder_cleanup(
         session.commit()
 
 
-@pytest.fixture
-def sample_template_without_sms_permission(notify_db_session, sample_service, sample_template):
-    service = sample_service(service_permissions=[EMAIL_TYPE], check_if_service_exists=True)
-    template = sample_template(service=service, template_type=SMS_TYPE)
-    yield template
+# @pytest.fixture
+# def sample_template_without_sms_permission(notify_db_session, sample_service, sample_template):
+#     service = sample_service(service_permissions=[EMAIL_TYPE], check_if_service_exists=True)
+#     template = sample_template(service=service, template_type=SMS_TYPE)
+#     yield template
 
-    # Teardown
-    template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
-    notify_db_session.session.delete(template_history)
+#     # Teardown
+#     template_history = notify_db_session.session.get(TemplateHistory, (template.id, template.version))
+#     notify_db_session.session.delete(template_history)
 
-    template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
-    notify_db_session.session.delete(template_redacted)
-    notify_db_session.session.delete(template)
-    notify_db_session.session.commit()
+#     template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
+#     notify_db_session.session.delete(template_redacted)
+#     notify_db_session.session.delete(template)
+#     notify_db_session.session.commit()
 
 
 @pytest.fixture

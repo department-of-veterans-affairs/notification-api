@@ -1113,15 +1113,18 @@ def test_should_not_allow_sms_notifications_if_service_permission_not_set(
     client,
     mocker,
     sample_api_key,
-    sample_template_without_sms_permission,
+    sample_service,
     sample_sms_sender,
+    sample_template,
 ):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
 
-    service = sample_template_without_sms_permission.service
+    service = sample_service(service_permissions=[EMAIL_TYPE], check_if_service_exists=True)    
+    template = sample_template(service=service)
+
     data = {
         'to': '+16502532222',
-        'template': str(sample_template_without_sms_permission.id),
+        'template': str(template.id),
         'sms_sender_id': str(sample_sms_sender(service_id=service.id).id),
     }
 
