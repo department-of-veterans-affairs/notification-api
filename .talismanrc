@@ -51,3 +51,5 @@ fileignoreconfig:
   checksum: b830f2865139c0a5b638d0feddef370c25cf2cea154cdf66afb8e2120a75baff
 - filename: pytest.ini
   checksum: 5fe3b1e8dd47429380b6a9639707f76df2ae526c4021d10921d9c6792adf5e41
+- filename: poetry.lock
+  checksum: df6fa93babf8b5324cd5f15db8ac3ef7d25f96fb0c4c96a5c4ff966fc74b2e7f

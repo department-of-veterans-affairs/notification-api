@@ -47,14 +47,14 @@ python-magic = "*"
 rfc3339-validator = "*"
 sentry-sdk = {extras = ["flask"], version = "*"}
 SQLAlchemy = "^1.4"
-twilio = "*"
+twilio = "^8.13"
 Unidecode = "*"
 validatesns = "*"
 Werkzeug = "*"
 notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git", rev = "hotfix-pyyaml-update"}
 
 [tool.poetry.group.test]
-optional = false
+optional = true
 [tool.poetry.group.test.dependencies]
 freezegun = "*"
 google-cloud-bigquery = "*"
