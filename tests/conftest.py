@@ -2,6 +2,7 @@ import os
 
 from alembic.command import upgrade
 from alembic.config import Config
+from dotenv import load_dotenv
 from app import create_app, db, schemas
 from contextlib import contextmanager
 from flask import Flask
@@ -25,6 +26,7 @@ def pytest_sessionstart(session):
     """
     global application
 
+    load_dotenv()
     app = Flask('test')
     application = create_app(app)
 

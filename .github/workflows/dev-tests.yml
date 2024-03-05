@@ -57,7 +57,6 @@ jobs:
         run: |
           # Set path to poetry venv
           export PATH="$(pwd)/.venv/bin:$PATH"
-          source ci/.local.env tests/env_vars
           make test
 
   code-scan:

@@ -11,21 +11,18 @@ services:
       - "../:/app:rw"
     ports:
       - 6011:6011
-    env_file:
-      - .local.env
-      - ../tests/env_vars
-    # depends_on:
-    #   - db
+    depends_on:
+      - db
     command: make test
 
-  # db:
-  #   condition: 
-  #   image: postgres:15
-  #   restart: unless-stopped
-  #   ports:
-  #     - 5432:5432
-  #   logging:
-  #     driver: "none"
-  #   environment:
-  #     - POSTGRES_DB=notification_api
-  #     - POSTGRES_PASSWORD=LocalPassword
+  db:
+    condition: 
+    image: postgres:15
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    logging:
+      driver: "none"
+    environment:
+      - POSTGRES_DB=notification_api
+      - POSTGRES_PASSWORD=LocalPassword
