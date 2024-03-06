@@ -857,24 +857,59 @@ def sample_template(
 ):
     template_ids = []
 
-    def _sample_template(*args, **kwargs):
-        assert len(args) == 0, 'sample_template method does not accept positional arguments'
+    def _sample_template(
+        archived=False,
+        communication_item_id=None,
+        content=None,
+        name=None,
+        folder=None,
+        hidden=False,
+        id=None,
+        postage=None,
+        process_type=NORMAL,
+        reply_to=None,
+        reply_to_email=None,
+        service=None,
+        subject=None,
+        template_type=SMS_TYPE,
+        user=None,
+        version=0,
+    ):
         # Mandatory arguments - ignore args
-        kwargs['name'] = kwargs.get('name', f'function template {uuid4()}')
-        kwargs['template_type'] = kwargs.get('template_type', SMS_TYPE)
+        if name is None:
+            name = f'function template {uuid4()}'
 
         # Using fixtures as defaults creates those objects! Do not make a fixture the default param
-        kwargs['user'] = kwargs.get('user') or sample_user()
-        kwargs['service'] = kwargs.get('service') or sample_service()
+        if user is None:
+            user = sample_user()
 
-        if 'subject' in kwargs:
-            kwargs['subject_line'] = kwargs.pop('subject')
-        kwargs['communication_item_id'] = kwargs.get('communication_item_id', sample_communication_item().id)
+        if service is None:
+            service = sample_service()
 
-        template_data = sample_template_helper(*args, **kwargs)
+        if communication_item_id is None:
+            communication_item_id = sample_communication_item().id
 
-        if kwargs['template_type'] == LETTER_TYPE:
-            template_data['postage'] = kwargs.get('postage', 'second')
+        template_data = sample_template_helper(
+            name,
+            template_type,
+            service,
+            user,
+            archived=archived,
+            content=content,
+            folder=folder,
+            hidden=hidden,
+            postage=postage,
+            subject_line=subject,
+            reply_to=reply_to,
+            reply_to_email=reply_to_email,
+            process_type=process_type,
+            version=version,
+            id=id,
+            communication_item_id=communication_item_id,
+        )
+
+        if template_type == LETTER_TYPE:
+            template_data['postage'] = postage or 'second'
 
         # Create template object and put it in the DB
         template_dao = Template(**template_data)
