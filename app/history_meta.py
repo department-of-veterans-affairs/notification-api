@@ -14,12 +14,16 @@ Lastly when to create a version is done manually in dao_utils version decorator 
 session events.
 
 """
+
 import datetime
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import mapper, attributes, object_mapper
+from sqlalchemy.orm import registry, DeclarativeBase  # import map_imperatively
 from sqlalchemy.orm.properties import RelationshipProperty, ColumnProperty
 from sqlalchemy import Table, Column, ForeignKeyConstraint, Integer
 from sqlalchemy import util
+
+reg_mapper = registry()
 
 
 def col_references_table(
@@ -122,7 +126,7 @@ def _history_mapper(local_mapper):  # noqa (C901 too complex)
         bases = local_mapper.base_mapper.class_.__bases__
     versioned_cls = type.__new__(type, '%sHistory' % cls.__name__, bases, {})
 
-    m = mapper(
+    m = reg_mapper.map_imperatively(
         versioned_cls,
         table,
         inherits=super_history_mapper,
@@ -145,7 +149,7 @@ class Versioned(object):
             *arg,
             **kw,
         ):
-            mp = mapper(cls, *arg, **kw)
+            mp = reg_mapper.map_imperatively(cls, *arg, **kw)
             _history_mapper(mp)
             return mp
 
