@@ -1,4 +1,6 @@
 fileignoreconfig:
+- filename: .github/workflows/dev-tests.yml
+  checksum: 0700d2eba3138fc34ef5bf2787ce5403cbd06797200922d35ce1f3f6ff8aaf74
 - filename: app/models.py
   checksum: fe15ce236d203162933acdeb8c9488df52704b6ab18ac76faf3edfbcc80d54b0
 - filename: cd/application-deployment/perf/vaec-api-task-definition.json
