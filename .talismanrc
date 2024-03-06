@@ -46,10 +46,10 @@ fileignoreconfig:
 - filename: .github/workflows/dev-tests.yml
   checksum: 37d8f0e93d404be3b0339faa4ec0c88a9156b63e84b59d572949ebd88b592ccc
 - filename: ci/.local.env
-  checksum: 6e0bc7c31f755974744d60edce1c707cb82fa49650a3ad5ed40511154740f7de
+  checksum: 518276506687f57c61f2b802d2052820f3295ecc838fd51906ff165de7393473
 - filename: ci/docker-compose-test.yml
   checksum: b830f2865139c0a5b638d0feddef370c25cf2cea154cdf66afb8e2120a75baff
 - filename: pytest.ini
   checksum: 5fe3b1e8dd47429380b6a9639707f76df2ae526c4021d10921d9c6792adf5e41
 - filename: poetry.lock
-  checksum: df6fa93babf8b5324cd5f15db8ac3ef7d25f96fb0c4c96a5c4ff966fc74b2e7f
+  checksum: 31cd200f1865c816926250666258b50fe74ea4cbcb8242f9cd711d419767d8d0
