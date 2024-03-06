@@ -25,8 +25,6 @@ fileignoreconfig:
   checksum: 3ea2f8d01afd32d1c1586488aa442835b45895f7ee270b0da49d3134f37c7685
 - filename: tests/app/dao/test_fact_notification_status_dao.py
   checksum: 2cad8d3b4a53bad53c3adeb9c81968d11b21e75d729976120bdd66ca91031738
-- filename: tests/app/dao/test_api_key_dao.py
-  checksum: ef2a3ba24dc9debf0c48c0ebb0a83d9472abaadda7c6a19ac4fd637706913acd
 - filename: tests/app/v2/notifications/test_push_broadcast_notifications.py
   checksum: eed7b99992b43ff534736502d72a3b8f3f3cdbdd17c26be88f9dea9614321e38
 - filename: cd/application-deployment/perf/vaec-api-task-definition.json
@@ -53,3 +51,9 @@ fileignoreconfig:
   checksum: 5fe3b1e8dd47429380b6a9639707f76df2ae526c4021d10921d9c6792adf5e41
 - filename: poetry.lock
   checksum: 31cd200f1865c816926250666258b50fe74ea4cbcb8242f9cd711d419767d8d0
+- filename: tests/app/celery/test_process_delivery_status_result_tasks.py
+  checksum: c9c72acbd32e910bdd992b8132aa5b9baf1c635a70f65d82d4e3b62a326b79ea
+- filename: tests/app/dao/test_fido2_keys_dao.py
+  checksum: 3ba4fc2f93544be40b7258c99742ab260586386e817f706dfc7542e2f266fa6d
+- filename: tests/app/dao/test_api_key_dao.py
+  checksum: d4b2524893b5704172d03bcba17176d04a970600931d515afa96a44b63fa6397

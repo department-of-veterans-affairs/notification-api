@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 import pytest
 from freezegun import freeze_time
 from notifications_utils.timezones import convert_utc_to_local_timezone
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.dao.fact_notification_status_dao import (
     fetch_delivered_notification_stats_by_month,
@@ -130,8 +130,8 @@ def test_update_fact_notification_status_updates_row(
         assert new_fact_data[0].notification_count == 1
     except AssertionError:
         # Teardown
-        for ft_notification_status in new_fact_data:
-            notify_db_session.session.delete(ft_notification_status)
+        stmt = delete(FactNotificationStatus).where(FactNotificationStatus.service_id == first_service.id)
+        notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()
         raise
 
@@ -147,8 +147,8 @@ def test_update_fact_notification_status_updates_row(
         assert updated_fact_data[0].notification_count == 2
     finally:
         # Teardown
-        for ft_notification_status in updated_fact_data:
-            notify_db_session.session.delete(ft_notification_status)
+        stmt = delete(FactNotificationStatus).where(FactNotificationStatus.service_id == first_service.id)
+        notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()
 
 

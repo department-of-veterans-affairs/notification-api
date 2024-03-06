@@ -426,7 +426,7 @@ def test_send_sms_call_with_sender_id_and_specifics(
     reference = 'my reference'
     sms_sender_specifics_info = {'messaging_service_sid': 'test-service-sid-123'}
 
-    service_sms_sender = create_service_sms_sender(
+    create_service_sms_sender(
         service=sample_service(),
         sms_sender='test_sender',
         is_default=False,
@@ -461,23 +461,19 @@ def test_send_sms_call_with_sender_id_and_specifics(
             to, content, reference, service_id='test_service_id', sender='test_sender', sms_sender_id=sms_sender_id
         )
 
-    try:
-        assert response_dict['sid'] == twilio_sid
+    assert response_dict['sid'] == twilio_sid
 
-        assert r_mock.call_count == 1
-        req = r_mock.request_history[0]
-        assert req.url == url
-        assert req.method == 'POST'
+    assert r_mock.call_count == 1
+    req = r_mock.request_history[0]
+    assert req.url == url
+    assert req.method == 'POST'
 
-        d = dict(parse_qsl(req.text))
+    d = dict(parse_qsl(req.text))
 
-        assert d['To'] == to
-        assert d['Body'] == content
-        assert d['MessagingServiceSid'] == sms_sender_specifics_info['messaging_service_sid']
-    finally:
-        # Teardown
-        notify_db_session.session.delete(service_sms_sender)
-        notify_db_session.session.commit()
+    assert d['To'] == to
+    assert d['Body'] == content
+    assert d['MessagingServiceSid'] == sms_sender_specifics_info['messaging_service_sid']
+    # sample_service will clean up the created ServiceSmsSender
 
 
 def test_send_sms_sends_from_hardcoded_number(

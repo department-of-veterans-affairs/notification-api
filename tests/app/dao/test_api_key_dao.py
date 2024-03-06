@@ -26,15 +26,18 @@ def test_save_api_key_should_create_new_api_key_and_history(notify_db_session, s
         assert api_key.version == 1
 
         stmt = select(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
-        history = notify_db_session.session.scalars(stmt).all()
+        history = notify_db_session.session.scalars(stmt).one()
 
-        assert len(history) == 1
-        assert history[0].version == api_key.version
+        assert history.version == api_key.version
     finally:
         # Teardown
+        # Clear API Key history
         stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
         notify_db_session.session.execute(stmt)
-        notify_db_session.session.delete(api_key)
+
+        # Clear API Key
+        stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
+        notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()
 
 
@@ -125,10 +128,14 @@ def test_save_api_key_can_create_key_with_same_name_if_other_is_expired(
         assert api_key.expiry_date is None, 'The key should not be expired.'
     finally:
         # Teardown
+        # Clear API Key history
         ApiKeyHistory = ApiKey.get_history_model()
         stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
         notify_db_session.session.execute(stmt)
-        notify_db_session.session.delete(api_key)
+
+        # Clear API Key
+        stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
+        notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()
 
 
@@ -157,9 +164,13 @@ def test_save_api_key_should_not_create_new_service_history(
         assert notify_db_session.session.scalar(stmt_api_key) == 1, 'Only one ApiKey history'
     finally:
         # Teardown
+        # Clear API Key history
         stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
         notify_db_session.session.execute(stmt)
-        notify_db_session.session.delete(api_key)
+
+        # Clear API Key
+        stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
+        notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()
 
 

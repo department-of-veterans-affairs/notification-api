@@ -1,5 +1,5 @@
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 
 from app.dao.fido2_key_dao import (
     create_fido2_session,
@@ -28,7 +28,8 @@ def test_save_fido2_key_should_create_new_fido2_key(notify_db_session, sample_us
         assert notify_db_session.session.scalar(stmt) == 1
     finally:
         # Teardown
-        notify_db_session.session.delete(fido2_key)
+        stmt = delete(Fido2Key).where(Fido2Key.id == fido2_key.id)
+        notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()
 
 
@@ -50,7 +51,7 @@ def test_delete_fido2_key(notify_db_session, sample_fido2_key):
     fido2_key = sample_fido2_key()
     delete_fido2_key(fido2_key.user.id, fido2_key.id)
 
-    stmt = select(func.count()).select_from(Fido2Key)
+    stmt = select(func.count()).select_from(Fido2Key).where(Fido2Key.id == fido2_key.id)
     assert notify_db_session.session.scalar(stmt) == 0
 
 

@@ -517,7 +517,10 @@ def test_get_html_email_renderer_should_return_for_normal_service(
     'branding_type, default_banner', [(BRANDING_ORG, False), (BRANDING_BOTH, True), (BRANDING_ORG_BANNER, False)]
 )
 def test_get_html_email_renderer_with_branding_details(
-    branding_type, default_banner, sample_notification_model_with_organization, mock_email_client
+    branding_type,
+    default_banner,
+    sample_notification_model_with_organization,
+    mock_email_client,
 ):
     email_branding = EmailBranding(
         brand_type=branding_type,
@@ -542,7 +545,8 @@ def test_get_html_email_renderer_with_branding_details(
 
 
 def test_get_html_email_renderer_with_branding_details_and_render_default_banner_only(
-    sample_notification_model_with_organization, mock_email_client
+    sample_notification_model_with_organization,
+    mock_email_client,
 ):
     sample_notification_model_with_organization.service.email_branding = None
 
@@ -551,7 +555,10 @@ def test_get_html_email_renderer_with_branding_details_and_render_default_banner
     assert {'default_banner': True, 'brand_banner': False}.items() <= options.items()
 
 
-def test_get_html_email_renderer_prepends_logo_path(sample_notification_model_with_organization, mock_email_client):
+def test_get_html_email_renderer_prepends_logo_path(
+    sample_notification_model_with_organization,
+    mock_email_client,
+):
     email_branding = EmailBranding(
         brand_type=BRANDING_ORG,
         colour='#000000',

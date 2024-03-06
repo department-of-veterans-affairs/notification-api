@@ -868,12 +868,20 @@ def template_cleanup(
     if not isinstance(template_ids, list):
         template_ids = [template_ids]
 
+    # Remove from ft_billing
+    stmt = delete(FactBilling).where(FactBilling.template_id.in_(template_ids))
+    session.execute(stmt)
+
     # Remove job for this template
     stmt = delete(Job).where(Job.template_id.in_(template_ids))
     session.execute(stmt)
 
     # Remove notifications for this template
     stmt = delete(Notification).where(Notification.template_id.in_(template_ids))
+    session.execute(stmt)
+
+    # Remove notifications for this template
+    stmt = delete(NotificationHistory).where(NotificationHistory.template_id.in_(template_ids))
     session.execute(stmt)
 
     # Remove history
@@ -2514,7 +2522,7 @@ def aws_credentials():
 
 @pytest.fixture
 def sample_login_event(notify_db_session, sample_user):
-    created_login_events = []
+    created_login_event_ids = []
 
     def _sample_login_event(user=None):
         if user is None:
@@ -2522,34 +2530,34 @@ def sample_login_event(notify_db_session, sample_user):
 
         event = LoginEvent(data={'ip': '8.8.8.8', 'user-agent': 'GoogleBot'}, user_id=user.id)
         save_login_event(event)
-        created_login_events.append(event)
+        created_login_event_ids.append(event.id)
 
         return event
 
     yield _sample_login_event
 
     # Teardown
-    for login_event in created_login_events:
-        notify_db_session.session.delete(login_event)
+    stmt = delete(LoginEvent).where(LoginEvent.id.in_(created_login_event_ids))
+    notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
 
 @pytest.fixture
 def sample_rate(notify_db_session):
-    created_rates = []
+    created_rate_ids = []
 
     def _sample_rate(start_date, value, notification_type):
         rate = Rate(id=uuid4(), valid_from=start_date, rate=value, notification_type=notification_type)
         notify_db_session.session.add(rate)
         notify_db_session.session.commit()
-        created_rates.append(rate)
+        created_rate_ids.append(rate.id)
         return rate
 
     yield _sample_rate
 
     # Teardown
-    for rate in created_rates:
-        notify_db_session.session.delete(rate)
+    stmt = delete(Rate).where(Rate.id.in_(created_rate_ids))
+    notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
 
@@ -2891,7 +2899,7 @@ def sample_complaint(notify_db_session, sample_service, sample_template, sample_
 
 @pytest.fixture
 def sample_email_branding(notify_db_session):
-    created_email_branding = []
+    email_branding_ids = []
 
     def _sample_email_branding(colour='blue', logo='test_x2.png', name='test_org_1', text='DisplayName'):
         data = {
@@ -2903,14 +2911,14 @@ def sample_email_branding(notify_db_session):
         email_branding = EmailBranding(**data)
         notify_db_session.session.add(email_branding)
         notify_db_session.session.commit()
-        created_email_branding.append(email_branding)
+        email_branding_ids.append(email_branding.id)
         return email_branding
 
     yield _sample_email_branding
 
     # Teardown
-    for email_branding in created_email_branding:
-        notify_db_session.session.delete(email_branding)
+    stmt = delete(EmailBranding).where(EmailBranding.id.in_(email_branding_ids))
+    notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
 

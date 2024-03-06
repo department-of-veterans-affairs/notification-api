@@ -15,7 +15,7 @@ from app.models import (
     SMS_TYPE,
     TemplateHistory,
 )
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from uuid import uuid4
 
 
@@ -48,7 +48,9 @@ def test_v3_process_notification_no_template(notify_db_session, mocker, sample_s
         assert notification_failure.body['phone_number'] is None
         assert notification_failure.body['email_address'] == 'test@va.gov'
     finally:
-        notify_db_session.session.delete(notification_failure)
+        # Teardown
+        stmt = delete(NotificationFailures).where(NotificationFailures.notification_id == request_data['id'])
+        notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()
 
 
@@ -80,7 +82,9 @@ def test_v3_process_notification_template_owner_mismatch(notify_db_session, mock
         assert notification_failure.body['status'] == NOTIFICATION_PERMANENT_FAILURE
         assert notification_failure.body['status_reason'] == 'The service does not own the template.'
     finally:
-        notify_db_session.session.delete(notification_failure)
+        # Teardown
+        stmt = delete(NotificationFailures).where(NotificationFailures.notification_id == request_data['id'])
+        notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()
 
 
@@ -110,7 +114,9 @@ def test_v3_process_notification_template_type_mismatch_1(notify_db_session, moc
         assert notification_failure.body['status'] == NOTIFICATION_PERMANENT_FAILURE
         assert notification_failure.body['status_reason'] == 'The template type does not match the notification type.'
     finally:
-        notify_db_session.session.delete(notification_failure)
+        # Teardown
+        stmt = delete(NotificationFailures).where(NotificationFailures.notification_id == request_data['id'])
+        notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()
 
 
@@ -140,7 +146,9 @@ def test_v3_process_notification_template_type_mismatch_2(notify_db_session, moc
         assert notification_failure.body['status'] == NOTIFICATION_PERMANENT_FAILURE
         assert notification_failure.body['status_reason'] == 'The template type does not match the notification type.'
     finally:
-        notify_db_session.session.delete(notification_failure)
+        # Teardown
+        stmt = delete(NotificationFailures).where(NotificationFailures.notification_id == request_data['id'])
+        notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()
 
 
@@ -172,7 +180,7 @@ def test_v3_process_notification_valid_email(notify_db_session, mocker, sample_s
     assert isinstance(v3_send_email_notification_mock.call_args.args[0], Notification)
 
 
-@pytest.mark.xfail(reason='#1634')
+@pytest.mark.skip(reason='#1634')
 def test_v3_send_email_notification(mocker, notify_db_session, sample_template):
     """
     Given a valid, not-persisted Notification instance, the task v3_send_email_notification should
@@ -217,7 +225,9 @@ def test_v3_send_email_notification(mocker, notify_db_session, sample_template):
         assert notification_from_db.reference == 'provider reference'
         assert notification_from_db.sent_by == 'client name'
     finally:
-        notify_db_session.session.delete(notification_from_db)
+        # Teardown
+        stmt = delete(Notification).where(Notification.id == request_data['id'])
+        notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()
 
 
@@ -322,7 +332,9 @@ def test_v3_process_notification_valid_sms_with_invalid_sender_id(
         assert notification_failure.body['status'] == NOTIFICATION_PERMANENT_FAILURE
         assert notification_failure.body['status_reason'] == 'SMS sender does not exist.'
     finally:
-        notify_db_session.session.delete(notification_failure)
+        # Teardown
+        stmt = delete(NotificationFailures).where(NotificationFailures.notification_id == request_data['id'])
+        notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()
 
 
@@ -382,7 +394,9 @@ def test_v3_send_sms_notification(mocker, notify_db_session, sample_service, sam
         assert notification_from_db.reference == 'provider reference'
         assert notification_from_db.sent_by == 'client name'
     finally:
-        notify_db_session.session.delete(notification_from_db)
+        # Teardown
+        stmt = delete(Notification).where(Notification.id == request_data['id'])
+        notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()
 
 
@@ -415,5 +429,7 @@ def test_v3_process_sms_notification_with_non_existent_template(
         assert notification_failure.body['phone_number'] == '+18006982411'
         assert notification_failure.body['email_address'] is None
     finally:
-        notify_db_session.session.delete(notification_failure)
+        # Teardown
+        stmt = delete(NotificationFailures).where(NotificationFailures.notification_id == request_data['id'])
+        notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()

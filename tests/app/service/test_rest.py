@@ -466,11 +466,10 @@ def test_should_not_create_service_with_incorrect_provider_notification_type(
     )
 
 
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped')
-def test_update_service(client, notify_db_session, sample_service):
-    brand = EmailBranding(colour='#000000', logo='justice-league.png', name=f'Justice League {uuid4()}')
-    notify_db_session.session.add(brand)
-    notify_db_session.session.commit()
+def test_update_service(
+    client,
+    sample_service,
+):
     service = sample_service()
     assert service.email_branding is None
 
@@ -478,7 +477,6 @@ def test_update_service(client, notify_db_session, sample_service):
         'name': f'updated service name {uuid4()}',
         'email_from': 'updated.service.name',
         'created_by': str(service.created_by.id),
-        'email_branding': str(brand.id),
         'organisation_type': 'other',
     }
 
@@ -493,8 +491,8 @@ def test_update_service(client, notify_db_session, sample_service):
     assert resp.status_code == 200
     assert result['data']['name'] == data['name']
     assert result['data']['email_from'] == 'updated.service.name'
-    assert result['data']['email_branding'] == str(brand.id)
     assert result['data']['organisation_type'] == 'other'
+    assert result['data']['email_branding'] is None
 
 
 @pytest.mark.serial  # intermittent

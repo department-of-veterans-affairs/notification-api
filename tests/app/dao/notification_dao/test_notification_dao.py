@@ -2034,6 +2034,7 @@ def test_update_notification_status_by_id_cannot_update_status_out_of_order_with
     assert notification.status == current_status
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize(
     'current_status, next_status',
     [
@@ -2043,7 +2044,10 @@ def test_update_notification_status_by_id_cannot_update_status_out_of_order_with
     ],
 )
 def test_update_notification_status_by_id_can_update_status_in_order_when_given_valid_values(
-    sample_template, current_status, next_status, sample_notification
+    current_status,
+    next_status,
+    sample_notification,
+    sample_template,
 ):
     reference_tuple = (str(uuid4()), str(uuid4()))
     notification_list = []
@@ -2061,6 +2065,7 @@ def test_update_notification_status_by_id_can_update_status_in_order_when_given_
         assert notification_list[i].status == current_status
 
     # attempt update without the condition current state
+    # notification_list ORM objects sometimes expire/deleted and is then referenced, causing intermittent failure
     update_notification_status_by_id(notification_id=notification_list[0].id, status=next_status)
 
     # attempt update with the conditional current state
