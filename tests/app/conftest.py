@@ -923,7 +923,7 @@ def template_folder_cleanup(
 
 @pytest.fixture
 def sample_letter_template(sample_service, sample_template):
-    service = sample_service(service_permissions=[LETTER_TYPE], check_if_service_exists=True)
+    service = sample_service(service_permissions=[LETTER_TYPE])
     return sample_template(service=service, template_type=LETTER_TYPE, postage='second')
 
 
