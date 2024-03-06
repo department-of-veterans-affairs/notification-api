@@ -186,18 +186,21 @@ def sample_user(notify_db_session, set_user_as_admin) -> User:
 
     def _wrapper(
         blocked=False,
+        check_if_user_exists=False,
         email=None,
         identity_provider_user_id=None,
         idp_id=None,
         idp_name=None,
-        mobile_number='',
-        name='',
+        mobile_number='+16502532222',
+        name='Test User',
         platform_admin=False,
         state='active',
+        user_id=None,
     ):
         # Cannot set platform admin when creating a user (schema)
         user = create_user(
             blocked=blocked,
+            check_if_user_exists=check_if_user_exists,
             email=email,
             identity_provider_user_id=identity_provider_user_id,
             idp_id=idp_id,
@@ -205,6 +208,7 @@ def sample_user(notify_db_session, set_user_as_admin) -> User:
             mobile_number=mobile_number,
             name=name,
             state=state,
+            user_id=user_id,
         )
         if platform_admin:
             user = set_user_as_admin(user)
