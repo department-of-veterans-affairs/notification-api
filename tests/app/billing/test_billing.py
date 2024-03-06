@@ -40,7 +40,9 @@ def test_create_update_free_sms_fragment_limit_invalid_schema(client, sample_ser
 
 
 def test_create_free_sms_fragment_limit_current_year_updates_future_years(
-    notify_db_session, admin_request, sample_service,
+    notify_db_session,
+    admin_request,
+    sample_service,
 ):
     service = sample_service()
     current_year = get_current_financial_year_start_year()

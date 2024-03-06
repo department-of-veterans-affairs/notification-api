@@ -306,7 +306,9 @@ def test_send_daily_performance_stats_calls_does_not_send_if_inactive(client, mo
 
 @freeze_time('2016-06-11 02:00:00')
 def test_send_total_sent_notifications_to_performance_platform_calls_with_correct_totals(
-    notify_db_session, sample_template, mocker,
+    notify_db_session,
+    sample_template,
+    mocker,
 ):
     perf_mock = mocker.patch(
         'app.celery.nightly_tasks.total_sent_notifications.send_total_notifications_sent_for_day_stats'

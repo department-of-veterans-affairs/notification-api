@@ -47,7 +47,9 @@ def test_update_letter_notifications_statuses_raises_for_invalid_format(notify_a
 
 
 def test_update_letter_notification_statuses_when_notification_does_not_exist_updates_notification_history(
-    notify_db_session, mocker, sample_template,
+    notify_db_session,
+    mocker,
+    sample_template,
 ):
     template = sample_template(template_type=LETTER_TYPE)
     valid_file = 'ref-foo|Sent|1|Unsorted'
