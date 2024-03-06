@@ -517,8 +517,8 @@ def sample_service(
     ):
         # Handle where they are checking if it exists by name
         if check_if_service_exists and service_name is not None:
-stmt = select(Service).where(Service.name == service_name)
-service = notify_db_session.session.scalar_one(stmt)
+            stmt = select(Service).where(Service.name == service_name)
+            service = notify_db_session.session.scalar_one(stmt)
             return service
 
         # We do not want create_service to create users because it does not clean them up.
