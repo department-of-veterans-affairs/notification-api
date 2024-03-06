@@ -184,9 +184,28 @@ def set_user_as_admin(notify_db_session):
 def sample_user(notify_db_session, set_user_as_admin) -> User:
     created_user_ids = []
 
-    def _wrapper(blocked=False, email=None, identity_provider_user_id=None, idp_id=None, idp_name=None, mobile_number='', name='', platform_admin=False, state='active'):
+    def _wrapper(
+        blocked=False,
+        email=None,
+        identity_provider_user_id=None,
+        idp_id=None,
+        idp_name=None,
+        mobile_number='',
+        name='',
+        platform_admin=False,
+        state='active',
+    ):
         # Cannot set platform admin when creating a user (schema)
-        user = create_user(blocked=blocked, email=email, identity_provider_user_id=identity_provider_user_id, idp_id=idp_id, idp_name=idp_name, mobile_number=mobile_number, name=name, state=state)
+        user = create_user(
+            blocked=blocked,
+            email=email,
+            identity_provider_user_id=identity_provider_user_id,
+            idp_id=idp_id,
+            idp_name=idp_name,
+            mobile_number=mobile_number,
+            name=name,
+            state=state,
+        )
         if platform_admin:
             user = set_user_as_admin(user)
 
