@@ -1152,7 +1152,7 @@ def test_should_not_allow_email_notifications_if_service_permission_not_set(
 ):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
 
-    service = sample_service(service_permissions=[SMS_TYPE], check_if_service_exists=True)
+    service = sample_service(service_permissions=[SMS_TYPE])
     template = sample_template(service=service, template_type=EMAIL_TYPE)
 
     data = {'to': 'notify@digital.cabinet-office.gov.uk', 'template': str(template.id)}
