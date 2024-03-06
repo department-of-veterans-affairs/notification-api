@@ -1,0 +1,15 @@
+name: Deployment to Perf
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deployment.yml
+    with:
+      environment: "perf"
+      ref: "master"
+    secrets: inherit
+
