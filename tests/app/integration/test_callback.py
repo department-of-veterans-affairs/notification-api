@@ -72,9 +72,7 @@ class AnySms(object):
 
 
 @pytest.mark.skip(reason='Integration test fails when run in suite, passes when run alone')
-def test_sqs_callback(
-    integration_celery_config, sqs_stub, sample_service, client, pinpoint_inbound_sms_toggle_enabled
-):
+def test_sqs_callback(integration_celery_config, sqs_stub, sample_service, client, pinpoint_inbound_sms_toggle_enabled):
     service = sample_service(
         service_name=f'sample service full permissions {uuid4()}',
         service_permissions=set(SERVICE_PERMISSION_TYPES),

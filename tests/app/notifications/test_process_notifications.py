@@ -843,9 +843,7 @@ def test_persist_letter_notification_finds_correct_postage(
         service_permissions=set(SERVICE_PERMISSION_TYPES),
         check_if_service_exists=True,
     )
-    template = sample_template(
-        service=service, template_type=LETTER_TYPE, postage=template_postage
-    )
+    template = sample_template(service=service, template_type=LETTER_TYPE, postage=template_postage)
     mocker.patch('app.dao.templates_dao.dao_get_template_by_id', return_value=template)
 
     notification = persist_notification(

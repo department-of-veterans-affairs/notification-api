@@ -912,7 +912,7 @@ def test_create_template_raises_invalid_request_exception_with_missing_personali
     sample_template,
 ):
     from app.notifications.rest import create_template_object_for_notification
-    
+
     template = sample_template(content='Hello (( Name))\nYour thing is due soon')
 
     with pytest.raises(InvalidRequest) as e:
@@ -1120,7 +1120,7 @@ def test_should_not_allow_sms_notifications_if_service_permission_not_set(
 ):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
 
-    service = sample_service(service_permissions=[EMAIL_TYPE], check_if_service_exists=True)    
+    service = sample_service(service_permissions=[EMAIL_TYPE], check_if_service_exists=True)
     template = sample_template(service=service)
 
     data = {

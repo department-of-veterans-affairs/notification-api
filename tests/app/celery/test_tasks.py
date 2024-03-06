@@ -454,9 +454,7 @@ def test_should_send_template_to_correct_sms_task_and_persist(
     service = sample_service()
     template = sample_template(service=service)
 
-    notification = _notification_json(
-        template, to='+1 650 253 2222', personalisation={'name': 'Jo'}
-    )
+    notification = _notification_json(template, to='+1 650 253 2222', personalisation={'name': 'Jo'})
 
     mocked_deliver_sms = mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
 
