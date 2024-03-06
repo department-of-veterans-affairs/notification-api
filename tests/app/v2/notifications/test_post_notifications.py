@@ -5,11 +5,7 @@ from random import randint
 import pytest
 from flask import current_app, json
 from freezegun import freeze_time
-<<<<<<< HEAD
 from sqlalchemy import delete, func, select
-=======
-from sqlalchemy import func, delete, select
->>>>>>> master
 
 from app.attachments.exceptions import UnsupportedMimeTypeException
 from app.attachments.store import AttachmentStoreError
