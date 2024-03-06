@@ -9,7 +9,7 @@ jobs:
   deploy:
     uses: ./.github/workflows/deployment.yml
     with:
-      environment: "perf"
+      environment: perf
       ref: "master"
     secrets: inherit
 
