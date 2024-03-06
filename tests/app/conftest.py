@@ -9,14 +9,11 @@ from app.clients.email import EmailClient
 from app.clients.sms import SmsClient
 from app.clients.sms.firetext import FiretextClient
 from app.dao.invited_user_dao import save_invited_user
-from app.dao.jobs_dao import dao_create_job
 from app.dao.organisation_dao import dao_create_organisation, dao_add_service_to_organisation
 from app.dao.permissions_dao import default_service_permissions
-from app.dao.provider_rates_dao import create_provider_rates
 from app.dao.service_data_retention_dao import insert_service_data_retention
 from app.dao.services_dao import DEFAULT_SERVICE_PERMISSIONS
 from app.dao.service_sms_sender_dao import (
-    dao_add_sms_sender_for_service,
     dao_update_service_sms_sender,
 )
 from app.dao.users_dao import create_secret_code, create_user_code
@@ -82,23 +79,19 @@ from app.models import (
     UserServiceRoles,
     WEBHOOK_CHANNEL_TYPE,
 )
-from app.service.service_data import ServiceData
 from datetime import datetime, timedelta
 from flask import current_app, url_for
 from random import randint, randrange
-from sqlalchemy import asc, delete, update, select, Table
+from sqlalchemy import delete, update, select, Table
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm.session import make_transient
 from tests import create_admin_authorization_header
 from tests.app.db import (
     create_api_key,
-    create_inbound_number,
     create_job,
-    create_letter_contact,
     create_notification,
     create_service,
-    create_template,
     create_user,
     version_api_key,
     version_service,
@@ -558,24 +551,55 @@ def sample_service(
 ):
     created_service_ids = []
 
-    def _sample_service(*args, **kwargs):
+    def _sample_service(
+        active=True,
+        check_if_service_exists=False,
+        count_as_live=True,
+        crown=True,
+        email_address='',
+        email_from='',
+        go_live_at=None,
+        go_live_user=None,
+        message_limit=1000,
+        organisation=None,
+        organisation_type='other',
+        prefix_sms=False,
+        research_mode=False,
+        restricted=False,
+        service_id=None,
+        service_name=None,
+        service_permissions=DEFAULT_SERVICE_PERMISSIONS,
+        sms_sender=None,
+        smtp_user=None,
+        user=None,
+    ):
         # Handle where they are checking if it exists by name
-        if kwargs.pop('check_if_service_exists', False) and 'service_name' in kwargs:
-            service = notify_db_session.session.scalar(select(Service).where(Service.name == kwargs['service_name']))
-            if service is not None:
-                return service
+        if check_if_service_exists and service_name is not None:
+            service = notify_db_session.session.scalar(select(Service).where(Service.name == service_name))
+            return service
 
         # We do not want create_service to create users because it does not clean them up.
-        if len(args) == 0 and 'user' not in kwargs:
-            kwargs['user'] = sample_user(email=f'sample_service_{uuid4()}@va.gov')
+        if user is None:
+            user = sample_user(email=f'sample_service_{uuid4()}@va.gov')
 
-        # Remove things that Service does not expect.
-        service_permissions = kwargs.pop('service_permissions', DEFAULT_SERVICE_PERMISSIONS)
-        user = kwargs.pop('user')
-        sms_sender = kwargs.pop('sms_sender', None)
-        email_address = kwargs.pop('email_address', '')
-
-        service: Service = sample_service_helper(user, *args, **kwargs)
+        service: Service = sample_service_helper(
+            user,
+            active=active,
+            count_as_live=count_as_live,
+            crown=crown,
+            email_from=email_from,
+            go_live_at=go_live_at,
+            go_live_user=go_live_user,
+            message_limit=message_limit,
+            organisation=organisation,
+            organisation_type=organisation_type,
+            prefix_sms=prefix_sms,
+            research_mode=research_mode,
+            restricted=restricted,
+            service_id=service_id,
+            service_name=service_name,
+            smtp_user=smtp_user,
+        )
         service.users.append(user)
 
         sample_service_permissions(service, service_permissions)
@@ -596,20 +620,20 @@ def sample_service(
 
 def sample_service_helper(
     user,
-    service_name=None,
-    service_id=None,
-    restricted=False,
-    count_as_live=True,
-    research_mode=False,
     active=True,
-    email_from='',
-    prefix_sms=False,
-    message_limit=1000,
-    organisation_type='other',
-    go_live_user=None,
-    go_live_at=None,
+    count_as_live=True,
     crown=True,
+    email_from='',
+    go_live_at=None,
+    go_live_user=None,
+    message_limit=1000,
     organisation=None,
+    organisation_type='other',
+    prefix_sms=False,
+    research_mode=False,
+    restricted=False,
+    service_id=None,
+    service_name=None,
     smtp_user=None,
 ):
     service_name = service_name or f'sample service {uuid4()}'
@@ -2277,7 +2301,7 @@ def sample_inbound_number(notify_db_session):
 
 @pytest.fixture
 def sample_inbound_numbers(sample_service, sample_inbound_number):
-    service = sample_service(service_name=str(uuid4()), check_if_service_exists=True)
+    service = sample_service(service_name=str(uuid4()), check_if_service_exists=False)
     inbound_numbers = [
         sample_inbound_number(provider=MMG_PROVIDER),
         sample_inbound_number(provider=MMG_PROVIDER, active=False, service_id=service.id),
