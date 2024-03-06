@@ -13,42 +13,6 @@ from app.dao.permissions_dao import permission_dao
 from app.models import QUEUE_CHANNEL_TYPE, INBOUND_SMS_CALLBACK_TYPE, PLATFORM_ADMIN, Permission
 
 
-# @pytest.fixture()
-# def sqs_stub():
-#     with Stubber(sqs_client._client) as stubber:
-#         yield stubber
-#         stubber.assert_no_pending_responses()
-
-
-# @pytest.fixture()
-# def integration_celery_config(notify_api):
-#     with set_config_values(
-#         notify_api,
-#         {
-#             'CELERY_SETTINGS': {
-#                 'broker_url': 'sqs://',
-#                 'task_always_eager': True,
-#                 'imports': (
-#                     'app.celery.tasks',
-#                     'app.celery.scheduled_tasks',
-#                     'app.celery.reporting_tasks',
-#                     'app.celery.nightly_tasks',
-#                     'app.celery.process_pinpoint_receipt_tasks',
-#                     'app.celery.process_pinpoint_inbound_sms' 'app.celery.service_callback_tasks',
-#                 ),
-#             }
-#         },
-#     ):
-#         notify_celery.init_app(notify_api)
-#     yield
-#     notify_celery.init_app(notify_api)
-
-
-# @pytest.fixture
-# def pinpoint_inbound_sms_toggle_enabled(mocker):
-#     mock_feature_flag(mocker, FeatureFlag.PINPOINT_INBOUND_SMS_ENABLED, 'True')
-
-
 class AnySms(object):
     def __init__(
         self, id=ANY, source_number=ANY, destination_number=ANY, message=ANY, date_received=ANY, sms_sender_id=ANY
@@ -76,11 +40,11 @@ def test_sqs_callback(integration_celery_config, sqs_stub, sample_service, clien
     service = sample_service(
         service_name=f'sample service full permissions {uuid4()}',
         service_permissions=set(SERVICE_PERMISSION_TYPES),
-        check_if_service_exists=True,
+        check_if_service_exists=False,
     )
     user = sample_service.users[0]
     permission_dao.set_user_service_permission(
-        user, sample_service, [Permission(service_id=sample_service.id, user_id=user.id, permission=PLATFORM_ADMIN)]
+        user, sample_service, [Permission(service_id=service.id, user_id=user.id, permission=PLATFORM_ADMIN)]
     )
     user.platform_admin = True
 
