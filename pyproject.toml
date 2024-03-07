@@ -19,7 +19,6 @@ celery = {extras = ["sqs"], version = "*"}
 click-datetime = "*"
 ddtrace = "*"
 docopt = "*"
-eventlet = "*"
 fido2 = "*"
 Flask = "*"
 Flask-Bcrypt = "*"
