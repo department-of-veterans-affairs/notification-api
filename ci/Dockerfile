@@ -63,18 +63,20 @@ RUN adduser -h /app -D vanotify
 
 # From context, importing relative to WORKDIR
 COPY app/ app
-COPY certs/ certs
-COPY scripts/ scripts
-COPY gunicorn_config.py application.py Makefile pytest.ini run_celery.py /app
-
-# From context, importing relative to WORKDIR. No change in ownership
 COPY cd/ cd
 COPY migrations/ migrations
+COPY scripts/ scripts
+
+# Non-relative import since multiple files
+COPY gunicorn_config.py application.py Makefile pytest.ini run_celery.py pyproject.toml /app
+
+# Assign ownership of the certs to vanotify due to save_certificate.sh
+COPY --chown=vanotify certs/ certs
 
 # Tests, using glob pattern to avoid copying if they are excluded from context
 COPY test[s]/ tests
 
-# Copy builder files - must come after context COPY, importing to absolute location
+# Copy builder files - version must come after context COPY, importing to absolute location
 COPY --from=builder /app/version.py /app/app/version.py
 COPY --from=builder /.venv /.venv
 COPY --from=builder /usr/local/share/ca-certificates /usr/local/share/ca-certificates/
@@ -83,7 +85,6 @@ COPY --from=builder /usr/share/ca-certificates /usr/share/ca-certificates/
 # Populate /etc/ssl/certs/ with symlinks to /usr/[local/]share/ca-certificates/ certs
 RUN apk add --no-cache ca-certificates bash build-base libcurl openssl-dev \
     && update-ca-certificates \
-    && chown vanotify /app/certs \
     && apk del --no-cache ca-certificates
 
 RUN apk add --no-cache build-base libcurl openssl-dev
