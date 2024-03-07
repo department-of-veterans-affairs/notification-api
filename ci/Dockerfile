@@ -37,6 +37,7 @@ RUN make generate-version-file
 
 # # Arguments for this poetry install
 ARG POETRY_ARGS
+ARG FLASK_DEBUG=0
 
 # # RUN apk add --no-cache --virtual .build-deps gcc musl-dev rust cargo curl \
 RUN apk add --no-cache --virtual .build-deps cargo curl gcc musl-dev rust \
@@ -51,30 +52,32 @@ FROM python:3.10-alpine3.19
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     # https://flask.palletsprojects.com/en/2.2.x/config/?highlight=flask_debug#DEBUG
-    FLASK_DEBUG="true" \
+    FLASK_DEBUG=$FLASK_DEBUG \
     PATH="/opt/.venv/bin:$PATH"
 
+WORKDIR /app
+
+RUN adduser -h /app -D vanotify
+
 # From context
-COPY --chown=vanotify app/ app/app
-COPY --chown=vanotify cd/ app/cd
-COPY --chown=vanotify certs/ app/certs
-COPY --chown=vanotify migrations/ app/migrations
-COPY --chown=vanotify scripts/ app/scripts
-COPY --chown=vanotify gunicorn_config.py application.py Makefile pytest.ini run_celery.py app/
+COPY --chown=vanotify app/ /app/app
+COPY --chown=vanotify cd/ /app/cd
+COPY --chown=vanotify certs/ /app/certs
+COPY --chown=vanotify migrations/ /app/migrations
+COPY --chown=vanotify scripts/ /app/scripts
+COPY --chown=vanotify gunicorn_config.py application.py Makefile pytest.ini run_celery.py /app/
 
 # Tests, using glob pattern to avoid copying if they are excluded from context
 COPY test[s]/ app/tests
 
-# Copy builder files
-COPY --from=builder /app/version.py /app/app/version.py
-COPY --from=builder /.venv /opt/.venv
-COPY --from=builder /usr/local/share/ca-certificates /usr/local/share/ca-certificates/
-COPY --from=builder /usr/share/ca-certificates /usr/share/ca-certificates/
+# Copy builder files - must come after context COPY
+COPY --from=builder --chown=vanotify /app/version.py /app/app/version.py
+COPY --from=builder --chown=vanotify /.venv /opt/.venv
+COPY --from=builder --chown=vanotify /usr/local/share/ca-certificates /usr/local/share/ca-certificates/
+COPY --from=builder --chown=vanotify /usr/share/ca-certificates /usr/share/ca-certificates/
 
 # Populate /etc/ssl/certs/ with symlinks to /usr/[local/]share/ca-certificates/ certs
 RUN apk add --no-cache ca-certificates bash build-base libcurl openssl-dev \
-    && adduser -h /app -D vanotify \
-    && chown -R vanotify /app \
     && update-ca-certificates \
     && apk del --no-cache ca-certificates
 
