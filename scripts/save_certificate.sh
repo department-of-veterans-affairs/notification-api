@@ -6,6 +6,9 @@ then
   echo "bypassing VAProfile cert and key file generation"
 else
   echo "Writing SSL certificate and key to files"
+  ls -l
+  ls -l /app/certs/
+  echo "this is a test" > kwm.txt
   echo "$VANOTIFY_SSL_CERT" > $VANOTIFY_SSL_CERT_PATH
   echo "$VANOTIFY_SSL_KEY" > $VANOTIFY_SSL_KEY_PATH
 fi
