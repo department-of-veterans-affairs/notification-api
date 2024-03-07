@@ -976,25 +976,6 @@ wrapt = ">=1.10,<2"
 dev = ["PyTest", "PyTest-Cov", "bump2version (<1)", "sphinx (<2)", "tox"]
 
 [[package]]
-name = "dnspython"
-version = "2.4.2"
-description = "DNS toolkit"
-optional = false
-python-versions = ">=3.8,<4.0"
-files = [
-    {file = "dnspython-2.4.2-py3-none-any.whl", hash = "sha256:57c6fbaaeaaf39c891292012060beb141791735dbb4004798328fc2c467402d8"},
-    {file = "dnspython-2.4.2.tar.gz", hash = "sha256:8dcfae8c7460a2f84b4072e26f1c9f4101ca20c071649cb7c34e8b6a93d58984"},
-]
-
-[package.extras]
-dnssec = ["cryptography (>=2.6,<42.0)"]
-doh = ["h2 (>=4.1.0)", "httpcore (>=0.17.3)", "httpx (>=0.24.1)"]
-doq = ["aioquic (>=0.9.20)"]
-idna = ["idna (>=2.1,<4.0)"]
-trio = ["trio (>=0.14,<0.23)"]
-wmi = ["wmi (>=1.5.1,<2.0.0)"]
-
-[[package]]
 name = "docopt"
 version = "0.6.2"
 description = "Pythonic argument parser, that will make you smile"
@@ -1017,22 +998,6 @@ files = [
 
 [package.extras]
 mypy = ["mypy"]
-
-[[package]]
-name = "eventlet"
-version = "0.33.3"
-description = "Highly concurrent networking library"
-optional = false
-python-versions = "*"
-files = [
-    {file = "eventlet-0.33.3-py2.py3-none-any.whl", hash = "sha256:e43b9ae05ba4bb477a10307699c9aff7ff86121b2640f9184d29059f5a687df8"},
-    {file = "eventlet-0.33.3.tar.gz", hash = "sha256:722803e7eadff295347539da363d68ae155b8b26ae6a634474d0a920be73cfda"},
-]
-
-[package.dependencies]
-dnspython = ">=1.15.0"
-greenlet = ">=0.3"
-six = ">=1.10.0"
 
 [[package]]
 name = "exceptiongroup"
@@ -3533,4 +3498,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.13"
-content-hash = "de28a05d98bd2450515117a9aef3f4c301fef0e51ade6af2f887602acfe7c5a4"
+content-hash = "58846a7451ae97d466db6f14181d435f8e63714d88ce86fa820c040b4c3a7629"
