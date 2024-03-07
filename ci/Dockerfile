@@ -35,9 +35,12 @@ RUN bash import-va-certs.sh
 # The safe.directory modification eliminates the error, "fatal: detected dubious ownership in repository at '/app'".
 RUN make generate-version-file
 
-# # Arguments for this poetry install
+# Arguments for this poetry install
 ARG POETRY_ARGS
+
+# Used in the final stage
 ARG FLASK_DEBUG=0
+ARG TEST_FOLDER
 
 # # RUN apk add --no-cache --virtual .build-deps gcc musl-dev rust cargo curl \
 RUN apk add --no-cache --virtual .build-deps cargo curl gcc musl-dev rust \
@@ -51,11 +54,13 @@ RUN apk add --no-cache --virtual .build-deps cargo curl gcc musl-dev rust \
 FROM python:3.10-alpine3.19
 
 ARG FLASK_DEBUG
+ARG TEST_FOLDER="test[z]"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     # https://flask.palletsprojects.com/en/2.2.x/config/?highlight=flask_debug#DEBUG
     FLASK_DEBUG=$FLASK_DEBUG \
-    PATH="/.venv/bin:$PATH"
+    PATH="/.venv/bin:$PATH" \
+    PORT=6011
 
 WORKDIR /app
 
@@ -74,7 +79,7 @@ COPY gunicorn_config.py application.py Makefile pytest.ini run_celery.py pyproje
 COPY --chown=vanotify certs/ certs
 
 # Tests, using glob pattern to avoid copying if they are excluded from context
-COPY test[s]/ tests
+COPY $TEST_FOLDER/ tests
 
 # Copy builder files - version must come after context COPY, importing to absolute location
 COPY --from=builder /app/version.py /app/app/version.py
