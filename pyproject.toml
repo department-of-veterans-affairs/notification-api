@@ -17,7 +17,7 @@ cachelib = "*"
 cachetools = "*"
 celery = {extras = ["sqs"], version = "*"}
 click-datetime = "*"
-ddtrace = "*"
+ddtrace = "1.18.2"
 dnspython = "2.4.2"
 docopt = "*"
 eventlet = "0.33.3"
