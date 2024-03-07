@@ -50,7 +50,7 @@ fileignoreconfig:
 - filename: pytest.ini
   checksum: 5fe3b1e8dd47429380b6a9639707f76df2ae526c4021d10921d9c6792adf5e41
 - filename: poetry.lock
-  checksum: 8948fe633d5df1c933c74033c3a82647b707b51a968dc769f172504bddcbaba4
+  checksum: 86363deefa1ceccf2cb52a53d18218dbd2f12248f62aaef2309593ccb3edd7be
 - filename: tests/app/celery/test_process_delivery_status_result_tasks.py
   checksum: c9c72acbd32e910bdd992b8132aa5b9baf1c635a70f65d82d4e3b62a326b79ea
 - filename: tests/app/dao/test_fido2_keys_dao.py
