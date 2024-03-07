@@ -92,7 +92,9 @@ RUN apk add --no-cache ca-certificates bash build-base libcurl openssl-dev \
     && update-ca-certificates \
     && apk del --no-cache ca-certificates
 
-RUN apk add --no-cache build-base libcurl openssl-dev
+# RUN apk add --no-cache build-base libcurl openssl-dev
+RUN apk add --no-cache bash build-base git postgresql-dev g++ make libffi-dev libmagic libcurl python3-dev openssl-dev \
+    curl-dev wget openssl
 
 USER vanotify
 
