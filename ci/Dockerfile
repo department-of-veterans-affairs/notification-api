@@ -54,8 +54,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     FLASK_DEBUG="true" \
     PATH="/opt/.venv/bin:$PATH"
 
-RUN adduser -h /app -D vanotify
-
 # From context
 COPY --chown=vanotify app/ app/app
 COPY --chown=vanotify cd/ app/cd
@@ -75,6 +73,8 @@ COPY --from=builder /usr/share/ca-certificates /usr/share/ca-certificates/
 
 # Populate /etc/ssl/certs/ with symlinks to /usr/[local/]share/ca-certificates/ certs
 RUN apk add --no-cache ca-certificates bash build-base libcurl openssl-dev \
+    && adduser -h /app -D vanotify \
+    && chown vanotify /app/certs \
     && update-ca-certificates \
     && apk del --no-cache ca-certificates
 
