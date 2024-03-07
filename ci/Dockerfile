@@ -50,6 +50,8 @@ RUN apk add --no-cache --virtual .build-deps cargo curl gcc musl-dev rust \
 # # Alpine Linux 3.19 is supported until 1 November 2025
 FROM python:3.10-alpine3.19
 
+ARG FLASK_DEBUG
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     # https://flask.palletsprojects.com/en/2.2.x/config/?highlight=flask_debug#DEBUG
     FLASK_DEBUG=$FLASK_DEBUG \
@@ -61,11 +63,13 @@ RUN adduser -h /app -D vanotify
 
 # From context, importing relative to WORKDIR
 COPY --chown=vanotify app/ app
-COPY --chown=vanotify cd/ cd
 COPY --chown=vanotify certs/ certs
-COPY --chown=vanotify migrations/ migrations
 COPY --chown=vanotify scripts/ scripts
 COPY --chown=vanotify gunicorn_config.py application.py Makefile pytest.ini run_celery.py /app
+
+# From context, importing relative to WORKDIR. No change in ownership
+COPY cd/ cd
+COPY migrations/ migrations
 
 # Tests, using glob pattern to avoid copying if they are excluded from context
 COPY test[s]/ tests
@@ -82,8 +86,6 @@ RUN apk add --no-cache ca-certificates bash build-base libcurl openssl-dev \
     && apk del --no-cache ca-certificates
 
 RUN apk add --no-cache build-base libcurl openssl-dev
-
-WORKDIR /app
 
 USER vanotify
 
