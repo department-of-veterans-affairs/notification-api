@@ -55,8 +55,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PATH="/.venv/bin:$PATH"
 
 # From context
-COPY --chown=vanotify cd/ app/cd
 COPY --chown=vanotify app/ app/app
+COPY --chown=vanotify cd/ app/cd
+COPY --chown=vanotify certs/ app/certs
 COPY --chown=vanotify migrations/ app/migrations
 COPY --chown=vanotify scripts/ app/scripts/
 COPY --chown=vanotify gunicorn_config.py application.py Makefile pytest.ini run_celery.py app/
