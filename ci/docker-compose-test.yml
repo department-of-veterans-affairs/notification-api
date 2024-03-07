@@ -8,7 +8,7 @@ services:
         POETRY_ARGS: --with static_tools,test
     image: &notify_image test-notification-api
     volumes: &notify_volumes
-      - "../:/app:rw"
+      - "../:/app"
     ports:
       - 6011:6011
     env_file:

@@ -9,8 +9,6 @@ set -euo pipefail
 
 (
     cd /usr/local/share/ca-certificates/
-    # mv would break rw volumes, couple bytes isn't breaking the bank
-    cp /app/certs/* .
 
     wget \
         --recursive \
