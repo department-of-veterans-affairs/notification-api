@@ -74,7 +74,7 @@ COPY --from=builder /usr/share/ca-certificates /usr/share/ca-certificates/
 # Populate /etc/ssl/certs/ with symlinks to /usr/[local/]share/ca-certificates/ certs
 RUN apk add --no-cache ca-certificates bash build-base libcurl openssl-dev \
     && adduser -h /app -D vanotify \
-    && chown vanotify /app/certs \
+    && chown -R vanotify /app \
     && update-ca-certificates \
     && apk del --no-cache ca-certificates
 
