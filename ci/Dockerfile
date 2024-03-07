@@ -75,9 +75,9 @@ RUN apk add --no-cache ca-certificates bash build-base libcurl openssl-dev \
     && adduser -h /app -D vanotify \
     && mkdir /app/certs \
     && update-ca-certificates \
-    && apk del --no-cache ca-certificates bash
+    && apk del --no-cache ca-certificates
 
-RUN apk add --no-cache bash build-base libcurl openssl-dev
+RUN apk add --no-cache build-base libcurl openssl-dev
 
 WORKDIR /app
 
