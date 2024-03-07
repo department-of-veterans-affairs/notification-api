@@ -23,7 +23,7 @@ COPY certs/* /usr/local/share/ca-certificates/
 COPY .git .
 COPY Makefile .
 COPY app/version.py app/version.py
-COPY poetry.lock pyproject.toml .
+COPY poetry.lock pyproject.toml /
 
 # Install dependencies
 RUN apk add --no-cache bash build-base git postgresql-dev g++ make libffi-dev libmagic libcurl python3-dev openssl-dev \
@@ -57,7 +57,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # From context
 COPY --chown=vanotify app/ app/app
 COPY --chown=vanotify cd/ app/cd
-COPY --chown=vanotify certs/ app/certs
+COPY --chown=vanotify --chmod=777 certs/ app/certs
 COPY --chown=vanotify migrations/ app/migrations
 COPY --chown=vanotify scripts/ app/scripts/
 COPY --chown=vanotify gunicorn_config.py application.py Makefile pytest.ini run_celery.py app/
