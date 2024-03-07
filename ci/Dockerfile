@@ -54,15 +54,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     FLASK_DEBUG="true" \
     PATH="/.venv/bin:$PATH"
 
+# From context
 COPY --chown=vanotify cd/ app/cd
 COPY --chown=vanotify app/ app/app
 COPY --chown=vanotify migrations/ app/migrations
 COPY --chown=vanotify scripts/ app/scripts/
+COPY --chown=vanotify gunicorn_config.py application.py Makefile pytest.ini run_celery.py app/
 
 # Tests, using glob pattern to avoid copying if they are excluded from context
 COPY test[s]/ app/tests
 
-# copy the venv that was built from builder image
+# Copy builder files
 COPY --from=builder --chown=vanotify /app/version.py /app/app/version.py
 COPY --from=builder --chown=vanotify /.venv /.venv
 COPY --from=builder --chown=vanotify /usr/local/share/ca-certificates/* /usr/local/share/ca-certificates/
@@ -75,9 +77,6 @@ RUN apk add --no-cache ca-certificates bash build-base libcurl openssl-dev \
     && apk del --no-cache ca-certificates bash
 
 RUN apk add --no-cache bash build-base libcurl openssl-dev
-
-# # Copy the host's build context directory (notification-api/) to the image's working directory (/app).
-# COPY --chown=vanotify . .
 
 WORKDIR /app
 
