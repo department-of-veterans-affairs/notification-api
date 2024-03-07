@@ -27,7 +27,7 @@ Flask-JWT-Extended = "*"
 flask-marshmallow = "*"
 Flask-Migrate = "*"
 Flask-SQLAlchemy = "*"
-gunicorn = "*"
+gunicorn = {extras = ["eventlet"], version = "*"}
 iso8601 = "*"
 itsdangerous = "*"
 jsonschema = "*"
