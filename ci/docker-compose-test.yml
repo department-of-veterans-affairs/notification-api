@@ -7,6 +7,7 @@ services:
       args:
         POETRY_ARGS: --with static_tools,test
         FLASK_DEBUG: 1
+        TEST_FOLDER: tests
     image: &notify_image test-notification-api
     volumes: &notify_volumes
       - "../:/app"

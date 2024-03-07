@@ -54,7 +54,7 @@ RUN apk add --no-cache --virtual .build-deps cargo curl gcc musl-dev rust \
 FROM python:3.10-alpine3.19
 
 ARG FLASK_DEBUG
-ARG TEST_FOLDER="test[z]"
+ARG TEST_FOLDER="[none-if-not-testing]"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     # https://flask.palletsprojects.com/en/2.2.x/config/?highlight=flask_debug#DEBUG
@@ -78,7 +78,7 @@ COPY gunicorn_config.py application.py Makefile pytest.ini run_celery.py pyproje
 # Assign ownership of the certs to vanotify due to save_certificate.sh
 COPY --chown=vanotify certs/ certs
 
-# Tests, using glob pattern to avoid copying if they are excluded from context
+# Tests, using glob pattern to avoid copying
 COPY $TEST_FOLDER/ tests
 
 # Copy builder files - version must come after context COPY, importing to absolute location
