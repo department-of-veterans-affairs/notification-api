@@ -59,18 +59,18 @@ WORKDIR /app
 
 RUN adduser -h /app -D vanotify
 
-# From context
-COPY --chown=vanotify app/ /app/app
-COPY --chown=vanotify cd/ /app/cd
-COPY --chown=vanotify certs/ /app/certs
-COPY --chown=vanotify migrations/ /app/migrations
-COPY --chown=vanotify scripts/ /app/scripts
-COPY --chown=vanotify gunicorn_config.py application.py Makefile pytest.ini run_celery.py /app/
+# From context, importing relative to WORKDIR
+COPY --chown=vanotify app/ app
+COPY --chown=vanotify cd/ cd
+COPY --chown=vanotify certs/ certs
+COPY --chown=vanotify migrations/ migrations
+COPY --chown=vanotify scripts/ scripts
+COPY --chown=vanotify gunicorn_config.py application.py Makefile pytest.ini run_celery.py /app
 
 # Tests, using glob pattern to avoid copying if they are excluded from context
-COPY test[s]/ app/tests
+COPY test[s]/ tests
 
-# Copy builder files - must come after context COPY
+# Copy builder files - must come after context COPY, importing to absolute location
 COPY --from=builder --chown=vanotify /app/version.py /app/app/version.py
 COPY --from=builder --chown=vanotify /.venv /opt/.venv
 COPY --from=builder --chown=vanotify /usr/local/share/ca-certificates /usr/local/share/ca-certificates/

@@ -6,6 +6,7 @@ services:
       dockerfile: ci/Dockerfile
       args:
         POETRY_ARGS: --with static_tools,test
+        FLASK_DEBUG: 1
     image: &notify_image test-notification-api
     volumes: &notify_volumes
       - "../:/app"
