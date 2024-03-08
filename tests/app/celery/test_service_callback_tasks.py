@@ -449,7 +449,7 @@ class TestSendInboundSmsToService:
         sample_inbound_sms,
         sample_service,
         sample_service_callback,
-        sample_sms_sender_v2,
+        sample_sms_sender,
     ):
         service = sample_service()
         inbound_api = sample_service_callback(  # nosec
@@ -470,7 +470,7 @@ class TestSendInboundSmsToService:
             provider_date=datetime(2017, 6, 20),
             content='Here is some content',
         )
-        sms_sender = sample_sms_sender_v2(service_id=service.id, sms_sender='0751421')
+        sms_sender = sample_sms_sender(service_id=service.id, sms_sender='0751421')
 
         expected_data = {
             'id': str(inbound_sms.id),
