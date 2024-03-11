@@ -23,7 +23,6 @@ from app.models import (
     Notification,
     RecipientIdentifier,
     ScheduledNotification,
-    ServiceEmailReplyTo,
 )
 from app.schema_validation import validate
 from app.v2.errors import RateLimitError
@@ -196,7 +195,7 @@ def test_post_sms_notification_returns_201_with_sms_sender_id(
     sample_template,
     mocker,
     sms_sender_id,
-    sample_sms_sender_v2,
+    sample_sms_sender,
 ):
     template = sample_template(content='Hello (( Name))\nYour thing is due soon')
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
@@ -212,7 +211,7 @@ def test_post_sms_notification_returns_201_with_sms_sender_id(
         data['sms_sender_id'] = None
     elif sms_sender_id == 'user provided':
         # Simulate that the user specified an sms_sender_id.
-        sms_sender = sample_sms_sender_v2(service_id=template.service.id, sms_sender='123456')
+        sms_sender = sample_sms_sender(service_id=template.service.id, sms_sender='123456')
         data['sms_sender_id'] = str(sms_sender.id)
     else:
         raise ValueError('This is a programming error.')
@@ -257,11 +256,11 @@ def test_post_sms_notification_uses_sms_sender_id_reply_to(
     notify_db_session,
     sample_api_key,
     sample_template,
-    sample_sms_sender_v2,
+    sample_sms_sender,
     mocker,
 ):
     template = sample_template(content='Hello (( Name))\nYour thing is due soon')
-    sms_sender = sample_sms_sender_v2(service_id=template.service.id, sms_sender='6502532222')
+    sms_sender = sample_sms_sender(service_id=template.service.id, sms_sender='6502532222')
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
     mocker.patch('app.notifications.process_notifications.dao_get_service_sms_sender_by_service_id_and_number')
 
@@ -293,11 +292,11 @@ def test_notification_reply_to_text_is_original_value_if_sender_is_changed_after
     notify_db_session,
     sample_api_key,
     sample_template,
-    sample_sms_sender_v2,
+    sample_sms_sender,
 ):
     template = sample_template()
     sender_number = str(randint(100000, 10000000))
-    sms_sender = sample_sms_sender_v2(service_id=template.service.id, sms_sender=sender_number, is_default=False)
+    sms_sender = sample_sms_sender(service_id=template.service.id, sms_sender=sender_number, is_default=False)
     data = {'phone_number': '+16502532222', 'template_id': str(template.id), 'sms_sender_id': str(sms_sender.id)}
 
     response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
@@ -625,11 +624,11 @@ def test_post_sms_notification_with_archived_reply_to_id_returns_400(
     sample_api_key,
     sample_inbound_number,
     sample_template,
-    sample_sms_sender_v2,
+    sample_sms_sender,
 ):
     template = sample_template()
     service_number = sample_inbound_number(service_id=template.service_id)
-    archived_sender = sample_sms_sender_v2(
+    archived_sender = sample_sms_sender(
         service_id=template.service.id,
         inbound_number_id=service_number.id,
         is_default=False,

@@ -309,7 +309,7 @@ def create_notification(  # noqa: C901
     if not one_off and (job is None and api_key is None):
         # we didn't specify in test - lets create it
         stmt = select(ApiKey).where(ApiKey.service == template.service, ApiKey.key_type == key_type)
-        api_key = db.session.scalars(stmt).first()
+        api_key = db.session.scalar(stmt)
         if not api_key:
             api_key = create_api_key(template.service, key_type=key_type)
 
@@ -1060,7 +1060,3 @@ def create_template_folder(service, name='foo', parent=None):
     db.session.add(tf)
     db.session.commit()
     return tf
-
-
-def test_kwm():
-    pass

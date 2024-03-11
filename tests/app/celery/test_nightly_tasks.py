@@ -112,8 +112,8 @@ def test_will_remove_csv_files_for_jobs_older_than_retention_period(
     Jobs older than retention period are deleted, but only two day's worth (two-day window)
     """
     mocker.patch('app.celery.nightly_tasks.s3.remove_job_from_s3')
-    service_1 = sample_service(service_name='service 1')
-    service_2 = sample_service(service_name='service 2')
+    service_1 = sample_service()
+    service_2 = sample_service()
 
     # Cleaned up by the associated service
     create_service_data_retention(service=service_1, notification_type=SMS_TYPE, days_of_retention=3)

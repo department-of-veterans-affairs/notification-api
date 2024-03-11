@@ -305,6 +305,7 @@ def __create_token(service_id):
     return create_jwt_token(secret=get_unsigned_secrets(service_id)[0], client_id=str(service_id))
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize(
     'check_proxy_header, header_value, expected_status',
     [
@@ -315,6 +316,7 @@ def __create_token(service_id):
     ],
 )
 def test_proxy_key_non_auth_endpoint(notify_api, check_proxy_header, header_value, expected_status):
+    # Test takes 2-5 seconds to run when done in parallel
     with set_config_values(
         notify_api,
         {

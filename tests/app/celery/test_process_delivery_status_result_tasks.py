@@ -225,6 +225,7 @@ def test_process_delivery_status_should_retry_preempts_exit(sample_delivery_stat
     assert exc_info.type is AutoRetryException
 
 
+@pytest.mark.serial
 def test_process_delivery_status_with_valid_message_with_no_payload(
     mocker,
     sample_delivery_status_result_message,
@@ -235,6 +236,7 @@ def test_process_delivery_status_with_valid_message_with_no_payload(
     Test that the Celery task will complete if correct data is provided.
     """
 
+    # Reference is used by many tests, can lead to trouble
     notification = sample_notification(
         template=sample_template(), reference='SMyyy', sent_at=datetime.datetime.utcnow(), status='sent'
     )

@@ -1,3 +1,4 @@
+import pytest
 from sqlalchemy import select
 
 from app.dao.service_user_dao import dao_get_service_user
@@ -9,6 +10,7 @@ from app.models import user_folder_permissions
 from tests.app.db import create_template_folder
 
 
+@pytest.mark.serial
 def test_dao_delete_template_folder_deletes_user_folder_permissions(
     notify_db_session,
     sample_service,
@@ -23,4 +25,4 @@ def test_dao_delete_template_folder_deletes_user_folder_permissions(
     dao_delete_template_folder(folder)
 
     stmt = select(user_folder_permissions).where(user_folder_permissions.c.template_folder_id == folder_id)
-    assert notify_db_session.session.execute(stmt).all() == []
+    assert notify_db_session.session.scalars(stmt).all() == []

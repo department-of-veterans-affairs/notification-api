@@ -117,6 +117,7 @@ def test_create_nightly_notification_status_triggers_tasks_for_days_including_cs
         assert mock_celery.si.call_args_list[i][0][0] == expected_kwargs[i]
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize(
     'second_rate, records_num, billable_units, multiplier',
     [
@@ -169,6 +170,7 @@ def test_create_nightly_billing_for_day_sms_rate_multiplier(
     # Celery expects the arguments to be a string or primitive type.
     yesterday_str = datetime.strftime(yesterday, '%Y-%m-%d')
     try:
+        # This should be done with time-boxing - may cause parallel worker issues
         create_nightly_billing_for_day(yesterday_str)
 
         records = notify_db_session.session.scalars(stmt).all()
@@ -186,6 +188,7 @@ def test_create_nightly_billing_for_day_sms_rate_multiplier(
         notify_db_session.session.commit()
 
 
+@pytest.mark.serial
 def test_create_nightly_billing_for_day_different_templates(
     notify_db_session,
     mocker,
@@ -228,6 +231,7 @@ def test_create_nightly_billing_for_day_different_templates(
     yesterday_str = datetime.strftime(yesterday, '%Y-%m-%d')
 
     try:
+        # This should be done with time-boxing - may cause parallel worker issues
         create_nightly_billing_for_day(yesterday_str)
 
         records = notify_db_session.session.scalars(stmt).all()
@@ -248,6 +252,7 @@ def test_create_nightly_billing_for_day_different_templates(
         notify_db_session.session.commit()
 
 
+@pytest.mark.serial
 def test_create_nightly_billing_for_day_different_sent_by(
     notify_db_session,
     mocker,
@@ -286,6 +291,7 @@ def test_create_nightly_billing_for_day_different_sent_by(
     yesterday_str = datetime.strftime(yesterday, '%Y-%m-%d')
 
     try:
+        # This should be done with time-boxing - may cause parallel worker issues
         create_nightly_billing_for_day(yesterday_str)
 
         stmt = select(FactBilling).where(FactBilling.template_id == template.id).order_by('rate_multiplier')
@@ -304,6 +310,7 @@ def test_create_nightly_billing_for_day_different_sent_by(
         notify_db_session.session.commit()
 
 
+@pytest.mark.serial
 def test_create_nightly_billing_for_day_different_letter_postage(
     notify_db_session,
     mocker,
@@ -339,6 +346,7 @@ def test_create_nightly_billing_for_day_different_letter_postage(
     yesterday_str = datetime.strftime(yesterday, '%Y-%m-%d')
 
     try:
+        # This should be done with time-boxing - may cause parallel worker issues
         create_nightly_billing_for_day(yesterday_str)
 
         stmt = select(FactBilling).where(FactBilling.template_id == template.id).order_by('postage')
@@ -363,6 +371,7 @@ def test_create_nightly_billing_for_day_different_letter_postage(
         notify_db_session.session.commit()
 
 
+@pytest.mark.serial
 def test_create_nightly_billing_for_day_letter(
     notify_db_session,
     mocker,
@@ -389,6 +398,7 @@ def test_create_nightly_billing_for_day_letter(
     try:
         # Celery expects the arguments to be a string or primitive type.
         yesterday_str = datetime.strftime(yesterday, '%Y-%m-%d')
+        # This should be done with time-boxing - may cause parallel worker issues
         create_nightly_billing_for_day(yesterday_str)
 
         records = notify_db_session.session.scalars(stmt).all()
@@ -405,6 +415,7 @@ def test_create_nightly_billing_for_day_letter(
         notify_db_session.session.commit()
 
 
+@pytest.mark.serial
 @freeze_time('1999-12-04 16:00:00.000000')
 def test_create_nightly_billing_for_day_null_sent_by_sms(
     notify_db_session, mocker, sample_template, sample_notification
@@ -429,6 +440,7 @@ def test_create_nightly_billing_for_day_null_sent_by_sms(
 
         # Celery expects the arguments to be a string or primitive type.
         yesterday_str = datetime.strftime(yesterday, '%Y-%m-%d')
+        # This should be done with time-boxing - may cause parallel worker issues
         create_nightly_billing_for_day(yesterday_str)
 
         records = notify_db_session.session.scalars(stmt).all()
@@ -473,6 +485,7 @@ def test_get_rate_for_sms_and_email(
     assert rate == Decimal(0)
 
 
+@pytest.mark.serial
 @freeze_time('1992-03-30T05:00:00')
 # summer time starts on 1992-03-25
 def test_create_nightly_billing_for_day_use_BST(
@@ -514,6 +527,7 @@ def test_create_nightly_billing_for_day_use_BST(
     assert len(notify_db_session.session.scalars(stmt).all()) == 0
 
     try:
+        # This should be done with time-boxing - may cause parallel worker issues
         create_nightly_billing_for_day('1992-03-25')
 
         records = notify_db_session.session.scalars(stmt).all()
@@ -528,6 +542,7 @@ def test_create_nightly_billing_for_day_use_BST(
         notify_db_session.session.commit()
 
 
+@pytest.mark.serial
 @freeze_time('2018-01-15T03:30:00')
 @pytest.mark.skip(reason='Mislabelled for route removal, fails when unskipped.')
 def test_create_nightly_billing_for_day_update_when_record_exists(
@@ -553,6 +568,7 @@ def test_create_nightly_billing_for_day_update_when_record_exists(
     assert (notify_db_session.session.scalars(stmt).all()) == 0
 
     try:
+        # This should be done with time-boxing - may cause parallel worker issues
         create_nightly_billing_for_day('2018-01-14')
         records = notify_db_session.session.scalars(stmt).all()
 

@@ -169,6 +169,7 @@ def test_update_template(
     template_cleanup(notify_db_session.session, template.id)
 
 
+@pytest.mark.serial
 def test_update_template_in_a_folder_to_archived(
     notify_db_session,
     sample_service,

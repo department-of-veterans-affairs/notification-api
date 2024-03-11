@@ -502,7 +502,9 @@ def test_send_email_should_use_service_reply_to_email(
 
 
 def test_get_html_email_renderer_should_return_for_normal_service(
-    sample_notification_model_with_organization, mock_email_client
+    notify_api,
+    sample_notification_model_with_organization,
+    mock_email_client,
 ):
     options = send_to_providers.get_html_email_options(sample_notification_model_with_organization, mock_email_client)
     assert options['default_banner'] is True
@@ -517,6 +519,7 @@ def test_get_html_email_renderer_should_return_for_normal_service(
     'branding_type, default_banner', [(BRANDING_ORG, False), (BRANDING_BOTH, True), (BRANDING_ORG_BANNER, False)]
 )
 def test_get_html_email_renderer_with_branding_details(
+    notify_api,
     branding_type,
     default_banner,
     sample_notification_model_with_organization,
@@ -545,6 +548,7 @@ def test_get_html_email_renderer_with_branding_details(
 
 
 def test_get_html_email_renderer_with_branding_details_and_render_default_banner_only(
+    notify_api,
     sample_notification_model_with_organization,
     mock_email_client,
 ):
@@ -556,6 +560,7 @@ def test_get_html_email_renderer_with_branding_details_and_render_default_banner
 
 
 def test_get_html_email_renderer_prepends_logo_path(
+    notify_api,
     sample_notification_model_with_organization,
     mock_email_client,
 ):
@@ -574,6 +579,7 @@ def test_get_html_email_renderer_prepends_logo_path(
 
 
 def test_get_html_email_renderer_handles_email_branding_without_logo(
+    notify_api,
     sample_notification_model_with_organization,
     mock_email_client,
 ):

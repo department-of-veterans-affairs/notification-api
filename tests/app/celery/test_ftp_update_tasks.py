@@ -105,7 +105,7 @@ def test_update_letter_notifications_statuses_builds_updates_list(notify_api, mo
 
 
 # Downstream code fails to get a provider for letter notifications, which aren't being sent.  Decline to fix.
-@pytest.mark.xfail(reason="AttributeError: 'NoneType' object has no attribute 'identifier'", run=False)
+@pytest.mark.skip(reason="AttributeError: 'NoneType' object has no attribute 'identifier'")
 def test_update_letter_notifications_to_sent_to_dvla_updates_based_on_notification_references(
     client,
     sample_template,

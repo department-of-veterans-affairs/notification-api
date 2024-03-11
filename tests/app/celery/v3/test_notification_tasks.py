@@ -204,6 +204,7 @@ def test_v3_send_email_notification(mocker, notify_db_session, sample_template):
         'template_id': template.id,
     }
 
+    # Cleaned by sample_template
     notification = v3_create_notification_instance(
         request_data,
         template.service_id,
@@ -220,15 +221,9 @@ def test_v3_send_email_notification(mocker, notify_db_session, sample_template):
     stmt = select(Notification).where(Notification.service_id == template.service_id)
     notification_from_db = notify_db_session.session.scalars(stmt).one()
 
-    try:
-        assert notification_from_db.status == NOTIFICATION_SENT
-        assert notification_from_db.reference == 'provider reference'
-        assert notification_from_db.sent_by == 'client name'
-    finally:
-        # Teardown
-        stmt = delete(Notification).where(Notification.id == request_data['id'])
-        notify_db_session.session.execute(stmt)
-        notify_db_session.session.commit()
+    assert notification_from_db.status == NOTIFICATION_SENT
+    assert notification_from_db.reference == 'provider reference'
+    assert notification_from_db.sent_by == 'client name'
 
 
 ############################################################################################
@@ -366,6 +361,7 @@ def test_v3_send_sms_notification(mocker, notify_db_session, sample_service, sam
         'sms_sender_id': sms_sender.id,
     }
 
+    # Cleaned by sample_template
     notification = v3_create_notification_instance(
         request_data,
         template.service_id,
@@ -389,15 +385,9 @@ def test_v3_send_sms_notification(mocker, notify_db_session, sample_service, sam
         sms_sender.sms_sender,
     )
 
-    try:
-        assert notification_from_db.status == NOTIFICATION_SENT
-        assert notification_from_db.reference == 'provider reference'
-        assert notification_from_db.sent_by == 'client name'
-    finally:
-        # Teardown
-        stmt = delete(Notification).where(Notification.id == request_data['id'])
-        notify_db_session.session.execute(stmt)
-        notify_db_session.session.commit()
+    assert notification_from_db.status == NOTIFICATION_SENT
+    assert notification_from_db.reference == 'provider reference'
+    assert notification_from_db.sent_by == 'client name'
 
 
 def test_v3_process_sms_notification_with_non_existent_template(

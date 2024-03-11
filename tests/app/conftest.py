@@ -179,10 +179,10 @@ def sample_user(notify_db_session, set_user_as_admin):
     yield _wrapper
 
     # Teardown
-    cleanup_user(created_user_ids, notify_db_session.session)
+    user_cleanup(created_user_ids, notify_db_session.session)
 
 
-def cleanup_user(user_ids: List[int], session: scoped_session, commit: bool = True):
+def user_cleanup(user_ids: List[int], session: scoped_session, commit: bool = True):
     # Clear user_folder_permissions
     session.execute(delete(user_folder_permissions).where(user_folder_permissions.c.user_id.in_(user_ids)))
 
@@ -631,15 +631,21 @@ def service_cleanup(  # noqa: C901
         # Clear user_to_service
         session.execute(delete(user_folder_permissions).where(user_folder_permissions.c.service_id == service_id))
 
+        # Clear all notifications (necessary for key deletion)
+        session.execute(delete(Notification).where(Notification.service_id == service_id))
+        session.execute(delete(NotificationHistory).where(NotificationHistory.service_id == service_id))
+
         # Clear all keys
         session.execute(delete(ApiKey).where(ApiKey.service_id == service_id))
+        ApiKeyHistory = ApiKey.get_history_model()
+        session.execute(delete(ApiKeyHistory).where(ApiKeyHistory.service_id == service_id))
 
         # Clear all permissions
         session.execute(delete(ServicePermission).where(ServicePermission.service_id == service_id))
 
         # Clear all permissions
-
         session.execute(delete(Permission).where(Permission.service_id == service_id))
+        session.execute(delete(ServicePermission).where(ServicePermission.service_id == service_id))
 
         # Clear all service_sms_senders
         session.execute(delete(ServiceSmsSender).where(ServiceSmsSender.service_id == service_id))
@@ -694,14 +700,11 @@ def sample_service_permissions(notify_db_session):
     # Teardown
     # Set service.permissions.clear() ??
     for service_id, perm in service_permissions:
-        stmt = (
-            select(ServicePermission)
-            .where(ServicePermission.service_id == service_id)
-            .where(ServicePermission.permission == perm)
+        stmt = update
+        stmt = delete(ServicePermission).where(
+            ServicePermission.service_id == service_id, ServicePermission.permission == perm
         )
-        perm = notify_db_session.session.scalar(stmt)
-        if perm is not None:
-            notify_db_session.session.delete(perm)
+        notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
 
@@ -951,15 +954,6 @@ def sample_letter_template(sample_service, sample_template):
 
 
 @pytest.fixture
-def sample_email_template_with_placeholders(sample_template):
-    return sample_template(
-        template_type=EMAIL_TYPE,
-        subject='((name))',
-        content='Hello ((name))\nThis is an email from GOV.UK',
-    )
-
-
-@pytest.fixture
 def sample_api_key(notify_db_session, sample_service):
     created_key_ids = []
 
@@ -981,6 +975,13 @@ def sample_api_key(notify_db_session, sample_service):
     notify_db_session.session.execute(stmt)
 
     stmt = delete(ApiKey).where(ApiKey.id.in_(created_key_ids))
+    notify_db_session.session.execute(stmt)
+
+    # Clear notifications
+    stmt = delete(Notification).where(Notification.api_key_id.in_(created_key_ids))
+    notify_db_session.session.execute(stmt)
+
+    stmt = delete(NotificationHistory).where(NotificationHistory.api_key_id.in_(created_key_ids))
     notify_db_session.session.execute(stmt)
 
     notify_db_session.session.commit()
@@ -1025,6 +1026,9 @@ def sample_job(notify_db_session):
 
     # Teardown
     stmt = delete(Notification).where(Notification.job_id.in_(created_job_ids))
+    notify_db_session.session.execute(stmt)
+
+    stmt = delete(NotificationHistory).where(NotificationHistory.job_id.in_(created_job_ids))
     notify_db_session.session.execute(stmt)
 
     stmt = delete(Job).where(Job.id.in_(created_job_ids))
@@ -1164,7 +1168,7 @@ def sample_ft_billing(
 
 @pytest.fixture
 def sample_ft_notification_status(notify_db_session, sample_template, sample_job):
-    created_ft_notification_statuses = []
+    created_ft_notification_statuses: list[dict] = []
 
     def _sample_ft_notification_status(
         utc_date,
@@ -1179,28 +1183,43 @@ def sample_ft_notification_status(notify_db_session, sample_template, sample_job
 
         template = job.template
 
+        pk_data = {
+            'bst_date': utc_date,
+            'template_id': template.id,
+            'service_id': template.service.id,
+            'job_id': job.id,
+            'notification_type': template.template_type,
+            'key_type': key_type,
+            'notification_status': notification_status,
+        }
+
         ft_notification_status = FactNotificationStatus(
-            bst_date=utc_date,
-            template_id=template.id,
-            service_id=template.service.id,
-            job_id=job.id,
-            notification_type=template.template_type,
-            key_type=key_type,
-            notification_status=notification_status,
+            **pk_data,
             status_reason=status_reason,
             notification_count=count,
         )
         notify_db_session.session.add(ft_notification_status)
         notify_db_session.session.commit()
-        created_ft_notification_statuses.append(ft_notification_status)
+        created_ft_notification_statuses.append(pk_data)
 
         return ft_notification_status
 
     yield _sample_ft_notification_status
 
     # Teardown
-    for ft_notification_status in created_ft_notification_statuses:
-        notify_db_session.session.delete(ft_notification_status)
+    for pk_data in created_ft_notification_statuses:
+        b, t, s, j, nt, k, ns = pk_data.values()
+        # This monstrosity has 9 primary keys
+        stmt = delete(FactNotificationStatus).where(
+            FactNotificationStatus.bst_date == b,
+            FactNotificationStatus.template_id == t,
+            FactNotificationStatus.service_id == s,
+            FactNotificationStatus.job_id == j,
+            FactNotificationStatus.notification_type == nt,
+            FactNotificationStatus.key_type == k,
+            FactNotificationStatus.notification_status == ns,
+        )
+        notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
 
@@ -2449,4 +2468,4 @@ def sample_user_session(notify_db):
 
     yield _sample_user
 
-    cleanup_user(created_user_ids, notify_db.session)
+    user_cleanup(created_user_ids, notify_db.session)

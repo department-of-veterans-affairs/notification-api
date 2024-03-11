@@ -1,8 +1,10 @@
+import pytest
 from sqlalchemy import delete
 
 from app.models import BRANDING_ORG, EmailBranding
 
 
+@pytest.mark.serial
 def test_get_email_branding_options(
     admin_request,
     sample_email_branding,
@@ -11,6 +13,7 @@ def test_get_email_branding_options(
     email_branding2 = sample_email_branding(colour='#000000', logo='/path/other.png', name='Org2')
     test_brandings = (str(email_branding1.id), str(email_branding2.id))
 
+    # appears to grab all - asserts 3 isntead of 2 sometimes
     email_branding = admin_request.get('email_branding.get_email_branding_options')['email_branding']
 
     assert len(email_branding) == 2

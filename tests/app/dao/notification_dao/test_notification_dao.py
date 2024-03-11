@@ -61,7 +61,6 @@ from app.models import (
 )
 from app.notifications.process_notifications import persist_notification
 from app.va.identifier import IdentifierType
-# from tests.app.db import create_notification_history
 
 
 def test_should_have_decorated_notifications_dao_functions():
@@ -777,7 +776,6 @@ def test_should_delete_notification_for_id(
 def test_should_delete_recipient_identifiers_if_notification_deleted(
     notify_db_session,
     sample_template,
-    sample_job,
     sample_api_key,
     mocker,
 ):
@@ -785,29 +783,30 @@ def test_should_delete_recipient_identifiers_if_notification_deleted(
     recipient_identifier = {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': 'foo'}
 
     template = sample_template()
-    job = sample_job(template)
-    api_key = sample_api_key()
-    notification = persist_notification(
+    api_key = sample_api_key(service=template.service)
+    notification_id = uuid4()
+
+    persist_notification(
         template_id=template.id,
         template_version=template.version,
-        service_id=job.service.id,
+        service_id=template.service.id,
         personalisation=None,
         notification_type=EMAIL_TYPE,
         api_key_id=api_key.id,
         key_type=api_key.key_type,
-        job_id=job.id,
         recipient_identifier=recipient_identifier,
+        notification_id=notification_id,
     )
 
     stmt = select(RecipientIdentifier).where(
-        RecipientIdentifier.notification_id == notification.id,
+        RecipientIdentifier.notification_id == notification_id,
         RecipientIdentifier.id_type == recipient_identifier['id_type'],
         RecipientIdentifier.id_value == recipient_identifier['id_value'],
     )
-    assert notify_db_session.session.scalar(stmt).notification_id == notification.id
-    dao_delete_notification_by_id(notification.id)
+    assert notify_db_session.session.scalar(stmt).notification_id == notification_id
+    dao_delete_notification_by_id(notification_id)
 
-    assert notify_db_session.session.get(Notification, notification.id) is None
+    assert notify_db_session.session.get(Notification, notification_id) is None
     assert notify_db_session.session.scalar(stmt) is None
 
 
@@ -1175,6 +1174,7 @@ def test_should_exclude_test_key_notifications_by_default(
     assert len(all_notifications) == 1
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize(
     'normal_sending,slow_sending,normal_delivered,slow_delivered,threshold,expected_result',
     [
@@ -1227,6 +1227,7 @@ def test_is_delivery_slow_for_provider(
         slow_notification(status='delivered')
 
     assert (
+        # Requires serial or better time-boxing
         is_delivery_slow_for_provider(datetime.utcnow(), provider.identifier, threshold, timedelta(minutes=4))
         is expected_result
     )

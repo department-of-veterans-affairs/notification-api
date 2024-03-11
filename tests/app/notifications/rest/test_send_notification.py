@@ -31,7 +31,10 @@ from tests import create_authorization_header
 
 @pytest.mark.parametrize('template_type', [SMS_TYPE, EMAIL_TYPE])
 def test_create_notification_should_reject_if_missing_required_fields(
-    notify_api, sample_api_key, mocker, template_type
+    notify_api,
+    sample_api_key,
+    mocker,
+    template_type,
 ):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
@@ -230,15 +233,16 @@ def test_should_not_allow_template_from_another_service(
             assert test_string in json_resp['message']
 
 
+@pytest.mark.serial
 @freeze_time('2016-01-01 11:09:00.061258')
 def test_should_allow_valid_sms_notification(
     notify_api,
-    notify_db_session,
     sample_api_key,
     sample_template,
     mocker,
     sample_sms_sender,
 ):
+    # Something about this causes templates to get deleted
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             mocked = mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
@@ -271,12 +275,6 @@ def test_should_allow_valid_sms_notification(
             assert response_data['body'] == template.content
             assert response_data['template_version'] == template.version
 
-    # Teardown
-    notification = notify_db_session.session.get(Notification, notification_id)
-    if notification:
-        notify_db_session.session.delete(notification)
-        notify_db_session.session.commit()
-
 
 def test_should_reject_email_notification_with_bad_email(
     notify_api,
@@ -306,14 +304,15 @@ def test_should_reject_email_notification_with_bad_email(
             assert data['message']['to'][0] == 'Not a valid email address'
 
 
+@pytest.mark.serial
 @freeze_time('2016-01-01 11:09:00.061258')
 def test_should_allow_valid_email_notification(
     notify_api,
-    notify_db_session,
     sample_api_key,
     sample_template,
     mocker,
 ):
+    # Something about this causes templates to get deleted
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
@@ -345,16 +344,9 @@ def test_should_allow_valid_email_notification(
             assert response_data['body'] == template.content
             assert response_data['template_version'] == template.version
 
-    # Teardown
-    notification = notify_db_session.session.get(Notification, notification_id)
-    if notification:
-        notify_db_session.session.delete(notification)
-        notify_db_session.session.commit()
-
 
 @freeze_time('2016-01-01 12:00:00.061258')
 def test_should_block_api_call_if_over_day_limit_for_live_service(
-    notify_db_session,
     sample_api_key,
     sample_notification,
     sample_service,
@@ -372,7 +364,7 @@ def test_should_block_api_call_if_over_day_limit_for_live_service(
             service = sample_service(message_limit=1)
             api_key = sample_api_key(service=service)
             email_template = sample_template(service=service, template_type=EMAIL_TYPE)
-            notification = sample_notification(template=email_template, api_key=api_key)
+            sample_notification(template=email_template, api_key=api_key)
 
             data = {'to': 'ok@ok.com', 'template': str(email_template.id)}
 
@@ -385,10 +377,6 @@ def test_should_block_api_call_if_over_day_limit_for_live_service(
             )
             json.loads(response.get_data(as_text=True))
             assert response.status_code == 429
-
-    # Teardown
-    notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
 
 
 @freeze_time('2016-01-01 12:00:00.061258')
@@ -426,11 +414,11 @@ def test_should_block_api_call_if_over_day_limit_for_restricted_service(
             assert response.status_code == 429
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize('restricted', [True, False])
 @freeze_time('2016-01-01 12:00:00.061258')
 def test_should_allow_api_call_if_under_day_limit_regardless_of_type(
     notify_api,
-    notify_db_session,
     sample_api_key,
     sample_notification,
     sample_service,
@@ -440,6 +428,7 @@ def test_should_allow_api_call_if_under_day_limit_regardless_of_type(
     restricted,
     sample_sms_sender,
 ):
+    # Something about this causes templates to get deleted
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
@@ -465,21 +454,16 @@ def test_should_allow_api_call_if_under_day_limit_regardless_of_type(
             )
             assert response.status_code == 201
 
-    # Teardown
-    notification = notify_db_session.session.get(Notification, response.get_json()['data']['notification']['id'])
-    if notification:
-        notify_db_session.session.delete(notification)
-        notify_db_session.session.commit()
 
-
+@pytest.mark.serial
 def test_should_not_return_html_in_body(
     notify_api,
-    notify_db_session,
     sample_api_key,
     sample_service,
     sample_template,
     mocker,
 ):
+    # Something causes this test to take excessively long, about 2.5 seconds - forced to serial processing
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
@@ -496,12 +480,6 @@ def test_should_not_return_html_in_body(
 
             assert response.status_code == 201
             assert json.loads(response.get_data(as_text=True))['data']['body'] == 'hello\nhi!'
-
-    # Teardown
-    notification = notify_db_session.session.get(Notification, response.get_json()['data']['notification']['id'])
-    if notification:
-        notify_db_session.session.delete(notification)
-        notify_db_session.session.commit()
 
 
 def test_should_not_send_email_if_team_api_key_and_not_a_service_user(
@@ -566,13 +544,14 @@ def test_should_not_send_sms_if_team_api_key_and_not_a_service_user(
         assert json_resp['message']['to'] == ['Can’t send to this recipient using a team-only API key']
 
 
+@pytest.mark.serial
 def test_should_send_email_if_team_api_key_and_a_service_user(
     client,
-    notify_db_session,
     sample_api_key,
     sample_template,
     mocker,
 ):
+    # Something about this causes templates to get deleted
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     mocked_uuid = str(uuid4())
     mocker.patch('app.notifications.process_notifications.uuid.uuid4', return_value=mocked_uuid)
@@ -593,17 +572,17 @@ def test_should_send_email_if_team_api_key_and_a_service_user(
     assert result_queue['queue'] == 'send-email-tasks'
     assert response.status_code == 201
 
-    # Teardown
-    notification = notify_db_session.session.get(Notification, response.get_json()['data']['notification']['id'])
-    if notification:
-        notify_db_session.session.delete(notification)
-        notify_db_session.session.commit()
-
 
 @pytest.mark.parametrize('restricted', [True, False])
 @pytest.mark.parametrize('limit', [0, 1])
 def test_should_send_email_to_anyone_with_test_key(
-    client, notify_db_session, sample_api_key, sample_template, mocker, restricted, limit
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+    mocker,
+    restricted,
+    limit,
 ):
     mocked = mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
     mocked_uuid = str(uuid4())
@@ -639,6 +618,7 @@ def test_should_send_email_to_anyone_with_test_key(
         notify_db_session.session.commit()
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize('template_type,queue_name', [(SMS_TYPE, 'send-sms-tasks'), (EMAIL_TYPE, 'send-email-tasks')])
 def test_should_persist_notification(
     client,
@@ -650,6 +630,7 @@ def test_should_persist_notification(
     queue_name,
     sample_sms_sender,
 ):
+    # Something about this causes templates to get deleted
     mocked = mocker.patch('app.celery.provider_tasks.deliver_{}.apply_async'.format(template_type))
     mocked_uuid = str(uuid4())
     mocker.patch('app.notifications.process_notifications.uuid.uuid4', return_value=mocked_uuid)
@@ -696,6 +677,7 @@ def test_should_persist_notification(
         notify_db_session.session.commit()
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize('template_type,queue_name', [(SMS_TYPE, 'send-sms-tasks'), (EMAIL_TYPE, 'send-email-tasks')])
 def test_should_delete_notification_and_return_error_if_sqs_fails(
     notify_db_session,
@@ -707,6 +689,7 @@ def test_should_delete_notification_and_return_error_if_sqs_fails(
     queue_name,
     sample_sms_sender,
 ):
+    # Something about this causes templates to get deleted
     mocked = mocker.patch(
         'app.celery.provider_tasks.deliver_{}.apply_async'.format(template_type),
         side_effect=Exception('failed to talk to SQS'),
@@ -806,6 +789,7 @@ def test_should_not_send_notification_to_non_whitelist_recipient_in_trial_mode(
     apply_async.assert_not_called()
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize('service_restricted', [True, False])
 @pytest.mark.parametrize('key_type', [KEY_TYPE_NORMAL, KEY_TYPE_TEAM])
 @pytest.mark.parametrize(
@@ -826,6 +810,7 @@ def test_should_send_notification_to_whitelist_recipient(
     mocker,
     sample_sms_sender,
 ):
+    # Something about this causes templates to get deleted
     service = sample_service()
     service.message_limit = 2
     service.restricted = service_restricted
@@ -961,6 +946,7 @@ def test_create_template_raises_invalid_request_when_content_too_large(
         }
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize('notification_type, send_to', [('sms', '6502532222'), ('email', 'sample@email.com')])
 def test_send_notification_uses_priority_queue_when_template_is_marked_as_priority(
     client,
@@ -971,6 +957,7 @@ def test_send_notification_uses_priority_queue_when_template_is_marked_as_priori
     send_to,
     sample_sms_sender,
 ):
+    # Something about this causes the api_keys table to get stuck in a deadlock
     template = sample_template(template_type=notification_type, process_type='priority')
     mocked = mocker.patch('app.celery.provider_tasks.deliver_{}.apply_async'.format(notification_type))
 
@@ -1001,6 +988,7 @@ def test_send_notification_uses_priority_queue_when_template_is_marked_as_priori
     assert result_queue['queue'] == 'priority-tasks'
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize('notification_type, send_to', [('sms', '6502532222'), ('email', 'sample@email.com')])
 def test_returns_a_429_limit_exceeded_if_rate_limit_exceeded(
     client,
@@ -1011,6 +999,7 @@ def test_returns_a_429_limit_exceeded_if_rate_limit_exceeded(
     send_to,
     sample_sms_sender,
 ):
+    # Something about this causes the api_keys table to get stuck in a deadlock
     template = sample_template(template_type=notification_type)
     persist_mock = mocker.patch('app.notifications.rest.persist_notification')
     deliver_mock = mocker.patch('app.notifications.rest.send_notification_to_queue')
@@ -1073,9 +1062,9 @@ def test_should_not_allow_international_number_on_sms_notification(
     assert error_json['message']['to'][0] == 'Cannot send to international mobile numbers'
 
 
+@pytest.mark.serial
 def test_should_allow_international_number_on_sms_notification(
     client,
-    notify_db_session,
     sample_api_key,
     sample_inbound_number,
     sample_service,
@@ -1083,6 +1072,7 @@ def test_should_allow_international_number_on_sms_notification(
     mocker,
     sample_sms_sender,
 ):
+    # Something about this causes templates to get deleted
     mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
 
     service = sample_service(service_permissions=SERVICE_PERMISSION_TYPES)
@@ -1102,12 +1092,6 @@ def test_should_allow_international_number_on_sms_notification(
     )
 
     assert response.status_code == 201
-
-    # Teardown
-    notification = notify_db_session.session.get(Notification, response.get_json()['data']['notification']['id'])
-    if notification:
-        notify_db_session.session.delete(notification)
-        notify_db_session.session.commit()
 
 
 def test_should_not_allow_sms_notifications_if_service_permission_not_set(

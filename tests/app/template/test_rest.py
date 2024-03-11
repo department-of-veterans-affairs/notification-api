@@ -304,6 +304,7 @@ def test_create_a_new_template_for_a_service_adds_postage_for_letters_only(
     assert template.postage == expected_postage
 
 
+@pytest.mark.serial
 def test_create_template_should_return_400_if_folder_is_for_a_different_service(client, sample_service):
     service = sample_service()
     service2 = sample_service()
@@ -331,6 +332,7 @@ def test_create_template_should_return_400_if_folder_is_for_a_different_service(
     assert response.get_json()['message'] == 'parent_folder_id not found'
 
 
+@pytest.mark.serial
 def test_create_template_should_return_400_if_folder_does_not_exist(client, sample_service):
     service = sample_service()
     data = {
