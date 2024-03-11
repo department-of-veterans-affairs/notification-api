@@ -85,15 +85,17 @@ COPY $TEST_FOLDER/ tests
 # Copy builder files - version must come after context COPY, importing to absolute location
 COPY --from=builder /.venv /.venv
 COPY --from=builder --chown=vanotify /app/version.py /app/app/version.py
-COPY --from=builder --chown=vanotify /usr/local/share/ca-certificates /usr/local/share/ca-certificates/
-COPY --from=builder --chown=vanotify /usr/share/ca-certificates /usr/share/ca-certificates/
 
 # Populate /etc/ssl/certs/ with symlinks to /usr/[local/]share/ca-certificates/ certs
-RUN apk add --no-cache ca-certificates bash build-base libcurl openssl-dev \
+RUN apk add --no-cache ca-certificates \
     && update-ca-certificates \
     && apk del --no-cache ca-certificates
 
-RUN apk add --no-cache build-base libcurl openssl-dev
+RUN apk add --no-cache build-base bash libcurl openssl-dev
+
+# Copy after updating ca-certificates
+COPY --from=builder --chown=vanotify /usr/local/share/ca-certificates /usr/local/share/ca-certificates/
+COPY --from=builder --chown=vanotify /usr/share/ca-certificates /usr/share/ca-certificates/
 
 USER vanotify
 
