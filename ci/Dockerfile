@@ -57,6 +57,7 @@ ARG FLASK_DEBUG
 ARG TEST_FOLDER="[none-if-not-testing]"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
+    REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
     # https://flask.palletsprojects.com/en/2.2.x/config/?highlight=flask_debug#DEBUG
     FLASK_DEBUG=$FLASK_DEBUG \
     PATH="/.venv/bin:$PATH" \
