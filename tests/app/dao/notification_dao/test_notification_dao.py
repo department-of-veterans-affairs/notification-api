@@ -775,8 +775,8 @@ def test_should_delete_notification_for_id(
 
 def test_should_delete_recipient_identifiers_if_notification_deleted(
     notify_db_session,
-    sample_template,
     sample_api_key,
+    sample_template,
     mocker,
 ):
     mocker.patch('app.notifications.process_notifications.accept_recipient_identifiers_enabled', return_value=True)
@@ -943,9 +943,9 @@ def test_dao_timeout_notifications_doesnt_affect_letters(
 
 
 def test_should_return_notifications_excluding_jobs_by_default(
+    sample_api_key,
     sample_template,
     sample_job,
-    sample_api_key,
     sample_notification,
 ):
     template = sample_template()
@@ -979,10 +979,10 @@ def test_should_not_count_pages_when_given_a_flag(sample_template, sample_notifi
 
 def test_get_notifications_created_by_api_or_csv_are_returned_correctly_excluding_test_key_notifications(
     notify_db_session,
+    sample_api_key,
     sample_service,
     sample_template,
     sample_job,
-    sample_api_key,
     sample_notification,
 ):
     service = sample_service()
@@ -1018,9 +1018,9 @@ def test_get_notifications_created_by_api_or_csv_are_returned_correctly_excludin
 
 def test_get_notifications_with_a_live_api_key_type(
     notify_db_session,
+    sample_api_key,
     sample_template,
     sample_job,
-    sample_api_key,
     sample_team_api_key,
     sample_test_api_key,
     sample_notification,
@@ -1059,9 +1059,9 @@ def test_get_notifications_with_a_live_api_key_type(
 
 
 def test_get_notifications_with_a_test_api_key_type(
+    sample_api_key,
     sample_template,
     sample_job,
-    sample_api_key,
     sample_team_api_key,
     sample_test_api_key,
     sample_notification,
@@ -1096,9 +1096,9 @@ def test_get_notifications_with_a_test_api_key_type(
 
 
 def test_get_notifications_with_a_team_api_key_type(
+    sample_api_key,
     sample_template,
     sample_job,
-    sample_api_key,
     sample_team_api_key,
     sample_test_api_key,
     sample_notification,
@@ -1134,9 +1134,9 @@ def test_get_notifications_with_a_team_api_key_type(
 
 def test_should_exclude_test_key_notifications_by_default(
     notify_db_session,
+    sample_api_key,
     sample_template,
     sample_job,
-    sample_api_key,
     sample_team_api_key,
     sample_test_api_key,
     sample_notification,
@@ -1792,7 +1792,11 @@ def test_dao_get_notification_history_by_reference_with_no_matches_raises_error(
 @pytest.mark.serial
 @pytest.mark.parametrize('notification_type', [LETTER_TYPE, EMAIL_TYPE, SMS_TYPE])
 def test_notifications_not_yet_sent(
-    sample_api_key, sample_service, sample_template, notification_type, sample_notification
+    sample_api_key,
+    sample_service,
+    sample_template,
+    notification_type,
+    sample_notification,
 ):
     # The notification cannot be older than this number of seconds.
     older_than = 4

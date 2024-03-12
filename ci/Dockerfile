@@ -18,29 +18,25 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Add poetry home location to path
 ENV PATH="$POETRY_HOME/bin:$PATH"
 
-COPY scripts/import-va-certs.sh .
+# Move repo certs to usr certs
 COPY certs/* /usr/local/share/ca-certificates/
-COPY .git .
-COPY Makefile .
-COPY app/version.py app/version.py
-COPY poetry.lock pyproject.toml /
+
+# Copy only necessary files for builder
+COPY .git Makefile scripts/import-va-certs.sh poetry.lock pyproject.toml /
 
 # Install dependencies
 RUN apk add --no-cache bash build-base git postgresql-dev g++ make libffi-dev libmagic libcurl python3-dev openssl-dev \
     curl-dev wget openssl
 
-RUN bash import-va-certs.sh
-
-# Generate the version file, app/version.py.  This overwrites the default file needed for local development.
-# The safe.directory modification eliminates the error, "fatal: detected dubious ownership in repository at '/app'".
-RUN make generate-version-file
+# Import all VA Certs not in the certs folder and make a version.py file
+RUN bash import-va-certs.sh && make generate-version-file
 
 # Arguments for this poetry install
 ARG POETRY_ARGS
 
 # Used in the final stage
 ARG FLASK_DEBUG=0
-ARG TEST_FOLDER
+ARG TEST_FOLDER="[none-if-not-testing]"
 
 # # RUN apk add --no-cache --virtual .build-deps gcc musl-dev rust cargo curl \
 RUN apk add --no-cache --virtual .build-deps cargo curl gcc musl-dev rust \
@@ -54,7 +50,7 @@ RUN apk add --no-cache --virtual .build-deps cargo curl gcc musl-dev rust \
 FROM python:3.10-alpine3.19
 
 ARG FLASK_DEBUG
-ARG TEST_FOLDER="[none-if-not-testing]"
+ARG TEST_FOLDER
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
@@ -67,7 +63,7 @@ WORKDIR /app
 
 RUN adduser -h /app -D vanotify
 
-# From context, importing relative to WORKDIR
+# From context and only what is necessary, importing relative to WORKDIR
 COPY app/ app
 COPY cd/ cd
 COPY migrations/ migrations

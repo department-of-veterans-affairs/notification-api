@@ -988,7 +988,7 @@ def sample_api_key(notify_db_session, sample_service):
 
 
 @pytest.fixture
-def sample_user_service_api_key(notify_db_session, sample_user, sample_service, sample_api_key):
+def sample_user_service_api_key(notify_db_session, sample_api_key, sample_user, sample_service):
     """
     Return a related user, service, and API key.  The user and API key are associated with the service.
     The user is not admin, and the API key is "normal" type.

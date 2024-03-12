@@ -41,31 +41,24 @@ def test_send_notification_to_service_users_persists_notifications_correctly(
 
 
 def test_send_notification_to_service_users_sends_to_queue(
-    notify_db_session,
+    notify_api,
     sample_notify_service_user_session,
     sample_service,
     sample_template,
     mocker,
 ):
-    notify_service, _ = sample_notify_service_user_session()
+    # Needs the Notify service to exist
+    sample_notify_service_user_session()
+
     send_mock = mocker.patch('app.service.sender.send_notification_to_queue')
 
     service = sample_service()
-    user = service.users[0]
+    service.users[0]
     template = sample_template(service=service, template_type=EMAIL_TYPE)
     send_notification_to_service_users(service_id=service.id, template_id=template.id)
 
     assert send_mock.called
     assert send_mock.call_count == 1
-
-    # Teardown
-    stmt = (
-        delete(Notification)
-        .where(Notification.service_id == notify_service.id)
-        .where(Notification.to == user.email_address)
-    )
-    notify_db_session.session.execute(stmt)
-    notify_db_session.session.commit()
 
 
 def test_send_notification_to_service_users_includes_user_fields_in_personalisation(
@@ -74,7 +67,8 @@ def test_send_notification_to_service_users_includes_user_fields_in_personalisat
     sample_template,
     mocker,
 ):
-    sample_notify_service_user_session()  # Needs the Notify service to exist
+    # Needs the Notify service to exist
+    sample_notify_service_user_session()
     persist_mock = mocker.patch('app.service.sender.persist_notification')
     mocker.patch('app.service.sender.send_notification_to_queue')
 

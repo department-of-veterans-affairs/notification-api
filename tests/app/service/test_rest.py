@@ -1015,7 +1015,11 @@ def test_default_permissions_are_added_for_user_service(notify_api, sample_user)
 
 # This test is just here verify get_service_and_api_key_history that is a temp solution
 # until proper ui is sorted out on admin app
-def test_get_service_and_api_key_history(notify_api, sample_service, sample_api_key):
+def test_get_service_and_api_key_history(
+    notify_api,
+    sample_api_key,
+    sample_service,
+):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             service = sample_service()
@@ -1373,7 +1377,10 @@ def test_get_detailed_services_groups_by_service(notify_db_session, sample_api_k
 
 @pytest.mark.skip(reason='Mislabelled for route removal, fails when unskipped')
 def test_get_detailed_services_includes_services_with_no_notifications(
-    notify_db_session, sample_api_key, sample_service, sample_template
+    notify_db_session,
+    sample_api_key,
+    sample_service,
+    sample_template,
 ):
     from app.service.rest import get_detailed_services
 
@@ -1382,7 +1389,7 @@ def test_get_detailed_services_includes_services_with_no_notifications(
     api_key_0 = sample_api_key(service=service_0)
 
     service_0_template = sample_template(service=service_0)
-    notification = create_notification(service_0_template, api_key=api_key_0)
+    create_notification(service_0_template, api_key=api_key_0)
 
     data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
     data = sorted(data, key=lambda x: x['name'])
@@ -1401,10 +1408,6 @@ def test_get_detailed_services_includes_services_with_no_notifications(
         LETTER_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
     }
 
-    # Teardown
-    notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
-
 
 @pytest.mark.skip(reason='Mislabelled for route removal, fails when unskipped')
 # This test assumes the local timezone is EST
@@ -1413,12 +1416,11 @@ def test_get_detailed_services_only_includes_todays_notifications(notify_db_sess
 
     api_key = sample_api_key()
     template = sample_template(service=api_key.service)
-    notifications = [
-        create_notification(template, api_key=api_key, created_at=datetime(2015, 10, 10, 3, 59)),
-        create_notification(template, api_key=api_key, created_at=datetime(2015, 10, 10, 4, 0)),
-        create_notification(template, api_key=api_key, created_at=datetime(2015, 10, 10, 12, 0)),
-        create_notification(template, api_key=api_key, created_at=datetime(2015, 10, 11, 3, 0)),
-    ]
+
+    create_notification(template, api_key=api_key, created_at=datetime(2015, 10, 10, 3, 59))
+    create_notification(template, api_key=api_key, created_at=datetime(2015, 10, 10, 4, 0))
+    create_notification(template, api_key=api_key, created_at=datetime(2015, 10, 10, 12, 0))
+    create_notification(template, api_key=api_key, created_at=datetime(2015, 10, 11, 3, 0))
 
     with freeze_time('2015-10-10T12:00:00'):
         data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
@@ -1431,17 +1433,16 @@ def test_get_detailed_services_only_includes_todays_notifications(notify_db_sess
         LETTER_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
     }
 
-    # Teardown
-    for notification in notifications:
-        notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
-
 
 @pytest.mark.skip(reason='Mislabelled for route removal, fails when unskipped')
 @pytest.mark.parametrize('start_date_delta, end_date_delta', [(2, 1), (3, 2), (1, 0)])
 @freeze_time('2017-03-28T12:00:00')
 def test_get_detailed_services_for_date_range(
-    notify_db_session, sample_api_key, sample_template, start_date_delta, end_date_delta
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+    start_date_delta,
+    end_date_delta,
 ):
     from app.service.rest import get_detailed_services
 

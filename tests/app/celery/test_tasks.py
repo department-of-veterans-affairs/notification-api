@@ -855,6 +855,7 @@ def test_should_use_email_template_and_persist(
     )
 
 
+@pytest.mark.serial
 def test_save_email_should_use_template_version_from_job_not_latest(
     notify_db_session,
     sample_template,
@@ -877,6 +878,8 @@ def test_save_email_should_use_template_version_from_job_not_latest(
     now = datetime.utcnow()
 
     notification_id = uuid4()
+
+    # multi-worker tends to leave this in 'technical-failure' rather than 'created' status
     save_email(
         template.service_id,
         notification_id,
@@ -930,9 +933,7 @@ def test_should_use_email_template_subject_placeholders(
     assert persisted_notification.personalisation == {'name': 'Jo'}
     assert not persisted_notification.reference
     assert persisted_notification.notification_type == EMAIL_TYPE
-    provider_tasks.deliver_email.apply_async.assert_called_once_with(
-        [str(persisted_notification.id)], queue='send-email-tasks'
-    )
+    provider_tasks.deliver_email.apply_async.assert_called_once_with([str(notification_id)], queue='send-email-tasks')
 
 
 def test_save_email_uses_the_reply_to_text_when_provided(
@@ -1266,10 +1267,10 @@ def test_process_incomplete_job_sms(mocker, notify_db_session, sample_template, 
 def test_process_incomplete_job_with_notifications_all_sent(
     notify_db_session,
     mocker,
+    sample_api_key,
     sample_template,
     sample_job,
     sample_notification,
-    sample_api_key,
 ):
     mocker.patch('app.celery.tasks.s3.get_job_from_s3', return_value=load_example_csv('multiple_sms'))
     mock_save_sms = mocker.patch('app.celery.tasks.save_sms.apply_async')
@@ -1303,10 +1304,10 @@ def test_process_incomplete_job_with_notifications_all_sent(
 def test_process_incomplete_jobs_sms(
     mocker,
     notify_db_session,
+    sample_api_key,
     sample_template,
     sample_job,
     sample_notification,
-    sample_api_key,
 ):
     mocker.patch('app.celery.tasks.s3.get_job_from_s3', return_value=load_example_csv('multiple_sms'))
     mock_save_sms = mocker.patch('app.celery.tasks.save_sms.apply_async')
@@ -1457,10 +1458,15 @@ def test_process_incomplete_job_letter(notify_db_session, mocker, sample_templat
     assert mock_letter_saver.call_count == 8
 
 
+@pytest.mark.serial
 @freeze_time('2017-01-01')
 def test_process_incomplete_jobs_sets_status_to_in_progress_and_resets_processing_started_time(
-    mocker, notify_db_session, sample_template, sample_job
+    mocker,
+    notify_db_session,
+    sample_template,
+    sample_job,
 ):
+    # Intermittent deadlocks with multi-worker
     mock_process_incomplete_job = mocker.patch('app.celery.tasks.process_incomplete_job')
     template = sample_template()
 

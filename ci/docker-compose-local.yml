@@ -3,15 +3,15 @@ services:
   app:
     build:
       context: ..
-      dockerfile: &dockerfile ci/Dockerfile
+      dockerfile: &vanotify_dockerfile ci/Dockerfile
       args:
         POETRY_ARGS: --with static_tools
-    image: &notify_image notification_api
-    volumes: &notify_volumes
+    image: &vanotify_image notification_api
+    volumes: &vanotify_volumes
       - "../:/app:rw"
-    ports: &notify_ports
+    ports: &vanotify_ports
       - 6011:6011
-    env_file:
+    env_file: &vanotify_env_file
       - .local.env
     depends_on:
       - migrations
@@ -30,11 +30,9 @@ services:
   migrations:
     build:
       context: ..
-    image: *notify_image
-    env_file:
-      - .local.env
-    volumes:
-      - "../:/app:ro"
+    image: *vanotify_image
+    env_file: *vanotify_env_file
+    volumes: *vanotify_volumes
     depends_on:
       - db
     command: ["bash", "-c", "flask db upgrade"]
@@ -44,8 +42,7 @@ services:
     container_name: localstack
     ports:
       - "4566:4566"
-    env_file:
-      - .local.env
+    env_file: *vanotify_env_file
     environment:
       - SERVICES=ec2,iam,lambda,s3,ses,sqs,sts
       - DEFAULT_REGION=us-east-2
@@ -56,10 +53,9 @@ services:
       - './localstack_setup.sh:/docker-entrypoint-initaws.d/setup.sh'
 
   celery:
-    image: *notify_image
-    volumes: *notify_volumes
-    env_file:
-      - .local.env
+    image: *vanotify_image
+    volumes: *vanotify_volumes
+    env_file: *vanotify_env_file
     command: >
       sh -c "/app/scripts/wait_for_it.sh localstack:4566 --timeout=30 -- /app/scripts/run_celery.sh"
     depends_on:

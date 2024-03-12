@@ -18,7 +18,7 @@ from app.va.identifier import IdentifierType
 from flask import current_app
 from freezegun import freeze_time
 import pytest
-from sqlalchemy import delete, select, update
+from sqlalchemy import select, update
 
 
 def create_test_data(

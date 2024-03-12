@@ -33,7 +33,10 @@ def test_get_total_notifications_filters_on_date_within_date_range(sample_templa
 @pytest.mark.serial
 @freeze_time('2016-10-18T10:00')
 def test_get_total_notifications_only_counts_api_notifications(
-    sample_template, sample_notification, sample_job, sample_api_key
+    sample_api_key,
+    sample_template,
+    sample_notification,
+    sample_job,
 ):
     """
     The WHERE clause of the underlying query:

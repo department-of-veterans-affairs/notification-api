@@ -569,7 +569,14 @@ def test_send_notification_uses_priority_queue_when_template_is_marked_as_priori
     [(SMS_TYPE, 'phone_number', '6502532222'), (EMAIL_TYPE, 'email_address', 'sample@email.com')],
 )
 def test_returns_a_429_limit_exceeded_if_rate_limit_exceeded(
-    client, sample_api_key, sample_service, sample_template, mocker, notification_type, key_send_to, send_to
+    client,
+    sample_api_key,
+    sample_service,
+    sample_template,
+    mocker,
+    notification_type,
+    key_send_to,
+    send_to,
 ):
     template = sample_template(service=sample_service(), template_type=notification_type)
     persist_mock = mocker.patch('app.v2.notifications.post_notifications.persist_notification')
@@ -683,7 +690,11 @@ def test_post_sms_notification_returns_400_if_not_allowed_to_send_notification(
 
 @pytest.mark.parametrize('restricted', [True, False])
 def test_post_sms_notification_returns_400_if_number_not_whitelisted(
-    client, sample_api_key, sample_service, sample_template, restricted
+    client,
+    sample_api_key,
+    sample_service,
+    sample_template,
+    restricted,
 ):
     service = sample_service(restricted=restricted, service_permissions=[SMS_TYPE, INTERNATIONAL_SMS_TYPE])
     template = sample_template(service=service)
@@ -795,12 +806,6 @@ def test_post_notification_with_scheduled_for(
     stmt = delete(ScheduledNotification).where(ScheduledNotification.id == scheduled_notification.id)
     notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
-    # outer_stmt = select(Notification).where(Notification.service_id == template.service_id)
-    # for notification in notify_db_session.session.scalars(outer_stmt).all():
-    #     notify_db_session.session.execute(
-    #         delete(ScheduledNotification).where(ScheduledNotification.notification_id == notification.id)
-    #     )
-    # notify_db_session.session.commit()
 
 
 @pytest.mark.parametrize(
@@ -1077,7 +1082,13 @@ class TestPostNotificationWithAttachment:
         }
 
     def test_attachment_upload_unsupported_mimetype(
-        self, client, sample_api_key, sample_service, sample_template, attachment_store_mock, validate_mimetype_mock
+        self,
+        client,
+        sample_api_key,
+        sample_service,
+        sample_template,
+        attachment_store_mock,
+        validate_mimetype_mock,
     ):
         service = sample_service(service_permissions=[EMAIL_TYPE, UPLOAD_DOCUMENT])
         template = sample_template(service=service, template_type=EMAIL_TYPE, content='See attached file')
@@ -1448,7 +1459,10 @@ def test_should_post_notification_successfully_with_recipient_identifier_and_con
 
 
 def test_post_notification_returns_501_when_recipient_identifiers_present_and_feature_flag_disabled(
-    client, mocker, sample_api_key, sample_template
+    client,
+    mocker,
+    sample_api_key,
+    sample_template,
 ):
     api_key = sample_api_key()
     template = sample_template(service=api_key.service, template_type=EMAIL_TYPE)

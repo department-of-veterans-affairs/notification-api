@@ -102,8 +102,8 @@ def test_should_not_allow_duplicate_key_names_per_service(sample_api_key, fake_u
 
 def test_save_api_key_can_create_key_with_same_name_if_other_is_expired(
     notify_db_session,
-    sample_service,
     sample_api_key,
+    sample_service,
 ):
     service = sample_service()
 

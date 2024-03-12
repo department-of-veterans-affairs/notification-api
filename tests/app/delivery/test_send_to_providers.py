@@ -134,7 +134,11 @@ def test_should_send_personalised_template_to_correct_sms_provider_and_persist(
 
 
 def test_send_email_to_provider_should_compute_source_email_address(
-    sample_api_key, sample_notification, sample_template, mock_email_client, mock_source_email_address
+    sample_api_key,
+    sample_notification,
+    sample_template,
+    mock_email_client,
+    mock_source_email_address,
 ):
     template = sample_template(
         template_type=EMAIL_TYPE,
@@ -202,8 +206,8 @@ def test_should_send_personalised_template_to_correct_email_provider_and_persist
 
 def test_should_not_send_email_message_when_service_is_inactive_notification_is_in_tech_failure(
     notify_db_session,
-    sample_template,
     sample_api_key,
+    sample_template,
     sample_notification,
     mock_email_client,
 ):
@@ -359,7 +363,10 @@ def test_should_have_sent_status_if_fake_callback_function_fails(
 
 
 def test_should_not_send_to_provider_when_status_is_not_created(
-    sample_api_key, sample_notification, sample_template, mocker
+    sample_api_key,
+    sample_notification,
+    sample_template,
+    mocker,
 ):
     template = sample_template()
     api_key = sample_api_key(service=template.service)

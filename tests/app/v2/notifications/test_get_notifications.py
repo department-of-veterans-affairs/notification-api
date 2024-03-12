@@ -555,8 +555,8 @@ def test_get_all_notifications_filter_by_single_status(
 def test_get_all_notifications_filter_by_status_invalid_status(
     client,
     notify_db_session,
-    sample_notification,
     sample_api_key,
+    sample_notification,
     sample_template,
 ):
     api_key = sample_api_key()
