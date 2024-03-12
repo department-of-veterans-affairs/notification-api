@@ -19,7 +19,7 @@ from app.dao.provider_details_dao import (  # noqa F401
 )
 from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import NotificationTechnicalFailureException, InvalidProviderException
-from app.feature_flags import is_provider_enabled, is_gapixel_enabled, is_feature_enabled, FeatureFlag
+from app.feature_flags import is_gapixel_enabled, is_feature_enabled, FeatureFlag
 from app.models import (
     SMS_TYPE,
     KEY_TYPE_TEST,
@@ -176,7 +176,7 @@ def update_notification_to_sending(
 
 # TODO: remove this when provider strategy implemented
 def should_use_provider(provider):
-    return provider.active and is_provider_enabled(current_app, provider.identifier)
+    return provider.active
 
 
 def load_provider(provider_id: str) -> ProviderDetails:

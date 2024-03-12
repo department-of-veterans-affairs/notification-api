@@ -2,9 +2,6 @@
 # Alpine Linux 3.19 is supported until 1 November 2025
 FROM python:3.10-alpine3.19 as builder
 
-ARG GIT_SHA=""
-
-
 # REQUESTS_CA_BUNDLE is for the "requests" Python package.
 #   https://requests.readthedocs.io/en/latest/user/advanced/#ssl-cert-verification
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -12,8 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PORT=6011 \
     POETRY_HOME="/opt/poetry" \
     POETRY_VIRTUALENVS_IN_PROJECT=1 \
-    POETRY_NO_INTERACTION=1 \
-    GIT_SHA=${GIT_SHA}
+    POETRY_NO_INTERACTION=1
 
 # Add poetry home location to path
 ENV PATH="$POETRY_HOME/bin:$PATH"

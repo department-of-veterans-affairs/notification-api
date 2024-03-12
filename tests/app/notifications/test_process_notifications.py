@@ -21,7 +21,6 @@ from app.models import (
     Template,
     LETTER_TYPE,
     NOTIFICATION_CREATED,
-    SERVICE_PERMISSION_TYPES,
     EMAIL_TYPE,
     SMS_TYPE,
     RecipientIdentifier,
@@ -41,11 +40,6 @@ from app.va.identifier import IdentifierType
 
 
 from tests.app.factories.feature_flag import mock_feature_flag
-
-
-# @pytest.fixture(autouse=True)
-# def use_client(client):
-#     pass
 
 
 def test_create_content_for_notification_passes(

@@ -244,7 +244,12 @@ def test_authentication_returns_error_when_service_doesnt_exit(client, sample_us
     assert error_message['message'] == 'Invalid token: service not found'
 
 
-def test_authentication_returns_error_when_service_inactive(client, sample_api_key, sample_user, sample_service):
+def test_authentication_returns_error_when_service_inactive(
+    client,
+    sample_api_key,
+    sample_user,
+    sample_service,
+):
     user = sample_user()
     service = sample_service(user=user, active=False)
     assert service.created_by == user

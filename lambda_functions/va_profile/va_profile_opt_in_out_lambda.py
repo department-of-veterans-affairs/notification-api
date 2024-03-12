@@ -39,7 +39,7 @@ logger.setLevel(logging.DEBUG)
 
 ALB_CERTIFICATE_ARN = os.getenv('ALB_CERTIFICATE_ARN')
 ALB_PRIVATE_KEY_PATH = os.getenv('ALB_PRIVATE_KEY_PATH')
-CA_PATH = '/opt/VA_CAs/'  # CA_PATH = os.getenv('CA_PATH', '/opt/VA_CAs/')
+CA_PATH = '/opt/VA_CAs/'
 NOTIFY_ENVIRONMENT = os.getenv('NOTIFY_ENVIRONMENT')
 OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s);"""
 VA_PROFILE_DOMAIN = os.getenv('VA_PROFILE_DOMAIN')
