@@ -642,10 +642,7 @@ def service_cleanup(  # noqa: C901
 
         # Clear all permissions
         session.execute(delete(ServicePermission).where(ServicePermission.service_id == service_id))
-
-        # Clear all permissions
         session.execute(delete(Permission).where(Permission.service_id == service_id))
-        session.execute(delete(ServicePermission).where(ServicePermission.service_id == service_id))
 
         # Clear all service_sms_senders
         session.execute(delete(ServiceSmsSender).where(ServiceSmsSender.service_id == service_id))
