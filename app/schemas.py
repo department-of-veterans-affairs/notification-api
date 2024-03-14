@@ -110,6 +110,7 @@ class BaseSchema(ma.SQLAlchemyAutoSchema):
     def make_instance(
         self,
         data,
+        **kwargs,
     ):
         """
         Deserialize data to an instance of the model. Update an existing row
@@ -117,7 +118,6 @@ class BaseSchema(ma.SQLAlchemyAutoSchema):
         else create a new row.
         :param data: Data to deserialize.
         """
-
         if self.load_json:
             return data
         return super(BaseSchema, self).make_instance(data)
@@ -125,23 +125,23 @@ class BaseSchema(ma.SQLAlchemyAutoSchema):
 
 class UserSchema(BaseSchema):
     permissions = fields.Method('user_permissions', dump_only=True)
-    password_changed_at = field_for(User, 'password_changed_at', format=DATE_FORMAT)
-    created_at = field_for(User, 'created_at', format=DATE_FORMAT)
-    auth_type = field_for(User, 'auth_type')
+    # password_changed_at = field_for(User, 'password_changed_at', format=DATE_FORMAT)
+    # created_at = field_for(User, 'created_at', format=DATE_FORMAT)
+    # auth_type = field_for(User, 'auth_type')
     identity_provider_user_id = fields.String(required=False)
 
     class Meta:
         model = User
-        exclude = (
-            'updated_at',
-            'created_at',
-            'user_to_service',
-            'user_to_organisation',
-            '_password',
-            'verify_codes' '_identity_provider_user_id',
-        )
-        strict = True
-        load_instance = True
+        # exclude = (
+        #     'updated_at',
+        #     'created_at',
+        #     'user_to_service',
+        #     'user_to_organisation',
+        #     '_password',
+        #     'verify_codes' '_identity_provider_user_id',
+        # )
+        # strict = True
+        # load_instance = True
 
     def user_permissions(
         self,
