@@ -59,7 +59,7 @@ class User(db.Model):
     )
 
     services = db.relationship('Service', secondary='user_to_service', backref='users')
-    organisations = db.relationship('Organisation', secondary='user_to_organisation', backref='users')
+    # organisations = db.relationship('Organisation', secondary='user_to_organisation', backref='users')
 
     @property
     def password(self):

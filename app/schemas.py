@@ -110,6 +110,7 @@ class BaseSchema(ma.SQLAlchemyAutoSchema):
     def make_instance(
         self,
         data,
+        **kwargs,
     ):
         """
         Deserialize data to an instance of the model. Update an existing row
@@ -117,14 +118,13 @@ class BaseSchema(ma.SQLAlchemyAutoSchema):
         else create a new row.
         :param data: Data to deserialize.
         """
-
         if self.load_json:
             return data
         return super(BaseSchema, self).make_instance(data)
 
 
 class UserSchema(BaseSchema):
-    permissions = fields.Method('user_permissions', dump_only=True)
+    # permissions = fields.Method('user_permissions', dump_only=True)
     password_changed_at = field_for(User, 'password_changed_at', format=DATE_FORMAT)
     created_at = field_for(User, 'created_at', format=DATE_FORMAT)
     auth_type = field_for(User, 'auth_type')
@@ -132,14 +132,14 @@ class UserSchema(BaseSchema):
 
     class Meta:
         model = User
-        exclude = (
-            'updated_at',
-            'created_at',
-            'user_to_service',
-            'user_to_organisation',
-            '_password',
-            'verify_codes' '_identity_provider_user_id',
-        )
+        # exclude = (
+        #     'updated_at',
+        #     'created_at',
+        #     'user_to_service',
+        #     'user_to_organisation',
+        #     '_password',
+        #     'verify_codes' '_identity_provider_user_id',
+        # )
         strict = True
         load_instance = True
 
@@ -186,25 +186,25 @@ class UserSchema(BaseSchema):
 
 
 class UserUpdateAttributeSchema(BaseSchema):
-    auth_type = field_for(User, 'auth_type')
+    # auth_type = field_for(User, 'auth_type')
     identity_provider_user_id = fields.String(required=False, allow_none=True)
 
     class Meta:
         model = User
-        exclude = (
-            'id',
-            'updated_at',
-            'created_at',
-            'user_to_service',
-            '_password',
-            'verify_codes',
-            'logged_in_at',
-            'password_changed_at',
-            'failed_login_count',
-            'state',
-            'platform_admin',
-            '_identity_provider_user_id',
-        )
+        # exclude = (
+        #     'id',
+        #     'updated_at',
+        #     'created_at',
+        #     'user_to_service',
+        #     '_password',
+        #     'verify_codes',
+        #     'logged_in_at',
+        #     'password_changed_at',
+        #     'failed_login_count',
+        #     'state',
+        #     'platform_admin',
+        #     '_identity_provider_user_id',
+        # )
         strict = True
 
     @validates('name')
@@ -269,7 +269,7 @@ class ProviderDetailsSchema(BaseSchema):
 
     class Meta:
         model = models.ProviderDetails
-        exclude = ('provider_rates', 'provider_stats')
+        # exclude = ('provider_rates', 'provider_stats')
         strict = True
 
 
@@ -278,7 +278,7 @@ class ProviderDetailsHistorySchema(BaseSchema):
 
     class Meta:
         model = models.ProviderDetailsHistory
-        exclude = ('provider_rates', 'provider_stats')
+        # exclude = ('provider_rates', 'provider_stats')
         strict = True
 
 
@@ -287,7 +287,7 @@ class ServiceSchema(BaseSchema):
     organisation_type = field_for(models.Service, 'organisation_type')
     letter_logo_filename = None
     permissions = fields.Method('service_permissions')
-    email_branding = field_for(models.Service, 'email_branding')
+    # email_branding = field_for(models.Service, 'email_branding')
     organisation = field_for(models.Service, 'organisation')
     override_flag = False
     letter_contact_block = fields.Method(serialize='get_letter_contact')
@@ -310,24 +310,24 @@ class ServiceSchema(BaseSchema):
     class Meta:
         model = models.Service
         dump_only = ['letter_contact_block']
-        exclude = (
-            'updated_at',
-            'created_at',
-            'api_keys',
-            'templates',
-            'jobs',
-            'old_id',
-            'template_statistics',
-            'service_provider_stats',
-            'service_notification_stats',
-            'service_sms_senders',
-            'reply_to_email_addresses',
-            'letter_contacts',
-            'complaints',
-            'email_provider',
-            'sms_provider',
-            'inbound_sms',
-        )
+        # exclude = (
+        #     'updated_at',
+        #     'created_at',
+        #     'api_keys',
+        #     'templates',
+        #     'jobs',
+        #     'old_id',
+        #     'template_statistics',
+        #     'service_provider_stats',
+        #     'service_notification_stats',
+        #     'service_sms_senders',
+        #     'reply_to_email_addresses',
+        #     'letter_contacts',
+        #     'complaints',
+        #     'email_provider',
+        #     'sms_provider',
+        #     'inbound_sms',
+        # )
         strict = True
         load_instance = True
         include_relationships = True
@@ -453,30 +453,30 @@ class DetailedServiceSchema(BaseSchema):
 
     class Meta:
         model = models.Service
-        exclude = (
-            'api_keys',
-            'templates',
-            'users',
-            'created_by',
-            'jobs',
-            'template_statistics',
-            'service_provider_stats',
-            'service_notification_stats',
-            'email_branding',
-            'service_sms_senders',
-            'monthly_billing',
-            'reply_to_email_addresses',
-            'letter_contact_block',
-            'message_limit',
-            'email_from',
-            'inbound_api',
-            'whitelist',
-            'reply_to_email_address',
-            'sms_sender',
-            'permissions',
-            'inbound_number',
-            'inbound_sms',
-        )
+        # exclude = (
+        #     'api_keys',
+        #     'templates',
+        #     'users',
+        #     'created_by',
+        #     'jobs',
+        #     'template_statistics',
+        #     'service_provider_stats',
+        #     'service_notification_stats',
+        #     'email_branding',
+        #     'service_sms_senders',
+        #     'monthly_billing',
+        #     'reply_to_email_addresses',
+        #     'letter_contact_block',
+        #     'message_limit',
+        #     'email_from',
+        #     'inbound_api',
+        #     'whitelist',
+        #     'reply_to_email_address',
+        #     'sms_sender',
+        #     'permissions',
+        #     'inbound_number',
+        #     'inbound_sms',
+        # )
 
 
 class NotificationModelSchema(BaseSchema):
@@ -484,13 +484,13 @@ class NotificationModelSchema(BaseSchema):
         model = models.Notification
         load_instance = True
         strict = True
-        exclude = (
-            '_personalisation',
-            'job',
-            'service',
-            'template',
-            'api_key',
-        )
+        # exclude = (
+        #     '_personalisation',
+        #     'job',
+        #     'service',
+        #     'template',
+        #     'api_key',
+        # )
 
     status = fields.String(required=False)
 
@@ -515,7 +515,7 @@ class BaseTemplateSchema(BaseSchema):
 
     class Meta:
         model = models.Template
-        exclude = ('service_id', 'jobs', 'service_letter_contact_id', 'provider')
+        # exclude = ('service_id', 'jobs', 'service_letter_contact_id', 'provider')
         strict = True
         include_relationships = True
         load_instance = True
@@ -587,7 +587,7 @@ class ApiKeySchema(BaseSchema):
 
     class Meta:
         model = models.ApiKey
-        exclude = ('service', '_secret')
+        # exclude = ('service', '_secret')
         strict = True
         load_instance = True
 
@@ -615,7 +615,7 @@ class JobSchema(BaseSchema):
 
     class Meta:
         model = models.Job
-        exclude = ('notifications', 'notifications_sent', 'notifications_delivered', 'notifications_failed')
+        # exclude = ('notifications', 'notifications_sent', 'notifications_delivered', 'notifications_failed')
         strict = True
 
 
@@ -688,7 +688,7 @@ class NotificationWithTemplateSchema(BaseSchema):
     class Meta:
         model = models.Notification
         strict = True
-        exclude = ('_personalisation', 'scheduled_notification')
+        # exclude = ('_personalisation', 'scheduled_notification')
 
     template = fields.Nested(
         TemplateSchema,

@@ -11,7 +11,7 @@ from app.encryption import (
     check_hash,
     hashpw,
 )
-from app.history_meta import Versioned
+from app.history_meta import Versioned, reg_mapper
 from app.model import User, EMAIL_AUTH_TYPE
 from app.va.identifier import IdentifierType
 from flask import url_for, current_app
@@ -105,21 +105,35 @@ class ServiceUser(db.Model):
 
 user_to_organisation = db.Table(
     'user_to_organisation',
-    db.Model.metadata,
-    db.Column('user_id', UUID(as_uuid=True), db.ForeignKey('users.id')),
-    db.Column('organisation_id', UUID(as_uuid=True), db.ForeignKey('organisation.id')),
+    reg_mapper.metadata,
+    db.Column('user_id', UUID(as_uuid=True), db.ForeignKey('users.id'), primary_key=True),
+    db.Column('organisation_id', UUID(as_uuid=True), db.ForeignKey('organisation.id'), primary_key=True),
     UniqueConstraint('user_id', 'organisation_id', name='uix_user_to_organisation'),
 )
 
+
+class UserToOrganisation:
+    pass
+
+
+reg_mapper.map_imperatively(UserToOrganisation, user_to_organisation)
+
 user_folder_permissions = db.Table(
     'user_folder_permissions',
-    db.Model.metadata,
+    reg_mapper.metadata,
     db.Column('user_id', UUID(as_uuid=True), primary_key=True),
     db.Column('template_folder_id', UUID(as_uuid=True), db.ForeignKey('template_folder.id'), primary_key=True),
     db.Column('service_id', UUID(as_uuid=True), primary_key=True),
     db.ForeignKeyConstraint(['user_id', 'service_id'], ['user_to_service.user_id', 'user_to_service.service_id']),
     db.ForeignKeyConstraint(['template_folder_id', 'service_id'], ['template_folder.id', 'template_folder.service_id']),
 )
+
+
+class UserFolderPermissions:
+    pass
+
+
+reg_mapper.map_imperatively(UserFolderPermissions, user_folder_permissions)
 
 BRANDING_GOVUK = 'govuk'  # Deprecated outside migrations
 BRANDING_ORG = 'org'
@@ -160,11 +174,18 @@ class EmailBranding(db.Model):
 
 service_email_branding = db.Table(
     'service_email_branding',
-    db.Model.metadata,
+    reg_mapper.metadata,
     # service_id is a primary key as you can only have one email branding per service
     db.Column('service_id', UUID(as_uuid=True), db.ForeignKey('services.id'), primary_key=True, nullable=False),
     db.Column('email_branding_id', UUID(as_uuid=True), db.ForeignKey('email_branding.id'), nullable=False),
 )
+
+
+class ServiceEmailBranding:
+    pass
+
+
+reg_mapper.map_imperatively(ServiceEmailBranding, service_email_branding)
 
 
 INTERNATIONAL_SMS_TYPE = 'international_sms'
@@ -315,7 +336,7 @@ class ProviderDetails(db.Model):
     supports_international = db.Column(db.Boolean, nullable=False, default=False)
 
 
-class Service(db.Model, Versioned):
+class Service(db.Model):
     __tablename__ = 'services'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -358,9 +379,9 @@ class Service(db.Model, Versioned):
 
     p2p_enabled = db.Column(db.Boolean, nullable=True, default=False)
 
-    email_branding = db.relationship(
-        'EmailBranding', secondary=service_email_branding, uselist=False, backref=db.backref('services', lazy='dynamic')
-    )
+    # email_branding = db.relationship(
+    #     'EmailBranding', secondary=service_email_branding, uselist=False, backref=db.backref('services', lazy='dynamic')
+    # )
 
     @classmethod
     def from_json(
@@ -649,7 +670,7 @@ class ServiceWhitelist(db.Model):
         return 'Recipient {} of type: {}'.format(self.recipient, self.recipient_type)
 
 
-class ServiceCallback(db.Model, Versioned):
+class ServiceCallback(db.Model):
     __tablename__ = 'service_callback'
 
     def __init__(
@@ -720,7 +741,7 @@ class ServiceCallbackChannel(db.Model):
     channel = db.Column(db.String, primary_key=True)
 
 
-class ApiKey(db.Model, Versioned):
+class ApiKey(db.Model):
     __tablename__ = 'api_keys'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -780,13 +801,13 @@ class TemplateFolder(db.Model):
 
     service = db.relationship('Service', backref='all_template_folders')
     parent = db.relationship('TemplateFolder', remote_side=[id], backref='subfolders')
-    users = db.relationship(
-        'ServiceUser',
-        uselist=True,
-        backref=db.backref('folders', foreign_keys='user_folder_permissions.c.template_folder_id'),
-        secondary='user_folder_permissions',
-        primaryjoin='TemplateFolder.id == user_folder_permissions.c.template_folder_id',
-    )
+    # users = db.relationship(
+    #     'ServiceUser',
+    #     uselist=True,
+    #     backref=db.backref('folders', foreign_keys='user_folder_permissions.c.template_folder_id'),
+    #     secondary='user_folder_permissions',
+    #     primaryjoin='TemplateFolder.id == user_folder_permissions.c.template_folder_id',
+    # )
 
     __table_args__ = (UniqueConstraint('id', 'service_id', name='ix_id_service_id'), {})
 
@@ -818,11 +839,18 @@ class TemplateFolder(db.Model):
 
 template_folder_map = db.Table(
     'template_folder_map',
-    db.Model.metadata,
+    reg_mapper.metadata,
     # template_id is a primary key as a template can only belong in one folder
     db.Column('template_id', UUID(as_uuid=True), db.ForeignKey('templates.id'), primary_key=True, nullable=False),
     db.Column('template_folder_id', UUID(as_uuid=True), db.ForeignKey('template_folder.id'), nullable=False),
 )
+
+
+class TemplateFolderMap:
+    pass
+
+
+reg_mapper.map_imperatively(TemplateFolderMap, template_folder_map)
 
 PRECOMPILED_TEMPLATE_NAME = 'Pre-compiled PDF'
 
@@ -993,14 +1021,14 @@ class Template(TemplateBase):
     service = db.relationship('Service', backref='templates')
     version = db.Column(db.Integer, default=0, nullable=False)
 
-    folder = db.relationship(
-        'TemplateFolder',
-        secondary=template_folder_map,
-        uselist=False,
-        # eagerly load the folder whenever the template object is fetched
-        lazy='joined',
-        backref=db.backref('templates'),
-    )
+    # folder = db.relationship(
+    #     'TemplateFolder',
+    #     secondary=template_folder_map,
+    #     uselist=False,
+    #     # eagerly load the folder whenever the template object is fetched
+    #     lazy='joined',
+    #     backref=db.backref('templates'),
+    # )
 
     def get_link(self):
         # TODO: use "/v2/" route once available
