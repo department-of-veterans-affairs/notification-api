@@ -61,7 +61,7 @@ We currently do not:
 
 **Rebuild `notification_api` whenever Dockerfile or poetry.lock changes.**
 
-The associated container will have your local notification-api/ directory mounted in read-write mode, and Flask will run in development mode.  Changes you make to the code should trigger Flask to restart on the container. The volume can be commented out in `ci/docker-compose.local.yml`, but you will have to also comment out the `ENTRYPOINT` because `scripts/save_certificate.sh` saves data to the filesystem.
+The associated container will have your local notification-api/ directory mounted in read-write mode, and Flask will run in development mode.  Changes you make to the code should trigger Flask to restart on the container. The volume specified in `ci/docker-compose-local.yml` allows the container to read and write from your local file system. If you wish to isolate the built container from your filesystem simply comment out the volume, but you will have to also comment out the `ENTRYPOINT` because `scripts/save_certificate.sh` saves data to the filesystem. This can be useful if working on the Dockercontainer, to verify the expected data is in the expected spot when deployed to a non-local environment.
 
 ### Run the local Docker containers
 
