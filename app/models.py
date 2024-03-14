@@ -379,9 +379,9 @@ class Service(db.Model):
 
     p2p_enabled = db.Column(db.Boolean, nullable=True, default=False)
 
-    email_branding = db.relationship(
-        'EmailBranding', secondary=service_email_branding, uselist=False, backref=db.backref('services', lazy='dynamic')
-    )
+    # email_branding = db.relationship(
+    #     'EmailBranding', secondary=service_email_branding, uselist=False, backref=db.backref('services', lazy='dynamic')
+    # )
 
     @classmethod
     def from_json(
@@ -800,14 +800,14 @@ class TemplateFolder(db.Model):
     parent_id = db.Column(UUID(as_uuid=True), db.ForeignKey('template_folder.id'), nullable=True)
 
     service = db.relationship('Service', backref='all_template_folders')
-    parent = db.relationship('TemplateFolder', remote_side=[id], backref='subfolders')
-    users = db.relationship(
-        'ServiceUser',
-        uselist=True,
-        backref=db.backref('folders', foreign_keys='user_folder_permissions.c.template_folder_id'),
-        secondary='user_folder_permissions',
-        primaryjoin='TemplateFolder.id == user_folder_permissions.c.template_folder_id',
-    )
+    # parent = db.relationship('TemplateFolder', remote_side=[id], backref='subfolders')
+    # users = db.relationship(
+    #     'ServiceUser',
+    #     uselist=True,
+    #     backref=db.backref('folders', foreign_keys='user_folder_permissions.c.template_folder_id'),
+    #     secondary='user_folder_permissions',
+    #     primaryjoin='TemplateFolder.id == user_folder_permissions.c.template_folder_id',
+    # )
 
     __table_args__ = (UniqueConstraint('id', 'service_id', name='ix_id_service_id'), {})
 
@@ -837,20 +837,20 @@ class TemplateFolder(db.Model):
         return users_with_permission
 
 
-template_folder_map = db.Table(
-    'template_folder_map',
-    reg_mapper.metadata,
-    # template_id is a primary key as a template can only belong in one folder
-    db.Column('template_id', UUID(as_uuid=True), db.ForeignKey('templates.id'), primary_key=True, nullable=False),
-    db.Column('template_folder_id', UUID(as_uuid=True), db.ForeignKey('template_folder.id'), nullable=False),
-)
+# template_folder_map = db.Table(
+#     'template_folder_map',
+#     reg_mapper.metadata,
+#     # template_id is a primary key as a template can only belong in one folder
+#     db.Column('template_id', UUID(as_uuid=True), db.ForeignKey('templates.id'), primary_key=True, nullable=False),
+#     db.Column('template_folder_id', UUID(as_uuid=True), db.ForeignKey('template_folder.id'), nullable=False),
+# )
 
 
 class TemplateFolderMap:
     pass
 
 
-reg_mapper.map_imperatively(TemplateFolderMap, template_folder_map)
+# reg_mapper.map_imperatively(TemplateFolderMap, template_folder_map)
 
 PRECOMPILED_TEMPLATE_NAME = 'Pre-compiled PDF'
 
@@ -1021,14 +1021,14 @@ class Template(TemplateBase):
     service = db.relationship('Service', backref='templates')
     version = db.Column(db.Integer, default=0, nullable=False)
 
-    folder = db.relationship(
-        'TemplateFolder',
-        secondary=template_folder_map,
-        uselist=False,
-        # eagerly load the folder whenever the template object is fetched
-        lazy='joined',
-        backref=db.backref('templates'),
-    )
+    # folder = db.relationship(
+    #     'TemplateFolder',
+    #     secondary=template_folder_map,
+    #     uselist=False,
+    #     # eagerly load the folder whenever the template object is fetched
+    #     lazy='joined',
+    #     backref=db.backref('templates'),
+    # )
 
     def get_link(self):
         # TODO: use "/v2/" route once available

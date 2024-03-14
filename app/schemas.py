@@ -106,25 +106,25 @@ class BaseSchema(ma.SQLAlchemyAutoSchema):
         self.load_json = load_json
         super(BaseSchema, self).__init__(*args, **kwargs)
 
-    @post_load
-    def make_instance(
-        self,
-        data,
-        **kwargs,
-    ):
-        """
-        Deserialize data to an instance of the model. Update an existing row
-        if specified in `self.instance` or loaded by primary key(s) in the data;
-        else create a new row.
-        :param data: Data to deserialize.
-        """
-        if self.load_json:
-            return data
-        return super(BaseSchema, self).make_instance(data)
+    # @post_load
+    # def make_instance(
+    #     self,
+    #     data,
+    #     **kwargs,
+    # ):
+    #     """
+    #     Deserialize data to an instance of the model. Update an existing row
+    #     if specified in `self.instance` or loaded by primary key(s) in the data;
+    #     else create a new row.
+    #     :param data: Data to deserialize.
+    #     """
+    #     if self.load_json:
+    #         return data
+    #     return super(BaseSchema, self).make_instance(data)
 
 
 class UserSchema(BaseSchema):
-    permissions = fields.Method('user_permissions', dump_only=True)
+    # permissions = fields.Method('user_permissions', dump_only=True)
     # password_changed_at = field_for(User, 'password_changed_at', format=DATE_FORMAT)
     # created_at = field_for(User, 'created_at', format=DATE_FORMAT)
     # auth_type = field_for(User, 'auth_type')
@@ -143,17 +143,17 @@ class UserSchema(BaseSchema):
         # strict = True
         # load_instance = True
 
-    def user_permissions(
-        self,
-        usr,
-    ):
-        retval = {}
-        for x in permission_dao.get_permissions_by_user_id(usr.id):
-            service_id = str(x.service_id)
-            if service_id not in retval:
-                retval[service_id] = []
-            retval[service_id].append(x.permission)
-        return retval
+    # def user_permissions(
+    #     self,
+    #     usr,
+    # ):
+    #     retval = {}
+    #     for x in permission_dao.get_permissions_by_user_id(usr.id):
+    #         service_id = str(x.service_id)
+    #         if service_id not in retval:
+    #             retval[service_id] = []
+    #         retval[service_id].append(x.permission)
+    #     return retval
 
     @validates('name')
     def validate_name(
@@ -186,25 +186,25 @@ class UserSchema(BaseSchema):
 
 
 class UserUpdateAttributeSchema(BaseSchema):
-    auth_type = field_for(User, 'auth_type')
+    # auth_type = field_for(User, 'auth_type')
     identity_provider_user_id = fields.String(required=False, allow_none=True)
 
     class Meta:
         model = User
-        exclude = (
-            'id',
-            'updated_at',
-            'created_at',
-            'user_to_service',
-            '_password',
-            'verify_codes',
-            'logged_in_at',
-            'password_changed_at',
-            'failed_login_count',
-            'state',
-            'platform_admin',
-            '_identity_provider_user_id',
-        )
+        # exclude = (
+        #     'id',
+        #     'updated_at',
+        #     'created_at',
+        #     'user_to_service',
+        #     '_password',
+        #     'verify_codes',
+        #     'logged_in_at',
+        #     'password_changed_at',
+        #     'failed_login_count',
+        #     'state',
+        #     'platform_admin',
+        #     '_identity_provider_user_id',
+        # )
         strict = True
 
     @validates('name')
@@ -269,7 +269,7 @@ class ProviderDetailsSchema(BaseSchema):
 
     class Meta:
         model = models.ProviderDetails
-        exclude = ('provider_rates', 'provider_stats')
+        # exclude = ('provider_rates', 'provider_stats')
         strict = True
 
 
@@ -278,22 +278,22 @@ class ProviderDetailsHistorySchema(BaseSchema):
 
     class Meta:
         model = models.ProviderDetailsHistory
-        exclude = ('provider_rates', 'provider_stats')
+        # exclude = ('provider_rates', 'provider_stats')
         strict = True
 
 
 class ServiceSchema(BaseSchema):
-    created_by = field_for(models.Service, 'created_by', required=True)
-    organisation_type = field_for(models.Service, 'organisation_type')
+    # created_by = field_for(models.Service, 'created_by', required=True)
+    # organisation_type = field_for(models.Service, 'organisation_type')
     letter_logo_filename = None
-    permissions = fields.Method('service_permissions')
-    email_branding = field_for(models.Service, 'email_branding')
-    organisation = field_for(models.Service, 'organisation')
+    # permissions = fields.Method('service_permissions')
+    # email_branding = field_for(models.Service, 'email_branding')
+    # organisation = field_for(models.Service, 'organisation')
     override_flag = False
-    letter_contact_block = fields.Method(serialize='get_letter_contact')
-    go_live_at = field_for(models.Service, 'go_live_at', format=DATE_FORMAT)
-    email_provider_id = field_for(models.Service, 'email_provider_id')
-    sms_provider_id = field_for(models.Service, 'sms_provider_id')
+    # letter_contact_block = fields.Method(serialize='get_letter_contact')
+    # go_live_at = field_for(models.Service, 'go_live_at', format=DATE_FORMAT)
+    # email_provider_id = field_for(models.Service, 'email_provider_id')
+    # sms_provider_id = field_for(models.Service, 'sms_provider_id')
 
     def service_permissions(
         self,
@@ -310,24 +310,24 @@ class ServiceSchema(BaseSchema):
     class Meta:
         model = models.Service
         dump_only = ['letter_contact_block']
-        exclude = (
-            'updated_at',
-            'created_at',
-            'api_keys',
-            'templates',
-            'jobs',
-            'old_id',
-            'template_statistics',
-            'service_provider_stats',
-            'service_notification_stats',
-            'service_sms_senders',
-            'reply_to_email_addresses',
-            'letter_contacts',
-            'complaints',
-            'email_provider',
-            'sms_provider',
-            'inbound_sms',
-        )
+        # exclude = (
+        #     'updated_at',
+        #     'created_at',
+        #     'api_keys',
+        #     'templates',
+        #     'jobs',
+        #     'old_id',
+        #     'template_statistics',
+        #     'service_provider_stats',
+        #     'service_notification_stats',
+        #     'service_sms_senders',
+        #     'reply_to_email_addresses',
+        #     'letter_contacts',
+        #     'complaints',
+        #     'email_provider',
+        #     'sms_provider',
+        #     'inbound_sms',
+        # )
         strict = True
         load_instance = True
         include_relationships = True
@@ -378,23 +378,23 @@ class ServiceSchema(BaseSchema):
 
 
 class ServiceCallbackSchema(BaseSchema):
-    created_at = field_for(models.ServiceCallback, 'created_at', format=DATE_FORMAT)
+    # created_at = field_for(models.ServiceCallback, 'created_at', format=DATE_FORMAT)
 
     class Meta:
         model = models.ServiceCallback
-        fields = (
-            'id',
-            'service_id',
-            'url',
-            'notification_statuses',
-            'updated_by_id',
-            'created_at',
-            'updated_at',
-            'bearer_token',
-            'callback_type',
-            'callback_channel',
-            'include_provider_payload',
-        )
+        # fields = (
+        #     'id',
+        #     'service_id',
+        #     'url',
+        #     'notification_statuses',
+        #     'updated_by_id',
+        #     'created_at',
+        #     'updated_at',
+        #     'bearer_token',
+        #     'callback_type',
+        #     'callback_channel',
+        #     'include_provider_payload',
+        # )
         load_only = ['_bearer_token', 'bearer_token']
         strict = True
         load_instance = True
@@ -449,34 +449,34 @@ class ServiceCallbackSchema(BaseSchema):
 
 class DetailedServiceSchema(BaseSchema):
     statistics = fields.Dict()
-    organisation_type = field_for(models.Service, 'organisation_type')
+    # organisation_type = field_for(models.Service, 'organisation_type')
 
     class Meta:
         model = models.Service
-        exclude = (
-            'api_keys',
-            'templates',
-            'users',
-            'created_by',
-            'jobs',
-            'template_statistics',
-            'service_provider_stats',
-            'service_notification_stats',
-            'email_branding',
-            'service_sms_senders',
-            'monthly_billing',
-            'reply_to_email_addresses',
-            'letter_contact_block',
-            'message_limit',
-            'email_from',
-            'inbound_api',
-            'whitelist',
-            'reply_to_email_address',
-            'sms_sender',
-            'permissions',
-            'inbound_number',
-            'inbound_sms',
-        )
+        # exclude = (
+        #     'api_keys',
+        #     'templates',
+        #     'users',
+        #     'created_by',
+        #     'jobs',
+        #     'template_statistics',
+        #     'service_provider_stats',
+        #     'service_notification_stats',
+        #     'email_branding',
+        #     'service_sms_senders',
+        #     'monthly_billing',
+        #     'reply_to_email_addresses',
+        #     'letter_contact_block',
+        #     'message_limit',
+        #     'email_from',
+        #     'inbound_api',
+        #     'whitelist',
+        #     'reply_to_email_address',
+        #     'sms_sender',
+        #     'permissions',
+        #     'inbound_number',
+        #     'inbound_sms',
+        # )
 
 
 class NotificationModelSchema(BaseSchema):
@@ -484,13 +484,13 @@ class NotificationModelSchema(BaseSchema):
         model = models.Notification
         load_instance = True
         strict = True
-        exclude = (
-            '_personalisation',
-            'job',
-            'service',
-            'template',
-            'api_key',
-        )
+        # exclude = (
+        #     '_personalisation',
+        #     'job',
+        #     'service',
+        #     'template',
+        #     'api_key',
+        # )
 
     status = fields.String(required=False)
 
@@ -498,8 +498,8 @@ class NotificationModelSchema(BaseSchema):
 class BaseTemplateSchema(BaseSchema):
     reply_to = fields.Method('get_reply_to', allow_none=True)
     reply_to_text = fields.Method('get_reply_to_text', allow_none=True)
-    provider_id = field_for(models.Template, 'provider_id')
-    communication_item_id = field_for(models.Template, 'communication_item_id')
+    # provider_id = field_for(models.Template, 'provider_id')
+    # communication_item_id = field_for(models.Template, 'communication_item_id')
 
     def get_reply_to(
         self,
@@ -515,15 +515,15 @@ class BaseTemplateSchema(BaseSchema):
 
     class Meta:
         model = models.Template
-        exclude = ('service_id', 'jobs', 'service_letter_contact_id', 'provider')
+        # exclude = ('service_id', 'jobs', 'service_letter_contact_id', 'provider')
         strict = True
         include_relationships = True
         load_instance = True
 
 
 class TemplateSchema(BaseTemplateSchema):
-    created_by = field_for(models.Template, 'created_by', required=True)
-    process_type = field_for(models.Template, 'process_type')
+    # created_by = field_for(models.Template, 'created_by', required=True)
+    # process_type = field_for(models.Template, 'process_type')
     redact_personalisation = fields.Method('redact')
 
     def redact(
@@ -560,10 +560,10 @@ class TemplateSchema(BaseTemplateSchema):
 class TemplateHistorySchema(BaseSchema):
     reply_to = fields.Method('get_reply_to', allow_none=True)
     reply_to_text = fields.Method('get_reply_to_text', allow_none=True)
-    provider_id = field_for(models.Template, 'provider_id')
+    # provider_id = field_for(models.Template, 'provider_id')
 
     created_by = fields.Nested(UserSchema, only=['id', 'name', 'email_address'], dump_only=True)
-    created_at = field_for(models.Template, 'created_at', format=DATE_FORMAT)
+    # created_at = field_for(models.Template, 'created_at', format=DATE_FORMAT)
 
     def get_reply_to(
         self,
@@ -582,12 +582,12 @@ class TemplateHistorySchema(BaseSchema):
 
 
 class ApiKeySchema(BaseSchema):
-    created_by = field_for(models.ApiKey, 'created_by', required=True)
-    key_type = field_for(models.ApiKey, 'key_type', required=True)
+    # created_by = field_for(models.ApiKey, 'created_by', required=True)
+    # key_type = field_for(models.ApiKey, 'key_type', required=True)
 
     class Meta:
         model = models.ApiKey
-        exclude = ('service', '_secret')
+        # exclude = ('service', '_secret')
         strict = True
         load_instance = True
 
@@ -596,9 +596,9 @@ class JobSchema(BaseSchema):
     created_by_user = fields.Nested(
         UserSchema, attribute='created_by', dump_to='created_by', only=['id', 'name'], dump_only=True
     )
-    created_by = field_for(models.Job, 'created_by', required=True, load_only=True)
+    # created_by = field_for(models.Job, 'created_by', required=True, load_only=True)
 
-    job_status = field_for(models.JobStatus, 'name', required=False)
+    # job_status = field_for(models.JobStatus, 'name', required=False)
 
     scheduled_for = fields.DateTime()
     service_name = fields.Nested(
@@ -615,7 +615,7 @@ class JobSchema(BaseSchema):
 
     class Meta:
         model = models.Job
-        exclude = ('notifications', 'notifications_sent', 'notifications_delivered', 'notifications_failed')
+        # exclude = ('notifications', 'notifications_sent', 'notifications_delivered', 'notifications_failed')
         strict = True
 
 
@@ -688,7 +688,7 @@ class NotificationWithTemplateSchema(BaseSchema):
     class Meta:
         model = models.Notification
         strict = True
-        exclude = ('_personalisation', 'scheduled_notification')
+        # exclude = ('_personalisation', 'scheduled_notification')
 
     template = fields.Nested(
         TemplateSchema,
@@ -708,7 +708,7 @@ class NotificationWithTemplateSchema(BaseSchema):
     created_by = fields.Nested(UserSchema, only=['id', 'name', 'email_address'], dump_only=True)
     status = fields.String(required=False)
     personalisation = fields.Dict(required=False)
-    key_type = field_for(models.Notification, 'key_type', required=True)
+    # key_type = field_for(models.Notification, 'key_type', required=True)
     key_name = fields.String()
 
     @pre_dump
@@ -735,26 +735,26 @@ class NotificationWithPersonalisationSchema(NotificationWithTemplateSchema):
         # mark as many fields as possible as required since this is a public api.
         # WARNING: Does _not_ reference fields computed in handle_template_merge, such as
         # 'body', 'subject' [for emails], and 'content_char_count'
-        fields = (
-            'id',
-            'to',
-            'job_row_number',
-            'template_version',
-            'billable_units',
-            'notification_type',
-            'created_at',
-            'sent_at',
-            'sent_by',
-            'updated_at',
-            'status',
-            'reference',
-            'personalisation',
-            'service',
-            'job',
-            'api_key',
-            'template_history',
-            'sms_sender_id',
-        )
+        # fields = (
+        #     'id',
+        #     'to',
+        #     'job_row_number',
+        #     'template_version',
+        #     'billable_units',
+        #     'notification_type',
+        #     'created_at',
+        #     'sent_at',
+        #     'sent_by',
+        #     'updated_at',
+        #     'status',
+        #     'reference',
+        #     'personalisation',
+        #     'service',
+        #     'job',
+        #     'api_key',
+        #     'template_history',
+        #     'sms_sender_id',
+        # )
         include_relationships = True
 
     @pre_dump
@@ -786,7 +786,7 @@ class NotificationWithPersonalisationSchema(NotificationWithTemplateSchema):
 
 
 class InvitedUserSchema(BaseSchema):
-    auth_type = field_for(models.InvitedUser, 'auth_type', default=EMAIL_AUTH_TYPE)
+    # auth_type = field_for(models.InvitedUser, 'auth_type', default=EMAIL_AUTH_TYPE)
 
     class Meta:
         model = models.InvitedUser

@@ -35,6 +35,10 @@ check-dependencies: install-safety ## Scan dependencies for security vulnerabili
 
 	safety check -r requirements.txt --full-report -i 51668
 
+environment-vars: ## Export environment variables
+	echo "Exporting environment variables"
+	export $(grep -v '^#' .env | xargs)
+
 .PHONY:
 	help \
 	generate-version-file \
@@ -42,4 +46,5 @@ check-dependencies: install-safety ## Scan dependencies for security vulnerabili
 	test-requirements \
 	clean \
 	check-vulnerabilities \
-	check-dependencies
+	check-dependencies \
+	environment-vars
