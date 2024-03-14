@@ -1355,7 +1355,12 @@ def test_process_incomplete_jobs_sms(
     assert mock_save_sms.call_count == 12  # There are 20 in total over 2 jobs we've added 8 already
 
 
-def test_process_incomplete_jobs_no_notifications_added(notify_db_session, mocker, sample_template, sample_job):
+def test_process_incomplete_jobs_no_notifications_added(
+    notify_db_session,
+    mocker,
+    sample_job,
+    sample_template,
+):
     mocker.patch('app.celery.tasks.s3.get_job_from_s3', return_value=load_example_csv('multiple_sms'))
     mock_save_sms = mocker.patch('app.celery.tasks.save_sms.apply_async')
 

@@ -550,7 +550,7 @@ def sample_service(
         sample_sms_sender(service.id, sms_sender)
         if email_address is not None:
             sample_service_email_reply_to(service, email_address=email_address)
-        # Service should be version 1 in the history after calling this
+        # Service should be version 1 in the history after calling this - commits the service
         version_service(service)
 
         created_service_ids.append(service.id)
@@ -601,6 +601,14 @@ def service_cleanup(  # noqa: C901
     Moved this out of the sample_service fixture for clarity.
     """
 
+    # Clean up service services_history
+    # We do not have a all history models. This allows us to have a table for deletions
+    # Can't be declared until the app context is declared
+    ServicesHistory = Table('services_history', Service.get_history_model().metadata, autoload_with=db.engine)
+    ServiceCallbackHistory = Table(
+        'service_callback_history', ServiceCallback.get_history_model().metadata, autoload_with=db.engine
+    )
+
     # This is an unfortunate reality of the deep dependency web of our database
     for service_id in service_ids:
         # Clear complaints
@@ -647,14 +655,6 @@ def service_cleanup(  # noqa: C901
         # Clear all service_sms_senders
         session.execute(delete(ServiceSmsSender).where(ServiceSmsSender.service_id == service_id))
 
-        # Clean up service servies_history
-        # We do not have a all history models. This allows us to have a table for deletions
-        # Can't be declared until the app context is declared
-        ServicesHistory = Table('services_history', Service.get_history_model().metadata, autoload_with=db.engine)
-        ServiceCallbackHistory = Table(
-            'service_callback_history', ServiceCallback.get_history_model().metadata, autoload_with=db.engine
-        )
-
         session.execute(delete(ServicesHistory).where(ServicesHistory.c.id == service_id))
         session.execute(delete(ServiceCallbackHistory).where(ServiceCallbackHistory.c.service_id == service_id))
 
@@ -689,33 +689,32 @@ def sample_service_permissions(notify_db_session):
             service_permissions.append((service.id, perm))
 
         if len(permissions) > 0:
+            notify_db_session.session.add(service)
             notify_db_session.session.commit()
         return service.permissions
 
     yield _wrapper
 
     # Teardown
-    # Set service.permissions.clear() ??
     for service_id, perm in service_permissions:
-        stmt = update
         stmt = delete(ServicePermission).where(
-            ServicePermission.service_id == service_id, ServicePermission.permission == perm
+            ServicePermission.service_id == service_id,
+            ServicePermission.permission == perm,
         )
         notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
 
 @pytest.fixture
-def sample_permissions(notify_db_session, worker_id):
+def sample_permissions(notify_db_session):
     perm_ids = []
 
     def _wrapper(user, service, permissions=default_service_permissions):
         for name in permissions:
             permission = Permission(permission=name, user=user, service=service)
-            perm_ids.append(permission.id)
             notify_db_session.session.add(permission)
-        notify_db_session.session.commit()
-        return permission
+            notify_db_session.session.commit()
+            perm_ids.append(permission.id)
 
     yield _wrapper
 
@@ -958,6 +957,7 @@ def sample_api_key(notify_db_session, sample_service):
         if service is None:
             service = sample_service()
 
+        # commits the created key
         api_key = create_api_key(service, key_type, key_name, expired)
         version_api_key(api_key)
         created_key_ids.append(api_key.id)
@@ -1013,6 +1013,7 @@ def sample_job(notify_db_session):
     created_job_ids = []
 
     def _sample_job(template, **kwargs):
+        # commits the job
         job = create_job(template, **kwargs)
 
         created_job_ids.append(job.id)
@@ -1471,6 +1472,7 @@ def sample_notification(notify_db_session, sample_api_key, sample_template):  # 
         if 'created_by_id' not in kwargs:
             kwargs['created_by_id'] = kwargs['template'].created_by_id
 
+        # commits the notification
         notification = create_notification(*args, **kwargs)
         created_notification_ids.append(notification.id)
 
@@ -1545,15 +1547,15 @@ def sample_notification_history(
         )
         notify_db_session.session.add(notification_history)
         notify_db_session.session.commit()
-        created_notification_histories.append(notification_history)
+        created_notification_histories.append(notification_history.id)
 
         return notification_history
 
     yield _sample_notification_history
 
     # Teardown
-    for notification_history in created_notification_histories:
-        notify_db_session.session.delete(notification_history)
+    stmt = delete(NotificationHistory).where(NotificationHistory.id.in_(created_notification_histories))
+    notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
 
@@ -1582,6 +1584,7 @@ def sample_invited_user(notify_db_session, sample_service):
             data['created_at'] = created_at
 
         invited_user = InvitedUser(**data)
+        # commits the invited user
         save_invited_user(invited_user)
         created_invited_user_ids.append(invited_user.id)
 
@@ -1707,10 +1710,6 @@ def sample_provider(notify_db_session, worker_id):
     stmt = delete(ProviderDetails).where(ProviderDetails.id.in_(created_provider_ids[worker_id]))
     notify_db_session.session.execute(stmt)
 
-    for k, v in created_provider_ids.items():
-        if v and (k != worker_id):
-            assert False, f'Tried to delete {k}: {v} while cleaning {worker_id=}'
-
     notify_db_session.session.commit()
 
 
@@ -1823,10 +1822,11 @@ def sample_inbound_sms(notify_db_session, sample_service, sample_inbound_number)
 @pytest.fixture
 def sample_inbound_number(notify_db_session):
     inbound_number_ids = []
+    service_ids = []
 
     def _sample_inbound_number(
         number=None,
-        provider='ses',
+        provider='sample',
         active=True,
         service_id=None,
         url_endpoint=None,
@@ -1848,18 +1848,18 @@ def sample_inbound_number(notify_db_session):
         notify_db_session.session.add(inbound_number)
         notify_db_session.session.commit()
         inbound_number_ids.append(inbound_number.id)
+        if service_id:
+            service_ids.append(service_id)
 
         return inbound_number
 
     yield _sample_inbound_number
 
     # Teardown
-    for inbound_number_id in inbound_number_ids:
-        inbound_number = notify_db_session.session.get(InboundNumber, inbound_number_id)
-        if inbound_number is None:
-            continue
-
-        notify_db_session.session.delete(inbound_number)
+    stmt = delete(ServiceSmsSender).where(ServiceSmsSender.service_id.in_(service_ids))
+    notify_db_session.session.execute(stmt)
+    stmt = delete(InboundNumber).where(InboundNumber.id.in_(inbound_number_ids))
+    notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
 
@@ -1883,6 +1883,7 @@ def sample_organisation(
 
     def _sample_organisation(name: str = None, domains: Union[list, None] = None, active: bool = True):
         org = Organisation(name=name or f'sample organisation {uuid4()}', active=active)
+        # commits the org
         dao_create_organisation(org)
 
         org_ids.append(org.id)
@@ -1928,6 +1929,7 @@ def sample_fido2_key(notify_db_session, sample_user):
         if name is None:
             name = uuid4()
         key = Fido2Key(name=name, key=key, user_id=user.id)
+        # commits the fido2key
         save_fido2_key(key)
         created_fido2_keys.append(key)
         return key
@@ -1935,8 +1937,8 @@ def sample_fido2_key(notify_db_session, sample_user):
     yield _sample_fido2_key
 
     # Teardown
-    for fido2_key in created_fido2_keys:
-        notify_db_session.session.delete(fido2_key)
+    stmt = delete(Fido2Key).where(Fido2Key.id.in_(created_fido2_keys))
+    notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
 
@@ -1957,6 +1959,7 @@ def sample_login_event(notify_db_session, sample_user):
             user = sample_user()
 
         event = LoginEvent(data={'ip': '8.8.8.8', 'user-agent': 'GoogleBot'}, user_id=user.id)
+        # commits the login event
         save_login_event(event)
         created_login_event_ids.append(event.id)
 
@@ -2135,7 +2138,7 @@ def datetime_in_past(days=0, seconds=0):
 
 @pytest.fixture
 def sample_sms_sender(notify_db_session):
-    sms_sender_ids = []
+    sms_sender_service_ids = []
 
     def _wrapper(
         service_id,
@@ -2161,14 +2164,16 @@ def sample_sms_sender(notify_db_session):
         service_sms_sender = ServiceSmsSender(**data)
         notify_db_session.session.add(service_sms_sender)
         notify_db_session.session.commit()
-        sms_sender_ids.append(service_sms_sender.id)
+        sms_sender_service_ids.append(service_id)
 
         return service_sms_sender
 
     yield _wrapper
 
     # Teardown
-    stmt = delete(ServiceSmsSender).where(ServiceSmsSender.id.in_(sms_sender_ids))
+    stmt = delete(ServiceSmsSender).where(ServiceSmsSender.service_id.in_(sms_sender_service_ids))
+    notify_db_session.session.execute(stmt)
+    stmt = delete(InboundNumber).where(InboundNumber.service_id.in_(sms_sender_service_ids))
     notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
@@ -2217,6 +2222,7 @@ def sample_service_with_inbound_number(
         sms_sender = notify_db_session.session.scalar(stmt)
         ib = sample_inbound_number(number=inbound_number)
 
+        # transactional
         dao_update_service_sms_sender(
             service_id=service.id,
             service_sms_sender_id=sms_sender.id,
@@ -2261,11 +2267,8 @@ def sample_service_email_reply_to(notify_db_session):
     yield _sample_service_email_reply_to
 
     # Teardown
-    # Unsafe to teardown with objects, have to use ids to look up the object
-    for sert_id in service_email_reply_to_ids:
-        sert = notify_db_session.session.get(ServiceEmailReplyTo, sert_id)
-        if sert:
-            notify_db_session.session.delete(sert)
+    stmt = delete(ServiceEmailReplyTo).where(ServiceEmailReplyTo.id.in_(service_email_reply_to_ids))
+    notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
 
@@ -2291,14 +2294,14 @@ def sample_complaint(notify_db_session, sample_service, sample_template, sample_
 
         notify_db_session.session.add(complaint)
         notify_db_session.session.commit()
-        created_complaints.append(complaint)
+        created_complaints.append(complaint.id)
         return complaint
 
     yield _sample_complaint
 
     # Teardown
-    for complaint in created_complaints:
-        notify_db_session.session.delete(complaint)
+    stmt = delete(Complaint).where(Complaint.id.in_(created_complaints))
+    notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
 
@@ -2345,14 +2348,14 @@ def sample_letter_rate(notify_db_session):
         )
         notify_db_session.session.add(rate)
         notify_db_session.session.commit()
-        created_letter_rates.append(rate)
+        created_letter_rates.append(rate.id)
         return rate
 
     yield _sample_letter_rate
 
     # Teardown
-    for letter_rate in created_letter_rates:
-        notify_db_session.session.delete(letter_rate)
+    stmt = delete(LetterRate).where(LetterRate.id.in_(created_letter_rates))
+    notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
 
@@ -2361,18 +2364,19 @@ def sample_service_data_retention(notify_db_session):
     created_service_data_retention = []
 
     def _sample_service_data_retention(service, notification_type='sms', days_of_retention=3):
+        # commits ServiceDataRetention
         data_retention = insert_service_data_retention(
             service_id=service.id, notification_type=notification_type, days_of_retention=days_of_retention
         )
 
-        created_service_data_retention.append(data_retention)
+        created_service_data_retention.append(data_retention.id)
         return data_retention
 
     yield _sample_service_data_retention
 
     # Teardown
-    for data_retention in created_service_data_retention:
-        notify_db_session.session.delete(data_retention)
+    stmt = delete(ServiceDataRetention).where(ServiceDataRetention.id.in_(created_service_data_retention))
+    notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
 
@@ -2445,11 +2449,8 @@ def sample_service_email_reply_to_session(notify_db, sample_service_session):
     yield _wrapper
 
     # Teardown
-    # Unsafe to teardown with objects, have to use ids to look up the object
-    for sert_id in service_email_reply_to_ids:
-        sert = notify_db.session.get(ServiceEmailReplyTo, sert_id)
-        if sert:
-            notify_db.session.delete(sert)
+    stmt = delete(ServiceEmailReplyTo).where(ServiceEmailReplyTo.id.in_(service_email_reply_to_ids))
+    notify_db.session.execute(stmt)
     notify_db.session.commit()
 
 
