@@ -800,7 +800,7 @@ class TemplateFolder(db.Model):
     parent_id = db.Column(UUID(as_uuid=True), db.ForeignKey('template_folder.id'), nullable=True)
 
     service = db.relationship('Service', backref='all_template_folders')
-    # parent = db.relationship('TemplateFolder', remote_side=[id], backref='subfolders')
+    parent = db.relationship('TemplateFolder', remote_side=[id], backref='subfolders')
     # users = db.relationship(
     #     'ServiceUser',
     #     uselist=True,
@@ -837,20 +837,20 @@ class TemplateFolder(db.Model):
         return users_with_permission
 
 
-# template_folder_map = db.Table(
-#     'template_folder_map',
-#     reg_mapper.metadata,
-#     # template_id is a primary key as a template can only belong in one folder
-#     db.Column('template_id', UUID(as_uuid=True), db.ForeignKey('templates.id'), primary_key=True, nullable=False),
-#     db.Column('template_folder_id', UUID(as_uuid=True), db.ForeignKey('template_folder.id'), nullable=False),
-# )
+template_folder_map = db.Table(
+    'template_folder_map',
+    reg_mapper.metadata,
+    # template_id is a primary key as a template can only belong in one folder
+    db.Column('template_id', UUID(as_uuid=True), db.ForeignKey('templates.id'), primary_key=True, nullable=False),
+    db.Column('template_folder_id', UUID(as_uuid=True), db.ForeignKey('template_folder.id'), nullable=False),
+)
 
 
 class TemplateFolderMap:
     pass
 
 
-# reg_mapper.map_imperatively(TemplateFolderMap, template_folder_map)
+reg_mapper.map_imperatively(TemplateFolderMap, template_folder_map)
 
 PRECOMPILED_TEMPLATE_NAME = 'Pre-compiled PDF'
 
