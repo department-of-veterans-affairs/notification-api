@@ -100,6 +100,7 @@ def test_will_remove_csv_files_for_jobs_older_than_seven_days(mocker, sample_tem
     assert not dont_delete_me_1.archived
 
 
+@pytest.mark.serial
 @freeze_time('2016-10-18T10:00:00')
 def test_will_remove_csv_files_for_jobs_older_than_retention_period(
     notify_db_session,
@@ -137,6 +138,7 @@ def test_will_remove_csv_files_for_jobs_older_than_retention_period(
     job3_to_delete = sample_job(email_template_service_2, created_at=thirty_one_days_ago)
     job4_to_delete = sample_job(sms_template_service_2, created_at=eight_days_ago)
 
+    # Requires serial execution
     remove_sms_email_csv_files()
 
     s3.remove_job_from_s3.assert_has_calls(

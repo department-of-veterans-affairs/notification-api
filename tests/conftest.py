@@ -1,15 +1,17 @@
+from contextlib import contextmanager
 import os
+from time import sleep
+import warnings
 
+
+import sqlalchemy
+from sqlalchemy.sql import delete, select, text as sa_text
 from alembic.command import upgrade
 from alembic.config import Config
 from app import create_app, db, schemas
-from contextlib import contextmanager
 from flask import Flask
 import pytest
-import sqlalchemy
-from sqlalchemy import delete, select, text as sa_text
 from sqlalchemy.exc import SAWarning
-import warnings
 
 
 application = None
@@ -248,15 +250,11 @@ def pytest_sessionfinish(session, exitstatus):
     Exit code is set to 1 if anything is left in any table.
     """
 
-    from tests.conftest import application
-    from sqlalchemy.sql import text as sa_text
-    from time import sleep
-
-    sleep(2)  # Allow fixtures to finish their work, multi-worker fails otherwise
-
     color = '\033[91m'
     reset = '\033[0m'
-    TRUNCATE_ARTIFACTS = True
+    SLEEP_DURATION = 5  # Adjustable - Allow fixtures to finish their work, multi-worker fails otherwise
+    TRUNCATE_ARTIFACTS = os.environ['TRUNCATE_ARTIFACTS'] == 'True'
+    sleep(SLEEP_DURATION)
 
     with application.app_context():
         with warnings.catch_warnings():
@@ -318,6 +316,9 @@ def pytest_sessionfinish(session, exitstatus):
                 session.exitstatus = 1
 
         if tables_with_artifacts and TRUNCATE_ARTIFACTS:
+            # Give the tests time to finish self-cleanup - extra time to reduce deadlocks
+            sleep(SLEEP_DURATION)
+
             print('\n')
             for i, table in enumerate(tables_with_artifacts):
                 # Skip tables that may have necessary information

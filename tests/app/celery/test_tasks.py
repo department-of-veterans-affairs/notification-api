@@ -5,7 +5,7 @@ from uuid import uuid4
 from celery.exceptions import Retry
 from freezegun import freeze_time
 import pytest
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import encryption
@@ -533,7 +533,7 @@ def test_should_save_sms_if_restricted_service_and_valid_number(
     sample_service,
     sample_template,
 ):
-    user = sample_user(mobile_number='6502532222')
+    user = sample_user(mobile_number='+16502532222')
     service = sample_service(user=user, restricted=True)
     template = sample_template(service=service)
 

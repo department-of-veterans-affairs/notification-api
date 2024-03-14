@@ -20,7 +20,6 @@ from app.dao.service_sms_sender_dao import (
     dao_update_service_sms_sender,
 )
 from app.dao.users_dao import create_secret_code, create_user_code
-from app.dao.fido2_key_dao import save_fido2_key
 from app.dao.login_event_dao import save_login_event
 from app.dao.templates_dao import dao_create_template
 from app.model import User, IdentityProviderIdentifier
@@ -35,7 +34,6 @@ from app.models import (
     EMAIL_TYPE,
     FactBilling,
     FactNotificationStatus,
-    Fido2Key,
     InboundNumber,
     InboundSms,
     InvitedOrganisationUser,
@@ -1848,15 +1846,16 @@ def sample_inbound_number(notify_db_session):
         notify_db_session.session.add(inbound_number)
         notify_db_session.session.commit()
         inbound_number_ids.append(inbound_number.id)
-        if service_id:
-            service_ids.append(service_id)
+        service_ids.append(service_id)
 
         return inbound_number
 
     yield _sample_inbound_number
 
     # Teardown
-    stmt = delete(ServiceSmsSender).where(ServiceSmsSender.service_id.in_(service_ids))
+    stmt = update(Notification).where(Notification.service_id.in_(service_ids)).values(sms_sender_id=None)
+    notify_db_session.session.execute(stmt)
+    stmt = delete(ServiceSmsSender).where(ServiceSmsSender.inbound_number_id.in_(inbound_number_ids))
     notify_db_session.session.execute(stmt)
     stmt = delete(InboundNumber).where(InboundNumber.id.in_(inbound_number_ids))
     notify_db_session.session.execute(stmt)
@@ -1916,29 +1915,6 @@ def sample_organisation(
     stmt = delete(Organisation).where(Organisation.id.in_(org_ids))
     notify_db_session.session.execute(stmt)
 
-    notify_db_session.session.commit()
-
-
-@pytest.fixture
-def sample_fido2_key(notify_db_session, sample_user):
-    created_fido2_keys = []
-
-    def _sample_fido2_key(user=None, name=None, key='abcd'):
-        if user is None:
-            user = sample_user()
-        if name is None:
-            name = uuid4()
-        key = Fido2Key(name=name, key=key, user_id=user.id)
-        # commits the fido2key
-        save_fido2_key(key)
-        created_fido2_keys.append(key)
-        return key
-
-    yield _sample_fido2_key
-
-    # Teardown
-    stmt = delete(Fido2Key).where(Fido2Key.id.in_(created_fido2_keys))
-    notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
 
@@ -2171,6 +2147,8 @@ def sample_sms_sender(notify_db_session):
     yield _wrapper
 
     # Teardown
+    stmt = update(Notification).where(Notification.service_id.in_(sms_sender_service_ids)).values(sms_sender_id=None)
+    notify_db_session.session.execute(stmt)
     stmt = delete(ServiceSmsSender).where(ServiceSmsSender.service_id.in_(sms_sender_service_ids))
     notify_db_session.session.execute(stmt)
     stmt = delete(InboundNumber).where(InboundNumber.service_id.in_(sms_sender_service_ids))
