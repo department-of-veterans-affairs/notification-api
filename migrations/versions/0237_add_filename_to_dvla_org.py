@@ -7,7 +7,8 @@ Create Date: 2018-09-28 15:39:21.115358
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.sql import text
+
+import sqlalchemy as sa
 
 
 revision = '0237_add_filename_to_dvla_org'
@@ -47,9 +48,8 @@ def upgrade():
     op.add_column('dvla_organisation', sa.Column('filename', sa.String(length=255), nullable=True))
 
     for org_id, org_filename in LOGOS.items():
-        conn.execute(text("""
-            UPDATE dvla_organisation SET filename = :filename WHERE id = :id
-        """), filename=org_filename, id=org_id)
+        sql = f"UPDATE dvla_organisation SET filename = '{org_filename}' WHERE id = '{org_id}'"
+        conn.execute(sa.text(sql))
 
 
 def downgrade():

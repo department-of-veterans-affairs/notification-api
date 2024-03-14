@@ -1,9 +1,16 @@
-# https://flask-sqlalchemy.palletsprojects.com/en/3.0.x/api/
 from flask_sqlalchemy import SQLAlchemy as _SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 class SQLAlchemy(_SQLAlchemy):
-    """Subclass SQLAlchemy in order to override create_engine options."""
+    """
+    Subclass SQLAlchemy in order to override create_engine options.
+    https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/quickstart/#initialize-the-extension
+    """
 
     def apply_driver_hacks(
         self,
@@ -19,4 +26,4 @@ class SQLAlchemy(_SQLAlchemy):
         )
 
 
-db = SQLAlchemy()
+db = SQLAlchemy(model_class=Base)

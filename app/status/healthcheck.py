@@ -5,6 +5,7 @@ from app.dao.services_dao import dao_count_live_services
 from app.dao.organisation_dao import dao_count_organsations_with_live_services
 from app.notifications.notification_type import NotificationType
 from app.mobile_app import MobileAppRegistry
+from sqlalchemy import text
 from .redis_check import redis_check
 
 status = Blueprint('status', __name__)
@@ -38,6 +39,6 @@ def live_service_and_organisation_counts():
 
 
 def get_db_version():
-    query = 'SELECT version_num FROM alembic_version'
-    full_name = db.session.execute(query).fetchone()[0]
+    stmt = text('SELECT version_num FROM alembic_version;')
+    full_name = db.session.execute(stmt).fetchone()[0]
     return full_name

@@ -22,7 +22,7 @@ def upgrade():
             " failed = sms_failed + emails_failed + letters_failed "
 
     conn = op.get_bind()
-    conn.execute(query)
+    conn.execute(sa.text(query))
 
 
 def downgrade():
@@ -32,4 +32,4 @@ def downgrade():
             " failed = 0 "
 
     conn = op.get_bind()
-    conn.execute(query)
+    conn.execute(sa.text(query))

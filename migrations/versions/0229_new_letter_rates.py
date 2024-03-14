@@ -8,11 +8,11 @@ Revises: 0228_notification_postage
 revision = '0229_new_letter_rates'
 down_revision = '0228_notification_postage'
 
-import uuid
 from datetime import datetime
-from alembic import op
-from sqlalchemy.sql import text
+import uuid
 
+from alembic import op
+import sqlalchemy as sa
 
 
 START = datetime(2018, 9, 30, 23, 0)
@@ -42,36 +42,33 @@ NEW_RATES = [
 
 def upgrade():
     conn = op.get_bind()
-    conn.execute(text("""
-        update
-            letter_rates
-        set
-            end_date = :start
-        where
-            rate != 0.30
-    """), start=START)
+
+    sql = (
+        "update letter_rates "
+        f"set end_date='{START}' "
+        "where rate != 0.30"
+    )
+    conn.execute(sa.text(sql))
 
     for id, start_date, sheet_count, rate, crown, post_class in NEW_RATES:
-        conn.execute(text("""
-            INSERT INTO letter_rates (id, start_date, sheet_count, rate, crown, post_class)
-                VALUES (:id, :start_date, :sheet_count, :rate, :crown, :post_class)
-        """), id=id, start_date=start_date, sheet_count=sheet_count, rate=rate, crown=crown, post_class=post_class)
+        sql = (
+           "INSERT INTO letter_rates (id, start_date, sheet_count, rate, crown, post_class) " 
+           f"VALUES ({id}, '{start_date}', {sheet_count}, {rate}, {crown}, '{post_class})'"
+        )
 
 
 def downgrade():
     conn = op.get_bind()
-    conn.execute(text("""
-        delete from
-            letter_rates
-        where
-            start_date = :start
-    """), start=START)
+    sql = (
+        "delete from letter_rates "
+        f"where start_date = '{START}'"
+    )
+    conn.execute(sa.text(sql))
 
-    conn.execute(text("""
-        update
-            letter_rates
-        set
-            end_date = null
-        where
-            end_date = :start
-    """), start=START)
+    sql = (
+        "update letter_rates "
+        "set end_date = null "
+        f"where end_date = '{START}'"
+    )
+
+    conn.execute(sa.text(sql))

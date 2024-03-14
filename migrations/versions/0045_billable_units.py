@@ -32,9 +32,9 @@ def upgrade():
     # caveats
     # only adjusts notifications for services that have never been in research mode. On live, research mode was
     # limited to only services that we have set up ourselves so deemed this acceptable.
-    billable_services = conn.execute('''
+    billable_services = conn.execute(sa.text('''
         SELECT id FROM services_history WHERE id not in (select id from services_history where research_mode)
-    ''')
+    '''))
     # set to 'null' if there are no billable services so we don't get a syntax error in the update statement
     service_ids = ','.join("'{}'".format(service.id) for service in billable_services) or 'null'
 
@@ -53,8 +53,8 @@ def upgrade():
     '''
 
     conn = op.get_bind()
-    conn.execute(update_statement.format('notifications', service_ids))
-    conn.execute(update_statement.format('notification_history', service_ids))
+    conn.execute(sa.text(update_statement.format('notifications', service_ids)))
+    conn.execute(sa.text(update_statement.format('notification_history', service_ids)))
     op.drop_column('notifications', 'content_char_count')
     op.drop_column('notification_history', 'content_char_count')
 

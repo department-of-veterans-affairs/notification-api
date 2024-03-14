@@ -113,7 +113,7 @@ def create_app(application):
     init_app(application)
     request_helper.init_app(application)
 
-    # https://flask-sqlalchemy.palletsprojects.com/en/3.0.x/api/#flask_sqlalchemy.SQLAlchemy.init_app
+    # https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/quickstart/#configure-the-extension
     db.init_app(application)
 
     migrate.init_app(application, db=db)

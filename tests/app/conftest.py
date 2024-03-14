@@ -2437,8 +2437,7 @@ def pytest_sessionfinish(session, exitstatus):
     with application.app_context():
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=SAWarning)
-            meta_data = db.MetaData(bind=db.engine)
-            db.MetaData.reflect(meta_data)
+            db.reflect()
 
         acceptable_counts = {
             'communication_items': 4,
@@ -2474,7 +2473,7 @@ def pytest_sessionfinish(session, exitstatus):
         table_list = sorted(
             [
                 table
-                for table in db.engine.table_names()
+                for table in db.metadata.tables.keys()
                 if table not in skip_tables and table not in to_be_deleted_tables
             ]
         )
@@ -2484,7 +2483,7 @@ def pytest_sessionfinish(session, exitstatus):
 
         # Use metadata to query the table and add the table name to the list if there are any records
         for table_name in table_list:
-            row_count = len(db.session.execute(select(meta_data.tables[table_name])).all())
+            row_count = len(db.session.execute(select(db.metadata.tables[table_name])).all())
 
             if table_name in acceptable_counts and row_count <= acceptable_counts[table_name]:
                 continue

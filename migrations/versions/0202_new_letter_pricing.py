@@ -9,9 +9,11 @@ Create Date: 2017-07-09 12:44:16.815039
 revision = '0202_new_letter_pricing'
 down_revision = '0201_another_letter_org'
 
-import uuid
 from datetime import datetime
+import uuid
+
 from alembic import op
+import sqlalchemy as sa
 
 
 start = datetime(2018, 6, 30, 23, 0)
@@ -27,10 +29,10 @@ NEW_RATES = [
 def upgrade():
     conn = op.get_bind()
     for id, start_date, sheet_count, rate, crown, post_class in NEW_RATES:
-        conn.execute("""
+        conn.execute(sa.text("""
             INSERT INTO letter_rates (id, start_date, sheet_count, rate, crown, post_class)
                 VALUES ('{}', '{}', '{}', '{}', '{}', '{}')
-        """.format(id, start_date, sheet_count, rate, crown, post_class))
+        """.format(id, start_date, sheet_count, rate, crown, post_class)))
 
 
 def downgrade():

@@ -2,8 +2,9 @@ import datetime
 import uuid
 
 from sqlalchemy import CheckConstraint, select
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import mapped_column
 from app import DATETIME_FORMAT
 from app.db import db
 from app.encryption import hashpw, check_hash
@@ -28,27 +29,27 @@ class User(db.Model):
         if idp_name and idp_id:
             self.idp_ids.append(IdentityProviderIdentifier(self.id, idp_name, str(idp_id)))
 
-    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = db.Column(db.String, nullable=False, index=True, unique=False)
-    email_address = db.Column(db.String(255), nullable=False, index=True, unique=True)
-    created_at = db.Column(db.DateTime, index=False, unique=False, nullable=False, default=datetime.datetime.utcnow)
-    updated_at = db.Column(db.DateTime, index=False, unique=False, nullable=True, onupdate=datetime.datetime.utcnow)
-    _password = db.Column(db.String, index=False, unique=False, nullable=True)
-    mobile_number = db.Column(db.String, index=False, unique=False, nullable=True)
-    password_changed_at = db.Column(
+    id = mapped_column(db.UUID, primary_key=True, default=uuid.uuid4)
+    name = mapped_column(db.String, nullable=False, index=True, unique=False)
+    email_address = mapped_column(db.String(255), nullable=False, index=True, unique=True)
+    created_at = mapped_column(db.DateTime, index=False, unique=False, nullable=False, default=datetime.datetime.utcnow)
+    updated_at = mapped_column(db.DateTime, index=False, unique=False, nullable=True, onupdate=datetime.datetime.utcnow)
+    _password = mapped_column(db.String, index=False, unique=False, nullable=True)
+    mobile_number = mapped_column(db.String, index=False, unique=False, nullable=True)
+    password_changed_at = mapped_column(
         db.DateTime, index=False, unique=False, nullable=True, default=datetime.datetime.utcnow
     )
-    logged_in_at = db.Column(db.DateTime, nullable=True)
-    failed_login_count = db.Column(db.Integer, nullable=False, default=0)
-    state = db.Column(db.String, nullable=False, default='pending')
-    platform_admin = db.Column(db.Boolean, nullable=False, default=False)
-    current_session_id = db.Column(UUID(as_uuid=True), nullable=True)
-    auth_type = db.Column(
+    logged_in_at = mapped_column(db.DateTime, nullable=True)
+    failed_login_count = mapped_column(db.Integer, nullable=False, default=0)
+    state = mapped_column(db.String, nullable=False, default='pending')
+    platform_admin = mapped_column(db.Boolean, nullable=False, default=False)
+    current_session_id = mapped_column(db.UUID, nullable=True)
+    auth_type = mapped_column(
         db.String, db.ForeignKey('auth_type.name'), index=True, nullable=True, default=EMAIL_AUTH_TYPE
     )
-    blocked = db.Column(db.Boolean, nullable=False, default=False)
-    additional_information = db.Column(JSONB(none_as_null=True), nullable=True, default={})
-    _identity_provider_user_id = db.Column(
+    blocked = mapped_column(db.Boolean, nullable=False, default=False)
+    additional_information = mapped_column(JSONB(none_as_null=True), nullable=True, default={})
+    _identity_provider_user_id = mapped_column(
         'identity_provider_user_id', db.String, index=True, unique=True, nullable=True
     )
     idp_ids = db.relationship('IdentityProviderIdentifier', cascade='all, delete-orphan')

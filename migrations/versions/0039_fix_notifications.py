@@ -22,7 +22,7 @@ def upgrade():
     op.execute(reset_counts)
     all_notifications = "select * from notifications where date(created_at) > '2016-06-30' order by created_at;"
 
-    results = conn.execute(all_notifications)
+    results = conn.execute(sa.text(all_notifications))
     res = results.fetchall()
 
     for x in res:

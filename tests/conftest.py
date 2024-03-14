@@ -187,56 +187,57 @@ def database_prep():
     This clears out all the residuals that built up over the years from the test DB.
     Only ran at the very start of the tests and is automatic due to autouse=True.
     """
+
     # Setup metadata with reflection so we can get tables from their string names
+    # https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/models/#reflecting-tables
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', category=SAWarning)
-        meta_data = db.MetaData(bind=db.engine)
-        db.MetaData.reflect(meta_data)
+        db.reflect()
 
     notify_service_id = application.config['NOTIFY_SERVICE_ID']
     notify_user_id = application.config['NOTIFY_USER_ID']
 
     # Used this format to refence the tables because model availability is inconsistent and it's best not to mix styles
-    AB = meta_data.tables['annual_billing']
+    AB = db.metadata.tables['annual_billing']
     db.session.execute(delete(AB).where(AB.c.service_id == notify_service_id))
 
-    C = meta_data.tables['communication_items']
+    C = db.metadata.tables['communication_items']
     db.session.execute(delete(C))
 
-    SERT = meta_data.tables['service_email_reply_to']
+    SERT = db.metadata.tables['service_email_reply_to']
     db.session.execute(delete(SERT).where(SERT.c.service_id == notify_service_id))
 
-    SP = meta_data.tables['service_permissions']
+    SP = db.metadata.tables['service_permissions']
     db.session.execute(delete(SP).where(SP.c.service_id == notify_service_id))
 
-    SSS = meta_data.tables['service_sms_senders']
+    SSS = db.metadata.tables['service_sms_senders']
     db.session.execute(delete(SSS).where(SSS.c.service_id == notify_service_id))
 
-    SH = meta_data.tables['services_history']
+    SH = db.metadata.tables['services_history']
     db.session.execute(delete(SH).where(SH.c.id == notify_service_id))
 
-    UtS = meta_data.tables['user_to_service']
+    UtS = db.metadata.tables['user_to_service']
     db.session.execute(delete(UtS).where(UtS.c.service_id == notify_service_id))
 
-    TR = meta_data.tables['template_redacted']
+    TR = db.metadata.tables['template_redacted']
     db.session.execute(delete(TR).where(TR.c.updated_by_id == notify_user_id))
 
-    TH = meta_data.tables['templates_history']
+    TH = db.metadata.tables['templates_history']
     db.session.execute(delete(TH).where(TH.c.service_id == notify_service_id))
 
-    T = meta_data.tables['templates']
+    T = db.metadata.tables['templates']
     db.session.execute(delete(T).where(T.c.service_id == notify_service_id))
 
-    S = meta_data.tables['services']
+    S = db.metadata.tables['services']
     db.session.execute(delete(S).where(S.c.id == notify_service_id))
 
-    U = meta_data.tables['users']
+    U = db.metadata.tables['users']
     db.session.execute(delete(U).where(U.c.id == notify_user_id))
 
-    R = meta_data.tables['rates']
+    R = db.metadata.tables['rates']
     db.session.execute(delete(R))
 
-    LR = meta_data.tables['letter_rates']
+    LR = db.metadata.tables['letter_rates']
     db.session.execute(delete(LR))
 
     db.session.commit()

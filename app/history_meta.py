@@ -1,23 +1,24 @@
-"""Versioned mixin class and other utilities.
+"""
+Versioned mixin class and other utilities.
 
 This is an adapted version of:
 
 https://bitbucket.org/zzzeek/sqlalchemy/raw/master/examples/versioned_history/history_meta.py
 
-It does not use the create_version function from the orginal which looks for changes to models
+It does not use the create_version function from the orginal, which looks for changes to models,
 as we just insert a copy of a model to the history table on create or update.
 
-Also it does not add a created_at timestamp to the history table as we already have created_at
+It does not add a created_at timestamp to the history table because we already have created_at
 and updated_at timestamps.
 
-Lastly when to create a version is done manually in dao_utils version decorator and not via
+Lastly, when to create a version is done manually in dao_utils version decorator and not via
 session events.
-
 """
 
 import datetime
+from app import db
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import mapper, attributes, object_mapper
+from sqlalchemy.orm import attributes, object_mapper, registry
 from sqlalchemy.orm.properties import RelationshipProperty, ColumnProperty
 from sqlalchemy import Table, Column, ForeignKeyConstraint, Integer
 from sqlalchemy import util
@@ -38,6 +39,10 @@ def _is_versioning_col(col):
 
 
 def _history_mapper(local_mapper):  # noqa (C901 too complex)
+    """
+    Set the "__history_mapper__" attribute on the class associated with "local_mapper".
+    """
+
     cls = local_mapper.class_
 
     # set the "active_history" flag
@@ -123,7 +128,8 @@ def _history_mapper(local_mapper):  # noqa (C901 too complex)
         bases = local_mapper.base_mapper.class_.__bases__
     versioned_cls = type.__new__(type, '%sHistory' % cls.__name__, bases, {})
 
-    m = mapper(
+    # m = mapper_registry.map_imperatively(
+    m = cls.registry.map_imperatively(
         versioned_cls,
         table,
         inherits=super_history_mapper,
@@ -138,19 +144,23 @@ def _history_mapper(local_mapper):  # noqa (C901 too complex)
         local_mapper.add_property('version', local_mapper.local_table.c.version)
 
 
-class Versioned(object):
-    @declared_attr
-    def __mapper_cls__(cls):
-        def map(
-            cls,
-            *arg,
-            **kw,
-        ):
-            mp = mapper(cls, *arg, **kw)
-            _history_mapper(mp)
-            return mp
+class Versioned:
+    # @declared_attr
+    # def __mapper_cls__(cls):
+    #     return
+    #     def the_map(
+    #         cls,
+    #         *arg,
+    #         **kw,
+    #     ):
+    # mp = mapper_registry.map_imperatively(cls, *arg, **kw)
+    #         mp = cls.registry.map_imperatively(cls, *arg, **kw)
 
-        return map
+    # Set the __history_mapper__ attribute of the mapper.
+    #         _history_mapper(mp)
+    #         return mp
+
+    #     return the_map
 
     @classmethod
     def get_history_model(cls):
