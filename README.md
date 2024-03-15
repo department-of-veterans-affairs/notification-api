@@ -152,7 +152,7 @@ This is not maintained. The recommendation is that individuals use Docker, but w
 
   `brew install pyenv`
 
- 2. Install Python 3.10.13 (or whatever version is specified in .python-version)
+ 2. Install Python 3.10 (or whatever version is specified in `pyproject.toml`)
  Then follow from instructions for rest of pyenv setup, [see step 3 here](https://github.com/pyenv/pyenv#basic-github-checkout)
 
  Note: For MacOS devs who are using Big Sur, Monterey, standard pyenv python installation will be failed in most case. I found [this solution](https://github.com/pyenv/pyenv/issues/2143#issuecomment-1070640288) so only 3.7.13, 3.8.13, 3.9.11 and 3.10.3 works fine.
