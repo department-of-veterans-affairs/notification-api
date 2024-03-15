@@ -59,6 +59,7 @@ from app.models import (
     ProviderDetailsHistory,
     ProviderRates,
     Rate,
+    RecipientIdentifier,
     SMS_TYPE,
     ScheduledNotification,
     ServiceCallback,
@@ -1479,6 +1480,9 @@ def sample_notification(notify_db_session, sample_api_key, sample_template):  # 
     yield _sample_notification
 
     # Teardown
+    stmt = delete(RecipientIdentifier).where(RecipientIdentifier.notification_id.in_(created_notification_ids))
+    notify_db_session.session.execute(stmt)
+
     stmt = delete(ScheduledNotification).where(ScheduledNotification.notification_id.in_(created_notification_ids))
     notify_db_session.session.execute(stmt)
 

@@ -544,6 +544,7 @@ def test_should_save_sms_if_restricted_service_and_valid_number(
 
     notification_id = uuid4()
     encrypt_notification = encryption.encrypt(notification)
+
     save_sms(
         service.id,
         notification_id,

@@ -13,7 +13,6 @@ from app.models import (
     LETTER_TYPE,
     SMS_TYPE,
 )
-from app.notifications.process_notifications import persist_notification
 from app.va.identifier import IdentifierType
 from flask import current_app
 from freezegun import freeze_time
@@ -182,6 +181,7 @@ def test_should_delete_notification_and_recipient_identifiers_when_bulk_deleting
     notification_type,
     expected_count,
     sample_api_key,
+    sample_notification,
     sample_template,
     mocker,
     notify_db_session,
@@ -190,24 +190,17 @@ def test_should_delete_notification_and_recipient_identifiers_when_bulk_deleting
 
     api_key = sample_api_key()
     template = sample_template(template_type=notification_type)
+    recipient_identifier = [{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': 'foo'}]
 
     notification_ids = []
     # Create one notification a day of each type between the 1st and 10th from 11:00 to 19:00.
     for i in range(1, 11):
-        past_date = '2016-0{0}-{1:02d}  {1:02d}:00:00.000000'.format(month, i)
+        past_date = f'2016-0{month}-{i:02d}  {i:02d}:00:00.000000'
         with freeze_time(past_date):
-            recipient_identifier = {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': 'foo'}
-            # Cleaned by sample_template
-            notification = persist_notification(
-                template_id=template.id,
-                template_version=template.version,
-                service_id=template.service.id,
-                personalisation=None,
-                notification_type=notification_type,
-                api_key_id=api_key.id,
-                key_type=api_key.key_type,
-                recipient_identifier=recipient_identifier,
-                created_at=datetime.utcnow(),
+            notification = sample_notification(
+                template=template,
+                api_key=api_key,
+                recipient_identifiers=recipient_identifier,
             )
             notification_ids.append(notification.id)
 

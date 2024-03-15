@@ -46,7 +46,7 @@ python-magic = "*"
 rfc3339-validator = "*"
 sentry-sdk = {extras = ["flask"], version = "*"}
 SQLAlchemy = "^1.4"
-twilio = "^8.13"
+twilio = "*"
 Unidecode = "*"
 validatesns = "*"
 Werkzeug = "*"
