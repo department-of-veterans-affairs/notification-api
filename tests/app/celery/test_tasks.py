@@ -856,7 +856,6 @@ def test_should_use_email_template_and_persist(
     )
 
 
-@pytest.mark.serial
 def test_save_email_should_use_template_version_from_job_not_latest(
     notify_db_session,
     sample_template,
@@ -880,7 +879,6 @@ def test_save_email_should_use_template_version_from_job_not_latest(
 
     notification_id = uuid4()
 
-    # multi-worker tends to leave this in 'technical-failure' rather than 'created' status
     save_email(
         template.service_id,
         notification_id,
@@ -1464,7 +1462,6 @@ def test_process_incomplete_job_letter(notify_db_session, mocker, sample_templat
     assert mock_letter_saver.call_count == 8
 
 
-@pytest.mark.serial
 @freeze_time('2017-01-01')
 def test_process_incomplete_jobs_sets_status_to_in_progress_and_resets_processing_started_time(
     mocker,
@@ -1472,7 +1469,6 @@ def test_process_incomplete_jobs_sets_status_to_in_progress_and_resets_processin
     sample_template,
     sample_job,
 ):
-    # Intermittent deadlocks with multi-worker
     mock_process_incomplete_job = mocker.patch('app.celery.tasks.process_incomplete_job')
     template = sample_template()
 

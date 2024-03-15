@@ -23,7 +23,6 @@ from app.dao.services_dao import (
     dao_fetch_stats_for_service,
     dao_fetch_todays_stats_for_service,
     fetch_todays_total_message_count,
-    dao_fetch_todays_stats_for_all_services,
     dao_suspend_service,
     dao_resume_service,
     dao_fetch_active_users_for_service,
@@ -385,7 +384,6 @@ def test_dao_add_user_to_service_ignores_folders_which_do_not_exist_when_setting
     assert service_user.folders == [valid_folder]
 
 
-@pytest.mark.serial
 def test_dao_add_user_to_service_raises_error_if_adding_folder_permissions_for_a_different_service(
     notify_db_session,
     sample_service,
@@ -464,7 +462,6 @@ def test_removing_a_user_from_a_service_deletes_their_permissions(
     assert notify_db_session.session.execute(select(Permission).where(Permission.user_id == user.id)).all() == []
 
 
-@pytest.mark.serial
 def test_removing_a_user_from_a_service_deletes_their_folder_permissions_for_that_service(
     notify_db_session,
     sample_user,
@@ -496,16 +493,17 @@ def test_removing_a_user_from_a_service_deletes_their_folder_permissions_for_tha
     assert user_folder_permission.template_folder_id == tf3.id
 
 
-@pytest.mark.serial  # Get all cannot run multicore
+@pytest.mark.serial
 def test_get_all_services(
     sample_service,
 ):
-    s1 = sample_service(email_from='service.1')
+    s1 = sample_service()
+    # Get all cannot run multicore
     services = dao_fetch_all_services()
     assert len(services) == 1
     assert services[0].name == s1.name
 
-    s2 = sample_service(email_from='service.2')
+    s2 = sample_service()
     services = dao_fetch_all_services()
     assert len(services) == 2
     assert services[1].name == s2.name

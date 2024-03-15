@@ -39,7 +39,7 @@ RUN apk add --no-cache --virtual .build-deps cargo curl gcc musl-dev rust \
     && curl -sSL https://install.python-poetry.org | python3 - \
     && poetry install --no-root --no-ansi $POETRY_ARGS
 
-# # ########################################################################################################################
+########################################################################################################################
 
 # # Python 3.10 is supported until October 2026.
 # # Alpine Linux 3.19 is supported until 1 November 2025

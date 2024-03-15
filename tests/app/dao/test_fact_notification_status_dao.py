@@ -758,11 +758,12 @@ def test_fetch_delivered_notification_stats_by_month(
     assert results[2].count == 4
 
 
+@pytest.mark.serial
 def test_fetch_delivered_notification_stats_by_month_empty(client):
+    # Method ignores freezetime and finds records from multi-workers due to the query
     assert fetch_delivered_notification_stats_by_month() == []
 
 
-@pytest.mark.serial
 @freeze_time('2018-03-30 14:00')
 def test_fetch_monthly_template_usage_for_service_does_join_to_notifications_if_today_is_not_in_date_range(
     sample_service,

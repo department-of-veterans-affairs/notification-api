@@ -1,4 +1,3 @@
-import pytest
 from sqlalchemy import select
 
 from app.dao.service_user_dao import dao_get_service_user
@@ -10,7 +9,6 @@ from app.models import user_folder_permissions
 from tests.app.db import create_template_folder
 
 
-@pytest.mark.serial
 def test_dao_delete_template_folder_deletes_user_folder_permissions(
     notify_db_session,
     sample_service,

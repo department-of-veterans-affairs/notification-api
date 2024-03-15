@@ -86,7 +86,6 @@ def test_create_content_for_notification_allows_additional_personalisation(
     create_content_for_notification(db_template, {'name': 'Bobby', 'Additional placeholder': 'Data'})
 
 
-@pytest.mark.serial
 @freeze_time('2016-01-01 11:09:00.061258')
 def test_persist_notification_creates_and_save_to_db(
     notify_db_session,
@@ -118,7 +117,6 @@ def test_persist_notification_creates_and_save_to_db(
     # Cleaned by the template cleanup
     persist_notification(**data)
 
-    # Something about this causes notification to not show up with multi-worker - forced to serial
     db_notification = notify_db_session.session.get(Notification, data['notification_id'])
 
     assert db_notification.id == data['notification_id']
@@ -634,15 +632,14 @@ def test_simulated_recipient(
     assert is_simulated_address == expected
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize(
     'recipient, expected_international, expected_prefix, expected_units',
     [
         ('6502532222', False, '1', 1),  # NA
         ('+16502532222', False, '1', 1),  # NA
         ('+79587714230', True, '7', 1),  # Russia
-        ('+360623400400', True, '36', 3),
-    ],  # Hungary
+        ('+360623400400', True, '36', 3),  # Hungary
+    ],
 )
 def test_persist_notification_with_international_info_stores_correct_info(
     notify_db_session,
@@ -673,7 +670,6 @@ def test_persist_notification_with_international_info_stores_correct_info(
         notification_id=notification_id,
     )
 
-    # Something about this causes notification to not show up with multi-worker - forced to serial
     persisted_notification = notify_db_session.session.get(Notification, notification_id)
 
     assert persisted_notification.international is expected_international
@@ -681,7 +677,6 @@ def test_persist_notification_with_international_info_stores_correct_info(
     assert persisted_notification.rate_multiplier == expected_units
 
 
-@pytest.mark.serial
 def test_persist_notification_with_international_info_does_not_store_for_email(
     notify_db_session,
     sample_api_key,
@@ -707,7 +702,6 @@ def test_persist_notification_with_international_info_does_not_store_for_email(
         notification_id=notification_id,
     )
 
-    # Something about this causes notification to not show up with multi-worker - forced to serial
     persisted_notification = notify_db_session.session.get(Notification, notification_id)
 
     assert persisted_notification.international is False
@@ -733,7 +727,6 @@ def test_persist_scheduled_notification(
     assert scheduled_notification.scheduled_for == datetime.datetime(2017, 5, 12, 18, 15)
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize(
     'recipient, expected_recipient_normalised',
     [
@@ -767,6 +760,7 @@ def test_persist_sms_notification_stores_normalised_number(
         key_type=api_key.key_type,
         notification_id=notification_id,
     )
+
     persisted_notification = notify_db_session.session.get(Notification, notification_id)
 
     assert persisted_notification.to == recipient
@@ -838,7 +832,6 @@ def test_persist_notification_with_billable_units_stores_correct_info(
     assert persisted_notification.billable_units == 3
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize(
     'notification_type',
     [
@@ -882,7 +875,6 @@ def test_persist_notification_persists_recipient_identifiers(
         notification_id=notification_id,
     )
 
-    # Something about this causes notification to not show up with multi-worker - forced to serial
     recipient_identifier = notify_db_session.session.get(RecipientIdentifier, (notification_id, id_type, id_value))
 
     try:

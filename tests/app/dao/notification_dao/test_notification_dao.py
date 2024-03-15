@@ -1174,7 +1174,6 @@ def test_should_exclude_test_key_notifications_by_default(
     assert len(all_notifications) == 1
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize(
     'normal_sending,slow_sending,normal_delivered,slow_delivered,threshold,expected_result',
     [
@@ -1227,7 +1226,6 @@ def test_is_delivery_slow_for_provider(
         slow_notification(status='delivered')
 
     assert (
-        # Requires serial or better time-boxing
         is_delivery_slow_for_provider(datetime.utcnow(), provider.identifier, threshold, timedelta(minutes=4))
         is expected_result
     )
@@ -2039,7 +2037,6 @@ def test_update_notification_status_by_id_cannot_update_status_out_of_order_with
     assert notification.status == current_status
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize(
     'current_status, next_status',
     [
@@ -2070,7 +2067,6 @@ def test_update_notification_status_by_id_can_update_status_in_order_when_given_
         assert notification_list[i].status == current_status
 
     # attempt update without the condition current state
-    # notification_list ORM objects sometimes expire/deleted and is then referenced, causing intermittent failure
     update_notification_status_by_id(notification_id=notification_list[0].id, status=next_status)
 
     # attempt update with the conditional current state

@@ -103,7 +103,6 @@ def test_will_remove_csv_files_for_jobs_older_than_seven_days(mocker, sample_tem
 @pytest.mark.serial
 @freeze_time('2016-10-18T10:00:00')
 def test_will_remove_csv_files_for_jobs_older_than_retention_period(
-    notify_db_session,
     mocker,
     sample_service,
     sample_template,
@@ -297,7 +296,7 @@ def test_timeout_notifications_sends_status_update_to_service(
 def test_send_daily_performance_stats_calls_does_not_send_if_inactive(client, mocker):
     send_mock = mocker.patch(
         'app.celery.nightly_tasks.total_sent_notifications.send_total_notifications_sent_for_day_stats'
-    )  # noqa
+    )
 
     with patch.object(PerformancePlatformClient, 'active', new_callable=PropertyMock) as mock_active:
         mock_active.return_value = False
@@ -467,6 +466,7 @@ def test_alert_if_letter_notifications_still_sending(sample_template, mocker, sa
 
     mock_create_ticket = mocker.patch('app.celery.nightly_tasks.zendesk_client.create_ticket')
 
+    # Requires serial worker or refactor
     raise_alert_if_letter_notifications_still_sending()
 
     mock_create_ticket.assert_called_once_with(
@@ -485,7 +485,7 @@ def test_alert_if_letter_notifications_still_sending_a_day_ago_no_alert(sample_t
 
     mock_create_ticket = mocker.patch('app.celery.nightly_tasks.zendesk_client.create_ticket')
 
-    # Time-sensitive query of "sending" status - requires serial worker or refactor
+    # Requires serial worker or refactor
     raise_alert_if_letter_notifications_still_sending()
     assert not mock_create_ticket.called
 
@@ -501,6 +501,7 @@ def test_alert_if_letter_notifications_still_sending_only_alerts_sending(sample_
 
     mock_create_ticket = mocker.patch('app.celery.nightly_tasks.zendesk_client.create_ticket')
 
+    # Requires serial worker or refactor
     raise_alert_if_letter_notifications_still_sending()
 
     mock_create_ticket.assert_called_once_with(
@@ -510,7 +511,6 @@ def test_alert_if_letter_notifications_still_sending_only_alerts_sending(sample_
     )
 
 
-@pytest.mark.serial
 @freeze_time('2018-01-17 17:00:00')
 def test_alert_if_letter_notifications_still_sending_alerts_for_older_than_offset(
     sample_template, mocker, sample_notification
