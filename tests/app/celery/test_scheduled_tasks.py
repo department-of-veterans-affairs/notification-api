@@ -269,7 +269,6 @@ def test_check_job_status_task_sets_jobs_to_error(mocker, sample_template, sampl
     assert job_2.job_status == JOB_STATUS_IN_PROGRESS
 
 
-@pytest.mark.serial
 @freeze_time('1993-06-01')
 @pytest.mark.parametrize(
     'notification_type, expected_delivery_status',

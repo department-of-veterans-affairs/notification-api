@@ -498,7 +498,7 @@ def test_get_all_services(
     sample_service,
 ):
     s1 = sample_service()
-    # Get all cannot run multicore
+    # cannot run with multi-worker
     services = dao_fetch_all_services()
     assert len(services) == 1
     assert services[0].name == s1.name
