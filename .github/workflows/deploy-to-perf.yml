@@ -29,8 +29,8 @@ jobs:
 
   approval-to-deploy:
     needs: prepare-deployment
-    # environment: 
-      # name: perf-deploy
+    environment: 
+      name: perf-deploy
     runs-on: ubuntu-latest
     steps:
       - name: Pause for manual approval
@@ -50,8 +50,8 @@ jobs:
   approval-to-merge-to-release-branch:
     # needs: deploy-to-perf
     needs: approval-to-deploy
-    # environment: 
-      # name: perf-merge
+    environment: 
+      name: perf-merge
     runs-on: ubuntu-latest
     steps:
       - name: Pause for manual approval
