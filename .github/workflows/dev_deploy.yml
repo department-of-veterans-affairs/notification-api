@@ -15,6 +15,16 @@ on:
         default: false
         required: false
         type: boolean
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+      ref:
+        required: true
+      lambdaDeploy:
+        default: false
+        required: false
+        type: boolean
 
 jobs:
   setup-environment:
