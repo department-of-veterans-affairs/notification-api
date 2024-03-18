@@ -41,10 +41,11 @@ jobs:
 # this job deploys the SHA that triggered this workflow and records the main
   deploy-to-perf:
     needs: approval-to-deploy
-    uses: ./.github/workflows/deployment.yml
+    uses: ./.github/workflows/dev_deploy.yml
     with:
       environment: perf
       ref: ${{ github.sha }}
+      lambdaDeploy: true
     secrets: inherit
 
   approval-to-merge-to-release-branch:
