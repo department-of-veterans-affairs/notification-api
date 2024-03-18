@@ -48,7 +48,7 @@ jobs:
     # secrets: inherit
 
   approval-to-merge-to-release-branch:
-    needs: deploy-to-performance
+    # needs: deploy-to-perf
     # environment: 
       # name: perf-merge
     runs-on: ubuntu-latest
