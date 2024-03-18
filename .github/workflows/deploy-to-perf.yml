@@ -18,7 +18,7 @@ name: Deployment to Perf
 on:
   push:
     branches:
-      - 1668-pipeline-approval
+      - master
 
 jobs:
   prepare-deployment:
@@ -38,7 +38,7 @@ jobs:
           echo "Deploying commit SHA ${{ github.sha }}, the latest merge to master"
           echo "Deployment paused for manual approval."
 
-# this job deploys the SHA that triggered this workflow and records the main
+# this job deploys the SHA that triggered this workflow
   deploy-to-perf:
     needs: approval-to-deploy
     uses: ./.github/workflows/dev_deploy.yml
@@ -49,7 +49,6 @@ jobs:
     secrets: inherit
 
   approval-to-merge-to-release-branch:
-    # needs: deploy-to-perf
     needs: deploy-to-perf
     environment: 
       name: perf-merge
@@ -68,8 +67,7 @@ jobs:
       - name: Checkout release branch
         uses: actions/checkout@v4
         with:
-          # ref: release
-          ref: 1668-pipeline-approval-release
+          ref: release
           fetch-depth: 0
 
       - name: Setup git user
