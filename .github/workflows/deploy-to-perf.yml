@@ -13,8 +13,6 @@ name: Deployment to Perf
   # environment:
 # is simply using a variable named environment 
   
-
-# This will be changed to any push to master
 on:
   push:
     branches:
