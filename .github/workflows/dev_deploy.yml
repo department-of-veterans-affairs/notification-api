@@ -22,6 +22,7 @@ on:
         type: string
       ref:
         required: true
+        type: string
       lambdaDeploy:
         default: false
         required: false
