@@ -49,7 +49,7 @@ jobs:
 
   approval-to-merge-to-release-branch:
     # needs: deploy-to-perf
-    needs: approval-to-deploy
+    needs: deploy-to-perf
     environment: 
       name: perf-merge
     runs-on: ubuntu-latest
