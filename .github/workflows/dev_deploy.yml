@@ -19,6 +19,7 @@ on:
     inputs:
       environment:
         required: true
+        type: string
       ref:
         required: true
       lambdaDeploy:
