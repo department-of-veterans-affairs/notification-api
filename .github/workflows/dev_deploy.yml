@@ -6,10 +6,12 @@ on:
         description: "Deployment environment (dev|perf|staging|prod)"
         default: dev
         required: true
+        type: string
       ref:
         description: "Branch or Commit"
         default: master
         required: true
+        type: string
       lambdaDeploy:
         description: "Include Lambda in deployment?"
         default: false
@@ -85,5 +87,4 @@ jobs:
     with:
       environment: "${{ inputs.environment }}"
     secrets: inherit
-
 
