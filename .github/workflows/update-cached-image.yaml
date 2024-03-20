@@ -1,6 +1,9 @@
 name: Update cached Docker image
 
 on:
+  push:
+    branches: 
+      - bug-docker-cache-action
   schedule:
     # every weekday at 5am
     - cron: "0 5 * * 1-5"
@@ -10,6 +13,9 @@ jobs:
   update-image:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -19,3 +25,4 @@ jobs:
           file: ci/Dockerfile
           pull: true
           cache-to: type=gha,scope=api
+
