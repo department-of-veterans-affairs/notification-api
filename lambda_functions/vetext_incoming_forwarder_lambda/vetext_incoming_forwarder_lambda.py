@@ -220,27 +220,50 @@ def read_from_ssm(key: str) -> str:
 
 
 def make_vetext_request(request_body):
-    ssm_path = os.getenv('vetext_api_auth_ssm_path')
-    if ssm_path is None:
-        logger.error('Unable to retrieve vetext_api_auth_ssm_path from env variables')
-        return None
+    endpoint = request_body.get('path', '/twoway/vettext')
+    logger.info('Making VeText Request for endpoint: %s', endpoint)
 
-    domain = os.getenv('vetext_api_endpoint_domain')
-    if domain is None:
-        logger.error('Unable to retrieve vetext_api_endpoint_domain from env variables')
-        return None
+    if endpoint == '/twoway/vettext':
+        ssm_path = os.getenv('vetext_api_auth_ssm_path')
+        if ssm_path is None:
+            logger.error('Unable to retrieve vetext_api_auth_ssm_path from env variables')
+            return
 
-    path = os.getenv('vetext_api_endpoint_path')
-    if path is None:
-        logger.error('Unable to retrieve vetext_api_endpoint_path from env variables')
-        return None
+        domain = os.getenv('vetext_api_endpoint_domain')
+        if domain is None:
+            logger.error('Unable to retrieve vetext_api_endpoint_domain from env variables')
+            return
+
+        path = os.getenv('vetext_api_endpoint_path')
+        if path is None:
+            logger.error('Unable to retrieve vetext_api_endpoint_path from env variables')
+            return
+
+    elif endpoint == '/twoway/vetext2':
+        ssm_path = os.getenv('VETEXT2_BASIC_AUTH_SSM_PATH')
+        if ssm_path is None:
+            logger.error('Unable to retrieve vetext_api_auth_ssm_path from env variables')
+            return
+
+        domain = os.getenv('VETEXT2_API_ENDPOINT_DOMAIN')
+        if domain is None:
+            logger.error('Unable to retrieve vetext_api_endpoint_domain from env variables')
+            return
+
+        path = os.getenv('VETEXT2_API_ENDPOINT_PATH')
+        if path is None:
+            logger.error('Unable to retrieve vetext_api_endpoint_path from env variables')
+            return
+    else:
+        logger.error('Invalid endpoint: %s', endpoint)
+        return
 
     # Authorization is basic token authentication that is stored in environment.
     auth_token = read_from_ssm(ssm_path)
 
     if auth_token == '':
         logger.error('Unable to retrieve auth token from SSM')
-        return None
+        return
 
     logger.info('Retrieved AuthToken from SSM')
 
