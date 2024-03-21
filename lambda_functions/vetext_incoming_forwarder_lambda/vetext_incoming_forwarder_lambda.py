@@ -72,7 +72,6 @@ def validate_twilio_event(event: dict) -> bool:
         validator = RequestValidator(auth_token)
         uri = f"https://{event['headers']['host']}/vanotify/twoway/vettext"
 
-
         decoded = base64.b64decode(event.get('body')).decode()
         params = parse_qs(decoded, keep_blank_values=True)
         params = {k: v[0] for k, v in params.items()}
@@ -148,6 +147,7 @@ def process_body_from_sqs_invocation(event):
         # event["body"] is a base 64 encoded string
         # parse_qsl converts url-encoded strings to array of tuple objects
         # event_body takes the array of tuples and creates a dictionary
+        event_body = None
         try:
             event_body = record.get('body', '')
 
@@ -179,12 +179,17 @@ def process_body_from_alb_invocation(event):
     # parse_qsl converts url-encoded strings to array of tuple objects
     # event_body takes the array of tuples and creates a dictionary
     event_body_encoded = event.get('body', '')
+    event_path = event.get('path', '')
 
     if not event_body_encoded:
         logger.error('event_body from alb record was not present: %s', event)
 
+    if not event_path:
+        logger.error('event_path from alb record was not present: %s', event)
+
     event_body_decoded = parse_qsl(base64.b64decode(event_body_encoded).decode('utf-8'))
-    logger.debug('Decoded event body %s', event_body_decoded)
+    logger.debug('Decoded event body', event_body_decoded)
+    logger.debug('Event path: %s', event_path)
 
     event_body = dict(event_body_decoded)
     logger.debug('Converted body to dictionary: %s', event_body)
@@ -192,7 +197,8 @@ def process_body_from_alb_invocation(event):
     if 'AddOns' in event_body:
         logger.debug('AddOns present in event_body: %s', event_body['AddOns'])
         del event_body['AddOns']
-
+    
+    event_body['path'] = event_path
     return [event_body]
 
 
