@@ -42,6 +42,9 @@ jobs:
           context: .
           pull: true
           push: true
+          no-cache-filters: notification_api
+          cache-from: type=gha
+          cache-to: type=gha, mode=max
           tags: ${{ steps.login-ecr-vaec.outputs.registry }}/notification_api:${{ inputs.ref }}_${{ inputs.environment }}
 
       - name: Dispatch Twistlock Workflow
