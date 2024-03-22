@@ -154,8 +154,8 @@ def all_path_env_param_set(monkeypatch):
     monkeypatch.setenv('vetext_api_endpoint_domain', VETEXT_DOMAIN)
     monkeypatch.setenv('vetext_api_endpoint_path', VETEXT_URI_PATH)
 
-    monkeypatch.setenv('VETEXT2_API_ENDPOINT_DOMAIN', f"{VETEXT_DOMAIN}-two")
-    monkeypatch.setenv('VETEXT2_API_ENDPOINT_PATH', f"{VETEXT_URI_PATH}/two")
+    monkeypatch.setenv('VETEXT2_API_ENDPOINT_DOMAIN', f'{VETEXT_DOMAIN}-two')
+    monkeypatch.setenv('VETEXT2_API_ENDPOINT_PATH', f'{VETEXT_URI_PATH}/two')
 
     monkeypatch.setenv('vetext_api_auth_ssm_path', 'ssm')
     monkeypatch.setenv('VETEXT2_BASIC_AUTH_SSM_PATH', 'ssm_two')
@@ -218,7 +218,7 @@ def test_request_makes_vetext2_call(mocker, monkeypatch, all_path_env_param_set,
     response = vetext_incoming_forwarder_lambda_handler(event, False)
 
     assert mock_requests.call_count == 1
-    assert mock_requests.call_args[0][0] == "https://some.domain-two/some/path/two"
+    assert mock_requests.call_args[0][0] == 'https://some.domain-two/some/path/two'
 
     assert response['statusCode'] == 200
     assert response['body'] == '<Response />'
