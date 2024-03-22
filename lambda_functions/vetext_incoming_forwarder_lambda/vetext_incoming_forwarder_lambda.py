@@ -62,6 +62,7 @@ def validate_twilio_event(event: dict) -> bool:
     @return: bool
     """
     logger.info('validating twilio vetext forwarder event')
+
     try:
         signature = event['headers'].get('x-twilio-signature', '')
         if not auth_token or not signature:
@@ -197,6 +198,7 @@ def process_body_from_alb_invocation(event):
         logger.debug('AddOns present in event_body: %s', event_body['AddOns'])
         del event_body['AddOns']
 
+    # Add the path to the event body, for routing purposes
     event_body['path'] = event_path
     return [event_body]
 
