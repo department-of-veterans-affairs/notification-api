@@ -16,6 +16,7 @@ jobs:
       - name: Build and cache
         uses: docker/build-push-action@v5
         with:
+          context: .
           file: ci/Dockerfile
           pull: true
           cache-to: type=gha,scope=api

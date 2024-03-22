@@ -40,6 +40,7 @@ jobs:
         with:
           file: ci/Dockerfile
           context: .
+          pull: true
           push: true
           tags: ${{ steps.login-ecr-vaec.outputs.registry }}/notification_api:${{ inputs.ref }}_${{ inputs.environment }}
 
