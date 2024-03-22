@@ -153,9 +153,16 @@ def missing_ssm_path_env_param(monkeypatch):
 def all_path_env_param_set(monkeypatch):
     monkeypatch.setenv('vetext_api_endpoint_domain', VETEXT_DOMAIN)
     monkeypatch.setenv('vetext_api_endpoint_path', VETEXT_URI_PATH)
+
+    monkeypatch.setenv('VETEXT2_API_ENDPOINT_DOMAIN', f"{VETEXT_DOMAIN}-two")
+    monkeypatch.setenv('VETEXT2_API_ENDPOINT_PATH', f"{VETEXT_URI_PATH}/two")
+
     monkeypatch.setenv('vetext_api_auth_ssm_path', 'ssm')
+    monkeypatch.setenv('VETEXT2_BASIC_AUTH_SSM_PATH', 'ssm_two')
+
     monkeypatch.setenv('vetext_request_drop_sqs_url', 'someurl')
     monkeypatch.setenv('vetext_request_dead_letter_sqs_url', 'someurl')
+
     monkeypatch.setenv('TWILIO_AUTH_TOKEN_SSM_NAME', 'unit_test')
 
 
@@ -182,8 +189,36 @@ def test_request_makes_vetext_call(mocker, monkeypatch, all_path_env_param_set, 
 
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_retry_sqs')
     mocker.patch(f'{LAMBDA_MODULE}.read_from_ssm', return_value='ssm')
-    mocker.patch(f'{LAMBDA_MODULE}.requests.post', return_value=mocked_requests_post_success())
+    mock_requests = mocker.patch(f'{LAMBDA_MODULE}.requests.post', return_value=mocked_requests_post_success())
+
     response = vetext_incoming_forwarder_lambda_handler(event, False)
+
+    assert mock_requests.call_count == 1
+    assert mock_requests.call_args[0][0] == f'https://{VETEXT_DOMAIN}{VETEXT_URI_PATH}'
+
+    assert response['statusCode'] == 200
+    assert response['body'] == '<Response />'
+    assert response['headers'] is not None
+    assert response['headers']['Content-Type'] == 'text/xml'
+
+    sqs_mock.assert_not_called()
+
+
+@pytest.mark.parametrize('event', [(albInvokedWithoutAddOn), (albInvokeWithAddOn)])
+def test_request_makes_vetext2_call(mocker, monkeypatch, all_path_env_param_set, event):
+    from lambda_functions.vetext_incoming_forwarder_lambda.vetext_incoming_forwarder_lambda import (
+        vetext_incoming_forwarder_lambda_handler,
+    )
+
+    sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_retry_sqs')
+    mocker.patch(f'{LAMBDA_MODULE}.read_from_ssm', return_value='ssm')
+    mock_requests = mocker.patch(f'{LAMBDA_MODULE}.requests.post', return_value=mocked_requests_post_success())
+
+    event['path'] = '/twoway/vetext2'
+    response = vetext_incoming_forwarder_lambda_handler(event, False)
+
+    assert mock_requests.call_count == 1
+    assert mock_requests.call_args[0][0] == "https://some.domain-two/some/path/two"
 
     assert response['statusCode'] == 200
     assert response['body'] == '<Response />'
