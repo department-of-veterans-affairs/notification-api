@@ -209,9 +209,9 @@ def _get_dynamodb_comp_pen_messages(
     """
     Helper function to get the Comp and Pen data from our dynamodb cache table.  Items should be returned if all of
     these attribute conditions are met:
-        1) is_processed is False
+        1) is_processed is not set or False
         2) has_duplicate_mappings is not set or False
-        3) payment_id is not the string '-1'
+        3) payment_id is not equal to -1 (placeholder value)
 
     :param table: the dynamodb table to grab the data from
     :param message_limit: the number of rows to search at a time and the max number of items that should be returned
