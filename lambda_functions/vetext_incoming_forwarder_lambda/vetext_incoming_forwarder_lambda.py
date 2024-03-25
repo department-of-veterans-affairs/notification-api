@@ -92,6 +92,8 @@ def vetext_incoming_forwarder_lambda_handler(
     """
     try:
         logger.debug('Entrypoint event: %s', event)
+        logger.debug('Context: %s', context)
+
         # Determine if the invoker of the lambda is SQS or ALB
         #   SQS will submit batches of records so there is potential for multiple events to be processed
         #   ALB will submit a single request but to simplify code, it will also return an array of event bodies
