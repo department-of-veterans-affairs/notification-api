@@ -2,6 +2,7 @@ import base64
 from app.clients.sms import SmsClient
 from monotonic import monotonic
 from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
 from urllib.parse import parse_qs
 
 
@@ -188,9 +189,12 @@ class TwilioSMSClient(SmsClient):
             self.logger.info('Twilio send SMS request for %s succeeded: %s', reference, message.sid)
 
             return message.sid
+        # except TwilioRestException as e:
+        #     if e.status == 400:
+        #         self.logger.error()
         except Exception as e:
             self.logger.error('Twilio send SMS request for %s failed', reference)
-            raise e
+            # raise e
         finally:
             elapsed_time = monotonic() - start_time
             self.logger.info(
