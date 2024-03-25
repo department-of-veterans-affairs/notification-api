@@ -448,6 +448,33 @@ def test_get_dynamodb_comp_pen_messages_with_data(dynamodb_mock, sample_dynamodb
         assert not msg['is_processed'], 'Expected messages to not be processed'
 
 
+def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_insert):
+    """
+    Items should not be returned if any of these apply:
+        1) is_processed is True
+        2) has_duplicate_mappings is True
+        3) payment_id equals -1
+    """
+
+    # Insert mock data into the DynamoDB table.
+    items_to_insert = [
+        {'id': '1', 'is_processed': False},
+        {'id': '2', 'is_processed': True},
+        {'id': '3', 'is_processed': False, 'has_duplicate_mappings': False},
+        {'id': '4', 'is_processed': False, 'has_duplicate_mappings': True},
+        {'id': '5', 'is_processed': False, 'payment_id': -1},
+        {'id': '6', 'is_processed': True, 'has_duplicate_mappings': True, 'payment_id': -1},
+    ]
+    sample_dynamodb_insert(items_to_insert)
+
+    # Invoke the function with the mocked table and application
+    messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=7)
+
+    assert len(messages) == 2
+    for msg in messages:
+        assert msg['id'] in '13', f"The message with ID {msg['id']} should have been filtered out."
+
+
 def test_send_scheduled_comp_and_pen_sms_does_not_call_send_notification(mocker, dynamodb_mock):
     mocker.patch('app.celery.scheduled_tasks.is_feature_enabled', return_value=True)
 

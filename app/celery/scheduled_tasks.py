@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 import boto3
+from boto3.dynamodb.conditions import Attr
 from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 from sqlalchemy import and_, select
@@ -206,15 +207,23 @@ def _get_dynamodb_comp_pen_messages(
     message_limit: int,
 ) -> list:
     """
-    Helper function to get the Comp and Pen data from our dynamodb cache table.
+    Helper function to get the Comp and Pen data from our dynamodb cache table.  Items should be returned if all of
+    these attribute conditions are met:
+        1) is_processed is False
+        2) has_duplicate_mappings is not set or False
+        3) payment_id is not the string '-1'
 
     :param table: the dynamodb table to grab the data from
     :param message_limit: the number of rows to search at a time and the max number of items that should be returned
     :return: a list of entries from the table that have not been processed yet
+
+    https://boto3.amazonaws.com/v1/documentation/api/latest/guide/dynamodb.html#querying-and-scanning
     """
 
-    results = table.scan(FilterExpression=boto3.dynamodb.conditions.Attr('is_processed').eq(False), Limit=message_limit)
+    filters = (Attr('is_processed').not_exists() | Attr('is_processed').eq(False)) & Attr('payment_id').ne(-1)
+    filters = filters & (Attr('has_duplicate_mappings').not_exists() | Attr('has_duplicate_mappings').eq(False))
 
+    results = table.scan(FilterExpression=filters, Limit=message_limit)
     items: list = results.get('Items')
 
     if items is None:
@@ -228,7 +237,7 @@ def _get_dynamodb_comp_pen_messages(
     # Keep getting items from the table until we have the number we want to send, or run out of items
     while 'LastEvaluatedKey' in results and len(items) < message_limit:
         results = table.scan(
-            FilterExpression=boto3.dynamodb.conditions.Attr('is_processed').eq(False),
+            FilterExpression=filters,
             Limit=message_limit,
             ExclusiveStartKey=results['LastEvaluatedKey'],
         )
