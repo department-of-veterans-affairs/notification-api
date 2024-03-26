@@ -220,7 +220,8 @@ def _get_dynamodb_comp_pen_messages(
     https://boto3.amazonaws.com/v1/documentation/api/latest/guide/dynamodb.html#querying-and-scanning
     """
 
-    filters = (Attr('is_processed').not_exists() | Attr('is_processed').eq(False)) & Attr('payment_id').ne(-1)
+    filters = Attr('is_processed').not_exists() | Attr('is_processed').eq(False)
+    filters = filters & Attr('payment_id').exists() & Attr('payment_id').ne(-1)
     filters = filters & (Attr('has_duplicate_mappings').not_exists() | Attr('has_duplicate_mappings').eq(False))
 
     results = table.scan(FilterExpression=filters, Limit=message_limit)

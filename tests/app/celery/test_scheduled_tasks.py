@@ -427,27 +427,6 @@ def test_get_dynamodb_comp_pen_messages_with_empty_table(dynamodb_mock):
     assert messages == [], 'Expected no messages from an empty table'
 
 
-def test_get_dynamodb_comp_pen_messages_with_data(dynamodb_mock, sample_dynamodb_insert):
-    message_limit = 3
-
-    # Insert mock data into the DynamoDB table
-    items_to_insert = [
-        {'id': '1', 'is_processed': False},
-        {'id': '2', 'is_processed': False},
-        {'id': '3', 'is_processed': False},
-        {'id': '4', 'is_processed': False},
-        {'id': '5', 'is_processed': False},
-    ]
-    sample_dynamodb_insert(items_to_insert)
-
-    # Invoke the function with the mocked table and application
-    messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=message_limit)
-
-    assert len(messages) == message_limit, 'Expected same number of messages as inserted'
-    for msg in messages:
-        assert not msg['is_processed'], 'Expected messages to not be processed'
-
-
 def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_insert):
     """
     Items should not be returned if any of these apply:
@@ -458,12 +437,19 @@ def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_i
 
     # Insert mock data into the DynamoDB table.
     items_to_insert = [
-        {'id': '1', 'is_processed': False},
-        {'id': '2', 'is_processed': True},
-        {'id': '3', 'is_processed': False, 'has_duplicate_mappings': False},
-        {'id': '4', 'is_processed': False, 'has_duplicate_mappings': True},
-        {'id': '5', 'is_processed': False, 'payment_id': -1},
-        {'id': '6', 'is_processed': True, 'has_duplicate_mappings': True, 'payment_id': -1},
+        # The first 2 items are valid.
+        {'id': '1', 'is_processed': False, 'payment_id': 1},
+        {'id': '2', 'is_processed': False, 'has_duplicate_mappings': False, 'payment_id': 2},
+        # Missing payment_id
+        {'id': '3', 'is_processed': False},
+        # Already processed
+        {'id': '4', 'is_processed': True, 'payment_id': 4},
+        # Duplicate mappings
+        {'id': '5', 'is_processed': False, 'has_duplicate_mappings': True, 'payment_id': 5},
+        # Placeholder payment_id
+        {'id': '6', 'is_processed': False, 'payment_id': -1},
+        # Trifecta of sadness :o
+        {'id': '7', 'is_processed': True, 'has_duplicate_mappings': True, 'payment_id': -1},
     ]
     sample_dynamodb_insert(items_to_insert)
 
@@ -472,7 +458,7 @@ def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_i
 
     assert len(messages) == 2
     for msg in messages:
-        assert msg['id'] in '13', f"The message with ID {msg['id']} should have been filtered out."
+        assert msg['id'] in '12', f"The message with ID {msg['id']} should have been filtered out."
 
 
 def test_send_scheduled_comp_and_pen_sms_does_not_call_send_notification(mocker, dynamodb_mock):
