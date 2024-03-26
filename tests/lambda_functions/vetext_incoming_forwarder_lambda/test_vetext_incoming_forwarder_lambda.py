@@ -11,6 +11,12 @@ import json
 import base64
 import requests
 
+
+
+# foo = {'requestContext': {'elb': {'targetGroupArn': 'arn:aws-us-gov:elasticloadbalancing:us-gov-west-1:171875617347:targetgroup/staging-vetext-incoming-tg/954436fa4944a16e'}}, 'httpMethod': 'POST', 'path': '/twoway/vettext', 'queryStringParameters': {}, 'headers': {'accept': '*/*', 'connection': 'close', 'content-length': '591', 'content-type': 'application/x-www-form-urlencoded', 'host': 'staging-api.va.gov', 'i-twilio-idempotency-token': '31b12870-a9e7-4003-b54c-3fa6ea86e855', 'user-agent': 'TwilioProxy/1.1', 'x-amzn-trace-id': 'Self=1-6601a10d-12e6bc7e33e487063346cd27;Root=1-6601a10d-4d777b8c255389f577097616', 'x-forwarded-for': '3.80.20.121, 10.238.28.71, 3.80.20.121, 10.247.34.67', 'x-forwarded-host': 'staging-api.va.gov:443', 'x-forwarded-port': '443', 'x-forwarded-proto': 'https', 'x-forwarded-scheme': 'https', 'x-home-region': 'us1', 'x-real-ip': '3.80.20.121', 'x-twilio-signature': 'oTLU4P2B2q5Xr9xD10bpMJpJJzo=', 'x-use-static-proxy': 'true'}, 'body': 'VG9Db3VudHJ5PVVTJlRvU3RhdGU9VFgmU21zTWVzc2FnZVNpZD1TTTI3OGQwMDc2MTUxMWRiNGY5ODA4YzIyMTRhZGRlMDg0Jk51bU1lZGlhPTAmVG9DaXR5PSZGcm9tWmlwPTMyNDQ0JlNtc1NpZD1TTTI3OGQwMDc2MTUxMWRiNGY5ODA4YzIyMTRhZGRlMDg0JkZyb21TdGF0ZT1GTCZTbXNTdGF0dXM9cmVjZWl2ZWQmRnJvbUNpdHk9UEFOQU1BK0NJVFkmQm9keT1Ib3crYWJvdXQrYW5vdGhlcit0ZXN0Ky0rS3lsZSZGcm9tQ291bnRyeT1VUyZUbz0lMkIxMjU0MjcxMzUzMSZNZXNzYWdpbmdTZXJ2aWNlU2lkPU1HYTkyNmM5YjU4NTczMDdkOGIxYzJjYWJlZGMyM2IwYzkmVG9aaXA9JkFkZE9ucz0lN0IlMjJzdGF0dXMlMjIlM0ElMjJzdWNjZXNzZnVsJTIyJTJDJTIybWVzc2FnZSUyMiUzQW51bGwlMkMlMjJjb2RlJTIyJTNBbnVsbCUyQyUyMnJlc3VsdHMlMjIlM0ElN0IlN0QlN0QmTnVtU2VnbWVudHM9MSZNZXNzYWdlU2lkPVNNMjc4ZDAwNzYxNTExZGI0Zjk4MDhjMjIxNGFkZGUwODQmQWNjb3VudFNpZD1BQzU1MWZjNjA4NmY5M2E4MzQ5MjQ2NmZjNjA0YzY4YWY0JkZyb209JTJCMTg1MDYyODMzNTImQXBpVmVyc2lvbj0yMDEwLTA0LTAx', 'isBase64Encoded': True}
+# bar = {'requestContext': {'elb': {'targetGroupArn': 'arn:aws-us-gov:elasticloadbalancing:us-gov-west-1:171875617347:targetgroup/staging-vetext-incoming-tg/954436fa4944a16e'}}, 'httpMethod': 'POST', 'path': '/twoway/vetext2', 'queryStringParameters': {}, 'headers': {'accept': '*/*', 'connection': 'close', 'content-length': '567', 'content-type': 'application/x-www-form-urlencoded', 'host': 'staging-api.va.gov', 'i-twilio-idempotency-token': '2228ddd2-f727-478e-a314-7a2429657153', 'user-agent': 'TwilioProxy/1.1', 'x-amzn-trace-id': 'Self=1-6601a059-434164cf701e5bc44755fd3b;Root=1-6601a059-594d7b8172693bb0331fe59d', 'x-forwarded-for': '3.80.20.64, 10.238.28.71, 3.80.20.64, 10.247.35.101', 'x-forwarded-host': 'staging-api.va.gov:443', 'x-forwarded-port': '443', 'x-forwarded-proto': 'https', 'x-forwarded-scheme': 'https', 'x-home-region': 'us1', 'x-real-ip': '3.80.20.64', 'x-twilio-signature': '81MF5dhNjYekgMLnDNrMuhOBMaE=', 'x-use-static-proxy': 'true'}, 'body': 'VG9Db3VudHJ5PVVTJlRvU3RhdGU9VFgmU21zTWVzc2FnZVNpZD1TTWIxYTE2ZTFjZGIxZmIzN2U0ZDk5NzUzYTUxZDdkNzY4Jk51bU1lZGlhPTAmVG9DaXR5PSZGcm9tWmlwPTMyNDQ0JlNtc1NpZD1TTWIxYTE2ZTFjZGIxZmIzN2U0ZDk5NzUzYTUxZDdkNzY4JkZyb21TdGF0ZT1GTCZTbXNTdGF0dXM9cmVjZWl2ZWQmRnJvbUNpdHk9UEFOQU1BK0NJVFkmQm9keT1UZXN0MiZGcm9tQ291bnRyeT1VUyZUbz0lMkIxNDY5NjA2MzM5MCZNZXNzYWdpbmdTZXJ2aWNlU2lkPU1HMzA2MzU5YzY3ZjgzOThlZDAwODIzZDliM2JhOGJiMGYmVG9aaXA9JkFkZE9ucz0lN0IlMjJzdGF0dXMlMjIlM0ElMjJzdWNjZXNzZnVsJTIyJTJDJTIybWVzc2FnZSUyMiUzQW51bGwlMkMlMjJjb2RlJTIyJTNBbnVsbCUyQyUyMnJlc3VsdHMlMjIlM0ElN0IlN0QlN0QmTnVtU2VnbWVudHM9MSZNZXNzYWdlU2lkPVNNYjFhMTZlMWNkYjFmYjM3ZTRkOTk3NTNhNTFkN2Q3NjgmQWNjb3VudFNpZD1BQzU1MWZjNjA4NmY5M2E4MzQ5MjQ2NmZjNjA0YzY4YWY0JkZyb209JTJCMTg1MDYyODMzNTImQXBpVmVyc2lvbj0yMDEwLTA0LTAx', 'isBase64Encoded': True}
+
+
 albInvokeWithAddOn = {
     'requestContext': {
         'elb': {
@@ -174,7 +180,6 @@ def test_verify_parsing_of_twilio_message(monkeypatch, all_path_env_param_set, e
     from lambda_functions.vetext_incoming_forwarder_lambda.vetext_incoming_forwarder_lambda import (
         process_body_from_alb_invocation,
     )
-
     response = process_body_from_alb_invocation(event)
 
     assert response, 'The dictionary should not be empty'
@@ -186,11 +191,9 @@ def test_request_makes_vetext_call(mocker, monkeypatch, all_path_env_param_set, 
     from lambda_functions.vetext_incoming_forwarder_lambda.vetext_incoming_forwarder_lambda import (
         vetext_incoming_forwarder_lambda_handler,
     )
-
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_retry_sqs')
     mocker.patch(f'{LAMBDA_MODULE}.read_from_ssm', return_value='ssm')
     mock_requests = mocker.patch(f'{LAMBDA_MODULE}.requests.post', return_value=mocked_requests_post_success())
-
     response = vetext_incoming_forwarder_lambda_handler(event, False)
 
     assert mock_requests.call_count == 1
@@ -442,7 +445,6 @@ def test_loading_message_from_alb_fails(mocker, monkeypatch, all_path_env_param_
     from lambda_functions.vetext_incoming_forwarder_lambda.vetext_incoming_forwarder_lambda import (
         vetext_incoming_forwarder_lambda_handler,
     )
-
     sqs_dead_letter_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_dead_letter_sqs')
 
     mocker.patch('base64.b64decode', side_effect=base64.binascii.Error)

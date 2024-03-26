@@ -21,6 +21,10 @@ except ValueError:
     logger.setLevel('INFO')
     logger.warning('Invalid log level specified, defaulting to INFO')
 
+handler = logging.StreamHandler(sys.stderr)
+handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] (%(name)s::%(lineno)s) %(message)s'))
+logger.addHandler(handler)
+
 # http timeout for calling vetext endpoint
 HTTPTIMEOUT = (3.05, 1)
 
@@ -72,7 +76,7 @@ def validate_twilio_event(event: dict) -> bool:
         validator = RequestValidator(auth_token)
         uri = f"https://{event['headers']['host']}/vanotify/twoway/vettext"
 
-        decoded = base64.b64decode(event.get('body')).decode()
+        decoded = base64.b64decode(event.get('body')).decode('utf-8')
         params = parse_qs(decoded, keep_blank_values=True)
         params = {k: v[0] for k, v in params.items()}
         return validator.validate(uri=uri, params=params, signature=signature)
@@ -99,7 +103,7 @@ def vetext_incoming_forwarder_lambda_handler(
         #   ALB will submit a single request but to simplify code, it will also return an array of event bodies
         if 'requestContext' in event and 'elb' in event['requestContext']:
             logger.info('alb invocation')
-            if context and not validate_twilio_event(event):
+            if not validate_twilio_event(event):
                 logger.info('Returning 403 on unauthenticated Twilio request')
                 return create_twilio_response(403)
             logger.info('Authenticated Twilio request')
