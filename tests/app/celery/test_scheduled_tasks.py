@@ -454,7 +454,7 @@ def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_i
         {'id': '4', 'is_processed': True, 'payment_id': 4, 'paymentAmount': Decimal(0)},
         # Duplicate mappings
         # TODO 1689 - This test case is failing with something about inexactness.
-        #{'id': '5', 'is_processed': False, 'has_duplicate_mappings': True, 'payment_id': 5, 'paymentAmount': Decimal(0.99)},
+        # {'id': '5', 'is_processed': False, 'has_duplicate_mappings': True, 'payment_id': 5, 'paymentAmount': Decimal(0.99)},
         # Placeholder payment_id
         {'id': '6', 'is_processed': False, 'payment_id': -1, 'paymentAmount': Decimal(1.0)},
         # Missing paymentAmount
