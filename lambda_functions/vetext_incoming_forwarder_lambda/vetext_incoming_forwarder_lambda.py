@@ -21,10 +21,6 @@ except ValueError:
     logger.setLevel('INFO')
     logger.warning('Invalid log level specified, defaulting to INFO')
 
-handler = logging.StreamHandler(sys.stderr)
-handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] (%(name)s::%(lineno)s) %(message)s'))
-logger.addHandler(handler)
-
 # http timeout for calling vetext endpoint
 HTTPTIMEOUT = (3.05, 1)
 
@@ -194,7 +190,7 @@ def process_body_from_alb_invocation(event):
         logger.error('event_path from alb record was not present: %s', event)
 
     event_body_decoded = parse_qsl(base64.b64decode(event_body_encoded).decode('utf-8'))
-    logger.debug('Decoded event body', event_body_decoded)
+    logger.debug('Decoded event body: %s', event_body_decoded)
     logger.debug('Event path: %s', event_path)
 
     event_body = dict(event_body_decoded)
