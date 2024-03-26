@@ -1,5 +1,5 @@
 name: Deploy Lambdas to Env
-run-name: "Deploy Lambdas to ${{ inputs.env }}"
+run-name: "Deploy Lambdas to ${{ inputs.environment }}"
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
         description: Branch to deploy
         required: true
         default: master
-      env:
+      environment:
         type: choice
         description: Environment to deploy
         default: dev
@@ -52,7 +52,7 @@ jobs:
     needs: [setup_job]
     uses: ./.github/workflows/lambda-functions.yml
     with:
-      environment: ${{ inputs.env }}
+      environment: ${{ inputs.environment }}
       ref: ${{ inputs.ref }}
       lambdaName: ${{ inputs.lambda }}
     secrets: inherit
