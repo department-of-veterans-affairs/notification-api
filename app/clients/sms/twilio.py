@@ -4,7 +4,7 @@ from monotonic import monotonic
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 from urllib.parse import parse_qs
-
+from notifications_utils.recipients import InvalidPhoneError
 
 TWILIO_RESPONSE_MAP = {
     'accepted': 'created',
@@ -189,12 +189,15 @@ class TwilioSMSClient(SmsClient):
             self.logger.info('Twilio send SMS request for %s succeeded: %s', reference, message.sid)
 
             return message.sid
-        # except TwilioRestException as e:
-        #     if e.status == 400:
-        #         self.logger.error()
+        except TwilioRestException as e:
+            if e.status == 400 and 'phone number' in e.msg:
+                self.logger.error('Twilio send SMS request for %s failed, Twilio 400 Error', reference)
+                raise InvalidPhoneError
+            else:
+                raise e
         except Exception as e:
             self.logger.error('Twilio send SMS request for %s failed', reference)
-            # raise e
+            raise e
         finally:
             elapsed_time = monotonic() - start_time
             self.logger.info(
