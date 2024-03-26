@@ -212,6 +212,7 @@ def _get_dynamodb_comp_pen_messages(
         1) is_processed is not set or False
         2) has_duplicate_mappings is not set or False
         3) payment_id is not equal to -1 (placeholder value)
+        4) paymentAmount exists
 
     :param table: the dynamodb table to grab the data from
     :param message_limit: the number of rows to search at a time and the max number of items that should be returned
@@ -221,7 +222,7 @@ def _get_dynamodb_comp_pen_messages(
     """
 
     filters = Attr('is_processed').not_exists() | Attr('is_processed').eq(False)
-    filters = filters & Attr('payment_id').exists() & Attr('payment_id').ne(-1)
+    filters = filters & Attr('payment_id').exists() & Attr('payment_id').ne(-1) & Attr('paymentAmount').exists()
     filters = filters & (Attr('has_duplicate_mappings').not_exists() | Attr('has_duplicate_mappings').eq(False))
 
     results = table.scan(FilterExpression=filters, Limit=message_limit)
@@ -322,7 +323,7 @@ def send_scheduled_comp_and_pen_sms():
                 service=service,
                 template=template,
                 notification_type=SMS_TYPE,
-                personalisation={'paymentAmount': int(item.get('paymentAmount'))},
+                personalisation={'paymentAmount': str(item.get('paymentAmount'))},
                 sms_sender_id=service.get_default_sms_sender_id(),
                 recipient_item={
                     'id_type': IdentifierType.VA_PROFILE_ID.value,
