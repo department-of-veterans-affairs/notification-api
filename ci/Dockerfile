@@ -43,7 +43,7 @@ RUN apk add --no-cache --virtual .build-deps cargo curl gcc musl-dev rust \
 
 # # Python 3.10 is supported until October 2026.
 # # Alpine Linux 3.19 is supported until 1 November 2025
-FROM python:3.10-alpine3.19 as notification_api
+FROM python:3.10-alpine3.19
 
 ARG FLASK_DEBUG
 ARG TEST_FOLDER
