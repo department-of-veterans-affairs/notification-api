@@ -1,4 +1,6 @@
 name: Deploy Lambdas to Env
+run-name: "Deploy Lambdas to ${{ inputs.env }}"
+
 on:
   workflow_dispatch:
     inputs:
