@@ -5,7 +5,6 @@ from uuid import uuid4
 from twilio.request_validator import RequestValidator
 
 
-
 def validate_signature_and_body(token, uri, body, signature):
     rv = RequestValidator(token)
 
@@ -26,6 +25,7 @@ def validate_signature_and_body(token, uri, body, signature):
 
     assert signature == new_signature
     print()
+
 
 def generate_twilio_signature_and_body(
     token: str,
@@ -94,17 +94,17 @@ def generate_twilio_signature_and_body(
     return signature, msg_body
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     breakpoint()
     # How to generate a test body and signature
     # To test real events you need VEText's token. Ask for help from Cris or Kyle. Tokens are not shared with the team.
     token = '12345678'
     rv = RequestValidator(token)
-    
+
     uri = 'https://staging-api.va.gov/vanotify/twoway/vettext'
 
     signature, body = generate_twilio_signature_and_body(token, uri)
-    print(f"Body: {body}\n, Signature: {signature}")
+    print(f'Body: {body}\n, Signature: {signature}')
 
     ###################################### For Understanding Each Part of the Process ######################################
     # Turn the base64 encoded body into a urlencoded string
@@ -123,6 +123,5 @@ if __name__ == "__main__":
     # Compute signature using decoded params and new signature
     new_signature = rv.compute_signature(uri, params)
     print(new_signature)
-
 
     validate_signature_and_body(token, uri, body, signature)
