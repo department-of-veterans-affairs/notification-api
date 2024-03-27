@@ -187,7 +187,7 @@ def test_request_makes_vetext_call(mocker, monkeypatch, all_path_env_param_set, 
     from lambda_functions.vetext_incoming_forwarder_lambda.vetext_incoming_forwarder_lambda import (
         vetext_incoming_forwarder_lambda_handler,
     )
-    breakpoint()
+
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_retry_sqs')
     mocker.patch(f'{LAMBDA_MODULE}.read_from_ssm', return_value='ssm')
     mock_requests = mocker.patch(f'{LAMBDA_MODULE}.requests.post', return_value=mocked_requests_post_success())
