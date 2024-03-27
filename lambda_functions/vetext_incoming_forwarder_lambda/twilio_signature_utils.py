@@ -24,7 +24,6 @@ def validate_signature_and_body(token, uri, body, signature):
     msg = base64.b64encode(encoded).decode('utf-8')
 
     assert signature == new_signature
-    print()
 
 
 def generate_twilio_signature_and_body(
