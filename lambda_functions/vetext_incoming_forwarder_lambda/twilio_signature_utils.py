@@ -95,7 +95,6 @@ def generate_twilio_signature_and_body(
 
 
 if __name__ == '__main__':
-    breakpoint()
     # How to generate a test body and signature
     # To test real events you need VEText's token. Ask for help from Cris or Kyle. Tokens are not shared with the team.
     token = '12345678'
