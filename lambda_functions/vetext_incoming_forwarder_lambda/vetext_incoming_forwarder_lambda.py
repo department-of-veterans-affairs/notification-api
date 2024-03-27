@@ -29,8 +29,8 @@ TWILIO_AUTH_TOKEN_SSM_NAME = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME')
 if TWILIO_AUTH_TOKEN_SSM_NAME is None or TWILIO_AUTH_TOKEN_SSM_NAME == 'DEFAULT':
     sys.exit('A required environment variable is not set. Please set TWILIO_AUTH_TOKEN_SSM_NAME')
 
-TWILIO_VETEXT_PATH = "/twoway/vetext"
-TWILIO_VETEXT2_PATH = "/twoway/vetext2"
+TWILIO_VETEXT_PATH = '/twoway/vetext'
+TWILIO_VETEXT2_PATH = '/twoway/vetext2'
 
 
 def get_twilio_token() -> str:
