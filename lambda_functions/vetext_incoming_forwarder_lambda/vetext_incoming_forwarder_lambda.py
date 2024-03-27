@@ -229,7 +229,7 @@ def read_from_ssm(key: str) -> str:
 
 def make_vetext_request(request_body):
     endpoint = request_body.get('path', TWILIO_VETEXT_PATH)
-    logger.info('Making VeText Request for endpoint: %s', endpoint)
+    logger.debug('Making VeText Request for endpoint: %s', endpoint)
 
     if endpoint == TWILIO_VETEXT_PATH:
         ssm_path = os.getenv('vetext_api_auth_ssm_path')
