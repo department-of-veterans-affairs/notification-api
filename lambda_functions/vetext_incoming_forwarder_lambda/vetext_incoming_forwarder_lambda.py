@@ -29,7 +29,7 @@ TWILIO_AUTH_TOKEN_SSM_NAME = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME')
 if TWILIO_AUTH_TOKEN_SSM_NAME is None or TWILIO_AUTH_TOKEN_SSM_NAME == 'DEFAULT':
     sys.exit('A required environment variable is not set. Please set TWILIO_AUTH_TOKEN_SSM_NAME')
 
-TWILIO_VETEXT_PATH = '/twoway/vetext'
+TWILIO_VETEXT_PATH = '/twoway/vettext'
 TWILIO_VETEXT2_PATH = '/twoway/vetext2'
 
 
@@ -226,7 +226,7 @@ def read_from_ssm(key: str) -> str:
 
 
 def make_vetext_request(request_body):
-    endpoint = request_body['path']
+    endpoint = request_body.get('path', TWILIO_VETEXT_PATH)
     logger.info('Making VeText Request for endpoint: %s', endpoint)
 
     if endpoint == TWILIO_VETEXT_PATH:
