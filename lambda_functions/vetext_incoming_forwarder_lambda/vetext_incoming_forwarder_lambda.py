@@ -29,6 +29,9 @@ TWILIO_AUTH_TOKEN_SSM_NAME = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME')
 if TWILIO_AUTH_TOKEN_SSM_NAME is None or TWILIO_AUTH_TOKEN_SSM_NAME == 'DEFAULT':
     sys.exit('A required environment variable is not set. Please set TWILIO_AUTH_TOKEN_SSM_NAME')
 
+TWILIO_VETEXT_PATH = "/twoway/vetext"
+TWILIO_VETEXT2_PATH = "/twoway/vetext2"
+
 
 def get_twilio_token() -> str:
     """
@@ -223,10 +226,10 @@ def read_from_ssm(key: str) -> str:
 
 
 def make_vetext_request(request_body):
-    endpoint = request_body.get('path', '/twoway/vettext')
+    endpoint = request_body['path']
     logger.info('Making VeText Request for endpoint: %s', endpoint)
 
-    if endpoint == '/twoway/vettext':
+    if endpoint == TWILIO_VETEXT_PATH:
         ssm_path = os.getenv('vetext_api_auth_ssm_path')
         if ssm_path is None:
             logger.error('Unable to retrieve vetext_api_auth_ssm_path from env variables')
@@ -242,7 +245,7 @@ def make_vetext_request(request_body):
             logger.error('Unable to retrieve vetext_api_endpoint_path from env variables')
             return
 
-    elif endpoint == '/twoway/vetext2':
+    elif endpoint == TWILIO_VETEXT2_PATH:
         ssm_path = os.getenv('VETEXT2_BASIC_AUTH_SSM_PATH')
         if ssm_path is None:
             logger.error('Unable to retrieve vetext_api_auth_ssm_path from env variables')
