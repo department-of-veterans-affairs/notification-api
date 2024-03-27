@@ -101,6 +101,8 @@ def vetext_incoming_forwarder_lambda_handler(
         #   ALB will submit a single request but to simplify code, it will also return an array of event bodies
         if 'requestContext' in event and 'elb' in event['requestContext']:
             logger.info('alb invocation')
+            # The check for context is to allow for local testing. While context is always present when deployed,
+            # setting it False locally allows for testing without a valid Twilio signature.
             if context and not validate_twilio_event(event):
                 logger.info('Returning 403 on unauthenticated Twilio request')
                 return create_twilio_response(403)
