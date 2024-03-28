@@ -99,7 +99,7 @@ class AwsPinpointClient(SmsClient):
 
             if delivery_status in ['DUPLICATE', 'OPT_OUT', 'PERMANENT_FAILURE']:
                 # indicates 'From' number doesn't exist for this Pinpoint account
-                if 'provided number does not exis' in result['StatusMessage']:
+                if 'provided number does not exist' in result['StatusMessage']:
                     raise InvalidProviderException(error_message)
 
                 raise NonRetryableException(error_message)

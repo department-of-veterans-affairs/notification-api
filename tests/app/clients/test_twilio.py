@@ -626,7 +626,7 @@ def test_send_sms_twilio_callback(
         assert response_dict['sid'] == twilio_sid
 
 
-def test_send_sms_raises_if_invalid_twilio_number(
+def test_send_sms_raises_invalid_provider_error_with_invalid_twilio_number(
     notify_api,
     mocker,
 ):
