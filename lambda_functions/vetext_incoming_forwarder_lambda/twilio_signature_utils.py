@@ -95,7 +95,7 @@ def generate_twilio_signature_and_body(
 
 if __name__ == '__main__':
     # How to generate a test body and signature
-    # To test real events you need VEText's Twilio token, this one is fake.
+    # To test real events use VEText's token. Ask the Tech Lead or QA. Tokens are not shared with the team.
     token = '12345678'
     rv = RequestValidator(token)
 
