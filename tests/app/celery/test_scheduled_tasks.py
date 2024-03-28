@@ -481,9 +481,9 @@ def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_i
     # Invoke the function with the mocked table and application
     messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=7)
 
-    assert len(messages) == 2
     for msg in messages:
         assert msg['id'] in '12', f"The message with ID {msg['id']} should have been filtered out."
+    assert len(messages) == 2
 
 
 def test_send_scheduled_comp_and_pen_sms_does_not_call_send_notification(mocker, dynamodb_mock):

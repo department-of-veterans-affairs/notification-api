@@ -221,9 +221,13 @@ def _get_dynamodb_comp_pen_messages(
     https://boto3.amazonaws.com/v1/documentation/api/latest/guide/dynamodb.html#querying-and-scanning
     """
 
-    filters = Attr('is_processed').not_exists() | Attr('is_processed').eq(False)
-    filters = filters & Attr('payment_id').exists() & Attr('payment_id').ne(-1) & Attr('paymentAmount').exists()
-    filters = filters & (Attr('has_duplicate_mappings').not_exists() | Attr('has_duplicate_mappings').eq(False))
+    filters = (
+        Attr('is_processed').eq(False)
+        & Attr('payment_id').exists()
+        & Attr('payment_id').ne(-1)
+        & Attr('paymentAmount').exists()
+        & Attr('has_duplicate_mappings').ne(True)
+    )
 
     results = table.scan(FilterExpression=filters, Limit=message_limit)
     items: list = results.get('Items')
@@ -358,7 +362,7 @@ def send_scheduled_comp_and_pen_sms():
                 ReturnValues='ALL_NEW',
             )
 
-            current_app.logger.info('updated_item from dynamodb ("is_processed" should be "True"): %s', updated_item)
+            current_app.logger.debug('updated_item from dynamodb ("is_processed" should be "True"): %s', updated_item)
         except Exception as e:
             current_app.logger.critical(
                 'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
