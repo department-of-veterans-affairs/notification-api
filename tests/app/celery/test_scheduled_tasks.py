@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, getcontext
 from unittest.mock import call
 
 import pytest
@@ -428,7 +428,18 @@ def test_get_dynamodb_comp_pen_messages_with_empty_table(dynamodb_mock):
     assert messages == [], 'Expected no messages from an empty table'
 
 
-def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_insert):
+@pytest.fixture
+def setup_monetary_decimal_context():
+    context = getcontext()
+    initial_context = context.copy()
+    context.prec = 2
+
+    yield
+
+    context = initial_context
+
+
+def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_insert, setup_monetary_decimal_context):
     """
     Items should not be returned if any of these apply:
         1) is_processed is True
@@ -440,23 +451,22 @@ def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_i
     # Insert mock data into the DynamoDB table.
     items_to_insert = [
         # The first 2 items are valid.
-        {'id': '1', 'is_processed': False, 'payment_id': 1, 'paymentAmount': Decimal(1.0)},
+        {'id': '1', 'is_processed': False, 'payment_id': 1, 'paymentAmount': Decimal(1.00)},
         {
             'id': '2',
             'is_processed': False,
             'has_duplicate_mappings': False,
             'payment_id': 2,
-            'paymentAmount': Decimal(2.5),
+            'paymentAmount': Decimal(2.50),
         },
         # Missing payment_id
-        {'id': '3', 'is_processed': False, 'paymentAmount': Decimal(0.0)},
+        {'id': '3', 'is_processed': False, 'paymentAmount': Decimal(0.00)},
         # Already processed
         {'id': '4', 'is_processed': True, 'payment_id': 4, 'paymentAmount': Decimal(0)},
         # Duplicate mappings
-        # TODO 1689 - This test case is failing with something about inexactness.
-        # {'id': '5', 'is_processed': False, 'has_duplicate_mappings': True, 'payment_id': 5, 'paymentAmount': Decimal(0.99)},
+        {'id': '5', 'is_processed': False, 'has_duplicate_mappings': True, 'payment_id': 5, 'paymentAmount': Decimal('0.99')},
         # Placeholder payment_id
-        {'id': '6', 'is_processed': False, 'payment_id': -1, 'paymentAmount': Decimal(1.0)},
+        {'id': '6', 'is_processed': False, 'payment_id': -1, 'paymentAmount': Decimal(1.00)},
         # Missing paymentAmount
         {'id': '7', 'is_processed': False, 'payment_id': 1},
     ]

@@ -358,7 +358,7 @@ def send_scheduled_comp_and_pen_sms():
                 ReturnValues='ALL_NEW',
             )
 
-            current_app.logger.info('updated_item from dynamodb ("is_processed" shouldb be "True"): %s', updated_item)
+            current_app.logger.info('updated_item from dynamodb ("is_processed" should be "True"): %s', updated_item)
         except Exception as e:
             current_app.logger.critical(
                 'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
