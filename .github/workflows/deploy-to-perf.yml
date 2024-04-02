@@ -17,6 +17,11 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
+    inputs:
+      ref:
+        required: true
+        type: string
 
 jobs:
   prepare-deployment:
@@ -78,4 +83,31 @@ jobs:
         run: |
           git merge ${{ github.sha }} --no-squash -X theirs
           git push
+
+  checkout-release-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with: 
+          ref: release
+
+  # this job deploys the SHA that triggered this workflow
+  deploy-to-staging:
+    needs: approval-to-deploy
+    uses: ./.github/workflows/dev_deploy.yml
+    with:
+      environment: staging
+      ref: ${{ github.sha }}
+      lambdaDeploy: true
+    secrets: inherit
+
+  QA-approval-of-staging:
+    needs: deploy-to-staging
+    environment: 
+      name: prod-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pause for manual approval
+        run: echo "Pipeline paused for pending approval of staging by QA"
 
