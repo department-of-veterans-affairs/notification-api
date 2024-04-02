@@ -17,11 +17,6 @@ on:
   push:
     branches:
       - master
-  workflow_dispatch:
-    inputs:
-      ref:
-        required: true
-        type: string
 
 jobs:
   prepare-deployment:
