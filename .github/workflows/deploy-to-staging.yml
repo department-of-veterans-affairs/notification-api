@@ -1,0 +1,67 @@
+name: Deployment to Staging
+# note:
+# It's useful to recognize that this workflow is designed to be triggered by a merge to the release branch
+# Therefore, ${{ github.sha }} will always be in reference to the SHA that originally triggered this workflow. 
+
+# note:
+# environment:
+  # name:
+# is keyword for using the environment protections.
+
+# with: 
+  # environment:
+# is simply using a variable named environment 
+  
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  prepare-deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+  approval-to-deploy:
+    needs: prepare-deployment
+    environment: 
+      name: staging-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pause for manual approval
+        run: |
+          echo "Deploying commit SHA ${{ github.sha }}, the latest merge to release"
+          echo "Deployment paused for manual approval."
+
+# this job deploys the SHA that triggered this workflow
+  deploy-to-staging:
+    needs: approval-to-deploy
+    uses: ./.github/workflows/dev_deploy.yml
+    with:
+      environment: staging
+      ref: ${{ github.sha }}
+      lambdaDeploy: true
+    secrets: inherit
+
+  QA-approval-of-staging:
+    needs: deploy-to-staging
+    environment: 
+      name: prod-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pause for manual approval
+        run: echo "Deployment paused for manual approval."
+
+  merge-to-release:
+    # These permissions are needed to write to the release branch
+    permissions:
+      contents: write
+    needs: QA-approval-of-staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        run: |
+          echo "SHA passed in staging! Approved to deploy to Prod!"
+
