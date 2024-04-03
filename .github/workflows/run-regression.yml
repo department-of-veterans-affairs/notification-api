@@ -19,6 +19,7 @@ jobs:
     if: ${{ (inputs.environment == 'dev') || (inputs.environment == 'perf') || (inputs.environment == 'staging') }}
     name: "Run regression for ${{ inputs.environment }}"
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     steps:
     - uses: actions/checkout@v4
 
