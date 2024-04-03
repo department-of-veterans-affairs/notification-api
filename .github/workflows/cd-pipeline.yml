@@ -80,7 +80,7 @@ jobs:
           git push
 
   deploy-to-staging:
-    needs: approval-to-deploy
+    needs: merge-to-release 
     uses: ./.github/workflows/dev_deploy.yml
     with:
       environment: staging
