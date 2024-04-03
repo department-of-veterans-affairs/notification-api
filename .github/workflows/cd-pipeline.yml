@@ -79,21 +79,13 @@ jobs:
           git merge ${{ github.sha }} --no-squash -X theirs
           git push
 
-  checkout-release-branch:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with: 
-          ref: release
-
   # this job deploys the SHA that triggered this workflow
   deploy-to-staging:
     needs: approval-to-deploy
     uses: ./.github/workflows/dev_deploy.yml
     with:
       environment: staging
-      ref: ${{ github.sha }}
+      ref: release
       lambdaDeploy: true
     secrets: inherit
 
