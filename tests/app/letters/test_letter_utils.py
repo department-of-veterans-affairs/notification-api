@@ -11,7 +11,6 @@ from app.letters.utils import (
     get_bucket_name_and_prefix_for_notification,
     get_letter_pdf_filename,
     letter_print_day,
-    upload_letter_pdf,
     ScanErrorType,
     move_failed_pdf,
 )
@@ -101,32 +100,6 @@ def test_get_letter_pdf_filename_returns_correct_filename_for_test_letters(notif
     filename = get_letter_pdf_filename(reference='foo', crown='C', is_scan_letter=True)
 
     assert filename == 'NOTIFY.FOO.D.2.C.C.20171204172900.PDF'
-
-
-@pytest.mark.parametrize('postage,expected_postage', [('second', 2), ('first', 1)])
-def test_upload_letter_pdf_uses_postage_from_notification(
-    sample_api_key,
-    sample_notification,
-    sample_service,
-    sample_template,
-    mocker,
-    postage,
-    expected_postage,
-):
-    service = sample_service(service_permissions=set(SERVICE_PERMISSION_TYPES), check_if_service_exists=True)
-    api_key = sample_api_key(service=service)
-    template = sample_template(service=service, template_type=LETTER_TYPE, postage='second')
-    letter_notification = sample_notification(template=template, api_key=api_key, postage=postage)
-    mock_s3 = mocker.patch('app.letters.utils.s3upload')
-
-    filename = upload_letter_pdf(letter_notification, b'\x00\x01', precompiled=False)
-
-    mock_s3.assert_called_once_with(
-        bucket_name=current_app.config['LETTERS_PDF_BUCKET_NAME'],
-        file_location=filename,
-        filedata=b'\x00\x01',
-        region=current_app.config['AWS_REGION'],
-    )
 
 
 @mock_s3

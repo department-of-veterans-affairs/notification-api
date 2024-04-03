@@ -14,7 +14,6 @@ from app.celery.research_mode_tasks import create_fake_letter_response_file
 from app.config import QueueNames, TaskNames
 from app.dao.notifications_dao import update_notification_status_by_reference
 from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
-from app.letters.utils import upload_letter_pdf
 from app.models import (
     SCHEDULE_NOTIFICATIONS,
     SMS_TYPE,
@@ -22,14 +21,7 @@ from app.models import (
     LETTER_TYPE,
     UPLOAD_DOCUMENT,
     PRIORITY,
-    KEY_TYPE_TEST,
-    KEY_TYPE_TEAM,
-    NOTIFICATION_CREATED,
-    NOTIFICATION_SENDING,
-    NOTIFICATION_DELIVERED,
-    NOTIFICATION_PENDING_VIRUS_CHECK,
 )
-from app.notifications.process_letter_notifications import create_letter_notification
 from app.notifications.process_notifications import (
     persist_notification,
     persist_scheduled_notification,
