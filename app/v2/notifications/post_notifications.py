@@ -5,14 +5,12 @@ import werkzeug
 from flask import request, jsonify, current_app, abort
 from notifications_utils.recipients import try_validate_and_format_phone_number
 
-from app import api_user, authenticated_service, notify_celery, attachment_store
+from app import api_user, authenticated_service, attachment_store
 from app.attachments.mimetype import extract_and_validate_mimetype
 from app.attachments.store import AttachmentStoreError
 from app.attachments.types import UploadedAttachmentMetadata
 
-from app.celery.research_mode_tasks import create_fake_letter_response_file
-from app.config import QueueNames, TaskNames
-from app.dao.notifications_dao import update_notification_status_by_reference
+from app.config import QueueNames
 from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
 from app.models import (
     SCHEDULE_NOTIFICATIONS,

@@ -7,12 +7,10 @@ from freezegun import freeze_time
 from moto import mock_s3
 
 from app.letters.utils import (
-    copy_redaction_failed_pdf,
     get_bucket_name_and_prefix_for_notification,
     get_letter_pdf_filename,
     letter_print_day,
     ScanErrorType,
-    move_failed_pdf,
 )
 from app.models import SERVICE_PERMISSION_TYPES
 
@@ -100,60 +98,6 @@ def test_get_letter_pdf_filename_returns_correct_filename_for_test_letters(notif
     filename = get_letter_pdf_filename(reference='foo', crown='C', is_scan_letter=True)
 
     assert filename == 'NOTIFY.FOO.D.2.C.C.20171204172900.PDF'
-
-
-@mock_s3
-@freeze_time(FROZEN_DATE_TIME)
-def test_move_failed_pdf_error(notify_api, aws_credentials):
-    filename = 'test.pdf'
-    bucket_name = current_app.config['LETTERS_SCAN_BUCKET_NAME']
-
-    conn = boto3.resource('s3', region_name='us-east-1')
-    bucket = conn.create_bucket(Bucket=bucket_name)
-
-    s3 = boto3.client('s3', region_name='us-east-1')
-    s3.put_object(Bucket=bucket_name, Key=filename, Body=b'pdf_content')
-
-    move_failed_pdf(filename, ScanErrorType.ERROR)
-
-    assert 'ERROR/' + filename in [o.key for o in bucket.objects.all()]
-    assert filename not in [o.key for o in bucket.objects.all()]
-
-
-@mock_s3
-@freeze_time(FROZEN_DATE_TIME)
-def test_move_failed_pdf_scan_failed(notify_api, aws_credentials):
-    filename = 'test.pdf'
-    bucket_name = current_app.config['LETTERS_SCAN_BUCKET_NAME']
-
-    conn = boto3.resource('s3', region_name='us-east-1')
-    bucket = conn.create_bucket(Bucket=bucket_name)
-
-    s3 = boto3.client('s3', region_name='us-east-1')
-    s3.put_object(Bucket=bucket_name, Key=filename, Body=b'pdf_content')
-
-    move_failed_pdf(filename, ScanErrorType.FAILURE)
-
-    assert 'FAILURE/' + filename in [o.key for o in bucket.objects.all()]
-    assert filename not in [o.key for o in bucket.objects.all()]
-
-
-@mock_s3
-@freeze_time(FROZEN_DATE_TIME)
-def test_copy_redaction_failed_pdf(notify_api, aws_credentials):
-    filename = 'test.pdf'
-    bucket_name = current_app.config['LETTERS_SCAN_BUCKET_NAME']
-
-    conn = boto3.resource('s3', region_name='us-east-1')
-    bucket = conn.create_bucket(Bucket=bucket_name)
-
-    s3 = boto3.client('s3', region_name='us-east-1')
-    s3.put_object(Bucket=bucket_name, Key=filename, Body=b'pdf_content')
-
-    copy_redaction_failed_pdf(filename)
-
-    assert 'REDACTION_FAILURE/' + filename in [o.key for o in bucket.objects.all()]
-    assert filename in [o.key for o in bucket.objects.all()]
 
 
 @freeze_time('2017-07-07 16:30:00')
