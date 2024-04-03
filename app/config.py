@@ -45,7 +45,6 @@ class QueueNames(object):
     NOTIFY = 'notify-internal-tasks'
     PROCESS_FTP = 'process-ftp-tasks'
     CALLBACKS = 'service-callbacks'
-    LETTERS = 'letter-tasks'
     ANTIVIRUS = 'antivirus-tasks'
     LOOKUP_CONTACT_INFO = 'lookup-contact-info-tasks'
     LOOKUP_VA_PROFILE_ID = 'lookup-va-profile-id-tasks'
