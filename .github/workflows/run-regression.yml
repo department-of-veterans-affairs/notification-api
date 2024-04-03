@@ -33,5 +33,3 @@ jobs:
           const path = '.github/scripts/trigger-regression.js';
           const triggerAndWait = require(path);
           triggerAndWait({github, context, core});
-          echo "hello world"
-
