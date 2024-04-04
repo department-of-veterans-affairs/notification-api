@@ -8,6 +8,7 @@ from notifications_utils.statsd_decorators import statsd
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 from app import notify_celery, statsd_client
+from app.celery.common import log_notification_total_time
 from app.celery.exceptions import AutoRetryException
 from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
@@ -121,16 +122,12 @@ def process_pinpoint_results(
         else:
             update_notification_status_by_id(notification_id=notification.id, status=notification_status)
 
-        current_app.logger.info(
-            'Pinpoint callback return status of %s for notification: %s', notification_status, notification.id
+        log_notification_total_time(
+            notification.id,
+            notification.created_at,
+            notification_status,
+            'pinpoint',
         )
-
-        statsd_client.incr(f'callback.pinpoint.{notification_status}')
-
-        if notification.sent_at:
-            statsd_client.timing_with_dates(
-                'callback.pinpoint.elapsed-time', datetime.datetime.utcnow(), notification.sent_at
-            )
 
         check_and_queue_callback_task(notification)
 
