@@ -102,7 +102,7 @@ def test_ses_callback_should_call_send_delivery_status_to_service(
     )
 
 
-def test_ses_callback_should_log_total_time(
+def test_wt_ses_callback_should_log_total_time(
     mocker,
     client,
     sample_template,
@@ -111,9 +111,15 @@ def test_ses_callback_should_log_total_time(
     template = sample_template(template_type=EMAIL_TYPE)
     with freeze_time('2001-01-01T12:00:00'):
         mock_log_total_time = mocker.patch('app.celery.common.log_notification_total_time')
-
+        mocker.patch('app.celery.service_callback_tasks.check_and_queue_callback_task')
         ref = str(uuid4())
+
         notification = sample_notification(template=template, status='sending', reference=ref)
+        # Mock db call
+        mocker.patch(
+            'app.dao.notifications_dao.dao_get_notification_by_reference',
+            return_value=notification,
+        )
         process_ses_receipts_tasks.process_ses_results(ses_notification_callback(reference=ref))
 
         assert mock_log_total_time.called_once_with(

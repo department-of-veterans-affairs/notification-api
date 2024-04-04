@@ -287,7 +287,7 @@ def test_get_notification_parameters(notify_api, sample_notification_platform_st
 
 
 @pytest.mark.serial
-def test_delivery_status_callback_should_log_total_time(
+def test_wt_delivery_status_callback_should_log_total_time(
     mocker,
     client,
     sample_template,
@@ -295,9 +295,16 @@ def test_delivery_status_callback_should_log_total_time(
     sample_delivery_status_result_message,
 ):
     mock_log_total_time = mocker.patch('app.celery.common.log_notification_total_time')
+    mocker.patch('app.celery.service_callback_tasks.check_and_queue_callback_task')
+
+    notification = sample_notification(template=sample_template(), status='sent', reference='SMyyy')
+    # Mock db call
+    mocker.patch(
+        'app.dao.notifications_dao.dao_get_notification_by_reference',
+        return_value=notification,
+    )
 
     # Reference is used by many tests, can lead to trouble
-    notification = sample_notification(template=sample_template(), status='sent', reference='SMyyy')
     process_delivery_status(event=sample_delivery_status_result_message)
 
     assert mock_log_total_time.called_once_with(
