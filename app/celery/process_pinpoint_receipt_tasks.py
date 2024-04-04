@@ -122,6 +122,12 @@ def process_pinpoint_results(
         else:
             update_notification_status_by_id(notification_id=notification.id, status=notification_status)
 
+        current_app.logger.info(
+            'Pinpoint callback return status of %s for notification: %s',
+            notification_status,
+            notification.id,
+        )
+
         log_notification_total_time(
             notification.id,
             notification.created_at,

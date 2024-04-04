@@ -237,7 +237,9 @@ def process_ses_results(  # noqa: C901
             )
         else:
             current_app.logger.info(
-                'SES callback return status of %s for notification: %s', notification_status, notification.id
+                'SES callback return status of %s for notification: %s',
+                notification_status,
+                notification.id,
             )
 
         log_notification_total_time(

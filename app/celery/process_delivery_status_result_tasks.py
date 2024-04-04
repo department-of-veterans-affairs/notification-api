@@ -89,6 +89,13 @@ def process_delivery_status(
         )
         _calculate_pricing(price_in_millicents_usd, notification, notification_status, number_of_message_parts)
 
+        current_app.logger.info(
+            '%s callback return status of %s for notification: %s',
+            provider_name,
+            notification_status,
+            notification.id,
+        )
+
         log_notification_total_time(
             notification.id,
             notification.created_at,
