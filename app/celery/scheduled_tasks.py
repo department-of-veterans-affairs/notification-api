@@ -353,7 +353,7 @@ def send_scheduled_comp_and_pen_sms():
                     item.get('participant_id'),
                     item.get('payment_id'),
                 )
-            
+
             item['is_processed'] = True
 
             # update dynamodb entries
