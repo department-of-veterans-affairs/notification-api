@@ -98,7 +98,7 @@ def log_notification_total_time(
     """Logs how long it took a notification to go from created to delivered"""
     if status == NOTIFICATION_DELIVERED:
         current_app.logger.info(
-            'notification %s took %s total time to reach %s status - %s',
+            'notification %s took %ss total time to reach %s status - %s',
             notification_id,
             (datetime.datetime.now() - created_at).total_seconds(),
             status,

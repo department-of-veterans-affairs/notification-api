@@ -33,7 +33,7 @@ def test_ut_log_notification_total_time(
         )
 
         mock_logger.assert_called_once_with(
-            'notification %s took %s total time to reach %s status - %s',
+            'notification %s took %ss total time to reach %s status - %s',
             notification_id,
             (datetime.datetime.now() - created_at).total_seconds(),
             NOTIFICATION_DELIVERED,
