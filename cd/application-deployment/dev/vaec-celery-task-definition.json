@@ -346,6 +346,10 @@
           "value": "true"
         },
         {
+          "name": "DD_PROCESS_AGENT_ENABLED",
+          "value": "true"
+        },
+        {
           "name": "ECS_FARGATE",
           "value": "true"
         },
@@ -386,6 +390,7 @@
     "FARGATE"
   ],
   "cpu": "1024",
+  "pidMode": "task",
   "memory": "4096",
   "tags": [
     {
