@@ -396,6 +396,7 @@
     "FARGATE"
   ],
   "cpu": "2048",
+  "pidMode": "task",
   "memory": "4096",
   "tags": [
     {
