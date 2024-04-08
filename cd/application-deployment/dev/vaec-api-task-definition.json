@@ -4,10 +4,10 @@
   "taskRoleArn": "arn:aws-us-gov:iam::171875617347:role/project/project-dev-notification-api-task-role",
   "networkMode": "awsvpc",
   "containerDefinitions": [
+	"pidMode": "task",
     {
       "name": "notification-api",
       "image": "{will-be-replaced-by-ci}",
-      "pidMode": "task",
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
