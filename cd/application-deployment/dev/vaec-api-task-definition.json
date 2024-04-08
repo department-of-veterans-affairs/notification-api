@@ -7,7 +7,7 @@
     {
       "name": "notification-api",
       "image": "{will-be-replaced-by-ci}",
-	  "pidMode": "task",
+      "pidMode": "task",
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
