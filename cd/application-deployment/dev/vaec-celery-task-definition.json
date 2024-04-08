@@ -346,10 +346,6 @@
           "value": "true"
         },
         {
-          "name": "DD_PROCESS_AGENT_ENABLED",
-          "value": "true"
-        },
-        {
           "name": "ECS_FARGATE",
           "value": "true"
         },
