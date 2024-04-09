@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from decimal import Decimal, getcontext
-from unittest.mock import call, MagicMock
+from unittest.mock import call, MagicMock, patch
 
 import pytest
 from freezegun import freeze_time
@@ -568,11 +568,10 @@ def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, sample_service
             SMS_TYPE,
         ]
     )
-    # Mocks necessary for dynamodb
-    mock_resource = MagicMock()
-    mocker.patch('boto3.resource', return_value=mock_resource)
+    mocker.patch('app.celery.scheduled_tasks.dao_fetch_service_by_id', return_value=sample_service_sms_permission)
 
-    mock_batch_writer = mocker.patch('boto3.resource.Table.batch_writer')
+    template = sample_template()
+    mocker.patch('app.celery.scheduled_tasks.dao_get_template_by_id', return_value=template)
 
     dynamo_data = [
         {
@@ -585,24 +584,21 @@ def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, sample_service
     ]
     mocker.patch('app.celery.scheduled_tasks._get_dynamodb_comp_pen_messages', return_value=dynamo_data)
 
-    mocker.patch('app.celery.scheduled_tasks.dao_fetch_service_by_id', return_value=sample_service_sms_permission)
-
-    template = sample_template()
-    mocker.patch('app.celery.scheduled_tasks.dao_get_template_by_id', return_value=template)
-
     mocker.patch('app.celery.scheduled_tasks.send_notification_bypass_route')
 
-    send_scheduled_comp_and_pen_sms()
+    with patch('app.celery.scheduled_tasks.boto3.resource') as mock_resource:
+        mock_put_item = MagicMock()
+        mock_resource.return_value.Table.return_value.batch_writer.return_value.__enter__.return_value.put_item = (
+            mock_put_item
+        )
+
+        send_scheduled_comp_and_pen_sms()
 
     expected = {
-        'Item': {
-            'is_processed': True,
-            'participant_id': '123',
-            'paymentAmount': 123,
-            'payment_id': '123',
-            'vaprofile_id': '123',
-        }
+        'is_processed': True,
+        'participant_id': '123',
+        'paymentAmount': 123,
+        'payment_id': '123',
+        'vaprofile_id': '123',
     }
-    actual = mock_resource.Table._mock_mock_calls[3].kwargs
-
-    assert actual == expected, 'Expected data to be updated in the DynamoDB table'
+    mock_put_item.assert_called_once_with(Item=expected)
