@@ -302,8 +302,7 @@
       "command": [
         "sh",
         "-c",
-        "/app/scripts/run_celery.sh",
-        "DEBUG"
+        "/app/scripts/run_celery.sh DEBUG"
       ],
       "healthCheck": {
         "command": [
