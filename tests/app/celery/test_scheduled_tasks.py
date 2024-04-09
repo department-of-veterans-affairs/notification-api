@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from decimal import Decimal, getcontext
-from unittest.mock import call
+from unittest.mock import call, MagicMock
 
 import pytest
 from freezegun import freeze_time
@@ -558,3 +558,48 @@ def test_send_scheduled_comp_and_pen_sms_calls_send_notification(
         sms_sender_id=sample_service_sms_permission.get_default_sms_sender_id(),
         recipient_item=recipient_item,
     )
+
+
+def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, dynamodb_mock, sample_service, sample_template):
+    mocker.patch('app.celery.scheduled_tasks.is_feature_enabled', return_value=True)
+
+    sample_service_sms_permission = sample_service(
+        service_permissions=[
+            SMS_TYPE,
+        ]
+    )
+    # Mocks necessary for dynamodb
+    mock_resource = MagicMock()
+    mocker.patch('boto3.resource', return_value=mock_resource)
+
+
+    mocker.patch('boto3.resource.Table', return_value=dynamodb_mock)
+    dynamo_data = [
+        {
+            'participant_id': '123',
+            'vaprofile_id': '123',
+            'payment_id': '123',
+            'paymentAmount': 123,
+            'is_processed': False,
+        },
+    ]
+    mocker.patch('app.celery.scheduled_tasks._get_dynamodb_comp_pen_messages', return_value=dynamo_data)
+
+    mocker.patch(
+        'app.celery.scheduled_tasks.dao_fetch_service_by_id', return_value=sample_service_sms_permission
+    )
+    
+    template = sample_template()
+    mocker.patch('app.celery.scheduled_tasks.dao_get_template_by_id', return_value=template)
+
+    mocker.patch('app.celery.scheduled_tasks.send_notification_bypass_route')
+
+
+
+
+    send_scheduled_comp_and_pen_sms()
+
+    breakpoint()
+    # Assert that the dynamodb batch writer is being used
+
+    pass
