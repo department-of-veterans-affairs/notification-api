@@ -572,7 +572,6 @@ def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, dynamodb_mock,
     mock_resource = MagicMock()
     mocker.patch('boto3.resource', return_value=mock_resource)
 
-
     mocker.patch('boto3.resource.Table', return_value=dynamodb_mock)
     dynamo_data = [
         {
@@ -585,17 +584,12 @@ def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, dynamodb_mock,
     ]
     mocker.patch('app.celery.scheduled_tasks._get_dynamodb_comp_pen_messages', return_value=dynamo_data)
 
-    mocker.patch(
-        'app.celery.scheduled_tasks.dao_fetch_service_by_id', return_value=sample_service_sms_permission
-    )
-    
+    mocker.patch('app.celery.scheduled_tasks.dao_fetch_service_by_id', return_value=sample_service_sms_permission)
+
     template = sample_template()
     mocker.patch('app.celery.scheduled_tasks.dao_get_template_by_id', return_value=template)
 
     mocker.patch('app.celery.scheduled_tasks.send_notification_bypass_route')
-
-
-
 
     send_scheduled_comp_and_pen_sms()
 
