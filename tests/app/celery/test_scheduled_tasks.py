@@ -594,12 +594,15 @@ def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, sample_service
 
     send_scheduled_comp_and_pen_sms()
 
-    expected = {'Item': {'is_processed': True,
-          'participant_id': '123',
-          'paymentAmount': 123,
-          'payment_id': '123',
-          'vaprofile_id': '123'}}
+    expected = {
+        'Item': {
+            'is_processed': True,
+            'participant_id': '123',
+            'paymentAmount': 123,
+            'payment_id': '123',
+            'vaprofile_id': '123',
+        }
+    }
     actual = mock_resource.Table._mock_mock_calls[3].kwargs
 
     assert actual == expected, 'Expected data to be updated in the DynamoDB table'
-

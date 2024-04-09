@@ -329,7 +329,7 @@ def send_scheduled_comp_and_pen_sms():
                 'sending - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
                 vaprofile_id,
                 participant_id,
-                payment_id
+                payment_id,
             )
 
             try:
@@ -361,7 +361,7 @@ def send_scheduled_comp_and_pen_sms():
                     'sent to queue, updating - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
                     vaprofile_id,
                     participant_id,
-                    payment_id
+                    payment_id,
                 )
 
             item['is_processed'] = True
