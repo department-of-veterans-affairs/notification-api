@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import logging
 
 import boto3
 from boto3.dynamodb.conditions import Attr
@@ -39,6 +40,10 @@ from app.notifications.process_notifications import send_notification_to_queue
 from app.notifications.send_notifications import send_notification_bypass_route
 from app.v2.errors import JobIncompleteError
 from app.va.identifier import IdentifierType
+
+
+# Set the boto logger to INFO
+logging.getLogger('boto3').setLevel(logging.DEBUG)
 
 
 @notify_celery.task(name='run-scheduled-jobs')
@@ -312,14 +317,19 @@ def send_scheduled_comp_and_pen_sms():
         )
         return
 
+    breakpoint()
     # send messages and update entries in dynamodb table
     with table.batch_writer() as batch:
         for item in comp_and_pen_messages:
+            vaprofile_id = item.get('vaprofile_id')
+            participant_id = item.get('participant_id')
+            payment_id = item.get('payment_id')
+
             current_app.logger.info(
                 'sending - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
-                item.get('vaprofile_id'),
-                item.get('participant_id'),
-                item.get('payment_id'),
+                vaprofile_id,
+                participant_id,
+                payment_id
             )
 
             try:
@@ -340,18 +350,18 @@ def send_scheduled_comp_and_pen_sms():
                     'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | item from '
                     'dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s | exception_type: %s - '
                     'exception: %s',
-                    item.get('vaprofile_id'),
-                    item.get('participant_id'),
-                    item.get('payment_id'),
+                    vaprofile_id,
+                    participant_id,
+                    payment_id,
                     type(e),
                     e,
                 )
             else:
                 current_app.logger.info(
                     'sent to queue, updating - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
-                    item.get('vaprofile_id'),
-                    item.get('participant_id'),
-                    item.get('payment_id'),
+                    vaprofile_id,
+                    participant_id,
+                    payment_id
                 )
 
             item['is_processed'] = True
@@ -365,8 +375,8 @@ def send_scheduled_comp_and_pen_sms():
                 current_app.logger.critical(
                     'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
                     'exception_type: %s exception_message: %s',
-                    item.get('participant_id'),
-                    item.get('payment_id'),
+                    participant_id,
+                    payment_id,
                     type(e),
                     e,
                 )
