@@ -560,7 +560,7 @@ def test_send_scheduled_comp_and_pen_sms_calls_send_notification(
     )
 
 
-def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, dynamodb_mock, sample_service, sample_template):
+def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, sample_service, sample_template):
     mocker.patch('app.celery.scheduled_tasks.is_feature_enabled', return_value=True)
 
     sample_service_sms_permission = sample_service(
@@ -572,7 +572,8 @@ def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, dynamodb_mock,
     mock_resource = MagicMock()
     mocker.patch('boto3.resource', return_value=mock_resource)
 
-    mocker.patch('boto3.resource.Table', return_value=dynamodb_mock)
+    mock_batch_writer = mocker.patch('boto3.resource.Table.batch_writer')
+
     dynamo_data = [
         {
             'participant_id': '123',
@@ -593,4 +594,12 @@ def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, dynamodb_mock,
 
     send_scheduled_comp_and_pen_sms()
 
-    pass
+    expected = {'Item': {'is_processed': True,
+          'participant_id': '123',
+          'paymentAmount': 123,
+          'payment_id': '123',
+          'vaprofile_id': '123'}}
+    actual = mock_resource.Table._mock_mock_calls[3].kwargs
+
+    assert actual == expected, 'Expected data to be updated in the DynamoDB table'
+
