@@ -592,5 +592,5 @@ def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, dynamodb_mock,
     mocker.patch('app.celery.scheduled_tasks.send_notification_bypass_route')
 
     send_scheduled_comp_and_pen_sms()
-    
+
     pass
