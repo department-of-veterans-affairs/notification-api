@@ -23,6 +23,10 @@
       ],
       "environment": [
         {
+          "name": "NOTIFY_LOG_LEVEL",
+          "value": "DEBUG"
+        },
+        {
           "name": "ACCEPT_RECIPIENT_IDENTIFIERS_ENABLED",
           "value": "True"
         },

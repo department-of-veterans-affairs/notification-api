@@ -17,6 +17,10 @@
       },
       "environment": [
         {
+          "name": "NOTIFY_LOG_LEVEL",
+          "value": "DEBUG"
+        },
+        {
           "name": "NOTIFY_ENVIRONMENT",
           "value": "staging"
         },

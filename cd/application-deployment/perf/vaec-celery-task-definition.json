@@ -17,6 +17,10 @@
       },
       "environment": [
         {
+          "name": "NOTIFY_LOG_LEVEL",
+          "value": "DEBUG"
+        },
+        {
           "name": "SMS_SENDER_RATE_LIMIT_ENABLED",
           "value": "True"
         },
