@@ -68,6 +68,7 @@ def process_pinpoint_results(
 
     https://docs.aws.amazon.com/pinpoint/latest/developerguide/event-streams-data-sms.html
     """
+    current_app.logger.debug('pinpoint status event: %s', response)
 
     if not is_feature_enabled(FeatureFlag.PINPOINT_RECEIPTS_ENABLED):
         current_app.logger.info('Pinpoint receipts toggle is disabled.  Skipping callback task.')
