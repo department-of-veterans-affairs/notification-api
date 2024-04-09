@@ -45,7 +45,7 @@ def process_delivery_status(
     notification_platform_status = None
 
     current_app.logger.info('processing delivery status')
-    current_app.logger.debug(event)
+    current_app.logger.debug('delivery status event: %s', event)
 
     # first attempt to process the incoming event
     sqs_message = _get_sqs_message(event)
