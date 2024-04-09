@@ -317,7 +317,6 @@ def send_scheduled_comp_and_pen_sms():
         )
         return
 
-    breakpoint()
     # send messages and update entries in dynamodb table
     with table.batch_writer() as batch:
         for item in comp_and_pen_messages:
