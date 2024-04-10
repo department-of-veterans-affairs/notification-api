@@ -318,7 +318,7 @@ def send_scheduled_comp_and_pen_sms():
             vaprofile_id = str(item.get('vaprofile_id'))
             participant_id = item.get('participant_id')
             payment_id = item.get('payment_id')
-            payment_amount = item.get('paymentAmount')
+            payment_amount = str(item.get('paymentAmount'))
 
             current_app.logger.info(
                 'sending - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
