@@ -315,9 +315,10 @@ def send_scheduled_comp_and_pen_sms():
     # send messages and update entries in dynamodb table
     with table.batch_writer() as batch:
         for item in comp_and_pen_messages:
-            vaprofile_id = item.get('vaprofile_id')
+            vaprofile_id = str(item.get('vaprofile_id'))
             participant_id = item.get('participant_id')
             payment_id = item.get('payment_id')
+            payment_amount = item.get('paymentAmount')
 
             current_app.logger.info(
                 'sending - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
@@ -332,11 +333,11 @@ def send_scheduled_comp_and_pen_sms():
                     service=service,
                     template=template,
                     notification_type=SMS_TYPE,
-                    personalisation={'paymentAmount': str(item.get('paymentAmount'))},
+                    personalisation={'paymentAmount': payment_amount},
                     sms_sender_id=service.get_default_sms_sender_id(),
                     recipient_item={
                         'id_type': IdentifierType.VA_PROFILE_ID.value,
-                        'id_value': str(item.get('vaprofile_id')),
+                        'id_value': vaprofile_id,
                     },
                 )
             except Exception as e:
