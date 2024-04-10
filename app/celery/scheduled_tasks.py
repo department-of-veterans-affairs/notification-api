@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import logging
 
 import boto3
 from boto3.dynamodb.conditions import Attr
@@ -40,10 +39,6 @@ from app.notifications.process_notifications import send_notification_to_queue
 from app.notifications.send_notifications import send_notification_bypass_route
 from app.v2.errors import JobIncompleteError
 from app.va.identifier import IdentifierType
-
-
-# Set the boto logger to INFO
-logging.getLogger('boto3').setLevel(logging.DEBUG)
 
 
 @notify_celery.task(name='run-scheduled-jobs')

@@ -562,6 +562,7 @@ def test_send_scheduled_comp_and_pen_sms_calls_send_notification(
 
 def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, sample_service, sample_template):
     mocker.patch('app.celery.scheduled_tasks.is_feature_enabled', return_value=True)
+    mocker.patch('app.celery.scheduled_tasks.send_notification_bypass_route')
 
     sample_service_sms_permission = sample_service(
         service_permissions=[
@@ -569,7 +570,6 @@ def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, sample_service
         ]
     )
     mocker.patch('app.celery.scheduled_tasks.dao_fetch_service_by_id', return_value=sample_service_sms_permission)
-
     template = sample_template()
     mocker.patch('app.celery.scheduled_tasks.dao_get_template_by_id', return_value=template)
 
@@ -584,8 +584,6 @@ def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, sample_service
     ]
     mocker.patch('app.celery.scheduled_tasks._get_dynamodb_comp_pen_messages', return_value=dynamo_data)
 
-    mocker.patch('app.celery.scheduled_tasks.send_notification_bypass_route')
-
     with patch('app.celery.scheduled_tasks.boto3.resource') as mock_resource:
         mock_put_item = MagicMock()
         mock_resource.return_value.Table.return_value.batch_writer.return_value.__enter__.return_value.put_item = (
@@ -594,11 +592,5 @@ def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, sample_service
 
         send_scheduled_comp_and_pen_sms()
 
-    expected = {
-        'is_processed': True,
-        'participant_id': '123',
-        'paymentAmount': 123,
-        'payment_id': '123',
-        'vaprofile_id': '123',
-    }
-    mock_put_item.assert_called_once_with(Item=expected)
+    dynamo_data[0]['is_processed'] = True
+    mock_put_item.assert_called_once_with(Item=dynamo_data[0])
