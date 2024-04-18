@@ -391,7 +391,6 @@ paths:
     get:
       summary: Get all sms-senders for a service
       tags:
-        - service
         - sms sender
       responses:
         '200':
@@ -464,7 +463,6 @@ paths:
     get:
       summary: Get specific sms sender for a service
       tags:
-        - service
         - sms sender
       responses:
         '200':
@@ -533,7 +531,6 @@ paths:
     post:
       summary: Delete aka archive an sms sender
       tags:
-        - service
         - sms sender
       responses:
         '200':
