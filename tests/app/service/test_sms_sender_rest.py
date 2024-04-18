@@ -75,8 +75,7 @@ def test_add_service_sms_sender_new_sender_to_default(
     service = sample_service()
 
     stmt = select(ServiceSmsSender.id).where(
-        ServiceSmsSender.service_id == service.id,
-        ServiceSmsSender.is_default.is_(True)
+        ServiceSmsSender.service_id == service.id, ServiceSmsSender.is_default.is_(True)
     )
     initial_sms_sender_id = notify_db_session.session.execute(stmt).scalar_one()
 
@@ -184,8 +183,7 @@ def test_update_service_sms_sender_existing_sender_to_default(
     service = sample_service()
 
     stmt = select(ServiceSmsSender).where(
-        ServiceSmsSender.service_id == service.id,
-        ServiceSmsSender.is_default.is_(True)
+        ServiceSmsSender.service_id == service.id, ServiceSmsSender.is_default.is_(True)
     )
     service_sms_sender1 = notify_db_session.session.execute(stmt).scalar_one()
     service_sms_sender2 = sample_sms_sender(service_id=service.id, is_default=False)
