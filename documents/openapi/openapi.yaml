@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: VA Notify API Documentation
-  version: 1.0.6
+  version: 1.0.7
   description: |
     <p>This documents the API schemas for consumption by internal VA developers.</p>
     <h1>Authorization header</h1>
@@ -414,7 +414,6 @@ paths:
       summary: Add sms sender for a service
       description: Note that setting is_default to True will have the side-effect of setting the current default to False.
       tags:
-        - service
         - sms sender
       requestBody:
         required: true
@@ -427,6 +426,7 @@ paths:
                   $ref: '#/components/schemas/Id'
                 is_default:
                   type: boolean
+                  example: false
                 rate_limit:
                   type: integer
                   minimum: 1
@@ -436,7 +436,9 @@ paths:
                 sms_sender:
                   type: string
                 sms_sender_specifics:
+                  description: Arbitrary JSON relevant to a specific messaging service provider
                   type: object
+                  example: '{"messaging_service_sid": "MG0000000000000000000000"}'
               required:
                 - sms_sender
                 - is_default
@@ -483,7 +485,6 @@ paths:
       summary: Update sms sender for a service
       description: Note that updating is_default to True will have the side-effect of setting the current default to False.
       tags:
-        - service
         - sms sender
       requestBody:
         required: true
@@ -496,6 +497,7 @@ paths:
                   $ref: '#/components/schemas/Id'
                 is_default:
                   type: boolean
+                  example: false
                 rate_limit:
                   type: integer
                   minimum: 1
@@ -505,7 +507,9 @@ paths:
                 sms_sender:
                   type: string
                 sms_sender_specifics:
+                  description: Arbitrary JSON relevant to a specific messaging service provider
                   type: object
+                  example: '{"messaging_service_sid": "MG0000000000000000000000"}'
               minProperties: 1
       responses:
         '200':
