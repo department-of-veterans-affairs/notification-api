@@ -14,7 +14,8 @@ down_revision = '0367_add_auth_parameter'
 
 def upgrade():
     # Migration 0331 moved rows in the service_inbound_api table to other tables but erroneously didn't drop the table.
-    op.drop_index('ix_service_inbound_api_service_id', table_name='service_inbound_api')
+    # TODO - The migrations never drop this index, but it doesn't seem to exist in Dev.
+    # op.drop_index('ix_service_inbound_api_service_id', table_name='service_inbound_api')
     op.drop_index('ix_service_inbound_api_updated_by_id', table_name='service_inbound_api')
     op.drop_table('service_inbound_api')
 
@@ -42,4 +43,4 @@ def downgrade():
         sa.PrimaryKeyConstraint('id', name='service_inbound_api_pkey')
     )
     op.create_index('ix_service_inbound_api_updated_by_id', 'service_inbound_api', ['updated_by_id'], unique=False)
-    op.create_index('ix_service_inbound_api_service_id', 'service_inbound_api', ['service_id'], unique=True)
+    # op.create_index('ix_service_inbound_api_service_id', 'service_inbound_api', ['service_id'], unique=True)
