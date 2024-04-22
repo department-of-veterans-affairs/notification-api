@@ -31,6 +31,7 @@ jobs:
           else
             echo "Minor version bump detected"
             echo "::set-output name=new_tag::$(git describe --tags $(git rev-list --tags --max-count=1)) | awk -F. '{print $1"."$2+1".0"}'"
+          fi
       
       - name: Create and push tag
         if: steps.version_bump.outputs.new_tag != 'none'
