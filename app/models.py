@@ -572,6 +572,7 @@ class ServiceSmsSender(db.Model):
         return {
             'archived': self.archived,
             'created_at': self.created_at.strftime(DATETIME_FORMAT),
+            'description': self.description,
             'id': str(self.id),
             'inbound_number_id': str(self.inbound_number_id) if self.inbound_number_id else None,
             'is_default': self.is_default,

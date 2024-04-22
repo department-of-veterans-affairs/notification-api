@@ -14,8 +14,8 @@ down_revision = '0367_add_auth_parameter'
 
 def upgrade():
     # Migration 0331 moved rows in the service_inbound_api table to other tables but erroneously didn't drop the table.
-    op.drop_index('ix_service_inbound_api_service_id', table_name='service_inbound_api')
-    op.drop_index('ix_service_inbound_api_updated_by_id', table_name='service_inbound_api')
+    op.drop_index('ix_service_inbound_api_service_id', table_name='service_inbound_api', if_exists=True)
+    op.drop_index('ix_service_inbound_api_updated_by_id', table_name='service_inbound_api', if_exists=True)
     op.drop_table('service_inbound_api')
 
     op.add_column('service_sms_senders', sa.Column('description', sa.String(length=256), nullable=True))
