@@ -10,6 +10,9 @@ on:
     types:
       - labeled
       - closed 
+  push: 
+    branches:
+      - 1727-cd-pipeline-versioning
 
 jobs:
   print_context:
