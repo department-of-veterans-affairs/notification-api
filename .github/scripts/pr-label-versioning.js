@@ -35,7 +35,7 @@ const prData = async ({ github, context, core }) => {
   console.log("The new version will be: ", newVersion);
 
   core.setOutput("The new version will be: ", newVersion);
-  core.setOutput("This is due to the semver value of: " + semverValue + " from the label " + label + ", which is being applied to the latest release tag: " + latestTagString);
+  // core.setOutput("This is due to the semver value of: " + semverValue + " from the label " + label + ", which is being applied to the latest release tag: " + latestTagString);
 
   // Append to GITHUB_STEP_SUMMARY
   // May not be visibile until the pipeline actually finishes; in which case the actual wording here may need to be udpated.
