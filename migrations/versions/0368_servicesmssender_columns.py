@@ -15,10 +15,10 @@ down_revision = '0367_add_auth_parameter'
 def upgrade():
     op.add_column('service_sms_senders', sa.Column('description', sa.String(length=256), nullable=True))
     op.add_column('service_sms_senders', sa.Column('provider_id', postgresql.UUID(), nullable=True))
-    op.create_foreign_key('fk_service_sms_senders_provider_id', 'service_sms_senders', 'provider_details', ['provider_id'], ['id'])
+    op.create_foreign_key('service_sms_senders_provider_id_fkey', 'service_sms_senders', 'provider_details', ['provider_id'], ['id'])
 
 
 def downgrade():
-    op.drop_constraint('fk_service_sms_senders_provider_id', 'service_sms_senders', type_='foreignkey')
+    op.drop_constraint('service_sms_senders_provider_id_fkey', 'service_sms_senders', type_='foreignkey')
     op.drop_column('service_sms_senders', 'provider_id')
     op.drop_column('service_sms_senders', 'description')
