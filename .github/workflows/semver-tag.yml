@@ -20,6 +20,15 @@ jobs:
         run: |
           echo $EVENT_CONTEXT
 
+jobs:
+  run_if_label_matches:
+    if: github.event.label.name == 'pizza'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'The label was pizza'
+
+
+
 # jobs:
   # semver:
     # if: github.event.pull_request.merged == true
