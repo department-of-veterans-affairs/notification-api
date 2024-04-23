@@ -14,10 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version_output.outputs.new_version }}
+
     steps:
+
     - uses: actions/checkout@v4
 
-    - name: create-version-bump-string
+    - name: create a version string
       id: version_output
       uses: actions/github-script@v7
       with:
