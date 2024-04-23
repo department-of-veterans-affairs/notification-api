@@ -40,8 +40,8 @@ const prData = async ({ github, context, core }) => {
   // Append to GITHUB_STEP_SUMMARY
   // May not be visibile until the pipeline actually finishes; in which case the actual wording here may need to be udpated.
   const summaryContent = `
-  The new version will be ${newVersion} based on the semantic versioning label ${label}.
-  Latest release tag before this is ${currentVersion}.
+  The new version will be ${newVersion} based on the ${label} label.
+  Latest current release tag is ${currentVersion}.
   `;
   require('fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryContent);
 
