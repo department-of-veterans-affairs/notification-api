@@ -7,22 +7,32 @@ const prData = async ({ github, context, core }) => {
     repo,
   });
 
-  // Get the tag string by parsing latestRelease.data.tag_name.  Output should be X.X.X, regardless if there was a vX.X.X or not with the latest release
-  // The output of that data.tag_name could be vX.X.X or X.X.X, but its important that there is no v in the new proposed version.
+  // Ensure the tag is in the format X.X.X
+  let currentVersion = latestRelease.data.tag_name.replace(/^v/, '');
+  if (!currentVersion.match(/^\d+\.\d+\.\d+$/)) {
+    throw new Error("Invalid tag format");
+  }
 
-  // Get the label on the PR (there should only be one; if there is more than one, error out with "there is more than one label".)
   const pullRequestData = context.payload.pull_request;
   const labels = pullRequestData.labels; // Extract labels from the pull request data
 
+  const label = labels[0].name.toLowerCase();
+  let versionParts = currentVersion.split('.').map(x => parseInt(x));
 
-  // Version bump that tag string for major.minor.patch, with the following logic:
-	// Major version bump label: breaking change
-	// Patch version bump: hotfix, security, bug fix
-	// Minor version bump: every other label
-	// Should two labels exist on a PR, only one should be used for versioning, with preference towards major, then minor, then patch.
+  // Define version bump logic
+  if (label === 'breaking change') {
+    versionParts[0] += 1; // Major version bump
+    versionParts[1] = 0; // Reset minor version
+    versionParts[2] = 0; // Reset patch version
+  } else if (['hotfix', 'security', 'bug'].includes(label)) {
+    versionParts[2] += 1; // Patch version bump
+  } else {
+    versionParts[1] += 1; // Minor version bump
+    versionParts[2] = 0; // Reset patch version
+  }
 
-  // print the new proposed version bump like console.log("The new version will be: ", versionBump)
-
+  const newVersion = versionParts.join('.');
+  console.log("The new version will be: ", newVersion);
 }
 
 module.exports = prData;
