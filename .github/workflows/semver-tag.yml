@@ -33,9 +33,9 @@ jobs:
             echo "::set-output name=new_tag::$(git describe --tags $(git rev-list --tags --max-count=1)) | awk -F. '{print $1"."$2+1".0"}'"
           fi
       
-      - name: Create and push tag
-        if: steps.version_bump.outputs.new_tag != 'none'
-        run: |
-          git tag ${{ steps.version_bump.outputs.new_tag }}
-          git push origin ${{ steps.version_bump.outputs.new_tag }}:refs/tags/${{ steps.version_bump.outputs.new_tag }} -f
+      # - name: Create and push tag
+        # if: steps.version_bump.outputs.new_tag != 'none'
+        # run: |
+          # git tag ${{ steps.version_bump.outputs.new_tag }}
+          # git push origin ${{ steps.version_bump.outputs.new_tag }}:refs/tags/${{ steps.version_bump.outputs.new_tag }} -f
 
