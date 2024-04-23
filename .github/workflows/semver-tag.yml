@@ -20,7 +20,6 @@ jobs:
         run: |
           echo $EVENT_CONTEXT
 
-jobs:
   run_if_label_matches:
     if: github.event.label.name == 'bug'
     runs-on: ubuntu-latest
