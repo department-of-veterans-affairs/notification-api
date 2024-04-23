@@ -33,6 +33,18 @@ const prData = async ({ github, context, core }) => {
 
   const newVersion = versionParts.join('.');
   console.log("The new version will be: ", newVersion);
+
+  core.setOutput("The new version will be: ", newVersion);
+  core.setOutput("This is due to the semver value of: " + semverValue + " from the label " + label + ", which is being applied to the latest release tag: " + latestTagString);
+
+  // Append to GITHUB_STEP_SUMMARY
+  // May not be visibile until the pipeline actually finishes; in which case the actual wording here may need to be udpated.
+  const summaryContent = `
+  The new version will be ${newVersion} based on the semantic versioning label ${label}.
+  Latest release tag before this is ${currentVersion}.
+  `;
+  require('fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryContent);
+
 }
 
 module.exports = prData;
