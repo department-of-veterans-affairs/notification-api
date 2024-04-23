@@ -21,6 +21,16 @@ jobs:
         run: |
           echo $EVENT_CONTEXT
 
+  print-pr-labels:
+    - name: Print out PR labels
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const path = '.github/scripts/pr-label-versioning.js';
+          const prData = require(path);
+          prData({github, context, core});
+
+
   # run_if_label_matches:
     # if: github.event.label.name == 'bug'
     # runs-on: ubuntu-latest
