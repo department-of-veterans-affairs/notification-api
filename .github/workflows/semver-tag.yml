@@ -37,3 +37,15 @@ jobs:
           const prData = require(path);
           prData({github, context, core});
 
+  # Test cause this is the current roadmapped next step
+  approval-to-deploy:
+    needs: print-pr-labels
+    environment: 
+      name: perf-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pause for manual approval
+        run: |
+          echo "Deploying commit SHA ${{ github.sha }}, the latest merge to master"
+          echo "Deployment paused for manual approval."
+
