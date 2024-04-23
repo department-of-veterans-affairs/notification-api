@@ -11,7 +11,7 @@ const prData = async ({ github, context, core }) => {
     repo,
   });
 
-  console.log(latestRelease)
+  console.log("The tag name is ", latestRelease.data.tag_name)
 
 }
 
