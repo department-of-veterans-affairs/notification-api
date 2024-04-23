@@ -23,6 +23,8 @@ jobs:
   print-pr-labels:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v4
+
     - name: Print out PR labels
       uses: actions/github-script@v7
       with:
