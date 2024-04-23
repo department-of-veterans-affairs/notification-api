@@ -4,8 +4,10 @@
 
 const prData = async ({ context }) => {
   const pullRequestData = context.payload.pull_request
-  console.log(context)
+  const labels = pullrequestData.labels
+  // console.log(context)
   console.log(pullRequestData)
+  console.log("the labels are " + labels)
 
 	// Check if there are labels and print them
 	// if (pullRequest && pullRequest.labels && pullRequest.labels.length > 0) {
