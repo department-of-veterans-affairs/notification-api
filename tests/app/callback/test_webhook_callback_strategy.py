@@ -69,18 +69,29 @@ def test_send_callback_increments_statsd_client_with_retryable_error_for_status_
     mock_statsd_client.incr.assert_called_with(f'callback.webhook.{mock_callback.callback_type}.retryable_error')
 
 
-def test_send_callback_raises_retryable_exception_with_request_exception(notify_api, mock_callback, mocker):
-    mocker.patch('app.callback.webhook_callback_strategy.request', side_effect=RequestException())
+@pytest.mark.parametrize('response', [None, 'bad request'])
+def test_send_callback_raises_retryable_exception_with_request_exception(
+    notify_api,
+    mock_callback,
+    mocker,
+    response,
+):
+    mocker.patch('app.callback.webhook_callback_strategy.request', side_effect=RequestException(response=response))
     with pytest.raises(RetryableException):
         WebhookCallbackStrategy.send_callback(
             callback=mock_callback, payload={'message': 'hello'}, logging_tags={'log': 'some log'}
         )
 
 
+@pytest.mark.parametrize('response', [None, 'bad request'])
 def test_send_callback_increments_statsd_client_with_retryable_error_for_request_exception(
-    notify_api, mock_callback, mock_statsd_client, mocker
+    notify_api,
+    mock_callback,
+    mock_statsd_client,
+    mocker,
+    response,
 ):
-    mocker.patch('app.callback.webhook_callback_strategy.request', side_effect=RequestException())
+    mocker.patch('app.callback.webhook_callback_strategy.request', side_effect=RequestException(response=response))
     with pytest.raises(RetryableException):
         WebhookCallbackStrategy.send_callback(
             callback=mock_callback, payload={'message': 'hello'}, logging_tags={'log': 'some log'}
