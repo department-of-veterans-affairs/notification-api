@@ -1,0 +1,33 @@
+# .github/workflows/semver.yml
+name: Semantic Versioning
+
+on:
+  pull_request:
+    branches:
+      - 1727-cd-pipeline-versioning
+    types: [closed, opened, labeled, edited]
+  issues:
+    types:
+      - labeled
+      - closed 
+
+jobs:
+  print_context:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          EVENT_CONTEXT: ${{ toJSON(github.event) }}
+        run: |
+          echo $EVENT_CONTEXT
+
+  print-pr-labels:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Print out PR labels
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const path = '.github/scripts/pr-label-versioning.js';
+          const prData = require(path);
+          prData({github, context, core});
+

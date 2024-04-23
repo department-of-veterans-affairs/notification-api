@@ -9,6 +9,11 @@ on:
       ref:
         required: true
         type: string
+  pull_request:
+    branches:
+      - 1727-cd-pipeline-versioning
+    types: [closed, opened, labeled, edited]
+
 
 jobs:
   build-container:
