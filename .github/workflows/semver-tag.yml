@@ -5,37 +5,50 @@ on:
   pull_request:
     branches:
       - 1727-cd-pipeline-versioning
-    types: [closed]
+    types: [closed, opened]
+  issues:
+    types:
+      - labeled
+
 
 jobs:
-  semver:
-    if: github.event.pull_request.merged == true
+  print_context:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Necessary to fetch all tags and history for version calculation
-
-      - name: Determine new version
-        id: version_bump
+      - env:
+          EVENT_CONTEXT: ${{ toJSON(github.event) }}
         run: |
-          LABELS="${{ join(github.event.pull_request.labels.*.name, ' ') }}"
-          echo "PR Labels: $LABELS"
-          if [[ "$LABELS" =~ "breaking change" ]]; then
-            echo "Major version bump detected"
-            echo "::set-output name=new_tag::$(git describe --tags $(git rev-list --tags --max-count=1)) | awk -F. '{print $1+1".0.0"}'"
-          elif [[ "$LABELS" =~ "hotfix" || "$LABELS" =~ "security" || "$LABELS" =~ "bug fix" ]]; then
-            echo "Patch version bump detected"
-            echo "::set-output name=new_tag::$(git describe --tags $(git rev-list --tags --max-count=1)) | awk -F. '{print $1"."$2"."$3+1}'"
-          else
-            echo "Minor version bump detected"
-            echo "::set-output name=new_tag::$(git describe --tags $(git rev-list --tags --max-count=1)) | awk -F. '{print $1"."$2+1".0"}'"
-          fi
-      
-      # - name: Create and push tag
-        # if: steps.version_bump.outputs.new_tag != 'none'
+          echo $EVENT_CONTEXT
+
+# jobs:
+  # semver:
+    # if: github.event.pull_request.merged == true
+    # runs-on: ubuntu-latest
+    # steps:
+      # - name: Checkout code
+        # uses: actions/checkout@v3
+        # with:
+          # fetch-depth: 0  # Necessary to fetch all tags and history for version calculation
+
+      # - name: Determine new version
+        # id: version_bump
         # run: |
-          # git tag ${{ steps.version_bump.outputs.new_tag }}
-          # git push origin ${{ steps.version_bump.outputs.new_tag }}:refs/tags/${{ steps.version_bump.outputs.new_tag }} -f
+          # LABELS="${{ join(github.event.pull_request.labels.*.name, ' ') }}"
+          # echo "PR Labels: $LABELS"
+          # if [[ "$LABELS" =~ "breaking change" ]]; then
+            # echo "Major version bump detected"
+            # echo "::set-output name=new_tag::$(git describe --tags $(git rev-list --tags --max-count=1)) | awk -F. '{print $1+1".0.0"}'"
+          # elif [[ "$LABELS" =~ "hotfix" || "$LABELS" =~ "security" || "$LABELS" =~ "bug fix" ]]; then
+            # echo "Patch version bump detected"
+            # echo "::set-output name=new_tag::$(git describe --tags $(git rev-list --tags --max-count=1)) | awk -F. '{print $1"."$2"."$3+1}'"
+          # else
+            # echo "Minor version bump detected"
+            # echo "::set-output name=new_tag::$(git describe --tags $(git rev-list --tags --max-count=1)) | awk -F. '{print $1"."$2+1".0"}'"
+          # fi
+      
+      # # - name: Create and push tag
+        # # if: steps.version_bump.outputs.new_tag != 'none'
+        # # run: |
+          # # git tag ${{ steps.version_bump.outputs.new_tag }}
+          # # git push origin ${{ steps.version_bump.outputs.new_tag }}:refs/tags/${{ steps.version_bump.outputs.new_tag }} -f
 
