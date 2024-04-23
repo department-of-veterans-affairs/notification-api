@@ -5,10 +5,11 @@ on:
   pull_request:
     branches:
       - 1727-cd-pipeline-versioning
-    types: [closed, opened]
+    types: [closed, opened, labeled, edited]
   issues:
     types:
       - labeled
+      - closed 
 
 
 jobs:
@@ -20,11 +21,11 @@ jobs:
         run: |
           echo $EVENT_CONTEXT
 
-  run_if_label_matches:
-    if: github.event.label.name == 'bug'
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'The label was bug'
+  # run_if_label_matches:
+    # if: github.event.label.name == 'bug'
+    # runs-on: ubuntu-latest
+    # steps:
+      # - run: echo 'The label was bug'
 
 
 
