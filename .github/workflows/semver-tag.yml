@@ -5,11 +5,15 @@ on:
   pull_request:
     branches:
       - 1727-cd-pipeline-versioning
-    types: [closed, opened, labeled, edited]
+    types: [closed, opened, labeled, edited, reopened]
   issues:
     types:
       - labeled
       - closed 
+  push: 
+    branches:
+      - 1727-cd-pipeline-versioning
+      - 1727-test
 
 jobs:
   print_context:
