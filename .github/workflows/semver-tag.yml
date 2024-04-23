@@ -22,10 +22,10 @@ jobs:
 
 jobs:
   run_if_label_matches:
-    if: github.event.label.name == 'pizza'
+    if: github.event.label.name == 'bug'
     runs-on: ubuntu-latest
     steps:
-      - run: echo 'The label was pizza'
+      - run: echo 'The label was bug'
 
 
 
