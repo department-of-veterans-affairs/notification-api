@@ -16,14 +16,6 @@ on:
       - 1727-test
 
 jobs:
-  print_context:
-    runs-on: ubuntu-latest
-    steps:
-      - env:
-          EVENT_CONTEXT: ${{ toJSON(github.event) }}
-        run: |
-          echo $EVENT_CONTEXT
-
   print-pr-labels:
     runs-on: ubuntu-latest
     steps:
