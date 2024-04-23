@@ -1,43 +1,28 @@
-# .github/workflows/semver.yml
 name: Semantic Versioning
 
-on:
-  pull_request:
-    branches:
-      - 1727-cd-pipeline-versioning
-    types: [closed, opened, labeled, edited, reopened]
-  issues:
-    types:
-      - labeled
-      - closed 
-  push: 
-    branches:
-      - 1727-cd-pipeline-versioning
-      - 1727-test
+on: 
+  workflow_call:
+    inputs:
+      create-tag:
+        type: boolean
+        default: false
+    outputs:
+      version: ${{ jobs.create-version-bump-string.outputs.version }}
 
 jobs:
-  print-pr-labels:
+  create-version-bump-string:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version_output.outputs.new_version }}
     steps:
     - uses: actions/checkout@v4
 
-    - name: Print out PR labels
+    - name: create-version-bump-string
+      id: version_output
       uses: actions/github-script@v7
       with:
         script: |
           const path = '.github/scripts/pr-label-versioning.js';
           const prData = require(path);
           prData({github, context, core});
-
-  # Test cause this is the current roadmapped next step
-  approval-to-deploy:
-    needs: print-pr-labels
-    environment: 
-      name: perf-deploy
-    runs-on: ubuntu-latest
-    steps:
-      - name: Pause for manual approval
-        run: |
-          echo "Deploying commit SHA ${{ github.sha }}, the latest merge to master"
-          echo "Deployment paused for manual approval."
 

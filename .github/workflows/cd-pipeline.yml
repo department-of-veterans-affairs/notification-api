@@ -17,6 +17,15 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - 1727-cd-pipeline-versioning
+    types: [closed, opened, labeled, edited, reopened]
+  # issues:
+    # types:
+      # - labeled
+      # - closed 
+
 
 jobs:
   prepare-deployment:
@@ -25,8 +34,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-  approval-to-deploy:
+  version-check:
     needs: prepare-deployment
+    uses: ./.github/workflows/semver-tag.yml
+    with: 
+      create-tag: false
+
+  approval-to-deploy:
+    needs: version-check
     environment: 
       name: perf-deploy
     runs-on: ubuntu-latest
@@ -38,13 +53,17 @@ jobs:
 
 # this job deploys the SHA that triggered this workflow
   deploy-to-perf:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Not actually deploying
+        run: echo "Not actually a deployment"
     needs: approval-to-deploy
-    uses: ./.github/workflows/dev_deploy.yml
-    with:
-      environment: perf
-      ref: ${{ github.sha }}
-      lambdaDeploy: true
-    secrets: inherit
+    # uses: ./.github/workflows/dev_deploy.yml
+    # with:
+      # environment: perf
+      # ref: ${{ github.sha }}
+      # lambdaDeploy: true
+    # secrets: inherit
 
   approval-to-merge-to-release-branch:
     needs: deploy-to-perf
@@ -56,37 +75,53 @@ jobs:
         run: echo "Deployment paused for manual approval."
 
   merge-to-release:
-    # These permissions are needed to write to the release branch
-    permissions:
-      contents: write
-    needs: approval-to-merge-to-release-branch
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout release branch
-        uses: actions/checkout@v4
-        with:
-          ref: release
-          fetch-depth: 0
+      - name: Not actually mering to release
+        run: echo "Not actually merging to release"
+    # These permissions are needed to write to the release branch
+    # permissions:
+      # contents: write
+    # needs: approval-to-merge-to-release-branch
+    # runs-on: ubuntu-latest
+    # steps:
+      # - name: Checkout release branch
+        # uses: actions/checkout@v4
+        # with:
+          # ref: release
+          # fetch-depth: 0
 
-      - name: Setup git user
-        # The following is taken from https://github.com/actions/checkout/issues/13 as a common work-around
-        run: |
-            git config --global user.name "$(git --no-pager log --format=format:'%an' -n 1)"
-            git config --global user.email "$(git --no-pager log --format=format:'%ae' -n 1)"
+      # - name: Setup git user
+        # # The following is taken from https://github.com/actions/checkout/issues/13 as a common work-around
+        # run: |
+            # git config --global user.name "$(git --no-pager log --format=format:'%an' -n 1)"
+            # git config --global user.email "$(git --no-pager log --format=format:'%ae' -n 1)"
           
-      - name: Merge commit SHA to release
-        run: |
-          git merge ${{ github.sha }} --no-squash -X theirs
-          git push
+      # - name: Merge commit SHA to release
+        # run: |
+          # git merge ${{ github.sha }} --no-squash -X theirs
+          # git push
+
+  create-tag:
+    needs: prepare-deployment
+    uses: ./.github/workflows/semver-tag.yml
+    with: 
+      create-tag: true
+
+  # steps for release creation and notes will go here
 
   deploy-to-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Not actually deploying
+        run: echo "Not actually a deployment"
     needs: merge-to-release 
-    uses: ./.github/workflows/dev_deploy.yml
-    with:
-      environment: staging
-      ref: release
-      lambdaDeploy: true
-    secrets: inherit
+    # uses: ./.github/workflows/dev_deploy.yml
+    # with:
+      # environment: staging
+      # ref: release
+      # lambdaDeploy: true
+    # secrets: inherit
 
   QA-approval-of-staging:
     needs: deploy-to-staging
