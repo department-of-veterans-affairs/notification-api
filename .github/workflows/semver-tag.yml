@@ -27,11 +27,13 @@ jobs:
             const { generatePRSummary } = require(path);
             generatePRSummary({github, context, core});
 
-  # create_and_post_tag:
-    # if: ${{ inputs.create-tag }}
-    # runs-on: ubuntu-latest
-    # steps:
-      # - uses: actions/checkout@v4
+  create_and_post_tag:
+    if: ${{ inputs.create-tag }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: run an echo
+        run: echo "this is an echo from create and post tag step"
       # - name: Create and Post Tag
         # uses: actions/github-script@v7
         # with:
