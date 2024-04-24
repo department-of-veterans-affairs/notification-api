@@ -9,6 +9,15 @@ on:
     outputs:
       version: ${{ jobs.create-version-bump-string.outputs.version }}
 
+  pull_request:
+    branches:
+      - 1727-cd-pipeline-versioning
+    types: [closed, opened, labeled, edited, reopened]
+  issues:
+    types:
+      - labeled
+      - closed 
+
 jobs:
   # Job 1: Create the version bump string
   create-version-bump-string:

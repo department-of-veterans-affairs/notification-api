@@ -17,10 +17,10 @@ on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - 1727-cd-pipeline-versioning
-    types: [closed, opened, labeled, edited, reopened]
+  # pull_request:
+    # branches:
+      # - 1727-cd-pipeline-versioning
+    # types: [closed, opened, labeled, edited, reopened]
   # issues:
     # types:
       # - labeled
