@@ -17,34 +17,33 @@ async function getLatestReleaseTag(github, context) {
             owner,
             repo,
         });
-        return latestRelease.data.tag_name;
+        return latestRelease.data.tag_name.split('.').map(num => parseInt(num, 10));
     } catch (error) {
         console.error('Error fetching latest release tag:', error);
-        return null; // Handle error appropriately or throw it
+        return [0, 0, 0]; // Return a default version if no release is found
     }
 }
 
-// still need to add logic for preferring semver values by major, minor, patch
 function bumpVersion(labels, versionParts) {
     const updateType = getUpdateType(labels);
-    let newVersion = versionParts.join('.');  // Preserve the original version format
+    let newVersion = [...versionParts]; // Use a copy to prevent mutating the original array
 
     switch (updateType) {
         case 'major':
-            versionParts[0] += 1;
-            versionParts[1] = 0;
-            versionParts[2] = 0;
+            newVersion[0] += 1;
+            newVersion[1] = 0;
+            newVersion[2] = 0;
             break;
         case 'minor':
-            versionParts[1] += 1;
-            versionParts[2] = 0;
+            newVersion[1] += 1;
+            newVersion[2] = 0;
             break;
         case 'patch':
-            versionParts[2] += 1;
+            newVersion[2] += 1;
             break;
     }
 
-    newVersion = versionParts.join('.');
+    newVersion = newVersion.join('.');
     return { newVersion, updateType };  // Return both new version and update type
 }
 
@@ -53,4 +52,5 @@ module.exports = {
     getUpdateType,
     getLatestReleaseTag  // Export the new function
 };
+
 
