@@ -21,7 +21,7 @@ const prData = async ({ github, context, core }) => {
     let appliedLabel = '';
 
     // Define version bump logic based on the first label that causes a change
-    if (labels.includes('breaking change')) {  // Ensure exact match in the label name
+    if (labels.includes('breaking-change')) {  // Ensure exact match in the label name
       versionParts[0] += 1; // Major version bump
       versionParts[1] = 0; // Reset minor version
       versionParts[2] = 0; // Reset patch version
