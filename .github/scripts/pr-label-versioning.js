@@ -30,19 +30,11 @@ const prData = async ({ github, context, core }) => {
   }
 
   const newVersion = versionParts.join('.');
-  core.setOutput("new_version", newVersion);
-
-  const createTag = core.getInput('create-tag', { required: false }) === 'true';
-  const summaryMessage = createTag 
-    ? `A new tag ${newVersion} is created based on the ${labels.join(', ')} label(s).`
-    : `The new version will be ${newVersion} based on the ${labels.join(', ')} label(s).`;
-
-  const summaryContent = `
-    ${summaryMessage}
-    Latest current release tag is ${currentVersion}.
-  `;
-  require('fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryContent);
 };
 
 module.exports = prData;
 
+
+// this script above should return the values for the current version, newVersion, label that caused this semver conclusion, and the PR# involved. 
+// Then, the scripts that call this module will be responsible for their own functions based on the values from this script
+// the first QA Post will be responsbile for posting these values in an easy to read format for QA during her check in the pipeline.  let's get to that point.
