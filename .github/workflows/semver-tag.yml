@@ -1,3 +1,13 @@
+  # pull_request:
+    # branches:
+      # - 1727-cd-pipeline-versioning
+    # types: [closed, opened, labeled, edited, reopened]
+  # issues:
+    # types:
+      # - labeled
+      # - closed 
+
+
 name: Semantic Versioning
 
 on: 
@@ -7,65 +17,29 @@ on:
         type: boolean
         default: false
 
-  pull_request:
-    branches:
-      - 1727-cd-pipeline-versioning
-    types: [closed, opened, labeled, edited, reopened]
-  issues:
-    types:
-      - labeled
-      - closed 
-
 jobs:
-  # Job 1: Create the version bump string
-  create-version-bump-string:
+  # Job 1: conditionally runs if create-tag is false
+  # this job is responsible for posting a summary for QA checkpoint. 
+
+
+  # Job 2: conditionally runs if create-tag is true
+  # this job is responsible for creating a tag and posting to the Github Actions Summary
+
+
+  # important notes: 
+    # - Both of these will utilize github-script with their own custom script, and both those custom scripts will utilize a custom module I write called versionUtils, which simply grabs the PR label to propose a new string and update value (major, minor, patch).  
+
+  # so both jobs will end up looking like (noticed all the bracketed place-holders):
+
+  [purpose-of-job]:
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.calculate_version.outputs.version }}
     steps:
     - uses: actions/checkout@v4
-    - name: Calculate version bump
-      id: calculate_version
+    - name: [purpose of step]
       uses: actions/github-script@v7
       with:
         script: |
-          const path = '.github/scripts/calculate-version-bump.js';
-          const prData = require(path);
-          prData({github, context, core});
-
- # Job 2: Echo the new version
-  echo-version:
-    runs-on: ubuntu-latest
-    needs: create-version-bump-string
-    steps:
-    - name: Echo new version
-      run: echo "New version is ${{ needs.create-version-bump-string.outputs.version }}"
-
-  # Job 2: Create version string summary
-  # create-version-summary:
-    # needs: create-version-bump-string
-    # runs-on: ubuntu-latest
-    # if: ${{ github.event.inputs.create-tag == false }}
-    # steps:
-    # - name: Create version summary
-      # uses: actions/github-script@v7
-      # with:
-        # script: |
-          # const path = '.github/scripts/create-version-summary.js';
-          # const createSummary = require(path);
-          # createSummary({github, context, core, version: '${{ needs.create-version-bump-string.outputs.version }}'});
-
-  # # Job 3: Conditional tagging and release management
-  # manage-tagging:
-    # needs: create-version-bump-string
-    # runs-on: ubuntu-latest
-    # if: ${{ github.event.inputs.create-tag }}
-    # steps:
-    # - name: Tagging and release management
-      # uses: actions/github-script@v7
-      # with:
-        # script: |
-          # const path = '.github/scripts/manage-tagging-and-release.js';
-          # const manageTagging = require(path);
-          # manageTagging({github, context, core, version: '${{ needs.create-version-bump-string.outputs.version }}'});
+          const path = '.github/scripts/[custom-script].js';
+          const [script-purpose] = require(path);
+          [script-purpose]({github, context, core});
 
