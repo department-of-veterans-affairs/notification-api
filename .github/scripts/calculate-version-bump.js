@@ -36,14 +36,8 @@ const prData = async ({ github, context, core }) => {
 
     core.setOutput("new_version", newVersion);
 
-    const createTag = core.getInput('create-tag', { required: false }) === 'true';
-    const summaryMessage = createTag 
-        ? `A new tag ${newVersion} is created based on the ${labels.join(', ')} label(s).`
-        : `The new version will be ${newVersion} based on the ${labels.join(', ')} label(s).`;
-
     const summaryContent = `
-      ${summaryMessage}
-      Latest current release tag is ${currentVersion}.
+	  [insert summary here]
     `;
     require('fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryContent);
 };
