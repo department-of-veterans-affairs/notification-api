@@ -1,5 +1,13 @@
 // path/filename: src/versionUtils.js
 
+// Determines the type of semver update based on labels
+function getUpdateType(labels) {
+    if (labels.includes('breaking change')) return 'major';
+    if (labels.some(label => label === 'feature')) return 'minor';
+    if (labels.some(label => ['hotfix', 'security', 'bug'].includes(label))) return 'patch';
+    return 'patch'; // Default to patch if no specific label is found
+}
+
 async function getLatestReleaseTag(github, context) {
     const owner = context.repo.owner;
     const repo = context.repo.repo;

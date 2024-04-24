@@ -1,6 +1,8 @@
 // File: .github/scripts/postQA.js
 // Purpose: Post a QA summary based on labels in a pull request.
 
+const { getLatestReleaseTag, bumpVersion, getUpdateType } = require('../../src/versionUtils');
+
 module.exports = async ({github, context, core}) => {
   try {
     const prNumber = context.issue.number;
@@ -10,14 +12,19 @@ module.exports = async ({github, context, core}) => {
       pull_number: prNumber
     });
 
-    const labels = pr.labels.map(label => label.name).join(", ");
-    const commentBody = `### QA Summary\n- PR labels: ${labels}\n- Please review the labels and ensure they match the QA requirements.`;
+    // const labels = pr.labels.map(label => label.name).join(", ");
 
-	// insert here the utilization of the versionUtils.js 
+    // Utilize versionUtils.js to get the latest release tag and prepare version bump
+    const latestTag = await getLatestReleaseTag(github, context);
+    const { newVersion, updateType } = bumpVersion(labels, versionParts);
 
-	// post results to the Github Summary
+    // Prepare summary content with version details
+    // const commentBody = `### QA Summary\n- PR labels: ${labels}\n- Please review the labels and ensure they match the QA requirements.`;
     const summaryContent = `
-	  [insert summary here]
+### Update Details
+- Latest Version: ${latestTag}
+- New Version: ${newVersion} (${updateType} update)
+- PR labels: ${labels}
     `;
     require('fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryContent);
 
