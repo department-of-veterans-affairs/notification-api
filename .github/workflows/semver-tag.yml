@@ -10,21 +10,55 @@ on:
       version: ${{ jobs.create-version-bump-string.outputs.version }}
 
 jobs:
+  # Job 1: Create the version bump string
   create-version-bump-string:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version_output.outputs.new_version }}
-
+      version: ${{ steps.calculate_version.outputs.version }}
     steps:
-
     - uses: actions/checkout@v4
-
-    - name: create a version string
-      id: version_output
+    - name: Calculate version bump
+      id: calculate_version
       uses: actions/github-script@v7
       with:
         script: |
-          const path = '.github/scripts/pr-label-versioning.js';
-          const prData = require(path);
-          prData({github, context, core});
+          const path = '.github/scripts/calculate-version-bump.js';
+          const calculateVersion = require(path);
+          calculateVersion({github, context, core});
+
+ # Job 2: Echo the new version
+  echo-version:
+    runs-on: ubuntu-latest
+    needs: create-version-bump-string
+    steps:
+    - name: Echo new version
+      run: echo "New version is ${{ needs.create-version-bump-string.outputs.version }}"
+
+  # Job 2: Create version string summary
+  # create-version-summary:
+    # needs: create-version-bump-string
+    # runs-on: ubuntu-latest
+    # if: ${{ github.event.inputs.create-tag == false }}
+    # steps:
+    # - name: Create version summary
+      # uses: actions/github-script@v7
+      # with:
+        # script: |
+          # const path = '.github/scripts/create-version-summary.js';
+          # const createSummary = require(path);
+          # createSummary({github, context, core, version: '${{ needs.create-version-bump-string.outputs.version }}'});
+
+  # # Job 3: Conditional tagging and release management
+  # manage-tagging:
+    # needs: create-version-bump-string
+    # runs-on: ubuntu-latest
+    # if: ${{ github.event.inputs.create-tag }}
+    # steps:
+    # - name: Tagging and release management
+      # uses: actions/github-script@v7
+      # with:
+        # script: |
+          # const path = '.github/scripts/manage-tagging-and-release.js';
+          # const manageTagging = require(path);
+          # manageTagging({github, context, core, version: '${{ needs.create-version-bump-string.outputs.version }}'});
 
