@@ -1,6 +1,6 @@
 // File: .github/scripts/postQA.js
 
-const { getLatestReleaseTag, bumpVersion } = require('../../src/versionUtils');
+const { getLatestReleaseTag, bumpVersion } = require('./versionUtils');
 const fs = require('fs');
 
 module.exports = async ({ github, context, core }) => {
