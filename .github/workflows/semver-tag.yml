@@ -24,7 +24,7 @@ jobs:
         with:
           script: |
             const path = '.github/scripts/postQA.js';
-            const postQA = require(path);
+            const { generatePRSummary } = require(path);
             generatePRSummary({github, context, core});
 
   # create_and_post_tag:

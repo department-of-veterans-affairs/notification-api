@@ -23,3 +23,4 @@ async function generatePRSummary(github, context, core) {
     }
 }
 
+module.exports = { generatePRSummary };
