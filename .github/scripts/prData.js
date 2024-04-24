@@ -1,3 +1,4 @@
+// File: .github/scripts/prData.js
 const prData = async ({ github, context, core }) => {
   const owner = context.repo.owner;
   const repo = context.repo.repo;
@@ -20,7 +21,7 @@ const prData = async ({ github, context, core }) => {
     let appliedLabel = '';
 
     // Define version bump logic based on the first label that causes a change
-    if (labels.includes('breaking change')) {
+    if (labels.includes('breaking change')) {  // Ensure exact match in the label name
       versionParts[0] += 1; // Major version bump
       versionParts[1] = 0; // Reset minor version
       versionParts[2] = 0; // Reset patch version
@@ -31,7 +32,7 @@ const prData = async ({ github, context, core }) => {
     } else {
       versionParts[1] += 1; // Minor version bump
       versionParts[2] = 0; // Reset patch version
-      appliedLabel = labels.find(label => label);
+      appliedLabel = labels.find(label => label); // Get first label if no other match
     }
 
     const newVersion = versionParts.join('.');
@@ -55,4 +56,5 @@ module.exports = prData;
 
 // this script above should return the values for the current version, newVersion, label that caused this semver conclusion, and the PR# involved. 
 // Then, the scripts that call this module will be responsible for their own functions based on the values from this script
-// the first QA Post will be responsbile for posting these values in an easy to read format for QA during her check in the pipeline.  let's get to that point.
+// the first QA Post will be responsbile for posting these values in an easy to read format for QA during her check in the pipeline
+// the second script will be creating a tag from this information and updating the summary as well.
