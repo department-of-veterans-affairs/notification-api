@@ -1,16 +1,12 @@
-  # pull_request:
-    # branches:
-      # - 1727-cd-pipeline-versioning
-    # types: [closed, opened, labeled, edited, reopened]
-  # issues:
-    # types:
-      # - labeled
-      # - closed 
-
-
 name: Semantic Versioning
 
 on: 
+  pull_request:
+    branches:
+      - 1727-cd-pipeline-versioning
+    types: [closed, opened, labeled, edited, reopened]
+  issues:
+    types: [labeled, closed]
   workflow_call:
     inputs:
       create-tag:
@@ -18,28 +14,29 @@ on:
         default: false
 
 jobs:
-  # Job 1: conditionally runs if create-tag is false
-  # this job is responsible for posting a summary for QA checkpoint. 
-
-
-  # Job 2: conditionally runs if create-tag is true
-  # this job is responsible for creating a tag and posting to the Github Actions Summary
-
-
-  # important notes: 
-    # - Both of these will utilize github-script with their own custom script, and both those custom scripts will utilize a custom module I write called versionUtils, which simply grabs the PR label to propose a new string and update value (major, minor, patch).  
-
-  # so both jobs will end up looking like (noticed all the bracketed place-holders):
-
-  [purpose-of-job]:
+  summary_for_qa:
+    if: ${{ !inputs.create-tag }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: [purpose of step]
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const path = '.github/scripts/[custom-script].js';
-          const [script-purpose] = require(path);
-          [script-purpose]({github, context, core});
+      - uses: actions/checkout@v4
+      - name: Post QA Summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const path = '.github/scripts/postQA.js';
+            const postQA = require(path);
+            postQA({github, context, core});
+
+  create_and_post_tag:
+    if: ${{ inputs.create-tag }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create and Post Tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const path = '.github/scripts/createTag.js';
+            const createTag = require(path);
+            createTag({github, context, core});
 
