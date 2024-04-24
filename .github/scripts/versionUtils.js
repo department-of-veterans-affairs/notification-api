@@ -16,6 +16,7 @@ async function getLatestReleaseTag(github, context) {
     }
 }
 
+// still need to add logic for preferring semver values by major, minor, patch
 function bumpVersion(labels, versionParts) {
     const updateType = getUpdateType(labels);
     let newVersion = versionParts.join('.');  // Preserve the original version format
