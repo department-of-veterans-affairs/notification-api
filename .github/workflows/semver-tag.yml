@@ -6,8 +6,6 @@ on:
       create-tag:
         type: boolean
         default: false
-    outputs:
-      version: ${{ jobs.create-version-bump-string.outputs.version }}
 
   pull_request:
     branches:
@@ -32,8 +30,8 @@ jobs:
       with:
         script: |
           const path = '.github/scripts/calculate-version-bump.js';
-          const calculateVersion = require(path);
-          calculateVersion({github, context, core});
+          const prData = require(path);
+          prData({github, context, core});
 
  # Job 2: Echo the new version
   echo-version:
