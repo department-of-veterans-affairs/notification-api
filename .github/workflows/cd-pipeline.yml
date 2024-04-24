@@ -114,7 +114,7 @@ jobs:
           # git push
 
   create-tag:
-    needs: prepare-deployment
+    needs: approval-to-merge-to-release-branch
     uses: ./.github/workflows/semver-tag.yml
     with: 
       create-tag: true
