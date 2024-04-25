@@ -8,13 +8,17 @@ async function createAndPushTag({ github, context, core }) {
 
     try {
         // First, get the latest SHA from the release branch:
-        const { data } = await github.rest.repos.listCommitStatusesForRef({
+        const { data } = await github.rest.repos.getCommit({
             owner,
             repo,
             ref
         });
 
-        console.log("The release branch head SHA is: " + data.sha); // Assuming 'data' has a property 'sha'
+        if (data && data.sha) {
+            console.log("The release branch head SHA is: " + data.sha);
+        } else {
+            throw new Error("No SHA found in the response");
+        }
     } catch (error) {
         core.setFailed("Failed to retrieve the release branch SHA: " + error.message);
         console.error(error);
