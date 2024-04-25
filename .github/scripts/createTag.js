@@ -1,5 +1,5 @@
 // File: .github/scripts/tagAndPush.js
-const createAndPushTag = async () => {
+const createTag = async () => {
     // Extract PR data
 	const { currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
 	const owner = context.repo.owner;
@@ -39,5 +39,5 @@ const createAndPushTag = async () => {
 };
 
 // Call the function
-createAndPushTag();
+createTag();
 
