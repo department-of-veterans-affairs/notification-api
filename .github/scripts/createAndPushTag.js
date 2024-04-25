@@ -1,4 +1,4 @@
-// File: .github/scripts/tagAndPush.js
+// File: .github/scripts/createAndPushTag.js
 const prData = require('./prData');
 
 const createAndPushTag = async () => {
@@ -40,6 +40,7 @@ const createAndPushTag = async () => {
     }
 };
 
-// Call the function
-module.exports = { createAndPushTag };
+// Exporting createAndPushTag function directly
+module.exports = createAndPushTag;
+
 

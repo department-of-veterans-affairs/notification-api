@@ -37,6 +37,6 @@ jobs:
         with:
           script: |
             const path = '.github/scripts/createAndPushTag.js';
-            const createAndPushTag = require(path);
+            const { createAndPushTag } = require(path);
             createAndPushTag({github, context, core});
 
