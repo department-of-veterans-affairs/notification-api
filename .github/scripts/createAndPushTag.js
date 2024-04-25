@@ -1,7 +1,7 @@
 // File: .github/scripts/createAndPushTag.js
 const prData = require('./prData');
 
-const createAndPushTag = async () => {
+async function createAndPushTag({github, context, core}) {
     // Extract PR data
 	const { currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
 	const owner = context.repo.owner;
@@ -41,6 +41,5 @@ const createAndPushTag = async () => {
 };
 
 // Exporting createAndPushTag function directly
-module.exports = createAndPushTag;
-
+module.exports = { createAndPushTag };
 
