@@ -1,4 +1,6 @@
 // File: .github/scripts/tagAndPush.js
+const prData = require('./prData');
+
 const createTag = async () => {
     // Extract PR data
 	const { currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
@@ -39,5 +41,5 @@ const createTag = async () => {
 };
 
 // Call the function
-createTag();
+module.exports = { createTag };
 
