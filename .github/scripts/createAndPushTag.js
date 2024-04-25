@@ -13,7 +13,7 @@ async function createAndPushTag({github, context, core}) {
 	  repo,
 	  ref,
 	});
-	console.log("the release branch head SHA is: " + releaseBrancHeadSHA)
+	console.log("the release branch head SHA is: " + releaseBranchHeadSHA)
 
 	// const { currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
     // const commitSha = context.sha;
