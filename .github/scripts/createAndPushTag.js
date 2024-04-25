@@ -3,41 +3,50 @@ const prData = require('./prData');
 
 async function createAndPushTag({github, context, core}) {
     // Extract PR data
-	const { currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
 	const owner = context.repo.owner;
 	const repo = context.repo.repo;
-    const commitSha = context.sha;
 
-    try {
-        // Create a tag in the repository
-        const { data: tagData } = await github.rest.git.createTag({
-            owner: owner,
-            repo: repo,
-            tag: `${newVersion}`,
-            message: `Release version ${newVersion}`,
-            object: commitSha, // Commit SHA from environment variable
-            type: "commit",
-            tagger: {
-                name: "TEST",
-                email: "test@example.com",
-                date: new Date().toISOString()
-            }
-        });
+	// First, get latest SHA from release branch:
+	const releaseBranchHeadSHA = github.rest.repos.listCommitStatusesForRef({
+	  owner,
+	  repo,
+	  "release",
+	});
+	console.log("releaseBranchSHA")
 
-        console.log("Tag created successfully. Tag details:", tagData);
+	// const { currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
+    // const commitSha = context.sha;
 
-        // Push the created tag to the remote repository
-        await github.rest.git.createRef({
-            owner: owner,
-            repo: repo,
-            ref: `refs/tags/${newVersion}`,
-            sha: commitSha
-        });
+    // try {
+        // // Create a tag in the repository
+        // const { data: tagData } = await github.rest.git.createTag({
+            // owner: owner,
+            // repo: repo,
+            // tag: `${newVersion}`,
+            // message: `Release version ${newVersion}`,
+            // object: commitSha, // Commit SHA from environment variable
+            // type: "commit",
+            // tagger: {
+                // name: "TEST",
+                // email: "test@example.com",
+                // date: new Date().toISOString()
+            // }
+        // });
 
-        console.log("Tag pushed to the remote repository successfully.");
-    } catch (error) {
-        console.error("Error creating and pushing the tag:", error.message);
-    }
+        // console.log("Tag created successfully. Tag details:", tagData);
+
+        // // Push the created tag to the remote repository
+        // await github.rest.git.createRef({
+            // owner: owner,
+            // repo: repo,
+            // ref: `refs/tags/${newVersion}`,
+            // sha: commitSha
+        // });
+
+        // console.log("Tag pushed to the remote repository successfully.");
+    // } catch (error) {
+        // console.error("Error creating and pushing the tag:", error.message);
+    // }
 };
 
 // Exporting createAndPushTag function directly
