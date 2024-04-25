@@ -1,5 +1,4 @@
 // File: .github/scripts/createAndPushTag.js
-// File: .github/scripts/createAndPushTag.js
 const prData = require('./prData');
 
 async function createAndPushTag({github, context, core}) {
@@ -13,7 +12,7 @@ async function createAndPushTag({github, context, core}) {
         owner,
         repo,
         ref,
-    }).then(response => response.data.sha);
+    }).then(response => response.data[0].sha);
     console.log("The release branch head SHA is: " + releaseBranchHeadSHA);
 
 	// const { currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
