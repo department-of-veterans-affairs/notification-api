@@ -1,41 +1,47 @@
-// This script creates a tag using the GitHub API with data from prData.js
-// File: .github/scripts/createTag.js
-
-const { Octokit } = require("@octokit/rest");
+// File: .github/scripts/tagAndPush.js
 const prData = require("./prData");
 
-async function createTag({ github, context, core }) {
+// I'm pretty sure we don't need a PAT token for the following to work
+const { currentVersion, newVersion } = await prData();
+
+const owner = context.repo.owner;
+const repo = context.repo.repo;
+const commitSha = context.sha;
+
+
+async function createAndPushTag() {
     try {
-        const prDetails = await prData({ github, context, core });
-
-        const octokit = new Octokit({ auth: `token ${process.env.GITHUB_TOKEN}` });
-
-        const tagCreateResponse = await octokit.rest.git.createTag({
-            owner: "owner_username",
-            repo: "repository_name",
-            tag: "tag_name",
-            message: "Tag message",
-            object: "commit_sha",
+        // Create a tag in the repository
+        const { data: tagData } = await github.rest.git.createTag({
+            owner: owner,
+            repo: repo,
+            tag: `${newVersion}`,
+            message: `Release version ${newVersion}`,
+            object: commitSha, // Commit SHA from environment variable
             type: "commit",
             tagger: {
-                name: "Your Name",
-                email: "your_email@example.com",
+                name: "TEST",
+                email: "test@example.com",
                 date: new Date().toISOString()
             }
         });
 
-        const refCreateResponse = await github.rest.git.createRef({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            ref: `refs/tags/${prDetails.newVersion}`,
-            sha: context.sha
+        console.log("Tag created successfully. Tag details:", tagData);
+
+        // Push the created tag to the remote repository
+        await github.rest.git.createRef({
+            owner: owner,
+            repo: repo,
+            ref: `refs/tags/${newVersion}`,
+            sha: commitSha
         });
 
-        console.log("Tag created successfully:", refCreateResponse.data.ref);
+        console.log("Tag pushed to the remote repository successfully.");
     } catch (error) {
-        core.setFailed(`Failed to create tag: ${error.message}`);
+        console.error("Error creating and pushing the tag:", error.message);
     }
 }
 
-module.exports = createTag;
+createAndPushTag();
+
 
