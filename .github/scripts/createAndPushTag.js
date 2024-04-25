@@ -10,7 +10,7 @@ async function createAndPushTag({github, context, core}) {
 	const releaseBranchHeadSHA = github.rest.repos.listCommitStatusesForRef({
 	  owner,
 	  repo,
-	  "release",
+	  `release`,
 	});
 	console.log("releaseBranchSHA")
 
