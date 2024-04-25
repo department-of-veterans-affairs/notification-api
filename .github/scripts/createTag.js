@@ -2,7 +2,7 @@
 const prData = require("./prData");
 
 // I'm pretty sure we don't need a PAT token for the following to work
-const { currentVersion, newVersion } = await prData();
+const { currentVersion, newVersion } = prData();
 
 const owner = context.repo.owner;
 const repo = context.repo.repo;
