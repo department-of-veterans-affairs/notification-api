@@ -1,19 +1,24 @@
 // File: .github/scripts/createAndPushTag.js
 const prData = require('./prData');
 
-async function createAndPushTag({github, context, core}) {
-    // Extract PR data
-    const owners = context.repo.owner;
-    const repos = context.repo.repo;
-    const refs = "release";
+async function createAndPushTag({ github, context, core }) {
+    const owner = context.repo.owner;
+    const repo = context.repo.repo;
+    const ref = "heads/release"; // Ensure this refers to the branch name
 
-    // First, get latest SHA from release branch:
-    const releaseBranchHeadSHA = await github.rest.repos.listCommitStatusesForRef({
-        owners,
-        repos,
-        refs,
-    }).then(response => response.data);
-    console.log("The release branch head SHA is: " + releaseBranchHeadSHA);
+    try {
+        // First, get the latest SHA from the release branch:
+        const { data } = await github.rest.repos.listCommitStatusesForRef({
+            owner,
+            repo,
+            ref
+        });
+
+        console.log("The release branch head SHA is: " + data.sha); // Assuming 'data' has a property 'sha'
+    } catch (error) {
+        core.setFailed("Failed to retrieve the release branch SHA: " + error.message);
+        console.error(error);
+    }
 
 	// const { currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
     // const commitSha = context.sha;
