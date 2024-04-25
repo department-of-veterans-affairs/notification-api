@@ -3,15 +3,15 @@ const prData = require('./prData');
 
 async function createAndPushTag({github, context, core}) {
     // Extract PR data
-    const owner = context.repo.owner;
-    const repo = context.repo.repo;
-    const ref = "release";
+    const owners = context.repo.owner;
+    const repos = context.repo.repo;
+    const refs = "release";
 
     // First, get latest SHA from release branch:
     const releaseBranchHeadSHA = await github.rest.repos.listCommitStatusesForRef({
-        owner,
-        repo,
-        ref,
+        owners,
+        repos,
+        refs,
     }).then(response => response.data);
     console.log("The release branch head SHA is: " + releaseBranchHeadSHA);
 
