@@ -1,15 +1,11 @@
 // File: .github/scripts/tagAndPush.js
-const prData = require("./prData");
+const createAndPushTag = async () => {
+    // Extract PR data
+	const { currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
+	const owner = context.repo.owner;
+	const repo = context.repo.repo;
+    const commitSha = context.sha;
 
-// I'm pretty sure we don't need a PAT token for the following to work
-const { currentVersion, newVersion } = prData();
-
-const owner = context.repo.owner;
-const repo = context.repo.repo;
-const commitSha = context.sha;
-
-
-async function createAndPushTag() {
     try {
         // Create a tag in the repository
         const { data: tagData } = await github.rest.git.createTag({
@@ -40,8 +36,8 @@ async function createAndPushTag() {
     } catch (error) {
         console.error("Error creating and pushing the tag:", error.message);
     }
-}
+};
 
+// Call the function
 createAndPushTag();
-
 
