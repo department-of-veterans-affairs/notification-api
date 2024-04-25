@@ -1,0 +1,62 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        POETRY_ARGS: --with static_tools
+    image: &vanotify_image notification_api
+    volumes: &vanotify_volumes
+      - "./:/app:rw"
+    ports: &vanotify_ports
+      - 6011:6011
+    env_file: &vanotify_env_file
+      - .local.env
+    depends_on:
+      - localstack
+    command: ./scripts/run_app.sh
+
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=notification_api
+      - POSTGRES_PASSWORD=LocalPassword
+
+  localstack:
+    image: localstack/localstack
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    env_file: *vanotify_env_file
+    environment:
+      - SERVICES=dynamodb,ec2,iam,lambda,s3,ses,sqs,sts,ssm
+      - DEFAULT_REGION=us-east-1
+      # - DATA_DIR=/tmp/localstack/data
+      - START_WEB=1
+      # - HOSTNAME_EXTERNAL=localstack
+      - DEBUG=0
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - AWS_
+    volumes:
+      # - './localstack_setup.sh:/docker-entrypoint-initaws.d/setup.sh'
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+
+  test:
+    build:
+      context: .
+      args:
+        POETRY_ARGS: --with static_tools,test
+        FLASK_DEBUG: 1
+        TEST_FOLDER: tests
+    image: test-notification-api
+    volumes: *vanotify_volumes
+      # - ./pdbrc.py:pdbrc.py
+    env_file: *vanotify_env_file
+    depends_on:
+      - db
+    command: bash
+    stdin_open: true
+    tty: true
