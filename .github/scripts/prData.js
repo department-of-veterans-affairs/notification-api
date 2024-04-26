@@ -18,7 +18,7 @@ const prData = async ({ github, context, core }) => {
 
 
 	//
-	const refs = await octokit.rest.git.listMatchingRefs({
+	const refs = await github.rest.git.listMatchingRefs({
 	  owner,
 	  repo,
 	  ref,
