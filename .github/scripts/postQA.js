@@ -8,18 +8,18 @@ async function generatePRSummary({ github, context, core }) {
     const { releaseBranchSha, currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
 
     // Determine the semver update type based on the label
-    const semverValue = label.includes('breaking change') ? 'major' :
-                        label.includes('hotfix') || label.includes('security') || label.includes('bug') ? 'patch' : 
-                        'minor';
+    const semverValue = label.includes('breaking change') ? 'MAJOR' :
+                        label.includes('hotfix') || label.includes('security') || label.includes('bug') ? 'PATCH' : 
+                        'MINOR';
 
     // Assemble the message content
     const summaryContent = `
-      ### Update Details
-      - Release Branch SHA: ${releaseBranchSha}
-      - PR Number: #${prNumber}
-      - The PR label used for versioning is ${label}
-      This will bump up from the previous release tag will be a ${semverValue} value
-      This tag will not be created until a merge to the release branch. 
+### Update Details
+- Release Branch SHA: ${releaseBranchSha}
+- PR Number: #${prNumber}
+- The PR label used for versioning is ${label}
+This will bump up from the previous release tag will be a ${semverValue} value
+This tag will not be created until a merge to the release branch. 
     `;
 
     // Append the summary to the GitHub step summary file
