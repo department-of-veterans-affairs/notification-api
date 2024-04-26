@@ -4,63 +4,45 @@ const prData = require('./prData');
 async function createAndPushTag({ github, context, core }) {
     const owner = context.repo.owner;
     const repo = context.repo.repo;
-    const ref = "heads/release"; // Ensure this refers to the branch name
+    const ref = "heads/release"; // This should match your branch name accurately
 
     try {
-        // First, get the latest SHA from the release branch:
+        // Retrieve the latest commit SHA from the release branch
         const { data } = await github.rest.repos.getCommit({
             owner,
             repo,
             ref
         });
 
-        if (data && data.sha) {
-            console.log("The release branch head SHA is: " + data.sha);
-        } else {
-            throw new Error("No SHA found in the response");
+        if (!data || !data.sha) {
+            throw new Error("No SHA found for the release branch");
         }
+
+        console.log("Release branch SHA: " + data.sha);
+
+        // Retrieve PR data to decide the new version tag
+        const { releaseBranchSha, currentVersion, newVersion, label, prNumber } = await prData({github, context, core});
+
+        // Logging the data retrieved from prData for verification
+        console.log(`Retrieved release branch SHA: ${releaseBranchSha}`);
+        console.log(`Current version from tags: ${currentVersion}`);
+        console.log(`Calculated new version: ${newVersion}`);
+        console.log(`Label applied for changes: ${label}`);
+        console.log(`PR Number: ${prNumber}`);
+
+        // Verify the completeness and correctness of the data before proceeding
+        if (!releaseBranchSha || !currentVersion || !newVersion || !label || !prNumber) {
+            throw new Error("One or more required pieces of information are missing, cannot proceed with tagging.");
+        }
+
+        // Additional logic could go here for creating and pushing a tag if all checks are passed
+        // For example, you might check that the newVersion is indeed higher than the currentVersion using semver.compare()
+
     } catch (error) {
-        core.setFailed("Failed to retrieve the release branch SHA: " + error.message);
+        core.setFailed("Failed to process due to: " + error.message);
         console.error(error);
     }
+}
 
-	const { releaseBranchSha, currentVersion, newVersion, label, prNumber } = await prData({github, context, core});
-
-
-	console.log (`the new version will be ${newVersion}-release`)
-	// try {
-		// // Create a tag in the repository
-		// const { data: tagData } = await github.rest.git.createTag({
-			// owner: owner,
-			// repo: repo,
-			// tag: `${newVersion}-release`,
-			// message: `Release version ${newVersion}-release`,
-			// object: releaseBranchSha, // Commit SHA from environment variable
-			// type: "commit",
-			// tagger: {
-				// name: "TEST",
-				// email: "test@example.com",
-				// date: new Date().toISOString()
-			// }
-		// });
-
-		// console.log("Tag created successfully. Tag details:", tagData);
-
-		// // Push the created tag to the remote repository
-		// // await github.rest.git.createRef({
-			// // owner: owner,
-			// // repo: repo,
-			// // // ref: `refs/tags/${newVersion}`,
-			// // ref: `${newVersion}-release`,
-			// // sha: releaseBranchSha
-		// // });
-
-		// console.log("Tag NOT pushed to the remote repository successfully. -- still in development");
-	// } catch (error) {
-		// console.error("Error creating and pushing the tag:", error.message);
-	// }
-};
-
-// Exporting createAndPushTag function directly
-module.exports = { createAndPushTag };
+module.exports = createAndPushTag;
 
