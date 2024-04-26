@@ -9,11 +9,13 @@ const getLatestCommitSha = async (github, owner, repo) => {
 };
 
 const getLatestReleaseTag = async (github, owner, repo) => {
-  const tags = await github.rest.repos.listTags({
-    owner,
-    repo,
+  const refs = await github.rest.git.listMatchingRefs({
+	owner,
+	repo,
+	ref,
   });
-  const releaseTags = tags.data.filter(tag => tag.name.includes("release"));
+
+  const releaseTags = refs.data.filter(tag => tag.name.includes("release"));
   if (releaseTags.length === 0) {
     throw new Error("No release tags found");
   }
