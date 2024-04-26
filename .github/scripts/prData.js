@@ -10,7 +10,7 @@ const prData = async ({ github, context, core }) => {
     const { data } = await github.rest.repos.getCommit({
       owner,
       repo,
-      ref,
+      ref: "heads/release",
     });
 
     releaseBranchSha = data.sha;
@@ -20,10 +20,10 @@ const prData = async ({ github, context, core }) => {
 	const refs = await github.rest.git.listMatchingRefs({
 	  owner,
 	  repo,
-	  ref,
+	  ref: "tags/2.0.0-release-test-1",
 	});
 
-	console.log("the refs from listMatchingRefs for release branch are:", JSON.stringify(refs, null, 2));
+	console.log("looking for the 2.0.0-release-test-1 tag", JSON.stringify(refs, null, 2));
 
     // Fetch all tags from the repository
     const tags = await github.rest.repos.listTags({
