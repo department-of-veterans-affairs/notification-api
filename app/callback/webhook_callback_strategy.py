@@ -39,7 +39,7 @@ class WebhookCallbackStrategy(ServiceCallbackStrategyInterface):
                 current_app.logger.warning(
                     'Callback for %s failed due to: %s - retryable',
                     callback.url,
-                    e.response,
+                    e.response.text,
                 )
                 statsd_client.incr(f'callback.webhook.{callback.callback_type}.retryable_error')
                 raise RetryableException(e)
@@ -47,7 +47,7 @@ class WebhookCallbackStrategy(ServiceCallbackStrategyInterface):
                 current_app.logger.error(
                     'Callback for %s failed due to: %s - non-retryable',
                     callback.url,
-                    e.response,
+                    e.response.text,
                 )
                 statsd_client.incr(f'callback.webhook.{callback.callback_type}.non_retryable_error')
                 raise NonRetryableException(e)
