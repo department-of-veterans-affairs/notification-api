@@ -15,11 +15,14 @@ const getLatestReleaseTag = async (github, owner, repo) => {
 	ref,
   });
 
-  const releaseTags = refs.data.filter(tag => tag.name.includes("release"));
-  if (releaseTags.length === 0) {
-    throw new Error("No release tags found");
-  }
-  return releaseTags[0].name;
+  // const releaseTags = refs.data.filter(tag => tag.name.includes("release"));
+  console.log(refs.data)
+
+  // if (releaseTags.length === 0) {
+    // throw new Error("No release tags found");
+  // }
+  // return releaseTags[0].name;
+  refs.data;
 };
 
 const calculateNewVersion = (currentVersion, labels) => {
