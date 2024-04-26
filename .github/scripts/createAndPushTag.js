@@ -31,7 +31,7 @@ async function createAndPushTag({ github, context, core }) {
 		const { data: tagData } = await github.rest.git.createTag({
 			owner: owner,
 			repo: repo,
-			tag: `2.0.0-release-test-1`,
+			tag: `${newVersion}`,
 			message: `Release version ${newVersion}`,
 			object: releaseBranchSha, // Commit SHA from environment variable
 			type: "commit",
@@ -49,7 +49,7 @@ async function createAndPushTag({ github, context, core }) {
 			owner: owner,
 			repo: repo,
 			// ref: `refs/tags/${newVersion}`,
-			ref: `refs/tags/2.0.0-release-test-1`,
+			ref: `${newVersion}`,
 			sha: releaseBranchSha
 		});
 
