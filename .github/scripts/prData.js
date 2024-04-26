@@ -7,7 +7,6 @@ async function getHighestSemverTag(github, owner, repo) {
         const tags = await github.rest.repos.listTags({
             owner,
             repo,
-            per_page: 100 // Adjust based on your tag frequency
         });
 
         const filteredTags = tags.data.filter(tag => 
