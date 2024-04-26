@@ -23,14 +23,6 @@ on:
     types: [closed, opened, labeled, edited, reopened]
   issues:
     types: [labeled, closed]
-  pull_request:
-    branches:
-      - 1727-cd-pipeline-versioning
-    types: [closed, opened, labeled, edited, reopened]
-  issues:
-    types:
-      - labeled
-      - closed 
 
 jobs:
   prepare-deployment:
