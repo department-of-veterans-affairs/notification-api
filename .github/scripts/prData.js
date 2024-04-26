@@ -1,6 +1,4 @@
 // File: .github/scripts/prData.js
-const { compare } = require('semver');
-
 const prData = async ({ github, context, core }) => {
   const owner = context.repo.owner;
   const repo = context.repo.repo;
