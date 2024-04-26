@@ -44,5 +44,5 @@ async function createAndPushTag({ github, context, core }) {
     }
 }
 
-module.exports = createAndPushTag;
+module.exports = { createAndPushTag };
 
