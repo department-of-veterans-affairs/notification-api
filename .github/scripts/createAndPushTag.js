@@ -27,7 +27,7 @@ async function createAndPushTag({ github, context, core }) {
 	const { releaseBranchSha, currentVersion, newVersion, label, prNumber } = await prData({github, context, core});
 
 
-	console.log (`the new version will be ${newversion}-release`)
+	console.log (`the new version will be ${newVersion}-release`)
 	// try {
 		// // Create a tag in the repository
 		// const { data: tagData } = await github.rest.git.createTag({
