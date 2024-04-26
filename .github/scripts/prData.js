@@ -1,44 +1,51 @@
 // File: .github/scripts/prData.js
+const semver = require('semver');
+
+// Function to get the highest semantic version tag
+async function getHighestSemverTag(github, owner, repo) {
+    try {
+        const tags = await github.rest.repos.listTags({
+            owner,
+            repo,
+            per_page: 100 // Adjust based on your tag frequency
+        });
+
+        const filteredTags = tags.data.filter(tag => 
+            tag.name.includes('release') && semver.valid(semver.coerce(tag.name))
+        );
+
+        const highestTag = filteredTags.sort((a, b) => 
+            semver.rcompare(semver.coerce(a.name), semver.coerce(b.name))
+        )[0];
+
+        return highestTag ? highestTag.name : null;
+    } catch (error) {
+        console.error('Failed to fetch tags:', error);
+        return null;
+    }
+}
+
 const prData = async ({ github, context, core }) => {
   const owner = context.repo.owner;
   const repo = context.repo.repo;
   let releaseBranchSha, latestReleaseTag, currentVersion;
 
   try {
+    // Get the latest commit SHA of the release branch
     const { data } = await github.rest.repos.getCommit({
       owner,
       repo,
       ref: "heads/release"
     });
-
     releaseBranchSha = data.sha;
     console.log("Release branch SHA: " + releaseBranchSha);
 
-    const tags = await github.rest.repos.listTags({
-      owner,
-      repo,
-      per_page: 100 // Adjust based on your tag frequency
-    });
+    // Get the highest semver tag
+    latestReleaseTag = await getHighestSemverTag(github, owner, repo);
+    currentVersion = latestReleaseTag || '0.1.0'; // Default if no tags are found
+    console.log("Latest Release Tag: " + latestReleaseTag);
 
-    // Filter tags to find those with "release" and sort them by semantic versioning
-    const releaseTags = tags.data
-      .filter(tag => tag.name.includes("release"))
-      .sort((a, b) => compare(b.name, a.name)); // Sort in descending order
-
-    if (releaseTags.length > 0) {
-      latestReleaseTag = releaseTags[0].name;
-      currentVersion = latestReleaseTag;
-      console.log("Latest release tag: " + latestReleaseTag);
-    } else {
-      throw new Error("No release tags found");
-    }
-  } catch (error) {
-    core.setFailed("Failed to retrieve data: " + error.message);
-    console.error(error);
-    return { releaseBranchSha: '', currentVersion: '', latestReleaseTag: '' };
-  }
-
-  try {
+    // Version calculation based on labels
     let versionParts = currentVersion.split('.').map(x => parseInt(x));
     const pullRequestData = context.payload.pull_request;
     const labels = pullRequestData.labels.map(label => label.name.toLowerCase());
