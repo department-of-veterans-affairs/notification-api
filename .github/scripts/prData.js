@@ -1,9 +1,13 @@
+const owner = context.repo.owner;
+const repo = context.repo.repo;
+const ref = "heads/release";
+
 // File: .github/scripts/prData.js
 const getLatestCommitSha = async (github, owner, repo) => {
   const { data } = await github.rest.repos.getCommit({
     owner,
     repo,
-    ref: "heads/release"
+    ref,
   });
   return data.sha;
 };
