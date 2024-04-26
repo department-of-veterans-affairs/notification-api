@@ -28,7 +28,7 @@ jobs:
             generatePRSummary({github, context, core});
 
   create_and_post_tag:
-    if: ${{ inputs.create-tag }}
+    # if: ${{ inputs.create-tag }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
