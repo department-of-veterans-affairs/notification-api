@@ -26,37 +26,39 @@ async function createAndPushTag({ github, context, core }) {
 
 	const { releaseBranchSha, currentVersion, newVersion, label, prNumber } = await prData({github, context, core});
 
-	try {
-		// Create a tag in the repository
-		const { data: tagData } = await github.rest.git.createTag({
-			owner: owner,
-			repo: repo,
-			tag: `${newVersion}-release`,
-			message: `Release version ${newVersion}-release`,
-			object: releaseBranchSha, // Commit SHA from environment variable
-			type: "commit",
-			tagger: {
-				name: "TEST",
-				email: "test@example.com",
-				date: new Date().toISOString()
-			}
-		});
 
-		console.log("Tag created successfully. Tag details:", tagData);
-
-		// Push the created tag to the remote repository
-		// await github.rest.git.createRef({
+	console.log (`the new version will be ${newversion}-release`)
+	// try {
+		// // Create a tag in the repository
+		// const { data: tagData } = await github.rest.git.createTag({
 			// owner: owner,
 			// repo: repo,
-			// // ref: `refs/tags/${newVersion}`,
-			// ref: `${newVersion}-release`,
-			// sha: releaseBranchSha
+			// tag: `${newVersion}-release`,
+			// message: `Release version ${newVersion}-release`,
+			// object: releaseBranchSha, // Commit SHA from environment variable
+			// type: "commit",
+			// tagger: {
+				// name: "TEST",
+				// email: "test@example.com",
+				// date: new Date().toISOString()
+			// }
 		// });
 
-		console.log("Tag NOT pushed to the remote repository successfully. -- still in development");
-	} catch (error) {
-		console.error("Error creating and pushing the tag:", error.message);
-	}
+		// console.log("Tag created successfully. Tag details:", tagData);
+
+		// // Push the created tag to the remote repository
+		// // await github.rest.git.createRef({
+			// // owner: owner,
+			// // repo: repo,
+			// // // ref: `refs/tags/${newVersion}`,
+			// // ref: `${newVersion}-release`,
+			// // sha: releaseBranchSha
+		// // });
+
+		// console.log("Tag NOT pushed to the remote repository successfully. -- still in development");
+	// } catch (error) {
+		// console.error("Error creating and pushing the tag:", error.message);
+	// }
 };
 
 // Exporting createAndPushTag function directly
