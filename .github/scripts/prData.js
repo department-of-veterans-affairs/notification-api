@@ -16,6 +16,16 @@ const prData = async ({ github, context, core }) => {
     releaseBranchSha = data.sha;
     console.log("Release branch SHA: " + releaseBranchSha);
 
+
+	//
+	const refs = await octokit.rest.git.listMatchingRefs({
+	  owner,
+	  repo,
+	  ref,
+	});
+
+	console.log("the refs from listMatchingRefs for release branch are: " + refs.data)
+
     // Fetch all tags from the repository
     const tags = await github.rest.repos.listTags({
       owner,
