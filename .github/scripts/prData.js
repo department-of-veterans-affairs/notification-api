@@ -1,11 +1,12 @@
 // File: .github/scripts/prData.js
+const { compare } = require('semver');
+
 const prData = async ({ github, context, core }) => {
   const owner = context.repo.owner;
   const repo = context.repo.repo;
   let releaseBranchSha, latestReleaseTag, currentVersion;
 
   try {
-    // Fetching the latest SHA from the release branch
     const { data } = await github.rest.repos.getCommit({
       owner,
       repo,
@@ -15,15 +16,17 @@ const prData = async ({ github, context, core }) => {
     releaseBranchSha = data.sha;
     console.log("Release branch SHA: " + releaseBranchSha);
 
-    // Fetch all tags from the repository
     const tags = await github.rest.repos.listTags({
       owner,
       repo,
       per_page: 100 // Adjust based on your tag frequency
     });
 
-    // Filter tags to find the latest one with "release" in it
-    const releaseTags = tags.data.filter(tag => tag.name.includes("release"));
+    // Filter tags to find those with "release" and sort them by semantic versioning
+    const releaseTags = tags.data
+      .filter(tag => tag.name.includes("release"))
+      .sort((a, b) => compare(b.name, a.name)); // Sort in descending order
+
     if (releaseTags.length > 0) {
       latestReleaseTag = releaseTags[0].name;
       currentVersion = latestReleaseTag;
@@ -38,13 +41,11 @@ const prData = async ({ github, context, core }) => {
   }
 
   try {
-    // versionParts will now need to be based on latest tag with string "release"
     let versionParts = currentVersion.split('.').map(x => parseInt(x));
     const pullRequestData = context.payload.pull_request;
     const labels = pullRequestData.labels.map(label => label.name.toLowerCase());
-    let appliedLabel = ''; // Initialize as empty to cover cases where no labels match
+    let appliedLabel = '';
 
-    // Version bump logic based on labels
     if (labels.includes('breaking-change')) {
       versionParts[0] += 1; versionParts[1] = 0; versionParts[2] = 0;
       appliedLabel = 'breaking change';
@@ -59,7 +60,6 @@ const prData = async ({ github, context, core }) => {
     const newVersion = versionParts.join('.');
     const prNumber = pullRequestData.number;
 
-    // Return detailed response, including the releaseBranchSha
     return {
       releaseBranchSha,
       currentVersion,
@@ -67,7 +67,6 @@ const prData = async ({ github, context, core }) => {
       label: appliedLabel,
       prNumber
     };
-
   } catch (error) {
     core.setFailed(`Error processing PR data: ${error.message}`);
     return {
@@ -76,7 +75,7 @@ const prData = async ({ github, context, core }) => {
       newVersion: '',
       label: '',
       prNumber: '',
-    }; // Return default data to prevent destructuring errors in postQA.js
+    };
   }
 };
 
