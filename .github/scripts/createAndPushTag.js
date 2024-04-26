@@ -45,15 +45,15 @@ async function createAndPushTag({ github, context, core }) {
 		console.log("Tag created successfully. Tag details:", tagData);
 
 		// Push the created tag to the remote repository
-		await github.rest.git.createRef({
-			owner: owner,
-			repo: repo,
-			// ref: `refs/tags/${newVersion}`,
-			ref: `${newVersion}-release`,
-			sha: releaseBranchSha
-		});
+		// await github.rest.git.createRef({
+			// owner: owner,
+			// repo: repo,
+			// // ref: `refs/tags/${newVersion}`,
+			// ref: `${newVersion}-release`,
+			// sha: releaseBranchSha
+		// });
 
-		console.log("Tag pushed to the remote repository successfully.");
+		console.log("Tag NOT pushed to the remote repository successfully. -- still in development");
 	} catch (error) {
 		console.error("Error creating and pushing the tag:", error.message);
 	}
