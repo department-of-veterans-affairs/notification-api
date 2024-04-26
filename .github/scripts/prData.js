@@ -12,7 +12,6 @@ const getLatestReleaseTag = async (github, owner, repo) => {
   const tags = await github.rest.repos.listTags({
     owner,
     repo,
-    per_page: 100
   });
   const releaseTags = tags.data.filter(tag => tag.name.includes("release"));
   if (releaseTags.length === 0) {
