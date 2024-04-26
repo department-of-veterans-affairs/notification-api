@@ -16,15 +16,14 @@ const prData = async ({ github, context, core }) => {
     releaseBranchSha = data.sha;
     console.log("Release branch SHA: " + releaseBranchSha);
 
-
-	//
+	// get latest tag related to release branch (may be none currently... if ever? consider SHA matches Master)
 	const refs = await github.rest.git.listMatchingRefs({
 	  owner,
 	  repo,
 	  ref,
 	});
 
-	console.log("the refs from listMatchingRefs for release branch are: " + refs.data)
+	console.log("the refs from listMatchingRefs for release branch are:", JSON.stringify(refs, null, 2));
 
     // Fetch all tags from the repository
     const tags = await github.rest.repos.listTags({
