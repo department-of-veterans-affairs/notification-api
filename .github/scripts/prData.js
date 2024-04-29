@@ -24,7 +24,7 @@ const prData = async ({ github, context, core }) => {
     console.log("Latest release tag: " + latestReleaseTag);
 
     currentVersion = latestReleaseTag.replace(/^v/, ''); // Remove leading 'v' if present
-    let versionParts = currentVersion.split('.').map(x => parseInt(x)); //make the tag "name" a usable integer array
+    let versionParts = currentVersion.split('.').map(x => parseInt(x)); // Make the tag "name" a usable integer array
     
     const pullRequestData = context.payload.pull_request;
     const labels = pullRequestData.labels.map(label => label.name.toLowerCase());
