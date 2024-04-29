@@ -72,7 +72,6 @@ jobs:
     permissions:
       contents: write
     needs: approval-to-merge-to-release-branch
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout release branch
         uses: actions/checkout@v4
