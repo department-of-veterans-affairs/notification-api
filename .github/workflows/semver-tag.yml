@@ -4,9 +4,7 @@ on:
   pull_request:
     branches:
       - 1727-cd-pipeline-versioning
-    types: [closed, opened, labeled, edited, reopened]
-  issues:
-    types: [labeled, closed]
+    types: [closed]
   workflow_call:
     inputs:
       create-tag:
