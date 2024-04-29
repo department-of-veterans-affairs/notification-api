@@ -120,12 +120,12 @@ jobs:
       # lambdaDeploy: true
     # secrets: inherit
 
-  QA-approval-of-staging:
-    needs: deploy-to-staging
-    environment: 
-      name: prod-deploy
-    runs-on: ubuntu-latest
-    steps:
-      - name: Pause for manual approval
-        run: echo "Pipeline paused for pending approval of staging by QA"
+  # QA-approval-of-staging:
+    # needs: deploy-to-staging
+    # environment: 
+      # name: prod-deploy
+    # runs-on: ubuntu-latest
+    # steps:
+      # - name: Pause for manual approval
+        # run: echo "Pipeline paused for pending approval of staging by QA"
 
