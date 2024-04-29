@@ -14,15 +14,10 @@ name: Continuous Deployment Pipeline
 # is simply using a variable named environment 
   
 on:
-  push:
-    branches:
-      - master
   pull_request:
     branches:
-      - 1727-cd-pipeline-versioning
-    types: [closed, opened, labeled, edited, reopened]
-  issues:
-    types: [labeled, closed]
+      - master
+    types: [closed]
 
 jobs:
   prepare-deployment:
