@@ -2,7 +2,7 @@
 const prData = require('./prData');
 
 async function createTag(github, owner, repo, newVersion, sha) {
-    const tagName = `v${newVersion}`;
+    const tagName = `${newVersion}`;
     const tagMessage = `Release for version ${newVersion}`;
 
     // Create the tag object
