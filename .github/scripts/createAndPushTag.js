@@ -25,7 +25,7 @@ async function createAndPushTag({ github, context, core }) {
 
         // Logging the data retrieved from prData for verification
         console.log(`Retrieved release branch SHA: ${releaseBranchSha}`);
-        console.log(`Current version from tags: ${currentVersion}`);
+        console.log(`Current version from tag associated with latest Release: ${currentVersion}`);
         console.log(`Calculated new version: ${newVersion}`);
         console.log(`Label applied for changes: ${label}`);
         console.log(`PR Number: ${prNumber}`);

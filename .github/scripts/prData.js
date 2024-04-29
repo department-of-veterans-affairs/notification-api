@@ -23,7 +23,6 @@ const prData = async ({ github, context, core }) => {
     latestReleaseTag = latestRelease.data.tag_name;
     console.log("Latest release tag: " + latestReleaseTag);
 
-    // Assume the tag is in the format 'v1.2.3'
     currentVersion = latestReleaseTag.replace(/^v/, ''); // Remove leading 'v' if present
     let versionParts = currentVersion.split('.').map(x => parseInt(x));
     
