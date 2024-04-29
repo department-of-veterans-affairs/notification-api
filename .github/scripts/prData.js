@@ -12,44 +12,21 @@ const prData = async ({ github, context, core }) => {
       repo,
       ref: "heads/release",
     });
-
     releaseBranchSha = data.sha;
     console.log("Release branch SHA: " + releaseBranchSha);
 
-	// get latest tag related to release branch (may be none currently... if ever? consider SHA matches Master)
-	const refs = await github.rest.git.listMatchingRefs({
-	  owner,
-	  repo,
-	  ref: "tags/2.0.0-release-test-1",
-	});
-
-	console.log("looking for the 2.0.0-release-test-1 tag", JSON.stringify(refs, null, 2));
-
-    // Fetch all tags from the repository
-    const tags = await github.rest.repos.listTags({
+    // Fetching the latest release tag
+    const latestRelease = await github.rest.repos.getLatestRelease({
       owner,
-      repo,
-      per_page: 100 // Adjust based on your tag frequency
+      repo
     });
+    latestReleaseTag = latestRelease.data.tag_name;
+    console.log("Latest release tag: " + latestReleaseTag);
 
-    // Filter tags to find the latest one with "release" in it
-    const releaseTags = tags.data.filter(tag => tag.name.includes("release"));
-    if (releaseTags.length > 0) {
-      latestReleaseTag = releaseTags[0].name;
-      currentVersion = latestReleaseTag;
-      console.log("Latest release tag: " + latestReleaseTag);
-    } else {
-      throw new Error("No release tags found");
-    }
-  } catch (error) {
-    core.setFailed("Failed to retrieve data: " + error.message);
-    console.error(error);
-    return { releaseBranchSha: '', currentVersion: '', latestReleaseTag: '' };
-  }
-
-  try {
-    // versionParts will now need to be based on latest tag with string "release"
+    // Assume the tag is in the format 'v1.2.3'
+    currentVersion = latestReleaseTag.replace(/^v/, ''); // Remove leading 'v' if present
     let versionParts = currentVersion.split('.').map(x => parseInt(x));
+    
     const pullRequestData = context.payload.pull_request;
     const labels = pullRequestData.labels.map(label => label.name.toLowerCase());
     let appliedLabel = ''; // Initialize as empty to cover cases where no labels match
@@ -77,7 +54,6 @@ const prData = async ({ github, context, core }) => {
       label: appliedLabel,
       prNumber
     };
-
   } catch (error) {
     core.setFailed(`Error processing PR data: ${error.message}`);
     return {
@@ -91,5 +67,4 @@ const prData = async ({ github, context, core }) => {
 };
 
 module.exports = prData;
-
 
