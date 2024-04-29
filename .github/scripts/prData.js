@@ -24,11 +24,11 @@ const prData = async ({ github, context, core }) => {
     console.log("Latest release tag: " + latestReleaseTag);
 
     currentVersion = latestReleaseTag.replace(/^v/, ''); // Remove leading 'v' if present
-    let versionParts = currentVersion.split('.').map(x => parseInt(x));
+    let versionParts = currentVersion.split('.').map(x => parseInt(x)); //make the tag "name" a usable integer array
     
     const pullRequestData = context.payload.pull_request;
     const labels = pullRequestData.labels.map(label => label.name.toLowerCase());
-    let appliedLabel = ''; // Initialize as empty to cover cases where no labels match
+    let appliedLabel = ''; 
 
     // Version bump logic based on labels
     if (labels.includes('breaking-change')) {
