@@ -63,14 +63,11 @@ jobs:
         run: echo "Deployment paused for manual approval."
 
   merge-to-release:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Not actually mering to release
-        run: echo "Not actually merging to release"
     # These permissions are needed to write to the release branch
     permissions:
       contents: write
     needs: approval-to-merge-to-release-branch
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout release branch
         uses: actions/checkout@v4
