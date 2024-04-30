@@ -1,10 +1,9 @@
 name: Semantic Versioning
 
 on: 
-  pull_request:
+  push:
     branches:
       - 1727-cd-pipeline-versioning
-    types: [closed]
   workflow_call:
     inputs:
       create-tag:
