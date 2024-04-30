@@ -2,7 +2,8 @@
 const fs = require('fs');
 const prData = require('./prData');
 
-async function logPayload() {
+async function generatePRSummary({ github, context, core }) {
+
   try {
     const context = github.context;
     if (context.eventName === 'push') {
@@ -13,10 +14,6 @@ async function logPayload() {
   } catch (error) {
     console.error('Error logging payload:', error);
   }
-}
-
-async function generatePRSummary({ github, context, core }) {
-  payload = logPayload();
 
   // try {
     // // Retrieve necessary data from prData.js
