@@ -4,6 +4,35 @@ const prData = require('./prData');
 
 async function generatePRSummary({ github, context, core }) {
 
+  // pritn out the variable value for RELEASE_VERSION so I can use its value in prData.js
+  // Log all environment variables
+  console.log('Available Environment Variables:', process.env);
+
+  // Fetch repository secrets
+  const owner = process.env.GITHUB_REPOSITORY_OWNER;
+  const repo = process.env.GITHUB_REPOSITORY.split('/')[1];
+
+  try {
+    const response = await octokit.rest.actions.listRepoSecrets({
+      owner,
+      repo
+    });
+
+    // Check if RELEASE_VERSION is among the secrets
+    const secrets = response.data.secrets;
+
+    const releaseVersion = secrets.find(secret => secret.name === 'RELEASE_VERSION');
+
+    if (releaseVersion) {
+      console.log('RELEASE_VERSION is available as a repo secret.');
+    } else {
+      console.log('RELEASE_VERSION is not available as a repo secret.');
+    }
+  } catch (error) {
+    console.error('Failed to fetch repository secrets:', error);
+  }
+  // Need to get PR labels from the merge!  
+  // once I have this working I need to move it to prData.js
   try {
     const context = github.context;
     if (context.eventName === 'push') {
