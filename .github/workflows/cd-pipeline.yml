@@ -44,7 +44,6 @@ jobs:
 
 # this job deploys the SHA that triggered this workflow
   deploy-to-perf:
-    runs-on: ubuntu-latest
     needs: approval-to-deploy
     uses: ./.github/workflows/dev_deploy.yml
     with:
