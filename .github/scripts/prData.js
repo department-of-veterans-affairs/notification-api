@@ -66,6 +66,11 @@ const getPRData = async ({ github, context, core }) => {
 
     try {
         const pullRequestData = await fetchPullRequests(github, owner, repo, sha);
+		if (!pullRequestData.data || pullRequestData.data.length === 0) {
+			core.setFailed("No pull requests found for this commit SHA.");
+			return null;
+		}
+
         const currentVersion = await fetchCurrentReleaseVersion(github, owner, repo, "RELEASE_VERSION");
         const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo);
         const labels = pullRequestData.data[0].labels.map(label => ({

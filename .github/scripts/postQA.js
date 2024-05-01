@@ -6,6 +6,12 @@ const { getPRData } = require('./prData'); // Import the function from prData.js
 
 const generatePRSummary = async ({ github, context, core }) => {
     try {
+		const prDataResult = await getPRData({ github, context, core });
+		if (!prDataResult) {
+			console.error("Failed to fetch pull request data.");
+			return;
+		}
+
         const { releaseBranchSha, currentVersion, newVersion, label, prNumber } = await getPRData({ github, context, core });
 
         // Determine the semantic versioning update type based on the label
