@@ -56,7 +56,7 @@ function processLabelsAndVersion(labels, currentVersion) {
 /**
  * Main function to generate PR summary.
  */
-async function generatePRSummary({ github, context, core }) {
+async function prData({ github, context, core }) {
   const mergeSHA = context.payload.after;
 
   try {
@@ -92,5 +92,6 @@ async function generatePRSummary({ github, context, core }) {
   }
 }
 
-module.exports = { generatePRSummary };
+// module.exports = { generatePRSummary };
+module.exports = { prData };
 
