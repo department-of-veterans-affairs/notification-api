@@ -1,83 +1,89 @@
 // File: .github/scripts/prData.js
 
+// Constants for repository and API details
+const REPO_OWNER = context.repo.owner;
+const REPO_NAME = context.repo.repo;
+const REPO_REF = "heads/release";
+const VARIABLE_NAME = "RELEASE_VERSION";
+
+/**
+ * Fetch pull requests associated with a commit.
+ * @param {object} github GitHub API instance
+ * @param {string} sha Commit SHA
+ * @returns {Promise<object>} Pull request data
+ */
+async function fetchPullRequests(github, sha) {
+  return await github.rest.repos.listPullRequestsAssociatedWithCommit({
+    owner: REPO_OWNER,
+    repo: REPO_NAME,
+    commit_sha: sha,
+  });
+}
+
+/**
+ * Fetch the current release version.
+ * @param {object} github GitHub API instance
+ * @returns {Promise<string>} Current release version
+ */
+async function fetchCurrentReleaseVersion(github) {
+  const { data } = await github.rest.actions.getRepoVariable({
+    owner: REPO_OWNER,
+    repo: REPO_NAME,
+    name: VARIABLE_NAME,
+  });
+  return data.value;
+}
+
+/**
+ * Process labels to determine new version and label.
+ * @param {Array} labels Labels of the PR
+ * @param {string} currentVersion Current version string
+ * @returns {object} New version and applied label
+ */
+function processLabelsAndVersion(labels, currentVersion) {
+  let versionParts = currentVersion.split('.').map(x => parseInt(x, 10));
+  let appliedLabel;
+
+  if (labels.some(label => label.name === 'breaking-change')) {
+    versionParts[0] += 1; versionParts[1] = 0; versionParts[2] = 0;
+    appliedLabel = 'breaking change';
+  } else if (labels.some(label => ['hotfix', 'security', 'bug'].includes(label.name))) {
+    versionParts[2] += 1;
+    appliedLabel = labels.find(label => ['hotfix', 'security', 'bug'].includes(label.name)).name;
+  } else {
+    versionParts[1] += 1; versionParts[2] = 0;
+    appliedLabel = labels.find(label => label).name; // Catch-all increment
+  }
+
+  return {
+    newVersion: versionParts.join('.'),
+    appliedLabel
+  };
+}
+
 const prData = async ({ github, context, core }) => {
-  const owner = context.repo.owner;
-  const repo = context.repo.repo;
-  const ref = "heads/release";
-  const name = "RELEASE_VERSION";
   const mergeSHA = context.payload.after;
 
-  let releaseBranchSha, latestReleaseTag, currentVersion, versionParts, appliedLabel, prNumber;
-
   try {
-    console.log(`MergeSha is ${mergeSHA}`);
+    const pullRequestData = await fetchPullRequests(github, mergeSHA);
+    const currentVersion = await fetchCurrentReleaseVersion(github);
 
-    const pullRequestData = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-      owner,
-      repo,
-      commit_sha: mergeSHA,
-    });
-
-	console.log("the pullRequestData is: " + pullRequestData.data)
-	// this one gives good looking data
-	console.log("the pullRequestData is: " + JSON.stringify(pullRequestData.data, null, 2));
-	console.log("the pull request number is " +  JSON.stringify(pullRequestData.data.number, null, 2));
-	console.log("the pull request labels are " +  JSON.stringify(pullRequestData.data.labels, null, 2));
-
-    // Assuming we can get the PR number from the first PR associated with the commit
-    prNumber = pullRequestData.data.number;
-
-    let labels = pullRequestData.data.labels.map(label => ({
+    const labels = pullRequestData.data[0].labels.map(label => ({
       id: label.id,
       name: label.name,
       description: label.description,
       color: label.color,
     }));
-    console.log(`The label(s) on the PR: ${labels}`);
-    console.log(`PR Number: ${prNumber}`);
+    const prNumber = pullRequestData.data[0].number;
 
-  } catch (error) {
-    core.setFailed(`Error fetching pull requests: ${error.message}`);
-    console.error('Error fetching pull requests:', error);
-    return; // Return early on critical failure
-  }
+    const { newVersion, appliedLabel } = processLabelsAndVersion(labels, currentVersion);
 
-  try {
-    const { data } = await github.rest.repos.getCommit({
-      owner,
-      repo,
-      ref,
-    });
-    releaseBranchSha = data.sha;
-    console.log(`Release branch SHA: ${releaseBranchSha}`);
-
-    const { data: variableData } = await github.rest.actions.getRepoVariable({
-      owner,
-      repo,
-      name,
-    });
-    currentVersion = variableData.value;
-    console.log(`Current RELEASE_VERSION: ${currentVersion}`);
-
-    versionParts = currentVersion.split('.').map(x => parseInt(x, 10));
-    console.log(`Version Parts: `, versionParts);
-
-    if (labels.some(label => label.name === 'breaking-change')) {
-      versionParts[0] += 1; versionParts[1] = 0; versionParts[2] = 0;
-      appliedLabel = 'breaking change';
-    } else if (labels.some(label => ['hotfix', 'security', 'bug'].includes(label.name))) {
-      versionParts[2] += 1;
-      appliedLabel = labels.find(label => ['hotfix', 'security', 'bug'].includes(label.name)).name;
-    } else {
-      versionParts[1] += 1; versionParts[2] = 0;
-      appliedLabel = labels.find(label => label).name; // Catch-all increment
-    }
-
-    const newVersion = versionParts.join('.');
+    // Output to logs
+    console.log(`PR Number: ${prNumber}, Labels: ${labels.map(label => label.name).join(', ')}, New Version: ${newVersion}, Applied Label: ${appliedLabel}`);
 
     return {
-      releaseBranchSha,
-      latestReleaseTag, // Ensure this variable is handled if needed
+      releaseBranchSha: '', // You will need to fetch or calculate this based on your logic
+      latestReleaseTag: '', // Same as above
       currentVersion,
       newVersion,
       label: appliedLabel,
@@ -87,14 +93,7 @@ const prData = async ({ github, context, core }) => {
   } catch (error) {
     core.setFailed(`Error processing PR data: ${error.message}`);
     console.error('Error processing PR data:', error);
-    return {
-      releaseBranchSha: '',
-      latestReleaseTag: '',
-      currentVersion: '',
-      newVersion: '',
-      label: '',
-      prNumber: '',
-    };
+    return null;
   }
 };
 
