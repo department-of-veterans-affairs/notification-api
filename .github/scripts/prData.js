@@ -89,3 +89,4 @@ const prData = async ({ github, context, core }) => {
   }
 }
 
+module.exports = prData;
