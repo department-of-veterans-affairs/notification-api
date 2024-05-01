@@ -1,34 +1,29 @@
 // File: .github/scripts/prData.js
 
 // Constants for repository and API details
-const REPO_OWNER = context.repo.owner;
-const REPO_NAME = context.repo.repo;
+const REPO_OWNER = context => context.repo.owner;
+const REPO_NAME = context => context.repo.repo;
 const REPO_REF = "heads/release";
 const VARIABLE_NAME = "RELEASE_VERSION";
 
 /**
  * Fetch pull requests associated with a commit.
- * @param {object} github GitHub API instance
- * @param {string} sha Commit SHA
- * @returns {Promise<object>} Pull request data
  */
-async function fetchPullRequests(github, sha) {
+async function fetchPullRequests(github, context, sha) {
   return await github.rest.repos.listPullRequestsAssociatedWithCommit({
-    owner: REPO_OWNER,
-    repo: REPO_NAME,
+    owner: REPO_OWNER(context),
+    repo: REPO_NAME(context),
     commit_sha: sha,
   });
 }
 
 /**
  * Fetch the current release version.
- * @param {object} github GitHub API instance
- * @returns {Promise<string>} Current release version
  */
-async function fetchCurrentReleaseVersion(github) {
+async function fetchCurrentReleaseVersion(github, context) {
   const { data } = await github.rest.actions.getRepoVariable({
-    owner: REPO_OWNER,
-    repo: REPO_NAME,
+    owner: REPO_OWNER(context),
+    repo: REPO_NAME(context),
     name: VARIABLE_NAME,
   });
   return data.value;
@@ -36,9 +31,6 @@ async function fetchCurrentReleaseVersion(github) {
 
 /**
  * Process labels to determine new version and label.
- * @param {Array} labels Labels of the PR
- * @param {string} currentVersion Current version string
- * @returns {object} New version and applied label
  */
 function processLabelsAndVersion(labels, currentVersion) {
   let versionParts = currentVersion.split('.').map(x => parseInt(x, 10));
@@ -61,12 +53,15 @@ function processLabelsAndVersion(labels, currentVersion) {
   };
 }
 
-const prData = async ({ github, context, core }) => {
+/**
+ * Main function to generate PR summary.
+ */
+async function generatePRSummary({ github, context, core }) {
   const mergeSHA = context.payload.after;
 
   try {
-    const pullRequestData = await fetchPullRequests(github, mergeSHA);
-    const currentVersion = await fetchCurrentReleaseVersion(github);
+    const pullRequestData = await fetchPullRequests(github, context, mergeSHA);
+    const currentVersion = await fetchCurrentReleaseVersion(github, context);
 
     const labels = pullRequestData.data[0].labels.map(label => ({
       id: label.id,
@@ -95,7 +90,7 @@ const prData = async ({ github, context, core }) => {
     console.error('Error processing PR data:', error);
     return null;
   }
-};
+}
 
-module.exports = prData;
+module.exports = { generatePRSummary };
 
