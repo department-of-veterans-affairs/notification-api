@@ -41,6 +41,15 @@ function processLabelsAndVersion(labels, currentVersion) {
     };
 }
 
+// Function to fetch release branch SHA
+async function fetchReleaseBranchSha(github, owner, repo, ref) {
+    const { data } = await github.rest.repos.getCommit({
+        owner,
+        repo,
+        ref
+    });
+    return data.sha;
+}
 // Main function exported to handle pull request data
 module.exports = async ({ github, context, core }) => {
     const owner = context.repo.owner;
@@ -50,6 +59,7 @@ module.exports = async ({ github, context, core }) => {
     try {
         const pullRequestData = await fetchPullRequests(github, owner, repo, sha);
         const currentVersion = await fetchCurrentReleaseVersion(github, owner, repo, "RELEASE_VERSION");
+		const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo, "heads/release"); // Adjust ref as needed
 
         const labels = pullRequestData.data[0].labels.map(label => ({
             id: label.id,
@@ -60,6 +70,16 @@ module.exports = async ({ github, context, core }) => {
         const prNumber = pullRequestData.data[0].number;
 
         const { newVersion, appliedLabel } = processLabelsAndVersion(labels, currentVersion);
+
+		console.log(`PR Data Summary:\n` +
+		  `Release Branch SHA: ${releaseBranchSha}\n` +
+		  `Latest Release Tag: ${latestReleaseTag}\n` +  // Assuming this is computed elsewhere
+		  `Current Version: ${currentVersion}\n` +
+		  `New Version: ${newVersion}\n` +
+		  `Applied Label: ${appliedLabel}\n` +
+		  `PR Number: ${prNumber}\n` +
+		  `Labels: ${labels.map(label => label.name).join(', ')}`);
+
 
         return {
             releaseBranchSha: '', // Placeholder, adjust according to your context
