@@ -14,15 +14,15 @@ jobs:
   summary_for_qa:
     if: ${{ !inputs.create-tag }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      secrets: read
     steps:
       - uses: actions/checkout@v4
       - name: Post QA Summary
         uses: actions/github-script@v7
         env:
           GH_TOKEN: ${{ github.token }}
-          permissions:
-        contents: read
-        secrets: read
         with:
           script: |
             const path = '.github/scripts/postQA.js';
