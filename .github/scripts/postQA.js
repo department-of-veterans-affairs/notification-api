@@ -21,7 +21,6 @@ async function generatePRSummary({ github, context, core }) {
 - The PR label used for versioning is ${allCapsLabel}
 This will bump up from the previous release tag will be a ${semverValue} value
 This tag will not be created until a merge to the release branch. 
-- At the time of this message Release Branch SHA is: ${releaseBranchSha}
 	`;
 
 	// Append the summary to the GitHub step summary file
