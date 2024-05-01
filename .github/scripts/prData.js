@@ -42,11 +42,11 @@ function processLabelsAndVersion(labels, currentVersion) {
 }
 
 // Function to fetch release branch SHA
-async function fetchReleaseBranchSha(github, owner, repo, ref) {
+async function fetchReleaseBranchSha(github, owner, repo) {
     const { data } = await github.rest.repos.getCommit({
         owner,
         repo,
-        ref
+        ref: "heads/release"
     });
     return data.sha;
 }
@@ -59,7 +59,7 @@ module.exports = async ({ github, context, core }) => {
     try {
         const pullRequestData = await fetchPullRequests(github, owner, repo, sha);
         const currentVersion = await fetchCurrentReleaseVersion(github, owner, repo, "RELEASE_VERSION");
-		const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo, "heads/release"); // Adjust ref as needed
+		const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo);
 
         const labels = pullRequestData.data[0].labels.map(label => ({
             id: label.id,
