@@ -59,30 +59,19 @@ async function fetchReleaseBranchSha(github, owner, repo) {
     }
 }
 
-module.exports = async ({ github, context, core }) => {
+async function getPRData({ github, context, core }) {
     const owner = context.repo.owner;
     const repo = context.repo.repo;
     const sha = context.payload.after;
-    const defaultResponse = {
-        releaseBranchSha: null,
-        latestReleaseTag: null,
-        currentVersion: null,
-        newVersion: null,
-        label: null,
-        prNumber: null
-    };
 
     try {
         const pullRequestData = await fetchPullRequests(github, owner, repo, sha);
-        if (!pullRequestData || !pullRequestData.data || !pullRequestData.data.length) {
-            core.setFailed("No pull requests associated with this commit.");
-            return defaultResponse; // Ensuring a consistent structure
-        }
         const currentVersion = await fetchCurrentReleaseVersion(github, owner, repo, "RELEASE_VERSION");
         const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo);
+
         if (!releaseBranchSha) {
             core.setFailed("Release branch SHA is undefined or null.");
-            return defaultResponse;
+            return;
         }
 
         const labels = pullRequestData.data[0].labels.map(label => ({
@@ -92,20 +81,11 @@ module.exports = async ({ github, context, core }) => {
             color: label.color,
         }));
         const prNumber = pullRequestData.data[0].number;
-        const { newVersion, appliedLabel } = processLabelsAndVersion(labels, currentVersion);
 
-		console.log(`PR Data Summary:\n` +
-		  `Release Branch SHA: ${releaseBranchSha}\n` +
-		  `Latest Release Tag: ${latestReleaseTag}\n` +  // Assuming this is computed elsewhere
-		  `Current Version: ${currentVersion}\n` +
-		  `New Version: ${newVersion}\n` +
-		  `Applied Label: ${appliedLabel}\n` +
-		  `PR Number: ${prNumber}\n` +
-		  `Labels: ${labels.map(label => label.name).join(', ')}`);
+        const { newVersion, appliedLabel } = processLabelsAndVersion(labels, currentVersion);
 
         return {
             releaseBranchSha,
-            latestReleaseTag, // This might also need a value or check
             currentVersion,
             newVersion,
             label: appliedLabel,
@@ -114,7 +94,10 @@ module.exports = async ({ github, context, core }) => {
     } catch (error) {
         core.setFailed(`Error processing PR data: ${error.message}`);
         console.error('Error processing PR data:', error);
-        return defaultResponse; // Ensuring a consistent structure
+        return null;
     }
-};
+}
+
+// Export the named function
+module.exports = { getPRData };
 
