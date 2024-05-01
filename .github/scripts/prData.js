@@ -10,13 +10,27 @@ async function fetchPullRequests(github, owner, repo, sha) {
 }
 
 // Function to fetch the current release version
-async function fetchCurrentReleaseVersion(github, owner, repo, variableName) {
+async function fetchCurrentReleaseVersion(github, owner, repo) {
     const { data } = await github.rest.actions.getRepoVariable({
         owner,
         repo,
-        name: variableName,
+        name: 'RELEASE_VERSION',
     });
     return data.value;
+}
+
+async function fetchReleaseBranchSha(github, owner, repo){
+	const { data } = await github.rest.repos.getCommit({
+		owner,
+		repo,
+		ref: 'heads/release'
+	});
+
+	if (data && data.sha) {
+		console.log("The release branch head SHA is: " + data.sha);
+	} else {
+		throw new Error("No SHA found in the response");
+	}
 }
 
 // Function to process labels to determine new version and label
@@ -49,7 +63,8 @@ module.exports = async ({ github, context, core }) => {
 
     try {
         const pullRequestData = await fetchPullRequests(github, owner, repo, sha);
-        const currentVersion = await fetchCurrentReleaseVersion(github, owner, repo, "RELEASE_VERSION");
+        const currentVersion = await fetchCurrentReleaseVersion(github, owner, repo);
+		const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo)
 
         const labels = pullRequestData.data[0].labels.map(label => ({
             id: label.id,
@@ -76,5 +91,4 @@ module.exports = async ({ github, context, core }) => {
         return null; // Ensure to handle null in postQA.js if needed
     }
 };
-
 
