@@ -20,8 +20,8 @@ const prData = async ({ github, context, core }) => {
 
 	console.log("the pullRequestData is: " + pullRequestData.data)
 	// this one gives good looking data
-	console.log("the pullRequestData is: " + JSON.stringify(pullRequestData, null, 2));
-	console.log("the pull request number is " +  JSON.stringify(pullRequestData.data, null, 2));
+	console.log("the pullRequestData is: " + JSON.stringify(pullRequestData.data, null, 2));
+	console.log("the pull request number is " +  JSON.stringify(pullRequestData.data.number, null, 2));
 	console.log("the pull request labels are " +  JSON.stringify(pullRequestData.data.labels, null, 2));
 
     // Assuming we can get the PR number from the first PR associated with the commit
