@@ -41,15 +41,25 @@ function processLabelsAndVersion(labels, currentVersion) {
     };
 }
 
+
 // Function to fetch release branch SHA
 async function fetchReleaseBranchSha(github, owner, repo) {
-    const { data } = await github.rest.repos.getCommit({
-        owner,
-        repo,
-        ref: "heads/release"
-    });
-    return data.sha;
+    try {
+        const { data } = await github.rest.repos.getCommit({
+            owner,
+            repo,
+            ref: "heads/release"
+        });
+        if (!data || !data.sha) {
+            throw new Error("Release branch SHA not found.");
+        }
+        return data.sha;
+    } catch (error) {
+        console.error('Failed to fetch release branch SHA:', error);
+        throw error; // Re-throw to handle it in the calling function
+    }
 }
+
 // Main function exported to handle pull request data
 module.exports = async ({ github, context, core }) => {
     const owner = context.repo.owner;
@@ -60,6 +70,11 @@ module.exports = async ({ github, context, core }) => {
         const pullRequestData = await fetchPullRequests(github, owner, repo, sha);
         const currentVersion = await fetchCurrentReleaseVersion(github, owner, repo, "RELEASE_VERSION");
 		const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo);
+
+        if (!releaseBranchSha) {
+            core.setFailed("Release branch SHA is undefined or null.");
+            return;
+        }
 
         const labels = pullRequestData.data[0].labels.map(label => ({
             id: label.id,
@@ -79,7 +94,6 @@ module.exports = async ({ github, context, core }) => {
 		  `Applied Label: ${appliedLabel}\n` +
 		  `PR Number: ${prNumber}\n` +
 		  `Labels: ${labels.map(label => label.name).join(', ')}`);
-
 
         return {
             releaseBranchSha: '', // Placeholder, adjust according to your context
