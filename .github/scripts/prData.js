@@ -59,20 +59,30 @@ async function fetchReleaseBranchSha(github, owner, repo) {
     }
 }
 
-// Main function exported to handle pull request data
 module.exports = async ({ github, context, core }) => {
     const owner = context.repo.owner;
     const repo = context.repo.repo;
     const sha = context.payload.after;
+    const defaultResponse = {
+        releaseBranchSha: null,
+        latestReleaseTag: null,
+        currentVersion: null,
+        newVersion: null,
+        label: null,
+        prNumber: null
+    };
 
     try {
         const pullRequestData = await fetchPullRequests(github, owner, repo, sha);
+        if (!pullRequestData || !pullRequestData.data || !pullRequestData.data.length) {
+            core.setFailed("No pull requests associated with this commit.");
+            return defaultResponse; // Ensuring a consistent structure
+        }
         const currentVersion = await fetchCurrentReleaseVersion(github, owner, repo, "RELEASE_VERSION");
-		const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo);
-
+        const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo);
         if (!releaseBranchSha) {
             core.setFailed("Release branch SHA is undefined or null.");
-            return;
+            return defaultResponse;
         }
 
         const labels = pullRequestData.data[0].labels.map(label => ({
@@ -82,7 +92,6 @@ module.exports = async ({ github, context, core }) => {
             color: label.color,
         }));
         const prNumber = pullRequestData.data[0].number;
-
         const { newVersion, appliedLabel } = processLabelsAndVersion(labels, currentVersion);
 
 		console.log(`PR Data Summary:\n` +
@@ -96,17 +105,16 @@ module.exports = async ({ github, context, core }) => {
 
         return {
             releaseBranchSha,
-            latestReleaseTag,
+            latestReleaseTag, // This might also need a value or check
             currentVersion,
             newVersion,
             label: appliedLabel,
             prNumber
         };
-
     } catch (error) {
         core.setFailed(`Error processing PR data: ${error.message}`);
         console.error('Error processing PR data:', error);
-        return null; // Ensure to handle null in postQA.js if needed
+        return defaultResponse; // Ensuring a consistent structure
     }
 };
 
