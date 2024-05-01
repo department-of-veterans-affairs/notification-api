@@ -14,19 +14,24 @@ jobs:
   summary_for_qa:
     if: ${{ !inputs.create-tag }}
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Post QA Summary
-        uses: actions/github-script@v7
-        env:
-          GH_TOKEN: ${{ github.token }}
-        with:
-          script: |
-            const path = '.github/scripts/postQA.js';
-            const { generatePRSummary } = require(path);
-            generatePRSummary({github, context, core});
+
+      - name: run gh cli
+        run: |
+          gh variable list
+
+      # - name: Post QA Summary
+        # uses: actions/github-script@v7
+        # with:
+          # script: |
+            # const path = '.github/scripts/postQA.js';
+            # const { generatePRSummary } = require(path);
+            # generatePRSummary({github, context, core});
 
   # create_and_post_tag:
     # if: ${{ inputs.create-tag }}
