@@ -95,8 +95,8 @@ module.exports = async ({ github, context, core }) => {
 		  `Labels: ${labels.map(label => label.name).join(', ')}`);
 
         return {
-            releaseBranchSha: '', // Placeholder, adjust according to your context
-            latestReleaseTag: '', // Placeholder, adjust according to your context
+            releaseBranchSha,
+            latestReleaseTag,
             currentVersion,
             newVersion,
             label: appliedLabel,
