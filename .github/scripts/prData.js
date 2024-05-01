@@ -1,35 +1,50 @@
 // File: .github/scripts/prData.js
+
+// Adding this function to extract the PR number from commit messages
+function extractPrNumber(message) {
+  const prNumberMatch = message.match(/\(#(\d+)\)$/);
+  return prNumberMatch ? parseInt(prNumberMatch[1], 10) : null;
+}
+
 const prData = async ({ github, context, core }) => {
   const owner = context.repo.owner;
   const repo = context.repo.repo;
   const ref = "heads/release"
-  let releaseBranchSha, latestReleaseTag, currentVersion;
+  const name = "RELEASE_VERSION"
+  let releaseBranchSha, latestReleaseTag, currentVersion, versionParts;
 
   try {
     // Fetching the latest SHA from the release branch
     const { data } = await github.rest.repos.getCommit({
       owner,
       repo,
-      ref: "heads/release",
+      ref,
     });
     releaseBranchSha = data.sha;
     console.log("Release branch SHA: " + releaseBranchSha);
 
-    // Fetching the latest release tag
-    const latestRelease = await github.rest.repos.getLatestRelease({
+    // Fetching the value of the RELEASE_VERSION variable
+    const { data: variableData } = await github.rest.actions.getRepoVariable({
       owner,
-      repo
+      repo,
+      name,
     });
-    latestReleaseTag = latestRelease.data.tag_name;
-    console.log("Latest release tag: " + latestReleaseTag);
+    currentVersion = variableData.value.replace(/^v/, ''); // Remove leading 'v' if present
+    console.log("Current RELEASE_VERSION: " + currentVersion);
 
-    currentVersion = latestReleaseTag.replace(/^v/, ''); // Remove leading 'v' if present
-    let versionParts = currentVersion.split('.').map(x => parseInt(x)); // Make the tag "name" a usable integer array
-    
-    const pullRequestData = context.payload.pull_request;
+    versionParts = currentVersion.split('.').map(x => parseInt(x, 10));
+    console.log("Version Parts: ", versionParts);
+
+	  // add logic here to get labels from push trigger, since payload.pull_request won't be the trigger for this workflow
+
+	const pushData = context.payload.push:
+	const pullRequestData = pushData.commits.message
+
+    // Assuming pullRequestData is available from context or has to be fetched
+    // const pullRequestData = context.payload.pull_request;
     const labels = pullRequestData.labels.map(label => label.name.toLowerCase());
     let appliedLabel = ''; 
-	console.log('Labels:', labels);
+    console.log('Labels:', labels);
 
     // Version bump logic based on labels
     if (labels.includes('breaking-change')) {
@@ -56,6 +71,7 @@ const prData = async ({ github, context, core }) => {
     };
   } catch (error) {
     core.setFailed(`Error processing PR data: ${error.message}`);
+    console.error('Error processing PR data:', error);
     return {
       releaseBranchSha: '',
       currentVersion: '',
@@ -64,7 +80,5 @@ const prData = async ({ github, context, core }) => {
       prNumber: '',
     }; // Return default data to prevent destructuring errors in postQA.js
   }
-};
-
-module.exports = prData;
+}
 
