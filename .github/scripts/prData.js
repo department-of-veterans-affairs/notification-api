@@ -5,7 +5,7 @@ const prData = async ({ github, context, core }) => {
   const repo = context.repo.repo;
   const ref = "heads/release";
   const name = "RELEASE_VERSION";
-  const mergeSHA = context.payload.push;
+  const mergeSHA = context.payload;
 
   let releaseBranchSha, latestReleaseTag, currentVersion, versionParts, appliedLabel, prNumber;
 
