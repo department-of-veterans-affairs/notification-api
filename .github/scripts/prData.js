@@ -9,6 +9,8 @@ const prData = async ({ github, context, core }) => {
 
   let releaseBranchSha, latestReleaseTag, currentVersion, versionParts, appliedLabel, prNumber;
 
+  console.log("Context Payload:", JSON.stringify(context.payload, null, 2));
+
   try {
     console.log(`MergeSha is ${mergeSHA}`);
 
