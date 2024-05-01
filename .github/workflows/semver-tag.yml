@@ -16,7 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      secrets: read
     steps:
       - uses: actions/checkout@v4
       - name: Post QA Summary
