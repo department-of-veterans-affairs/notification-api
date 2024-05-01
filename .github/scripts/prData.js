@@ -5,91 +5,93 @@ const prData = async ({ github, context, core }) => {
   const repo = context.repo.repo;
   const ref = "heads/release";
   const name = "RELEASE_VERSION";
-  const mergeSHA = context.payload.push.after;
+  const mergeSHA = context.payload.push;
 
   let releaseBranchSha, latestReleaseTag, currentVersion, versionParts, appliedLabel, prNumber;
 
-  try {
-    console.log(`MergeSha is ${mergeSHA}`);
+  console.log(`MergeSha is ${mergeSHA}`);
 
-    const pullRequestData = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-      owner,
-      repo,
-      commit_sha: mergeSHA,
-    });
+  // try {
+    // console.log(`MergeSha is ${mergeSHA}`);
 
-    // Assuming we can get the PR number from the first PR associated with the commit
-    prNumber = pullRequestData.data[0].number;
+    // const pullRequestData = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+      // owner,
+      // repo,
+      // commit_sha: mergeSHA,
+    // });
 
-    let labels = pullRequestData.data[0].labels.map(label => ({
-      id: label.id,
-      name: label.name,
-      description: label.description,
-      color: label.color,
-    }));
-    console.log(`The label(s) on the PR: ${labels}`);
-    console.log(`PR Number: ${prNumber}`);
+    // // Assuming we can get the PR number from the first PR associated with the commit
+    // prNumber = pullRequestData.data[0].number;
 
-  } catch (error) {
-    core.setFailed(`Error fetching pull requests: ${error.message}`);
-    console.error('Error fetching pull requests:', error);
-    return; // Return early on critical failure
-  }
+    // let labels = pullRequestData.data[0].labels.map(label => ({
+      // id: label.id,
+      // name: label.name,
+      // description: label.description,
+      // color: label.color,
+    // }));
+    // console.log(`The label(s) on the PR: ${labels}`);
+    // console.log(`PR Number: ${prNumber}`);
 
-  try {
-    const { data } = await github.rest.repos.getCommit({
-      owner,
-      repo,
-      ref,
-    });
-    releaseBranchSha = data.sha;
-    console.log(`Release branch SHA: ${releaseBranchSha}`);
+  // } catch (error) {
+    // core.setFailed(`Error fetching pull requests: ${error.message}`);
+    // console.error('Error fetching pull requests:', error);
+    // return; // Return early on critical failure
+  // }
 
-    const { data: variableData } = await github.rest.actions.getRepoVariable({
-      owner,
-      repo,
-      name,
-    });
-    currentVersion = variableData.value;
-    console.log(`Current RELEASE_VERSION: ${currentVersion}`);
+  // try {
+    // const { data } = await github.rest.repos.getCommit({
+      // owner,
+      // repo,
+      // ref,
+    // });
+    // releaseBranchSha = data.sha;
+    // console.log(`Release branch SHA: ${releaseBranchSha}`);
 
-    versionParts = currentVersion.split('.').map(x => parseInt(x, 10));
-    console.log(`Version Parts: `, versionParts);
+    // const { data: variableData } = await github.rest.actions.getRepoVariable({
+      // owner,
+      // repo,
+      // name,
+    // });
+    // currentVersion = variableData.value;
+    // console.log(`Current RELEASE_VERSION: ${currentVersion}`);
 
-    if (labels.some(label => label.name === 'breaking-change')) {
-      versionParts[0] += 1; versionParts[1] = 0; versionParts[2] = 0;
-      appliedLabel = 'breaking change';
-    } else if (labels.some(label => ['hotfix', 'security', 'bug'].includes(label.name))) {
-      versionParts[2] += 1;
-      appliedLabel = labels.find(label => ['hotfix', 'security', 'bug'].includes(label.name)).name;
-    } else {
-      versionParts[1] += 1; versionParts[2] = 0;
-      appliedLabel = labels.find(label => label).name; // Catch-all increment
-    }
+    // versionParts = currentVersion.split('.').map(x => parseInt(x, 10));
+    // console.log(`Version Parts: `, versionParts);
 
-    const newVersion = versionParts.join('.');
+    // if (labels.some(label => label.name === 'breaking-change')) {
+      // versionParts[0] += 1; versionParts[1] = 0; versionParts[2] = 0;
+      // appliedLabel = 'breaking change';
+    // } else if (labels.some(label => ['hotfix', 'security', 'bug'].includes(label.name))) {
+      // versionParts[2] += 1;
+      // appliedLabel = labels.find(label => ['hotfix', 'security', 'bug'].includes(label.name)).name;
+    // } else {
+      // versionParts[1] += 1; versionParts[2] = 0;
+      // appliedLabel = labels.find(label => label).name; // Catch-all increment
+    // }
 
-    return {
-      releaseBranchSha,
-      latestReleaseTag, // Ensure this variable is handled if needed
-      currentVersion,
-      newVersion,
-      label: appliedLabel,
-      prNumber
-    };
+    // const newVersion = versionParts.join('.');
 
-  } catch (error) {
-    core.setFailed(`Error processing PR data: ${error.message}`);
-    console.error('Error processing PR data:', error);
-    return {
-      releaseBranchSha: '',
-      latestReleaseTag: '',
-      currentVersion: '',
-      newVersion: '',
-      label: '',
-      prNumber: '',
-    };
-  }
+    // return {
+      // releaseBranchSha,
+      // latestReleaseTag, // Ensure this variable is handled if needed
+      // currentVersion,
+      // newVersion,
+      // label: appliedLabel,
+      // prNumber
+    // };
+
+  // } catch (error) {
+    // core.setFailed(`Error processing PR data: ${error.message}`);
+    // console.error('Error processing PR data:', error);
+    // return {
+      // releaseBranchSha: '',
+      // latestReleaseTag: '',
+      // currentVersion: '',
+      // newVersion: '',
+      // label: '',
+      // prNumber: '',
+    // };
+  // }
 };
 
 module.exports = prData;
