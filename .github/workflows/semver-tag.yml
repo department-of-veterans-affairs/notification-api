@@ -27,9 +27,8 @@ jobs:
 
       - name: Post QA Summary
         uses: actions/github-script@v7
-        env:
-          GH_TOKEN: ${{ secrets.VAR_PAT }}
         with:
+          github-token: ${{ secrets.VAR_PAT }}
           script: |
             const path = '.github/scripts/postQA.js';
             const { generatePRSummary } = require(path);
