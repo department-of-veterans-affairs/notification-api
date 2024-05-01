@@ -221,15 +221,16 @@ def _get_dynamodb_comp_pen_messages(
     https://boto3.amazonaws.com/v1/documentation/api/latest/guide/dynamodb.html#querying-and-scanning
     """
 
+    index_name = 'is_processed_index'
+
     filters = (
-        Attr('is_processed').eq(False)
-        & Attr('payment_id').exists()
+        Attr('payment_id').exists()
         & Attr('payment_id').ne(-1)
         & Attr('paymentAmount').exists()
         & Attr('has_duplicate_mappings').ne(True)
     )
 
-    results = table.scan(FilterExpression=filters, Limit=message_limit)
+    results = table.scan(FilterExpression=filters, Limit=message_limit, IndexName=index_name)
     items: list = results.get('Items')
 
     if items is None:
@@ -359,7 +360,8 @@ def send_scheduled_comp_and_pen_sms():
                     payment_id,
                 )
 
-            item['is_processed'] = True
+            # Remove the is_processed attribute from item
+            item.pop('is_processed', None)
 
             # update dynamodb entries
             try:
