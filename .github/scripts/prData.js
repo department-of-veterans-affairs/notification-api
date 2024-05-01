@@ -41,14 +41,13 @@ function processLabelsAndVersion(labels, currentVersion) {
     };
 }
 
-
 // Function to fetch release branch SHA
 async function fetchReleaseBranchSha(github, owner, repo) {
     try {
         const { data } = await github.rest.repos.getCommit({
             owner,
             repo,
-            ref: "heads/release"
+            ref: "heads/release",
         });
         if (!data || !data.sha) {
             throw new Error("Release branch SHA not found.");
