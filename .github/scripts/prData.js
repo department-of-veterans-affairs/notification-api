@@ -29,22 +29,14 @@ const prData = async ({ github, context, core }) => {
       repo,
       name,
     });
-    currentVersion = variableData.value.replace(/^v/, ''); // Remove leading 'v' if present
+
+    // Directly use the version number from the response
+    let currentVersion = variableData.value;
     console.log("Current RELEASE_VERSION: " + currentVersion);
 
-    versionParts = currentVersion.split('.').map(x => parseInt(x, 10));
+    // Splitting the version string into major, minor, and patch parts and converting them to integers
+    let versionParts = currentVersion.split('.').map(x => parseInt(x, 10));
     console.log("Version Parts: ", versionParts);
-
-	  // add logic here to get labels from push trigger, since payload.pull_request won't be the trigger for this workflow
-
-	const pushData = context.payload.push:
-	const pullRequestData = pushData.commits.message
-
-    // Assuming pullRequestData is available from context or has to be fetched
-    // const pullRequestData = context.payload.pull_request;
-    const labels = pullRequestData.labels.map(label => label.name.toLowerCase());
-    let appliedLabel = ''; 
-    console.log('Labels:', labels);
 
     // Version bump logic based on labels
     if (labels.includes('breaking-change')) {
@@ -59,7 +51,22 @@ const prData = async ({ github, context, core }) => {
     }
 
     const newVersion = versionParts.join('.');
-    const prNumber = pullRequestData.number;
+
+	// add logic here to get labels from push trigger, since payload.pull_request won't be the trigger for this workflow
+
+	// const pushData = context.payload.push:
+
+	// console.log(the pushData is ${pushData})
+
+	// const pullRequestData = pushData.commits.message
+
+    // // Assuming pullRequestData is available from context or has to be fetched
+    // // const pullRequestData = context.payload.pull_request;
+    // const labels = pullRequestData.labels.map(label => label.name.toLowerCase());
+    // let appliedLabel = ''; 
+    // console.log('Labels:', labels);
+
+    // const prNumber = pullRequestData.number;
 
     // Return detailed response, including the releaseBranchSha
     return {
