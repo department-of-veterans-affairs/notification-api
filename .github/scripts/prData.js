@@ -1,92 +1,96 @@
 // File: .github/scripts/prData.js
 
-// Adding this function to extract the PR number from commit messages
-function extractPrNumber(message) {
-  const prNumberMatch = message.match(/\(#(\d+)\)$/);
-  return prNumberMatch ? parseInt(prNumberMatch[1], 10) : null;
-}
-
 const prData = async ({ github, context, core }) => {
   const owner = context.repo.owner;
   const repo = context.repo.repo;
-  const ref = "heads/release"
-  const name = "RELEASE_VERSION"
-  let releaseBranchSha, latestReleaseTag, currentVersion, versionParts;
+  const ref = "heads/release";
+  const name = "RELEASE_VERSION";
+  const mergeSHA = context.payload.push.after;
+
+  let releaseBranchSha, latestReleaseTag, currentVersion, versionParts, appliedLabel, prNumber;
 
   try {
-    // Fetching the latest SHA from the release branch
+    console.log(`MergeSha is ${mergeSHA}`);
+
+    const pullRequestData = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+      owner,
+      repo,
+      commit_sha: mergeSHA,
+    });
+
+    // Assuming we can get the PR number from the first PR associated with the commit
+    prNumber = pullRequestData.data[0].number;
+
+    let labels = pullRequestData.data[0].labels.map(label => ({
+      id: label.id,
+      name: label.name,
+      description: label.description,
+      color: label.color,
+    }));
+    console.log(`The label(s) on the PR: ${labels}`);
+    console.log(`PR Number: ${prNumber}`);
+
+  } catch (error) {
+    core.setFailed(`Error fetching pull requests: ${error.message}`);
+    console.error('Error fetching pull requests:', error);
+    return; // Return early on critical failure
+  }
+
+  try {
     const { data } = await github.rest.repos.getCommit({
       owner,
       repo,
       ref,
     });
     releaseBranchSha = data.sha;
-    console.log("Release branch SHA: " + releaseBranchSha);
+    console.log(`Release branch SHA: ${releaseBranchSha}`);
 
-    // Fetching the value of the RELEASE_VERSION variable
     const { data: variableData } = await github.rest.actions.getRepoVariable({
       owner,
       repo,
       name,
     });
+    currentVersion = variableData.value;
+    console.log(`Current RELEASE_VERSION: ${currentVersion}`);
 
-    // Directly use the version number from the response
-    let currentVersion = variableData.value;
-    console.log("Current RELEASE_VERSION: " + currentVersion);
+    versionParts = currentVersion.split('.').map(x => parseInt(x, 10));
+    console.log(`Version Parts: `, versionParts);
 
-    // Splitting the version string into major, minor, and patch parts and converting them to integers
-    let versionParts = currentVersion.split('.').map(x => parseInt(x, 10));
-    console.log("Version Parts: ", versionParts);
-
-    // Version bump logic based on labels
-    if (labels.includes('breaking-change')) {
+    if (labels.some(label => label.name === 'breaking-change')) {
       versionParts[0] += 1; versionParts[1] = 0; versionParts[2] = 0;
       appliedLabel = 'breaking change';
-    } else if (labels.some(label => ['hotfix', 'security', 'bug'].includes(label))) {
+    } else if (labels.some(label => ['hotfix', 'security', 'bug'].includes(label.name))) {
       versionParts[2] += 1;
-      appliedLabel = labels.find(label => ['hotfix', 'security', 'bug'].includes(label));
+      appliedLabel = labels.find(label => ['hotfix', 'security', 'bug'].includes(label.name)).name;
     } else {
       versionParts[1] += 1; versionParts[2] = 0;
-      appliedLabel = labels.find(label => label);
+      appliedLabel = labels.find(label => label).name; // Catch-all increment
     }
 
     const newVersion = versionParts.join('.');
 
-	// add logic here to get labels from push trigger, since payload.pull_request won't be the trigger for this workflow
-
-	// const pushData = context.payload.push:
-
-	// console.log(the pushData is ${pushData})
-
-	// const pullRequestData = pushData.commits.message
-
-    // // Assuming pullRequestData is available from context or has to be fetched
-    // // const pullRequestData = context.payload.pull_request;
-    // const labels = pullRequestData.labels.map(label => label.name.toLowerCase());
-    // let appliedLabel = ''; 
-    // console.log('Labels:', labels);
-
-    // const prNumber = pullRequestData.number;
-
-    // Return detailed response, including the releaseBranchSha
     return {
       releaseBranchSha,
+      latestReleaseTag, // Ensure this variable is handled if needed
       currentVersion,
       newVersion,
       label: appliedLabel,
       prNumber
     };
+
   } catch (error) {
     core.setFailed(`Error processing PR data: ${error.message}`);
     console.error('Error processing PR data:', error);
     return {
       releaseBranchSha: '',
+      latestReleaseTag: '',
       currentVersion: '',
       newVersion: '',
       label: '',
       prNumber: '',
-    }; // Return default data to prevent destructuring errors in postQA.js
+    };
   }
-}
+};
 
 module.exports = prData;
+
