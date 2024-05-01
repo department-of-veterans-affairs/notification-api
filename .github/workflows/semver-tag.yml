@@ -19,19 +19,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # - name: run gh cli
-        # env:
-          # GH_TOKEN: ${{ github.token }}
-        # run: |
-          # gh variable list
+      - name: run gh cli
+        env:
+          GH_TOKEN: ${{ secrets.VAR_PAT }}
+        run: |
+          gh variable list
 
-      - name: Post QA Summary
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const path = '.github/scripts/postQA.js';
-            const { generatePRSummary } = require(path);
-            generatePRSummary({github, context, core});
+      # - name: Post QA Summary
+        # uses: actions/github-script@v7
+        # with:
+          # script: |
+            # const path = '.github/scripts/postQA.js';
+            # const { generatePRSummary } = require(path);
+            # generatePRSummary({github, context, core});
 
   # create_and_post_tag:
     # if: ${{ inputs.create-tag }}
