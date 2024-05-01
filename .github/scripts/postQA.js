@@ -3,18 +3,30 @@ const fs = require('fs');
 const prData = require('./prData');
 
 async function generatePRSummary({ github, context, core }) {
-  try {
-    const org = 'department-of-veterans-affairs'; // replace with your organization name or pass as a parameter
+  const owner = context.repo.owner;
+  const repo = context.repo.repo;
+  const name = "RELEASE_VERSION"
 
-    const permissions = await github.rest.actions.getActionsPermissionsOrganization({
-      org: org,
-    });
+  currentVersion = github.rest.actions.getRepoVariable({
+	owner,
+	repo,
+	name,
+  });
 
-    console.log(permissions);
-  } catch (error) {
-    console.error('Failed to retrieve permissions:', error);
-  }
-}
+  console.log(currentVersion)
+
+
+  // try {
+    // const org = 'department-of-veterans-affairs'; // replace with your organization name or pass as a parameter
+
+    // const permissions = await github.rest.actions.getActionsPermissionsOrganization({
+      // org: org,
+    // });
+
+    // console.log(permissions);
+  // } catch (error) {
+    // console.error('Failed to retrieve permissions:', error);
+  // }
 
 
   // pritn out the variable value for RELEASE_VERSION so I can use its value in prData.js
