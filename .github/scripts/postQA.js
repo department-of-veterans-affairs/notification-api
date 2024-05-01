@@ -5,7 +5,7 @@ const prData = require('./prData');
 async function generatePRSummary({ github, context, core }) {
   try {
 	// Retrieve necessary data from prData.js
-	const { releaseBranchSha, currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
+	const { currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
 
 	// Determine the semver update type based on the label
 	const semverValue = label.includes('breaking change') ? 'MAJOR' :
