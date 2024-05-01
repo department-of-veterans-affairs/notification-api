@@ -5,15 +5,26 @@ const prData = require('./prData');
 async function generatePRSummary({ github, context, core }) {
 
   // pritn out the variable value for RELEASE_VERSION so I can use its value in prData.js
-  // Log all environment variables
-  console.log('Available Environment Variables:', process.env);
+  // Log all environment variables (this proved not effective)
+  // console.log('Available Environment Variables:', process.env);
+
+
+  // console.log the VARS from the context!
+  const contextStringified = JSON.stringify(github.context, null, 2);
+  console.log("Stringified Context:", contextStringified);
+
+
+
+
+
+
 
   // Fetch repository secrets
   const owner = process.env.GITHUB_REPOSITORY_OWNER;
   const repo = process.env.GITHUB_REPOSITORY.split('/')[1];
 
   try {
-    const response = await octokit.rest.actions.listRepoSecrets({
+    const response = await github.rest.actions.listRepoSecrets({
       owner,
       repo
     });
