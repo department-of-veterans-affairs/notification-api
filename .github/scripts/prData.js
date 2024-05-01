@@ -5,11 +5,11 @@ const prData = async ({ github, context, core }) => {
   const repo = context.repo.repo;
   const ref = "heads/release";
   const name = "RELEASE_VERSION";
-  const mergeSHA = context.payload;
+  const mergeSHA = context.payload.after;
 
   let releaseBranchSha, latestReleaseTag, currentVersion, versionParts, appliedLabel, prNumber;
 
-  console.log("Context Payload:", JSON.stringify(context.payload, null, 2));
+  // console.log("Context Payload:", JSON.stringify(context.payload, null, 2));
 
   try {
     console.log(`MergeSha is ${mergeSHA}`);
