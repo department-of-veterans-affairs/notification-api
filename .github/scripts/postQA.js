@@ -10,8 +10,11 @@ async function generatePRSummary({ github, context, core }) {
 
 
   // console.log the VARS from the context!
-  const contextStringified = JSON.stringify(github.context, null, 2);
-  console.log("Stringified Context:", contextStringified);
+  // const contextStringified = JSON.stringify(github.context, null, 2);
+  // console.log("Stringified Context:", contextStringified);
+
+
+  console.log(context)
 
 
 
@@ -20,40 +23,40 @@ async function generatePRSummary({ github, context, core }) {
 
 
   // Fetch repository secrets
-  const owner = process.env.GITHUB_REPOSITORY_OWNER;
-  const repo = process.env.GITHUB_REPOSITORY.split('/')[1];
+  // const owner = process.env.GITHUB_REPOSITORY_OWNER;
+  // const repo = process.env.GITHUB_REPOSITORY.split('/')[1];
 
-  try {
-    const response = await github.rest.actions.listRepoSecrets({
-      owner,
-      repo
-    });
+  // try {
+    // const response = await github.rest.actions.listRepoSecrets({
+      // owner,
+      // repo
+    // });
 
-    // Check if RELEASE_VERSION is among the secrets
-    const secrets = response.data.secrets;
+    // // Check if RELEASE_VERSION is among the secrets
+    // const secrets = response.data.secrets;
 
-    const releaseVersion = secrets.find(secret => secret.name === 'RELEASE_VERSION');
+    // const releaseVersion = secrets.find(secret => secret.name === 'RELEASE_VERSION');
 
-    if (releaseVersion) {
-      console.log('RELEASE_VERSION is available as a repo secret.');
-    } else {
-      console.log('RELEASE_VERSION is not available as a repo secret.');
-    }
-  } catch (error) {
-    console.error('Failed to fetch repository secrets:', error);
-  }
-  // Need to get PR labels from the merge!  
-  // once I have this working I need to move it to prData.js
-  try {
-    const context = github.context;
-    if (context.eventName === 'push') {
-      console.log('Push event payload:', JSON.stringify(context.payload, null, 2));
-    } else {
-      console.log('Not a push event.');
-    }
-  } catch (error) {
-    console.error('Error logging payload:', error);
-  }
+    // if (releaseVersion) {
+      // console.log('RELEASE_VERSION is available as a repo secret.');
+    // } else {
+      // console.log('RELEASE_VERSION is not available as a repo secret.');
+    // }
+  // } catch (error) {
+    // console.error('Failed to fetch repository secrets:', error);
+  // }
+  // // Need to get PR labels from the merge!  
+  // // once I have this working I need to move it to prData.js
+  // try {
+    // const context = github.context;
+    // if (context.eventName === 'push') {
+      // console.log('Push event payload:', JSON.stringify(context.payload, null, 2));
+    // } else {
+      // console.log('Not a push event.');
+    // }
+  // } catch (error) {
+    // console.error('Error logging payload:', error);
+  // }
 
   // try {
     // // Retrieve necessary data from prData.js
