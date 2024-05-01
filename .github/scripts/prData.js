@@ -9,8 +9,6 @@ const prData = async ({ github, context, core }) => {
 
   let releaseBranchSha, latestReleaseTag, currentVersion, versionParts, appliedLabel, prNumber;
 
-  // console.log("Context Payload:", JSON.stringify(context.payload, null, 2));
-
   try {
     console.log(`MergeSha is ${mergeSHA}`);
 
@@ -23,6 +21,7 @@ const prData = async ({ github, context, core }) => {
     // Assuming we can get the PR number from the first PR associated with the commit
     prNumber = pullRequestData.data[0].number;
 
+	console.log("the pullRequestData is: " + pullRequestData)
     let labels = pullRequestData.data[0].labels.map(label => ({
       id: label.id,
       name: label.name,
