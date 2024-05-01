@@ -3,6 +3,19 @@ const fs = require('fs');
 const prData = require('./prData');
 
 async function generatePRSummary({ github, context, core }) {
+  try {
+    const org = 'department-of-veterans-affairs'; // replace with your organization name or pass as a parameter
+
+    const permissions = await github.rest.actions.getActionsPermissionsOrganization({
+      org: org,
+    });
+
+    console.log(permissions);
+  } catch (error) {
+    console.error('Failed to retrieve permissions:', error);
+  }
+}
+
 
   // pritn out the variable value for RELEASE_VERSION so I can use its value in prData.js
   // Log all environment variables (this proved not effective)
@@ -13,8 +26,12 @@ async function generatePRSummary({ github, context, core }) {
   // const contextStringified = JSON.stringify(github.context, null, 2);
   // console.log("Stringified Context:", contextStringified);
 
+  const permissions = github.rest.actions.getGithubActionsDefaultWorkflowPermissionsOrganization({
+  org,
+});
 
-  console.log(context)
+  // console.log(context.vars)
+  console.log(permissions)
 
 
 
