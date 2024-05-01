@@ -18,13 +18,15 @@ const prData = async ({ github, context, core }) => {
       commit_sha: mergeSHA,
     });
 
-	console.log("the pullRequestData is: " + pullRequestData)
+	console.log("the pullRequestData is: " + pullRequestData.data)
 	console.log("the pullRequestData is: " + JSON.stringify(pullRequestData, null, 2));
+	console.log("the pull request number is " +  pullRequestData.data.number)
+	console.log("the pull request labels are " +  pullRequestData.data.labels)
 
     // Assuming we can get the PR number from the first PR associated with the commit
-    prNumber = pullRequestData.data[0].number;
+    prNumber = pullRequestData.data.number;
 
-    let labels = pullRequestData.data[0].labels.map(label => ({
+    let labels = pullRequestData.data.labels.map(label => ({
       id: label.id,
       name: label.name,
       description: label.description,
