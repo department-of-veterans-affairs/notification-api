@@ -1,4 +1,5 @@
 // File: .github/scripts/createAndPushTag.js
+const fs = require('fs');
 const prData = require('./prData');
 
 async function createTag(github, owner, repo, newVersion, sha) {
@@ -62,8 +63,18 @@ async function createAndPushTag({ github, context, core }) {
 
         // Upon successful tag creation, update the RELEASE_VERSION variable
         await updateReleaseVersion(github, owner, repo, newVersion);
+	// Assemble the message content
 
-    } catch (error) {
+	const summaryContent = `
+### Successful tag creation!
+New tag successfully created for version ${newVersion}
+The SHA used for this tag creation was the latest merge to the release branch: ${releaseBranchSha}
+	`;
+
+	// Append the summary to the GitHub step summary file
+	fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryContent);
+	console.log('Summary generated and appended successfully.');
+  } catch (error) {
         core.setFailed("Failed to process due to: " + error.message);
         console.error(error);
     }
