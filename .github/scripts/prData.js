@@ -78,8 +78,8 @@ module.exports = async ({ github, context, core }) => {
         const { newVersion, appliedLabel } = processLabelsAndVersion(labels, currentVersion);
 
         return {
-            releaseBranchSha // Placeholder, adjust according to your context
-            latestReleaseTag // Placeholder, adjust according to your context
+            releaseBranchSha, 
+            latestReleaseTag, 
             currentVersion,
             newVersion,
             label: appliedLabel,
