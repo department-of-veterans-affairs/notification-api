@@ -28,7 +28,7 @@ async function fetchReleaseBranchSha(github, owner, repo){
 
 	if (data && data.sha) {
 		console.log("The release branch head SHA is: " + data.sha);
-	  	return data.sha;
+		return data.sha
 	} else {
 		throw new Error("No SHA found in the response");
 	}
@@ -78,8 +78,8 @@ module.exports = async ({ github, context, core }) => {
         const { newVersion, appliedLabel } = processLabelsAndVersion(labels, currentVersion);
 
         return {
-            releaseBranchSha, 
-            latestReleaseTag, 
+            releaseBranchSha // Placeholder, adjust according to your context
+            latestReleaseTag // Placeholder, adjust according to your context
             currentVersion,
             newVersion,
             label: appliedLabel,
