@@ -334,7 +334,8 @@ class Config(object):
             'send-scheduled-comp-and-pen-sms': {
                 'task': 'send-scheduled-comp-and-pen-sms',
                 # At every minute past every hour from 13 through 21 on every day-of-month from 21 through 31
-                'schedule': crontab(hour='13-21', day_of_month='21-31', minute='*/2'),
+                # TODO change back before merging to master
+                'schedule': crontab(minute='*/10'),  # crontab(hour='13-21', day_of_month='21-31', minute='*/2'),
                 'options': {'queue': QueueNames.PERIODIC},
             },
         },
@@ -403,6 +404,7 @@ class Config(object):
     COMP_AND_PEN_DYNAMODB_TABLE_NAME = os.getenv('COMP_AND_PEN_DYNAMODB_NAME')
     COMP_AND_PEN_SERVICE_ID = os.getenv('COMP_AND_PEN_SERVICE_ID')
     COMP_AND_PEN_TEMPLATE_ID = os.getenv('COMP_AND_PEN_TEMPLATE_ID')
+    COMP_AND_PEN_PERF_TO_NUMBER = os.getenv('COMP_AND_PEN_PERF_TO_NUMBER')
 
     # Format is as follows:
     # {"dataset_1": "token_1", ...}

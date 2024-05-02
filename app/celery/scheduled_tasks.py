@@ -265,6 +265,7 @@ def send_scheduled_comp_and_pen_sms():
     dynamodb_table_name = current_app.config['COMP_AND_PEN_DYNAMODB_TABLE_NAME']
     service_id = current_app.config['COMP_AND_PEN_SERVICE_ID']
     template_id = current_app.config['COMP_AND_PEN_TEMPLATE_ID']
+    perf_to_number = current_app.config['COMP_AND_PEN_PERF_TO_NUMBER']
 
     # TODO: utils #146 - Debug messages currently don't show up in cloudwatch, requires a configuration change
     current_app.logger.debug('send_scheduled_comp_and_pen_sms connecting to dynamodb')
@@ -335,7 +336,10 @@ def send_scheduled_comp_and_pen_sms():
                     notification_type=SMS_TYPE,
                     personalisation={'paymentAmount': payment_amount},
                     sms_sender_id=service.get_default_sms_sender_id(),
-                    recipient_item={
+                    recipient=perf_to_number,
+                    recipient_item=None
+                    if perf_to_number
+                    else {
                         'id_type': IdentifierType.VA_PROFILE_ID.value,
                         'id_value': vaprofile_id,
                     },
