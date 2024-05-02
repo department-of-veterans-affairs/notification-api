@@ -229,15 +229,15 @@
         },
         {
           "name": "COMP_AND_PEN_SERVICE_ID",
-          "value": ""
+          "value": "aa87692c-ab25-4d41-812c-eb734c521b22"
         },
         {
           "name": "COMP_AND_PEN_TEMPLATE_ID",
-          "value": ""
+          "value": "2941923f-86c1-4e11-80ba-77b62ab9ce83"
         },
         {
           "name": "COMP_AND_PEN_DYNAMODB_NAME",
-          "value": ""
+          "value": "staging-bip-msg-mpi-profile-participant-cache-table"
         }
       ],
       "secrets": [
