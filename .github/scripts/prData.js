@@ -65,7 +65,7 @@ module.exports = async ({ github, context, core }) => {
     try {
         const pullRequestData = await fetchPullRequests(github, owner, repo, sha);
         const currentVersion = await fetchCurrentReleaseVersion(github, owner, repo);
-		const releaseBranchData = await fetchReleaseBranchSha(github, owner, repo)
+		const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo)
 
         const labels = pullRequestData.data[0].labels.map(label => ({
             id: label.id,
