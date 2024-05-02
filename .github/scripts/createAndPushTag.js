@@ -26,10 +26,20 @@ async function createTag(github, owner, repo, newVersion, sha) {
     console.log(`Tag ${tagName} created and pushed successfully.`);
 }
 
+async function updateReleaseVersion(github, owner, repo, newVersion) {
+    await github.rest.actions.updateRepoVariable({
+        owner,
+        repo,
+        variable_name: 'RELEASE_VERSION',
+        secret_value: newVersion
+    });
+
+    console.log(`RELEASE_VERSION updated to ${newVersion}.`);
+}
+
 async function createAndPushTag({ github, context, core }) {
     const owner = context.repo.owner;
     const repo = context.repo.repo;
-    const ref = "heads/release"; // This should match your branch name accurately
 
     try {
         // Retrieve PR data to decide the new version tag
@@ -37,10 +47,10 @@ async function createAndPushTag({ github, context, core }) {
 
         // Logging the data retrieved from prData for verification
         console.log(`Release branch SHA to use for tag: ${releaseBranchSha}`);
-        console.log(`Current version from tag associated with latest Release: ${currentVersion}`);
-        console.log(`Calculated new version: ${newVersion}`);
+        console.log(`Current version from RELEASE_VERSION repo variable: ${currentVersion}`);
+        console.log(`Calculated new version (for creating tag and updating RELEASE_VERSION): ${newVersion}`);
         console.log(`Label applied for changes: ${label}`);
-        console.log(`PR Number: ${prNumber}`);
+        console.log(`PR Number associated with this commit: ${prNumber}`);
 
         // Verify the completeness and correctness of the data before proceeding
         if (!releaseBranchSha || !currentVersion || !newVersion || !label || !prNumber) {
@@ -49,6 +59,9 @@ async function createAndPushTag({ github, context, core }) {
 
         // Call the function to create and push the tag using the SHA from releaseBranchSha
         await createTag(github, owner, repo, newVersion, releaseBranchSha);
+
+        // Upon successful tag creation, update the RELEASE_VERSION variable
+        await updateReleaseVersion(github, owner, repo, newVersion);
 
     } catch (error) {
         core.setFailed("Failed to process due to: " + error.message);

@@ -7,6 +7,13 @@ async function generatePRSummary({ github, context, core }) {
 	// Retrieve necessary data from prData.js
 	const { releaseBranchSha, currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
 
+	// Logging the data retrieved from prData for verification
+	console.log(`Release branch SHA to use for tag: ${releaseBranchSha}`);
+	console.log(`Current version from RELEASE_VERSION repo variable: ${currentVersion}`);
+	console.log(`Calculated new version (for creating tag and updating RELEASE_VERSION): ${newVersion}`);
+	console.log(`Label applied for changes: ${label}`);
+	console.log(`PR Number associated with this commit: ${prNumber}`);
+
 	// Determine the semver update type based on the label
 	const semverValue = label.includes('breaking change') ? 'MAJOR' :
 						label.includes('hotfix') || label.includes('security') || label.includes('bug') ? 'PATCH' : 
