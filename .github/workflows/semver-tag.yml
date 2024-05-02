@@ -28,11 +28,11 @@ jobs:
             const { generatePRSummary } = require(path);
             generatePRSummary({github, context, core});
 
-  # It's likely best that this script output the value of the semver bump, 
-  # which is then used in the subsequent step to update the var.RELEASE_VERSION
   create_and_post_tag:
     # if: ${{ inputs.create-tag }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Create and Post Tag
@@ -43,7 +43,4 @@ jobs:
             const path = '.github/scripts/createAndPushTag.js';
             const { createAndPushTag } = require(path);
             createAndPushTag({github, context, core});
-
-  # update_RELEASE_VERSION_repo_value:
-    # depends_on: ${{ create_and_post_tag }}
 
