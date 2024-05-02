@@ -19,12 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # - name: run gh cli
-        # env:
-          # GH_TOKEN: ${{ secrets.VAR_PAT }}
-        # run: |
-          # gh variable list
-
       - name: Post QA Summary
         uses: actions/github-script@v7
         with:
@@ -34,16 +28,21 @@ jobs:
             const { generatePRSummary } = require(path);
             generatePRSummary({github, context, core});
 
-  # create_and_post_tag:
+  # It's likely best that this script output the value of the semver bump, 
+  # which is then used in the subsequent step to update the var.RELEASE_VERSION
+  create_and_post_tag:
     # if: ${{ inputs.create-tag }}
-    # runs-on: ubuntu-latest
-    # steps:
-      # - uses: actions/checkout@v4
-      # - name: Create and Post Tag
-        # uses: actions/github-script@v7
-        # with:
-          # script: |
-            # const path = '.github/scripts/createAndPushTag.js';
-            # const { createAndPushTag } = require(path);
-            # createAndPushTag({github, context, core});
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create and Post Tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const path = '.github/scripts/createAndPushTag.js';
+            const { createAndPushTag } = require(path);
+            createAndPushTag({github, context, core});
+
+  # update_RELEASE_VERSION_repo_value:
+    # depends_on: ${{ create_and_post_tag }}
 
