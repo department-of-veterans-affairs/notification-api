@@ -256,9 +256,6 @@ def _get_dynamodb_comp_pen_messages(
 @notify_celery.task(name='send-scheduled-comp-and-pen-sms')
 @statsd(namespace='tasks')
 def send_scheduled_comp_and_pen_sms():
-    if not is_feature_enabled(FeatureFlag.COMP_AND_PEN_MESSAGES_ENABLED):
-        current_app.logger.warning('Attempted to run send_scheduled_comp_and_pen_sms task, but feature flag disabled.')
-        return
 
     # this is the agreed upon message per minute limit
     messages_per_min = 3000
@@ -328,6 +325,10 @@ def send_scheduled_comp_and_pen_sms():
             )
 
             try:
+                if not is_feature_enabled(FeatureFlag.COMP_AND_PEN_MESSAGES_ENABLED):
+                    current_app.logger.warning('Attempted to run send_scheduled_comp_and_pen_sms task, but feature flag disabled.')
+                    return
+                
                 # call generic method to send messages
                 send_notification_bypass_route(
                     service=service,
