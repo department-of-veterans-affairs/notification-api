@@ -79,7 +79,6 @@ module.exports = async ({ github, context, core }) => {
 
         return {
             releaseBranchSha, 
-            latestReleaseTag, 
             currentVersion,
             newVersion,
             label: appliedLabel,
