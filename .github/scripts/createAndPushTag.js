@@ -63,7 +63,6 @@ async function createAndPushTag({ github, context, core }) {
 
         // Upon successful tag creation, update the RELEASE_VERSION variable
         await updateReleaseVersion(github, owner, repo, newVersion);
-	// Assemble the message content
 
 	const summaryContent = `
 ### Successful tag creation!
