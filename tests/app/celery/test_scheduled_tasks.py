@@ -556,6 +556,7 @@ def test_send_scheduled_comp_and_pen_sms_calls_send_notification(
         notification_type=SMS_TYPE,
         personalisation={'paymentAmount': '123'},
         sms_sender_id=sample_service_sms_permission.get_default_sms_sender_id(),
+        recipient=None,
         recipient_item=recipient_item,
     )
 
