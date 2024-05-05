@@ -51,13 +51,13 @@ jobs:
 
       - name: Print RELEASE_VERSION
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.VAR_PAT }}
         # env:
           # NEW_VERSION: ${{ steps.new_version.outputs.NEW_VERSION }}
         run: |
           echo "Previous Release Version was ${{ vars.RELEASE_VERSION }}"
           # gh variable set RELEASE_VERSION --body "{{ env.NEW_RELEASE_VERSION }}"
-          gh variable set RELEASE_VERSION --body "555"
+          # gh variable set RELEASE_VERSION --body "555"
           echo "NEW Release Version was ${{ vars.RELEASE_VERSION }}"
 
 
