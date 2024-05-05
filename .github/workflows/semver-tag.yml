@@ -47,7 +47,7 @@ jobs:
 
 
   update_release_version_variable:
-    if: create_and_post_tag
+    # if: create_and_post_tag
     runs-on: ubuntu-latest
     permissions:
       contents: write
