@@ -55,9 +55,9 @@ jobs:
           NEW_VERSION: ${{ steps.new_version.outputs.NEW_VERSION }}
           RELEASE_VERSION: ${{ vars.RELEASE_VERSION }}
         run: |
-          echo "Previous RELEASE_VERSION repo variable was $RELEASE_VERSION" | tee -a $GITHUB_STEP_SUMMAR
-          gh variable set RELEASE_VERSION --body "$NEW_VERSION"
-          # gh variable set RELEASE_VERSION --body "555"
+          echo "Previous RELEASE_VERSION repo variable was $RELEASE_VERSION" | tee -a $GITHUB_STEP_SUMMARY
+          # gh variable set RELEASE_VERSION --body "$NEW_VERSION"
+          gh variable set RELEASE_VERSION --body "555"
           echo "Updated RELEASE_VERSION variable is $RELEASE_VERSION" | tee -a $GITHUB_STEP_SUMMARY
 
         # get this to output the new_version value
