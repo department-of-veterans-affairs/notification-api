@@ -44,7 +44,8 @@ jobs:
 
       - name: Echo the output from the previous job
         run: |
-          echo "the new version is $new_version"
+          echo "the new version is ${{ env.new_version }}"
+          printf '%s\n' "$new_version"
       # get this to output the new_version value
 
       # - name: Print RELEASE_VERSION
