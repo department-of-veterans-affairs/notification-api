@@ -27,6 +27,8 @@ async function createTag(github, owner, repo, newVersion, sha) {
     console.log(`Tag ${tagName} created and pushed successfully.`);
 }
 
+// TRY the secrets endpoint before giving up on this
+
 // This isn't working, so I'm going to use the github CLI in a github action step in semver-tag.yml
 // It adds a little complexity 
 // async function updateReleaseVersion(github, owner, repo, newVersion) {
