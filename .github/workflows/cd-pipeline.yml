@@ -25,8 +25,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-  approval-to-deploy:
+  version-check:
     needs: prepare-deployment
+    uses: ./.github/workflows/semver-tag.yml
+    with: 
+      create-tag: false
+
+  approval-to-deploy:
+    needs: version-check
     environment: 
       name: perf-deploy
     runs-on: ubuntu-latest
@@ -78,6 +84,12 @@ jobs:
         run: |
           git merge ${{ github.sha }} --no-squash -X theirs
           git push
+
+  create-tag:
+    needs: approval-to-merge-to-release-branch
+    uses: ./.github/workflows/semver-tag.yml
+    with: 
+      create-tag: true
 
   deploy-to-staging:
     needs: merge-to-release 

@@ -1,39 +1,46 @@
-# .github/workflows/semver.yml
 name: Semantic Versioning
 
-on:
-  pull_request:
+on: 
+  push:
     branches:
       - 1727-cd-pipeline-versioning
-    types: [closed, opened, labeled, edited, reopened]
-  issues:
-    types:
-      - labeled
-      - closed 
-  push: 
-    branches:
-      - 1727-cd-pipeline-versioning
-      - 1727-test
+  workflow_call:
+    inputs:
+      create-tag:
+        type: boolean
+        default: false
 
 jobs:
-  print_context:
+  summary_for_qa:
+    if: ${{ !inputs.create-tag }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - env:
-          EVENT_CONTEXT: ${{ toJSON(github.event) }}
-        run: |
-          echo $EVENT_CONTEXT
+      - uses: actions/checkout@v4
 
-  print-pr-labels:
+      - name: Post QA Summary
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.VAR_PAT }}
+          script: |
+            const path = '.github/scripts/postQA.js';
+            const { generatePRSummary } = require(path);
+            generatePRSummary({github, context, core});
+
+  create_and_post_tag:
+    # if: ${{ inputs.create-tag }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Print out PR labels
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const path = '.github/scripts/pr-label-versioning.js';
-          const prData = require(path);
-          prData({github, context, core});
+      - uses: actions/checkout@v4
+      - name: Create and Post Tag
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.VAR_PAT }}
+          script: |
+            const path = '.github/scripts/createAndPushTag.js';
+            const { createAndPushTag } = require(path);
+            createAndPushTag({github, context, core});
 
