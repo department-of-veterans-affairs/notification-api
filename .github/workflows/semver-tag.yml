@@ -39,7 +39,18 @@ jobs:
       - uses: actions/checkout@v4
       - name: Create and Post Tag
         id: new_version
-        run: echo "::set-output name=new_version::2.2.2-test"
+        run: |
+          echo "new_version=2.2.2-test" >> GITHUB_ENV
+
+      - name: Echo the output from the previous job
+        run: |
+          echo "the new version is $new_version"
+      # get this to output the new_version value
+
+      # - name: Print RELEASE_VERSION
+        # run: |
+          # echo "Release Version is ${{ needs.new_}}"
+          # gh variable set RELEASE_VERSION --body "{{ env.NEW_RELEASE_VERSION }}"
 
         # uses: actions/github-script@v7
         # with:
@@ -48,22 +59,3 @@ jobs:
             # const path = '.github/scripts/createAndPushTag.js';
             # const { createAndPushTag } = require(path);
             # createAndPushTag({github, context, core});
-
-  update_release_version_variable:
-    # if: create_and_post_tag
-    needs: create_and_post_tag
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4 
-
-      - name: Echo the output from the previous job
-        run: echo "The output was ${{ needs.create_and_post_tag.outputs.new_version }}"
-      # get this to output the new_version value
-
-      # - name: Print RELEASE_VERSION
-        # run: |
-          # echo "Release Version is ${{ needs.new_}}"
-          # gh variable set RELEASE_VERSION --body "{{ env.NEW_RELEASE_VERSION }}"
-
