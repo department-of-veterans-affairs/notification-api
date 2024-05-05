@@ -52,14 +52,12 @@ jobs:
       - name: Print RELEASE_VERSION
         env:
           GH_TOKEN: ${{ secrets.VAR_PAT }}
-        # env:
-          # NEW_VERSION: ${{ steps.new_version.outputs.NEW_VERSION }}
+          NEW_VERSION: ${{ steps.new_version.outputs.NEW_VERSION }}
         run: |
           echo "Previous Release Version was ${{ vars.RELEASE_VERSION }}"
-          # gh variable set RELEASE_VERSION --body "{{ env.NEW_RELEASE_VERSION }}"
+          gh variable set RELEASE_VERSION --body "{{ env.NEW_RELEASE_VERSION }}"
           # gh variable set RELEASE_VERSION --body "555"
-          echo "NEW Release Version was ${{ vars.RELEASE_VERSION }}"
-
+          echo "NEW Release Version was ${{ vars.RELEASE_VERSION }}" | tee -a $GITHUB_STEP_SUMMARY
 
         # get this to output the new_version value
         # uses: actions/github-script@v7
