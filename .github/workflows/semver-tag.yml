@@ -56,5 +56,5 @@ jobs:
       - name: Print RELEASE_VERSION
         run: echo "Release Version is $RELEASE_VERSION"
         env:
-          RELEASE_VERSION: ${{ secrets.RELEASE_VERSION }}
+          RELEASE_VERSION: ${{ var.RELEASE_VERSION }}
 
