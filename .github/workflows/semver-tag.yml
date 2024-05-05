@@ -50,6 +50,8 @@ jobs:
           echo "The new version is $NEW_VERSION" | tee -a $GITHUB_STEP_SUMMARY
 
       - name: Print RELEASE_VERSION
+        env:
+          GH_TOKEN: ${{ github.token }}
         # env:
           # NEW_VERSION: ${{ steps.new_version.outputs.NEW_VERSION }}
         run: |
