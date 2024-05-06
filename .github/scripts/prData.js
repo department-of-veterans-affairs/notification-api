@@ -95,7 +95,7 @@ const prData = async ({ github, context, core }) => {
     const currentVersion = await getReleaseVersionValue(github, owner, repo);
     const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo);
 
-	const checkTag = await verifyNoExistingTag(github, owner, repo, releaseBranchSha)
+	// const checkTag = await verifyNoExistingTag(github, owner, repo, releaseBranchSha)
 
     const labels = pullRequestData.data[0].labels.map((label) => ({
       id: label.id,
