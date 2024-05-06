@@ -17,7 +17,7 @@ on:
   push:
     branches:
       - master
-      - 1727-cd-pipeline-versioning 
+      # - 1727-cd-pipeline-versioning 
 
 jobs:
   prepare-deployment:
@@ -89,7 +89,7 @@ jobs:
 
   create-tag:
     needs: approval-to-merge-to-release-branch
-    uses: ./.github/workflows/semver-tag.yml
+    uses: ./.github/workflows/create-tag.yml
     with: 
       create-tag: true
     secrets: inherit
