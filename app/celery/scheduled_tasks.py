@@ -362,7 +362,6 @@ def send_scheduled_comp_and_pen_sms():
                     participant_id,
                     payment_id,
                 )
-                continue
 
             item['is_processed'] = True
 
