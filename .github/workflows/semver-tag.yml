@@ -25,7 +25,7 @@ jobs:
           github-token: ${{ secrets.VAR_PAT }}
           script: |
             const path = '.github/scripts/postQA.js';
-            const { postQA } = require(path);
+            const postQA = require(path);
             postQA({github, context, core});
 
   create_and_post_tag:
@@ -45,7 +45,7 @@ jobs:
           github-token: ${{ secrets.VAR_PAT }}
           script: |
             const path = '.github/scripts/createAndPushTag.js';
-            const { createAndPushTag } = require(path);
+            const createAndPushTag = require(path);
             createAndPushTag({github, context, core});
 
       # - name: Echo and update the RELEASE_VERSION
