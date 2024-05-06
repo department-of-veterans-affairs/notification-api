@@ -1,7 +1,7 @@
 // File: .github/scripts/postQA.js
 const fs = require('fs');
 const prData = require('./prData');
-const verifyNoExistingTag = require('createAndPushTag')
+const verifyNoExistingTag = require('./createAndPushTag')
 
 module.exports = async ({ github, context, core }) => {
   try {
