@@ -1,6 +1,6 @@
 // File: .github/scripts/createAndPushTag.js
 const fs = require('fs');
-const prData = require('./prData');
+const { prData } = require('./prData');
 const { getReleaseVersionValue } = require('./prData');
 
 async function createTag(github, owner, repo, newVersion, sha) {

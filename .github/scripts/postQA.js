@@ -1,6 +1,6 @@
 // File: .github/scripts/postQA.js
 const fs = require('fs');
-const prData = require('./prData');
+const { prData } = require('./prData');
 
 const postQA = async ({ github, context, core }) => {
   try {
