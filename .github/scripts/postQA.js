@@ -1,9 +1,14 @@
 // File: .github/scripts/postQA.js
 const fs = require('fs');
 const prData = require('./prData');
+const verifyNoExistingTag = require('createAndPushTag')
 
-async function generatePRSummary({ github, context, core }) {
+module.exports = async ({ github, context, core }) {
   try {
+
+	// Verify there is no existing tag for a given SHA and exit the script if there is
+	verifyNoExistingTag(github, owner, repo, releaseBranchSha)
+
 	// Retrieve necessary data from prData.js
 	const { releaseBranchSha, currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
 
@@ -39,7 +44,4 @@ This tag will not be created until a merge to the release branch.
 	console.error(error);
   }
 }
-
-module.exports = { generatePRSummary };
-
 

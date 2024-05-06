@@ -1,6 +1,27 @@
 // File: .github/scripts/createAndPushTag.js
-const fs = require("fs");
-const prData = require("./prData");
+const fs = require('fs');
+const prData = require('./prData');
+const { getReleaseVersionValue } = require('./prData');
+
+// Function to verify there is no existing tag for a given SHA and exit the script if there is
+async function verifyNoExistingTag(github, owner, repo, sha) {
+  try {
+    const { data: tag } = await github.rest.git.getTag({
+      owner,
+      repo,
+      tag_sha: sha,
+    });
+    if (tag) {
+      console.error('Tag already exists');
+      process.exit(1); // Exit if a tag is found
+    } else {
+      console.log('No existing tag found with the SHA:', sha);
+    }
+  } catch (error) {
+    console.error('An error occurred while fetching the tag:', error.message);
+    process.exit(1); // Exit on any API fetching errors
+  }
+}
 
 async function createTag(github, owner, repo, newVersion, sha) {
   const tagName = `${newVersion}`;
@@ -13,7 +34,7 @@ async function createTag(github, owner, repo, newVersion, sha) {
     tag: tagName,
     message: tagMessage,
     object: sha,
-    type: "commit",
+    type: 'commit',
   });
 
   // Create the reference in the repository
@@ -28,7 +49,7 @@ async function createTag(github, owner, repo, newVersion, sha) {
 }
 
 async function updateReleaseVersion(github, owner, repo, newVersion) {
-  const oldReleaseVarValue = await prData.getReleaseVersionValue(
+  const oldReleaseVarValue = await getReleaseVersionValue(
     github,
     owner,
     repo,
@@ -40,11 +61,11 @@ async function updateReleaseVersion(github, owner, repo, newVersion) {
   await github.rest.actions.updateRepoVariable({
     owner,
     repo,
-    name: "RELEASE_VERSION",
+    name: 'RELEASE_VERSION',
     value: newVersion,
   });
 
-  const newReleaseVarValue = await prData.getReleaseVersionValue(
+  const newReleaseVarValue = await getReleaseVersionValue(
     github,
     owner,
     repo,
@@ -57,7 +78,7 @@ async function updateReleaseVersion(github, owner, repo, newVersion) {
   };
 }
 
-async function createAndPushTag({ github, context, core }) {
+module.exports = async ({ github, context, core }) {
   const owner = context.repo.owner;
   const repo = context.repo.repo;
 
@@ -77,6 +98,8 @@ async function createAndPushTag({ github, context, core }) {
     console.log(`Label applied for changes: ${label}`);
     console.log(`PR Number associated with this commit: ${prNumber}`);
 
+	verifyNoExistingTag(github, owner, repo, releaseBranchSha)
+
     // Verify the completeness and correctness of the data before proceeding
     if (
       !releaseBranchSha ||
@@ -86,7 +109,7 @@ async function createAndPushTag({ github, context, core }) {
       !prNumber
     ) {
       throw new Error(
-        "One or more required pieces of information are missing, cannot proceed with tagging.",
+        'One or more required pieces of information are missing, cannot proceed with tagging.',
       );
     }
 
@@ -108,11 +131,12 @@ The SHA used for this tag creation was the latest merge to the release branch: $
 
     // Append the summary to the GitHub step summary file
     fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryContent);
-    console.log("Summary generated and appended successfully.");
+    console.log('Summary generated and appended successfully.');
   } catch (error) {
-    core.setFailed("Failed to process due to: " + error.message);
+    core.setFailed('Failed to process due to: ' + error.message);
     console.error(error);
   }
 }
 
-module.exports = { createAndPushTag };
+module.exports = { verifyNoExistingTag };
+

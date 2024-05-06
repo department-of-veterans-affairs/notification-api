@@ -1,14 +1,5 @@
 // prData.js
 
-// Function to fetch pull requests associated with a commit
-async function fetchPullRequests(github, owner, repo, sha) {
-  return await github.rest.repos.listPullRequestsAssociatedWithCommit({
-    owner,
-    repo,
-    commit_sha: sha,
-  });
-}
-
 // Function to fetch the current release version
 async function getReleaseVersionValue(github, owner, repo) {
   const { data } = await github.rest.actions.getRepoVariable({
