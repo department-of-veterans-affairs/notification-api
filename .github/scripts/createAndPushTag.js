@@ -27,20 +27,34 @@ async function createTag(github, owner, repo, newVersion, sha) {
     console.log(`Tag ${tagName} created and pushed successfully.`);
 }
 
-// TRY the secrets endpoint before giving up on this
+async function getReleaseVersion(github, owner, repo) {
+  await github.request('GET /repos/{owner}/{repo}/actions/variables/{name}', {
+	owner,
+	repo,
+	name: 'RELEASE_VERSION'
+	headers: {
+	  'X-GitHub-Api-Version': '2022-11-28'
+	}
+  })
 
-// This isn't working, so I'm going to use the github CLI in a github action step in semver-tag.yml
-// It adds a little complexity 
-// async function updateReleaseVersion(github, owner, repo, newVersion) {
-    // await github.rest.actions.updateRepoVariable({
-        // owner,
-        // repo,
-        // variable_name: 'RELEASE_VERSION',
-        // secret_value: newVersion
-    // });
+  return response.data.value;
+}
 
-    // console.log(`RELEASE_VERSION updated to ${newVersion}.`);
-// }
+async function updateReleaseVersion(github, owner, repo, newVersion) {
+
+  let release_version = await getReleaseVersion(github, owner, repo)
+
+  console.log(`the previous RELEASE_VERSION was $release_version`)
+
+	await github.rest.actions.updateRepoVariable({
+		owner,
+		repo,
+		variable_name: 'RELEASE_VERSION',
+		secret_value: newVersion
+	});
+  let NewReleaseVersion = await getReleaseVersion(github, owner, repo)
+  console.log(`RELEASE_VERSION updated to ${newReleaseVersion}.`);
+}
 
 async function createAndPushTag({ github, context, core }) {
     const owner = context.repo.owner;
@@ -65,9 +79,8 @@ async function createAndPushTag({ github, context, core }) {
         // Call the function to create and push the tag using the SHA from releaseBranchSha
         await createTag(github, owner, repo, newVersion, releaseBranchSha);
 
-		// This isn't working, so I'm going to use the github CLI meanwhile, even though it adds complexity. 
         // Upon successful tag creation, update the RELEASE_VERSION variable
-        // await updateReleaseVersion(github, owner, repo, newVersion);
+		await updateReleaseVersion(github, owner, repo, newVersion);
 
 	const summaryContent = `
 ### Successful tag creation!
