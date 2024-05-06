@@ -10,7 +10,7 @@ async function fetchPullRequests(github, owner, repo, sha) {
 }
 
 // Function to fetch the current release version
-async function fetchCurrentReleaseVersion(github, owner, repo) {
+async function getReleaseVersionValue(github, owner, repo) {
     const { data } = await github.rest.actions.getRepoVariable({
         owner,
         repo,
@@ -64,7 +64,7 @@ module.exports = async ({ github, context, core }) => {
 
     try {
         const pullRequestData = await fetchPullRequests(github, owner, repo, sha);
-        const currentVersion = await fetchCurrentReleaseVersion(github, owner, repo);
+        const currentVersion = await getReleaseVersionValue(github, owner, repo);
 		const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo)
 
         const labels = pullRequestData.data[0].labels.map(label => ({
@@ -92,3 +92,5 @@ module.exports = async ({ github, context, core }) => {
     }
 };
 
+// Export the getReleaseVersionValue function so other files can use it
+module.exports.getReleaseVersionValue = getReleaseVersionValue;
