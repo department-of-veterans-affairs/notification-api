@@ -44,13 +44,6 @@ jobs:
 
       - name: Echo and update the RELEASE_VERSION
         env:
-          NEW_VERSION: ${{ steps.new_version.outputs.NEW_VERSION }}
-        run: |
-          echo "The new version is $NEW_VERSION"
-          echo "The new version is $NEW_VERSION" | tee -a $GITHUB_STEP_SUMMARY
-
-      - name: Print RELEASE_VERSION
-        env:
           GH_TOKEN: ${{ secrets.VAR_PAT }}
           NEW_VERSION: ${{ steps.new_version.outputs.NEW_VERSION }}
           RELEASE_VERSION: ${{ vars.RELEASE_VERSION }}
@@ -58,9 +51,10 @@ jobs:
           echo "Previous RELEASE_VERSION repo variable was $RELEASE_VERSION" | tee -a $GITHUB_STEP_SUMMARY
           # gh variable set RELEASE_VERSION --body "$NEW_VERSION"
           gh variable set RELEASE_VERSION --body "555"
+          echo "Updated RELEASE_VERSION is $RELEASE_VERSION" | tee -a $GITHUB_STEP_SUMMARY
+          sleep 5
 
   update-release-version-variable:
-    # if: ${{ inputs.create-tag }}
     needs: create_and_post_tag
     runs-on: ubuntu-latest
     steps:
