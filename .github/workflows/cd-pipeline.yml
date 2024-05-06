@@ -31,6 +31,7 @@ jobs:
     uses: ./.github/workflows/semver-tag.yml
     with: 
       create-tag: false
+      github-token: ${{ secrets.VAR_PAT }}
 
   approval-to-deploy:
     needs: version-check
@@ -91,6 +92,7 @@ jobs:
     uses: ./.github/workflows/semver-tag.yml
     with: 
       create-tag: true
+      github-token: ${{ secrets.VAR_PAT }}
 
   deploy-to-staging:
     needs: merge-to-release 
