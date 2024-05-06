@@ -91,7 +91,6 @@ jobs:
 
   create-and-post-tag:
     needs: merge-to-release
-    needs: approval-to-merge-to-release-branch
     uses: ./.github/workflows/create-and-post-tag.yml
     secrets: inherit
 
