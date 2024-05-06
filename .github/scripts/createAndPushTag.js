@@ -78,7 +78,7 @@ async function updateReleaseVersion(github, owner, repo, newVersion) {
   };
 }
 
-module.exports = async ({ github, context, core }) => {
+const createAndPushTag = async ({ github, context, core }) => {
   const owner = context.repo.owner;
   const repo = context.repo.repo;
 

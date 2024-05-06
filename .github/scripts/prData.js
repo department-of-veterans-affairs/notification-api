@@ -55,7 +55,7 @@ function processLabelsAndVersion(labels, currentVersion) {
 }
 
 // Main function exported to handle pull request data
-module.exports = async ({ github, context, core }) => {
+const prData = async ({ github, context, core }) => {
   const owner = context.repo.owner;
   const repo = context.repo.repo;
   const sha = context.payload.after;
@@ -92,5 +92,8 @@ module.exports = async ({ github, context, core }) => {
   }
 };
 
+
+module.exports = prData.js;
+module.exports = getReleaseVersionValue;
 // Export the getReleaseVersionValue function so other files can use it
-module.exports.getReleaseVersionValue = getReleaseVersionValue;
+// module.exports.getReleaseVersionValue = getReleaseVersionValue;

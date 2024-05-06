@@ -25,7 +25,7 @@ jobs:
           github-token: ${{ secrets.VAR_PAT }}
           script: |
             const path = '.github/scripts/postQA.js';
-            const { generatePRSummary } = require(path);
+            const { postQA } = require(path);
             generatePRSummary({github, context, core});
 
   create_and_post_tag:

@@ -3,7 +3,7 @@ const fs = require('fs');
 const prData = require('./prData');
 const verifyNoExistingTag = require('./createAndPushTag')
 
-module.exports = async ({ github, context, core }) => {
+const postQA = async ({ github, context, core }) => {
   try {
 
 	// Verify there is no existing tag for a given SHA and exit the script if there is
@@ -44,4 +44,6 @@ This tag will not be created until a merge to the release branch.
 	console.error(error);
   }
 }
+
+module.exports = postQA;
 
