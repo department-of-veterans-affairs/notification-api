@@ -101,9 +101,8 @@ const createAndPushTag = async ({ github, context, core }) => {
 
     const summaryContent = `
 ### Successful tag creation!
-Old version was ${oldReleaseVarValue}
 New version is ${newReleaseVarValue}
-New tag successfully created for version ${newVersion} // This should be an actual tag get for sha call verification
+New tag successfully created for version ${newReleaseVarValue} 
 The SHA used for this tag creation was the latest merge to the release branch: ${releaseBranchSha}
 	`;
 
