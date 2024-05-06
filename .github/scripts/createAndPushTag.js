@@ -36,6 +36,9 @@ async function getReleaseVersionValue(github, owner, repo) {
 }
 
 async function updateReleaseVersion(github, owner, repo, newVersion) {
+  let releaseVarValue = await getReleaseVersionValue(github, owner, repo)
+  console.log(`Updating RELEASE_VERSION from its current value of ${releaseVarValue}`);
+
   await github.rest.actions.updateRepoVariable({
     owner,
     repo,
@@ -43,7 +46,8 @@ async function updateReleaseVersion(github, owner, repo, newVersion) {
     value: newVersion,
   });
 
-  console.log(`RELEASE_VERSION updated to ${newVersion}.`);
+  let releaseVarValue = await getReleaseVersionValue(github, owner, repo)
+  console.log(`Updated RELEASE_VERSION to ${releaseVarValue}`);
 }
 
 async function createAndPushTag({ github, context, core }) {
