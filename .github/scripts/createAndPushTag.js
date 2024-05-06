@@ -28,7 +28,7 @@ async function createTag(github, owner, repo, newVersion, sha) {
 }
 
 async function updateReleaseVersion(github, owner, repo, newVersion) {
-  const oldReleaseVarValue = await getReleaseVersionValue(github, owner, repo)
+  const oldReleaseVarValue = await prData.getReleaseVersionValue(github, owner, repo)
   console.log(`Updating RELEASE_VERSION from its current value of ${oldReleaseVarValue}`);
 
   await github.rest.actions.updateRepoVariable({
@@ -38,7 +38,7 @@ async function updateReleaseVersion(github, owner, repo, newVersion) {
     value: newVersion,
   });
 
-  const newReleaseVarValue = await getReleaseVersionValue(github, owner, repo)
+  const newReleaseVarValue = await prData.getReleaseVersionValue(github, owner, repo)
   console.log(`Updated RELEASE_VERSION to ${newReleaseVarValue}`);
 
   return {
