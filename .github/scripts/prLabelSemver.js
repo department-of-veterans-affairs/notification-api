@@ -5,7 +5,7 @@ const fs = require('fs');
 const prLabelSemver = async ({ github, context, core }) => {
     try {
         // Retrieve necessary data from prData.js
-        const { label, prNumber } = await prData({ github, context, core });
+        const { label, prNumber, prUrl } = await prData({ github, context, core });
 
         // Determine the semver update type based on the label
         const semverValue = label.includes('breaking change') ? 'MAJOR' :
