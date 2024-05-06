@@ -78,8 +78,6 @@ const createAndPushTag = async ({ github, context, core }) => {
     console.log(`Label applied for changes: ${label}`);
     console.log(`PR Number associated with this commit: ${prNumber}`);
 
-	verifyNoExistingTag(github, owner, repo, releaseBranchSha)
-
     // Verify the completeness and correctness of the data before proceeding
     if (
       !releaseBranchSha ||
@@ -118,5 +116,5 @@ The SHA used for this tag creation was the latest merge to the release branch: $
   }
 }
 
-module.exports = { verifyNoExistingTag };
+module.exports = createAndPushTag
 

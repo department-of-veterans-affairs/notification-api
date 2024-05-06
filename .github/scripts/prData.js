@@ -116,7 +116,7 @@ const prData = async ({ github, context, core }) => {
 };
 
 
-module.exports = prData.js;
+module.exports = prData;
 module.exports = getReleaseVersionValue;
 // Export the getReleaseVersionValue function so other files can use it
 // module.exports.getReleaseVersionValue = getReleaseVersionValue;
