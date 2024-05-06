@@ -3,26 +3,6 @@ const fs = require('fs');
 const prData = require('./prData');
 const { getReleaseVersionValue } = require('./prData');
 
-// Function to verify there is no existing tag for a given SHA and exit the script if there is
-async function verifyNoExistingTag(github, owner, repo, sha) {
-  try {
-    const { data: tag } = await github.rest.git.getTag({
-      owner,
-      repo,
-      tag_sha: sha,
-    });
-    if (tag) {
-      console.error('Tag already exists');
-      process.exit(1); // Exit if a tag is found
-    } else {
-      console.log('No existing tag found with the SHA:', sha);
-    }
-  } catch (error) {
-    console.error('An error occurred while fetching the tag:', error.message);
-    process.exit(1); // Exit on any API fetching errors
-  }
-}
-
 async function createTag(github, owner, repo, newVersion, sha) {
   const tagName = `${newVersion}`;
   const tagMessage = `Release for version ${newVersion}`;

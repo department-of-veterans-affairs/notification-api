@@ -54,6 +54,26 @@ function processLabelsAndVersion(labels, currentVersion) {
   };
 }
 
+// Function to verify there is no existing tag for a given SHA and exit the script if there is
+async function verifyNoExistingTag(github, owner, repo, sha) {
+  try {
+    const { data: tag } = await github.rest.git.getTag({
+      owner,
+      repo,
+      tag_sha: sha,
+    });
+    if (tag) {
+      console.error('Tag already exists');
+      process.exit(1); // Exit if a tag is found
+    } else {
+      console.log('No existing tag found with the SHA:', sha);
+    }
+  } catch (error) {
+    console.error('An error occurred while fetching the tag:', error.message);
+    process.exit(1); // Exit on any API fetching errors
+  }
+}
+
 // Main function exported to handle pull request data
 const prData = async ({ github, context, core }) => {
   const owner = context.repo.owner;
@@ -61,9 +81,12 @@ const prData = async ({ github, context, core }) => {
   const sha = context.payload.after;
 
   try {
+
     const pullRequestData = await fetchPullRequests(github, owner, repo, sha);
     const currentVersion = await getReleaseVersionValue(github, owner, repo);
     const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo);
+
+	const checkTag = await verifyNoExistingTag(github, owner, repo, releaseBranchSha)
 
     const labels = pullRequestData.data[0].labels.map((label) => ({
       id: label.id,
