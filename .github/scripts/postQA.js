@@ -1,12 +1,10 @@
 // File: .github/scripts/postQA.js
 const fs = require('fs');
 const prData = require('./prData');
-// const verifyNoExistingTag = require('./createAndPushTag')
 
 const postQA = async ({ github, context, core }) => {
   try {
 
-	// Verify there is no existing tag for a given SHA and exit the script if there is
 	// Retrieve necessary data from prData.js
 	const { releaseBranchSha, currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
 	// Logging the data retrieved from prData for verification
