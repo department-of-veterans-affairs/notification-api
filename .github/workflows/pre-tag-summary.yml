@@ -2,9 +2,6 @@ name: CD Pipeline Pre Tag Summary
 
 on: 
   workflow_call:
-  push:
-    branches:
-      - 1727-cd-pipeline-versioning
 
 jobs:
   pre-tag-summary:
