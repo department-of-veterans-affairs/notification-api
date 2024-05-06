@@ -2,11 +2,11 @@
 
 // Function to fetch pull requests associated with a commit
 async function fetchPullRequests(github, owner, repo, sha) {
-    return await github.rest.repos.listPullRequestsAssociatedWithCommit({
-        owner,
-        repo,
-        commit_sha: sha,
-    });
+  return await github.rest.repos.listPullRequestsAssociatedWithCommit({
+    owner,
+    repo,
+    commit_sha: sha,
+  });
 }
 
 // Function to fetch the current release version
@@ -70,12 +70,11 @@ const prData = async ({ github, context, core }) => {
   const sha = context.payload.after;
 
   try {
-
     const pullRequestData = await fetchPullRequests(github, owner, repo, sha);
     const currentVersion = await getReleaseVersionValue(github, owner, repo);
     const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo);
 
-	// const checkTag = await verifyNoExistingTag(github, owner, repo, releaseBranchSha)
+    // const checkTag = await verifyNoExistingTag(github, owner, repo, releaseBranchSha)
 
     const labels = pullRequestData.data[0].labels.map((label) => ({
       id: label.id,
@@ -84,7 +83,7 @@ const prData = async ({ github, context, core }) => {
       color: label.color,
     }));
     const prNumber = pullRequestData.data[0].number;
-	const prUrl = pullRequestData.data[0].html_url;
+    const prUrl = pullRequestData.data[0].html_url;
 
     const { newVersion, appliedLabel } = processLabelsAndVersion(
       labels,
@@ -97,7 +96,7 @@ const prData = async ({ github, context, core }) => {
       newVersion,
       label: appliedLabel,
       prNumber,
-	  prUrl,
+      prUrl,
     };
   } catch (error) {
     core.setFailed(`Error processing PR data: ${error.message}`);
