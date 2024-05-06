@@ -50,8 +50,7 @@ jobs:
         run: |
           echo "Previous RELEASE_VERSION repo variable was $RELEASE_VERSION" | tee -a $GITHUB_STEP_SUMMARY
           # gh variable set RELEASE_VERSION --body "$NEW_VERSION"
-          gh variable set RELEASE_VERSION --body "555"
-          echo "Updated RELEASE_VERSION is $RELEASE_VERSION" | tee -a $GITHUB_STEP_SUMMARY
+          gh variable set RELEASE_VERSION --body "555" | tee -a $GITHUB_STEP_SUMMARY
           sleep 15
 
   update-release-version-variable:
