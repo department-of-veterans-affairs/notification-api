@@ -32,7 +32,7 @@ jobs:
     secrets: inherit
 
   approval-to-deploy:
-    needs: version-check
+    needs: pr-label-summary
     environment: 
       name: perf-deploy
     runs-on: ubuntu-latest
@@ -59,7 +59,7 @@ jobs:
     secrets: inherit
 
   approval-to-merge-to-release-branch:
-    needs: deploy-to-perf
+    needs: pre-tag-summary
     environment: 
       name: perf-merge
     runs-on: ubuntu-latest
