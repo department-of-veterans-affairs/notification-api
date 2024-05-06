@@ -16,7 +16,7 @@ name: Continuous Deployment Pipeline
 on:
   push:
     branches:
-      - master
+      - put 1727 branch here when ready to test with Cris, and then make a PR to merge to this branch
 
 jobs:
   prepare-deployment:
