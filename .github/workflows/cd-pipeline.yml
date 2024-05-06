@@ -28,7 +28,7 @@ jobs:
 
   pr-label-summary:
     needs: prepare-deployment
-    uses: ./.github/workflows/prLabelSemver.yml
+    uses: ./.github/workflows/pr-label-semver.yml
     secrets: inherit
 
   approval-to-deploy:
