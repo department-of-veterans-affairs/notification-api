@@ -288,6 +288,7 @@ def send_scheduled_comp_and_pen_sms():
     dynamodb_table_name = current_app.config['COMP_AND_PEN_DYNAMODB_TABLE_NAME']
     service_id = current_app.config['COMP_AND_PEN_SERVICE_ID']
     template_id = current_app.config['COMP_AND_PEN_TEMPLATE_ID']
+    # in Perf this uses the AWS simulated delivered number
     perf_to_number = current_app.config['COMP_AND_PEN_PERF_TO_NUMBER']
 
     # TODO: utils #146 - Debug messages currently don't show up in cloudwatch, requires a configuration change
@@ -374,8 +375,10 @@ def send_scheduled_comp_and_pen_sms():
                     recipient_item=recipient_item,
                 )
 
-                if perf_to_number:
-                    current_app.logger.info('Notification being sent using Perf number instead of vaprofile_id')
+                if perf_to_number is not None:
+                    current_app.logger.info(
+                        'Notification sent using Perf simulated number %s instead of vaprofile_id', perf_to_number
+                    )
             except Exception as e:
                 current_app.logger.critical(
                     'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | item from '
