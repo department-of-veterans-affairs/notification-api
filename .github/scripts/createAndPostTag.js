@@ -48,8 +48,9 @@ const createAndPostTag = async ({ github, context, core }) => {
 
         const summaryContent = `
 ### Successful Tag Creation!
+- After merge to the release branch, a tag was created. 
 - New version is ${newVersion}
-- Tag created for version ${newVersion} using SHA: ${releaseBranchSha}
+- Tag created for version ${newVersion} using the new release branch SHA: ${releaseBranchSha}
 `;
 
         // Append the summary to the GitHub step summary file

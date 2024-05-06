@@ -84,6 +84,7 @@ const prData = async ({ github, context, core }) => {
       color: label.color,
     }));
     const prNumber = pullRequestData.data[0].number;
+	const prUrl = pullRequestData.data[0].html_url;
 
     const { newVersion, appliedLabel } = processLabelsAndVersion(
       labels,
@@ -96,6 +97,7 @@ const prData = async ({ github, context, core }) => {
       newVersion,
       label: appliedLabel,
       prNumber,
+	  prUrl,
     };
   } catch (error) {
     core.setFailed(`Error processing PR data: ${error.message}`);
