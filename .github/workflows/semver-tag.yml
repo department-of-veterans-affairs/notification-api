@@ -56,11 +56,12 @@ jobs:
           RELEASE_VERSION: ${{ vars.RELEASE_VERSION }}
         run: |
           echo "Previous RELEASE_VERSION repo variable was $RELEASE_VERSION" | tee -a $GITHUB_STEP_SUMMARY
-          gh variable set RELEASE_VERSION --body "$NEW_VERSION"
-          # gh variable set RELEASE_VERSION --body "555"
+          # gh variable set RELEASE_VERSION --body "$NEW_VERSION"
+          gh variable set RELEASE_VERSION --body "555"
 
   update-release-version-variable:
     # if: ${{ inputs.create-tag }}
+    needs: create_and_post_tag
     runs-on: ubuntu-latest
     steps:
       - name: Updated Value for RELEASE_VERSION
