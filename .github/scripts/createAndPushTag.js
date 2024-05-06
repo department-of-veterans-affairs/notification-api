@@ -36,8 +36,8 @@ async function getReleaseVersionValue(github, owner, repo) {
 }
 
 async function updateReleaseVersion(github, owner, repo, newVersion) {
-  let releaseVarValue = await getReleaseVersionValue(github, owner, repo)
-  console.log(`Updating RELEASE_VERSION from its current value of ${releaseVarValue}`);
+  const oldReleaseVarValue = await getReleaseVersionValue(github, owner, repo)
+  console.log(`Updating RELEASE_VERSION from its current value of ${oldReleaseVarValue}`);
 
   await github.rest.actions.updateRepoVariable({
     owner,
@@ -46,8 +46,13 @@ async function updateReleaseVersion(github, owner, repo, newVersion) {
     value: newVersion,
   });
 
-  let releaseVarValue = await getReleaseVersionValue(github, owner, repo)
-  console.log(`Updated RELEASE_VERSION to ${releaseVarValue}`);
+  const newReleaseVarValue = await getReleaseVersionValue(github, owner, repo)
+  console.log(`Updated RELEASE_VERSION to ${newReleaseVarValue}`);
+
+  return {
+	oldReleaseVarValue,
+	newReleaseVarValue
+  }
 }
 
 async function createAndPushTag({ github, context, core }) {
@@ -91,7 +96,9 @@ async function createAndPushTag({ github, context, core }) {
 
     const summaryContent = `
 ### Successful tag creation!
-New tag successfully created for version ${newVersion}
+Old version was ${oldReleaseVarValue}
+New version is ${newReleaseVarValue}
+New tag successfully created for version ${newVersion} // This should be an actual tag get for sha call verification
 The SHA used for this tag creation was the latest merge to the release branch: ${releaseBranchSha}
 	`;
 
