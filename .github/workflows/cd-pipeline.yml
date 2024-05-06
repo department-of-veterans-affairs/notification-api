@@ -17,7 +17,7 @@ on:
   push:
     branches:
       - master
-      # - 1727-cd-pipeline-versioning (test with QA)
+      - 1727-cd-pipeline-versioning 
 
 jobs:
   prepare-deployment:
