@@ -7,8 +7,6 @@ const postQA = async ({ github, context, core }) => {
   try {
 
 	// Verify there is no existing tag for a given SHA and exit the script if there is
-	const owner = context.repo.owner;
-
 	// Retrieve necessary data from prData.js
 	const { releaseBranchSha, currentVersion, newVersion, label, prNumber } = await prData({ github, context, core });
 	// Logging the data retrieved from prData for verification
