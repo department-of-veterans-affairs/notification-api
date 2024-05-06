@@ -221,7 +221,7 @@ def _get_dynamodb_comp_pen_messages(
     https://boto3.amazonaws.com/v1/documentation/api/latest/guide/dynamodb.html#querying-and-scanning
     """
 
-    index_name = 'is_processed_index'
+    is_processed_index = 'is-processed-index'
 
     filters = (
         Attr('payment_id').exists()
@@ -230,7 +230,7 @@ def _get_dynamodb_comp_pen_messages(
         & Attr('has_duplicate_mappings').ne(True)
     )
 
-    results = table.scan(FilterExpression=filters, Limit=message_limit, IndexName=index_name)
+    results = table.scan(FilterExpression=filters, Limit=message_limit, IndexName=is_processed_index)
     items: list = results.get('Items')
 
     if items is None:
