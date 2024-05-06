@@ -42,16 +42,16 @@ jobs:
         run: |
           echo "NEW_VERSION=2.2.2-test" >> "$GITHUB_OUTPUT"
 
-      - name: Echo and update the RELEASE_VERSION
-        env:
-          GH_TOKEN: ${{ secrets.VAR_PAT }}
-          NEW_VERSION: ${{ steps.new_version.outputs.NEW_VERSION }}
-          RELEASE_VERSION: ${{ vars.RELEASE_VERSION }}
-        run: |
-          echo "Previous RELEASE_VERSION repo variable was $RELEASE_VERSION" | tee -a $GITHUB_STEP_SUMMARY
-          gh variable set RELEASE_VERSION --body "$NEW_VERSION"
-          # gh variable set RELEASE_VERSION --body "555" | tee -a $GITHUB_STEP_SUMMARY
-          sleep 15
+      # - name: Echo and update the RELEASE_VERSION
+        # env:
+          # GH_TOKEN: ${{ secrets.VAR_PAT }}
+          # NEW_VERSION: ${{ steps.new_version.outputs.NEW_VERSION }}
+          # RELEASE_VERSION: ${{ vars.RELEASE_VERSION }}
+        # run: |
+          # echo "Previous RELEASE_VERSION repo variable was $RELEASE_VERSION" | tee -a $GITHUB_STEP_SUMMARY
+          # gh variable set RELEASE_VERSION --body "$NEW_VERSION"
+          # # gh variable set RELEASE_VERSION --body "555" | tee -a $GITHUB_STEP_SUMMARY
+          # sleep 15
 
   update-release-version-variable:
     needs: create_and_post_tag
