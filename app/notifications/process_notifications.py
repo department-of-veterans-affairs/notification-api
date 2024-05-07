@@ -152,7 +152,7 @@ def persist_notification(
 
 
 def send_notification_to_queue(
-    notification: Notification, research_mode, queue=None, recipient_id_type: str = None, sms_sender_id=None
+    notification, research_mode, queue=None, recipient_id_type: str = None, sms_sender_id=None
 ):
     """
     Create, enqueue, and asynchronously execute a Celery task to send a notification.
