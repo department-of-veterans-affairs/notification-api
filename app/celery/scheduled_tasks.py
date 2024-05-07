@@ -254,6 +254,27 @@ def _get_dynamodb_comp_pen_messages(
     return items[:message_limit]
 
 
+def _update_dynamo_item_is_processed(batch, item):
+    participant_id = item.get('participant_id')
+    payment_id = item.get('payment_id')
+
+    item.pop('is_processed', None)
+
+    # update dynamodb entries
+    try:
+        batch.put_item(Item=item)
+        current_app.logger.info('updated_item from dynamodb ("is_processed" should be "True"): %s', item)
+    except Exception as e:
+        current_app.logger.critical(
+            'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
+            'exception_type: %s exception_message: %s',
+            participant_id,
+            payment_id,
+            type(e),
+            e,
+        )
+
+
 @notify_celery.task(name='send-scheduled-comp-and-pen-sms')
 @statsd(namespace='tasks')
 def send_scheduled_comp_and_pen_sms():
@@ -382,6 +403,5 @@ def send_scheduled_comp_and_pen_sms():
                     payment_id,
                 )
 
-            # Remove the is_processed attribute from item
-            item.pop('is_processed', None)
-
+            # update dynamodb entries
+            _update_dynamo_item_is_processed(batch, item)
