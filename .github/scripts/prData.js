@@ -110,5 +110,3 @@ module.exports = {
   getReleaseVersionValue,
 };
 
-// Export the getReleaseVersionValue function so other files can use it
-// module.exports.getReleaseVersionValue = getReleaseVersionValue;
