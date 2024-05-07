@@ -371,11 +371,6 @@ def send_scheduled_comp_and_pen_sms():
                         recipient=recipient,
                         recipient_item=recipient_item,
                     )
-
-                    if perf_to_number is not None:
-                        current_app.logger.info(
-                            'Notification sent using Perf simulated number %s instead of vaprofile_id', perf_to_number
-                        )
                 except Exception as e:
                     current_app.logger.critical(
                         'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | item from '
@@ -388,6 +383,11 @@ def send_scheduled_comp_and_pen_sms():
                         e,
                     )
                 else:
+                    if perf_to_number is not None:
+                        current_app.logger.info(
+                            'Notification sent using Perf simulated number %s instead of vaprofile_id', perf_to_number
+                        )
+
                     current_app.logger.info(
                         'sent to queue, updating - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
                         vaprofile_id,

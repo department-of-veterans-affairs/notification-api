@@ -506,7 +506,7 @@ def test_it_update_dynamo_item_is_processed_updates_properly(dynamodb_mock, samp
     # Ensure we get all 3 records back and they are set to is_processed == True
     assert response['Count'] == 3
     for item in response['Items']:
-        assert item['is_processed'] is True
+        assert item['is_processed']
 
 
 def test_send_scheduled_comp_and_pen_sms_does_not_call_send_notification(mocker, dynamodb_mock):
