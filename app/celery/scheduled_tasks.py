@@ -263,7 +263,7 @@ def _update_dynamo_item_is_processed(batch, item):
     # update dynamodb entries
     try:
         batch.put_item(Item=item)
-        current_app.logger.info('updated_item from dynamodb ("is_processed" should be "True"): %s', item)
+        current_app.logger.info('updated_item from dynamodb ("is_processed" should no longer exist): %s', item)
     except Exception as e:
         current_app.logger.critical(
             'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
