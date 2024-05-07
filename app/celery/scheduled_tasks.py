@@ -257,11 +257,15 @@ def _get_dynamodb_comp_pen_messages(
 @notify_celery.task(name='send-scheduled-comp-and-pen-sms')
 @statsd(namespace='tasks')
 def send_scheduled_comp_and_pen_sms():
-    # this is the agreed upon message per minute limit
+    # this is the agreed upon message per 2 minute limit
     messages_per_min = 3000
+
+    # get config info
     dynamodb_table_name = current_app.config['COMP_AND_PEN_DYNAMODB_TABLE_NAME']
     service_id = current_app.config['COMP_AND_PEN_SERVICE_ID']
     template_id = current_app.config['COMP_AND_PEN_TEMPLATE_ID']
+    # Perf uses the AWS simulated delivered number
+    perf_to_number = current_app.config['COMP_AND_PEN_PERF_TO_NUMBER']
 
     # TODO: utils #146 - Debug messages currently don't show up in cloudwatch, requires a configuration change
     current_app.logger.debug('send_scheduled_comp_and_pen_sms connecting to dynamodb')
@@ -325,6 +329,17 @@ def send_scheduled_comp_and_pen_sms():
             )
 
             if is_feature_enabled(FeatureFlag.COMP_AND_PEN_MESSAGES_ENABLED):
+                # use perf_to_number as recipient if available, otherwise use vaprofile_id as recipient_item
+                recipient = perf_to_number
+                recipient_item = (
+                    None
+                    if perf_to_number is not None
+                    else {
+                        'id_type': IdentifierType.VA_PROFILE_ID.value,
+                        'id_value': vaprofile_id,
+                    }
+                )
+
                 try:
                     # call generic method to send messages
                     send_notification_bypass_route(
@@ -333,10 +348,8 @@ def send_scheduled_comp_and_pen_sms():
                         notification_type=SMS_TYPE,
                         personalisation={'paymentAmount': payment_amount},
                         sms_sender_id=service.get_default_sms_sender_id(),
-                        recipient_item={
-                            'id_type': IdentifierType.VA_PROFILE_ID.value,
-                            'id_value': vaprofile_id,
-                        },
+                        recipient=recipient,
+                        recipient_item=recipient_item,
                     )
                 except Exception as e:
                     current_app.logger.critical(
@@ -350,6 +363,11 @@ def send_scheduled_comp_and_pen_sms():
                         e,
                     )
                 else:
+                    if perf_to_number is not None:
+                        current_app.logger.info(
+                            'Notification sent using Perf simulated number %s instead of vaprofile_id', perf_to_number
+                        )
+
                     current_app.logger.info(
                         'sent to queue, updating - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
                         vaprofile_id,
@@ -367,16 +385,3 @@ def send_scheduled_comp_and_pen_sms():
             # Remove the is_processed attribute from item
             item.pop('is_processed', None)
 
-            # update dynamodb entries
-            try:
-                batch.put_item(Item=item)
-                current_app.logger.info('updated_item from dynamodb ("is_processed" should be "True"): %s', item)
-            except Exception as e:
-                current_app.logger.critical(
-                    'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
-                    'exception_type: %s exception_message: %s',
-                    participant_id,
-                    payment_id,
-                    type(e),
-                    e,
-                )
