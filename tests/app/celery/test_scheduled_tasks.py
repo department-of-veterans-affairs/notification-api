@@ -498,7 +498,7 @@ def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_i
         {
             'participant_id': 2,
             'is_processed': 'F',
-            'has_duplicate_mappings': 'F',
+            'has_duplicate_mappings': False,
             'payment_id': 2,
             'paymentAmount': Decimal(2.50),
         },
