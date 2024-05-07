@@ -532,9 +532,9 @@ def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_i
 
 def test_it_update_dynamo_item_is_processed_updates_properly(dynamodb_mock, sample_dynamodb_insert):
     items_to_insert = [
-        {'id': '1', 'is_processed': False, 'payment_id': 1, 'paymentAmount': Decimal(1.00)},
-        {'id': '2', 'is_processed': False, 'payment_id': 2, 'paymentAmount': Decimal(2.50)},
-        {'id': '3', 'is_processed': True, 'payment_id': 1, 'paymentAmount': Decimal(0.00)},
+        {'participant_id': 1, 'is_processed': 'F', 'payment_id': 1, 'paymentAmount': Decimal(1.00)},
+        {'participant_id': 2, 'is_processed': 'F', 'payment_id': 2, 'paymentAmount': Decimal(2.50)},
+        {'participant_id': 3, 'payment_id': 1, 'paymentAmount': Decimal(0.00)},
     ]
 
     # Insert mock data into the DynamoDB table.
@@ -546,10 +546,10 @@ def test_it_update_dynamo_item_is_processed_updates_properly(dynamodb_mock, samp
 
     response = dynamodb_mock.scan()
 
-    # Ensure we get all 3 records back and they are set to is_processed == True
+    # Ensure we get all 3 records back and they are set with is_processed removed
     assert response['Count'] == 3
     for item in response['Items']:
-        assert item['is_processed']
+        assert 'is_processed' not in item
 
 
 def test_send_scheduled_comp_and_pen_sms_does_not_call_send_notification(mocker, dynamodb_mock):
