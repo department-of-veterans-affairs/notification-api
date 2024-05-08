@@ -64,24 +64,30 @@ function processLabelsAndVersion(labels, currentVersion) {
   let versionParts = currentVersion.split(".").map((x) => parseInt(x, 10));
   let appliedLabel;
 
+  // breaking change label is a major version bump
   if (labels.some((label) => label.name === "breaking-change")) {
     versionParts[0] += 1;
     versionParts[1] = 0;
     versionParts[2] = 0;
     appliedLabel = "breaking change";
   } else if (
+	// If hotfix, security, or bug label
     labels.some((label) => ["hotfix", "security", "bug"].includes(label.name))
   ) {
+	// patch bump
     versionParts[2] += 1;
     appliedLabel = labels.find((label) =>
       ["hotfix", "security", "bug"].includes(label.name),
     ).name;
   } else {
+	// all other labels are a minor bump
     versionParts[1] += 1;
     versionParts[2] = 0;
     appliedLabel = labels.find((label) => label).name; // Catch-all increment
   }
 
+  // newVersion is in the format X.X.X
+  // appliedLabel is a string of the label used for versioning
   return {
     newVersion: versionParts.join("."),
     appliedLabel,
