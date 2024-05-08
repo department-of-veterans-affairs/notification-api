@@ -72,7 +72,7 @@ async function createAndPostTag(params) {
             value: newVersion,
         });
 
-		// Append the summary to the GitHub step summary file (thus displaying on the Summary page)
+		// Construct the summary content
         const summaryContent = `
 ### Successful Tag Creation!
 - After merge to the release branch, a tag was created. 
@@ -80,6 +80,7 @@ async function createAndPostTag(params) {
 - Tag created for version ${newVersion} using the new release branch SHA: ${releaseBranchSha}
 `;
 
+		// Append the summary to the GitHub step summary file or log it
 		appendSummary(summaryContent);
 }
 
