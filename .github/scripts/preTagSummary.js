@@ -17,11 +17,7 @@ const fs = require("fs");
 const preTagSummary = async ({ github, context, core }) => {
   try {
     // Retrieve the current release version and proposed new version from prData
-    const { currentVersion, newVersion } = await prData({
-      github,
-      context,
-      core,
-    });
+    const { currentVersion, newVersion } = await prData({ github, context, core, });
 
     // Construct the summary content
     const summaryContent = `

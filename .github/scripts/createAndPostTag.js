@@ -55,11 +55,7 @@ async function createAndPostTag(params) {
 
   try {
     // Retrieve PR data to decide the new version tag
-    const { releaseBranchSha, newVersion } = await prData({
-      github,
-      context,
-      core,
-    });
+    const { releaseBranchSha, newVersion } = await prData({ github, context, core });
 
     // Create and push the tag using the SHA from releaseBranchSha
     await createTag(github, owner, repo, newVersion, releaseBranchSha);

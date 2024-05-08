@@ -114,10 +114,7 @@ async function prData(params) {
     const prNumber = pullRequestData.data[0].number;
     const prUrl = pullRequestData.data[0].html_url;
 
-    const { newVersion, appliedLabel } = processLabelsAndVersion(
-      labels,
-      currentVersion,
-    );
+    const { newVersion, appliedLabel } = processLabelsAndVersion( labels, currentVersion );
 
     return {
       releaseBranchSha,
