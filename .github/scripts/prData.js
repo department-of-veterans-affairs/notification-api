@@ -1,6 +1,13 @@
 // prData.js
 
-// Function to fetch pull requests associated with a commit
+/**
+ * Fetches all pull requests associated with a specific commit from a GitHub repository.
+ * @param {Object} github - The GitHub client instance.
+ * @param {string} owner - The owner of the GitHub repository.
+ * @param {string} repo - The repository name.
+ * @param {string} sha - The commit SHA.
+ * @returns {Promise<Object>} - A promise resolving to the list of pull requests.
+ */
 async function fetchPullRequests(github, owner, repo, sha) {
   return await github.rest.repos.listPullRequestsAssociatedWithCommit({
     owner,
@@ -9,7 +16,13 @@ async function fetchPullRequests(github, owner, repo, sha) {
   });
 }
 
-// Function to fetch the current release version
+/**
+ * Retrieves the current release version from a repository's actions secrets.
+ * @param {Object} github - The GitHub client instance.
+ * @param {string} owner - The owner of the GitHub repository.
+ * @param {string} repo - The repository name.
+ * @returns {Promise<string>} - A promise resolving to the current release version.
+ */
 async function getReleaseVersionValue(github, owner, repo) {
   const { data } = await github.rest.actions.getRepoVariable({
     owner,
@@ -19,6 +32,13 @@ async function getReleaseVersionValue(github, owner, repo) {
   return data.value;
 }
 
+/**
+ * Retrieves the SHA of the release branch's latest commit.
+ * @param {Object} github - The GitHub client instance.
+ * @param {string} owner - The owner of the GitHub repository.
+ * @param {string} repo - The repository name.
+ * @returns {Promise<string>} - A promise resolving to the SHA of the latest commit on the release branch.
+ */
 async function fetchReleaseBranchSha(github, owner, repo) {
   const { data } = await github.rest.repos.getCommit({
     owner,
@@ -34,7 +54,12 @@ async function fetchReleaseBranchSha(github, owner, repo) {
   }
 }
 
-// Function to process labels to determine new version and label
+/**
+ * Processes labels from pull requests to determine the new version and relevant labels for a release.
+ * @param {Array<Object>} labels - An array of label objects from pull requests.
+ * @param {string} currentVersion - The current release version.
+ * @returns {Object} - An object containing the new version and applied label.
+ */
 function processLabelsAndVersion(labels, currentVersion) {
   let versionParts = currentVersion.split(".").map((x) => parseInt(x, 10));
   let appliedLabel;
@@ -63,8 +88,13 @@ function processLabelsAndVersion(labels, currentVersion) {
   };
 }
 
-// Main function exported to handle pull request data
-const prData = async ({ github, context, core }) => {
+/**
+ * Main function to handle pull request data for a GitHub repository.
+ * @param {Object} params - Parameters including GitHub client and context.
+ * @returns {Object|null} - An object containing pull request processing results or null in case of error.
+ */
+async function prData(params) {
+  const { github, context, core } = params;
   const owner = context.repo.owner;
   const repo = context.repo.repo;
   const sha = context.payload.after;
@@ -73,8 +103,6 @@ const prData = async ({ github, context, core }) => {
     const pullRequestData = await fetchPullRequests(github, owner, repo, sha);
     const currentVersion = await getReleaseVersionValue(github, owner, repo);
     const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo);
-
-    // const checkTag = await verifyNoExistingTag(github, owner, repo, releaseBranchSha)
 
     const labels = pullRequestData.data[0].labels.map((label) => ({
       id: label.id,
