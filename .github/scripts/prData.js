@@ -104,12 +104,7 @@ async function prData(params) {
     const currentVersion = await getReleaseVersionValue(github, owner, repo);
     const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo);
 
-    const labels = pullRequestData.data[0].labels.map((label) => ({
-      id: label.id,
-      name: label.name,
-      description: label.description,
-      color: label.color,
-    }));
+    const labels = pullRequestData.data[0].labels
     const prNumber = pullRequestData.data[0].number;
     const prUrl = pullRequestData.data[0].html_url;
 
