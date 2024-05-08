@@ -1,7 +1,6 @@
 // prLabelSemver.js
 const { prData } = require("./prData");
 const appendSummary = require("./actionUtils");
-const fs = require("fs");
 
 /**
  * Automatically labels pull requests based on semantic versioning (semver) guidelines

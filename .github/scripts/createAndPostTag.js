@@ -1,7 +1,6 @@
 // createAndPostTag.js
 const { prData, getReleaseVersionValue } = require("./prData");
 const appendSummary = require("./actionUtils");
-const fs = require("fs");
 
 /**
  * Creates a new git tag in the repository.

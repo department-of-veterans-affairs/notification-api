@@ -2,7 +2,6 @@
 // This module defines a function to generate a pre-tag release summary for GitHub pull requests.
 const { prData, getReleaseVersionValue } = require("./prData");
 const appendSummary = require("./actionUtils");
-const fs = require("fs");
 
 /**
  * Asynchronously generates and appends a pre-tag release summary to the GitHub step summary file.
