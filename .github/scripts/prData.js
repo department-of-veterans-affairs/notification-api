@@ -71,16 +71,16 @@ function processLabelsAndVersion(labels, currentVersion) {
     versionParts[2] = 0;
     appliedLabel = "breaking change";
   } else if (
-	// If hotfix, security, or bug label
+    // If hotfix, security, or bug label
     labels.some((label) => ["hotfix", "security", "bug"].includes(label.name))
   ) {
-	// patch bump
+    // patch bump
     versionParts[2] += 1;
     appliedLabel = labels.find((label) =>
       ["hotfix", "security", "bug"].includes(label.name),
     ).name;
   } else {
-	// all other labels are a minor bump
+    // all other labels are a minor bump
     versionParts[1] += 1;
     versionParts[2] = 0;
     appliedLabel = labels.find((label) => label).name; // Catch-all increment
@@ -110,7 +110,7 @@ async function prData(params) {
     const currentVersion = await getReleaseVersionValue(github, owner, repo);
     const releaseBranchSha = await fetchReleaseBranchSha(github, owner, repo);
 
-    const labels = pullRequestData.data[0].labels
+    const labels = pullRequestData.data[0].labels;
     const prNumber = pullRequestData.data[0].number;
     const prUrl = pullRequestData.data[0].html_url;
 
@@ -132,10 +132,9 @@ async function prData(params) {
     console.error("Error processing PR data:", error);
     return null; // Ensure to handle null in postQA.js if needed
   }
-};
+}
 
 module.exports = {
   prData,
   getReleaseVersionValue,
 };
-

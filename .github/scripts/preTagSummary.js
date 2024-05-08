@@ -1,7 +1,7 @@
 // preTagSummary.js
 // This module defines a function to generate a pre-tag release summary for GitHub pull requests.
 const { prData, getReleaseVersionValue } = require("./prData");
-const appendSummary = require('./actionUtils');
+const appendSummary = require("./actionUtils");
 const fs = require("fs");
 
 /**
@@ -9,7 +9,7 @@ const fs = require("fs");
  * This function retrieves the current and proposed new release versions from a pull request data,
  * constructs a summary of the release, and appends it to the GitHub step summary for visibility
  * in the GitHub Actions workflow.
- * 
+ *
  * @param {object} github - The GitHub context object, providing context like repo and owner.
  * @param {object} context - The GitHub context object with additional pull request information.
  * @param {object} core - The GitHub core library, used for setting action failure messages.
@@ -31,8 +31,11 @@ const preTagSummary = async ({ github, context, core }) => {
 `;
 
     // Append the summary to the GitHub step summary file or log it
-	appendSummary(summaryContent);
+    appendSummary(summaryContent);
+  } catch (error) {
+    core.setFailed(`Failed to generate summary: ${error.message}`);
+    console.error(error);
+  }
 };
 
 module.exports = preTagSummary;
-

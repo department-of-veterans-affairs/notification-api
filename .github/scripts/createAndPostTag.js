@@ -1,6 +1,6 @@
 // createAndPostTag.js
 const { prData, getReleaseVersionValue } = require("./prData");
-const appendSummary = require('./actionUtils');
+const appendSummary = require("./actionUtils");
 const fs = require("fs");
 
 /**
@@ -49,39 +49,43 @@ async function createTag(github, owner, repo, newVersion, sha) {
  * @async
  */
 async function createAndPostTag(params) {
-    const { github, context, core } = params;
-    const owner = context.repo.owner;
-    const repo = context.repo.repo;
+  const { github, context, core } = params;
+  const owner = context.repo.owner;
+  const repo = context.repo.repo;
 
-    try {
-        // Retrieve PR data to decide the new version tag
-        const { releaseBranchSha, newVersion } = await prData({
-            github,
-            context,
-            core,
-        });
+  try {
+    // Retrieve PR data to decide the new version tag
+    const { releaseBranchSha, newVersion } = await prData({
+      github,
+      context,
+      core,
+    });
 
-        // Create and push the tag using the SHA from releaseBranchSha
-        await createTag(github, owner, repo, newVersion, releaseBranchSha);
+    // Create and push the tag using the SHA from releaseBranchSha
+    await createTag(github, owner, repo, newVersion, releaseBranchSha);
 
-        // Update the RELEASE_VERSION repo variable
-        await github.rest.actions.updateRepoVariable({
-            owner,
-            repo,
-            name: "RELEASE_VERSION",
-            value: newVersion,
-        });
+    // Update the RELEASE_VERSION repo variable
+    await github.rest.actions.updateRepoVariable({
+      owner,
+      repo,
+      name: "RELEASE_VERSION",
+      value: newVersion,
+    });
 
-		// Construct the summary content
-        const summaryContent = `
+    // Construct the summary content
+    const summaryContent = `
 ### Successful Tag Creation!
 - After merge to the release branch, a tag was created. 
 - New version is ${newVersion}
 - Tag created for version ${newVersion} using the new release branch SHA: ${releaseBranchSha}
 `;
 
-		// Append the summary to the GitHub step summary file or log it
-		appendSummary(summaryContent);
+    // Append the summary to the GitHub step summary file or log it
+    appendSummary(summaryContent);
+  } catch (error) {
+    core.setFailed(`Failed to generate summary: ${error.message}`);
+    console.error(error);
+  }
 }
 
 module.exports = createAndPostTag;

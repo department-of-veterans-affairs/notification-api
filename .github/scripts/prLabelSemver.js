@@ -1,12 +1,12 @@
 // prLabelSemver.js
 const { prData } = require("./prData");
-const appendSummary = require('./actionUtils');
+const appendSummary = require("./actionUtils");
 const fs = require("fs");
 
 /**
  * Automatically labels pull requests based on semantic versioning (semver) guidelines
  * and appends a summary to the GitHub action step.
- * 
+ *
  * @param {object} github - The github object providing context and operations for the pull request.
  * @param {object} context - The context object containing metadata and states for the action run.
  * @param {object} core - The core library with utilities for logging and error handling.
@@ -25,7 +25,7 @@ const prLabelSemver = async ({ github, context, core }) => {
         ? "PATCH"
         : "MINOR";
 
-	// Construct the summary content
+    // Construct the summary content
     const summaryContent = `
 ### PR Label Semver Summary
 - PR Number: [#${prNumber}](${prUrl})
@@ -33,8 +33,11 @@ const prLabelSemver = async ({ github, context, core }) => {
 - Semver Bump: ${semverValue}
 `;
     // Append the summary to the GitHub step summary file or log it
-	appendSummary(summaryContent);
+    appendSummary(summaryContent);
+  } catch (error) {
+    core.setFailed(`Failed to generate summary: ${error.message}`);
+    console.error(error);
+  }
 };
 
 module.exports = prLabelSemver;
-
