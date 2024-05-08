@@ -10,7 +10,8 @@ const appendSummary = require("./actionUtils");
  * @param {object} context - The context object containing metadata and states for the action run.
  * @param {object} core - The core library with utilities for logging and error handling.
  */
-const prLabelSemver = async ({ github, context, core }) => {
+async function prLabelSemver(params) {
+  const { github, context, core } = params;
   try {
     // Retrieve necessary data from prData.js
     const { label, prNumber, prUrl } = await prData({ github, context, core });
