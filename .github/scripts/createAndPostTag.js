@@ -46,7 +46,8 @@ async function createTag(github, owner, repo, newVersion, sha) {
  * @param {object} params.github - The Octokit instance used to interact with GitHub.
  * @param {object} params.context - The context of the GitHub action, containing repository and action runner metadata.
  * @param {object} params.core - The core toolkit for GitHub actions to handle logging and errors.
- * @async
+ * @returns {Promise<void>} A Promise that resolves when the summary has been successfully appended,
+ *                          or rejects if an error occurs during the operation.
  */
 async function createAndPostTag(params) {
   const { github, context, core } = params;
