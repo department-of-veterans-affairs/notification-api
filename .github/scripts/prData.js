@@ -97,7 +97,7 @@ function processLabelsAndVersion(labels, currentVersion) {
 /**
  * Main function to handle pull request data for a GitHub repository.
  * @param {Object} params - Parameters including GitHub client and context.
- * @returns {Object|null} - An object containing pull request processing results or null in case of error.
+ * @returns {Promise<Object>} - An object containing pull request processing results or null in case of error.
  */
 async function prData(params) {
   const { github, context, core } = params;

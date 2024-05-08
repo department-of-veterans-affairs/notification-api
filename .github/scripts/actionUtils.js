@@ -6,6 +6,9 @@ const fs = require("fs"); // NodeJs module provides an API for interacting with 
  * This function is designed to be reused across different modules or scripts.
  *
  * @param {string} summaryContent The content to append to the GitHub step summary.
+ * @returns {Promise<void>} A Promise that resolves with no value (undefined) if the append operation succeeds,
+ *                          or rejects if an error occurs during the append operation.
+ *
  */
 async function appendSummary(summaryContent) {
   try {

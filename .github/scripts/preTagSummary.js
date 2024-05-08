@@ -12,6 +12,8 @@ const appendSummary = require("./actionUtils");
  * @param {object} github - The GitHub context object, providing context like repo and owner.
  * @param {object} context - The GitHub context object with additional pull request information.
  * @param {object} core - The GitHub core library, used for setting action failure messages.
+ * @returns {Promise<void>} A Promise that resolves when the summary has been successfully appended,
+ *                          or rejects if an error occurs during the operation.
  */
 async function preTagSummary(params) {
   const { github, context, core } = params;

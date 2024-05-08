@@ -10,7 +10,8 @@ const appendSummary = require("./actionUtils");
  * @param {string} repo The repository name.
  * @param {string} newVersion The new version for the tag.
  * @param {string} sha The SHA of the commit to tag.
- * @async
+ * @returns {Promise<void>} A Promise that resolves when the tag is successfully created and pushed,
+ *                          or rejects if an error occurs.
  */
 async function createTag(github, owner, repo, newVersion, sha) {
   const tagName = `${newVersion}`;
