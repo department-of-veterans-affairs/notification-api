@@ -2,6 +2,9 @@ name: CD Pipeline PR Labels and Semver bump Summary
 
 on: 
   workflow_call:
+  push:
+    branches:
+      - 1727-cd-pipeline-versioning
 
 jobs:
   check-pr-sem:

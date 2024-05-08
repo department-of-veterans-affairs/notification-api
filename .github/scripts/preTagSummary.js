@@ -13,7 +13,9 @@ const appendSummary = require("./actionUtils");
  * @param {object} context - The GitHub context object with additional pull request information.
  * @param {object} core - The GitHub core library, used for setting action failure messages.
  */
-const preTagSummary = async ({ github, context, core }) => {
+async function preTagSummary(params) {
+  const { github, context, core } = params;
+
   try {
     // Retrieve the current release version and proposed new version from prData
     const { currentVersion, newVersion } = await prData({ github, context, core, });

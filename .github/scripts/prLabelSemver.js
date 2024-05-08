@@ -12,6 +12,7 @@ const appendSummary = require("./actionUtils");
  */
 async function prLabelSemver(params) {
   const { github, context, core } = params;
+
   try {
     // Retrieve necessary data from prData.js
     const { label, prNumber, prUrl } = await prData({ github, context, core });
