@@ -83,7 +83,7 @@ function processLabelsAndVersion(labels, currentVersion) {
     // all other labels are a minor bump
     versionParts[1] += 1;
     versionParts[2] = 0;
-    appliedLabel = labels.find((label) => label).name; // Catch-all increment
+    appliedLabel = labels[0].name; // Assumes only one label was used, as is currently our process
   }
 
   // newVersion is in the format X.X.X
