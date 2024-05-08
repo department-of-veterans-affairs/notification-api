@@ -6,7 +6,7 @@
  * @param {string} owner - The owner of the GitHub repository.
  * @param {string} repo - The repository name.
  * @param {string} sha - The commit SHA.
- * @returns {list} - A list of pull requests 
+ * @returns {Promise<Object>} - A promise resolving to the list of pull requests.
  */
 async function fetchPullRequests(github, owner, repo, sha) {
   return await github.rest.repos.listPullRequestsAssociatedWithCommit({
@@ -21,7 +21,7 @@ async function fetchPullRequests(github, owner, repo, sha) {
  * @param {Object} github - The GitHub client instance.
  * @param {string} owner - The owner of the GitHub repository.
  * @param {string} repo - The repository name.
- * @returns {string} - A string of the current release version.
+ * @returns {Promise<string>} - A promise resolving to the current release version.
  */
 async function getReleaseVersionValue(github, owner, repo) {
   const { data } = await github.rest.actions.getRepoVariable({
@@ -37,7 +37,7 @@ async function getReleaseVersionValue(github, owner, repo) {
  * @param {Object} github - The GitHub client instance.
  * @param {string} owner - The owner of the GitHub repository.
  * @param {string} repo - The repository name.
- * @returns {string} - The SHA of the latest commit on the release branch.
+ * @returns {Promise<string>} - A promise resolving to the SHA of the latest commit on the release branch.
  */
 async function fetchReleaseBranchSha(github, owner, repo) {
   const { data } = await github.rest.repos.getCommit({
