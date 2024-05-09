@@ -2,9 +2,6 @@ name: CD Pipeline PR Labels and Semver bump Summary
 
 on: 
   workflow_call:
-  push:
-    branches:
-      - 1727-HOTFIX
 
 jobs:
   check-pr-sem:
@@ -16,7 +13,7 @@ jobs:
       - name: PR Label Semver
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.CD_PAT }}
+          github-token: ${{ secrets.VAR_PAT }}
           script: |
             const path = '.github/scripts/prLabelSemver.js';
             const prLabelSemver = require(path);
