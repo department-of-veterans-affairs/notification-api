@@ -339,8 +339,10 @@ def send_scheduled_comp_and_pen_sms():
     try:
         # If this line doesn't raise ValueError, the value is a valid UUID.
         sms_sender_id = UUID(sms_sender_id)
+        current_app.logger.info('Using the SMS sender ID specified in SSM Parameter store.')
     except ValueError:
         sms_sender_id = service.get_default_sms_sender_id()
+        current_app.logger.info("Using the service default ServiceSmsSender's ID.")
 
     # send messages and update entries in dynamodb table
     with table.batch_writer() as batch:
