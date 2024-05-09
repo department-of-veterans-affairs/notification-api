@@ -594,7 +594,13 @@ def test_ut_send_scheduled_comp_and_pen_sms_calls_send_notification_with_recipie
 
     # Mock the comp and pen perf number for sending with recipient
     test_recipient = '+11234567890'
-    mocker.patch.dict('app.celery.scheduled_tasks.current_app.config', {'COMP_AND_PEN_PERF_TO_NUMBER': test_recipient})
+    mocker.patch.dict(
+        'app.celery.scheduled_tasks.current_app.config',
+        {
+            'COMP_AND_PEN_SMS_SENDER_ID': '',
+            'COMP_AND_PEN_PERF_TO_NUMBER': test_recipient,
+        }
+    )
 
     mocker.patch('app.celery.scheduled_tasks.is_feature_enabled', return_value=True)
 
@@ -672,6 +678,7 @@ def test_ut_send_scheduled_comp_and_pen_sms_calls_send_notification_with_recipie
     mock_get_template = mocker.patch('app.celery.scheduled_tasks.dao_get_template_by_id', return_value=template)
 
     mock_send_notification = mocker.patch('app.celery.scheduled_tasks.send_notification_bypass_route')
+    mocker.patch.dict('app.celery.scheduled_tasks.current_app.config', {'COMP_AND_PEN_SMS_SENDER_ID': ''})
 
     send_scheduled_comp_and_pen_sms()
 
@@ -715,6 +722,7 @@ def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, sample_service
         },
     ]
     mocker.patch('app.celery.scheduled_tasks._get_dynamodb_comp_pen_messages', return_value=dynamo_data)
+    mocker.patch.dict('app.celery.scheduled_tasks.current_app.config', {'COMP_AND_PEN_SMS_SENDER_ID': ''})
 
     with patch('app.celery.scheduled_tasks.boto3.resource') as mock_resource:
         mock_put_item = MagicMock()
