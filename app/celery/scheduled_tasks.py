@@ -338,8 +338,6 @@ def send_scheduled_comp_and_pen_sms():
 
     try:
         # If this line doesn't raise ValueError, the value is a valid UUID.
-        # TODO - for testing; delete
-        current_app.logger.info('send_scheduled_comp_and_pen_sms sms_sender_id = %s', sms_sender_id)
         sms_sender_id = UUID(sms_sender_id)
         current_app.logger.info('Using the SMS sender ID specified in SSM Parameter store.')
     except ValueError:
@@ -415,5 +413,6 @@ def send_scheduled_comp_and_pen_sms():
                     payment_id,
                 )
 
-            # update dynamodb entries
+            # Update DynamoDB entries.  Note that this occurs without knowing if the call to
+            # send_notification_bypass_route raised an exception.
             _update_dynamo_item_is_processed(batch, item)
