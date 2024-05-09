@@ -757,12 +757,15 @@ def test_wt_send_scheduled_comp_and_pen_sms_sms_sender_id_selection(
     service = sample_service()
     template = sample_template()
 
-    mocker.patch.dict('app.celery.scheduled_tasks.current_app.config', {
-        'COMP_AND_PEN_SERVICE_ID': service.id,
-        'COMP_AND_PEN_TEMPLATE_ID': template.id,
-        'COMP_AND_PEN_SMS_SENDER_ID': sms_sender_id,
-        'COMP_AND_PEN_PERF_TO_NUMBER': '+15552225566',
-    })
+    mocker.patch.dict(
+        'app.celery.scheduled_tasks.current_app.config',
+        {
+            'COMP_AND_PEN_SERVICE_ID': service.id,
+            'COMP_AND_PEN_TEMPLATE_ID': template.id,
+            'COMP_AND_PEN_SMS_SENDER_ID': sms_sender_id,
+            'COMP_AND_PEN_PERF_TO_NUMBER': '+15552225566',
+        },
+    )
 
     with patch.dict('os.environ', {'COMP_AND_PEN_MESSAGES_ENABLED': 'True'}):
         send_scheduled_comp_and_pen_sms()
@@ -780,7 +783,7 @@ def test_wt_send_scheduled_comp_and_pen_sms_sms_sender_id_selection(
         personalisation={'paymentAmount': '123'},
         sms_sender_id=expected_sms_sender_id,
         recipient='+15552225566',
-        recipient_item=None
+        recipient_item=None,
     )
     assert mock_send_notification.call_args.kwargs['service'].id == service.id
     assert mock_send_notification.call_args.kwargs['template'].id == template.id
