@@ -599,7 +599,7 @@ def test_ut_send_scheduled_comp_and_pen_sms_calls_send_notification_with_recipie
         {
             'COMP_AND_PEN_SMS_SENDER_ID': '',
             'COMP_AND_PEN_PERF_TO_NUMBER': test_recipient,
-        }
+        },
     )
 
     mocker.patch('app.celery.scheduled_tasks.is_feature_enabled', return_value=True)
