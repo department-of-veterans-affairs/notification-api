@@ -38,3 +38,14 @@ jobs:
           # scopes
           token: ${{ secrets.CD_PAT }}
 
+      - name: Setup git user
+        # The following is taken from https://github.com/actions/checkout/issues/13 as a common work-around
+        run: |
+            git config --global user.name "$(git --no-pager log --format=format:'%an' -n 1)"
+            git config --global user.email "$(git --no-pager log --format=format:'%ae' -n 1)"
+          
+      - name: Merge commit SHA to release
+        run: |
+          git merge ${{ github.sha }} --no-squash -X theirs
+          git push
+
