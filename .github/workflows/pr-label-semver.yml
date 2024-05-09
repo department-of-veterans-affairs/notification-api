@@ -36,7 +36,7 @@ jobs:
           fetch-depth: 0
           # Fine-grained PAT with contents:write and workflows:write
           # scopes
-          token: ${{ secrets.CD_PAT }}
+          # token: ${{ secrets.CD_PAT }}
 
       - name: Setup git user
         # The following is taken from https://github.com/actions/checkout/issues/13 as a common work-around
