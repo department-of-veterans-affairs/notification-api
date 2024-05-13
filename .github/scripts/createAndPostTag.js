@@ -55,6 +55,12 @@ async function createAndPostTag(params) {
   const repo = context.repo.repo;
 
   try {
+    // Retrieve the current release version, this will be used as the PREVIOUS_VERSION
+    const previousVersion = await getReleaseVersionValue();
+
+    // Output previous version to the GitHub actions workflow context
+    core.setOutput("PREVIOUS_VERSION", previousVersion);
+
     // Retrieve PR data to decide the new version tag
     const { releaseBranchSha, newVersion } = await prData({ github, context, core });
 
@@ -72,7 +78,8 @@ async function createAndPostTag(params) {
     // Construct the summary content
     const summaryContent = `
 ### Successful Tag Creation!
-- After merge to the release branch, a tag was created. 
+- After merge to the release branch, a tag was created.
+- Previous version was ${previousVersion}
 - New version is ${newVersion}
 - Tag created for version ${newVersion} using the new release branch SHA: ${releaseBranchSha}
 `;
@@ -86,3 +93,4 @@ async function createAndPostTag(params) {
 }
 
 module.exports = createAndPostTag;
+
