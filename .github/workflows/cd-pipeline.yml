@@ -104,8 +104,8 @@ jobs:
     needs: create-to-release
     uses: ./.github/workflows/create-release-notes.yml
     secrets: inherit
-    env:
-      PREVIOUS_VERSION: ${{ needs.create-and-post-tag.outputs.previous_version }}
+    # env:
+      # PREVIOUS_VERSION: ${{ needs.create-and-post-tag.outputs.previous_version }}
 
   # deploy-to-staging:
     # needs: merge-to-release 
