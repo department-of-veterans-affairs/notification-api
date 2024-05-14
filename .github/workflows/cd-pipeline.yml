@@ -101,7 +101,7 @@ jobs:
       # previous_version: ${{ steps.set_output.outputs.previous_version }}
 
   create-release-notes:
-    needs: create-to-release
+    needs: create-and-post-tag
     uses: ./.github/workflows/create-release-notes.yml
     secrets: inherit
     # env:
