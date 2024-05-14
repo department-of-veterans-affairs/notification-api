@@ -3,7 +3,7 @@
 
 async function createReleaseNotes(params) {
   const { github, context, core } = params;
-  const { previousVersion } = context.inputs.PREVIOUS_VERSION
+  const { previousVersion } = context.inputs.previous_version
 
   try {
 	// Retrieve the previous version from the environment variables
