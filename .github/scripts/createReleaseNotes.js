@@ -5,10 +5,10 @@ async function createReleaseNotes(params) {
 
   try {
     // Log the entire inputs object to the GitHub Actions summary
-    core.summary.addRaw(`Inputs received: ${JSON.stringify(context.inputs)}`).write();
+    core.summary.addRaw(`Inputs received: ${JSON.stringify(context.payload)}`).write();
 
     // Retrieve the previous version from the inputs
-    const previousVersion = context.inputs.PREVIOUS_VERSION;
+    // const previousVersion = context.inputs.PREVIOUS_VERSION;
 
     // Output the previous version to the console
     console.log(`The previous release version was: ${previousVersion}`);
