@@ -1,10 +1,10 @@
-name: Create And Post Tag with Summary
+name: Create Release Notes
 
 on: 
   workflow_call:
 
 jobs:
-  create-and-post-tag:
+  create-release-notes:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -16,7 +16,7 @@ jobs:
         with:
           github-token: ${{ secrets.VAR_PAT }}
           script: |
-            const path = '.github/scripts/createAndPostTag.js';
-            const createAndPostTag = require(path);
-            createAndPostTag({github, context, core});
+            const path = '.github/scripts/createReleaseNotes.js';
+            const createReleaseNotes = require(path);
+            createReleaseNotes({github, context, core});
 
