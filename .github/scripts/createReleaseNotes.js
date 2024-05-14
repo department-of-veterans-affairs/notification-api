@@ -1,7 +1,7 @@
 // createReleaseNotes.js
 
 
-async function createReleaseNotes() {
+async function createReleaseNotes(params) {
   const { github, context, core } = params;
   const { previousVersion } = context.inputs.PREVIOUS_VERSION
 
