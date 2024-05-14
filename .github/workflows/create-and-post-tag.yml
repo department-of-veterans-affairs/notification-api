@@ -5,7 +5,7 @@ on:
     outputs:
       previous_version:
         description: "Will be used for generating release notes from the previous tag"
-        value: ${{ jobs.create_tag.outputs.previous_version }}
+        value: ${{ jobs.create-and-post-tag.outputs.previous_version }}
 
 jobs:
   create-and-post-tag:
