@@ -97,8 +97,8 @@ jobs:
     needs: merge-to-release
     uses: ./.github/workflows/create-and-post-tag.yml
     secrets: inherit
-    outputs:
-      previous_version: ${{ steps.set_output.outputs.previous_version }}
+    # outputs:
+      # previous_version: ${{ steps.set_output.outputs.previous_version }}
 
   create-release-notes:
     needs: create-to-release
