@@ -55,7 +55,7 @@ async function createReleaseNotes(params) {
   try {
 	// get currentVersion to compare with previousVersion for release notes
 	const currentVersion = await getReleaseVersionValue(github, owner, repo);
-	const createDraftRelease = await createDraftRelease(github, owner, repo, tag_name)
+	const createRelease = await createDraftRelease(github, owner, repo, tag_name)
 	const releaseNotes = await generateReleaseNotes(github, owner, repo, tag_name, previousVersion);
 
 	// Make a github summary that provides a link to the draft release and notifies of successful creation
