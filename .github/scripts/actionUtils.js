@@ -1,4 +1,7 @@
 // actionUtils.js
+
+// This module provides various utilities that are used by multiple other scripts
+
 const fs = require("fs"); // NodeJs module provides an API for interacting with the file system
 
 /**
@@ -20,4 +23,17 @@ async function appendSummary(summaryContent) {
   }
 }
 
-module.exports = appendSummary; // Exporting the function for external use
+async function getReleaseVersionValue(github, owner, repo) {
+  const { data } = await github.rest.actions.getRepoVariable({
+    owner,
+    repo,
+    name: "RELEASE_VERSION",
+  });
+  return data.value;
+}
+
+module.exports = { 
+  appendSummary,
+  getReleaseVersionValue,
+}
+
