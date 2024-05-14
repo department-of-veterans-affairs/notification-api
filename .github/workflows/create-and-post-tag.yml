@@ -2,6 +2,10 @@ name: Create And Post Tag with Summary
 
 on: 
   workflow_call:
+    outputs:
+      previous_version:
+        description: "Will be used for generating release notes from the previous tag"
+        value: ${{ jobs.create-and-post-tag.outputs.previous_version }}
 
 jobs:
   create-and-post-tag:
