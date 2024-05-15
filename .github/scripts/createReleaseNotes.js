@@ -1,5 +1,5 @@
 // createReleaseNotes.js
-const { appendSummary, getReleaseVersionValue } = require("./actionUtils");
+const { appendSummary, getReleaseVersionValue, logKeys } = require("./actionUtils");
 
 // Function to format the current date for release title (e.g. 1.7.10 - 15 MAY 2024)
 function formatDate() {
@@ -39,8 +39,7 @@ async function generateReleaseNotes(owner, repo, tag_name, previous_tag_name) {
     });
 
     console.log('Release notes generated successfully:', response);
-    return response; // You can return this if you need to use the response outside this function
-	// return response.data
+    return response;
   } catch (error) {
     console.error('Error generating release notes:', error);
   }
@@ -57,6 +56,8 @@ async function createReleaseNotes(params) {
 	const currentVersion = await getReleaseVersionValue(github, owner, repo);
 	const createRelease = await createDraftRelease(github, owner, repo, currentVersion)
 	const releaseNotes = await generateReleaseNotes(github, owner, repo, currentVersion, previousVersion);
+
+	logKeys(releaseNotes.data);
 
 	// Make a github summary that provides a link to the draft release and notifies of successful creation
 

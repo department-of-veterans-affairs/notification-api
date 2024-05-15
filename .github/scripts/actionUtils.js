@@ -32,8 +32,23 @@ async function getReleaseVersionValue(github, owner, repo) {
   return data.value;
 }
 
+// Function to log keys of a JSON object recursively
+// Useful during development when needing to see what's available in a response
+async function logKeys(obj, prefix) {
+    prefix = prefix || '';  // Default prefix to empty string if not provided
+    Object.keys(obj).forEach(function(key) {
+        var value = obj[key];
+        console.log(prefix + key);
+        if (value && typeof value === 'object' && !Array.isArray(value) && value !== null) {
+            logKeys(value, prefix + key + '.');
+        }
+    });
+}
+
+
 module.exports = { 
   appendSummary,
   getReleaseVersionValue,
+  logKeys,
 }
 
