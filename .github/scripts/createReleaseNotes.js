@@ -40,9 +40,9 @@ async function generateReleaseNotes(github, owner, repo, tag_name, previous_tag_
       previous_tag_name,
       configuration_file_path: '.github/release.yaml',
     });
-
+	const releaseNotes = response.data.body
     console.log('Release notes generated successfully:', response);
-    return response;
+    return { response, releaseNotes };
   } catch (error) {
     console.error('Error generating release notes:', error);
   }
@@ -62,7 +62,7 @@ async function createReleaseNotes(params) {
 	const releaseUrl = await createDraftRelease(github, owner, repo, currentVersion)
 
 	// append release notes based on the previousVersion
-	const releaseNotes = await generateReleaseNotes(github, owner, repo, currentVersion, previousVersion);
+	const { releaseNotes, response } = await generateReleaseNotes(github, owner, repo, currentVersion, previousVersion);
 
 	logKeys(releaseNotes);
 
@@ -72,6 +72,7 @@ async function createReleaseNotes(params) {
 the release notes URL is ${releaseUrl}
 Based on the previous version ${previousVersion}
 And the update to ${currentVersion}
+The release notes look like (at the time of creation) ${releaseNotes}
 	`
 	appendSummary(summaryContent)
 
