@@ -17,7 +17,7 @@ on:
   push:
     branches:
       # - master
-      - 1725-version-release-notes
+      # - 1725-version-release-notes
 
 jobs:
   prepare-deployment:
