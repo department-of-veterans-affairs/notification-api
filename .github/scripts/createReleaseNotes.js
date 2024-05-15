@@ -64,7 +64,7 @@ async function createReleaseNotes(params) {
 	// append release notes based on the previousVersion
 	const releaseNotes = await generateReleaseNotes(github, owner, repo, currentVersion, previousVersion);
 
-	logKeys(releaseNotes.data);
+	logKeys(releaseNotes);
 
 	// Make a github summary that provides a link to the draft release and notifies of successful creation
 	summaryContent = `
