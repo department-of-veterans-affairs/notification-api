@@ -55,11 +55,11 @@ async function createReleaseNotes(params) {
   const repo = context.repo.repo;
 
   try {
+	// get currentVersion to create a release from that tag
+	const currentVersion = await getReleaseVersionValue(github, owner, repo);
+
 	// create release and return the url for the step summary
 	const releaseUrl = await createDraftRelease(github, owner, repo, currentVersion)
-
-	// get currentVersion to compare with previousVersion for release notes
-	const currentVersion = await getReleaseVersionValue(github, owner, repo);
 
 	// append release notes based on the previousVersion
 	const releaseNotes = await generateReleaseNotes(github, owner, repo, currentVersion, previousVersion);
