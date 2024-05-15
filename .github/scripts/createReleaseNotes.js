@@ -30,7 +30,7 @@ async function createDraftRelease(github, owner, repo, tag_name) {
 }
 
 // Appends release notes based on previous tag
-async function generateReleaseNotes(owner, repo, tag_name, previous_tag_name) {
+async function generateReleaseNotes(github, owner, repo, tag_name, previous_tag_name) {
   try {
 	const response = await github.rest.repos.generateReleaseNotes({
       owner,
