@@ -116,4 +116,7 @@ async function prData(params) {
   }
 }
 
-module.exports = prData;
+module.exports = {
+  prData,
+}
+
