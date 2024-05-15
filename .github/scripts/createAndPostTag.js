@@ -59,6 +59,7 @@ async function createAndPostTag(params) {
     const previousVersion = await getReleaseVersionValue();
 
     // Output previous version to the GitHub actions workflow context
+	// This will be used by the workflow that sets up the release notes
     core.setOutput("PREVIOUS_VERSION", previousVersion);
 
     // Retrieve PR data to decide the new version tag

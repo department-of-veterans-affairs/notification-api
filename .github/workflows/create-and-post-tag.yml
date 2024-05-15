@@ -17,17 +17,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create and Post Tag
-        id: create_tag
-        run: echo "previous_version=v1.7.8" >> $GITHUB_OUTPUT
-
       # - name: Create and Post Tag
         # id: create_tag
-        # uses: actions/github-script@v7
-        # with:
-          # github-token: ${{ secrets.VAR_PAT }}
-          # script: |
-            # const path = '.github/scripts/createAndPostTag.js';
-            # const createAndPostTag = require(path);
-            # createAndPostTag({github, context, core});
+        # run: echo "previous_version=v1.7.8" >> $GITHUB_OUTPUT
+
+      - name: Create and Post Tag
+        id: create_tag
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.VAR_PAT }}
+          script: |
+            const path = '.github/scripts/createAndPostTag.js';
+            const createAndPostTag = require(path);
+            createAndPostTag({github, context, core});
 

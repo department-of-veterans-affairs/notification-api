@@ -20,16 +20,16 @@ on:
       - 1725-version-release-notes
 
 jobs:
-  # prepare-deployment:
-    # runs-on: ubuntu-latest
-    # steps:
-      # - name: Checkout code
-        # uses: actions/checkout@v4
+  prepare-deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  # pr-label-summary:
-    # needs: prepare-deployment
-    # uses: ./.github/workflows/pr-label-semver.yml
-    # secrets: inherit
+  pr-label-summary:
+    needs: prepare-deployment
+    uses: ./.github/workflows/pr-label-semver.yml
+    secrets: inherit
 
   # approval-to-deploy:
     # needs: pr-label-summary
@@ -52,10 +52,11 @@ jobs:
       # lambdaDeploy: true
     # secrets: inherit
 
-  # pre-tag-summary:
+  pre-tag-summary:
     # needs: deploy-to-perf
-    # uses: ./.github/workflows/pre-tag-summary.yml
-    # secrets: inherit
+    needs: pr-label-summary
+    uses: ./.github/workflows/pre-tag-summary.yml
+    secrets: inherit
 
   # approval-to-merge-to-release-branch:
     # needs: pre-tag-summary
@@ -95,10 +96,9 @@ jobs:
 
   create-and-post-tag:
     # needs: merge-to-release
+    needs: pre-tag-summary
     uses: ./.github/workflows/create-and-post-tag.yml
     secrets: inherit
-    # outputs:
-      # previous_version: ${{ steps.set_output.outputs.previous_version }}
 
   create-release-notes:
     needs: create-and-post-tag
