@@ -10,6 +10,7 @@ function formatDate() {
 
 // Create the Draft Release so as to append the release notes
 async function createDraftRelease(github, owner, repo, tag_name) {
+  const { github, context, core } = params;
   try {
     const response = await github.rest.repos.createRelease({
       owner,
