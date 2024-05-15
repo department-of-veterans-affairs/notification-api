@@ -1,14 +1,31 @@
 // createReleaseNotes.js
-const { appendSummary, getReleaseVersionValue, logKeys } = require("./actionUtils");
+const {
+  appendSummary,
+  getReleaseVersionValue,
+  logKeys,
+} = require("./actionUtils");
 
-// Function to format the current date for release title (e.g. 1.7.10 - 15 MAY 2024)
+/**
+ * Formats the current date in a specific string format for use in release titles.
+ *
+ * @returns {string} The formatted date string in the format: DD MMM YYYY (e.g., "15 MAY 2024").
+ */
 function formatDate() {
-    const date = new Date();
-    const options = { day: '2-digit', month: 'short', year: 'numeric' };
-    return date.toLocaleDateString('en-US', options).toUpperCase();
+  const date = new Date();
+  const options = { day: "2-digit", month: "short", year: "numeric" };
+  return date.toLocaleDateString("en-US", options).toUpperCase();
 }
 
-// Create the Draft Release so as to append the release notes
+/**
+ * Creates a draft release on GitHub with a specified tag and release notes.
+ *
+ * @param {Object} github The authenticated GitHub API client instance.
+ * @param {string} owner The username or organization name on GitHub that owns the repository.
+ * @param {string} repo The repository name.
+ * @param {string} tag_name The tag associated with the release.
+ * @param {string} body The content of the release notes.
+ * @returns {Promise<string>} A Promise that resolves with the URL of the newly created draft release.
+ */
 async function createDraftRelease(github, owner, repo, tag_name, body) {
   try {
     const response = await github.rest.repos.createRelease({
@@ -16,40 +33,60 @@ async function createDraftRelease(github, owner, repo, tag_name, body) {
       repo,
       tag_name,
       name: `${tag_name} - ${formatDate()}`,
-	  body,
+      body,
       draft: true,
-      prerelease: false
+      prerelease: false,
     });
 
     const releaseUrl = response.data.html_url; // Extract URL from the response object
-    console.log('Release URL:', releaseUrl); // Log URL to the console
-	// console.log('Release created successfully:', response);
+    console.log("Release URL:", releaseUrl); // Log URL to the console
+    // console.log('Release created successfully:', response);
     return releaseUrl; // Return the URL
   } catch (error) {
-    console.error('Error creating release:', error);
+    console.error("Error creating release:", error);
   }
 }
 
-// generates release notes based on previous tag
-// these are not saved anywhere - they need to be used in the body parameter of the createDraftRelease()
-async function generateReleaseNotes(github, owner, repo, tag_name, previous_tag_name) {
+/**
+ * Generates release notes by comparing the current tag with a previous tag using GitHub's API.
+ *
+ * @param {Object} github The authenticated GitHub API client instance.
+ * @param {string} owner The username or organization name on GitHub that owns the repository.
+ * @param {string} repo The repository name.
+ * @param {string} tag_name The current tag for which to generate release notes.
+ * @param {string} previous_tag_name The previous tag to compare against for generating release notes.
+ * @returns {Promise<Object>} A Promise that resolves with an object containing the response and the generated release notes.
+ */
+async function generateReleaseNotes(
+  github,
+  owner,
+  repo,
+  tag_name,
+  previous_tag_name,
+) {
   try {
-	const response = await github.rest.repos.generateReleaseNotes({
+    const response = await github.rest.repos.generateReleaseNotes({
       owner,
       repo,
       tag_name,
       // target_commitish: 'main',
       previous_tag_name,
-      configuration_file_path: '.github/release.yaml',
+      configuration_file_path: ".github/release.yaml",
     });
-	const releaseNotes = response.data.body
-    console.log('Release notes generated successfully:', response);
+    const releaseNotes = response.data.body;
+    console.log("Release notes generated successfully:", response);
     return { response, releaseNotes };
   } catch (error) {
-    console.error('Error generating release notes:', error);
+    console.error("Error generating release notes:", error);
   }
 }
 
+/**
+ * Main function to create release notes, create a draft release, and append a summary.
+ *
+ * @param {Object} params An object containing the GitHub API client, the GitHub context, and the GitHub core library.
+ * @returns {Promise<void>} A Promise that resolves with no value indicating the successful creation and summary of release notes.
+ */
 async function createReleaseNotes(params) {
   const { github, context, core } = params;
   const { previousVersion } = process.env;
@@ -57,24 +94,36 @@ async function createReleaseNotes(params) {
   const repo = context.repo.repo;
 
   try {
-	// get currentVersion for release and release notes
-	const currentVersion = await getReleaseVersionValue(github, owner, repo);
+    // get currentVersion for release and release notes
+    const currentVersion = await getReleaseVersionValue(github, owner, repo);
 
-	// generate release notes based on the previousVersion
-	const { releaseNotes, response } = await generateReleaseNotes(github, owner, repo, currentVersion, previousVersion);
-	//
-	// create release, attach generated notes, and return the url for the step summary
-	const releaseUrl = await createDraftRelease(github, owner, repo, currentVersion, releaseNotes)
+    // generate release notes based on the previousVersion
+    const { releaseNotes, response } = await generateReleaseNotes(
+      github,
+      owner,
+      repo,
+      currentVersion,
+      previousVersion,
+    );
+    //
+    // create release, attach generated notes, and return the url for the step summary
+    const releaseUrl = await createDraftRelease(
+      github,
+      owner,
+      repo,
+      currentVersion,
+      releaseNotes,
+    );
 
-	// Make a github summary that provides a link to the draft release and notifies of successful creation
-	summaryContent = `
+    // Make a github summary that provides a link to the draft release and notifies of successful creation
+    summaryContent = `
 ### Release Notes Created!
 [Link to the draft release notes](${releaseUrl})
 Draft notes created based on the update to ${currentVersion} 
 and comparing the tag from the previous version: ${previousVersion}
-	`
-	// appendSummary(core, response)
-	appendSummary(core, summaryContent)
+    `;
+    // appendSummary(core, response)
+    appendSummary(core, summaryContent);
 
     // Output the previous version to the console
     console.log(`The previous release version was: ${previousVersion}`);
@@ -85,8 +134,3 @@ and comparing the tag from the previous version: ${previousVersion}
 }
 
 module.exports = createReleaseNotes;
-
-
-    // Log the entire inputs object to the GitHub Actions summary
-    // core.summary.addRaw(`Inputs received: ${JSON.stringify(process.inputs)}`).write();
-

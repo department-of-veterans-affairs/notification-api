@@ -23,6 +23,13 @@ async function appendSummary(core, summaryContent) {
   }
 }
 
+/**
+ * Retrieves the current release version from a repository's actions secrets.
+ * @param {Object} github - The GitHub client instance.
+ * @param {string} owner - The owner of the GitHub repository.
+ * @param {string} repo - The repository name.
+ * @returns {Promise<string>} - A promise resolving to the current release version.
+ */
 async function getReleaseVersionValue(github, owner, repo) {
   const { data } = await github.rest.actions.getRepoVariable({
     owner,
@@ -32,8 +39,7 @@ async function getReleaseVersionValue(github, owner, repo) {
   return data.value;
 }
 
-module.exports = { 
+module.exports = {
   appendSummary,
   getReleaseVersionValue,
-}
-
+};

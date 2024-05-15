@@ -20,7 +20,11 @@ async function preTagSummary(params) {
 
   try {
     // Retrieve the current release version and proposed new version from prData
-    const { currentVersion, newVersion } = await prData({ github, context, core, });
+    const { currentVersion, newVersion } = await prData({
+      github,
+      context,
+      core,
+    });
 
     // Construct the summary content
     const summaryContent = `
@@ -35,6 +39,6 @@ async function preTagSummary(params) {
     core.setFailed(`Failed to generate summary: ${error.message}`);
     console.error(error);
   }
-};
+}
 
 module.exports = preTagSummary;

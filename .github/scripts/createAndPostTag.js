@@ -59,11 +59,15 @@ async function createAndPostTag(params) {
     const previousVersion = await getReleaseVersionValue(github, owner, repo);
 
     // Output previous version to the GitHub actions workflow context
-	// This will be used by the workflow that sets up the release notes
+    // This will be used by the workflow that sets up the release notes
     core.setOutput("PREVIOUS_VERSION", previousVersion);
 
     // Retrieve PR data to decide the new version tag
-    const { releaseBranchSha, newVersion } = await prData({ github, context, core });
+    const { releaseBranchSha, newVersion } = await prData({
+      github,
+      context,
+      core,
+    });
 
     // Create and push the tag using the SHA from releaseBranchSha
     await createTag(github, owner, repo, newVersion, releaseBranchSha);
@@ -94,4 +98,3 @@ async function createAndPostTag(params) {
 }
 
 module.exports = createAndPostTag;
-

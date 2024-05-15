@@ -41,6 +41,6 @@ async function prLabelSemver(params) {
     core.setFailed(`Failed to generate summary: ${error.message}`);
     console.error(error);
   }
-};
+}
 
 module.exports = prLabelSemver;
