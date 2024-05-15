@@ -1,9 +1,5 @@
 // createReleaseNotes.js
-const {
-  appendSummary,
-  getReleaseVersionValue,
-  logKeys,
-} = require("./actionUtils");
+const { appendSummary, getReleaseVersionValue } = require("./actionUtils");
 
 /**
  * Formats the current date in a specific string format for use in release titles.
