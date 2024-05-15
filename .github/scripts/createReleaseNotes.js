@@ -72,9 +72,10 @@ async function createReleaseNotes(params) {
 the release notes URL is ${releaseUrl}
 Based on the previous version ${previousVersion}
 And the update to ${currentVersion}
-The release notes look like (at the time of creation) ${releaseNotes}
+The response for creating the release notes is ${response}
 	`
-	appendSummary(core, response)
+	// appendSummary(core, response)
+	appendSummary(summaryContent)
 
     // Output the previous version to the console
     console.log(`The previous release version was: ${previousVersion}`);
