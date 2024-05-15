@@ -64,7 +64,7 @@ async function createReleaseNotes(params) {
 	// append release notes based on the previousVersion
 	const { releaseNotes, response } = await generateReleaseNotes(github, owner, repo, currentVersion, previousVersion);
 
-	logKeys(releaseNotes);
+	logKeys(response);
 
 	// Make a github summary that provides a link to the draft release and notifies of successful creation
 	summaryContent = `
@@ -74,7 +74,7 @@ Based on the previous version ${previousVersion}
 And the update to ${currentVersion}
 The release notes look like (at the time of creation) ${releaseNotes}
 	`
-	appendSummary(summaryContent)
+	appendSummary(response)
 
     // Output the previous version to the console
     console.log(`The previous release version was: ${previousVersion}`);
