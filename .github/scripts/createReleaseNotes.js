@@ -11,18 +11,20 @@ function formatDate() {
 // Create the Draft Release so as to append the release notes
 async function createDraftRelease(github, owner, repo, tag_name) {
   try {
-	const response = await github.rest.repos.createRelease({
-	  owner,
-	  repo,
-	  tag_name,
-	  // target_commitish: 'master',
-	  name: `${tag_name} - ${formatDate()}`,
-	  draft: true,
-	  prerelease: false
-	});
-	console.log('Release created successfully:', response);
+    const response = await github.rest.repos.createRelease({
+      owner,
+      repo,
+      tag_name,
+      name: `${tag_name} - ${formatDate()}`,
+      draft: true,
+      prerelease: false
+    });
+
+    const releaseUrl = response.data.url; // Extract URL from the response object
+    console.log('Release URL:', releaseUrl); // Log URL to the console
+    return releaseUrl; // Return the URL
   } catch (error) {
-	console.error('Error creating release:', error);
+    console.error('Error creating release:', error);
   }
 }
 
@@ -54,10 +56,11 @@ async function createReleaseNotes(params) {
   try {
 	// get currentVersion to compare with previousVersion for release notes
 	const currentVersion = await getReleaseVersionValue(github, owner, repo);
-	const createRelease = await createDraftRelease(github, owner, repo, currentVersion)
+	const releaseUrl = await createDraftRelease(github, owner, repo, currentVersion)
 	const releaseNotes = await generateReleaseNotes(github, owner, repo, currentVersion, previousVersion);
 
-	logKeys(releaseNotes.data);
+	console.log(`the release URL is ${releaseUrl}`)
+	// logKeys(releaseNotes.data);
 
 	// Make a github summary that provides a link to the draft release and notifies of successful creation
 
