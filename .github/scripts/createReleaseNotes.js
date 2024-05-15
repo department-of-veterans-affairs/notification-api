@@ -22,6 +22,7 @@ async function createDraftRelease(github, owner, repo, tag_name) {
 
     const releaseUrl = response.data.url; // Extract URL from the response object
     console.log('Release URL:', releaseUrl); // Log URL to the console
+	console.log('Release created successfully:', response);
     return releaseUrl; // Return the URL
   } catch (error) {
     console.error('Error creating release:', error);
@@ -60,7 +61,7 @@ async function createReleaseNotes(params) {
 	const releaseNotes = await generateReleaseNotes(github, owner, repo, currentVersion, previousVersion);
 
 	console.log(`the release URL is ${releaseUrl}`)
-	// logKeys(releaseNotes.data);
+	logKeys(releaseNotes.data);
 
 	// Make a github summary that provides a link to the draft release and notifies of successful creation
 
