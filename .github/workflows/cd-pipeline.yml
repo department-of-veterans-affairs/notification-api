@@ -17,7 +17,7 @@ on:
   push:
     branches:
       # - master
-      # - 1725-version-release-notes
+      - 1725-version-release-notes
 
 jobs:
   prepare-deployment:
@@ -91,7 +91,7 @@ jobs:
           
       # - name: Merge commit SHA to release
         # run: |
-          # git merge ${{ github.sha }} -X theirs
+          # git merge ${{ github.sha }} --no-squash -X theirs
           # git push
 
   create-and-post-tag:
