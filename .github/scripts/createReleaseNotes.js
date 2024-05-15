@@ -22,7 +22,7 @@ async function createDraftRelease(github, owner, repo, tag_name) {
 
     const releaseUrl = response.data.html_url; // Extract URL from the response object
     console.log('Release URL:', releaseUrl); // Log URL to the console
-	console.log('Release created successfully:', response);
+	// console.log('Release created successfully:', response);
     return releaseUrl; // Return the URL
   } catch (error) {
     console.error('Error creating release:', error);
@@ -55,15 +55,25 @@ async function createReleaseNotes(params) {
   const repo = context.repo.repo;
 
   try {
+	// create release and return the url for the step summary
+	const releaseUrl = await createDraftRelease(github, owner, repo, currentVersion)
+
 	// get currentVersion to compare with previousVersion for release notes
 	const currentVersion = await getReleaseVersionValue(github, owner, repo);
-	const releaseUrl = await createDraftRelease(github, owner, repo, currentVersion)
-	// const releaseNotes = await generateReleaseNotes(github, owner, repo, currentVersion, previousVersion);
 
-	console.log(`the release URL is ${releaseUrl}`)
-	// logKeys(releaseNotes.data);
+	// append release notes based on the previousVersion
+	const releaseNotes = await generateReleaseNotes(github, owner, repo, currentVersion, previousVersion);
+
+	logKeys(releaseNotes.data);
 
 	// Make a github summary that provides a link to the draft release and notifies of successful creation
+	summaryContent = `
+### Release Notes Created!
+the release notes URL is ${releaseUrl}
+Based on the previous version ${previousVersion}
+And the update to ${currentVersion}
+	`
+	appendSummary(summaryContent)
 
     // Output the previous version to the console
     console.log(`The previous release version was: ${previousVersion}`);
