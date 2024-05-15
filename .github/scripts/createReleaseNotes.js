@@ -72,7 +72,7 @@ async function createReleaseNotes(params) {
 the release notes URL is ${releaseUrl}
 Based on the previous version ${previousVersion}
 And the update to ${currentVersion}
-The response for creating the release notes is ${response}
+The response for creating the release notes is ${JSON.stringify(response)}
 	`
 	// appendSummary(core, response)
 	appendSummary(core, summaryContent)
