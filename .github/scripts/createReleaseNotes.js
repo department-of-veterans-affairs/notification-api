@@ -9,13 +9,14 @@ function formatDate() {
 }
 
 // Create the Draft Release so as to append the release notes
-async function createDraftRelease(github, owner, repo, tag_name) {
+async function createDraftRelease(github, owner, repo, tag_name, body) {
   try {
     const response = await github.rest.repos.createRelease({
       owner,
       repo,
       tag_name,
       name: `${tag_name} - ${formatDate()}`,
+	  body,
       draft: true,
       prerelease: false
     });
@@ -29,7 +30,8 @@ async function createDraftRelease(github, owner, repo, tag_name) {
   }
 }
 
-// Appends release notes based on previous tag
+// generates release notes based on previous tag
+// these are not saved anywhere - they need to be used in the body parameter of the createDraftRelease()
 async function generateReleaseNotes(github, owner, repo, tag_name, previous_tag_name) {
   try {
 	const response = await github.rest.repos.generateReleaseNotes({
@@ -55,16 +57,14 @@ async function createReleaseNotes(params) {
   const repo = context.repo.repo;
 
   try {
-	// get currentVersion to create a release from that tag
+	// get currentVersion for release and release notes
 	const currentVersion = await getReleaseVersionValue(github, owner, repo);
 
-	// create release and return the url for the step summary
-	const releaseUrl = await createDraftRelease(github, owner, repo, currentVersion)
-
-	// append release notes based on the previousVersion
+	// generate release notes based on the previousVersion
 	const { releaseNotes, response } = await generateReleaseNotes(github, owner, repo, currentVersion, previousVersion);
-
-	logKeys(response);
+	//
+	// create release, attach generated notes, and return the url for the step summary
+	const releaseUrl = await createDraftRelease(github, owner, repo, currentVersion, releaseNotes)
 
 	// Make a github summary that provides a link to the draft release and notifies of successful creation
 	summaryContent = `
@@ -72,7 +72,6 @@ async function createReleaseNotes(params) {
 the release notes URL is ${releaseUrl}
 Based on the previous version ${previousVersion}
 And the update to ${currentVersion}
-The response for creating the release notes is ${JSON.stringify(response)}
 	`
 	// appendSummary(core, response)
 	appendSummary(core, summaryContent)
