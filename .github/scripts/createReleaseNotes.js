@@ -75,7 +75,7 @@ And the update to ${currentVersion}
 The response for creating the release notes is ${response}
 	`
 	// appendSummary(core, response)
-	appendSummary(summaryContent)
+	appendSummary(core, summaryContent)
 
     // Output the previous version to the console
     console.log(`The previous release version was: ${previousVersion}`);
