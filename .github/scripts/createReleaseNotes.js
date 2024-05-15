@@ -74,7 +74,7 @@ Based on the previous version ${previousVersion}
 And the update to ${currentVersion}
 The release notes look like (at the time of creation) ${releaseNotes}
 	`
-	appendSummary(response)
+	appendSummary(core, response)
 
     // Output the previous version to the console
     console.log(`The previous release version was: ${previousVersion}`);

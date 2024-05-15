@@ -13,7 +13,7 @@ const fs = require("fs"); // NodeJs module provides an API for interacting with 
  *                          or rejects if an error occurs during the append operation.
  *
  */
-async function appendSummary(summaryContent) {
+async function appendSummary(core, summaryContent) {
   try {
     fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryContent);
     console.log("Summary appended successfully.");
