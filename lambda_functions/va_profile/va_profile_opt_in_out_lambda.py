@@ -307,9 +307,8 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
         )
 
         logger.info(
-            'Opting-%s for VA Profile ID %s',
+            'The request is an opt-%s.',
             'in' if (str(bio['allowed']).lower() == 'true') else 'out',
-            bio['vaProfileId'],
         )
 
         global db_connection
