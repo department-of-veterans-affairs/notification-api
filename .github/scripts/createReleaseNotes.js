@@ -69,9 +69,9 @@ async function createReleaseNotes(params) {
 	// Make a github summary that provides a link to the draft release and notifies of successful creation
 	summaryContent = `
 ### Release Notes Created!
-the release notes URL is ${releaseUrl}
-Based on the previous version ${previousVersion}
-And the update to ${currentVersion}
+[Link to the draft release notes](${releaseUrl})
+Draft notes created based on the update to ${currentVersion} 
+and comparing the tag from the previous version: ${previousVersion}
 	`
 	// appendSummary(core, response)
 	appendSummary(core, summaryContent)
