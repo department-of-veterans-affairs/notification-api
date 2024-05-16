@@ -41,7 +41,7 @@ jobs:
           echo "Deploying commit SHA ${{ github.sha }}, the latest merge to master"
           echo "Deployment paused for manual approval."
 
-# # this job deploys the SHA that triggered this workflow
+# this job deploys the SHA that triggered this workflow
   deploy-to-perf:
     needs: approval-to-deploy
     uses: ./.github/workflows/dev_deploy.yml

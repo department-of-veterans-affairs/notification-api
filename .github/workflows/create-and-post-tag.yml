@@ -4,7 +4,7 @@ on:
   workflow_call:
     outputs:
       previous_version:
-        description: "Will be used for generating release notes from the previous tag"
+        description: "This value is used for generating release notes from the previous tag"
         value: ${{ jobs.create-and-post-tag.outputs.previous_version }}
 
 jobs:
@@ -23,7 +23,5 @@ jobs:
         with:
           github-token: ${{ secrets.VAR_PAT }}
           script: |
-            const path = '.github/scripts/createAndPostTag.js';
-            const createAndPostTag = require(path);
+            const createAndPostTag = require('.github/scripts/createAndPostTag.js');
             createAndPostTag({github, context, core});
-

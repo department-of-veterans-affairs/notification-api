@@ -22,7 +22,6 @@ jobs:
         with:
           github-token: ${{ secrets.VAR_PAT }}
           script: |
-            const path = '.github/scripts/createReleaseNotes.js';
-            const createReleaseNotes = require(path);
+            const createReleaseNotes = require('.github/scripts/createReleaseNotes.js');
             createReleaseNotes({github, context, core});
 

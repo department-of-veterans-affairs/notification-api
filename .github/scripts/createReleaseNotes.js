@@ -34,10 +34,9 @@ async function createDraftRelease(github, owner, repo, tag_name, body) {
       prerelease: false,
     });
 
-    const releaseUrl = response.data.html_url; // Extract URL from the response object
-    console.log("Release URL:", releaseUrl); // Log URL to the console
-    // console.log('Release created successfully:', response);
-    return releaseUrl; // Return the URL
+    const releaseUrl = response.data.html_url;
+    console.log("Release URL:", releaseUrl);
+    return releaseUrl;
   } catch (error) {
     console.error("Error creating release:", error);
   }
@@ -118,7 +117,6 @@ async function createReleaseNotes(params) {
 Draft notes created based on the update to ${currentVersion} 
 and comparing the tag from the previous version: ${previousVersion}
     `;
-    // appendSummary(core, response)
     appendSummary(core, summaryContent);
 
     // Output the previous version to the console
