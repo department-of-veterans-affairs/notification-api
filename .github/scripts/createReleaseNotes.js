@@ -35,8 +35,9 @@ async function createDraftRelease(github, owner, repo, tag_name, body) {
     });
 
     const releaseUrl = response.data.html_url;
+	const draftReleaseReference = response.data.id;
     console.log("Release URL:", releaseUrl);
-    return releaseUrl;
+    return releaseUrl, draftReleaseReference;
   } catch (error) {
     console.error("Error creating release:", error);
   }
@@ -68,7 +69,7 @@ async function generateReleaseNotes(
       previous_tag_name,
       configuration_file_path: ".github/release.yaml",
     });
-    const releaseNotes = response.data.body;
+
     console.log("Release notes generated successfully:", response);
     return { response, releaseNotes };
   } catch (error) {
@@ -100,9 +101,9 @@ async function createReleaseNotes(params) {
       currentVersion,
       previousVersion,
     );
-    //
-    // create release, attach generated notes, and return the url for the step summary
-    const releaseUrl = await createDraftRelease(
+	
+    // create release, attach generated notes, and return the url for the step summary and the id of the created draft
+    const { releaseUrl, draftReleaseReference } = await createDraftRelease(
       github,
       owner,
       repo,
@@ -116,10 +117,13 @@ async function createReleaseNotes(params) {
 [Link to the draft release notes](${releaseUrl})
 Draft notes created based on the update to ${currentVersion} 
 and comparing the tag from the previous version: ${previousVersion}
+The draft release reference is ${draftReleaseReference}
     `;
     appendSummary(core, summaryContent);
 
-    // Output the previous version to the console
+	// Output the draftReleaseReference so it can be published upon QA approval of the staging deploy
+    core.setOutput("draftReleaseReference", draftReleaseReference);
+
     console.log(`The previous release version was: ${previousVersion}`);
   } catch (error) {
     core.setFailed(`Failed to generate summary: ${error.message}`);

@@ -3,15 +3,15 @@ name: Create And Post Tag with Summary
 on: 
   workflow_call:
     outputs:
-      previous_version:
+      previousVersion:
         description: "This value is used for generating release notes from the previous tag"
-        value: ${{ jobs.create-and-post-tag.outputs.previous_version }}
+        value: ${{ jobs.create-and-post-tag.outputs.previousVersion }}
 
 jobs:
   create-and-post-tag:
     runs-on: ubuntu-latest
     outputs:
-      previous_version: ${{ steps.create_tag.outputs.previous_version }}
+      previousVersion: ${{ steps.create_tag.outputs.previousVersion }}
     permissions:
       contents: write
     steps:
@@ -19,10 +19,15 @@ jobs:
 
       - name: Create and Post Tag
         id: create_tag
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.VAR_PAT }}
-          script: |
-            const createAndPostTag = require('.github/scripts/createAndPostTag.js');
-            createAndPostTag({github, context, core});
+        run: echo "previousVersion=1.12.0" >> $GITHUB_OUTPUT
+
+      # - name: Create and Post Tag
+        # id: create_tag
+        # uses: actions/github-script@v7
+        # with:
+          # github-token: ${{ secrets.VAR_PAT }}
+          # script: |
+          # This script outputs previousVersion for create-release-notes.yml
+            # const createAndPostTag = require('.github/scripts/createAndPostTag.js');
+            # createAndPostTag({github, context, core});
 
