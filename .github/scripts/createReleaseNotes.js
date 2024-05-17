@@ -34,14 +34,13 @@ async function createDraftRelease(github, owner, repo, tag_name, body) {
       prerelease: false,
     });
 
-	const releaseUrl = response.data.html_url;
-	const draftReleaseReference = response.data.id;
+    const releaseUrl = response.data.html_url;
+    const draftReleaseReference = response.data.id;
 
-	console.log("The release URL is: ", releaseUrl)
-	console.log("The draftReleaseReference is: ", draftReleaseReference)
+    console.log("The release URL is: ", releaseUrl);
+    console.log("The draftReleaseReference is: ", draftReleaseReference);
 
     return releaseUrl, draftReleaseReference;
-
   } catch (error) {
     console.error("Error creating release:", error);
   }
@@ -74,12 +73,11 @@ async function generateReleaseNotes(
       configuration_file_path: ".github/release.yaml",
     });
 
-	const releaseNotes = response.data.body;
+    const releaseNotes = response.data.body;
 
     console.log("Release notes generated successfully: ", releaseNotes);
 
     return releaseNotes;
-
   } catch (error) {
     console.error("Error generating release notes:", error);
   }
@@ -109,7 +107,7 @@ async function createReleaseNotes(params) {
       currentVersion,
       previousVersion,
     );
-	
+
     // create release, attach generated notes, and return the url for the step summary and the id of the created draft
     const { releaseUrl, draftReleaseReference } = await createDraftRelease(
       github,
@@ -129,7 +127,7 @@ The draft release reference is ${draftReleaseReference}
     `;
     appendSummary(core, summaryContent);
 
-	// Output the draftReleaseReference so it can be published upon QA approval of the staging deploy
+    // Output the draftReleaseReference so it can be published upon QA approval of the staging deploy
     core.setOutput("draftReleaseReference", draftReleaseReference);
 
     console.log(`The previous release version was: ${previousVersion}`);
@@ -140,4 +138,3 @@ The draft release reference is ${draftReleaseReference}
 }
 
 module.exports = createReleaseNotes;
-

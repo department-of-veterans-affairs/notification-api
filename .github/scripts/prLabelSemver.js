@@ -24,6 +24,7 @@ async function prLabelSemver(params) {
       ? "MAJOR"
       : label.includes("hotfix") ||
           label.includes("security") ||
+          label.includes("internal") ||
           label.includes("bug")
         ? "PATCH"
         : "MINOR";
