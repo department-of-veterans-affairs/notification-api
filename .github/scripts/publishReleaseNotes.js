@@ -56,3 +56,6 @@ The draft release reference is ${draftReleaseReference}
 	console.error(error);
   }
 }
+
+module.exports = publishReleaseNotes;
+
