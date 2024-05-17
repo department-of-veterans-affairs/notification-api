@@ -106,7 +106,12 @@ const triggerAndWait = async ({ github, core }) => {
   );
 
   // Append to GITHUB_STEP_SUMMARY
-  const summaryContent = `### Workflow Result\nResult: ${resultText}\n[Link to Workflow Run](${workflow_url})`;
+  const summaryContent = `
+  ### Regression Result
+  Result: ${resultText}
+  [Link to Workflow Run](${workflow_url})
+  `;
+
   require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryContent);
 
   // Check if the workflow failed and set an appropriate error message
