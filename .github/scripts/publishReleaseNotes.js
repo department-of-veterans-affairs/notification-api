@@ -50,7 +50,7 @@ The draft release reference is ${draftReleaseReference}
 	`;
 	appendSummary(core, summaryContent)
 
-	console.log(`The draft release reference for this code is: ${draftReleaseReference}`)
+	console.log(`The draft release reference is: ${draftReleaseReference}`)
   } catch (error) {
 	core.setFailed(`Failed to generate summary: ${error.message}`);
 	console.error(error);
