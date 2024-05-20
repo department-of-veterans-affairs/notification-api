@@ -19,7 +19,7 @@ async function updateDraftRelease(github, owner, repo, release_id) {
     console.log("Release successfully published at:", releaseUrl);
     console.log("update response is:", updateResponse);
 
-    return updateResponse, releaseUrl;
+    return { releaseUrl, updateResponse };
   } catch (error) {
     console.error("Error publishing release:", error);
   }
