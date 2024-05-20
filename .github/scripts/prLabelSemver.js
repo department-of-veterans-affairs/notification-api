@@ -9,13 +9,14 @@ const { appendSummary } = require("./actionUtils");
  * @returns {string} The semver value corresponding to the labels.
  */
 function determineSemverValue(label) {
-  if (label.some(label => label.name.includes("breaking change"))) {
-    return "MAJOR";
-  }
-  if (label.some(label => ["hotfix", "security", "internal", "bug"].includes(label.name))) {
-    return "PATCH";
-  }
-  return "MINOR";
+	label.includes("breaking change")
+	  ? "MAJOR"
+	: label.includes("hotfix") ||
+		label.includes("security") ||
+		label.includes("internal") ||
+		label.includes("bug")
+	  ? "PATCH"
+	  : "MINOR";
 }
 
 /**
