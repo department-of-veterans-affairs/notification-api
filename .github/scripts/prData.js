@@ -57,9 +57,10 @@ function processLabelsAndVersion(labels, currentVersion) {
     appliedLabel = "breaking change";
   } else if (
     // If hotfix, security, or bug label
-    labels.some((label) =>
-      ["hotfix", "security", "bug", "internal"].includes(label.name),
-    )
+	labels.some((label) => ["hotfix", "security", "bug"].includes(label.name))
+    // labels.some((label) =>
+      // ["hotfix", "security", "bug", "internal"].includes(label.name),
+    // )
   ) {
     // patch bump
     versionParts[2] += 1;
