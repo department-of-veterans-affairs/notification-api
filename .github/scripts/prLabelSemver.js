@@ -34,7 +34,7 @@ async function prLabelSemver(params) {
     const { label, prNumber, prUrl } = await prData({ github, context, core });
 
     // Determine the semver update type based on the labels
-    const semverValue = determineSemverValue(labels);
+    const semverValue = determineSemverValue(label);
 
     // Construct the summary content
     const summaryContent = `
