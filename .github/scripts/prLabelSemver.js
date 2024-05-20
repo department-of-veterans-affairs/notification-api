@@ -3,20 +3,31 @@ const { prData } = require("./prData");
 const { appendSummary } = require("./actionUtils");
 
 /**
- * Helper function to determine the semver update type based on the label list.
+ * Helper function to determine the semver update type based on a single label.
  *
- * @param {Array} labels - The list of labels of the pull request.
- * @returns {string} The semver value corresponding to the labels.
+ * @param {string} label - The label of the pull request.
+ * @returns {string} The semver value corresponding to the label.
  */
 function determineSemverValue(label) {
-	label.includes("breaking change")
-	  ? "MAJOR"
-	: label.includes("hotfix") ||
-		label.includes("security") ||
-		label.includes("internal") ||
-		label.includes("bug")
-	  ? "PATCH"
-	  : "MINOR";
+  console.log("Received label:", label);
+
+  try {
+    if (label.includes("breaking change")) {
+      return "MAJOR";
+    } else if (
+      label.includes("hotfix") ||
+      label.includes("security") ||
+      label.includes("internal") ||
+      label.includes("bug")
+    ) {
+      return "PATCH";
+    } else {
+      return "MINOR";
+    }
+  } catch (error) {
+    console.error("Error determining semver value:", error);
+    return "UNKNOWN";
+  }
 }
 
 /**
