@@ -105,7 +105,7 @@ async function createReleaseNotes(params) {
     );
 
     // create release, attach generated notes, and return the url for the step summary and the id of the created draft
-    const releaseUrl, draftReleaseReference = await createDraftRelease(
+    const { releaseUrl, draftReleaseReference } = await createDraftRelease(
       github,
       owner,
       repo,
