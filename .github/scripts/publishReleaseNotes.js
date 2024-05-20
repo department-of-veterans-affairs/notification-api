@@ -9,8 +9,8 @@ async function updateDraftRelease(github, owner, repo, release_id) {
       owner,
       repo,
       release_id,
-      draft,
-      make_latest, // This is useful for development, to not make test releases latest releases for the repo!
+      draft: false,
+      make_latest: false, // This is useful for development, to not make test releases latest releases for the repo!
     });
 
     const updateResponse = response.data;
