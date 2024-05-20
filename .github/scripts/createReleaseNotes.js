@@ -37,7 +37,7 @@ async function createDraftRelease(github, owner, repo, tag_name, body) {
     const releaseUrl = response.data.html_url;
     const draftReleaseReference = response.data.id;
 
-	cosnole.log("the response is:", response.data)
+    console.log("the response is:", response.data);
     console.log("The release URL is: ", releaseUrl);
     console.log("The draftReleaseReference is: ", draftReleaseReference);
 
