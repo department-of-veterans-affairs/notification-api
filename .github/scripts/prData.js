@@ -41,40 +41,35 @@ async function fetchReleaseBranchSha(github, owner, repo) {
 
 /**
  * Processes labels from pull requests to determine the new version and relevant labels for a release.
+ * EXPECTS ONLY ONE LABEL, as is currently our process for merging PRs
  * @param {Array<Object>} labels - An array of label objects from pull requests.
  * @param {string} currentVersion - The current release version.
- * @returns {Object} - An object containing the new version and applied label.
+ * @returns {Object} - An object containing the new version and label.
  */
 function processLabelsAndVersion(labels, currentVersion) {
+  // Split the current version into major, minor, and patch parts
   let versionParts = currentVersion.split(".").map((x) => parseInt(x, 10));
-  let appliedLabel;
+  let label = labels[0].name;
 
-  // breaking change label is a major version bump
-  if (labels.some((label) => label.name === "breaking-change")) {
+  // Determine the type of version bump based on the label
+  if (label === "breaking-change") {
+    // Major version bump
     versionParts[0] += 1;
     versionParts[1] = 0;
     versionParts[2] = 0;
-    appliedLabel = "breaking change";
-  } else if (
-	labels.some((label) => ["hotfix", "security", "bug", "internal"].includes(label.name))
-  ) {
-    // patch bump
+  } else if (["hotfix", "security", "bug", "internal"].includes(label)) {
+    // Patch version bump
     versionParts[2] += 1;
-    appliedLabel = labels.find((label) =>
-      ["hotfix", "security", "bug", "internal"].includes(label.name),
-    ).name;
   } else {
-    // all other labels are a minor bump
+    // Minor version bump
     versionParts[1] += 1;
     versionParts[2] = 0;
-    appliedLabel = labels[0].name; // Assumes only one label was used, as is currently our process
   }
 
-  // newVersion is in the format X.X.X
-  // appliedLabel is a string of the label used for versioning
+  // Return the new version and the label
   return {
     newVersion: versionParts.join("."),
-    appliedLabel,
+    label,
   };
 }
 
@@ -98,7 +93,7 @@ async function prData(params) {
     const prNumber = pullRequestData.data[0].number;
     const prUrl = pullRequestData.data[0].html_url;
 
-    const { newVersion, appliedLabel } = processLabelsAndVersion(
+    const { newVersion, label } = processLabelsAndVersion(
       labels,
       currentVersion,
     );
@@ -107,7 +102,7 @@ async function prData(params) {
       releaseBranchSha,
       currentVersion,
       newVersion,
-      label: appliedLabel,
+      label,
       prNumber,
       prUrl,
     };
