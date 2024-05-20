@@ -39,8 +39,6 @@ async function publishReleaseNotes(params) {
       owner,
       repo,
       draftReleaseReference,
-      false,
-      false, // this should be changed to true before merging this file to master
     );
 
     summaryContent = `
