@@ -8,7 +8,7 @@ const { appendSummary } = require("./actionUtils");
  * @param {Array} labels - The list of labels of the pull request.
  * @returns {string} The semver value corresponding to the labels.
  */
-function determineSemverValue(labels) {
+function determineSemverValue(label) {
   if (labels.some(label => label.name.includes("breaking change"))) {
     return "MAJOR";
   }
@@ -31,7 +31,7 @@ async function prLabelSemver(params) {
 
   try {
     // Retrieve necessary data from prData.js
-    const { labels, prNumber, prUrl } = await prData({ github, context, core });
+    const { label, prNumber, prUrl } = await prData({ github, context, core });
 
     // Determine the semver update type based on the labels
     const semverValue = determineSemverValue(labels);
@@ -40,7 +40,7 @@ async function prLabelSemver(params) {
     const summaryContent = `
 ### PR Label Semver Summary
 - PR Number: [#${prNumber}](${prUrl})
-- Labels: ${labels.map(label => label.name).join(", ")}
+- Label: ${label}
 - Semver Bump: ${semverValue}
 `;
     // Append the summary to the GitHub step summary file or log it

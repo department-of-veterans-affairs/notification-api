@@ -73,7 +73,7 @@ async function generateReleaseNotes(
     });
     const releaseNotes = response.data.body;
     console.log("Release notes generated successfully: ", releaseNotes);
-    return releaseNotes;
+    return { releaseNotes };
   } catch (error) {
     console.error("Error generating release notes:", error);
   }
