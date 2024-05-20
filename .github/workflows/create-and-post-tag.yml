@@ -19,7 +19,7 @@ jobs:
 
       - name: Create and Post Tag
         id: create_tag
-        run: echo "previousVersion=1.12.0" >> $GITHUB_OUTPUT
+        run: echo "previousVersion=1.12.1" >> $GITHUB_OUTPUT
 
       # - name: Create and Post Tag
         # id: create_tag

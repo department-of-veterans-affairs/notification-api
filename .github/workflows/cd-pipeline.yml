@@ -26,10 +26,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-  pr-label-summary:
-    needs: prepare-deployment
-    uses: ./.github/workflows/pr-label-semver.yml
-    secrets: inherit
+  # pr-label-summary:
+    # needs: prepare-deployment
+    # uses: ./.github/workflows/pr-label-semver.yml
+    # secrets: inherit
 
   # approval-to-deploy:
     # needs: pr-label-summary
@@ -54,7 +54,7 @@ jobs:
 
   pre-tag-summary:
     # needs: deploy-to-perf
-    needs: pr-label-summary
+    # needs: pr-label-summary
     uses: ./.github/workflows/pre-tag-summary.yml
     secrets: inherit
 
@@ -107,12 +107,12 @@ jobs:
     with:
       previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
 
-  publish-release-notes:
-    needs: create-release-notes
-    uses: ./.github/workflows/publish-release-notes.yml
-    secrets: inherit
-    with:
-      draftReleaseReference: ${{ needs.create-release-notes.outputs.draftReleaseReference }}
+  # publish-release-notes:
+    # needs: create-release-notes
+    # uses: ./.github/workflows/publish-release-notes.yml
+    # secrets: inherit
+    # with:
+      # draftReleaseReference: ${{ needs.create-release-notes.outputs.draftReleaseReference }}
 
   # deploy-to-staging:
     # needs: merge-to-release 
