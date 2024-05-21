@@ -21,9 +21,6 @@ changelog:
     - title: Internal Upgrades 📈
       labels:
         - internal
-        - tech debt
-        - tool
-        - maintenance
     - title: Other Changes
       labels:
         - "*"
