@@ -1,4 +1,3 @@
-# These notes need to be updated and tested in my own repos POC
 changelog:
   exclude:
     labels:
@@ -12,30 +11,20 @@ changelog:
     - title: Exciting New Features 🎉
       labels:
         - enhancement
-    - title: Lambda Functions
-      labels:
-        - lambda
     - title: Bug Fixes 🐜
       labels:
         - bug
         - hotfix
     - title: Security Fixes 🔐
       labels:
-        - cve
         - security
-    - title: DevOps
-      labels:
-        - actions
-        - devops
-    - title: Dependency Upgrades 🆙
-      labels:
-        - dependencies
     - title: Internal Upgrades 📈
       labels:
         - internal
         - tech debt
         - tool
         - maintenance
-    - title: Other Changes 🧑‍💻
+    - title: Other Changes
       labels:
         - "*"
+
