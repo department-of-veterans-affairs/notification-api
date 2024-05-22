@@ -1,6 +1,7 @@
 # .github/workflows/deploy-release.yml
 # This workflow should only be run when a release or prerelease need to be deployed outside the cd-pipeline.yml
-# This workflow will deploy any tag, but was specifically designed to ensure the tag shows up correctly in Datadog
+# dev_deploy.yml only deploys hashes - this workflow ensures the tag is deployed
+# this ensures the tag name shows up correctly in Datadog for deployment tracking
 name: Deploy API Release
 run-name: "Deploy Release to ${{ inputs.environment }}"
 
