@@ -33,7 +33,7 @@ on:
         type: boolean
 
 env:
-  TAG: ${{ github.event.inputs.ref || '1.7.10' }}
+  TAG: ${{ github.event.inputs.ref || 'v1.7.10' }}
   ENV: ${{ github.event.inputs.environment || 'dev' }}
 
 jobs:
