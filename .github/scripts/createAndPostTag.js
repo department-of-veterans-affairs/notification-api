@@ -58,10 +58,6 @@ async function createAndPostTag(params) {
     // Retrieve the current release version, this will be used as the previousVersion
     const previousVersion = await getReleaseVersionValue(github, owner, repo);
 
-    // Output previous version to the GitHub actions workflow context
-    // This will be used by the workflow that sets up the release notes
-    core.setOutput("previous_version", previousVersion);
-
     // Retrieve PR data to decide the new version tag
     const { releaseBranchSha, newVersion } = await prData({
       github,
@@ -73,12 +69,20 @@ async function createAndPostTag(params) {
     await createTag(github, owner, repo, newVersion, releaseBranchSha);
 
     // Update the RELEASE_VERSION repo variable
-    await github.rest.actions.updateRepoVariable({
-      owner,
-      repo,
-      name: "RELEASE_VERSION",
-      value: newVersion,
-    });
+	// TEMPORARILY COMMENTED OUT FOR PR RUN THROUGH
+    // await github.rest.actions.updateRepoVariable({
+      // owner,
+      // repo,
+      // name: "RELEASE_VERSION",
+      // value: newVersion,
+    // });
+
+    // Output previous version to the GitHub actions workflow context
+    // This will be used by the workflow that sets up the release notes
+    core.setOutput("previousVersion", previousVersion);
+
+	// this output will be the tag used for the staging deploy
+    core.setOutput("newVersion", newVersion);
 
     // Construct the summary content
     const summaryContent = `

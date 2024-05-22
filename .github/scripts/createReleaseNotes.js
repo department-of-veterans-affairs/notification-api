@@ -120,7 +120,6 @@ async function createReleaseNotes(params) {
 [Link to the draft release notes](${releaseUrl})
 Draft notes created based on the update to ${currentVersion} 
 and comparing the tag from the previous version: ${previousVersion}
-The draft release reference is ${draftReleaseReference}
     `;
     appendSummary(core, summaryContent);
 
