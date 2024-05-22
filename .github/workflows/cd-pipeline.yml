@@ -46,11 +46,11 @@ jobs:
   # deploy-to-perf:
     # needs: approval-to-deploy
     # uses: ./.github/workflows/dev_deploy.yml
+    # secrets: inherit
     # with:
       # environment: perf
       # ref: ${{ github.sha }}
       # lambdaDeploy: true
-    # secrets: inherit
 
   pre-tag-summary:
     # needs: deploy-to-perf
@@ -105,11 +105,11 @@ jobs:
   deploy-to-staging-test:
     needs: create-and-post-tag
     uses: ./.github/workflows/deploy-release.yml
+    secrets: inherit
     with:
       environment: staging
       ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
       lambdaDeploy: true
-    secrets: inherit
 
   create-release-notes:
     needs: create-and-post-tag
