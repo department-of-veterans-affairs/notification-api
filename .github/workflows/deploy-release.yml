@@ -38,9 +38,8 @@ env:
 
 jobs:
   setup-environment:
-    name: "setup-env-${{ env.ENV }}"
+    name: "setup-env"
     runs-on: ubuntu-latest
-    environment: ${{ env.ENV }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -49,8 +48,8 @@ jobs:
 
       - name: Env Values
         run: |
-          echo "The environment is ${{ env.ENV }}"
-          echo "The branch/tag is ${{ env.TAG }}"
+          echo "The environment is $ENV"
+          echo "The branch/tag is $TAG"
 
   run-build:
     needs: [setup-environment]
