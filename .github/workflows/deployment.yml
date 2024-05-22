@@ -13,13 +13,23 @@ on:
         type: string
 
 jobs:
-  run-migrations:
+  test-tag-value:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-        run: echo "will be checking out tag ${{ inputs.ref }}"
+
+      - name: Test tag deploy value
+        run: |
+          echo "checked out tag: ${{ inputs.ref }}"
+
+  # run-migrations:
+    # runs-on: ubuntu-latest
+    # steps:
+      # - uses: actions/checkout@v4
+        # with:
+          # ref: ${{ inputs.ref }}
 
       # - name: Configure AWS Credentials
         # uses: aws-actions/configure-aws-credentials@v4.0.2
