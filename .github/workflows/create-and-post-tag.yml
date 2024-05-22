@@ -22,8 +22,8 @@ jobs:
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.VAR_PAT }}
-          script: |
           # This script outputs previousVersion for create-release-notes.yml
+          script: |
             const createAndPostTag = require('.github/scripts/createAndPostTag.js');
             createAndPostTag({github, context, core});
 
