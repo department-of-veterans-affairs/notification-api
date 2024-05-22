@@ -3,9 +3,13 @@
 # dev_deploy.yml only deploys hashes - this workflow ensures the tag is deployed
 # this ensures the tag name shows up correctly in Datadog for deployment tracking
 name: Deploy API Release
-run-name: "Deploy Release to ${{ inputs.environment }}"
+run-name: "Deploy Release to ${{ env.ENV }}"
 
 on:
+  push:
+    branches:
+      - 1721-tagfix-triggerdelete-updatenotes
+
   workflow_dispatch:
     inputs:
       environment:
@@ -29,38 +33,39 @@ on:
         type: boolean
 
 env:
-  TAG: ${{ inputs.ref }}
+  TAG: ${{ github.event.inputs.ref || '1.7.10' }}
+  ENV: ${{ github.event.inputs.environment || 'dev' }}
 
 jobs:
   setup-environment:
-    name: "setup-env-${{ inputs.environment }}"
+    name: "setup-env-${{ env.ENV }}"
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
+    environment: ${{ env.ENV }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ env.TAG }}
 
       - name: Env Values
         run: |
-          echo "The environment is ${{ inputs.environment }}"
-          echo "The branch/tag is ${{ inputs.ref }}"
+          echo "The environment is ${{ env.ENV }}"
+          echo "The branch/tag is ${{ env.TAG }}"
 
   run-build:
     needs: [setup-environment]
     uses: ./.github/workflows/build.yml
     with:
-      environment: "${{ inputs.environment }}"
+      environment: "${{ env.ENV }}"
       ref: "${{ env.TAG }}"
     secrets: inherit
 
   run-lambda-deploy:
-    if: ${{ inputs.lambdaDeploy }}
+    if: ${{ github.event.inputs.lambdaDeploy }}
     needs: [setup-environment]
     uses: ./.github/workflows/lambda-functions.yml
     with:
-      environment: "${{ inputs.environment }}"
+      environment: "${{ env.ENV }}"
       ref: "${{ env.TAG }}"
       lambdaName: "All"
     secrets: inherit
@@ -69,7 +74,7 @@ jobs:
     needs: [setup-environment, run-build]
     uses: ./.github/workflows/deployment.yml
     with:
-      environment: "${{ inputs.environment }}"
+      environment: "${{ env.ENV }}"
       ref: "${{ env.TAG }}"
     secrets: inherit
 
@@ -77,6 +82,6 @@ jobs:
     needs: [run-deployment]
     uses: ./.github/workflows/run-regression.yml
     with:
-      environment: "${{ inputs.environment }}"
+      environment: "${{ env.ENV }}"
     secrets: inherit
 
