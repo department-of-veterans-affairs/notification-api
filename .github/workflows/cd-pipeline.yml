@@ -104,19 +104,12 @@ jobs:
 
   deploy-to-staging-test:
     needs: create-and-post-tag
-    runs-on: ubuntu-latest
-    steps:
-      - name: test tag value
-        run: |
-          echo 'The tag for deployment will be ${{ needs.create-and-post-tag.outputs.newVersion }}'
-    # uses: ./.github/workflows/deployment.yml # needs to be deployment.yml with tag for proper reporting in Datadog
-    # with:
-      # environment: staging
-      # ref: release
-      # lambdaDeploy: true
-    # secrets: inherit
-    # with:
-      # newVersion: ${{ }}
+    uses: ./.github/workflows/deployment.yml
+    with:
+      environment: staging
+      ref: ${{ needs.create-and-post-tag.outputs.newVersion }} # deploy tag not SHA for Datadog reporting
+      lambdaDeploy: true
+    secrets: inherit
 
   create-release-notes:
     needs: create-and-post-tag
