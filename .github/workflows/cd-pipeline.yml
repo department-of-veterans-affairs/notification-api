@@ -118,6 +118,7 @@ jobs:
 
   deploy-to-staging-test:
     needs: create-and-post-tag
+    runs-on: ubuntu-latest
     steps:
       - name: test tag value
         run: |
