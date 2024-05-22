@@ -21,7 +21,7 @@ changelog:
     - title: Internal Upgrades 📈
       labels:
         - internal
-    - title: Other Changes
+    - title: Other Changes 🧑‍💻
       labels:
         - "*"
 
