@@ -30,17 +30,10 @@ on:
   workflow_call:
     inputs:
       environment:
-        type: choice
-        description: Environment to deploy
+        type: string
         default: dev
-        options:
-          - dev
-          - perf
-          - staging
-          - prod
       ref:
         description: "Tag, branch, or commit"
-        default: master
         required: true
         type: string
       lambdaDeploy:
