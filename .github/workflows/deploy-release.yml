@@ -57,7 +57,7 @@ jobs:
 
       - name: Test tag deploy value
         run: |
-          echo "checked out tag: ${{ env.TAG }}"
+          echo "checked out tag: ${{ env.ENV }}"
 
   # setup-environment:
     # name: "setup-env"
