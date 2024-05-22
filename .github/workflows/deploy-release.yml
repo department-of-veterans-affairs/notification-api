@@ -1,0 +1,81 @@
+# .github/workflows/deploy-release.yml
+# This workflow should only be run when a release or prerelease need to be deployed outside the cd-pipeline.yml
+# This workflow will deploy any tag, but was specifically designed to ensure the tag shows up correctly in Datadog
+name: Deploy API Release
+run-name: "Deploy Release to ${{ inputs.environment }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        description: Environment to deploy
+        default: dev
+        options:
+          - dev
+          - perf
+          - staging
+          - prod
+      ref:
+        description: "Branch or Commit"
+        default: master
+        required: true
+        type: string
+      lambdaDeploy:
+        description: "Include Lambda in deployment?"
+        default: false
+        required: false
+        type: boolean
+
+env:
+  TAG: ${{ inputs.ref }}
+
+jobs:
+  setup-environment:
+    name: "setup-env-${{ inputs.environment }}"
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Env Values
+        run: |
+          echo "The environment is ${{ inputs.environment }}"
+          echo "The branch/tag is ${{ inputs.ref }}"
+
+  run-build:
+    needs: [setup-environment]
+    uses: ./.github/workflows/build.yml
+    with:
+      environment: "${{ inputs.environment }}"
+      ref: "${{ env.TAG }}"
+    secrets: inherit
+
+  run-lambda-deploy:
+    if: ${{ inputs.lambdaDeploy }}
+    needs: [setup-environment]
+    uses: ./.github/workflows/lambda-functions.yml
+    with:
+      environment: "${{ inputs.environment }}"
+      ref: "${{ env.TAG }}"
+      lambdaName: "All"
+    secrets: inherit
+
+  run-deployment:
+    needs: [setup-environment, run-build]
+    uses: ./.github/workflows/deployment.yml
+    with:
+      environment: "${{ inputs.environment }}"
+      ref: "${{ env.TAG }}"
+    secrets: inherit
+
+  run-qa-suite:
+    needs: [run-deployment]
+    uses: ./.github/workflows/run-regression.yml
+    with:
+      environment: "${{ inputs.environment }}"
+    secrets: inherit
+
