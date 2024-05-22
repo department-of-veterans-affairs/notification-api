@@ -108,7 +108,7 @@ jobs:
     secrets: inherit
     with:
       environment: staging
-      ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
+      ref: ${{ needs.create-and-post-tag.outputs.previousVersion }}
       lambdaDeploy: true
 
   create-release-notes:

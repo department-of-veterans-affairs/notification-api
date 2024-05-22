@@ -33,6 +33,7 @@ on:
         type: string
         default: dev
       ref:
+        default: "dev"
         description: "Tag, branch, or commit"
         required: true
         type: string
