@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       previousVersion: ${{ steps.create_tag.outputs.previousVersion }}
+      newVersion: ${{ steps.create_tag.outputs.newVersion }}
     permissions:
       contents: write
     steps:

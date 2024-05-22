@@ -102,20 +102,6 @@ jobs:
     uses: ./.github/workflows/create-and-post-tag.yml
     secrets: inherit
 
-  create-release-notes:
-    needs: create-and-post-tag
-    uses: ./.github/workflows/create-release-notes.yml
-    secrets: inherit
-    with:
-      previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
-
-  publish-release-notes:
-    needs: create-release-notes
-    uses: ./.github/workflows/publish-release-notes.yml
-    secrets: inherit
-    with:
-      draftReleaseReference: ${{ needs.create-release-notes.outputs.draftReleaseReference }}
-
   deploy-to-staging-test:
     needs: create-and-post-tag
     runs-on: ubuntu-latest
@@ -131,6 +117,20 @@ jobs:
     # secrets: inherit
     # with:
       # newVersion: ${{ }}
+
+  create-release-notes:
+    needs: create-and-post-tag
+    uses: ./.github/workflows/create-release-notes.yml
+    secrets: inherit
+    with:
+      previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
+
+  publish-release-notes:
+    needs: create-release-notes
+    uses: ./.github/workflows/publish-release-notes.yml
+    secrets: inherit
+    with:
+      draftReleaseReference: ${{ needs.create-release-notes.outputs.draftReleaseReference }}
 
   # QA-approval-of-staging:
     # needs: deploy-to-staging
