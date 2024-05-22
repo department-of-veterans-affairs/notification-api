@@ -26,10 +26,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-  # pr-label-summary:
-    # needs: prepare-deployment
-    # uses: ./.github/workflows/pr-label-semver.yml
-    # secrets: inherit
+  pr-label-summary:
+    needs: prepare-deployment
+    uses: ./.github/workflows/pr-label-semver.yml
+    secrets: inherit
 
   # approval-to-deploy:
     # needs: pr-label-summary
@@ -54,7 +54,7 @@ jobs:
 
   pre-tag-summary:
     # needs: deploy-to-perf
-    # needs: pr-label-summary
+    needs: pr-label-summary
     uses: ./.github/workflows/pre-tag-summary.yml
     secrets: inherit
 
