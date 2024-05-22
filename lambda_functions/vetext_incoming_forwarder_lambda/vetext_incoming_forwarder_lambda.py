@@ -115,18 +115,13 @@ def validate_twilio_event(event: dict) -> bool:
         if not auth_tokens or not signature:
             logger.error('Twilio auth token(s) or signature not set')
             return False
-        print(f'{auth_tokens=}')
-        print(f'{event=}')
-        print(f"{signature == event['headers']['x-twilio-signature']=}", signature)
         validators = [RequestValidator(auth_token) for auth_token in auth_tokens]
         uri = f"https://{event['headers']['host']}/vanotify{event['path']}"
 
         decoded = base64.b64decode(event.get('body')).decode('utf-8')
         params = parse_qs(decoded, keep_blank_values=True)
         params = {k: v[0] for k, v in params.items()}
-        valid_list = [validator.validate(uri=uri, params=params, signature=signature) for validator in validators]
-        print(f'{valid_list=}')
-        return any(valid_list)
+        return any([validator.validate(uri=uri, params=params, signature=signature) for validator in validators])
     except Exception as e:
         logger.error('Error validating request origin: %s', e)
         return False
@@ -153,7 +148,10 @@ def vetext_incoming_forwarder_lambda_handler(
             # The check for context is to allow for local testing. While context is always present when deployed,
             # setting it False locally allows for testing without a valid Twilio signature.
             if context and not validate_twilio_event(event):
-                logger.info('Returning 403 on unauthenticated Twilio request')
+                logger.info(
+                    'Returning 403 on unauthenticated Twilio request for event: %s',
+                    encryption.encrypt(str(event).encode()).decode(),
+                )
                 return create_twilio_response(403)
             logger.info('Authenticated Twilio request')
             event_bodies = process_body_from_alb_invocation(event)
