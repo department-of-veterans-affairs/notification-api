@@ -83,7 +83,7 @@ jobs:
     uses: ./.github/workflows/deployment.yml
     with:
       environment: "${{ inputs.environment }}"
-      ref: "${{ needs.setup-environment.outputs.git-hash }}" # This needs to actually be the tag.  REview this file to ensure this is deployed as a tag and not a hash without disrupting current pipeline functionality
+      ref: "${{ needs.setup-environment.outputs.git-hash }}"
     secrets: inherit
 
   run-qa-suite:
