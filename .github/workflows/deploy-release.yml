@@ -44,8 +44,8 @@ on:
         type: boolean
 
 env:
-  TAG: ${{ github.event.inputs.ref }}
-  ENV: ${{ github.event.inputs.environment }}
+  TAG: ${{ inputs.ref }}
+  ENV: ${{ inputs.environment }}
 
 jobs:
   test-tag-value:
