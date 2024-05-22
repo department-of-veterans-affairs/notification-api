@@ -107,7 +107,7 @@ jobs:
     uses: ./.github/workflows/deployment.yml
     with:
       environment: staging
-      ref: ${{ needs.create-and-post-tag.outputs.newVersion }} # deploy tag not SHA for Datadog reporting
+      ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
       lambdaDeploy: true
     secrets: inherit
 
