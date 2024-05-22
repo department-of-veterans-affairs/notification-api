@@ -6,6 +6,9 @@ on:
       previousVersion:
         description: "This value is used for generating release notes from the previous tag"
         value: ${{ jobs.create-and-post-tag.outputs.previousVersion }}
+      newVersion:
+        description: "This value will be used for deploying to staging and production"
+        value: ${{ jobs.create-and-post-tag.outputs.newVersion }}
 
 jobs:
   create-and-post-tag:
