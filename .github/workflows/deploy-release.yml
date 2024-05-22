@@ -55,8 +55,8 @@ jobs:
     needs: [setup-environment]
     uses: ./.github/workflows/build.yml
     with:
-      environment: "${{ env.ENV }}"
-      ref: "${{ env.TAG }}"
+      environment: ${{ env.ENV }}
+      ref: ${{ env.TAG }}
     secrets: inherit
 
   run-lambda-deploy:
