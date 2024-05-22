@@ -3,7 +3,7 @@
 # dev_deploy.yml only deploys hashes - this workflow ensures the tag is deployed
 # this ensures the tag name shows up correctly in Datadog for deployment tracking
 name: Deploy API Release
-run-name: "Deploy Release to ${{ inputs.environment }}"
+run-name: "Deploy Release to ${{ inputs.environment || 'dev' }}"
 
 on:
   push:
