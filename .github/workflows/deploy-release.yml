@@ -3,13 +3,9 @@
 # dev_deploy.yml only deploys hashes - this workflow ensures the tag is deployed
 # this ensures the tag name shows up correctly in Datadog for deployment tracking
 name: Deploy API Release
-run-name: "Deploy Release to ${{ inputs.environment || 'dev' }}"
+run-name: "Deploy Release to ${{ inputs.environment }}"
 
 on:
-  push:
-    branches:
-      - 1721-tagfix-triggerdelete-updatenotes
-
   workflow_dispatch:
     inputs:
       environment:
@@ -22,19 +18,19 @@ on:
           - staging
           - prod
       ref:
-        description: "Branch or Commit"
+        description: "Tag, branch, or commit"
         default: master
         required: true
         type: string
       lambdaDeploy:
         description: "Include Lambda in deployment?"
-        default: false
+        default: true
         required: false
         type: boolean
 
 env:
-  TAG: ${{ github.event.inputs.ref || 'v1.7.10' }}
-  ENV: ${{ github.event.inputs.environment || 'dev' }}
+  TAG: ${{ github.event.inputs.ref }}
+  ENV: ${{ github.event.inputs.environment }}
 
 jobs:
   setup-environment:
