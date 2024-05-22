@@ -1,11 +1,13 @@
 """This module is used to transfer incoming twilio requests to a Vetext endpoint."""
 
 import base64
+from cryptography.fernet import Fernet, MultiFernet
 import json
 import logging
 import os
 import sys
 from functools import lru_cache
+from typing import Union
 from urllib.parse import parse_qsl, parse_qs
 
 import boto3
@@ -25,36 +27,78 @@ except ValueError:
 HTTPTIMEOUT = (3.05, 1)
 
 TWILIO_AUTH_TOKEN_SSM_NAME = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME')
+TWILIO_PH_AUTH_TOKEN_SSM_NAME = os.getenv('TWILIO_PH_AUTH_TOKEN_SSM_NAME')
+LOG_ENCRYPTION_SSM_NAME = os.getenv('LOG_ENCRYPTION_SSM_NAME')
 
-if TWILIO_AUTH_TOKEN_SSM_NAME is None or TWILIO_AUTH_TOKEN_SSM_NAME == 'DEFAULT':
-    sys.exit('A required environment variable is not set. Please set TWILIO_AUTH_TOKEN_SSM_NAME')
+if TWILIO_AUTH_TOKEN_SSM_NAME is None or TWILIO_AUTH_TOKEN_SSM_NAME == 'DEFAULT' or LOG_ENCRYPTION_SSM_NAME is None:
+    sys.exit('A required environment variable is not set. Please ensure all env variables are set')
 
 TWILIO_VETEXT_PATH = '/twoway/vettext'
 TWILIO_VETEXT2_PATH = '/twoway/vetext2'
 
 
-def get_twilio_token() -> str:
-    """
-    Is run on instantiation.
-    Defined here and in delivery_status_processor
-    @return: Twilio Token from SSM
+def get_ssm_params(params: Union[list[str], str]) -> Union[list[str], str]:
+    """Collects parameter(s) depending on params passed in
+
+    Args:
+        params (Union[list[str], str]): parameter names
+    Returns:
+        Union[list[str], str]: The value(s) of the given parameter(s)
     """
     try:
-        if TWILIO_AUTH_TOKEN_SSM_NAME == 'unit_test':
-            return 'bad_twilio_auth'
         ssm_client = boto3.client('ssm')
-        auth_ssm_key = os.getenv('TWILIO_AUTH_TOKEN_SSM_NAME', '')
-        if not auth_ssm_key:
-            logger.error('TWILIO_AUTH_TOKEN_SSM_NAME not set')
+        if isinstance(params, list):
+            response = ssm_client.get_parameters(
+                Names=params,
+                WithDecryption=True,
+            )
+            params_value = [parameter['Value'] for parameter in response['Parameters']]
+        else:
+            response = ssm_client.get_parameter(
+                Name=params,
+                WithDecryption=True,
+            )
+            params_value = response['Parameter']['Value']
+    except Exception as exc:
+        logger.error('Failed to get parameter value for: %s - encountered: %s', params, exc)
+        sys.exit('Unable to retrieve parameter store value, exiting')
 
-        response = ssm_client.get_parameter(Name=auth_ssm_key, WithDecryption=True)
-        return response.get('Parameter').get('Value')
+    return params_value
+
+
+def get_twilio_tokens() -> list[str]:
+    """
+    Is run during execution environment setup.
+    @return: List of Twilio auth tokens from SSM
+    """
+    try:
+        if TWILIO_AUTH_TOKEN_SSM_NAME == 'unit_test' or TWILIO_PH_AUTH_TOKEN_SSM_NAME == 'unit_test':
+            # item 0 was the auth token used to sign the body of the request
+            return ['bad_twilio_auth', 'invalid_auth', 'unit_test']
+
+        return get_ssm_params([TWILIO_AUTH_TOKEN_SSM_NAME, TWILIO_PH_AUTH_TOKEN_SSM_NAME])
     except Exception:
-        logger.error('Failed to retrieve Twilio Auth')
-        return None
+        logger.error('Failed to retrieve required paramaters from SSM')
+        sys.exit('Unable to retrieve required auth token(s), exiting')
 
 
-auth_token = get_twilio_token()
+def get_encryption() -> MultiFernet:
+    """Collects the log encryption key(s) and sets up the MultiFernet used for log encryption"""
+    if LOG_ENCRYPTION_SSM_NAME == 'fake_value':
+        return MultiFernet([Fernet(Fernet.generate_key()), Fernet(Fernet.generate_key())])
+    try:
+        encryption_log_key_str = get_ssm_params(LOG_ENCRYPTION_SSM_NAME)
+        key_list: list[str] = encryption_log_key_str.replace(' ', '').split(',')
+        multifernet = MultiFernet([Fernet(key.encode()) for key in key_list])
+    except Exception as exc:
+        logger.error('Failed to set encryption key for failed validation logging: %s', exc)
+        sys.exit('Unable to retrieve/set required encryption keys, exiting')
+
+    return multifernet
+
+
+auth_tokens = get_twilio_tokens()
+encryption = get_encryption()
 
 
 def validate_twilio_event(event: dict) -> bool:
@@ -68,16 +112,21 @@ def validate_twilio_event(event: dict) -> bool:
 
     try:
         signature = event['headers'].get('x-twilio-signature', '')
-        if not auth_token or not signature:
-            logger.error('TWILIO_AUTH_TOKEN or signature not set')
+        if not auth_tokens or not signature:
+            logger.error('Twilio auth token(s) or signature not set')
             return False
-        validator = RequestValidator(auth_token)
+        print(f'{auth_tokens=}')
+        print(f'{event=}')
+        print(f"{signature == event['headers']['x-twilio-signature']=}", signature)
+        validators = [RequestValidator(auth_token) for auth_token in auth_tokens]
         uri = f"https://{event['headers']['host']}/vanotify{event['path']}"
 
         decoded = base64.b64decode(event.get('body')).decode('utf-8')
         params = parse_qs(decoded, keep_blank_values=True)
         params = {k: v[0] for k, v in params.items()}
-        return validator.validate(uri=uri, params=params, signature=signature)
+        valid_list = [validator.validate(uri=uri, params=params, signature=signature) for validator in validators]
+        print(f'{valid_list=}')
+        return any(valid_list)
     except Exception as e:
         logger.error('Error validating request origin: %s', e)
         return False
