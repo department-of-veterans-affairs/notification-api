@@ -33,6 +33,8 @@ async function publishReleaseNotes(params) {
 
   try {
     // publish the draft release
+	//
+	const { draftReleaseReference } = process.env;
 
     const { releaseUrl, updateResponse } = await updateDraftRelease(
       github,
