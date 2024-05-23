@@ -69,13 +69,12 @@ async function createAndPostTag(params) {
     await createTag(github, owner, repo, newVersion, releaseBranchSha);
 
     // Update the RELEASE_VERSION repo variable
-	// TEMPORARILY COMMENTED OUT FOR PR RUN THROUGH
-    // await github.rest.actions.updateRepoVariable({
-      // owner,
-      // repo,
-      // name: "RELEASE_VERSION",
-      // value: newVersion,
-    // });
+	await github.rest.actions.updateRepoVariable({
+	  owner,
+	  repo,
+	  name: "RELEASE_VERSION",
+	  value: newVersion,
+	});
 
     // Output previous version to the GitHub actions workflow context
     // This will be used by the workflow that sets up the release notes

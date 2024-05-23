@@ -44,7 +44,6 @@ async function publishReleaseNotes(params) {
     summaryContent = `
 ### Release has been published!
 [Link to notification-api's latest release](${releaseUrl})
-The draft release reference is ${draftReleaseReference}
 	`;
     appendSummary(core, summaryContent);
 
