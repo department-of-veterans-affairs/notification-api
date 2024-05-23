@@ -128,7 +128,7 @@ jobs:
         run: echo "Pipeline paused for pending approval of staging by QA"
 
   publish-release-notes:
-    needs: release-notes-check
+    needs: QA-approval-of-staging
     uses: ./.github/workflows/publish-release-notes.yml
     secrets: inherit
     with:
