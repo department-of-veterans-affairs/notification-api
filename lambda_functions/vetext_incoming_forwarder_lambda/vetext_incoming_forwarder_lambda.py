@@ -7,7 +7,6 @@ import logging
 import os
 import sys
 from functools import lru_cache
-from typing import Union
 from urllib.parse import parse_qsl, parse_qs
 
 import boto3
@@ -37,7 +36,7 @@ TWILIO_VETEXT_PATH = '/twoway/vettext'
 TWILIO_VETEXT2_PATH = '/twoway/vetext2'
 
 
-def get_ssm_params(params: Union[list[str], str]) -> Union[list[str], str]:
+def get_ssm_params(params):
     """Collects parameter(s) depending on params passed in
 
     Args:
@@ -66,7 +65,7 @@ def get_ssm_params(params: Union[list[str], str]) -> Union[list[str], str]:
     return params_value
 
 
-def get_twilio_tokens() -> list[str]:
+def get_twilio_tokens():
     """
     Is run during execution environment setup.
     @return: List of Twilio auth tokens from SSM
@@ -88,7 +87,9 @@ def get_encryption() -> MultiFernet:
         return MultiFernet([Fernet(Fernet.generate_key()), Fernet(Fernet.generate_key())])
     try:
         encryption_log_key_str = get_ssm_params(LOG_ENCRYPTION_SSM_NAME)
-        key_list: list[str] = encryption_log_key_str.replace(' ', '').split(',')
+        # Clear spaces and split on commas
+        key_list = encryption_log_key_str.replace(' ', '').split(',')
+        # MultiFernet uses the first key, then tries subsequent, allows for rotation
         multifernet = MultiFernet([Fernet(key.encode()) for key in key_list])
     except Exception as exc:
         logger.error('Failed to set encryption key for failed validation logging: %s', exc)
@@ -148,10 +149,17 @@ def vetext_incoming_forwarder_lambda_handler(
             # The check for context is to allow for local testing. While context is always present when deployed,
             # setting it False locally allows for testing without a valid Twilio signature.
             if context and not validate_twilio_event(event):
-                logger.info(
-                    'Returning 403 on unauthenticated Twilio request for event: %s',
-                    encryption.encrypt(str(event).encode()).decode(),
-                )
+                try:
+                    logger.info(
+                        'Returning 403 on unauthenticated Twilio request for event: %s',
+                        encryption.encrypt(json.dumps(event).encode()).decode(),
+                    )
+                except Exception:
+                    # In the event encryption or the dump fails, still log the event
+                    logger.error(
+                        'Returning 403 on unauthenticated Twilio request for event: %s - Unable to encrypt/json dump',
+                        event,
+                    )
                 return create_twilio_response(403)
             logger.info('Authenticated Twilio request')
             event_bodies = process_body_from_alb_invocation(event)
