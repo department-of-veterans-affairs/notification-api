@@ -66,7 +66,7 @@ function processLabelsAndVersion(labels, currentVersion) {
     versionParts[2] = 0;
   }
 
-  // Return the new version and the label
+  // newVersion is in the format X.X.X
   return {
     newVersion: versionParts.join("."),
     label,

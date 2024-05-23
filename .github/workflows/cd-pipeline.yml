@@ -31,16 +31,16 @@ jobs:
     uses: ./.github/workflows/pr-label-semver.yml
     secrets: inherit
 
-  # approval-to-deploy:
-    # needs: pr-label-summary
-    # environment: 
-      # name: perf-deploy
-    # runs-on: ubuntu-latest
-    # steps:
-      # - name: Pause for manual approval
-        # run: |
-          # echo "Deploying commit SHA ${{ github.sha }}, the latest merge to master"
-          # echo "Deployment paused for manual approval."
+  approval-to-deploy:
+    needs: pr-label-summary
+    environment: 
+      name: perf-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pause for manual approval
+        run: |
+          echo "Deploying commit SHA ${{ github.sha }}, the latest merge to master"
+          echo "Deployment paused for manual approval."
 
 # # this job deploys the SHA that triggered this workflow
   # deploy-to-perf:
@@ -54,19 +54,19 @@ jobs:
 
   pre-tag-summary:
     # needs: deploy-to-perf
-    # needs: approval-to-deploy
-    needs: pr-label-summary
+    needs: approval-to-deploy
+    # needs: pr-label-summary
     uses: ./.github/workflows/pre-tag-summary.yml
     secrets: inherit
 
-  # approval-to-merge-to-release-branch:
-    # needs: pre-tag-summary
-    # environment: 
-      # name: perf-merge
-    # runs-on: ubuntu-latest
-    # steps:
-      # - name: Pause for manual approval
-        # run: echo "Deployment paused for manual approval."
+  approval-to-merge-to-release-branch:
+    needs: pre-tag-summary
+    environment: 
+      name: perf-merge
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pause for manual approval
+        run: echo "Deployment paused for manual approval."
 
   # merge-to-release:
     # # These permissions are needed to write to the release branch
@@ -97,8 +97,8 @@ jobs:
 
   create-and-post-tag:
     # needs: merge-to-release
-    # needs: approval-to-merge-to-release-branch
-    needs: pre-tag-summary
+    needs: approval-to-merge-to-release-branch
+    # needs: pre-tag-summary
     uses: ./.github/workflows/create-and-post-tag.yml
     secrets: inherit
 
