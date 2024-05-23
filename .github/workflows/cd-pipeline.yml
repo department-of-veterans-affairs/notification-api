@@ -126,7 +126,7 @@ jobs:
       # draftReleaseReference: ${{ needs.create-release-notes.outputs.draftReleaseReference }}
 
   deploy-to-staging-test:
-    needs: release-notes-check
+    # needs: release-notes-check
     uses: ./.github/workflows/deploy-release.yml
     secrets: inherit
     with:
