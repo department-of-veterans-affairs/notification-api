@@ -82,9 +82,8 @@ jobs:
     secrets: inherit
 
   run-qa-suite:
-    needs: [run-deployment]
+    needs: [setup-environment, run-deployment]
     uses: ./.github/workflows/run-regression.yml
     with:
       environment: ${{ needs.setup-environment.outputs.environment }}
     secrets: inherit
-
