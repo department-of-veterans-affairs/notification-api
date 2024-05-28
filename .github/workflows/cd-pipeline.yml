@@ -55,7 +55,6 @@ jobs:
   pre-tag-summary:
     # needs: deploy-to-perf
     needs: approval-to-deploy
-    needs: pr-label-summary
     uses: ./.github/workflows/pre-tag-summary.yml
     secrets: inherit
 
