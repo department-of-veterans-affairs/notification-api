@@ -20,42 +20,42 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
-      # - name: Configure AWS Credentials
-        # uses: aws-actions/configure-aws-credentials@v4.0.2
-        # with:
-          # aws-access-key-id: ${{ secrets.VAEC_AWS_ACCESS_KEY_ID }}
-          # aws-secret-access-key: ${{ secrets.VAEC_AWS_SECRET_ACCESS_KEY }}
-          # aws-region: us-gov-west-1
-          # role-to-assume: ${{ secrets.VAEC_DEPLOY_ROLE }}
-          # role-skip-session-tagging: true
-          # role-duration-seconds: 1800
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4.0.2
+        with:
+          aws-access-key-id: ${{ secrets.VAEC_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.VAEC_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-gov-west-1
+          role-to-assume: ${{ secrets.VAEC_DEPLOY_ROLE }}
+          role-skip-session-tagging: true
+          role-duration-seconds: 1800
 
-      # - name: Login to VAEC ECR
-        # id: login-ecr-vaec
-        # uses: aws-actions/amazon-ecr-login@v2
-        # with:
-          # mask-password: 'true'
+      - name: Login to VAEC ECR
+        id: login-ecr-vaec
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: 'true'
 
-      # - name: Render migration task definition
-        # id: render
-        # uses: aws-actions/amazon-ecs-render-task-definition@v1
-        # with:
-          # task-definition: ./cd/application-deployment/${{ inputs.environment }}/vaec-db-migrations-task-definition.json
-          # container-name: ${{ inputs.environment }}-notification-api-db-migrations
-          # image: ${{ steps.login-ecr-vaec.outputs.registry }}/notification_api:${{ inputs.ref }}_${{ inputs.environment}}
-          # environment-variables: |
-            # DD_VERSION=${{ inputs.ref }}
-          # docker-labels: |
-            # VERSION=${{ inputs.ref }}
+      - name: Render migration task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ./cd/application-deployment/${{ inputs.environment }}/vaec-db-migrations-task-definition.json
+          container-name: ${{ inputs.environment }}-notification-api-db-migrations
+          image: ${{ steps.login-ecr-vaec.outputs.registry }}/notification_api:${{ inputs.ref }}_${{ inputs.environment}}
+          environment-variables: |
+            DD_VERSION=${{ inputs.ref }}
+          docker-labels: |
+            VERSION=${{ inputs.ref }}
 
-      # - name: Register migration task definition
-        # id: register
-        # run: |
-          # echo "arn=$(aws ecs register-task-definition --cli-input-json file://${{ steps.render.outputs.task-definition}} | jq -r '.taskDefinition.taskDefinitionArn')" >> $GITHUB_OUTPUT
+      - name: Register migration task definition
+        id: register
+        run: |
+          echo "arn=$(aws ecs register-task-definition --cli-input-json file://${{ steps.render.outputs.task-definition}} | jq -r '.taskDefinition.taskDefinitionArn')" >> $GITHUB_OUTPUT
 
-      # - name: Run migration task
-        # run: |
-          # bash ./scripts/run_ci_migrations.sh -c ${{ inputs.environment }}-notification-cluster -e ${{ inputs.environment }} -t ${{ steps.register.outputs.arn }}
+      - name: Run migration task
+        run: |
+          bash ./scripts/run_ci_migrations.sh -c ${{ inputs.environment }}-notification-cluster -e ${{ inputs.environment }} -t ${{ steps.register.outputs.arn }}
 
   deploy-api:
     runs-on: ubuntu-latest
