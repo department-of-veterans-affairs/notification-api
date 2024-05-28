@@ -135,4 +135,3 @@ The draft release reference is ${draftReleaseReference}
 }
 
 module.exports = createReleaseNotes;
-

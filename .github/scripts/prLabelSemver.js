@@ -64,4 +64,3 @@ async function prLabelSemver(params) {
 }
 
 module.exports = prLabelSemver;
-
