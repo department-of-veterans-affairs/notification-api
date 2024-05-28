@@ -1,5 +1,5 @@
 // createReleaseNotes.js
-const { appendSummary, getReleaseVersionValue } = require("./actionUtils");
+const { appendSummary, getReleaseVersionValue } = require('./actionUtils');
 
 /**
  * Formats the current date in a specific string format for use in release titles.
@@ -8,8 +8,8 @@ const { appendSummary, getReleaseVersionValue } = require("./actionUtils");
  */
 function formatDate() {
   const date = new Date();
-  const options = { day: "2-digit", month: "short", year: "numeric" };
-  return date.toLocaleDateString("en-US", options).toUpperCase();
+  const options = { day: '2-digit', month: 'short', year: 'numeric' };
+  return date.toLocaleDateString('en-US', options).toUpperCase();
 }
 
 /**
@@ -37,13 +37,13 @@ async function createDraftRelease(github, owner, repo, tag_name, body) {
     const releaseUrl = response.data.html_url;
     const draftReleaseReference = response.data.id;
 
-    console.log("the response is:", response.data);
-    console.log("The release URL is: ", releaseUrl);
-    console.log("The draftReleaseReference is: ", draftReleaseReference);
+    console.log('the response is:', response.data);
+    console.log('The release URL is: ', releaseUrl);
+    console.log('The draftReleaseReference is: ', draftReleaseReference);
 
     return { releaseUrl, draftReleaseReference };
   } catch (error) {
-    console.error("Error creating release:", error);
+    console.error('Error creating release:', error);
   }
 }
 
@@ -70,13 +70,13 @@ async function generateReleaseNotes(
       repo,
       tag_name,
       previous_tag_name,
-      configuration_file_path: ".github/release.yaml",
+      configuration_file_path: '.github/release.yaml',
     });
     const releaseNotes = response.data.body;
-    console.log("Release notes generated successfully: ", releaseNotes);
+    console.log('Release notes generated successfully: ', releaseNotes);
     return { releaseNotes };
   } catch (error) {
-    console.error("Error generating release notes:", error);
+    console.error('Error generating release notes:', error);
   }
 }
 
@@ -125,7 +125,7 @@ The draft release reference is ${draftReleaseReference}
     appendSummary(core, summaryContent);
 
     // Output the draftReleaseReference so it can be published upon QA approval of the staging deploy
-    core.setOutput("draftReleaseReference", draftReleaseReference);
+    core.setOutput('draftReleaseReference', draftReleaseReference);
 
     console.log(`The previous release version was: ${previousVersion}`);
   } catch (error) {

@@ -1,5 +1,5 @@
 // prData.js
-const { getReleaseVersionValue } = require("./actionUtils");
+const { getReleaseVersionValue } = require('./actionUtils');
 
 /**
  * Fetches all pull requests associated with a specific commit from a GitHub repository.
@@ -28,14 +28,14 @@ async function fetchReleaseBranchSha(github, owner, repo) {
   const { data } = await github.rest.repos.getCommit({
     owner,
     repo,
-    ref: "heads/release",
+    ref: 'heads/release',
   });
 
   if (data && data.sha) {
-    console.log("The release branch head SHA is: " + data.sha);
+    console.log('The release branch head SHA is: ' + data.sha);
     return data.sha;
   } else {
-    throw new Error("No SHA found in the response");
+    throw new Error('No SHA found in the response');
   }
 }
 
@@ -48,16 +48,16 @@ async function fetchReleaseBranchSha(github, owner, repo) {
  */
 function processLabelsAndVersion(labels, currentVersion) {
   // Split the current version into major, minor, and patch parts
-  let versionParts = currentVersion.split(".").map((x) => parseInt(x, 10));
+  let versionParts = currentVersion.split('.').map((x) => parseInt(x, 10));
   let label = labels[0].name;
 
   // Determine the type of version bump based on the label
-  if (label === "breaking-change") {
+  if (label === 'breaking-change') {
     // Major version bump
     versionParts[0] += 1;
     versionParts[1] = 0;
     versionParts[2] = 0;
-  } else if (["hotfix", "security", "bug", "internal"].includes(label)) {
+  } else if (['hotfix', 'security', 'bug', 'internal'].includes(label)) {
     // Patch version bump
     versionParts[2] += 1;
   } else {
@@ -68,7 +68,7 @@ function processLabelsAndVersion(labels, currentVersion) {
 
   // newVersion is in the format X.X.X
   return {
-    newVersion: versionParts.join("."),
+    newVersion: versionParts.join('.'),
     label,
   };
 }
@@ -108,7 +108,7 @@ async function prData(params) {
     };
   } catch (error) {
     core.setFailed(`Error processing PR data: ${error.message}`);
-    console.error("Error processing PR data:", error);
+    console.error('Error processing PR data:', error);
     return null; // Ensure to handle null in postQA.js if needed
   }
 }

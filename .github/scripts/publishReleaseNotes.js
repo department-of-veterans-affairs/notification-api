@@ -1,5 +1,5 @@
 // publishReleaseNotes.js
-const { appendSummary, getReleaseVersionValue } = require("./actionUtils");
+const { appendSummary, getReleaseVersionValue } = require('./actionUtils');
 
 // use the gh api getRelease to grab the draft release based on its unique identifier output from the create-release-notes.yml.
 
@@ -15,12 +15,12 @@ async function updateDraftRelease(github, owner, repo, release_id) {
     const updateResponse = response.data;
     const releaseUrl = response.data.html_url;
 
-    console.log("Release successfully published at:", releaseUrl);
-    console.log("update response is:", updateResponse);
+    console.log('Release successfully published at:', releaseUrl);
+    console.log('update response is:', updateResponse);
 
     return { releaseUrl, updateResponse };
   } catch (error) {
-    console.error("Error publishing release:", error);
+    console.error('Error publishing release:', error);
   }
 }
 
