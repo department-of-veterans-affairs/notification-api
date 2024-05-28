@@ -17,7 +17,7 @@ on:
   push:
     branches:
       # - master
-      # - 1721-publish-release-notes
+      - 1721-publish-release-notes
 
 jobs:
   prepare-deployment:
@@ -31,16 +31,16 @@ jobs:
     uses: ./.github/workflows/pr-label-semver.yml
     secrets: inherit
 
-  # approval-to-deploy:
-    # needs: pr-label-summary
-    # environment: 
-      # name: perf-deploy
-    # runs-on: ubuntu-latest
-    # steps:
-      # - name: Pause for manual approval
-        # run: |
-          # echo "Deploying commit SHA ${{ github.sha }}, the latest merge to master"
-          # echo "Deployment paused for manual approval."
+  approval-to-deploy:
+    needs: pr-label-summary
+    environment: 
+      name: perf-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pause for manual approval
+        run: |
+          echo "Deploying commit SHA ${{ github.sha }}, the latest merge to master"
+          echo "Deployment paused for manual approval."
 
 # # this job deploys the SHA that triggered this workflow
   # deploy-to-perf:
@@ -54,41 +54,41 @@ jobs:
 
   pre-tag-summary:
     # needs: deploy-to-perf
-    # needs: approval-to-deploy
+    needs: approval-to-deploy
     needs: pr-label-summary
     uses: ./.github/workflows/pre-tag-summary.yml
     secrets: inherit
 
-  # approval-to-merge-to-release-branch:
-    # needs: pre-tag-summary
-    # environment: 
-      # name: perf-merge
-    # runs-on: ubuntu-latest
-    # steps:
-      # - name: Pause for manual approval
-        # run: echo "Deployment paused for manual approval."
+  approval-to-merge-to-release-branch:
+    needs: pre-tag-summary
+    environment: 
+      name: perf-merge
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pause for manual approval
+        run: echo "Deployment paused for manual approval."
 
-  # merge-to-release:
-    # # These permissions are needed to write to the release branch
-    # permissions:
-      # contents: write
-    # needs: approval-to-merge-to-release-branch
-    # runs-on: ubuntu-latest
-    # steps:
-      # - name: Checkout release branch
-        # uses: actions/checkout@v4
-        # with:
-          # ref: release
-          # fetch-depth: 0
-          # # Fine-grained PAT with contents:write and workflows:write
-          # # scopes
-          # token: ${{ secrets.CD_PAT }}
+  merge-to-release:
+    needs: approval-to-merge-to-release-branch
+    # These permissions are needed to write to the release branch
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          ref: release
+          fetch-depth: 0
+          # Fine-grained PAT with contents:write and workflows:write
+          # scopes
+          token: ${{ secrets.CD_PAT }}
 
-      # - name: Setup git user
-        # # The following is taken from https://github.com/actions/checkout/issues/13 as a common work-around
-        # run: |
-            # git config --global user.name "$(git --no-pager log --format=format:'%an' -n 1)"
-            # git config --global user.email "$(git --no-pager log --format=format:'%ae' -n 1)"
+      - name: Setup git user
+        # The following is taken from https://github.com/actions/checkout/issues/13 as a common work-around
+        run: |
+            git config --global user.name "$(git --no-pager log --format=format:'%an' -n 1)"
+            git config --global user.email "$(git --no-pager log --format=format:'%ae' -n 1)"
           
       # - name: Merge commit SHA to release
         # run: |
@@ -96,9 +96,7 @@ jobs:
           # git push
 
   create-and-post-tag:
-    # needs: merge-to-release
-    # needs: approval-to-merge-to-release-branch
-    needs: pre-tag-summary
+    needs: merge-to-release
     uses: ./.github/workflows/create-and-post-tag.yml
     secrets: inherit
 
@@ -109,8 +107,6 @@ jobs:
     with:
       previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
 
-  # deploy-release.yml is adjusted to only echo a value
-  # REMOVE THIS COMMENT when it is set up to actually deploy
   deploy-to-staging:
     needs: create-and-post-tag
     uses: ./.github/workflows/deploy-release.yml
@@ -120,17 +116,17 @@ jobs:
       ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
       lambdaDeploy: true
 
-  # QA-approval-of-staging:
-    # needs: deploy-to-staging
-    # environment: 
-      # name: prod-deploy
-    # runs-on: ubuntu-latest
-    # steps:
-      # - name: Pause for manual approval
-        # run: echo "Pipeline paused for pending approval of staging by QA"
+  QA-approval-of-staging:
+    needs: deploy-to-staging
+    environment: 
+      name: prod-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pause for manual approval
+        run: echo "Pipeline paused for pending approval of staging by QA"
 
   publish-release-notes:
-    # needs: QA-approval-of-staging
+    needs: QA-approval-of-staging
     uses: ./.github/workflows/publish-release-notes.yml
     secrets: inherit
     with:

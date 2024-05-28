@@ -56,3 +56,4 @@ async function publishReleaseNotes(params) {
 }
 
 module.exports = publishReleaseNotes;
+
