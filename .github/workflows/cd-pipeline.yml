@@ -16,8 +16,7 @@ name: Continuous Deployment Pipeline
 on:
   push:
     branches:
-      # - master
-      - 1721-publish-release-notes
+      - master
 
 jobs:
   prepare-deployment:
@@ -42,19 +41,18 @@ jobs:
           echo "Deploying commit SHA ${{ github.sha }}, the latest merge to master"
           echo "Deployment paused for manual approval."
 
-# # this job deploys the SHA that triggered this workflow
-  # deploy-to-perf:
-    # needs: approval-to-deploy
-    # uses: ./.github/workflows/dev_deploy.yml
-    # secrets: inherit
-    # with:
-      # environment: perf
-      # ref: ${{ github.sha }}
-      # lambdaDeploy: true
+  # this job deploys the SHA that triggered this workflow
+  deploy-to-perf:
+    needs: approval-to-deploy
+    uses: ./.github/workflows/dev_deploy.yml
+    secrets: inherit
+    with:
+      environment: perf
+      ref: ${{ github.sha }}
+      lambdaDeploy: true
 
   pre-tag-summary:
-    # needs: deploy-to-perf
-    needs: approval-to-deploy
+    needs: deploy-to-perf
     uses: ./.github/workflows/pre-tag-summary.yml
     secrets: inherit
 
@@ -89,10 +87,10 @@ jobs:
             git config --global user.name "$(git --no-pager log --format=format:'%an' -n 1)"
             git config --global user.email "$(git --no-pager log --format=format:'%ae' -n 1)"
           
-      # - name: Merge commit SHA to release
-        # run: |
-          # git merge ${{ github.sha }} --no-squash -X theirs
-          # git push
+      - name: Merge commit SHA to release
+        run: |
+          git merge ${{ github.sha }} --no-squash -X theirs
+          git push
 
   create-and-post-tag:
     needs: merge-to-release
@@ -107,7 +105,7 @@ jobs:
       previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
 
   deploy-to-staging:
-    needs: create-and-post-tag
+    needs: create-release-notes
     uses: ./.github/workflows/deploy-release.yml
     secrets: inherit
     with:
@@ -130,5 +128,4 @@ jobs:
     secrets: inherit
     with:
       draftReleaseReference: ${{ needs.create-release-notes.outputs.draftReleaseReference }}
-
 
