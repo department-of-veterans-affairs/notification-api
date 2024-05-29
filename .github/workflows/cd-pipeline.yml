@@ -43,7 +43,7 @@ jobs:
 
   # this job deploys the SHA that triggered this workflow
   deploy-to-perf:
-    needs: approval-to-deploy
+    needs: approval-deploy-perf
     uses: ./.github/workflows/dev_deploy.yml
     secrets: inherit
     with:
@@ -66,7 +66,7 @@ jobs:
         run: echo "Deployment paused for manual approval."
 
   merge-to-release:
-    needs: approval-to-merge-to-release-branch
+    needs: approval-deploy-staging
     # These permissions are needed to write to the release branch
     permissions:
       contents: write
@@ -123,7 +123,7 @@ jobs:
         run: echo "Pipeline paused for pending approval of staging by QA"
 
   publish-release-notes:
-    needs: [create-release-notes, QA-approval-of-staging]
+    needs: [create-release-notes, approval-deploy-prod]
     uses: ./.github/workflows/publish-release-notes.yml
     secrets: inherit
     with:
