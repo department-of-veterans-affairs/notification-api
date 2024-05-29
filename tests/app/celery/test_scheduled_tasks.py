@@ -534,18 +534,15 @@ def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_i
     assert len(messages) == 2
 
 
-def test_it_get_dynamodb_comp_pen_messages_with_many_table_items(
+def test_it_get_dynamodb_comp_pen_messages_with_multiple_scans(
     dynamodb_mock,
     sample_dynamodb_insert,
     setup_monetary_decimal_context,
 ):
     """
-    Items should not be returned if any of these apply:
-        2) has_duplicate_mappings is True
-        3) payment_id equals -1
-        4) paymentAmount is absent (required by downstream Celery task)
+    Items should be searched based on the is_processed index and payment_id = -1 should be filtered out.
     """
-    # Insert mock data into the DynamoDB table.
+    # items with is_processed = 'F'
     not_processed_items = [
         {
             'participant_id': x,
@@ -557,22 +554,29 @@ def test_it_get_dynamodb_comp_pen_messages_with_many_table_items(
         for x in range(0, 1000, 2)
     ]
 
+    # items with is_processed removed (not in index)
     processed_items = [
         {
             'participant_id': x,
-            'payment_id': x,
+            'payment_id': x if x % 5 != 0 else -1,
             'paymentAmount': Decimal(x * 2.50),
             'vaprofile_id': x * 10,
         }
         for x in range(1, 1001, 2)
     ]
 
-    sample_dynamodb_insert(not_processed_items + processed_items)
+    # Insert mock data into the DynamoDB table.
+    sample_dynamodb_insert(processed_items + not_processed_items)
 
     # Invoke the function with the mocked table and application
-    messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=10)
+    messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=100)
 
-    assert len(messages) == 10
+    assert len(messages) == 100
+
+    # ensure we only have messages that have not been processed
+    for m in messages:
+        assert m['is_processed'] == 'F'
+        assert m['payment_id'] != -1
 
 
 def test_it_update_dynamo_item_is_processed_updates_properly(dynamodb_mock, sample_dynamodb_insert):
