@@ -534,6 +534,47 @@ def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_i
     assert len(messages) == 2
 
 
+def test_it_get_dynamodb_comp_pen_messages_with_many_table_items(
+    dynamodb_mock,
+    sample_dynamodb_insert,
+    setup_monetary_decimal_context,
+):
+    """
+    Items should not be returned if any of these apply:
+        2) has_duplicate_mappings is True
+        3) payment_id equals -1
+        4) paymentAmount is absent (required by downstream Celery task)
+    """
+    # Insert mock data into the DynamoDB table.
+    not_processed_items = [
+        {
+            'participant_id': x,
+            'is_processed': 'F',
+            'payment_id': x if x % 5 != 0 else -1,
+            'paymentAmount': Decimal(x * 2.50),
+            'vaprofile_id': x * 10,
+        }
+        for x in range(0, 1000, 2)
+    ]
+
+    processed_items = [
+        {
+            'participant_id': x,
+            'payment_id': x,
+            'paymentAmount': Decimal(x * 2.50),
+            'vaprofile_id': x * 10,
+        }
+        for x in range(1, 1001, 2)
+    ]
+
+    sample_dynamodb_insert(not_processed_items + processed_items)
+
+    # Invoke the function with the mocked table and application
+    messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=10)
+
+    assert len(messages) == 10
+
+
 def test_it_update_dynamo_item_is_processed_updates_properly(dynamodb_mock, sample_dynamodb_insert):
     items_to_insert = [
         {'participant_id': 1, 'is_processed': 'F', 'payment_id': 1, 'paymentAmount': Decimal(1.00)},
