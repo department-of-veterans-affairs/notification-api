@@ -9,39 +9,37 @@ on:
   workflow_dispatch:
     inputs:
       environment:
+        description: 'Environment to deploy'
+        default: 'dev'
         type: choice
-        description: Environment to deploy
-        default: dev
         options:
           - dev
           - perf
           - staging
           - prod
       ref:
-        description: "Tag, branch, or commit"
-        default: master
-        required: true
+        description: 'Tag, branch, or commit'
+        default: 'master'
         type: string
+        required: true
       lambdaDeploy:
-        description: "Include Lambda in deployment?"
+        description: 'Include Lambda in deployment?'
         default: true
-        required: false
         type: boolean
+        required: false
   workflow_call:
     inputs:
       environment:
+        default: 'dev'
         type: string
-        default: dev
       ref:
-        default: "dev"
-        description: "Tag, branch, or commit"
-        required: true
+        default: 'dev'
         type: string
+        required: true
       lambdaDeploy:
-        description: "Include Lambda in deployment?"
         default: true
-        required: false
         type: boolean
+        required: false
 
 env:
   TAG: ${{ inputs.ref }}
