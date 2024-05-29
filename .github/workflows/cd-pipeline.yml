@@ -30,7 +30,7 @@ jobs:
     uses: ./.github/workflows/pr-label-semver.yml
     secrets: inherit
 
-  approval-to-deploy:
+  approval-deploy-perf:
     needs: pr-label-summary
     environment: 
       name: perf-deploy
@@ -56,10 +56,10 @@ jobs:
     uses: ./.github/workflows/pre-tag-summary.yml
     secrets: inherit
 
-  approval-to-merge-to-release-branch:
+  approval-deploy-staging:
     needs: pre-tag-summary
     environment: 
-      name: perf-merge
+      name: staging-deploy
     runs-on: ubuntu-latest
     steps:
       - name: Pause for manual approval
@@ -113,7 +113,7 @@ jobs:
       ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
       lambdaDeploy: true
 
-  QA-approval-of-staging:
+  approval-deploy-prod:
     needs: deploy-to-staging
     environment: 
       name: prod-deploy
