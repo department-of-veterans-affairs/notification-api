@@ -256,30 +256,134 @@ def _get_dynamodb_comp_pen_messages(
     return items[:message_limit]
 
 
-def _update_dynamo_item_is_processed(batch, item):
-    participant_id = item.get('participant_id')
-    payment_id = item.get('payment_id')
+def _update_dynamo_item_is_processed(table, comp_and_pen_messages: list) -> None:
+    # send messages and update entries in dynamodb table
+    with table.batch_writer() as batch:
+        for item in comp_and_pen_messages:
+            # Update DynamoDB entries.  Note that this occurs without knowing if the call to
+            # send_notification_bypass_route raised an exception.
+            _update_dynamo_item_is_processed(batch, item)
+            participant_id = item.get('participant_id')
+            payment_id = item.get('payment_id')
 
-    item.pop('is_processed', None)
+            item.pop('is_processed', None)
 
-    # update dynamodb entries
+            # update dynamodb entries
+            try:
+                batch.put_item(Item=item)
+                current_app.logger.info('updated_item from dynamodb ("is_processed" should no longer exist): %s', item)
+            except Exception as e:
+                current_app.logger.critical(
+                    'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
+                    'exception_type: %s exception_message: %s',
+                    participant_id,
+                    payment_id,
+                    type(e),
+                    e,
+                )
+                raise
+
+
+def _get_setup_data(service_id: str, template_id: str, sms_sender_id: str) -> tuple[Service, Template, UUID] | None:
     try:
-        batch.put_item(Item=item)
-        current_app.logger.info('updated_item from dynamodb ("is_processed" should no longer exist): %s', item)
-    except Exception as e:
-        current_app.logger.critical(
-            'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
-            'exception_type: %s exception_message: %s',
-            participant_id,
-            payment_id,
-            type(e),
+        service: Service = dao_fetch_service_by_id(service_id)
+        template: Template = dao_get_template_by_id(template_id)
+    except NoResultFound as e:
+        current_app.logger.error(
+            'No results found in task send_scheduled_comp_and_pen_sms attempting to lookup service or template. Exiting'
+            ' - exception: %s',
             e,
         )
+        raise
+    except Exception as e:
+        current_app.logger.critical(
+            'Error in task send_scheduled_comp_and_pen_sms attempting to lookup service or template Exiting - '
+            'exception: %s',
+            e,
+        )
+        raise
+
+    try:
+        # If this line doesn't raise ValueError, the value is a valid UUID.
+        sms_sender_id = UUID(sms_sender_id)
+        current_app.logger.info('Using the SMS sender ID specified in SSM Parameter store.')
+    except ValueError:
+        sms_sender_id = service.get_default_sms_sender_id()
+        current_app.logger.info("Using the service default ServiceSmsSender's ID.")
+
+    return service, template, sms_sender_id
+
+
+def _send_scheduled_sms(
+    service: Service,
+    template: Template,
+    sms_sender_id: str,
+    comp_and_pen_messages: list,
+    perf_to_number: str,
+) -> None:
+    for item in comp_and_pen_messages:
+        vaprofile_id = str(item.get('vaprofile_id'))
+        participant_id = item.get('participant_id')
+        payment_id = item.get('payment_id')
+        payment_amount = str(item.get('paymentAmount'))
+
+        current_app.logger.info(
+            'sending - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
+            vaprofile_id,
+            participant_id,
+            payment_id,
+        )
+
+        # Use perf_to_number as the recipient if available.  Otherwise, use vaprofile_id as recipient_item.
+        recipient = perf_to_number
+        recipient_item = (
+            None
+            if perf_to_number is not None
+            else {
+                'id_type': IdentifierType.VA_PROFILE_ID.value,
+                'id_value': vaprofile_id,
+            }
+        )
+
+        try:
+            # call generic method to send messages
+            send_notification_bypass_route(
+                service=service,
+                template=template,
+                notification_type=SMS_TYPE,
+                personalisation={'paymentAmount': payment_amount},
+                sms_sender_id=sms_sender_id,
+                recipient=recipient,
+                recipient_item=recipient_item,
+            )
+        except Exception as e:
+            current_app.logger.critical(
+                'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | item from '
+                'dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s | exception_type: %s - '
+                'exception: %s',
+                vaprofile_id,
+                participant_id,
+                payment_id,
+                type(e),
+                e,
+            )
+        else:
+            if perf_to_number is not None:
+                current_app.logger.info(
+                    'Notification sent using Perf simulated number %s instead of vaprofile_id', perf_to_number
+                )
+
+            current_app.logger.info(
+                'sent to queue, updating - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
+                vaprofile_id,
+                participant_id,
+                payment_id,
+            )
 
 
 @notify_celery.task(name='send-scheduled-comp-and-pen-sms')
 @statsd(namespace='tasks')
-def send_scheduled_comp_and_pen_sms() -> None:  # noqa (C901 too complex 11 > 10)
+def send_scheduled_comp_and_pen_sms() -> None:
     # this is the agreed upon message per 2 minute limit
     messages_per_min = 3000
 
@@ -308,112 +412,17 @@ def send_scheduled_comp_and_pen_sms() -> None:  # noqa (C901 too complex 11 > 10
             type(e),
             e,
         )
-        return
+        raise
 
     current_app.logger.debug('send_scheduled_comp_and_pen_sms list of items from dynamodb: %s', comp_and_pen_messages)
 
-    # stop if there are no messages
-    if not comp_and_pen_messages:
-        current_app.logger.info(
-            'No Comp and Pen messages to send via send_scheduled_comp_and_pen_sms task. Exiting task.'
-        )
-        return
+    # only continue if there are messages to update and send
+    if comp_and_pen_messages:
+        _update_dynamo_item_is_processed(table, comp_and_pen_messages)
 
-    try:
-        service: Service = dao_fetch_service_by_id(service_id)
-        template: Template = dao_get_template_by_id(template_id)
-    except NoResultFound as e:
-        current_app.logger.error(
-            'No results found in task send_scheduled_comp_and_pen_sms attempting to lookup service or template. Exiting'
-            ' - exception: %s',
-            e,
-        )
-        return
-    except Exception as e:
-        current_app.logger.critical(
-            'Error in task send_scheduled_comp_and_pen_sms attempting to lookup service or template Exiting - '
-            'exception: %s',
-            e,
-        )
-        return
+        service, template, sms_sender_id = _get_setup_data(service_id, template_id, sms_sender_id)
 
-    try:
-        # If this line doesn't raise ValueError, the value is a valid UUID.
-        sms_sender_id = UUID(sms_sender_id)
-        current_app.logger.info('Using the SMS sender ID specified in SSM Parameter store.')
-    except ValueError:
-        sms_sender_id = service.get_default_sms_sender_id()
-        current_app.logger.info("Using the service default ServiceSmsSender's ID.")
-
-    # send messages and update entries in dynamodb table
-    with table.batch_writer() as batch:
-        for item in comp_and_pen_messages:
-            vaprofile_id = str(item.get('vaprofile_id'))
-            participant_id = item.get('participant_id')
-            payment_id = item.get('payment_id')
-            payment_amount = str(item.get('paymentAmount'))
-
-            current_app.logger.info(
-                'sending - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
-                vaprofile_id,
-                participant_id,
-                payment_id,
-            )
-
-            if is_feature_enabled(FeatureFlag.COMP_AND_PEN_MESSAGES_ENABLED):
-                # Use perf_to_number as the recipient if available.  Otherwise, use vaprofile_id as recipient_item.
-                recipient = perf_to_number
-                recipient_item = (
-                    None
-                    if perf_to_number is not None
-                    else {
-                        'id_type': IdentifierType.VA_PROFILE_ID.value,
-                        'id_value': vaprofile_id,
-                    }
-                )
-
-                try:
-                    # call generic method to send messages
-                    send_notification_bypass_route(
-                        service=service,
-                        template=template,
-                        notification_type=SMS_TYPE,
-                        personalisation={'paymentAmount': payment_amount},
-                        sms_sender_id=sms_sender_id,
-                        recipient=recipient,
-                        recipient_item=recipient_item,
-                    )
-                except Exception as e:
-                    current_app.logger.critical(
-                        'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | item from '
-                        'dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s | exception_type: %s - '
-                        'exception: %s',
-                        vaprofile_id,
-                        participant_id,
-                        payment_id,
-                        type(e),
-                        e,
-                    )
-                else:
-                    if perf_to_number is not None:
-                        current_app.logger.info(
-                            'Notification sent using Perf simulated number %s instead of vaprofile_id', perf_to_number
-                        )
-
-                    current_app.logger.info(
-                        'sent to queue, updating - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
-                        vaprofile_id,
-                        participant_id,
-                        payment_id,
-                    )
-            else:
-                current_app.logger.info(
-                    'Not sent to queue (feature flag disabled) - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
-                    vaprofile_id,
-                    participant_id,
-                    payment_id,
-                )
-
-            # Update DynamoDB entries.  Note that this occurs without knowing if the call to
-            # send_notification_bypass_route raised an exception.
-            _update_dynamo_item_is_processed(batch, item)
+        if is_feature_enabled(FeatureFlag.COMP_AND_PEN_MESSAGES_ENABLED):
+            _send_scheduled_sms(service, template, sms_sender_id, comp_and_pen_messages, perf_to_number)
+        else:
+            current_app.logger.info('Notifications not sent to queue (feature flag disabled)')
