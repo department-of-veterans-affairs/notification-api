@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from uuid import UUID
 
-import boto3
 from boto3.dynamodb.conditions import Attr
+from botocore.exceptions import ClientError
 from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 from sqlalchemy import and_, select
@@ -27,6 +27,7 @@ from app.dao.services_dao import dao_fetch_service_by_id
 from app.dao.templates_dao import dao_get_template_by_id
 from app.dao.users_dao import delete_codes_older_created_more_than_a_day_ago
 from app.feature_flags import is_feature_enabled, FeatureFlag
+from app.integrations.comp_and_pen.scheduled_message_helpers import CompPenMsgHelper
 from app.models import (
     Job,
     JOB_STATUS_IN_PROGRESS,
@@ -240,7 +241,7 @@ def _get_dynamodb_comp_pen_messages(
             'Returned results does not include "Items" - results: %s',
             results,
         )
-        return []
+        items = []
 
     # Keep getting items from the table until we have the number we want to send, or run out of items
     while 'LastEvaluatedKey' in results and len(items) < message_limit:
@@ -256,13 +257,10 @@ def _get_dynamodb_comp_pen_messages(
     return items[:message_limit]
 
 
-def _update_dynamo_item_is_processed(table, comp_and_pen_messages: list) -> None:
+def _remove_dynamo_item_is_processed(table, comp_and_pen_messages: list) -> None:
     # send messages and update entries in dynamodb table
     with table.batch_writer() as batch:
         for item in comp_and_pen_messages:
-            # Update DynamoDB entries.  Note that this occurs without knowing if the call to
-            # send_notification_bypass_route raised an exception.
-            _update_dynamo_item_is_processed(batch, item)
             participant_id = item.get('participant_id')
             payment_id = item.get('payment_id')
 
@@ -281,10 +279,9 @@ def _update_dynamo_item_is_processed(table, comp_and_pen_messages: list) -> None
                     type(e),
                     e,
                 )
-                raise
 
 
-def _get_setup_data(service_id: str, template_id: str, sms_sender_id: str) -> tuple[Service, Template, UUID] | None:
+def _get_setup_data(service_id: str, template_id: str, sms_sender_id: str) -> tuple[Service, Template, str] | None:
     try:
         service: Service = dao_fetch_service_by_id(service_id)
         template: Template = dao_get_template_by_id(template_id)
@@ -311,7 +308,7 @@ def _get_setup_data(service_id: str, template_id: str, sms_sender_id: str) -> tu
         sms_sender_id = service.get_default_sms_sender_id()
         current_app.logger.info("Using the service default ServiceSmsSender's ID.")
 
-    return service, template, sms_sender_id
+    return service, template, str(sms_sender_id)
 
 
 def _send_scheduled_sms(
@@ -334,7 +331,7 @@ def _send_scheduled_sms(
             payment_id,
         )
 
-        # Use perf_to_number as the recipient if available.  Otherwise, use vaprofile_id as recipient_item.
+        # Use perf_to_number as the recipient if available. Otherwise, use vaprofile_id as recipient_item.
         recipient = perf_to_number
         recipient_item = (
             None
@@ -374,7 +371,8 @@ def _send_scheduled_sms(
                 )
 
             current_app.logger.info(
-                'sent to queue, updating - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
+                'Notification sent to queue for item from dynamodb - vaprofile_id: %s | participant_id: %s | '
+                'payment_id: %s',
                 vaprofile_id,
                 participant_id,
                 payment_id,
@@ -396,15 +394,21 @@ def send_scheduled_comp_and_pen_sms() -> None:
     perf_to_number = current_app.config['COMP_AND_PEN_PERF_TO_NUMBER']
 
     # TODO: utils #146 - Debug messages currently don't show up in cloudwatch, requires a configuration change
-    current_app.logger.debug('send_scheduled_comp_and_pen_sms connecting to dynamodb')
+    current_app.logger.debug('send_scheduled_comp_and_pen_sms connecting to dynamodb...')
+    try:
+        comp_pen_helper = CompPenMsgHelper(dynamodb_table_name=dynamodb_table_name)
+    except ClientError as e:
+        current_app.logger.critical(
+            'Unable to connect to dynamodb table with name %s - exception: %s', dynamodb_table_name, e
+        )
+        raise
 
-    # connect to dynamodb table
-    dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table(dynamodb_table_name)
+    current_app.logger.debug('... connected to dynamodb in send_scheduled_comp_and_pen_sms')
 
     # get messages to send
     try:
-        comp_and_pen_messages: list = _get_dynamodb_comp_pen_messages(table, messages_per_min)
+        comp_and_pen_messages: list = comp_pen_helper.get_dynamodb_comp_pen_messages(messages_per_min)
+        # comp_and_pen_messages: list = _get_dynamodb_comp_pen_messages(table, messages_per_min)
     except Exception as e:
         current_app.logger.critical(
             'Exception trying to scan dynamodb table for send_scheduled_comp_and_pen_sms exception_type: %s - '
@@ -418,11 +422,24 @@ def send_scheduled_comp_and_pen_sms() -> None:
 
     # only continue if there are messages to update and send
     if comp_and_pen_messages:
-        _update_dynamo_item_is_processed(table, comp_and_pen_messages)
+        comp_pen_helper.remove_dynamo_item_is_processed(comp_and_pen_messages)
+        # _remove_dynamo_item_is_processed(table, comp_and_pen_messages)
 
-        service, template, sms_sender_id = _get_setup_data(service_id, template_id, sms_sender_id)
+        service, template, sms_sender_id = comp_pen_helper.get_setup_data(
+            service_id=service_id,
+            template_id=template_id,
+            sms_sender_id=sms_sender_id,
+        )
+        # service, template, sms_sender_id = _get_setup_data(service_id, template_id, sms_sender_id)
 
         if is_feature_enabled(FeatureFlag.COMP_AND_PEN_MESSAGES_ENABLED):
-            _send_scheduled_sms(service, template, sms_sender_id, comp_and_pen_messages, perf_to_number)
+            comp_pen_helper.send_scheduled_sms(
+                service=service,
+                template=template,
+                sms_sender_id=sms_sender_id,
+                comp_and_pen_messages=comp_and_pen_messages,
+                perf_to_number=perf_to_number,
+            )
+            # _send_scheduled_sms(service, template, sms_sender_id, comp_and_pen_messages, perf_to_number)
         else:
             current_app.logger.info('Notifications not sent to queue (feature flag disabled)')

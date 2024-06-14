@@ -12,7 +12,7 @@ from app.celery import scheduled_tasks
 from app.celery.scheduled_tasks import (
     send_scheduled_comp_and_pen_sms,
     _get_dynamodb_comp_pen_messages,
-    _update_dynamo_item_is_processed,
+    _remove_dynamo_item_is_processed,
     check_job_status,
     delete_invitations,
     delete_verify_codes,
@@ -591,7 +591,7 @@ def test_it_update_dynamo_item_is_processed_updates_properly(dynamodb_mock, samp
 
     with dynamodb_mock.batch_writer() as batch:
         for item in items_to_insert:
-            _update_dynamo_item_is_processed(batch, item)
+            _remove_dynamo_item_is_processed(batch, item)
 
     response = dynamodb_mock.scan()
 
