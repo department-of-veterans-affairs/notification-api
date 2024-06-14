@@ -1,12 +1,7 @@
-from uuid import UUID
-
 import boto3
 from boto3.dynamodb.conditions import Attr
 from flask import current_app
-from sqlalchemy.orm.exc import NoResultFound
 
-from app.dao.services_dao import dao_fetch_service_by_id
-from app.dao.templates_dao import dao_get_template_by_id
 from app.models import (
     SMS_TYPE,
     Service,
@@ -17,19 +12,19 @@ from app.va.identifier import IdentifierType
 
 
 class CompPenMsgHelper:
-    """
-    This class is a collection of helper methods to facilitate the delivery of schedule Comp and Pen notifications.
-    When initialized it establishes a connection to the dynamodb table with the given name.
-    """
-
     def __init__(self, dynamodb_table_name: str) -> None:
-        """"""
+        """
+        This class is a collection of helper methods to facilitate the delivery of schedule Comp and Pen notifications.
+        When initialized it establishes a connection to the dynamodb table with the given name.
+
+        :param dynamodb_table_name (str): the name of the dynamodb table to connect to for the dynamo operations
+        """
         # this is the agreed upon message per 2 minute limit
         self.messages_per_min = 3000
 
         # connect to dynamodb table
-        dynamodb = boto3.resource('dynamodb')
-        self.table = dynamodb.Table(dynamodb_table_name)
+        self.dynamodb_resource = boto3.resource('dynamodb')
+        self.table = self.dynamodb_resource.Table(dynamodb_table_name)
 
     def get_dynamodb_comp_pen_messages(
         self,
@@ -63,12 +58,12 @@ class CompPenMsgHelper:
         items: list = results.get('Items')
 
         if items is None:
+            items = []
             current_app.logger.critical(
-                'Error in _get_dynamodb_comp_pen_messages trying to read "Items" from dynamodb table scan result. '
+                'Error in get_dynamodb_comp_pen_messages trying to read "Items" from dynamodb table scan result. '
                 'Returned results does not include "Items" - results: %s',
                 results,
             )
-            items = []
 
         # Keep getting items from the table until we have the number we want to send, or run out of items
         while 'LastEvaluatedKey' in results and len(items) < message_limit:
@@ -88,10 +83,9 @@ class CompPenMsgHelper:
         Remove the 'is_processed' key from each item in the provided list and update the entries in the DynamoDB table.
 
         Args:
-            comp_and_pen_messages (list): A list of dictionaries, where each dictionary contains the data for an item to
-                                        be updated in the DynamoDB table. Each dictionary should at least contain
-                                        'participant_id' and 'payment_id' keys, as well as the 'is_processed' key to be
-                                        removed.
+        :param comp_and_pen_messages (list): A list of dictionaries, where each dictionary contains the data for an item
+            to be updated in the DynamoDB table. Each dictionary should at least contain 'participant_id' and
+            'payment_id' keys, as well as the 'is_processed' key to be removed.
 
         Raises:
             Exception: If an error occurs during the update of any item in the DynamoDB table, the exception is logged
@@ -112,6 +106,7 @@ class CompPenMsgHelper:
                         'updated_item from dynamodb ("is_processed" should no longer exist): %s', item
                     )
                 except Exception as e:
+                    # TODO - 1826 should we do anything if there's an exception with the batch put?
                     current_app.logger.critical(
                         'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
                         'exception_type: %s exception_message: %s',
@@ -120,41 +115,6 @@ class CompPenMsgHelper:
                         type(e),
                         e,
                     )
-                    raise
-
-    def get_setup_data(
-        self,
-        service_id: str,
-        template_id: str,
-        sms_sender_id: str,
-    ) -> tuple[Service, Template, str] | None:
-        try:
-            service: Service = dao_fetch_service_by_id(service_id)
-            template: Template = dao_get_template_by_id(template_id)
-        except NoResultFound as e:
-            current_app.logger.error(
-                'No results found in task send_scheduled_comp_and_pen_sms attempting to lookup service or template. Exiting'
-                ' - exception: %s',
-                e,
-            )
-            raise
-        except Exception as e:
-            current_app.logger.critical(
-                'Error in task send_scheduled_comp_and_pen_sms attempting to lookup service or template Exiting - '
-                'exception: %s',
-                e,
-            )
-            raise
-
-        try:
-            # If this line doesn't raise ValueError, the value is a valid UUID.
-            sms_sender_id = UUID(sms_sender_id)
-            current_app.logger.info('Using the SMS sender ID specified in SSM Parameter store.')
-        except ValueError:
-            sms_sender_id = service.get_default_sms_sender_id()
-            current_app.logger.info("Using the service default ServiceSmsSender's ID.")
-
-        return service, template, str(sms_sender_id)
 
     def send_scheduled_sms(
         self,
@@ -201,8 +161,8 @@ class CompPenMsgHelper:
                 )
             except Exception as e:
                 current_app.logger.critical(
-                    'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | item from '
-                    'dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s | exception_type: %s - '
+                    'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | item '
+                    'from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s | exception_type: %s - '
                     'exception: %s',
                     vaprofile_id,
                     participant_id,

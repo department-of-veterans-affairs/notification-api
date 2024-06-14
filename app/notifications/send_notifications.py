@@ -1,4 +1,10 @@
+from uuid import UUID
+
 from flask import current_app
+from sqlalchemy.orm.exc import NoResultFound
+
+from app.dao.services_dao import dao_fetch_service_by_id
+from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import NotificationTechnicalFailureException
 from app.models import KEY_TYPE_NORMAL, SMS_TYPE, Service, Template
 from app.notifications.process_notifications import (
@@ -6,6 +12,46 @@ from app.notifications.process_notifications import (
     send_notification_to_queue,
     send_to_queue_for_recipient_info_based_on_recipient_identifier,
 )
+
+
+def get_notification_setup_data(
+    service_id: str,
+    template_id: str,
+    sms_sender_id: str,
+) -> tuple[Service, Template, str]:
+    """This is effectively a helper for send_notification_bypass_route
+
+    :param service_id:
+    :param template_id:
+    :param sms_sender_id:
+    :return:
+    """
+    try:
+        service: Service = dao_fetch_service_by_id(service_id)  # noqa: F821
+        template: Template = dao_get_template_by_id(template_id)
+    except NoResultFound as e:
+        current_app.logger.error(
+            'No results found in _get_notification_setup_data attempting to lookup service or template'
+            ' - exception: %s',
+            e,
+        )
+        raise
+    except Exception as e:
+        current_app.logger.critical(
+            'Error in _get_notification_setup_data attempting to lookup service or template - exception: %s',
+            e,
+        )
+        raise
+
+    try:
+        # If this line doesn't raise ValueError, the value is a valid UUID.
+        sms_sender_id = UUID(sms_sender_id)
+        current_app.logger.info('Using the SMS sender ID specified in SSM Parameter store.')
+    except ValueError:
+        sms_sender_id = service.get_default_sms_sender_id()
+        current_app.logger.info("Using the service default ServiceSmsSender's ID.")
+
+    return service, template, str(sms_sender_id)
 
 
 def send_notification_bypass_route(
