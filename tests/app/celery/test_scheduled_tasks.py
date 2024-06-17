@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from decimal import Decimal, getcontext
-from unittest.mock import call, MagicMock, patch
+from unittest.mock import ANY, call, MagicMock, patch
+from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
@@ -11,6 +12,7 @@ from app.celery import scheduled_tasks
 from app.celery.scheduled_tasks import (
     send_scheduled_comp_and_pen_sms,
     _get_dynamodb_comp_pen_messages,
+    _update_dynamo_item_is_processed,
     check_job_status,
     delete_invitations,
     delete_verify_codes,
@@ -41,6 +43,102 @@ from app.va.identifier import IdentifierType
 SEND_TASK_MOCK_PATH = 'app.celery.tasks.notify_celery.send_task'
 LOGGER_EXCEPTION_MOCK_PATH = 'app.celery.tasks.current_app.logger.exception'
 ZENDEKS_CLIENT_CRREATE_TICKET_MOCK_PATH = 'app.celery.nightly_tasks.zendesk_client.create_ticket'
+
+
+@pytest.fixture
+def dynamodb_mock():
+    """
+    Mock the DynamoDB table.
+    """
+
+    bip_table_vars = {
+        'TableName': 'TestTable',
+        'AttributeDefinitions': [
+            {'AttributeName': 'participant_id', 'AttributeType': 'N'},
+            {
+                'AttributeName': 'payment_id',
+                'AttributeType': 'N',
+            },
+            {
+                'AttributeName': 'vaprofile_id',
+                'AttributeType': 'N',
+            },
+            {
+                'AttributeName': 'is_update_allowed',
+                'AttributeType': 'N',
+            },
+            {
+                'AttributeName': 'is_processed',
+                'AttributeType': 'S',
+            },
+        ],
+        'KeySchema': [
+            {'AttributeName': 'participant_id', 'KeyType': 'HASH'},
+            {'AttributeName': 'payment_id', 'KeyType': 'RANGE'},
+        ],
+        'GlobalSecondaryIndexes': [
+            {
+                'IndexName': 'vaprofile-id-index',
+                'KeySchema': [{'AttributeName': 'vaprofile_id', 'KeyType': 'HASH'}],
+                'Projection': {
+                    'ProjectionType': 'KEYS_ONLY',
+                },
+            },
+            {
+                'IndexName': 'is-update-allowed-index',
+                'KeySchema': [{'AttributeName': 'is_update_allowed', 'KeyType': 'HASH'}],
+                'Projection': {
+                    'ProjectionType': 'ALL',
+                },
+            },
+            {
+                'IndexName': 'is-processed-index',
+                'KeySchema': [{'AttributeName': 'is_processed', 'KeyType': 'HASH'}],
+                'Projection': {
+                    'ProjectionType': 'ALL',
+                },
+            },
+        ],
+        'BillingMode': 'PAY_PER_REQUEST',
+    }
+    with mock_dynamodb():
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+        # Create a mock DynamoDB table
+        table = dynamodb.create_table(**bip_table_vars)
+
+        # Wait for table to be created
+        table.meta.client.get_waiter('table_exists').wait(TableName='TestTable')
+
+        yield table
+
+
+@pytest.fixture
+def sample_dynamodb_insert(dynamodb_mock):
+    items_inserted = []
+
+    def _dynamodb_insert(items_to_insert: list):
+        with dynamodb_mock.batch_writer() as batch:
+            for item in items_to_insert:
+                batch.put_item(Item=item)
+                items_inserted.append(item)
+
+    yield _dynamodb_insert
+
+    # delete the items added
+    for item in items_inserted:
+        dynamodb_mock.delete_item(Key={'participant_id': item['participant_id'], 'payment_id': item['payment_id']})
+
+
+@pytest.fixture
+def setup_monetary_decimal_context():
+    context = getcontext()
+    initial_context = context.copy()
+    context.prec = 2
+
+    yield
+
+    context = initial_context
 
 
 def test_should_call_delete_codes_on_delete_verify_codes_task(notify_db_session, mocker):
@@ -384,43 +482,6 @@ def test_check_precompiled_letter_state(mocker, sample_template, sample_notifica
     )
 
 
-# Setup a pytest fixture to mock the DynamoDB table
-@pytest.fixture
-def dynamodb_mock():
-    with mock_dynamodb():
-        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-
-        # Create a mock DynamoDB table
-        table = dynamodb.create_table(
-            TableName='TestTable',
-            KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
-            AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
-            ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
-        )
-
-        # Wait for table to be created
-        table.meta.client.get_waiter('table_exists').wait(TableName='TestTable')
-
-        yield table
-
-
-@pytest.fixture
-def sample_dynamodb_insert(dynamodb_mock):
-    items_inserted = []
-
-    def _dynamodb_insert(items_to_insert: list):
-        with dynamodb_mock.batch_writer() as batch:
-            for item in items_to_insert:
-                batch.put_item(Item=item)
-                items_inserted.append(item)
-
-    yield _dynamodb_insert
-
-    # delete the items added
-    for item in items_inserted:
-        dynamodb_mock.delete_item(Key={'id': item['id']})
-
-
 def test_get_dynamodb_comp_pen_messages_with_empty_table(dynamodb_mock):
     # Invoke the function with the mocked table and application
     messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=1)
@@ -428,53 +489,38 @@ def test_get_dynamodb_comp_pen_messages_with_empty_table(dynamodb_mock):
     assert messages == [], 'Expected no messages from an empty table'
 
 
-@pytest.fixture
-def setup_monetary_decimal_context():
-    context = getcontext()
-    initial_context = context.copy()
-    context.prec = 2
-
-    yield
-
-    context = initial_context
-
-
 def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_insert, setup_monetary_decimal_context):
     """
     Items should not be returned if any of these apply:
-        1) is_processed is True
         2) has_duplicate_mappings is True
         3) payment_id equals -1
         4) paymentAmount is absent (required by downstream Celery task)
     """
-
     # Insert mock data into the DynamoDB table.
     items_to_insert = [
         # The first 2 items are valid.
-        {'id': '1', 'is_processed': False, 'payment_id': 1, 'paymentAmount': Decimal(1.00)},
+        {'participant_id': 1, 'is_processed': 'F', 'payment_id': 1, 'paymentAmount': Decimal(1.00)},
         {
-            'id': '2',
-            'is_processed': False,
+            'participant_id': 2,
+            'is_processed': 'F',
             'has_duplicate_mappings': False,
             'payment_id': 2,
             'paymentAmount': Decimal(2.50),
         },
-        # Missing payment_id
-        {'id': '3', 'is_processed': False, 'paymentAmount': Decimal(0.00)},
         # Already processed
-        {'id': '4', 'is_processed': True, 'payment_id': 4, 'paymentAmount': Decimal(0)},
+        {'participant_id': 4, 'payment_id': 4, 'paymentAmount': Decimal(0)},
         # Duplicate mappings
         {
-            'id': '5',
-            'is_processed': False,
+            'participant_id': 5,
+            'is_processed': 'F',
             'has_duplicate_mappings': True,
             'payment_id': 5,
             'paymentAmount': Decimal('0.99'),
         },
         # Placeholder payment_id
-        {'id': '6', 'is_processed': False, 'payment_id': -1, 'paymentAmount': Decimal(1.00)},
+        {'participant_id': 6, 'is_processed': 'F', 'payment_id': -1, 'paymentAmount': Decimal(1.00)},
         # Missing paymentAmount
-        {'id': '7', 'is_processed': False, 'payment_id': 1},
+        {'participant_id': 7, 'is_processed': 'F', 'payment_id': 1},
     ]
     sample_dynamodb_insert(items_to_insert)
 
@@ -482,8 +528,77 @@ def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_i
     messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=7)
 
     for msg in messages:
-        assert msg['id'] in '12', f"The message with ID {msg['id']} should have been filtered out."
+        assert (
+            str(msg['participant_id']) in '12'
+        ), f"The message with ID {msg['participant_id']} should have been filtered out."
     assert len(messages) == 2
+
+
+def test_it_get_dynamodb_comp_pen_messages_with_multiple_scans(
+    dynamodb_mock,
+    sample_dynamodb_insert,
+    setup_monetary_decimal_context,
+):
+    """
+    Items should be searched based on the is_processed index and payment_id = -1 should be filtered out.
+    """
+    # items with is_processed = 'F'
+    not_processed_items = [
+        {
+            'participant_id': x,
+            'is_processed': 'F',
+            'payment_id': x if x % 5 != 0 else -1,
+            'paymentAmount': Decimal(x * 2.50),
+            'vaprofile_id': x * 10,
+        }
+        for x in range(0, 1000, 2)
+    ]
+
+    # items with is_processed removed (not in index)
+    processed_items = [
+        {
+            'participant_id': x,
+            'payment_id': x if x % 5 != 0 else -1,
+            'paymentAmount': Decimal(x * 2.50),
+            'vaprofile_id': x * 10,
+        }
+        for x in range(1, 1001, 2)
+    ]
+
+    # Insert mock data into the DynamoDB table.
+    sample_dynamodb_insert(processed_items + not_processed_items)
+
+    # Invoke the function with the mocked table and application
+    messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=100)
+
+    assert len(messages) == 100
+
+    # ensure we only have messages that have not been processed
+    for m in messages:
+        assert m['is_processed'] == 'F'
+        assert m['payment_id'] != -1
+
+
+def test_it_update_dynamo_item_is_processed_updates_properly(dynamodb_mock, sample_dynamodb_insert):
+    items_to_insert = [
+        {'participant_id': 1, 'is_processed': 'F', 'payment_id': 1, 'paymentAmount': Decimal(1.00)},
+        {'participant_id': 2, 'is_processed': 'F', 'payment_id': 2, 'paymentAmount': Decimal(2.50)},
+        {'participant_id': 3, 'payment_id': 1, 'paymentAmount': Decimal(0.00)},
+    ]
+
+    # Insert mock data into the DynamoDB table.
+    sample_dynamodb_insert(items_to_insert)
+
+    with dynamodb_mock.batch_writer() as batch:
+        for item in items_to_insert:
+            _update_dynamo_item_is_processed(batch, item)
+
+    response = dynamodb_mock.scan()
+
+    # Ensure we get all 3 records back and they are set with is_processed removed
+    assert response['Count'] == 3
+    for item in response['Items']:
+        assert 'is_processed' not in item
 
 
 def test_send_scheduled_comp_and_pen_sms_does_not_call_send_notification(mocker, dynamodb_mock):
@@ -502,7 +617,74 @@ def test_send_scheduled_comp_and_pen_sms_does_not_call_send_notification(mocker,
     mock_send_notification.assert_not_called()
 
 
-def test_send_scheduled_comp_and_pen_sms_calls_send_notification(
+def test_ut_send_scheduled_comp_and_pen_sms_calls_send_notification_with_recipient(
+    mocker, dynamodb_mock, sample_service, sample_template
+):
+    sample_service_sms_permission = sample_service(
+        service_permissions=[
+            SMS_TYPE,
+        ]
+    )
+
+    # Set up test data
+    dynamo_data = [
+        {
+            'participant_id': '123',
+            'vaprofile_id': '123',
+            'payment_id': '123',
+            'paymentAmount': 123,
+            'is_processed': False,
+        },
+    ]
+
+    # Mock the comp and pen perf number for sending with recipient
+    test_recipient = '+11234567890'
+    mocker.patch.dict(
+        'app.celery.scheduled_tasks.current_app.config',
+        {
+            'COMP_AND_PEN_SMS_SENDER_ID': '',
+            'COMP_AND_PEN_PERF_TO_NUMBER': test_recipient,
+        },
+    )
+
+    mocker.patch('app.celery.scheduled_tasks.is_feature_enabled', return_value=True)
+
+    # Mocks necessary for dynamodb
+    mocker.patch('boto3.resource')
+    mocker.patch('boto3.resource.Table', return_value=dynamodb_mock)
+
+    # Mock the various functions called
+    mock_get_dynamodb_messages = mocker.patch(
+        'app.celery.scheduled_tasks._get_dynamodb_comp_pen_messages', return_value=dynamo_data
+    )
+    mock_fetch_service = mocker.patch(
+        'app.celery.scheduled_tasks.dao_fetch_service_by_id', return_value=sample_service_sms_permission
+    )
+    template = sample_template()
+    mock_get_template = mocker.patch('app.celery.scheduled_tasks.dao_get_template_by_id', return_value=template)
+
+    mock_send_notification = mocker.patch('app.celery.scheduled_tasks.send_notification_bypass_route')
+
+    send_scheduled_comp_and_pen_sms()
+
+    # Assert the functions are being called that should be
+    mock_get_dynamodb_messages.assert_called_once()
+    mock_fetch_service.assert_called_once()
+    mock_get_template.assert_called_once()
+
+    # Assert the expected information is passed to "send_notification_bypass_route"
+    mock_send_notification.assert_called_once_with(
+        service=sample_service_sms_permission,
+        template=template,
+        notification_type=SMS_TYPE,
+        personalisation={'paymentAmount': '123'},
+        sms_sender_id=sample_service_sms_permission.get_default_sms_sender_id(),
+        recipient=test_recipient,
+        recipient_item=None,
+    )
+
+
+def test_ut_send_scheduled_comp_and_pen_sms_calls_send_notification_with_recipient_item(
     mocker, dynamodb_mock, sample_service, sample_template
 ):
     sample_service_sms_permission = sample_service(
@@ -541,10 +723,11 @@ def test_send_scheduled_comp_and_pen_sms_calls_send_notification(
     mock_get_template = mocker.patch('app.celery.scheduled_tasks.dao_get_template_by_id', return_value=template)
 
     mock_send_notification = mocker.patch('app.celery.scheduled_tasks.send_notification_bypass_route')
+    mocker.patch.dict('app.celery.scheduled_tasks.current_app.config', {'COMP_AND_PEN_SMS_SENDER_ID': ''})
 
     send_scheduled_comp_and_pen_sms()
 
-    # Assert sure the functions are being called that should be
+    # Assert the functions are being called that should be
     mock_get_dynamodb_messages.assert_called_once()
     mock_fetch_service.assert_called_once()
     mock_get_template.assert_called_once()
@@ -556,6 +739,7 @@ def test_send_scheduled_comp_and_pen_sms_calls_send_notification(
         notification_type=SMS_TYPE,
         personalisation={'paymentAmount': '123'},
         sms_sender_id=sample_service_sms_permission.get_default_sms_sender_id(),
+        recipient=None,
         recipient_item=recipient_item,
     )
 
@@ -583,6 +767,7 @@ def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, sample_service
         },
     ]
     mocker.patch('app.celery.scheduled_tasks._get_dynamodb_comp_pen_messages', return_value=dynamo_data)
+    mocker.patch.dict('app.celery.scheduled_tasks.current_app.config', {'COMP_AND_PEN_SMS_SENDER_ID': ''})
 
     with patch('app.celery.scheduled_tasks.boto3.resource') as mock_resource:
         mock_put_item = MagicMock()
@@ -594,3 +779,64 @@ def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, sample_service
 
     dynamo_data[0]['is_processed'] = True
     mock_put_item.assert_called_once_with(Item=dynamo_data[0])
+
+
+@pytest.mark.parametrize('sms_sender_id', ('This is not a UUID.', 'd1abbb27-9c72-4de4-8463-dbdf24d3fdd6'))
+def test_wt_send_scheduled_comp_and_pen_sms_sms_sender_id_selection(
+    mocker, sample_service, sample_template, sms_sender_id, dynamodb_mock
+):
+    """
+    When the configuration variable COMP_AND_PEN_SMS_SENDER_ID is a valid UUID, the task send_scheduled_comp_and_pen_sms
+    should send notifications using the ServiceSmsSender associated with that UUID.  Otherwise, the task should use the
+    default SMS sender associated with the service referenced by the configuration variable COMP_AND_PEN_SERVICE_ID.
+    """
+
+    mocker.patch('boto3.resource')
+    mocker.patch('boto3.resource.Table', return_value=dynamodb_mock)
+
+    items = [
+        {
+            'participant_id': '123',
+            'vaprofile_id': '123',
+            'payment_id': '123',
+            'paymentAmount': 123,
+            'is_processed': False,
+        },
+    ]
+    mocker.patch('app.celery.scheduled_tasks._get_dynamodb_comp_pen_messages', return_value=items)
+    mock_send_notification = mocker.patch('app.celery.scheduled_tasks.send_notification_bypass_route')
+    mocker.patch('app.celery.scheduled_tasks._update_dynamo_item_is_processed')
+
+    service = sample_service()
+    template = sample_template()
+
+    mocker.patch.dict(
+        'app.celery.scheduled_tasks.current_app.config',
+        {
+            'COMP_AND_PEN_SERVICE_ID': service.id,
+            'COMP_AND_PEN_TEMPLATE_ID': template.id,
+            'COMP_AND_PEN_SMS_SENDER_ID': sms_sender_id,
+            'COMP_AND_PEN_PERF_TO_NUMBER': '+15552225566',
+        },
+    )
+
+    with patch.dict('os.environ', {'COMP_AND_PEN_MESSAGES_ENABLED': 'True'}):
+        send_scheduled_comp_and_pen_sms()
+
+    try:
+        # If this line doesn't raise ValueError, sms_sender_id is a valid UUID.
+        expected_sms_sender_id = UUID(sms_sender_id)
+    except ValueError:
+        expected_sms_sender_id = service.get_default_sms_sender_id()
+
+    mock_send_notification.assert_called_once_with(
+        service=ANY,
+        template=ANY,
+        notification_type=SMS_TYPE,
+        personalisation={'paymentAmount': '123'},
+        sms_sender_id=expected_sms_sender_id,
+        recipient='+15552225566',
+        recipient_item=None,
+    )
+    assert mock_send_notification.call_args.kwargs['service'].id == service.id
+    assert mock_send_notification.call_args.kwargs['template'].id == template.id

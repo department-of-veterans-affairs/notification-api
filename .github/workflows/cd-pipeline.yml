@@ -25,8 +25,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-  approval-to-deploy:
+  pr-label-summary:
     needs: prepare-deployment
+    uses: ./.github/workflows/pr-label-semver.yml
+    secrets: inherit
+
+  approval-deploy-perf:
+    needs: pr-label-summary
     environment: 
       name: perf-deploy
     runs-on: ubuntu-latest
@@ -36,30 +41,35 @@ jobs:
           echo "Deploying commit SHA ${{ github.sha }}, the latest merge to master"
           echo "Deployment paused for manual approval."
 
-# this job deploys the SHA that triggered this workflow
+  # this job deploys the SHA that triggered this workflow
   deploy-to-perf:
-    needs: approval-to-deploy
+    needs: approval-deploy-perf
     uses: ./.github/workflows/dev_deploy.yml
+    secrets: inherit
     with:
       environment: perf
       ref: ${{ github.sha }}
       lambdaDeploy: true
+
+  pre-tag-summary:
+    needs: deploy-to-perf
+    uses: ./.github/workflows/pre-tag-summary.yml
     secrets: inherit
 
-  approval-to-merge-to-release-branch:
-    needs: deploy-to-perf
+  approval-deploy-staging:
+    needs: pre-tag-summary
     environment: 
-      name: perf-merge
+      name: staging-deploy
     runs-on: ubuntu-latest
     steps:
       - name: Pause for manual approval
         run: echo "Deployment paused for manual approval."
 
   merge-to-release:
+    needs: approval-deploy-staging
     # These permissions are needed to write to the release branch
     permissions:
       contents: write
-    needs: approval-to-merge-to-release-branch
     runs-on: ubuntu-latest
     steps:
       - name: Checkout release branch
@@ -67,6 +77,9 @@ jobs:
         with:
           ref: release
           fetch-depth: 0
+          # Fine-grained PAT with contents:write and workflows:write
+          # scopes
+          token: ${{ secrets.CD_PAT }}
 
       - name: Setup git user
         # The following is taken from https://github.com/actions/checkout/issues/13 as a common work-around
@@ -79,16 +92,28 @@ jobs:
           git merge ${{ github.sha }} --no-squash -X theirs
           git push
 
-  deploy-to-staging:
-    needs: merge-to-release 
-    uses: ./.github/workflows/dev_deploy.yml
-    with:
-      environment: staging
-      ref: release
-      lambdaDeploy: true
+  create-and-post-tag:
+    needs: merge-to-release
+    uses: ./.github/workflows/create-and-post-tag.yml
     secrets: inherit
 
-  QA-approval-of-staging:
+  create-release-notes:
+    needs: create-and-post-tag
+    uses: ./.github/workflows/create-release-notes.yml
+    secrets: inherit
+    with:
+      previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
+
+  deploy-to-staging:
+    needs: [create-release-notes, create-and-post-tag]
+    uses: ./.github/workflows/deploy-release.yml
+    secrets: inherit
+    with:
+      environment: staging
+      ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
+      lambdaDeploy: true
+
+  approval-deploy-prod:
     needs: deploy-to-staging
     environment: 
       name: prod-deploy
@@ -96,4 +121,20 @@ jobs:
     steps:
       - name: Pause for manual approval
         run: echo "Pipeline paused for pending approval of staging by QA"
+
+  publish-release-notes:
+    needs: [create-release-notes, approval-deploy-prod]
+    uses: ./.github/workflows/publish-release-notes.yml
+    secrets: inherit
+    with:
+      draftReleaseReference: ${{ needs.create-release-notes.outputs.draftReleaseReference }}
+
+  deploy-to-prod:
+    needs: [publish-release-notes, create-and-post-tag]
+    uses: ./.github/workflows/deploy-release.yml
+    secrets: inherit
+    with:
+      environment: prod
+      ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
+      lambdaDeploy: true
 
