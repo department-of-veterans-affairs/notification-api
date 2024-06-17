@@ -75,7 +75,11 @@ def send_delivery_status_to_service(
             raise
     except NonRetryableException:
         current_app.logger.critical(
-            'Not retrying: %s failed for %s, url: %s. ', self.name, logging_tags, service_callback.url
+            'Not retrying: %s failed for %s, url: %s and payload: %s',
+            self.name,
+            logging_tags,
+            service_callback.url,
+            payload,
         )
         raise
 
