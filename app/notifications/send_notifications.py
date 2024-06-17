@@ -17,28 +17,28 @@ from app.notifications.process_notifications import (
 def get_notification_setup_data(
     service_id: str,
     template_id: str,
-    sms_sender_id: str,
+    sms_sender_id: str = None,
 ) -> tuple[Service, Template, str]:
-    """This is effectively a helper for send_notification_bypass_route
+    """This function looks up the information necessary to send a sms notification.
 
-    :param service_id:
-    :param template_id:
-    :param sms_sender_id:
-    :return:
+    :param service_id: the id of the service to look up
+    :param template_id: the id of the template to look up
+    :param sms_sender_id: the id of the sms sender to use, if not provided, will use the service default
+    :return: a tuple containing the service, template, and sms sender id
     """
     try:
         service: Service = dao_fetch_service_by_id(service_id)  # noqa: F821
         template: Template = dao_get_template_by_id(template_id)
     except NoResultFound as e:
         current_app.logger.error(
-            'No results found in _get_notification_setup_data attempting to lookup service or template'
+            'No results found in get_notification_setup_data attempting to lookup service or template'
             ' - exception: %s',
             e,
         )
         raise
     except Exception as e:
         current_app.logger.critical(
-            'Error in _get_notification_setup_data attempting to lookup service or template - exception: %s',
+            'Error in get_notification_setup_data attempting to lookup service or template - exception: %s',
             e,
         )
         raise
@@ -46,7 +46,7 @@ def get_notification_setup_data(
     try:
         # If this line doesn't raise ValueError, the value is a valid UUID.
         sms_sender_id = UUID(sms_sender_id)
-        current_app.logger.info('Using the SMS sender ID specified in SSM Parameter store.')
+        current_app.logger.info('Using the SMS sender ID specified in get_notification_setup_data')
     except ValueError:
         sms_sender_id = service.get_default_sms_sender_id()
         current_app.logger.info("Using the service default ServiceSmsSender's ID.")

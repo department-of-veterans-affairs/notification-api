@@ -240,7 +240,6 @@ def send_scheduled_comp_and_pen_sms() -> None:
     # only continue if there are messages to update and send
     if comp_and_pen_messages:
         comp_pen_helper.remove_dynamo_item_is_processed(comp_and_pen_messages)
-        # _remove_dynamo_item_is_processed(table, comp_and_pen_messages)
 
         service, template, sms_sender_id = get_notification_setup_data(service_id, template_id, sms_sender_id)
 
@@ -252,6 +251,5 @@ def send_scheduled_comp_and_pen_sms() -> None:
                 comp_and_pen_messages=comp_and_pen_messages,
                 perf_to_number=perf_to_number,
             )
-            # _send_scheduled_sms(service, template, sms_sender_id, comp_and_pen_messages, perf_to_number)
         else:
             current_app.logger.info('Notifications not sent to queue (feature flag disabled)')

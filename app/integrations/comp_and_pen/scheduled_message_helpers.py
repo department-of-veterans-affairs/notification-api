@@ -15,12 +15,26 @@ class CompPenMsgHelper:
     def __init__(self, dynamodb_table_name: str) -> None:
         """
         This class is a collection of helper methods to facilitate the delivery of schedule Comp and Pen notifications.
-        When initialized it establishes a connection to the dynamodb table with the given name.
 
-        :param dynamodb_table_name (str): the name of the dynamodb table to connect to for the dynamo operations
+        Calls _connect_to_dynamodb to establishe a connection to the dynamodb table with the given name.
+        This can raise a ClientError exception if something goes wrong.
+
+        :param dynamodb_table_name (str): the name of the dynamodb table for the db operations, required
         """
-        # this is the agreed upon message per 2 minute limit
-        self.messages_per_min = 3000
+        self.dynamodb_table_name = dynamodb_table_name
+        self.table = None
+        self._connect_to_dynamodb(dynamodb_table_name)
+
+    def _connect_to_dynamodb(self, dynamodb_table_name: str = None) -> None:
+        """Establishes a connection to the dynamodb table with the given name.
+
+        :param dynamodb_table_name (str): the name of the dynamodb table to establish a connection with
+
+        Raises:
+            ClientError - if it has trouble connectingto the dynamodb
+        """
+        if dynamodb_table_name is None:
+            dynamodb_table_name = self.dynamodb_table_name
 
         # connect to dynamodb table
         self.dynamodb_resource = boto3.resource('dynamodb')
@@ -44,6 +58,9 @@ class CompPenMsgHelper:
 
         https://boto3.amazonaws.com/v1/documentation/api/latest/guide/dynamodb.html#querying-and-scanning
         """
+
+        if self.table is None:
+            self._connect_to_dynamodb()
 
         is_processed_index = 'is-processed-index'
 
@@ -91,6 +108,9 @@ class CompPenMsgHelper:
             Exception: If an error occurs during the update of any item in the DynamoDB table, the exception is logged
                     with critical severity, and then re-raised.
         """
+        if self.table is None:
+            self._connect_to_dynamodb()
+
         # send messages and update entries in dynamodb table
         with self.table.batch_writer() as batch:
             for item in comp_and_pen_messages:
