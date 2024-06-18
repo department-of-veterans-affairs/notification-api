@@ -45,91 +45,6 @@ ZENDEKS_CLIENT_CRREATE_TICKET_MOCK_PATH = 'app.celery.nightly_tasks.zendesk_clie
 
 
 @pytest.fixture
-def dynamodb_mock():
-    """
-    Mock the DynamoDB table.
-    """
-
-    bip_table_vars = {
-        'TableName': 'TestTable',
-        'AttributeDefinitions': [
-            {'AttributeName': 'participant_id', 'AttributeType': 'N'},
-            {
-                'AttributeName': 'payment_id',
-                'AttributeType': 'N',
-            },
-            {
-                'AttributeName': 'vaprofile_id',
-                'AttributeType': 'N',
-            },
-            {
-                'AttributeName': 'is_update_allowed',
-                'AttributeType': 'N',
-            },
-            {
-                'AttributeName': 'is_processed',
-                'AttributeType': 'S',
-            },
-        ],
-        'KeySchema': [
-            {'AttributeName': 'participant_id', 'KeyType': 'HASH'},
-            {'AttributeName': 'payment_id', 'KeyType': 'RANGE'},
-        ],
-        'GlobalSecondaryIndexes': [
-            {
-                'IndexName': 'vaprofile-id-index',
-                'KeySchema': [{'AttributeName': 'vaprofile_id', 'KeyType': 'HASH'}],
-                'Projection': {
-                    'ProjectionType': 'KEYS_ONLY',
-                },
-            },
-            {
-                'IndexName': 'is-update-allowed-index',
-                'KeySchema': [{'AttributeName': 'is_update_allowed', 'KeyType': 'HASH'}],
-                'Projection': {
-                    'ProjectionType': 'ALL',
-                },
-            },
-            {
-                'IndexName': 'is-processed-index',
-                'KeySchema': [{'AttributeName': 'is_processed', 'KeyType': 'HASH'}],
-                'Projection': {
-                    'ProjectionType': 'ALL',
-                },
-            },
-        ],
-        'BillingMode': 'PAY_PER_REQUEST',
-    }
-    with mock_dynamodb():
-        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-
-        # Create a mock DynamoDB table
-        table = dynamodb.create_table(**bip_table_vars)
-
-        # Wait for table to be created
-        table.meta.client.get_waiter('table_exists').wait(TableName='TestTable')
-
-        yield table
-
-
-@pytest.fixture
-def sample_dynamodb_insert(dynamodb_mock):
-    items_inserted = []
-
-    def _dynamodb_insert(items_to_insert: list):
-        with dynamodb_mock.batch_writer() as batch:
-            for item in items_to_insert:
-                batch.put_item(Item=item)
-                items_inserted.append(item)
-
-    yield _dynamodb_insert
-
-    # delete the items added
-    for item in items_inserted:
-        dynamodb_mock.delete_item(Key={'participant_id': item['participant_id'], 'payment_id': item['payment_id']})
-
-
-@pytest.fixture
 def setup_monetary_decimal_context():
     context = getcontext()
     initial_context = context.copy()
@@ -488,28 +403,25 @@ def test_ut_send_scheduled_comp_and_pen_sms_does_not_call_send_notification(mock
     mocker.patch('boto3.resource')
     mocker.patch('boto3.resource.Table', return_value=dynamodb_mock)
 
+    # Mocking an empty list being returned from the dynamodb table
     mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.get_dynamodb_comp_pen_messages', return_value=[])
 
     mock_update_dynamo_item = mocker.patch(
         'app.celery.scheduled_tasks.CompPenMsgHelper.remove_dynamo_item_is_processed'
     )
+    mock_lookup_notification_data = mocker.patch('app.celery.scheduled_tasks.lookup_notification_sms_setup_data')
     mock_send_notification = mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.send_scheduled_sms')
 
     send_scheduled_comp_and_pen_sms()
 
     mock_update_dynamo_item.assert_not_called()
+    mock_lookup_notification_data.assert_not_called()
     mock_send_notification.assert_not_called()
 
 
-def test_ut_send_scheduled_comp_and_pen_sms_calls_send_notification_with_recipient(
+def test_ut_send_scheduled_comp_and_pen_sms_calls_send_scheduled_sms(
     mocker, dynamodb_mock, sample_service, sample_template
 ):
-    sample_service_sms_permission = sample_service(
-        service_permissions=[
-            SMS_TYPE,
-        ]
-    )
-
     # Set up test data
     dynamo_data = [
         {
@@ -541,18 +453,16 @@ def test_ut_send_scheduled_comp_and_pen_sms_calls_send_notification_with_recipie
     mock_get_dynamodb_messages = mocker.patch(
         'app.celery.scheduled_tasks.CompPenMsgHelper.get_dynamodb_comp_pen_messages', return_value=dynamo_data
     )
-    # mock_fetch_service = mocker.patch(
-    #     'app.celery.scheduled_tasks.dao_fetch_service_by_id', return_value=sample_service_sms_permission
-    # )
+    service = sample_service()
     template = sample_template()
-    # mock_get_template = mocker.patch('app.celery.scheduled_tasks.dao_get_template_by_id', return_value=template)
+    sms_sender_id = service.get_default_sms_sender_id()
 
     mocker.patch(
-        'app.celery.scheduled_tasks.get_notification_setup_data',
+        'app.celery.scheduled_tasks.lookup_notification_sms_setup_data',
         return_value=(
-            sample_service_sms_permission,
+            service,
             template,
-            sample_service_sms_permission.get_default_sms_sender_id(),
+            sms_sender_id,
         ),
     )
 
@@ -562,144 +472,19 @@ def test_ut_send_scheduled_comp_and_pen_sms_calls_send_notification_with_recipie
 
     # Assert the functions are being called that should be
     mock_get_dynamodb_messages.assert_called_once()
-    # mock_fetch_service.assert_called_once()
-    # mock_get_template.assert_called_once()
 
-    # Assert the expected information is passed to "send_notification_bypass_route"
-    # mock_send_notification.assert_called_once_with(
-    #     service=sample_service_sms_permission,
-    #     template=template,
-    #     notification_type=SMS_TYPE,
-    #     personalisation={'paymentAmount': '123'},
-    #     sms_sender_id=sample_service_sms_permission.get_default_sms_sender_id(),
-    #     recipient=test_recipient,
-    #     recipient_item=None,
-    # )
-
+    # Assert the expected information is passed to send_scheduled_sms
     mock_send_notification.assert_called_once_with(
-        service=sample_service_sms_permission,
+        service=service,
         template=template,
-        sms_sender_id=sample_service_sms_permission.get_default_sms_sender_id(),
+        sms_sender_id=sms_sender_id,
         comp_and_pen_messages=dynamo_data,
         perf_to_number=test_recipient,
     )
 
 
-def test_ut_send_scheduled_comp_and_pen_sms_calls_send_notification_with_recipient_item(
-    mocker, dynamodb_mock, sample_service, sample_template
-):
-    sample_service_sms_permission = sample_service(
-        service_permissions=[
-            SMS_TYPE,
-        ]
-    )
-
-    # Set up test data
-    dynamo_data = [
-        {
-            'participant_id': '123',
-            'vaprofile_id': '123',
-            'payment_id': '123',
-            'paymentAmount': 123,
-            'is_processed': False,
-        },
-    ]
-
-    recipient_item = {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': '123'}
-
-    mocker.patch('app.celery.scheduled_tasks.is_feature_enabled', return_value=True)
-
-    # Mocks necessary for dynamodb
-    mocker.patch('boto3.resource')
-    mocker.patch('boto3.resource.Table', return_value=dynamodb_mock)
-
-    # Mock the various functions called
-    mock_get_dynamodb_messages = mocker.patch(
-        'app.celery.scheduled_tasks.CompPenMsgHelper.get_dynamodb_comp_pen_messages', return_value=dynamo_data
-    )
-    # mock_fetch_service = mocker.patch(
-    #     'app.celery.scheduled_tasks.dao_fetch_service_by_id', return_value=sample_service_sms_permission
-    # )
-    template = sample_template()
-    # mock_get_template = mocker.patch('app.celery.scheduled_tasks.dao_get_template_by_id', return_value=template)
-
-    mocker.patch(
-        'app.celery.scheduled_tasks.get_notification_setup_data',
-        return_value=(
-            sample_service_sms_permission,
-            template,
-            sample_service_sms_permission.get_default_sms_sender_id(),
-        ),
-    )
-
-    mock_send_notification = mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.send_scheduled_sms')
-    mocker.patch.dict('app.celery.scheduled_tasks.current_app.config', {'COMP_AND_PEN_SMS_SENDER_ID': ''})
-
-    send_scheduled_comp_and_pen_sms()
-
-    # Assert the functions are being called that should be
-    mock_get_dynamodb_messages.assert_called_once()
-    # mock_fetch_service.assert_called_once()
-    # mock_get_template.assert_called_once()
-
-    # Assert the expected information is passed to "send_notification_bypass_route"
-    # mock_send_notification.assert_called_once_with(
-    #     service=sample_service_sms_permission,
-    #     template=template,
-    #     notification_type=SMS_TYPE,
-    #     personalisation={'paymentAmount': '123'},
-    #     sms_sender_id=sample_service_sms_permission.get_default_sms_sender_id(),
-    #     recipient=None,
-    #     recipient_item=recipient_item,
-    # )
-    mock_send_notification.assert_called_once_with(
-        service=sample_service_sms_permission,
-        template=template,
-        sms_sender_id=sample_service_sms_permission.get_default_sms_sender_id(),
-        comp_and_pen_messages=dynamo_data,
-        perf_to_number=None,
-    )
-
-
-def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, sample_service, sample_template):
-    mocker.patch('app.celery.scheduled_tasks.is_feature_enabled', return_value=True)
-    mocker.patch('app.celery.scheduled_tasks.send_notification_bypass_route')
-
-    sample_service_sms_permission = sample_service(
-        service_permissions=[
-            SMS_TYPE,
-        ]
-    )
-    mocker.patch('app.celery.scheduled_tasks.dao_fetch_service_by_id', return_value=sample_service_sms_permission)
-    template = sample_template()
-    mocker.patch('app.celery.scheduled_tasks.dao_get_template_by_id', return_value=template)
-
-    dynamo_data = [
-        {
-            'participant_id': '123',
-            'vaprofile_id': '123',
-            'payment_id': '123',
-            'paymentAmount': 123,
-            'is_processed': False,
-        },
-    ]
-    mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.get_dynamodb_comp_pen_messages', return_value=dynamo_data)
-    mocker.patch.dict('app.celery.scheduled_tasks.current_app.config', {'COMP_AND_PEN_SMS_SENDER_ID': ''})
-
-    with patch('app.celery.scheduled_tasks.boto3.resource') as mock_resource:
-        mock_put_item = MagicMock()
-        mock_resource.return_value.Table.return_value.batch_writer.return_value.__enter__.return_value.put_item = (
-            mock_put_item
-        )
-
-        send_scheduled_comp_and_pen_sms()
-
-    dynamo_data[0]['is_processed'] = True
-    mock_put_item.assert_called_once_with(Item=dynamo_data[0])
-
-
 @pytest.mark.parametrize('sms_sender_id', ('This is not a UUID.', 'd1abbb27-9c72-4de4-8463-dbdf24d3fdd6'))
-def test_wt_send_scheduled_comp_and_pen_sms_sms_sender_id_selection(
+def test_it_send_scheduled_comp_and_pen_sms_sms_sender_id_selection(
     mocker, sample_service, sample_template, sms_sender_id, dynamodb_mock
 ):
     """
@@ -720,9 +505,9 @@ def test_wt_send_scheduled_comp_and_pen_sms_sms_sender_id_selection(
             'is_processed': False,
         },
     ]
-    mocker.patch('app.celery.scheduled_tasks._get_dynamodb_comp_pen_messages', return_value=items)
-    mock_send_notification = mocker.patch('app.celery.scheduled_tasks.send_notification_bypass_route')
-    mocker.patch('app.celery.scheduled_tasks._update_dynamo_item_is_processed')
+    mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.get_dynamodb_comp_pen_messages', return_value=items)
+    mock_send_notification = mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.send_scheduled_sms')
+    mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.remove_dynamo_item_is_processed')
 
     service = sample_service()
     template = sample_template()
@@ -749,11 +534,9 @@ def test_wt_send_scheduled_comp_and_pen_sms_sms_sender_id_selection(
     mock_send_notification.assert_called_once_with(
         service=ANY,
         template=ANY,
-        notification_type=SMS_TYPE,
-        personalisation={'paymentAmount': '123'},
-        sms_sender_id=expected_sms_sender_id,
-        recipient='+15552225566',
-        recipient_item=None,
+        sms_sender_id=str(expected_sms_sender_id),
+        comp_and_pen_messages=items,
+        perf_to_number='+15552225566',
     )
     assert mock_send_notification.call_args.kwargs['service'].id == service.id
     assert mock_send_notification.call_args.kwargs['template'].id == template.id

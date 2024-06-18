@@ -97,6 +97,7 @@ from tests.app.db import (
     version_api_key,
     version_service,
 )
+from tests.app.integrations.comp_and_pen.dynamo_fixtures import dynamodb_mock, sample_dynamodb_insert
 
 
 # Tests only run against email/sms. API also considers letters

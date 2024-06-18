@@ -14,7 +14,7 @@ from app.notifications.process_notifications import (
 )
 
 
-def get_notification_setup_data(
+def lookup_notification_sms_setup_data(
     service_id: str,
     template_id: str,
     sms_sender_id: str = None,
@@ -27,7 +27,7 @@ def get_notification_setup_data(
     :return: a tuple containing the service, template, and sms sender id
     """
     try:
-        service: Service = dao_fetch_service_by_id(service_id)  # noqa: F821
+        service: Service = dao_fetch_service_by_id(service_id)
         template: Template = dao_get_template_by_id(template_id)
     except NoResultFound as e:
         current_app.logger.error(

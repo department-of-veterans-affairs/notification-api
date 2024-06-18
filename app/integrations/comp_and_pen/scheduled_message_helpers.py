@@ -44,12 +44,12 @@ class CompPenMsgHelper:
         message_limit: int,
     ) -> list:
         """
-        Helper function to get the Comp and Pen data from our dynamodb cache table.  Items should be returned if all of
-        these attribute conditions are met:
-            1) is_processed is not set or False
-            2) has_duplicate_mappings is not set or False
-            3) payment_id is not equal to -1 (placeholder value)
-            4) paymentAmount exists
+        Helper function to get the Comp and Pen data from our dynamodb cache table.
+
+        Items should be returned if all of these attribute conditions are met:
+            1) item exists on the `is-processed-index`
+            2) payment_id is not equal to -1 (placeholder value)
+            3) paymentAmount exists
 
         :param table: the dynamodb table to grab the data from
         :param message_limit: the number of rows to search at a time and the max number of items that should be returned
@@ -63,12 +63,7 @@ class CompPenMsgHelper:
 
         is_processed_index = 'is-processed-index'
 
-        filters = (
-            Attr('payment_id').exists()
-            & Attr('payment_id').ne(-1)
-            & Attr('paymentAmount').exists()
-            & Attr('has_duplicate_mappings').ne(True)
-        )
+        filters = Attr('payment_id').exists() & Attr('payment_id').ne(-1) & Attr('paymentAmount').exists()
 
         results = self.table.scan(FilterExpression=filters, Limit=message_limit, IndexName=is_processed_index)
         items: list = results.get('Items')
@@ -98,7 +93,6 @@ class CompPenMsgHelper:
         """
         Remove the 'is_processed' key from each item in the provided list and update the entries in the DynamoDB table.
 
-        Args:
         :param comp_and_pen_messages (list): A list of dictionaries, where each dictionary contains the data for an item
             to be updated in the DynamoDB table. Each dictionary should at least contain 'participant_id' and
             'payment_id' keys, as well as the 'is_processed' key to be removed.
@@ -140,9 +134,23 @@ class CompPenMsgHelper:
         service: Service,
         template: Template,
         sms_sender_id: str,
-        comp_and_pen_messages: list,
+        comp_and_pen_messages: list[dict],
         perf_to_number: str,
     ) -> None:
+        """
+        Sends scheduled SMS notifications to recipients based on the provided parameters.
+
+        Args:
+            :param service (Service): The service used to send the SMS notifications.
+            :param template (Template): The template used for the SMS notifications.
+            :param sms_sender_id (str): The ID of the SMS sender.
+            :param comp_and_pen_messages (list[dict]): A list of dictionaries from the dynamodb table containing the
+                details needed to send the messages.
+            :param perf_to_number (str): The recipient's phone number.
+
+        Raises:
+            Exception: If there is an error while sending the SMS notification.
+        """
         for item in comp_and_pen_messages:
             vaprofile_id = str(item.get('vaprofile_id'))
             participant_id = item.get('participant_id')
@@ -179,6 +187,7 @@ class CompPenMsgHelper:
                     recipient_item=recipient_item,
                 )
             except Exception as e:
+                # TODO - 1826 should we do anything if there's an exception with the batch put?
                 current_app.logger.critical(
                     'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | item '
                     'from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s | exception_type: %s - '
