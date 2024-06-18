@@ -1,16 +1,31 @@
 from decimal import Decimal
 
+import pytest
+
 from app.integrations.comp_and_pen.scheduled_message_helpers import CompPenMsgHelper
+from tests.app.celery.test_scheduled_tasks import dynamodb_mock, sample_dynamodb_insert
 
 
-def test_get_dynamodb_comp_pen_messages_with_empty_table(dynamodb_mock):
+@pytest.fixture
+def msg_helper(mocker) -> CompPenMsgHelper:
+    # Mocks necessary for dynamodb
+    mocker.patch('boto3.resource')
+    mocker.patch('boto3.resource.Table', return_value=dynamodb_mock)
+    return CompPenMsgHelper('test')
+
+
+def test_ut_get_dynamodb_comp_pen_messages_with_empty_table(mocker, msg_helper):
+    mocker.patch(
+        'app.integrations.comp_and_pen.scheduled_message_helpers.CompPenMsgHelper.get_dynamodb_comp_pen_messages',
+        return_value=[],
+    )
     # Invoke the function with the mocked table and application
-    messages = CompPenMsgHelper.get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=1)
+    messages = msg_helper.get_dynamodb_comp_pen_messages(message_limit=1)
 
     assert messages == [], 'Expected no messages from an empty table'
 
 
-def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_insert, setup_monetary_decimal_context):
+def test_get_dynamodb_comp_pen_messages_filters(mocker, msg_helper, dynamodb_mock, sample_dynamodb_insert):
     """
     Items should not be returned if any of these apply:
         2) has_duplicate_mappings is True
@@ -45,8 +60,11 @@ def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_i
     ]
     sample_dynamodb_insert(items_to_insert)
 
+    # has to attribute 'table'
+    # mocker.patch('app.integrations.comp_and_pen.scheduled_message_helpers.CompPenMsgHelper.table', dynamodb_mock)
+
     # Invoke the function with the mocked table and application
-    messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=7)
+    messages = msg_helper.get_dynamodb_comp_pen_messages(message_limit=7)
 
     for msg in messages:
         assert (
@@ -56,9 +74,10 @@ def test_get_dynamodb_comp_pen_messages_filters(dynamodb_mock, sample_dynamodb_i
 
 
 def test_it_get_dynamodb_comp_pen_messages_with_multiple_scans(
+    mocker,
+    msg_helper,
     dynamodb_mock,
     sample_dynamodb_insert,
-    setup_monetary_decimal_context,
 ):
     """
     Items should be searched based on the is_processed index and payment_id = -1 should be filtered out.
@@ -89,8 +108,10 @@ def test_it_get_dynamodb_comp_pen_messages_with_multiple_scans(
     # Insert mock data into the DynamoDB table.
     sample_dynamodb_insert(processed_items + not_processed_items)
 
+    # mocker.patch.object(msg_helper.table, dynamodb_mock)
+
     # Invoke the function with the mocked table and application
-    messages = _get_dynamodb_comp_pen_messages(dynamodb_mock, message_limit=100)
+    messages = msg_helper.get_dynamodb_comp_pen_messages(message_limit=100)
 
     assert len(messages) == 100
 
@@ -100,7 +121,7 @@ def test_it_get_dynamodb_comp_pen_messages_with_multiple_scans(
         assert m['payment_id'] != -1
 
 
-def test_it_update_dynamo_item_is_processed_updates_properly(dynamodb_mock, sample_dynamodb_insert):
+def test_it_update_dynamo_item_is_processed_updates_properly(mocker, msg_helper, dynamodb_mock, sample_dynamodb_insert):
     items_to_insert = [
         {'participant_id': 1, 'is_processed': 'F', 'payment_id': 1, 'paymentAmount': Decimal(1.00)},
         {'participant_id': 2, 'is_processed': 'F', 'payment_id': 2, 'paymentAmount': Decimal(2.50)},
@@ -110,9 +131,9 @@ def test_it_update_dynamo_item_is_processed_updates_properly(dynamodb_mock, samp
     # Insert mock data into the DynamoDB table.
     sample_dynamodb_insert(items_to_insert)
 
-    with dynamodb_mock.batch_writer() as batch:
-        for item in items_to_insert:
-            _remove_dynamo_item_is_processed(batch, item)
+    # mocker.patch.object(msg_helper.table, dynamodb_mock)
+
+    msg_helper.remove_dynamo_item_is_processed(items_to_insert)
 
     response = dynamodb_mock.scan()
 

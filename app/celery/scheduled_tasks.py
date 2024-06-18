@@ -210,10 +210,12 @@ def send_scheduled_comp_and_pen_sms() -> None:
     # Perf uses the AWS simulated delivered number
     perf_to_number = current_app.config['COMP_AND_PEN_PERF_TO_NUMBER']
 
+    comp_pen_helper = CompPenMsgHelper(dynamodb_table_name=dynamodb_table_name)
+
     # TODO: utils #146 - Debug messages currently don't show up in cloudwatch, requires a configuration change
     current_app.logger.debug('send_scheduled_comp_and_pen_sms connecting to dynamodb...')
     try:
-        comp_pen_helper = CompPenMsgHelper(dynamodb_table_name=dynamodb_table_name)
+        comp_pen_helper._connect_to_dynamodb()
     except ClientError as e:
         current_app.logger.critical(
             'Unable to connect to dynamodb table with name %s - exception: %s', dynamodb_table_name, e
@@ -225,7 +227,6 @@ def send_scheduled_comp_and_pen_sms() -> None:
     # get messages to send
     try:
         comp_and_pen_messages: list = comp_pen_helper.get_dynamodb_comp_pen_messages(messages_per_min)
-        # comp_and_pen_messages: list = _get_dynamodb_comp_pen_messages(table, messages_per_min)
     except Exception as e:
         current_app.logger.critical(
             'Exception trying to scan dynamodb table for send_scheduled_comp_and_pen_sms exception_type: %s - '

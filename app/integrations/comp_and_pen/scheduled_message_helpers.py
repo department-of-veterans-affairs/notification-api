@@ -23,7 +23,6 @@ class CompPenMsgHelper:
         """
         self.dynamodb_table_name = dynamodb_table_name
         self.table = None
-        self._connect_to_dynamodb(dynamodb_table_name)
 
     def _connect_to_dynamodb(self, dynamodb_table_name: str = None) -> None:
         """Establishes a connection to the dynamodb table with the given name.
