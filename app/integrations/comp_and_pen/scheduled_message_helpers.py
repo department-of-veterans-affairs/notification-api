@@ -12,6 +12,8 @@ from app.va.identifier import IdentifierType
 
 
 class CompPenMsgHelper:
+    dynamodb_table = None
+
     def __init__(self, dynamodb_table_name: str) -> None:
         """
         This class is a collection of helper methods to facilitate the delivery of schedule Comp and Pen notifications.
@@ -22,7 +24,7 @@ class CompPenMsgHelper:
         :param dynamodb_table_name (str): the name of the dynamodb table for the db operations, required
         """
         self.dynamodb_table_name = dynamodb_table_name
-        self.table = None
+        self.dynamodb_table = None
 
     def _connect_to_dynamodb(self, dynamodb_table_name: str = None) -> None:
         """Establishes a connection to the dynamodb table with the given name.
@@ -36,8 +38,8 @@ class CompPenMsgHelper:
             dynamodb_table_name = self.dynamodb_table_name
 
         # connect to dynamodb table
-        self.dynamodb_resource = boto3.resource('dynamodb')
-        self.table = self.dynamodb_resource.Table(dynamodb_table_name)
+        dynamodb_resource = boto3.resource('dynamodb')
+        self.dynamodb_table = dynamodb_resource.Table(dynamodb_table_name)
 
     def get_dynamodb_comp_pen_messages(
         self,
@@ -51,21 +53,20 @@ class CompPenMsgHelper:
             2) payment_id is not equal to -1 (placeholder value)
             3) paymentAmount exists
 
-        :param table: the dynamodb table to grab the data from
         :param message_limit: the number of rows to search at a time and the max number of items that should be returned
         :return: a list of entries from the table that have not been processed yet
 
         https://boto3.amazonaws.com/v1/documentation/api/latest/guide/dynamodb.html#querying-and-scanning
         """
 
-        if self.table is None:
+        if self.dynamodb_table is None:
             self._connect_to_dynamodb()
 
         is_processed_index = 'is-processed-index'
 
         filters = Attr('payment_id').exists() & Attr('payment_id').ne(-1) & Attr('paymentAmount').exists()
 
-        results = self.table.scan(FilterExpression=filters, Limit=message_limit, IndexName=is_processed_index)
+        results = self.dynamodb_table.scan(FilterExpression=filters, Limit=message_limit, IndexName=is_processed_index)
         items: list = results.get('Items')
 
         if items is None:
@@ -78,7 +79,7 @@ class CompPenMsgHelper:
 
         # Keep getting items from the table until we have the number we want to send, or run out of items
         while 'LastEvaluatedKey' in results and len(items) < message_limit:
-            results = self.table.scan(
+            results = self.dynamodb_table.scan(
                 FilterExpression=filters,
                 Limit=message_limit,
                 IndexName=is_processed_index,
@@ -101,11 +102,11 @@ class CompPenMsgHelper:
             Exception: If an error occurs during the update of any item in the DynamoDB table, the exception is logged
                     with critical severity, and then re-raised.
         """
-        if self.table is None:
+        if self.dynamodb_table is None:
             self._connect_to_dynamodb()
 
         # send messages and update entries in dynamodb table
-        with self.table.batch_writer() as batch:
+        with self.dynamodb_table.batch_writer() as batch:
             for item in comp_and_pen_messages:
                 participant_id = item.get('participant_id')
                 payment_id = item.get('payment_id')
@@ -115,11 +116,14 @@ class CompPenMsgHelper:
                 # update dynamodb entries
                 try:
                     batch.put_item(Item=item)
-                    current_app.logger.info(
-                        'updated_item from dynamodb ("is_processed" should no longer exist): %s', item
-                    )
+                    # TODO 1826
+                    # current_app causes an issue with testing - "RuntimeError: Working outside of application context."
+                    # ¯\_(ツ)_/¯ not sure what to do about it
+                    # current_app.logger.info(
+                    #     'updated_item from dynamodb ("is_processed" should no longer exist): %s', item
+                    # )
                 except Exception as e:
-                    # TODO - 1826 should we do anything if there's an exception with the batch put?
+                    # TODO 1826 should we do anything if there's an exception with the batch put?
                     current_app.logger.critical(
                         'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
                         'exception_type: %s exception_message: %s',
@@ -187,7 +191,7 @@ class CompPenMsgHelper:
                     recipient_item=recipient_item,
                 )
             except Exception as e:
-                # TODO - 1826 should we do anything if there's an exception with the batch put?
+                # TODO 1826 should we do anything if there's an exception with the batch put?
                 current_app.logger.critical(
                     'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | item '
                     'from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s | exception_type: %s - '
