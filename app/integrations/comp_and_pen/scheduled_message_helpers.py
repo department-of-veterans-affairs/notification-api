@@ -116,7 +116,6 @@ class CompPenMsgHelper:
                         'updated_item from dynamodb ("is_processed" should no longer exist): %s', item
                     )
                 except Exception as e:
-                    # TODO 1826 should we do anything if there's an exception with the batch put?
                     current_app.logger.critical(
                         'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
                         'exception_type: %s exception_message: %s',

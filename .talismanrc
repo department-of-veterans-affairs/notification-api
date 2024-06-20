@@ -7,6 +7,8 @@ fileignoreconfig:
   checksum: e06cc6abd755fa5cb5c2b1deceb1a40f87bf9f2b8be73102623cbfe0f28a20cd
 - filename: tests/app/celery/test_scheduled_tasks.py
   checksum: cb2b003fb3ee404c293632e4bad6754ec6a35c895f392933d9203b5d93edb095
+- filename: tests/app/conftest.py
+  checksum: 823e29c34011d04c007800df4c131fdf043c6b05409d5c9915c4e8e9f1f00d80
 - filename: tests/app/integrations/comp_and_pen/dynamo_fixtures.py
   checksum: 170ea486a042bc783f0aeaa0c683936744df192b65d1bc6b58194a00adc46208
 - filename: tests/app/notifications/test_send_notifications.py

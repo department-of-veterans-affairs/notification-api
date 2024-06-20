@@ -1,12 +1,10 @@
 from datetime import datetime, timedelta
-from decimal import Decimal, getcontext
-from unittest.mock import ANY, call, MagicMock, patch
+from decimal import getcontext
+from unittest.mock import ANY, call, patch
 from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
-import boto3
-from moto import mock_dynamodb
 
 from app.celery import scheduled_tasks
 from app.celery.scheduled_tasks import (
@@ -22,7 +20,6 @@ from app.celery.scheduled_tasks import (
 from app.config import QueueNames, TaskNames
 from app.dao.jobs_dao import dao_get_job_by_id
 from app.dao.notifications_dao import dao_get_scheduled_notifications
-from app.integrations.comp_and_pen.scheduled_message_helpers import CompPenMsgHelper
 from app.models import (
     EMAIL_TYPE,
     JOB_STATUS_ERROR,
@@ -36,7 +33,6 @@ from app.models import (
     SMS_TYPE,
 )
 from app.v2.errors import JobIncompleteError
-from app.va.identifier import IdentifierType
 
 
 SEND_TASK_MOCK_PATH = 'app.celery.tasks.notify_celery.send_task'
