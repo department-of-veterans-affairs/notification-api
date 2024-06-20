@@ -333,8 +333,9 @@ class Config(object):
             },
             'send-scheduled-comp-and-pen-sms': {
                 'task': 'send-scheduled-comp-and-pen-sms',
-                # At every minute past every hour from 13 through 21 on every day-of-month from 21 through 31
-                'schedule': crontab(hour='13-21', day_of_month='21-31', minute='*/2'),
+                # Every 2 minutes past every hour from 13 through 21 on every day-of-month from 21 through 31
+                #'schedule': crontab(hour='13-21', day_of_month='21-31', minute='*/2'),
+                'schedule': crontab(minute='*/5'),
                 'options': {'queue': QueueNames.PERIODIC},
             },
         },
