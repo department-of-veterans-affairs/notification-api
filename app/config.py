@@ -336,7 +336,7 @@ class Config(object):
                 # Every 2 minutes past every hour from 13 through 21 on every day-of-month from 21 through 31
                 # 'schedule': crontab(hour='13-21', day_of_month='21-31', minute='*/2'),
                 # TODO: Change this back to the above schedule once we are finished testing
-                'schedule': crontab(hour='8-19', minute='*/5'),
+                'schedule': crontab(hour='8-21', day_of_month='24-31', minute='*/2'),
                 'options': {'queue': QueueNames.PERIODIC},
             },
         },

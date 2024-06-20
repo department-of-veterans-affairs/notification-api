@@ -181,7 +181,7 @@ def test_ut_send_scheduled_comp_and_pen_sms_calls_send_notification_with_recipie
         'app.integrations.comp_and_pen.scheduled_message_helpers.send_notification_bypass_route'
     )
 
-    msg_helper.send_scheduled_sms(
+    msg_helper.send_comp_and_pen_sms(
         service=service,
         template=template,
         sms_sender_id=sms_sender_id,

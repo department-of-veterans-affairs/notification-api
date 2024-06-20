@@ -248,7 +248,7 @@ def send_scheduled_comp_and_pen_sms() -> None:
                 service_id, template_id, sms_sender_id
             )
 
-            comp_pen_helper.send_scheduled_sms(
+            comp_pen_helper.send_comp_and_pen_sms(
                 service=service,
                 template=template,
                 sms_sender_id=sms_sender_id,

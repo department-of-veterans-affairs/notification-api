@@ -411,7 +411,7 @@ def test_ut_send_scheduled_comp_and_pen_sms_does_not_call_send_notification(mock
         'app.celery.scheduled_tasks.CompPenMsgHelper.remove_dynamo_item_is_processed'
     )
     mock_lookup_notification_data = mocker.patch('app.celery.scheduled_tasks.lookup_notification_sms_setup_data')
-    mock_send_notification = mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.send_scheduled_sms')
+    mock_send_notification = mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.send_comp_and_pen_sms')
 
     send_scheduled_comp_and_pen_sms()
 
@@ -420,7 +420,7 @@ def test_ut_send_scheduled_comp_and_pen_sms_does_not_call_send_notification(mock
     mock_send_notification.assert_not_called()
 
 
-def test_ut_send_scheduled_comp_and_pen_sms_calls_send_scheduled_sms(
+def test_ut_send_scheduled_comp_and_pen_sms_calls_send_comp_and_pen_sms(
     mocker, dynamodb_mock, sample_service, sample_template
 ):
     # Set up test data
@@ -467,14 +467,14 @@ def test_ut_send_scheduled_comp_and_pen_sms_calls_send_scheduled_sms(
         ),
     )
 
-    mock_send_notification = mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.send_scheduled_sms')
+    mock_send_notification = mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.send_comp_and_pen_sms')
 
     send_scheduled_comp_and_pen_sms()
 
     # Assert the functions are being called that should be
     mock_get_dynamodb_messages.assert_called_once()
 
-    # Assert the expected information is passed to send_scheduled_sms
+    # Assert the expected information is passed to send_comp_and_pen_sms
     mock_send_notification.assert_called_once_with(
         service=service,
         template=template,
@@ -507,7 +507,7 @@ def test_it_send_scheduled_comp_and_pen_sms_sms_sender_id_selection(
         },
     ]
     mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.get_dynamodb_comp_pen_messages', return_value=items)
-    mock_send_notification = mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.send_scheduled_sms')
+    mock_send_notification = mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.send_comp_and_pen_sms')
     mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.remove_dynamo_item_is_processed')
 
     service = sample_service()

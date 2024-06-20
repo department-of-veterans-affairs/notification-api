@@ -125,7 +125,7 @@ class CompPenMsgHelper:
                         e,
                     )
 
-    def send_scheduled_sms(
+    def send_comp_and_pen_sms(
         self,
         service: Service,
         template: Template,
@@ -184,7 +184,7 @@ class CompPenMsgHelper:
                 )
             except Exception as e:
                 current_app.logger.critical(
-                    'Error attempting to send Comp and Pen notification with send_scheduled_sms | item from dynamodb '
+                    'Error attempting to send Comp and Pen notification with send_comp_and_pen_sms | item from dynamodb '
                     '- vaprofile_id: %s | participant_id: %s | payment_id: %s | exception_type: %s - exception: %s',
                     vaprofile_id,
                     participant_id,
