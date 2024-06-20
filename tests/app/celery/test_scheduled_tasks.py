@@ -396,6 +396,11 @@ def test_check_precompiled_letter_state(mocker, sample_template, sample_notifica
     )
 
 
+#########################################################################################
+# Comp and Pen scheduled message tests
+#########################################################################################
+
+
 def test_ut_send_scheduled_comp_and_pen_sms_does_not_call_send_notification(mocker, dynamodb_mock):
     mocker.patch('app.celery.scheduled_tasks.is_feature_enabled', return_value=True)
 

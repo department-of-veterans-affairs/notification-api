@@ -242,9 +242,12 @@ def send_scheduled_comp_and_pen_sms() -> None:
     if comp_and_pen_messages:
         comp_pen_helper.remove_dynamo_item_is_processed(comp_and_pen_messages)
 
-        service, template, sms_sender_id = lookup_notification_sms_setup_data(service_id, template_id, sms_sender_id)
-
         if is_feature_enabled(FeatureFlag.COMP_AND_PEN_MESSAGES_ENABLED):
+            # get the data necessary to send the notifications
+            service, template, sms_sender_id = lookup_notification_sms_setup_data(
+                service_id, template_id, sms_sender_id
+            )
+
             comp_pen_helper.send_scheduled_sms(
                 service=service,
                 template=template,

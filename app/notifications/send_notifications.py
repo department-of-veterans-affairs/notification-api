@@ -77,6 +77,10 @@ def send_notification_bypass_route(
         Note: uses service default for sms notifications if not passed in
     :param recipient_item: a dictionary specifying 'id_type' and 'id_value'
     :param api_key_type: the api key type to use, default: 'normal'
+
+    Raises:
+        NotificationTechnicalFailureException: if recipient and recipient_item are both None,
+            or if recipient_item is missing 'id_type' or 'id_value'
     """
 
     if recipient is None and recipient_item is None:
@@ -87,6 +91,18 @@ def send_notification_bypass_route(
         raise NotificationTechnicalFailureException(
             'Cannot send notification without one of: recipient or recipient_item'
         )
+
+    if recipient_item is not None:
+        if not ('id_type' in recipient_item and 'id_value' in recipient_item):
+            current_app.logger.critical(
+                'Error in send_notification_bypass_route attempting to send notification using recipient_item. '
+                'Must contain both "id_type" and "id_value" fields, but one or both are missing. recipient_item: %s',
+                recipient_item,
+            )
+            raise NotificationTechnicalFailureException(
+                'Error attempting to send notification using recipient_item. Must contain both "id_type" and "id_value"'
+                ' fields, but one or more are missing.'
+            )
 
     # Use the service's default sms_sender if applicable
     if notification_type == SMS_TYPE and sms_sender_id is None:
@@ -106,18 +122,6 @@ def send_notification_bypass_route(
     )
 
     if recipient_item is not None:
-        if not ('id_type' in recipient_item and 'id_value' in recipient_item):
-            current_app.logger.critical(
-                'Error in send_notification_bypass_route attempting to send notification id %s using recipient_item. '
-                'Must contain both "id_type" and "id_value" fields, but one or both are missing. recipient_item: %s',
-                notification.id,
-                recipient_item,
-            )
-            raise NotificationTechnicalFailureException(
-                'Error attempting to send notification using recipient_item. Must contain both "id_type" and "id_value"'
-                ' fields, but one or more are missing.'
-            )
-
         current_app.logger.info(
             'sending %s notification with send_notification_bypass_route via '
             'send_to_queue_for_recipient_info_based_on_recipient_identifier, notification id %s',

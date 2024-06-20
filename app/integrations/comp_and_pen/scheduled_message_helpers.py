@@ -18,13 +18,9 @@ class CompPenMsgHelper:
         """
         This class is a collection of helper methods to facilitate the delivery of schedule Comp and Pen notifications.
 
-        Calls _connect_to_dynamodb to establishe a connection to the dynamodb table with the given name.
-        This can raise a ClientError exception if something goes wrong.
-
         :param dynamodb_table_name (str): the name of the dynamodb table for the db operations, required
         """
         self.dynamodb_table_name = dynamodb_table_name
-        self.dynamodb_table = None
 
     def _connect_to_dynamodb(self, dynamodb_table_name: str = None) -> None:
         """Establishes a connection to the dynamodb table with the given name.
@@ -32,7 +28,7 @@ class CompPenMsgHelper:
         :param dynamodb_table_name (str): the name of the dynamodb table to establish a connection with
 
         Raises:
-            ClientError - if it has trouble connectingto the dynamodb
+            ClientError: if it has trouble connectingto the dynamodb
         """
         if dynamodb_table_name is None:
             dynamodb_table_name = self.dynamodb_table_name
@@ -116,12 +112,9 @@ class CompPenMsgHelper:
                 # update dynamodb entries
                 try:
                     batch.put_item(Item=item)
-                    # TODO 1826
-                    # current_app causes an issue with testing - "RuntimeError: Working outside of application context."
-                    # ¯\_(ツ)_/¯ not sure what to do about it
-                    # current_app.logger.info(
-                    #     'updated_item from dynamodb ("is_processed" should no longer exist): %s', item
-                    # )
+                    current_app.logger.info(
+                        'updated_item from dynamodb ("is_processed" should no longer exist): %s', item
+                    )
                 except Exception as e:
                     # TODO 1826 should we do anything if there's an exception with the batch put?
                     current_app.logger.critical(
@@ -191,11 +184,9 @@ class CompPenMsgHelper:
                     recipient_item=recipient_item,
                 )
             except Exception as e:
-                # TODO 1826 should we do anything if there's an exception with the batch put?
                 current_app.logger.critical(
-                    'Error attempting to send Comp and Pen notification with send_scheduled_comp_and_pen_sms | item '
-                    'from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s | exception_type: %s - '
-                    'exception: %s',
+                    'Error attempting to send Comp and Pen notification with send_scheduled_sms | item from dynamodb '
+                    '- vaprofile_id: %s | participant_id: %s | payment_id: %s | exception_type: %s - exception: %s',
                     vaprofile_id,
                     participant_id,
                     payment_id,
