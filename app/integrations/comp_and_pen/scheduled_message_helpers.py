@@ -46,8 +46,7 @@ class CompPenMsgHelper:
 
         Items should be returned if all of these attribute conditions are met:
             1) item exists on the `is-processed-index`
-            2) payment_id is not equal to -1 (placeholder value)
-            3) paymentAmount exists
+            2) paymentAmount exists
 
         :param message_limit: the number of rows to search at a time and the max number of items that should be returned
         :return: a list of entries from the table that have not been processed yet
@@ -60,7 +59,7 @@ class CompPenMsgHelper:
 
         is_processed_index = 'is-processed-index'
 
-        filters = Attr('payment_id').exists() & Attr('payment_id').ne(-1) & Attr('paymentAmount').exists()
+        filters = Attr('paymentAmount').exists()
 
         results = self.dynamodb_table.scan(FilterExpression=filters, Limit=message_limit, IndexName=is_processed_index)
         items: list = results.get('Items')

@@ -25,8 +25,8 @@ def test_ut_get_dynamodb_comp_pen_messages_with_empty_table(msg_helper):
 
 def test_get_dynamodb_comp_pen_messages_filters(msg_helper, sample_dynamodb_insert):
     """
-    Items should not be returned if any of these apply:
-        1) payment_id equals -1
+    Items should not be returned if any of the following conditions are met:
+        1) is_processed is absent (not on is-processed-index)
         2) paymentAmount is absent (required by downstream Celery task)
     """
     # Insert mock data into the DynamoDB table.
@@ -39,8 +39,6 @@ def test_get_dynamodb_comp_pen_messages_filters(msg_helper, sample_dynamodb_inse
         {'participant_id': 4, 'payment_id': 4, 'paymentAmount': Decimal(0), 'vaprofile_id': 4},
         # Missing paymentAmount
         {'participant_id': 5, 'is_processed': 'F', 'payment_id': 5, 'vaprofile_id': 5},
-        # Placeholder payment_id
-        {'participant_id': 6, 'is_processed': 'F', 'payment_id': -1, 'paymentAmount': Decimal(1.00), 'vaprofile_id': 6},
     ]
     sample_dynamodb_insert(items_to_insert)
 
@@ -56,7 +54,7 @@ def test_get_dynamodb_comp_pen_messages_filters(msg_helper, sample_dynamodb_inse
 
 def test_it_get_dynamodb_comp_pen_messages_with_multiple_scans(msg_helper, sample_dynamodb_insert):
     """
-    Items should be searched based on the is-processed-index and payment_id = -1 should be filtered out.
+    Items should be searched based on the is-processed-index and anything missing a paymentAmount should be filtered out.
 
     This is also testing the pagination of the scan operation in which a bug previously existed.
     """
@@ -91,7 +89,7 @@ def test_it_get_dynamodb_comp_pen_messages_with_multiple_scans(msg_helper, sampl
     # ensure we only have messages that have not been processed
     for m in messages:
         assert m['is_processed'] == 'F'
-        assert m['payment_id'] != -1
+        assert m['paymentAmount'] is not None
 
 
 def test_it_update_dynamo_item_is_processed_updates_properly(mocker, msg_helper, dynamodb_mock, sample_dynamodb_insert):
@@ -121,38 +119,6 @@ def test_it_update_dynamo_item_is_processed_updates_properly(mocker, msg_helper,
     assert response['Count'] == 5
     for item in response['Items']:
         assert 'is_processed' not in item
-
-
-# is this really necessary? The above test removed item values and uses batch write to update them
-# def test_send_scheduled_comp_and_pen_sms_uses_batch_write(mocker, sample_service, sample_template):
-#     # mocker.patch('app.celery.scheduled_tasks.send_notification_bypass_route')
-
-#     # mocker.patch('app.celery.scheduled_tasks.dao_fetch_service_by_id', return_value=sample_service)
-#     # template = sample_template()
-#     # mocker.patch('app.celery.scheduled_tasks.dao_get_template_by_id', return_value=template)
-
-#     dynamo_data = [
-#         {
-#             'participant_id': '123',
-#             'vaprofile_id': '123',
-#             'payment_id': '123',
-#             'paymentAmount': 123,
-#             'is_processed': False,
-#         },
-#     ]
-#     # mocker.patch('app.celery.scheduled_tasks.CompPenMsgHelper.get_dynamodb_comp_pen_messages', return_value=dynamo_data)
-#     # mocker.patch.dict('app.celery.scheduled_tasks.current_app.config', {'COMP_AND_PEN_SMS_SENDER_ID': ''})
-
-#     with mocker.patch('app.integrations.comp_and_pen.scheduled_message_helpers.boto3.resource') as mock_resource:
-#         mock_put_item = MagicMock()
-#         mock_resource.return_value.Table.return_value.batch_writer.return_value.__enter__.return_value.put_item = (
-#             mock_put_item
-#         )
-#         msg_helper = CompPenMsgHelper('test')
-#         msg_helper.get_dynamodb_comp_pen_messages(dynamo_data)
-
-#     dynamo_data[0].pop('is_processed', None)
-#     mock_put_item.assert_called_once_with(Item=dynamo_data[0])
 
 
 def test_ut_send_scheduled_comp_and_pen_sms_calls_send_notification_with_recipient_item(
