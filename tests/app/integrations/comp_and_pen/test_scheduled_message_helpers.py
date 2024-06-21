@@ -111,7 +111,7 @@ def test_it_update_dynamo_item_is_processed_updates_properly(mocker, msg_helper,
     # why is this giving this error? "RuntimeError: Working outside of application context."
     msg_helper.remove_dynamo_item_is_processed(items_to_insert)
 
-    mock_logger.info.assert_called()
+    assert mock_logger.debug.call_count == 5
 
     response = dynamodb_mock.scan()
 

@@ -104,25 +104,25 @@ class CompPenMsgHelper:
         with self.dynamodb_table.batch_writer() as batch:
             for item in comp_and_pen_messages:
                 participant_id = item.get('participant_id')
-                payment_id = item.get('payment_id')
 
                 item.pop('is_processed', None)
 
                 # update dynamodb entries
                 try:
                     batch.put_item(Item=item)
-                    current_app.logger.info(
-                        'updated_item from dynamodb ("is_processed" should no longer exist): %s', item
+                    current_app.logger.debug(
+                        'updated record from dynamodb ("is_processed" should no longer exist): %s', item
                     )
                 except Exception as e:
                     current_app.logger.critical(
-                        'Exception attempting to update item in dynamodb with participant_id: %s and payment_id: %s - '
-                        'exception_type: %s exception_message: %s',
+                        'Exception attempting to update record from dynamodb: %s - exception_type: %s '
+                        'exception_message: %s',
                         participant_id,
-                        payment_id,
                         type(e),
                         e,
                     )
+
+        current_app.logger.info('Comp and Pen - Successfully updated dynamodb entries - removed "is_processed" field')
 
     def send_comp_and_pen_sms(
         self,
@@ -149,15 +149,9 @@ class CompPenMsgHelper:
         for item in comp_and_pen_messages:
             vaprofile_id = str(item.get('vaprofile_id'))
             participant_id = item.get('participant_id')
-            payment_id = item.get('payment_id')
             payment_amount = str(item.get('paymentAmount'))
 
-            current_app.logger.info(
-                'sending - item from dynamodb - vaprofile_id: %s | participant_id: %s | payment_id: %s',
-                vaprofile_id,
-                participant_id,
-                payment_id,
-            )
+            current_app.logger.debug('sending - record from dynamodb: %s', participant_id)
 
             # Use perf_to_number as the recipient if available. Otherwise, use vaprofile_id as recipient_item.
             recipient = perf_to_number
@@ -183,11 +177,9 @@ class CompPenMsgHelper:
                 )
             except Exception as e:
                 current_app.logger.critical(
-                    'Error attempting to send Comp and Pen notification with send_comp_and_pen_sms | item from dynamodb '
-                    '- vaprofile_id: %s | participant_id: %s | payment_id: %s | exception_type: %s - exception: %s',
-                    vaprofile_id,
+                    'Error attempting to send Comp and Pen notification with send_comp_and_pen_sms | '
+                    'record from dynamodb: %s | exception_type: %s - exception: %s',
                     participant_id,
-                    payment_id,
                     type(e),
                     e,
                 )
@@ -197,10 +189,4 @@ class CompPenMsgHelper:
                         'Notification sent using Perf simulated number %s instead of vaprofile_id', perf_to_number
                     )
 
-                current_app.logger.info(
-                    'Notification sent to queue for item from dynamodb - vaprofile_id: %s | participant_id: %s | '
-                    'payment_id: %s',
-                    vaprofile_id,
-                    participant_id,
-                    payment_id,
-                )
+                current_app.logger.info('Notification sent to queue for record from dynamodb: %s', participant_id)

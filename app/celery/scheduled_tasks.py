@@ -256,4 +256,4 @@ def send_scheduled_comp_and_pen_sms() -> None:
                 perf_to_number=perf_to_number,
             )
         else:
-            current_app.logger.info('Notifications not sent to queue (feature flag disabled)')
+            current_app.logger.info('Comp and Pen Notifications not sent to queue (feature flag disabled)')

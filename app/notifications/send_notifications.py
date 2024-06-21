@@ -49,7 +49,7 @@ def lookup_notification_sms_setup_data(
         current_app.logger.info('Using the SMS sender ID specified in get_notification_setup_data')
     except ValueError:
         sms_sender_id = service.get_default_sms_sender_id()
-        current_app.logger.info("Using the service default ServiceSmsSender's ID in get_notification_setup_data")
+        current_app.logger.info('Using the service default SMS Sender ID in get_notification_setup_data')
 
     return service, template, str(sms_sender_id)
 
