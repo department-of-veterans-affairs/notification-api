@@ -126,10 +126,10 @@ def get_services():
     user_id = request.args.get('user_id', None)
     include_from_test_key = request.args.get('include_from_test_key', 'True') != 'False'
 
-    # Testing logs
+    # LOCAL DEBUG
+    # See note in //notification-api/app/__init__.py in create_app
     current_app.logger.debug("THIS IS THE DEBUG LOG")
     current_app.logger.info("THIS IS THE INFO LOG")
-
     # See current logging level while testing locally
     LOG_LEVEL = os.getenv('NOTIFY_LOG_LEVEL')
     print("THE LOG LEVEL IS", LOG_LEVEL)
