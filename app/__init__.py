@@ -433,7 +433,6 @@ def init_app(app):
         return jsonify(result='error', message=msg), 404
 
     @app.errorhandler(Exception)
-
     def exception(error):
         app.logger.exception(error)
         return jsonify(result='error', message='Internal server error'), 500
