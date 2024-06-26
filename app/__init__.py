@@ -121,24 +121,7 @@ def create_app(application):
     zendesk_client.init_app(application)
     statsd_client.init_app(application)
 
-    # LOCAL DEBUG 
-    # While hitting endpoint GET /service in POSTMAN 
-    # Comment in/out the two blocks below to see the different in 
-    # Setting log leves in notification-utils vs notification-api
-
-    # # Set Log Level in Notification-Utils 
-    # # Below is the original logging method from the notification-utils repo
-    # logging.init_app(application, statsd_client)
-    # # Return log level 10
-    # print("LOG LEVEL FROM NOTIFICATION-UTILS", application.logger.level)
-
-    # # Set Log Level in Notification-Api
-    # Setting the logger level notification-api repo itself allows
-    # us to filter the logs appropriately
-    application.logger.setLevel('INFO')
-    # Return log level 20
-    print("LOG LEVEL FROM NOTIFICATION-API", application.logger.level)
-
+    logging.init_app(application, statsd_client)
 
     firetext_client.init_app(application, statsd_client=statsd_client)
     loadtest_client.init_app(application, statsd_client=statsd_client)
