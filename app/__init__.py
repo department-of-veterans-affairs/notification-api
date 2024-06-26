@@ -120,7 +120,15 @@ def create_app(application):
     ma.init_app(application)
     zendesk_client.init_app(application)
     statsd_client.init_app(application)
-    logging.init_app(application, statsd_client)
+
+    # Below is the logging method from the notification-utils repo
+    # logging.init_app(application, statsd_client)
+
+    # Setting the logger level notification-api repo itself allows
+    # us to filter the logs appropriately
+    application.logger.setLevel('DEBUG')
+
+
     firetext_client.init_app(application, statsd_client=statsd_client)
     loadtest_client.init_app(application, statsd_client=statsd_client)
     mmg_client.init_app(application, statsd_client=statsd_client)
@@ -425,6 +433,7 @@ def init_app(app):
         return jsonify(result='error', message=msg), 404
 
     @app.errorhandler(Exception)
+
     def exception(error):
         app.logger.exception(error)
         return jsonify(result='error', message='Internal server error'), 500

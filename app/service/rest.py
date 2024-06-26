@@ -1,4 +1,5 @@
 import itertools
+import os
 from app import db
 from app.authentication.auth import requires_admin_auth, requires_admin_auth_or_user_in_service
 from app.config import QueueNames
@@ -124,6 +125,15 @@ def get_services():
     detailed = request.args.get('detailed') == 'True'
     user_id = request.args.get('user_id', None)
     include_from_test_key = request.args.get('include_from_test_key', 'True') != 'False'
+
+    # Testing logs
+    current_app.logger.debug("THIS IS THE DEBUG LOG")
+    current_app.logger.info("THIS IS THE INFO LOG")
+
+    # See current logging level while testing locally
+    LOG_LEVEL = os.getenv('NOTIFY_LOG_LEVEL')
+    print("THE LOG LEVEL IS", LOG_LEVEL)
+
 
     # If start and end date are not set, we are expecting today's stats.
     today = str(datetime.utcnow().date())
