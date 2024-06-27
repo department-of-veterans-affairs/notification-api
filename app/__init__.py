@@ -122,10 +122,9 @@ def create_app(application):
     zendesk_client.init_app(application)
     statsd_client.init_app(application)
 
-    # Reset the NOTIFY_ENVIRONMENT variable
-    os.environ['NOTIFY_ENVIRONMENT'] = 'production'
     logging.init_app(application, statsd_client)
-    os.environ['NOTIFY_ENVIRONMENT'] = 'development'
+    log_level = application.logger.level
+    print("CREATE_APP - THIS IS THE LOG LEVEL", log_level)
 
     firetext_client.init_app(application, statsd_client=statsd_client)
     loadtest_client.init_app(application, statsd_client=statsd_client)

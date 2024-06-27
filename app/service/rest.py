@@ -126,13 +126,12 @@ def get_services():
     user_id = request.args.get('user_id', None)
     include_from_test_key = request.args.get('include_from_test_key', 'True') != 'False'
 
-    # LOCAL DEBUG
-    # See note in //notification-api/app/__init__.py in create_app
+    # DEBUGGING IN DEV TEMPORARY
     current_app.logger.debug("THIS IS THE DEBUG LOG")
     current_app.logger.info("THIS IS THE INFO LOG")
     # See current logging level while testing locally
     log_level = current_app.logger.level
-    print("THIS IS THE LOG LEVEL", log_level)
+    print("GET/SERVICE - THIS IS THE LOG LEVEL", log_level)
 
 
     # If start and end date are not set, we are expecting today's stats.
