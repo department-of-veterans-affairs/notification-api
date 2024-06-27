@@ -131,8 +131,8 @@ def get_services():
     current_app.logger.debug("THIS IS THE DEBUG LOG")
     current_app.logger.info("THIS IS THE INFO LOG")
     # See current logging level while testing locally
-    LOG_LEVEL = os.getenv('NOTIFY_LOG_LEVEL')
-    print("THE LOG LEVEL IS", LOG_LEVEL)
+    log_level = current_app.logger.level
+    print("THIS IS THE LOG LEVEL", log_level)
 
 
     # If start and end date are not set, we are expecting today's stats.

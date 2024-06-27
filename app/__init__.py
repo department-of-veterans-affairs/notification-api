@@ -110,6 +110,7 @@ def create_app(application):
         ), "Don't run tests against the main reader database."
 
     application.config['NOTIFY_APP_NAME'] = application.name
+    
     init_app(application)
     request_helper.init_app(application)
 
@@ -121,7 +122,10 @@ def create_app(application):
     zendesk_client.init_app(application)
     statsd_client.init_app(application)
 
+    # Reset the NOTIFY_ENVIRONMENT variable
+    os.environ['NOTIFY_ENVIRONMENT'] = 'production'
     logging.init_app(application, statsd_client)
+    os.environ['NOTIFY_ENVIRONMENT'] = 'development'
 
     firetext_client.init_app(application, statsd_client=statsd_client)
     loadtest_client.init_app(application, statsd_client=statsd_client)
