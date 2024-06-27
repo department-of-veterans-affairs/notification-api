@@ -110,6 +110,7 @@ def create_app(application):
         ), "Don't run tests against the main reader database."
 
     application.config['NOTIFY_APP_NAME'] = application.name
+    
     init_app(application)
     request_helper.init_app(application)
 
@@ -120,7 +121,11 @@ def create_app(application):
     ma.init_app(application)
     zendesk_client.init_app(application)
     statsd_client.init_app(application)
+
     logging.init_app(application, statsd_client)
+    log_level = application.logger.level
+    print("CREATE_APP - THIS IS THE LOG LEVEL", log_level)
+
     firetext_client.init_app(application, statsd_client=statsd_client)
     loadtest_client.init_app(application, statsd_client=statsd_client)
     mmg_client.init_app(application, statsd_client=statsd_client)

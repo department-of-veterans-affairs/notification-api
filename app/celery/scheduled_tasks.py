@@ -211,8 +211,7 @@ def send_scheduled_comp_and_pen_sms() -> None:
     perf_to_number = current_app.config['COMP_AND_PEN_PERF_TO_NUMBER']
 
     comp_pen_helper = CompPenMsgHelper(dynamodb_table_name=dynamodb_table_name)
-
-    # TODO: utils #146 - Debug messages currently don't show up in cloudwatch, requires a configuration change
+    
     current_app.logger.debug('send_scheduled_comp_and_pen_sms connecting to dynamodb...')
     try:
         comp_pen_helper._connect_to_dynamodb()

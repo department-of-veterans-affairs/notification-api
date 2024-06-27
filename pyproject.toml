@@ -50,7 +50,7 @@ twilio = "*"
 Unidecode = "*"
 validatesns = "*"
 Werkzeug = "*"
-notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git"}
+notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git", branch = "146-update_debug_log_level"}
 
 [tool.poetry.group.test]
 optional = true
