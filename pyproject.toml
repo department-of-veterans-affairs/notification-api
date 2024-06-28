@@ -57,7 +57,7 @@ optional = true
 [tool.poetry.group.test.dependencies]
 freezegun = "*"
 google-cloud-bigquery = "*"
-moto = "^4.2"
+moto = "^5.0"
 pytest = "*"
 pytest-cov = "*"
 pytest-env = "*"
