@@ -2,6 +2,7 @@ from datetime import datetime
 
 from flask import current_app
 
+from app.googleanalytics.ga4 import build_ga4_open_email_event_body, build_ga4_open_email_event_url
 import app.googleanalytics.pixels as gapixels
 from notifications_utils.recipients import validate_and_format_phone_number, validate_and_format_email_address
 from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate, SMSMessageTemplate
@@ -259,8 +260,12 @@ def get_html_email_options(
 ):
     options_dict = {}
     if is_gapixel_enabled(current_app):
+        # Original GA Implementation
         options_dict['ga_pixel_url'] = gapixels.build_ga_pixel_url(notification, provider)
-        options_dict['ga4_open_email_event'] = gapixels.build_ga4_open_email_event(notification, provider)
+
+        # GA4 Implementation
+        options_dict['ga4_open_email_event_url'] = build_ga4_open_email_event_url(notification, provider)
+        options_dict['ga4_open_email_event_body'] = build_ga4_open_email_event_body(notification, provider)
 
     service = notification.service
     if service.email_branding is None:
