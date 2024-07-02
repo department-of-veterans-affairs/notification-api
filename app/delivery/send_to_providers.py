@@ -260,6 +260,7 @@ def get_html_email_options(
     options_dict = {}
     if is_gapixel_enabled(current_app):
         options_dict['ga_pixel_url'] = gapixels.build_ga_pixel_url(notification, provider)
+        options_dict['ga4_open_email_event'] = gapixels.build_ga4_open_email_event(notification, provider)
 
     service = notification.service
     if service.email_branding is None:
