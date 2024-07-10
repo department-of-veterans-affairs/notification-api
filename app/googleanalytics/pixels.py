@@ -1,35 +1,21 @@
-from urllib.parse import urlencode
-
-from flask import current_app
+from flask import current_app, url_for
 
 
-def build_ga_pixel_url(
-    notification,
-    provider,
-):
-    url_params_dict = {
-        'v': '1',
-        't': 'event',
-        'tid': current_app.config['GOOGLE_ANALYTICS_TID'],
-        'cid': notification.id,
-        'aip': '1',
-        'ec': 'email',
-        'ea': 'open',
-        'el': notification.template.name,
-        'dp': f"/email/vanotify"
-        f"{'/' + notification.service.organisation.name if notification.service.organisation else ''}"
-        f"/{notification.service.name}"
-        f"/{notification.template.name}",
-        'dt': notification.subject,
-        'cn': notification.template.name,
-        'cs': provider.get_name(),
-        'cm': 'email',
-        'ci': notification.template.id,
-    }
+def build_dynamic_ga4_pixel_tacking_url(notification):
+    """
+    Constructs a dynamic URL that contains information on the notification email being sent.
 
-    url_str = current_app.config['GOOGLE_ANALYTICS_URL']
-    url_params = urlencode(url_params_dict)
-    url = f'{url_str}?{url_params}'
+    :param notification: The notification object containing template and service details.
+    :return: A dynamically constructed URL string.
+    """
 
-    current_app.logger.info(f'Generated google analytics pixel URL: {url}')
+    root_url = url_for('index', _external=True)
+    url = (
+        f'{root_url}/ga4/open-email-tracking?'
+        f'campaign={notification.template.name}&campaign_id={notification.template.id}&'
+        f'name=email_opens&source=vanotify&medium=email&'
+        f'content={notification.service.name}/{notification.service.id}/{notification.id}'
+    )
+
+    current_app.logger.info(f'Generated google analytics 4 pixel URL: {url}')
     return url

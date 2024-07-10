@@ -255,12 +255,11 @@ def get_logo_url(
 
 def get_html_email_options(
     notification,
-    provider,
 ):
     options_dict = {}
     if is_gapixel_enabled(current_app):
-        options_dict['ga_pixel_url'] = gapixels.build_ga_pixel_url(notification, provider)
-
+        options_dict['ga4_open_email_event_url'] = gapixels.build_dynamic_ga4_pixel_tacking_url(notification)
+        
     service = notification.service
     if service.email_branding is None:
         options_dict.update({'default_banner': True, 'brand_banner': False})

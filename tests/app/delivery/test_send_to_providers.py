@@ -519,7 +519,7 @@ def test_get_html_email_renderer_should_return_for_normal_service(
     assert 'brand_logo' not in options.keys()
     assert 'brand_text' not in options.keys()
     assert 'brand_name' not in options.keys()
-    assert 'ga_pixel_url' in options.keys()
+    assert 'ga4_open_email_event_url' in options.keys()
 
 
 @pytest.mark.parametrize(
