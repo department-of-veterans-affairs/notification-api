@@ -64,7 +64,7 @@ def test_ga4_request_schema_campaign_id_uuid(ga4_request_data):
         'test/e774d2a6-4946-41b5-841a-7ac6a42d178b/bar',
         'test/foo/e774d2a6-4946-41b5-841a-7ac6a42d178b',
         'test/e774d2a6-4946-41b5-841a-7ac6a42d178b/e774d2a6-4946-41b5-841a-7ac6a42d178b/something',
-    )
+    ),
 )
 def test_ga4_request_schema_content_uuid(ga4_request_data, content):
     """

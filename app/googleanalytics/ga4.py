@@ -9,9 +9,7 @@ from jsonschema.validators import Draft202012Validator
 
 ga4_blueprint = Blueprint('ga4', __name__, url_prefix='/ga4')
 
-ga4_request_validator = Draft202012Validator(
-    ga4_request_schema, format_checker=FormatChecker(['uuid'])
-)
+ga4_request_validator = Draft202012Validator(ga4_request_schema, format_checker=FormatChecker(['uuid']))
 
 
 @ga4_blueprint.route('/open-email-tracking', methods=['GET'])
