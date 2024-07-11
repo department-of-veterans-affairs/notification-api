@@ -15,11 +15,10 @@ ga4_request_validator = Draft202012Validator(ga4_request_schema, format_checker=
 @ga4_blueprint.route('/open-email-tracking', methods=['GET'])
 def get_ga4():
     """
-    This route is what alerts to the opening of an e-mail message.
-
-    https://flask.palletsprojects.com/en/3.0.x/api/#flask.Request.args
+    This route is used for pixel tracking.  It is exercised when a veteran opens an e-mail.
     """
 
+    # https://flask.palletsprojects.com/en/3.0.x/api/#flask.Request.args
     url_parameters_dict = request.args.to_dict()
 
     # This could raise ValidationError.
