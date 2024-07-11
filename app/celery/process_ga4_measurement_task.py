@@ -1,13 +1,21 @@
 from urllib.parse import urlencode
-import requests
+
 from flask import current_app
-from celery import Celery
+import requests
 
-# Initialize Celery
-celery = Celery(__name__)
+from app import notify_celery
+from app.celery.exceptions import AutoRetryException
 
 
-@celery.task
+@notify_celery.task(
+    bind=True,
+    name='post_ga4',
+    throws=(AutoRetryException,),
+    autoretry_for=(AutoRetryException,),
+    max_retries=2886,
+    retry_backoff=True,
+    retry_backoff_max=60,
+)
 def post_to_ga4(notification_id, template_name, template_id, service_id, service_name):
     # Build URL
     ga_api_secret = current_app.config['GOOGLE_ANALYTICS_API_SECRET']
@@ -36,6 +44,8 @@ def post_to_ga4(notification_id, template_name, template_id, service_id, service
             }
         ]
     }
-
-    response = requests.post(url, json=event_body, timeout=3)
+    headers = {
+        'Content-Type': 'application/json',
+    }
+    response = requests.post(url, headers=headers, json=event_body, timeout=1)
     return response.status_code, response.json()
