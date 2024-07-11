@@ -7,14 +7,8 @@ class TestGA4PixelTrackingURL:
         notify_api,
         sample_notification_model_with_organization,
     ):
-        notify_api.config['SERVER_NAME'] = 'localhost'
-        notify_api.config['APPLICATION_ROOT'] = '/'
-        notify_api.config['PREFERRED_URL_SCHEME'] = 'http'
-
-        with notify_api.app_context():
-
+        with notify_api.test_request_context():
             url = build_dynamic_ga4_pixel_tacking_url(sample_notification_model_with_organization)
-
 
             all_expected_parameters = [
                 'campaign=',

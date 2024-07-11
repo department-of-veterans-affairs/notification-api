@@ -259,7 +259,7 @@ def get_html_email_options(
     options_dict = {}
     if is_gapixel_enabled(current_app):
         options_dict['ga4_open_email_event_url'] = gapixels.build_dynamic_ga4_pixel_tacking_url(notification)
-        
+
     service = notification.service
     if service.email_branding is None:
         options_dict.update({'default_banner': True, 'brand_banner': False})

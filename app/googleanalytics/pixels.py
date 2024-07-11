@@ -4,14 +4,16 @@ from flask import current_app, url_for
 def build_dynamic_ga4_pixel_tacking_url(notification):
     """
     Constructs a dynamic URL that contains information on the notification email being sent.
+    The dynamic URL is used to for pixel tracking and sends a request to our application when
+    email is openned.  
 
     :param notification: The notification object containing template and service details.
     :return: A dynamically constructed URL string.
     """
 
-    root_url = url_for('index', _external=True)
+    ga4_url = url_for('ga4.get_ga4')
     url = (
-        f'{root_url}/ga4/open-email-tracking?'
+        f'{ga4_url}?'
         f'campaign={notification.template.name}&campaign_id={notification.template.id}&'
         f'name=email_opens&source=vanotify&medium=email&'
         f'content={notification.service.name}/{notification.service.id}/{notification.id}'
