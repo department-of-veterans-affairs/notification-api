@@ -5,7 +5,7 @@ def build_dynamic_ga4_pixel_tacking_url(notification):
     """
     Constructs a dynamic URL that contains information on the notification email being sent.
     The dynamic URL is used to for pixel tracking and sends a request to our application when
-    email is openned.  
+    email is openned.
 
     :param notification: The notification object containing template and service details.
     :return: A dynamically constructed URL string.
