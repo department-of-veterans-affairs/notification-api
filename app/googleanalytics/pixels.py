@@ -1,17 +1,20 @@
 import os
-from flask import current_app, url_for
 
-TEST_DOMAIN = "https://test-api.va.gov/notify/"
-DEV_DOMAIN = "https://dev-api.va.gov/notify/"
-PERF_DOMAIN = "https://sandbox-api.va.gov/notify/"
-STAGING_DOMAIN = "https://staging-api.va.gov/notify/"
-PROD_DOMAIN = "https://api.va.gov/notify/"
+from flask import current_app
+
+
+TEST_DOMAIN = 'https://test-api.va.gov/notify/'
+DEV_DOMAIN = 'https://dev-api.va.gov/notify/'
+PERF_DOMAIN = 'https://sandbox-api.va.gov/notify/'
+STAGING_DOMAIN = 'https://staging-api.va.gov/notify/'
+PROD_DOMAIN = 'https://api.va.gov/notify/'
+
+NOTIFICATION_API_GA4_GET_ENDPOINT = 'ga4/open-email-tracking'
 
 
 def get_domain_for_environment():
-    #TODO move into helper file 
+    # TODO move into helper file
     environment = os.getenv('NOTIFY_ENVIRONMENT', 'development')
-
 
     ENVIRONMENT_DOMAINS = {
         'test': TEST_DOMAIN,
@@ -35,7 +38,7 @@ def build_dynamic_ga4_pixel_tracking_url(notification):
     """
 
     domain = get_domain_for_environment()
-    ga4_url = url_for('ga4.get_ga4', _external=False)
+    ga4_url = NOTIFICATION_API_GA4_GET_ENDPOINT
     url = (
         f'{domain}'
         f'{ga4_url}?'
