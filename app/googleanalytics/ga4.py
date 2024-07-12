@@ -7,6 +7,9 @@ from flask import current_app, Blueprint, request
 from jsonschema import FormatChecker, ValidationError
 from jsonschema.validators import Draft202012Validator
 
+from app.celery.process_ga4_measurement_task import post_to_ga4
+
+
 ga4_blueprint = Blueprint('ga4', __name__, url_prefix='/ga4')
 
 ga4_request_validator = Draft202012Validator(ga4_request_schema, format_checker=FormatChecker(['uuid']))
@@ -26,6 +29,13 @@ def get_ga4():
 
     current_app.logger.info(request.query_string)
 
+    post_to_ga4.delay(
+        notification_id=url_parameters_dict['notification_id'],
+        template_name=url_parameters_dict['template_name'],
+        template_id=url_parameters_dict['template_id'],
+        service_id=url_parameters_dict['service_id'],
+        service_name=url_parameters_dict['service_name'],
+    )
     # "No Content"
     return {}, 204
 
