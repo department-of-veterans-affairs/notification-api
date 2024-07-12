@@ -135,7 +135,7 @@ def send_email_to_provider(notification: Notification):
     template_dict = dao_get_template_by_id(notification.template_id, notification.template_version).__dict__
 
     html_email = HTMLEmailTemplate(
-        template_dict, values=personalisation_data, **get_html_email_options(notification, client)
+        template_dict, values=personalisation_data, **get_html_email_options(notification)
     )
 
     plain_text_email = PlainTextEmailTemplate(template_dict, values=personalisation_data)
@@ -258,7 +258,7 @@ def get_html_email_options(
 ):
     options_dict = {}
     if is_gapixel_enabled(current_app):
-        options_dict['ga4_open_email_event_url'] = gapixels.build_dynamic_ga4_pixel_tacking_url(notification)
+        options_dict['ga4_open_email_event_url'] = gapixels.build_dynamic_ga4_pixel_tracking_url(notification)
 
     service = notification.service
     if service.email_branding is None:
