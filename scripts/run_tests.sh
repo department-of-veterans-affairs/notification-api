@@ -20,8 +20,8 @@ function display_result {
   fi
 }
 
-# ruff format --check
-# display_result $? 1 "Code style check"
+ruff format --check
+display_result $? 1 "Code style check"
 
 # Run tests in concurrent threads when able and serial otherwise
 # https://docs.pytest.org/en/stable/reference/customize.html
