@@ -211,7 +211,7 @@ def v3_send_email_notification(
     #    template_dict,
     #    template,
     #    values=personlization_data,
-    #     **get_html_email_options(notification)
+    #     **get_html_email_options(notification, client)
     # )
 
     # This might raise AwsSesClientException.
