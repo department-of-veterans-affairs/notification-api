@@ -13,7 +13,6 @@ NOTIFICATION_API_GA4_GET_ENDPOINT = 'ga4/open-email-tracking'
 
 
 def get_domain_for_environment():
-    # TODO move into helper file
     environment = os.getenv('NOTIFY_ENVIRONMENT', 'development')
 
     ENVIRONMENT_DOMAINS = {
