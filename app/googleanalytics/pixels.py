@@ -14,6 +14,7 @@ GA4_PIXEL_TRACKING_NAME = 'email_open'
 GA4_PIXEL_TRACKING_SOURCE = 'vanotify'
 GA4_PIXEL_TRACKING_MEDIUM = 'email'
 
+
 def get_domain_for_environment():
     environment = os.getenv('NOTIFY_ENVIRONMENT', 'development')
 
@@ -26,6 +27,7 @@ def get_domain_for_environment():
     }
 
     return ENVIRONMENT_DOMAINS[environment]
+
 
 def build_dynamic_ga4_pixel_tracking_url(notification):
     """

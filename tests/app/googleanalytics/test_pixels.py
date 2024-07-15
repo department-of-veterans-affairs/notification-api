@@ -5,6 +5,7 @@ import pytest
 
 from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
 
+
 @pytest.mark.parametrize(
     'env, expected_domain',
     [
@@ -25,6 +26,7 @@ def test_build_dynamic_ga4_pixel_tracking_url_correct_domain_for_environment(
         url = build_dynamic_ga4_pixel_tracking_url(sample_notification_model_with_organization)
         assert expected_domain in url
 
+
 def test_build_dynamic_ga4_pixel_tracking_url_contains_expected_parameters(
     notify_api,
     sample_notification_model_with_organization,
@@ -43,6 +45,7 @@ def test_build_dynamic_ga4_pixel_tracking_url_contains_expected_parameters(
 
         assert all(parameter in url for parameter in all_expected_parameters)
 
+
 def test_build_dynamic_ga4_pixel_tracking_url_encodes_spaces(
     notify_api,
     sample_notification_model_with_organization,
@@ -50,7 +53,7 @@ def test_build_dynamic_ga4_pixel_tracking_url_encodes_spaces(
     with patch.dict(os.environ, {'NOTIFY_ENVIRONMENT': 'test'}):
         sample_notification_model_with_organization.template.name = 'Test Campaign'
         sample_notification_model_with_organization.service.name = 'Test Service'
-        
+
         url = build_dynamic_ga4_pixel_tracking_url(sample_notification_model_with_organization)
 
         assert 'Test%20Campaign' in url
