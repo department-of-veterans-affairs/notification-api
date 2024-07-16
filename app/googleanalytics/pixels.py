@@ -2,6 +2,8 @@ import os
 from flask import current_app
 from urllib.parse import quote
 
+from app.models import Notification
+
 TEST_DOMAIN = 'https://test-api.va.gov/vanotify/'
 DEV_DOMAIN = 'https://dev-api.va.gov/vanotify/'
 PERF_DOMAIN = 'https://sandbox-api.va.gov/vanotify/'
@@ -29,7 +31,7 @@ def get_domain_for_environment() -> str:
     return ENVIRONMENT_DOMAINS[environment]
 
 
-def build_dynamic_ga4_pixel_tracking_url(notification) -> str:
+def build_dynamic_ga4_pixel_tracking_url(notification: Notification) -> str:
     """
     Constructs a dynamic URL that contains information on the notification email being sent.
     The dynamic URL is used for pixel tracking and sends a request to our application when
