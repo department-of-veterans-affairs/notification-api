@@ -17,7 +17,6 @@ from app.celery.exceptions import AutoRetryException
     retry_backoff_max=60,
 )
 def post_to_ga4(notification_id, template_name, template_id, service_id, service_name):
-    # Build URL
     ga_api_secret = current_app.config['GOOGLE_ANALYTICS_API_SECRET']
     ga_measurement_id = current_app.config['GOOGLE_ANALYTICS_MEASUREMENT_ID']
     url_str = current_app.config['GOOGLE_ANALYTICS_GA4_URL']
