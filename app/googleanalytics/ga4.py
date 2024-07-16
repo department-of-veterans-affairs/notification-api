@@ -2,15 +2,19 @@
 Google Analytics 4
 """
 
+import os
 from app.googleanalytics.ga4_schemas import ga4_request_schema
 from flask import current_app, Blueprint, request
 from jsonschema import FormatChecker, ValidationError
 from jsonschema.validators import Draft202012Validator
 
+from flask import send_file
+
 ga4_blueprint = Blueprint('ga4', __name__, url_prefix='/ga4')
 
 ga4_request_validator = Draft202012Validator(ga4_request_schema, format_checker=FormatChecker(['uuid']))
 
+GA4_PIXEL_TRACKING_IMAGE_PATH = 'images/pixel.png'
 
 @ga4_blueprint.route('/open-email-tracking', methods=['GET'])
 def get_ga4():
@@ -26,8 +30,9 @@ def get_ga4():
 
     current_app.logger.info(request.query_string)
 
-    # "No Content"
-    return {}, 204
+    filename = os.path.join(current_app.root_path, 'images', 'pixel.png')
+
+    return send_file(filename, mimetype='image/gif')
 
 
 @ga4_blueprint.errorhandler(ValidationError)
