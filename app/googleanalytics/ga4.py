@@ -27,14 +27,29 @@ def get_ga4():
     # This could raise ValidationError.
     ga4_request_validator.validate(url_parameters_dict)
 
-    current_app.logger.info(request.query_string)
+    current_app.logger.debug(request.query_string)
+
+    template_name = url_parameters_dict['campaign']
+    template_id = url_parameters_dict['campaign_id']
+    name = url_parameters_dict['name']
+    source = url_parameters_dict['source']
+    medium = url_parameters_dict['medium']
+
+    content = url_parameters_dict['content'].split('/')
+    service_name = content[0]
+    service_id = content[1]
+    notification_id = content[2]
+
+    current_app.logger.info(
+        f'GA4: campaign={template_name}, campaign_id={template_id}, name={name}, source={source}, medium={medium}, content={content}'
+    )
 
     post_to_ga4.delay(
-        notification_id=url_parameters_dict['notification_id'],
-        template_name=url_parameters_dict['template_name'],
-        template_id=url_parameters_dict['template_id'],
-        service_id=url_parameters_dict['service_id'],
-        service_name=url_parameters_dict['service_name'],
+        notification_id=notification_id,
+        template_name=template_name,
+        template_id=template_id,
+        service_id=service_id,
+        service_name=service_name,
     )
     # "No Content"
     return {}, 204
