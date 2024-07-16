@@ -17,6 +17,17 @@ from app.celery.exceptions import AutoRetryException
     retry_backoff_max=60,
 )
 def post_to_ga4(notification_id, template_name, template_id, service_id, service_name):
+    """
+    This celery task is used to post to Google Analytics 4. It is exercised when a veteran opens an e-mail.
+
+    :param notification_id: The notification ID.
+    :param template_name: The template name.
+    :param template_id: The template ID.
+    :param service_id: The service ID.
+    :param service_name: The service name.
+
+    :return: The status code and the response JSON.
+    """
     ga_api_secret = current_app.config['GOOGLE_ANALYTICS_API_SECRET']
     ga_measurement_id = current_app.config['GOOGLE_ANALYTICS_MEASUREMENT_ID']
     url_str = current_app.config['GOOGLE_ANALYTICS_GA4_URL']
