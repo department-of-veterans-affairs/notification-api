@@ -1,3 +1,4 @@
+import json
 from urllib.parse import urlencode
 
 from flask import current_app
@@ -16,7 +17,9 @@ from app.celery.exceptions import AutoRetryException
     retry_backoff=True,
     retry_backoff_max=60,
 )
-def post_to_ga4(notification_id, template_name, template_id, service_id, service_name):
+def post_to_ga4(
+    self, notification_id, template_name, template_id, service_id, service_name, client_id='notify-email', user_id='-1'
+):
     """
     This celery task is used to post to Google Analytics 4. It is exercised when a veteran opens an e-mail.
 
@@ -28,19 +31,22 @@ def post_to_ga4(notification_id, template_name, template_id, service_id, service
 
     :return: The status code and the response JSON.
     """
-    ga_api_secret = current_app.config['GOOGLE_ANALYTICS_API_SECRET']
-    ga_measurement_id = current_app.config['GOOGLE_ANALYTICS_MEASUREMENT_ID']
-    url_str = current_app.config['GOOGLE_ANALYTICS_GA4_URL']
+    ga_api_secret = current_app.config['GA4_API_SECRET']
+    ga_measurement_id = current_app.config['GA4_MEASUREMENT_ID']
+    url_str = current_app.config['GA4_URL']
     url_params_dict = {
         'measurement_id': ga_measurement_id,
         'api_secret': ga_api_secret,
     }
     url_params = urlencode(url_params_dict)
     url = f'{url_str}?{url_params}'
+    current_app.logger.debug(f'GA4 URL: {url}')
 
     content = f'{service_name}/{service_id}/{notification_id}'
 
     event_body = {
+        'client_id': client_id,
+        'user_id': user_id,
         'events': [
             {
                 'name': 'open_email',
@@ -52,10 +58,12 @@ def post_to_ga4(notification_id, template_name, template_id, service_id, service
                     'content': content,
                 },
             }
-        ]
+        ],
     }
-    headers = {
-        'Content-Type': 'application/json',
-    }
-    response = requests.post(url, headers=headers, json=event_body, timeout=1)
-    return response.status_code, response.json()
+    current_app.logger.debug('GA4 Event Body: %s', json.dumps(event_body, indent=2))
+    # headers = {
+    #     'Content-Type': 'application/json',
+    # }
+    response = requests.post(url, json=event_body, timeout=1)
+    response.raise_for_status()
+    return True
