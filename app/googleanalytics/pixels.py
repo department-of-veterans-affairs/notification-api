@@ -15,7 +15,7 @@ GA4_PIXEL_TRACKING_SOURCE = 'vanotify'
 GA4_PIXEL_TRACKING_MEDIUM = 'email'
 
 
-def get_domain_for_environment():
+def get_domain_for_environment() -> str:
     environment = os.getenv('NOTIFY_ENVIRONMENT', 'development')
 
     ENVIRONMENT_DOMAINS = {
@@ -29,7 +29,7 @@ def get_domain_for_environment():
     return ENVIRONMENT_DOMAINS[environment]
 
 
-def build_dynamic_ga4_pixel_tracking_url(notification):
+def build_dynamic_ga4_pixel_tracking_url(notification) -> str:
     """
     Constructs a dynamic URL that contains information on the notification email being sent.
     The dynamic URL is used for pixel tracking and sends a request to our application when
@@ -49,5 +49,5 @@ def build_dynamic_ga4_pixel_tracking_url(notification):
         f'content={quote(notification.service.name)}/{quote(str(notification.service.id))}/{quote(str(notification.id))}'
     )
 
-    current_app.logger.info(f'Generated Google Analytics 4 pixel URL: {url}')
+    current_app.logger.info('Generated Google Analytics 4 pixel URL: %s', url)
     return url
