@@ -456,6 +456,9 @@ class Config(object):
     GOOGLE_ANALYTICS_ENABLED = str(True) == (os.getenv('GOOGLE_ANALYTICS_ENABLED', 'False'))
     GOOGLE_ANALYTICS_URL = os.getenv('GOOGLE_ANALYTICS_URL', 'https://www.google-analytics.com/collect')
     GOOGLE_ANALYTICS_TID = os.getenv('GOOGLE_ANALYTICS_TID', 'UA-50123418-17')
+    GA4_URL = os.getenv('GA4_URL', 'https://www.google-analytics.com/mp/collect')
+    GA4_MEASUREMENT_ID = os.getenv('GA4_MEASUREMENT_ID', '')
+    GA4_API_SECRET = os.getenv('GA4_API_SECRET', '')
 
     # Attachments
 
@@ -499,6 +502,10 @@ class Development(Config):
     }
 
     ANTIVIRUS_ENABLED = os.getenv('ANTIVIRUS_ENABLED') == '1'
+
+    GA4_URL = os.getenv('GA4_URL', 'https://www.google-analytics.com/mp/collect')
+    GA4_MEASUREMENT_ID = os.getenv('GA4_MEASUREMENT_ID', 'G-1234567890')
+    GA4_API_SECRET = os.getenv('GA4_API_SECRET', 'secret')
 
 
 class Test(Development):
