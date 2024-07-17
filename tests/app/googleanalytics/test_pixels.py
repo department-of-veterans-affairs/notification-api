@@ -6,21 +6,21 @@ from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
 
 class TestGA4PixelTracking:
     @pytest.mark.parametrize(
-        ('environment', 'expected_domain'),
+        'domain',
         [
-            ('test', 'https://test-api.va.gov/vanotify/'),
-            ('dev', 'https://dev-api.va.gov/vanotify/'),
-            ('performance', 'https://sandbox-api.va.gov/vanotify/'),
-            ('staging', 'https://staging-api.va.gov/vanotify/'),
-            ('production', 'https://api.va.gov/vanotify/'),
+            'https://test-api.va.gov/vanotify/',
+            'https://dev-api.va.gov/vanotify/',
+            'https://sandbox-api.va.gov/vanotify/',
+            'https://staging-api.va.gov/vanotify/',
+            'https://api.va.gov/vanotify/',
         ],
     )
     def test_ut_build_dynamic_ga4_pixel_tracking_url_correct_domain_for_environment(
-        self, notify_api, sample_notification_model_with_organization, environment, expected_domain
+        self, notify_api, sample_notification_model_with_organization, domain
     ):
-        with set_config(notify_api, 'ENVIRONMENT_DOMAIN', expected_domain):
+        with set_config(notify_api, 'ENVIRONMENT_DOMAIN', domain):
             url = build_dynamic_ga4_pixel_tracking_url(sample_notification_model_with_organization)
-            assert expected_domain in url
+            assert domain in url
 
     def test_ut_build_dynamic_ga4_pixel_tracking_url_contains_expected_parameters(
         self, sample_notification_model_with_organization

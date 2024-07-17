@@ -20,6 +20,7 @@ GA4_PIXEL_TRACKING_IMAGE_PATH = '/app/images/ga4_pixel_tracking.png'
 def get_ga4():
     """
     This route is used for pixel tracking.  It is exercised when a veteran opens an e-mail.
+    The route returns a pixel image to avoid a broken icon image in notification emails.
     """
 
     # https://flask.palletsprojects.com/en/3.0.x/api/#flask.Request.args
