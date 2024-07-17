@@ -2,7 +2,6 @@
 Google Analytics 4
 """
 
-import os
 from app.googleanalytics.ga4_schemas import ga4_request_schema
 from flask import current_app, Blueprint, request
 from jsonschema import FormatChecker, ValidationError
@@ -31,9 +30,7 @@ def get_ga4():
 
     current_app.logger.info(request.query_string)
 
-    filename = os.path.join(current_app.root_path, 'images', 'pixel.png')
-
-    return send_file(filename, mimetype='image/gif')
+    return send_file(GA4_PIXEL_TRACKING_IMAGE_PATH, mimetype='image/gif')
 
 
 @ga4_blueprint.errorhandler(ValidationError)
