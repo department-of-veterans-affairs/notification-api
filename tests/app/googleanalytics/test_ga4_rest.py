@@ -3,7 +3,7 @@
 from flask import url_for
 
 
-def test_ut_get_ga4_valid_data(client, ga4_request_data):
+def test_it_get_ga4_valid_data(client, ga4_request_data):
     """
     A GET request with valid URL parameters should receive a 204 ("No Content") response.
     """
@@ -18,7 +18,7 @@ def test_ut_get_ga4_valid_data(client, ga4_request_data):
     assert 'ga4_pixel_tracking.png' in response.headers['Content-Disposition']
 
 
-def test_ut_get_ga4_invalid_data(client):
+def test_ot_get_ga4_invalid_data(client):
     """
     A GET request with invalid URL parameters should receive a 400 ("Bad Request") response.
     Test this by omitting all URL parameters.  Other tests validate the schema.
