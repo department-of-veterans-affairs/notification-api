@@ -500,7 +500,7 @@ class Development(Config):
 
     ANTIVIRUS_ENABLED = os.getenv('ANTIVIRUS_ENABLED') == '1'
 
-    ENVIRONMENT_DOMAIN = 'https://dev-api.va.gov/vanotify/'
+    PUBLIC_DOMAIN = 'https://dev-api.va.gov/vanotify/'
 
 
 class Test(Development):
@@ -554,7 +554,7 @@ class Test(Development):
 
     VA_SSO_AUTHORIZE_URL = 'https://int.fed.eauth.va.gov/oauthi/sps/oauth/oauth20/authorize'
 
-    ENVIRONMENT_DOMAIN = 'https://test-api.va.gov/vanotify/'
+    PUBLIC_DOMAIN = 'https://test-api.va.gov/vanotify/'
 
 
 class Staging(Config):
@@ -568,7 +568,7 @@ class Staging(Config):
     if SQLALCHEMY_BINDS['read-db'] is None:
         logging.critical('Missing SQLALCHEMY_DATABASE_URI_READ')
 
-    ENVIRONMENT_DOMAIN = 'https://staging-api.va.gov/vanotify/'
+    PUBLIC_DOMAIN = 'https://staging-api.va.gov/vanotify/'
 
 
 class Production(Config):
@@ -594,9 +594,9 @@ class Production(Config):
         logging.critical('Missing SQLALCHEMY_DATABASE_URI_READ')
 
     if os.getenv('NOTIFY_ENVIRONMENT') == 'performance':
-        ENVIRONMENT_DOMAIN = 'https://sandbox-api.va.gov/vanotify/'
+        PUBLIC_DOMAIN = 'https://sandbox-api.va.gov/vanotify/'
     else:
-        ENVIRONMENT_DOMAIN = 'https://api.va.gov/vanotify/'
+        PUBLIC_DOMAIN = 'https://api.va.gov/vanotify/'
 
 
 configs = {

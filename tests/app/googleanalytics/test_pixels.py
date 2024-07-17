@@ -18,7 +18,7 @@ class TestGA4PixelTracking:
     def test_ut_build_dynamic_ga4_pixel_tracking_url_correct_domain_for_environment(
         self, notify_api, sample_notification_model_with_organization, domain
     ):
-        with set_config(notify_api, 'ENVIRONMENT_DOMAIN', domain):
+        with set_config(notify_api, 'PUBLIC_DOMAIN', domain):
             url = build_dynamic_ga4_pixel_tracking_url(sample_notification_model_with_organization)
             assert domain in url
 
