@@ -1,4 +1,3 @@
-import json
 from urllib.parse import urlencode
 
 from flask import current_app
@@ -31,9 +30,13 @@ def post_to_ga4(
 
     :return: The status code and the response JSON.
     """
-    ga_api_secret = current_app.config['GA4_API_SECRET']
-    ga_measurement_id = current_app.config['GA4_MEASUREMENT_ID']
-    url_str = current_app.config['GA4_URL']
+    try:
+        ga_api_secret = current_app.config['GA4_API_SECRET']
+        ga_measurement_id = current_app.config['GA4_MEASUREMENT_ID']
+        url_str = current_app.config['GA4_URL']
+    except KeyError as e:
+        raise AutoRetryException(f'Configuration error: {e}')
+
     url_params_dict = {
         'measurement_id': ga_measurement_id,
         'api_secret': ga_api_secret,
@@ -60,10 +63,6 @@ def post_to_ga4(
             }
         ],
     }
-    current_app.logger.debug('GA4 Event Body: %s', json.dumps(event_body, indent=2))
-    # headers = {
-    #     'Content-Type': 'application/json',
-    # }
     response = requests.post(url, json=event_body, timeout=1)
     response.raise_for_status()
     return True
