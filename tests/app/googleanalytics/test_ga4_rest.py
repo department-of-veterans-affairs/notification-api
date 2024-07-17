@@ -1,20 +1,28 @@
 """Test endpoints for Google Analytics 4."""
 
+from unittest import mock
 from flask import url_for
 
 
-# def test_get_ga4_valid_data(client, ga4_request_data, mocker):
-#     """
-#     A GET request with valid URL parameters should receive a 204 ("No Content") response.
-#     """
+def test_get_ga4_valid_data(notify_db_session, client, ga4_request_data):
+    """
+    A GET request with valid URL parameters should receive a 204 ("No Content") response.
+    """
 
-#     mock_celery = mocker.patch('app.celery.process_ga4_measurement_task')
-#     response = client.get(
-#         path=url_for('ga4.get_ga4'),
-#         query_string=ga4_request_data,
-#     )
-#     mock_celery.si.call_count == 0
-#     assert response.status_code == 204, response.get_json()
+    # Patch the post_to_ga4 method
+    with mock.patch('app.googleanalytics.ga4.post_to_ga4') as mock_ga4_task:
+        response = client.get(
+            path=url_for('ga4.get_ga4'),
+            query_string=ga4_request_data,
+        )
+    assert response.status_code == 204, response.get_json()
+    mock_ga4_task.delay.assert_called_once_with(
+        notification_id='e774d2a6-4946-41b5-841a-7ac6a42d178b',
+        template_name='hi',
+        template_id='e774d2a6-4946-41b5-841a-7ac6a42d178b',
+        service_id='e774d2a6-4946-41b5-841a-7ac6a42d178b',
+        service_name='test',
+    )
 
 
 def test_get_ga4_invalid_data(client):
