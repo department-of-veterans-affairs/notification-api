@@ -130,7 +130,7 @@ def test_ut_send_scheduled_comp_and_pen_sms_calls_send_notification_with_recipie
             'participant_id': '123',
             'vaprofile_id': '123',
             'payment_id': '123',
-            'amount': 123.05,
+            'paymentAmount': 123.05,  # Named by Kafka
             'is_processed': False,
         },
     ]
