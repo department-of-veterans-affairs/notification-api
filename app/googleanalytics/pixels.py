@@ -1,7 +1,9 @@
-from flask import current_app
 from urllib.parse import quote
 
+from flask import current_app
+
 from app.models import Notification
+
 
 NOTIFICATION_API_GA4_GET_ENDPOINT = 'ga4/open-email-tracking'
 
