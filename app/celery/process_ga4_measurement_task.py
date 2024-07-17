@@ -9,7 +9,7 @@ from app.celery.exceptions import AutoRetryException
 
 @notify_celery.task(
     bind=True,
-    name='post_ga4',
+    name='post_to_ga4',
     throws=(AutoRetryException,),
     autoretry_for=(AutoRetryException,),
     max_retries=2886,
