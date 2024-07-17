@@ -35,6 +35,7 @@ def post_to_ga4(
         ga_measurement_id = current_app.config['GA4_MEASUREMENT_ID']
         url_str = current_app.config['GA4_URL']
     except KeyError as e:
+        current_app.logger.error('Configuration error: %s', e)
         raise AutoRetryException(f'Configuration error: {e}')
 
     url_params_dict = {
