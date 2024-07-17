@@ -1,12 +1,7 @@
-import os
-from unittest.mock import patch
-
-from flask import current_app
-
 import pytest
 
-from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
 from tests.conftest import set_config
+from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
 
 
 class TestGA4PixelTracking:
@@ -23,6 +18,7 @@ class TestGA4PixelTracking:
     def test_ut_build_dynamic_ga4_pixel_tracking_url_correct_domain_for_environment(
         self, notify_api, sample_notification_model_with_organization, environment, expected_domain
     ):
+        #TODO - revisit. Do I need environment variable?
         with set_config(notify_api, 'ENVIRONMENT_DOMAIN', expected_domain):
             url = build_dynamic_ga4_pixel_tracking_url(sample_notification_model_with_organization)
             assert expected_domain in url
