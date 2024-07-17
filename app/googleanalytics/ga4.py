@@ -16,6 +16,7 @@ ga4_request_validator = Draft202012Validator(ga4_request_schema, format_checker=
 
 GA4_PIXEL_TRACKING_IMAGE_PATH = 'images/pixel.png'
 
+
 @ga4_blueprint.route('/open-email-tracking', methods=['GET'])
 def get_ga4():
     """
