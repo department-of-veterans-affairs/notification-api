@@ -252,7 +252,7 @@ def get_logo_url(
     return 'https://{}.{}/{}'.format(bucket, domain, logo_file)
 
 
-def get_html_email_options(notification: Notification) -> Dict[str, Union[str, int]]:
+def get_html_email_options(notification: Notification) -> Dict[str, Union[str, bool]]:
     options_dict = {}
     if is_gapixel_enabled(current_app):
         options_dict['ga4_open_email_event_url'] = gapixels.build_dynamic_ga4_pixel_tracking_url(notification)
