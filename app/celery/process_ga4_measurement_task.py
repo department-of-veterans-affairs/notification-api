@@ -43,7 +43,6 @@ def post_to_ga4(
     }
     url_params = urlencode(url_params_dict)
     url = f'{url_str}?{url_params}'
-    current_app.logger.debug(f'GA4 URL: {url}')
 
     content = f'{service_name}/{service_id}/{notification_id}'
 
@@ -63,6 +62,7 @@ def post_to_ga4(
             }
         ],
     }
+    current_app.logger.info('Posting to GA4: %s', event_body)
     response = requests.post(url, json=event_body, timeout=1)
     response.raise_for_status()
     return True
