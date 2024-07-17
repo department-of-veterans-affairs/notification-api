@@ -43,7 +43,6 @@ def get_ga4():
     current_app.logger.info(
         f'GA4: campaign={template_name}, campaign_id={template_id}, name={name}, source={source}, medium={medium}, content={content}'
     )
-
     post_to_ga4.delay(
         notification_id=notification_id,
         template_name=template_name,
