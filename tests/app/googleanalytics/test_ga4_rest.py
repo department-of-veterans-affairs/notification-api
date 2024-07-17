@@ -12,8 +12,10 @@ def test_get_ga4_valid_data(client, ga4_request_data):
         path=url_for('ga4.get_ga4'),
         query_string=ga4_request_data,
     )
-
-    assert response.status_code == 204, response.get_json()
+    # Errors - FileNotFoundError: [Errno 2] No such file or directory:
+    # /.venv/lib/python3.10/site-packages/test/images/pixel.png'
+    assert response.status_code == 200, response.get_json()
+    assert response.headers['Content-Type'].startswith('image/')
 
 
 def test_get_ga4_invalid_data(client):
