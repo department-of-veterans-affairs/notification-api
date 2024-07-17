@@ -30,6 +30,7 @@ def post_to_ga4(
 
     :return: The status code and the response JSON.
     """
+    current_app.logger.info('Posting to GA4: notification_id %s', notification_id)
     try:
         ga_api_secret = current_app.config['GA4_API_SECRET']
         ga_measurement_id = current_app.config['GA4_MEASUREMENT_ID']
