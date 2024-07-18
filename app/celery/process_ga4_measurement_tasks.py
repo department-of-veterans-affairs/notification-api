@@ -4,7 +4,7 @@ from app import notify_celery
 # from app.celery.exceptions import AutoRetryException
 
 
-@notify_celery.task(name='post_to_ga4')
+@notify_celery.task()
 def post_to_ga4(self):
     current_app.logger.info('Posting to GA4')
     return True
