@@ -1,12 +1,24 @@
 from flask import current_app
 
 from app import notify_celery
-# from app.celery.exceptions import AutoRetryException
+from app.celery.exceptions import AutoRetryException
 
 
 @notify_celery.task()
 def post_to_ga4():
     current_app.logger.info('Posting to GA4')
+    try:
+        ga_api_secret = current_app.config['GA4_API_SECRET']
+        ga_measurement_id = current_app.config['GA4_MEASUREMENT_ID']
+        current_app.logger.debug('GA4_MEASUREMENT_ID: %s', ga_measurement_id)
+        url_str = current_app.config['GA4_URL']
+    except KeyError as e:
+        current_app.logger.error('Configuration error: %s', e)
+        raise AutoRetryException(f'Configuration error: {e}')
+
+    if not ga_measurement_id or not ga_api_secret or not url_str:
+        current_app.logger.error('Missing GA4 configuration')
+
     return True
 
 
