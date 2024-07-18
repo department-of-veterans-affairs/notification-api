@@ -498,12 +498,12 @@ class Development(Config):
     SQLALCHEMY_DATABASE_URI = os.getenv(  # nosec
         'SQLALCHEMY_DATABASE_URI', 'postgresql://postgres@localhost/notification_api'
     )
-
     SQLALCHEMY_BINDS = {
         'read-db': os.getenv('SQLALCHEMY_DATABASE_URI_READ', 'postgresql://postgres@localhost/notification_api')
     }
 
     ANTIVIRUS_ENABLED = os.getenv('ANTIVIRUS_ENABLED') == '1'
+    PUBLIC_DOMAIN = 'https://dev-api.va.gov/vanotify/'
 
 
 class Test(Development):
@@ -557,6 +557,8 @@ class Test(Development):
 
     VA_SSO_AUTHORIZE_URL = 'https://int.fed.eauth.va.gov/oauthi/sps/oauth/oauth20/authorize'
 
+    PUBLIC_DOMAIN = 'https://test-api.va.gov/vanotify/'
+
 
 class Staging(Config):
     # When a service is created, this gets saved as default sms_sender
@@ -568,6 +570,8 @@ class Staging(Config):
     SQLALCHEMY_BINDS = {'read-db': os.getenv('SQLALCHEMY_DATABASE_URI_READ')}
     if SQLALCHEMY_BINDS['read-db'] is None:
         logging.critical('Missing SQLALCHEMY_DATABASE_URI_READ')
+
+    PUBLIC_DOMAIN = 'https://staging-api.va.gov/vanotify/'
 
 
 class Production(Config):
@@ -591,6 +595,11 @@ class Production(Config):
     SQLALCHEMY_BINDS = {'read-db': os.getenv('SQLALCHEMY_DATABASE_URI_READ')}
     if SQLALCHEMY_BINDS['read-db'] is None:
         logging.critical('Missing SQLALCHEMY_DATABASE_URI_READ')
+
+    if os.getenv('NOTIFY_ENVIRONMENT') == 'performance':
+        PUBLIC_DOMAIN = 'https://sandbox-api.va.gov/vanotify/'
+    else:
+        PUBLIC_DOMAIN = 'https://api.va.gov/vanotify/'
 
 
 configs = {
