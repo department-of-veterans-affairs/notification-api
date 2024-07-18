@@ -54,11 +54,9 @@ notification-utils = {git = "https://github.com/department-of-veterans-affairs/n
 [tool.poetry.group.test]
 optional = true
 [tool.poetry.group.test.dependencies]
-flask-shell-ipython = "*"
 freezegun = "*"
 google-cloud-bigquery = "*"
 moto = "^4.2"
-pdbpp = "*"
 pytest = "*"
 pytest-cov = "*"
 pytest-env = "*"
