@@ -22,6 +22,7 @@ env:
   POETRY_HOME: "/opt/poetry" 
   POETRY_VIRTUALENVS_IN_PROJECT: 1 
   POETRY_NO_INTERACTION: 1
+  GITHUB_WORKFLOW: 1
 
 jobs:
   test:

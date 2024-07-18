@@ -2,6 +2,7 @@
 Google Analytics 4
 """
 
+import os
 from app.googleanalytics.ga4_schemas import ga4_request_schema
 from flask import current_app, Blueprint, request
 from jsonschema import FormatChecker, ValidationError
@@ -13,7 +14,10 @@ ga4_blueprint = Blueprint('ga4', __name__, url_prefix='/ga4')
 
 ga4_request_validator = Draft202012Validator(ga4_request_schema, format_checker=FormatChecker(['uuid']))
 
-GA4_PIXEL_TRACKING_IMAGE_PATH = '/app/images/ga4_pixel_tracking.png'
+if os.environ.get('GITHUB_WORKFLOW') == 1:
+    GA4_PIXEL_TRACKING_IMAGE_PATH = 'images/ga4_pixel_tracking.png'
+else: 
+    GA4_PIXEL_TRACKING_IMAGE_PATH = '/app/images/ga4_pixel_tracking.png'
 
 
 @ga4_blueprint.route('/open-email-tracking', methods=['GET'])
