@@ -1,4 +1,6 @@
 fileignoreconfig:
+- filename: app/celery/process_ga4_measurement_tasks.py
+  checksum: c0d20c288d2ac03d0eb62a65bb05801de1152e63c0ba776bab8db0351da5aa46
 - filename: app/integrations/comp_and_pen/scheduled_message_helpers.py
   checksum: e9c9cd3d123445ab0797fd1387f5d48c775b71ea382fd58c44636f15886c5eff
 - filename: app/notifications/send_notifications.py
