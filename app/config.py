@@ -248,7 +248,7 @@ class Config(object):
             'app.celery.scheduled_tasks',
             'app.celery.reporting_tasks',
             'app.celery.nightly_tasks',
-            'app.celery.process_ga4_measurement_task.py',
+            'app.celery.process_ga4_measurement_tasks',
             'app.celery.process_pinpoint_receipt_tasks',
             'app.celery.process_pinpoint_inbound_sms',
             'app.celery.process_delivery_status_result_tasks',

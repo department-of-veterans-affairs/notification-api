@@ -7,7 +7,7 @@ from flask import current_app, Blueprint, request
 from jsonschema import FormatChecker, ValidationError
 from jsonschema.validators import Draft202012Validator
 
-from app.celery.process_ga4_measurement_task import post_to_ga4
+from app.celery.process_ga4_measurement_tasks import post_to_ga4
 
 
 ga4_blueprint = Blueprint('ga4', __name__, url_prefix='/ga4')
