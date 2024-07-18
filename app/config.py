@@ -460,6 +460,7 @@ class Config(object):
     GOOGLE_ANALYTICS_TID = os.getenv('GOOGLE_ANALYTICS_TID', 'UA-50123418-17')
     GA4_URL = os.getenv('GA4_URL', 'https://www.google-analytics.com/mp/collect')
     GA4_MEASUREMENT_ID = os.getenv('GA4_MEASUREMENT_ID', '')
+    logging.critical('GA4_MEASUREMENT_ID: %s', GA4_MEASUREMENT_ID)
     GA4_API_SECRET = os.getenv('GA4_API_SECRET', '')
 
     # Attachments
