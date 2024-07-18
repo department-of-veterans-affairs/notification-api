@@ -101,6 +101,9 @@ class Config(object):
 
     # DB conection string
     SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
+    if SQLALCHEMY_DATABASE_URI is None:
+        logging.critical('SQLALCHEMY_DATABASE_URI is None')
+
     SQLALCHEMY_BINDS = {'read-db': os.getenv('SQLALCHEMY_DATABASE_URI_READ')}
 
     # MMG API Key
@@ -504,8 +507,6 @@ class Development(Config):
     }
 
     ANTIVIRUS_ENABLED = os.getenv('ANTIVIRUS_ENABLED') == '1'
-    PUBLIC_DOMAIN = 'https://dev-api.va.gov/vanotify/'
-
     PUBLIC_DOMAIN = 'https://dev-api.va.gov/vanotify/'
 
     GA4_URL = os.getenv('GA4_URL', 'https://www.google-analytics.com/mp/collect')
