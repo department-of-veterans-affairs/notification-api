@@ -55,7 +55,7 @@ def get_ga4():
         service_id,
         notification_id,
     )
-    post_to_ga4.delay(
+    post_to_ga4(
         notification_id=notification_id,
         template_name=template_name,
         template_id=template_id,
