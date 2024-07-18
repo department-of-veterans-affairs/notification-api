@@ -274,6 +274,7 @@ def read_from_ssm(key: str) -> str:
         logger.info('received ssm parameter')
     except Exception as e:
         logger.critical('Exception raised while looking up SSM key %s. Exception: %s', key, e)
+        response = {}
 
     return response.get('Parameter', {}).get('Value')
 
