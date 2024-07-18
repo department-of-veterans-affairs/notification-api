@@ -27,3 +27,19 @@ def test_it_get_ga4_invalid_data(client):
 
     response = client.get(path=url_for('ga4.get_ga4'))
     assert response.status_code == 400, response.get_json()
+
+
+def test_get_ga4_invalid_content(client, ga4_request_data):
+    """
+    A GET request with invalid content should receive a 400 ("Bad Request") response.
+    Test this by changing the content to an invalid format.
+    """
+
+    ga4_request_data['content'] = 'invalid_content'
+
+    response = client.get(
+        path=url_for('ga4.get_ga4'),
+        query_string=ga4_request_data,
+    )
+
+    assert response.status_code == 400, response.get_json()
