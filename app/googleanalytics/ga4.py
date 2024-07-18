@@ -15,7 +15,6 @@ ga4_blueprint = Blueprint('ga4', __name__, url_prefix='/ga4')
 ga4_request_validator = Draft202012Validator(ga4_request_schema, format_checker=FormatChecker(['uuid']))
 
 GA4_PIXEL_TRACKING_IMAGE_PATH = f'{os.getcwd()}/images/ga4_pixel_tracking.png'
-print(GA4_PIXEL_TRACKING_IMAGE_PATH)
 
 
 @ga4_blueprint.route('/open-email-tracking', methods=['GET'])
