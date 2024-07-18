@@ -44,7 +44,7 @@ def post_to_ga4(self, notification_id, template_name, template_id, service_id, s
     }
     url_params = urlencode(url_params_dict)
     url = f'{url_str}?{url_params}'
-
+    current_app.logger.debug('GA4 URL: %s', url)
     content = f'{service_name}/{service_id}/{notification_id}'
 
     event_body = {
@@ -53,11 +53,11 @@ def post_to_ga4(self, notification_id, template_name, template_id, service_id, s
             {
                 'name': 'open_email',
                 'params': {
-                    'campaign_id': template_id,
-                    'campaign': template_name,
+                    'campaign_id': str(template_id),
+                    'campaign': str(template_name),
                     'source': 'vanotify',
                     'medium': 'email',
-                    'content': content,
+                    'content': str(content),
                 },
             }
         ],
