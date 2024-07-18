@@ -30,7 +30,6 @@ def post_to_ga4(self, notification_id, template_name, template_id, service_id, s
     :return: The status code and the response JSON.
     """
     current_app.logger.info('Posting to GA4: notification_id %s', notification_id)
-
     current_app.logger.info('GA4 Measurement ID: %s', os.environ.get('GA4_MEASUREMENT_ID', 'Not present'))
     try:
         ga_api_secret = current_app.config['GA4_API_SECRET']
@@ -41,13 +40,16 @@ def post_to_ga4(self, notification_id, template_name, template_id, service_id, s
         current_app.logger.error('Configuration error: %s', e)
         raise AutoRetryException(f'Configuration error: {e}')
 
+    if not ga_measurement_id or not ga_api_secret or not url_str:
+        current_app.logger.error('Missing GA4 configuration')
+        return False
+
     url_params_dict = {
         'measurement_id': ga_measurement_id,
         'api_secret': ga_api_secret,
     }
     url_params = urlencode(url_params_dict)
     url = f'{url_str}?{url_params}'
-    current_app.logger.debug('GA4 URL: %s', url)
     content = f'{service_name}/{service_id}/{notification_id}'
 
     event_body = {
