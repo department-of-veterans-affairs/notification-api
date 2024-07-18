@@ -62,7 +62,11 @@ def post_to_ga4(self, notification_id, template_name, template_id, service_id, s
             }
         ],
     }
+    headers = {
+        'Content-Type': 'application/json',
+    }
     current_app.logger.info('Posting to GA4: %s', event_body)
-    response = requests.post(url, json=event_body, timeout=1)
+    response = requests.post(url, json=event_body, headers=headers, timeout=3)
+    current_app.logger.debug('GA4 response: %s', response.status_code)
     response.raise_for_status()
     return True
