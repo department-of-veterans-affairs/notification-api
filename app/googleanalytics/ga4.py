@@ -63,15 +63,26 @@ def get_ga4():
         service_id,
         notification_id,
     )
-    post_to_ga4.delay(
-        ga_measurement_id,
-        ga_api_secret,
-        notification_id=notification_id,
-        template_name=template_name,
-        template_id=template_id,
-        service_id=service_id,
-        service_name=service_name,
-    )
+    args = [ga_measurement_id, ga_api_secret]
+    kwargs = {
+        'notification_id': notification_id,
+        'template_name': template_name,
+        'template_id': template_id,
+        'service_id': service_id,
+        'service_name': service_name,
+    }
+
+    # post_to_ga4.delay(
+    #     ga_measurement_id,
+    #     ga_api_secret,
+    #     notification_id=notification_id,
+    #     template_name=template_name,
+    #     template_id=template_id,
+    #     service_id=service_id,
+    #     service_name=service_name,
+    # )
+    post_to_ga4.apply_async(args=args, kwargs=kwargs)
+
     return send_file(GA4_PIXEL_TRACKING_IMAGE_PATH, mimetype='image/png')
 
 
