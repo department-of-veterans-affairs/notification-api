@@ -1,23 +1,23 @@
 from flask import current_app
 
 from app import notify_celery
-from app.celery.exceptions import AutoRetryException
+# from app.celery.exceptions import AutoRetryException
 
 
-@notify_celery.task(
-    bind=True,
-    name='post_to_ga4',
-    throws=(AutoRetryException,),
-    autoretry_for=(AutoRetryException,),
-    max_retries=2886,
-    retry_backoff=True,
-    retry_backoff_max=60,
-)
+@notify_celery.task(name='post_to_ga4')
 def post_to_ga4(self):
     current_app.logger.info('Posting to GA4')
     return True
 
 
+# @notify_celery.task(
+#     name='post_to_ga4',
+#     throws=(AutoRetryException,),
+#     autoretry_for=(AutoRetryException,),
+#     max_retries=2886,
+#     retry_backoff=True,
+#     retry_backoff_max=60,
+# )
 # def post_to_ga4(self, ga_measurement_id, ga_api_secret, notification_id, template_name, template_id, service_id, service_name, client_id='notify-email'):
 #     """
 #     This celery task is used to post to Google Analytics 4. It is exercised when a veteran opens an e-mail.
