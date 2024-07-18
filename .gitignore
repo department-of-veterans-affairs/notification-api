@@ -97,5 +97,3 @@ user_flows_exit_code.txt
 
 # Ignore newly generated migrations that retain the default name.
 migrations/versions/*_.py
-scripts/run_tests.sh
-.gitignore
