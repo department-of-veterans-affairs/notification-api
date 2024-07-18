@@ -540,13 +540,12 @@ def test_ut_read_from_ssm_valid(all_path_env_param_set, mocker):
     from lambda_functions.vetext_incoming_forwarder_lambda.vetext_incoming_forwarder_lambda import (
         read_from_ssm,
     )
+
     param_value = 'returned value'
 
     mock_client = mocker.Mock()
     mock_client.get_parameter.return_value = {'Parameter': {'Value': param_value}}
-    mock_boto = mocker.patch(
-        'lambda_functions.vetext_incoming_forwarder_lambda.vetext_incoming_forwarder_lambda.boto3'
-    )
+    mock_boto = mocker.patch('lambda_functions.vetext_incoming_forwarder_lambda.vetext_incoming_forwarder_lambda.boto3')
     mock_boto.client.return_value = mock_client
 
     assert read_from_ssm('some param name') == param_value
@@ -556,11 +555,10 @@ def test_ut_read_from_ssm_exception(all_path_env_param_set, mocker):
     from lambda_functions.vetext_incoming_forwarder_lambda.vetext_incoming_forwarder_lambda import (
         read_from_ssm,
     )
+
     mock_client = mocker.Mock()
     mock_client.get_parameter.side_effect = ValueError('Invalid param')
-    mock_boto = mocker.patch(
-        'lambda_functions.vetext_incoming_forwarder_lambda.vetext_incoming_forwarder_lambda.boto3'
-    )
+    mock_boto = mocker.patch('lambda_functions.vetext_incoming_forwarder_lambda.vetext_incoming_forwarder_lambda.boto3')
     mock_boto.client.return_value = mock_client
 
     # Needs a different parameter name due to lru_cache
