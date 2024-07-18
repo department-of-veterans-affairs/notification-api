@@ -1,6 +1,6 @@
 fileignoreconfig:
 - filename: app/celery/process_ga4_measurement_tasks.py
-  checksum: 013f58e86cd895a48d4d2ab1f4f5912874e879acbf9e0213ec54f1ccbb51bfb2
+  checksum: 26b7239af0a7028eb68116bc4edde63a3fd376e54f7b997aacbf99bb518b5e71
 - filename: app/config.py
   checksum: 6c8c5f65a1f7a4fbe3cfdfe45de676ee16e0f537cb3aa8b9888e9622bcd4b1e1
 - filename: app/googleanalytics/ga4.py
