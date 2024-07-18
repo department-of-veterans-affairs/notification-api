@@ -1,3 +1,4 @@
+import os
 from urllib.parse import urlencode
 
 from flask import current_app
@@ -29,6 +30,8 @@ def post_to_ga4(self, notification_id, template_name, template_id, service_id, s
     :return: The status code and the response JSON.
     """
     current_app.logger.info('Posting to GA4: notification_id %s', notification_id)
+
+    current_app.logger.info('GA4 Measurement ID: %s', os.environ.get('GA4_MEASUREMENT_ID', 'Not present'))
     try:
         ga_api_secret = current_app.config['GA4_API_SECRET']
         ga_measurement_id = current_app.config['GA4_MEASUREMENT_ID']
