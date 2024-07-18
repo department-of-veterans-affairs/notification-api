@@ -62,9 +62,6 @@ jobs:
           mv ci/.local.env .env
           # Adjust for GHA service "postgres"
           sed -i 's/LocalPassword@db:5432/postgres@localhost/g' .env
-          mkdir /app
-          mv * /app/
-          cd /app
           make test
 
   code-scan:
