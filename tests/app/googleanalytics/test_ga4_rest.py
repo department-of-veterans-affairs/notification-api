@@ -5,7 +5,7 @@ from flask import url_for
 
 def test_it_get_ga4_valid_data(client, ga4_request_data):
     """
-    A GET request with valid URL parameters should receive a 200 response and 
+    A GET request with valid URL parameters should receive a 200 response and
     send image of a pixel.
     """
 

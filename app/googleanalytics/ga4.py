@@ -16,7 +16,7 @@ ga4_request_validator = Draft202012Validator(ga4_request_schema, format_checker=
 
 if os.environ.get('GITHUB_WORKFLOW') == 1:
     GA4_PIXEL_TRACKING_IMAGE_PATH = 'images/ga4_pixel_tracking.png'
-else: 
+else:
     GA4_PIXEL_TRACKING_IMAGE_PATH = '/app/images/ga4_pixel_tracking.png'
 
 
