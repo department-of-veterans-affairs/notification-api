@@ -50,6 +50,10 @@ def get_ga4():
     notification_id = content[2]
     current_app.logger.debug('Notification ID: %s', notification_id)
 
+    # Get the GA4 configuration from config.py.
+    ga_measurement_id = current_app.config['GA4_MEASUREMENT_ID']
+    ga_api_secret = current_app.config['GA4_API_SECRET']
+
     # Log the call to the GA4 celery task, and call the task.
     current_app.logger.info(
         'GA4: post_to_ga4: template_name: %s, template_id: %s, service_name: %s, service_id: %s, notification_id: %s',
@@ -59,7 +63,9 @@ def get_ga4():
         service_id,
         notification_id,
     )
-    post_to_ga4(
+    post_to_ga4.delay(
+        ga_measurement_id,
+        ga_api_secret,
         notification_id=notification_id,
         template_name=template_name,
         template_id=template_id,

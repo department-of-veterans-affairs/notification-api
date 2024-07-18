@@ -1,8 +1,10 @@
 fileignoreconfig:
 - filename: app/celery/process_ga4_measurement_tasks.py
-  checksum: c0d20c288d2ac03d0eb62a65bb05801de1152e63c0ba776bab8db0351da5aa46
+  checksum: 013f58e86cd895a48d4d2ab1f4f5912874e879acbf9e0213ec54f1ccbb51bfb2
 - filename: app/config.py
   checksum: 6c8c5f65a1f7a4fbe3cfdfe45de676ee16e0f537cb3aa8b9888e9622bcd4b1e1
+- filename: app/googleanalytics/ga4.py
+  checksum: 5ff4a7aefd15d299fba85adc86920111949f56e18bc45b3b16b5b3ac35e5f465
 - filename: app/integrations/comp_and_pen/scheduled_message_helpers.py
   checksum: e9c9cd3d123445ab0797fd1387f5d48c775b71ea382fd58c44636f15886c5eff
 - filename: app/notifications/send_notifications.py

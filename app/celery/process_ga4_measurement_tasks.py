@@ -1,4 +1,3 @@
-import os
 from urllib.parse import urlencode
 
 from flask import current_app
@@ -17,7 +16,17 @@ from app.celery.exceptions import AutoRetryException
     retry_backoff=True,
     retry_backoff_max=60,
 )
-def post_to_ga4(self, notification_id, template_name, template_id, service_id, service_name, client_id='notify-email'):
+def post_to_ga4(
+    self,
+    ga_measurement_id,
+    ga_api_secret,
+    notification_id,
+    template_name,
+    template_id,
+    service_id,
+    service_name,
+    client_id='notify-email',
+):
     """
     This celery task is used to post to Google Analytics 4. It is exercised when a veteran opens an e-mail.
 
@@ -29,26 +38,27 @@ def post_to_ga4(self, notification_id, template_name, template_id, service_id, s
 
     :return: The status code and the response JSON.
     """
-    current_app.logger.info('Posting to GA4: notification_id %s', notification_id)
-    current_app.logger.info('GA4 Measurement ID: %s', os.environ.get('GA4_MEASUREMENT_ID', 'Not present'))
-    try:
-        ga_api_secret = current_app.config['GA4_API_SECRET']
-        ga_measurement_id = current_app.config['GA4_MEASUREMENT_ID']
-        current_app.logger.debug('GA4_MEASUREMENT_ID: %s', ga_measurement_id)
-        url_str = current_app.config['GA4_URL']
-    except KeyError as e:
-        current_app.logger.error('Configuration error: %s', e)
-        raise AutoRetryException(f'Configuration error: {e}')
+    # current_app.logger.info('Posting to GA4: notification_id %s', notification_id)
+    # current_app.logger.info('GA4 Measurement ID: %s', os.environ.get('GA4_MEASUREMENT_ID', 'Not present'))
+    # try:
+    #     ga_api_secret = current_app.config['GA4_API_SECRET']
+    #     ga_measurement_id = current_app.config['GA4_MEASUREMENT_ID']
+    #     current_app.logger.debug('GA4_MEASUREMENT_ID: %s', ga_measurement_id)
+    #     url_str = current_app.config['GA4_URL']
+    # except KeyError as e:
+    #     current_app.logger.error('Configuration error: %s', e)
+    #     raise AutoRetryException(f'Configuration error: {e}')
 
-    if not ga_measurement_id or not ga_api_secret or not url_str:
-        current_app.logger.error('Missing GA4 configuration')
-        return False
-
+    # if not ga_measurement_id or not ga_api_secret or not url_str:
+    #     current_app.logger.error('Missing GA4 configuration')
+    #     return False
+    current_app.logger.info('Measurement ID: %s', ga_measurement_id)
     url_params_dict = {
         'measurement_id': ga_measurement_id,
         'api_secret': ga_api_secret,
     }
     url_params = urlencode(url_params_dict)
+    url_str = current_app.config['GA4_URL']
     url = f'{url_str}?{url_params}'
     content = f'{service_name}/{service_id}/{notification_id}'
 
