@@ -504,10 +504,6 @@ class Development(Config):
 
     ANTIVIRUS_ENABLED = os.getenv('ANTIVIRUS_ENABLED') == '1'
 
-    GA4_URL = os.getenv('GA4_URL', 'https://www.google-analytics.com/mp/collect')
-    GA4_MEASUREMENT_ID = os.getenv('GA4_MEASUREMENT_ID', 'G-1234567890')
-    GA4_API_SECRET = os.getenv('GA4_API_SECRET', 'secret')
-
 
 class Test(Development):
     # When a service is created, this gets saved as default sms_sender
