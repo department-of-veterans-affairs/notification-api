@@ -16,9 +16,7 @@ from app.celery.exceptions import AutoRetryException
     retry_backoff=True,
     retry_backoff_max=60,
 )
-def post_to_ga4(
-    self, notification_id, template_name, template_id, service_id, service_name, client_id='notify-email', user_id='-1'
-):
+def post_to_ga4(self, notification_id, template_name, template_id, service_id, service_name, client_id='notify-email'):
     """
     This celery task is used to post to Google Analytics 4. It is exercised when a veteran opens an e-mail.
 
@@ -34,6 +32,7 @@ def post_to_ga4(
     try:
         ga_api_secret = current_app.config['GA4_API_SECRET']
         ga_measurement_id = current_app.config['GA4_MEASUREMENT_ID']
+        current_app.logger.debug('GA4_MEASUREMENT_ID: %s', ga_measurement_id)
         url_str = current_app.config['GA4_URL']
     except KeyError as e:
         current_app.logger.error('Configuration error: %s', e)
@@ -50,7 +49,6 @@ def post_to_ga4(
 
     event_body = {
         'client_id': client_id,
-        'user_id': user_id,
         'events': [
             {
                 'name': 'open_email',
