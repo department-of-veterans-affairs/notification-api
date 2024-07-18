@@ -5,7 +5,7 @@ from app import notify_celery
 
 
 @notify_celery.task()
-def post_to_ga4(self):
+def post_to_ga4():
     current_app.logger.info('Posting to GA4')
     return True
 
