@@ -31,26 +31,26 @@ def get_ga4():
     # This could raise ValidationError.
     ga4_request_validator.validate(url_parameters_dict)
 
-    current_app.logger.debug(request.query_string)
+    try:
+        template_name = url_parameters_dict['campaign']
+        template_id = url_parameters_dict['campaign_id']
+        name = url_parameters_dict['name']
+        source = url_parameters_dict['source']
+        medium = url_parameters_dict['medium']
 
-    template_name = url_parameters_dict['campaign']
-    current_app.logger.debug('Template name: %s', template_name)
-    template_id = url_parameters_dict['campaign_id']
-    current_app.logger.debug('Template ID: %s', template_id)
-    # name = url_parameters_dict['name']
-    # source = url_parameters_dict['source']
-    # medium = url_parameters_dict['medium']
+        content = url_parameters_dict['content'].split('/')
+    except KeyError as e:
+        current_app.logger.error('GA4 ValidationError: %s', e)
+        raise ValidationError(f'Missing required parameter: {e}')
 
-    content = url_parameters_dict['content'].split('/')
-    current_app.logger.debug('Content: %s', content)
-    service_name = content[0]
-    current_app.logger.debug('Service name: %s', service_name)
-    service_id = content[1]
-    current_app.logger.debug('Service ID: %s', service_id)
-    notification_id = content[2]
-    current_app.logger.debug('Notification ID: %s', notification_id)
+    try:
+        service_name = content[0]
+        service_id = content[1]
+        notification_id = content[2]
+    except IndexError as e:
+        current_app.logger.error('GA4 ValidationError: %s', e)
+        raise ValidationError(f'Missing required parameter: {e}')
 
-    # Log the call to the GA4 celery task, and call the task.
     current_app.logger.info(
         'GA4: post_to_ga4: template_name: %s, template_id: %s, service_name: %s, service_id: %s, notification_id: %s',
         template_name,
@@ -58,6 +58,9 @@ def get_ga4():
         service_name,
         service_id,
         notification_id,
+        name=name,
+        source=source,
+        medium=medium,
     )
     post_to_ga4.delay(
         notification_id,

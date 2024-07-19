@@ -8,24 +8,6 @@ from app import notify_celery
 from app.celery.exceptions import AutoRetryException
 
 
-# @notify_celery.task()
-# def post_to_ga4():
-#     current_app.logger.info('Posting to GA4')
-#     try:
-#         ga_api_secret = current_app.config['GA4_API_SECRET']
-#         ga_measurement_id = current_app.config['GA4_MEASUREMENT_ID']
-#         current_app.logger.debug('GA4_MEASUREMENT_ID: %s', ga_measurement_id)
-#         url_str = current_app.config['GA4_URL']
-#     except KeyError as e:
-#         current_app.logger.error('Configuration error: %s', e)
-#         raise AutoRetryException(f'Configuration error: {e}')
-
-#     if not ga_measurement_id or not ga_api_secret or not url_str:
-#         current_app.logger.error('Missing GA4 configuration')
-
-#     return True
-
-
 @notify_celery.task(
     throws=(AutoRetryException,),
     autoretry_for=(AutoRetryException,),
@@ -33,7 +15,17 @@ from app.celery.exceptions import AutoRetryException
     retry_backoff=True,
     retry_backoff_max=60,
 )
-def post_to_ga4(notification_id, template_name, template_id, service_id, service_name, client_id='notify-email'):
+def post_to_ga4(
+    notification_id,
+    template_name,
+    template_id,
+    service_id,
+    service_name,
+    client_id='vanotify',
+    name='open_email',
+    source='vanotify',
+    medium='email',
+):
     """
     This celery task is used to post to Google Analytics 4. It is exercised when a veteran opens an e-mail.
 
@@ -49,15 +41,11 @@ def post_to_ga4(notification_id, template_name, template_id, service_id, service
     try:
         ga_api_secret = current_app.config['GA4_API_SECRET']
         ga_measurement_id = current_app.config['GA4_MEASUREMENT_ID']
-        current_app.logger.debug('GA4_MEASUREMENT_ID: %s', ga_measurement_id)
         url_str = current_app.config['GA4_URL']
     except KeyError as e:
         current_app.logger.error('Configuration error: %s', e)
         raise AutoRetryException(f'Configuration error: {e}')
 
-    if not ga_measurement_id or not ga_api_secret or not url_str:
-        current_app.logger.error('Missing GA4 configuration')
-        return False
     url_params_dict = {
         'measurement_id': ga_measurement_id,
         'api_secret': ga_api_secret,
@@ -71,12 +59,12 @@ def post_to_ga4(notification_id, template_name, template_id, service_id, service
         'client_id': client_id,
         'events': [
             {
-                'name': 'open_email',
+                'name': name,
                 'params': {
                     'campaign_id': str(template_id),
                     'campaign': str(template_name),
-                    'source': 'vanotify',
-                    'medium': 'email',
+                    'source': source,
+                    'medium': medium,
                     'content': str(content),
                 },
             }
@@ -85,8 +73,9 @@ def post_to_ga4(notification_id, template_name, template_id, service_id, service
     headers = {
         'Content-Type': 'application/json',
     }
-    current_app.logger.info('Posting to GA4: %s', event_body)
-    response = requests.post(url, json=event_body, headers=headers, timeout=3)
+    current_app.logger.debug('Posting to GA4: %s', event_body)
+    response = requests.post(url, json=event_body, headers=headers, timeout=1)
     current_app.logger.debug('GA4 response: %s', response.status_code)
     response.raise_for_status()
+
     return True
