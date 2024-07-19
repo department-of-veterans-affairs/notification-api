@@ -101,9 +101,6 @@ class Config(object):
 
     # DB conection string
     SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
-    if SQLALCHEMY_DATABASE_URI is None:
-        logging.critical('SQLALCHEMY_DATABASE_URI is None')
-
     SQLALCHEMY_BINDS = {'read-db': os.getenv('SQLALCHEMY_DATABASE_URI_READ')}
 
     # MMG API Key
@@ -347,7 +344,7 @@ class Config(object):
             'app.celery.v3.notification_tasks.v3_process_notification': {'queue': QueueNames.NOTIFY},
             'app.celery.v3.notification_tasks.v3_send_email_notification': {'queue': QueueNames.SEND_EMAIL},
             'app.celery.v3.notification_tasks.v3_send_sms_notification': {'queue': QueueNames.SEND_SMS},
-            'app.celery.process_ga4_measurement_tasks.post_to_ga4': {'queue': QueueNames.NOTIFY},
+            'app.celery.process_ga4_measurement_tasks.post_to_ga4': {'queue': QueueNames.SEND_EMAIL},
         },
     }
 
@@ -457,17 +454,14 @@ class Config(object):
     SWITCH_SLOW_SMS_PROVIDER_ENABLED = False
 
     # Google Analytics
-
     GOOGLE_ANALYTICS_ENABLED = str(True) == (os.getenv('GOOGLE_ANALYTICS_ENABLED', 'False'))
     GOOGLE_ANALYTICS_URL = os.getenv('GOOGLE_ANALYTICS_URL', 'https://www.google-analytics.com/collect')
     GOOGLE_ANALYTICS_TID = os.getenv('GOOGLE_ANALYTICS_TID', 'UA-50123418-17')
     GA4_URL = os.getenv('GA4_URL', 'https://www.google-analytics.com/mp/collect')
     GA4_MEASUREMENT_ID = os.getenv('GA4_MEASUREMENT_ID', '')
-    logging.critical('GA4_MEASUREMENT_ID: %s', GA4_MEASUREMENT_ID)
     GA4_API_SECRET = os.getenv('GA4_API_SECRET', '')
 
     # Attachments
-
     ATTACHMENTS_ALLOWED_MIME_TYPES = ['text/calendar']
     ATTACHMENTS_BUCKET = os.getenv('ATTACHMENTS_BUCKET', 'dev-notifications-va-gov-attachments')
     MAX_CONTENT_LENGTH = 1024 * 1024  # = 1024 KB
@@ -508,11 +502,6 @@ class Development(Config):
 
     ANTIVIRUS_ENABLED = os.getenv('ANTIVIRUS_ENABLED') == '1'
     PUBLIC_DOMAIN = 'https://dev-api.va.gov/vanotify/'
-
-    GA4_URL = os.getenv('GA4_URL', 'https://www.google-analytics.com/mp/collect')
-    GA4_MEASUREMENT_ID = os.getenv('GA4_MEASUREMENT_ID', '')
-    logging.critical('GA4_MEASUREMENT_ID: %s', GA4_MEASUREMENT_ID)
-    GA4_API_SECRET = os.getenv('GA4_API_SECRET', '')
 
 
 class Test(Development):
