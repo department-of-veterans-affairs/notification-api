@@ -42,7 +42,14 @@ def get_ga4():
     except KeyError as e:
         current_app.logger.error('GA4 ValidationError: %s', e)
         raise ValidationError(f'Missing required parameter: {e}')
-
+    current_app.logger.debug(
+        'GA4: get_ga4: template_name: %s, template_id: %s, name: %s, source: %s, medium: %s',
+        template_name,
+        template_id,
+        name,
+        source,
+        medium,
+    )
     try:
         service_name = content[0]
         service_id = content[1]
@@ -51,6 +58,9 @@ def get_ga4():
         current_app.logger.error('GA4 ValidationError: %s', e)
         raise ValidationError(f'Missing required parameter: {e}')
 
+    current_app.logger.debug(
+        'GA4: get_ga4: service_name: %s, service_id: %s, notification_id: %s', service_name, service_id, notification_id
+    )
     current_app.logger.info(
         'GA4: post_to_ga4: template_name: %s, template_id: %s, service_name: %s, service_id: %s, notification_id: %s',
         template_name,
@@ -58,16 +68,9 @@ def get_ga4():
         service_name,
         service_id,
         notification_id,
-        name=name,
-        source=source,
-        medium=medium,
     )
     post_to_ga4.delay(
-        notification_id,
-        template_name,
-        template_id,
-        service_id,
-        service_name,
+        notification_id, template_name, template_id, service_id, service_name, name=name, source=source, medium=medium
     )
 
     return send_file(GA4_PIXEL_TRACKING_IMAGE_PATH, mimetype='image/png')

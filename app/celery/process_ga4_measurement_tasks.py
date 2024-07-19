@@ -34,6 +34,10 @@ def post_to_ga4(
     :param template_id: The template ID.
     :param service_id: The service ID.
     :param service_name: The service name.
+    :param client_id: The client ID.
+    :param name: The event name.
+    :param source: The event source.
+    :param medium: The event medium.
 
     :return: The status code and the response JSON.
     """
