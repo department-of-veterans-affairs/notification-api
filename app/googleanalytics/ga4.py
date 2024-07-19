@@ -24,43 +24,24 @@ def get_ga4():
     This route is used for pixel tracking.  It is exercised when a veteran opens an e-mail.
     The route returns a pixel image to avoid a broken icon image in notification emails.
     """
-
     # https://flask.palletsprojects.com/en/3.0.x/api/#flask.Request.args
     url_parameters_dict = request.args.to_dict()
+    current_app.logger.debug('GA4 url params: %s', url_parameters_dict)
 
     # This could raise ValidationError.
     ga4_request_validator.validate(url_parameters_dict)
 
-    try:
-        template_name = url_parameters_dict['campaign']
-        template_id = url_parameters_dict['campaign_id']
-        name = url_parameters_dict['name']
-        source = url_parameters_dict['source']
-        medium = url_parameters_dict['medium']
+    template_name = url_parameters_dict['campaign']
+    template_id = url_parameters_dict['campaign_id']
+    name = url_parameters_dict['name']
+    source = url_parameters_dict['source']
+    medium = url_parameters_dict['medium']
 
-        content = url_parameters_dict['content'].split('/')
-    except KeyError as e:
-        current_app.logger.error('GA4 ValidationError: %s', e)
-        raise ValidationError(f'Missing required parameter: {e}')
-    current_app.logger.debug(
-        'GA4: get_ga4: template_name: %s, template_id: %s, name: %s, source: %s, medium: %s',
-        template_name,
-        template_id,
-        name,
-        source,
-        medium,
-    )
-    try:
-        service_name = content[0]
-        service_id = content[1]
-        notification_id = content[2]
-    except IndexError as e:
-        current_app.logger.error('GA4 ValidationError: %s', e)
-        raise ValidationError(f'Missing required parameter: {e}')
+    content = url_parameters_dict['content'].split('/')
+    service_name = content[0]
+    service_id = content[1]
+    notification_id = content[2]
 
-    current_app.logger.debug(
-        'GA4: get_ga4: service_name: %s, service_id: %s, notification_id: %s', service_name, service_id, notification_id
-    )
     current_app.logger.info(
         'GA4: post_to_ga4: template_name: %s, template_id: %s, service_name: %s, service_id: %s, notification_id: %s',
         template_name,
@@ -70,7 +51,14 @@ def get_ga4():
         notification_id,
     )
     post_to_ga4.delay(
-        notification_id, template_name, template_id, service_id, service_name, name=name, source=source, medium=medium
+        notification_id,
+        template_name,
+        template_id,
+        service_id,
+        service_name,
+        name=name,
+        source=source,
+        medium=medium,
     )
 
     return send_file(GA4_PIXEL_TRACKING_IMAGE_PATH, mimetype='image/png')
