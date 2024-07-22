@@ -1,45 +1,48 @@
+from unittest.mock import patch
+
 import pytest
 
 from app.celery.exceptions import AutoRetryException
 from app.celery.process_ga4_measurement_tasks import post_to_ga4
 
 
-@pytest.fixture
-def valid_data():
-    return {
-        'notification_id': 'e774d2a6-4946-41b5-841a-7ac6a42d178b',
-        'template_name': 'hi',
-        'template_id': 'e774d2a6-4946-41b5-841a-7ac6a42d178b',
-        'service_id': 'e774d2a6-4946-41b5-841a-7ac6a42d178b',
-        'service_name': 'test',
-        'client_id': 'vanotify',
-        'name': 'email_open',
-        'source': 'vanotify',
-        'medium': 'email',
-    }
-
-
-def test_post_to_ga4_with_valid_data(valid_data):
+def test_post_to_ga4_with_valid_data(ga4_sample_payload):
     response = post_to_ga4(
-        valid_data['notification_id'],
-        valid_data['template_name'],
-        valid_data['template_id'],
-        valid_data['service_id'],
-        valid_data['service_name'],
-        client_id=valid_data['client_id'],
-        name=valid_data['name'],
-        source=valid_data['source'],
-        medium=valid_data['medium'],
+        ga4_sample_payload['notification_id'],
+        ga4_sample_payload['template_name'],
+        ga4_sample_payload['template_id'],
+        ga4_sample_payload['service_id'],
+        ga4_sample_payload['service_name'],
+        client_id=ga4_sample_payload['client_id'],
+        name=ga4_sample_payload['name'],
+        source=ga4_sample_payload['source'],
+        medium=ga4_sample_payload['medium'],
     )
     assert response
 
 
-def test_post_to_ga4_missing_config():
-    with pytest.raises(AutoRetryException):
-        post_to_ga4(
-            'e774d2a6-4946-41b5-841a-7ac6a42d178b',
-            'hi',
-            'e774d2a6-4946-41b5-841a-7ac6a42d178b',
-            'e774d2a6-4946-41b5-841a-7ac6a42d178b',
-            'test',
+def test_post_to_ga4_returns_4xx(ga4_sample_payload):
+    with patch('app.celery.process_ga4_measurement_tasks.requests.post') as mock_post:
+        mock_post.return_value.status_code = 400
+        response = post_to_ga4(
+            ga4_sample_payload['notification_id'],
+            ga4_sample_payload['template_name'],
+            ga4_sample_payload['template_id'],
+            ga4_sample_payload['service_id'],
+            ga4_sample_payload['service_name'],
         )
+
+    assert not response
+
+
+def test_post_to_ga4_missing_config(ga4_sample_payload):
+    with patch('app.celery.process_ga4_measurement_tasks.get_ga4_config') as mock_get_ga4_config:
+        mock_get_ga4_config.return_value = ('', '')
+        with pytest.raises(AutoRetryException):
+            post_to_ga4(
+                ga4_sample_payload['notification_id'],
+                ga4_sample_payload['template_name'],
+                ga4_sample_payload['template_id'],
+                ga4_sample_payload['service_id'],
+                ga4_sample_payload['service_name'],
+            )

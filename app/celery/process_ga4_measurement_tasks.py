@@ -8,6 +8,18 @@ from app import notify_celery
 from app.celery.exceptions import AutoRetryException
 
 
+def get_ga4_config():
+    """
+    Get the Google Analytics 4 configuration.
+
+    :return: The GA4 configuration.
+    """
+    ga_api_secret = current_app.config.get('GA4_API_SECRET', '')
+    ga_measurement_id = current_app.config.get('GA4_MEASUREMENT_ID', '')
+
+    return ga_api_secret, ga_measurement_id
+
+
 @notify_celery.task(
     throws=(AutoRetryException,),
     autoretry_for=(AutoRetryException,),
@@ -43,9 +55,7 @@ def post_to_ga4(
     """
     current_app.logger.info('Posting to GA4: notification_id %s', notification_id)
 
-    ga_api_secret = current_app.config.get('GA4_API_SECRET', '')
-    ga_measurement_id = current_app.config.get('GA4_MEASUREMENT_ID', '')
-
+    ga_api_secret, ga_measurement_id = get_ga4_config()
     if not ga_api_secret:
         raise AutoRetryException('GA4_API_SECRET is not set')
     if not ga_measurement_id:
@@ -82,6 +92,5 @@ def post_to_ga4(
     current_app.logger.debug('Posting to GA4: %s', event_body)
     response = requests.post(url, json=event_body, headers=headers, timeout=1)
     current_app.logger.debug('GA4 response: %s', response.status_code)
-    response.raise_for_status()
 
-    return True
+    return response.status_code == 204
