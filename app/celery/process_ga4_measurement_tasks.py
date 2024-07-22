@@ -8,11 +8,11 @@ from app import notify_celery
 from app.celery.exceptions import AutoRetryException
 
 
-def get_ga4_config():
+def get_ga4_config() -> tuple:
     """
     Get the Google Analytics 4 configuration.
 
-    :return: The GA4 configuration.
+    :return: A tuple containing the GA4 API secret and the GA4 measurement ID.
     """
     ga_api_secret = current_app.config.get('GA4_API_SECRET', '')
     ga_measurement_id = current_app.config.get('GA4_MEASUREMENT_ID', '')
