@@ -53,7 +53,15 @@ def post_to_ga4(
 
     :return: True if the post was successful, False otherwise.
     """
-    current_app.logger.info('Posting to GA4: notification_id %s', notification_id)
+    # Log the incoming parameters.
+    current_app.logger.info(
+        'GA4: post_to_ga4: notification_id: %s, template_name: %s, template_id: %s, service_id: %s, service_name: %s',
+        notification_id,
+        template_name,
+        template_id,
+        service_id,
+        service_name,
+    )
 
     ga_api_secret, ga_measurement_id = get_ga4_config()
     if not ga_api_secret:
