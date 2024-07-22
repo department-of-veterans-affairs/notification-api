@@ -28,16 +28,16 @@ def get_ga4_config() -> tuple:
     retry_backoff_max=60,
 )
 def post_to_ga4(
-    notification_id,
-    template_name,
-    template_id,
-    service_id,
-    service_name,
+    notification_id: str,
+    template_name: str,
+    template_id: str,
+    service_id: str,
+    service_name: str,
     client_id='vanotify',
     name='open_email',
     source='vanotify',
     medium='email',
-):
+) -> bool:
     """
     This celery task is used to post to Google Analytics 4. It is exercised when a veteran opens an e-mail.
 
