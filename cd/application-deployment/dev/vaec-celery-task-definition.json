@@ -253,7 +253,7 @@
         },
         {
           "name": "GA4_MEASUREMENT_ID",
-          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/dev/notification-api/google-analytics/measurement-id"
+          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/dev/google-analytics/measurement-id"
         },
         {
           "name": "GRANICUS_TOKEN",
