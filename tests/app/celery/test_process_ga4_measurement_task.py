@@ -6,7 +6,7 @@ from app.celery.exceptions import AutoRetryException
 from app.celery.process_ga4_measurement_tasks import post_to_ga4
 
 
-def test_post_to_ga4_with_valid_data(ga4_sample_payload):
+def test_it_post_to_ga4_with_valid_data(ga4_sample_payload):
     response = post_to_ga4(
         ga4_sample_payload['notification_id'],
         ga4_sample_payload['template_name'],
@@ -21,7 +21,7 @@ def test_post_to_ga4_with_valid_data(ga4_sample_payload):
     assert response
 
 
-def test_post_to_ga4_returns_4xx(ga4_sample_payload):
+def test_it_post_to_ga4_returns_4xx(ga4_sample_payload):
     with patch('app.celery.process_ga4_measurement_tasks.requests.post') as mock_post:
         mock_post.return_value.status_code = 400
         response = post_to_ga4(
@@ -35,7 +35,7 @@ def test_post_to_ga4_returns_4xx(ga4_sample_payload):
     assert not response
 
 
-def test_post_to_ga4_missing_config(ga4_sample_payload):
+def test_it_post_to_ga4_missing_config(ga4_sample_payload):
     with patch('app.celery.process_ga4_measurement_tasks.get_ga4_config') as mock_get_ga4_config:
         mock_get_ga4_config.return_value = ('', '')
         with pytest.raises(AutoRetryException):
