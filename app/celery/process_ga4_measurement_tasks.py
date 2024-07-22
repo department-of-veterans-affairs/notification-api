@@ -57,9 +57,12 @@ def post_to_ga4(
 
     ga_api_secret, ga_measurement_id = get_ga4_config()
     if not ga_api_secret:
-        raise AutoRetryException('GA4_API_SECRET is not set')
+        current_app.logger.error('GA4_API_SECRET is not set')
+        return False
+
     if not ga_measurement_id:
-        raise AutoRetryException('GA4_MEASUREMENT_ID is not set')
+        current_app.logger.error('GA4_MEASUREMENT_ID is not set')
+        return False
 
     url_str = current_app.config.get('GA4_URL', '')
     url_params_dict = {
@@ -91,12 +94,13 @@ def post_to_ga4(
     }
     current_app.logger.debug('Posting to GA4: %s', event_body)
 
+    status = False
     try:
+        current_app.logger.info('Posting event to GA4: %s', name)
         response = requests.post(url, json=event_body, headers=headers, timeout=1)
         current_app.logger.debug('GA4 response: %s', response.status_code)
         response.raise_for_status()
     except Exception as e:
-        current_app.logger.error('GA4 post failed: %s', e)
-        raise AutoRetryException('GA4 post failed') from e
-
-    return response.status_code == 204
+        current_app.logger.error('GA4 HTTPError: %s', e)
+        raise AutoRetryException('GA4 HTTPError')
+    return status
