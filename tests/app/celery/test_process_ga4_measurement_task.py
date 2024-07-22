@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -7,17 +7,21 @@ from app.celery.process_ga4_measurement_tasks import post_to_ga4
 
 
 def test_it_post_to_ga4_with_valid_data(ga4_sample_payload):
-    response = post_to_ga4(
-        ga4_sample_payload['notification_id'],
-        ga4_sample_payload['template_name'],
-        ga4_sample_payload['template_id'],
-        ga4_sample_payload['service_id'],
-        ga4_sample_payload['service_name'],
-        client_id=ga4_sample_payload['client_id'],
-        name=ga4_sample_payload['name'],
-        source=ga4_sample_payload['source'],
-        medium=ga4_sample_payload['medium'],
-    )
+    # Patch the requests.post method to return a 200 status code.
+    with patch('app.celery.process_ga4_measurement_tasks.requests') as mock_requests:
+        mock_requests.post.return_value = MagicMock(status_code=204)
+        response = post_to_ga4(
+            ga4_sample_payload['notification_id'],
+            ga4_sample_payload['template_name'],
+            ga4_sample_payload['template_id'],
+            ga4_sample_payload['service_id'],
+            ga4_sample_payload['service_name'],
+            client_id=ga4_sample_payload['client_id'],
+            name=ga4_sample_payload['name'],
+            source=ga4_sample_payload['source'],
+            medium=ga4_sample_payload['medium'],
+        )
+
     assert response
 
 
