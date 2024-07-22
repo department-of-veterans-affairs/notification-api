@@ -42,14 +42,16 @@ def post_to_ga4(
     :return: The status code and the response JSON.
     """
     current_app.logger.info('Posting to GA4: notification_id %s', notification_id)
-    try:
-        ga_api_secret = current_app.config['GA4_API_SECRET']
-        ga_measurement_id = current_app.config['GA4_MEASUREMENT_ID']
-        url_str = current_app.config['GA4_URL']
-    except KeyError as e:
-        current_app.logger.error('Configuration error: %s', e)
-        raise AutoRetryException(f'Configuration error: {e}')
 
+    ga_api_secret = current_app.config.get('GA4_API_SECRET', '')
+    ga_measurement_id = current_app.config.get('GA4_MEASUREMENT_ID', '')
+
+    if not ga_api_secret:
+        raise AutoRetryException('GA4_API_SECRET is not set')
+    if not ga_measurement_id:
+        raise AutoRetryException('GA4_MEASUREMENT_ID is not set')
+
+    url_str = current_app.config.get('GA4_URL', '')
     url_params_dict = {
         'measurement_id': ga_measurement_id,
         'api_secret': ga_api_secret,

@@ -1,5 +1,6 @@
 import pytest
 
+from app.celery.exceptions import AutoRetryException
 from app.celery.process_ga4_measurement_tasks import post_to_ga4
 
 
@@ -31,3 +32,14 @@ def test_post_to_ga4_with_valid_data(valid_data):
         medium=valid_data['medium'],
     )
     assert response
+
+
+def test_post_to_ga4_missing_config():
+    with pytest.raises(AutoRetryException):
+        post_to_ga4(
+            'e774d2a6-4946-41b5-841a-7ac6a42d178b',
+            'hi',
+            'e774d2a6-4946-41b5-841a-7ac6a42d178b',
+            'e774d2a6-4946-41b5-841a-7ac6a42d178b',
+            'test',
+        )
