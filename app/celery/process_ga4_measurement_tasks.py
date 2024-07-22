@@ -41,17 +41,17 @@ def post_to_ga4(
     """
     This celery task is used to post to Google Analytics 4. It is exercised when a veteran opens an e-mail.
 
-    :param notification_id: The notification ID.
-    :param template_name: The template name.
-    :param template_id: The template ID.
-    :param service_id: The service ID.
-    :param service_name: The service name.
-    :param client_id: The client ID.
-    :param name: The event name.
-    :param source: The event source.
-    :param medium: The event medium.
+    :param notification_id: The notification ID. Shows up in GA4 as part of the event content.
+    :param template_name: The template name. Shows up in GA4 as the campaign.
+    :param template_id: The template ID. Shows up in GA4 as the campaign ID.
+    :param service_id: The service ID. Shows up in GA4 as part of the event content.
+    :param service_name: The service name. Shows up in GA4 as part of the event content.
+    :param client_id: The client ID. Shows up in GA4 as the client ID.
+    :param name: The event name. Shows up in GA4 as the event name.
+    :param source: The event source. Shows up in GA4 as the event source.
+    :param medium: The event medium. Shows up in GA4 as the event medium.
 
-    :return: The status code and the response JSON.
+    :return: True if the post was successful, False otherwise.
     """
     current_app.logger.info('Posting to GA4: notification_id %s', notification_id)
 
