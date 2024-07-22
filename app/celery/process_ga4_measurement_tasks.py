@@ -100,7 +100,14 @@ def post_to_ga4(
         response = requests.post(url, json=event_body, headers=headers, timeout=1)
         current_app.logger.debug('GA4 response: %s', response.status_code)
         response.raise_for_status()
-    except Exception as e:
+        status = response.status_code == 204
+    except requests.HTTPError as e:
         current_app.logger.error('GA4 HTTPError: %s', e)
-        raise AutoRetryException('GA4 HTTPError')
+        raise AutoRetryException('GA4 HTTPError') from e
+    except requests.Timeout as e:
+        current_app.logger.error('GA4 Timeout: %s', e)
+        raise AutoRetryException('GA4 Timeout') from e
+    except requests.ConnectionError as e:
+        current_app.logger.error('GA4 ConnectionError: %s', e)
+        raise AutoRetryException('GA4 ConnectionError') from e
     return status

@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import requests
@@ -8,9 +8,9 @@ from app.celery.process_ga4_measurement_tasks import post_to_ga4
 
 
 def test_it_post_to_ga4_with_valid_data(ga4_sample_payload):
-    # Patch the requests.post method to return a 200 status code.
-    with patch('app.celery.process_ga4_measurement_tasks.requests') as mock_requests:
-        mock_requests.post.return_value = MagicMock(status_code=204)
+    # Patch the requests.post method to return a 204 status code.
+    with patch('app.celery.process_ga4_measurement_tasks.requests.post') as mock_post:
+        mock_post.return_value.status_code = 204
         response = post_to_ga4(
             ga4_sample_payload['notification_id'],
             ga4_sample_payload['template_name'],
@@ -27,8 +27,8 @@ def test_it_post_to_ga4_with_valid_data(ga4_sample_payload):
 
 
 def test_it_post_to_ga4_returns_4xx(ga4_sample_payload):
-    with patch('app.celery.process_ga4_measurement_tasks.requests') as mock_requests:
-        mock_requests.post.return_value.status_code = 400
+    with patch('app.celery.process_ga4_measurement_tasks.requests.post') as mock_post:
+        mock_post.return_value.status_code = 400
         response = post_to_ga4(
             ga4_sample_payload['notification_id'],
             ga4_sample_payload['template_name'],
@@ -63,10 +63,11 @@ def test_it_post_to_ga4_missing_config(ga4_sample_payload, ga4_config):
         assert not response
 
 
-def test_it_post_to_ga4_exception(ga4_sample_payload):
-    with patch('app.celery.process_ga4_measurement_tasks.requests') as mock_requests:
-        # Test the exception handling by raising an exception.
-        mock_requests.post.side_effect = requests.exceptions.HTTPError()
+# Parameterize the exceptions that result in AutoRetries
+@pytest.mark.parametrize('mock_exception', [requests.Timeout, requests.ConnectionError, requests.HTTPError])
+def test_it_post_to_ga4_exception(ga4_sample_payload, mock_exception):
+    with patch('app.celery.process_ga4_measurement_tasks.requests.post') as mock_post:
+        mock_post.side_effect = mock_exception('Boom')
         with pytest.raises(AutoRetryException):
             post_to_ga4(
                 ga4_sample_payload['notification_id'],
@@ -77,14 +78,14 @@ def test_it_post_to_ga4_exception(ga4_sample_payload):
             )
 
 
-# def test_it_post_to_ga4_does_not_retry_unhandled_exception(ga4_sample_payload):
-#     with patch('app.celery.process_ga4_measurement_tasks.requests') as mock_requests:
-#         mock_requests.post.side_effect = Exception
-#         response = post_to_ga4(
-#             ga4_sample_payload['notification_id'],
-#             ga4_sample_payload['template_name'],
-#             ga4_sample_payload['template_id'],
-#             ga4_sample_payload['service_id'],
-#             ga4_sample_payload['service_name'],
-#         )
-#         assert not response
+def test_it_post_to_ga4_does_not_retry_unhandled_exception(ga4_sample_payload):
+    with patch('app.celery.process_ga4_measurement_tasks.requests.post') as mock_post:
+        mock_post.post.side_effect = Exception('Boom')
+        response = post_to_ga4(
+            ga4_sample_payload['notification_id'],
+            ga4_sample_payload['template_name'],
+            ga4_sample_payload['template_id'],
+            ga4_sample_payload['service_id'],
+            ga4_sample_payload['service_name'],
+        )
+        assert not response
