@@ -90,7 +90,13 @@ def post_to_ga4(
         'Content-Type': 'application/json',
     }
     current_app.logger.debug('Posting to GA4: %s', event_body)
-    response = requests.post(url, json=event_body, headers=headers, timeout=1)
-    current_app.logger.debug('GA4 response: %s', response.status_code)
+
+    try:
+        response = requests.post(url, json=event_body, headers=headers, timeout=1)
+        current_app.logger.debug('GA4 response: %s', response.status_code)
+        response.raise_for_status()
+    except Exception as e:
+        current_app.logger.error('GA4 post failed: %s', e)
+        raise AutoRetryException('GA4 post failed') from e
 
     return response.status_code == 204
