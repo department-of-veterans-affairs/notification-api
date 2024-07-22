@@ -232,6 +232,7 @@
           "name": "DANGEROUS_SALT",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/perf/notification-api/dangerous-salt"
         },
+        {
           "name": "GA4_API_SECRET",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/perf/google-analytics/api-secret"
         },
