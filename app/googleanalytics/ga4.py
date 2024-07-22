@@ -36,11 +36,7 @@ def get_ga4():
     name = url_parameters_dict['name']
     source = url_parameters_dict['source']
     medium = url_parameters_dict['medium']
-
-    content = url_parameters_dict['content'].split('/')
-    service_name = content[0]
-    service_id = content[1]
-    notification_id = content[2]
+    service_name, service_id, notification_id = url_parameters_dict['content'].split('/')
 
     current_app.logger.info(
         'GA4: post_to_ga4: template_name: %s, template_id: %s, service_name: %s, service_id: %s, notification_id: %s',

@@ -110,4 +110,6 @@ def post_to_ga4(
     except requests.ConnectionError as e:
         current_app.logger.error('GA4 ConnectionError: %s', e)
         raise AutoRetryException('GA4 ConnectionError') from e
+    else:
+        current_app.logger.info('GA4 event %s posted successfully', name)
     return status
