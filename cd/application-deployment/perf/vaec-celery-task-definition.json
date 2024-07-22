@@ -1,4 +1,4 @@
-
+{
   "family": "perf-notification-celery-task",
   "executionRoleArn": "arn:aws-us-gov:iam::171875617347:role/project/project-perf-notification-api-task-execution-role",
   "taskRoleArn": "arn:aws-us-gov:iam::171875617347:role/project/project-perf-notification-api-task-role",
