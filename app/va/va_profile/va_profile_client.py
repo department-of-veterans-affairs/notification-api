@@ -48,6 +48,61 @@ class VAProfileClient:
         self.ssl_key_path = ssl_key_path
         self.statsd_client = statsd_client
 
+    def get_contact_info(self, va_profile_id) -> str:
+        recipient_id = transform_to_fhir_format(va_profile_id)
+        oid = '2.16.840.1.113883.4.349'  # TODO I have no idea what this is
+        url = f'{self.va_profile_url}profile/v3/{oid}/{recipient_id}'
+        data = {'bios': [{'bioPath': 'contactInformation'}]}
+
+        try:
+            response = requests.post(url, json=data, cert=(self.ssl_cert_path, self.ssl_key_path), timeout=(3.05, 1))
+            response.raise_for_status()
+        except Exception:
+            self.logger.warning('Uh oh')
+        else:
+            response_json = response.json()
+            contact_information = response_json.get('profile', {}).get('contactInformation', {})
+            return contact_information
+
+    def get_telephone_from_profile_v3(self, va_profile_id) -> str:
+        contact_info = self.get_contact_info(va_profile_id)
+        telephones = contact_info.get(self.PHONE_BIO_TYPE, [])
+        mobile_telephones = [phone for phone in telephones if phone['phoneType'] == PhoneNumberType.MOBILE.value]
+        sorted_telephones = sorted(
+            mobile_telephones,
+            key=lambda phone: iso8601.parse_date(phone['createDate']),
+            reverse=True,
+        )
+        if sorted_telephones:
+            if (
+                sorted_telephones[0].get('countryCode')
+                and sorted_telephones[0].get('areaCode')
+                and sorted_telephones[0].get('phoneNumber')
+            ):
+                # The required attributes are present and not empty strings.
+                self.statsd_client.incr('clients.va-profile.get-telephone.success')
+            # This is intentionally allowed to raise KeyError so the problem is logged below.
+            return (
+                '+'
+                + sorted_telephones[0]['countryCode']
+                + sorted_telephones[0]['areaCode']
+                + sorted_telephones[0]['phoneNumber']
+            )
+
+        self.statsd_client.incr('clients.va-profile.get-telephone.failure')
+        self._raise_no_contact_info_exception(self.PHONE_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID))
+
+    def get_email_from_profile_v3(self, va_profile_id) -> str:
+        contact_info = self.get_contact_info(va_profile_id)
+        emails = contact_info.get(self.EMAIL_BIO_TYPE, [])
+        sorted_emails = sorted(emails, key=lambda email: iso8601.parse_date(email['createDate']), reverse=True)
+        if sorted_emails:
+            self.statsd_client.incr('clients.va-profile.get-email.success')
+            return sorted_emails[0].get('emailAddressText')
+
+        self.statsd_client.incr('clients.va-profile.get-email.failure')
+        self._raise_no_contact_info_exception(self.EMAIL_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID))
+
     def get_email(
         self,
         va_profile_id,
