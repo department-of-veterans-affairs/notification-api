@@ -5,7 +5,6 @@ import uuid
 from dotenv import load_dotenv
 
 from flask import request, g, jsonify, make_response
-from flask_cors import CORS
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from time import monotonic
@@ -229,12 +228,11 @@ def create_app(application):
 
     setup_commands(application)
 
-    CORS(application)
-
     return application
 
 
 def register_blueprint(application):
+    from app.googleanalytics.ga4 import ga4_blueprint
     from app.service.rest import service_blueprint
     from app.service.callback_rest import service_callback_blueprint
     from app.service.sms_sender_rest import service_sms_sender_blueprint
@@ -273,6 +271,8 @@ def register_blueprint(application):
     from app.oauth.rest import oauth_blueprint
     from app.notifications.receive_notifications import receive_notifications_blueprint
     from app.communication_item.rest import communication_item_blueprint
+
+    application.register_blueprint(ga4_blueprint)
 
     application.register_blueprint(service_blueprint, url_prefix='/service')
 
