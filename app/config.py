@@ -248,6 +248,7 @@ class Config(object):
             'app.celery.scheduled_tasks',
             'app.celery.reporting_tasks',
             'app.celery.nightly_tasks',
+            'app.celery.process_ga4_measurement_tasks',
             'app.celery.process_pinpoint_receipt_tasks',
             'app.celery.process_pinpoint_inbound_sms',
             'app.celery.process_delivery_status_result_tasks',
@@ -333,8 +334,8 @@ class Config(object):
             },
             'send-scheduled-comp-and-pen-sms': {
                 'task': 'send-scheduled-comp-and-pen-sms',
-                # At every minute past every hour from 13 through 21 on every day-of-month from 21 through 31
-                'schedule': crontab(hour='13-21', day_of_month='21-31', minute='*/2'),
+                # Every 2 minutes past every hour from 13 through 21 on every day-of-month from 22 through end-of-month
+                'schedule': crontab(hour='13-21', day_of_month='22-31', minute='*/2'),
                 'options': {'queue': QueueNames.PERIODIC},
             },
         },
@@ -343,6 +344,7 @@ class Config(object):
             'app.celery.v3.notification_tasks.v3_process_notification': {'queue': QueueNames.NOTIFY},
             'app.celery.v3.notification_tasks.v3_send_email_notification': {'queue': QueueNames.SEND_EMAIL},
             'app.celery.v3.notification_tasks.v3_send_sms_notification': {'queue': QueueNames.SEND_SMS},
+            'app.celery.process_ga4_measurement_tasks.post_to_ga4': {'queue': QueueNames.SEND_EMAIL},
         },
     }
 
@@ -452,13 +454,14 @@ class Config(object):
     SWITCH_SLOW_SMS_PROVIDER_ENABLED = False
 
     # Google Analytics
-
     GOOGLE_ANALYTICS_ENABLED = str(True) == (os.getenv('GOOGLE_ANALYTICS_ENABLED', 'False'))
     GOOGLE_ANALYTICS_URL = os.getenv('GOOGLE_ANALYTICS_URL', 'https://www.google-analytics.com/collect')
     GOOGLE_ANALYTICS_TID = os.getenv('GOOGLE_ANALYTICS_TID', 'UA-50123418-17')
+    GA4_URL = os.getenv('GA4_URL', 'https://www.google-analytics.com/mp/collect')
+    GA4_MEASUREMENT_ID = os.getenv('GA4_MEASUREMENT_ID', '')
+    GA4_API_SECRET = os.getenv('GA4_API_SECRET', '')
 
     # Attachments
-
     ATTACHMENTS_ALLOWED_MIME_TYPES = ['text/calendar']
     ATTACHMENTS_BUCKET = os.getenv('ATTACHMENTS_BUCKET', 'dev-notifications-va-gov-attachments')
     MAX_CONTENT_LENGTH = 1024 * 1024  # = 1024 KB
@@ -493,12 +496,12 @@ class Development(Config):
     SQLALCHEMY_DATABASE_URI = os.getenv(  # nosec
         'SQLALCHEMY_DATABASE_URI', 'postgresql://postgres@localhost/notification_api'
     )
-
     SQLALCHEMY_BINDS = {
         'read-db': os.getenv('SQLALCHEMY_DATABASE_URI_READ', 'postgresql://postgres@localhost/notification_api')
     }
 
     ANTIVIRUS_ENABLED = os.getenv('ANTIVIRUS_ENABLED') == '1'
+    PUBLIC_DOMAIN = 'https://dev-api.va.gov/vanotify/'
 
 
 class Test(Development):
@@ -552,6 +555,8 @@ class Test(Development):
 
     VA_SSO_AUTHORIZE_URL = 'https://int.fed.eauth.va.gov/oauthi/sps/oauth/oauth20/authorize'
 
+    PUBLIC_DOMAIN = 'https://test-api.va.gov/vanotify/'
+
 
 class Staging(Config):
     # When a service is created, this gets saved as default sms_sender
@@ -563,6 +568,8 @@ class Staging(Config):
     SQLALCHEMY_BINDS = {'read-db': os.getenv('SQLALCHEMY_DATABASE_URI_READ')}
     if SQLALCHEMY_BINDS['read-db'] is None:
         logging.critical('Missing SQLALCHEMY_DATABASE_URI_READ')
+
+    PUBLIC_DOMAIN = 'https://staging-api.va.gov/vanotify/'
 
 
 class Production(Config):
@@ -586,6 +593,11 @@ class Production(Config):
     SQLALCHEMY_BINDS = {'read-db': os.getenv('SQLALCHEMY_DATABASE_URI_READ')}
     if SQLALCHEMY_BINDS['read-db'] is None:
         logging.critical('Missing SQLALCHEMY_DATABASE_URI_READ')
+
+    if os.getenv('NOTIFY_ENVIRONMENT') == 'performance':
+        PUBLIC_DOMAIN = 'https://sandbox-api.va.gov/vanotify/'
+    else:
+        PUBLIC_DOMAIN = 'https://api.va.gov/vanotify/'
 
 
 configs = {
