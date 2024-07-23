@@ -18,12 +18,13 @@ from app.dao.notifications_dao import (
 )
 from app.feature_flags import FeatureFlag, is_feature_enabled
 from app.models import (
+    Notification,
     NOTIFICATION_DELIVERED,
     NOTIFICATION_TECHNICAL_FAILURE,
     NOTIFICATION_SENDING,
     NOTIFICATION_TEMPORARY_FAILURE,
     NOTIFICATION_PERMANENT_FAILURE,
-    Notification,
+    NOTIFICATION_PREFERENCES_DECLINED,
 )
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 
@@ -41,11 +42,16 @@ _record_status_status_mapping = {
     'CARRIER_BLOCKED': NOTIFICATION_PERMANENT_FAILURE,
     'TTL_EXPIRED': NOTIFICATION_TEMPORARY_FAILURE,
     'MAX_PRICE_EXCEEDED': NOTIFICATION_TECHNICAL_FAILURE,
+    'OPTED_OUT': NOTIFICATION_PREFERENCES_DECLINED,
 }
 
 
 def _map_record_status_to_notification_status(record_status):
-    return _record_status_status_mapping[record_status]
+    if record_status not in _record_status_status_mapping:
+        # This is a programming error, or Pinpoint's response format has changed.
+        current_app.logger.critical('Unanticipated Pinpoint record status: %s', record_status)
+
+    return _record_status_status_mapping.get(record_status, NOTIFICATION_TECHNICAL_FAILURE)
 
 
 @notify_celery.task(
