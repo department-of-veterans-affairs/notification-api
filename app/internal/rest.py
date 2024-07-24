@@ -14,8 +14,8 @@ Logging is performed for the following request attributes:
     - trace_id
 """
 
+from werkzeug.exceptions import UnsupportedMediaType
 from contextlib import suppress
-
 from flask import Blueprint, current_app, request
 
 
@@ -38,19 +38,19 @@ def handler(generic):
     """
     status_code = 200
     request_attrs = (
-        'headers',
         'method',
         'root_path',
         'path',
         'query_string',
-        'json',
         'url_rule',
         'trace_id',
     )
-    for attr in request_attrs:
-        with suppress(Exception):
-            current_app.logger.info('Generic Internal Request %s: %s', attr.upper(), getattr(request, attr))
-
+    logs = [f'{attr.upper()}: {getattr(request, attr)}' for attr in request_attrs if hasattr(request, attr)]
+    with suppress(UnsupportedMediaType):
+        logs.append(f'JSON: {request.json}')
+    headers_string = ', '.join([f'{key}: {value}' for key, value in request.headers.items()])
+    logs.append(f'HEADERS: {headers_string}')
+    current_app.logger.info('Generic Internal Request: %s', ' | '.join(logs))
     if request.method == 'GET':
         response_body = f'GET request received for endpoint {request.full_path}'
     else:

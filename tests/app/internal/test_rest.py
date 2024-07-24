@@ -8,24 +8,36 @@ def test_it_get_internal(client):
 
 
 def test_it_get_with_query_string(client, mocker):
-    mock_logger = mocker.patch('app.internal.rest.current_app.logger')
+    mock_logger = mocker.patch('app.internal.rest.current_app.logger.info')
     client.get(url_for('internal.handler', generic='foobar', foo='bar'))
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'ROOT_PATH', '')
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'METHOD', 'GET')
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'PATH', '/internal/foobar')
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'TRACE_ID', None)
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'QUERY_STRING', b'foo=bar')
+
+    actual = mock_logger.call_args_list[0].args[0]
+    expected = 'Generic Internal Request: %s'
+    assert actual == expected, 'The logger was not called with the expected message.'
+
+    actual = mock_logger.call_args_list[0].args[1]
+    assert 'METHOD: GET' in actual, 'The logger was not called with the expected message.'
+    assert 'ROOT_PATH: ' in actual, 'The logger was not called with the expected message.'
+    assert 'PATH: /internal/foobar' in actual, 'The logger was not called with the expected message.'
+    assert "QUERY_STRING: b'foo=bar' in actual, 'The logger was not called with the expected message."
+    assert 'URL_RULE: /internal/<generic>' in actual, 'The logger was not called with the expected message.'
+    assert 'TRACE_ID: None' in actual, 'The logger was not called with the expected message.'
 
 
 def test_it_logging(client, mocker):
-    mock_logger = mocker.patch('app.internal.rest.current_app.logger')
+    mock_logger = mocker.patch('app.internal.rest.current_app.logger.info')
     client.post(url_for('internal.handler', generic='blah'), json={'key': 'value'})
+    actual = mock_logger.call_args_list[0].args[0]
+    expected = 'Generic Internal Request: %s'
+    assert actual == expected, 'The logger was not called with the expected message.'
 
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'ROOT_PATH', '')
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'METHOD', 'POST')
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'PATH', '/internal/blah')
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'JSON', {'key': 'value'})
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'TRACE_ID', None)
+    actual = mock_logger.call_args_list[0].args[1]
+    assert 'METHOD: POST' in actual, 'The logger was not called with the expected message.'
+    assert 'ROOT_PATH: ' in actual, 'The logger was not called with the expected message.'
+    assert 'PATH: /internal/blah' in actual, 'The logger was not called with the expected message.'
+    assert "QUERY_STRING: b'' in actual, 'The logger was not called with the expected message."
+    assert 'URL_RULE: /internal/<generic>' in actual, 'The logger was not called with the expected message.'
+    assert 'TRACE_ID: None' in actual, 'The logger was not called with the expected message.'
 
 
 def test_it_post_internal(client):
@@ -35,11 +47,17 @@ def test_it_post_internal(client):
 
 
 def test_it_post_with_query_string(client, mocker):
-    mock_logger = mocker.patch('app.internal.rest.current_app.logger')
+    mock_logger = mocker.patch('app.internal.rest.current_app.logger.info')
     client.post(url_for('internal.handler', generic='foobar', foo='bar'), json={'key': 'value'})
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'ROOT_PATH', '')
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'METHOD', 'POST')
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'PATH', '/internal/foobar')
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'TRACE_ID', None)
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'QUERY_STRING', b'foo=bar')
-    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'JSON', {'key': 'value'})
+
+    actual = mock_logger.call_args_list[0].args[0]
+    expected = 'Generic Internal Request: %s'
+    assert actual == expected, 'The logger was not called with the expected message.'
+
+    actual = mock_logger.call_args_list[0].args[1]
+    assert 'METHOD: POST' in actual, 'The logger was not called with the expected message.'
+    assert 'ROOT_PATH: ' in actual, 'The logger was not called with the expected message.'
+    assert 'PATH: /internal/foobar' in actual, 'The logger was not called with the expected message.'
+    assert "QUERY_STRING: b'foo=bar' in actual, 'The logger was not called with the expected message."
+    assert 'URL_RULE: /internal/<generic>' in actual, 'The logger was not called with the expected message.'
+    assert 'TRACE_ID: None' in actual, 'The logger was not called with the expected message.'
