@@ -50,7 +50,7 @@ def test_passes_if_toggle_disabled(mocker):
         ('_SMS.FAILURE', 'TTL_EXPIRED', NOTIFICATION_TEMPORARY_FAILURE),
         ('_SMS.FAILURE', 'MAX_PRICE_EXCEEDED', NOTIFICATION_TECHNICAL_FAILURE),
         ('_SMS.FAILURE', 'OPTED_OUT', NOTIFICATION_PREFERENCES_DECLINED),
-        ('_SMS.FAILURE', 'OPTOUT', NOTIFICATION_PREFERENCES_DECLINED),
+        ('_SMS.OPTOUT', '', NOTIFICATION_PREFERENCES_DECLINED),
     ],
 )
 def test_process_pinpoint_results_notification_final_status(
@@ -61,6 +61,16 @@ def test_process_pinpoint_results_notification_final_status(
     expected_notification_status,
     sample_notification,
 ):
+    """
+    Permissible event type and record status values are documented here:
+        https://docs.aws.amazon.com/pinpoint/latest/developerguide/event-streams-data-sms.html
+
+    An _SMS.OPTOUT event occurs when a veteran replies "STOP" to a text message.  An OPTED_OUT status occurs
+    when Pinpoint receives input from Notify, but the Veteran has opted-out at the Pinpoint level.  This is
+    different than Notify's communication item preferences.  If a veteran opts-out at that level, Pinpoint
+    should never receive input trying to send a message to the opted-out veteran.
+    """
+
     mocker.patch('app.celery.process_pinpoint_receipt_tasks.is_feature_enabled', return_value=True)
     mock_callback = mocker.patch('app.celery.process_pinpoint_receipt_tasks.check_and_queue_callback_task')
 
@@ -76,6 +86,11 @@ def test_process_pinpoint_results_notification_final_status(
     )
     notification = notifications_dao.dao_get_notification_by_reference(test_reference)
     assert notification.status == expected_notification_status
+    if expected_notification_status == NOTIFICATION_PREFERENCES_DECLINED:
+        assert notification.status_reason == (
+            'The veteran is opted-out at the Pinpoint level.' \
+            if (record_status == 'OPTED_OUT') else 'The veteran responded with STOP.'
+        )
     mock_callback.assert_called_once()
 
 
