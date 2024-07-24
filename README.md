@@ -458,6 +458,94 @@ Jinja templates are pulled in from the [notification-utils](https://github.com/d
 
 ---
 
+## Internal Generic Endpoints
+
+There is an internal Flask route `/internal/<generic>` which can be used to mock external endpoints for integration testing.
+`GET` requests return a text response in the form `"GET request received for endpoint {request.full_path}"` where
+`request.full_path` is the url + query string. `POST` requests return a JSON response in the form `{"request_received": <request.json>}`. Both methods return a 200 and log the following attributes:
+
+- headers
+- method
+- root_path
+- path
+- query_string
+- json
+- url_rule
+- trace_id
+
+In Datadog, the logs will appear as INFO level logs in the form - `Generic Internal Request <attribute>: <request.attribute>`
+
+Example:
+
+``` http
+POST /internal/test1 HTTP/1.1
+Accept: application/json, */*;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Content-Length: 14
+Content-Type: application/json
+Host: localhost:6011
+User-Agent: HTTPie/3.2.2
+
+{
+    "foo": "bar"
+}
+
+
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 49
+Content-Type: application/json
+Date: Wed, 24 Jul 2024 18:30:19 GMT
+Server: Werkzeug/3.0.3 Python/3.10.14
+X-B3-SpanId: None
+X-B3-TraceId: None
+
+{
+    "request_received": {
+        "foo": "bar"
+    }
+}
+```
+
+Example logs:
+
+```
+app-1  | INFO 2024-07-24 18:30:19,229 /app/app/internal/rest.py:33: Generic Internal Request HEADERS: Host: localhost:6011
+app-1  | Accept-Encoding: gzip, deflate
+app-1  | Connection: keep-alive
+app-1  | Content-Length: 14
+app-1  | User-Agent: HTTPie/3.2.2
+app-1  | Accept: application/json, */*;q=0.5
+app-1  | Content-Type: application/json
+app-1  |
+app-1  |
+app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request HEADERS: Host: localhost:6011
+app-1  | Accept-Encoding: gzip, deflate
+app-1  | Connection: keep-alive
+app-1  | Content-Length: 14
+app-1  | User-Agent: HTTPie/3.2.2
+app-1  | Accept: application/json, */*;q=0.5
+app-1  | Content-Type: application/json
+app-1  |
+app-1  | " [in /app/app/internal/rest.py:33]
+app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request METHOD: POST" [in /app/app/internal/rest.py:33]
+app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request ROOT_PATH: " [in /app/app/internal/rest.py:33]
+app-1  | INFO 2024-07-24 18:30:19,229 /app/app/internal/rest.py:33: Generic Internal Request METHOD: POST
+app-1  | INFO 2024-07-24 18:30:19,229 /app/app/internal/rest.py:33: Generic Internal Request ROOT_PATH:
+app-1  | INFO 2024-07-24 18:30:19,229 /app/app/internal/rest.py:33: Generic Internal Request PATH: /internal/test1
+app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request PATH: /internal/test1" [in /app/app/internal/rest.py:33]
+app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request QUERY_STRING: b''" [in /app/app/internal/rest.py:33]
+app-1  | INFO 2024-07-24 18:30:19,229 /app/app/internal/rest.py:33: Generic Internal Request QUERY_STRING: b''
+app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request JSON: {'foo': 'bar'}" [in /app/app/internal/rest.py:33]
+app-1  | INFO 2024-07-24 18:30:19,230 /app/app/internal/rest.py:33: Generic Internal Request JSON: {'foo': 'bar'}
+app-1  | INFO 2024-07-24 18:30:19,230 /app/app/internal/rest.py:33: Generic Internal Request URL_RULE: /internal/<generic>
+app-1  | INFO 2024-07-24 18:30:19,230 /app/app/internal/rest.py:33: Generic Internal Request TRACE_ID: None
+app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request URL_RULE: /internal/<generic>" [in /app/app/internal/rest.py:33]
+app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request TRACE_ID: None" [in /app/app/internal/rest.py:33]
+```
+
+
 ## Using Mountebank Stubs
 
 We have some stubs set up for making requests to MPI and VA Profile located in `scripts/mountebank/stubs`. In order to
