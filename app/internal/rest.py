@@ -16,6 +16,15 @@ internal_blueprint = Blueprint('internal', __name__, url_prefix='/internal')
 def handler(generic):
     """
     Logs the request and returns a 200 response.
+
+    Args:
+        generic (str): A generic endpoint from the URL.
+
+    Returns:
+        tuple: A tuple containing the response body and status code. For GET requests, the response body is
+          a string with the endpoint. For POST requests, the response body is a JSON object with the request
+          data. The status code is always 200.
+
     """
     status_code = 200
     request_attrs = (
