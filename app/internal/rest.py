@@ -30,7 +30,7 @@ def handler(generic):
     )
     for attr in request_attrs:
         with suppress(Exception):
-            current_app.logger.info('Request %s: %s', attr.upper(), getattr(request, attr))
+            current_app.logger.info('Generic Internal Request %s: %s', attr.upper(), getattr(request, attr))
 
     if request.method == 'GET':
         response_body = f'GET request received for endpoint {request.full_path}'

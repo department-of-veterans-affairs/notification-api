@@ -17,8 +17,8 @@ def test_logging(client, mocker):
     mock_logger = mocker.patch('app.internal.rest.current_app.logger')
     client.post(url_for('internal.handler', generic='blah'), json={'key': 'value'})
 
-    mock_logger.info.assert_any_call('Request %s: %s', 'ROOT_PATH', '')
-    mock_logger.info.assert_any_call('Request %s: %s', 'METHOD', 'POST')
-    mock_logger.info.assert_any_call('Request %s: %s', 'PATH', '/internal/blah')
-    mock_logger.info.assert_any_call('Request %s: %s', 'JSON', {'key': 'value'})
-    mock_logger.info.assert_any_call('Request %s: %s', 'TRACE_ID', None)
+    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'ROOT_PATH', '')
+    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'METHOD', 'POST')
+    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'PATH', '/internal/blah')
+    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'JSON', {'key': 'value'})
+    mock_logger.info.assert_any_call('Generic Internal Request %s: %s', 'TRACE_ID', None)
