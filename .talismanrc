@@ -21,6 +21,8 @@ fileignoreconfig:
   checksum: 823e29c34011d04c007800df4c131fdf043c6b05409d5c9915c4e8e9f1f00d80
 - filename: tests/app/integrations/comp_and_pen/dynamo_fixtures.py
   checksum: 170ea486a042bc783f0aeaa0c683936744df192b65d1bc6b58194a00adc46208
+- filename: tests/app/internal/test_rest.py
+  checksum: e75264490ce5022aa6d94cd755985b5b0635101502c27dbc7b3aaf0de20812dc
 - filename: tests/app/notifications/test_send_notifications.py
   checksum: 12f223d78afccf1d48b586c53ca061121ad0666aae4c0e464b47e88531bd630e
 version: "1.0"

@@ -1,24 +1,24 @@
-from unittest.mock import patch
-
 from flask import url_for
-import pytest
 
 
-# Parameterize for generic_one and generic_two
-@pytest.mark.parametrize('endpoint', ['internal.generic_one', 'internal.generic_two'])
-def test_internal_generic_with_valid_data(client, endpoint):
-    """
-    A POST request with valid data should receive a 200 response.
-    """
-    with patch('app.internal.rest.current_app.logger.info') as mock_logger:
-        response = client.post(
-            path=url_for(endpoint),
-            json={'key': 'value'},
-        )
+def test_get_internal(client):
+    response = client.get(url_for('internal.handler', generic='blah'))
     assert response.status_code == 200
-    assert response.get_json() == {'message': 'Request received'}
+    assert response.data == b'GET request received for endpoint /internal/blah?'
 
-    # Assert that the logger was called with the expected message.
-    # There will be 2 logs, one for the incoming request and the one from the route.
-    assert mock_logger.call_count >= 1
-    assert mock_logger.call_args_list[0][0][0] == 'Received request: %s'
+
+def test_post_internal(client):
+    response = client.post(url_for('internal.handler', generic='blah'), json={'key': 'value'})
+    assert response.status_code == 200
+    assert response.json == {'request_received': {'key': 'value'}}
+
+
+def test_logging(client, mocker):
+    mock_logger = mocker.patch('app.internal.rest.current_app.logger')
+    client.post(url_for('internal.handler', generic='blah'), json={'key': 'value'})
+
+    mock_logger.info.assert_any_call('Request %s: %s', 'ROOT_PATH', '')
+    mock_logger.info.assert_any_call('Request %s: %s', 'METHOD', 'POST')
+    mock_logger.info.assert_any_call('Request %s: %s', 'PATH', '/internal/blah')
+    mock_logger.info.assert_any_call('Request %s: %s', 'JSON', {'key': 'value'})
+    mock_logger.info.assert_any_call('Request %s: %s', 'TRACE_ID', None)
