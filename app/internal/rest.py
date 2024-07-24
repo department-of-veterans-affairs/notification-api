@@ -35,6 +35,6 @@ def handler(generic):
     if request.method == 'GET':
         response_body = f'GET request received for endpoint {request.full_path}'
     else:
-        response_body = jsonify({'request_received': request.json})
+        response_body = jsonify({'request_received': request.full_path})
 
     return response_body, status_code
