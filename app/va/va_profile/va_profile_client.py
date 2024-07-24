@@ -1,6 +1,5 @@
 import iso8601
 import requests
-from app.models import RecipientIdentifier
 from app.va.va_profile import (
     NoContactInfoException,
     VAProfileNonRetryableException,
@@ -11,8 +10,11 @@ from app.va.va_profile.exceptions import VAProfileIDNotFoundException
 from enum import Enum
 from http.client import responses
 from time import monotonic
-from va_profile_types import ContactInformation, Profile, Telephone, Email
-from typing import Dict, List
+from typing import Dict, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models import RecipientIdentifier
+    from va_profile_types import ContactInformation, Profile, Telephone, Email
 
 
 class CommunicationItemNotFoundException(Exception):
@@ -51,7 +53,7 @@ class VAProfileClient:
         self.ssl_key_path = ssl_key_path
         self.statsd_client = statsd_client
 
-    def get_contact_info(self, va_profile_id: RecipientIdentifier) -> ContactInformation:
+    def get_contact_info(self, va_profile_id: 'RecipientIdentifier') -> 'ContactInformation':
         recipient_id = transform_to_fhir_format(va_profile_id)
         oid = OIDS.get(va_profile_id.id_type)
         url = f'{self.va_profile_url}profile/v3/{oid}/{recipient_id}'
@@ -64,13 +66,13 @@ class VAProfileClient:
             self.logger.warning('Uh oh')
         else:
             response_json: Dict = response.json()
-            profile: Profile = response_json.get('profile', {})
-            contact_information: ContactInformation = profile.get('contactInformation', {})
+            profile: 'Profile' = response_json.get('profile', {})
+            contact_information: 'ContactInformation' = profile.get('contactInformation', {})
             return contact_information
 
-    def get_telephone_from_profile_v3(self, va_profile_id: RecipientIdentifier) -> str:
-        contact_info: ContactInformation = self.get_contact_info(va_profile_id)
-        telephones: List[Telephone] = contact_info.get(self.PHONE_BIO_TYPE, [])
+    def get_telephone_from_profile_v3(self, va_profile_id: 'RecipientIdentifier') -> str:
+        contact_info: 'ContactInformation' = self.get_contact_info(va_profile_id)
+        telephones: List['Telephone'] = contact_info.get(self.PHONE_BIO_TYPE, [])
         mobile_telephones = [phone for phone in telephones if phone['phoneType'] == PhoneNumberType.MOBILE.value]
         sorted_telephones = sorted(
             mobile_telephones,
@@ -94,9 +96,9 @@ class VAProfileClient:
         self.statsd_client.incr('clients.va-profile.get-telephone.failure')
         self._raise_no_contact_info_exception(self.PHONE_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID))
 
-    def get_email_from_profile_v3(self, va_profile_id: RecipientIdentifier) -> str:
-        contact_info: ContactInformation = self.get_contact_info(va_profile_id)
-        emails: List[Email] = contact_info.get(self.EMAIL_BIO_TYPE, [])
+    def get_email_from_profile_v3(self, va_profile_id: 'RecipientIdentifier') -> str:
+        contact_info: 'ContactInformation' = self.get_contact_info(va_profile_id)
+        emails: List['Email'] = contact_info.get(self.EMAIL_BIO_TYPE, [])
         sorted_emails = sorted(emails, key=lambda email: iso8601.parse_date(email['createDate']), reverse=True)
         if sorted_emails:
             self.statsd_client.incr('clients.va-profile.get-email.success')
