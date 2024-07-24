@@ -47,6 +47,7 @@ We currently do not:
 - [Running Code Scans](#running-code-scans)
 - [Using Our Endpoints](#using-our-endpoints)
 - [Testing Template Changes](#testing-template-changes)
+- [Generic Internal Endpoints](#generic-internal-endpoints)
 - [Using Mountebank Stubs for MPI/VAProfile](#using-mountebank-stubs)
 - [Frequent Problems](#frequent-problems)
 
@@ -458,11 +459,11 @@ Jinja templates are pulled in from the [notification-utils](https://github.com/d
 
 ---
 
-## Internal Generic Endpoints
+## Generic Internal Endpoints
 
 There is an internal Flask route `/internal/<generic>` which can be used to mock external endpoints for integration testing.
 `GET` requests return a text response in the form `"GET request received for endpoint {request.full_path}"` where
-`request.full_path` is the url + query string. `POST` requests return a JSON response in the form `{"request_received": <request.json>}`. Both methods return a 200 and log the following attributes:
+`request.full_path` is the url + query string. `POST` requests return a JSON response in the form `{<generic>: <request.json>}`. Both methods return a 200 and log the following attributes:
 
 - headers
 - method
@@ -502,7 +503,7 @@ X-B3-SpanId: None
 X-B3-TraceId: None
 
 {
-    "request_received": {
+    "test1": {
         "foo": "bar"
     }
 }
