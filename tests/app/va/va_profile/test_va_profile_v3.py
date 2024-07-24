@@ -6,7 +6,7 @@ from app.va.va_profile import (
     VAProfileClient,
 )
 from app.models import RecipientIdentifier
-from app.va.identifier import IdentifierType, transform_to_fhir_format
+from app.va.identifier import IdentifierType, transform_to_fhir_format, OIDS
 
 
 MOCK_VA_PROFILE_URL = 'http://mock.vaprofile.va.gov/'
@@ -44,8 +44,8 @@ def id_with_aaid(recipient_identifier):
 
 
 @pytest.fixture(scope='module')
-def oid():
-    return '2.16.840.1.113883.4.349'  # TODO I have no idea what this is
+def oid(recipient_identifier):
+    return OIDS.get(recipient_identifier.id_type)
 
 
 def test_retrieve_email_from_profile_v3(
