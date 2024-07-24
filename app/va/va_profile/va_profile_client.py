@@ -1,5 +1,6 @@
 import iso8601
 import requests
+from app import DATETIME_FORMAT
 from app.va.va_profile import (
     NoContactInfoException,
     VAProfileNonRetryableException,
@@ -24,7 +25,7 @@ class PhoneNumberType(Enum):
     TEMPORARY = 'TEMPORARY'
 
     @staticmethod
-    def valid_type_values():
+    def valid_type_values() -> list[str]:
         return [PhoneNumberType.MOBILE.value, PhoneNumberType.HOME.value]
 
 
@@ -264,3 +265,36 @@ class VAProfileClient:
     ):
         if response.get('messages'):
             self._raise_no_contact_info_exception(bio_type, va_profile_id, response.get(self.TX_AUDIT_ID))
+
+    def send_va_profile_email_status(self, notification_data) -> None:
+        """
+        This method sends notification status data to VA Profile. This is part of our integration to help VA Profile
+        provide better service by letting them know which emails are good, and which ones result in bounces.
+
+        :param notification_data: the data to include with the POST request to VA Profile
+
+        Raises:
+            requests.Timeout: if the request to VA Profile times out
+            Exception: if something unexpected happens when sending the request
+        """
+        url = self.va_profile_url + '/contact-information-vanotify/notify/status'
+
+        self.logger.debug(
+            'Sending email status to VA Profile using url: %s | notification data: %s', url, notification_data
+        )
+
+        # make POST request to VA Profile endpoint for notification statuses
+        # raise errors if they occur, they will be handled in the celery task upstream
+        try:
+            response = requests.post(url, json=notification_data, timeout=(3.05, 1))
+        except requests.Timeout:
+            self.logger.warning('Request timeout attempting to send email status to VA Profile... retrying')
+            raise
+        except Exception:
+            # TODO 1770 - what should we do if this happens?
+            self.logger.exception(
+                'An unexpected exception occurred when attempting to send the email notification status to VA Profile. '
+                'response status: %s',
+                response.status_code,
+            )
+            raise

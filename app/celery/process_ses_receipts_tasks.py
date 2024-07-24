@@ -14,12 +14,15 @@ from notifications_utils.statsd_decorators import statsd
 from sqlalchemy.orm.exc import NoResultFound
 import enum
 import requests
-from app import notify_celery, statsd_client
+from app import DATETIME_FORMAT, notify_celery, statsd_client, va_profile_client
+from app.celery.exceptions import AutoRetryException
 from app.celery.service_callback_tasks import publish_complaint
 from app.config import QueueNames
 from app.clients.email.aws_ses import get_aws_responses
 from app.dao import notifications_dao, services_dao, templates_dao
+from app.feature_flags import FeatureFlag, is_feature_enabled
 from app.models import (
+    Notification,
     EMAIL_TYPE,
     KEY_TYPE_NORMAL,
     NOTIFICATION_SENDING,
@@ -202,6 +205,10 @@ def process_ses_results(  # noqa: C901
 
             notifications_dao.dao_update_notification(notification)
             check_and_queue_callback_task(notification)
+
+            if is_feature_enabled(FeatureFlag.VA_PROFILE_EMAIL_STATUS_ENABLED):
+                send_email_status_to_va_profile.apply_async([notification], queue=QueueNames.CALLBACKS)
+
             return
 
         # Prevent regressing bounce status
@@ -250,6 +257,9 @@ def process_ses_results(  # noqa: C901
         )
 
         check_and_queue_callback_task(notification)
+
+        if is_feature_enabled(FeatureFlag.VA_PROFILE_EMAIL_STATUS_ENABLED):
+            send_email_status_to_va_profile.apply_async([notification], queue=QueueNames.CALLBACKS)
 
         return True
 
@@ -342,3 +352,38 @@ def process_ses_smtp_results(
         current_app.logger.exception(e)
         current_app.logger.error('Error processing SES SMTP results: %s', type(e))
         self.retry(queue=QueueNames.RETRY)
+
+
+@notify_celery.task(
+    bind=True,
+    name='send-email-status-to-va-profile',
+    throws=(AutoRetryException,),
+    autoretry_for=(AutoRetryException,),
+    max_retries=585,
+    retry_backoff=True,
+    retry_backoff_max=300,
+)
+def send_email_status_to_va_profile(task, notification: Notification):
+    current_app.logger.debut('Collecting data for email status to send to va profile')
+    notification_data = {
+        'id': str(notification.id),  # this is the notification id
+        'reference': notification.client_reference,
+        'to': notification.to,  # this is the recipient's contact info (email)
+        'status': notification.status,  # this will specify the delivery status of the notification
+        'status_reason': notification.status_reason,  # populated if there's additional context on the delivery status
+        'created_at': notification.created_at.strftime(DATETIME_FORMAT),
+        'completed_at': notification.updated_at.strftime(DATETIME_FORMAT) if notification.updated_at else None,
+        'sent_at': notification.sent_at.strftime(DATETIME_FORMAT) if notification.sent_at else None,
+        'notification_type': notification.notification_type,  # this is the channel/type of notification (email)
+        'provider': notification.sent_by,  # email provider
+    }
+
+    try:
+        va_profile_client.send_va_profile_email_status(notification_data)
+    except requests.Timeout:
+        # logging in send_va_profile_email_status
+        raise AutoRetryException
+    except Exception:
+        # TODO 1770 - what should we do if this happens?
+        # logging in send_va_profile_email_status
+        pass

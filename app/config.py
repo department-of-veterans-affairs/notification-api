@@ -449,10 +449,6 @@ class Config(object):
     SESSION_COOKIE_SECURE = str(True) == os.getenv('SESSION_COOKIE_SECURE', 'False')
     SESSION_COOKIE_SAMESITE = 'Lax'
 
-    # Feature flags
-    GOVDELIVERY_EMAIL_CLIENT_ENABLED = True
-    SWITCH_SLOW_SMS_PROVIDER_ENABLED = False
-
     # Google Analytics
     GOOGLE_ANALYTICS_ENABLED = str(True) == (os.getenv('GOOGLE_ANALYTICS_ENABLED', 'False'))
     GOOGLE_ANALYTICS_URL = os.getenv('GOOGLE_ANALYTICS_URL', 'https://www.google-analytics.com/collect')
