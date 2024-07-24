@@ -26,13 +26,5 @@ def generic_two():
     Logs the request and returns a 200 response.
     """
     current_app.logger.info('Received request: %s', request.json)
-
+    current_app.logger.info('Requeset %s', request)
     return jsonify({'message': 'Request received'})
-
-
-def register_internal_blueprint(app):
-    app.register_blueprint(internal_blueprint)
-
-
-def register_blueprints(app):
-    register_internal_blueprint(app)
