@@ -1,12 +1,22 @@
 """
-Flask Blueprint for /internal endpoint that supports the following routes:
-    POST /internal/generic_one - logs the request and returns a 200 response
-    POST /internal/generic_two - logs the request and returns a 200 response
+Flask Blueprint for internal endpoints of the form /internal/<generic>.
+  - GET requests return a string with the full path of the request and a 200 status code.
+  - POST requests return a JSON object with the request data and a 200 status code.
+
+Logging is performed for the following request attributes:
+    - headers
+    - method
+    - root_path
+    - path
+    - query_string
+    - json
+    - url_rule
+    - trace_id
 """
 
 from contextlib import suppress
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, request
 
 
 internal_blueprint = Blueprint('internal', __name__, url_prefix='/internal')
@@ -44,6 +54,6 @@ def handler(generic):
     if request.method == 'GET':
         response_body = f'GET request received for endpoint {request.full_path}'
     else:
-        response_body = jsonify({'request_received': request.json})
+        response_body = {'request_received': request.json}
 
     return response_body, status_code
