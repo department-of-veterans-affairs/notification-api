@@ -54,6 +54,6 @@ def handler(generic):
     if request.method == 'GET':
         response_body = f'GET request received for endpoint {request.full_path}'
     else:
-        response_body = {'request_received': request.json}
+        response_body = {generic: request.json}
 
     return response_body, status_code
