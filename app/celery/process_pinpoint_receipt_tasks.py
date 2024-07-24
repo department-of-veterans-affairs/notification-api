@@ -140,9 +140,7 @@ def process_pinpoint_results(
             dao_update_notification(notification)
         else:
             update_notification_status_by_id(
-                notification_id=notification.id,
-                status=notification_status,
-                status_reason=notification.status_reason
+                notification_id=notification.id, status=notification_status, status_reason=notification.status_reason
             )
 
         current_app.logger.info(

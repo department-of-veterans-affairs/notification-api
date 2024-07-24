@@ -88,8 +88,9 @@ def test_process_pinpoint_results_notification_final_status(
     assert notification.status == expected_notification_status
     if expected_notification_status == NOTIFICATION_PREFERENCES_DECLINED:
         assert notification.status_reason == (
-            'The veteran is opted-out at the Pinpoint level.' \
-            if (record_status == 'OPTED_OUT') else 'The veteran responded with STOP.'
+            'The veteran is opted-out at the Pinpoint level.'
+            if (record_status == 'OPTED_OUT')
+            else 'The veteran responded with STOP.'
         )
     mock_callback.assert_called_once()
 
