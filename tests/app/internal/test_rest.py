@@ -1,19 +1,19 @@
 from flask import url_for
 
 
-def test_get_internal(client):
+def test_it_get_internal(client):
     response = client.get(url_for('internal.handler', generic='blah'))
     assert response.status_code == 200
     assert response.data == b'GET request received for endpoint /internal/blah?'
 
 
-def test_post_internal(client):
+def test_it_post_internal(client):
     response = client.post(url_for('internal.handler', generic='blah'), json={'key': 'value'})
     assert response.status_code == 200
     assert response.json == {'request_received': {'key': 'value'}}
 
 
-def test_logging(client, mocker):
+def test_it_logging(client, mocker):
     mock_logger = mocker.patch('app.internal.rest.current_app.logger')
     client.post(url_for('internal.handler', generic='blah'), json={'key': 'value'})
 
