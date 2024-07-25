@@ -512,38 +512,7 @@ X-B3-TraceId: None
 Example logs:
 
 ```
-app-1  | INFO 2024-07-24 18:30:19,229 /app/app/internal/rest.py:33: Generic Internal Request HEADERS: Host: localhost:6011
-app-1  | Accept-Encoding: gzip, deflate
-app-1  | Connection: keep-alive
-app-1  | Content-Length: 14
-app-1  | User-Agent: HTTPie/3.2.2
-app-1  | Accept: application/json, */*;q=0.5
-app-1  | Content-Type: application/json
-app-1  |
-app-1  |
-app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request HEADERS: Host: localhost:6011
-app-1  | Accept-Encoding: gzip, deflate
-app-1  | Connection: keep-alive
-app-1  | Content-Length: 14
-app-1  | User-Agent: HTTPie/3.2.2
-app-1  | Accept: application/json, */*;q=0.5
-app-1  | Content-Type: application/json
-app-1  |
-app-1  | " [in /app/app/internal/rest.py:33]
-app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request METHOD: POST" [in /app/app/internal/rest.py:33]
-app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request ROOT_PATH: " [in /app/app/internal/rest.py:33]
-app-1  | INFO 2024-07-24 18:30:19,229 /app/app/internal/rest.py:33: Generic Internal Request METHOD: POST
-app-1  | INFO 2024-07-24 18:30:19,229 /app/app/internal/rest.py:33: Generic Internal Request ROOT_PATH:
-app-1  | INFO 2024-07-24 18:30:19,229 /app/app/internal/rest.py:33: Generic Internal Request PATH: /internal/test1
-app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request PATH: /internal/test1" [in /app/app/internal/rest.py:33]
-app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request QUERY_STRING: b''" [in /app/app/internal/rest.py:33]
-app-1  | INFO 2024-07-24 18:30:19,229 /app/app/internal/rest.py:33: Generic Internal Request QUERY_STRING: b''
-app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request JSON: {'foo': 'bar'}" [in /app/app/internal/rest.py:33]
-app-1  | INFO 2024-07-24 18:30:19,230 /app/app/internal/rest.py:33: Generic Internal Request JSON: {'foo': 'bar'}
-app-1  | INFO 2024-07-24 18:30:19,230 /app/app/internal/rest.py:33: Generic Internal Request URL_RULE: /internal/<generic>
-app-1  | INFO 2024-07-24 18:30:19,230 /app/app/internal/rest.py:33: Generic Internal Request TRACE_ID: None
-app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request URL_RULE: /internal/<generic>" [in /app/app/internal/rest.py:33]
-app-1  | 2024-07-24T18:30:19 app app INFO None "Generic Internal Request TRACE_ID: None" [in /app/app/internal/rest.py:33]
+2024-07-25T11:20:41 app app INFO None "Generic Internal Request: METHOD: POST | ROOT_PATH:  | PATH: /internal/test1 | QUERY_STRING: b'' | URL_RULE: /internal/<generic> | TRACE_ID: None | JSON: {'foo': 'bar'} | HEADERS: X-Forwarded-For: 72.185.145.197, 10.238.28.71, 72.185.145.197, 10.247.97.119, X-Forwarded-Proto: https, X-Forwarded-Port: 443, Host: dev-api.va.gov, X-Amzn-Trace-Id: Self=xxx Content-Length: 20, X-Forwarded-Host: dev-api.va.gov:443, X-Forwarded-Scheme: https, X-Real-Ip: 72.185.145.197, Content-Type: application/json, User-Agent: PostmanRuntime/7.40.0, Accept: */*, Postman-Token: 784f8b66-bf31-487e-a881-3f1aecfa7a2c, Accept-Encoding: gzip, deflate, br" [in /app/app/internal/rest.py:53]
 ```
 
 

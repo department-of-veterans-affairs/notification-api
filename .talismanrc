@@ -1,4 +1,6 @@
 fileignoreconfig:
+- filename: README.md
+  checksum: 94578d44dbb4e2a27def1bfd91aec3945bbda30eadb5a9414b84a96aea49b4a7
 - filename: app/celery/process_ga4_measurement_tasks.py
   checksum: 772d9605c861b6382c0bd488e1f5f52d8a5d8874ace5b80378407a905a514a29
 - filename: app/config.py
