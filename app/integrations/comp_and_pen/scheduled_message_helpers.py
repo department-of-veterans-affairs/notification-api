@@ -149,7 +149,7 @@ class CompPenMsgHelper:
         for item in comp_and_pen_messages:
             vaprofile_id = str(item.get('vaprofile_id'))
             participant_id = item.get('participant_id')
-            payment_amount = str(item.get('paymentAmount'))
+            payment_amount = "{:,.2f}".format(str(item.get('paymentAmount')))
 
             current_app.logger.debug('sending - record from dynamodb: %s', participant_id)
 
