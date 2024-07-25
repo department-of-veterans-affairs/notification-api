@@ -1,4 +1,5 @@
 import iso8601
+from flask import current_app
 import requests
 from app.va.va_profile import (
     NoContactInfoException,
@@ -86,12 +87,17 @@ class VAProfileClient:
                 and sorted_telephones[0].get('phoneNumber')
             ):
                 self.statsd_client.incr('clients.va-profile.get-telephone.success')
-            return (
+            telephone_number = (
                 '+'
                 + sorted_telephones[0]['countryCode']
                 + sorted_telephones[0]['areaCode']
                 + sorted_telephones[0]['phoneNumber']
             )
+            # FOR DEBUGGING PURPOSES ONLY! DO NOT MERGE!!
+            current_app.logger.info('***************************')
+            current_app.logger.info(f'Retrieved Telephone: {telephone_number}')
+            current_app.logger.info('***************************')
+            return telephone_number
 
         self.statsd_client.incr('clients.va-profile.get-telephone.failure')
         self._raise_no_contact_info_exception(self.PHONE_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID))
@@ -102,7 +108,12 @@ class VAProfileClient:
         sorted_emails = sorted(emails, key=lambda email: iso8601.parse_date(email['createDate']), reverse=True)
         if sorted_emails:
             self.statsd_client.incr('clients.va-profile.get-email.success')
-            return sorted_emails[0].get('emailAddressText')
+            email_address = sorted_emails[0].get('emailAddressText')
+            # FOR DEBUGGING PURPOSES ONLY! DO NOT MERGE!!
+            current_app.logger.info('***************************')
+            current_app.logger.info(f'Retrieved Email: {email_address}')
+            current_app.logger.info('***************************')
+            return email_address
 
         self.statsd_client.incr('clients.va-profile.get-email.failure')
         self._raise_no_contact_info_exception(self.EMAIL_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID))
