@@ -11,7 +11,7 @@ import pytest
         ({'foo': 'bar', 'baz': 'qux'}, 'foo=bar&baz=qux'),
     ],
 )
-def test_it_get_internal(client, mocker, query_string):
+def test_ut_get_internal(client, mocker, query_string):
     mock_logger = mocker.patch('app.internal.rest.current_app.logger.info')
     response = client.get(url_for('internal.handler', generic='foo', **query_string[0]))
     assert response.status_code == 200
@@ -26,7 +26,7 @@ def test_it_get_internal(client, mocker, query_string):
 
 
 @pytest.mark.parametrize('method', ['GET', 'POST'])
-def test_it_internal_logging(client, mocker, method):
+def test_ut_internal_logging(client, mocker, method):
     mock_logger = mocker.patch('app.internal.rest.current_app.logger.info')
     mock_request = mocker.patch('app.internal.rest.request')
     mock_request.method = method
@@ -63,7 +63,7 @@ def test_it_internal_logging(client, mocker, method):
         ({'foo': 'bar', 'baz': 'qux'}, b'foo=bar&baz=qux'),
     ],
 )
-def test_it_post_internal(client, mocker, query_string):
+def test_ut_post_internal(client, mocker, query_string):
     mock_logger = mocker.patch('app.internal.rest.current_app.logger.info')
     response = client.post(url_for('internal.handler', generic='bar', **query_string[0]), json={'key': 'value'})
     assert response.status_code == 200
