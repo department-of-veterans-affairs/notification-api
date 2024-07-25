@@ -1,6 +1,5 @@
 import iso8601
 import requests
-from app import DATETIME_FORMAT
 from app.va.va_profile import (
     NoContactInfoException,
     VAProfileNonRetryableException,
@@ -41,12 +40,14 @@ class VAProfileClient:
         va_profile_url,
         ssl_cert_path,
         ssl_key_path,
+        va_profile_token,
         statsd_client,
     ):
         self.logger = logger
         self.va_profile_url = va_profile_url
         self.ssl_cert_path = ssl_cert_path
         self.ssl_key_path = ssl_key_path
+        self.va_profile_token = va_profile_token
         self.statsd_client = statsd_client
 
     def get_email(
@@ -266,7 +267,7 @@ class VAProfileClient:
         if response.get('messages'):
             self._raise_no_contact_info_exception(bio_type, va_profile_id, response.get(self.TX_AUDIT_ID))
 
-    def send_va_profile_email_status(self, notification_data) -> None:
+    def send_va_profile_email_status(self, notification_data: dict) -> None:
         """
         This method sends notification status data to VA Profile. This is part of our integration to help VA Profile
         provide better service by letting them know which emails are good, and which ones result in bounces.
@@ -277,24 +278,26 @@ class VAProfileClient:
             requests.Timeout: if the request to VA Profile times out
             Exception: if something unexpected happens when sending the request
         """
+        headers = {'Authorization': f'Bearer {self.va_profile_token}'}
         url = self.va_profile_url + '/contact-information-vanotify/notify/status'
 
         self.logger.debug(
-            'Sending email status to VA Profile using url: %s | notification data: %s', url, notification_data
+            'Sending email status to VA Profile using url: %s | notification: %s', url, notification_data.get('id')
         )
 
         # make POST request to VA Profile endpoint for notification statuses
         # raise errors if they occur, they will be handled in the celery task upstream
         try:
-            response = requests.post(url, json=notification_data, timeout=(3.05, 1))
+            requests.post(url, json=notification_data, headers=headers, timeout=(3.05, 1))
         except requests.Timeout:
-            self.logger.warning('Request timeout attempting to send email status to VA Profile... retrying')
+            self.logger.warning(
+                'Request timeout attempting to send the email status for notification %s to VA Profile ... retrying',
+                notification_data.get('id'),
+            )
             raise
-        except Exception:
-            # TODO 1770 - what should we do if this happens?
+        except requests.exceptions.RequestException:
             self.logger.exception(
-                'An unexpected exception occurred when attempting to send the email notification status to VA Profile. '
-                'response status: %s',
-                response.status_code,
+                'Unexpected exception occurred attempting to send the email status for notification %s to VA Profile.',
+                notification_data.get('id'),
             )
             raise

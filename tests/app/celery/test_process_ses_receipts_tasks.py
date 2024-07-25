@@ -5,7 +5,7 @@ from freezegun import freeze_time
 from sqlalchemy import select
 from uuid import uuid4
 
-from app import statsd_client
+from app import DATETIME_FORMAT
 from app.celery import process_ses_receipts_tasks
 from app.celery.research_mode_tasks import ses_hard_bounce_callback, ses_soft_bounce_callback, ses_notification_callback
 from app.celery.service_callback_tasks import create_delivery_status_callback_data
@@ -448,3 +448,29 @@ def get_complaint_notification_and_email(mocker):
     )
     recipient_email = 'recipient1@example.com'
     return complaint, notification, recipient_email
+
+
+class TestSendEmailStatusToVAProfile:
+    def test_send_email_status_to_va_profile(self, mocker, sample_notification):
+        mock_profile_client = mocker.patch(
+            'app.celery.process_ses_receipts_tasks.va_profile_client.send_va_profile_email_status'
+        )
+
+        notification = sample_notification(gen_type=EMAIL_TYPE)
+
+        test_notification_data = {
+            'id': str(notification.id),  # this is the notification id
+            'reference': notification.client_reference,
+            'to': notification.to,  # this is the recipient's contact info (email)
+            'status': notification.status,  # this will specify the delivery status of the notification
+            'status_reason': notification.status_reason,  # populated if there's additional context on the delivery status
+            'created_at': notification.created_at.strftime(DATETIME_FORMAT),
+            'completed_at': notification.updated_at.strftime(DATETIME_FORMAT) if notification.updated_at else None,
+            'sent_at': notification.sent_at.strftime(DATETIME_FORMAT) if notification.sent_at else None,
+            'notification_type': notification.notification_type,  # this is the channel/type of notification (email)
+            'provider': notification.sent_by,  # email provider
+        }
+
+        process_ses_receipts_tasks.send_email_status_to_va_profile(notification=notification)
+
+        mock_profile_client.assert_called_once_with(test_notification_data)

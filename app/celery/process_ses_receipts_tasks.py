@@ -364,7 +364,7 @@ def process_ses_smtp_results(
     retry_backoff_max=300,
 )
 def send_email_status_to_va_profile(task, notification: Notification):
-    current_app.logger.debut('Collecting data for email status to send to va profile')
+    current_app.logger.debug('Sending email status to VA Profile, collecting data...')
     notification_data = {
         'id': str(notification.id),  # this is the notification id
         'reference': notification.client_reference,
@@ -383,7 +383,9 @@ def send_email_status_to_va_profile(task, notification: Notification):
     except requests.Timeout:
         # logging in send_va_profile_email_status
         raise AutoRetryException
-    except Exception:
+    except requests.exceptions.RequestException:
         # TODO 1770 - what should we do if this happens?
         # logging in send_va_profile_email_status
         pass
+
+    return True

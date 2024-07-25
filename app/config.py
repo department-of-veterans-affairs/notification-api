@@ -385,6 +385,7 @@ class Config(object):
     GRANICUS_TOKEN = os.environ.get('GRANICUS_TOKEN', '')
     GRANICUS_URL = os.environ.get('GRANICUS_URL', 'https://tms.govdelivery.com')
     VA_PROFILE_URL = os.environ.get('VA_PROFILE_URL', 'https://int.vaprofile.va.gov')
+    VA_PROFILE_TOKEN = os.environ.get('VA_PROFILE_TOKEN', '')
     MPI_URL = os.environ.get('MPI_URL', 'https://ps.dev.iam.va.gov')
 
     VA_ONSITE_URL = os.environ.get('VA_ONSITE_URL', 'https://staging-api.va.gov')
