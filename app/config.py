@@ -452,6 +452,7 @@ class Config(object):
     # Feature flags
     GOVDELIVERY_EMAIL_CLIENT_ENABLED = True
     SWITCH_SLOW_SMS_PROVIDER_ENABLED = False
+    VA_PROFILE_V3_USE_PROFILE_API_V3 = True
 
     # Google Analytics
     GOOGLE_ANALYTICS_ENABLED = str(True) == (os.getenv('GOOGLE_ANALYTICS_ENABLED', 'False'))
