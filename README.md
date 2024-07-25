@@ -47,6 +47,7 @@ We currently do not:
 - [Running Code Scans](#running-code-scans)
 - [Using Our Endpoints](#using-our-endpoints)
 - [Testing Template Changes](#testing-template-changes)
+- [Generic Internal Endpoints](#generic-internal-endpoints)
 - [Using Mountebank Stubs for MPI/VAProfile](#using-mountebank-stubs)
 - [Frequent Problems](#frequent-problems)
 
@@ -457,6 +458,57 @@ Jinja templates are pulled in from the [notification-utils](https://github.com/d
     ```
 
 ---
+
+## Generic Internal Endpoints
+
+There is an internal Flask route `/internal/<generic>` which can be used to mock external endpoints for integration testing.
+`GET` requests return a text response in the form `"GET request received for endpoint {request.full_path}"` where
+`request.full_path` is the url + query string. `POST` requests return a JSON response in the form `{<generic>: <request.json>}`. Both methods return a 200 and log the following attributes:
+
+- headers
+- method
+- root_path
+- path
+- query_string
+- json
+- url_rule
+- trace_id
+
+In Datadog, the logs will appear as INFO level logs in the form - `Generic Internal Request <attribute>: <request.attribute>`
+
+Example:
+
+``` http
+POST /internal/test1 HTTP/1.1
+Accept: application/json, */*;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Content-Length: 14
+Content-Type: application/json
+Host: localhost:6011
+User-Agent: HTTPie/3.2.2
+
+{
+    "foo": "bar"
+}
+
+
+HTTP/1.1 200 OK
+Connection: close
+Content-Length: 49
+Content-Type: application/json
+Date: Wed, 24 Jul 2024 18:30:19 GMT
+Server: Werkzeug/3.0.3 Python/3.10.14
+X-B3-SpanId: None
+X-B3-TraceId: None
+
+{
+    "test1": {
+        "foo": "bar"
+    }
+}
+```
+
 
 ## Using Mountebank Stubs
 
