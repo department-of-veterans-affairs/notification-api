@@ -118,6 +118,8 @@ def persist_notification(
         sms_sender_id=sms_sender_id,
     )
 
+    current_app.debug('Notification object created: %s', notification)
+
     if accept_recipient_identifiers_enabled() and recipient_identifier:
         _recipient_identifier = RecipientIdentifier(
             notification_id=notification_id,
