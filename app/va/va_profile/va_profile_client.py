@@ -67,8 +67,11 @@ class VAProfileClient:
             current_app.logger.info(f'Retrieved Response from V3 Endpoint: {response.text}')
             current_app.logger.info('***************************')
             response.raise_for_status()
-        except Exception:
-            self.logger.warning('Uh oh')
+        except Exception as e:
+            current_app.logger.info('***************************')
+            current_app.logger.info('Error retrieiving contact information:')
+            self.logger.exception(e)
+            current_app.logger.info('***************************')
         else:
             response_json: Dict = response.json()
             profile: 'Profile' = response_json.get('profile', {})
