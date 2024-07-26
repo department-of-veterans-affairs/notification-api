@@ -36,8 +36,9 @@ marshmallow-sqlalchemy = "*"
 nanoid = "*"
 notifications-python-client = "*"
 phonenumbers = "*"
-protobuf = "^4.25"  # TODO: Pinned because version 5.27.2 failed to deploy
-psycopg2-binary = "*"
+
+# TODO: protobuf is pinned because version 5.27.2 failed to deploy, see https://github.com/department-of-veterans-affairs/notification-api/issues/1886
+protobuf = "^4.25"  psycopg2-binary = "*"
 pwnedpasswords = "*"
 PyJWT = "*"
 pypdf = "*"
