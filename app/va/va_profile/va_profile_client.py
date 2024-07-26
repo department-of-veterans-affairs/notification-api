@@ -62,6 +62,10 @@ class VAProfileClient:
 
         try:
             response = requests.post(url, json=data, cert=(self.ssl_cert_path, self.ssl_key_path), timeout=(3.05, 1))
+            # FOR DEBUGGING PURPOSES ONLY! DO NOT MERGE!!
+            current_app.logger.info('***************************')
+            current_app.logger.info(f'Retrieved Response from V3 Endpoint: {response.text}')
+            current_app.logger.info('***************************')
             response.raise_for_status()
         except Exception:
             self.logger.warning('Uh oh')
