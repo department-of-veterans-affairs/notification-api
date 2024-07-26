@@ -13,18 +13,19 @@ MOCK_VA_PROFILE_URL = 'http://mock.vaprofile.va.gov/'
 
 
 @pytest.fixture(scope='function')
-def test_va_profile_client(mocker):
-    mock_logger = mocker.Mock()
-    mock_ssl_key_path = 'some_key.pem'
-    mock_ssl_cert_path = 'some_cert.pem'
-    mock_statsd_client = mocker.Mock()
+def test_va_profile_client(mocker, notify_api):
+    with notify_api.app_context():
+        mock_logger = mocker.Mock()
+        mock_ssl_key_path = 'some_key.pem'
+        mock_ssl_cert_path = 'some_cert.pem'
+        mock_statsd_client = mocker.Mock()
 
-    test_va_profile_client = VAProfileClient()
-    test_va_profile_client.init_app(
-        mock_logger, MOCK_VA_PROFILE_URL, mock_ssl_cert_path, mock_ssl_key_path, mock_statsd_client
-    )
+        test_va_profile_client = VAProfileClient()
+        test_va_profile_client.init_app(
+            mock_logger, MOCK_VA_PROFILE_URL, mock_ssl_cert_path, mock_ssl_key_path, mock_statsd_client
+        )
 
-    return test_va_profile_client
+        return test_va_profile_client
 
 
 @pytest.fixture(scope='module')
@@ -35,7 +36,7 @@ def mock_response():
 
 @pytest.fixture(scope='module')
 def recipient_identifier():
-    return RecipientIdentifier(notification_id='123456', id_type=IdentifierType.ICN, id_value='1008533405V377263')
+    return RecipientIdentifier(notification_id='123456', id_type=IdentifierType.VA_PROFILE_ID, id_value='1234')
 
 
 @pytest.fixture(scope='module')
