@@ -223,3 +223,50 @@ def test_ut_send_scheduled_comp_and_pen_sms_formatted_amount_correctly(
         recipient=None,
         recipient_item=recipient_item,
     )
+
+
+def test_ut_send_scheduled_comp_and_pen_sms_payment_amount_is_None(
+    mocker,
+    msg_helper,
+    dynamodb_mock,
+    sample_service,
+    sample_template,
+):
+    dynamo_data = [
+        {
+            'participant_id': '123',
+            'vaprofile_id': '123',
+            'payment_id': '123',
+            'is_processed': False,
+        },
+    ]
+
+    recipient_item = {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': '123'}
+
+    mocker.patch('app.celery.scheduled_tasks.is_feature_enabled', return_value=True)
+
+    service = sample_service()
+    template = sample_template()
+    sms_sender_id = str(service.get_default_sms_sender_id())
+
+    mock_send_notification = mocker.patch(
+        'app.integrations.comp_and_pen.scheduled_message_helpers.send_notification_bypass_route'
+    )
+
+    msg_helper.send_comp_and_pen_sms(
+        service=service,
+        template=template,
+        sms_sender_id=sms_sender_id,
+        comp_and_pen_messages=dynamo_data,
+        perf_to_number=None,
+    )
+
+    mock_send_notification.assert_called_once_with(
+        service=service,
+        template=template,
+        notification_type=SMS_TYPE,
+        personalisation={'amount': '0.00'},
+        sms_sender_id=sms_sender_id,
+        recipient=None,
+        recipient_item=recipient_item,
+    )
