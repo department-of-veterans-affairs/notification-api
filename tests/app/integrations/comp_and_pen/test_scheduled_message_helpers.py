@@ -179,6 +179,7 @@ def test_ut_send_scheduled_comp_and_pen_sms_calls_send_notification_with_recipie
         (50.5, '50.50'),
         (0.5, '0.50'),
         (0.0, '0.00'),
+        (None, '0.00'),
     ],
 )
 def test_ut_send_scheduled_comp_and_pen_sms_formatted_amount_correctly(
@@ -225,7 +226,7 @@ def test_ut_send_scheduled_comp_and_pen_sms_formatted_amount_correctly(
     )
 
 
-def test_ut_send_scheduled_comp_and_pen_sms_payment_amount_is_None(
+def test_ut_send_scheduled_comp_and_pen_sms_payment_amount_does_not_exist(
     mocker,
     msg_helper,
     dynamodb_mock,

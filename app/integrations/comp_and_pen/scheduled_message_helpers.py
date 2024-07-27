@@ -150,7 +150,10 @@ class CompPenMsgHelper:
             vaprofile_id = str(item.get('vaprofile_id'))
             participant_id = item.get('participant_id')
             # Format payment amount as str with appropriate commas
-            payment_amount = f'{item.get("paymentAmount", 0):0,.2f}'
+            if item.get('paymentAmount') is None:
+                payment_amount = '0.00'
+            else:
+                payment_amount = f'{item.get("paymentAmount", 0):0,.2f}'
 
             current_app.logger.debug('sending - record from dynamodb: %s', participant_id)
 
