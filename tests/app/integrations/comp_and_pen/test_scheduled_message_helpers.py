@@ -225,7 +225,7 @@ def test_ut_send_scheduled_comp_and_pen_sms_formatted_amount_correctly(
     )
 
 
-def test_ut_send_scheduled_comp_and_pen_sms_payment_amount_is_None(
+def test_ut_send_scheduled_comp_and_pen_sms_payment_amount_key_does_not_exist(
     mocker,
     msg_helper,
     dynamodb_mock,
