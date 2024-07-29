@@ -194,6 +194,10 @@ class VAProfileClient:
         communication_permissions: 'CommunicationPermissions' = self.get_profile(recipient_id).get(
             'communicationPermissions', {}
         )
+        self.logger.info(
+            f'Retrieved Communication Permissions for recipient_id: {recipient_id}, notification_id: \
+              {notification_id}, notification_type: {notification_type} -- {communication_permissions}'
+        )
         for perm in communication_permissions:
             self.logger.info(
                 'Found communication item id %s on recipient %s for notification %s',
