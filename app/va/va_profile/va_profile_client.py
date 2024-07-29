@@ -56,7 +56,7 @@ class VAProfileClient:
 
     def get_contact_info(self, va_profile_id: 'RecipientIdentifier') -> 'ContactInformation':
         recipient_id = transform_to_fhir_format(va_profile_id)
-        oid = OIDS.get(va_profile_id.id_type)
+        oid = OIDS.get(IdentifierType.VA_PROFILE_ID)
         url = f'{self.va_profile_url}/profile-service/profile/v3/{oid}/{recipient_id}'
         data = {'bios': [{'bioPath': 'contactInformation'}]}
 
