@@ -83,7 +83,7 @@ def get_twilio_tokens():
 
 
 def get_encryption() -> MultiFernet:
-    """Collects the log encryption key(s) and sets up the MultiFernet used for log encryption"""
+    """Collects the log encryption key(s) and sets up the MultiFernet used for log encryption."""
     if LOG_ENCRYPTION_SSM_NAME == 'fake_value':
         return MultiFernet([Fernet(Fernet.generate_key()), Fernet(Fernet.generate_key())])
     try:
