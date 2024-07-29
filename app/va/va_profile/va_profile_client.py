@@ -56,7 +56,7 @@ class VAProfileClient:
 
     def get_contact_info(self, va_profile_id: 'RecipientIdentifier') -> 'ContactInformation':
         recipient_id = transform_to_fhir_format(va_profile_id)
-        oid = OIDS.get(va_profile_id.id_type)
+        oid = OIDS.get(IdentifierType.VA_PROFILE_ID)
         url = f'{self.va_profile_url}profile/v3/{oid}/{recipient_id}'
         data = {'bios': [{'bioPath': 'contactInformation'}]}
 
@@ -69,7 +69,7 @@ class VAProfileClient:
             response.raise_for_status()
         except Exception:
             current_app.logger.info('***************************')
-            current_app.logger.exception('Error retrieiving contact information:')
+            current_app.logger.exception('Error retrieving contact information:')
             current_app.logger.info('***************************')
         else:
             response_json: Dict = response.json()
