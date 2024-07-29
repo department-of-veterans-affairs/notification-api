@@ -9,7 +9,7 @@ from app.models import RecipientIdentifier
 from app.va.identifier import IdentifierType, transform_to_fhir_format, OIDS
 
 
-MOCK_VA_PROFILE_URL = 'http://mock.vaprofile.va.gov/'
+MOCK_VA_PROFILE_URL = 'http://mock.vaprofile.va.gov'
 
 
 @pytest.fixture(scope='function')
@@ -52,7 +52,7 @@ def oid(recipient_identifier):
 def test_retrieve_email_from_profile_v3(
     rmock, test_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid
 ):
-    url = f'{MOCK_VA_PROFILE_URL}profile-service/profile/v3/{oid}/{id_with_aaid}'
+    url = f'{MOCK_VA_PROFILE_URL}/profile-service/profile/v3/{oid}/{id_with_aaid}'
     rmock.post(url, json=mock_response, status_code=200)
 
     email = test_va_profile_client.get_email_from_profile_v3(recipient_identifier)
@@ -64,7 +64,7 @@ def test_retrieve_email_from_profile_v3(
 def test_retrieve_telephone_from_profile_v3(
     rmock, test_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid
 ):
-    url = f'{MOCK_VA_PROFILE_URL}profile-service/profile/v3/{oid}/{id_with_aaid}'
+    url = f'{MOCK_VA_PROFILE_URL}/profile-service/profile/v3/{oid}/{id_with_aaid}'
     rmock.post(url, json=mock_response, status_code=200)
 
     telephone = test_va_profile_client.get_telephone_from_profile_v3(recipient_identifier)
