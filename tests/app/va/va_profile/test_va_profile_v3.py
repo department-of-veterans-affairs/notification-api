@@ -52,7 +52,7 @@ def oid(recipient_identifier):
 def test_retrieve_email_from_profile_v3(
     rmock, test_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid
 ):
-    url = 'https://int.vaprofile.va.govprofile/profile/v3/2.16.840.1.113883.4.349/43627PI^200VETS^USDVA'
+    url = 'https://int.vaprofile.va.gov/profile/v3/2.16.840.1.113883.4.349/43627PI^200VETS^USDVA'
     # url = f'{MOCK_VA_PROFILE_URL}profile/v3/{oid}/{id_with_aaid}'
     rmock.post(url, json=mock_response, status_code=200)
 
@@ -65,7 +65,7 @@ def test_retrieve_email_from_profile_v3(
 def test_retrieve_telephone_from_profile_v3(
     rmock, test_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid
 ):
-    url = 'https://int.vaprofile.va.govprofile/profile/v3/2.16.840.1.113883.4.349/43627PI^200VETS^USDVA'
+    url = 'https://int.vaprofile.va.gov/profile/v3/2.16.840.1.113883.4.349/43627PI^200VETS^USDVA'
     # url = f'{MOCK_VA_PROFILE_URL}profile/v3/{oid}/{id_with_aaid}'
     rmock.post(url, json=mock_response, status_code=200)
 
