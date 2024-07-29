@@ -363,7 +363,6 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
 
 @notify_celery.task(
     bind=True,
-    name='send-email-status-to-va-profile',
     throws=(AutoRetryException,),
     autoretry_for=(AutoRetryException,),
     max_retries=60,
