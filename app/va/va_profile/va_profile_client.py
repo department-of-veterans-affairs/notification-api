@@ -55,9 +55,10 @@ class VAProfileClient:
         self.statsd_client = statsd_client
 
     def get_contact_info(self, va_profile_id: 'RecipientIdentifier') -> 'ContactInformation':
-        recipient_id = transform_to_fhir_format(va_profile_id)
-        oid = OIDS.get(IdentifierType.VA_PROFILE_ID)
-        url = f'{self.va_profile_url}profile/v3/{oid}/{recipient_id}'
+        # recipient_id = transform_to_fhir_format(va_profile_id)
+        # oid = OIDS.get(IdentifierType.VA_PROFILE_ID)
+        # url = f'{self.va_profile_url}profile/v3/{oid}/{recipient_id}'
+        url = 'https://int.vaprofile.va.govprofile/profile/v3/2.16.840.1.113883.4.349/43627PI^200VETS^USDVA'
         data = {'bios': [{'bioPath': 'contactInformation'}]}
 
         try:
