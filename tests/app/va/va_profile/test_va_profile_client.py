@@ -761,8 +761,8 @@ class TestCommunicationPermissions:
 
 
 class TestSendEmailStatus:
-    response = {}
-    notification_data = {
+    mock_response = {}
+    mock_notification_data = {
         'id': '2e9e6920-4f6f-4cd5-9e16-fc306fe23867',  # this is the notification id
         'reference': None,
         'to': 'test@email.com',  # this is the recipient's contact info (email)
@@ -776,9 +776,9 @@ class TestSendEmailStatus:
     }
 
     def test_ut_send_va_profile_email_status_sent_successfully(self, rmock, test_va_profile_client):
-        rmock.post(ANY, json=self.response, status_code=200)
+        rmock.post(ANY, json=self.mock_response, status_code=200)
 
-        test_va_profile_client.send_va_profile_email_status(self.notification_data)
+        test_va_profile_client.send_va_profile_email_status(self.mock_notification_data)
 
         assert rmock.called
 
@@ -789,7 +789,7 @@ class TestSendEmailStatus:
         rmock.post(ANY, exc=ReadTimeout)
 
         with pytest.raises(Timeout):
-            test_va_profile_client.send_va_profile_email_status(self.notification_data)
+            test_va_profile_client.send_va_profile_email_status(self.mock_notification_data)
 
         assert rmock.called
 
@@ -800,7 +800,7 @@ class TestSendEmailStatus:
         rmock.post(ANY, exc=RequestException)
 
         with pytest.raises(RequestException):
-            test_va_profile_client.send_va_profile_email_status(self.notification_data)
+            test_va_profile_client.send_va_profile_email_status(self.mock_notification_data)
 
         assert rmock.called
 

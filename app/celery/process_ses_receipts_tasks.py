@@ -154,7 +154,7 @@ def sns_smtp_callback_handler():
 
 @notify_celery.task(bind=True, name='process-ses-result', max_retries=5, default_retry_delay=300)
 @statsd(namespace='tasks')
-def process_ses_results(  # noqa: C901
+def process_ses_results(  # noqa: C901 (too complex 14 > 10)
     self,
     response,
 ):
@@ -206,8 +206,7 @@ def process_ses_results(  # noqa: C901
             notifications_dao.dao_update_notification(notification)
             check_and_queue_callback_task(notification)
 
-            if is_feature_enabled(FeatureFlag.VA_PROFILE_EMAIL_STATUS_ENABLED):
-                send_email_status_to_va_profile.apply_async([notification], queue=QueueNames.CALLBACKS)
+            check_and_queue_va_profile_email_status_callback(notification)
 
             return
 
@@ -258,8 +257,7 @@ def process_ses_results(  # noqa: C901
 
         check_and_queue_callback_task(notification)
 
-        if is_feature_enabled(FeatureFlag.VA_PROFILE_EMAIL_STATUS_ENABLED):
-            send_email_status_to_va_profile.apply_async([notification], queue=QueueNames.CALLBACKS)
+        check_and_queue_va_profile_email_status_callback(notification)
 
         return True
 
@@ -354,16 +352,32 @@ def process_ses_smtp_results(
         self.retry(queue=QueueNames.RETRY)
 
 
+def check_and_queue_va_profile_email_status_callback(notification: Notification) -> None:
+    """This checks the feature flag is enabled and queues the celery task if it is. Otherwise, it only logs a message."""
+
+    if is_feature_enabled(FeatureFlag.VA_PROFILE_EMAIL_STATUS_ENABLED):
+        send_email_status_to_va_profile.apply_async([notification], queue=QueueNames.CALLBACKS)
+    else:
+        current_app.logger.info('Email status not sent to VA Profile, feature flag disabled')
+
+
 @notify_celery.task(
     bind=True,
     name='send-email-status-to-va-profile',
     throws=(AutoRetryException,),
     autoretry_for=(AutoRetryException,),
-    max_retries=585,
+    max_retries=60,
     retry_backoff=True,
-    retry_backoff_max=300,
+    retry_backoff_max=3600,
 )
-def send_email_status_to_va_profile(task, notification: Notification):
+def send_email_status_to_va_profile(task, notification: Notification) -> None:
+    """
+    This function collects the information from the email notification to send to VA Profile and calls the
+    VAProfileClient method to send the information to VA Profile.
+
+    :param notification: the email notification to collect data from
+    """
+
     current_app.logger.debug('Sending email status to VA Profile, collecting data...')
     notification_data = {
         'id': str(notification.id),  # this is the notification id
@@ -384,8 +398,10 @@ def send_email_status_to_va_profile(task, notification: Notification):
         # logging in send_va_profile_email_status
         raise AutoRetryException
     except requests.exceptions.RequestException:
-        # TODO 1770 - what should we do if this happens?
-        # logging in send_va_profile_email_status
-        pass
+        # logging exception in send_va_profile_email_status
+        current_app.logger.error(
+            'Exception caused notification status to NOT be sent to VA Profile for notification %s',
+            notification_data.get('id'),
+        )
 
-    return True
+        # the error is being handled by not retrying this celery task

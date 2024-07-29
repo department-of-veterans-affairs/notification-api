@@ -276,8 +276,9 @@ class VAProfileClient:
 
         Raises:
             requests.Timeout: if the request to VA Profile times out
-            Exception: if something unexpected happens when sending the request
+            RequestException: if something unexpected happens when sending the request
         """
+
         headers = {'Authorization': f'Bearer {self.va_profile_token}'}
         url = self.va_profile_url + '/contact-information-vanotify/notify/status'
 
@@ -286,18 +287,20 @@ class VAProfileClient:
         )
 
         # make POST request to VA Profile endpoint for notification statuses
-        # raise errors if they occur, they will be handled in the celery task upstream
+        # raise errors if they occur, they will be handled by the calling function
         try:
             requests.post(url, json=notification_data, headers=headers, timeout=(3.05, 1))
         except requests.Timeout:
-            self.logger.warning(
-                'Request timeout attempting to send the email status for notification %s to VA Profile ... retrying',
+            self.logger.info(
+                'Request timeout attempting to send email status for notification %s to VA Profile, retrying',
                 notification_data.get('id'),
             )
             raise
-        except requests.exceptions.RequestException:
+        except requests.exceptions.RequestException as e:
             self.logger.exception(
-                'Unexpected exception occurred attempting to send the email status for notification %s to VA Profile.',
+                'Unexpected request exception attempting to send email status for notification %s to VA Profile.'
+                ' Exception: %s',
                 notification_data.get('id'),
+                e,
             )
             raise
