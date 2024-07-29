@@ -32,5 +32,5 @@ fileignoreconfig:
 - filename: tests/app/va/va_profile/test_va_profile_v3.py
   checksum: 8ad275c519e475b1d85f367873bdf27d3f9d8626e5a1a5248da761ed477a65a1
 - filename: app/va/va_profile/va_profile_client.py
-  checksum: 8379d67cb2aeae8788d10b9012458ece182c14a525fb6681ceaa2c33b0ebe38c
+  checksum: 7010f0ca4cc3b29d27d55c98788dbc609686f9cd82b55236f14c985c4bb1e059
 version: "1.0"

@@ -89,5 +89,22 @@ class ContactInformation(TypedDict):
     emails: List[Email]
 
 
+class CommunicationPermissions(TypedDict):
+    createDate: str
+    updateDate: str
+    txAuditId: str
+    sourceSystem: str
+    sourceDate: str
+    communicationPermissionID: int
+    vaProfileId: int
+    communicationChannelId: int
+    communicationItemId: int
+    communicationChannelName: str
+    communicationItemCommonName: str
+    allowed: bool
+    confirmationDate: List[str]
+
+
 class Profile(TypedDict):
     contactInformation: ContactInformation
+    communicationPermissions: List[CommunicationPermissions]

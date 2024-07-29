@@ -1,5 +1,35 @@
 {
   "profile": {
+    "communicationPermissions": [
+      {
+        "createDate": "2022-03-08T19:18:20Z",
+        "updateDate": "2022-07-18T17:49:14Z",
+        "txAuditId": "e6315012-5c7b-4ce1-9328-9a85008d2a57",
+        "sourceSystem": "VETSGOV",
+        "sourceDate": "2022-07-18T17:49:13Z",
+        "communicationPermissionId": 11068,
+        "vaProfileId": 1550370,
+        "communicationChannelId": 1,
+        "communicationItemId": 1,
+        "communicationChannelName": "Text",
+        "communicationItemCommonName": "Appeal hearing reminders",
+        "allowed": true
+      },
+      {
+        "createDate": "2022-03-08T19:18:20Z",
+        "updateDate": "2022-07-18T17:49:14Z",
+        "txAuditId": "e6315012-5c7b-4ce1-9328-9a85008d2a57",
+        "sourceSystem": "VETSGOV",
+        "sourceDate": "2022-07-18T17:49:13Z",
+        "communicationPermissionId": 11069,
+        "vaProfileId": 1550370,
+        "communicationChannelId": 2,
+        "communicationItemId": 2,
+        "communicationChannelName": "Email",
+        "communicationItemCommonName": "Appeal hearing reminders",
+        "allowed": true
+      }
+    ],
     "contactInformation": {
       "createDate": "2018-04-20T17:15:05Z",
       "updateDate": "2018-04-20T17:15:05Z",
