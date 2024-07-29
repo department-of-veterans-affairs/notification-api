@@ -353,11 +353,11 @@ def make_vetext_request(request_body):
     except requests.HTTPError as e:
         logged_body = body.copy()
         logged_body['body'] = 'redacted'
-        logger.error('HTTPError With Call To VeText url: %s, with body: %s and error: %s', endpoint_uri, logged_body, e)
+        logger.warning('HTTPError With Call To VeText url: %s, with body: %s and error: %s', endpoint_uri, logged_body, e)
     except requests.RequestException as e:
         logged_body = body.copy()
         logged_body['body'] = 'redacted'
-        logger.error(
+        logger.warning(
             'RequestException With Call To VeText url: %s, with body: %s and error: %s',
             endpoint_uri,
             logged_body,
