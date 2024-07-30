@@ -364,6 +364,7 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
 
 
 @notify_celery.task(
+    name='send-status-to-va-profile',
     throws=(AutoRetryException,),
     autoretry_for=(AutoRetryException,),
     max_retries=60,
@@ -404,4 +405,4 @@ def send_email_status_to_va_profile(notification: Notification) -> None:
             notification_data.get('id'),
         )
 
-        # the error is being handled by not retrying this celery task
+        # In this case the error is being handled by not retrying this celery task
