@@ -205,7 +205,6 @@ def process_ses_results(  # noqa: C901 (too complex 14 > 10)
 
             notifications_dao.dao_update_notification(notification)
             check_and_queue_callback_task(notification)
-
             check_and_queue_va_profile_email_status_callback(notification)
 
             return
@@ -256,7 +255,6 @@ def process_ses_results(  # noqa: C901 (too complex 14 > 10)
         )
 
         check_and_queue_callback_task(notification)
-
         check_and_queue_va_profile_email_status_callback(notification)
 
         return True
