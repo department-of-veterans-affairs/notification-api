@@ -14,7 +14,7 @@ from notifications_utils.statsd_decorators import statsd
 from sqlalchemy.orm.exc import NoResultFound
 import enum
 import requests
-from app import notify_celery, statsd_client
+from app import DATETIME_FORMAT, notify_celery, statsd_client, va_profile_client
 from app.celery.exceptions import AutoRetryException
 from app.celery.service_callback_tasks import publish_complaint
 from app.config import QueueNames
@@ -363,21 +363,21 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
     if is_feature_enabled(FeatureFlag.VA_PROFILE_EMAIL_STATUS_ENABLED):
         current_app.logger.debug('Sending email status to VA Profile, feature flag enabled')
         current_app.logger.debug('Sending email status to VA Profile, collecting data...')
-        # notification_data = {
-        #     'id': str(notification.id),  # this is the notification id
-        #     'reference': notification.client_reference,
-        #     'to': notification.to,  # this is the recipient's contact info (email)
-        #     'status': notification.status,  # this will specify the delivery status of the notification
-        #     'status_reason': notification.status_reason,  # populated if there's additional context on the delivery status
-        #     'created_at': notification.created_at.strftime(DATETIME_FORMAT),
-        #     'completed_at': notification.updated_at.strftime(DATETIME_FORMAT) if notification.updated_at else None,
-        #     'sent_at': notification.sent_at.strftime(DATETIME_FORMAT) if notification.sent_at else None,
-        #     'notification_type': notification.notification_type,  # this is the channel/type of notification (email)
-        #     'provider': notification.sent_by,  # email provider
-        # }
+        notification_data = {
+            'id': str(notification.id),  # this is the notification id
+            'reference': notification.client_reference,
+            'to': notification.to,  # this is the recipient's contact info (email)
+            'status': notification.status,  # this will specify the delivery status of the notification
+            'status_reason': notification.status_reason,  # populated if there's additional context on the delivery status
+            'created_at': notification.created_at.strftime(DATETIME_FORMAT),  # noqa: F821
+            'completed_at': notification.updated_at.strftime(DATETIME_FORMAT) if notification.updated_at else None,
+            'sent_at': notification.sent_at.strftime(DATETIME_FORMAT) if notification.sent_at else None,
+            'notification_type': notification.notification_type,  # this is the channel/type of notification (email)
+            'provider': notification.sent_by,  # email provider
+        }
 
         # data passed to tasks must be JSON serializable
-        send_email_status_to_va_profile.delay()
+        send_email_status_to_va_profile.delay(notification_data)
     else:
         current_app.logger.info('Email status not sent to VA Profile, feature flag disabled')
 
@@ -389,7 +389,7 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
     retry_backoff=True,
     retry_backoff_max=3600,
 )
-def send_email_status_to_va_profile() -> None:
+def send_email_status_to_va_profile(notification_data: dict) -> None:
     """
     This function collects the information from the email notification to send to VA Profile and calls the
     VAProfileClient method to send the information to VA Profile.
@@ -398,16 +398,16 @@ def send_email_status_to_va_profile() -> None:
     """
     current_app.logger.debug('Sending email status to VA Profile, send_email_status_to_va_profile task executing.')
 
-    # try:
-    #     va_profile_client.send_va_profile_email_status(notification_data)
-    # except requests.Timeout:
-    #     # logging in send_va_profile_email_status
-    #     raise AutoRetryException
-    # except requests.exceptions.RequestException:
-    #     # logging exception in send_va_profile_email_status
-    #     current_app.logger.error(
-    #         'Exception caused notification status to NOT be sent to VA Profile for notification %s',
-    #         notification_data.get('id'),
-    #     )
+    try:
+        va_profile_client.send_va_profile_email_status(notification_data)
+    except requests.Timeout:
+        # logging in send_va_profile_email_status
+        raise AutoRetryException
+    except requests.exceptions.RequestException:
+        # logging exception in send_va_profile_email_status
+        current_app.logger.error(
+            'Exception caused notification status to NOT be sent to VA Profile for notification %s',
+            notification_data.get('id'),
+        )
 
     # In this case the error is being handled by not retrying this celery task
