@@ -70,7 +70,11 @@ class VAProfileClient:
 
     def get_telephone_from_profile_v3(self, va_profile_id: 'RecipientIdentifier') -> str:
         contact_info: 'ContactInformation' = self.get_profile(va_profile_id).get('contactInformation', {})
+        self.logger.info(f'V3 Profile - Retrieved ContactInformation: {contact_info}')
+
         telephones: List['Telephone'] = contact_info.get(self.PHONE_BIO_TYPE, [])
+        phone_numbers = ', '.join([tel['phoneNumber'] for tel in telephones])
+        self.logger.info(f'V3 Profile telephones: {phone_numbers}' ')}')
         mobile_telephones = [phone for phone in telephones if phone['phoneType'] == PhoneNumberType.MOBILE.value]
         sorted_telephones = sorted(
             mobile_telephones,
