@@ -353,21 +353,23 @@ def process_ses_smtp_results(
 def check_and_queue_va_profile_email_status_callback(notification: Notification) -> None:
     """This checks the feature flag is enabled and queues the celery task if it is. Otherwise, it only logs a message."""
 
+    current_app.logger.debug('Sending email status to VA Profile, checking feature flag...')
+
     if is_feature_enabled(FeatureFlag.VA_PROFILE_EMAIL_STATUS_ENABLED):
+        current_app.logger.debug('Sending email status to VA Profile, feature flag enabled')
         send_email_status_to_va_profile.apply_async([notification], queue=QueueNames.CALLBACKS)
     else:
         current_app.logger.info('Email status not sent to VA Profile, feature flag disabled')
 
 
 @notify_celery.task(
-    bind=True,
     throws=(AutoRetryException,),
     autoretry_for=(AutoRetryException,),
     max_retries=60,
     retry_backoff=True,
     retry_backoff_max=3600,
 )
-def send_email_status_to_va_profile(task, notification: Notification) -> None:
+def send_email_status_to_va_profile(notification: Notification) -> None:
     """
     This function collects the information from the email notification to send to VA Profile and calls the
     VAProfileClient method to send the information to VA Profile.
