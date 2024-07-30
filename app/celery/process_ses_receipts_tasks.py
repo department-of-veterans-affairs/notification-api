@@ -357,8 +357,22 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
 
     if is_feature_enabled(FeatureFlag.VA_PROFILE_EMAIL_STATUS_ENABLED):
         current_app.logger.debug('Sending email status to VA Profile, feature flag enabled')
-        send_email_status_to_va_profile.delay(notification)
-        # send_email_status_to_va_profile.apply_async([notification], queue=QueueNames.CALLBACKS)
+        current_app.logger.debug('Sending email status to VA Profile, collecting data...')
+        notification_data = {
+            'id': str(notification.id),  # this is the notification id
+            'reference': notification.client_reference,
+            'to': notification.to,  # this is the recipient's contact info (email)
+            'status': notification.status,  # this will specify the delivery status of the notification
+            'status_reason': notification.status_reason,  # populated if there's additional context on the delivery status
+            'created_at': notification.created_at.strftime(DATETIME_FORMAT),
+            'completed_at': notification.updated_at.strftime(DATETIME_FORMAT) if notification.updated_at else None,
+            'sent_at': notification.sent_at.strftime(DATETIME_FORMAT) if notification.sent_at else None,
+            'notification_type': notification.notification_type,  # this is the channel/type of notification (email)
+            'provider': notification.sent_by,  # email provider
+        }
+
+        # data passed to tasks must be JSON serializable
+        send_email_status_to_va_profile.delay(notification_data)
     else:
         current_app.logger.info('Email status not sent to VA Profile, feature flag disabled')
 
@@ -371,27 +385,14 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
     retry_backoff=True,
     retry_backoff_max=3600,
 )
-def send_email_status_to_va_profile(notification: Notification) -> None:
+def send_email_status_to_va_profile(notification_data: dict) -> None:
     """
     This function collects the information from the email notification to send to VA Profile and calls the
     VAProfileClient method to send the information to VA Profile.
 
-    :param notification: the email notification to collect data from
+    :param notification_data: the email notification to collect data from
     """
-
-    current_app.logger.debug('Sending email status to VA Profile, collecting data...')
-    notification_data = {
-        'id': str(notification.id),  # this is the notification id
-        'reference': notification.client_reference,
-        'to': notification.to,  # this is the recipient's contact info (email)
-        'status': notification.status,  # this will specify the delivery status of the notification
-        'status_reason': notification.status_reason,  # populated if there's additional context on the delivery status
-        'created_at': notification.created_at.strftime(DATETIME_FORMAT),
-        'completed_at': notification.updated_at.strftime(DATETIME_FORMAT) if notification.updated_at else None,
-        'sent_at': notification.sent_at.strftime(DATETIME_FORMAT) if notification.sent_at else None,
-        'notification_type': notification.notification_type,  # this is the channel/type of notification (email)
-        'provider': notification.sent_by,  # email provider
-    }
+    current_app.logger.debug('Sending email status to VA Profile, send_email_status_to_va_profile task executing.')
 
     try:
         va_profile_client.send_va_profile_email_status(notification_data)
