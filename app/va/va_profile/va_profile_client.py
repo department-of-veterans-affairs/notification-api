@@ -200,18 +200,20 @@ class VAProfileClient:
         )
         for perm in communication_permissions:
             self.logger.info(
-                'Found communication item id %s on recipient %s for notification %s',
+                'V3 Profile -- Found communication item id %s on recipient %s for notification %s',
                 communication_item_id,
                 recipient_id,
                 notification_id,
             )
             if perm['communicationChannelName'] == VA_NOTIFY_TO_VA_PROFILE_NOTIFICATION_TYPES[notification_type]:
-                self.logger.info('Value of allowed is %s for notification %s', perm['allowed'], notification_id)
+                self.logger.info(
+                    'V3 Profile -- Value of allowed is %s for notification %s', perm['allowed'], notification_id
+                )
                 self.statsd_client.incr('clients.va-profile.get-communication-item-permission.success')
                 return perm['allowed'] is True
 
         self.logger.info(
-            'Recipient %s did not have permission for communication item %s and channel %s for notification %s',
+            'V3 Profile -- Recipient %s did not have permission for communication item %s and channel %s for notification %s',
             recipient_id,
             communication_item_id,
             notification_type,
