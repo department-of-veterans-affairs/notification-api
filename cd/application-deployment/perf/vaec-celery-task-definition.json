@@ -95,11 +95,11 @@
         },
         {
           "name": "VA_PROFILE_URL",
-          "value": "https://qa.vaprofile.va.gov"
+          "value": "https://int.vaprofile.va.gov"
         },
         {
           "name": "VA_PROFILE_EMAIL_STATUS_ENABLED",
-          "value": "False"
+          "value": "True"
         },
         {
           "name": "VANOTIFY_SSL_CERT_PATH",
