@@ -279,7 +279,7 @@ def read_from_ssm(key: str) -> str:
     return response.get('Parameter', {}).get('Value')
 
 
-def make_vetext_request(request_body):  # noqa
+def make_vetext_request(request_body):  # noqa: C901 (too complex 13 > 10)
     endpoint = request_body.get('path', TWILIO_VETEXT_PATH)
     logger.debug('Making VeText Request for endpoint: %s', endpoint)
 
