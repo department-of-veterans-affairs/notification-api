@@ -357,7 +357,8 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
 
     if is_feature_enabled(FeatureFlag.VA_PROFILE_EMAIL_STATUS_ENABLED):
         current_app.logger.debug('Sending email status to VA Profile, feature flag enabled')
-        send_email_status_to_va_profile.apply_async([notification], queue=QueueNames.CALLBACKS)
+        send_email_status_to_va_profile.delay(notification)
+        # send_email_status_to_va_profile.apply_async([notification], queue=QueueNames.CALLBACKS)
     else:
         current_app.logger.info('Email status not sent to VA Profile, feature flag disabled')
 
