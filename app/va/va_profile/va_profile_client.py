@@ -57,7 +57,7 @@ class VAProfileClient:
         recipient_id = transform_to_fhir_format(va_profile_id)
         oid = OIDS.get(IdentifierType.VA_PROFILE_ID)
         url = f'{self.va_profile_url}/profile-service/profile/v3/{oid}/{recipient_id}'
-        data = {'bios': [{'bioPath': 'contactInformation'}]}
+        data = {'bios': [{'bioPath': 'contactInformation'}, {'bioPath': 'communicationPermissions'}]}
 
         try:
             response = requests.post(url, json=data, cert=(self.ssl_cert_path, self.ssl_key_path), timeout=(3.05, 1))
@@ -202,7 +202,7 @@ class VAProfileClient:
             self.logger.info(
                 'V3 Profile -- Found communication item id %s on recipient %s for notification %s',
                 communication_item_id,
-                recipient_id,
+                recipient_id.id_value,
                 notification_id,
             )
             if perm['communicationChannelName'] == VA_NOTIFY_TO_VA_PROFILE_NOTIFICATION_TYPES[notification_type]:
