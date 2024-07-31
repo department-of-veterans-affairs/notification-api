@@ -2,9 +2,7 @@ import json
 import pytest
 
 
-from app.va.va_profile import (
-    VAProfileClient,
-)
+from app.va.va_profile import VAProfileClient
 from app.models import RecipientIdentifier
 from app.va.identifier import IdentifierType, transform_to_fhir_format, OIDS
 
@@ -12,7 +10,7 @@ from app.va.identifier import IdentifierType, transform_to_fhir_format, OIDS
 MOCK_VA_PROFILE_URL = 'http://mock.vaprofile.va.gov'
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='module')
 def test_va_profile_client(mocker, notify_api):
     with notify_api.app_context():
         mock_logger = mocker.Mock()

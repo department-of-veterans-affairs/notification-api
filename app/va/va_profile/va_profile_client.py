@@ -14,7 +14,7 @@ from typing import Dict, List, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.models import RecipientIdentifier
-    from va_profile_types import ContactInformation, CommunicationPermissions, Profile, Telephone, Email
+    from va_profile_types import ContactInformation, CommunicationPermissions, Profile, Telephone
 
 
 class CommunicationItemNotFoundException(Exception):
@@ -64,9 +64,9 @@ class VAProfileClient:
             response.raise_for_status()
         except (requests.HTTPError, requests.RequestException, requests.Timeout) as e:
             self._handle_exceptions(va_profile_id.id_value, e)
-        else:
-            response_json: Dict = response.json()
-            return response_json.get('profile', {})
+
+        response_json: Dict = response.json()
+        return response_json.get('profile', {})
 
     def get_telephone_from_profile_v3(self, va_profile_id: 'RecipientIdentifier') -> str:
         contact_info: 'ContactInformation' = self.get_profile(va_profile_id).get('contactInformation', {})
@@ -74,10 +74,9 @@ class VAProfileClient:
 
         telephones: List['Telephone'] = contact_info.get(self.PHONE_BIO_TYPE, [])
         phone_numbers = ', '.join([tel['phoneNumber'] for tel in telephones])
-        self.logger.info(f'V3 Profile telephones: {phone_numbers}' ')}')
-        mobile_telephones = [phone for phone in telephones if phone['phoneType'] == PhoneNumberType.MOBILE.value]
+        self.logger.info('V3 Profile telephones: %s', phone_numbers)
         sorted_telephones = sorted(
-            mobile_telephones,
+            [phone for phone in telephones if phone['phoneType'] == PhoneNumberType.MOBILE.value],
             key=lambda phone: iso8601.parse_date(phone['createDate']),
             reverse=True,
         )
@@ -100,8 +99,11 @@ class VAProfileClient:
 
     def get_email_from_profile_v3(self, va_profile_id: 'RecipientIdentifier') -> str:
         contact_info: 'ContactInformation' = self.get_profile(va_profile_id).get('contactInformation', {})
-        emails: List['Email'] = contact_info.get(self.EMAIL_BIO_TYPE, [])
-        sorted_emails = sorted(emails, key=lambda email: iso8601.parse_date(email['createDate']), reverse=True)
+        sorted_emails = sorted(
+            contact_info.get(self.EMAIL_BIO_TYPE, []),
+            key=lambda email: iso8601.parse_date(email['createDate']),
+            reverse=True,
+        )
         if sorted_emails:
             self.statsd_client.incr('clients.va-profile.get-email.success')
             return sorted_emails[0].get('emailAddressText')
@@ -199,8 +201,12 @@ class VAProfileClient:
             'communicationPermissions', {}
         )
         self.logger.info(
-            f'V3 Profile -- Retrieved Communication Permissions for recipient_id: {recipient_id.id_value}, notification_id: \
-              {notification_id}, notification_type: {notification_type} -- {communication_permissions}'
+            'V3 Profile -- Retrieved Communication Permissions for recipient_id: %s, notification_id: \
+              %s, notification_type: %s -- %s',
+            recipient_id.id_value,
+            notification_id,
+            notification_type,
+            communication_permissions,
         )
         for perm in communication_permissions:
             self.logger.info(
@@ -220,7 +226,8 @@ class VAProfileClient:
                     notification_id,
                 )
                 self.statsd_client.incr('clients.va-profile.get-communication-item-permission.success')
-                return perm['allowed'] is True
+                assert isinstance(perm['allowed'])
+                return perm['allowed']
 
         self.logger.info(
             'V3 Profile -- Recipient %s did not have permission for communication item %s and channel %s for notification %s',
