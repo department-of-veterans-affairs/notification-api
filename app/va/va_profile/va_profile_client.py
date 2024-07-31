@@ -280,7 +280,7 @@ class VAProfileClient:
         """
 
         headers = {'Authorization': f'Bearer {self.va_profile_token}'}
-        url = self.va_profile_url + '/contact-information-vanotify/notify/status'
+        url = f'{self.va_profile_url}/contact-information-vanotify/notify/status'
 
         self.logger.debug(
             'Sending email status to VA Profile using url: %s | notification: %s', url, notification_data.get('id')
@@ -289,7 +289,7 @@ class VAProfileClient:
         # make POST request to VA Profile endpoint for notification statuses
         # raise errors if they occur, they will be handled by the calling function
         try:
-            requests.post(url, json=notification_data, headers=headers, timeout=(3.05, 1))
+            response = requests.post(url, json=notification_data, headers=headers, timeout=(3.05, 1))
         except requests.Timeout:
             self.logger.info(
                 'Request timeout attempting to send email status for notification %s to VA Profile, retrying',
@@ -304,3 +304,5 @@ class VAProfileClient:
                 e,
             )
             raise
+
+        self.logger.info('VA Profile response, status code: %s | json: %s', response.status_code, response.json())

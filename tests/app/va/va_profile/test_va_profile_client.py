@@ -8,7 +8,7 @@ from app.va.va_profile import (
     VAProfileRetryableException,
     VAProfileNonRetryableException,
 )
-from app.models import RecipientIdentifier, SMS_TYPE
+from app.models import EMAIL_TYPE, RecipientIdentifier, SMS_TYPE
 from app.va.va_profile.va_profile_client import CommunicationItemNotFoundException
 
 MOCK_VA_PROFILE_URL = 'http://mock.vaprofile.va.gov/'
@@ -19,7 +19,7 @@ def test_va_profile_client(mocker):
     mock_logger = mocker.Mock()
     mock_ssl_key_path = 'some_key.pem'
     mock_ssl_cert_path = 'some_cert.pem'
-    mock_token = 'mock_token'
+    mock_token = 'mock_token'  # nosec
     mock_statsd_client = mocker.Mock()
 
     test_va_profile_client = VAProfileClient()
@@ -771,7 +771,7 @@ class TestSendEmailStatus:
         'created_at': '2024-07-25T10:00:00.0',
         'completed_at': '2024-07-25T11:00:00.0',
         'sent_at': '2024-07-25T11:00:00.0',
-        'notification_type': 'email',  # this is the channel/type of notification (email)
+        'notification_type': EMAIL_TYPE,  # this is the channel/type of notification (email)
         'provider': 'ses',  # email provider
     }
 
