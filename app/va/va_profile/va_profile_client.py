@@ -283,7 +283,7 @@ class VAProfileClient:
         url = f'{self.va_profile_url}/contact-information-vanotify/notify/status'
 
         self.logger.debug(
-            'Sending email status to VA Profile using url: %s | notification: %s', url, notification_data.get('id')
+            'Sending email status to VA Profile with url: %s | notification: %s', url, notification_data.get('id')
         )
 
         # make POST request to VA Profile endpoint for notification statuses
@@ -292,17 +292,22 @@ class VAProfileClient:
             response = requests.post(url, json=notification_data, headers=headers, timeout=(3.05, 1))
         except requests.Timeout:
             self.logger.info(
-                'Request timeout attempting to send email status for notification %s to VA Profile, retrying',
+                'Request timeout attempting to send email status to VA Profile for notification %s | retrying...',
                 notification_data.get('id'),
             )
             raise
-        except requests.exceptions.RequestException as e:
+        except requests.RequestException as e:
             self.logger.exception(
-                'Unexpected request exception attempting to send email status for notification %s to VA Profile.'
-                ' Exception: %s',
+                'Unexpected request exception, email status NOT sent to VA Profile for notification %s'
+                ' | Exception: %s',
                 notification_data.get('id'),
                 e,
             )
             raise
 
-        self.logger.info('VA Profile response, status code: %s | json: %s', response.status_code, response.json())
+        self.logger.info(
+            'VA Profile response for sent notification %s | status code: %s | json: %s',
+            notification_data.get('id'),
+            response.status_code,
+            response.json(),
+        )

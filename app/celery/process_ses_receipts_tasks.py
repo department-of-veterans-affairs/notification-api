@@ -361,8 +361,9 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
     current_app.logger.debug('Sending email status to VA Profile, checking feature flag...')
 
     if is_feature_enabled(FeatureFlag.VA_PROFILE_EMAIL_STATUS_ENABLED):
-        current_app.logger.debug('Sending email status to VA Profile, feature flag enabled')
-        current_app.logger.debug('Sending email status to VA Profile, collecting data...')
+        current_app.logger.debug(
+            'Sending email status to VA Profile, collecting data for notification %s', notification.id
+        )
         notification_data = {
             'id': str(notification.id),  # this is the notification id
             'reference': notification.client_reference,
@@ -379,7 +380,9 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
         # data passed to tasks must be JSON serializable
         send_email_status_to_va_profile.delay(notification_data)
     else:
-        current_app.logger.info('Email status not sent to VA Profile, feature flag disabled')
+        current_app.logger.debug(
+            'Email status not sent to VA Profile, feature flag disabled | notification %s', notification.id
+        )
 
 
 @notify_celery.task(
@@ -391,8 +394,7 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
 )
 def send_email_status_to_va_profile(notification_data: dict) -> None:
     """
-    This function collects the information from the email notification to send to VA Profile and calls the
-    VAProfileClient method to send the information to VA Profile.
+    This function calls the VAProfileClient method to send the information to VA Profile.
 
     :param notification_data: the email notification data to send
     """
@@ -403,11 +405,7 @@ def send_email_status_to_va_profile(notification_data: dict) -> None:
     except requests.Timeout:
         # logging in send_va_profile_email_status
         raise AutoRetryException
-    except requests.exceptions.RequestException:
-        # logging exception in send_va_profile_email_status
-        current_app.logger.error(
-            'Exception caused notification status to NOT be sent to VA Profile for notification %s',
-            notification_data.get('id'),
-        )
-
-    # In this case the error is being handled by not retrying this celery task
+    except requests.RequestException:
+        # logging in send_va_profile_email_status
+        # In this case the error is being handled by not retrying this celery task
+        pass
