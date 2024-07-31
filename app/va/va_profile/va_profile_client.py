@@ -209,7 +209,10 @@ class VAProfileClient:
                 recipient_id.id_value,
                 notification_id,
             )
-            if perm['communicationChannelName'] == VA_NOTIFY_TO_VA_PROFILE_NOTIFICATION_TYPES[notification_type]:
+            if (
+                perm['communicationChannelName'] == VA_NOTIFY_TO_VA_PROFILE_NOTIFICATION_TYPES[notification_type]
+                and perm['communicationItemId'] == communication_item_id
+            ):
                 self.logger.info(
                     'V3 Profile -- %s notification:  Value of allowed is %s for notification %s',
                     perm['communicationChannelName'],
