@@ -81,7 +81,10 @@ def test_get_is_communication_allowed_api_v3_telephone(
     url = f'{MOCK_VA_PROFILE_URL}/profile-service/profile/v3/{oid}/{id_with_aaid}'
     rmock.post(url, json=mock_response, status_code=200)
 
-    allowed = test_va_profile_client.get_is_communication_allowed_api_v3(recipient_identifier, 'foo', 'bar', 'sms')
+    perm = mock_response['profile']['communicationPermissions'][0]
+    allowed = test_va_profile_client.get_is_communication_allowed_api_v3(
+        recipient_identifier, perm['communicationItemId'], 'bar', 'sms'
+    )
 
     assert allowed is expected
     assert rmock.called
@@ -95,7 +98,10 @@ def test_get_is_communication_allowed_api_v3_email(
     url = f'{MOCK_VA_PROFILE_URL}/profile-service/profile/v3/{oid}/{id_with_aaid}'
     rmock.post(url, json=mock_response, status_code=200)
 
-    allowed = test_va_profile_client.get_is_communication_allowed_api_v3(recipient_identifier, 'foo', 'bar', 'email')
+    perm = mock_response['profile']['communicationPermissions'][1]
+    allowed = test_va_profile_client.get_is_communication_allowed_api_v3(
+        recipient_identifier, perm['communicationItemId'], 'bar', 'email'
+    )
 
     assert allowed is expected
     assert rmock.called
