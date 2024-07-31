@@ -226,7 +226,7 @@ class VAProfileClient:
                     notification_id,
                 )
                 self.statsd_client.incr('clients.va-profile.get-communication-item-permission.success')
-                assert isinstance(perm['allowed'])
+                assert isinstance(perm['allowed'], bool)
                 return perm['allowed']
 
         self.logger.info(

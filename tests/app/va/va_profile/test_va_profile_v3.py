@@ -10,20 +10,18 @@ from app.va.identifier import IdentifierType, transform_to_fhir_format, OIDS
 MOCK_VA_PROFILE_URL = 'http://mock.vaprofile.va.gov'
 
 
-@pytest.fixture(scope='module')
-def test_va_profile_client(mocker, notify_api):
+@pytest.fixture(scope='function')
+def mock_va_profile_client(mocker, notify_api):
     with notify_api.app_context():
         mock_logger = mocker.Mock()
         mock_ssl_key_path = 'some_key.pem'
         mock_ssl_cert_path = 'some_cert.pem'
         mock_statsd_client = mocker.Mock()
 
-        test_va_profile_client = VAProfileClient()
-        test_va_profile_client.init_app(
-            mock_logger, MOCK_VA_PROFILE_URL, mock_ssl_cert_path, mock_ssl_key_path, mock_statsd_client
-        )
+        client = VAProfileClient()
+        client.init_app(mock_logger, MOCK_VA_PROFILE_URL, mock_ssl_cert_path, mock_ssl_key_path, mock_statsd_client)
 
-        return test_va_profile_client
+        return client
 
 
 @pytest.fixture(scope='module')
@@ -48,24 +46,24 @@ def oid(recipient_identifier):
 
 
 def test_retrieve_email_from_profile_v3(
-    rmock, test_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid
+    rmock, mock_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid
 ):
     url = f'{MOCK_VA_PROFILE_URL}/profile-service/profile/v3/{oid}/{id_with_aaid}'
     rmock.post(url, json=mock_response, status_code=200)
 
-    email = test_va_profile_client.get_email_from_profile_v3(recipient_identifier)
+    email = mock_va_profile_client.get_email_from_profile_v3(recipient_identifier)
 
     assert email == mock_response['profile']['contactInformation']['emails'][0]['emailAddressText']
     assert rmock.called
 
 
 def test_retrieve_telephone_from_profile_v3(
-    rmock, test_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid
+    rmock, mock_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid
 ):
     url = f'{MOCK_VA_PROFILE_URL}/profile-service/profile/v3/{oid}/{id_with_aaid}'
     rmock.post(url, json=mock_response, status_code=200)
 
-    telephone = test_va_profile_client.get_telephone_from_profile_v3(recipient_identifier)
+    telephone = mock_va_profile_client.get_telephone_from_profile_v3(recipient_identifier)
 
     assert telephone is not None
     assert rmock.called
@@ -73,14 +71,14 @@ def test_retrieve_telephone_from_profile_v3(
 
 @pytest.mark.parametrize('expected', [True, False])
 def test_get_is_communication_allowed_api_v3_telephone(
-    rmock, test_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid, expected
+    rmock, mock_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid, expected
 ):
     mock_response['profile']['communicationPermissions'][0]['allowed'] = expected
     url = f'{MOCK_VA_PROFILE_URL}/profile-service/profile/v3/{oid}/{id_with_aaid}'
     rmock.post(url, json=mock_response, status_code=200)
 
     perm = mock_response['profile']['communicationPermissions'][0]
-    allowed = test_va_profile_client.get_is_communication_allowed_api_v3(
+    allowed = mock_va_profile_client.get_is_communication_allowed_api_v3(
         recipient_identifier, perm['communicationItemId'], 'bar', 'sms'
     )
 
@@ -90,14 +88,14 @@ def test_get_is_communication_allowed_api_v3_telephone(
 
 @pytest.mark.parametrize('expected', [True, False])
 def test_get_is_communication_allowed_api_v3_email(
-    rmock, test_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid, expected
+    rmock, mock_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid, expected
 ):
     mock_response['profile']['communicationPermissions'][1]['allowed'] = expected
     url = f'{MOCK_VA_PROFILE_URL}/profile-service/profile/v3/{oid}/{id_with_aaid}'
     rmock.post(url, json=mock_response, status_code=200)
 
     perm = mock_response['profile']['communicationPermissions'][1]
-    allowed = test_va_profile_client.get_is_communication_allowed_api_v3(
+    allowed = mock_va_profile_client.get_is_communication_allowed_api_v3(
         recipient_identifier, perm['communicationItemId'], 'bar', 'email'
     )
 
