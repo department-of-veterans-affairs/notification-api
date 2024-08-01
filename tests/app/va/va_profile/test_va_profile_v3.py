@@ -45,7 +45,7 @@ def oid(recipient_identifier):
     return OIDS.get(recipient_identifier.id_type)
 
 
-def test_get_email_from_profile_v3_calls_endpoint_and_returns_email_address(
+def test_ut_get_email_from_profile_v3_calls_endpoint_and_returns_email_address(
     rmock, mock_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid
 ):
     url = f'{MOCK_VA_PROFILE_URL}/profile-service/profile/v3/{oid}/{id_with_aaid}'
@@ -57,7 +57,7 @@ def test_get_email_from_profile_v3_calls_endpoint_and_returns_email_address(
     assert rmock.called
 
 
-def test_get_telephone_from_profile_v3_calls_endpoint_and_returns_phone_number(
+def test_ut_get_telephone_from_profile_v3_calls_endpoint_and_returns_phone_number(
     rmock, mock_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid
 ):
     url = f'{MOCK_VA_PROFILE_URL}/profile-service/profile/v3/{oid}/{id_with_aaid}'
@@ -70,7 +70,7 @@ def test_get_telephone_from_profile_v3_calls_endpoint_and_returns_phone_number(
 
 
 @pytest.mark.parametrize('expected', [True, False])
-def test_get_is_communication_allowed_v3_returns_whether_permissions_granted_for_sms_communication(
+def test_ut_get_is_communication_allowed_v3_returns_whether_permissions_granted_for_sms_communication(
     rmock, mock_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid, expected
 ):
     mock_response['profile']['communicationPermissions'][0]['allowed'] = expected
@@ -87,7 +87,7 @@ def test_get_is_communication_allowed_v3_returns_whether_permissions_granted_for
 
 
 @pytest.mark.parametrize('expected', [True, False])
-def test_get_is_communication_allowed_v3_returns_whether_permissions_granted_for_email_communication(
+def test_ut_get_is_communication_allowed_v3_returns_whether_permissions_granted_for_email_communication(
     rmock, mock_va_profile_client, mock_response, recipient_identifier, id_with_aaid, oid, expected
 ):
     mock_response['profile']['communicationPermissions'][1]['allowed'] = expected
