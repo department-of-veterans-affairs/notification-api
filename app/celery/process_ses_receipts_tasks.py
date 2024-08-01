@@ -358,7 +358,9 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
     :param notification: the email notification to collect data from
     """
 
-    current_app.logger.debug('Sending email status to VA Profile, checking feature flag...')
+    current_app.logger.debug(
+        'Sending email status to VA Profile, checking feature flag... | notification %s', notification.id
+    )
 
     if is_feature_enabled(FeatureFlag.VA_PROFILE_EMAIL_STATUS_ENABLED):
         current_app.logger.debug(
@@ -398,7 +400,6 @@ def send_email_status_to_va_profile(notification_data: dict) -> None:
 
     :param notification_data: the email notification data to send
     """
-    current_app.logger.debug('Sending email status to VA Profile, send_email_status_to_va_profile task executing.')
 
     try:
         va_profile_client.send_va_profile_email_status(notification_data)

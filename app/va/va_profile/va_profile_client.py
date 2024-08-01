@@ -291,7 +291,7 @@ class VAProfileClient:
         try:
             response = requests.post(url, json=notification_data, headers=headers, timeout=(3.05, 1))
         except requests.Timeout:
-            self.logger.info(
+            self.logger.warning(
                 'Request timeout attempting to send email status to VA Profile for notification %s | retrying...',
                 notification_data.get('id'),
             )
@@ -306,7 +306,7 @@ class VAProfileClient:
             raise
 
         self.logger.info(
-            'VA Profile response for sent notification %s | status code: %s | json: %s',
+            'VA Profile response when receiving status of notification %s | status code: %s | json: %s',
             notification_data.get('id'),
             response.status_code,
             response.json(),
