@@ -306,9 +306,7 @@ def test_should_not_call_callback_on_retryable_exception(client, mocker, sample_
     mocked_check_and_queue_callback_task.assert_not_called()
 
 
-def test_should_permanently_fail_and_clear_chain_when_technical_failure_exception(
-    client, mocker, sample_notification
-):
+def test_should_permanently_fail_and_clear_chain_when_technical_failure_exception(client, mocker, sample_notification):
     notification = sample_notification()
     mocker.patch(
         'app.celery.lookup_va_profile_id_task.notifications_dao.get_notification_by_id', return_value=notification
