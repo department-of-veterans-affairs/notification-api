@@ -17,9 +17,17 @@ def mock_va_profile_client(mocker, notify_api):
         mock_ssl_key_path = 'some_key.pem'
         mock_ssl_cert_path = 'some_cert.pem'
         mock_statsd_client = mocker.Mock()
+        mock_va_profile_token = mocker.Mock()
 
         client = VAProfileClient()
-        client.init_app(mock_logger, MOCK_VA_PROFILE_URL, mock_ssl_cert_path, mock_ssl_key_path, mock_statsd_client)
+        client.init_app(
+            logger=mock_logger,
+            va_profile_url=MOCK_VA_PROFILE_URL,
+            ssl_cert_path=mock_ssl_cert_path,
+            ssl_key_path=mock_ssl_key_path,
+            va_profile_token=mock_va_profile_token,
+            statsd_client=mock_statsd_client,
+        )
 
         return client
 
