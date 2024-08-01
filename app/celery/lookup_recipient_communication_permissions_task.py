@@ -88,7 +88,7 @@ def recipient_has_given_permission(
 
     try:
         if is_feature_enabled(FeatureFlag.VA_PROFILE_V3_USE_PROFILE_API_V3):
-            is_allowed = va_profile_client.get_is_communication_allowed_api_v3(
+            is_allowed = va_profile_client.get_is_communication_allowed_v3(
                 identifier, communication_item.va_profile_item_id, notification_id, notification_type
             )
         else:

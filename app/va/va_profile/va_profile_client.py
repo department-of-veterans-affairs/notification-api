@@ -16,6 +16,17 @@ if TYPE_CHECKING:
     from app.models import RecipientIdentifier
     from va_profile_types import ContactInformation, CommunicationPermissions, Profile, Telephone
 
+EMAIL_TYPE = 'email'
+LETTER_TYPE = 'letter'
+MOBILE_TYPE = 'mobile'
+PUSH_TYPE = 'push'
+SMS_TYPE = 'sms'
+
+VA_NOTIFY_TO_VA_PROFILE_NOTIFICATION_TYPES = {
+    EMAIL_TYPE: 'Email',
+    SMS_TYPE: 'Text',
+}
+
 
 class CommunicationItemNotFoundException(Exception):
     failure_reason = 'No communication bio found from VA Profile'
@@ -54,6 +65,15 @@ class VAProfileClient:
         self.statsd_client = statsd_client
 
     def get_profile(self, va_profile_id: 'RecipientIdentifier') -> 'Profile':
+        """
+        Retrieve the profile information for a given VA profile ID using the v3 API endpoint.
+
+        Args:
+            va_profile_id (RecipientIdentifier): The VA profile ID to retrieve the profile for.
+
+        Returns:
+            Profile: The profile information retrieved from the VA Profile service.
+        """
         recipient_id = transform_to_fhir_format(va_profile_id)
         oid = OIDS.get(IdentifierType.VA_PROFILE_ID)
         url = f'{self.va_profile_url}/profile-service/profile/v3/{oid}/{recipient_id}'
@@ -69,6 +89,15 @@ class VAProfileClient:
         return response_json.get('profile', {})
 
     def get_telephone_from_profile_v3(self, va_profile_id: 'RecipientIdentifier') -> str:
+        """
+        Retrieve the telephone number from the profile information for a given VA profile ID.
+
+        Args:
+            va_profile_id (RecipientIdentifier): The VA profile ID to retrieve the telephone number for.
+
+        Returns:
+            str: The telephone number retrieved from the VA Profile service.
+        """
         contact_info: 'ContactInformation' = self.get_profile(va_profile_id).get('contactInformation', {})
         self.logger.info(f'V3 Profile - Retrieved ContactInformation: {contact_info}')
 
@@ -87,17 +116,21 @@ class VAProfileClient:
                 and sorted_telephones[0].get('phoneNumber')
             ):
                 self.statsd_client.incr('clients.va-profile.get-telephone.success')
-            return (
-                '+'
-                + sorted_telephones[0]['countryCode']
-                + sorted_telephones[0]['areaCode']
-                + sorted_telephones[0]['phoneNumber']
-            )
+            return f"+{sorted_telephones[0]['countryCode']}{sorted_telephones[0]['areaCode']}{sorted_telephones[0]['phoneNumber']}"
 
         self.statsd_client.incr('clients.va-profile.get-telephone.failure')
         self._raise_no_contact_info_exception(self.PHONE_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID))
 
     def get_email_from_profile_v3(self, va_profile_id: 'RecipientIdentifier') -> str:
+        """
+        Retrieve the email address from the profile information for a given VA profile ID.
+
+        Args:
+            va_profile_id (RecipientIdentifier): The VA profile ID to retrieve the email address for.
+
+        Returns:
+            str: The email address retrieved from the VA Profile service.
+        """
         contact_info: 'ContactInformation' = self.get_profile(va_profile_id).get('contactInformation', {})
         sorted_emails = sorted(
             contact_info.get(self.EMAIL_BIO_TYPE, []),
@@ -194,7 +227,21 @@ class VAProfileClient:
         notification_id: str,
         notification_type: str,
     ) -> bool:
-        from app.models import VA_NOTIFY_TO_VA_PROFILE_NOTIFICATION_TYPES
+        """
+        Determine if communication is allowed for a given recipient, communication item, and notification type.
+
+        Args:
+            recipient_id (RecipientIdentifier): The recipient's VA profile ID.
+            communication_item_id (str): The ID of the communication item.
+            notification_id (str): The ID of the notification.
+            notification_type (str): The type of the notification.
+
+        Returns:
+            bool: True if communication is allowed, False otherwise.
+
+        Raises:
+            CommunicationItemNotFoundException: If no communication permissions are found for the given parameters.
+        """
 
         self.logger.info('Called get_is_communication_allowed_api_v3 for notification %s', notification_id)
         communication_permissions: 'CommunicationPermissions' = self.get_profile(recipient_id).get(
@@ -244,8 +291,6 @@ class VAProfileClient:
     def get_is_communication_allowed(
         self, recipient_identifier, communication_item_id: str, notification_id: str, notification_type: str
     ) -> bool:
-        from app.models import VA_NOTIFY_TO_VA_PROFILE_NOTIFICATION_TYPES
-
         self.logger.info('Called get_is_communication_allowed for notification %s', notification_id)
         recipient_id = transform_to_fhir_format(recipient_identifier)
         identifier_type = IdentifierType(recipient_identifier.id_type)
@@ -292,9 +337,24 @@ class VAProfileClient:
         self.statsd_client.incr('clients.va-profile.get-communication-item-permission.no-permissions')
         raise CommunicationItemNotFoundException
 
-    def _handle_exceptions(self, va_profile_id, error):
+    def _handle_exceptions(self, va_profile_id_value: str, error: Exception):
+        """
+        Handle exceptions that occur during requests to the VA Profile service.
+
+        Args:
+            va_profile_id_value (str): The VA profile ID value associated with the request.
+            error (Exception): The exception that was raised during the request.
+
+        Raises:
+            VAProfileRetryableException: If the error is a retryable HTTP error or a RequestException.
+            VAProfileIDNotFoundException: If the error is a 404 HTTP error.
+            VAProfileNonRetryableException: If the error is a non-retryable HTTP error.
+            requests.Timeout: If the error is a Timeout exception.
+        """
         if isinstance(error, requests.HTTPError):
-            self.logger.warning('HTTPError raised making request to VA Profile for VA Profile ID: %s', va_profile_id)
+            self.logger.warning(
+                'HTTPError raised making request to VA Profile for VA Profile ID: %s', va_profile_id_value
+            )
             self.statsd_client.incr(f'clients.va-profile.error.{error.response.status_code}')
 
             failure_reason = (
@@ -317,6 +377,10 @@ class VAProfileClient:
 
                 raise exception from error
 
+        elif isinstance(error, requests.Timeout):
+            self.logger.error('The request to VA Profile timed out for VA Profile ID %s.', va_profile_id_value)
+            raise
+
         elif isinstance(error, requests.RequestException):
             self.statsd_client.incr('clients.va-profile.error.request_exception')
 
@@ -327,16 +391,29 @@ class VAProfileClient:
 
             raise exception from error
 
-        elif isinstance(error, requests.Timeout):
-            self.logger.error('The request to VA Profile timed out for VA Profile ID %s.', va_profile_id)
-            raise
-
     def _make_request(
         self,
         url: str,
         va_profile_id: str,
         bio_type: str = None,
     ):
+        """
+        Make a request to the VA Profile service and handle the response.
+
+        Args:
+            url (str): The URL to send the request to.
+            va_profile_id (str): The VA profile ID associated with the request.
+            bio_type (str, optional): The type of biographical data to validate in the response. Defaults to None.
+
+        Returns:
+            dict: The JSON response from the VA Profile service if the request is successful.
+
+        Raises:
+            VAProfileIDNotFoundException: If the response status is not successful or if the VA profile ID is not found.
+            VAProfileRetryableException: If a retryable error occurs during the request.
+            VAProfileNonRetryableException: If a non-retryable error occurs during the request.
+            requests.Timeout: If the request times out.
+        """
         start_time = monotonic()
 
         self.logger.info('Querying VA Profile with ID %s', va_profile_id)
