@@ -104,11 +104,11 @@ class VAProfileClient:
             str: The telephone number retrieved from the VA Profile service.
         """
         contact_info: ContactInformation = self.get_profile(va_profile_id).get('contactInformation', {})
-        self.logger.info(f'V3 Profile - Retrieved ContactInformation: {contact_info}')
+        self.logger.debug('V3 Profile - Retrieved ContactInformation: %s', contact_info)
 
         telephones: List[Telephone] = contact_info.get(self.PHONE_BIO_TYPE, [])
         phone_numbers = ', '.join([tel['phoneNumber'] for tel in telephones])
-        self.logger.info('V3 Profile telephones: %s', phone_numbers)
+        self.logger.debug('V3 Profile telephones: %s', phone_numbers)
         sorted_telephones = sorted(
             [phone for phone in telephones if phone['phoneType'] == PhoneNumberType.MOBILE.value],
             key=lambda phone: iso8601.parse_date(phone['createDate']),
@@ -248,11 +248,10 @@ class VAProfileClient:
             CommunicationItemNotFoundException: If no communication permissions are found for the given parameters.
         """
 
-        self.logger.info('Called get_is_communication_allowed_api_v3 for notification %s', notification_id)
         communication_permissions: CommunicationPermissions = self.get_profile(recipient_id).get(
             'communicationPermissions', {}
         )
-        self.logger.info(
+        self.logger.debug(
             'V3 Profile -- Retrieved Communication Permissions for recipient_id: %s, notification_id: \
               %s, notification_type: %s -- %s',
             recipient_id.id_value,
@@ -261,7 +260,7 @@ class VAProfileClient:
             communication_permissions,
         )
         for perm in communication_permissions:
-            self.logger.info(
+            self.logger.debug(
                 'V3 Profile -- Found communication item id %s on recipient %s for notification %s',
                 communication_item_id,
                 recipient_id.id_value,
@@ -271,7 +270,7 @@ class VAProfileClient:
                 perm['communicationChannelName'] == VA_NOTIFY_TO_VA_PROFILE_NOTIFICATION_TYPES[notification_type]
                 and perm['communicationItemId'] == communication_item_id
             ):
-                self.logger.info(
+                self.logger.debug(
                     'V3 Profile -- %s notification:  Value of allowed is %s for notification %s',
                     perm['communicationChannelName'],
                     perm['allowed'],
@@ -281,7 +280,7 @@ class VAProfileClient:
                 assert isinstance(perm['allowed'], bool)
                 return perm['allowed']
 
-        self.logger.info(
+        self.logger.debug(
             'V3 Profile -- Recipient %s did not have permission for communication item %s and channel %s for notification %s',
             recipient_id,
             communication_item_id,
@@ -298,7 +297,6 @@ class VAProfileClient:
     ) -> bool:
         from app.models import VA_NOTIFY_TO_VA_PROFILE_NOTIFICATION_TYPES
 
-        self.logger.info('Called get_is_communication_allowed for notification %s', notification_id)
         recipient_id = transform_to_fhir_format(recipient_identifier)
         identifier_type = IdentifierType(recipient_identifier.id_type)
         oid = OIDS.get(identifier_type)
