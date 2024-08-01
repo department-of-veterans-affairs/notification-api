@@ -58,6 +58,7 @@ def lookup_va_profile_id(
             raise AutoRetryException('Found MpiRetryableException, autoretrying...', e, e.args)
         else:
             msg = handle_max_retries_exceeded(notification_id, 'lookup_va_profile_id')
+            check_and_queue_callback_task(notification)
             raise NotificationTechnicalFailureException(msg)
 
     except (
@@ -87,9 +88,10 @@ def lookup_va_profile_id(
             'Notification has been updated to technical-failure'
         )
         current_app.logger.exception(message)
-
+        self.request.chain = None
         status_reason = e.failure_reason if hasattr(e, 'failure_reason') else 'Unknown error from MPI'
         notifications_dao.update_notification_status_by_id(
             notification_id, NOTIFICATION_TECHNICAL_FAILURE, status_reason=status_reason
         )
+        check_and_queue_callback_task(notification)
         raise NotificationTechnicalFailureException(message) from e
