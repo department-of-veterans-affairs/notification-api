@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import iso8601
 import requests
 from app.va.va_profile import (
@@ -11,6 +13,7 @@ from enum import Enum
 from http.client import responses
 from time import monotonic
 from typing import Dict, List, TYPE_CHECKING
+
 
 if TYPE_CHECKING:
     from app.models import RecipientIdentifier
@@ -64,7 +67,7 @@ class VAProfileClient:
         self.ssl_key_path = ssl_key_path
         self.statsd_client = statsd_client
 
-    def get_profile(self, va_profile_id: 'RecipientIdentifier') -> 'Profile':
+    def get_profile(self, va_profile_id: RecipientIdentifier) -> Profile:
         """
         Retrieve the profile information for a given VA profile ID using the v3 API endpoint.
 
@@ -88,7 +91,7 @@ class VAProfileClient:
         response_json: Dict = response.json()
         return response_json.get('profile', {})
 
-    def get_telephone_from_profile_v3(self, va_profile_id: 'RecipientIdentifier') -> str:
+    def get_telephone_from_profile_v3(self, va_profile_id: RecipientIdentifier) -> str:
         """
         Retrieve the telephone number from the profile information for a given VA profile ID.
 
@@ -98,10 +101,10 @@ class VAProfileClient:
         Returns:
             str: The telephone number retrieved from the VA Profile service.
         """
-        contact_info: 'ContactInformation' = self.get_profile(va_profile_id).get('contactInformation', {})
+        contact_info: ContactInformation = self.get_profile(va_profile_id).get('contactInformation', {})
         self.logger.info(f'V3 Profile - Retrieved ContactInformation: {contact_info}')
 
-        telephones: List['Telephone'] = contact_info.get(self.PHONE_BIO_TYPE, [])
+        telephones: List[Telephone] = contact_info.get(self.PHONE_BIO_TYPE, [])
         phone_numbers = ', '.join([tel['phoneNumber'] for tel in telephones])
         self.logger.info('V3 Profile telephones: %s', phone_numbers)
         sorted_telephones = sorted(
@@ -121,7 +124,7 @@ class VAProfileClient:
         self.statsd_client.incr('clients.va-profile.get-telephone.failure')
         self._raise_no_contact_info_exception(self.PHONE_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID))
 
-    def get_email_from_profile_v3(self, va_profile_id: 'RecipientIdentifier') -> str:
+    def get_email_from_profile_v3(self, va_profile_id: RecipientIdentifier) -> str:
         """
         Retrieve the email address from the profile information for a given VA profile ID.
 
@@ -131,7 +134,7 @@ class VAProfileClient:
         Returns:
             str: The email address retrieved from the VA Profile service.
         """
-        contact_info: 'ContactInformation' = self.get_profile(va_profile_id).get('contactInformation', {})
+        contact_info: ContactInformation = self.get_profile(va_profile_id).get('contactInformation', {})
         sorted_emails = sorted(
             contact_info.get(self.EMAIL_BIO_TYPE, []),
             key=lambda email: iso8601.parse_date(email['createDate']),
@@ -222,7 +225,7 @@ class VAProfileClient:
 
     def get_is_communication_allowed_api_v3(
         self,
-        recipient_id: 'RecipientIdentifier',
+        recipient_id: RecipientIdentifier,
         communication_item_id: str,
         notification_id: str,
         notification_type: str,
@@ -244,7 +247,7 @@ class VAProfileClient:
         """
 
         self.logger.info('Called get_is_communication_allowed_api_v3 for notification %s', notification_id)
-        communication_permissions: 'CommunicationPermissions' = self.get_profile(recipient_id).get(
+        communication_permissions: CommunicationPermissions = self.get_profile(recipient_id).get(
             'communicationPermissions', {}
         )
         self.logger.info(
