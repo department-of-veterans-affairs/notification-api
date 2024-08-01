@@ -396,7 +396,7 @@ class VAProfileClient:
         url: str,
         va_profile_id: str,
         bio_type: str = None,
-    ):
+    ) -> dict:
         """
         Make a request to the VA Profile service and handle the response.
 
