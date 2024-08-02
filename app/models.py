@@ -2181,7 +2181,7 @@ class VAProfileLocalCache(db.Model):
     communication_channel_id = db.Column(db.Integer, nullable=False)
     source_datetime = db.Column(db.DateTime, nullable=False)
 
-    participant_id = db.Column(db.Integer, nullable=True)
+    participant_id = db.Column(db.BigInteger, nullable=True)
     has_duplicate_mappings = db.Column(db.Boolean, nullable=False, default=False)
 
     __table_args__ = (
