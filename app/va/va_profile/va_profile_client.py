@@ -225,7 +225,7 @@ class VAProfileClient:
         self.statsd_client.incr('clients.va-profile.get-telephone.failure')
         self._raise_no_contact_info_exception(self.PHONE_BIO_TYPE, va_profile_id, response.get(self.TX_AUDIT_ID))
 
-    def get_is_communication_allowed_api_v3(
+    def get_is_communication_allowed_v3(
         self,
         recipient_id: RecipientIdentifier,
         communication_item_id: str,

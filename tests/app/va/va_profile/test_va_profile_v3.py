@@ -86,7 +86,7 @@ def test_ut_get_is_communication_allowed_v3_returns_whether_permissions_granted_
     rmock.post(url, json=mock_response, status_code=200)
 
     perm = mock_response['profile']['communicationPermissions'][0]
-    allowed = mock_va_profile_client.get_is_communication_allowed_api_v3(
+    allowed = mock_va_profile_client.get_is_communication_allowed_v3(
         recipient_identifier, perm['communicationItemId'], 'bar', 'sms'
     )
 
@@ -103,7 +103,7 @@ def test_ut_get_is_communication_allowed_v3_returns_whether_permissions_granted_
     rmock.post(url, json=mock_response, status_code=200)
 
     perm = mock_response['profile']['communicationPermissions'][1]
-    allowed = mock_va_profile_client.get_is_communication_allowed_api_v3(
+    allowed = mock_va_profile_client.get_is_communication_allowed_v3(
         recipient_identifier, perm['communicationItemId'], 'bar', 'email'
     )
 
