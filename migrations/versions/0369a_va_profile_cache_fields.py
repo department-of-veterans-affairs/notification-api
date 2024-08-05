@@ -1,7 +1,7 @@
 """
 
 Revision ID:0369a_va_profile_cache_fields
-Revises: 0369_vaprofile_cache_fields
+Revises: 0369_va_profile_cache_fields
 Create Date: 2024-08-05 15:10:01
 
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = '0369a_va_profile_cache_fields'
-down_revision = '0369_vaprofile_cache_fields'
+down_revision = '0369_va_profile_cache_fields'
 
 
 def upgrade():
