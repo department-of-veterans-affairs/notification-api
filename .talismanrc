@@ -17,6 +17,8 @@ fileignoreconfig:
   checksum: e06cc6abd755fa5cb5c2b1deceb1a40f87bf9f2b8be73102623cbfe0f28a20cd
 - filename: ci/.local.env
   checksum: a2dca7e8e15af2a98112a405725e0b6f07c6adcb61507d8d32715ee17c383b6b
+- filename: migrations/versions/0369a_va_profile_cache_fields.py
+  checksum: 46fc08a846152dde6173054c447d5abbf78708bdbdf2af5dc003c5439f12c618
 - filename: poetry.lock
   checksum: 7a495ebe704b7723f9abfe67d965e53fb3ae830ba537b36a1aa07de4eeecb4fa
 - filename: tests/app/celery/test_scheduled_tasks.py
