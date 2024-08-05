@@ -387,7 +387,7 @@ class VAProfileClient:
             failure_message = 'VA Profile returned RequestException while querying for VA Profile ID'
 
             if isinstance(error, requests.Timeout):
-                failure_message = 'VA Profile request timed out for VA Profile ID %s.' % va_profile_id_value
+                failure_message = f'VA Profile request timed out for VA Profile ID {va_profile_id_value}.'
 
             exception = VAProfileRetryableException(failure_message)
             exception.failure_reason = failure_message
