@@ -2,7 +2,7 @@
 
 Revision ID:0369a_va_profile_cache_fields
 Revises: 0369_vaprofile_cache_fields
-Create Date: 2024-08-05 15:10:01.963467
+Create Date: 2024-08-05 15:10:01
 
 """
 from alembic import op
