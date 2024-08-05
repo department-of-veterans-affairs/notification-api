@@ -202,9 +202,29 @@
         {
           "name": "VA_SSO_ACCESS_TOKEN_URL",
           "value": "https://preprod.fed.eauth.va.gov/oauthi/sps/oauth/oauth20/token"
+        },
+        {
+          "name": "COMP_AND_PEN_MESSAGES_ENABLED",
+          "value": "True"
+        },
+        {
+          "name": "COMP_AND_PEN_DYNAMODB_NAME",
+          "value": "perf-bip-payment-notification-table"
         }
       ],
       "secrets": [
+        {
+          "name": "COMP_AND_PEN_SERVICE_ID",
+          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/perf/notification-api/comp-and-pen/service-id"
+        },
+        {
+          "name": "COMP_AND_PEN_TEMPLATE_ID",
+          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/perf/notification-api/comp-and-pen/template-id"
+        },
+        {
+          "name": "COMP_AND_PEN_SMS_SENDER_ID",
+          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/perf/notification-api/comp-and-pen/sms-sender-id"
+        },
         {
           "name": "TWILIO_ACCOUNT_SID",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/perf/notification-api/twilio/account-sid"
