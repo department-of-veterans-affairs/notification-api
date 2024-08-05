@@ -25,7 +25,7 @@ install-bandit:
 	pip install bandit
 
 check-vulnerabilities: install-bandit ## Scan code for vulnerabilities and issues
-	bandit -c .bandit.yml -r app/ -l
+	bandit -c pyproject.toml -r app/ -l
 
 install-safety:
 	pip install safety
