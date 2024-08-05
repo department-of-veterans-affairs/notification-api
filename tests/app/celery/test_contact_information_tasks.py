@@ -81,6 +81,10 @@ def test_should_get_phone_number_and_update_notification(client, mocker, notific
 def test_should_not_retry_on_non_retryable_exception(client, mocker, notification):
     mocker.patch('app.celery.contact_information_tasks.get_notification_by_id', return_value=notification)
 
+    mocked_check_and_queue_callback_task = mocker.patch(
+        'app.celery.contact_information_tasks.check_and_queue_callback_task',
+    )
+
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
 
     exception = VAProfileNonRetryableException
@@ -91,15 +95,15 @@ def test_should_not_retry_on_non_retryable_exception(client, mocker, notificatio
         'app.celery.contact_information_tasks.update_notification_status_by_id'
     )
 
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(NotificationPermanentFailureException) as exc_info:
         lookup_contact_info(notification.id)
 
-    assert exc_info.type is NotificationPermanentFailureException
     mocked_va_profile_client.get_email.assert_called_with(EXAMPLE_VA_PROFILE_ID)
 
     mocked_update_notification_status_by_id.assert_called_with(
         notification.id, NOTIFICATION_PERMANENT_FAILURE, status_reason=exception.failure_reason
     )
+    mocked_check_and_queue_callback_task.assert_called_once_with(notification)
 
 
 @pytest.mark.parametrize('exception_type', (Timeout, VAProfileRetryableException))
@@ -163,6 +167,10 @@ def test_should_update_notification_to_permanent_failure_on_no_contact_info_exce
     mocked_va_profile_client.get_email = mocker.Mock(side_effect=exception)
     mocker.patch('app.celery.contact_information_tasks.va_profile_client', new=mocked_va_profile_client)
 
+    mocked_check_and_queue_callback_task = mocker.patch(
+        'app.celery.contact_information_tasks.check_and_queue_callback_task',
+    )
+
     mocked_update_notification_status_by_id = mocker.patch(
         'app.celery.contact_information_tasks.update_notification_status_by_id'
     )
@@ -184,6 +192,7 @@ def test_should_update_notification_to_permanent_failure_on_no_contact_info_exce
     )
 
     mocked_chain.assert_called_with(None)
+    mocked_check_and_queue_callback_task.assert_called_once_with(notification)
 
 
 @pytest.mark.parametrize(
@@ -213,6 +222,11 @@ def test_exception_sets_failure_reason_if_thrown(
     mocked_va_profile_client.get_email = mocker.Mock(side_effect=exception)
     mocker.patch('app.celery.contact_information_tasks.va_profile_client', new=mocked_va_profile_client)
     mocker.patch('app.celery.contact_information_tasks.can_retry', return_value=False)
+
+    mocked_check_and_queue_callback_task = mocker.patch(
+        'app.celery.contact_information_tasks.check_and_queue_callback_task',
+    )
+
     if exception_reason == RETRIES_EXCEEDED:
         mocker_handle_max_retries_exceeded = mocker.patch(
             'app.celery.contact_information_tasks.handle_max_retries_exceeded'
@@ -232,3 +246,5 @@ def test_exception_sets_failure_reason_if_thrown(
             mocked_update_notification_status_by_id.assert_called_once_with(
                 notification.id, notification_status, status_reason=exception_reason
             )
+
+    mocked_check_and_queue_callback_task.assert_called_once_with(notification)

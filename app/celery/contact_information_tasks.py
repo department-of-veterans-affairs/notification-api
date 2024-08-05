@@ -2,6 +2,7 @@ from flask import current_app
 from app import notify_celery, va_profile_client
 from app.celery.common import can_retry, handle_max_retries_exceeded
 from app.celery.exceptions import AutoRetryException
+from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.feature_flags import FeatureFlag, is_feature_enabled
 from app.va.identifier import IdentifierType
 from app.va.va_profile import VAProfileRetryableException, VAProfileNonRetryableException, NoContactInfoException
@@ -55,6 +56,7 @@ def lookup_contact_info(
             raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
         else:
             msg = handle_max_retries_exceeded(notification_id, 'lookup_contact_info')
+            check_and_queue_callback_task(notification)
             raise NotificationTechnicalFailureException(msg)
     except NoContactInfoException as e:
         message = (
@@ -67,6 +69,7 @@ def lookup_contact_info(
         update_notification_status_by_id(
             notification_id, NOTIFICATION_PERMANENT_FAILURE, status_reason=e.failure_reason
         )
+        check_and_queue_callback_task(notification)
 
     except (VAProfileIDNotFoundException, VAProfileNonRetryableException) as e:
         current_app.logger.exception(e)
@@ -77,6 +80,7 @@ def lookup_contact_info(
         update_notification_status_by_id(
             notification_id, NOTIFICATION_PERMANENT_FAILURE, status_reason=e.failure_reason
         )
+        check_and_queue_callback_task(notification)
         raise NotificationPermanentFailureException(message) from e
 
     else:
