@@ -7,7 +7,6 @@ Create Date: 2024-08-05 15:10:01.963467
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision = 'bab2a5de15d8'
 down_revision = '0369a_va_profile_cache_fields'
