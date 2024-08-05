@@ -143,8 +143,10 @@ def test_ut_handle_exceptions_non_retryable_exception(mock_va_profile_client):
 
 
 def test_ut_handle_exceptions_timeout_exception(mock_va_profile_client):
-    # This test checks if requests.Timeout is raised for a Timeout exception
-    with pytest.raises(requests.Timeout):
+    # This test checks if VAProfileRetryableExcception is raised for a Timeout exception
+    # Timeout inherits from requests.RequestException, so all exceptions of type RequestException should
+    # raise a VAProfileRetryableException
+    with pytest.raises(VAProfileRetryableException):
         mock_va_profile_client._handle_exceptions('some_va_profile_id', requests.Timeout())
 
 
