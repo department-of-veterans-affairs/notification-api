@@ -26,20 +26,13 @@ EXAMPLE_VA_PROFILE_ID = '135'
 notification_id = str(uuid.uuid4())
 
 
-@pytest.fixture(scope='function')
-def notification():
-    recipient_identifier = RecipientIdentifier(
-        notification_id=notification_id, id_type=IdentifierType.VA_PROFILE_ID.value, id_value=EXAMPLE_VA_PROFILE_ID
+def test_should_get_email_address_and_update_notification(client, mocker, sample_template, sample_notification):
+    template = sample_template(template_type=EMAIL_TYPE)
+    notification = sample_notification(
+        template=template,
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
     )
 
-    notification = Notification(id=notification_id)
-    notification.recipient_identifiers.set(recipient_identifier)
-    notification.notification_type = EMAIL_TYPE
-
-    return notification
-
-
-def test_should_get_email_address_and_update_notification(client, mocker, notification):
     mocked_get_notification_by_id = mocker.patch(
         'app.celery.contact_information_tasks.get_notification_by_id', return_value=notification
     )
@@ -58,8 +51,11 @@ def test_should_get_email_address_and_update_notification(client, mocker, notifi
     assert notification.to == 'test@test.org'
 
 
-def test_should_get_phone_number_and_update_notification(client, mocker, notification):
-    notification.notification_type = SMS_TYPE
+def test_should_get_phone_number_and_update_notification(client, mocker, sample_notification):
+    notification = sample_notification(
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
+    )
+    assert notification.notification_type == SMS_TYPE
     mocked_get_notification_by_id = mocker.patch(
         'app.celery.contact_information_tasks.get_notification_by_id', return_value=notification
     )
@@ -78,7 +74,13 @@ def test_should_get_phone_number_and_update_notification(client, mocker, notific
     assert notification.to == '+15555555555'
 
 
-def test_should_not_retry_on_non_retryable_exception(client, mocker, notification):
+def test_should_not_retry_on_non_retryable_exception(client, mocker, sample_template, sample_notification):
+    template = sample_template(template_type=EMAIL_TYPE)
+    notification = sample_notification(
+        template=template,
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
+    )
+
     mocker.patch('app.celery.contact_information_tasks.get_notification_by_id', return_value=notification)
 
     mocked_check_and_queue_callback_task = mocker.patch(
@@ -107,7 +109,12 @@ def test_should_not_retry_on_non_retryable_exception(client, mocker, notificatio
 
 
 @pytest.mark.parametrize('exception_type', (Timeout, VAProfileRetryableException))
-def test_should_retry_on_retryable_exception(client, mocker, notification, exception_type):
+def test_should_retry_on_retryable_exception(client, mocker, sample_template, sample_notification, exception_type):
+    template = sample_template(template_type=EMAIL_TYPE)
+    notification = sample_notification(
+        template=template,
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
+    )
     mocker.patch('app.celery.contact_information_tasks.get_notification_by_id', return_value=notification)
 
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
@@ -121,7 +128,12 @@ def test_should_retry_on_retryable_exception(client, mocker, notification, excep
     mocked_va_profile_client.get_email.assert_called_with(EXAMPLE_VA_PROFILE_ID)
 
 
-def test_should_retry_on_timeout(client, mocker, notification):
+def test_get_email_should_retry_on_timeout(client, mocker, sample_template, sample_notification):
+    template = sample_template(template_type=EMAIL_TYPE)
+    notification = sample_notification(
+        template=template,
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
+    )
     mocker.patch('app.celery.contact_information_tasks.get_notification_by_id', return_value=notification)
 
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
@@ -139,7 +151,14 @@ def test_should_retry_on_timeout(client, mocker, notification):
     mocked_va_profile_client.get_email.assert_called_with(EXAMPLE_VA_PROFILE_ID)
 
 
-def test_should_update_notification_to_technical_failure_on_max_retries(client, mocker, notification):
+def test_should_update_notification_to_technical_failure_on_max_retries(
+    client, mocker, sample_template, sample_notification
+):
+    template = sample_template(template_type=EMAIL_TYPE)
+    notification = sample_notification(
+        template=template,
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
+    )
     mocker.patch('app.celery.contact_information_tasks.get_notification_by_id', return_value=notification)
 
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
@@ -159,7 +178,14 @@ def test_should_update_notification_to_technical_failure_on_max_retries(client, 
     mocked_handle_max_retries_exceeded.assert_called_once()
 
 
-def test_should_update_notification_to_permanent_failure_on_no_contact_info_exception(client, mocker, notification):
+def test_should_update_notification_to_permanent_failure_on_no_contact_info_exception(
+    client, mocker, sample_template, sample_notification
+):
+    template = sample_template(template_type=EMAIL_TYPE)
+    notification = sample_notification(
+        template=template,
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
+    )
     mocker.patch('app.celery.contact_information_tasks.get_notification_by_id', return_value=notification)
 
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
@@ -214,8 +240,20 @@ def test_should_update_notification_to_permanent_failure_on_no_contact_info_exce
     ],
 )
 def test_exception_sets_failure_reason_if_thrown(
-    client, mocker, notification, exception, throws_additional_exception, notification_status, exception_reason
+    client,
+    mocker,
+    sample_template,
+    sample_notification,
+    exception,
+    throws_additional_exception,
+    notification_status,
+    exception_reason,
 ):
+    template = sample_template(template_type=EMAIL_TYPE)
+    notification = sample_notification(
+        template=template,
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
+    )
     mocker.patch('app.celery.contact_information_tasks.get_notification_by_id', return_value=notification)
 
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
