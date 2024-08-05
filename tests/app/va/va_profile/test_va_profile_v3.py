@@ -2,9 +2,16 @@ import json
 import pytest
 
 
+import requests
 from app.va.va_profile import VAProfileClient
 from app.models import RecipientIdentifier
 from app.va.identifier import IdentifierType, transform_to_fhir_format, OIDS
+from app.va.va_profile import (
+    NoContactInfoException,
+    VAProfileNonRetryableException,
+    VAProfileRetryableException,
+)
+from app.va.va_profile.exceptions import VAProfileIDNotFoundException
 
 
 MOCK_VA_PROFILE_URL = 'http://mock.vaprofile.va.gov'
@@ -109,3 +116,46 @@ def test_ut_get_is_communication_allowed_v3_returns_whether_permissions_granted_
 
     assert allowed is expected
     assert rmock.called
+
+
+def test_ut_handle_exceptions_retryable_exception(mock_va_profile_client):
+    # This test checks if VAProfileRetryableException is raised for a RequestException
+    with pytest.raises(VAProfileRetryableException):
+        mock_va_profile_client._handle_exceptions('some_va_profile_id', requests.RequestException())
+
+
+def test_ut_handle_exceptions_id_not_found_exception(mock_va_profile_client):
+    # Simulate a 404 HTTP error
+    error = requests.HTTPError(response=requests.Response())
+    error.response.status_code = 404
+    # This test checks if VAProfileIDNotFoundException is raised for a 404 error
+    with pytest.raises(VAProfileIDNotFoundException):
+        mock_va_profile_client._handle_exceptions('some_va_profile_id', error)
+
+
+def test_ut_handle_exceptions_non_retryable_exception(mock_va_profile_client):
+    # Simulate a 400 HTTP error
+    error = requests.HTTPError(response=requests.Response())
+    error.response.status_code = 400
+    # This test checks if VAProfileNonRetryableException is raised for a 400 error
+    with pytest.raises(VAProfileNonRetryableException):
+        mock_va_profile_client._handle_exceptions('some_va_profile_id', error)
+
+
+def test_ut_handle_exceptions_timeout_exception(mock_va_profile_client):
+    # This test checks if requests.Timeout is raised for a Timeout exception
+    with pytest.raises(requests.Timeout):
+        mock_va_profile_client._handle_exceptions('some_va_profile_id', requests.Timeout())
+
+
+def test_ut_validate_response_no_contact_info_exception(mock_va_profile_client):
+    response = {'messages': ['Some error message'], mock_va_profile_client.TX_AUDIT_ID: 'some_audit_id'}
+    va_profile_id = 'some_va_profile_id'
+    bio_type = 'email'
+
+    with pytest.raises(NoContactInfoException) as exc_info:
+        mock_va_profile_client._validate_response(response, va_profile_id, bio_type)
+
+    assert str(exc_info.value) == (
+        f'No {bio_type} in response for VA Profile ID {va_profile_id} with AuditId some_audit_id'
+    )
