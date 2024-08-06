@@ -20,7 +20,7 @@ fileignoreconfig:
 - filename: cd/application-deployment/keys_not_found.csv
   checksum: 46db3b3c9ecabc835ec689d2fe777d843e04a6daedeff341f1cf685d460f1f04
 - filename: cd/application-deployment/task_definitions.csv
-  checksum: 27fd3e272dbf3aaf85272bdf758fe471f34e749cee9cb8625a633c5b65ec1f0d
+  checksum: d8940779b6634bae97ac31257ce9ecc7e72983b21387a63a2d5c6f042b4f57d2
 - filename: certs/DigiCert-Global-G2-TLS-RSA-SHA256-2020-CA1.cer
   checksum: e06cc6abd755fa5cb5c2b1deceb1a40f87bf9f2b8be73102623cbfe0f28a20cd
 - filename: ci/.local.env
