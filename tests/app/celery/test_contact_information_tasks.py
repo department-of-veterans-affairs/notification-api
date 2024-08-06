@@ -128,7 +128,10 @@ def test_should_retry_on_timeout(client, mocker, notification):
         lookup_contact_info(notification.id)
 
     assert exc_info.type is AutoRetryException
-    assert exc_info.value.failure_reason == f'VA Profile request timed out for VA Profile ID {EXAMPLE_VA_PROFILE_ID}.'
+
+    assert exc_info.value.args[0] == 'Found Timeout, autoretrying...'
+    assert isinstance(exc_info.value.args[1], Timeout)
+    assert str(exc_info.value.args[1]) == 'Request timed out'
     mocked_va_profile_client.get_email.assert_called_with(EXAMPLE_VA_PROFILE_ID)
 
 
