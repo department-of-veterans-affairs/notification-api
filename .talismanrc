@@ -13,12 +13,16 @@ fileignoreconfig:
   checksum: 67ce309ecf54ed5e54ab71b9b456f6804dd8bc17c9f6633e59fd61a916c5d4ea
 - filename: app/notifications/send_notifications.py
   checksum: ecd7a6380dde50f907568540a6c45454adc1d2adbd19853f45e0f85a1e27c50c
+- filename: cd/application-deployment/get_all_task_definitions.py
+  checksum: 5a30b1f8f7516b479fbfb600302fef68003b5f4b332dc40c6274bf924d2033a9
 - filename: certs/DigiCert-Global-G2-TLS-RSA-SHA256-2020-CA1.cer
   checksum: e06cc6abd755fa5cb5c2b1deceb1a40f87bf9f2b8be73102623cbfe0f28a20cd
 - filename: ci/.local.env
   checksum: a2dca7e8e15af2a98112a405725e0b6f07c6adcb61507d8d32715ee17c383b6b
 - filename: poetry.lock
   checksum: 7a495ebe704b7723f9abfe67d965e53fb3ae830ba537b36a1aa07de4eeecb4fa
+- filename: task_definitions.csv
+  checksum: 56e3f2d1d3eddccab7f482c30a43566138c23239335d1e99520f59e488b2d957
 - filename: tests/app/celery/test_scheduled_tasks.py
   checksum: cb2b003fb3ee404c293632e4bad6754ec6a35c895f392933d9203b5d93edb095
 - filename: tests/app/conftest.py
