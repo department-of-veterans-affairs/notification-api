@@ -128,27 +128,52 @@ def test_should_retry_on_retryable_exception(client, mocker, sample_template, sa
     mocked_va_profile_client.get_email.assert_called_with(EXAMPLE_VA_PROFILE_ID)
 
 
-def test_get_email_should_retry_on_timeout(client, mocker, sample_template, sample_notification):
-    template = sample_template(template_type=EMAIL_TYPE)
+@pytest.mark.parametrize('notification_type', (SMS_TYPE, EMAIL_TYPE))
+@pytest.mark.parametrize('v3_enabled', (True, False))
+def test_lookup_contact_info_should_retry_on_timeout(
+    client, mocker, sample_template, sample_notification, notification_type, v3_enabled
+):
+    template = sample_template(template_type=notification_type)
     notification = sample_notification(
         template=template,
         recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
     )
+
     mocker.patch('app.celery.contact_information_tasks.get_notification_by_id', return_value=notification)
+    mocker.patch('app.celery.contact_information_tasks.is_feature_enabled', return_value=v3_enabled)
 
     mocked_va_profile_client = mocker.Mock(VAProfileClient)
-    mocked_va_profile_client.get_email = mocker.Mock(side_effect=Timeout('Request timed out'))
+
+    if notification_type == SMS_TYPE and v3_enabled:
+        mocked_va_profile_client.get_telephone_from_profile_v3 = mocker.Mock(side_effect=Timeout('Request timed out'))
+    elif notification_type == SMS_TYPE and not v3_enabled:
+        mocked_va_profile_client.get_telephone = mocker.Mock(side_effect=Timeout('Request timed out'))
+    elif notification_type == EMAIL_TYPE and v3_enabled:
+        mocked_va_profile_client.get_email_from_profile_v3 = mocker.Mock(side_effect=Timeout('Request timed out'))
+    elif notification_type == EMAIL_TYPE and not v3_enabled:
+        mocked_va_profile_client.get_email = mocker.Mock(side_effect=Timeout('Request timed out'))
+
     mocker.patch('app.celery.contact_information_tasks.va_profile_client', new=mocked_va_profile_client)
 
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(AutoRetryException) as exc_info:
         lookup_contact_info(notification.id)
-
-    assert exc_info.type is AutoRetryException
 
     assert exc_info.value.args[0] == 'Found Timeout, autoretrying...'
     assert isinstance(exc_info.value.args[1], Timeout)
     assert str(exc_info.value.args[1]) == 'Request timed out'
-    mocked_va_profile_client.get_email.assert_called_with(EXAMPLE_VA_PROFILE_ID)
+
+    if notification_type == SMS_TYPE and v3_enabled:
+        mocked_va_profile_client.get_telephone_from_profile_v3.assert_called_with(
+            notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value]
+        )
+    elif notification_type == SMS_TYPE and not v3_enabled:
+        mocked_va_profile_client.get_telephone.assert_called_with(EXAMPLE_VA_PROFILE_ID)
+    elif notification_type == EMAIL_TYPE and v3_enabled:
+        mocked_va_profile_client.get_email_from_profile_v3.assert_called_with(
+            notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value]
+        )
+    elif notification_type == EMAIL_TYPE and not v3_enabled:
+        mocked_va_profile_client.get_email.assert_called_with(EXAMPLE_VA_PROFILE_ID)
 
 
 def test_should_update_notification_to_technical_failure_on_max_retries(
