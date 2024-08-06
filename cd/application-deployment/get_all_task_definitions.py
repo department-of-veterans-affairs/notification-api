@@ -13,6 +13,7 @@ def extract_task_definitions(base_dir):
                     task_def = json.load(f)
 
                     container_definitions = task_def.get('containerDefinitions', [])
+                    family = task_def.get('family')
                     for container in container_definitions:
                         container_name = container.get('name')
 
@@ -20,6 +21,7 @@ def extract_task_definitions(base_dir):
                         for env in environment:
                             data.append(
                                 {
+                                    'family': family,
                                     'container': container_name,
                                     'type': 'environment key',
                                     'key': env.get('name'),
@@ -31,6 +33,7 @@ def extract_task_definitions(base_dir):
                         for secret in secrets:
                             data.append(
                                 {
+                                    'family': family,
                                     'container': container_name,
                                     'type': 'secrets key',
                                     'key': secret.get('name'),
