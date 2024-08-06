@@ -13,8 +13,14 @@ fileignoreconfig:
   checksum: 67ce309ecf54ed5e54ab71b9b456f6804dd8bc17c9f6633e59fd61a916c5d4ea
 - filename: app/notifications/send_notifications.py
   checksum: ecd7a6380dde50f907568540a6c45454adc1d2adbd19853f45e0f85a1e27c50c
+- filename: cd/application-deployment/determine_if_task_definitions_in_use.py
+  checksum: ccbc6f0ac32bec5b642852c024e0e1b7340cba0a26023e0c12eb9ee9afc7a019
 - filename: cd/application-deployment/get_all_task_definitions.py
   checksum: 5a30b1f8f7516b479fbfb600302fef68003b5f4b332dc40c6274bf924d2033a9
+- filename: cd/application-deployment/keys_not_found.csv
+  checksum: 46db3b3c9ecabc835ec689d2fe777d843e04a6daedeff341f1cf685d460f1f04
+- filename: cd/application-deployment/task_definitions.csv
+  checksum: 27fd3e272dbf3aaf85272bdf758fe471f34e749cee9cb8625a633c5b65ec1f0d
 - filename: certs/DigiCert-Global-G2-TLS-RSA-SHA256-2020-CA1.cer
   checksum: e06cc6abd755fa5cb5c2b1deceb1a40f87bf9f2b8be73102623cbfe0f28a20cd
 - filename: ci/.local.env

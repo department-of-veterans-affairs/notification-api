@@ -21,7 +21,7 @@ def extract_task_definitions(base_dir):
                             data.append(
                                 {
                                     'container': container_name,
-                                    'type': 'environment',
+                                    'type': 'environment key',
                                     'key': env.get('name'),
                                     'value': env.get('value'),
                                 }
@@ -32,7 +32,7 @@ def extract_task_definitions(base_dir):
                             data.append(
                                 {
                                     'container': container_name,
-                                    'type': 'secrets',
+                                    'type': 'secrets key',
                                     'key': secret.get('name'),
                                     'value': secret.get('valueFrom'),
                                 }
@@ -48,7 +48,7 @@ def save_to_csv(data, output_file):
 
 if __name__ == '__main__':
     base_dir = './cd/application-deployment'
-    output_file = 'task_definitions.csv'
+    output_file = './cd/application-deployment/task_definitions.csv'
     data = extract_task_definitions(base_dir)
     save_to_csv(data, output_file)
     print(f'Task definitions extracted and saved to {output_file}')
