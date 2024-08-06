@@ -30,7 +30,7 @@ def test_should_get_email_address_and_update_notification(client, mocker, sample
     template = sample_template(template_type=EMAIL_TYPE)
     notification = sample_notification(
         template=template,
-        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}],
     )
 
     mocked_get_notification_by_id = mocker.patch(
@@ -78,7 +78,7 @@ def test_should_not_retry_on_non_retryable_exception(client, mocker, sample_temp
     template = sample_template(template_type=EMAIL_TYPE)
     notification = sample_notification(
         template=template,
-        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}],
     )
 
     mocker.patch('app.celery.contact_information_tasks.get_notification_by_id', return_value=notification)
@@ -113,7 +113,7 @@ def test_should_retry_on_retryable_exception(client, mocker, sample_template, sa
     template = sample_template(template_type=EMAIL_TYPE)
     notification = sample_notification(
         template=template,
-        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}],
     )
     mocker.patch('app.celery.contact_information_tasks.get_notification_by_id', return_value=notification)
 
@@ -136,7 +136,7 @@ def test_lookup_contact_info_should_retry_on_timeout(
     template = sample_template(template_type=notification_type)
     notification = sample_notification(
         template=template,
-        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}],
     )
 
     mocker.patch('app.celery.contact_information_tasks.get_notification_by_id', return_value=notification)
@@ -182,7 +182,7 @@ def test_should_update_notification_to_technical_failure_on_max_retries(
     template = sample_template(template_type=EMAIL_TYPE)
     notification = sample_notification(
         template=template,
-        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}],
     )
     mocker.patch('app.celery.contact_information_tasks.get_notification_by_id', return_value=notification)
 
@@ -209,7 +209,7 @@ def test_should_update_notification_to_permanent_failure_on_no_contact_info_exce
     template = sample_template(template_type=EMAIL_TYPE)
     notification = sample_notification(
         template=template,
-        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}],
     )
     mocker.patch('app.celery.contact_information_tasks.get_notification_by_id', return_value=notification)
 
@@ -277,7 +277,7 @@ def test_exception_sets_failure_reason_if_thrown(
     template = sample_template(template_type=EMAIL_TYPE)
     notification = sample_notification(
         template=template,
-        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
+        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}],
     )
     mocker.patch('app.celery.contact_information_tasks.get_notification_by_id', return_value=notification)
 
