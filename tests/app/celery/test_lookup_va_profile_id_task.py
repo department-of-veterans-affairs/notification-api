@@ -150,7 +150,7 @@ def test_should_update_notification_to_technical_failure_on_max_retries_and_shou
         (NoSuchIdentifierException('some error'), NoSuchIdentifierException.failure_reason),
     ],
 )
-def test_should_permanently_fail_and_clear_chain_when_permanent_failure_exception(
+def test_should_permanently_fail_when_permanent_failure_exception(
     client, mocker, sample_notification, exception, reason
 ):
     notification = sample_notification()
@@ -170,12 +170,6 @@ def test_should_permanently_fail_and_clear_chain_when_permanent_failure_exceptio
         'app.celery.lookup_va_profile_id_task.check_and_queue_callback_task',
     )
 
-    mocked_request = mocker.Mock()
-    mocked_chain = mocker.PropertyMock()
-    mocked_chain.return_value = ['some-task-to-be-executed-next']
-    type(mocked_request).chain = mocked_chain
-    mocker.patch('celery.app.task.Task.request', new=mocked_request)
-
     with pytest.raises(NotificationPermanentFailureException):
         lookup_va_profile_id(notification.id)
 
@@ -183,7 +177,6 @@ def test_should_permanently_fail_and_clear_chain_when_permanent_failure_exceptio
         notification.id, NOTIFICATION_PERMANENT_FAILURE, status_reason=reason
     )
 
-    mocked_chain.assert_called_with(None)
     mocked_check_and_queue_callback_task.assert_called_with(notification)
 
 
@@ -306,7 +299,7 @@ def test_should_not_call_callback_on_retryable_exception(client, mocker, sample_
     mocked_check_and_queue_callback_task.assert_not_called()
 
 
-def test_should_permanently_fail_and_clear_chain_when_technical_failure_exception(client, mocker, sample_notification):
+def test_should_permanently_fail_when_technical_failure_exception(client, mocker, sample_notification):
     notification = sample_notification()
     mocker.patch(
         'app.celery.lookup_va_profile_id_task.notifications_dao.get_notification_by_id', return_value=notification
@@ -324,12 +317,6 @@ def test_should_permanently_fail_and_clear_chain_when_technical_failure_exceptio
         'app.celery.lookup_va_profile_id_task.check_and_queue_callback_task',
     )
 
-    mocked_request = mocker.Mock()
-    mocked_chain = mocker.PropertyMock()
-    mocked_chain.return_value = ['some-task-to-be-executed-next']
-    type(mocked_request).chain = mocked_chain
-    mocker.patch('celery.app.task.Task.request', new=mocked_request)
-
     with pytest.raises(NotificationTechnicalFailureException):
         lookup_va_profile_id(notification.id)
 
@@ -337,5 +324,4 @@ def test_should_permanently_fail_and_clear_chain_when_technical_failure_exceptio
         notification.id, NOTIFICATION_TECHNICAL_FAILURE, status_reason='Unknown error from MPI'
     )
 
-    mocked_chain.assert_called_with(None)
     mocked_check_and_queue_callback_task.assert_called_with(notification)

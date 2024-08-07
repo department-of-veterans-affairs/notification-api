@@ -313,13 +313,14 @@ def check_and_queue_callback_task(
         service_id=notification.service_id, notification_status=notification.status
     )
 
-    # if a row of info is found
     if service_callback_api:
         # build dictionary for notification
         notification_data = create_delivery_status_callback_data(notification, service_callback_api, payload)
         send_delivery_status_to_service.apply_async(
             [service_callback_api.id, str(notification.id), notification_data], queue=QueueNames.CALLBACKS
         )
+    else:
+        current_app.logger.debug('No callbacks found for notification %s.', notification.id)
 
 
 def _check_and_queue_complaint_callback_task(
