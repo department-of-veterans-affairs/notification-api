@@ -28,7 +28,7 @@ def lookup_contact_info(
     self,
     notification_id,
 ):
-    current_app.logger.info(f'Looking up contact information for notification_id:{notification_id}.')
+    current_app.logger.info('Looking up contact information for notification_id: %s.', notification_id)
 
     notification = get_notification_by_id(notification_id)
     va_profile_id = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value]
@@ -63,13 +63,13 @@ def lookup_contact_info(
             f"Can't proceed after querying VA Profile for contact information for {notification_id}. "
             'Stopping execution of following tasks. Notification has been updated to permanent-failure.'
         )
-        current_app.logger.warning(f'{e.__class__.__name__} - {str(e)}: ' + message)
-        self.request.chain = None
+        current_app.logger.warning('%s - %s:  %s', e.__class__.__name__, str(e), message)
 
         update_notification_status_by_id(
             notification_id, NOTIFICATION_PERMANENT_FAILURE, status_reason=e.failure_reason
         )
         check_and_queue_callback_task(notification)
+        raise NotificationPermanentFailureException(message) from e
 
     except (VAProfileIDNotFoundException, VAProfileNonRetryableException) as e:
         current_app.logger.exception(e)

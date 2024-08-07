@@ -121,10 +121,9 @@ def test_should_retry_on_retryable_exception(client, mocker, sample_template, sa
     mocked_va_profile_client.get_email = mocker.Mock(side_effect=exception_type('some error'))
     mocker.patch('app.celery.contact_information_tasks.va_profile_client', new=mocked_va_profile_client)
 
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(AutoRetryException) as exc_info:
         lookup_contact_info(notification.id)
 
-    assert exc_info.type is AutoRetryException
     mocked_va_profile_client.get_email.assert_called_with(EXAMPLE_VA_PROFILE_ID)
 
 
@@ -194,10 +193,9 @@ def test_should_update_notification_to_technical_failure_on_max_retries(
         'app.celery.contact_information_tasks.handle_max_retries_exceeded'
     )
 
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(NotificationTechnicalFailureException) as exc_info:
         lookup_contact_info(notification.id)
 
-    assert exc_info.type is NotificationTechnicalFailureException
     mocked_va_profile_client.get_email.assert_called_with(EXAMPLE_VA_PROFILE_ID)
 
     mocked_handle_max_retries_exceeded.assert_called_once()
@@ -226,15 +224,8 @@ def test_should_update_notification_to_permanent_failure_on_no_contact_info_exce
         'app.celery.contact_information_tasks.update_notification_status_by_id'
     )
 
-    # This explains the use of "type" below:
-    # https://docs.python.org/3.10/library/unittest.mock.html#unittest.mock.PropertyMock
-    mocked_request = mocker.Mock()
-    mocked_chain = mocker.PropertyMock()
-    mocked_chain.return_value = ['some-task-to-be-executed-next']
-    type(mocked_request).chain = mocked_chain
-    mocker.patch('celery.app.task.Task.request', new=mocked_request)
-
-    lookup_contact_info(notification.id)
+    with pytest.raises(NotificationPermanentFailureException) as exc_info:
+        lookup_contact_info(notification.id)
 
     mocked_va_profile_client.get_email.assert_called_with(EXAMPLE_VA_PROFILE_ID)
 
@@ -242,7 +233,6 @@ def test_should_update_notification_to_permanent_failure_on_no_contact_info_exce
         notification.id, NOTIFICATION_PERMANENT_FAILURE, status_reason=exception.failure_reason
     )
 
-    mocked_chain.assert_called_with(None)
     mocked_check_and_queue_callback_task.assert_called_once_with(notification)
 
 
@@ -255,7 +245,12 @@ def test_should_update_notification_to_permanent_failure_on_no_contact_info_exce
             NOTIFICATION_TECHNICAL_FAILURE,
             RETRIES_EXCEEDED,
         ),
-        (NoContactInfoException, False, NOTIFICATION_PERMANENT_FAILURE, NoContactInfoException.failure_reason),
+        (
+            NoContactInfoException,
+            NotificationPermanentFailureException,
+            NOTIFICATION_PERMANENT_FAILURE,
+            NoContactInfoException.failure_reason,
+        ),
         (
             VAProfileNonRetryableException,
             NotificationPermanentFailureException,
