@@ -320,7 +320,9 @@ def check_and_queue_callback_task(
             [service_callback_api.id, str(notification.id), notification_data], queue=QueueNames.CALLBACKS
         )
     else:
-        current_app.logger.debug('No callbacks found for notification %s.', notification.id)
+        current_app.logger.debug(
+            'No callbacks found for notification %s and service %s.', notification.id, notification.service_id
+        )
 
 
 def _check_and_queue_complaint_callback_task(
