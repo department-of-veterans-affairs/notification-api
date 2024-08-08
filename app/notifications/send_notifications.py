@@ -34,11 +34,8 @@ def lookup_notification_sms_setup_data(
             'No results found in get_notification_setup_data attempting to lookup service or template'
         )
         raise
-    except Exception as e:
-        current_app.logger.critical(
-            'Error in get_notification_setup_data attempting to lookup service or template - exception: %s',
-            e,
-        )
+    except:
+        current_app.logger.exception('Error in get_notification_setup_data attempting to lookup service or template')
         raise
 
     try:

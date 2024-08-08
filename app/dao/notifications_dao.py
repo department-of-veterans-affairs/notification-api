@@ -361,9 +361,7 @@ def dao_update_notification_by_id(
         db.session.execute(update_statement)
         db.session.commit()
     except NoResultFound:
-        current_app.logger.exception(
-            'No notification found with id %s when attempting to update', notification_id
-        )
+        current_app.logger.exception('No notification found with id %s when attempting to update', notification_id)
         return None
     except ArgumentError:
         current_app.logger.exception('Cannot update notification %s', notification_id)

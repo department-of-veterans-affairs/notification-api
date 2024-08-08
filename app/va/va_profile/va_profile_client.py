@@ -495,7 +495,7 @@ class VAProfileClient:
             raise
         except requests.RequestException:
             self.logger.exception(
-                'Unexpected request exception.  E-mail status NOT sent to VA Profile for notification %s.'
+                'Unexpected request exception.  E-mail status NOT sent to VA Profile for notification %s.',
                 notification_data.get('id'),
             )
             raise

@@ -41,7 +41,7 @@ def process_govdelivery_response():
             current_app.logger.exception(
                 'Govdelivery callback with sid %s for reference %s did not find exactly one notification.',
                 sid,
-                reference
+                reference,
             )
             statsd_client.incr(f'callback.govdelivery.failure.{type(e).__name__}')
         else:
