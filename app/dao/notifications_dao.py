@@ -297,10 +297,9 @@ def update_notification_delivery_status(
             stmt = stmt.values(status=new_status, updated_at=datetime.utcnow())
             db.session.execute(stmt)
             db.session.commit()
-        except Exception as exc:
-            current_app.logger.critical(
-                'Update notification: %s to status: %s - Failed for: %s', notification_id, new_status, exc
-            )
+        except Exception as e:
+            current_app.logger.critical('Updating notification %s to status "%s" failed.', notification_id, new_status)
+            current_app.logger.exception(e)
             db.session.rollback()
 
 
