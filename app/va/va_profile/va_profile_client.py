@@ -1,23 +1,19 @@
 from __future__ import annotations
+
 from enum import Enum
 from http.client import responses
+from typing import TYPE_CHECKING, Dict, List
 
 import iso8601
 import requests
-
-from app.va.identifier import transform_to_fhir_format, OIDS, IdentifierType
-from app.va.va_profile import (
-    NoContactInfoException,
-    VAProfileNonRetryableException,
-    VAProfileRetryableException,
-)
+from app.va.identifier import OIDS, IdentifierType, transform_to_fhir_format
+from app.va.va_profile import NoContactInfoException, VAProfileNonRetryableException, VAProfileRetryableException
 from app.va.va_profile.exceptions import CommunicationItemNotFoundException, VAProfileIDNotFoundException
-
-from typing import Dict, List, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.models import RecipientIdentifier
-    from va_profile_types import ContactInformation, CommunicationPermissions, Profile, Telephone
+
+    from va_profile_types import CommunicationPermissions, ContactInformation, Profile, Telephone
 
 
 VA_NOTIFY_TO_VA_PROFILE_NOTIFICATION_TYPES = {
@@ -294,17 +290,15 @@ class VAProfileClient:
         try:
             response = requests.post(url, json=notification_data, headers=headers, timeout=(3.05, 1))
         except requests.Timeout:
-            self.logger.warning(
+            self.logger.exception(
                 'Request timeout attempting to send email status to VA Profile for notification %s | retrying...',
                 notification_data.get('id'),
             )
             raise
-        except requests.RequestException as e:
+        except requests.RequestException:
             self.logger.exception(
-                'Unexpected request exception, email status NOT sent to VA Profile for notification %s'
-                ' | Exception: %s',
+                'Unexpected request exception.  E-mail status NOT sent to VA Profile for notification %s.',
                 notification_data.get('id'),
-                e,
             )
             raise
 

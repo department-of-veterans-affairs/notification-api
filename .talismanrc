@@ -33,4 +33,7 @@ fileignoreconfig:
     checksum: 12f223d78afccf1d48b586c53ca061121ad0666aae4c0e464b47e88531bd630e
   - filename: tests/app/va/va_profile/test_va_profile_client.py
     checksum: ca361cb13db23cef6851c3a59c98dc22502cf3b2ff685ccce588dbbe05072c37
+  - filename: app/attachments/store.py
+    checksum: dbdde0a3cb15b8be2966299dee19ef64431b6c018529e262da0cf4d5fcdac6b2
+
 version: "1.0"
