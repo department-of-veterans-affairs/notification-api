@@ -222,10 +222,6 @@
       ],
       "secrets": [
         {
-          "name": "COMP_AND_PEN_SERVICE_ID",
-          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/dev/notification-api/comp-and-pen/service-id"
-        },
-        {
           "name": "COMP_AND_PEN_TEMPLATE_ID",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/dev/notification-api/comp-and-pen/template-id"
         },
