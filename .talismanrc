@@ -27,6 +27,8 @@ fileignoreconfig:
   checksum: a2dca7e8e15af2a98112a405725e0b6f07c6adcb61507d8d32715ee17c383b6b
 - filename: poetry.lock
   checksum: 7a495ebe704b7723f9abfe67d965e53fb3ae830ba537b36a1aa07de4eeecb4fa
+- filename: poetry.lock
+  checksum: 68bd8e4a0a9e42a7988297524939e29c1a8bcd685d59fe26f49d109d09cc6ed5
 - filename: task_definitions.csv
   checksum: 56e3f2d1d3eddccab7f482c30a43566138c23239335d1e99520f59e488b2d957
 - filename: tests/app/celery/test_scheduled_tasks.py
@@ -41,4 +43,11 @@ fileignoreconfig:
   checksum: 12f223d78afccf1d48b586c53ca061121ad0666aae4c0e464b47e88531bd630e
 - filename: tests/app/va/va_profile/test_va_profile_client.py
   checksum: faac058194f6d02342f46fdf7551c246caa58ae164cea973ff1f7089fee664fc
+- filename: tests/app/va/va_profile/test_va_profile_client.py
+  checksum: ca361cb13db23cef6851c3a59c98dc22502cf3b2ff685ccce588dbbe05072c37
+- filename: app/va/va_profile/va_profile_client.py
+  checksum: ca361cb13db23cef6851c3a59c98dc22502cf3b2ff685ccce588dbbe05072c37
+- filename: app/attachments/store.py
+  checksum: dbdde0a3cb15b8be2966299dee19ef64431b6c018529e262da0cf4d5fcdac6b2
+
 version: "1.0"

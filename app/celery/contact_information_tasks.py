@@ -29,8 +29,7 @@ def lookup_contact_info(
     current_app.logger.info(f'Looking up contact information for notification_id:{notification_id}.')
 
     notification = get_notification_by_id(notification_id)
-
-    va_profile_id = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value
+    va_profile_id = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value]
 
     try:
         if EMAIL_TYPE == notification.notification_type:

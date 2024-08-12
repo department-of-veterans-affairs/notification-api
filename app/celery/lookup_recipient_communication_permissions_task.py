@@ -12,7 +12,7 @@ from app.dao.notifications_dao import get_notification_by_id, update_notificatio
 from app.exceptions import NotificationTechnicalFailureException
 from app.models import RecipientIdentifier, NOTIFICATION_PREFERENCES_DECLINED
 from app.va.va_profile import VAProfileRetryableException
-from app.va.va_profile.va_profile_client import CommunicationItemNotFoundException
+from app.va.va_profile.exceptions import CommunicationItemNotFoundException
 from app.va.identifier import IdentifierType
 
 
