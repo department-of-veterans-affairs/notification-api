@@ -222,10 +222,6 @@
         {
           "name": "COMP_AND_PEN_MESSAGES_ENABLED",
           "value": "True"
-        },
-        {
-          "name": "COMP_AND_PEN_DYNAMODB_NAME",
-          "value": "dev-bip-payment-notification-table"
         }
       ],
       "secrets": [
