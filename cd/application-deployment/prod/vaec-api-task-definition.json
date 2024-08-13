@@ -32,6 +32,10 @@
           "value": "production"
         },
         {
+          "name": "NIGHTLY_NOTIF_CSV_ENABLED",
+          "value": "True"
+        },
+        {
           "name": "FLASK_APP",
           "value": "application.py"
         },
