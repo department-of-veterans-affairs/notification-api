@@ -60,6 +60,10 @@
           "value": "True"
         },
         {
+          "name": "NOTIFICATION_QUEUE_PREFIX",
+          "value": "staging-notification-"
+        },
+        {
           "name": "STATSD_HOST",
           "value": "localhost"
         },
