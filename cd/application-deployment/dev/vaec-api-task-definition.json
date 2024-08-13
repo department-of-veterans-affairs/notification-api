@@ -116,10 +116,6 @@
           "value": "True"
         },
         {
-          "name": "NOTIFICATION_QUEUE_PREFIX",
-          "value": "dev-notification-"
-        },
-        {
           "name": "NOTIFY_EMAIL_FROM_USER",
           "value": "stage-notifications"
         },
