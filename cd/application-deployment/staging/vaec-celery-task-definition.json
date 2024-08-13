@@ -146,10 +146,6 @@
           "value": "True"
         },
         {
-          "name": "UI_HOST_NAME",
-          "value": "https://staging.notifications.va.gov"
-        },
-        {
           "name": "CHECK_GITHUB_SCOPE_ENABLED",
           "value": "False"
         },
