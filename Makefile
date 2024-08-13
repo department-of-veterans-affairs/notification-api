@@ -35,7 +35,7 @@ check-dependencies: install-safety ## Scan dependencies for security vulnerabili
 	# 6 June 2024: 70612 vulnerability found with jinja2 version 3.1.3
 	# 14 Aug 2024: 71600 found in gunicorn version 22.0.0, will be addressed in regular dependencies update
 
-	safety check -r poetry.lock --full-report -i 51668,70612
+	safety check -r poetry.lock --full-report -i 51668,70612,71600
 
 .PHONY:
 	help \
