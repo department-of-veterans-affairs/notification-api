@@ -142,6 +142,10 @@
           "value": "True"
         },
         {
+          "name": "SESSION_COOKIE_SECURE",
+          "value": "True"
+        },
+        {
           "name": "SMS_PROVIDER_SELECTION_STRATEGY_LABEL",
           "value": "HIGHEST_PRIORITY"
         },
@@ -156,6 +160,10 @@
         {
           "name": "TEMPLATE_SERVICE_PROVIDERS_ENABLED",
           "value": "True"
+        },
+        {
+          "name": "UI_HOST_NAME",
+          "value": "https://dev.notifications.va.gov"
         },
         {
           "name": "VA_ONSITE_URL",
