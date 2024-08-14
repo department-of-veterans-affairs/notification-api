@@ -92,10 +92,6 @@
           "value": "True"
         },
         {
-          "name": "VA_PROFILE_URL",
-          "value": "https://qa.vaprofile.va.gov"
-        },
-        {
           "name": "UI_HOST_NAME",
           "value": "https://perf.notifications.va.gov"
         },
