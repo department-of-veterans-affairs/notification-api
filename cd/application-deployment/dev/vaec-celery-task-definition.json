@@ -182,10 +182,6 @@
           "value": "A20623E2321D4053A6C34C9307C6C221"
         },
         {
-          "name": "PUSH_NOTIFICATIONS_ENABLED",
-          "value": "True"
-        },
-        {
           "name": "PLATFORM_STATS_ENABLED",
           "value": "True"
         },
