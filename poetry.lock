@@ -2286,8 +2286,8 @@ statsd = ">=3.3.0"
 [package.source]
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
-reference = "HEAD"
-resolved_reference = "9f76473f67cf037b9d0f7f4a66f6a1c83d08867b"
+reference = "152-add-action-link-format"
+resolved_reference = "c624c4ad0cb1959c3e5c191e118b51c8e2a8a414"
 
 [[package]]
 name = "notifications-python-client"
@@ -3727,4 +3727,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.13"
-content-hash = "8b303fbd7275836995ae1e03ebd73169cc6c4147d390bb183d581b870ac70f6a"
+content-hash = "689ab2d7e56b61e5fc47ccc8db3d9b6cd28e496f437c86bf580070e8cdb2d280"
