@@ -172,10 +172,6 @@
           "value": "https://dev.notifications.va.gov"
         },
         {
-          "name": "VA_ONSITE_URL",
-          "value": "https://staging-api.va.gov"
-        },
-        {
           "name": "VA_PROFILE_URL",
           "value": "https://int.vaprofile.va.gov"
         },
