@@ -166,6 +166,10 @@
           "value": "A20623E2321D4053A6C34C9307C6C221"
         },
         {
+          "name": "PUSH_NOTIFICATIONS_ENABLED",
+          "value": "True"
+        },
+        {
           "name": "PLATFORM_STATS_ENABLED",
           "value": "False"
         },
@@ -214,6 +218,10 @@
         {
           "name": "SQLALCHEMY_DATABASE_URI_READ",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/perf/notification-api/database/uri_read"
+        },
+        {
+          "name": "SECRET_KEY",
+          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/perf/notification-api/secret-key"
         },
         {
           "name": "DANGEROUS_SALT",
