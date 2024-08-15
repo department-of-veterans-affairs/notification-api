@@ -178,6 +178,17 @@
           "value": "staging-notifications-va-gov-attachments"
         },
         {
+<<<<<<< Updated upstream
+=======
+          "name": "VA_FLAGSHIP_APP_SID",
+          "value": "A20623E2321D4053A6C34C9307C6C221"
+        },
+        {
+          "name": "PUSH_NOTIFICATIONS_ENABLED",
+          "value": "True"
+        },
+        {
+>>>>>>> Stashed changes
           "name": "PLATFORM_STATS_ENABLED",
           "value": "False"
         },
