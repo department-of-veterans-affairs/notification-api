@@ -244,10 +244,6 @@
         {
           "name": "VETEXT_PASSWORD",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/prod/notification-api/vetext/password"
-        },
-        {
-          "name": "VA_SSO_CLIENT_ID",
-          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/prod/notification-api/iam-sso-client-id"
         }
       ]
     },

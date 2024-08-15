@@ -264,10 +264,6 @@
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/dev/notification-api/cert/vanotify-va-key"
         },
         {
-          "name": "VA_SSO_CLIENT_ID",
-          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/dev/notification-api/iam-sso-client-id"
-        },
-        {
           "name": "VA_ONSITE_SECRET",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/dev/notification-api/onsite/notification-priv"
         },
