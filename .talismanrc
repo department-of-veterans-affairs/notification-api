@@ -1,6 +1,8 @@
 fileignoreconfig:
 - filename: README.md
   checksum: 94578d44dbb4e2a27def1bfd91aec3945bbda30eadb5a9414b84a96aea49b4a7
+- filename: app/attachments/store.py
+  checksum: dbdde0a3cb15b8be2966299dee19ef64431b6c018529e262da0cf4d5fcdac6b2
 - filename: app/celery/process_ga4_measurement_tasks.py
   checksum: 772d9605c861b6382c0bd488e1f5f52d8a5d8874ace5b80378407a905a514a29
 - filename: app/config.py
@@ -21,6 +23,8 @@ fileignoreconfig:
   checksum: 46db3b3c9ecabc835ec689d2fe777d843e04a6daedeff341f1cf685d460f1f04
 - filename: cd/application-deployment/task_definitions.csv
   checksum: d8940779b6634bae97ac31257ce9ecc7e72983b21387a63a2d5c6f042b4f57d2
+- filename: app/va/va_profile/va_profile_client.py
+  checksum: ca361cb13db23cef6851c3a59c98dc22502cf3b2ff685ccce588dbbe05072c37
 - filename: certs/DigiCert-Global-G2-TLS-RSA-SHA256-2020-CA1.cer
   checksum: e06cc6abd755fa5cb5c2b1deceb1a40f87bf9f2b8be73102623cbfe0f28a20cd
 - filename: ci/.local.env
@@ -48,6 +52,5 @@ fileignoreconfig:
 - filename: app/va/va_profile/va_profile_client.py
   checksum: ca361cb13db23cef6851c3a59c98dc22502cf3b2ff685ccce588dbbe05072c37
 - filename: app/attachments/store.py
-  checksum: dbdde0a3cb15b8be2966299dee19ef64431b6c018529e262da0cf4d5fcdac6b2
-
+  checksum: ca361cb13db23cef6851c3a59c98dc22502cf3b2ff685ccce588dbbe05072c37
 version: "1.0"
