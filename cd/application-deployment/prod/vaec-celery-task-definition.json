@@ -166,10 +166,6 @@
           "value": "prod-notifications-va-gov-attachments"
         },
         {
-          "name": "VA_FLAGSHIP_APP_SID",
-          "value": "D288162B716A4F55B9F5CF9AA9DDEA5E"
-        },
-        {
           "name": "PLATFORM_STATS_ENABLED",
           "value": "False"
         },
