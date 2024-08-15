@@ -194,14 +194,6 @@
           "value": "https://int.fed.eauth.va.gov/oauthi/sps/oauth/oauth20/metadata/ISAMOP/.well-known/oauth-authorization-server"
         },
         {
-          "name": "VA_SSO_AUTHORIZE_URL",
-          "value": "https://int.fed.eauth.va.gov/oauthi/sps/oauth/oauth20/authorize"
-        },
-        {
-          "name": "VA_SSO_ACCESS_TOKEN_URL",
-          "value": "https://int.fed.eauth.va.gov/oauthi/sps/oauth/oauth20/token"
-        },
-        {
           "name": "COMP_AND_PEN_MESSAGES_ENABLED",
           "value": "True"
         },
