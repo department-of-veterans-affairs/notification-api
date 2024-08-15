@@ -15,14 +15,14 @@ fileignoreconfig:
   checksum: 67ce309ecf54ed5e54ab71b9b456f6804dd8bc17c9f6633e59fd61a916c5d4ea
 - filename: app/notifications/send_notifications.py
   checksum: ecd7a6380dde50f907568540a6c45454adc1d2adbd19853f45e0f85a1e27c50c
-- filename: cd/application-deployment/determine_if_task_definitions_in_use.py
-  checksum: ccbc6f0ac32bec5b642852c024e0e1b7340cba0a26023e0c12eb9ee9afc7a019
 - filename: cd/application-deployment/get_all_task_definitions.py
   checksum: 5a30b1f8f7516b479fbfb600302fef68003b5f4b332dc40c6274bf924d2033a9
-- filename: cd/application-deployment/keys_not_found.csv
-  checksum: 46db3b3c9ecabc835ec689d2fe777d843e04a6daedeff341f1cf685d460f1f04
-- filename: cd/application-deployment/task_definitions.csv
-  checksum: d8940779b6634bae97ac31257ce9ecc7e72983b21387a63a2d5c6f042b4f57d2
+- filename: cd/application-deployment/staging/vaec-celery-task-definition.json
+  checksum: 48121669d85020acbd35aaa0d042c320e2dfeb43ba199921105180cb8e5ac8be
+- filename: cd/application-deployment/perf/vaec-celery-task-definition.json
+  checksum: 1f8fcf6b3e662cc1aaaa0653a3da03bb8830b43fc8893f2450d2ae71ed143cba
+- filename: cd/application-deployment/dev/vaec-celery-task-definition.json
+  checksum: 6299cb10dc5f67c9d3bbe8040543fc68de175d051c5cf700b7fbefb32f969d4c
 - filename: app/va/va_profile/va_profile_client.py
   checksum: ca361cb13db23cef6851c3a59c98dc22502cf3b2ff685ccce588dbbe05072c37
 - filename: certs/DigiCert-Global-G2-TLS-RSA-SHA256-2020-CA1.cer
