@@ -96,10 +96,6 @@
           "value": "https://perf.notifications.va.gov"
         },
         {
-          "name": "VANOTIFY_SSL_CERT_PATH",
-          "value": "/app/certs/vanotify_ssl_cert.pem"
-        },
-        {
           "name": "MPI_URL",
           "value": "https://sqa.services.eauth.va.gov:9303/sqa"
         },
@@ -216,10 +212,6 @@
         {
           "name": "DANGEROUS_SALT",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/perf/notification-api/dangerous-salt"
-        },
-        {
-          "name": "VANOTIFY_SSL_CERT",
-          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/perf/notification-api/cert/vanotify-va-cert"
         },
         {
           "name": "VANOTIFY_SSL_KEY",

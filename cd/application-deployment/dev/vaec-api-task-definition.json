@@ -172,10 +172,6 @@
           "value": "https://dev.notifications.va.gov"
         },
         {
-          "name": "VANOTIFY_SSL_CERT_PATH",
-          "value": "/app/certs/vanotify_ssl_cert.pem"
-        },
-        {
           "name": "VA_FLAGSHIP_APP_SID",
           "value": "A20623E2321D4053A6C34C9307C6C221"
         },
@@ -252,10 +248,6 @@
         {
           "name": "TWILIO_AUTH_TOKEN",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/dev/notification-api/twilio/auth-token"
-        },
-        {
-          "name": "VANOTIFY_SSL_CERT",
-          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/dev/notification-api/cert/vanotify-va-cert"
         },
         {
           "name": "VANOTIFY_SSL_KEY",
