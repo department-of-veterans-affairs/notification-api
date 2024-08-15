@@ -104,8 +104,8 @@ Ruff has been added to the pre-commit hook in place of flake8. See [documentatio
 ### Using Localstack
 
 #### Setup
-1. Sign up for a Localstack [hobby license](https://app.localstack.cloud/sign-up).
-2. Go here and get your auth token - https://app.localstack.cloud/workspace/auth-token.  Put it in your environment,  .i.e.~/.zshrc or ~/.zsh_profile
+1. Sign up for [Localstack](https://app.localstack.cloud/sign-up).
+ 2. Go here and get your auth token - https://app.localstack.cloud/workspace/auth-token.  Put it in your environment,  .i.e.~/.zshrc or ~/.zsh_profile
 3. Add a localstack profile to your ~/.aws/config. This will allow you to set an AWS_PROFILE environment variable in a shell, and the aws cli will use that profile. If you don't have a ~/.aws/config then maybe you don't have the cli, get it [here](https://aws.amazon.com/cli/).
 ```
 [profile localstack]
