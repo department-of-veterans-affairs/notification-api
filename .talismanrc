@@ -3,4 +3,6 @@ fileignoreconfig:
   checksum: b2cbbb8508af49abccae8b35b317f7ce09215f3508430ed31440add78f450e5a
 - filename: app/notifications/process_notifications.py
   checksum: ae4e31c6eb56d91ec80ae09d13baf4558cf461c65f08893b93fee43f036a17a7
+- filename: poetry.lock
+  checksum: 50abbf7cfdf95063b79702ddf06c2afba6560f12e383c208ad903f3ded037acc
 version: "1.0"

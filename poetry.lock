@@ -2287,7 +2287,7 @@ statsd = ">=3.3.0"
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
 reference = "152-add-action-link-format"
-resolved_reference = "c624c4ad0cb1959c3e5c191e118b51c8e2a8a414"
+resolved_reference = "1c48e95bf841b24aa88874009e918fd16cad1d7e"
 
 [[package]]
 name = "notifications-python-client"
