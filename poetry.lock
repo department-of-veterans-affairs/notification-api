@@ -2257,7 +2257,7 @@ files = [
 
 [[package]]
 name = "notification-utils"
-version = "2.1.0"
+version = "2.2.0"
 description = "Shared python code for VA Notify. Forked from https://github.com/cds-snc/notification-utils"
 optional = false
 python-versions = "*"
@@ -2287,7 +2287,7 @@ statsd = ">=3.3.0"
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
 reference = "152-add-action-link-format"
-resolved_reference = "1c48e95bf841b24aa88874009e918fd16cad1d7e"
+resolved_reference = "8f2493136512e3fefc2b15b492443b64192e7f82"
 
 [[package]]
 name = "notifications-python-client"
