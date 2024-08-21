@@ -729,5 +729,3 @@ pyenv install --patch 3.10.13 < <(curl -sSL https://github.com/python/cpython/co
 **Solution**: Ensure you have properly set environment variables.  When running unit tests locally with containers, the environmnet includes the variables declared in [docker-compose-test.yml](https://github.com/department-of-veterans-affairs/notification-api/blob/main/ci/docker-compose-test.yml).  However, Github does not use this YAML file.
 
 Set environment variables for the Github Actions job runner in [tests.yaml](https://github.com/department-of-veterans-affairs/notification-api/blob/main/.github/workflows/tests.yaml).  You probably will want to define them in the `env` section of the `Run Tests` step of the `Test` job, but variables set anywhere are visible to subsequent steps within the same job.
-
-test run dev-test workflow
