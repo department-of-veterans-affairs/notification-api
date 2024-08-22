@@ -2320,7 +2320,7 @@ files = [
 
 [[package]]
 name = "notification-utils"
-version = "2.1.0"
+version = "2.2.1"
 description = "Shared python code for VA Notify. Forked from https://github.com/cds-snc/notification-utils"
 optional = false
 python-versions = "*"
