@@ -2320,7 +2320,7 @@ files = [
 
 [[package]]
 name = "notification-utils"
-version = "2.2.1"
+version = "2.2.2"
 description = "Shared python code for VA Notify. Forked from https://github.com/cds-snc/notification-utils"
 optional = false
 python-versions = "*"
@@ -2349,8 +2349,8 @@ statsd = ">=3.3.0"
 [package.source]
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
-reference = "HEAD"
-resolved_reference = "889783734544afecb81d8394308aad3d73c94ae1"
+reference = "127-bug-email-exposes-html-tags"
+resolved_reference = "9cf86e9e64f0642d83597c961207e60248e618ec"
 
 [[package]]
 name = "notifications-python-client"
@@ -3789,4 +3789,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.13"
-content-hash = "8b303fbd7275836995ae1e03ebd73169cc6c4147d390bb183d581b870ac70f6a"
+content-hash = "896fb22292bfb306c428add92d08fe694b09cc1ddea27251c16003bc6b79fae6"

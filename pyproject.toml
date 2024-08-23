@@ -52,7 +52,7 @@ twilio = "*"
 Unidecode = "*"
 validatesns = "*"
 Werkzeug = "*"
-notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git"}
+notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git", branch="127-bug-email-exposes-html-tags"}
 
 [tool.poetry.group.test]
 optional = true
