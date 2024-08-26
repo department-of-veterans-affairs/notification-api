@@ -2350,7 +2350,7 @@ statsd = ">=3.3.0"
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
 reference = "127-bug-email-exposes-html-tags"
-resolved_reference = "a26c32925d8ef3c6a97d129d8a95d062466ab3ab"
+resolved_reference = "93fd26d3db2868bda134f107249cd7f70476fc93"
 
 [[package]]
 name = "notifications-python-client"
