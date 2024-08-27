@@ -53,7 +53,7 @@ class ProviderService:
 
         # This is a UUID (ProviderDetails primary key).
         provider_id = self._get_template_or_service_provider_id(notification)
-        current_app.logger.debug('notification = %s, provider_id = %s', notification, provider_id)
+        current_app.logger.debug('notification = %s, provider_id = %s', notification.id, provider_id)
 
         if provider_id:
             provider = get_provider_details_by_id(provider_id)
@@ -61,7 +61,7 @@ class ProviderService:
             # Use an alternative strategy to determine the provider.
             provider_selection_strategy = self._strategies.get(NotificationType(notification.notification_type))
             current_app.logger.debug(
-                'Provider selection strategy: %s, for notification: ', provider_selection_strategy, notification
+                'Provider selection strategy: %s, for notification: ', provider_selection_strategy, notification.id
             )
             provider = (
                 None
@@ -90,7 +90,7 @@ class ProviderService:
         current_app.logger.debug(
             'Returning provider: %s, for notification %s',
             None if provider is None else provider.display_name,
-            notification,
+            notification.id,
         )
         return provider
 
@@ -109,7 +109,7 @@ class ProviderService:
         # Testing for None broke a user flows test; user flows is since removed but this is possibly an issue?
         if notification.template.provider_id:
             current_app.logger.debug(
-                'Found template provider ID %s, for notification %s', notification.template.provider_id, notification
+                'Found template provider ID %s, for notification %s', notification.template.provider_id, notification.id
             )
             return notification.template.provider_id
 
@@ -118,12 +118,12 @@ class ProviderService:
             current_app.logger.debug(
                 'Service provider e-mail ID %s, for notification %s',
                 notification.service.email_provider_id,
-                notification,
+                notification.id,
             )
             return notification.service.email_provider_id
         elif notification.notification_type == NotificationType.SMS.value:
             current_app.logger.debug(
-                'Service provider SMS ID %s, for notification %s', notification.service.sms_provider_id, notification
+                'Service provider SMS ID %s, for notification %s', notification.service.sms_provider_id, notification.id
             )
             return notification.service.sms_provider_id
 
