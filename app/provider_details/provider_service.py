@@ -53,15 +53,16 @@ class ProviderService:
 
         # This is a UUID (ProviderDetails primary key).
         provider_id = self._get_template_or_service_provider_id(notification)
-        current_app.logger.debug('notification = %s', notification)
-        current_app.logger.debug('provider_id = %s', provider_id)
+        current_app.logger.debug('notification = %s, provider_id = %s', notification, provider_id)
 
         if provider_id:
             provider = get_provider_details_by_id(provider_id)
         elif notification.notification_type != NotificationType.SMS:
             # Use an alternative strategy to determine the provider.
             provider_selection_strategy = self._strategies.get(NotificationType(notification.notification_type))
-            current_app.logger.debug('Provider selection strategy: %s', provider_selection_strategy)
+            current_app.logger.debug(
+                'Provider selection strategy: %s, for notification: ', provider_selection_strategy, notification
+            )
             provider = (
                 None
                 if (provider_selection_strategy is None)
@@ -86,7 +87,11 @@ class ProviderService:
         elif not provider.active:
             raise InvalidProviderException(f'The provider {provider.display_name} is not active.')
 
-        current_app.logger.debug('Returning provider: %s', None if provider is None else provider.display_name)
+        current_app.logger.debug(
+            'Returning provider: %s, for notification %s',
+            None if provider is None else provider.display_name,
+            notification,
+        )
         return provider
 
     @staticmethod
@@ -103,15 +108,23 @@ class ProviderService:
         # TODO #957 - The field is nullable, but what does SQLAlchemy return?  An empty string?
         # Testing for None broke a user flows test; user flows is since removed but this is possibly an issue?
         if notification.template.provider_id:
-            current_app.logger.debug('Found template provider ID %s', notification.template.provider_id)
+            current_app.logger.debug(
+                'Found template provider ID %s, for notification %s', notification.template.provider_id, notification
+            )
             return notification.template.provider_id
 
         # A template provider_id is not available.  Try using a service provider_id, which might also be None.
         if notification.notification_type == NotificationType.EMAIL.value:
-            current_app.logger.debug('Service provider e-mail ID %s', notification.service.email_provider_id)
+            current_app.logger.debug(
+                'Service provider e-mail ID %s, for notification %s',
+                notification.service.email_provider_id,
+                notification,
+            )
             return notification.service.email_provider_id
         elif notification.notification_type == NotificationType.SMS.value:
-            current_app.logger.debug('Service provider SMS ID %s', notification.service.sms_provider_id)
+            current_app.logger.debug(
+                'Service provider SMS ID %s, for notification %s', notification.service.sms_provider_id, notification
+            )
             return notification.service.sms_provider_id
 
         # TODO #957 - What about letters?  That is the 3rd enumerated value in NotificationType
