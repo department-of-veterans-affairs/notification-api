@@ -61,7 +61,7 @@ class ProviderService:
             # Use an alternative strategy to determine the provider.
             provider_selection_strategy = self._strategies.get(NotificationType(notification.notification_type))
             current_app.logger.debug(
-                'Provider selection strategy: %s, for notification: ', provider_selection_strategy, notification.id
+                'Provider selection strategy: %s, for notification: %s', provider_selection_strategy, notification.id
             )
             provider = (
                 None
