@@ -2349,8 +2349,8 @@ statsd = ">=3.3.0"
 [package.source]
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
-reference = "127-bug-email-exposes-html-tags"
-resolved_reference = "31489fa0fd7324b1f33ba771590ffbca1fd3b040"
+reference = "HEAD"
+resolved_reference = "170bfbf99cb0c4c95bef49bca9cecf2cc54eb714"
 
 [[package]]
 name = "notifications-python-client"
@@ -3789,4 +3789,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.13"
-content-hash = "896fb22292bfb306c428add92d08fe694b09cc1ddea27251c16003bc6b79fae6"
+content-hash = "8b303fbd7275836995ae1e03ebd73169cc6c4147d390bb183d581b870ac70f6a"
