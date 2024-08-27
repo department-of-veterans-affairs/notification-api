@@ -1,4 +1,7 @@
 import logging
+
+from flask import current_app
+
 from app.dao.provider_details_dao import get_provider_details_by_id
 from app.exceptions import InvalidProviderException
 from app.models import Notification, ProviderDetails
@@ -11,7 +14,9 @@ from typing import Type, Dict, Optional
 
 logging.basicConfig(format='%(levelname)s %(asctime)s %(pathname)s:%(lineno)d: %(message)s')
 logger = logging.getLogger('notification-api.provider_switching')
-logger.setLevel(logging.DEBUG)
+
+# Set the logger's level to the current_app log level.
+logger.setLevel(current_app.logger.level)
 
 
 class ProviderService:
