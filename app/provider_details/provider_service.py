@@ -53,7 +53,9 @@ class ProviderService:
 
         # This is a UUID (ProviderDetails primary key).
         provider_id = self._get_template_or_service_provider_id(notification)
-        current_app.logger.debug('notification = %s, provider_id = %s', notification.id, provider_id)
+        current_app.logger.debug(
+            'Provider service getting provider for notification = %s, provider_id = %s', notification.id, provider_id
+        )
 
         if provider_id:
             provider = get_provider_details_by_id(provider_id)
