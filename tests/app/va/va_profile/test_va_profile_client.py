@@ -131,6 +131,87 @@ class TestVAProfileClient:
         assert telephone is not None
         assert rmock.called
 
+    def test_ut_get_telephone_with_permission_prefers_profile_metadata_over_veteran_classified_home_number(
+        self,
+        rmock,
+        mock_va_profile_client,
+        mock_response,
+        recipient_identifier,
+        url,
+    ):
+        # If a phone number classified as "HOME" by the veteran contains metadata
+        # indicating that it is a mobile number, disregard veteran-supplied input.
+        # Consider the number an acceptable recipient for SMS notification
+        contact_information_mock = mock_response['profile']['contactInformation']
+        telephones_mock_data = [
+            telephone for telephone in contact_information_mock['telephones'] if telephone['phoneType'] == 'HOME'
+        ]
+        contact_information_mock['telephones'] = telephones_mock_data
+
+        telephone_mock = contact_information_mock['telephones'][0]
+        telephone_mock['classification'] = {
+            'classificationCode': 0,
+            'classificationName': 'MOBILE',
+        }
+
+        rmock.post(url, json=mock_response, status_code=200)
+
+        telephone = mock_va_profile_client.get_telephone_with_permission(recipient_identifier, 1)
+        assert telephone is not None
+
+        assert rmock.called
+
+    def test_ut_get_telephone_with_permission_prefers_profile_metadata_over_veteran_supplied_mobile_number(
+        self,
+        rmock,
+        mock_va_profile_client,
+        mock_response,
+        recipient_identifier,
+        url,
+    ):
+        # If a phone number classified as "MOBILE" by the veteran contains metadata
+        # indicating that it is a landline number, disregard veteran-supplied input.
+        # Consider the number an unacceptable recipient for SMS notification
+        contact_information_mock = mock_response['profile']['contactInformation']
+        telephones_mock_data = [contact_information_mock['telephones'][0]]
+        assert telephones_mock_data[0]['phoneType'] == 'MOBILE'
+        contact_information_mock['telephones'] = telephones_mock_data
+
+        telephone_mock = contact_information_mock['telephones'][0]
+        telephone_mock['classification'] = {
+            'classificationCode': 1,
+            'classificationName': 'HOME',
+        }
+
+        rmock.post(url, json=mock_response, status_code=200)
+
+    @pytest.mark.parametrize('phone_can_accept_sms', [True, False])
+    def test_ut_get_telephone_with_permission_doesnt_require_classification(
+        self, rmock, mock_va_profile_client, mock_response, recipient_identifier, url, phone_can_accept_sms
+    ):
+        # happy path test - just check and make sure that the telephone classification metadata
+        # is not required to check if it's a valid number to send SMS to (rely on veteran-supplied data)
+        contact_information_mock = mock_response['profile']['contactInformation']
+
+        if phone_can_accept_sms:
+            telephones_mock_data = [contact_information_mock['telephones'][0]]
+            assert telephones_mock_data[0]['phoneType'] == 'MOBILE'
+        else:
+            telephones_mock_data = [
+                telephone for telephone in contact_information_mock['telephones'] if telephone['phoneType'] == 'HOME'
+            ]
+        contact_information_mock['telephones'] = telephones_mock_data
+
+        rmock.post(url, json=mock_response, status_code=200)
+
+        if phone_can_accept_sms:
+            telephone = mock_va_profile_client.get_telephone_with_permission(recipient_identifier, 1)
+            assert telephone is not None
+        else:
+            with pytest.raises(NoContactInfoException):
+                mock_va_profile_client.get_telephone_with_permission(recipient_identifier, 1)
+        assert rmock.called
+
 
 class TestVAProfileClientExceptionHandling:
     def test_ut_get_telephone_raises_NoContactInfoException_if_no_telephones_exist(

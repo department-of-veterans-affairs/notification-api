@@ -8,19 +8,39 @@ import iso8601
 import requests
 from app.va.identifier import OIDS, IdentifierType, transform_to_fhir_format
 from app.va.va_profile import NoContactInfoException, VAProfileNonRetryableException, VAProfileRetryableException
-from app.va.va_profile.exceptions import (CommunicationItemNotFoundException, CommunicationPermissionDenied,
-                                          VAProfileIDNotFoundException)
+from app.va.va_profile.exceptions import (
+    CommunicationItemNotFoundException,
+    CommunicationPermissionDenied,
+    VAProfileIDNotFoundException,
+)
 
 if TYPE_CHECKING:
     from app.models import RecipientIdentifier
 
-    from va_profile_types import (CommunicationPermissions, ContactInformation, Profile, Telephone)
+    from va_profile_types import CommunicationPermissions, ContactInformation, Profile, Telephone
 
 
 VA_NOTIFY_TO_VA_PROFILE_NOTIFICATION_TYPES = {
     'email': 'Email',
     'sms': 'Text',
 }
+
+
+def is_mobile_telephone(telephone_dict):
+    # The TelephoneResponse that is returned by the V3 Profile API includes a hash with
+    # classification information which can be used to determine if a phone nubmer is a mobile
+    # number or not.  However, this information might not always be present.  First, check if
+    # classification information is present.  If it's not, fall back to the veteran-supplied data
+    # Otherwise, return whether or not the number is classified as "mobile".
+    # This will prevent unnecessary SMS message attempts to landline phones.
+    # See the API documentation at the following url:
+    # https://qa.vaprofile.va.gov:7005/profile-service/swagger-ui/index.html?urls.primaryName=ProfileServiceV3#/Profile-v3/getProfile
+
+    classificationCode = telephone_dict.get('classification', {}).get('classificationCode', None)
+
+    if classificationCode is None:
+        return telephone_dict['phoneType'] == PhoneNumberType.MOBILE.value
+    return classificationCode == 0
 
 
 class NotificationType(Enum):
@@ -157,8 +177,9 @@ class VAProfileClient:
             CommunicationPermissionDenied: If communication permission is denied for the given parameters
         """
         profile = self.get_profile(va_profile_id)
-        communication_allowed = self.get_is_communication_allowed_from_profile(profile, communication_item_id,
-                                                                               NotificationType.TEXT)
+        communication_allowed = self.get_is_communication_allowed_from_profile(
+            profile, communication_item_id, NotificationType.TEXT
+        )
         if not communication_allowed:
             raise CommunicationPermissionDenied
 
@@ -168,8 +189,11 @@ class VAProfileClient:
         telephones: List[Telephone] = contact_info.get(self.PHONE_BIO_TYPE, [])
         phone_numbers = ', '.join([tel['phoneNumber'] for tel in telephones])
         self.logger.debug('V3 Profile telephones: %s', phone_numbers)
+
+        mobile_telephones = [phone for phone in telephones if is_mobile_telephone(phone)]
+
         sorted_telephones = sorted(
-            [phone for phone in telephones if phone['phoneType'] == PhoneNumberType.MOBILE.value],
+            mobile_telephones,
             key=lambda phone: iso8601.parse_date(phone['createDate']),
             reverse=True,
         )
@@ -185,7 +209,11 @@ class VAProfileClient:
         self.statsd_client.incr('clients.va-profile.get-telephone.failure')
         self._raise_no_contact_info_exception(self.PHONE_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID))
 
-    def get_email_with_permission(self, va_profile_id: RecipientIdentifier, communication_item_id: str,) -> str:
+    def get_email_with_permission(
+        self,
+        va_profile_id: RecipientIdentifier,
+        communication_item_id: str,
+    ) -> str:
         """
         Retrieve the email address from the profile information for a given VA profile ID.
 
@@ -200,8 +228,9 @@ class VAProfileClient:
             CommunicationPermissionDenied: If communication permission is denied for the given parameters
         """
         profile = self.get_profile(va_profile_id)
-        communication_allowed = self.get_is_communication_allowed_from_profile(profile, communication_item_id,
-                                                                               NotificationType.EMAIL)
+        communication_allowed = self.get_is_communication_allowed_from_profile(
+            profile, communication_item_id, NotificationType.EMAIL
+        )
         if not communication_allowed:
             raise CommunicationPermissionDenied
 
@@ -306,13 +335,13 @@ class VAProfileClient:
             CommunicationItemNotFoundException: If no communication permissions are found for the given parameters.
         """
 
-        communication_permissions: CommunicationPermissions = profile.get(
-            'communicationPermissions', {}
-        )
+        communication_permissions: CommunicationPermissions = profile.get('communicationPermissions', {})
+        va_profile_id = profile['contactInformation']['vaProfileId']
+
         self.logger.debug(
             'V3 Profile -- Parsing Communication Permissions for vaProfileId: %s, \
               notification_type: %s -- %s',
-            profile.communicationPermissions.vaProfileId,
+            va_profile_id,
             notification_type,
             communication_permissions,
         )
@@ -320,10 +349,10 @@ class VAProfileClient:
             self.logger.debug(
                 'V3 Profile -- Found communication item id %s on vaProfileId %s',
                 perm['communicationItemId'],
-                profile.communicationPermissions.vaProfileId,
+                va_profile_id,
             )
             if (
-                perm['communicationChannelName'] == notification_type
+                perm['communicationChannelName'] == notification_type.value
                 and perm['communicationItemId'] == communication_item_id
             ):
                 self.logger.debug(
@@ -337,7 +366,7 @@ class VAProfileClient:
 
         self.logger.debug(
             'V3 Profile -- vaProfileId %s did not have permission for communication item %s and channel %s',
-            profile.communicationPermissions.vaProfileId,
+            va_profile_id,
             communication_item_id,
             notification_type,
         )
