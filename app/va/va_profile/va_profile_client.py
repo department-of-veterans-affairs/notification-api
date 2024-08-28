@@ -178,7 +178,7 @@ class VAProfileClient:
         """
         profile = self.get_profile(va_profile_id)
         communication_allowed = self.get_is_communication_allowed_from_profile(
-            profile, communication_item_id, NotificationType.TEXT
+            profile, communication_item_id, NotificationType.TEXT.value
         )
         if not communication_allowed:
             raise CommunicationPermissionDenied
@@ -209,11 +209,7 @@ class VAProfileClient:
         self.statsd_client.incr('clients.va-profile.get-telephone.failure')
         self._raise_no_contact_info_exception(self.PHONE_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID))
 
-    def get_email_with_permission(
-        self,
-        va_profile_id: RecipientIdentifier,
-        communication_item_id: str,
-    ) -> str:
+    def get_email_with_permission(self, va_profile_id: RecipientIdentifier, communication_item_id: str) -> str:
         """
         Retrieve the email address from the profile information for a given VA profile ID.
 
@@ -229,7 +225,7 @@ class VAProfileClient:
         """
         profile = self.get_profile(va_profile_id)
         communication_allowed = self.get_is_communication_allowed_from_profile(
-            profile, communication_item_id, NotificationType.EMAIL
+            profile, communication_item_id, NotificationType.EMAIL.value
         )
         if not communication_allowed:
             raise CommunicationPermissionDenied
@@ -336,12 +332,10 @@ class VAProfileClient:
         """
 
         communication_permissions: CommunicationPermissions = profile.get('communicationPermissions', {})
-        va_profile_id = profile['contactInformation']['vaProfileId']
 
         self.logger.debug(
-            'V3 Profile -- Parsing Communication Permissions for vaProfileId: %s, \
+            'V3 Profile -- Parsing Communication Permissions for \
               notification_type: %s -- %s',
-            va_profile_id,
             notification_type,
             communication_permissions,
         )
@@ -349,7 +343,7 @@ class VAProfileClient:
             self.logger.debug(
                 'V3 Profile -- Found communication item id %s on vaProfileId %s',
                 perm['communicationItemId'],
-                va_profile_id,
+                perm['vaProfileId'],
             )
             if (
                 perm['communicationChannelName'] == notification_type.value
@@ -365,8 +359,7 @@ class VAProfileClient:
                 return perm['allowed']
 
         self.logger.debug(
-            'V3 Profile -- vaProfileId %s did not have permission for communication item %s and channel %s',
-            va_profile_id,
+            'V3 Profile -- did not have permission for communication item %s and channel %s',
             communication_item_id,
             notification_type,
         )
