@@ -2310,8 +2310,8 @@ statsd = ">=3.3.0"
 [package.source]
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
-reference = "HEAD"
-resolved_reference = "170bfbf99cb0c4c95bef49bca9cecf2cc54eb714"
+reference = "hotfix-log-requestid"
+resolved_reference = "4a8f67ebc9607add895719c4152db7ed7f3b0980"
 
 [[package]]
 name = "notifications-python-client"
@@ -3749,4 +3749,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.13"
-content-hash = "1e75ae889f9cbbcb9e3d6bb9993cf32fd42b31786aa8dee4d604ad280551e979"
+content-hash = "cfe8440e6958f0cd93bfdfbb93e7aff64403b33cd4bf1a288c32ffbddd00331c"
