@@ -417,6 +417,7 @@ def init_app(app):
     def record_request_details():
         g.start = monotonic()
         g.endpoint = request.endpoint
+        request.request_id = random.randint(0, 1_000_000_000)
 
     @app.errorhandler(WerkzeugHTTPException)
     def werkzeug_exception(e):
