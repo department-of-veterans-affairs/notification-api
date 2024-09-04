@@ -2292,6 +2292,7 @@ develop = false
 bleach = ">=4.1.0"
 boto3 = ">=1.24.61"
 botocore = ">=1.27.61"
+celery = ">=5.4.0"
 Flask = ">=1.1.1"
 Flask-Redis = ">=0.4.0"
 Jinja2 = ">=2.11.3"
@@ -2311,7 +2312,7 @@ statsd = ">=3.3.0"
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
 reference = "hotfix-log-requestid"
-resolved_reference = "4a8f67ebc9607add895719c4152db7ed7f3b0980"
+resolved_reference = "a32db05f705a8add73997997900438560c343427"
 
 [[package]]
 name = "notifications-python-client"
