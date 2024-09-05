@@ -2312,7 +2312,7 @@ statsd = ">=3.3.0"
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
 reference = "hotfix-log-requestid"
-resolved_reference = "a32db05f705a8add73997997900438560c343427"
+resolved_reference = "e6fa897c3c2827fe3ce1fa3904c4f7fe0ae5614f"
 
 [[package]]
 name = "notifications-python-client"
