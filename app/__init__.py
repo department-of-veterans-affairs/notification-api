@@ -417,7 +417,7 @@ def init_app(app):
     def record_request_details():
         g.start = monotonic()
         g.endpoint = request.endpoint
-        g.request_id = random.randint(0, 1_000_000_000)
+        g.request_id = random.randint(0, 1_000_000_000)  # nosec - log tracking identifier only
 
     @app.errorhandler(WerkzeugHTTPException)
     def werkzeug_exception(e):
