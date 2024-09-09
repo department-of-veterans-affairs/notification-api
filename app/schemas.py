@@ -107,10 +107,7 @@ class BaseSchema(ma.SQLAlchemyAutoSchema):
         super(BaseSchema, self).__init__(*args, **kwargs)
 
     @post_load
-    def make_instance(
-        self,
-        data,
-    ):
+    def make_instance(self, data, many=False, partial=False):
         """
         Deserialize data to an instance of the model. Update an existing row
         if specified in `self.instance` or loaded by primary key(s) in the data;
@@ -135,10 +132,11 @@ class UserSchema(BaseSchema):
         exclude = (
             'updated_at',
             'created_at',
-            'user_to_service',
-            'user_to_organisation',
+            'services',
+            'organisations',  #
             '_password',
-            'verify_codes' '_identity_provider_user_id',
+            'verify_codes',
+            '_identity_provider_user_id',
         )
         strict = True
         load_instance = True
@@ -195,7 +193,7 @@ class UserUpdateAttributeSchema(BaseSchema):
             'id',
             'updated_at',
             'created_at',
-            'user_to_service',
+            'services',
             '_password',
             'verify_codes',
             'logged_in_at',
@@ -241,6 +239,8 @@ class UserUpdateAttributeSchema(BaseSchema):
         self,
         data,
         original_data,
+        many=False,
+        partial=False,
     ):
         for key in original_data:
             if key not in self.fields:
@@ -269,7 +269,10 @@ class ProviderDetailsSchema(BaseSchema):
 
     class Meta:
         model = models.ProviderDetails
-        exclude = ('provider_rates', 'provider_stats')
+        exclude = (
+            'provider_rates',
+            # 'provider_stats',
+        )
         strict = True
 
 
@@ -278,7 +281,10 @@ class ProviderDetailsHistorySchema(BaseSchema):
 
     class Meta:
         model = models.ProviderDetailsHistory
-        exclude = ('provider_rates', 'provider_stats')
+        # exclude = (
+        #     'provider_rates',
+        #     'provider_stats',
+        # )
         strict = True
 
 
@@ -316,16 +322,16 @@ class ServiceSchema(BaseSchema):
             'api_keys',
             'templates',
             'jobs',
-            'old_id',
-            'template_statistics',
-            'service_provider_stats',
-            'service_notification_stats',
+            # 'old_id',
+            # 'template_statistics',
+            # 'service_provider_stats',
+            # 'service_notification_stats',
             'service_sms_senders',
             'reply_to_email_addresses',
             'letter_contacts',
             'complaints',
-            'email_provider',
-            'sms_provider',
+            'email_provider_id',
+            'sms_provider_id',
             'inbound_sms',
         )
         strict = True
@@ -363,10 +369,7 @@ class ServiceSchema(BaseSchema):
             raise ValidationError(f'Invalid sms_provider_id: {value}')
 
     @pre_load()
-    def format_for_data_model(
-        self,
-        in_data,
-    ):
+    def format_for_data_model(self, in_data, many=False, partial=False):
         if isinstance(in_data, dict) and 'permissions' in in_data:
             str_permissions = in_data['permissions']
             permissions = []
@@ -403,6 +406,8 @@ class ServiceCallbackSchema(BaseSchema):
     def validate_schema(
         self,
         data,
+        many=False,
+        partial=False,
     ):
         if 'callback_type' in data and 'notification_statuses' in data:
             if data['callback_type'] != DELIVERY_STATUS_CALLBACK_TYPE and data['notification_statuses'] is not None:
@@ -416,6 +421,8 @@ class ServiceCallbackSchema(BaseSchema):
     def validate_callback_channel(
         self,
         value,
+        many=False,
+        partial=False,
     ):
         validator = validate.OneOf(choices=CALLBACK_CHANNEL_TYPES, error='Invalid callback channel')
         validator(value)
@@ -459,22 +466,22 @@ class DetailedServiceSchema(BaseSchema):
             'users',
             'created_by',
             'jobs',
-            'template_statistics',
-            'service_provider_stats',
-            'service_notification_stats',
+            # 'template_statistics',
+            # 'service_provider_stats',
+            # 'service_notification_stats',
             'email_branding',
             'service_sms_senders',
-            'monthly_billing',
+            # 'monthly_billing',
             'reply_to_email_addresses',
-            'letter_contact_block',
+            # 'letter_contact_block',
             'message_limit',
             'email_from',
-            'inbound_api',
+            # 'inbound_api',
             'whitelist',
-            'reply_to_email_address',
-            'sms_sender',
+            # 'reply_to_email_address',
+            # 'sms_sender',
             'permissions',
-            'inbound_number',
+            # 'inbound_number',
             'inbound_sms',
         )
 
@@ -515,7 +522,7 @@ class BaseTemplateSchema(BaseSchema):
 
     class Meta:
         model = models.Template
-        exclude = ('service_id', 'jobs', 'service_letter_contact_id', 'provider')
+        exclude = ('service_id', 'jobs', 'service_letter_contact_id')
         strict = True
         include_relationships = True
         load_instance = True
@@ -688,7 +695,7 @@ class NotificationWithTemplateSchema(BaseSchema):
     class Meta:
         model = models.Notification
         strict = True
-        exclude = ('_personalisation', 'scheduled_notification')
+        # exclude = ('personalisation', 'scheduled_notification',)
 
     template = fields.Nested(
         TemplateSchema,
@@ -712,10 +719,7 @@ class NotificationWithTemplateSchema(BaseSchema):
     key_name = fields.String()
 
     @pre_dump
-    def add_api_key_name(
-        self,
-        in_data,
-    ):
+    def add_api_key_name(self, in_data, many=False, partial=False):
         if in_data.api_key:
             in_data.key_name = in_data.api_key.name
         else:
@@ -758,18 +762,12 @@ class NotificationWithPersonalisationSchema(NotificationWithTemplateSchema):
         include_relationships = True
 
     @pre_dump
-    def handle_personalisation_property(
-        self,
-        in_data,
-    ):
+    def handle_personalisation_property(self, in_data, many=False, partial=False):
         self.personalisation = in_data.personalisation
         return in_data
 
     @post_dump
-    def handle_template_merge(
-        self,
-        in_data,
-    ):
+    def handle_template_merge(self, in_data, many=False, partial=False):
         in_data['template'] = in_data.pop('template_history')
         template = get_template_instance(in_data['template'], in_data['personalisation'])
         in_data['body'] = str(template)
@@ -906,10 +904,7 @@ class NotificationsFilterSchema(ma.Schema):
     count_pages = fields.Boolean(required=False)
 
     @pre_load
-    def handle_multidict(
-        self,
-        in_data,
-    ):
+    def handle_multidict(self, in_data, many=False, partial=False):
         if isinstance(in_data, dict) and hasattr(in_data, 'getlist'):
             out_data = dict([(k, in_data.get(k)) for k in in_data.keys()])
             if 'template_type' in in_data:
@@ -920,10 +915,7 @@ class NotificationsFilterSchema(ma.Schema):
         return out_data
 
     @post_load
-    def convert_schema_object_to_field(
-        self,
-        in_data: dict,
-    ) -> dict:
+    def convert_schema_object_to_field(self, in_data: dict, many=False, partial=False) -> dict:
         if 'template_type' in in_data:
             in_data['template_type'] = [x.template_type for x in in_data['template_type']]
         if 'status' in in_data:
@@ -931,17 +923,11 @@ class NotificationsFilterSchema(ma.Schema):
         return in_data
 
     @validates('page')
-    def validate_page(
-        self,
-        value,
-    ):
+    def validate_page(self, value, many=False, partial=False):
         _validate_positive_number(value)
 
     @validates('page_size')
-    def validate_page_size(
-        self,
-        value,
-    ):
+    def validate_page_size(self, value, many=False, partial=False):
         _validate_positive_number(value)
 
 

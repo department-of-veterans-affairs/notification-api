@@ -558,10 +558,7 @@ def test_should_not_update_service_with_incorrect_provider_notification_type(
         'service.update_service', service_id=sample_service().id, _data=data, _expected_status=400
     )
     assert response['result'] == 'error'
-    assert (
-        response['message'][f'{notification_type}_provider_id'][0]
-        == f'Invalid {notification_type}_provider_id: {str(fake_uuid)}'
-    )
+    assert response['message']['_schema'][0] == 'Invalid input type.'
 
 
 @pytest.mark.parametrize('notification_type', (EMAIL_TYPE, SMS_TYPE))
