@@ -19,7 +19,7 @@ register_errors(invite)
 @invite.route('', methods=['POST'])
 def create_invited_user(service_id):
     request_json = request.get_json()
-    invited_user, errors = invited_user_schema.load(request_json)
+    invited_user = invited_user_schema.load(request_json)
     invited_user_instance = save_invited_user(invited_user)
 
     template = dao_get_template_by_id(current_app.config['INVITATION_EMAIL_TEMPLATE_ID'])

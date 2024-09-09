@@ -652,6 +652,8 @@ class SmsNotificationSchema(NotificationSchema):
     def format_phone_number(
         self,
         item,
+        many=False,
+        partial=False,
     ):
         item['to'] = validate_and_format_phone_number(item['to'], international=True)
         return item

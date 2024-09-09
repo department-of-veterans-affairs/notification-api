@@ -224,7 +224,7 @@ def update_service(service_id):
     current_data = service_schema.dump(fetched_service)
     current_data.update(request.get_json())
 
-    service = service_schema.load(current_data).data
+    service = service_schema.load(current_data)
 
     if 'email_branding' in req_json:
         email_branding_id = req_json['email_branding']
@@ -249,7 +249,7 @@ def update_service(service_id):
 @requires_admin_auth()
 def create_api_key(service_id=None):
     fetched_service = dao_fetch_service_by_id(service_id=service_id)
-    valid_api_key = api_key_schema.load(request.get_json()).data
+    valid_api_key = api_key_schema.load(request.get_json())
     valid_api_key.service = fetched_service
     save_model_api_key(valid_api_key)
     unsigned_api_key = get_unsigned_secret(valid_api_key.id)
@@ -364,7 +364,7 @@ def get_service_history(service_id):
     stmt = select(TemplateHistory).where(TemplateHistory.service_id == service_id)
     template_history = db.session.scalars(stmt).all()
 
-    template_data, errors = template_history_schema.dump(template_history, many=True)
+    template_data = template_history_schema.dump(template_history, many=True)
 
     data = {
         'service_history': service_data,
