@@ -145,7 +145,7 @@ def get_services():
         return result
     else:
         services = dao_fetch_all_services(only_active)
-    data = service_schema.dump(services, many=True).data
+    data = service_schema.dump(services, many=True)
     return jsonify(data=data)
 
 

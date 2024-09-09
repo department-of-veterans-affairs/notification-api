@@ -135,10 +135,9 @@ class UserSchema(BaseSchema):
         exclude = (
             'updated_at',
             'created_at',
-            'user_to_service',
-            'user_to_organisation',
             '_password',
-            'verify_codes' '_identity_provider_user_id',
+            'verify_codes',
+            '_identity_provider_user_id',
         )
         strict = True
         load_instance = True
@@ -195,7 +194,6 @@ class UserUpdateAttributeSchema(BaseSchema):
             'id',
             'updated_at',
             'created_at',
-            'user_to_service',
             '_password',
             'verify_codes',
             'logged_in_at',
@@ -269,7 +267,7 @@ class ProviderDetailsSchema(BaseSchema):
 
     class Meta:
         model = models.ProviderDetails
-        exclude = ('provider_rates', 'provider_stats')
+        exclude = ('provider_rates',)
         strict = True
 
 
@@ -278,7 +276,6 @@ class ProviderDetailsHistorySchema(BaseSchema):
 
     class Meta:
         model = models.ProviderDetailsHistory
-        exclude = ('provider_rates', 'provider_stats')
         strict = True
 
 
@@ -316,16 +313,10 @@ class ServiceSchema(BaseSchema):
             'api_keys',
             'templates',
             'jobs',
-            'old_id',
-            'template_statistics',
-            'service_provider_stats',
-            'service_notification_stats',
             'service_sms_senders',
             'reply_to_email_addresses',
             'letter_contacts',
             'complaints',
-            'email_provider',
-            'sms_provider',
             'inbound_sms',
         )
         strict = True
@@ -459,22 +450,13 @@ class DetailedServiceSchema(BaseSchema):
             'users',
             'created_by',
             'jobs',
-            'template_statistics',
-            'service_provider_stats',
-            'service_notification_stats',
             'email_branding',
             'service_sms_senders',
-            'monthly_billing',
             'reply_to_email_addresses',
-            'letter_contact_block',
             'message_limit',
             'email_from',
-            'inbound_api',
             'whitelist',
-            'reply_to_email_address',
-            'sms_sender',
             'permissions',
-            'inbound_number',
             'inbound_sms',
         )
 
@@ -515,7 +497,7 @@ class BaseTemplateSchema(BaseSchema):
 
     class Meta:
         model = models.Template
-        exclude = ('service_id', 'jobs', 'service_letter_contact_id', 'provider')
+        exclude = ('service_id', 'jobs', 'service_letter_contact_id',)
         strict = True
         include_relationships = True
         load_instance = True
@@ -688,7 +670,6 @@ class NotificationWithTemplateSchema(BaseSchema):
     class Meta:
         model = models.Notification
         strict = True
-        exclude = ('_personalisation', 'scheduled_notification')
 
     template = fields.Nested(
         TemplateSchema,
@@ -892,8 +873,8 @@ class NotificationsFilterSchema(ma.Schema):
     class Meta:
         strict = True
 
-    template_type = fields.Nested(BaseTemplateSchema, only=['template_type'], many=True)
-    status = fields.Nested(NotificationModelSchema, only=['status'], many=True)
+    template_type = fields.Pluck(BaseTemplateSchema, 'template_type', many=True)
+    status = fields.Pluck(NotificationModelSchema, 'status', many=True)
     page = fields.Int(required=False)
     page_size = fields.Int(required=False)
     limit_days = fields.Int(required=False)
@@ -909,6 +890,7 @@ class NotificationsFilterSchema(ma.Schema):
     def handle_multidict(
         self,
         in_data,
+        **kwargs,
     ):
         if isinstance(in_data, dict) and hasattr(in_data, 'getlist'):
             out_data = dict([(k, in_data.get(k)) for k in in_data.keys()])
@@ -923,6 +905,7 @@ class NotificationsFilterSchema(ma.Schema):
     def convert_schema_object_to_field(
         self,
         in_data: dict,
+        **kwargs,
     ) -> dict:
         if 'template_type' in in_data:
             in_data['template_type'] = [x.template_type for x in in_data['template_type']]
