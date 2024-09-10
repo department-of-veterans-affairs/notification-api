@@ -309,6 +309,7 @@ def _template_has_not_changed(
             return False
     except KeyError:
         return False
+    return True
 
 
 def redact_template(

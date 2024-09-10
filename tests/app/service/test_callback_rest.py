@@ -622,7 +622,7 @@ class TestUpdateServiceCallback:
                 ],
             )
 
-        assert response.json['data']['updated_at'] == '2021-05-13T12:00:00+00:00'
+        assert response.json['data']['updated_at'] == '2021-05-13T12:00:00'
 
     def test_update_service_callback_modifies_updated_by(
         self,

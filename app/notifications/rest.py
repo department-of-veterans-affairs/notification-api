@@ -91,7 +91,7 @@ def send_notification(notification_type):
             sms_template_notification_schema if notification_type == SMS_TYPE else email_notification_schema
         ).load(request.get_json())
     except ValidationError as e:
-        raise InvalidRequest(notification_form, status_code=400)
+        raise InvalidRequest(e.messages, status_code=400)
 
     check_rate_limiting(authenticated_service, api_user)
 
