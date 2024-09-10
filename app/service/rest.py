@@ -199,11 +199,10 @@ def create_service():
         errors = {'user_id': ['Missing data for required field.']}
         raise InvalidRequest(errors, status_code=400)
     data.pop('service_domain', None)
+    user = get_user_by_id(data.pop('user_id'))
 
     # validate json with marshmallow
     service_schema.load(data)
-
-    user = get_user_by_id(data.pop('user_id'))
 
     # unpack valid json into service object
     valid_service = Service.from_json(data)

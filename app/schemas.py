@@ -336,8 +336,8 @@ class ServiceSchema(BaseSchema):
             'reply_to_email_addresses',
             'letter_contacts',
             'complaints',
-            'email_provider_id',
-            'sms_provider_id',
+            # 'email_provider_id',
+            # 'sms_provider_id',
             'inbound_sms',
         )
         strict = True
@@ -391,6 +391,7 @@ class ServiceSchema(BaseSchema):
                 permissions.append(permission)
 
             in_data['permissions'] = permissions
+        return in_data
 
 
 class ServiceCallbackSchema(BaseSchema):
