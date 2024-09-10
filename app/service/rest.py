@@ -228,6 +228,7 @@ def update_service(service_id):
     if 'email_branding' in req_json:
         email_branding_id = req_json['email_branding']
         service.email_branding = None if not email_branding_id else db.session.get(EmailBranding, email_branding_id)
+
     dao_update_service(service)
 
     if service_going_live:

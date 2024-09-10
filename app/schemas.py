@@ -342,16 +342,10 @@ class ServiceSchema(BaseSchema):
             'api_keys',
             'templates',
             'jobs',
-            # 'old_id',
-            # 'template_statistics',
-            # 'service_provider_stats',
-            # 'service_notification_stats',
             'service_sms_senders',
             'reply_to_email_addresses',
             'letter_contacts',
             'complaints',
-            # 'email_provider_id',
-            # 'sms_provider_id',
             'inbound_sms',
         )
         strict = True
@@ -390,6 +384,15 @@ class ServiceSchema(BaseSchema):
     ):
         if value and not validate_providers.is_provider_valid(value, SMS_TYPE):
             raise ValidationError(f'Invalid sms_provider_id: {value}')
+
+    @validates('consent_to_research')
+    def validate_consent_to_research(
+        self,
+        value,
+        **kwargs,
+    ):
+        if value is not None and not isinstance(value, bool):
+            raise ValidationError('Invalid consent_to_research')
 
     @pre_load()
     def format_for_data_model(
@@ -602,8 +605,8 @@ class TemplateSchema(BaseTemplateSchema):
 
 
 class TemplateHistorySchema(BaseSchema):
-    reply_to = fields.Method('get_reply_to', allow_none=True)
-    reply_to_text = fields.Method('get_reply_to_text', allow_none=True)
+    reply_to = fields.Method('get_reply_to', allow_none=True, deserialize='set_reply_to')
+    reply_to_text = fields.Method('get_reply_to_text', allow_none=True, deserialize='set_reply_to')
     provider_id = field_for(models.Template, 'provider_id')
 
     created_by = fields.Nested(UserSchema, only=['id', 'name', 'email_address'], dump_only=True)
@@ -615,6 +618,12 @@ class TemplateHistorySchema(BaseSchema):
     ):
         return template.reply_to
 
+    def set_reply_to(
+        self,
+        obj,
+    ):
+        return str(obj)
+
     def get_reply_to_text(
         self,
         template,
@@ -623,6 +632,8 @@ class TemplateHistorySchema(BaseSchema):
 
     class Meta:
         model = models.TemplateHistory
+        strict = True
+        include_relationships = True
 
 
 class ApiKeySchema(BaseSchema):
@@ -971,7 +982,7 @@ class NotificationsFilterSchema(ma.Schema):
             if 'template_type' in in_data:
                 out_data['template_type'] = in_data.getlist('template_type')
             if 'status' in in_data:
-                out_data['status'] = [{'status': x} for x in in_data.getlist('status')]
+                out_data['status'] = in_data.getlist('status')
 
         return out_data
 

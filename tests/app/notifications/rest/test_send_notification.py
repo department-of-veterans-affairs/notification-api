@@ -214,8 +214,9 @@ def test_should_not_allow_template_from_another_service(
             data = {
                 'to': to,
                 'template': service_2_templates[0].id,
-                'sms_sender_id': str(uuid4()),
             }
+            if template_type == SMS_TYPE:
+                data['sms_sender_id'] = str(uuid4())
 
             auth_header = create_authorization_header(sample_api_key(service=service_1))
 
@@ -224,7 +225,6 @@ def test_should_not_allow_template_from_another_service(
                 data=json.dumps(data),
                 headers=[('Content-Type', 'application/json'), auth_header],
             )
-
             json_resp = response.get_json()
             mocked.assert_not_called()
             assert response.status_code == 404

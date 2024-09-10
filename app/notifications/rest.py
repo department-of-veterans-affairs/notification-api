@@ -80,7 +80,6 @@ def send_notification(notification_type):
     """
     Create a notification.  This is a version 1 endpoint.
     """
-
     if notification_type not in [SMS_TYPE, EMAIL_TYPE]:
         msg = '{} notification type is not supported'.format(notification_type)
         msg = msg + ', please use the latest version of the client' if notification_type == LETTER_TYPE else msg
