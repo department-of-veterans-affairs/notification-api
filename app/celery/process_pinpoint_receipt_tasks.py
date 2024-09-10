@@ -209,10 +209,21 @@ def attempt_to_get_notification(
     return notification, should_exit
 
 
-def check_notification_status(
-    notification: Notification,
-    notification_status: str,
-) -> bool:
+def check_notification_status(notification: Notification, notification_status: str) -> bool:
+    """
+    Check if the notification status should be updated. If the status has not changed, or if the status is in a final
+    state, do not update the notification. *Unless* the status is being updated to delivered from a different final
+    status, in which case, the notification should always be updated.
+
+    Args:
+        notification (Notification): The notification to check.
+        notification_status (str): The status to update the notification to.
+
+    Returns:
+        bool: False if the notification status should not be updated, True if the downstream task should exit.
+    """
+    should_exit = False
+
     # Do not update if the status has not changed.
     if notification_status == notification.status:
         current_app.logger.info(
@@ -220,20 +231,26 @@ def check_notification_status(
             notification_status,
             notification_status,
         )
-        return True
-
-    # Do not update if notification status is in a final state.
-    if notification.status in FINAL_STATUS_STATES:
+        should_exit = True
+    elif notification_status == NOTIFICATION_DELIVERED:
+        # ensure the notification is updated to delivered whenever we receive a delivered status
+        should_exit = False
+    elif notification.status in FINAL_STATUS_STATES:
+        # Do not update if notification status is in a final state.
         log_notification_status_warning(notification, notification_status)
-        return True
+        should_exit = True
 
-    return False
+    return should_exit
 
 
-def log_notification_status_warning(
-    notification,
-    status: str,
-) -> None:
+def log_notification_status_warning(notification: Notification, status: str) -> None:
+    """
+    Log a warning when a notification status update is received after the notification has reached a final state.
+
+    Args:
+        notification (Notification): The notification that will not be updated.
+        status (str): The status that the notification was attempting to be updated to.
+    """
     time_diff = datetime.datetime.utcnow() - (notification.updated_at or notification.created_at)
     current_app.logger.warning(
         'Invalid callback received. Notification id %s received a status update to %s '
