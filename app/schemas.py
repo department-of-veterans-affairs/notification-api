@@ -157,6 +157,7 @@ class UserSchema(BaseSchema):
     def validate_name(
         self,
         value,
+        **kwargs,
     ):
         if not value:
             raise ValidationError('Invalid name')
@@ -165,6 +166,7 @@ class UserSchema(BaseSchema):
     def validate_email_address(
         self,
         value,
+        **kwargs,
     ):
         try:
             validate_email_address(value)
@@ -175,6 +177,7 @@ class UserSchema(BaseSchema):
     def validate_mobile_number(
         self,
         value,
+        **kwargs,
     ):
         try:
             if value is not None:
@@ -209,6 +212,7 @@ class UserUpdateAttributeSchema(BaseSchema):
     def validate_name(
         self,
         value,
+        **kwargs,
     ):
         if not value:
             raise ValidationError('Invalid name')
@@ -217,6 +221,7 @@ class UserUpdateAttributeSchema(BaseSchema):
     def validate_email_address(
         self,
         value,
+        **kwargs,
     ):
         try:
             validate_email_address(value)
@@ -227,6 +232,7 @@ class UserUpdateAttributeSchema(BaseSchema):
     def validate_mobile_number(
         self,
         value,
+        **kwargs,
     ):
         try:
             if value is not None:
@@ -239,8 +245,7 @@ class UserUpdateAttributeSchema(BaseSchema):
         self,
         data,
         original_data,
-        many=False,
-        partial=False,
+        **kwargs,
     ):
         for key in original_data:
             if key not in self.fields:
@@ -258,6 +263,7 @@ class UserUpdatePasswordSchema(BaseSchema):
         self,
         data,
         original_data,
+        **kwargs,
     ):
         for key in original_data:
             if key not in self.fields:
@@ -342,6 +348,7 @@ class ServiceSchema(BaseSchema):
     def validate_permissions(
         self,
         value,
+        **kwargs,
     ):
         permissions = [v.permission for v in value]
         for p in permissions:
@@ -356,6 +363,7 @@ class ServiceSchema(BaseSchema):
     def validate_email_provider_id(
         self,
         value,
+        **kwargs,
     ):
         if value and not validate_providers.is_provider_valid(value, EMAIL_TYPE):
             raise ValidationError(f'Invalid email_provider_id: {value}')
@@ -364,12 +372,17 @@ class ServiceSchema(BaseSchema):
     def validate_sms_provider_id(
         self,
         value,
+        **kwargs,
     ):
         if value and not validate_providers.is_provider_valid(value, SMS_TYPE):
             raise ValidationError(f'Invalid sms_provider_id: {value}')
 
     @pre_load()
-    def format_for_data_model(self, in_data, many=False, partial=False):
+    def format_for_data_model(
+        self,
+        in_data,
+        **kwargs,
+    ):
         if isinstance(in_data, dict) and 'permissions' in in_data:
             str_permissions = in_data['permissions']
             permissions = []
@@ -406,8 +419,7 @@ class ServiceCallbackSchema(BaseSchema):
     def validate_schema(
         self,
         data,
-        many=False,
-        partial=False,
+        **kwargs,
     ):
         if 'callback_type' in data and 'notification_statuses' in data:
             if data['callback_type'] != DELIVERY_STATUS_CALLBACK_TYPE and data['notification_statuses'] is not None:
@@ -421,8 +433,7 @@ class ServiceCallbackSchema(BaseSchema):
     def validate_callback_channel(
         self,
         value,
-        many=False,
-        partial=False,
+        **kwargs,
     ):
         validator = validate.OneOf(choices=CALLBACK_CHANNEL_TYPES, error='Invalid callback channel')
         validator(value)
@@ -431,6 +442,7 @@ class ServiceCallbackSchema(BaseSchema):
     def validate_notification_statuses(
         self,
         value,
+        **kwargs,
     ):
         validator = validate.ContainsOnly(
             choices=NOTIFICATION_STATUS_TYPES_COMPLETED, error='Invalid notification statuses'
@@ -441,6 +453,7 @@ class ServiceCallbackSchema(BaseSchema):
     def validate_url(
         self,
         value,
+        **kwargs,
     ):
         validator = validate.URL(relative=False, error='Invalid URL.', schemes={'https'}, require_tld=False)
         validator(value)
@@ -449,6 +462,7 @@ class ServiceCallbackSchema(BaseSchema):
     def validate_bearer_token(
         self,
         value,
+        **kwargs,
     ):
         validator = validate.Length(min=10, error='Invalid bearer token.')
         validator(value)
@@ -537,7 +551,7 @@ class TemplateSchema(BaseTemplateSchema):
     redact_personalisation = fields.Method('redact', allow_none=True, deserialize='return_redact')
 
     def return_redact(self, obj):
-        return str(obj)
+        return bool(obj)
 
     def redact(
         self,
@@ -624,6 +638,7 @@ class JobSchema(BaseSchema):
     def validate_scheduled_for(
         self,
         value,
+        **kwargs,
     ):
         _validate_datetime_not_in_past(value)
         _validate_datetime_not_more_than_96_hours_in_future(value)
@@ -650,6 +665,7 @@ class SmsNotificationSchema(NotificationSchema):
     def validate_to(
         self,
         value,
+        **kwargs,
     ):
         try:
             validate_phone_number(value, international=True)
@@ -660,8 +676,7 @@ class SmsNotificationSchema(NotificationSchema):
     def format_phone_number(
         self,
         item,
-        many=False,
-        partial=False,
+        **kwargs,
     ):
         item['to'] = validate_and_format_phone_number(item['to'], international=True)
         return item
@@ -675,6 +690,7 @@ class EmailNotificationSchema(NotificationSchema):
     def validate_to(
         self,
         value,
+        **kwargs,
     ):
         try:
             validate_email_address(value)
@@ -729,7 +745,11 @@ class NotificationWithTemplateSchema(BaseSchema):
     key_name = fields.String()
 
     @pre_dump
-    def add_api_key_name(self, in_data, many=False, partial=False):
+    def add_api_key_name(
+        self,
+        in_data,
+        **kwargs,
+    ):
         if in_data.api_key:
             in_data.key_name = in_data.api_key.name
         else:
@@ -772,12 +792,20 @@ class NotificationWithPersonalisationSchema(NotificationWithTemplateSchema):
         include_relationships = True
 
     @pre_dump
-    def handle_personalisation_property(self, in_data, many=False, partial=False):
+    def handle_personalisation_property(
+        self,
+        in_data,
+        **kwargs,
+    ):
         self.personalisation = in_data.personalisation
         return in_data
 
     @post_dump
-    def handle_template_merge(self, in_data, many=False, partial=False):
+    def handle_template_merge(
+        self,
+        in_data,
+        **kwargs,
+    ):
         in_data['template'] = in_data.pop('template_history')
         template = get_template_instance(in_data['template'], in_data['personalisation'])
         in_data['body'] = str(template)
@@ -805,6 +833,7 @@ class InvitedUserSchema(BaseSchema):
     def validate_to(
         self,
         value,
+        **kwargs,
     ):
         try:
             validate_email_address(value)
@@ -829,6 +858,7 @@ class EmailDataSchema(ma.Schema):
     def validate_email(
         self,
         value,
+        **kwargs,
     ):
         if self.partial_email:
             return
@@ -858,6 +888,7 @@ class SupportEmailDataSchema(ma.Schema):
     def validate_email(
         self,
         value,
+        **kwargs,
     ):
         if self.partial_email:
             return
@@ -887,6 +918,7 @@ class BrandingRequestDataSchema(ma.Schema):
     def validate_email(
         self,
         value,
+        **kwargs,
     ):
         if self.partial_email:
             return
@@ -914,7 +946,11 @@ class NotificationsFilterSchema(ma.Schema):
     count_pages = fields.Boolean(required=False)
 
     @pre_load
-    def handle_multidict(self, in_data, many=False, partial=False):
+    def handle_multidict(
+        self,
+        in_data,
+        **kwargs,
+    ):
         if isinstance(in_data, dict) and hasattr(in_data, 'getlist'):
             out_data = dict([(k, in_data.get(k)) for k in in_data.keys()])
             if 'template_type' in in_data:
@@ -925,7 +961,11 @@ class NotificationsFilterSchema(ma.Schema):
         return out_data
 
     @post_load
-    def convert_schema_object_to_field(self, in_data: dict, many=False, partial=False) -> dict:
+    def convert_schema_object_to_field(
+        self,
+        in_data: dict,
+        **kwargs,
+    ) -> dict:
         if 'template_type' in in_data:
             in_data['template_type'] = [x.template_type for x in in_data['template_type']]
         if 'status' in in_data:
@@ -933,11 +973,19 @@ class NotificationsFilterSchema(ma.Schema):
         return in_data
 
     @validates('page')
-    def validate_page(self, value, many=False, partial=False):
+    def validate_page(
+        self,
+        value,
+        **kwargs,
+    ):
         _validate_positive_number(value)
 
     @validates('page_size')
-    def validate_page_size(self, value, many=False, partial=False):
+    def validate_page_size(
+        self,
+        value,
+        **kwargs,
+    ):
         _validate_positive_number(value)
 
 
@@ -980,6 +1028,7 @@ class DaySchema(ma.Schema):
     def validate_day(
         self,
         value,
+        **kwargs,
     ):
         _validate_not_in_future(value)
 
@@ -991,6 +1040,7 @@ class UnarchivedTemplateSchema(BaseSchema):
     def validate_archived(
         self,
         data,
+        **kwargs,
     ):
         if data['archived']:
             raise ValidationError('Template has been deleted', 'template')
