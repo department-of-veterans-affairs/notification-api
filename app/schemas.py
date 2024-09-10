@@ -954,7 +954,7 @@ class NotificationsFilterSchema(ma.Schema):
         if isinstance(in_data, dict) and hasattr(in_data, 'getlist'):
             out_data = dict([(k, in_data.get(k)) for k in in_data.keys()])
             if 'template_type' in in_data:
-                out_data['template_type'] = [{'template_type': x} for x in in_data.getlist('template_type')]
+                out_data['template_type'] = in_data.getlist('template_type')
             if 'status' in in_data:
                 out_data['status'] = [{'status': x} for x in in_data.getlist('status')]
 
