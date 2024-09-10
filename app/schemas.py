@@ -503,22 +503,25 @@ class NotificationModelSchema(BaseSchema):
 
 
 class BaseTemplateSchema(BaseSchema):
-    reply_to = fields.Method('get_reply_to', allow_none=True)
-    reply_to_text = fields.Method('get_reply_to_text', allow_none=True)
+    reply_to = fields.Method('get_reply_to', allow_none=True, deserialize='return_reply_to')
+    reply_to_text = fields.Method('get_reply_to_text', allow_none=True, deserialize='return_reply_to')
     provider_id = field_for(models.Template, 'provider_id')
     communication_item_id = field_for(models.Template, 'communication_item_id')
 
+    def return_reply_to(self, obj):
+        return str(obj)
+
     def get_reply_to(
         self,
-        template,
+        obj,
     ):
-        return template.reply_to
+        return obj.reply_to
 
     def get_reply_to_text(
         self,
-        template,
+        obj,
     ):
-        return template.get_reply_to_text()
+        return obj.get_reply_to_text()
 
     class Meta:
         model = models.Template
@@ -531,7 +534,10 @@ class BaseTemplateSchema(BaseSchema):
 class TemplateSchema(BaseTemplateSchema):
     created_by = field_for(models.Template, 'created_by', required=True)
     process_type = field_for(models.Template, 'process_type')
-    redact_personalisation = fields.Method('redact')
+    redact_personalisation = fields.Method('redact', allow_none=True, deserialize='return_redact')
+
+    def return_redact(self, obj):
+        return str(obj)
 
     def redact(
         self,
@@ -543,6 +549,7 @@ class TemplateSchema(BaseTemplateSchema):
     def validate_communication_item_id(
         self,
         value,
+        **kwargs,
     ):
         if value is not None:
             try:
@@ -554,6 +561,7 @@ class TemplateSchema(BaseTemplateSchema):
     def validate_type(
         self,
         data,
+        **kwargs,
     ):
         if data.get('template_type') in [models.EMAIL_TYPE, models.LETTER_TYPE]:
             subject = data.get('subject')
@@ -892,8 +900,8 @@ class NotificationsFilterSchema(ma.Schema):
     class Meta:
         strict = True
 
-    template_type = fields.Nested(BaseTemplateSchema, only=['template_type'], many=True)
-    status = fields.Nested(NotificationModelSchema, only=['status'], many=True)
+    template_type = fields.Pluck(BaseTemplateSchema, 'template_type', many=True)
+    status = fields.Pluck(NotificationModelSchema, 'status', many=True)
     page = fields.Int(required=False)
     page_size = fields.Int(required=False)
     limit_days = fields.Int(required=False)
