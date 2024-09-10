@@ -2004,21 +2004,22 @@ files = [
 
 [[package]]
 name = "marshmallow"
-version = "2.21.0"
+version = "3.22.0"
 description = "A lightweight library for converting complex datatypes to and from native Python datatypes."
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
-    {file = "marshmallow-2.21.0-py2.py3-none-any.whl", hash = "sha256:7cb1881a0fa84be4b5c1e301168236932c345f6910725f99905d636bfe93e9e9"},
-    {file = "marshmallow-2.21.0.tar.gz", hash = "sha256:e9390c0c80437d7a02d84e3d1635dc20f37a8bcb149ca443d93791bdc683f28d"},
+    {file = "marshmallow-3.22.0-py3-none-any.whl", hash = "sha256:71a2dce49ef901c3f97ed296ae5051135fd3febd2bf43afe0ae9a82143a494d9"},
+    {file = "marshmallow-3.22.0.tar.gz", hash = "sha256:4972f529104a220bb8637d595aa4c9762afbe7f7a77d82dc58c1615d70c5823e"},
 ]
 
+[package.dependencies]
+packaging = ">=17.0"
+
 [package.extras]
-dev = ["flake8 (==3.7.4)", "pytest", "python-dateutil", "pytz", "simplejson", "tox"]
-docs = ["alabaster (==0.7.12)", "sphinx (==2.1.2)", "sphinx-issues (==1.2.0)", "sphinx-version-warning (==1.1.2)"]
-lint = ["flake8 (==3.7.4)"]
-reco = ["python-dateutil", "simplejson"]
-tests = ["pytest", "pytz"]
+dev = ["marshmallow[tests]", "pre-commit (>=3.5,<4.0)", "tox"]
+docs = ["alabaster (==1.0.0)", "autodocsumm (==0.2.13)", "sphinx (==8.0.2)", "sphinx-issues (==4.1.0)", "sphinx-version-warning (==1.1.2)"]
+tests = ["pytest", "pytz", "simplejson"]
 
 [[package]]
 name = "marshmallow-sqlalchemy"
@@ -3707,4 +3708,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.13"
-content-hash = "a36bb09fa0925df296350b79c84d95bc5c672cd0a1e7270d2d64d9c09abefe83"
+content-hash = "2de38c98ff39437f587cf2e225dc40264dcb880b519ce0e64fbab4b7d4164cb2"
