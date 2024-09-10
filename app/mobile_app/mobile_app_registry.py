@@ -22,7 +22,7 @@ class MobileAppRegistry:
             try:
                 app = MobileApp(type)
             except ValueError as e:
-                current_app.logger.exception(e)
+                current_app.logger.warning('Missing sid: %s', e)
             else:
                 self._registry[type] = app
 
