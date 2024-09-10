@@ -298,20 +298,28 @@ class ServiceSchema(BaseSchema):
     created_by = field_for(models.Service, 'created_by', required=True)
     organisation_type = field_for(models.Service, 'organisation_type')
     letter_logo_filename = None
-    permissions = fields.Method('service_permissions')
+    permissions = fields.Method('get_service_permissions', deserialize='set_service_permissions', allow_none=True)
     email_branding = field_for(models.Service, 'email_branding')
     organisation = field_for(models.Service, 'organisation')
     override_flag = False
-    letter_contact_block = fields.Method(serialize='get_letter_contact')
+    letter_contact_block = fields.Method(
+        serialize='get_letter_contact', deserialize='set_letter_contact', allow_none=True
+    )
     go_live_at = field_for(models.Service, 'go_live_at', format=DATE_FORMAT)
     email_provider_id = field_for(models.Service, 'email_provider_id')
     sms_provider_id = field_for(models.Service, 'sms_provider_id')
 
-    def service_permissions(
+    def get_service_permissions(
         self,
         service,
     ):
         return [p.permission for p in service.permissions]
+
+    def set_service_permissions(
+        self,
+        obj,
+    ):
+        return [ServicePermission(service_id=p.service_id, permission=p.permission) for p in obj]
 
     def get_letter_contact(
         self,
@@ -319,9 +327,15 @@ class ServiceSchema(BaseSchema):
     ):
         return service.get_default_letter_contact()
 
+    def set_letter_contact(
+        self,
+        obj,
+    ):
+        return str(obj)
+
     class Meta:
         model = models.Service
-        dump_only = ['letter_contact_block']
+        # dump_only = ['letter_contact_block']
         exclude = (
             'updated_at',
             'created_at',
