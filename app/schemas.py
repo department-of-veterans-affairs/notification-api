@@ -133,7 +133,7 @@ class UserSchema(BaseSchema):
             'updated_at',
             'created_at',
             'services',
-            'organisations',  #
+            'organisations',
             '_password',
             'verify_codes',
             '_identity_provider_user_id',
@@ -275,10 +275,7 @@ class ProviderDetailsSchema(BaseSchema):
 
     class Meta:
         model = models.ProviderDetails
-        exclude = (
-            'provider_rates',
-            # 'provider_stats',
-        )
+        exclude = ('provider_rates',)
         strict = True
 
 
@@ -287,10 +284,6 @@ class ProviderDetailsHistorySchema(BaseSchema):
 
     class Meta:
         model = models.ProviderDetailsHistory
-        # exclude = (
-        #     'provider_rates',
-        #     'provider_stats',
-        # )
         strict = True
 
 
@@ -335,7 +328,6 @@ class ServiceSchema(BaseSchema):
 
     class Meta:
         model = models.Service
-        # dump_only = ['letter_contact_block']
         exclude = (
             'updated_at',
             'created_at',
@@ -498,22 +490,13 @@ class DetailedServiceSchema(BaseSchema):
             'users',
             'created_by',
             'jobs',
-            # 'template_statistics',
-            # 'service_provider_stats',
-            # 'service_notification_stats',
             'email_branding',
             'service_sms_senders',
-            # 'monthly_billing',
             'reply_to_email_addresses',
-            # 'letter_contact_block',
             'message_limit',
             'email_from',
-            # 'inbound_api',
             'whitelist',
-            # 'reply_to_email_address',
-            # 'sms_sender',
             'permissions',
-            # 'inbound_number',
             'inbound_sms',
         )
 
@@ -535,12 +518,12 @@ class NotificationModelSchema(BaseSchema):
 
 
 class BaseTemplateSchema(BaseSchema):
-    reply_to = fields.Method('get_reply_to', allow_none=True, deserialize='return_reply_to')
-    reply_to_text = fields.Method('get_reply_to_text', allow_none=True, deserialize='return_reply_to')
+    reply_to = fields.Method('get_reply_to', allow_none=True, deserialize='set_reply_to')
+    reply_to_text = fields.Method('get_reply_to_text', allow_none=True, deserialize='set_reply_to')
     provider_id = field_for(models.Template, 'provider_id')
     communication_item_id = field_for(models.Template, 'communication_item_id')
 
-    def return_reply_to(self, obj):
+    def set_reply_to(self, obj):
         return str(obj)
 
     def get_reply_to(
@@ -566,9 +549,9 @@ class BaseTemplateSchema(BaseSchema):
 class TemplateSchema(BaseTemplateSchema):
     created_by = field_for(models.Template, 'created_by', required=True)
     process_type = field_for(models.Template, 'process_type')
-    redact_personalisation = fields.Method('redact', allow_none=True, deserialize='return_redact')
+    redact_personalisation = fields.Method('redact', allow_none=True, deserialize='set_redact')
 
-    def return_redact(self, obj):
+    def set_redact(self, obj):
         return bool(obj)
 
     def redact(
@@ -632,8 +615,7 @@ class TemplateHistorySchema(BaseSchema):
 
     class Meta:
         model = models.TemplateHistory
-        strict = True
-        include_relationships = True
+        # include_relationships = True
 
 
 class ApiKeySchema(BaseSchema):
@@ -747,7 +729,6 @@ class NotificationWithTemplateSchema(BaseSchema):
     class Meta:
         model = models.Notification
         strict = True
-        # exclude = ('personalisation', 'scheduled_notification',)
 
     template = fields.Nested(
         TemplateSchema,
@@ -759,7 +740,6 @@ class NotificationWithTemplateSchema(BaseSchema):
             'content',
             'subject',
             'redact_personalisation',
-            # 'is_precompiled_letter',
         ],
         dump_only=True,
     )
