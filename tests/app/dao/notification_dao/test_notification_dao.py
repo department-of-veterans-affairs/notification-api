@@ -9,6 +9,8 @@ from uuid import uuid4
 
 
 from app.dao.notifications_dao import (
+    FINAL_STATUS_STATES,
+    _get_notification_status_update_statement,
     dao_create_notification,
     dao_created_scheduled_notification,
     dao_delete_notification_by_id,
@@ -35,6 +37,7 @@ from app.dao.notifications_dao import (
     update_notification_delivery_status,
 )
 from app.models import (
+    NOTIFICATION_TECHNICAL_FAILURE,
     Job,
     Notification,
     NotificationHistory,
@@ -2161,3 +2164,45 @@ def test_update_notification_delivery_status_invalid_updates(
     )
 
     assert notification.status != new_status
+
+
+@pytest.mark.parametrize(
+    'incoming_status',
+    [
+        NOTIFICATION_DELIVERED,
+        NOTIFICATION_SENT,
+        NOTIFICATION_PERMANENT_FAILURE,
+        NOTIFICATION_TECHNICAL_FAILURE,
+        NOTIFICATION_TEMPORARY_FAILURE,
+        NOTIFICATION_PENDING,
+        NOTIFICATION_SENDING,
+        NOTIFICATION_CREATED,
+    ],
+)
+def test_get_notification_status_update_statement(sample_notification, incoming_status):
+    notification = sample_notification()
+    stmt = _get_notification_status_update_statement(notification.id, incoming_status)
+
+    compiled_stmt = stmt.compile()
+
+    """
+    'delivered' will look like this and should have the following values
+    {'updated_at': datetime.datetime(2024, 9, 12, 19, 34, 40, 514290), 'status': 'delivered', 'id_1': UUID('ca5839a9-d928-4b56-ab6b-85ee0407d636'), 'status_1': 'delivered'}
+    UPDATE notifications SET updated_at=:updated_at, notification_status=:status WHERE notifications.id = :id_1 AND notifications.notification_status != :status_1
+
+    other statuses will looke like this and should have the following values
+    {'updated_at': datetime.datetime(2024, 9, 12, 19, 34, 41, 126818), 'status': 'sent', 'id_1': UUID('8d76bb35-218f-4fe7-9ef7-861c88ebd25a'), 'status_1': ['delivered', 'permanent-failure', 'technical-failure', 'preferences-declined'], 'status_2': 'sent'}
+    UPDATE notifications SET updated_at=:updated_at, notification_status=:status WHERE notifications.id = :id_1 AND (notifications.notification_status NOT IN (__[POSTCOMPILE_status_1])) AND notifications.notification_status != :status_2
+    """
+
+    # assert the compiled statement is correct, status will be set to incoming_status
+    assert compiled_stmt.params['status'] == incoming_status
+
+    # the following are checking the "where" clause params of the compiled statement
+    assert compiled_stmt.params['id_1'] == notification.id
+
+    if incoming_status == NOTIFICATION_DELIVERED:
+        assert compiled_stmt.params['status_1'] == NOTIFICATION_DELIVERED
+    else:
+        assert tuple(compiled_stmt.params['status_1']) == FINAL_STATUS_STATES
+        assert compiled_stmt.params['status_2'] == incoming_status

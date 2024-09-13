@@ -1,4 +1,3 @@
-import datetime
 from app.models import DELIVERY_STATUS_CALLBACK_TYPE
 from app.celery.common import log_notification_total_time
 from app.celery.service_callback_tasks import check_and_queue_callback_task
@@ -19,6 +18,7 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from app import notify_celery, statsd_client, clients
 from app.celery.exceptions import AutoRetryException
 from app.dao.service_callback_dao import dao_get_callback_include_payload_status
+from app.dao.notifications_dao import duplicate_update_warning
 
 from app.models import Notification
 
@@ -157,23 +157,6 @@ def attempt_to_get_notification(
     return notification, should_exit
 
 
-def log_notification_status_warning(
-    notification: Notification,
-    status: str,
-) -> None:
-    time_diff = datetime.datetime.utcnow() - (notification.updated_at or notification.created_at)
-    current_app.logger.warning(
-        'Invalid callback received. Notification id %s received a status update to %s '
-        '%s after being set to %s. %s sent by %s',
-        notification.id,
-        status,
-        time_diff,
-        notification.status,
-        notification.notification_type,
-        notification.sent_by,
-    )
-
-
 def check_notification_status(
     notification: Notification,
     notification_status: str,
@@ -188,7 +171,7 @@ def check_notification_status(
 
     # Do not update if notification status is in a final state.
     if notification.status in FINAL_STATUS_STATES:
-        log_notification_status_warning(notification, notification_status)
+        duplicate_update_warning(notification, notification_status)
         return True
 
     return False
@@ -216,14 +199,13 @@ def _calculate_pricing(
     price_in_millicents_usd: float, notification: Notification, notification_status: str, number_of_message_parts: int
 ):
     """Calculate pricing"""
-    current_app.logger.info('Calculate Pricing')
+    current_app.logger.info('Calculate pricing and update notification %s', notification.id)
     if price_in_millicents_usd > 0.0:
         dao_update_notification_by_id(
             notification_id=notification.id,
             status=notification_status,
             segments_count=number_of_message_parts,
             cost_in_millicents=price_in_millicents_usd,
-            updated_at=datetime.utcnow(),
         )
     else:
         update_notification_delivery_status(notification_id=notification.id, new_status=notification_status)

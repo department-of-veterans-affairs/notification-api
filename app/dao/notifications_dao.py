@@ -112,7 +112,7 @@ def _decide_permanent_temporary_failure(
     current_status,
     status,
 ):
-    # Firetext will send pending, then send either succes or fail.
+    # Firetext will send pending, then send either success or fail.
     # If we go from pending to delivered we need to set failure type as temporary-failure
     if current_status == NOTIFICATION_PENDING and status == NOTIFICATION_PERMANENT_FAILURE:
         status = NOTIFICATION_TEMPORARY_FAILURE
@@ -132,9 +132,15 @@ def _get_notification_status_update_statement(
     """
     Generates an update statement for the given notification id and status.
     Preserves status order and ensures a transient status will not override a final status.
-    :param notification_id: String value of notification uuid to be updated
-    :param status: String value of the status the given notification will attempt to update to
-    :return: An update statement to be executed, or None
+
+    Args:
+        notification_id (str): String value of notification uuid to be updated
+        incoming_status (str): String value of the status the given notification will attempt to update to
+        notification (Notification): The notification to update, or None
+        **kwargs: Additional key-value pairs to be updated
+
+    Returns:
+        update_statement: An update statement to be executed, or None if the notification should not be updated
     """
     notification = db.session.get(Notification, notification_id)
     if notification is None:
@@ -146,17 +152,6 @@ def _get_notification_status_update_statement(
     current_status = notification.status
     incoming_status = _decide_permanent_temporary_failure(current_status=current_status, status=incoming_status)
 
-    # do not update if the incoming status happens before the current status
-    if incoming_status in TRANSIENT_STATUSES and current_status in TRANSIENT_STATUSES:
-        if TRANSIENT_STATUSES.index(incoming_status) < TRANSIENT_STATUSES.index(current_status):
-            current_app.logger.warning(
-                'An erroneous attempt was made to transition notification id %s from %s to %s',
-                notification_id,
-                current_status,
-                incoming_status,
-            )
-            return None
-
     # add status to values dict if it doesn't have anything
     if len(kwargs) < 1:
         kwargs['status'] = incoming_status
@@ -165,31 +160,49 @@ def _get_notification_status_update_statement(
 
     kwargs['updated_at'] = datetime.utcnow()
 
-    # when updating make sure notification is not in final state via query
-    update_statement = (
-        update(Notification)
-        .where(db.and_(Notification.id == notification_id, Notification.status.not_in(FINAL_STATUS_STATES)))
-        .values(kwargs)
-    )
+    if incoming_status == NOTIFICATION_DELIVERED:
+        # when updating to delivered, update it unless it's already set to delivered
+        conditions = db.and_(
+            Notification.id == notification_id,
+            Notification.status != NOTIFICATION_DELIVERED,
+        )
+    else:
+        # when updating to another status, update it unless it's in a final state, or the current status hasn't changed
+        conditions = db.and_(
+            Notification.id == notification_id,
+            Notification.status.not_in(FINAL_STATUS_STATES),
+            Notification.status != incoming_status,
+        )
 
-    return update_statement
+    # create update query with the above conditions
+    stmt = update(Notification).where(conditions).values(kwargs)
+
+    return stmt
 
 
 def _update_notification_status(
-    notification,
-    status,
-):
+    notification: Notification,
+    status: str,
+) -> Notification:
     """
     Update the notification status if it should be updated.
-    """
 
+    Args:
+        notification (Notification): The notification to update.
+        status (str): The status to update the notification to.
+
+    Returns:
+        Notification: The updated notification, or the original notification if it should not be updated.
+    """
+    notification_updated = False
+
+    # verify notification status is valid
     if not (status in TRANSIENT_STATUSES or status in FINAL_STATUS_STATES):
         current_app.logger.error(
             'Attempting to update notification %s to a status that does not exist %s', notification.id, status
         )
-        return notification
 
-    update_statement = _get_notification_status_update_statement(notification.id, status)
+    update_statement = _get_notification_status_update_statement(notification.id, status, notification)
 
     try:
         db.session.execute(update_statement)
@@ -201,20 +214,22 @@ def _update_notification_status(
             status,
         )
         current_app.logger.exception(e)
-        return notification
     except ArgumentError as e:
         current_app.logger.warning('Cannot update notification %s to status %s', notification.id, status)
         current_app.logger.exception(e)
-        return notification
-    except:
+    except Exception:
         current_app.logger.exception(
             'An error occured when attempting to update notification %s to status %s',
             notification.id,
             status,
         )
-        return notification
+    else:
+        notification_updated = True
 
-    return db.session.get(Notification, notification.id)
+    if notification_updated:
+        return db.session.get(Notification, notification.id)
+
+    return notification
 
 
 @statsd(namespace='dao')
@@ -229,10 +244,6 @@ def update_notification_status_by_id(
     notification = db.session.scalar(stmt)
     if notification is None:
         current_app.logger.info('notification not found for id %s (update to status %s)', notification_id, status)
-        return None
-
-    if notification.status not in TRANSIENT_STATUSES:
-        duplicate_update_warning(notification, status)
         return None
 
     if notification.international and not country_records_delivery(notification.phone_prefix):
@@ -263,44 +274,19 @@ def update_notification_delivery_status(
     Based on the desired update status, a query is constructed that cannot put the notification in an incorrect state.
 
     Arguments:
-        notification_id: Notification id,
-        new_status: Status to update the notification to,
+        notification_id (UUID): Notification id,
+        new_status (str): Status to update the notification to,
     """
-
     current_app.logger.info('Update notification: %s to status: %s', notification_id, new_status)
-    stmt = (
-        update(Notification)
-        .where(Notification.id == notification_id)
-        .where(Notification.status != NOTIFICATION_DELIVERED)
-        .where(Notification.status != NOTIFICATION_PERMANENT_FAILURE)
-    )
-    should_update = True
 
-    if new_status in (NOTIFICATION_CREATED, NOTIFICATION_SENDING, NOTIFICATION_PENDING):
-        # For these stauses, in addition to the stmt above, do not allow overriding sent/temp-failure
-        stmt = stmt.where(Notification.status != NOTIFICATION_SENT).where(
-            Notification.status != NOTIFICATION_TEMPORARY_FAILURE
-        )
-    elif new_status not in (
-        NOTIFICATION_DELIVERED,
-        NOTIFICATION_PERMANENT_FAILURE,
-        NOTIFICATION_SENT,
-        NOTIFICATION_TEMPORARY_FAILURE,
-    ):
-        # Do not run updates if it does not match the other cases
-        should_update = False
-        current_app.logger.warning('Did not find match for: %s - Not updating', new_status)
-    # Otherwise only use the base stmt that was set.
-
-    if should_update:
-        try:
-            stmt = stmt.values(status=new_status, updated_at=datetime.utcnow())
-            db.session.execute(stmt)
-            db.session.commit()
-        except Exception as e:
-            current_app.logger.critical('Updating notification %s to status "%s" failed.', notification_id, new_status)
-            current_app.logger.exception(e)
-            db.session.rollback()
+    try:
+        stmt = _get_notification_status_update_statement(notification_id=notification_id, incoming_status=new_status)
+        db.session.execute(stmt)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.critical('Updating notification %s to status "%s" failed.', notification_id, new_status)
+        current_app.logger.exception(e)
+        db.session.rollback()
 
 
 @statsd(namespace='dao')
@@ -365,7 +351,7 @@ def dao_update_notification_by_id(
     except ArgumentError:
         current_app.logger.exception('Cannot update notification %s', notification_id)
         return None
-    except:
+    except Exception:
         current_app.logger.exception(
             'Unexpected exception thrown attempting to update notification %s, given parameters for updating '
             'notification may be incorrect',
@@ -1006,15 +992,21 @@ def guess_notification_type(search_term):
 
 
 def duplicate_update_warning(
-    notification,
-    status,
-):
-    # This is a log, so this is not SQL injection
+    notification: Notification,
+    status: str,
+) -> None:
+    """
+    Log a warning when a notification status update is received after the notification has reached a final state.
+
+    Args:
+        notification (Notification): The notification that will not be updated.
+        status (str): The status that the notification was attempting to be updated to.
+    """
     time_diff = datetime.utcnow() - (notification.updated_at or notification.created_at)
 
     current_app.logger.info(
-        'Duplicate callback received. Notification id %s received a status update to '
-        '%s %s after being set to %s. %s sent by %s',
+        'Duplicate callback received. Notification id %s received a status update to %s '
+        '%s after being set to %s. %s sent by %s',
         notification.id,
         status,
         time_diff,

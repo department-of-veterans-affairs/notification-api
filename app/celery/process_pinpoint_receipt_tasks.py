@@ -12,7 +12,8 @@ from app.celery.common import log_notification_total_time
 from app.celery.exceptions import AutoRetryException
 from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
-    dao_update_notification,
+    dao_update_notification_by_id,
+    duplicate_update_warning,
     update_notification_status_by_id,
     FINAL_STATUS_STATES,
 )
@@ -134,10 +135,12 @@ def process_pinpoint_results(
                 notification.status_reason = 'The veteran is opted-out at the Pinpoint level.'
 
         if price_in_millicents_usd > 0.0:
-            notification.status = notification_status
-            notification.segments_count = number_of_message_parts
-            notification.cost_in_millicents = price_in_millicents_usd
-            dao_update_notification(notification)
+            dao_update_notification_by_id(
+                notification_id=notification.id,
+                status=notification_status,
+                segments_count=number_of_message_parts,
+                cost_in_millicents=price_in_millicents_usd,
+            )
         else:
             update_notification_status_by_id(
                 notification_id=notification.id, status=notification_status, status_reason=notification.status_reason
@@ -237,28 +240,7 @@ def check_notification_status(notification: Notification, notification_status: s
         should_exit = False
     elif notification.status in FINAL_STATUS_STATES:
         # Do not update if notification status is in a final state.
-        log_notification_status_warning(notification, notification_status)
+        duplicate_update_warning(notification, notification_status)
         should_exit = True
 
     return should_exit
-
-
-def log_notification_status_warning(notification: Notification, status: str) -> None:
-    """
-    Log a warning when a notification status update is received after the notification has reached a final state.
-
-    Args:
-        notification (Notification): The notification that will not be updated.
-        status (str): The status that the notification was attempting to be updated to.
-    """
-    time_diff = datetime.datetime.utcnow() - (notification.updated_at or notification.created_at)
-    current_app.logger.warning(
-        'Invalid callback received. Notification id %s received a status update to %s '
-        '%s after being set to %s. %s sent by %s',
-        notification.id,
-        status,
-        time_diff,
-        notification.status,
-        notification.notification_type,
-        notification.sent_by,
-    )
