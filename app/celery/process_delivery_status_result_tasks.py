@@ -84,11 +84,11 @@ def process_delivery_status(
     try:
         # calculate pricing
         current_app.logger.info(
-            'Notification ID (%s) - Calculate Pricing: %s and notification_status: %s with number_of_message_parts: %s',
-            notification.id,
+            'Calculate Pricing: %s and update notification_status: %s with number_of_message_parts: %s for notification: %s',
             provider_name,
             notification_status,
             number_of_message_parts,
+            notification.id,
         )
         _calculate_pricing(price_in_millicents_usd, notification, notification_status, number_of_message_parts)
 
@@ -198,7 +198,7 @@ def _calculate_pricing(
     price_in_millicents_usd: float, notification: Notification, notification_status: str, number_of_message_parts: int
 ):
     """Calculate pricing"""
-    current_app.logger.info('Calculate pricing and update notification %s', notification.id)
+    current_app.logger.debug('Calculate pricing and update notification %s', notification.id)
     if price_in_millicents_usd > 0.0:
         dao_update_notification_by_id(
             notification_id=notification.id,

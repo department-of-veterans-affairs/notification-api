@@ -17,7 +17,7 @@ from notifications_utils.recipients import (
 )
 from notifications_utils.statsd_decorators import statsd
 from notifications_utils.timezones import convert_local_timezone_to_utc, convert_utc_to_local_timezone
-from sqlalchemy import asc, delete, desc, func, select, update, literal_column
+from sqlalchemy import and_, or_, asc, delete, desc, func, select, update, literal_column
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.engine.row import Row
 from sqlalchemy.orm import joinedload
@@ -150,11 +150,6 @@ def _get_notification_status_update_statement(
         )
         return None
 
-    # TODO - remove: this was for firetext to update to temporary failure, we don't use firetext
-    # verified by checking all logs for the past month
-    # current_status = notification.status
-    # incoming_status = _decide_permanent_temporary_failure(current_status=current_status, status=incoming_status)
-
     # add status to values dict if it doesn't have anything
     if len(kwargs) < 1:
         kwargs['status'] = incoming_status
@@ -164,25 +159,25 @@ def _get_notification_status_update_statement(
     kwargs['updated_at'] = datetime.utcnow()
 
     # Define the allowed update conditions
-    conditions = db.and_(
+    conditions = and_(
         Notification.id == notification_id,
-        db.or_(
+        or_(
             # update to delivered, unless it's already set to delivered
-            db.and_(incoming_status == NOTIFICATION_DELIVERED, Notification.status != NOTIFICATION_DELIVERED),
+            and_(incoming_status == NOTIFICATION_DELIVERED, Notification.status != NOTIFICATION_DELIVERED),
             # update to final status if the current status is not a final status
-            db.and_(incoming_status in FINAL_STATUS_STATES, Notification.status.not_in(FINAL_STATUS_STATES)),
+            and_(incoming_status in FINAL_STATUS_STATES, Notification.status.not_in(FINAL_STATUS_STATES)),
             # update to sent or temporary failure if the current status is a transient status
-            db.and_(
+            and_(
                 incoming_status in [NOTIFICATION_SENT, NOTIFICATION_TEMPORARY_FAILURE],
                 Notification.status.in_(TRANSIENT_STATUSES),
             ),
             # update to pending if the current status is created or sending
-            db.and_(
+            and_(
                 incoming_status == NOTIFICATION_PENDING,
                 Notification.status.in_([NOTIFICATION_CREATED, NOTIFICATION_SENDING]),
             ),
             # update to sending from created
-            db.and_(incoming_status == NOTIFICATION_SENDING, Notification.status == NOTIFICATION_CREATED),
+            and_(incoming_status == NOTIFICATION_SENDING, Notification.status == NOTIFICATION_CREATED),
         ),
     )
 

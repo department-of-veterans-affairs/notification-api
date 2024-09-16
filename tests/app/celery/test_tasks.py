@@ -902,6 +902,7 @@ def test_save_email_should_use_template_version_from_job_not_latest(
     )
 
 
+@pytest.mark.serial
 def test_should_use_email_template_subject_placeholders(
     notify_db_session,
     sample_template,
@@ -919,6 +920,7 @@ def test_should_use_email_template_subject_placeholders(
 
     notification_id = uuid4()
     now = datetime.utcnow()
+    # Intermittently makes the status 'technical-failure'
     save_email(
         template.service_id,
         notification_id,
@@ -928,7 +930,7 @@ def test_should_use_email_template_subject_placeholders(
 
     assert persisted_notification.to == 'my_email@my_email.com'
     assert persisted_notification.template_id == template.id
-    assert persisted_notification.status == 'created'  # technical-failure???
+    assert persisted_notification.status == 'created'
     assert persisted_notification.created_at >= now
     assert not persisted_notification.sent_by
     assert persisted_notification.personalisation == {'name': 'Jo'}
