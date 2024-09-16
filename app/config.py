@@ -33,19 +33,19 @@ env_name_map = {'development': 'dev', 'test': 'test', 'staging': 'staging', 'pro
 
 class QueueNames(object):
     PERIODIC = 'periodic-tasks'
-    PRIORITY = 'priority-tasks'
-    DATABASE = 'database-tasks'
+    PRIORITY = 'priority-tasks'  # Not used
+    DATABASE = 'database-tasks'  # Not used
     SEND_SMS = 'send-sms-tasks'
     SEND_EMAIL = 'send-email-tasks'
     RESEARCH_MODE = 'research-mode-tasks'
     REPORTING = 'reporting-tasks'
-    JOBS = 'job-tasks'
+    JOBS = 'job-tasks'  # Not used
     RETRY = 'retry-tasks'
     RATE_LIMIT_RETRY = 'rate-limit-retry-tasks'
     NOTIFY = 'notify-internal-tasks'
-    PROCESS_FTP = 'process-ftp-tasks'
+    PROCESS_FTP = 'process-ftp-tasks'  # Not used
     CALLBACKS = 'service-callbacks'
-    ANTIVIRUS = 'antivirus-tasks'
+    ANTIVIRUS = 'antivirus-tasks'  # Not used
     LOOKUP_CONTACT_INFO = 'lookup-contact-info-tasks'
     LOOKUP_VA_PROFILE_ID = 'lookup-va-profile-id-tasks'
     DELIVERY_RECEIPTS = 'delivery-receipts'
@@ -239,7 +239,7 @@ class Config(object):
             'is_secure': os.getenv('BROKER_SSL_ENABLED', 'True') == 'True',
         },
         'worker_enable_remote_control': False,
-        'worker_prefetch_multiplier': 8,
+        'worker_prefetch_multiplier': 64,
         'enable_utc': True,
         'timezone': os.getenv('TIMEZONE', 'America/New_York'),
         'accept_content': ['json', 'pickle'],
