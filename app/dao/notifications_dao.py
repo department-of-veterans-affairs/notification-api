@@ -1,5 +1,6 @@
 import functools
 import string
+from typing import Optional
 from uuid import UUID
 from datetime import (
     datetime,
@@ -149,8 +150,10 @@ def _get_notification_status_update_statement(
         )
         return None
 
-    current_status = notification.status
-    incoming_status = _decide_permanent_temporary_failure(current_status=current_status, status=incoming_status)
+    # TODO - remove: this was for firetext to update to temporary failure, we don't use firetext
+    # verified by checking all logs for the past month
+    # current_status = notification.status
+    # incoming_status = _decide_permanent_temporary_failure(current_status=current_status, status=incoming_status)
 
     # add status to values dict if it doesn't have anything
     if len(kwargs) < 1:
@@ -160,22 +163,34 @@ def _get_notification_status_update_statement(
 
     kwargs['updated_at'] = datetime.utcnow()
 
-    if incoming_status == NOTIFICATION_DELIVERED:
-        # when updating to delivered, update it unless it's already set to delivered
-        conditions = db.and_(
-            Notification.id == notification_id,
-            Notification.status != NOTIFICATION_DELIVERED,
-        )
-    else:
-        # when updating to another status, update it unless it's in a final state, or the current status hasn't changed
-        conditions = db.and_(
-            Notification.id == notification_id,
-            Notification.status.not_in(FINAL_STATUS_STATES),
-            Notification.status != incoming_status,
-        )
+    # Define the allowed update conditions
+    conditions = db.and_(
+        Notification.id == notification_id,
+        db.or_(
+            # update to delivered, unless it's already set to delivered
+            db.and_(incoming_status == NOTIFICATION_DELIVERED, Notification.status != NOTIFICATION_DELIVERED),
+            # update to final status if the current status is not a final status
+            db.and_(incoming_status in FINAL_STATUS_STATES, Notification.status.not_in(FINAL_STATUS_STATES)),
+            # update to sent or temporary failure if the current status is a transient status
+            db.and_(
+                incoming_status in [NOTIFICATION_SENT, NOTIFICATION_TEMPORARY_FAILURE],
+                Notification.status.in_(TRANSIENT_STATUSES),
+            ),
+            # update to pending if the current status is created or sending
+            db.and_(
+                incoming_status == NOTIFICATION_PENDING,
+                Notification.status.in_([NOTIFICATION_CREATED, NOTIFICATION_SENDING]),
+            ),
+            # update to sending from created
+            db.and_(incoming_status == NOTIFICATION_SENDING, Notification.status == NOTIFICATION_CREATED),
+        ),
+    )
 
-    # create update query with the above conditions
-    stmt = update(Notification).where(conditions).values(kwargs)
+    # create the update query with the above conditions
+    # added execution_options to prevent the session from being out of sync and avoid this error:
+    # "Could not evaluate current criteria in Python: Cannot evaluate ..."
+    # https://docs.sqlalchemy.org/en/14/orm/session_basics.html#update-and-delete-with-arbitrary-where-clause
+    stmt = update(Notification).where(conditions).values(kwargs).execution_options(synchronize_session='fetch')
 
     return stmt
 
@@ -202,7 +217,7 @@ def _update_notification_status(
             'Attempting to update notification %s to a status that does not exist %s', notification.id, status
         )
 
-    update_statement = _get_notification_status_update_statement(notification.id, status, notification)
+    update_statement = _get_notification_status_update_statement(notification.id, status)
 
     try:
         db.session.execute(update_statement)
@@ -321,13 +336,17 @@ def update_notification_status_by_reference(
 def dao_update_notification_by_id(
     notification_id: str,
     **kwargs,
-):
+) -> Optional[Notification]:
     """
     Update the notification by ID, ensure kwargs paramaters are named appropriately according to the notification model.
-    :param notification_id: The notification uuid in string form
-    :param kwargs: The notification key-value pairs to be updated
-      Note: Ensure keys are valid according to notification model
-    :return: Notification or None
+
+    Args:
+        notification_id (str): The notification uuid in string form
+        kwargs: The notification key-value pairs to be updated.
+            **Note**: Ensure keys are valid according to notification model
+
+    Returns:
+        Notification: The updated notification or None if the notification was not found
     """
     kwargs['updated_at'] = datetime.utcnow()
     status = kwargs.get('status')

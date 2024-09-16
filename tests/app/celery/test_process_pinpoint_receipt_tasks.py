@@ -168,7 +168,7 @@ def test_process_pinpoint_results_should_update_notification_status_with_deliver
         'app.celery.process_pinpoint_receipt_tasks.update_notification_status_by_id'
     )
 
-    update_notification_spy = mocker.spy(process_pinpoint_receipt_tasks, 'dao_update_notification')
+    update_notification_spy = mocker.spy(process_pinpoint_receipt_tasks, 'dao_update_notification_by_id')
 
     test_reference = f'{uuid4()}=sms-reference-1'
     template = sample_template()

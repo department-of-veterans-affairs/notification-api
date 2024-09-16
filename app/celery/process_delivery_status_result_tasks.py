@@ -1,4 +1,4 @@
-from app.models import DELIVERY_STATUS_CALLBACK_TYPE
+from app.models import DELIVERY_STATUS_CALLBACK_TYPE, NOTIFICATION_DELIVERED
 from app.celery.common import log_notification_total_time
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.celery.process_pinpoint_inbound_sms import CeleryEvent
@@ -7,7 +7,6 @@ from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
     dao_update_notification_by_id,
     update_notification_delivery_status,
-    FINAL_STATUS_STATES,
 )
 
 from typing import Tuple
@@ -165,12 +164,12 @@ def check_notification_status(
     # Do not update if the status has not changed.
     if notification_status == notification.status:
         current_app.logger.info(
-            'SQS callback received the same status of %s for notification %s)', notification_status, notification.id
+            'SQS callback received the same status of %s for notification %s', notification_status, notification.id
         )
         return True
 
-    # Do not update if notification status is in a final state.
-    if notification.status in FINAL_STATUS_STATES:
+    # Do not update if notification status is already delivered
+    if notification.status == NOTIFICATION_DELIVERED:
         duplicate_update_warning(notification, notification_status)
         return True
 

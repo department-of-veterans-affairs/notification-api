@@ -914,7 +914,7 @@ def test_should_use_email_template_subject_placeholders(
     )
 
     # Cleaned by sample_template
-    notification = _notification_json(template, 'my_email@my_email.com', {'name': 'Jo'})
+    notification_data = _notification_json(template, 'my_email@my_email.com', {'name': 'Jo'})
     mocker.patch('app.celery.provider_tasks.deliver_email.apply_async')
 
     notification_id = uuid4()
@@ -922,13 +922,13 @@ def test_should_use_email_template_subject_placeholders(
     save_email(
         template.service_id,
         notification_id,
-        encryption.encrypt(notification),
+        encryption.encrypt(notification_data),
     )
     persisted_notification = notify_db_session.session.get(Notification, notification_id)
 
     assert persisted_notification.to == 'my_email@my_email.com'
     assert persisted_notification.template_id == template.id
-    assert persisted_notification.status == 'created'
+    assert persisted_notification.status == 'created'  # technical-failure???
     assert persisted_notification.created_at >= now
     assert not persisted_notification.sent_by
     assert persisted_notification.personalisation == {'name': 'Jo'}
