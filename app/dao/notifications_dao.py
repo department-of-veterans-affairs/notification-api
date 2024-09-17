@@ -17,7 +17,7 @@ from notifications_utils.recipients import (
 )
 from notifications_utils.statsd_decorators import statsd
 from notifications_utils.timezones import convert_local_timezone_to_utc, convert_utc_to_local_timezone
-from sqlalchemy import and_, or_, asc, delete, desc, func, select, update, literal_column
+from sqlalchemy import and_, asc, delete, desc, func, or_, select, update, literal_column
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.engine.row import Row
 from sqlalchemy.orm import joinedload
