@@ -88,7 +88,7 @@ def process_delivery_status(
             provider_name,
             notification_status,
             number_of_message_parts,
-            notification.id,
+            getattr(notification, 'id', 'unknown'),
         )
         _calculate_pricing(price_in_millicents_usd, notification, notification_status, number_of_message_parts)
 
