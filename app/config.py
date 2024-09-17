@@ -33,49 +33,49 @@ env_name_map = {'development': 'dev', 'test': 'test', 'staging': 'staging', 'pro
 
 class QueueNames(object):
     PERIODIC = 'periodic-tasks'
-    PRIORITY = 'priority-tasks'  # Not used
-    DATABASE = 'database-tasks'  # Not used
-    SEND_SMS = 'send-sms-tasks'
+    # PRIORITY = 'priority-tasks'  # Not used
+    # DATABASE = 'database-tasks'  # Not used
+    # SEND_SMS = 'send-sms-tasks'
     SEND_EMAIL = 'send-email-tasks'
     RESEARCH_MODE = 'research-mode-tasks'
     REPORTING = 'reporting-tasks'
-    JOBS = 'job-tasks'  # Not used
+    # JOBS = 'job-tasks'  # Not used
     RETRY = 'retry-tasks'
     RATE_LIMIT_RETRY = 'rate-limit-retry-tasks'
     NOTIFY = 'notify-internal-tasks'
-    PROCESS_FTP = 'process-ftp-tasks'  # Not used
+    # PROCESS_FTP = 'process-ftp-tasks'  # Not used
     CALLBACKS = 'service-callbacks'
-    ANTIVIRUS = 'antivirus-tasks'  # Not used
-    LOOKUP_CONTACT_INFO = 'lookup-contact-info-tasks'
-    LOOKUP_VA_PROFILE_ID = 'lookup-va-profile-id-tasks'
+    # ANTIVIRUS = 'antivirus-tasks'  # Not used
+    # LOOKUP_CONTACT_INFO = 'lookup-contact-info-tasks'
+    # LOOKUP_VA_PROFILE_ID = 'lookup-va-profile-id-tasks'
     DELIVERY_RECEIPTS = 'delivery-receipts'
     COMMUNICATION_ITEM_PERMISSIONS = 'communication-item-permissions'
-    SEND_ONSITE_NOTIFICATION = 'onsite-notification-tasks'
-    DELIVERY_STATUS_RESULT_TASKS = 'delivery-status-result-tasks'
+    # SEND_ONSITE_NOTIFICATION = 'onsite-notification-tasks'
+    # DELIVERY_STATUS_RESULT_TASKS = 'delivery-status-result-tasks'
 
     @staticmethod
     def all_queues():
         return [
-            QueueNames.PRIORITY,
+            # QueueNames.PRIORITY,
             QueueNames.PERIODIC,
-            QueueNames.DATABASE,
-            QueueNames.SEND_SMS,
+            # QueueNames.DATABASE,
+            # QueueNames.SEND_SMS,
             QueueNames.SEND_EMAIL,
             QueueNames.RESEARCH_MODE,
             QueueNames.REPORTING,
-            QueueNames.JOBS,
+            # QueueNames.JOBS,
             QueueNames.RETRY,
             QueueNames.RATE_LIMIT_RETRY,
             QueueNames.NOTIFY,
             # QueueNames.CREATE_LETTERS_PDF,
             QueueNames.CALLBACKS,
             # QueueNames.LETTERS,
-            QueueNames.LOOKUP_CONTACT_INFO,
-            QueueNames.LOOKUP_VA_PROFILE_ID,
+            # QueueNames.LOOKUP_CONTACT_INFO,
+            # QueueNames.LOOKUP_VA_PROFILE_ID,
             QueueNames.DELIVERY_RECEIPTS,
             QueueNames.COMMUNICATION_ITEM_PERMISSIONS,
-            QueueNames.SEND_ONSITE_NOTIFICATION,
-            QueueNames.DELIVERY_STATUS_RESULT_TASKS,
+            # QueueNames.SEND_ONSITE_NOTIFICATION,
+            # QueueNames.DELIVERY_STATUS_RESULT_TASKS,
         ]
 
 
@@ -334,18 +334,18 @@ class Config(object):
                 'schedule': crontab(hour=4, minute=0),
                 'options': {'queue': QueueNames.PERIODIC},
             },
-            'send-scheduled-comp-and-pen-sms': {
-                'task': 'send-scheduled-comp-and-pen-sms',
-                # Every 2 minutes past every hour from 13 through 21 on every day-of-month from 22 through end-of-month
-                'schedule': crontab(hour='13-21', day_of_month='22-31', minute='*/2'),
-                'options': {'queue': QueueNames.PERIODIC},
-            },
+            # 'send-scheduled-comp-and-pen-sms': {
+            #     'task': 'send-scheduled-comp-and-pen-sms',
+            #     # Every 2 minutes past every hour from 13 through 21 on every day-of-month from 22 through end-of-month
+            #     'schedule': crontab(hour='13-21', day_of_month='22-31', minute='*/2'),
+            #     'options': {'queue': QueueNames.PERIODIC},
+            # },
         },
         'task_queues': [Queue(queue, Exchange('default'), routing_key=queue) for queue in QueueNames.all_queues()],
         'task_routes': {
             'app.celery.v3.notification_tasks.v3_process_notification': {'queue': QueueNames.NOTIFY},
             'app.celery.v3.notification_tasks.v3_send_email_notification': {'queue': QueueNames.SEND_EMAIL},
-            'app.celery.v3.notification_tasks.v3_send_sms_notification': {'queue': QueueNames.SEND_SMS},
+            # 'app.celery.v3.notification_tasks.v3_send_sms_notification': {'queue': QueueNames.SEND_SMS},
             'app.celery.process_ga4_measurement_tasks.post_to_ga4': {'queue': QueueNames.SEND_EMAIL},
             'app.celery.process_ses_receipts_tasks.send_email_status_to_va_profile': {'queue': QueueNames.CALLBACKS},
         },

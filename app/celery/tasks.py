@@ -222,20 +222,20 @@ def save_sms(
             reply_to_text=reply_to_text,
         )
 
-        sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-            notification.get(service_id), notification.get(reply_to_text)
-        )
+        # sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
+        #     notification.get(service_id), notification.get(reply_to_text)
+        # )
 
-        if is_feature_enabled(FeatureFlag.SMS_SENDER_RATE_LIMIT_ENABLED) and sms_sender and sms_sender.rate_limit:
-            provider_tasks.deliver_sms_with_rate_limiting.apply_async(
-                [str(saved_notification.id)],
-                queue=QueueNames.SEND_SMS if not service.research_mode else QueueNames.RESEARCH_MODE,
-            )
-        else:
-            provider_tasks.deliver_sms.apply_async(
-                [str(saved_notification.id)],
-                queue=QueueNames.SEND_SMS if not service.research_mode else QueueNames.RESEARCH_MODE,
-            )
+        # if is_feature_enabled(FeatureFlag.SMS_SENDER_RATE_LIMIT_ENABLED) and sms_sender and sms_sender.rate_limit:
+        #     provider_tasks.deliver_sms_with_rate_limiting.apply_async(
+        #         [str(saved_notification.id)],
+        #         queue=QueueNames.SEND_SMS if not service.research_mode else QueueNames.RESEARCH_MODE,
+        #     )
+        # else:
+        #     provider_tasks.deliver_sms.apply_async(
+        #         [str(saved_notification.id)],
+        #         queue=QueueNames.SEND_SMS if not service.research_mode else QueueNames.RESEARCH_MODE,
+        #     )
 
         current_app.logger.debug(
             'SMS %s created at %s for job %s',

@@ -258,22 +258,15 @@ def send_to_queue_for_recipient_info_based_on_recipient_identifier(
     This is the execution path for sending notifications with recipient identifiers.
     """
 
-    if id_type == IdentifierType.VA_PROFILE_ID.value:
-        tasks = [
-            send_va_onsite_notification_task.s(id_value, str(notification.template.id), onsite_enabled).set(
-                queue=QueueNames.SEND_ONSITE_NOTIFICATION
-            ),
-        ]
-
-    else:
+    if id_type != IdentifierType.VA_PROFILE_ID.value:
         tasks = [
             lookup_va_profile_id.si(notification.id).set(queue=QueueNames.LOOKUP_VA_PROFILE_ID),
-            send_va_onsite_notification_task.s(str(notification.template.id), onsite_enabled).set(
-                queue=QueueNames.SEND_ONSITE_NOTIFICATION
-            ),
+            # send_va_onsite_notification_task.s(str(notification.template.id), onsite_enabled).set(
+            #     queue=QueueNames.SEND_ONSITE_NOTIFICATION
+            # ),
         ]
 
-    tasks.append(lookup_contact_info.si(notification.id).set(queue=QueueNames.LOOKUP_CONTACT_INFO))
+    # tasks.append(lookup_contact_info.si(notification.id).set(queue=QueueNames.LOOKUP_CONTACT_INFO))
 
     if communication_item_id:
         tasks.append(

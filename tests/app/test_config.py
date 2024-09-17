@@ -59,23 +59,23 @@ def test_queue_names_all_queues_correct():
     assert len(queues) == 18
     assert set(
         [
-            QueueNames.PRIORITY,
+            # QueueNames.PRIORITY,
             QueueNames.PERIODIC,
-            QueueNames.DATABASE,
-            QueueNames.SEND_SMS,
+            # QueueNames.DATABASE,
+            # QueueNames.SEND_SMS,
             QueueNames.SEND_EMAIL,
             QueueNames.RESEARCH_MODE,
             QueueNames.REPORTING,
-            QueueNames.JOBS,
+            # QueueNames.JOBS,
             QueueNames.RETRY,
             QueueNames.RATE_LIMIT_RETRY,
             QueueNames.NOTIFY,
             QueueNames.CALLBACKS,
-            QueueNames.LOOKUP_CONTACT_INFO,
-            QueueNames.LOOKUP_VA_PROFILE_ID,
+            # QueueNames.LOOKUP_CONTACT_INFO,
+            # QueueNames.LOOKUP_VA_PROFILE_ID,
             QueueNames.DELIVERY_RECEIPTS,
             QueueNames.COMMUNICATION_ITEM_PERMISSIONS,
-            QueueNames.SEND_ONSITE_NOTIFICATION,
-            QueueNames.DELIVERY_STATUS_RESULT_TASKS,
+            # QueueNames.SEND_ONSITE_NOTIFICATION,
+            # QueueNames.DELIVERY_STATUS_RESULT_TASKS,
         ]
     ) == set(queues)
