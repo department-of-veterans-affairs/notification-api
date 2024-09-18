@@ -21,7 +21,6 @@ from app.va.va_profile import (
     VAProfileResult,
 )
 from requests import Timeout
-from sqlalchemy.orm.exc import NoResultFound
 
 from tests.app.factories.feature_flag import mock_feature_flag
 
@@ -29,20 +28,7 @@ EXAMPLE_VA_PROFILE_ID = '135'
 notification_id = str(uuid.uuid4())
 
 
-@pytest.fixture
-def mock_communication_item(mocker):
-    mock_communication_item = mocker.Mock()
-    mock_communication_item.va_profile_item_id = 5
-    mock_communication_item.default_send_indicator = False
-    mocker.patch(
-        'app.celery.contact_information_tasks.get_communication_item',
-        return_value=mock_communication_item,
-    )
-
-
-def test_should_get_email_address_and_update_notification(
-    client, mocker, sample_template, sample_notification, mock_communication_item
-):
+def test_should_get_email_address_and_update_notification(client, mocker, sample_template, sample_notification):
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
 
@@ -67,7 +53,7 @@ def test_should_get_email_address_and_update_notification(
     lookup_contact_info(notification.id)
 
     mocked_get_notification_by_id.assert_called()
-    mocked_va_profile_client.get_email_with_permission.assert_called_with(mocker.ANY)
+    mocked_va_profile_client.get_email_with_permission.assert_called_with(mocker.ANY, notification.default_send)
     recipient_identifier = mocked_va_profile_client.get_email_with_permission.call_args[0][0]
     assert isinstance(recipient_identifier, RecipientIdentifier)
     assert recipient_identifier.id_value == EXAMPLE_VA_PROFILE_ID
@@ -75,7 +61,7 @@ def test_should_get_email_address_and_update_notification(
     assert notification.to == 'test@test.org'
 
 
-def test_should_get_phone_number_and_update_notification(client, mocker, sample_notification, mock_communication_item):
+def test_should_get_phone_number_and_update_notification(client, mocker, sample_notification):
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
 
@@ -98,54 +84,16 @@ def test_should_get_phone_number_and_update_notification(client, mocker, sample_
     lookup_contact_info(notification.id)
 
     mocked_get_notification_by_id.assert_called()
-    mocked_va_profile_client.get_telephone_with_permission.assert_called_with(mocker.ANY)
+    mocked_va_profile_client.get_telephone_with_permission.assert_called_with(mocker.ANY, notification.default_send)
     recipient_identifier = mocked_va_profile_client.get_telephone_with_permission.call_args[0][0]
     assert isinstance(recipient_identifier, RecipientIdentifier)
     assert recipient_identifier.id_value == EXAMPLE_VA_PROFILE_ID
     mocked_update_notification.assert_called_with(notification)
     assert notification.to == '+15555555555'
-
-
-def test_should_get_email_address_and_update_notification_with_no_communication_item(
-    client, mocker, sample_template, sample_notification
-):
-    mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
-    mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
-
-    template = sample_template(template_type=EMAIL_TYPE)
-    notification = sample_notification(
-        template=template,
-        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}],
-    )
-
-    mocked_get_notification_by_id = mocker.patch(
-        'app.celery.contact_information_tasks.get_notification_by_id', return_value=notification
-    )
-
-    mocked_va_profile_client = mocker.Mock(VAProfileClient)
-    mocked_va_profile_client.get_email_with_permission = mocker.Mock(
-        return_value=VAProfileResult('test@test.org', True, None)
-    )
-    mocker.patch('app.celery.contact_information_tasks.va_profile_client', new=mocked_va_profile_client)
-
-    mocked_update_notification = mocker.patch('app.celery.contact_information_tasks.dao_update_notification')
-
-    exception = NoResultFound
-    mocker.patch('app.celery.contact_information_tasks.get_communication_item', side_effect=exception)
-
-    lookup_contact_info(notification.id)
-
-    mocked_get_notification_by_id.assert_called()
-    mocked_va_profile_client.get_email_with_permission.assert_called_with(mocker.ANY, True)
-    recipient_identifier = mocked_va_profile_client.get_email_with_permission.call_args[0][0]
-    assert isinstance(recipient_identifier, RecipientIdentifier)
-    assert recipient_identifier.id_value == EXAMPLE_VA_PROFILE_ID
-    mocked_update_notification.assert_called_with(notification)
-    assert notification.to == 'test@test.org'
 
 
 def test_should_get_phone_number_and_update_notification_with_no_communication_item(
-    client, mocker, sample_notification, mock_communication_item
+    client, mocker, sample_notification
 ):
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
@@ -153,6 +101,7 @@ def test_should_get_phone_number_and_update_notification_with_no_communication_i
     notification = sample_notification(
         recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
     )
+    notification.template.communication_item_id = None
     assert notification.notification_type == SMS_TYPE
     mocked_get_notification_by_id = mocker.patch(
         'app.celery.contact_information_tasks.get_notification_by_id', return_value=notification
@@ -166,13 +115,10 @@ def test_should_get_phone_number_and_update_notification_with_no_communication_i
 
     mocked_update_notification = mocker.patch('app.celery.contact_information_tasks.dao_update_notification')
 
-    exception = NoResultFound
-    mocker.patch('app.celery.contact_information_tasks.get_communication_item', side_effect=exception)
-
     lookup_contact_info(notification.id)
 
     mocked_get_notification_by_id.assert_called()
-    mocked_va_profile_client.get_telephone_with_permission.assert_called_with(mocker.ANY, True)
+    mocked_va_profile_client.get_telephone_with_permission.assert_called_with(mocker.ANY, notification.default_send)
     recipient_identifier = mocked_va_profile_client.get_telephone_with_permission.call_args[0][0]
     assert isinstance(recipient_identifier, RecipientIdentifier)
     assert recipient_identifier.id_value == EXAMPLE_VA_PROFILE_ID
@@ -180,9 +126,7 @@ def test_should_get_phone_number_and_update_notification_with_no_communication_i
     assert notification.to == '+15555555555'
 
 
-def test_should_not_retry_on_non_retryable_exception(
-    client, mocker, sample_template, sample_notification, mock_communication_item
-):
+def test_should_not_retry_on_non_retryable_exception(client, mocker, sample_template, sample_notification):
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
 
@@ -211,7 +155,7 @@ def test_should_not_retry_on_non_retryable_exception(
     with pytest.raises(NotificationPermanentFailureException):
         lookup_contact_info(notification.id)
 
-    mocked_va_profile_client.get_email_with_permission.assert_called_with(mocker.ANY)
+    mocked_va_profile_client.get_email_with_permission.assert_called_with(mocker.ANY, notification.default_send)
     recipient_identifier = mocked_va_profile_client.get_email_with_permission.call_args[0][0]
     assert isinstance(recipient_identifier, RecipientIdentifier)
     assert recipient_identifier.id_value == EXAMPLE_VA_PROFILE_ID
@@ -223,9 +167,7 @@ def test_should_not_retry_on_non_retryable_exception(
 
 
 @pytest.mark.parametrize('exception_type', (Timeout, VAProfileRetryableException))
-def test_should_retry_on_retryable_exception(
-    client, mocker, sample_template, sample_notification, exception_type, mock_communication_item
-):
+def test_should_retry_on_retryable_exception(client, mocker, sample_template, sample_notification, exception_type):
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
 
@@ -243,7 +185,7 @@ def test_should_retry_on_retryable_exception(
     with pytest.raises(AutoRetryException):
         lookup_contact_info(notification.id)
 
-    mocked_va_profile_client.get_email_with_permission.assert_called_with(mocker.ANY)
+    mocked_va_profile_client.get_email_with_permission.assert_called_with(mocker.ANY, notification.default_send)
     recipient_identifier = mocked_va_profile_client.get_email_with_permission.call_args[0][0]
     assert isinstance(recipient_identifier, RecipientIdentifier)
     assert recipient_identifier.id_value == EXAMPLE_VA_PROFILE_ID
@@ -251,7 +193,7 @@ def test_should_retry_on_retryable_exception(
 
 @pytest.mark.parametrize('notification_type', (SMS_TYPE, EMAIL_TYPE))
 def test_lookup_contact_info_should_retry_on_timeout(
-    client, mocker, sample_template, sample_notification, notification_type, mock_communication_item
+    client, mocker, sample_template, sample_notification, notification_type
 ):
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
@@ -281,10 +223,10 @@ def test_lookup_contact_info_should_retry_on_timeout(
     assert str(exc_info.value.args[1]) == 'Request timed out'
 
     if notification_type == SMS_TYPE:
-        mocked_va_profile_client.get_telephone_with_permission.assert_called_with(mocker.ANY)
+        mocked_va_profile_client.get_telephone_with_permission.assert_called_with(mocker.ANY, notification.default_send)
         recipient_identifier = mocked_va_profile_client.get_telephone_with_permission.call_args[0][0]
     else:
-        mocked_va_profile_client.get_email_with_permission.assert_called_with(mocker.ANY)
+        mocked_va_profile_client.get_email_with_permission.assert_called_with(mocker.ANY, notification.default_send)
         recipient_identifier = mocked_va_profile_client.get_email_with_permission.call_args[0][0]
 
     assert isinstance(recipient_identifier, RecipientIdentifier)
@@ -292,7 +234,7 @@ def test_lookup_contact_info_should_retry_on_timeout(
 
 
 def test_should_update_notification_to_technical_failure_on_max_retries(
-    client, mocker, sample_template, sample_notification, mock_communication_item
+    client, mocker, sample_template, sample_notification
 ):
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
@@ -315,7 +257,7 @@ def test_should_update_notification_to_technical_failure_on_max_retries(
     with pytest.raises(NotificationTechnicalFailureException):
         lookup_contact_info(notification.id)
 
-    mocked_va_profile_client.get_email_with_permission.assert_called_with(mocker.ANY)
+    mocked_va_profile_client.get_email_with_permission.assert_called_with(mocker.ANY, notification.default_send)
     recipient_identifier = mocked_va_profile_client.get_email_with_permission.call_args[0][0]
     assert isinstance(recipient_identifier, RecipientIdentifier)
     assert recipient_identifier.id_value == EXAMPLE_VA_PROFILE_ID
@@ -324,7 +266,7 @@ def test_should_update_notification_to_technical_failure_on_max_retries(
 
 
 def test_should_update_notification_to_permanent_failure_on_no_contact_info_exception(
-    client, mocker, sample_template, sample_notification, mock_communication_item
+    client, mocker, sample_template, sample_notification
 ):
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
@@ -352,7 +294,7 @@ def test_should_update_notification_to_permanent_failure_on_no_contact_info_exce
     with pytest.raises(NotificationPermanentFailureException):
         lookup_contact_info(notification.id)
 
-    mocked_va_profile_client.get_email_with_permission.assert_called_with(mocker.ANY)
+    mocked_va_profile_client.get_email_with_permission.assert_called_with(mocker.ANY, notification.default_send)
     recipient_identifier = mocked_va_profile_client.get_email_with_permission.call_args[0][0]
     assert isinstance(recipient_identifier, RecipientIdentifier)
     assert recipient_identifier.id_value == EXAMPLE_VA_PROFILE_ID
@@ -396,7 +338,6 @@ def test_exception_sets_failure_reason_if_thrown(
     throws_additional_exception,
     notification_status,
     exception_reason,
-    mock_communication_item,
 ):
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
     mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
