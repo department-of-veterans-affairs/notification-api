@@ -166,6 +166,7 @@ class VAProfileClient:
 
         Args:
             va_profile_id (RecipientIdentifier): The VA profile ID to retrieve the telephone number for.
+            notification (Notification): Notification object which contains needed default_send and communication_item details
 
         Returns:
             VAProfileResults: The result data.
@@ -215,6 +216,7 @@ class VAProfileClient:
 
         Args:
             va_profile_id (RecipientIdentifier): The VA profile ID to retrieve the email address for.
+            notification (Notification): Notification object which contains needed default_send and communication_item details
 
         Returns:
             VAProfileResults: The result data.
@@ -232,7 +234,7 @@ class VAProfileClient:
             )
         except CommunicationItemNotFoundException:
             self.logger.info('Communication item for recipient %s not found', va_profile_id)
-            permission_message = f'V3 Profile - No recipient opt-in found for explicit preference, falling back to default send: {notification.default_send} (Recipient Identifier {va_profile_id})'
+            permission_message = f'V3 Profile - No recipient opt-in found for explicit preference, falling back to default send: {notification.default_send} (Recipient Identifier {va_profile_id.id_value})'
 
         contact_info: ContactInformation = profile.get('contactInformation', {})
         sorted_emails = sorted(
@@ -304,9 +306,10 @@ class VAProfileClient:
         """
         Determine if communication is allowed for a given recipient, communication item, and notification type.
 
-        Args:
+        Argsj
             profile (Profile): The recipient's profile.
-            notification_type (CommunicationChannel): The type of the notification.
+            notification (Notification): Notification object
+            communication_channel (CommunicationChannel): Communication channel to send the notification
 
         Returns:
             bool: True if communication is allowed, False otherwise.
@@ -327,7 +330,7 @@ class VAProfileClient:
 
         self.logger.debug(
             'V3 Profile -- did not have permission for communication item %s and channel %s',
-            notification.communication_item.id,
+            notification.communication_item_id,
             communication_channel.value,
         )
 
