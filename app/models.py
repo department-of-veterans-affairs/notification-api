@@ -1395,6 +1395,11 @@ class Notification(db.Model):
             return communication_item
 
     @property
+    def communication_item_id(self):
+        if self.communication_item:
+            return self.communication_item.id
+
+    @property
     def default_send(self):
         if self.communication_item:
             return self.communication_item.default_send_indicator

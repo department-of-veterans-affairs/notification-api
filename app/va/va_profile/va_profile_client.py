@@ -319,7 +319,7 @@ class VAProfileClient:
         for perm in communication_permissions:
             if (
                 perm['communicationChannelName'] == communication_channel.value
-                and perm['communicationItemId'] == notification.communication_item.id
+                and perm['communicationItemId'] == notification.communication_item_id
             ):
                 self.statsd_client.incr('clients.va-profile.get-communication-item-permission.success')
                 assert isinstance(perm['allowed'], bool)

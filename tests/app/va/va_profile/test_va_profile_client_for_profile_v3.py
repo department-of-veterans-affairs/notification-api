@@ -346,7 +346,7 @@ class TestCommunicationPermissions:
 
         if user_set is not None:
             profile['communicationPermissions'][0]['allowed'] = user_set
-            profile['communicationPermissions'][0]['communicationItemId'] = notification.communication_item.id
+            profile['communicationPermissions'][0]['communicationItemId'] = notification.communication_item_id
             profile['communicationPermissions'][0]['communicationChannelName'] = notification_type.value
         else:
             profile['communicationPermissions'] = []
