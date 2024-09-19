@@ -30,7 +30,7 @@ from notifications_utils.template import (
     SMSMessageTemplate,
 )
 from notifications_utils.timezones import convert_local_timezone_to_utc, convert_utc_to_local_timezone
-from sqlalchemy import and_, CheckConstraint, Index, UniqueConstraint
+from sqlalchemy import and_, CheckConstraint, Index, UniqueConstraint, select
 from sqlalchemy.dialects.postgresql import JSON, JSONB, UUID
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declared_attr
@@ -1387,11 +1387,17 @@ class Notification(db.Model):
     )
 
     @property
-    def default_send(self):
+    def communication_item(self):
         if self.template and self.template.communication_item_id:
-            communication_item = CommunicationItem.query.get(self.template.communication_item_id)
-            if communication_item:
-                return communication_item.default_send_indicator
+            communication_item = db.session.scalar(
+                select(CommunicationItem).where(CommunicationItem.id == self.template.communication_item_id)
+            )
+            return communication_item
+
+    @property
+    def default_send(self):
+        if self.communication_item:
+            return self.communication_item.default_send_indicator
         return True
 
     @property
