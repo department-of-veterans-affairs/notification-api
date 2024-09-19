@@ -3,7 +3,6 @@ import json
 import requests
 import requests_mock
 from urllib import parse
-from unittest.mock import PropertyMock
 
 from app.feature_flags import FeatureFlag
 from app.models import EMAIL_TYPE, RecipientIdentifier
@@ -364,8 +363,6 @@ class TestCommunicationPermissions:
         self,
         mock_va_profile_client,
         mock_response,
-        sample_email_notification,
-        sample_sms_notification,
         recipient_identifier,
         default_send,
         user_set,
@@ -377,25 +374,22 @@ class TestCommunicationPermissions:
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
 
         profile = mock_response['profile']
-        profile['communicationPermissions'][0]['communicationItemId'] = notification_type.id
-        profile['communicationPermissions'][0]['communicationChannelName'] = notification_type.value
 
         if user_set is not None:
             profile['communicationPermissions'][0]['allowed'] = user_set
+            profile['communicationPermissions'][0]['communicationItemId'] = notification_type.id
+            profile['communicationPermissions'][0]['communicationChannelName'] = notification_type.value
         else:
             profile['communicationPermissions'] = []
 
         mocker.patch.object(mock_va_profile_client, 'get_profile', return_value=profile)
 
         if notification_type == CommunicationChannel.EMAIL:
-            notification = sample_email_notification
             client_fn = mock_va_profile_client.get_email_with_permission
         else:
-            notification = sample_sms_notification
             client_fn = mock_va_profile_client.get_telephone_with_permission
 
-        mocker.patch.object(type(notification), 'default_send', new_callable=PropertyMock, return_value=default_send)
-        result = client_fn(recipient_identifier, notification.default_send)
+        result = client_fn(recipient_identifier, default_send)
         assert result.communication_allowed == expected
 
 
