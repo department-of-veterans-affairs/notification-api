@@ -6,7 +6,6 @@ from app.celery.exceptions import AutoRetryException
 from app.exceptions import NotificationTechnicalFailureException, NotificationPermanentFailureException
 from app.models import (
     EMAIL_TYPE,
-    Notification,
     NOTIFICATION_TECHNICAL_FAILURE,
     NOTIFICATION_PERMANENT_FAILURE,
     RecipientIdentifier,
@@ -103,7 +102,7 @@ def test_should_not_retry_on_non_retryable_exception(client, mocker, sample_temp
         'app.celery.contact_information_tasks.update_notification_status_by_id'
     )
 
-    with pytest.raises(NotificationPermanentFailureException) as exc_info:
+    with pytest.raises(NotificationPermanentFailureException):
         lookup_contact_info(notification.id)
 
     mocked_va_profile_client.get_email.assert_called_with(mocker.ANY)
@@ -130,7 +129,7 @@ def test_should_retry_on_retryable_exception(client, mocker, sample_template, sa
     mocked_va_profile_client.get_email = mocker.Mock(side_effect=exception_type('some error'))
     mocker.patch('app.celery.contact_information_tasks.va_profile_client', new=mocked_va_profile_client)
 
-    with pytest.raises(AutoRetryException) as exc_info:
+    with pytest.raises(AutoRetryException):
         lookup_contact_info(notification.id)
 
     mocked_va_profile_client.get_email.assert_called_with(mocker.ANY)
@@ -196,7 +195,7 @@ def test_should_update_notification_to_technical_failure_on_max_retries(
         'app.celery.contact_information_tasks.handle_max_retries_exceeded'
     )
 
-    with pytest.raises(NotificationTechnicalFailureException) as exc_info:
+    with pytest.raises(NotificationTechnicalFailureException):
         lookup_contact_info(notification.id)
 
     mocked_va_profile_client.get_email.assert_called_with(mocker.ANY)
@@ -230,7 +229,7 @@ def test_should_update_notification_to_permanent_failure_on_no_contact_info_exce
         'app.celery.contact_information_tasks.update_notification_status_by_id'
     )
 
-    with pytest.raises(NotificationPermanentFailureException) as exc_info:
+    with pytest.raises(NotificationPermanentFailureException):
         lookup_contact_info(notification.id)
 
     mocked_va_profile_client.get_email.assert_called_with(mocker.ANY)

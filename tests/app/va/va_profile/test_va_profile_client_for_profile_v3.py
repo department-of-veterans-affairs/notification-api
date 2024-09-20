@@ -278,7 +278,7 @@ class TestCommunicationPermissions:
 
         mock_response['profile']['communicationPermissions'][0]['allowed'] = expected
         mock_response['profile']['communicationPermissions'][0]['communicationItemId'] = (
-            sample_sms_notification.communication_item.id
+            sample_sms_notification.va_profile_item_id
         )
 
         allowed = mock_va_profile_client.get_is_communication_allowed_from_profile(
@@ -296,7 +296,7 @@ class TestCommunicationPermissions:
 
         mock_response['profile']['communicationPermissions'][1]['allowed'] = expected
         mock_response['profile']['communicationPermissions'][1]['communicationItemId'] = (
-            sample_email_notification.communication_item.id
+            sample_email_notification.va_profile_item_id
         )
 
         allowed = mock_va_profile_client.get_is_communication_allowed_from_profile(
@@ -346,7 +346,7 @@ class TestCommunicationPermissions:
 
         if user_set is not None:
             profile['communicationPermissions'][0]['allowed'] = user_set
-            profile['communicationPermissions'][0]['communicationItemId'] = notification.communication_item_id
+            profile['communicationPermissions'][0]['communicationItemId'] = notification.va_profile_item_id
             profile['communicationPermissions'][0]['communicationChannelName'] = notification_type.value
         else:
             profile['communicationPermissions'] = []

@@ -1,7 +1,7 @@
 import datetime
 import uuid
 import itertools
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app import (
     DATETIME_FORMAT,
     encryption,
@@ -1387,7 +1387,7 @@ class Notification(db.Model):
     )
 
     @property
-    def communication_item(self):
+    def communication_item(self) -> Optional['CommunicationItem']:
         if self.template and self.template.communication_item_id:
             communication_item = db.session.scalar(
                 select(CommunicationItem).where(CommunicationItem.id == self.template.communication_item_id)
@@ -1395,9 +1395,9 @@ class Notification(db.Model):
             return communication_item
 
     @property
-    def communication_item_id(self):
+    def va_profile_item_id(self):
         if self.communication_item:
-            return self.communication_item.id
+            return self.communication_item.va_profile_item_id
 
     @property
     def default_send(self):
