@@ -1,14 +1,14 @@
-import pytest
 import json
+from urllib import parse
+from unittest.mock import PropertyMock
+
+import pytest
 import requests
 import requests_mock
-from urllib import parse
-
-from unittest.mock import PropertyMock
 
 from app.feature_flags import FeatureFlag
 from app.models import EMAIL_TYPE, RecipientIdentifier
-from app.va.identifier import IdentifierType, transform_to_fhir_format, OIDS
+from app.va.identifier import IdentifierType, OIDS, transform_to_fhir_format
 from app.va.va_profile import VAProfileClient
 from app.va.va_profile.exceptions import (
     NoContactInfoException,
@@ -347,7 +347,7 @@ class TestCommunicationPermissions:
         if user_set is not None:
             profile['communicationPermissions'][0]['allowed'] = user_set
             profile['communicationPermissions'][0]['communicationItemId'] = notification.va_profile_item_id
-            profile['communicationPermissions'][0]['communicationChannelName'] = notification_type.value
+            profile['communicationPermissions'][0]['communicationChannelId'] = notification_type.id
         else:
             profile['communicationPermissions'] = []
 

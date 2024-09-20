@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from enum import Enum
+import requests
 from http.client import responses
 from typing import TYPE_CHECKING, Dict, List
 
 import iso8601
-import requests
+
 from app.va.identifier import OIDS, IdentifierType, transform_to_fhir_format
 from app.va.va_profile import NoContactInfoException, VAProfileNonRetryableException, VAProfileRetryableException
 from app.va.va_profile.exceptions import (
@@ -14,9 +13,11 @@ from app.va.va_profile.exceptions import (
     VAProfileIDNotFoundException,
 )
 
+from dataclasses import dataclass
+from enum import Enum
+
 if TYPE_CHECKING:
     from app.models import RecipientIdentifier, Notification
-
     from va_profile_types import CommunicationPermissions, ContactInformation, Profile, Telephone
 
 
@@ -321,7 +322,7 @@ class VAProfileClient:
         communication_permissions: CommunicationPermissions = profile.get('communicationPermissions', {})
         for perm in communication_permissions:
             if (
-                perm['communicationChannelName'] == communication_channel.value
+                perm['communicationChannelId'] == communication_channel.id
                 and perm['communicationItemId'] == notification.va_profile_item_id
             ):
                 self.statsd_client.incr('clients.va-profile.get-communication-item-permission.success')

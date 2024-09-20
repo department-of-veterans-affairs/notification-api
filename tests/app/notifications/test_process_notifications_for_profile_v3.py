@@ -1,42 +1,41 @@
 import datetime
 import uuid
+from collections import namedtuple
 
 import pytest
 from boto3.exceptions import Boto3Error
-from sqlalchemy.exc import SQLAlchemyError
 from freezegun import freeze_time
-from collections import namedtuple
 from sqlalchemy import delete, select
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.celery.contact_information_tasks import lookup_contact_info
+from app.celery.lookup_recipient_communication_permissions_task import lookup_recipient_communication_permissions
 from app.celery.lookup_va_profile_id_task import lookup_va_profile_id
 from app.celery.onsite_notification_tasks import send_va_onsite_notification_task
-from app.celery.lookup_recipient_communication_permissions_task import lookup_recipient_communication_permissions
 from app.celery.provider_tasks import deliver_email, deliver_sms
 from app.feature_flags import FeatureFlag
 from app.models import (
-    Notification,
-    ScheduledNotification,
-    Template,
+    EMAIL_TYPE,
+    KEY_TYPE_TEST,
     LETTER_TYPE,
     NOTIFICATION_CREATED,
-    EMAIL_TYPE,
-    SMS_TYPE,
+    Notification,
     RecipientIdentifier,
-    KEY_TYPE_TEST,
+    ScheduledNotification,
+    SMS_TYPE,
+    Template,
 )
 from app.notifications.process_notifications import (
     create_content_for_notification,
     persist_notification,
     persist_scheduled_notification,
     send_notification_to_queue,
-    simulated_recipient,
     send_to_queue_for_recipient_info_based_on_recipient_identifier,
+    simulated_recipient,
 )
-from notifications_utils.recipients import validate_and_format_phone_number, validate_and_format_email_address
-from app.v2.errors import BadRequestError
 from app.va.identifier import IdentifierType
-
+from app.v2.errors import BadRequestError
+from notifications_utils.recipients import validate_and_format_email_address, validate_and_format_phone_number
 
 from tests.app.factories.feature_flag import mock_feature_flag
 

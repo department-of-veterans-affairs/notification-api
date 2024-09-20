@@ -1,9 +1,20 @@
-from app import notify_celery, va_profile_client
+from flask import current_app
+
+from requests import Timeout
+
 from celery import Task
+
+from notifications_utils.statsd_decorators import statsd
+
+from app import notify_celery, va_profile_client
 from app.celery.common import can_retry, handle_max_retries_exceeded
 from app.celery.exceptions import AutoRetryException
 from app.celery.service_callback_tasks import check_and_queue_callback_task
-from app.dao.notifications_dao import get_notification_by_id, dao_update_notification, update_notification_status_by_id
+from app.dao.notifications_dao import (
+    get_notification_by_id,
+    dao_update_notification,
+    update_notification_status_by_id,
+)
 from app.exceptions import NotificationTechnicalFailureException, NotificationPermanentFailureException
 from app.feature_flags import FeatureFlag, is_feature_enabled
 from app.models import (
@@ -22,9 +33,6 @@ from app.va.va_profile import (
     VAProfileResult,
 )
 from app.va.va_profile.exceptions import VAProfileIDNotFoundException, CommunicationItemNotFoundException
-from flask import current_app
-from notifications_utils.statsd_decorators import statsd
-from requests import Timeout
 
 
 @notify_celery.task(

@@ -1,20 +1,17 @@
 import datetime
-import uuid
 import itertools
-from typing import Dict, Any, Optional
-from app import (
-    DATETIME_FORMAT,
-    encryption,
-)
-from app.db import db
-from app.encryption import (
-    check_hash,
-    hashpw,
-)
-from app.history_meta import Versioned
-from app.model import User, EMAIL_AUTH_TYPE
-from app.va.identifier import IdentifierType
-from flask import url_for, current_app
+import uuid
+from typing import Any, Dict, Optional
+
+from flask import current_app, url_for
+
+from sqlalchemy import CheckConstraint, Index, UniqueConstraint, and_, select
+from sqlalchemy.dialects.postgresql import JSON, JSONB, UUID
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm.collections import InstrumentedList, attribute_mapped_collection
+
 from notifications_utils.columns import Columns
 from notifications_utils.letter_timings import get_letter_timings
 from notifications_utils.recipients import (
@@ -30,12 +27,13 @@ from notifications_utils.template import (
     SMSMessageTemplate,
 )
 from notifications_utils.timezones import convert_local_timezone_to_utc, convert_utc_to_local_timezone
-from sqlalchemy import and_, CheckConstraint, Index, UniqueConstraint, select
-from sqlalchemy.dialects.postgresql import JSON, JSONB, UUID
-from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm.collections import attribute_mapped_collection, InstrumentedList
+
+from app import DATETIME_FORMAT, encryption
+from app.db import db
+from app.encryption import check_hash, hashpw
+from app.history_meta import Versioned
+from app.model import EMAIL_AUTH_TYPE, User
+from app.va.identifier import IdentifierType
 
 EMAIL_TYPE = 'email'
 LETTER_TYPE = 'letter'
