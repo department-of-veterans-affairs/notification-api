@@ -1,10 +1,8 @@
+from celery import Task
 from flask import current_app
-
+from notifications_utils.statsd_decorators import statsd
 from requests import Timeout
 
-from celery import Task
-
-from notifications_utils.statsd_decorators import statsd
 
 from app import notify_celery, va_profile_client
 from app.celery.common import can_retry, handle_max_retries_exceeded

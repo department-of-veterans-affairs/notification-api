@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-import requests
+from dataclasses import dataclass
+from enum import Enum
 from http.client import responses
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
+
 
 import iso8601
+import requests
 
 from app.va.identifier import OIDS, IdentifierType, transform_to_fhir_format
 from app.va.va_profile import NoContactInfoException, VAProfileNonRetryableException, VAProfileRetryableException
@@ -12,9 +15,6 @@ from app.va.va_profile.exceptions import (
     CommunicationItemNotFoundException,
     VAProfileIDNotFoundException,
 )
-
-from dataclasses import dataclass
-from enum import Enum
 
 if TYPE_CHECKING:
     from app.models import RecipientIdentifier, Notification
@@ -100,7 +100,7 @@ class VAProfileClient:
         except (requests.HTTPError, requests.RequestException, requests.Timeout) as e:
             self._handle_exceptions(va_profile_id.id_value, e)
 
-        response_json: Dict = response.json()
+        response_json: dict = response.json()
         return response_json.get('profile', {})
 
     def get_telephone(self, va_profile_id: RecipientIdentifier) -> str:
@@ -116,7 +116,7 @@ class VAProfileClient:
         contact_info: ContactInformation = self.get_profile(va_profile_id).get('contactInformation', {})
         self.logger.debug('V3 Profile - Retrieved ContactInformation: %s', contact_info)
 
-        telephones: List[Telephone] = contact_info.get(self.PHONE_BIO_TYPE, [])
+        telephones: list[Telephone] = contact_info.get(self.PHONE_BIO_TYPE, [])
         sorted_telephones = sorted(
             [phone for phone in telephones if phone['phoneType'] == PhoneNumberType.MOBILE.value],
             key=lambda phone: iso8601.parse_date(phone['createDate']),
@@ -188,7 +188,7 @@ class VAProfileClient:
 
         contact_info: ContactInformation = profile.get('contactInformation', {})
 
-        telephones: List[Telephone] = contact_info.get(self.PHONE_BIO_TYPE, [])
+        telephones: list[Telephone] = contact_info.get(self.PHONE_BIO_TYPE, [])
         sorted_telephones = sorted(
             [phone for phone in telephones if phone['phoneType'] == PhoneNumberType.MOBILE.value],
             key=lambda phone: iso8601.parse_date(phone['createDate']),
