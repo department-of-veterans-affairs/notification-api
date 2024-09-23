@@ -221,7 +221,7 @@
         },
         {
           "name": "VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP",
-          "value": "True"
+          "value": "False"
         }
       ],
       "secrets": [
