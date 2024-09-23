@@ -26,6 +26,12 @@ VA_NOTIFY_TO_VA_PROFILE_NOTIFICATION_TYPES = {
     'sms': 'Text',
 }
 
+VALID_PHONE_TYPES_FOR_SMS_DELIVERY = [
+    0,  # "MOBILE"
+    2,  # "VOIP"
+    5,  # "PREPAID"
+]
+
 
 class CommunicationChannel(Enum):
     EMAIL = ('Email', 2)
@@ -48,6 +54,16 @@ class PhoneNumberType(Enum):
     @staticmethod
     def valid_type_values() -> list[str]:
         return [PhoneNumberType.MOBILE.value, PhoneNumberType.HOME.value]
+
+    @staticmethod
+    def sort_order() -> dict[str, int]:
+        return {
+            PhoneNumberType.MOBILE.value: 1,
+            PhoneNumberType.HOME.value: 2,
+            PhoneNumberType.WORK.value: 3,
+            PhoneNumberType.TEMPORARY.value: 4,
+            PhoneNumberType.FAX.value: 5,
+        }
 
 
 @dataclass
@@ -157,6 +173,36 @@ class VAProfileClient:
         self.statsd_client.incr('clients.va-profile.get-email.failure')
         self._raise_no_contact_info_exception(self.EMAIL_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID))
 
+    def is_mobile_telephone(self, telephone) -> bool:
+        classification = telephone.get('classification', {})
+        classification_code = classification.get('classificationCode', None)
+        if classification_code is not None:
+            return classification_code in VALID_PHONE_TYPES_FOR_SMS_DELIVERY
+
+        # fall back, if no phone number classification is present
+        return telephone['phoneType'] == PhoneNumberType.MOBILE
+
+    def get_mobile_telephone_from_contact_info(self, contact_info: ContactInformation) -> str:
+        telephones: list[Telephone] = contact_info.get(self.PHONE_BIO_TYPE, [])
+        sorted_telephones = sorted(
+            [phone for phone in telephones],
+            key=lambda phone: (
+                PhoneNumberType.sort_order().get(phone['phoneType'], float('inf')),
+                iso8601.parse_date(phone['createDate']),
+            ),
+            reverse=True,
+        )
+
+        for telephone in sorted_telephones:
+            country_code = telephone.get('countryCode')
+            area_code = telephone.get('areaCode')
+            phone_number = telephone.get('phoneNumber')
+            if self.is_mobile_telephone(telephone) and country_code and area_code and phone_number:
+                self.statsd_client.incr('clients.va-profile.get-telephone.success')
+                return f'+{country_code}{area_code}{phone_number}'
+
+        return None
+
     def get_telephone_with_permission(
         self,
         va_profile_id: RecipientIdentifier,
@@ -188,21 +234,9 @@ class VAProfileClient:
 
         contact_info: ContactInformation = profile.get('contactInformation', {})
 
-        telephones: list[Telephone] = contact_info.get(self.PHONE_BIO_TYPE, [])
-        sorted_telephones = sorted(
-            [phone for phone in telephones if phone['phoneType'] == PhoneNumberType.MOBILE.value],
-            key=lambda phone: iso8601.parse_date(phone['createDate']),
-            reverse=True,
-        )
-        if sorted_telephones:
-            if (
-                sorted_telephones[0].get('countryCode')
-                and sorted_telephones[0].get('areaCode')
-                and sorted_telephones[0].get('phoneNumber')
-            ):
-                self.statsd_client.incr('clients.va-profile.get-telephone.success')
-            telephone_result = f"+{sorted_telephones[0]['countryCode']}{sorted_telephones[0]['areaCode']}{sorted_telephones[0]['phoneNumber']}"
-            return VAProfileResult(telephone_result, communication_allowed, permission_message)
+        telephone = self.get_mobile_telephone_from_contact_info(contact_info)
+        if telephone:
+            return VAProfileResult(telephone, communication_allowed, permission_message)
 
         self.statsd_client.incr('clients.va-profile.get-telephone.failure')
         self._raise_no_contact_info_exception(self.PHONE_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID))
