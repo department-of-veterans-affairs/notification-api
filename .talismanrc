@@ -20,5 +20,5 @@ fileignoreconfig:
   - filename: scripts/trigger_task.py
     checksum: 0e9d244dbe285de23fc84bb643407963dacf7d25a3358373f01f6272fb217778
   - filename: app/va/va_profile/va_profile_client.py
-    checksum: 578e85bdc3dfdeaa65a6d3cb2d72dffe5c0b3bbfbb1a81e8992815574d7912ad
+    checksum: 31b4840860ead4e4530e1de2a6c36df85477cc6269e43f7be47ec57381263960
 version: "1.0"
