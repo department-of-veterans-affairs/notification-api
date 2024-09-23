@@ -1,6 +1,7 @@
 import json
+import random
 from urllib import parse
-from unittest.mock import PropertyMock
+from datetime import datetime, timedelta
 
 import pytest
 import requests
@@ -16,11 +17,36 @@ from app.va.va_profile.exceptions import (
     VAProfileNonRetryableException,
     VAProfileRetryableException,
 )
-from app.va.va_profile.va_profile_client import CommunicationChannel
+from app.va.va_profile.va_profile_client import CommunicationChannel, VALID_PHONE_TYPES_FOR_SMS_DELIVERY
 
 from tests.app.factories.feature_flag import mock_feature_flag
 
 MOCK_VA_PROFILE_URL = 'http://mock.vaprofile.va.gov'
+
+
+def telephone_entry(
+    create_date=datetime.today(), phone_type='MOBILE', classification_code='0', name_for_debugging='test mobile phone'
+):
+    area_code = random.randint(100, 999)
+    phone_number = random.randint(100000, 9999999)
+    return {
+        'createDate': f'{create_date}',
+        'updateDate': f'{create_date}',
+        'txAuditId': '6706b496-d727-401f-8df7-d6fc9adef0e7',
+        'sourceSystem': name_for_debugging,
+        'sourceDate': '2022-06-09T15:11:58Z',
+        'originatingSourceSystem': 'VETSGOV',
+        'sourceSystemUser': '1012833438V267437',
+        'effectiveStartDate': '2022-06-09T15:11:58Z',
+        'vaProfileId': 1550370,
+        'telephoneId': 293410,
+        'internationalIndicator': False,
+        'phoneType': phone_type,
+        'countryCode': '1',
+        'areaCode': f'{area_code}',
+        'phoneNumber': f'{phone_number}',
+        'classification': {'classificationCode': classification_code},
+    }
 
 
 @pytest.fixture(scope='function')
@@ -231,6 +257,112 @@ class TestVAProfileClientExceptionHandling:
 
         with pytest.raises(NoContactInfoException):
             mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
+
+    def test_ut_get_telephone_raises_NoContactInfoException_if_number_classified_as_not_mobile(
+        self, rmock, mock_va_profile_client, mock_response, recipient_identifier, url, mocker, sample_notification
+    ):
+        mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
+
+        telephones = mock_response['profile']['contactInformation']['telephones']
+        for telephone in telephones:
+            telephone['classification'] = {'classificationCode': 1}
+        mock_response['profile']['contactInformation']['telephones'] = telephones
+        rmock.post(url, json=mock_response, status_code=200)
+
+        with pytest.raises(NoContactInfoException):
+            mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
+
+    @pytest.mark.parametrize('valid_classification_code', VALID_PHONE_TYPES_FOR_SMS_DELIVERY)
+    def test_ut_get_telephone_with_permission_prefers_aws_classification(
+        self,
+        rmock,
+        mock_va_profile_client,
+        mock_response,
+        recipient_identifier,
+        url,
+        mocker,
+        sample_notification,
+        valid_classification_code,
+    ):
+        # phone number info coming from the V3 Profile Endpoint includes AWS classification info:
+        # We can tell if a number is a mobile number, regardless of how the user classified it.
+        mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
+
+        # Eliminate mobile numbers, insure that we are relying on AWS classification
+        telephones = [
+            telephone
+            for telephone in mock_response['profile']['contactInformation']['telephones']
+            if telephone['phoneType'] != 'MOBILE'
+        ]
+
+        # There are 3 valid phone types to send SMS messages - we try each one of them
+        for telephone in telephones:
+            telephone['classification'] = {'classificationCode': valid_classification_code}
+        mock_response['profile']['contactInformation']['telephones'] = telephones
+
+        rmock.post(url, json=mock_response, status_code=200)
+
+        result = mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
+        assert (
+            result.recipient
+            == f"+{telephones[0]['countryCode']}{telephones[0]['areaCode']}{telephones[0]['phoneNumber']}"
+        )
+
+    def test_ut_get_telephone_with_permission_prefers_user_specified_mobile_phone(
+        self, rmock, mock_va_profile_client, mock_response, mocker, url, recipient_identifier, sample_notification
+    ):
+        # A veteran has configured a mobile telephone to receive notifications.  They add an additional mobile
+        # phone, and save it as their "home" phone. Even though it is technically a mobile device and is newer,
+        # we should send notifications to the device specified by the user
+        mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
+
+        today = datetime.today()
+        yesterday_morning = (datetime.today() - timedelta(days=1)).replace(hour=6)
+        yesterday_evening = yesterday_morning.replace(hour=20)
+        home_phone_created_today = telephone_entry(today, 'HOME', 1, 'home phone created today')
+        mobile_phone_created_yesterday_morning = telephone_entry(
+            yesterday_morning, 'MOBILE', 0, 'mobile phone created yesterday morning'
+        )
+        home_phone_with_mobile_classification_created_yesterday_evening = telephone_entry(
+            yesterday_evening, 'HOME', 0, 'home phone with mobile classification created yesterday evening'
+        )
+        contact_info = mock_response['profile']['contactInformation']
+        contact_info['telephones'] = [
+            home_phone_created_today,
+            mobile_phone_created_yesterday_morning,
+            home_phone_with_mobile_classification_created_yesterday_evening,
+        ]
+
+        rmock.post(url, json=mock_response, status_code=200)
+        result = mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
+        assert (
+            result.recipient
+            == f"+{mobile_phone_created_yesterday_morning['countryCode']}{mobile_phone_created_yesterday_morning['areaCode']}{mobile_phone_created_yesterday_morning['phoneNumber']}"
+        )
+
+    def test_ut_get_telephone_retrieves_first_AWS_classified_mobile_phone(
+        self, rmock, mock_va_profile_client, mock_response, mocker, url, recipient_identifier, sample_notification
+    ):
+        # A veteran has saved a mobile number and a landline number, but they made an error when they entered the data:
+        # they saved their landline as a mobile number, and vice versa.  In this case, we should send an sms to the
+        # number which is classified by AWS as a mobile number
+        mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
+
+        aws_classified_landline_phone = telephone_entry(
+            phone_type='MOBILE', classification_code=1
+        )  # classified by AWS to be a landline phone
+        aws_classified_mobile_phone = telephone_entry(
+            phone_type='HOME', classification_code=0
+        )  # classified by AWS to be a mobile phone
+        contact_info = mock_response['profile']['contactInformation']
+        contact_info['telephones'] = [aws_classified_landline_phone, aws_classified_mobile_phone]
+
+        rmock.post(url, json=mock_response, status_code=200)
+        result = mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
+        assert (
+            result.recipient
+            == f"+{aws_classified_mobile_phone['countryCode']}{aws_classified_mobile_phone['areaCode']}{aws_classified_mobile_phone['phoneNumber']}"
+        )
 
     def test_ut_handle_exceptions_retryable_exception(self, mock_va_profile_client, mocker):
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')

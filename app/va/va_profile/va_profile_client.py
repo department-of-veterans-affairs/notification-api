@@ -59,11 +59,11 @@ class PhoneNumberType(Enum):
     @staticmethod
     def sort_order() -> dict[str, int]:
         return {
-            PhoneNumberType.MOBILE.value: 1,
-            PhoneNumberType.HOME.value: 2,
+            PhoneNumberType.MOBILE.value: 5,
+            PhoneNumberType.HOME.value: 4,
             PhoneNumberType.WORK.value: 3,
-            PhoneNumberType.TEMPORARY.value: 4,
-            PhoneNumberType.FAX.value: 5,
+            PhoneNumberType.TEMPORARY.value: 2,
+            PhoneNumberType.FAX.value: 1,
         }
 
 
