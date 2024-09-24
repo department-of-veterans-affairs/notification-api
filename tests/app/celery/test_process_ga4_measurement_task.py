@@ -7,20 +7,16 @@ from app.celery.exceptions import AutoRetryException
 from app.celery.process_ga4_measurement_tasks import post_to_ga4
 
 
-def test_it_post_to_ga4_with_valid_data(ga4_sample_payload):
+def test_it_post_to_ga4_with_valid_data(sample_notification, ga4_sample_payload):
     # Patch the requests.post method to return a 204 status code.
+    notification = sample_notification()
     with patch('app.celery.process_ga4_measurement_tasks.requests.post') as mock_post:
         mock_post.return_value.status_code = 204
         response = post_to_ga4(
-            ga4_sample_payload['notification_id'],
-            ga4_sample_payload['template_name'],
-            ga4_sample_payload['template_id'],
-            ga4_sample_payload['service_id'],
-            ga4_sample_payload['service_name'],
-            client_id=ga4_sample_payload['client_id'],
-            name=ga4_sample_payload['name'],
-            source=ga4_sample_payload['source'],
-            medium=ga4_sample_payload['medium'],
+            notification.id,
+            ga4_sample_payload['name'],
+            ga4_sample_payload['source'],
+            ga4_sample_payload['medium'],
         )
 
     assert response
@@ -31,10 +27,9 @@ def test_it_post_to_ga4_returns_4xx(ga4_sample_payload):
         mock_post.return_value.status_code = 400
         response = post_to_ga4(
             ga4_sample_payload['notification_id'],
-            ga4_sample_payload['template_name'],
-            ga4_sample_payload['template_id'],
-            ga4_sample_payload['service_id'],
-            ga4_sample_payload['service_name'],
+            ga4_sample_payload['name'],
+            ga4_sample_payload['source'],
+            ga4_sample_payload['medium'],
         )
 
     assert not response
@@ -54,27 +49,33 @@ def test_it_post_to_ga4_missing_config(ga4_sample_payload, ga4_config):
         mock_get_ga4_config.return_value = ga4_config
         response = post_to_ga4(
             ga4_sample_payload['notification_id'],
-            ga4_sample_payload['template_name'],
-            ga4_sample_payload['template_id'],
-            ga4_sample_payload['service_id'],
-            ga4_sample_payload['service_name'],
+            ga4_sample_payload['name'],
+            ga4_sample_payload['source'],
+            ga4_sample_payload['medium'],
         )
 
         assert not response
 
 
 # Parameterize the exceptions that result in AutoRetries
-@pytest.mark.parametrize('mock_exception', [requests.Timeout, requests.ConnectionError, requests.HTTPError])
-def test_it_post_to_ga4_exception(ga4_sample_payload, mock_exception):
+@pytest.mark.parametrize(
+    'mock_exception',
+    [
+        requests.Timeout,
+        requests.ConnectionError,
+        requests.HTTPError,
+    ],
+)
+def test_it_post_to_ga4_exception(sample_notification, ga4_sample_payload, mock_exception):
     with patch('app.celery.process_ga4_measurement_tasks.requests.post') as mock_post:
+        notification = sample_notification()
         mock_post.side_effect = mock_exception('Boom')
         with pytest.raises(AutoRetryException):
             post_to_ga4(
-                ga4_sample_payload['notification_id'],
-                ga4_sample_payload['template_name'],
-                ga4_sample_payload['template_id'],
-                ga4_sample_payload['service_id'],
-                ga4_sample_payload['service_name'],
+                notification.id,
+                ga4_sample_payload['name'],
+                ga4_sample_payload['source'],
+                ga4_sample_payload['medium'],
             )
 
 
@@ -83,9 +84,8 @@ def test_it_post_to_ga4_does_not_retry_unhandled_exception(ga4_sample_payload):
         mock_post.post.side_effect = Exception('Boom')
         response = post_to_ga4(
             ga4_sample_payload['notification_id'],
-            ga4_sample_payload['template_name'],
-            ga4_sample_payload['template_id'],
-            ga4_sample_payload['service_id'],
-            ga4_sample_payload['service_name'],
+            ga4_sample_payload['name'],
+            ga4_sample_payload['source'],
+            ga4_sample_payload['medium'],
         )
         assert not response

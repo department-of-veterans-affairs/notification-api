@@ -28,12 +28,7 @@ def get_ga4_config() -> tuple:
     retry_backoff=True,
     retry_backoff_max=60,
 )
-def post_to_ga4(
-    notification_id: str,
-    event_name,
-    event_source,
-    event_medium
-) -> bool:
+def post_to_ga4(notification_id: str, event_name, event_source, event_medium) -> bool:
     """
     This celery task is used to post to Google Analytics 4. It is exercised when a veteran opens an e-mail.
 
@@ -66,7 +61,6 @@ def post_to_ga4(
     template_id = notification.template.id
     service_id = notification.service_id
     service_name = notification.service.name
-    client_id = notification.service.client_id
 
     url_str = current_app.config.get('GA4_URL', '')
     url_params_dict = {
@@ -79,7 +73,7 @@ def post_to_ga4(
     content = f'{service_name}/{service_id}/{notification_id}'
 
     event_body = {
-        'client_id': client_id,
+        'client_id': event_source,
         'events': [
             {
                 'name': event_name,

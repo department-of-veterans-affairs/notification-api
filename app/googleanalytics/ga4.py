@@ -25,7 +25,7 @@ def get_ga4(notification):
         notification,
         current_app.config['GA4_PIXEL_TRACKING_NAME'],
         current_app.config['GA4_PIXEL_TRACKING_SOURCE'],
-        current_app.config['GA4_PIXEL_TRACKING_MEDIUM']
+        current_app.config['GA4_PIXEL_TRACKING_MEDIUM'],
     )
 
     return send_file(GA4_PIXEL_TRACKING_IMAGE_PATH, mimetype='image/png')
