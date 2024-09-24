@@ -38,8 +38,11 @@ def post_to_ga4(notification_id: str, event_name, event_source, event_medium) ->
     """
     # Log the incoming parameters.
     current_app.logger.info(
-        'GA4: post_to_ga4: notification_id: %s, template_name: %s, template_id: %s, service_id: %s, service_name: %s',
+        'GA4: post_to_ga4: notification_id: %s, event_name: %s, event_source: %s, event_medium: %s',
         notification_id,
+        event_name,
+        event_source,
+        event_medium,
     )
 
     ga_api_secret, ga_measurement_id = get_ga4_config()
@@ -90,7 +93,7 @@ def post_to_ga4(notification_id: str, event_name, event_source, event_medium) ->
     headers = {
         'Content-Type': 'application/json',
     }
-    current_app.logger.debug('Posting to GA4: %s', event_body)
+    current_app.logger.debug('Posting to GA4 url: %s with payload %s', url_str, event_body)
 
     status = False
     try:
