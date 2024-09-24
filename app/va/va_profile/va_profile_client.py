@@ -165,7 +165,14 @@ class VAProfileClient:
         self.statsd_client.incr('clients.va-profile.get-email.failure')
         self._raise_no_contact_info_exception(self.EMAIL_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID))
 
-    def has_valid_mobile_telephone_classification(self, telephone) -> bool:
+    def has_valid_mobile_telephone_classification(self, telephone: Telephone) -> bool:
+        """
+        Args:
+          telephone (Telephone): telephone entry from ContactInformation object retrieved from Vet360 API endpoint
+
+        Returns:
+          bool - if AWS-classified telephone is a valid sms recipient (if nonexistent, return True)
+        """
         classification = telephone.get('classification', {})
         classification_code = classification.get('classificationCode', None)
         if classification_code is not None:
