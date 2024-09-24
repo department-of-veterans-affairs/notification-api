@@ -184,45 +184,35 @@ class VAProfileClient:
         return telephone['phoneType'] == PhoneNumberType.MOBILE
 
     def get_mobile_telephone_from_contact_info(self, contact_info: ContactInformation) -> str:
+        """
+        Find the most recently created mobile phone number from a veteran's Vet360 contact information
+
+        Args:
+            contact_info (ContactInformation):  Contact Information object retrieved from Vet360 API endpoint
+
+        Returns:
+            string representation of the most recently created mobile phone number, or None
+        """
         telephones: list[Telephone] = contact_info.get(self.PHONE_BIO_TYPE, [])
 
-        if is_feature_enabled(FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS):
-            # Sort by phone type, preferring user-specified type.
-            sorted_telephones = sorted(
-                [phone for phone in telephones],
-                key=lambda phone: (
-                    PhoneNumberType.sort_order().get(phone['phoneType'], float('inf')),
-                    iso8601.parse_date(phone['createDate']),
-                ),
-                reverse=True,
-            )
-
-            # Return the first phone number in the list which has been classified by AWS to be
-            # a mobile number
-            for telephone in sorted_telephones:
-                country_code = telephone.get('countryCode')
-                area_code = telephone.get('areaCode')
-                phone_number = telephone.get('phoneNumber')
-                if self.is_mobile_telephone(telephone) and country_code and area_code and phone_number:
-                    self.statsd_client.incr('clients.va-profile.get-telephone.success')
-                    return f'+{country_code}{area_code}{phone_number}'
-
-            return None
-
-        # existing functionality, rely solely on phone type provided by the user
         sorted_telephones = sorted(
             [phone for phone in telephones if phone['phoneType'] == PhoneNumberType.MOBILE.value],
             key=lambda phone: iso8601.parse_date(phone['createDate']),
             reverse=True,
         )
+
         if sorted_telephones:
+            is_mobile = True
+            if is_feature_enabled(FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS):
+                is_mobile = self.is_mobile_telephone(sorted_telephones[0])
             if (
-                sorted_telephones[0].get('countryCode')
+                is_mobile
+                and sorted_telephones[0].get('countryCode')
                 and sorted_telephones[0].get('areaCode')
                 and sorted_telephones[0].get('phoneNumber')
             ):
                 self.statsd_client.incr('clients.va-profile.get-telephone.success')
-            return f"+{sorted_telephones[0]['countryCode']}{sorted_telephones[0]['areaCode']}{sorted_telephones[0]['phoneNumber']}"
+                return f"+{sorted_telephones[0]['countryCode']}{sorted_telephones[0]['areaCode']}{sorted_telephones[0]['phoneNumber']}"
 
     def get_telephone_with_permission(
         self,

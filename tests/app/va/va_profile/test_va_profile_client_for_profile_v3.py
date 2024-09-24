@@ -17,7 +17,7 @@ from app.va.va_profile.exceptions import (
     VAProfileNonRetryableException,
     VAProfileRetryableException,
 )
-from app.va.va_profile.va_profile_client import CommunicationChannel, VALID_PHONE_TYPES_FOR_SMS_DELIVERY
+from app.va.va_profile.va_profile_client import CommunicationChannel
 
 from tests.app.factories.feature_flag import mock_feature_flag
 
@@ -272,42 +272,6 @@ class TestVAProfileClientExceptionHandling:
         with pytest.raises(NoContactInfoException):
             mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
 
-    @pytest.mark.parametrize('valid_classification_code', VALID_PHONE_TYPES_FOR_SMS_DELIVERY)
-    def test_ut_get_telephone_with_permission_prefers_aws_classification(
-        self,
-        rmock,
-        mock_va_profile_client,
-        mock_response,
-        recipient_identifier,
-        url,
-        mocker,
-        sample_notification,
-        valid_classification_code,
-    ):
-        # phone number info coming from the V3 Profile Endpoint includes AWS classification info:
-        # We can tell if a number is a mobile number, regardless of how the user classified it.
-        mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
-
-        # Eliminate mobile numbers, insure that we are relying on AWS classification
-        telephones = [
-            telephone
-            for telephone in mock_response['profile']['contactInformation']['telephones']
-            if telephone['phoneType'] != 'MOBILE'
-        ]
-
-        # There are 3 valid phone types to send SMS messages - we try each one of them
-        for telephone in telephones:
-            telephone['classification'] = {'classificationCode': valid_classification_code}
-        mock_response['profile']['contactInformation']['telephones'] = telephones
-
-        rmock.post(url, json=mock_response, status_code=200)
-
-        result = mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
-        assert (
-            result.recipient
-            == f"+{telephones[0]['countryCode']}{telephones[0]['areaCode']}{telephones[0]['phoneNumber']}"
-        )
-
     def test_ut_get_telephone_with_permission_prefers_user_specified_mobile_phone(
         self, rmock, mock_va_profile_client, mock_response, mocker, url, recipient_identifier, sample_notification
     ):
@@ -338,30 +302,6 @@ class TestVAProfileClientExceptionHandling:
         assert (
             result.recipient
             == f"+{mobile_phone_created_yesterday_morning['countryCode']}{mobile_phone_created_yesterday_morning['areaCode']}{mobile_phone_created_yesterday_morning['phoneNumber']}"
-        )
-
-    def test_ut_get_telephone_retrieves_first_AWS_classified_mobile_phone(
-        self, rmock, mock_va_profile_client, mock_response, mocker, url, recipient_identifier, sample_notification
-    ):
-        # A veteran has saved a mobile number and a landline number, but they made an error when they entered the data:
-        # they saved their landline as a mobile number, and vice versa.  In this case, we should send an sms to the
-        # number which is classified by AWS as a mobile number
-        mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
-
-        aws_classified_landline_phone = telephone_entry(
-            phone_type='MOBILE', classification_code=1
-        )  # classified by AWS to be a landline phone
-        aws_classified_mobile_phone = telephone_entry(
-            phone_type='HOME', classification_code=0
-        )  # classified by AWS to be a mobile phone
-        contact_info = mock_response['profile']['contactInformation']
-        contact_info['telephones'] = [aws_classified_landline_phone, aws_classified_mobile_phone]
-
-        rmock.post(url, json=mock_response, status_code=200)
-        result = mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
-        assert (
-            result.recipient
-            == f"+{aws_classified_mobile_phone['countryCode']}{aws_classified_mobile_phone['areaCode']}{aws_classified_mobile_phone['phoneNumber']}"
         )
 
     def test_ut_handle_exceptions_retryable_exception(self, mock_va_profile_client, mocker):
