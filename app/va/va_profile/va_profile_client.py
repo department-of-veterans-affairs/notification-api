@@ -164,14 +164,14 @@ class VAProfileClient:
         self.statsd_client.incr('clients.va-profile.get-email.failure')
         self._raise_no_contact_info_exception(self.EMAIL_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID))
 
-    def is_mobile_telephone(self, telephone) -> bool:
+    def has_valid_mobile_telephone_classification(self, telephone) -> bool:
         classification = telephone.get('classification', {})
         classification_code = classification.get('classificationCode', None)
         if classification_code is not None:
             return classification_code in VALID_PHONE_TYPES_FOR_SMS_DELIVERY
 
         # fall back, if no phone number classification is present
-        return telephone['phoneType'] == PhoneNumberType.MOBILE
+        return True
 
     def get_mobile_telephone_from_contact_info(self, contact_info: ContactInformation) -> str:
         """
@@ -194,7 +194,7 @@ class VAProfileClient:
         if sorted_telephones:
             is_mobile = True
             if is_feature_enabled(FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS):
-                is_mobile = self.is_mobile_telephone(sorted_telephones[0])
+                is_mobile = self.has_valid_mobile_telephone_classification(sorted_telephones[0])
             if (
                 is_mobile
                 and sorted_telephones[0].get('countryCode')
