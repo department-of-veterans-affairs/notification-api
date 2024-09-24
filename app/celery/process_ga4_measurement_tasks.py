@@ -4,7 +4,7 @@ import requests
 
 from flask import current_app
 
-from app import notify_celery
+from app import db, notify_celery
 from app.celery.exceptions import AutoRetryException
 from app.models import Notification
 
@@ -54,8 +54,8 @@ def post_to_ga4(notification_id: str, event_name, event_source, event_medium) ->
         current_app.logger.error('GA4_MEASUREMENT_ID is not set')
         return False
 
-    # Retrieve the notification from the database.
-    notification = Notification.query.get(notification_id)
+    # Retrieve the notification from the database
+    notification = db.session.query(Notification).get(notification_id)
     if not notification:
         current_app.logger.error('Notification %s not found', notification_id)
         return False
