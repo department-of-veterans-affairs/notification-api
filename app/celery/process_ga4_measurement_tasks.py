@@ -6,6 +6,7 @@ from flask import current_app
 
 from app import notify_celery
 from app.celery.exceptions import AutoRetryException
+from app.models import Notification
 
 
 def get_ga4_config() -> tuple:
@@ -29,14 +30,6 @@ def get_ga4_config() -> tuple:
 )
 def post_to_ga4(
     notification_id: str,
-    template_name: str,
-    template_id: str,
-    service_id: str,
-    service_name: str,
-    client_id='vanotify',
-    name='open_email',
-    source='vanotify',
-    medium='email',
 ) -> bool:
     """
     This celery task is used to post to Google Analytics 4. It is exercised when a veteran opens an e-mail.
@@ -57,10 +50,6 @@ def post_to_ga4(
     current_app.logger.info(
         'GA4: post_to_ga4: notification_id: %s, template_name: %s, template_id: %s, service_id: %s, service_name: %s',
         notification_id,
-        template_name,
-        template_id,
-        service_id,
-        service_name,
     )
 
     ga_api_secret, ga_measurement_id = get_ga4_config()
@@ -71,6 +60,21 @@ def post_to_ga4(
     if not ga_measurement_id:
         current_app.logger.error('GA4_MEASUREMENT_ID is not set')
         return False
+
+    # Retrieve the notification from the database.
+    notification = Notification.query.get(notification_id)
+    if not notification:
+        current_app.logger.error('Notification %s not found', notification_id)
+        return False
+
+    template_name = notification.template.name
+    template_id = notification.template.id
+    service_id = notification.service_id
+    service_name = notification.service.name
+    client_id = notification.service.client_id
+    name = 'email_opened'
+    source = 'email'
+    medium = 'email'
 
     url_str = current_app.config.get('GA4_URL', '')
     url_params_dict = {
