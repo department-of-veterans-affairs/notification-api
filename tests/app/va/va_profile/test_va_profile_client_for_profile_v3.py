@@ -357,7 +357,7 @@ class TestCommunicationPermissions:
         ],
     )
     @pytest.mark.parametrize('notification_type', [CommunicationChannel.EMAIL, CommunicationChannel.TEXT])
-    def test_ut_get_email_or_sms_with_permission_utilizes_default_send(
+    def test_get_email_or_sms_with_permission_utilizes_default_send(
         self,
         mock_va_profile_client,
         mock_response,
@@ -471,7 +471,7 @@ class TestSendEmailStatus:
     ],
 )
 @pytest.mark.parametrize('notification_type', [CommunicationChannel.EMAIL, CommunicationChannel.TEXT])
-def test_ut_get_email_or_sms_with_permission_utilizes_default_send(
+def test_get_email_or_sms_with_permission_utilizes_default_send(
     mock_va_profile_response,
     sample_communication_item,
     sample_notification,
@@ -499,7 +499,6 @@ def test_ut_get_email_or_sms_with_permission_utilizes_default_send(
     profile['communicationPermissions'][0]['communicationItemId'] = notification.va_profile_item_id
     profile['communicationPermissions'][0]['communicationChannelId'] = notification_type.id
 
-    # contact_info = sample_contact_information(allowed=False)
     mocker.patch('app.va.va_profile.va_profile_client.VAProfileClient.get_profile', return_value=profile)
 
     if default_send:

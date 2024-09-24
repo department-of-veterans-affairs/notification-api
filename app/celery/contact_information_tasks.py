@@ -76,7 +76,7 @@ def lookup_contact_info(
             notification.to = result.recipient
             if not result.communication_allowed:
                 handle_communication_not_allowed(notification, recipient_identifier, result.permission_message)
-            # Otherwise, this communication is allowed and we will update the notification below and ccntinue the chain
+            # Otherwise, this communication is allowed. We will update the notification below and continue the chain.
         else:
             notification.to = get_recipient(
                 notification.notification_type,
@@ -204,7 +204,7 @@ def handle_lookup_contact_info_exception(
                 status=NOTIFICATION_PERMANENT_FAILURE,
                 status_reason='No recipient opt-in found for explicit preference',
             )
-            raise
+            raise e
         else:
             # Means the default_send is True and this does not require an explicit opt-in
             return None

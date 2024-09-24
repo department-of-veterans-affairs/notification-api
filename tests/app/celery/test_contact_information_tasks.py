@@ -1,4 +1,3 @@
-import json
 import uuid
 
 import pytest
@@ -335,7 +334,7 @@ def test_exception_sets_failure_reason_if_thrown(
     ],
 )
 @pytest.mark.parametrize('notification_type', [CommunicationChannel.EMAIL, CommunicationChannel.TEXT])
-def test_ut_get_email_or_sms_with_permission_utilizes_default_send(
+def test_get_email_or_sms_with_permission_utilizes_default_send(
     mock_va_profile_client,
     mock_va_profile_response,
     sample_communication_item,
@@ -359,12 +358,10 @@ def test_ut_get_email_or_sms_with_permission_utilizes_default_send(
         recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': '1234'}],
     )
 
-    # if user_set is not None:
     profile['communicationPermissions'][0]['allowed'] = user_set
     profile['communicationPermissions'][0]['communicationItemId'] = notification.va_profile_item_id
     profile['communicationPermissions'][0]['communicationChannelId'] = notification_type.id
 
-    # contact_info = sample_contact_information(allowed=False)
     mocker.patch('app.va.va_profile.va_profile_client.VAProfileClient.get_profile', return_value=profile)
 
     if default_send:
