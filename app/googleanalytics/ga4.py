@@ -3,6 +3,7 @@ Google Analytics 4
 """
 
 import os
+import uuid
 
 from flask import current_app, Blueprint, send_file
 
@@ -21,11 +22,17 @@ def get_ga4(notification):
     """
     current_app.logger.debug('GA4 email_opened for notification: %s', notification)
 
-    post_to_ga4.delay(
-        notification,
-        current_app.config['GA4_PIXEL_TRACKING_NAME'],
-        current_app.config['GA4_PIXEL_TRACKING_SOURCE'],
-        current_app.config['GA4_PIXEL_TRACKING_MEDIUM'],
-    )
+    # Verify that notification is a valid uuid4
+    try:
+        uuid.UUID(notification, version=4)
+    except ValueError:
+        current_app.logger.error('Invalid notification ID: %s', notification)
+    else:
+        post_to_ga4.delay(
+            notification,
+            current_app.config['GA4_PIXEL_TRACKING_NAME'],
+            current_app.config['GA4_PIXEL_TRACKING_SOURCE'],
+            current_app.config['GA4_PIXEL_TRACKING_MEDIUM'],
+        )
 
     return send_file(GA4_PIXEL_TRACKING_IMAGE_PATH, mimetype='image/png')
