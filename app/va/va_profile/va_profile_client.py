@@ -289,7 +289,7 @@ class VAProfileClient:
                 # if default send is true and allowed is false, return false
                 # if default send is true and allowed is true, return true
                 # if default send is false, default to what it finds
-                permission = perm['allowed']
+                permission: bool | None = perm['allowed']
                 if permission is not None:
                     return perm['allowed']
                 else:
@@ -338,7 +338,7 @@ class VAProfileClient:
                 # if default send is true and allowed is false, return false
                 # if default send is true and allowed is true, return true
                 # if default send is false, default to what it finds
-                permission = perm['allowed']
+                permission: bool | None = perm['allowed']
                 if permission is not None:
                     return perm['allowed']
                 else:
