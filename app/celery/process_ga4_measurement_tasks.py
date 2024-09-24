@@ -30,19 +30,14 @@ def get_ga4_config() -> tuple:
 )
 def post_to_ga4(
     notification_id: str,
+    event_name,
+    event_source,
+    event_medium
 ) -> bool:
     """
     This celery task is used to post to Google Analytics 4. It is exercised when a veteran opens an e-mail.
 
     :param notification_id: The notification ID. Shows up in GA4 as part of the event content.
-    :param template_name: The template name. Shows up in GA4 as the campaign.
-    :param template_id: The template ID. Shows up in GA4 as the campaign ID.
-    :param service_id: The service ID. Shows up in GA4 as part of the event content.
-    :param service_name: The service name. Shows up in GA4 as part of the event content.
-    :param client_id: The client ID. Shows up in GA4 as the client ID.
-    :param name: The event name. Shows up in GA4 as the event name.
-    :param source: The event source. Shows up in GA4 as the event source.
-    :param medium: The event medium. Shows up in GA4 as the event medium.
 
     :return: True if the post was successful, False otherwise.
     """
@@ -72,9 +67,6 @@ def post_to_ga4(
     service_id = notification.service_id
     service_name = notification.service.name
     client_id = notification.service.client_id
-    name = 'email_opened'
-    source = 'email'
-    medium = 'email'
 
     url_str = current_app.config.get('GA4_URL', '')
     url_params_dict = {
@@ -90,12 +82,12 @@ def post_to_ga4(
         'client_id': client_id,
         'events': [
             {
-                'name': name,
+                'name': event_name,
                 'params': {
                     'campaign_id': str(template_id),
                     'campaign': str(template_name),
-                    'source': source,
-                    'medium': medium,
+                    'source': event_source,
+                    'medium': event_medium,
                     'content': str(content),
                 },
             }
@@ -108,7 +100,7 @@ def post_to_ga4(
 
     status = False
     try:
-        current_app.logger.info('Posting event to GA4: %s', name)
+        current_app.logger.info('Posting event to GA4: %s', event_name)
         response = requests.post(url, json=event_body, headers=headers, timeout=1)
         current_app.logger.debug('GA4 response: %s', response.status_code)
         response.raise_for_status()
@@ -117,5 +109,5 @@ def post_to_ga4(
         current_app.logger.exception(e)
         raise AutoRetryException from e
     else:
-        current_app.logger.info('GA4 event %s posted successfully', name)
+        current_app.logger.info('GA4 event %s posted successfully', event_name)
     return status

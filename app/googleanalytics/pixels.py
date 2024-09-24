@@ -3,13 +3,6 @@ from flask import current_app
 from app.models import Notification
 
 
-NOTIFICATION_API_GA4_GET_ENDPOINT = 'ga4/open-email-tracking'
-
-GA4_PIXEL_TRACKING_NAME = 'email_open'
-GA4_PIXEL_TRACKING_SOURCE = 'vanotify'
-GA4_PIXEL_TRACKING_MEDIUM = 'email'
-
-
 def build_dynamic_ga4_pixel_tracking_url(notification: Notification) -> str:
     """
     Constructs a dynamic URL that contains information on the notification email being sent.
@@ -20,6 +13,9 @@ def build_dynamic_ga4_pixel_tracking_url(notification: Notification) -> str:
     :return: A dynamically constructed URL string.
     """
 
-    url = f'{current_app.config["PUBLIC_DOMAIN"]}' f'{NOTIFICATION_API_GA4_GET_ENDPOINT}/{str(notification.id)}'
+    url = (
+        f'{current_app.config["PUBLIC_DOMAIN"]}'
+        f'{current_app.config["NOTIFICATION_API_GA4_GET_ENDPOINT"]}/{str(notification.id)}'
+    )
     current_app.logger.debug('Generated Google Analytics 4 pixel URL: %s', url)
     return url
