@@ -61,8 +61,11 @@ class AwsPinpointClient(SmsClient):
             aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
             elapsed_time = monotonic() - start_time
             self.logger.info(
-                f'AWS Pinpoint SMS request finished in {elapsed_time} for notificationId:{reference}'
-                f' and reference:{aws_reference}'
+                'AWS Pinpoint SMS request using %s finished in %s for notificationId:%s and reference:%s',
+                sender_id,
+                elapsed_time,
+                reference,
+                aws_reference,
             )
             self.statsd_client.timing('clients.pinpoint.request-time', elapsed_time)
             self.statsd_client.incr('clients.pinpoint.success')
