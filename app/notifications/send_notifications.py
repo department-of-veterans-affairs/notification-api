@@ -3,6 +3,7 @@ from uuid import UUID
 from flask import current_app
 from sqlalchemy.orm.exc import NoResultFound
 
+from app.dao.service_sms_sender_dao import dao_get_service_sms_sender_by_id
 from app.dao.services_dao import dao_fetch_service_by_id
 from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import NotificationTechnicalFailureException
@@ -114,6 +115,7 @@ def send_notification_bypass_route(
         key_type=api_key_type,
         recipient_identifier=recipient_item,
         sms_sender_id=sms_sender_id,
+        reply_to_text=dao_get_service_sms_sender_by_id(service.id, sms_sender_id).sms_sender,
     )
 
     if recipient_item is not None:
