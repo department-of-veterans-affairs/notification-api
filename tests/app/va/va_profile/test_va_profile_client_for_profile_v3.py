@@ -19,7 +19,8 @@ from app.va.va_profile.exceptions import (
     VAProfileRetryableException,
 )
 from app.va.va_profile import VAProfileClient
-from app.va.va_profile.va_profile_client import CommunicationChannel
+from app.va.va_profile.va_profile_client import CommunicationChannel, VALID_PHONE_TYPES_FOR_SMS_DELIVERY
+from app.va.va_profile.va_profile_types import Telephone
 
 from tests.app.conftest import MOCK_VA_PROFILE_URL
 from tests.app.factories.feature_flag import mock_feature_flag
@@ -222,6 +223,40 @@ class TestVAProfileClient:
 
         assert telephone is not None
         assert rmock.called
+
+    @pytest.mark.parametrize(
+        'classification_code, expected',
+        [
+            *[(code, True) for code in VALID_PHONE_TYPES_FOR_SMS_DELIVERY],
+            (None, True),  # if no classification code exists, fall back to True
+            (1, False),  # LANDLINE
+            (3, False),  # INVALID
+            (4, False),  # OTHER
+        ],
+    )
+    def test_ut_has_valid_telephone_classification(self, mock_va_profile_client, classification_code, expected):
+        telephone_instance: Telephone = {
+            'createDate': '2023-10-01',
+            'updateDate': '2023-10-02',
+            'txAuditId': 'TX123456',
+            'sourceSystem': 'SystemA',
+            'sourceDate': '2023-10-01',
+            'originatingSourceSystem': 'SystemB',
+            'sourceSystemUser': 'User123',
+            'effectiveStartDate': '2023-10-01',
+            'vaProfileId': 12345,
+            'telephoneId': 67890,
+            'internationalIndicator': False,
+            'phoneType': 'Mobile',
+            'countryCode': '1',
+            'areaCode': '123',
+            'phoneNumber': '4567890',
+            'classification': {'classificationCode': classification_code, 'classificationName': 'SOME NAME'},
+        }
+        if classification_code is None:
+            telephone_instance.pop('classification')
+
+        assert mock_va_profile_client.has_valid_mobile_telephone_classification(telephone_instance) is expected
 
 
 class TestVAProfileClientExceptionHandling:
