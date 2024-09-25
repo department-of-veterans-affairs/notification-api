@@ -59,7 +59,7 @@ def post_to_ga4(notification_id: str, event_name, event_source, event_medium) ->
     stmt = select(Notification).where(Notification.id == notification_id)
     notification = db.session.scalars(stmt).first()
     if not notification:
-        current_app.logger.error('Notification %s not found', notification_id)
+        current_app.logger.error('GA4: Notification %s not found', notification_id)
         return False
 
     template_name = notification.template.name

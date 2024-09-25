@@ -26,7 +26,7 @@ def get_ga4(notification):
     try:
         uuid.UUID(notification, version=4)
     except ValueError:
-        current_app.logger.error('Invalid notification ID: %s', notification)
+        current_app.logger.error('GA4: Invalid notification ID %s', notification)
     else:
         post_to_ga4.delay(
             notification,
