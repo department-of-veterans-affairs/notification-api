@@ -46,12 +46,12 @@ class AwsPinpointClient(SmsClient):
         sender=None,
         **kwargs,
     ):
-        sender_id = self.origination_number if sender is None else sender
+        aws_phone_number = self.origination_number if sender is None else sender
         recipient_number = str(to)
 
         try:
             start_time = monotonic()
-            response = self._post_message_request(recipient_number, content, sender_id)
+            response = self._post_message_request(recipient_number, content, aws_phone_number)
 
         except (botocore.exceptions.ClientError, Exception) as e:
             self.statsd_client.incr('clients.pinpoint.error')
@@ -62,7 +62,7 @@ class AwsPinpointClient(SmsClient):
             elapsed_time = monotonic() - start_time
             self.logger.info(
                 'AWS Pinpoint SMS request using %s finished in %s for notificationId:%s and reference:%s',
-                sender_id,
+                aws_phone_number,
                 elapsed_time,
                 reference,
                 aws_reference,
@@ -75,12 +75,12 @@ class AwsPinpointClient(SmsClient):
         self,
         recipient_number,
         content,
-        sender,
+        aws_phone_number,
     ):
         message_request_payload = {
             'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
             'MessageConfiguration': {
-                'SMSMessage': {'Body': content, 'MessageType': 'TRANSACTIONAL', 'OriginationNumber': sender}
+                'SMSMessage': {'Body': content, 'MessageType': 'TRANSACTIONAL', 'OriginationNumber': aws_phone_number}
             },
         }
 
