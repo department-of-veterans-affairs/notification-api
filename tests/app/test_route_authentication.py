@@ -32,7 +32,7 @@ def test_all_routes_have_authentication(client):
         '/auth/callback',
         '/auth/login',
         '/auth/logout',
-        '/ga4/open-email-tracking/<notification>',
+        '/ga4/open-email-tracking/<notification_id>',
         '/internal/<generic>',
         '/notifications/govdelivery',
         '/auth/redeem-token',

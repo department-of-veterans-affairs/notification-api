@@ -13,7 +13,7 @@ def test_it_get_ga4_valid_data(client, ga4_request_data, sample_notification):
     notification = sample_notification()
     with patch('app.googleanalytics.ga4.post_to_ga4.delay') as mock_post_to_ga4:
         response = client.get(
-            path=url_for('ga4.get_ga4', notification=notification.id),
+            path=url_for('ga4.get_ga4', notification_id=notification.id),
         )
     assert response.status_code == 200, response.get_json()
     assert response.headers['Content-Type'].startswith('image/')
@@ -34,7 +34,7 @@ def test_get_ga4_with_invalid_notification_id(client):
     """
     with patch('app.googleanalytics.ga4.post_to_ga4.delay') as mock_post_to_ga4:
         response = client.get(
-            path=url_for('ga4.get_ga4', notification='invalid-uuid4'),
+            path=url_for('ga4.get_ga4', notification_id='invalid-uuid4'),
         )
     assert response.status_code == 200
     assert not mock_post_to_ga4.called
