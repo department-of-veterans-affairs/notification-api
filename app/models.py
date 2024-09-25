@@ -1354,7 +1354,7 @@ class Notification(db.Model):
     sms_sender = db.relationship(ServiceSmsSender)
     sms_sender_id = db.Column(UUID(as_uuid=True), db.ForeignKey('service_sms_senders.id'), nullable=True)
 
-    reply_to_text: str = db.Column(db.String, nullable=True)
+    reply_to_text: str | None = db.Column(db.String, nullable=True)
     status_reason = db.Column(db.String, nullable=True)
 
     # These attributes are for SMS billing stats.  AWS Pinpoint relays price in millicents.

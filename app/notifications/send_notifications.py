@@ -53,7 +53,7 @@ def send_notification_bypass_route(
     service: Service,
     template: Template,
     notification_type: str,
-    reply_to_text: str,
+    reply_to_text: str | None,
     recipient: str = None,
     personalisation: dict = None,
     sms_sender_id: str = None,
@@ -67,7 +67,7 @@ def send_notification_bypass_route(
     :param service: the service sending the notification
     :param template: the template to use to send the notification
     :param notification_type: the type of notification to send (sms or email)
-    :param reply_to_text: Phone number being used to send the notification
+    :param reply_to_text: Phone number or email being used to send the notification
     :param recipient: the sms number or email address to send the notification to
     :param personalisation: a dictionary of personalisation fields to include in the notification
     :param sms_sender_id: the sms sender to use when sending an sms notification,
