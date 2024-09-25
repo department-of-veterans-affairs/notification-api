@@ -20,6 +20,19 @@ def test_it_post_to_ga4_with_valid_data(sample_notification, ga4_sample_payload)
         )
 
     assert response
+    assert mock_post.called
+    assert mock_post.call_args[0][0] == 'http://foo.bar/ga4?measurement_id=ga4_measurement_id&api_secret=ga4_api_secret'
+
+    actual_ga4_payload = mock_post.call_args.kwargs['json']
+    assert actual_ga4_payload['client_id'] == ga4_sample_payload['source']
+    assert actual_ga4_payload['events'][0]['name'] == ga4_sample_payload['name']
+    assert actual_ga4_payload['events'][0]['params']['campaign_id'] == str(notification.template.id)
+    assert actual_ga4_payload['events'][0]['params']['campaign'] == notification.template.name
+    assert actual_ga4_payload['events'][0]['params']['source'] == ga4_sample_payload['source']
+    assert actual_ga4_payload['events'][0]['params']['medium'] == ga4_sample_payload['medium']
+    assert actual_ga4_payload['events'][0]['params']['service_id'] == str(notification.service_id)
+    assert actual_ga4_payload['events'][0]['params']['service_name'] == notification.service.name
+    assert actual_ga4_payload['events'][0]['params']['notification_id'] == notification.id
 
 
 def test_it_post_to_ga4_returns_4xx(ga4_sample_payload):

@@ -75,7 +75,6 @@ def post_to_ga4(notification_id: str, event_name, event_source, event_medium) ->
     url_params = urlencode(url_params_dict)
     url_str = current_app.config['GA4_URL']
     url = f'{url_str}?{url_params}'
-    content = f'{service_name}/{service_id}/{notification_id}'
 
     event_body = {
         'client_id': event_source,
@@ -87,7 +86,9 @@ def post_to_ga4(notification_id: str, event_name, event_source, event_medium) ->
                     'campaign': str(template_name),
                     'source': event_source,
                     'medium': event_medium,
-                    'content': str(content),
+                    'service_id': str(service_id),
+                    'service_name': service_name,
+                    'notification_id': notification_id,
                 },
             }
         ],
