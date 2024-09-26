@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from http.client import responses
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 
 import iso8601
@@ -176,12 +176,29 @@ class VAProfileClient:
         classification = telephone.get('classification', {})
         classification_code = classification.get('classificationCode', None)
         if classification_code is not None:
-            return classification_code in VALID_PHONE_TYPES_FOR_SMS_DELIVERY
+            if classification_code not in VALID_PHONE_TYPES_FOR_SMS_DELIVERY:
+                self.logger.debug(
+                    'V3 Profile -- Phone classification code of %s is not a valid SMS recipient (VA Profile ID: %s)',
+                    classification_code,
+                    telephone.vaProfileId,
+                )
+                return False
+
+            self.logger.debug(
+                'V3 Profile -- Phone classification code of %s is a valid SMS recipient (VA Profile ID: %s)',
+                classification_code,
+                telephone.vaProfileId,
+            )
+            return True
 
         # fall back, if no phone number classification is present
+        self.logger.debug(
+            'V3 Profile -- No telephone classification present, assuming the number is a valid SMS recipient (VA Profile ID: %s)',
+            telephone.vaProfileId,
+        )
         return True
 
-    def get_mobile_telephone_from_contact_info(self, contact_info: ContactInformation) -> str:
+    def get_mobile_telephone_from_contact_info(self, contact_info: ContactInformation) -> Optional[str]:
         """
         Find the most recently created mobile phone number from a veteran's Vet360 contact information
 
@@ -202,7 +219,14 @@ class VAProfileClient:
         if sorted_telephones:
             is_mobile = True
             if is_feature_enabled(FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS):
+                self.logger.debug(
+                    'V3 Profile -- VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS enabled.  Checking telephone classification info.'
+                )
                 is_mobile = self.has_valid_mobile_telephone_classification(sorted_telephones[0])
+            else:
+                self.logger.debug(
+                    'V3 Profile -- VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS is not enabled.  Will not check classification info.'
+                )
             if (
                 is_mobile
                 and sorted_telephones[0].get('countryCode')
