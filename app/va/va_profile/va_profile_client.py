@@ -180,21 +180,21 @@ class VAProfileClient:
                 self.logger.debug(
                     'V3 Profile -- Phone classification code of %s is not a valid SMS recipient (VA Profile ID: %s)',
                     classification_code,
-                    telephone.vaProfileId,
+                    telephone['vaProfileId'],
                 )
                 return False
 
             self.logger.debug(
                 'V3 Profile -- Phone classification code of %s is a valid SMS recipient (VA Profile ID: %s)',
                 classification_code,
-                telephone.vaProfileId,
+                telephone['vaProfileId'],
             )
             return True
 
         # fall back, if no phone number classification is present
         self.logger.debug(
             'V3 Profile -- No telephone classification present, assuming the number is a valid SMS recipient (VA Profile ID: %s)',
-            telephone.vaProfileId,
+            telephone['vaProfileId'],
         )
         return True
 
