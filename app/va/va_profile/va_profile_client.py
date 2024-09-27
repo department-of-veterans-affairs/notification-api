@@ -268,11 +268,13 @@ class VAProfileClient:
         contact_info: ContactInformation = profile.get('contactInformation', {})
 
         telephone = self.get_mobile_telephone_from_contact_info(contact_info)
-        if telephone:
-            return VAProfileResult(telephone, communication_allowed, permission_message)
+        if not telephone:
+            self.statsd_client.incr('clients.va-profile.get-telephone.failure')
+            self._raise_no_contact_info_exception(
+                self.PHONE_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID)
+            )
 
-        self.statsd_client.incr('clients.va-profile.get-telephone.failure')
-        self._raise_no_contact_info_exception(self.PHONE_BIO_TYPE, va_profile_id, contact_info.get(self.TX_AUDIT_ID))
+        return VAProfileResult(telephone, communication_allowed, permission_message)
 
     def get_email_with_permission(
         self,
