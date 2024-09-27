@@ -5,7 +5,7 @@ import os
 import uuid
 
 import boto3
-from boto3.exceptions.botocore.exceptions import ClientError
+from botocore.exceptions import ClientError
 
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 ROUTING_KEY = 'delivery-status-result-tasks'
@@ -21,9 +21,10 @@ except ValueError:
 
 # set up sqs resource
 try:
-    sqs = boto3.resource('sqs')
+    sqs = boto3.resource('sqs', region_name='us-gov-west-1')
     queue = sqs.get_queue_by_name(QueueName=f"{os.getenv('NOTIFICATION_QUEUE_PREFIX')}{ROUTING_KEY}")
 except ClientError as e:
+    print('ClientError 1:', e)
     logger.critical(
         'pinpoint_callback_lambda - ClientError, Failed to create SQS client or could not get sqs queue. '
         'Exception: %s',
@@ -31,6 +32,7 @@ except ClientError as e:
     )
     raise
 except Exception as e:
+    print('Exception 1:', e)
     logger.critical(
         'pinpoint_callback_lambda - Unexpected exception, failed to set up SQS client, queue prefix may be missing. '
         'Exception: %s',
@@ -77,7 +79,14 @@ def lambda_handler(
         try:
             queue.send_message(MessageBody=msg)
         except ClientError as e:
-            logger.critical('pinpoint_callback_lambda - ClientError, Failed to send message to SQS. Exception: %s', e)
+            print('ClientError 2:', e)
+            logger.critical('pinpoint_callback_lambda - ClientError, failed to send message to SQS. Exception: %s', e)
+            raise
+        except Exception as e:
+            print('Exception 2:', e)
+            logger.critical(
+                'pinpoint_callback_lambda - Unexpected exception, failed to send message to SQS. Exception: %s', e
+            )
             raise
 
     return {'statusCode': 200}

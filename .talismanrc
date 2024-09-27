@@ -9,6 +9,8 @@ fileignoreconfig:
   checksum: b42aefd1ae0e6ea76e75db4cf14d425facd0941943b17f7ba2e41f850ad1ec23
 - filename: app/template/rest.py
   checksum: 1e5bdac8bc694d50f8f656dec127dd036b7b1b5b6156e3282d3411956c71ba0b
+- filename: ci/docker-compose-test.yml
+  checksum: e3efec2749e8c19e60f5bfc68eafabe24eba647530a482ceccfc4e0e62cff424
 - filename: lambda_functions/pinpoint_callback/pinpoint_callback_lambda.py
   checksum: 7bd4900e14b1fa789bbb2568b8a8d7a400e3c8350ba32fb44cc0b5b66a2df037
 - filename: lambda_functions/ses_callback/ses_callback_lambda.py
