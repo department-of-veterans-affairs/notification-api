@@ -27,14 +27,14 @@ except ClientError as e:
     logger.critical(
         'pinpoint_callback_lambda - ClientError, Failed to create SQS client or could not get sqs queue. '
         'Exception: %s',
-        e
+        e,
     )
     raise
 except Exception as e:
     logger.critical(
         'pinpoint_callback_lambda - Unexpected exception, failed to set up SQS client, queue prefix may be missing. '
         'Exception: %s',
-        e
+        e,
     )
     raise
 
