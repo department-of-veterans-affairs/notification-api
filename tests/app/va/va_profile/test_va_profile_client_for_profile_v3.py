@@ -301,7 +301,7 @@ class TestVAProfileClientExceptionHandling:
 
         telephones = mock_response['profile']['contactInformation']['telephones']
         for telephone in telephones:
-            telephone['classification'] = {'classificationCode': 1}
+            telephone['classification'] = {'classificationCode': 1}  # LANDLINE classification
         mock_response['profile']['contactInformation']['telephones'] = telephones
         rmock.post(url, json=mock_response, status_code=200)
 
