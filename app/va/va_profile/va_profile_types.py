@@ -1,4 +1,4 @@
-from typing import TypedDict, List
+from typing import TypedDict, List, Optional
 
 
 class Country(TypedDict):
@@ -65,7 +65,7 @@ class Telephone(TypedDict):
     countryCode: str
     areaCode: str
     phoneNumber: str
-    classification: Classification | None
+    classification: Optional[Classification]
 
 
 class Email(TypedDict):

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from http.client import responses
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 
 import iso8601
@@ -198,7 +198,7 @@ class VAProfileClient:
         )
         return True
 
-    def get_mobile_telephone_from_contact_info(self, contact_info: ContactInformation) -> str | None:
+    def get_mobile_telephone_from_contact_info(self, contact_info: ContactInformation) -> Optional[str]:
         """
         Find the most recently created mobile phone number from a veteran's Vet360 contact information
 
