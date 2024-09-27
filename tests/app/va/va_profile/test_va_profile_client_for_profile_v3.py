@@ -100,7 +100,7 @@ def url(oid, id_with_aaid):
 
 
 class TestVAProfileClient:
-    def test_ut_get_email_calls_endpoint_and_returns_email_address(
+    def test_get_email_calls_endpoint_and_returns_email_address(
         self,
         rmock,
         mock_va_profile_client,
@@ -124,7 +124,7 @@ class TestVAProfileClient:
         assert email == mock_response['profile']['contactInformation']['emails'][0]['emailAddressText']
         assert rmock.called
 
-    def test_ut_get_email_raises_NoContactInfoException_if_no_emails_exist(
+    def test_get_email_raises_NoContactInfoException_if_no_emails_exist(
         self,
         rmock,
         mock_va_profile_client,
@@ -146,7 +146,7 @@ class TestVAProfileClient:
                 sample_notification(gen_type=EMAIL_TYPE),
             )
 
-    def test_ut_get_profile_calls_correct_url(
+    def test_get_profile_calls_correct_url(
         self,
         rmock,
         mock_va_profile_client,
@@ -172,7 +172,7 @@ class TestVAProfileClient:
 
         assert rmock.request_history[0].url == expected_url
 
-    def test_ut_get_email_raises_exception_when_failed_request(
+    def test_get_email_raises_exception_when_failed_request(
         self,
         rmock,
         mock_va_profile_client,
@@ -203,7 +203,7 @@ class TestVAProfileClient:
                 recipient_identifier, sample_notification(gen_type=EMAIL_TYPE)
             )
 
-    def test_ut_get_telephone_calls_endpoint_and_returns_phone_number(
+    def test_get_telephone_calls_endpoint_and_returns_phone_number(
         self,
         rmock,
         mock_va_profile_client,
@@ -234,7 +234,7 @@ class TestVAProfileClient:
             (4, False),  # OTHER
         ],
     )
-    def test_ut_has_valid_telephone_classification(self, mock_va_profile_client, classification_code, expected):
+    def test_has_valid_telephone_classification(self, mock_va_profile_client, classification_code, expected):
         telephone_instance: Telephone = {
             'createDate': '2023-10-01',
             'updateDate': '2023-10-02',
@@ -260,7 +260,7 @@ class TestVAProfileClient:
 
 
 class TestVAProfileClientExceptionHandling:
-    def test_ut_get_telephone_raises_NoContactInfoException_if_no_telephones_exist(
+    def test_get_telephone_raises_NoContactInfoException_if_no_telephones_exist(
         self,
         rmock,
         mock_va_profile_client,
@@ -279,7 +279,7 @@ class TestVAProfileClientExceptionHandling:
         with pytest.raises(NoContactInfoException):
             mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
 
-    def test_ut_get_telephone_raises_NoContactInfoException_if_no_mobile_telephones_exist(
+    def test_get_telephone_raises_NoContactInfoException_if_no_mobile_telephones_exist(
         self, rmock, mock_va_profile_client, mock_response, recipient_identifier, url, mocker, sample_notification
     ):
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
@@ -294,7 +294,7 @@ class TestVAProfileClientExceptionHandling:
         with pytest.raises(NoContactInfoException):
             mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
 
-    def test_ut_get_telephone_raises_NoContactInfoException_if_number_classified_as_not_mobile(
+    def test_get_telephone_raises_NoContactInfoException_if_number_classified_as_not_mobile(
         self, rmock, mock_va_profile_client, mock_response, recipient_identifier, url, mocker, sample_notification
     ):
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
@@ -308,7 +308,7 @@ class TestVAProfileClientExceptionHandling:
         with pytest.raises(NoContactInfoException):
             mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
 
-    def test_ut_get_telephone_with_permission_prefers_user_specified_mobile_phone(
+    def test_get_telephone_with_permission_prefers_user_specified_mobile_phone(
         self, rmock, mock_va_profile_client, mock_response, mocker, url, recipient_identifier, sample_notification
     ):
         # A veteran has configured a mobile telephone to receive notifications.  They add an additional mobile
@@ -340,7 +340,7 @@ class TestVAProfileClientExceptionHandling:
             == f"+{mobile_phone_created_yesterday_morning['countryCode']}{mobile_phone_created_yesterday_morning['areaCode']}{mobile_phone_created_yesterday_morning['phoneNumber']}"
         )
 
-    def test_ut_handle_exceptions_retryable_exception(self, mock_va_profile_client, mocker):
+    def test_handle_exceptions_retryable_exception(self, mock_va_profile_client, mocker):
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
 
@@ -348,7 +348,7 @@ class TestVAProfileClientExceptionHandling:
         with pytest.raises(VAProfileRetryableException):
             mock_va_profile_client._handle_exceptions('some_va_profile_id', requests.RequestException())
 
-    def test_ut_handle_exceptions_id_not_found_exception(self, mock_va_profile_client, mocker):
+    def test_handle_exceptions_id_not_found_exception(self, mock_va_profile_client, mocker):
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
 
@@ -359,7 +359,7 @@ class TestVAProfileClientExceptionHandling:
         with pytest.raises(VAProfileIDNotFoundException):
             mock_va_profile_client._handle_exceptions('some_va_profile_id', error)
 
-    def test_ut_handle_exceptions_non_retryable_exception(self, mock_va_profile_client, mocker):
+    def test_handle_exceptions_non_retryable_exception(self, mock_va_profile_client, mocker):
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
 
@@ -370,7 +370,7 @@ class TestVAProfileClientExceptionHandling:
         with pytest.raises(VAProfileNonRetryableException):
             mock_va_profile_client._handle_exceptions('some_va_profile_id', error)
 
-    def test_ut_handle_exceptions_timeout_exception(self, mock_va_profile_client, mocker):
+    def test_handle_exceptions_timeout_exception(self, mock_va_profile_client, mocker):
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
 
@@ -381,7 +381,7 @@ class TestVAProfileClientExceptionHandling:
             mock_va_profile_client._handle_exceptions('some_va_profile_id', requests.Timeout())
 
     @pytest.mark.parametrize('status', [429, 500])
-    def test_ut_client_raises_retryable_exception(
+    def test_client_raises_retryable_exception(
         self,
         rmock,
         mock_va_profile_client,
@@ -403,7 +403,7 @@ class TestVAProfileClientExceptionHandling:
         with pytest.raises(VAProfileRetryableException):
             mock_va_profile_client.get_email_with_permission(recipient_identifier, sample_notification())
 
-    def test_ut_client_raises_retryable_exception_when_request_exception_is_thrown(
+    def test_client_raises_retryable_exception_when_request_exception_is_thrown(
         self,
         mock_va_profile_client,
         recipient_identifier,
@@ -427,7 +427,7 @@ class TestVAProfileClientExceptionHandling:
 
 class TestCommunicationPermissions:
     @pytest.mark.parametrize('expected', [True, False])
-    def test_ut_get_is_communication_allowed_returns_whether_permissions_granted_for_sms_communication(
+    def test_get_is_communication_allowed_returns_whether_permissions_granted_for_sms_communication(
         self,
         rmock,
         mock_va_profile_client,
@@ -451,7 +451,7 @@ class TestCommunicationPermissions:
         assert allowed is expected
 
     @pytest.mark.parametrize('expected', [True, False])
-    def test_ut_get_is_communication_allowed_returns_whether_permissions_granted_for_email_communication(
+    def test_get_is_communication_allowed_returns_whether_permissions_granted_for_email_communication(
         self,
         rmock,
         mock_va_profile_client,
@@ -546,7 +546,7 @@ class TestSendEmailStatus:
         'provider': 'ses',  # email provider
     }
 
-    def test_ut_send_va_profile_email_status_sent_successfully(self, rmock, mock_va_profile_client, mocker):
+    def test_send_va_profile_email_status_sent_successfully(self, rmock, mock_va_profile_client, mocker):
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
 
@@ -559,7 +559,7 @@ class TestSendEmailStatus:
         expected_url = f'{MOCK_VA_PROFILE_URL}/contact-information-vanotify/notify/status'
         assert rmock.request_history[0].url == expected_url
 
-    def test_ut_send_va_profile_email_status_timeout(self, rmock, mock_va_profile_client, mocker):
+    def test_send_va_profile_email_status_timeout(self, rmock, mock_va_profile_client, mocker):
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
 
@@ -573,7 +573,7 @@ class TestSendEmailStatus:
         expected_url = f'{MOCK_VA_PROFILE_URL}/contact-information-vanotify/notify/status'
         assert rmock.request_history[0].url == expected_url
 
-    def test_ut_send_va_profile_email_status_throws_exception(self, rmock, mock_va_profile_client, mocker):
+    def test_send_va_profile_email_status_throws_exception(self, rmock, mock_va_profile_client, mocker):
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, 'True')
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
 
