@@ -79,10 +79,8 @@ def lambda_handler(
         try:
             queue.send_message(MessageBody=msg)
         except ClientError as e:
-            print('ClientError 2:', e)
             logger.critical('ClientError, failed to send message to SQS queue "%s". Exception: %s', queue_name, e)
             raise
         except Exception as e:
-            print('Exception 2:', e)
             logger.critical('Exception, failed to send message to SQS queue "%s". Exception: %s', queue_name, e)
             raise
