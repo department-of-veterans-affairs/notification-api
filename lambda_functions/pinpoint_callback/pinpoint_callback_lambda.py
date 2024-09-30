@@ -7,8 +7,12 @@ import uuid
 import boto3
 from botocore.exceptions import ClientError
 
-LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+# constants
+AWS_REGION = 'us-gov-west-1'
 ROUTING_KEY = 'delivery-status-result-tasks'
+
+# environment variables
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
 # set up logger
 logger = logging.getLogger('PinpointCallbackLambda')
@@ -20,23 +24,20 @@ except ValueError:
     logger.warning('Invalid log level specified. Defaulting to INFO.')
 
 # set up sqs resource
+queue_name = f"{os.getenv('NOTIFICATION_QUEUE_PREFIX')}{ROUTING_KEY}"
 try:
-    sqs = boto3.resource('sqs', region_name='us-gov-west-1')
-    queue = sqs.get_queue_by_name(QueueName=f"{os.getenv('NOTIFICATION_QUEUE_PREFIX')}{ROUTING_KEY}")
+    sqs = boto3.resource('sqs', region_name=AWS_REGION)
+    queue = sqs.get_queue_by_name(QueueName=queue_name)
 except ClientError as e:
     print('ClientError 1:', e)
     logger.critical(
-        'pinpoint_callback_lambda - ClientError, Failed to create SQS client or could not get sqs queue. '
-        'Exception: %s',
-        e,
+        'ClientError, failed to create SQS resource or could not get sqs queue "%s". Exception: %s', queue_name, e
     )
     raise
 except Exception as e:
     print('Exception 1:', e)
     logger.critical(
-        'pinpoint_callback_lambda - Unexpected exception, failed to set up SQS client, queue prefix may be missing. '
-        'Exception: %s',
-        e,
+        'Exception, failed to create SQS resource or could not get sqs queue "%s". Exception: %s', queue_name, e
     )
     raise
 
@@ -80,13 +81,9 @@ def lambda_handler(
             queue.send_message(MessageBody=msg)
         except ClientError as e:
             print('ClientError 2:', e)
-            logger.critical('pinpoint_callback_lambda - ClientError, failed to send message to SQS. Exception: %s', e)
+            logger.critical('ClientError, failed to send message to SQS queue "%s". Exception: %s', queue_name, e)
             raise
         except Exception as e:
             print('Exception 2:', e)
-            logger.critical(
-                'pinpoint_callback_lambda - Unexpected exception, failed to send message to SQS. Exception: %s', e
-            )
+            logger.critical('Exception, failed to send message to SQS queue "%s". Exception: %s', queue_name, e)
             raise
-
-    return {'statusCode': 200}
