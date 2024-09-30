@@ -6,7 +6,7 @@ from moto import mock_aws
 
 @mock_aws
 def create_sqs_queue():
-    sqs = boto3.resource('sqs')
+    sqs = boto3.resource('sqs', region_name='us-gov-west-1')
     sqs.create_queue(QueueName='vanotify-delivery-status-result-tasks')
 
 
