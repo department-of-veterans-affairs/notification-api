@@ -276,7 +276,6 @@ class VAProfileClient:
         contact_info: ContactInformation = profile.get('contactInformation', {})
 
         telephone = self.get_mobile_telephone_from_contact_info(contact_info)
-
         if not telephone:
             self.statsd_client.incr('clients.va-profile.get-telephone.failure')
             self._raise_no_contact_info_exception(

@@ -279,7 +279,7 @@ class TestVAProfileClientExceptionHandling:
         with pytest.raises(NoContactInfoException):
             mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
 
-    def test_get_telephone_raises_NoContactInfoException_if_number_classified_as_not_mobile(
+    def test_get_telephone_raises_InvalidPhoneNumberException_if_number_classified_as_not_mobile(
         self, rmock, mock_va_profile_client, mock_response, recipient_identifier, url, mocker, sample_notification
     ):
         mock_feature_flag(mocker, FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS, 'True')
@@ -290,7 +290,7 @@ class TestVAProfileClientExceptionHandling:
         mock_response['profile']['contactInformation']['telephones'] = telephones
         rmock.post(url, json=mock_response, status_code=200)
 
-        with pytest.raises(NoContactInfoException):
+        with pytest.raises(InvalidPhoneNumberException):
             mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
 
     def test_get_telephone_with_permission_prefers_user_specified_mobile_phone(
