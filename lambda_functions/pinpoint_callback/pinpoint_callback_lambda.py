@@ -29,13 +29,11 @@ try:
     sqs = boto3.resource('sqs', region_name=AWS_REGION)
     queue = sqs.get_queue_by_name(QueueName=queue_name)
 except ClientError as e:
-    print('ClientError 1:', e)
     logger.critical(
         'ClientError, failed to create SQS resource or could not get sqs queue "%s". Exception: %s', queue_name, e
     )
     raise
 except Exception as e:
-    print('Exception 1:', e)
     logger.critical(
         'Exception, failed to create SQS resource or could not get sqs queue "%s". Exception: %s', queue_name, e
     )
@@ -76,7 +74,7 @@ def lambda_handler(
                 'delivery_tag': str(uuid.uuid4()),
             },
         }
-        print(envelope)
+
         msg = base64.b64encode(bytes(json.dumps(envelope), 'utf-8')).decode('utf-8')
         try:
             queue.send_message(MessageBody=msg)
