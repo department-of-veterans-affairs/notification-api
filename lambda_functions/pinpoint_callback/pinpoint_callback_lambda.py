@@ -76,6 +76,7 @@ def lambda_handler(
                 'delivery_tag': str(uuid.uuid4()),
             },
         }
+        print(envelope)
         msg = base64.b64encode(bytes(json.dumps(envelope), 'utf-8')).decode('utf-8')
         try:
             queue.send_message(MessageBody=msg)
