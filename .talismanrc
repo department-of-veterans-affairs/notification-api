@@ -23,4 +23,10 @@ fileignoreconfig:
     checksum: a80aa727586db82ed1b50bdb81ddfe1379e649a9dfc1ece2c36047486b41b83d
   - filename: tests/app/notifications/test_process_notifications_for_profile_v3.py
     checksum: 4e15e63d349635131173ffdd7aebcd547621db08de877ef926d3a41fde72d065
+  - filename: tests/app/callback/test_webhook_callback_strategy.py
+    checksum: 4e91e6354237bb34a5a6e1c9fb1ee31aaa61d6b0f0e403f3168c439051abea85
+  - filename: app/callback/webhook_callback_strategy.py
+    checksum: 47846ab651c27512d3ac7864c08cb25d647f63bb84321953f907551fd9d2e85f
+  - filename: app/dao/api_key_dao.py
+    checksum: ab93313f306c8a3f6576141e8f32d9fc99b0de7da8d44a1ddbe6ea55d167dcdb
 version: "1.0"
