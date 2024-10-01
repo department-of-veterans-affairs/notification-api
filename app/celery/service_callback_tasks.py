@@ -279,7 +279,7 @@ def create_delivery_status_callback_data(
 
 
 def create_delivery_status_callback_data_v3(notification: Notification) -> dict[str, str]:
-    """Encrypt and return the delivery status message.
+    """Create all data that will be sent to a callback url specified in the Notification object.
 
     Args:
         notification (Notification): Notification object
@@ -304,6 +304,7 @@ def create_delivery_status_callback_data_v3(notification: Notification) -> dict[
         'provider_payload': None,
     }
 
+    current_app.logger.debug('Created notification callback data: %s', data)
     return data
 
 
