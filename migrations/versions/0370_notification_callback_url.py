@@ -12,10 +12,8 @@ down_revision = '0369a_va_profile_cache_fields'
 
 
 def upgrade():
-    # Add the 'callback_url' column to the 'notifications' table
     op.add_column('notifications', sa.Column('callback_url', sa.String(length=255), nullable=True))
 
 
 def downgrade():
-    # Remove the 'callback_url' column from the 'notifications' table
     op.drop_column('notifications', 'callback_url')
