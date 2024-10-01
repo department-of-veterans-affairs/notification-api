@@ -1,6 +1,7 @@
 import hashlib
 import json
 from hmac import HMAC
+from urllib.parse import urlencode
 from uuid import UUID
 
 from flask import current_app
@@ -62,7 +63,7 @@ def generate_callback_signature(
     """
     signature = HMAC(
         get_unsigned_secret(api_key_id).encode(),
-        json.dumps(callback_params).encode(),
+        urlencode(callback_params).encode(),
         digestmod=hashlib.sha256,
     ).hexdigest()
 

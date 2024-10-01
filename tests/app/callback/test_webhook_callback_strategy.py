@@ -145,7 +145,7 @@ def test_generate_callback_signature(
         api_key.id,
         sample_callback_data_v3,
     )
-    assert signature == '2fc10f7d34e8ba22d05f98c2747ab8a3621a89c18a0d1c1547b1a1434809adbc'
+    assert signature == '18689cf9fb9c6a9dc1e0840245d48c666d97499d3894deb0e4cf3a5ba82f3d6e'
 
 
 def test_callback_signature_length(
