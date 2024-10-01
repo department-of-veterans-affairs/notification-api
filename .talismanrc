@@ -29,4 +29,6 @@ fileignoreconfig:
     checksum: 47846ab651c27512d3ac7864c08cb25d647f63bb84321953f907551fd9d2e85f
   - filename: app/dao/api_key_dao.py
     checksum: ab93313f306c8a3f6576141e8f32d9fc99b0de7da8d44a1ddbe6ea55d167dcdb
+  - filename: ci/docker-compose-test.yml
+    checksum: e3efec2749e8c19e60f5bfc68eafabe24eba647530a482ceccfc4e0e62cff424
 version: "1.0"
