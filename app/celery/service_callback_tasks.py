@@ -291,17 +291,16 @@ def create_delivery_status_callback_data_v3(notification: Notification) -> dict[
     from app import DATETIME_FORMAT  # Circular import
 
     data = {
-        'notification_id': str(notification.id),
+        'id': str(notification.id),
         'reference': notification.client_reference,
         'to': notification.to,
         'status': notification.status,
         'created_at': notification.created_at.strftime(DATETIME_FORMAT),
-        'updated_at': notification.updated_at.strftime(DATETIME_FORMAT) if notification.updated_at else None,
+        'completed_at': notification.updated_at.strftime(DATETIME_FORMAT) if notification.updated_at else None,
         'sent_at': notification.sent_at.strftime(DATETIME_FORMAT) if notification.sent_at else None,
         'notification_type': notification.notification_type,
-        'callback_url': notification.callback_url,
-        'provider': notification.sent_by,
         'status_reason': notification.status_reason,
+        'provider': notification.sent_by,
         'provider_payload': None,
     }
 

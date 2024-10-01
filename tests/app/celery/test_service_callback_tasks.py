@@ -543,19 +543,16 @@ def test_create_delivery_status_callback_data_v3(
     sample_notification,
 ):
     notification: Notification = sample_notification()
-    with pytest.raises(AttributeError):
-        # Remove with statement and reduce indent when callback_url is implemented
-        data = create_delivery_status_callback_data_v3(notification)
+    data = create_delivery_status_callback_data_v3(notification)
 
-        assert data['notification_id'] == notification.id
-        assert data['reference'] == notification.client_reference
-        assert data['to'] == notification.to
-        assert data['status'] == notification.status
-        assert data['created_at'] == notification.created_at.strftime(DATETIME_FORMAT)
-        assert data['updated_at'] is None
-        assert data['sent_at'] is None
-        assert data['notification_type'] == notification.notification_type
-        assert data['callback_url'] == notification.callback_url
-        assert data['provider'] == notification.sent_by
-        assert data['status_reason'] == notification.status_reason
-        assert data['provider_payload'] is None
+    assert data['id'] == str(notification.id)
+    assert data['reference'] == notification.client_reference
+    assert data['to'] == notification.to
+    assert data['status'] == notification.status
+    assert data['created_at'] == notification.created_at.strftime(DATETIME_FORMAT)
+    assert data['completed_at'] is None
+    assert data['sent_at'] is None
+    assert data['notification_type'] == notification.notification_type
+    assert data['status_reason'] == notification.status_reason
+    assert data['provider'] == notification.sent_by
+    assert data['provider_payload'] is None
