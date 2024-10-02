@@ -95,7 +95,7 @@
         },
         {
           "name": "VA_PROFILE_EMAIL_STATUS_ENABLED",
-          "value": "False"
+          "value": "True"
         },
         {
           "name": "VANOTIFY_SSL_CERT_PATH",
@@ -192,6 +192,14 @@
         {
           "name": "COMP_AND_PEN_DYNAMODB_NAME",
           "value": "prod-bip-payment-notification-table"
+        },
+        {
+          "name": "VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP",
+          "value": "False"
+        },
+        {
+          "name": "VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS",
+          "value": "False"
         }
       ],
       "secrets": [

@@ -6,7 +6,6 @@ from urllib import parse
 
 from app.models import EMAIL_TYPE, RecipientIdentifier
 from app.va.identifier import IdentifierType, transform_to_fhir_format, OIDS
-from app.va.va_profile import VAProfileClient
 from app.va.va_profile.exceptions import (
     CommunicationItemNotFoundException,
     NoContactInfoException,
@@ -17,28 +16,6 @@ from app.va.va_profile.exceptions import (
 
 
 MOCK_VA_PROFILE_URL = 'http://mock.vaprofile.va.gov'
-
-
-@pytest.fixture(scope='function')
-def mock_va_profile_client(mocker, notify_api):
-    with notify_api.app_context():
-        mock_logger = mocker.Mock()
-        mock_ssl_key_path = 'some_key.pem'
-        mock_ssl_cert_path = 'some_cert.pem'
-        mock_statsd_client = mocker.Mock()
-        mock_va_profile_token = mocker.Mock()
-
-        client = VAProfileClient()
-        client.init_app(
-            logger=mock_logger,
-            va_profile_url=MOCK_VA_PROFILE_URL,
-            ssl_cert_path=mock_ssl_cert_path,
-            ssl_key_path=mock_ssl_key_path,
-            va_profile_token=mock_va_profile_token,
-            statsd_client=mock_statsd_client,
-        )
-
-        return client
 
 
 @pytest.fixture(scope='function')
@@ -188,7 +165,7 @@ class TestVAProfileClientExceptionHandling:
         [
             ('get_email', ['recipient_identifier']),
             ('get_telephone', ['recipient_identifier']),
-            ('get_is_communication_allowed', ['recipient_identifier', 1, 2, 'foo']),
+            ('get_is_communication_allowed', ['recipient_identifier', 1, 2, 'foo', True]),
         ],
     )
     def test_ut_client_raises_retryable_exception(
@@ -208,7 +185,7 @@ class TestVAProfileClientExceptionHandling:
         [
             ('get_email', ['recipient_identifier']),
             ('get_telephone', ['recipient_identifier']),
-            ('get_is_communication_allowed', ['recipient_identifier', 1, 2, 'foo']),
+            ('get_is_communication_allowed', ['recipient_identifier', 1, 2, 'foo', True]),
         ],
     )
     def test_ut_client_raises_nonretryable_exception(
@@ -227,7 +204,7 @@ class TestVAProfileClientExceptionHandling:
         [
             ('get_email', ['recipient_identifier']),
             ('get_telephone', ['recipient_identifier']),
-            ('get_is_communication_allowed', ['recipient_identifier', 1, 2, 'foo']),
+            ('get_is_communication_allowed', ['recipient_identifier', 1, 2, 'foo', True]),
         ],
     )
     def test_ut_client_raises_retryable_exception_when_request_exception_is_thrown(
@@ -253,7 +230,7 @@ class TestCommunicationPermissions:
 
         perm = mock_response['profile']['communicationPermissions'][0]
         allowed = mock_va_profile_client.get_is_communication_allowed(
-            recipient_identifier, perm['communicationItemId'], 'bar', 'sms'
+            recipient_identifier, perm['communicationItemId'], 'bar', 'sms', expected
         )
 
         assert allowed is expected
@@ -268,7 +245,11 @@ class TestCommunicationPermissions:
 
         perm = mock_response['profile']['communicationPermissions'][1]
         allowed = mock_va_profile_client.get_is_communication_allowed(
-            recipient_identifier, perm['communicationItemId'], 'bar', 'email'
+            recipient_identifier,
+            perm['communicationItemId'],
+            'bar',
+            'email',
+            expected,
         )
 
         assert allowed is expected
@@ -281,7 +262,7 @@ class TestCommunicationPermissions:
 
         # no entry exists in the response which has a communicationItemId of 999
         with pytest.raises(CommunicationItemNotFoundException):
-            mock_va_profile_client.get_is_communication_allowed(recipient_identifier, 999, 'bar', 'email')
+            mock_va_profile_client.get_is_communication_allowed(recipient_identifier, 999, 'bar', 'email', True)
 
         assert rmock.called
 

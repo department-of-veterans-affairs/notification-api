@@ -18,6 +18,10 @@ class NoContactInfoException(VAProfileNonRetryableException):
     failure_reason = 'No contact info found from VA Profile'
 
 
+class InvalidPhoneNumberException(VAProfileNonRetryableException):
+    failure_reason = 'Phone number is invalid'
+
+
 class VAProfileIDNotFoundException(VAProfileNonRetryableException):
     failure_reason = 'No VA Profile account found'
 
@@ -26,5 +30,5 @@ class ContactPreferencesException(VAProfileNonRetryableException):
     failure_reason = 'VA Profile contact preferences not allowing contact'
 
 
-class CommunicationItemNotFoundException(Exception):
+class CommunicationItemNotFoundException(VAProfileNonRetryableException):
     failure_reason = 'No communication bio found from VA Profile'

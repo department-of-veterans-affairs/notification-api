@@ -211,7 +211,7 @@ def _get_delivery_task(
     """
 
     if research_mode or notification.key_type == KEY_TYPE_TEST:
-        queue = QueueNames.RESEARCH_MODE
+        queue = QueueNames.NOTIFY
 
     if notification.notification_type == SMS_TYPE:
         if not queue:
@@ -261,7 +261,7 @@ def send_to_queue_for_recipient_info_based_on_recipient_identifier(
     if id_type == IdentifierType.VA_PROFILE_ID.value:
         tasks = [
             send_va_onsite_notification_task.s(id_value, str(notification.template.id), onsite_enabled).set(
-                queue=QueueNames.SEND_ONSITE_NOTIFICATION
+                queue=QueueNames.NOTIFY
             ),
         ]
 
@@ -269,13 +269,16 @@ def send_to_queue_for_recipient_info_based_on_recipient_identifier(
         tasks = [
             lookup_va_profile_id.si(notification.id).set(queue=QueueNames.LOOKUP_VA_PROFILE_ID),
             send_va_onsite_notification_task.s(str(notification.template.id), onsite_enabled).set(
-                queue=QueueNames.SEND_ONSITE_NOTIFICATION
+                queue=QueueNames.NOTIFY
             ),
         ]
 
     tasks.append(lookup_contact_info.si(notification.id).set(queue=QueueNames.LOOKUP_CONTACT_INFO))
 
-    if communication_item_id:
+    if (
+        not is_feature_enabled(FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP)
+        and communication_item_id
+    ):
         tasks.append(
             lookup_recipient_communication_permissions.si(notification.id).set(
                 queue=QueueNames.COMMUNICATION_ITEM_PERMISSIONS

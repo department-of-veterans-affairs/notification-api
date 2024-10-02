@@ -1,5 +1,7 @@
+from datetime import datetime, timedelta
 import json
 import os
+from random import randint, randrange
 from typing import List, Union
 from uuid import UUID, uuid4
 
@@ -83,9 +85,9 @@ from app.models import (
     UserServiceRoles,
     WEBHOOK_CHANNEL_TYPE,
 )
-from datetime import datetime, timedelta
+from app.va.va_profile import VAProfileClient
+
 from flask import current_app, url_for
-from random import randint, randrange
 from sqlalchemy import delete, update, select, Table
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm.session import make_transient
@@ -103,6 +105,7 @@ from tests.app.db import (
 
 # Tests only run against email/sms. API also considers letters
 TEMPLATE_TYPES = [SMS_TYPE, EMAIL_TYPE]
+MOCK_VA_PROFILE_URL = 'http://mock.vaprofile.va.gov'
 
 
 def json_compare(a, b) -> bool:
@@ -1498,12 +1501,6 @@ def sample_notification(notify_db_session, sample_api_key, sample_template):  # 
 
 
 @pytest.fixture
-def sample_email_notification(sample_template, sample_notification):
-    template = sample_template(template_type=EMAIL_TYPE)
-    return sample_notification(template=template)
-
-
-@pytest.fixture
 def sample_notification_history(
     notify_db_session,
     sample_template,
@@ -2167,16 +2164,20 @@ def sample_communication_item(notify_db_session):
     created_communication_item_ids = []
     va_profile_ids = set([])
 
-    def _sample_communication_item():
-        va_profile_item_id = randint(1, 10000000)
+    def _sample_communication_item(default_send: bool = True):
+        va_profile_item_id = randint(111, 10000000)
         # This actually hit a duplicate during testing!
         while va_profile_item_id in va_profile_ids:
             va_profile_item_id = randint(1, 10000000)
-        communication_item = CommunicationItem(id=uuid4(), va_profile_item_id=va_profile_item_id, name=uuid4())
+        communication_item = CommunicationItem(
+            id=uuid4(),
+            va_profile_item_id=va_profile_item_id,
+            name=uuid4(),
+            default_send_indicator=default_send,
+        )
         notify_db_session.session.add(communication_item)
         notify_db_session.session.commit()
 
-        assert communication_item.default_send_indicator, 'Should be True by default.'
         created_communication_item_ids.append(communication_item.id)
         va_profile_ids.add(va_profile_item_id)
 
@@ -2431,6 +2432,34 @@ def sample_dynamodb_insert(dynamodb_mock):
     # delete the items added
     for item in items_inserted:
         dynamodb_mock.delete_item(Key={'participant_id': item['participant_id'], 'payment_id': item['payment_id']})
+
+
+@pytest.fixture(scope='function')
+def mock_va_profile_client(mocker, notify_api):
+    with notify_api.app_context():
+        mock_logger = mocker.Mock()
+        mock_ssl_key_path = 'some_key.pem'
+        mock_ssl_cert_path = 'some_cert.pem'
+        mock_statsd_client = mocker.Mock()
+        mock_va_profile_token = mocker.Mock()
+
+        client = VAProfileClient()
+        client.init_app(
+            logger=mock_logger,
+            va_profile_url=MOCK_VA_PROFILE_URL,
+            ssl_cert_path=mock_ssl_cert_path,
+            ssl_key_path=mock_ssl_key_path,
+            va_profile_token=mock_va_profile_token,
+            statsd_client=mock_statsd_client,
+        )
+
+        return client
+
+
+@pytest.fixture(scope='function')
+def mock_va_profile_response():
+    with open('tests/app/va/va_profile/mock_response.json', 'r') as f:
+        return json.load(f)
 
 
 #######################################################################################################################
