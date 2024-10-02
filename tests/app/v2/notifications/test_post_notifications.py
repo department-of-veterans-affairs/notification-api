@@ -100,7 +100,7 @@ def test_post_sms_notification_returns_201(
     assert resp_json['template']['version'] == template.version
     assert 'services/{}/templates/{}'.format(template.service_id, template.id) in resp_json['template']['uri']
     assert not resp_json['scheduled_for']
-
+    assert resp_json['callback_url'] is None
     if 'recipient_identifier' not in data:
         assert mock_deliver_sms.called
     # Else, for sending with a recipient ID, the delivery function won't get called because the preceeding

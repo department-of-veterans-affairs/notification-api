@@ -5,7 +5,7 @@ from app.models import (
     NOTIFICATION_STATUS_LETTER_RECEIVED,
     TEMPLATE_TYPES,
 )
-from app.schema_validation.definitions import nullable_uuid, uuid, personalisation, letter_personalisation
+from app.schema_validation.definitions import nullable_uuid, uuid, personalisation, letter_personalisation, https_url
 from app.va.identifier import IdentifierType
 
 
@@ -184,6 +184,7 @@ post_sms_response = {
         'template': template,
         'scheduled_for': {'type': ['string', 'null']},
     },
+    'callback_url': https_url,
     'required': ['id', 'content', 'uri', 'template'],
 }
 
