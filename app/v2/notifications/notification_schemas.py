@@ -153,6 +153,7 @@ post_sms_request = {
         'scheduled_for': {'type': ['string', 'null'], 'format': 'datetime_within_next_day'},
         'sms_sender_id': nullable_uuid,
         'billing_code': {'type': ['string', 'null'], 'maxLength': 256},
+        'callback_url': https_url,
     },
     # This is necessary to get the content of the message and who it's from.
     'required': ['template_id'],
@@ -184,7 +185,6 @@ post_sms_response = {
         'template': template,
         'scheduled_for': {'type': ['string', 'null']},
     },
-    'callback_url': https_url,
     'required': ['id', 'content', 'uri', 'template'],
 }
 
@@ -203,6 +203,7 @@ post_email_request = {
         'scheduled_for': {'type': ['string', 'null'], 'format': 'datetime_within_next_day'},
         'email_reply_to_id': uuid,
         'billing_code': {'type': ['string', 'null'], 'maxLength': 256},
+        'callback_url': https_url,
     },
     'required': ['template_id'],
     'anyOf': [{'required': ['email_address']}, {'required': ['recipient_identifier']}],

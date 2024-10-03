@@ -64,7 +64,9 @@ def test_post_sms_notification_returns_201(
     mocker,
 ):
     template = sample_template(content='Hello (( Name))\nYour thing is due soon')
-    data.update({'template_id': str(template.id), 'personalisation': {' Name': 'Jo'}})
+    data.update(
+        {'template_id': str(template.id), 'personalisation': {' Name': 'Jo'}, 'callback_url': 'https://www.test.com'}
+    )
     if reference is not None:
         # Have to set reference for the asserts below, can't add it to data in the None case
         reference = str(uuid.uuid4())
@@ -89,6 +91,7 @@ def test_post_sms_notification_returns_201(
     assert len(notifications) == 1
     assert notifications[0].status == NOTIFICATION_CREATED
     assert notifications[0].postage is None
+    assert notifications[0].callback_url == 'https://www.test.com'
 
     # endpoint checks
     assert resp_json['id'] == str(notifications[0].id)
@@ -100,7 +103,7 @@ def test_post_sms_notification_returns_201(
     assert resp_json['template']['version'] == template.version
     assert 'services/{}/templates/{}'.format(template.service_id, template.id) in resp_json['template']['uri']
     assert not resp_json['scheduled_for']
-    assert resp_json['callback_url'] is None
+    assert resp_json['callback_url'] == 'https://www.test.com'
     if 'recipient_identifier' not in data:
         assert mock_deliver_sms.called
     # Else, for sending with a recipient ID, the delivery function won't get called because the preceeding
@@ -392,6 +395,12 @@ def test_notification_returns_400_and_for_schema_problems(
     } in error_resp['errors']
 
 
+@pytest.mark.skip()
+def test_notification_returns_400_if_bad_callback_url():
+    # TODO - 2014
+    assert 0 == 1
+
+
 @pytest.mark.parametrize('reference', [None, 'reference_from_client'])
 def test_post_email_notification_returns_201(
     client,
@@ -407,6 +416,7 @@ def test_post_email_notification_returns_201(
         'template_id': template.id,
         'personalisation': {'name': 'Bob'},
         'billing_code': 'TESTCODE',
+        'callback_url': 'https://www.test.com',
     }
 
     if reference is not None:
@@ -421,6 +431,8 @@ def test_post_email_notification_returns_201(
     )
     assert notification.status == NOTIFICATION_CREATED
     assert notification.postage is None
+    assert notification.callback_url == 'https://www.test.com'
+
     assert resp_json['id'] == str(notification.id)
     assert resp_json['billing_code'] == 'TESTCODE'
     assert resp_json['reference'] == reference
@@ -432,6 +444,7 @@ def test_post_email_notification_returns_201(
     assert resp_json['template']['id'] == str(template.id)
     assert resp_json['template']['version'] == template.version
     assert 'services/{}/templates/{}'.format(str(template.service_id), str(template.id)) in resp_json['template']['uri']
+    assert resp_json['callback_url'] == 'https://www.test.com'
     assert not resp_json['scheduled_for']
     assert mock_deliver_email.called
 
@@ -456,6 +469,7 @@ def test_post_email_notification_with_reply_to_returns_201(
         'template_id': template.id,
         'personalisation': {'name': 'Bob'},
         'billing_code': 'TESTCODE',
+        'callback_url': 'https://www.test.com',
     }
 
     if reference is not None:
@@ -474,6 +488,7 @@ def test_post_email_notification_with_reply_to_returns_201(
     assert notification.status == NOTIFICATION_CREATED
     assert notification.postage is None
     assert notification.reply_to_text == 'testing@email.com'
+    assert notification.callback_url == 'https://www.test.com'
 
     # endpoint checks
     assert resp_json['id'] == str(notification.id)
@@ -486,6 +501,7 @@ def test_post_email_notification_with_reply_to_returns_201(
     assert resp_json['template']['version'] == template.version
     assert 'services/{}/templates/{}'.format(str(template.service_id), str(template.id)) in resp_json['template']['uri']
     assert not resp_json['scheduled_for']
+    assert resp_json['callback_url'] == 'https://www.test.com'
     assert mock_deliver_email.called
 
 
