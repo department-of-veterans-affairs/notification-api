@@ -243,6 +243,13 @@ class VAProfileClient:
             ):
                 self.statsd_client.incr('clients.va-profile.get-telephone.success')
                 return f"+{sorted_telephones[0]['countryCode']}{sorted_telephones[0]['areaCode']}{sorted_telephones[0]['phoneNumber']}"
+            else:
+                self.logger.warning(
+                    'Has a phone number but it is missing a piece. country code: %s | area code: %s | phone number: %s',
+                    sorted_telephones[0].get('countryCode'),
+                    sorted_telephones[0].get('areaCode'),
+                    sorted_telephones[0].get('phoneNumber'),
+                )
 
     def get_telephone_with_permission(
         self,
