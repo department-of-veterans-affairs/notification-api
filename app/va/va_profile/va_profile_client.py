@@ -249,7 +249,7 @@ class VAProfileClient:
                     'Has a phone number but it is missing a piece. country code: %s | area code: %s | phone number: %s',
                     sorted_telephones[0].get('countryCode'),
                     sorted_telephones[0].get('areaCode'),
-                    len(number) if isinstance(number, str) else None,
+                    len(number) if isinstance(number, str) else type(number),
                 )
 
     def get_telephone_with_permission(
