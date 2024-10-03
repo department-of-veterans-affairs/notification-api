@@ -23,4 +23,14 @@ fileignoreconfig:
     checksum: a80aa727586db82ed1b50bdb81ddfe1379e649a9dfc1ece2c36047486b41b83d
   - filename: tests/app/notifications/test_process_notifications_for_profile_v3.py
     checksum: 4e15e63d349635131173ffdd7aebcd547621db08de877ef926d3a41fde72d065
+  - filename: tests/app/callback/test_webhook_callback_strategy.py
+    checksum: 288841d3209dc3ca885cd0bb08591221f7f15e5b3406fb7140505096db212554
+  - filename: app/callback/webhook_callback_strategy.py
+    checksum: 47846ab651c27512d3ac7864c08cb25d647f63bb84321953f907551fd9d2e85f
+  - filename: app/dao/api_key_dao.py
+    checksum: ab93313f306c8a3f6576141e8f32d9fc99b0de7da8d44a1ddbe6ea55d167dcdb
+  - filename: ci/docker-compose-test.yml
+    checksum: e3efec2749e8c19e60f5bfc68eafabe24eba647530a482ceccfc4e0e62cff424
+  - filename: cd/application-deployment/dev/vaec-api-task-definition.json
+    checksum: f328ff821339b802eb1d82559e624d5b719857c813d427da5aaa39b240331ddd
 version: "1.0"
