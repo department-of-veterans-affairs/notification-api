@@ -197,9 +197,7 @@ def _get_notification_status_update_statement(
 
 
 def _update_notification_status(
-    notification: Notification,
-    status: str,
-    status_reason: str | None = None
+    notification: Notification, status: str, status_reason: str | None = None
 ) -> Notification:
     """
     Update the notification status if it should be updated.
@@ -314,11 +312,7 @@ def update_notification_delivery_status(
 
 @statsd(namespace='dao')
 @transactional
-def update_notification_status_by_reference(
-    reference: UUID,
-    status: str,
-    status_reason: str | None = None
-):
+def update_notification_status_by_reference(reference: UUID, status: str, status_reason: str | None = None):
     # this is used to update letters and emails
     stmt = select(Notification).where(Notification.reference == reference)
     notification = db.session.scalar(stmt)

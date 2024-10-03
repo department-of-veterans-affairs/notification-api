@@ -1627,7 +1627,7 @@ def test_dao_update_notifications_by_reference_updated_notifications(
 
     updated_count, updated_history_count = dao_update_notifications_by_reference(
         references=(notification_1.reference, notification_2.reference),
-        update_dict={'status': NOTIFICATION_DELIVERED, 'status_reason': '', 'billable_units': 2}
+        update_dict={'status': NOTIFICATION_DELIVERED, 'status_reason': '', 'billable_units': 2},
     )
 
     assert updated_count == 2
@@ -2054,7 +2054,7 @@ def test_update_notification_status_by_id_can_update_status_in_order_when_given_
         reference=reference,
         sent_at=datetime.now(),
         status=current_status,
-        status_reason=initial_status_reason
+        status_reason=initial_status_reason,
     )
     assert notification.status == current_status
     assert notification.status_reason == initial_status_reason
@@ -2064,7 +2064,7 @@ def test_update_notification_status_by_id_can_update_status_in_order_when_given_
             notification_id=notification.id,
             status=next_status,
             status_reason=final_status_reason,
-            current_status=current_status
+            current_status=current_status,
         )
     else:
         update_notification_status_by_id(
