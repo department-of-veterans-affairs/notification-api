@@ -1636,7 +1636,7 @@ def test_dao_update_notifications_by_reference_updated_notifications(
     for notification_id in (notification_1.id, notification_2.id):
         updated_notification = notify_db_session.session.get(Notification, notification_id)
         assert updated_notification.status == NOTIFICATION_DELIVERED
-        assert updated_notification.status_reason == ''
+        assert not updated_notification.status_reason, 'This should be the empty string.'
         assert updated_notification.billable_units == 2
 
 
