@@ -245,7 +245,7 @@ class VAProfileClient:
                 return f"+{sorted_telephones[0]['countryCode']}{sorted_telephones[0]['areaCode']}{sorted_telephones[0]['phoneNumber']}"
             else:
                 number = sorted_telephones[0].get('phoneNumber')
-                self.logger.warning(
+                self.logger.error(
                     'Has a phone number but it is missing a piece. country code: %s | area code: %s | phone number: %s',
                     sorted_telephones[0].get('countryCode'),
                     sorted_telephones[0].get('areaCode'),
