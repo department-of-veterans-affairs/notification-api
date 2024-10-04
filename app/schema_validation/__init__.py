@@ -68,16 +68,19 @@ def validate(
     validator = Draft7Validator(schema, format_checker=format_checker)
     errors = list(validator.iter_errors(json_to_validate))
     if len(errors) > 0:
-        # Redact "personalisation"
-        if isinstance(json_to_validate, dict) and 'personalisation' in json_to_validate:
-            if isinstance(json_to_validate['personalisation'], str):
-                json_to_validate['personalisation'] = '<redacted>'
-            elif isinstance(json_to_validate['personalisation'], dict):
-                json_to_validate['personalisation'] = {key: '<redacted>' for key in json_to_validate['personalisation']}
-        # Redact ICN
-        identifier = json_to_validate.get('recipient_identifier', {}).get('id_type')
-        if identifier == 'ICN':
-            json_to_validate['recipient_identifier']['id_value'] = '<redacted>'
+        if isinstance(json_to_validate, dict):
+            # Redact "personalisation"
+            if 'personalisation' in json_to_validate:
+                if isinstance(json_to_validate['personalisation'], dict):
+                    json_to_validate['personalisation'] = {
+                        key: '<redacted>' for key in json_to_validate['personalisation']
+                    }
+                else:
+                    json_to_validate['personalisation'] = '<redacted>'
+
+            # Redact ICN
+            if json_to_validate.get('recipient_identifier', {}).get('id_type') == 'ICN':
+                json_to_validate['recipient_identifier']['id_value'] = '<redacted>'
 
         current_app.logger.info('Validation failed for: %s', json_to_validate)
         raise ValidationError(build_error_message(errors))
