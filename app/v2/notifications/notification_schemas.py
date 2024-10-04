@@ -55,6 +55,7 @@ get_notification_response = {
         'sent_by': {'type': ['string', 'null']},
         'completed_at': {'type': ['string', 'null']},
         'scheduled_for': {'type': ['string', 'null']},
+        'callback_url': https_url,
     },
     'required': [
         # technically, all keys are required since we always have all of them
