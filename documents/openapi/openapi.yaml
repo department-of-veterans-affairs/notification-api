@@ -2774,6 +2774,9 @@ components:
         uri:
           type: string
           format: uri
+        callback_url:
+          type: string
+          format: uri
         template:
           type: object
           properties:
