@@ -1090,6 +1090,22 @@ paths:
   /v2/notifications/email:
     post:
       summary: Send an email notification
+      description: |
+        ### Required properties
+        
+        * `template_id` - The UUID of the template to send the notification
+        * `email_address` - The email address of the recipient
+        * _or_ `recipient_identifier` - a VAPROFILEID, ICN, EDIPI, PID, or BIRLSID (see examples)
+        
+        ### Optional properties
+        
+        * `billing_code` - A string to indicate your billing code
+        * `callback_url` - An https URL; note that this overrides any service level callback
+        * `email_reply_to_id` - A UUID
+        * `personalisation` - If the template includes personalisation, the fields to populate (see examples)
+        * `reference` - A string to indicate any reference
+        * `scheduled_for` - A datetime indicated when to send the notification (not available at this time)
+
       security:
         - serviceAuth: []
       tags:
@@ -1161,6 +1177,23 @@ paths:
   /v2/notifications/sms:
     post:
       summary: Send an sms notification
+      description: |
+        ### Required properties
+
+        * `template_id` - The UUID of the template to send the notification
+        * `phone_number` - The mobile phone number of the recipient
+        * _or_ `recipient_identifier` - a VAPROFILEID, ICN, EDIPI, PID, or BIRLSID (see examples)
+
+        ### Optional properties
+
+        * `billing_code` - A string to indicate your billing code
+        * `callback_url` - An https URL; note that this overrides any service level callback
+        * `email_reply_to_id` - A UUID
+        * `personalisation` - If the template includes personalisation, the fields to populate (see examples)
+        * `reference` - A string to indicate any reference
+        * `scheduled_for` - A datetime indicated when to send the notification (not available at this time)
+        * `sms_sender_id` - A UUID; note that this overrides service level sms sender
+
       security:
         - serviceAuth: []
       tags:
