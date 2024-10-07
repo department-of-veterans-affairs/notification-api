@@ -70,7 +70,7 @@ def process_delivery_status(
         price_in_millicents_usd,
     ) = _get_notification_parameters(notification_platform_status)
 
-    # Retrieve the inbound message for this provider.  (We are updating the status of the outbound message.)
+    # Retrieve the inbound message for this provider.  We are updating the status of the outbound message.
     notification, should_exit = attempt_to_get_notification(
         reference, notification_status, self.request.retries * self.default_retry_delay
     )
