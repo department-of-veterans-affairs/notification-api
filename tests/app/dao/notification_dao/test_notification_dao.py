@@ -2046,8 +2046,8 @@ def test_update_notification_status_by_id_can_update_status_in_order_when_given_
     use_current_status,
 ):
     reference = str(uuid4())
-    initial_status_reason = '' if (current_status == NOTIFICATION_DELIVERED) else 'Because I said so!'
-    final_status_reason = initial_status_reason if (next_status == current_status) else 'just because'
+    initial_status_reason = 'Because I said so!'
+    final_status_reason = 'just because'
 
     notification = sample_notification(
         template=sample_template(),

@@ -55,7 +55,7 @@ def test_process_ses_results(notify_db_session, sample_template, sample_notifica
 
     notify_db_session.session.refresh(notification)
     assert notification.status == NOTIFICATION_DELIVERED
-    assert not notification.status_reason, 'This should be the empty string.'
+    assert notification.status_reason is None
 
 
 def test_process_ses_results_retry_called(mocker, sample_template, sample_notification):
@@ -684,3 +684,32 @@ class TestSendEmailStatusToVAProfile:
             process_ses_receipts_tasks.send_email_status_to_va_profile(self.mock_notification_data)
 
         mock_send_va_profile_email_status.assert_called_once()
+
+
+@pytest.mark.parametrize('status', (NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_TEMPORARY_FAILURE))
+def test_process_ses_results_no_bounce_regression(
+    notify_db_session,
+    sample_template,
+    sample_notification,
+    status,
+):
+    """
+    If a bounce status has been persisted for a notificaiton, no further status updates should occur.
+    Soft bounces are temporary failures.  Hard bounces are permanent failures.
+    """
+
+    notification = sample_notification(
+        template=sample_template(template_type=EMAIL_TYPE),
+        status=status,
+        status_reason='bounce',
+        reference=str(uuid4()),
+    )
+
+    # Simulate a delivery callback arriving after the message already bounced.
+    response = ses_notification_callback(notification.reference)
+    assert json.loads(response['Message'])['eventType'] == 'Delivery'
+    assert process_ses_receipts_tasks.process_ses_results(response) is None
+
+    notify_db_session.session.refresh(notification)
+    assert notification.status == status, 'The status should not have changed.'
+    assert notification.status_reason == 'bounce'

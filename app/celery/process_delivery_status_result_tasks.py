@@ -209,7 +209,7 @@ def _calculate_pricing_and_update_notification(
     current_app.logger.debug('Calculate pricing and update notification %s', notification.id)
 
     # Delivered messages should not have an associated reason.
-    status_reason = '' if (notification_status == NOTIFICATION_DELIVERED) else notification.status_reason
+    status_reason = None if (notification_status == NOTIFICATION_DELIVERED) else notification.status_reason
 
     if price_in_millicents_usd > 0.0:
         dao_update_notification_by_id(

@@ -360,4 +360,4 @@ def test_process_delivery_status_no_status_reason_for_delivered(
     notify_db_session.session.refresh(notification)
     assert notification.reference == 'SMhardcodedKWM'
     assert notification.status == NOTIFICATION_DELIVERED
-    assert not notification.status_reason, 'This should be the empty string.'
+    assert notification.status_reason is None

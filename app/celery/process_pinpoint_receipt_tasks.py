@@ -136,7 +136,7 @@ def process_pinpoint_results(
                 notification.status_reason = 'The veteran is opted-out at the Pinpoint level.'
         elif notification_status == NOTIFICATION_DELIVERED:
             # Never include a status reason for a delivered notification.
-            notification.status_reason = ''
+            notification.status_reason = None
 
         if price_in_millicents_usd > 0.0:
             dao_update_notification_by_id(

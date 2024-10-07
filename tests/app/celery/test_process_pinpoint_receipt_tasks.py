@@ -98,7 +98,7 @@ def test_process_pinpoint_results_notification_final_status(
             else 'The veteran responded with STOP.'
         )
     elif expected_notification_status == NOTIFICATION_DELIVERED:
-        assert not notification.status_reason, 'The status reason should be the empty string.'
+        assert notification.status_reason is None
 
     mock_callback.assert_called_once()
 
@@ -185,7 +185,7 @@ def test_process_pinpoint_results_should_update_notification_status_with_deliver
         reference=test_reference,
         sent_at=datetime.datetime.utcnow(),
         status=status,
-        status_reason='' if (status == NOTIFICATION_DELIVERED) else 'just because',
+        status_reason=None if (status == NOTIFICATION_DELIVERED) else 'just because',
     )
     process_pinpoint_receipt_tasks.process_pinpoint_results(
         response=pinpoint_notification_callback_record(
@@ -196,7 +196,7 @@ def test_process_pinpoint_results_should_update_notification_status_with_deliver
     )
     notification = notifications_dao.dao_get_notification_by_reference(test_reference)
     assert notification.status == NOTIFICATION_DELIVERED
-    assert not notification.status_reason, 'The status reason should be the empty string.'
+    assert notification.status_reason is None
 
     update_notification_status.assert_not_called()
 
@@ -242,7 +242,7 @@ def test_process_pinpoint_results_segments_and_price_buffered_first(
     assert notification.status == NOTIFICATION_DELIVERED
     assert notification.segments_count == 6
     assert notification.cost_in_millicents == 4986.0
-    assert not notification.status_reason, 'The status reason should be the empty string.'
+    assert notification.status_reason is None
 
     # A subsequent _SMS.SUCCESS+DELIVERED event should not alter the segments and price columns.
     process_pinpoint_receipt_tasks.process_pinpoint_results(
@@ -259,7 +259,7 @@ def test_process_pinpoint_results_segments_and_price_buffered_first(
     assert notification.status == NOTIFICATION_DELIVERED
     assert notification.segments_count == 6
     assert notification.cost_in_millicents == 4986.0
-    assert not notification.status_reason, 'The status reason should be the empty string.'
+    assert notification.status_reason is None
 
 
 def test_process_pinpoint_results_segments_and_price_success_first(
@@ -294,7 +294,7 @@ def test_process_pinpoint_results_segments_and_price_success_first(
     assert notification.status == NOTIFICATION_DELIVERED
     assert notification.segments_count == 4
     assert notification.cost_in_millicents == 2986.0
-    assert not notification.status_reason, 'The status reason should be the empty string.'
+    assert notification.status_reason is None
 
 
 def pinpoint_notification_callback_record(
