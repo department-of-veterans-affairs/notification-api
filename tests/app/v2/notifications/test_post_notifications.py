@@ -395,10 +395,38 @@ def test_notification_returns_400_and_for_schema_problems(
     } in error_resp['errors']
 
 
-@pytest.mark.skip()
-def test_notification_returns_400_if_bad_callback_url():
-    # TODO - 2014
-    assert 0 == 1
+@pytest.mark.parametrize(
+    'callback_url',
+    [
+        'invalid-url',
+        'htp://wrongformat.com',
+        'www.missingprotocol.com',
+        'https://example.com/search?query=this_is_a_search_term_to_reach_exactly_256_charactersaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&filter=type=all&status=active&sort=ascending&page=1234567890&session_token=abc123&tracking_id=unique_user_tracking_value',
+    ],
+)
+def test_notification_returns_400_if_bad_callback_url(
+    client,
+    sample_api_key,
+    sample_template,
+    callback_url,
+):
+    template = sample_template(content='Hello (( Name))\nYour thing is due soon')
+
+    data = {
+        'phone_number': '+16502532222',
+        'template_id': str(template.id),
+        'personalisation': {' Name': 'Jo'},
+        'callback_url': callback_url,
+    }
+
+    response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
+
+    assert response.status_code == 400
+    assert response.headers['Content-type'] == 'application/json'
+    error_resp = response.get_json()
+
+    assert error_resp['status_code'] == 400
+    assert {'error': 'ValidationError', 'message': 'Invalid callback URL'} in error_resp['errors']
 
 
 @pytest.mark.parametrize('reference', [None, 'reference_from_client'])
