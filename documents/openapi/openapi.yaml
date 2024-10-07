@@ -1093,7 +1093,7 @@ paths:
       description: |
         ### Required properties
         
-        * `template_id` - The UUID of the template to send the notification
+        * `template_id` - The UUID of the template
         * `email_address` - The email address of the recipient
         * _or_ `recipient_identifier` - a VAPROFILEID, ICN, EDIPI, PID, or BIRLSID (see examples)
         
@@ -1180,7 +1180,7 @@ paths:
       description: |
         ### Required properties
 
-        * `template_id` - The UUID of the template to send the notification
+        * `template_id` - The UUID of the template
         * `phone_number` - The mobile phone number of the recipient
         * _or_ `recipient_identifier` - a VAPROFILEID, ICN, EDIPI, PID, or BIRLSID (see examples)
 
@@ -2802,16 +2802,17 @@ components:
     Notification:
       type: object
       properties:
+        billing_code:
+          type: string
+        callback_url:
+          type: string
+          format: uri
         id:
           $ref: '#/components/schemas/Id'
         reference:
           type: string
-        uri:
+        scheduled_for:
           type: string
-          format: uri
-        callback_url:
-          type: string
-          format: uri
         template:
           type: object
           properties:
@@ -2822,8 +2823,9 @@ components:
             uri:
               type: string
               format: uri
-        scheduled_for:
+        uri:
           type: string
+          format: uri
     NotificationStatusResponse:
       type: object
       properties:
