@@ -395,6 +395,36 @@ def test_notification_returns_400_and_for_schema_problems(
     } in error_resp['errors']
 
 
+def test_post_sms_notification_without_callback_url(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+):
+    template = sample_template(content='Hello (( Name))\nYour thing is due soon')
+
+    data = {'phone_number': '+16502532222', 'template_id': str(template.id), 'personalisation': {' Name': 'Jo'}}
+
+    response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
+
+    assert response.status_code == 201
+    resp_json = response.get_json()
+    assert validate(resp_json, post_sms_response) == resp_json
+
+    notifications = notify_db_session.session.scalars(
+        select(Notification).where(Notification.service_id == template.service_id)
+    ).all()
+
+    assert len(notifications) == 1
+
+    notification = notifications[0]
+    assert notification.callback_url is None
+
+    assert resp_json['id'] == str(notification.id)
+    assert resp_json['content']['body'] == template.content.replace('(( Name))', 'Jo')
+    assert 'callback_url' not in resp_json or resp_json['callback_url'] is None
+
+
 @pytest.mark.parametrize(
     'callback_url',
     [
