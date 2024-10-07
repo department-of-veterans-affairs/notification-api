@@ -61,5 +61,4 @@ https_callback_url = {
     'maxLength': 255,
     'format': 'uri',
     'pattern': '^https.*',
-    'validationMessage': 'is not a valid https url',
 }

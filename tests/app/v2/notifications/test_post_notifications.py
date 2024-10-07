@@ -428,10 +428,13 @@ def test_post_sms_notification_without_callback_url(
 @pytest.mark.parametrize(
     'callback_url',
     [
-        'invalid-url',
-        'htp://wrongformat.com',
-        'www.missingprotocol.com',
-        'https://example.com/search?query=this_is_a_search_term_to_reach_exactly_256_charactersaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&filter=type=all&status=active&sort=ascending&page=1234567890&session_token=abc123&tracking_id=unique_user_tracking_value',
+        ('invalid-url', 'is not a valid URI.'),
+        ('htp://wrongformat.com', 'does not match ^https.*'),
+        ('www.missingprotocol.com', 'does not match ^https.*'),
+        (
+            'https://example.com/search?query=this_is_a_search_term_to_reach_exactly_256_charactersaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&filter=type=all&status=active&sort=ascending&page=1234567890&session_token=abc123&tracking_id=unique_user_tracking_value',
+            'is too long',
+        ),
     ],
 )
 def test_notification_returns_400_if_invalid_callback_url(
@@ -441,12 +444,14 @@ def test_notification_returns_400_if_invalid_callback_url(
     callback_url,
 ):
     template = sample_template(content='Hello (( Name))\nYour thing is due soon')
+    url = callback_url[0]
+    expected_error = callback_url[1]
 
     data = {
         'phone_number': '+16502532222',
         'template_id': str(template.id),
         'personalisation': {' Name': 'Jo'},
-        'callback_url': callback_url,
+        'callback_url': url,
     }
 
     response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
@@ -456,7 +461,7 @@ def test_notification_returns_400_if_invalid_callback_url(
     error_resp = response.get_json()
 
     assert error_resp['status_code'] == 400
-    assert {'error': 'ValidationError', 'message': 'callback_url is not a valid https url'} in error_resp['errors']
+    assert {'error': 'ValidationError', 'message': f'callback_url {url} {expected_error}'} in error_resp['errors']
 
 
 @pytest.mark.parametrize('reference', [None, 'reference_from_client'])
