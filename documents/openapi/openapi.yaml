@@ -1192,7 +1192,7 @@ paths:
         * `personalisation` - If the template includes personalisation, the fields to populate (see examples)
         * `reference` - A string to indicate any reference
         * `scheduled_for` - A datetime indicated when to send the notification (not available at this time)
-        * `sms_sender_id` - A UUID; note that this overrides service level sms sender
+        * `sms_sender_id` - A UUID; note that this overrides any service level sms sender
 
       security:
         - serviceAuth: []
