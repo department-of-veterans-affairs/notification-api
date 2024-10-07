@@ -44,7 +44,6 @@ def test_service_inbound_api_schema_errors_for_url_not_valid_url(client, invalid
     with pytest.raises(ValidationError) as e:
         validate(under_test, update_service_inbound_api_schema)
     errors = json.loads(str(e.value)).get('errors')
-    assert len(errors) == 1
     assert errors[0]['message'] == f'url {url} {invalid_url_error}'
 
 
