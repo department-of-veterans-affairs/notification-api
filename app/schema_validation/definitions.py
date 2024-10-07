@@ -48,17 +48,10 @@ letter_personalisation = dict(
 )
 
 https_url = {
-    'type': 'string',
-    'format': 'uri',
-    'pattern': '^https.*',
-    'validationMessage': 'is not a valid https url',
-    'code': '1001',  # yet to be implemented
-    'link': 'link to our error documentation not yet implemented',
-}
-
-https_callback_url = {
     'type': ['string', 'null'],
     'maxLength': 255,
     'format': 'uri',
     'pattern': '^https.*',
+    'code': '1001',  # yet to be implemented
+    'link': 'link to our error documentation not yet implemented',
 }
