@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: VA Notify API Documentation
-  version: 1.0.7
+  version: 1.0.8
   description: |
     <p>This documents the API schemas for consumption by internal VA developers.</p>
     <h1>Authorization header</h1>
@@ -1103,28 +1103,30 @@ paths:
             examples:
               email:
                 value:
-                  reference: string
                   template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  email_address: test@notification.com
                   personalisation:
                     full_name: John Smith
                     claim_id: '123456'
-                  scheduled_for: string
                   billing_code: string
+                  callback_url: https://www.example.com/callback
                   email_reply_to_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-                  email_address: "test@notification.com"
+                  reference: string
+                  scheduled_for: string
               recipient_identifier:
                 value:
-                  reference: string
                   template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-                  personalisation:
-                    full_name: John Smith
-                    claim_id: '123456'
-                  scheduled_for: string
-                  billing_code: string
-                  email_reply_to_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   recipient_identifier:
                     id_type: ICN
                     id_value: 1000000000V000000
+                  personalisation:
+                    full_name: John Smith
+                    claim_id: '123456'
+                  billing_code: string
+                  callback_url: https://www.example.com/callback
+                  email_reply_to_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  reference: string
+                  scheduled_for: string
       responses:
         '201':
           description: CREATED
@@ -1172,28 +1174,30 @@ paths:
             examples:
               phone_number:
                 value:
-                  reference: string
                   template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  phone_number: +12125551212
                   personalisation:
                     full_name: John Smith
                     claim_id: '123456'
-                  scheduled_for: string
                   billing_code: string
+                  callback_url: https://www.example.com/callback
+                  reference: string
+                  scheduled_for: string
                   sms_sender_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-                  phone_number: "+19876543210"
               recipient_identifier:
                 value:
-                  reference: string
                   template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-                  personalisation:
-                    full_name: John Smith
-                    claim_id: '123456'
-                  scheduled_for: string
-                  billing_code: string
-                  sms_sender_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6                  
                   recipient_identifier:
                     id_type: ICN
                     id_value: 1000000000V000000
+                  personalisation:
+                    full_name: John Smith
+                    claim_id: '123456'
+                  billing_code: string
+                  callback_url: https://www.example.com/callback
+                  reference: string
+                  scheduled_for: string
+                  sms_sender_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
       responses:
         '201':
           description: CREATED
