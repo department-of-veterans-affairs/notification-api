@@ -55,3 +55,11 @@ https_url = {
     'code': '1001',  # yet to be implemented
     'link': 'link to our error documentation not yet implemented',
 }
+
+https_callback_url = {
+    'type': ['string', 'null'],
+    'maxLength': 255,
+    'format': 'uri',
+    'pattern': '^https.*',
+    'validationMessage': 'is not a valid https url',
+}
