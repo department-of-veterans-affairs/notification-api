@@ -404,7 +404,7 @@ def test_notification_returns_400_and_for_schema_problems(
         'https://example.com/search?query=this_is_a_search_term_to_reach_exactly_256_charactersaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&filter=type=all&status=active&sort=ascending&page=1234567890&session_token=abc123&tracking_id=unique_user_tracking_value',
     ],
 )
-def test_notification_returns_400_if_bad_callback_url(
+def test_notification_returns_400_if_invalid_callback_url(
     client,
     sample_api_key,
     sample_template,
@@ -426,7 +426,7 @@ def test_notification_returns_400_if_bad_callback_url(
     error_resp = response.get_json()
 
     assert error_resp['status_code'] == 400
-    assert {'error': 'ValidationError', 'message': 'Invalid callback URL'} in error_resp['errors']
+    assert {'error': 'ValidationError', 'message': 'callback_url is not a valid https url'} in error_resp['errors']
 
 
 @pytest.mark.parametrize('reference', [None, 'reference_from_client'])
