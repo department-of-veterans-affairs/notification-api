@@ -2517,6 +2517,8 @@ components:
           description: datetime within next day
         billing_code:
           type: string
+        callback_url:
+          type: string($uri)
       required:
         - template_id
     SMSNotificationRequest:
