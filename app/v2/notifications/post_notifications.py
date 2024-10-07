@@ -115,7 +115,6 @@ def post_notification(notification_type):  # noqa: C901
         else:
             # This execution path uses a given recipient identifier to lookup the
             # recipient's e-mail address or phone number.
-
             if accept_recipient_identifiers_enabled():
                 notification = process_notification_with_recipient_identifier(
                     form=form,
