@@ -2550,9 +2550,11 @@ components:
           description: datetime within next day
         billing_code:
           type: string
+          maxLength: 256
         callback_url:
           type: string
           format: uri
+          maxLength: 255
       required:
         - template_id
     SMSNotificationRequest:
