@@ -115,7 +115,7 @@ def test_get_notification_by_id_with_placeholders_and_recipient_identifiers_retu
         template=template,
         personalisation={'name': 'Bob'},
         recipient_identifiers=recipient_identifiers,
-        callback_url='http://www.test.com',
+        callback_url='https://www.test.com',
     )
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
