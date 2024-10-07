@@ -2518,7 +2518,8 @@ components:
         billing_code:
           type: string
         callback_url:
-          type: string($uri)
+          type: string
+          format: uri
       required:
         - template_id
     SMSNotificationRequest:
@@ -2792,6 +2793,9 @@ components:
           type: string
         body:
           type: string
+        callback_url:
+          type: string
+          format: uri
         completed_at:
           type: string
           format: date-time
