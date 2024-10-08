@@ -22,30 +22,19 @@ def test_service_inbound_api_schema_validates(client):
     assert validate(under_test, update_service_inbound_api_schema) == under_test
 
 
-@pytest.mark.parametrize(
-    'invalid_url',
-    [
-        ('not a url', 'is not a valid URI.'),
-        ('https not a url', 'is not a valid URI.'),
-        ('http://valid.com', 'does not match ^https.*'),
-    ],
-)
-def test_service_inbound_api_schema_errors_for_url_not_valid_url(client, invalid_url):
-    url = invalid_url[0]
-
+@pytest.mark.parametrize('url', ['not a url', 'https not a url', 'http://valid.com'])
+def test_service_inbound_api_schema_errors_for_url_not_valid_url(client, url):
     under_test = {
         'url': url,
         'bearer_token': 'something_ten_chars',
         'updated_by_id': str(uuid.uuid4()),
     }
 
-    invalid_url_error = invalid_url[1]
-
     with pytest.raises(ValidationError) as e:
         validate(under_test, update_service_inbound_api_schema)
     errors = json.loads(str(e.value)).get('errors')
     assert len(errors) == 1
-    assert errors[0]['message'] == f'url {url} {invalid_url_error}'
+    assert errors[0]['message'] == 'url is not a valid https url'
 
 
 def test_service_inbound_api_schema_bearer_token_under_ten_char(client):
