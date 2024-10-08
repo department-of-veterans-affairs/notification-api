@@ -429,7 +429,7 @@ def test_post_sms_notification_without_callback_url(
     'callback_url, expected_error',
     [
         ('invalid-url', 'is not a valid URI.'),
-        ('htp://wrongformat.com', 'does not match ^https.*'),
+        ('http://wrongformat.com', 'does not match ^https.*'),
         ('www.missingprotocol.com', 'does not match ^https.*'),
         (
             'https://example.com/search?query=this_is_a_search_term_to_reach_exactly_256_charactersaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&filter=type=all&status=active&sort=ascending&page=1234567890&session_token=abc123&tracking_id=unique_user_tracking_value',
@@ -460,7 +460,9 @@ def test_notification_returns_400_if_invalid_callback_url(
     error_resp = response.get_json()
 
     assert error_resp['status_code'] == 400
-    assert {'error': 'ValidationError', 'message': f'callback_url {callback_url} {expected_error}'} in error_resp['errors']
+    assert {'error': 'ValidationError', 'message': f'callback_url {callback_url} {expected_error}'} in error_resp[
+        'errors'
+    ]
 
 
 @pytest.mark.parametrize('reference', [None, 'reference_from_client'])
