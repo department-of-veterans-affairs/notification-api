@@ -48,10 +48,10 @@ letter_personalisation = dict(
 )
 
 https_url = {
-    'type': ['string', 'null'],
-    'maxLength': 255,
+    'type': 'string',
     'format': 'uri',
     'pattern': '^https.*',
+    'validationMessage': 'is not a valid https url',
     'code': '1001',  # yet to be implemented
     'link': 'link to our error documentation not yet implemented',
 }
