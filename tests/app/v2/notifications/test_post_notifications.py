@@ -426,7 +426,7 @@ def test_post_sms_notification_without_callback_url(
 
 
 @pytest.mark.parametrize(
-    'callback_url',
+    'callback_url, expected_error',
     [
         ('invalid-url', 'is not a valid URI.'),
         ('htp://wrongformat.com', 'does not match ^https.*'),
