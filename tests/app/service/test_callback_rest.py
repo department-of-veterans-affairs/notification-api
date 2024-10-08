@@ -367,8 +367,8 @@ class TestCreateServiceCallback:
         'add_url, url, expected_response',
         [
             (False, None, 'url is a required property'),
-            (True, None, 'callback_channel is a required property'),
-            (True, 'broken.url', 'url broken.url is not a valid URI.'),
+            (True, None, 'url is not a valid https url'),
+            (True, 'broken.url', 'url is not a valid https url'),
         ],
     )
     def test_create_service_callback_raises_400_when_url_validation_failed(
