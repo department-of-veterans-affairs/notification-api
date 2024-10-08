@@ -460,7 +460,7 @@ def test_notification_returns_400_if_invalid_callback_url(
     error_resp = response.get_json()
 
     assert error_resp['status_code'] == 400
-    assert {'error': 'ValidationError', 'message': f'callback_url {url} {expected_error}'} in error_resp['errors']
+    assert {'error': 'ValidationError', 'message': f'callback_url {callback_url} {expected_error}'} in error_resp['errors']
 
 
 @pytest.mark.parametrize('reference', [None, 'reference_from_client'])
