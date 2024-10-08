@@ -4,49 +4,33 @@ Revises: 0370_notification_callback_url
 Create Date: 2024-10-08 20:35:38
 """
 from alembic import op
-from sqlalchemy import text
 
 revision = '371_replace_template_content'
 down_revision = '0370_notification_callback_url'
 
 def upgrade():
-    op.execute(
-        text("""
-            UPDATE templates
-            SET name = REPLACE(name, :old_name, :new_name),
-                content = REPLACE(content, :old_url, :new_url)
-        """),
-        {
-         "old_url": "https://notification.alpha.canada.ca", 
-         "new_url": "https://api.va.gov/vanotify"}
-    )
+    # Replace only the URLs in the 'templates' table
+    op.execute("""
+        UPDATE templates
+        SET content = REPLACE(content, 'https://notification.alpha.canada.ca', 'https://api.va.gov/vanotify')
+    """)
 
-    op.execute(
-        text("""
-            UPDATE templates_history
-            SET name = REPLACE(name, :old_name, :new_name),
-                content = REPLACE(content, :old_url, :new_url)
-        """),
-        {
-         "old_url": "https://notification.alpha.canada.ca", 
-         "new_url": "https://api.va.gov/vanotify"}
-    )
+    # Replace only the URLs in the 'templates_history' table
+    op.execute("""
+        UPDATE templates_history
+        SET content = REPLACE(content, 'https://notification.alpha.canada.ca', 'https://api.va.gov/vanotify')
+    """)
+
 
 def downgrade():
-    op.execute(
-        text("""
-            UPDATE templates
-            SET content = REPLACE(content, :new_url, :old_url)
-        """),
-        {"old_url": "https://notification.alpha.canada.ca", 
-         "new_url": "https://api.va.gov/vanotify"}
-    )
-  
-    op.execute(
-        text("""
-            UPDATE templates_history
-            SET content = REPLACE(content, :new_url, :old_url)
-        """),
-        {"old_url": "https://notification.alpha.canada.ca", 
-         "new_url": "https://api.va.gov/vanotify"}
-    )
+    # Reverse the replacement of URLs in the 'templates' table
+    op.execute("""
+        UPDATE templates
+        SET content = REPLACE(content, 'https://api.va.gov/vanotify', 'https://notification.alpha.canada.ca')
+    """)
+
+    # Reverse the replacement of URLs in the 'templates_history' table
+    op.execute("""
+        UPDATE templates_history
+        SET content = REPLACE(content, 'https://api.va.gov/vanotify', 'https://notification.alpha.canada.ca')
+    """)
