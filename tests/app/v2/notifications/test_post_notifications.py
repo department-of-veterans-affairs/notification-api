@@ -450,7 +450,7 @@ def test_notification_returns_400_if_invalid_callback_url(
         'phone_number': '+16502532222',
         'template_id': str(template.id),
         'personalisation': {' Name': 'Jo'},
-        'callback_url': url,
+        'callback_url': callback_url,
     }
 
     response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
