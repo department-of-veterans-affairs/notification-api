@@ -422,7 +422,7 @@ def test_post_sms_notification_without_callback_url(
 
     assert resp_json['id'] == str(notification.id)
     assert resp_json['content']['body'] == template.content.replace('(( Name))', 'Jo')
-    assert 'callback_url' not in resp_json or resp_json['callback_url'] is None
+    assert resp_json['callback_url'] is None
 
 
 @pytest.mark.parametrize(
