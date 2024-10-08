@@ -442,6 +442,7 @@ def test_notification_returns_400_if_invalid_callback_url(
     sample_api_key,
     sample_template,
     callback_url,
+    expected_error,
 ):
     template = sample_template(content='Hello (( Name))\nYour thing is due soon')
     url = callback_url[0]
