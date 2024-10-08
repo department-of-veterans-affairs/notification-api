@@ -445,8 +445,6 @@ def test_notification_returns_400_if_invalid_callback_url(
     expected_error,
 ):
     template = sample_template(content='Hello (( Name))\nYour thing is due soon')
-    url = callback_url[0]
-    expected_error = callback_url[1]
 
     data = {
         'phone_number': '+16502532222',
