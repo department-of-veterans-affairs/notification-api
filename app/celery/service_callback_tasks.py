@@ -1,7 +1,13 @@
+import json
+
+from celery import Task
 from flask import current_app
+from requests import post
+from requests.exceptions import Timeout, RequestException
 from notifications_utils.statsd_decorators import statsd
 
 from app import notify_celery, encryption, statsd_client, DATETIME_FORMAT
+from app.callback.webhook_callback_strategy import generate_callback_signature
 from app.celery.exceptions import AutoRetryException, NonRetryableException, RetryableException
 from app.config import QueueNames
 from app.dao.complaint_dao import fetch_complaint_by_id
@@ -278,7 +284,7 @@ def create_delivery_status_callback_data(
     return encryption.encrypt(data)
 
 
-def create_delivery_status_callback_data_v3(notification: Notification) -> dict[str, str]:
+def create_delivery_status_callback_data_v3(notification: Notification) -> dict[str, str | None]:
     """Create all data that will be sent to a callback url specified in the Notification object.
 
     Args:
@@ -328,10 +334,7 @@ def create_complaint_callback_data(
     return encryption.encrypt(data)
 
 
-def check_and_queue_callback_task(
-    notification,
-    payload=None,
-):
+def check_and_queue_service_callback_task(notification: Notification, payload=None):
     # https://peps.python.org/pep-0557/#mutable-default-values
     # do not want to have mutable type in definition so we set provider_payload to empty dictionary
     # when one was not provided by the caller
@@ -353,6 +356,100 @@ def check_and_queue_callback_task(
         current_app.logger.debug(
             'No callbacks found for notification %s and service %s.', notification.id, notification.service_id
         )
+
+
+@notify_celery.task(
+    bind=True,
+    name='send-notification-delivery-status',
+    throws=(AutoRetryException,),
+    autoretry_for=(AutoRetryException,),
+    max_retries=60,
+    retry_backoff=True,
+    retry_backoff_max=3600,
+)
+@statsd(namespace='tasks')
+def send_delivery_status_from_notification(
+    self: Task,
+    callback_signature: str,
+    callback_url: str,
+    notification_data: dict[str, str],
+) -> None:
+    """
+    Send a delivery status notification to the given callback URL.
+
+    Args:
+        callback_signature (str): Signature for the callback
+        callback_url (str): URL to send the callback to
+        notification_data (dict[str, str]): Data to send in the callback
+
+    Raises:
+        RetryableException: If the request should be retried
+        NonRetryableException: If the request should not be retried
+    """
+    # retryable error codes: 408, 429, 500, 502, 503, 504
+    #   429: Too Many Requests
+    #   500: Internal Server Error
+    #   502: Bad Gateway
+    #   503: Service Unavailable
+    #   504: Gateway Timeout
+    # non-retryable error codes: 400, 401, 403, 404, 405
+    try:
+        response = post(
+            url=callback_url,
+            data=json.dumps(notification_data),
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': callback_signature,  # TODO: not sure how the signature is used. is this right?
+            },
+            timeout=(3.05, 1),
+        )
+        response.raise_for_status()
+    except Timeout as e:
+        current_app.logger.warning('Timeout error for notification %s, url %s.', notification_data['id'], callback_url)
+        raise RetryableException(e)
+    except RequestException as e:
+        if e.response is not None and e.response.status_code in [429, 500, 502, 503, 504]:
+            current_app.logger.warning(
+                'Server error for notification %s, url %s. status code: %s',
+                notification_data['id'],
+                callback_url,
+                e.response.status_code,
+            )
+            raise RetryableException(e)
+        else:
+            current_app.logger.error(
+                'Client error for notification %s, url %s. status code: %s',
+                notification_data['id'],
+                callback_url,
+                e.response.status_code if e.response is not None else 'unknown',
+            )
+            raise NonRetryableException(e)
+
+
+def check_and_queue_notification_callback_task(notification: Notification, payload=None) -> None:
+    notification_data = create_delivery_status_callback_data_v3(notification)
+
+    print(notification_data)
+
+    callback_params = {}  # TODO: what is this supposed to be?
+    callback_signature = generate_callback_signature(notification.api_key_id, callback_params)
+
+    print(callback_signature)
+
+    send_delivery_status_from_notification.apply_async(
+        [callback_signature, notification.callback_url, notification_data],
+        queue=QueueNames.CALLBACKS,
+    )
+
+
+def check_and_queue_callback_task(
+    notification: Notification,
+    payload=None,
+):
+    if notification.callback_url:
+        check_and_queue_notification_callback_task(notification, payload)
+    else:
+        check_and_queue_service_callback_task(notification, payload)
 
 
 def _check_and_queue_complaint_callback_task(
