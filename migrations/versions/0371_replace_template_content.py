@@ -5,7 +5,7 @@ Create Date: 2024-10-08 20:35:38
 """
 from alembic import op
 
-revision = '371_replace_template_content'
+revision = '0371_replace_template_content'
 down_revision = '0370_notification_callback_url'
 
 def upgrade():
