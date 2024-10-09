@@ -29,7 +29,7 @@ def post_to_ga4_with_valid_data_helper(
     assert rmock.called
     assert (
         rmock.request_history[0].url == 'http://foo.bar/ga4?measurement_id=ga4_measurement_id'
-                                        '&api_secret=ga4_api_secret'
+        '&api_secret=ga4_api_secret'
     )
 
     actual_ga4_payload = rmock.request_history[0].json()
@@ -50,7 +50,9 @@ def test_post_to_ga4_with_valid_data_in_notifications(
     notification = sample_notification()
     expected_template_id = notification.template.id
     expected_template_name = notification.template.name
-    post_to_ga4_with_valid_data_helper(notification, rmock, ga4_sample_payload, expected_template_id, expected_template_name)
+    post_to_ga4_with_valid_data_helper(
+        notification, rmock, ga4_sample_payload, expected_template_id, expected_template_name
+    )
 
 
 def test_post_to_ga4_with_valid_data_in_notifications_history(
@@ -59,10 +61,11 @@ def test_post_to_ga4_with_valid_data_in_notifications_history(
     notification = sample_notification_history()
     expected_template_id = notification.template_id
     expected_template_name = notify_db_session.session.get(
-        TemplateHistory,
-        (expected_template_id, notification.template_version)
+        TemplateHistory, (expected_template_id, notification.template_version)
     ).name
-    post_to_ga4_with_valid_data_helper(notification, rmock, ga4_sample_payload, expected_template_id, expected_template_name)
+    post_to_ga4_with_valid_data_helper(
+        notification, rmock, ga4_sample_payload, expected_template_id, expected_template_name
+    )
 
 
 def test_post_to_ga4_returns_4xx(rmock, ga4_sample_payload):
