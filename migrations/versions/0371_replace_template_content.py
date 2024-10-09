@@ -11,22 +11,15 @@ down_revision = '0370_notification_callback_url'
 def upgrade():
     op.execute("""
         UPDATE templates
-        SET content = REPLACE(content, 'https://notification.alpha.canada.ca', 'https://api.va.gov/vanotify')
+        SET content = REPLACE(content, 'https://notification.alpha.canada.ca', '')
     """)
 
     op.execute("""
         UPDATE templates_history
-        SET content = REPLACE(content, 'https://notification.alpha.canada.ca', 'https://api.va.gov/vanotify')
+        SET content = REPLACE(content, 'https://notification.alpha.canada.ca', '')
     """)
 
 
 def downgrade():
-    op.execute("""
-        UPDATE templates
-        SET content = REPLACE(content, 'https://api.va.gov/vanotify', 'https://notification.alpha.canada.ca')
-    """)
-
-    op.execute("""
-        UPDATE templates_history
-        SET content = REPLACE(content, 'https://api.va.gov/vanotify', 'https://notification.alpha.canada.ca')
-    """)
+    # No-op for downgrade, since this change is not reversible
+    pass
