@@ -1,5 +1,5 @@
 """
-Revision ID: 371_replace_template_content
+Revision ID: 0371_replace_template_content
 Revises: 0370_notification_callback_url
 Create Date: 2024-10-08 20:35:38
 """
