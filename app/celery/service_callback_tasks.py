@@ -386,12 +386,6 @@ def send_delivery_status_from_notification(
         AutoRetryException: If the request should be retried
         NonRetryableException: If the request should not be retried
     """
-    # retryable error codes: 429, 500, 502, 503, 504
-    #   429: Too Many Requests
-    #   500: Internal Server Error
-    #   502: Bad Gateway
-    #   503: Service Unavailable
-    #   504: Gateway Timeout
     try:
         response = post(
             url=callback_url,
@@ -404,29 +398,32 @@ def send_delivery_status_from_notification(
         )
         response.raise_for_status()
     except Timeout as e:
-        current_app.logger.warning('Timeout error for notification %s, url %s', notification_data['id'], callback_url)
-        raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
+        current_app.logger.warning(
+            'Timeout error sending callback for notification %s, url %s', notification_data['id'], callback_url
+        )
+        raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e)
     except RequestException as e:
+        # retryable error codes:
+        #   429: Too Many Requests
+        #   5xx: Server Error
         if e.response is not None and e.response.status_code == 429 or e.response.status_code >= 500:
             current_app.logger.warning(
-                'Retryable error attempting to send callback for notification %s, url %s | status code: %s, '
-                'exception: %s',
+                'Retryable error sending callback for notification %s, url %s | status code: %s, exception: %s',
                 notification_data.get('id'),
                 callback_url,
                 e.response.status_code if e.response is not None else 'unknown',
                 str(e),
             )
-            raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
+            raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e)
         else:
             current_app.logger.warning(
-                'Non-retryable error attempting to send callback for notification %s, url %s | status code: %s, '
-                'exception: %s',
+                'Non-retryable error sending callback for notification %s, url %s | status code: %s, exception: %s',
                 notification_data.get('id'),
                 callback_url,
                 e.response.status_code if e.response is not None else 'unknown',
                 str(e),
             )
-            raise NonRetryableException(f'Found {type(e).__name__}, not retrying...', e, e.args)
+            raise NonRetryableException(f'Found {type(e).__name__}, will not retry.', e)
 
     current_app.logger.debug(
         'Callback successfully sent for notification %s, url: %s | status code: %d',
