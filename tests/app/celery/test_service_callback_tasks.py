@@ -630,8 +630,8 @@ def test_send_delivery_status_from_notification_posts_https_request_to_service(r
     assert rmock.request_history[0].text == json.dumps(notification_data)
 
 
-@pytest.mark.parametrize('status_code', [429, 500, 502, 503, 504])
-def test_send_delivery_status_from_notification_raises_retryable_exception(rmock, status_code):
+@pytest.mark.parametrize('status_code', [429, 500, 502])
+def test_send_delivery_status_from_notification_raises_auto_retry_exception(rmock, status_code):
     callback_signature = '6842b32e800372de4079e20d6e7e753bad182e44f7f3e19a46fd8509889a0014'
     callback_url = 'https://test_url.com/'
     notification_data = {'callback_url': callback_url}
@@ -641,11 +641,12 @@ def test_send_delivery_status_from_notification_raises_retryable_exception(rmock
         send_delivery_status_from_notification(callback_signature, callback_url, notification_data)
 
 
-def test_send_delivery_status_from_notification_raises_non_retryable_exception(rmock):
+@pytest.mark.parametrize('status_code', [400, 403, 404])
+def test_send_delivery_status_from_notification_raises_non_retryable_exception(rmock, status_code):
     callback_signature = '6842b32e800372de4079e20d6e7e753bad182e44f7f3e19a46fd8509889a0014'
     callback_url = 'https://test_url.com/'
     notification_data = {'callback_url': callback_url}
 
-    rmock.post(callback_url, json=notification_data, status_code=400)
+    rmock.post(callback_url, json=notification_data, status_code=status_code)
     with pytest.raises(NonRetryableException):
         send_delivery_status_from_notification(callback_signature, callback_url, notification_data)

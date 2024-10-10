@@ -6,7 +6,7 @@ fileignoreconfig:
 - filename: app/celery/contact_information_tasks.py
   checksum: 80d0acf88bafb1358583016b9e143f4523ef1160d6eacdc9754ca68859b90eae
 - filename: app/celery/service_callback_tasks.py
-  checksum: b1d6fd97cdaebbadf80a7dd7798940c90ddec13e9af51fed6411e366ad735f41
+  checksum: 83b61b21668c1b1a0ea33a4c3130e82c9b14edbd6542079f1dd3d7493f3e9a79
 - filename: app/dao/api_key_dao.py
   checksum: ab93313f306c8a3f6576141e8f32d9fc99b0de7da8d44a1ddbe6ea55d167dcdb
 - filename: app/notifications/process_notifications.py
