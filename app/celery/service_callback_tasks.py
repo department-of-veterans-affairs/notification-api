@@ -383,58 +383,64 @@ def send_delivery_status_from_notification(
         notification_data (dict[str, str]): Data to send in the callback
 
     Raises:
-        RetryableException: If the request should be retried
+        AutoRetryException: If the request should be retried
         NonRetryableException: If the request should not be retried
     """
-    # retryable error codes: 408, 429, 500, 502, 503, 504
+    # retryable error codes: 429, 500, 502, 503, 504
     #   429: Too Many Requests
     #   500: Internal Server Error
     #   502: Bad Gateway
     #   503: Service Unavailable
     #   504: Gateway Timeout
-    # non-retryable error codes: 400, 401, 403, 404, 405
     try:
         response = post(
             url=callback_url,
-            data=json.dumps(notification_data),
+            data=json.dumps(notification_data),  # TODO: this still goes here, right?
             headers={
                 'Content-Type': 'application/json',
-                'Authorization': callback_signature,  # TODO: not sure how the signature is used. is this right?
+                'x-enp-signature': callback_signature,
             },
             timeout=(3.05, 1),
         )
         response.raise_for_status()
     except Timeout as e:
-        current_app.logger.warning('Timeout error for notification %s, url %s.', notification_data['id'], callback_url)
-        raise RetryableException(e)
+        current_app.logger.warning('Timeout error for notification %s, url %s', notification_data['id'], callback_url)
+        raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
     except RequestException as e:
         if e.response is not None and e.response.status_code in [429, 500, 502, 503, 504]:
             current_app.logger.warning(
-                'Server error for notification %s, url %s. status code: %s',
-                notification_data['id'],
-                callback_url,
-                e.response.status_code,
-            )
-            raise RetryableException(e)
-        else:
-            current_app.logger.error(
-                'Client error for notification %s, url %s. status code: %s',
-                notification_data['id'],
+                'Retryable error attempting to send callback for notification %s, url %s | status code: %s, '
+                'exception: %s',
+                notification_data.get('id'),
                 callback_url,
                 e.response.status_code if e.response is not None else 'unknown',
+                str(e),
             )
-            raise NonRetryableException(e)
+            raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
+        else:
+            current_app.logger.warning(
+                'Non-retryable error attempting to send callback for notification %s, url %s | status code: %s, '
+                'exception: %s',
+                notification_data.get('id'),
+                callback_url,
+                e.response.status_code if e.response is not None else 'unknown',
+                str(e),
+            )
+            raise NonRetryableException(f'Found {type(e).__name__}, not retrying...', e, e.args)
+
+    current_app.logger.debug(
+        'Callback successfully sent for notification %s, url: %s | status code: %d',
+        notification_data.get('id'),
+        callback_url,
+        response.status_code,
+    )
 
 
 def check_and_queue_notification_callback_task(notification: Notification, payload=None) -> None:
     notification_data = create_delivery_status_callback_data_v3(notification)
 
-    print(notification_data)
-
     callback_params = {}  # TODO: what is this supposed to be?
     callback_signature = generate_callback_signature(notification.api_key_id, callback_params)
-
-    print(callback_signature)
 
     send_delivery_status_from_notification.apply_async(
         [callback_signature, notification.callback_url, notification_data],

@@ -17,6 +17,7 @@ from app.celery.service_callback_tasks import (
     send_complaint_to_vanotify,
     check_and_queue_callback_task,
     publish_complaint,
+    send_delivery_status_from_notification,
     send_inbound_sms_to_service,
     create_delivery_status_callback_data,
     create_delivery_status_callback_data_v3,
@@ -612,3 +613,39 @@ def test_check_and_queue_notification_callback_task_queues_task_with_proper_data
         [callback_signature_value, test_url, notification_data],
         queue=QueueNames.CALLBACKS,
     )
+
+
+def test_send_delivery_status_from_notification_posts_https_request_to_service(rmock):
+    callback_signature = '6842b32e800372de4079e20d6e7e753bad182e44f7f3e19a46fd8509889a0014'
+    callback_url = 'https://test_url.com/'
+    notification_data = {'callback_url': callback_url}
+
+    rmock.post(callback_url, json=notification_data, status_code=200)
+    send_delivery_status_from_notification(callback_signature, callback_url, notification_data)
+
+    assert rmock.call_count == 1
+    assert rmock.request_history[0].url == callback_url
+    assert rmock.request_history[0].headers['Content-type'] == 'application/json'
+    assert rmock.request_history[0].headers['x-enp-signature'] == callback_signature
+    assert rmock.request_history[0].text == json.dumps(notification_data)
+
+
+@pytest.mark.parametrize('status_code', [429, 500, 502, 503, 504])
+def test_send_delivery_status_from_notification_raises_retryable_exception(rmock, status_code):
+    callback_signature = '6842b32e800372de4079e20d6e7e753bad182e44f7f3e19a46fd8509889a0014'
+    callback_url = 'https://test_url.com/'
+    notification_data = {'callback_url': callback_url}
+
+    rmock.post(callback_url, json=notification_data, status_code=status_code)
+    with pytest.raises(AutoRetryException):
+        send_delivery_status_from_notification(callback_signature, callback_url, notification_data)
+
+
+def test_send_delivery_status_from_notification_raises_non_retryable_exception(rmock):
+    callback_signature = '6842b32e800372de4079e20d6e7e753bad182e44f7f3e19a46fd8509889a0014'
+    callback_url = 'https://test_url.com/'
+    notification_data = {'callback_url': callback_url}
+
+    rmock.post(callback_url, json=notification_data, status_code=400)
+    with pytest.raises(NonRetryableException):
+        send_delivery_status_from_notification(callback_signature, callback_url, notification_data)
