@@ -36,7 +36,7 @@ def handler(generic):
           data. The status code is always 200.
 
     """
-    status_code = 200
+    status_code = 500
     request_attrs = (
         'method',
         'root_path',
