@@ -433,7 +433,13 @@ def send_delivery_status_from_notification(
     )
 
 
-def check_and_queue_notification_callback_task(notification: Notification, payload=None) -> None:
+def check_and_queue_notification_callback_task(notification: Notification) -> None:
+    """
+    When a callback URL is included in the notification, collect the required information and queue a task to send the callback.
+
+    Args:
+        notification (Notification): Notification object
+    """
     notification_data = create_delivery_status_callback_data_v3(notification)
 
     callback_signature = generate_callback_signature(notification.api_key_id, notification_data)
@@ -446,10 +452,18 @@ def check_and_queue_notification_callback_task(notification: Notification, paylo
 
 def check_and_queue_callback_task(
     notification: Notification,
-    payload=None,
+    payload: dict[str, str] | None = None,
 ):
+    """
+    Check if a callback url is included in the notification and call the appropriate funcation to queue the callback.
+
+    Args:
+        notification (Notification): a Notification object which includes the callback information
+        payload (dict[str, str]): the payload from the provider to include in the callback if the service requires it
+    """
     if notification.callback_url:
-        check_and_queue_notification_callback_task(notification, payload)
+        # payload is not passed here because the service callback indicates whether the payload should be included
+        check_and_queue_notification_callback_task(notification)
     else:
         check_and_queue_service_callback_task(notification, payload)
 
