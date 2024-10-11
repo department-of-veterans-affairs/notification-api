@@ -605,10 +605,6 @@ def test_check_and_queue_notification_callback_task_queues_task_with_proper_data
 
     check_and_queue_notification_callback_task(notification)
 
-    # mock_create_callback_data.assert_called_once_with(notification, None, {})
-    # mock_send_delivery_status.assert_called_once_with(
-    #     [None, str(notification.id), 'encrypted_data'], queue=QueueNames.CALLBACKS
-    # )
     mock_delivery_status_from_notification.assert_called_once_with(
         [callback_signature_value, test_url, notification_data],
         queue=QueueNames.CALLBACKS,
