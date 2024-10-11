@@ -36,8 +36,6 @@ marshmallow-sqlalchemy = "*"
 nanoid = "*"
 notifications-python-client = "*"
 phonenumbers = "*"
-
-protobuf = "*"
 psycopg2-binary = "*"
 pwnedpasswords = "*"
 PyJWT = "*"
