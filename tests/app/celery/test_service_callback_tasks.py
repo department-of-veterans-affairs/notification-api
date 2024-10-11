@@ -310,7 +310,7 @@ def test_check_and_queue_callback_task_queues_task_if_notification_callback_exis
     mock_send_delivery_status.assert_not_called()
 
     # notification level callback called
-    mock_notification_callback.assert_called_once_with(notification, None)
+    mock_notification_callback.assert_called_once_with(notification)
 
 
 def test_check_and_queue_callback_task_queues_task_if_service_callback_api_exists(
@@ -603,7 +603,7 @@ def test_check_and_queue_notification_callback_task_queues_task_with_proper_data
         'app.celery.service_callback_tasks.send_delivery_status_from_notification.apply_async'
     )
 
-    check_and_queue_notification_callback_task(notification, None)
+    check_and_queue_notification_callback_task(notification)
 
     # mock_create_callback_data.assert_called_once_with(notification, None, {})
     # mock_send_delivery_status.assert_called_once_with(
