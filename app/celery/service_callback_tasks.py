@@ -435,7 +435,8 @@ def send_delivery_status_from_notification(
 
 def check_and_queue_notification_callback_task(notification: Notification) -> None:
     """
-    When a callback URL is included in the notification, collect the required information and queue a task to send the callback.
+    When a callback URL is included in the notification, collect the required information and
+    queue a task to send the callback.
 
     Args:
         notification (Notification): Notification object
