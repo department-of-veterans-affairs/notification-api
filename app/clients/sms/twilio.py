@@ -1,5 +1,6 @@
 import base64
-from app.clients.sms import SmsClient
+from dataclasses import dataclass
+from app.clients.sms import SmsClient, SmsStatusRecord
 from monotonic import monotonic
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
@@ -20,6 +21,13 @@ TWILIO_RESPONSE_MAP = {
 
 def get_twilio_responses(status):
     return TWILIO_RESPONSE_MAP[status]
+
+
+@dataclass
+class TwilioStatus:
+    code: int | None
+    status: str
+    status_reason: str | None
 
 
 class TwilioSMSClient(SmsClient):
@@ -55,29 +63,29 @@ class TwilioSMSClient(SmsClient):
         )
 
         self.twilio_error_code_map = {
-            '30001': NOTIFICATION_TECHNICAL_FAILURE,
-            '30002': NOTIFICATION_PERMANENT_FAILURE,
-            '30003': NOTIFICATION_PERMANENT_FAILURE,
-            '30004': NOTIFICATION_PERMANENT_FAILURE,
-            '30005': NOTIFICATION_PERMANENT_FAILURE,
-            '30006': NOTIFICATION_PERMANENT_FAILURE,
-            '30007': NOTIFICATION_PERMANENT_FAILURE,
-            '30008': NOTIFICATION_TECHNICAL_FAILURE,
-            '30009': NOTIFICATION_TECHNICAL_FAILURE,
-            '30010': NOTIFICATION_TECHNICAL_FAILURE,
-            '30034': NOTIFICATION_PERMANENT_FAILURE,
+            '30001': TwilioStatus(30001, NOTIFICATION_TECHNICAL_FAILURE, 'Queue overflow'),
+            '30002': TwilioStatus(30002, NOTIFICATION_PERMANENT_FAILURE, 'Account suspended'),
+            '30003': TwilioStatus(30003, NOTIFICATION_PERMANENT_FAILURE, 'Unreachable destination handset'),
+            '30004': TwilioStatus(30004, NOTIFICATION_PERMANENT_FAILURE, 'Message blocked'),
+            '30005': TwilioStatus(30005, NOTIFICATION_PERMANENT_FAILURE, 'Unknown destination handset'),
+            '30006': TwilioStatus(30006, NOTIFICATION_PERMANENT_FAILURE, 'Landline or unreachable carrier'),
+            '30007': TwilioStatus(30007, NOTIFICATION_PERMANENT_FAILURE, 'Message filtered'),
+            '30008': TwilioStatus(30008, NOTIFICATION_TECHNICAL_FAILURE, 'Unknown error'),
+            '30009': TwilioStatus(30009, NOTIFICATION_TECHNICAL_FAILURE, 'Missing inbound segment'),
+            '30010': TwilioStatus(30010, NOTIFICATION_TECHNICAL_FAILURE, 'Message price exceeds max price'),
+            '30034': TwilioStatus(30034, NOTIFICATION_PERMANENT_FAILURE, 'Used an unregistered 10DLC Number'),
         }
 
         self.twilio_notify_status_map = {
-            'accepted': NOTIFICATION_SENDING,
-            'scheduled': NOTIFICATION_SENDING,
-            'queued': NOTIFICATION_SENDING,
-            'sending': NOTIFICATION_SENDING,
-            'sent': NOTIFICATION_SENT,
-            'delivered': NOTIFICATION_DELIVERED,
-            'undelivered': NOTIFICATION_PERMANENT_FAILURE,
-            'failed': NOTIFICATION_TECHNICAL_FAILURE,
-            'canceled': NOTIFICATION_TECHNICAL_FAILURE,
+            'accepted': TwilioStatus(None, NOTIFICATION_SENDING, None),
+            'scheduled': TwilioStatus(None, NOTIFICATION_SENDING, None),
+            'queued': TwilioStatus(None, NOTIFICATION_SENDING, None),
+            'sending': TwilioStatus(None, NOTIFICATION_SENDING, None),
+            'sent': TwilioStatus(None, NOTIFICATION_SENT, None),
+            'delivered': TwilioStatus(None, NOTIFICATION_DELIVERED, None),
+            'undelivered': TwilioStatus(None, NOTIFICATION_PERMANENT_FAILURE, 'Unable to deliver'),
+            'failed': TwilioStatus(None, NOTIFICATION_TECHNICAL_FAILURE, 'Technical error'),
+            'canceled': TwilioStatus(None, NOTIFICATION_TECHNICAL_FAILURE, 'Notification cancelled'),
         }
 
     def init_app(
@@ -209,7 +217,7 @@ class TwilioSMSClient(SmsClient):
     def translate_delivery_status(
         self,
         twilio_delivery_status_message: str,
-    ) -> dict:
+    ) -> SmsStatusRecord:
         """
         Parses the base64 encoded delivery status message from Twilio and returns a dictionary.
         The dictionary contains the following keys:
@@ -240,18 +248,23 @@ class TwilioSMSClient(SmsClient):
             error_code = parsed_dict['ErrorCode'][0]
 
             if error_code in self.twilio_error_code_map:
-                notify_delivery_status = self.twilio_error_code_map[error_code]
+                notify_delivery_status: TwilioStatus = self.twilio_error_code_map[error_code]
             else:
-                notify_delivery_status = self.twilio_notify_status_map[twilio_delivery_status]
+                self.logger.warning('Unacounted for Twilio Error code: %s', error_code)
+                notify_delivery_status: TwilioStatus = self.twilio_notify_status_map[twilio_delivery_status]
         else:
-            notify_delivery_status = self.twilio_notify_status_map[twilio_delivery_status]
+            # Logic not being changed, just want to log this for now
+            if 'ErrorCode' in parsed_dict:
+                self.logger.warning('Error code: %s existed but status was not failed nor undelivered', error_code)
+            notify_delivery_status: TwilioStatus = self.twilio_notify_status_map[twilio_delivery_status]
 
-        translation = {
-            'payload': decoded_msg,
-            'reference': parsed_dict['MessageSid'][0],
-            'record_status': notify_delivery_status,
-        }
+        status = SmsStatusRecord(
+            decoded_msg,
+            parsed_dict['MessageSid'][0],
+            notify_delivery_status.status,
+            notify_delivery_status.status_reason,
+        )
 
-        self.logger.debug('Twilio delivery status translation: %s', translation)
+        self.logger.debug('Twilio delivery status translation: %s', status)
 
-        return translation
+        return status
