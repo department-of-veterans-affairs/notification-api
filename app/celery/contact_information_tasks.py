@@ -27,7 +27,6 @@ from app.va.va_profile import (
     VAProfileRetryableException,
     VAProfileNonRetryableException,
     NoContactInfoException,
-    VAProfileResult,
 )
 from app.va.va_profile.exceptions import VAProfileIDNotFoundException, CommunicationItemNotFoundException
 
@@ -69,45 +68,21 @@ def lookup_contact_info(
     recipient_identifier = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value]
 
     try:
-        result = get_profile_result(notification, recipient_identifier)
+        if notification.notification_type == EMAIL_TYPE:
+            result = va_profile_client.get_email(recipient_identifier, notification)
+        elif notification.notification_type == SMS_TYPE:
+            result = va_profile_client.get_telephone(recipient_identifier, notification)
+        else:
+            raise NotImplementedError(
+                f'The task lookup_contact_info failed for notification {notification.id}. '
+                f'{notification.notification_type} is not supported'
+            )
         notification.to = result.recipient
         if not result.communication_allowed:
             handle_communication_not_allowed(notification, recipient_identifier, result.permission_message)
-        # Otherwise, this communication is allowed. We will update the notification below and continue the chain.
-        # else:
-        # notification.to = get_recipient(
-        #     notification.notification_type,
-        #     notification_id,
-        #     recipient_identifier,
-        # )
         dao_update_notification(notification)
     except Exception as e:
         handle_lookup_contact_info_exception(self, notification, recipient_identifier, e)
-
-
-def get_profile_result(
-    notification: Notification,
-    recipient_identifier: RecipientIdentifier,
-) -> VAProfileResult:
-    """
-    Retrieve the result of looking up contact info from VA Profile.
-
-    Args:
-        notification (Notification): The Notification object to get contact info and permissions for.
-        recipient_identifier (RecipientIdentifier): The VA profile ID to retrieve the profile for.
-
-    Returns:
-        VAProfileResult: The contact info result from VA Profile.
-    """
-    if notification.notification_type == EMAIL_TYPE:
-        return va_profile_client.get_email_with_permission(recipient_identifier, notification)
-    elif notification.notification_type == SMS_TYPE:
-        return va_profile_client.get_telephone_with_permission(recipient_identifier, notification)
-    else:
-        raise NotImplementedError(
-            f'The task lookup_contact_info failed for notification {notification.id}. '
-            f'{notification.notification_type} is not supported'
-        )
 
 
 def handle_lookup_contact_info_exception(
@@ -178,6 +153,8 @@ def handle_lookup_contact_info_exception(
         else:
             # Means the default_send is True and this does not require an explicit opt-in
             return None
+    elif isinstance(e, NotificationPermanentFailureException):
+        raise e
     else:
         current_app.logger.exception(f'Unhandled exception for notification {notification.id}: {e}')
         raise e
