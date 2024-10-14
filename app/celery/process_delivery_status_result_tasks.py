@@ -190,7 +190,7 @@ def _calculate_pricing_and_update_notification(
     notification: Notification,
     notification_status: str,
     number_of_message_parts: int,
-    status_reason: str = None,
+    incoming_status_reason: str = None,
 ):
     """
     Calculate pricing, and update the notification.
@@ -200,7 +200,9 @@ def _calculate_pricing_and_update_notification(
 
     # Delivered messages should not have an associated reason.
     status_reason = (
-        None if (notification_status == NOTIFICATION_DELIVERED) else status_reason or notification.status_reason
+        None
+        if (notification_status == NOTIFICATION_DELIVERED)
+        else incoming_status_reason or notification.status_reason
     )
 
     if price_in_millicents_usd > 0.0:

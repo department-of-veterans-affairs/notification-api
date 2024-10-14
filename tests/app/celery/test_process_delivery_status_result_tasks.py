@@ -308,7 +308,6 @@ def test_process_delivery_status_no_status_reason_for_delivered(
     sample_template,
     sample_notification,
     sample_delivery_status_result_message,
-    sample_notification_platform_status,
 ):
     """
     When a notification is updated to "delivered" status, its "status_reason" should be set to
@@ -319,12 +318,12 @@ def test_process_delivery_status_no_status_reason_for_delivered(
     # value causes the test to fail.
     notification = sample_notification(
         template=sample_template(),
-        reference='SMhardcodedKWM',
+        reference='SMyyy',
         sent_at=datetime.datetime.utcnow(),
         status=NOTIFICATION_SENT,
         status_reason='This is not the empty string.',
     )
-    assert notification.reference == 'SMhardcodedKWM'
+    assert notification.reference == 'SMyyy'
     assert notification.status == NOTIFICATION_SENT
     assert notification.status_reason
 
@@ -335,6 +334,6 @@ def test_process_delivery_status_no_status_reason_for_delivered(
     callback_mock.assert_called_once()
 
     notify_db_session.session.refresh(notification)
-    assert notification.reference == 'SMhardcodedKWM'
+    assert notification.reference == 'SMyyy'
     assert notification.status == NOTIFICATION_DELIVERED
     assert notification.status_reason is None
