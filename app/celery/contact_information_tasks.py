@@ -94,9 +94,9 @@ def get_profile_result(
         VAProfileResult: The contact info result from VA Profile.
     """
     if notification.notification_type == EMAIL_TYPE:
-        return va_profile_client.get_email_with_permission(recipient_identifier, notification)
+        return va_profile_client.get_email(recipient_identifier, notification)
     elif notification.notification_type == SMS_TYPE:
-        return va_profile_client.get_telephone_with_permission(recipient_identifier, notification)
+        return va_profile_client.get_telephone(recipient_identifier, notification)
     else:
         raise NotImplementedError(
             f'The task lookup_contact_info failed for notification {notification.id}. '

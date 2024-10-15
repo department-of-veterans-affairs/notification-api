@@ -76,7 +76,7 @@ def url(oid, id_with_aaid):
 
 
 class TestVAProfileClient:
-    def test_get_email_with_permission_calls_endpoint_and_returns_email_address(
+    def test_get_email_calls_endpoint_and_returns_email_address(
         self,
         rmock,
         mock_va_profile_client,
@@ -88,7 +88,7 @@ class TestVAProfileClient:
     ):
         rmock.post(url, json=mock_response, status_code=200)
 
-        result = mock_va_profile_client.get_email_with_permission(
+        result = mock_va_profile_client.get_email(
             recipient_identifier,
             sample_notification(gen_type=EMAIL_TYPE),
         )
@@ -97,7 +97,7 @@ class TestVAProfileClient:
         assert email == mock_response['profile']['contactInformation']['emails'][0]['emailAddressText']
         assert rmock.called
 
-    def test_get_email_with_permission_raises_NoContactInfoException_if_no_emails_exist(
+    def test_get_email_raises_NoContactInfoException_if_no_emails_exist(
         self,
         rmock,
         mock_va_profile_client,
@@ -111,7 +111,7 @@ class TestVAProfileClient:
         rmock.post(url, json=mock_response, status_code=200)
 
         with pytest.raises(NoContactInfoException):
-            mock_va_profile_client.get_email_with_permission(
+            mock_va_profile_client.get_email(
                 recipient_identifier,
                 sample_notification(gen_type=EMAIL_TYPE),
             )
@@ -130,7 +130,7 @@ class TestVAProfileClient:
     ):
         rmock.post(url, json=mock_response, status_code=200)
 
-        mock_va_profile_client.get_email_with_permission(recipient_identifier, sample_notification())
+        mock_va_profile_client.get_email(recipient_identifier, sample_notification())
 
         assert rmock.called
 
@@ -139,7 +139,7 @@ class TestVAProfileClient:
 
         assert rmock.request_history[0].url == expected_url
 
-    def test_get_email_with_permission_raises_exception_when_failed_request(
+    def test_get_email_raises_exception_when_failed_request(
         self,
         rmock,
         mock_va_profile_client,
@@ -163,11 +163,9 @@ class TestVAProfileClient:
         rmock.post(url, json=response, status_code=200)
 
         with pytest.raises(VAProfileNonRetryableException):
-            mock_va_profile_client.get_email_with_permission(
-                recipient_identifier, sample_notification(gen_type=EMAIL_TYPE)
-            )
+            mock_va_profile_client.get_email(recipient_identifier, sample_notification(gen_type=EMAIL_TYPE))
 
-    def test_get_telephone_with_permission_calls_endpoint_and_returns_phone_number(
+    def test_get_telephone_calls_endpoint_and_returns_phone_number(
         self,
         rmock,
         mock_va_profile_client,
@@ -179,7 +177,7 @@ class TestVAProfileClient:
     ):
         rmock.post(url, json=mock_response, status_code=200)
 
-        result = mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
+        result = mock_va_profile_client.get_telephone(recipient_identifier, sample_notification())
         telephone = result.recipient
 
         assert telephone is not None
@@ -226,7 +224,7 @@ class TestVAProfileClient:
 
 
 class TestVAProfileClientExceptionHandling:
-    def test_get_telephone_with_permission_raises_NoContactInfoException_if_no_telephones_exist(
+    def test_get_telephone_raises_NoContactInfoException_if_no_telephones_exist(
         self,
         rmock,
         mock_va_profile_client,
@@ -240,9 +238,9 @@ class TestVAProfileClientExceptionHandling:
         rmock.post(url, json=mock_response, status_code=200)
 
         with pytest.raises(NoContactInfoException):
-            mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
+            mock_va_profile_client.get_telephone(recipient_identifier, sample_notification())
 
-    def test_get_telephone_with_permission_raises_NoContactInfoException_if_no_mobile_telephones_exist(
+    def test_get_telephone_raises_NoContactInfoException_if_no_mobile_telephones_exist(
         self, rmock, mock_va_profile_client, mock_response, recipient_identifier, url, mocker, sample_notification
     ):
         telephones = mock_response['profile']['contactInformation']['telephones']
@@ -252,9 +250,9 @@ class TestVAProfileClientExceptionHandling:
         rmock.post(url, json=mock_response, status_code=200)
 
         with pytest.raises(NoContactInfoException):
-            mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
+            mock_va_profile_client.get_telephone(recipient_identifier, sample_notification())
 
-    def test_get_telephone_with_permission_raises_InvalidPhoneNumberException_if_number_classified_as_not_mobile(
+    def test_get_telephone_raises_InvalidPhoneNumberException_if_number_classified_as_not_mobile(
         self, rmock, mock_va_profile_client, mock_response, recipient_identifier, url, mocker, sample_notification
     ):
         telephones = mock_response['profile']['contactInformation']['telephones']
@@ -264,9 +262,9 @@ class TestVAProfileClientExceptionHandling:
         rmock.post(url, json=mock_response, status_code=200)
 
         with pytest.raises(InvalidPhoneNumberException):
-            mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
+            mock_va_profile_client.get_telephone(recipient_identifier, sample_notification())
 
-    def test_get_telephone_with_permission_prefers_user_specified_mobile_phone(
+    def test_get_telephone_prefers_user_specified_mobile_phone(
         self, rmock, mock_va_profile_client, mock_response, mocker, url, recipient_identifier, sample_notification
     ):
         # A veteran has configured a mobile telephone to receive notifications.  They add an additional mobile
@@ -290,7 +288,7 @@ class TestVAProfileClientExceptionHandling:
         ]
 
         rmock.post(url, json=mock_response, status_code=200)
-        result = mock_va_profile_client.get_telephone_with_permission(recipient_identifier, sample_notification())
+        result = mock_va_profile_client.get_telephone(recipient_identifier, sample_notification())
         assert (
             result.recipient
             == f"+{mobile_phone_created_yesterday_morning['countryCode']}{mobile_phone_created_yesterday_morning['areaCode']}{mobile_phone_created_yesterday_morning['phoneNumber']}"
@@ -329,12 +327,10 @@ class TestVAProfileClientExceptionHandling:
         rmock.post(requests_mock.ANY, status_code=status)
 
         with pytest.raises(VAProfileRetryableException):
-            mock_va_profile_client.get_email_with_permission(
-                recipient_identifier, sample_notification(gen_type=EMAIL_TYPE)
-            )
+            mock_va_profile_client.get_email(recipient_identifier, sample_notification(gen_type=EMAIL_TYPE))
 
         with pytest.raises(VAProfileRetryableException):
-            mock_va_profile_client.get_email_with_permission(recipient_identifier, sample_notification())
+            mock_va_profile_client.get_email(recipient_identifier, sample_notification())
 
     def test_client_raises_retryable_exception_when_request_exception_is_thrown(
         self,
@@ -347,12 +343,10 @@ class TestVAProfileClientExceptionHandling:
             rmock.post(requests_mock.ANY, exc=requests.RequestException)
 
             with pytest.raises(VAProfileRetryableException):
-                mock_va_profile_client.get_email_with_permission(
-                    recipient_identifier, sample_notification(gen_type=EMAIL_TYPE)
-                )
+                mock_va_profile_client.get_email(recipient_identifier, sample_notification(gen_type=EMAIL_TYPE))
 
             with pytest.raises(VAProfileRetryableException):
-                mock_va_profile_client.get_email_with_permission(recipient_identifier, sample_notification())
+                mock_va_profile_client.get_email(recipient_identifier, sample_notification())
 
 
 class TestCommunicationPermissions:
@@ -412,7 +406,7 @@ class TestCommunicationPermissions:
         ],
     )
     @pytest.mark.parametrize('notification_type', [CommunicationChannel.EMAIL, CommunicationChannel.TEXT])
-    def test_get_email_with_permission_or_sms_with_permission_utilizes_default_send(
+    def test_get_email_or_and_get_telephone_utilizes_default_send(
         self,
         mock_va_profile_client,
         mock_response,
@@ -444,9 +438,9 @@ class TestCommunicationPermissions:
         mocker.patch.object(mock_va_profile_client, 'get_profile', return_value=profile)
 
         if notification_type == CommunicationChannel.EMAIL:
-            client_fn = mock_va_profile_client.get_email_with_permission
+            client_fn = mock_va_profile_client.get_email
         else:
-            client_fn = mock_va_profile_client.get_telephone_with_permission
+            client_fn = mock_va_profile_client.get_telephone
 
         result = client_fn(recipient_identifier, notification)
         assert result.communication_allowed == expected
@@ -514,7 +508,7 @@ class TestSendEmailStatus:
     ],
 )
 @pytest.mark.parametrize('notification_type', [CommunicationChannel.EMAIL, CommunicationChannel.TEXT])
-def test_get_email_with_permission_or_sms_with_permission_utilizes_default_send(
+def test_get_email_and_get_telephone_utilizes_default_send(
     mock_va_profile_response,
     sample_communication_item,
     sample_notification,
