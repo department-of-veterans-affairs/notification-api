@@ -1,10 +1,13 @@
 import base64
 from dataclasses import dataclass
-from app.clients.sms import SmsClient, SmsStatusRecord
+from logging import Logger
 from monotonic import monotonic
+from urllib.parse import parse_qs
+
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
-from urllib.parse import parse_qs
+
+from app.clients.sms import SmsClient, SmsStatusRecord
 from app.exceptions import InvalidProviderException
 
 TWILIO_RESPONSE_MAP = {
@@ -47,7 +50,7 @@ class TwilioSMSClient(SmsClient):
         self._callback_retry_count = 5
         self._callback_retry_policy = 'all'
         self._callback_notify_url_host = None
-        self.logger = None
+        self.logger: Logger = None
         self._account_sid = account_sid
         self._auth_token = auth_token
         self._client = Client(account_sid, auth_token)
@@ -250,7 +253,11 @@ class TwilioSMSClient(SmsClient):
             if error_code in self.twilio_error_code_map:
                 notify_delivery_status: TwilioStatus = self.twilio_error_code_map[error_code]
             else:
-                self.logger.warning('Unacounted for Twilio Error code: %s', error_code)
+                self.logger.warning(
+                    'Unaccounted for Twilio Error code: %s with message sid: %s',
+                    error_code,
+                    parsed_dict['MessageSid'][0],
+                )
                 notify_delivery_status: TwilioStatus = self.twilio_notify_status_map[twilio_delivery_status]
         else:
             # Logic not being changed, just want to log this for now
