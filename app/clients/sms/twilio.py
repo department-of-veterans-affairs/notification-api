@@ -238,7 +238,7 @@ class TwilioSMSClient(SmsClient):
         decoded_msg = base64.b64decode(twilio_delivery_status_message).decode()
 
         parsed_dict = parse_qs(decoded_msg)
-
+        message_sid = parsed_dict['MessageSid'][0]
         twilio_delivery_status = parsed_dict['MessageStatus'][0]
 
         if twilio_delivery_status not in self.twilio_notify_status_map:
@@ -254,20 +254,22 @@ class TwilioSMSClient(SmsClient):
                 notify_delivery_status: TwilioStatus = self.twilio_error_code_map[error_code]
             else:
                 self.logger.warning(
-                    'Unaccounted for Twilio Error code: %s with message sid: %s',
-                    error_code,
-                    parsed_dict['MessageSid'][0],
+                    'Unaccounted for Twilio Error code: %s with message sid: %s', error_code, message_sid
                 )
                 notify_delivery_status: TwilioStatus = self.twilio_notify_status_map[twilio_delivery_status]
         else:
             # Logic not being changed, just want to log this for now
             if 'ErrorCode' in parsed_dict:
-                self.logger.warning('Error code: %s existed but status was not failed nor undelivered', error_code)
+                self.logger.warning(
+                    'Error code: %s existed but status for message: %s was not failed nor undelivered',
+                    error_code,
+                    message_sid,
+                )
             notify_delivery_status: TwilioStatus = self.twilio_notify_status_map[twilio_delivery_status]
 
         status = SmsStatusRecord(
             decoded_msg,
-            parsed_dict['MessageSid'][0],
+            message_sid,
             notify_delivery_status.status,
             notify_delivery_status.status_reason,
         )
