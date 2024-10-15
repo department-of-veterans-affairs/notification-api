@@ -325,6 +325,11 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
             c.execute(OPT_IN_OUT_QUERY, params)
             put_body['status'] = 'COMPLETED_SUCCESS' if c.fetchone()[0] else 'COMPLETED_NOOP'
             db_connection.commit()
+            # TODO 1979 - Send Comp and Pen confirmation if DB OK
+            # What is the id for comp and pen
+            if bio['communicationChannelId'] == 5:
+                send_comp_and_pen_opt_in_confirmation()
+
         logger.debug('Executed the stored function.')
     except KeyError as e:
         # Bad Request.  Required attributes are missing.
@@ -446,6 +451,14 @@ def make_PUT_request(
         logger.exception(e)
     finally:
         https_connection.close()
+
+
+# TODO #1979
+def send_comp_and_pen_opt_in_confirmation() -> None:
+    # Create POST v2/notifications/sms call to Comp and Pen
+    # Send with new template from usual Comp and Pen number (short code 96702)
+    # vaProfileId as recipient identifier
+    return None
 
 
 def get_integration_testing_public_cert() -> Certificate:
