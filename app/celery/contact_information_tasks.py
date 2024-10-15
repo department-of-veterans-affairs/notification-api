@@ -48,8 +48,7 @@ def lookup_contact_info(
 ):
     """
     Celery task to look up contact information (email/phone number) for a given notification.
-    If the feature flag, VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP, is enabled,
-    also check for related communication permissions.
+    Also check for related communication permissions.
 
     Args:
         self (Task): The Celery task instance.
@@ -78,33 +77,6 @@ def lookup_contact_info(
         dao_update_notification(notification)
     except Exception as e:
         handle_lookup_contact_info_exception(self, notification, recipient_identifier, e)
-
-
-def get_recipient(
-    notification_type: str,
-    notification_id: str,
-    recipient_identifier: RecipientIdentifier,
-) -> str:
-    """
-    Retrieve the recipient email or phone number.
-
-    Args:
-        notification_type (str): The type of recipient info requested.
-        notification_id (str): The notification ID associated with this request.
-        recipient_identifier (RecipientIdentifier): The VA profile ID to retrieve the profile for.
-
-    Returns:
-        str: The recipient email or phone number.
-    """
-    if notification_type == EMAIL_TYPE:
-        return va_profile_client.get_email(recipient_identifier)
-    elif notification_type == SMS_TYPE:
-        return va_profile_client.get_telephone(recipient_identifier)
-    else:
-        raise NotImplementedError(
-            f'The task lookup_contact_info failed for notification {notification_id}. '
-            f'{notification_type} is not supported'
-        )
 
 
 def get_profile_result(
@@ -200,6 +172,8 @@ def handle_lookup_contact_info_exception(
         else:
             # Means the default_send is True and this does not require an explicit opt-in
             return None
+    elif isinstance(e, NotificationPermanentFailureException):
+        raise e
     else:
         current_app.logger.exception(f'Unhandled exception for notification {notification.id}: {e}')
         raise e
