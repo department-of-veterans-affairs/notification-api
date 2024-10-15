@@ -14,7 +14,6 @@ from app.dao.notifications_dao import (
     update_notification_status_by_id,
 )
 from app.exceptions import NotificationTechnicalFailureException, NotificationPermanentFailureException
-from app.feature_flags import FeatureFlag, is_feature_enabled
 from app.models import (
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_PREFERENCES_DECLINED,
@@ -71,18 +70,11 @@ def lookup_contact_info(
     recipient_identifier = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value]
 
     try:
-        if is_feature_enabled(FeatureFlag.VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP):
-            result = get_profile_result(notification, recipient_identifier)
-            notification.to = result.recipient
-            if not result.communication_allowed:
-                handle_communication_not_allowed(notification, recipient_identifier, result.permission_message)
-            # Otherwise, this communication is allowed. We will update the notification below and continue the chain.
-        else:
-            notification.to = get_recipient(
-                notification.notification_type,
-                notification_id,
-                recipient_identifier,
-            )
+        result = get_profile_result(notification, recipient_identifier)
+        notification.to = result.recipient
+        if not result.communication_allowed:
+            handle_communication_not_allowed(notification, recipient_identifier, result.permission_message)
+        # Otherwise, this communication is allowed. We will update the notification below and continue the chain.
         dao_update_notification(notification)
     except Exception as e:
         handle_lookup_contact_info_exception(self, notification, recipient_identifier, e)

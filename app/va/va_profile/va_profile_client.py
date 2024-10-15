@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Optional
 import iso8601
 import requests
 
-from app.feature_flags import FeatureFlag, is_feature_enabled
 from app.va.identifier import OIDS, IdentifierType, transform_to_fhir_format
 from app.va.va_profile import (
     NoContactInfoException,
@@ -225,18 +224,8 @@ class VAProfileClient:
         )
 
         if sorted_telephones:
-            is_mobile = True
-            if is_feature_enabled(FeatureFlag.VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS):
-                self.logger.debug(
-                    'V3 Profile -- VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS enabled.  Checking telephone classification info.'
-                )
-                is_mobile = self.has_valid_mobile_telephone_classification(sorted_telephones[0], contact_info)
-            else:
-                self.logger.debug(
-                    'V3 Profile -- VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS is not enabled.  Will not check classification info.'
-                )
             if (
-                is_mobile
+                self.has_valid_mobile_telephone_classification(sorted_telephones[0], contact_info)
                 and sorted_telephones[0].get('countryCode')
                 and sorted_telephones[0].get('areaCode')
                 and sorted_telephones[0].get('phoneNumber')
