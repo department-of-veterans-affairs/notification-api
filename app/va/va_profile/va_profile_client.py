@@ -114,31 +114,6 @@ class VAProfileClient:
         response_json: dict = response.json()
         return response_json.get('profile', {})
 
-    def has_valid_mobile_telephone_classification(self, telephone: Telephone, contact_info: ContactInformation) -> bool:
-        """
-        Args:
-          telephone (Telephone): telephone entry from ContactInformation object retrieved from Vet360 API endpoint
-
-        Returns:
-          bool - if AWS-classified telephone is a valid sms recipient (if nonexistent, return True)
-
-        Raises:
-          InvalidPhoneNumberException - if AWS-classified telephone is not a valid sms recipient
-        """
-        classification = telephone.get('classification', {})
-        classification_code = classification.get('classificationCode', None)
-        if classification_code is not None and classification_code not in VALID_PHONE_TYPES_FOR_SMS_DELIVERY:
-            self.logger.debug(
-                'V3 Profile -- Phone classification code of %s is not a valid SMS recipient (VA Profile ID: %s)',
-                classification_code,
-                telephone['vaProfileId'],
-            )
-            self.statsd_client.incr(f'clients.va-profile.get-{self.PHONE_BIO_TYPE}.no-{self.PHONE_BIO_TYPE}')
-            raise InvalidPhoneNumberException(
-                f'No valid {self.PHONE_BIO_TYPE} in response for VA Profile ID {contact_info.get("vaProfileId")} '
-                f'with AuditId {contact_info.get("txAuditId")}'
-            )
-
     def get_mobile_telephone_from_contact_info(self, contact_info: ContactInformation) -> Optional[str]:
         """
         Find the most recently created mobile phone number from a veteran's Vet360 contact information
@@ -152,7 +127,7 @@ class VAProfileClient:
         telephones: list[Telephone] = contact_info.get(self.PHONE_BIO_TYPE, [])
 
         sorted_telephones = sorted(
-            [phone for phone in telephones if phone['phoneType'] == PhoneNumberType.MOBILE.value],
+            [phone for phone in telephones if phone['phoneType'].lower() == PhoneNumberType.MOBILE.value.lower()],
             key=lambda phone: iso8601.parse_date(phone['createDate']),
             reverse=True,
         )

@@ -206,7 +206,7 @@ class TestVAProfileClient:
             'vaProfileId': 12345,
             'telephoneId': 67890,
             'internationalIndicator': False,
-            'phoneType': 'Mobile',
+            'phoneType': 'MOBILE',
             'countryCode': '1',
             'areaCode': '123',
             'phoneNumber': '4567890',
@@ -215,12 +215,12 @@ class TestVAProfileClient:
         if classification_code is None:
             telephone_instance.pop('classification')
 
-        mock_contact_info = {'vaProfileId': 'test', 'txAuditId': '1234'}
+        mock_contact_info = {'vaProfileId': 'test', 'txAuditId': '1234', 'telephones': [telephone_instance]}
         if expected:
-            mock_va_profile_client.has_valid_mobile_telephone_classification(telephone_instance, mock_contact_info)
+            mock_va_profile_client.get_mobile_telephone_from_contact_info(mock_contact_info)
         else:
             with pytest.raises(InvalidPhoneNumberException):
-                mock_va_profile_client.has_valid_mobile_telephone_classification(telephone_instance, mock_contact_info)
+                mock_va_profile_client.get_mobile_telephone_from_contact_info(mock_contact_info)
 
 
 class TestVAProfileClientExceptionHandling:
