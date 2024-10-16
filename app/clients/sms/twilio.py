@@ -232,12 +232,33 @@ class TwilioSMSClient(SmsClient):
         self.logger.info('Translating Twilio delivery status')
         self.logger.debug(twilio_delivery_status_message)
 
+        parsed_dict, decoded_msg = self._parse_twilio_message(twilio_delivery_status_message)
+        message_sid, status, status_reason = self._evaluate_status(parsed_dict)
+
+        status = SmsStatusRecord(
+            decoded_msg,
+            message_sid,
+            status,
+            status_reason,
+        )
+
+        self.logger.debug('Twilio delivery status translation: %s', status)
+
+        return status
+
+    def update_status(self, status_record: SmsStatusRecord) -> None:
+        pass
+
+    def _parse_twilio_message(self, twilio_delivery_status_message) -> None:
         if not twilio_delivery_status_message:
             raise ValueError('Twilio delivery status message is empty')
 
         decoded_msg = base64.b64decode(twilio_delivery_status_message).decode()
-
         parsed_dict = parse_qs(decoded_msg)
+
+        return decoded_msg, parsed_dict
+
+    def _evaluate_status(self, parsed_dict) -> tuple[str, str, str]:
         message_sid = parsed_dict['MessageSid'][0]
         twilio_delivery_status = parsed_dict['MessageStatus'][0]
 
@@ -267,13 +288,4 @@ class TwilioSMSClient(SmsClient):
                 )
             notify_delivery_status: TwilioStatus = self.twilio_notify_status_map[twilio_delivery_status]
 
-        status = SmsStatusRecord(
-            decoded_msg,
-            message_sid,
-            notify_delivery_status.status,
-            notify_delivery_status.status_reason,
-        )
-
-        self.logger.debug('Twilio delivery status translation: %s', status)
-
-        return status
+        return message_sid, notify_delivery_status.status, notify_delivery_status.status_reason
