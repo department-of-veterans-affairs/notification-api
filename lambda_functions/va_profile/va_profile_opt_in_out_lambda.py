@@ -48,6 +48,7 @@ NOTIFY_ENVIRONMENT = os.getenv('NOTIFY_ENVIRONMENT')
 OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s);"""
 VA_PROFILE_DOMAIN = os.getenv('VA_PROFILE_DOMAIN')
 VA_PROFILE_PATH_BASE = '/communication-hub/communication/v1/status/changelog/'
+COMP_AND_PEN_OPT_IN_CUTOFF_TIME_UTC = 11, 10, 0, 0
 
 
 if NOTIFY_ENVIRONMENT is None:
@@ -331,8 +332,8 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
             put_body['status'] = 'COMPLETED_SUCCESS' if c.fetchone()[0] else 'COMPLETED_NOOP'
             db_connection.commit()
 
-            # TODO - Confirm this is for Comp and Pen Only
-            send_comp_and_pen_opt_in_confirmation(auth_header_value, bio['vaProfileId'])
+            # TODO - #1979 Confirm this is for Comp and Pen Only
+            send_comp_and_pen_opt_in_confirmation(bio['vaProfileId'])
 
         logger.debug('Executed the stored function.')
     except KeyError as e:
@@ -457,34 +458,32 @@ def make_PUT_request(
         https_connection.close()
 
 
-def send_comp_and_pen_opt_in_confirmation(auth_header_value: str, va_profile_id: int) -> None:
+def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
     """
     Send a POST request to Comp and Pen's v2/notifications/sms endpoint to send an opt-in confirmation SMS.
     """
 
-    # TODO - #1976 Add Phone Number to parameter store
-    COMP_AND_PEN_PHONE_NUMBER = 9999
-
-    # TODO - #1976 Add VA Notify Domain to parameter store, add logic for env, and confirm prod URL
-    VA_NOTIFY_POST_SMS_NOTIFICATION = f'https://{NOTIFY_ENVIRONMENT}-api.va.gov/v2/notifications/sms'
-
-    # TODO - #1976 Confirm service_id is sms_sender_id
-    sms_sender_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
-    parameter_name = os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID')
-
     try:
         ssm_client = boto3.client('ssm')
-        response = ssm_client.get_parameter(Name=parameter_name, WithDecryption=True)
-        CONFIRMATION_OPT_IN_TEMPLATE = response['Parameter']['Value']
 
-    # TODO - #1979 Add better Exception handling
-    except Exception as e:
-        logger.exception(f'Error fetching SSM parameter {parameter_name}: {e}')
+        comp_and_pen_va_notify_api_key = ssm_client.get_parameter(
+            Name=os.getenv('COMP_AND_PEN_VA_NOTIFY_API_KEY'), WithDecryption=True
+        )['Parameter']['Value']
+
+        comp_and_pen_sms_sender_id = ssm_client.get_parameter(
+            Name=os.getenv('COMP_AND_PEN_SMS_SENDER_ID'), WithDecryption=True
+        )['Parameter']['Value']
+
+        confirmation_opt_in_template_id = ssm_client.get_parameter(
+            Name=os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID'), WithDecryption=True
+        )['Parameter']['Value']
+
+    except Exception as error:
+        logger.exception(f'Error fetching SSM parameters: {error}')
+        return
 
     now = datetime.now(timezone.utc)
-
-    # TODO - #1976 Does this need to be a ENV value
-    cutoff_datetime = datetime(now.year, now.month, 11, 10, 0, 0, tzinfo=timezone.utc)
+    cutoff_datetime = datetime(now.year, now.month, *COMP_AND_PEN_OPT_IN_CUTOFF_TIME_UTC, tzinfo=timezone.utc)
 
     if now < cutoff_datetime:
         month_personalisation = calendar.month_name[now.month]
@@ -493,21 +492,19 @@ def send_comp_and_pen_opt_in_confirmation(auth_header_value: str, va_profile_id:
         month_personalisation = calendar.month_name[next_month]
 
     sms_data = {
-        'template_id': CONFIRMATION_OPT_IN_TEMPLATE,
+        'template_id': confirmation_opt_in_template_id,
         'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
-        'phone_number': COMP_AND_PEN_PHONE_NUMBER,
-        'sms_sender_id': sms_sender_id,
+        'sms_sender_id': comp_and_pen_sms_sender_id,
         'personalisation': {'month': month_personalisation},
     }
 
     try:
         logger.debug('Sending opt-in confirmation SMS to vaProfileId %s' % va_profile_id)
 
-        # TODO #1979 - Confirm auth_header_value correct for authorization, else parameter store value
         requests.post(
-            VA_NOTIFY_POST_SMS_NOTIFICATION,
+            f'https://{NOTIFY_ENVIRONMENT}.api.notifications.va.gov/v2/notifications/sms',
             json=sms_data,
-            headers={'Authorization': auth_header_value, 'Content-Type': 'application/json'},
+            headers={'Authorization': f'Bearer {comp_and_pen_va_notify_api_key}', 'Content-Type': 'application/json'},
             timeout=10,
         )
 

@@ -729,14 +729,23 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
 
     post_mock = mocker.patch('requests.post')
 
-    # Mock boto3 SSM client to return the template ID from parameter store
     mock_ssm = mocker.patch('boto3.client')
     mock_ssm_instance = mock_ssm.return_value
-    mock_ssm_instance.get_parameter.return_value = {'Parameter': {'Value': 'mock_template_id'}}
+    mock_ssm_instance.get_parameter.side_effect = [
+        {'Parameter': {'Value': 'mock_va_notify_api_key'}},  # For comp_and_pen_va_notify_api_key
+        {'Parameter': {'Value': 'mock_sms_sender_id'}},  # For comp_and_pen_sms_sender_id
+        {'Parameter': {'Value': 'mock_template_id'}},  # For confirmation_opt_in_template_id
+    ]
 
     # Set environment variables
-    mocker.patch.dict(os.environ, {'COMP_AND_PEN_OPT_IN_TEMPLATE_ID': 'mock_template_param_name'})
-    mocker.patch.dict(os.environ, {'COMP_AND_PEN_SERVICE_ID': 'mock_sms_sender_id'})
+    mocker.patch.dict(
+        os.environ,
+        {
+            'COMP_AND_PEN_OPT_IN_TEMPLATE_ID': 'mock_template_param_name',
+            'COMP_AND_PEN_SERVICE_ID': 'mock_sms_sender_id',
+            'COMP_AND_PEN_VA_NOTIFY_API_KEY': 'mock_va_notify_api_key',
+        },
+    )
 
     va_profile_id = randint(1000, 100000)
 
@@ -777,18 +786,17 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
     put_mock.assert_called_once_with('txAuditId', expected_put_body)
     assert response_body['put_body'] == expected_put_body
 
-    # Assert POST request to VANotify was made with correct parameters
+    # Assert POST request to VANotify was made with correct parameters, including the expected month
     post_mock.assert_called_once_with(
-        'https://test-api.va.gov/v2/notifications/sms',
+        'https://test.api.notifications.va.gov/v2/notifications/sms',
         json={
             'template_id': 'mock_template_id',
             'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
-            'phone_number': 9999,
             'sms_sender_id': 'mock_sms_sender_id',
             'personalisation': {'month': expected_month},  # Check for correct month
         },
         timeout=10,
-        headers={'Authorization': f'Bearer {jwt_encoded}', 'Content-Type': 'application/json'},
+        headers={'Authorization': 'Bearer mock_va_notify_api_key', 'Content-Type': 'application/json'},
     )
 
     # Verify that one row was created in the DB
