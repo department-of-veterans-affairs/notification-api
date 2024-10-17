@@ -727,7 +727,12 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
     mocker.patch('lambda_functions.va_profile.va_profile_opt_in_out_lambda.datetime', mock.Mock(wraps=datetime))
     mocker.patch('lambda_functions.va_profile.va_profile_opt_in_out_lambda.datetime.now', return_value=mock_date)
 
-    post_mock = mocker.patch('requests.post')
+    mock_https = mocker.patch('http.client.HTTPSConnection', autospec=True)
+    mock_https_instance = mock_https.return_value
+    mock_response = mocker.Mock()
+    mock_response.status = 200
+    mock_response.read.return_value = b'{"success": true}'
+    mock_https_instance.getresponse.return_value = mock_response
 
     mock_ssm = mocker.patch('boto3.client')
     mock_ssm_instance = mock_ssm.return_value
@@ -787,15 +792,17 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
     assert response_body['put_body'] == expected_put_body
 
     # Assert POST request to VANotify was made with correct parameters, including the expected month
-    post_mock.assert_called_once_with(
-        'https://test.api.notifications.va.gov/v2/notifications/sms',
-        json={
-            'template_id': 'mock_template_id',
-            'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
-            'sms_sender_id': 'mock_sms_sender_id',
-            'personalisation': {'month': expected_month},  # Check for correct month
-        },
-        timeout=10,
+    mock_https_instance.request.assert_called_once_with(
+        'POST',
+        '/v2/notifications/sms',
+        body=json.dumps(
+            {
+                'template_id': 'mock_template_id',
+                'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
+                'sms_sender_id': 'mock_sms_sender_id',
+                'personalisation': {'month': expected_month},  # Check for correct month
+            }
+        ),
         headers={'Authorization': 'Bearer mock_va_notify_api_key', 'Content-Type': 'application/json'},
     )
 

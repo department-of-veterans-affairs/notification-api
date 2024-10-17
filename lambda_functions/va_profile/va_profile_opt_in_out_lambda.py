@@ -33,7 +33,6 @@ from tempfile import NamedTemporaryFile
 import boto3
 import jwt
 import psycopg2
-import requests
 from botocore.exceptions import ClientError, ValidationError
 from cryptography.x509 import Certificate, load_pem_x509_certificate
 
@@ -491,22 +490,29 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
         next_month = (now.month % 12) + 1
         month_personalisation = calendar.month_name[next_month]
 
-    sms_data = {
-        'template_id': confirmation_opt_in_template_id,
-        'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
-        'sms_sender_id': comp_and_pen_sms_sender_id,
-        'personalisation': {'month': month_personalisation},
-    }
+    sms_data = json.dumps(
+        {
+            'template_id': confirmation_opt_in_template_id,
+            'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
+            'sms_sender_id': comp_and_pen_sms_sender_id,
+            'personalisation': {'month': month_personalisation},
+        }
+    )
 
     try:
         logger.debug('Sending opt-in confirmation SMS to vaProfileId %s' % va_profile_id)
 
-        requests.post(
-            f'https://{NOTIFY_ENVIRONMENT}.api.notifications.va.gov/v2/notifications/sms',
-            json=sms_data,
-            headers={'Authorization': f'Bearer {comp_and_pen_opt_in_api_key}', 'Content-Type': 'application/json'},
-            timeout=10,
-        )
+        conn = HTTPSConnection(f'{NOTIFY_ENVIRONMENT}.api.notifications.va.gov')
+
+        headers = {'Authorization': f'Bearer {comp_and_pen_opt_in_api_key}', 'Content-Type': 'application/json'}
+
+        conn.request('POST', '/v2/notifications/sms', body=sms_data, headers=headers)
+
+        response = conn.getresponse()
+        response_data = response.read().decode()
+
+        logger.info(f'SMS sent successfully. Response status: {response.status}, Response data: {response_data}')
+        conn.close()
 
     # TODO - #1979 Add better Exception handling
     except Exception as e:
