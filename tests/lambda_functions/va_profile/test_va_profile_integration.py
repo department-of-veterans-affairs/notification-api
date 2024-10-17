@@ -6,6 +6,7 @@ with VA Profile integration calls this stored function.  The stored function sho
 created or updated; otherwise, False.
 """
 
+import json
 import jwt
 import pytest
 from app.models import VAProfileLocalCache
@@ -696,6 +697,74 @@ def test_va_profile_opt_in_out_lambda_handler_integration_testing(
     assert response_body['put_body'] == expected_put_body
 
     # Verify one row was created using a delete statement that doubles as teardown.
+    stmt = delete(VAProfileLocalCache).where(
+        VAProfileLocalCache.va_profile_id == va_profile_id,
+        VAProfileLocalCache.communication_item_id == 5,
+        VAProfileLocalCache.communication_channel_id == 1,
+    )
+    assert notify_db_session.session.execute(stmt).rowcount == 1
+    notify_db_session.session.commit()
+
+
+def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
+    notify_db_session, jwt_encoded, put_mock, get_integration_testing_public_cert_mock, mocker
+):
+    # Mock the requests.post call
+    post_mock = mocker.patch('requests.post')
+
+    va_profile_id = randint(1000, 100000)
+
+    # Check initial state in DB (there should be no records)
+    stmt = (
+        select(func.count())
+        .select_from(VAProfileLocalCache)
+        .where(
+            VAProfileLocalCache.va_profile_id == va_profile_id,
+            VAProfileLocalCache.communication_item_id == 5,
+            VAProfileLocalCache.communication_channel_id == 1,
+        )
+    )
+
+    assert notify_db_session.session.scalar(stmt) == 0
+
+    # Create the event with appropriate parameters
+    event = create_event('txAuditId', 'txAuditId', '2022-04-07T19:37:59.320Z', va_profile_id, 1, 5, True, jwt_encoded)
+    event['queryStringParameters'] = {'integration_test': "the value doesn't matter"}
+
+    # Call the lambda handler
+    response = va_profile_opt_in_out_lambda_handler(event, None)
+
+    # Validate the response from the lambda handler
+    assert isinstance(response, dict)
+    assert response['statusCode'] == 200
+    assert response.get('headers', {}).get('Content-Type', '') == 'application/json'
+
+    response_body = json.loads(response.get('body', '{}'))
+    assert 'put_body' in response_body
+
+    expected_put_body = {
+        'dateTime': '2022-04-07T19:37:59.320Z',
+        'status': 'COMPLETED_SUCCESS',
+    }
+
+    # Validate PUT request was made with correct parameters
+    put_mock.assert_called_once_with('txAuditId', expected_put_body)
+    get_integration_testing_public_cert_mock.assert_called_once()
+    assert response_body['put_body'] == expected_put_body
+
+    # Assert that the POST request was made to the correct endpoint with the correct body
+    post_mock.assert_called_once_with(
+        'https://dev-api.va.gov/v2/notifications/sms',
+        json={
+            'template_id': 'TBD_template_id',
+            'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
+            'short_code': 96702,
+            'personalisation': {},
+        },
+        headers={'Authorization': f'Bearer {jwt_encoded}', 'Content-Type': 'application/json'},
+    )
+
+    # Verify that one row was created in the DB
     stmt = delete(VAProfileLocalCache).where(
         VAProfileLocalCache.va_profile_id == va_profile_id,
         VAProfileLocalCache.communication_item_id == 5,

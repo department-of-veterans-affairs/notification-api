@@ -28,6 +28,7 @@ import os
 import psycopg2
 import ssl
 import sys
+import requests
 from botocore.exceptions import ClientError, ValidationError
 from cryptography.x509 import Certificate, load_pem_x509_certificate
 from http.client import HTTPSConnection
@@ -211,8 +212,9 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
         assert integration_testing_public_cert is not None
 
     # Authenticate the POST request by verifying the JWT signature.
+    auth_header_value = headers.get('Authorization', headers.get('authorization', ''))
     if not jwt_is_valid(
-        headers.get('Authorization', headers.get('authorization', '')),
+        auth_header_value,
         integration_testing_public_cert if is_integration_test else va_profile_public_cert,
     ):
         logger.info('Authentication failed.  Returning 401.')
@@ -325,10 +327,8 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
             c.execute(OPT_IN_OUT_QUERY, params)
             put_body['status'] = 'COMPLETED_SUCCESS' if c.fetchone()[0] else 'COMPLETED_NOOP'
             db_connection.commit()
-            # TODO 1979 - Send Comp and Pen confirmation if DB OK
-            # What is the id for comp and pen
-            if bio['communicationChannelId'] == 5:
-                send_comp_and_pen_opt_in_confirmation()
+            # TODO - How do I specify for comp and pen opt in only?
+            send_comp_and_pen_opt_in_confirmation(auth_header_value, bio['vaProfileId'])
 
         logger.debug('Executed the stored function.')
     except KeyError as e:
@@ -453,12 +453,44 @@ def make_PUT_request(
         https_connection.close()
 
 
-# TODO #1979
-def send_comp_and_pen_opt_in_confirmation() -> None:
-    # Create POST v2/notifications/sms call to Comp and Pen
-    # Send with new template from usual Comp and Pen number (short code 96702)
-    # vaProfileId as recipient identifier
-    return None
+def send_comp_and_pen_opt_in_confirmation(auth_header_value: str, va_profile_id: int) -> None:
+    """
+    Send a POST request to Comp and Pen's v2/notifications/sms endpoint to send an opt-in confirmation SMS.
+    """
+
+    # TODO - Do I need to use parameter store values?
+    COMP_AND_PEN_SHORT_CODE = 96702
+    CONFIRMATION_OPT_IN_TEMPLATE = 'TBD_template_id'
+
+    sms_data = {
+        'template_id': CONFIRMATION_OPT_IN_TEMPLATE,
+        'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
+        'short_code': COMP_AND_PEN_SHORT_CODE,
+        'personalisation': {},
+    }
+
+    # TODO #1979 - Setup for different environments
+    va_notify_sms_endpoint = 'https://dev-api.va.gov/v2/notifications/sms'
+
+    try:
+        logger.debug('Sending opt-in confirmation SMS to vaProfileId %s' % va_profile_id)
+
+        requests.post(
+            va_notify_sms_endpoint,
+            json=sms_data,
+            headers={'Authorization': auth_header_value, 'Content-Type': 'application/json'},
+            timeout=10,  # TODO - #1979 required by linter
+        )
+
+    #     if response.status_code == 201:
+    #         logger.info('Successfully sent opt-in confirmation SMS to vaProfileId %s' % va_profile_id)
+    #     else:
+    #         logger.error('Failed to send SMS. Status code: %s, Response: %s' % (response.status_code, response.text))
+    except TimeoutError:
+        # TODO - #1979 Had to add to get pass linter
+        logger.exception('Timeout error')
+    except Exception as e:
+        logger.exception('An error occurred while sending SMS to vaProfileId %s: %s' % (va_profile_id, e))
 
 
 def get_integration_testing_public_cert() -> Certificate:
