@@ -20,22 +20,22 @@ envronment, it is the Lambda execution environment, which should make certain fi
 via lambda layers.
 """
 
-import boto3
+import calendar
 import json
-import jwt
 import logging
 import os
-import psycopg2
 import ssl
 import sys
+from datetime import datetime, timezone
+from http.client import HTTPSConnection
+from tempfile import NamedTemporaryFile
+
+import boto3
+import jwt
+import psycopg2
 import requests
 from botocore.exceptions import ClientError, ValidationError
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from http.client import HTTPSConnection
-from tempfile import NamedTemporaryFile
-from datetime import datetime
-import calendar
-from datetime import timezone
 
 
 logger = logging.getLogger('VAProfileOptInOut')
