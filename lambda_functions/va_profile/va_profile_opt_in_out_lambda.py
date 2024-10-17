@@ -466,8 +466,8 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
     try:
         ssm_client = boto3.client('ssm')
 
-        comp_and_pen_va_notify_api_key = ssm_client.get_parameter(
-            Name=os.getenv('COMP_AND_PEN_VA_NOTIFY_API_KEY'), WithDecryption=True
+        comp_and_pen_opt_in_api_key = ssm_client.get_parameter(
+            Name=os.getenv('COMP_AND_PEN_OPT_IN_API_KEY'), WithDecryption=True
         )['Parameter']['Value']
 
         comp_and_pen_sms_sender_id = ssm_client.get_parameter(
@@ -504,7 +504,7 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
         requests.post(
             f'https://{NOTIFY_ENVIRONMENT}.api.notifications.va.gov/v2/notifications/sms',
             json=sms_data,
-            headers={'Authorization': f'Bearer {comp_and_pen_va_notify_api_key}', 'Content-Type': 'application/json'},
+            headers={'Authorization': f'Bearer {comp_and_pen_opt_in_api_key}', 'Content-Type': 'application/json'},
             timeout=10,
         )
 

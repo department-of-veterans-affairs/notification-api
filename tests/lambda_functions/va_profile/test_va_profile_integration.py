@@ -732,7 +732,7 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
     mock_ssm = mocker.patch('boto3.client')
     mock_ssm_instance = mock_ssm.return_value
     mock_ssm_instance.get_parameter.side_effect = [
-        {'Parameter': {'Value': 'mock_va_notify_api_key'}},  # For comp_and_pen_va_notify_api_key
+        {'Parameter': {'Value': 'mock_va_notify_api_key'}},  # For comp_and_pen_opt_in_api_key
         {'Parameter': {'Value': 'mock_sms_sender_id'}},  # For comp_and_pen_sms_sender_id
         {'Parameter': {'Value': 'mock_template_id'}},  # For confirmation_opt_in_template_id
     ]
@@ -743,7 +743,7 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
         {
             'COMP_AND_PEN_OPT_IN_TEMPLATE_ID': 'mock_template_param_name',
             'COMP_AND_PEN_SERVICE_ID': 'mock_sms_sender_id',
-            'COMP_AND_PEN_VA_NOTIFY_API_KEY': 'mock_va_notify_api_key',
+            'COMP_AND_PEN_OPT_IN_API_KEY': 'mock_va_notify_api_key',
         },
     )
 
