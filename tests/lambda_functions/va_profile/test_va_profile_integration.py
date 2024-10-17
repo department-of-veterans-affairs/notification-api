@@ -6,6 +6,8 @@ with VA Profile integration calls this stored function.  The stored function sho
 created or updated; otherwise, False.
 """
 
+import json
+import os
 import jwt
 import pytest
 from app.models import VAProfileLocalCache
@@ -17,6 +19,7 @@ from json import dumps, loads
 from lambda_functions.va_profile.va_profile_opt_in_out_lambda import jwt_is_valid, va_profile_opt_in_out_lambda_handler
 from random import randint
 from sqlalchemy import delete, func, select, text
+from unittest import mock
 
 
 # Base path for mocks
@@ -696,6 +699,114 @@ def test_va_profile_opt_in_out_lambda_handler_integration_testing(
     assert response_body['put_body'] == expected_put_body
 
     # Verify one row was created using a delete statement that doubles as teardown.
+    stmt = delete(VAProfileLocalCache).where(
+        VAProfileLocalCache.va_profile_id == va_profile_id,
+        VAProfileLocalCache.communication_item_id == 5,
+        VAProfileLocalCache.communication_channel_id == 1,
+    )
+    assert notify_db_session.session.execute(stmt).rowcount == 1
+    notify_db_session.session.commit()
+
+
+@pytest.mark.parametrize(
+    'mock_date,expected_month',
+    [
+        (datetime(2022, 4, 11, 9, 59, tzinfo=timezone.utc), 'April'),  # Before 11th 10:00 AM UTC
+        (datetime(2022, 4, 11, 10, 1, tzinfo=timezone.utc), 'May'),  # After 11th 10:00 AM UTC
+    ],
+)
+def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
+    notify_db_session,
+    jwt_encoded,
+    put_mock,
+    get_integration_testing_public_cert_mock,
+    mocker,
+    mock_date,
+    expected_month,
+):
+    mocker.patch('lambda_functions.va_profile.va_profile_opt_in_out_lambda.datetime', mock.Mock(wraps=datetime))
+    mocker.patch('lambda_functions.va_profile.va_profile_opt_in_out_lambda.datetime.now', return_value=mock_date)
+
+    mock_https = mocker.patch('http.client.HTTPSConnection', autospec=True)
+    mock_https_instance = mock_https.return_value
+    mock_response = mocker.Mock()
+    mock_response.status = 200
+    mock_response.read.return_value = b'{"success": true}'
+    mock_https_instance.getresponse.return_value = mock_response
+
+    mock_ssm = mocker.patch('boto3.client')
+    mock_ssm_instance = mock_ssm.return_value
+    mock_ssm_instance.get_parameter.side_effect = [
+        {'Parameter': {'Value': 'mock_va_notify_api_key'}},  # For comp_and_pen_opt_in_api_key
+        {'Parameter': {'Value': 'mock_sms_sender_id'}},  # For comp_and_pen_sms_sender_id
+        {'Parameter': {'Value': 'mock_template_id'}},  # For confirmation_opt_in_template_id
+    ]
+
+    # Set environment variables
+    mocker.patch.dict(
+        os.environ,
+        {
+            'COMP_AND_PEN_OPT_IN_TEMPLATE_ID': 'mock_template_param_name',
+            'COMP_AND_PEN_SERVICE_ID': 'mock_sms_sender_id',
+            'COMP_AND_PEN_OPT_IN_API_KEY': 'mock_va_notify_api_key',
+        },
+    )
+
+    va_profile_id = randint(1000, 100000)
+
+    # Check initial state in DB (there should be no records)
+    stmt = (
+        select(func.count())
+        .select_from(VAProfileLocalCache)
+        .where(
+            VAProfileLocalCache.va_profile_id == va_profile_id,
+            VAProfileLocalCache.communication_item_id == 5,
+            VAProfileLocalCache.communication_channel_id == 1,
+        )
+    )
+
+    assert notify_db_session.session.scalar(stmt) == 0
+
+    # Create the event with appropriate parameters for COMP and PEN Opt-In
+    event = create_event('txAuditId', 'txAuditId', '2022-04-07T19:37:59.320Z', va_profile_id, 1, 5, True, jwt_encoded)
+    event['queryStringParameters'] = {'integration_test': "the value doesn't matter"}
+
+    # Call the lambda handler
+    response = va_profile_opt_in_out_lambda_handler(event, None)
+
+    # Validate the response from the lambda handler
+    assert isinstance(response, dict)
+    assert response['statusCode'] == 200
+    assert response.get('headers', {}).get('Content-Type', '') == 'application/json'
+
+    response_body = json.loads(response.get('body', '{}'))
+    assert 'put_body' in response_body
+
+    expected_put_body = {
+        'dateTime': '2022-04-07T19:37:59.320Z',
+        'status': 'COMPLETED_SUCCESS',
+    }
+
+    # Assert PUT request to VAProfile was made with correct parameters
+    put_mock.assert_called_once_with('txAuditId', expected_put_body)
+    assert response_body['put_body'] == expected_put_body
+
+    # Assert POST request to VANotify was made with correct parameters, including the expected month
+    mock_https_instance.request.assert_called_once_with(
+        'POST',
+        '/v2/notifications/sms',
+        body=json.dumps(
+            {
+                'template_id': 'mock_template_id',
+                'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
+                'sms_sender_id': 'mock_sms_sender_id',
+                'personalisation': {'month': expected_month},  # Check for correct month
+            }
+        ),
+        headers={'Authorization': 'Bearer mock_va_notify_api_key', 'Content-Type': 'application/json'},
+    )
+
+    # Verify that one row was created in the DB
     stmt = delete(VAProfileLocalCache).where(
         VAProfileLocalCache.va_profile_id == va_profile_id,
         VAProfileLocalCache.communication_item_id == 5,
