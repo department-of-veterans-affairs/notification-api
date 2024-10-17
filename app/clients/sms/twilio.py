@@ -1,14 +1,20 @@
 import base64
+from contextlib import suppress
 from dataclasses import dataclass
 from logging import Logger
 from monotonic import monotonic
 from urllib.parse import parse_qs
 
+from sqlalchemy import update, text
 from twilio.rest import Client
+from twilio.rest.api.v2010.account.message import MessageInstance
 from twilio.base.exceptions import TwilioRestException
 
+from app import db
 from app.clients.sms import SmsClient, SmsStatusRecord
+
 from app.exceptions import InvalidProviderException
+
 
 TWILIO_RESPONSE_MAP = {
     'accepted': 'created',
@@ -125,6 +131,12 @@ class TwilioSMSClient(SmsClient):
     def get_name(self):
         return self.name
 
+    def get_twilio_message(self, message_sid: str) -> MessageInstance | None:
+        message = None
+        with suppress(TwilioRestException):
+            message = self._client.messages(message_sid).fetch()
+        return message
+
     def send_sms(
         self,
         to,
@@ -232,8 +244,13 @@ class TwilioSMSClient(SmsClient):
         self.logger.info('Translating Twilio delivery status')
         self.logger.debug(twilio_delivery_status_message)
 
-        parsed_dict, decoded_msg = self._parse_twilio_message(twilio_delivery_status_message)
-        message_sid, status, status_reason = self._evaluate_status(parsed_dict)
+        decoded_msg, parsed_dict = self._parse_twilio_message(twilio_delivery_status_message)
+
+        message_sid = parsed_dict['MessageSid'][0]
+        twilio_delivery_status = parsed_dict['MessageStatus'][0]
+        error_code = parsed_dict.get('ErrorCode', [])
+
+        status, status_reason = self._evaluate_status(message_sid, twilio_delivery_status, error_code)
 
         status = SmsStatusRecord(
             decoded_msg,
@@ -246,10 +263,27 @@ class TwilioSMSClient(SmsClient):
 
         return status
 
-    def update_status(self, status_record: SmsStatusRecord) -> None:
-        pass
+    def update_notification_status(self, message_sid: str) -> None:
+        from app.dao.notifications_dao import dao_update_notifications_by_reference
 
-    def _parse_twilio_message(self, twilio_delivery_status_message) -> None:
+        self.logger.info('Updating notification status for message: %s', message_sid)
+
+        message = self.get_twilio_message(message_sid)
+        self.logger.debug('Twilio message: %s', message)
+
+        status, status_reason = self._evaluate_status(message_sid, message.status, [])
+        update_dict = {
+            'status': status,
+            'status_reason': status_reason,
+        }
+        dao_update_notifications_by_reference(
+            [
+                message_sid,
+            ],
+            update_dict,
+        )
+
+    def _parse_twilio_message(self, twilio_delivery_status_message: MessageInstance) -> tuple[str, dict]:
         if not twilio_delivery_status_message:
             raise ValueError('Twilio delivery status message is empty')
 
@@ -258,18 +292,13 @@ class TwilioSMSClient(SmsClient):
 
         return decoded_msg, parsed_dict
 
-    def _evaluate_status(self, parsed_dict) -> tuple[str, str, str]:
-        message_sid = parsed_dict['MessageSid'][0]
-        twilio_delivery_status = parsed_dict['MessageStatus'][0]
-
+    def _evaluate_status(self, message_sid: str, twilio_delivery_status: str, error_codes: list) -> tuple[str, str]:
         if twilio_delivery_status not in self.twilio_notify_status_map:
             value_error = f'Invalid Twilio delivery status:  {twilio_delivery_status}'
             raise ValueError(value_error)
 
-        if 'ErrorCode' in parsed_dict and (
-            twilio_delivery_status == 'failed' or twilio_delivery_status == 'undelivered'
-        ):
-            error_code = parsed_dict['ErrorCode'][0]
+        if error_codes and (twilio_delivery_status == 'failed' or twilio_delivery_status == 'undelivered'):
+            error_code = error_codes[0]
 
             if error_code in self.twilio_error_code_map:
                 notify_delivery_status: TwilioStatus = self.twilio_error_code_map[error_code]
@@ -280,7 +309,7 @@ class TwilioSMSClient(SmsClient):
                 notify_delivery_status: TwilioStatus = self.twilio_notify_status_map[twilio_delivery_status]
         else:
             # Logic not being changed, just want to log this for now
-            if 'ErrorCode' in parsed_dict:
+            if error_codes:
                 self.logger.warning(
                     'Error code: %s existed but status for message: %s was not failed nor undelivered',
                     error_code,
@@ -288,4 +317,4 @@ class TwilioSMSClient(SmsClient):
                 )
             notify_delivery_status: TwilioStatus = self.twilio_notify_status_map[twilio_delivery_status]
 
-        return message_sid, notify_delivery_status.status, notify_delivery_status.status_reason
+        return notify_delivery_status.status, notify_delivery_status.status_reason
