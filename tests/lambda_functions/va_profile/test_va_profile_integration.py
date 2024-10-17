@@ -7,6 +7,7 @@ created or updated; otherwise, False.
 """
 
 import json
+import os
 import jwt
 import pytest
 from app.models import VAProfileLocalCache
@@ -709,8 +710,13 @@ def test_va_profile_opt_in_out_lambda_handler_integration_testing(
 def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
     notify_db_session, jwt_encoded, put_mock, get_integration_testing_public_cert_mock, mocker
 ):
-    # Mock the requests.post call
     post_mock = mocker.patch('requests.post')
+
+    mock_ssm = mocker.patch('boto3.client')
+    mock_ssm_instance = mock_ssm.return_value
+    mock_ssm_instance.get_parameter.return_value = {'Parameter': {'Value': 'mock_template_id'}}
+
+    mocker.patch.dict(os.environ, {'COMP_AND_PEN_OPT_IN_TEMPLATE_ID': 'mock_template_param_name'})
 
     va_profile_id = randint(1000, 100000)
 
@@ -727,7 +733,7 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
 
     assert notify_db_session.session.scalar(stmt) == 0
 
-    # Create the event with appropriate parameters
+    # Create the event with appropriate parameters for COMP and PEN Opt In
     event = create_event('txAuditId', 'txAuditId', '2022-04-07T19:37:59.320Z', va_profile_id, 1, 5, True, jwt_encoded)
     event['queryStringParameters'] = {'integration_test': "the value doesn't matter"}
 
@@ -747,20 +753,21 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
         'status': 'COMPLETED_SUCCESS',
     }
 
-    # Validate PUT request was made with correct parameters
+    # Validate PUT request to VAProfile was made with correct parameters
     put_mock.assert_called_once_with('txAuditId', expected_put_body)
     get_integration_testing_public_cert_mock.assert_called_once()
     assert response_body['put_body'] == expected_put_body
 
-    # Assert that the POST request was made to the correct endpoint with the correct body
+    # Assert that the POST request to VANotify was made with correct parameters
     post_mock.assert_called_once_with(
         'https://dev-api.va.gov/v2/notifications/sms',
         json={
-            'template_id': 'TBD_template_id',
+            'template_id': 'mock_template_id',
             'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
             'short_code': 96702,
             'personalisation': {},
         },
+        timeout=10,
         headers={'Authorization': f'Bearer {jwt_encoded}', 'Content-Type': 'application/json'},
     )
 

@@ -327,7 +327,8 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
             c.execute(OPT_IN_OUT_QUERY, params)
             put_body['status'] = 'COMPLETED_SUCCESS' if c.fetchone()[0] else 'COMPLETED_NOOP'
             db_connection.commit()
-            # TODO - How do I specify for comp and pen opt in only?
+
+            # TODO - Confirm this is for Comp and Pen Only
             send_comp_and_pen_opt_in_confirmation(auth_header_value, bio['vaProfileId'])
 
         logger.debug('Executed the stored function.')
@@ -458,9 +459,23 @@ def send_comp_and_pen_opt_in_confirmation(auth_header_value: str, va_profile_id:
     Send a POST request to Comp and Pen's v2/notifications/sms endpoint to send an opt-in confirmation SMS.
     """
 
-    # TODO - Do I need to use parameter store values?
+    # TODO - # 1976 Parameter store values and adjust POST SMS url for different environments
     COMP_AND_PEN_SHORT_CODE = 96702
-    CONFIRMATION_OPT_IN_TEMPLATE = 'TBD_template_id'
+    VA_NOTIFY_POST_SMS_NOTIFICATION = 'https://dev-api.va.gov/v2/notifications/sms'
+
+    parameter_name = os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID')
+
+    if not parameter_name:
+        logger.error('COMP_AND_PEN_OPT_IN_TEMPLATE_ID environment variable is not set')
+        raise ValueError('COMP_AND_PEN_OPT_IN_TEMPLATE_ID environment variable is required but not set')
+
+    try:
+        ssm_client = boto3.client('ssm')
+        response = ssm_client.get_parameter(Name=parameter_name, WithDecryption=True)
+        CONFIRMATION_OPT_IN_TEMPLATE = response['Parameter']['Value']
+    except Exception as e:
+        logger.exception(f'Error fetching SSM parameter {parameter_name}: {e}')
+        raise
 
     sms_data = {
         'template_id': CONFIRMATION_OPT_IN_TEMPLATE,
@@ -469,26 +484,16 @@ def send_comp_and_pen_opt_in_confirmation(auth_header_value: str, va_profile_id:
         'personalisation': {},
     }
 
-    # TODO #1979 - Setup for different environments
-    va_notify_sms_endpoint = 'https://dev-api.va.gov/v2/notifications/sms'
-
     try:
         logger.debug('Sending opt-in confirmation SMS to vaProfileId %s' % va_profile_id)
 
         requests.post(
-            va_notify_sms_endpoint,
+            VA_NOTIFY_POST_SMS_NOTIFICATION,
             json=sms_data,
             headers={'Authorization': auth_header_value, 'Content-Type': 'application/json'},
-            timeout=10,  # TODO - #1979 required by linter
+            timeout=10,
         )
 
-    #     if response.status_code == 201:
-    #         logger.info('Successfully sent opt-in confirmation SMS to vaProfileId %s' % va_profile_id)
-    #     else:
-    #         logger.error('Failed to send SMS. Status code: %s, Response: %s' % (response.status_code, response.text))
-    except TimeoutError:
-        # TODO - #1979 Had to add to get pass linter
-        logger.exception('Timeout error')
     except Exception as e:
         logger.exception('An error occurred while sending SMS to vaProfileId %s: %s' % (va_profile_id, e))
 
