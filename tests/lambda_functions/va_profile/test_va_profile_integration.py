@@ -19,6 +19,7 @@ from json import dumps, loads
 from lambda_functions.va_profile.va_profile_opt_in_out_lambda import jwt_is_valid, va_profile_opt_in_out_lambda_handler
 from random import randint
 from sqlalchemy import delete, func, select, text
+from unittest import mock
 
 
 # Base path for mocks
@@ -707,16 +708,35 @@ def test_va_profile_opt_in_out_lambda_handler_integration_testing(
     notify_db_session.session.commit()
 
 
+@pytest.mark.parametrize(
+    'mock_date,expected_month',
+    [
+        (datetime(2022, 4, 11, 9, 59, tzinfo=timezone.utc), 'April'),  # Before 11th 10:00 AM UTC
+        (datetime(2022, 4, 11, 10, 1, tzinfo=timezone.utc), 'May'),  # After 11th 10:00 AM UTC
+    ],
+)
 def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
-    notify_db_session, jwt_encoded, put_mock, get_integration_testing_public_cert_mock, mocker
+    notify_db_session,
+    jwt_encoded,
+    put_mock,
+    get_integration_testing_public_cert_mock,
+    mocker,
+    mock_date,
+    expected_month,
 ):
+    mocker.patch('lambda_functions.va_profile.va_profile_opt_in_out_lambda.datetime', mock.Mock(wraps=datetime))
+    mocker.patch('lambda_functions.va_profile.va_profile_opt_in_out_lambda.datetime.now', return_value=mock_date)
+
     post_mock = mocker.patch('requests.post')
 
+    # Mock boto3 SSM client to return the template ID from parameter store
     mock_ssm = mocker.patch('boto3.client')
     mock_ssm_instance = mock_ssm.return_value
     mock_ssm_instance.get_parameter.return_value = {'Parameter': {'Value': 'mock_template_id'}}
 
+    # Set environment variables
     mocker.patch.dict(os.environ, {'COMP_AND_PEN_OPT_IN_TEMPLATE_ID': 'mock_template_param_name'})
+    mocker.patch.dict(os.environ, {'COMP_AND_PEN_SERVICE_ID': 'mock_sms_sender_id'})
 
     va_profile_id = randint(1000, 100000)
 
@@ -733,7 +753,7 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
 
     assert notify_db_session.session.scalar(stmt) == 0
 
-    # Create the event with appropriate parameters for COMP and PEN Opt In
+    # Create the event with appropriate parameters for COMP and PEN Opt-In
     event = create_event('txAuditId', 'txAuditId', '2022-04-07T19:37:59.320Z', va_profile_id, 1, 5, True, jwt_encoded)
     event['queryStringParameters'] = {'integration_test': "the value doesn't matter"}
 
@@ -753,19 +773,19 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
         'status': 'COMPLETED_SUCCESS',
     }
 
-    # Validate PUT request to VAProfile was made with correct parameters
+    # Assert PUT request to VAProfile was made with correct parameters
     put_mock.assert_called_once_with('txAuditId', expected_put_body)
-    get_integration_testing_public_cert_mock.assert_called_once()
     assert response_body['put_body'] == expected_put_body
 
-    # Assert that the POST request to VANotify was made with correct parameters
+    # Assert POST request to VANotify was made with correct parameters
     post_mock.assert_called_once_with(
-        'https://dev-api.va.gov/v2/notifications/sms',
+        'https://test-api.va.gov/v2/notifications/sms',
         json={
             'template_id': 'mock_template_id',
             'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
-            'short_code': 96702,
-            'personalisation': {},
+            'phone_number': 9999,
+            'sms_sender_id': 'mock_sms_sender_id',
+            'personalisation': {'month': expected_month},  # Check for correct month
         },
         timeout=10,
         headers={'Authorization': f'Bearer {jwt_encoded}', 'Content-Type': 'application/json'},

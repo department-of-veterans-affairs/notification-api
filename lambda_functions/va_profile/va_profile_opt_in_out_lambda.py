@@ -33,6 +33,9 @@ from botocore.exceptions import ClientError, ValidationError
 from cryptography.x509 import Certificate, load_pem_x509_certificate
 from http.client import HTTPSConnection
 from tempfile import NamedTemporaryFile
+from datetime import datetime
+import calendar
+from datetime import timezone
 
 
 logger = logging.getLogger('VAProfileOptInOut')
@@ -459,34 +462,48 @@ def send_comp_and_pen_opt_in_confirmation(auth_header_value: str, va_profile_id:
     Send a POST request to Comp and Pen's v2/notifications/sms endpoint to send an opt-in confirmation SMS.
     """
 
-    # TODO - # 1976 Parameter store values and adjust POST SMS url for different environments
-    COMP_AND_PEN_SHORT_CODE = 96702
-    VA_NOTIFY_POST_SMS_NOTIFICATION = 'https://dev-api.va.gov/v2/notifications/sms'
+    # TODO - #1976 Add Phone Number to parameter store
+    COMP_AND_PEN_PHONE_NUMBER = 9999
 
+    # TODO - #1976 Add VA Notify Domain to parameter store, add logic for env, and confirm prod URL
+    VA_NOTIFY_POST_SMS_NOTIFICATION = f'https://{NOTIFY_ENVIRONMENT}-api.va.gov/v2/notifications/sms'
+
+    # TODO - #1976 Confirm service_id is sms_sender_id
+    sms_sender_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
     parameter_name = os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID')
-
-    if not parameter_name:
-        logger.error('COMP_AND_PEN_OPT_IN_TEMPLATE_ID environment variable is not set')
-        raise ValueError('COMP_AND_PEN_OPT_IN_TEMPLATE_ID environment variable is required but not set')
 
     try:
         ssm_client = boto3.client('ssm')
         response = ssm_client.get_parameter(Name=parameter_name, WithDecryption=True)
         CONFIRMATION_OPT_IN_TEMPLATE = response['Parameter']['Value']
+
+    # TODO - #1979 Add better Exception handling
     except Exception as e:
         logger.exception(f'Error fetching SSM parameter {parameter_name}: {e}')
-        raise
+
+    now = datetime.now(timezone.utc)
+
+    # TODO - #1976 Does this need to be a ENV value
+    cutoff_datetime = datetime(now.year, now.month, 11, 10, 0, 0, tzinfo=timezone.utc)
+
+    if now < cutoff_datetime:
+        month_personalisation = calendar.month_name[now.month]
+    else:
+        next_month = (now.month % 12) + 1
+        month_personalisation = calendar.month_name[next_month]
 
     sms_data = {
         'template_id': CONFIRMATION_OPT_IN_TEMPLATE,
         'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
-        'short_code': COMP_AND_PEN_SHORT_CODE,
-        'personalisation': {},
+        'phone_number': COMP_AND_PEN_PHONE_NUMBER,
+        'sms_sender_id': sms_sender_id,
+        'personalisation': {'month': month_personalisation},
     }
 
     try:
         logger.debug('Sending opt-in confirmation SMS to vaProfileId %s' % va_profile_id)
 
+        # TODO #1979 - Confirm auth_header_value correct for authorization, else parameter store value
         requests.post(
             VA_NOTIFY_POST_SMS_NOTIFICATION,
             json=sms_data,
@@ -494,6 +511,7 @@ def send_comp_and_pen_opt_in_confirmation(auth_header_value: str, va_profile_id:
             timeout=10,
         )
 
+    # TODO - #1979 Add better Exception handling
     except Exception as e:
         logger.exception('An error occurred while sending SMS to vaProfileId %s: %s' % (va_profile_id, e))
 
