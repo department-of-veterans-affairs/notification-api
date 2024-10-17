@@ -16,7 +16,7 @@ fileignoreconfig:
 - filename: app/template/rest.py
   checksum: 1e5bdac8bc694d50f8f656dec127dd036b7b1b5b6156e3282d3411956c71ba0b
 - filename: cd/application-deployment/dev/dev.env
-  checksum: 2b704ad1b3b926970a1b393a1885e6043e857cc8d2b3cdde83252a7cbd2bbcd7
+  checksum: da33c215ecd18a2b3d44aa0d35c70a77b94cd5b2015d958a8103e96e7c707e23
 - filename: cd/application-deployment/dev/vaec-api-task-definition.json
   checksum: f328ff821339b802eb1d82559e624d5b719857c813d427da5aaa39b240331ddd
 - filename: cd/application-deployment/perf/perf.env
