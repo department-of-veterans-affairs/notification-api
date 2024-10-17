@@ -28,7 +28,7 @@ async function fetchMainBranchSha(github, owner, repo) {
   const { data } = await github.rest.repos.getCommit({
     owner,
     repo,
-    ref: 'heads/main',
+    ref: 'heads/1969-deploy-from-main',
   });
 
   if (data && data.sha) {
