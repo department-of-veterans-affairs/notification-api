@@ -166,7 +166,7 @@ class VAProfileClient:
                 'Expected country code: %s | area code: %s | phone number (str length): %s',
                 telephone.get('countryCode'),
                 telephone.get('areaCode'),
-                len(telephone.get('phoneNumber', '')),  # Do not log phone numbers
+                len(str(telephone.get('phoneNumber', ''))),  # Do not log phone numbers. Cast to str to prevent errors.
             )
 
     def get_telephone(
