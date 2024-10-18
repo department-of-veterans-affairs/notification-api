@@ -202,10 +202,6 @@
         {
           "name": "COMP_AND_PEN_DYNAMODB_NAME",
           "value": "prod-bip-payment-notification-table"
-        },
-        {
-          "name": "VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP",
-          "value": "True"
         }
       ],
       "secrets": [
@@ -277,7 +273,7 @@
     },
     {
       "name": "datadog-agent",
-      "image": "171875617347.dkr.ecr.us-gov-west-1.amazonaws.com/datadog/agent:latest",
+      "image": "171875617347.dkr.ecr.us-gov-west-1.amazonaws.com/datadog/agent:7.57.2",
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {

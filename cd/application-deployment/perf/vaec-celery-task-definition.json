@@ -188,14 +188,6 @@
         {
           "name": "COMP_AND_PEN_PERF_TO_NUMBER",
           "value": "+14254147755"
-        },
-        {
-          "name": "VA_PROFILE_V3_COMBINE_CONTACT_INFO_AND_PERMISSIONS_LOOKUP",
-          "value": "True"
-        },
-        {
-          "name": "VA_PROFILE_V3_IDENTIFY_MOBILE_TELEPHONE_NUMBERS",
-          "value": "True"
         }
       ],
       "secrets": [
@@ -287,7 +279,7 @@
     },
     {
       "name": "datadog-agent",
-      "image": "171875617347.dkr.ecr.us-gov-west-1.amazonaws.com/datadog/agent:latest",
+      "image": "171875617347.dkr.ecr.us-gov-west-1.amazonaws.com/datadog/agent:7.57.2",
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
