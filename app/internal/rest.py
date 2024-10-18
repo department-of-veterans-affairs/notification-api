@@ -18,6 +18,8 @@ from werkzeug.exceptions import UnsupportedMediaType
 from contextlib import suppress
 from flask import Blueprint, current_app, request
 
+from app import twilio_sms_client
+
 
 internal_blueprint = Blueprint('internal', __name__, url_prefix='/internal')
 
@@ -51,6 +53,13 @@ def handler(generic):
     headers_string = ', '.join([f'{key}: {value}' for key, value in request.headers.items()])
     logs.append(f'HEADERS: {headers_string}')
     current_app.logger.info('Generic Internal Request: %s', ' | '.join(logs))
+
+    # If generic is 'twilio', then the first query string parameter will be the message sid
+    if generic == 'twilio':
+        message_sid = request.args.get('sid')
+        current_app.logger.info('Message SID: %s', message_sid)
+        twilio_sms_client.update_notification_status(message_sid)
+
     if request.method == 'GET':
         response_body = f'GET request received for endpoint {request.full_path}'
     else:

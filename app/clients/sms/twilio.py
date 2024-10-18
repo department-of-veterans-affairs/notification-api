@@ -1,14 +1,18 @@
 import base64
+from contextlib import suppress
 from dataclasses import dataclass
 from logging import Logger
 from monotonic import monotonic
 from urllib.parse import parse_qs
 
 from twilio.rest import Client
+from twilio.rest.api.v2010.account.message import MessageInstance
 from twilio.base.exceptions import TwilioRestException
 
 from app.clients.sms import SmsClient, SmsStatusRecord
+
 from app.exceptions import InvalidProviderException
+
 
 TWILIO_RESPONSE_MAP = {
     'accepted': 'created',
@@ -125,6 +129,12 @@ class TwilioSMSClient(SmsClient):
     def get_name(self):
         return self.name
 
+    def get_twilio_message(self, message_sid: str) -> MessageInstance | None:
+        message = None
+        with suppress(TwilioRestException):
+            message = self._client.messages(message_sid).fetch()
+        return message
+
     def send_sms(
         self,
         to,
@@ -232,22 +242,64 @@ class TwilioSMSClient(SmsClient):
         self.logger.info('Translating Twilio delivery status')
         self.logger.debug(twilio_delivery_status_message)
 
+        decoded_msg, parsed_dict = self._parse_twilio_message(twilio_delivery_status_message)
+
+        message_sid = parsed_dict['MessageSid'][0]
+        twilio_delivery_status = parsed_dict['MessageStatus'][0]
+        error_code = parsed_dict.get('ErrorCode', [])
+
+        status, status_reason = self._evaluate_status(message_sid, twilio_delivery_status, error_code)
+
+        status = SmsStatusRecord(
+            decoded_msg,
+            message_sid,
+            status,
+            status_reason,
+        )
+
+        self.logger.debug('Twilio delivery status translation: %s', status)
+
+        return status
+
+    def update_notification_status(self, message_sid: str) -> None:
+        from app.dao.notifications_dao import dao_update_notifications_by_reference
+
+        self.logger.info('Updating notification status for message: %s', message_sid)
+
+        message = self.get_twilio_message(message_sid)
+        self.logger.debug('Twilio message: %s', message)
+
+        if not message:
+            self.logger.error('Twilio message not found: %s', message_sid)
+        else:
+            status, status_reason = self._evaluate_status(message_sid, message.status, [])
+            update_dict = {
+                'status': status,
+                'status_reason': status_reason,
+            }
+            dao_update_notifications_by_reference(
+                [
+                    message_sid,
+                ],
+                update_dict,
+            )
+
+    def _parse_twilio_message(self, twilio_delivery_status_message: MessageInstance) -> tuple[str, dict]:
         if not twilio_delivery_status_message:
             raise ValueError('Twilio delivery status message is empty')
 
         decoded_msg = base64.b64decode(twilio_delivery_status_message).decode()
-
         parsed_dict = parse_qs(decoded_msg)
-        message_sid = parsed_dict['MessageSid'][0]
-        twilio_delivery_status = parsed_dict['MessageStatus'][0]
-        error_code_data = parsed_dict.get('ErrorCode', None)
 
+        return decoded_msg, parsed_dict
+
+    def _evaluate_status(self, message_sid: str, twilio_delivery_status: str, error_codes: list) -> tuple[str, str]:
         if twilio_delivery_status not in self.twilio_notify_status_map:
             value_error = f'Invalid Twilio delivery status:  {twilio_delivery_status}'
             raise ValueError(value_error)
 
-        if error_code_data and (twilio_delivery_status == 'failed' or twilio_delivery_status == 'undelivered'):
-            error_code = error_code_data[0]
+        if error_codes and (twilio_delivery_status == 'failed' or twilio_delivery_status == 'undelivered'):
+            error_code = error_codes[0]
 
             if error_code in self.twilio_error_code_map:
                 notify_delivery_status: TwilioStatus = self.twilio_error_code_map[error_code]
@@ -258,21 +310,12 @@ class TwilioSMSClient(SmsClient):
                 notify_delivery_status: TwilioStatus = self.twilio_notify_status_map[twilio_delivery_status]
         else:
             # Logic not being changed, just want to log this for now
-            if error_code_data:
+            if error_codes:
                 self.logger.warning(
                     'Error code: %s existed but status for message: %s was not failed nor undelivered',
-                    error_code_data[0],
+                    error_codes[0],
                     message_sid,
                 )
             notify_delivery_status: TwilioStatus = self.twilio_notify_status_map[twilio_delivery_status]
 
-        status = SmsStatusRecord(
-            decoded_msg,
-            message_sid,
-            notify_delivery_status.status,
-            notify_delivery_status.status_reason,
-        )
-
-        self.logger.debug('Twilio delivery status translation: %s', status)
-
-        return status
+        return notify_delivery_status.status, notify_delivery_status.status_reason
