@@ -62,7 +62,7 @@ def test_registry_initilizes_only_apps_with_sids_in_env(
     assert registry.get_registered_apps() == expected_list
 
 
-def test_should_log_warning_for_uninitilized_apps_with_correct_count(
+def test_should_log_warning_for_uninitialized_apps_with_correct_count(
     client,
     mock_logger,
     mocker,
@@ -74,7 +74,7 @@ def test_should_log_warning_for_uninitilized_apps_with_correct_count(
 
 
 @pytest.mark.parametrize('app_type_str', [*MobileAppType.values()])
-def test_should_correctly_log_warning_for_uninitilized_apps(
+def test_should_correctly_log_warning_for_uninitialized_apps(
     client,
     mock_logger,
     mocker,
