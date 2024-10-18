@@ -20,18 +20,21 @@ envronment, it is the Lambda execution environment, which should make certain fi
 via lambda layers.
 """
 
-import boto3
+import calendar
 import json
-import jwt
 import logging
 import os
-import psycopg2
 import ssl
 import sys
-from botocore.exceptions import ClientError, ValidationError
-from cryptography.x509 import Certificate, load_pem_x509_certificate
+from datetime import datetime, timezone
 from http.client import HTTPSConnection
 from tempfile import NamedTemporaryFile
+
+import boto3
+import jwt
+import psycopg2
+from botocore.exceptions import ClientError, ValidationError
+from cryptography.x509 import Certificate, load_pem_x509_certificate
 
 
 logger = logging.getLogger('VAProfileOptInOut')
@@ -44,6 +47,7 @@ NOTIFY_ENVIRONMENT = os.getenv('NOTIFY_ENVIRONMENT')
 OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s);"""
 VA_PROFILE_DOMAIN = os.getenv('VA_PROFILE_DOMAIN')
 VA_PROFILE_PATH_BASE = '/communication-hub/communication/v1/status/changelog/'
+COMP_AND_PEN_OPT_IN_CUTOFF_TIME_UTC = 11, 10, 0, 0
 
 
 if NOTIFY_ENVIRONMENT is None:
@@ -211,8 +215,9 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
         assert integration_testing_public_cert is not None
 
     # Authenticate the POST request by verifying the JWT signature.
+    auth_header_value = headers.get('Authorization', headers.get('authorization', ''))
     if not jwt_is_valid(
-        headers.get('Authorization', headers.get('authorization', '')),
+        auth_header_value,
         integration_testing_public_cert if is_integration_test else va_profile_public_cert,
     ):
         logger.info('Authentication failed.  Returning 401.')
@@ -325,6 +330,10 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
             c.execute(OPT_IN_OUT_QUERY, params)
             put_body['status'] = 'COMPLETED_SUCCESS' if c.fetchone()[0] else 'COMPLETED_NOOP'
             db_connection.commit()
+
+            # TODO - #1979 Confirm this is for Comp and Pen Only
+            send_comp_and_pen_opt_in_confirmation(bio['vaProfileId'])
+
         logger.debug('Executed the stored function.')
     except KeyError as e:
         # Bad Request.  Required attributes are missing.
@@ -446,6 +455,68 @@ def make_PUT_request(
         logger.exception(e)
     finally:
         https_connection.close()
+
+
+def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
+    """
+    Send a POST request to Comp and Pen's v2/notifications/sms endpoint to send an opt-in confirmation SMS.
+    """
+
+    try:
+        ssm_client = boto3.client('ssm')
+
+        comp_and_pen_opt_in_api_key = ssm_client.get_parameter(
+            Name=os.getenv('COMP_AND_PEN_OPT_IN_API_KEY'), WithDecryption=True
+        )['Parameter']['Value']
+
+        comp_and_pen_sms_sender_id = ssm_client.get_parameter(
+            Name=os.getenv('COMP_AND_PEN_SMS_SENDER_ID'), WithDecryption=True
+        )['Parameter']['Value']
+
+        confirmation_opt_in_template_id = ssm_client.get_parameter(
+            Name=os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID'), WithDecryption=True
+        )['Parameter']['Value']
+
+    except Exception as error:
+        logger.exception(f'Error fetching SSM parameters: {error}')
+        return
+
+    now = datetime.now(timezone.utc)
+    cutoff_datetime = datetime(now.year, now.month, *COMP_AND_PEN_OPT_IN_CUTOFF_TIME_UTC, tzinfo=timezone.utc)
+
+    if now < cutoff_datetime:
+        month_personalisation = calendar.month_name[now.month]
+    else:
+        next_month = (now.month % 12) + 1
+        month_personalisation = calendar.month_name[next_month]
+
+    sms_data = json.dumps(
+        {
+            'template_id': confirmation_opt_in_template_id,
+            'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
+            'sms_sender_id': comp_and_pen_sms_sender_id,
+            'personalisation': {'month': month_personalisation},
+        }
+    )
+
+    try:
+        logger.debug('Sending opt-in confirmation SMS to vaProfileId %s' % va_profile_id)
+
+        conn = HTTPSConnection(f'{NOTIFY_ENVIRONMENT}.api.notifications.va.gov')
+
+        headers = {'Authorization': f'Bearer {comp_and_pen_opt_in_api_key}', 'Content-Type': 'application/json'}
+
+        conn.request('POST', '/v2/notifications/sms', body=sms_data, headers=headers)
+
+        response = conn.getresponse()
+        response_data = response.read().decode()
+
+        logger.info(f'SMS sent successfully. Response status: {response.status}, Response data: {response_data}')
+        conn.close()
+
+    # TODO - #1979 Add better Exception handling
+    except Exception as e:
+        logger.exception('An error occurred while sending SMS to vaProfileId %s: %s' % (va_profile_id, e))
 
 
 def get_integration_testing_public_cert() -> Certificate:
