@@ -43,3 +43,19 @@ def test_validate_v2_notifications_icn_redaction(
     mock_logger.assert_called_once_with(
         'Validation failed for: %s', {'recipient_identifier': {'id_type': 'ICN', 'id_value': '<redacted>'}}
     )
+
+
+def test_validate_v2_notifications_icn_redaction_non_dictionary(
+    notify_api,
+    mocker,
+):
+    """
+    When POST data validation fails for a Notification, the request body
+    should be logged with personalized information redacted.
+    """
+    mock_logger = mocker.patch('app.schema_validation.current_app.logger.info')
+    with pytest.raises(ValidationError):
+        validate({'recipient_identifier': ['hello', 'world']}, post_sms_request)
+
+    # Cannot use a variable with loggers and assertions, falsely passes assertions
+    mock_logger.assert_called_once_with('Validation failed for: %s', {'recipient_identifier': '<redacted>'})

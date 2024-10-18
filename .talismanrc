@@ -14,5 +14,5 @@ fileignoreconfig:
   - filename: documents/postman/internal_api_developers/notification-api.postman_collection.json
     checksum: 5b91f5f75fc2dd2a112feac328635f9b42ba607aaaf34e1b26422894f7ac0802
   - filename: app/schema_validation/__init__.py
-    checksum: c7a57c5eb8e400b1622fab4c611f7a17d05f900b844a24d0767be69c62bbaa7a
+    checksum: cc97a7794334b0e0c6ab6fcf876ca2a94c9fe0d9b95f53dd284bb887cddb5e2a
 version: "1.0"
