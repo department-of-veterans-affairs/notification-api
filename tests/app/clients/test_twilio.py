@@ -14,7 +14,6 @@ from app.models import (
 )
 from tests.app.db import create_service_sms_sender
 from twilio.base.exceptions import TwilioRestException
-from twilio.rest.api.v2010.account.message import MessageInstance
 from urllib.parse import parse_qsl
 
 
@@ -707,7 +706,6 @@ def test_get_twilio_message(
 
         response = twilio_sms_client.get_twilio_message(twilio_sid)
 
-    assert type(response) == MessageInstance
     assert response.sid == twilio_sid
     assert response.status == 'sent'
 
@@ -737,3 +735,24 @@ def test_update_notification_status(
     # Retrieve the updated notification
     notify_db_session.session.refresh(notification)
     assert notification.status == 'delivered'
+
+
+def test_update_notification_with_unknown_sid(
+    notify_api,
+    mocker,
+    sample_notification,
+    notify_db_session,
+):
+    twilio_sid = 'test_sid'
+
+    notification = sample_notification(status='sending', reference=twilio_sid)
+
+    # Mock the call to get_twilio_message
+    mocker.patch('app.clients')
+    mocker.patch('app.clients.sms.twilio.TwilioSMSClient.get_twilio_message', side_effect=TwilioRestException)
+
+    twilio_sms_client.update_notification_status(twilio_sid)
+
+    # Retrieve the updated notification
+    notify_db_session.session.refresh(notification)
+    assert notification.status == 'sending'

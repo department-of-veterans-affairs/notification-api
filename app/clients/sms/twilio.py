@@ -5,12 +5,10 @@ from logging import Logger
 from monotonic import monotonic
 from urllib.parse import parse_qs
 
-from sqlalchemy import update, text
 from twilio.rest import Client
 from twilio.rest.api.v2010.account.message import MessageInstance
 from twilio.base.exceptions import TwilioRestException
 
-from app import db
 from app.clients.sms import SmsClient, SmsStatusRecord
 
 from app.exceptions import InvalidProviderException
@@ -271,17 +269,20 @@ class TwilioSMSClient(SmsClient):
         message = self.get_twilio_message(message_sid)
         self.logger.debug('Twilio message: %s', message)
 
-        status, status_reason = self._evaluate_status(message_sid, message.status, [])
-        update_dict = {
-            'status': status,
-            'status_reason': status_reason,
-        }
-        dao_update_notifications_by_reference(
-            [
-                message_sid,
-            ],
-            update_dict,
-        )
+        if not message:
+            self.logger.error('Twilio message not found: %s', message_sid)
+        else:
+            status, status_reason = self._evaluate_status(message_sid, message.status, [])
+            update_dict = {
+                'status': status,
+                'status_reason': status_reason,
+            }
+            dao_update_notifications_by_reference(
+                [
+                    message_sid,
+                ],
+                update_dict,
+            )
 
     def _parse_twilio_message(self, twilio_delivery_status_message: MessageInstance) -> tuple[str, dict]:
         if not twilio_delivery_status_message:
