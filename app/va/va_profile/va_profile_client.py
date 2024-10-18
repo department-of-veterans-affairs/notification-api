@@ -158,10 +158,10 @@ class VAProfileClient:
             )
 
         if telephone.get('countryCode') and telephone.get('areaCode') and telephone.get('phoneNumber'):
-            self.statsd_client.incr('clients.va-profile.get-telephone.failure')
+            self.statsd_client.incr('clients.va-profile.get-telephone.success')
             return f"+{telephone['countryCode']}{telephone['areaCode']}{telephone['phoneNumber']}"
         else:
-            self.statsd_client.incr('clients.va-profile.get-telephone.success')
+            self.statsd_client.incr('clients.va-profile.get-telephone.failure')
             self.logger.warning(
                 'Expected country code: %s | area code: %s | phone number (str length): %s',
                 telephone.get('countryCode'),
