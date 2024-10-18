@@ -313,7 +313,7 @@ class TwilioSMSClient(SmsClient):
             if error_codes:
                 self.logger.warning(
                     'Error code: %s existed but status for message: %s was not failed nor undelivered',
-                    error_code,
+                    error_codes[0],
                     message_sid,
                 )
             notify_delivery_status: TwilioStatus = self.twilio_notify_status_map[twilio_delivery_status]
