@@ -3,8 +3,6 @@ import jwt
 import requests
 import time
 
-from app import HTTP_TIMEOUT
-
 
 class VAOnsiteClient:
     __VA_ONSITE_USER = 'va_notify'
@@ -21,6 +19,9 @@ class VAOnsiteClient:
         :param url: the url to send the information to in a string format
         :param va_onsite_secret: the secret key in string format used to validate the connection
         """
+        from app import HTTP_TIMEOUT  # Circular import
+
+        self.timeout = HTTP_TIMEOUT
         self.logger = logger
         self.url_base = url
         self.va_onsite_secret = va_onsite_secret
@@ -42,7 +43,7 @@ class VAOnsiteClient:
                 url=f'{ self.url_base }/v0/onsite_notifications',
                 data=json.dumps(data),
                 headers=self._build_header(),
-                timeout=HTTP_TIMEOUT,
+                timeout=self.timeout,
             )
         except Exception as e:
             self.logger.exception(e)

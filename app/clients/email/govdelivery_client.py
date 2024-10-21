@@ -1,6 +1,5 @@
 import requests
 
-from app import HTTP_TIMEOUT
 from app.clients.email import EmailClient, EmailClientException
 from app.models import (
     NOTIFICATION_CANCELLED,
@@ -38,6 +37,9 @@ class GovdeliveryClient(EmailClient):
         *args,
         **kwargs,
     ):
+        from app import HTTP_TIMEOUT  # Circular import
+
+        self.timeout = HTTP_TIMEOUT
         self.name = 'govdelivery'
         self.token = token
         self.statsd_client = statsd_client
@@ -77,7 +79,7 @@ class GovdeliveryClient(EmailClient):
 
             start_time = monotonic()
             response = requests.post(
-                self.govdelivery_url, json=payload, headers={'X-AUTH-TOKEN': self.token}, timeout=HTTP_TIMEOUT
+                self.govdelivery_url, json=payload, headers={'X-AUTH-TOKEN': self.token}, timeout=self.timeout
             )
             response.raise_for_status()
 

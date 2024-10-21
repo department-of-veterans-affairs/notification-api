@@ -14,7 +14,7 @@ class PerformancePlatformClient:
         self,
         app,
     ):
-        from app import HTTP_TIMEOUT
+        from app import HTTP_TIMEOUT  # Circular import
 
         self.timeout = HTTP_TIMEOUT
         self._active = app.config.get('PERFORMANCE_PLATFORM_ENABLED')
