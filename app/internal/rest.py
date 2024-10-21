@@ -57,7 +57,7 @@ def handler(generic):
     # If generic is 'twilio', then the first query string parameter will be the message sid
     if generic == 'twilio':
         message_sid = request.args.get('sid')
-        current_app.logger.info('Message SID: %s', message_sid)
+        current_app.logger.info('Generic Internal Request: Message SID=%s', message_sid)
         twilio_sms_client.update_notification_status(message_sid)
 
     if request.method == 'GET':
