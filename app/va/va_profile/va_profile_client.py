@@ -339,10 +339,13 @@ class VAProfileClient:
 
         elif isinstance(error, requests.RequestException):
             self.statsd_client.incr('clients.va-profile.error.request_exception')
-            failure_message = 'VA Profile returned RequestException while querying for VA Profile ID'
+            failure_message = f'VA Profile returned {error.__class__.__name__} while querying for VA Profile ID'
 
             if isinstance(error, requests.Timeout):
-                failure_message = f'VA Profile request timed out for VA Profile ID {va_profile_id_value}.'
+                failure_message = (
+                    f'VA Profile request timed out with {error.__class__.__name__} '
+                    f'for VA Profile ID {va_profile_id_value}.'
+                )
 
             exception = VAProfileRetryableException(failure_message)
             exception.failure_reason = failure_message
