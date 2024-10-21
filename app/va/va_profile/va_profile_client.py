@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Optional
 import iso8601
 import requests
 
+from app import HTTP_TIMEOUT
 from app.va.identifier import OIDS, IdentifierType, transform_to_fhir_format
 from app.va.va_profile import (
     NoContactInfoException,
@@ -109,7 +110,7 @@ class VAProfileClient:
         data = {'bios': [{'bioPath': 'contactInformation'}, {'bioPath': 'communicationPermissions'}]}
 
         try:
-            response = requests.post(url, json=data, cert=(self.ssl_cert_path, self.ssl_key_path), timeout=(5, 2))
+            response = requests.post(url, json=data, cert=(self.ssl_cert_path, self.ssl_key_path), timeout=HTTP_TIMEOUT)
             response.raise_for_status()
         except (requests.HTTPError, requests.RequestException, requests.Timeout) as e:
             self._handle_exceptions(va_profile_id.id_value, e)
@@ -373,7 +374,7 @@ class VAProfileClient:
         # make POST request to VA Profile endpoint for notification statuses
         # raise errors if they occur, they will be handled by the calling function
         try:
-            response = requests.post(url, json=notification_data, headers=headers, timeout=(3.05, 1))
+            response = requests.post(url, json=notification_data, headers=headers, timeout=HTTP_TIMEOUT)
         except requests.Timeout:
             self.logger.exception(
                 'Request timeout attempting to send email status to VA Profile for notification %s | retrying...',

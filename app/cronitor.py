@@ -2,6 +2,8 @@ import requests
 from flask import current_app
 from functools import wraps
 
+from app import HTTP_TIMEOUT
+
 
 def cronitor(task_name):
     # check if task_name is in config
@@ -25,7 +27,7 @@ def cronitor(task_name):
                     params={
                         'host': current_app.config['API_HOST_NAME'],
                     },
-                    timeout=(3.05, 1),
+                    timeout=HTTP_TIMEOUT,
                 )
                 resp.raise_for_status()
             except requests.RequestException:

@@ -3,6 +3,8 @@ import jwt
 import requests
 import time
 
+from app import HTTP_TIMEOUT
+
 
 class VAOnsiteClient:
     __VA_ONSITE_USER = 'va_notify'
@@ -40,7 +42,7 @@ class VAOnsiteClient:
                 url=f'{ self.url_base }/v0/onsite_notifications',
                 data=json.dumps(data),
                 headers=self._build_header(),
-                timeout=(3.05, 1),
+                timeout=HTTP_TIMEOUT,
             )
         except Exception as e:
             self.logger.exception(e)

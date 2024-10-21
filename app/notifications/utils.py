@@ -1,6 +1,8 @@
 import requests
 from flask import current_app
 
+from app import HTTP_TIMEOUT
+
 
 def confirm_subscription(confirmation_request):
     url = confirmation_request.get('SubscribeURL')
@@ -9,7 +11,7 @@ def confirm_subscription(confirmation_request):
         return
 
     try:
-        response = requests.get(url, timeout=(3.05, 1))
+        response = requests.get(url, timeout=HTTP_TIMEOUT)
         response.raise_for_status()
     except requests.RequestException:
         current_app.logger.exception('Response: %s', response.text)
