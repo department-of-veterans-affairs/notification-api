@@ -26,7 +26,7 @@ import logging
 import os
 import ssl
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 from http.client import HTTPSConnection
 from tempfile import NamedTemporaryFile
 
@@ -474,6 +474,7 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
         return
 
     comp_and_pen_sms_sender_id = os.getenv('COMP_AND_PEN_SMS_SENDER_ID')
+    comp_and_pen_service_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
     confirmation_opt_in_template_id = os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID')
 
     now = datetime.now(timezone.utc)
@@ -499,9 +500,8 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
 
         conn = HTTPSConnection(f'{NOTIFY_ENVIRONMENT}.api.notifications.va.gov')
 
-        headers = {'Authorization': f'Bearer {comp_and_pen_opt_in_api_key}', 'Content-Type': 'application/json'}
-
-        conn.request('POST', '/v2/notifications/sms', body=sms_data, headers=headers)
+        encoded_header = build_header(comp_and_pen_service_id, comp_and_pen_opt_in_api_key)
+        conn.request('POST', '/v2/notifications/sms', body=sms_data, headers=encoded_header)
 
         response = conn.getresponse()
         response_data = response.read().decode()
@@ -512,6 +512,27 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
     # TODO - #1979 Add better Exception handling
     except Exception as e:
         logger.exception('An error occurred while sending SMS to vaProfileId %s: %s' % (va_profile_id, e))
+
+
+def encode_jwt(issuer: str, secret_key: str, algo: str = 'HS256') -> bytes:
+    """
+    Encodes a JWT with the issuer, secret key, and optional algorithm.
+    """
+    current_timestamp = int(time.time())
+    data = {
+        'iss': issuer,
+        'iat': current_timestamp,
+        'exp': current_timestamp + 30,  # Token expiration (30 seconds for this example)
+        'jti': 'jwt_nonce',
+    }
+    return jwt.encode(data, secret_key, algorithm=algo)
+
+
+def build_header(service_id: str, api_key: str) -> dict:
+    """
+    Builds authorization header with the JWT token using the service ID.
+    """
+    return {'Content-Type': 'application/json', 'Authorization': f'Bearer {encode_jwt(service_id, api_key)}'}
 
 
 def get_integration_testing_public_cert() -> Certificate:
