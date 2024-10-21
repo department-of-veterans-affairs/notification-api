@@ -469,17 +469,12 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
             Name=os.getenv('COMP_AND_PEN_OPT_IN_API_KEY'), WithDecryption=True
         )['Parameter']['Value']
 
-        comp_and_pen_sms_sender_id = ssm_client.get_parameter(
-            Name=os.getenv('COMP_AND_PEN_SMS_SENDER_ID'), WithDecryption=True
-        )['Parameter']['Value']
-
-        confirmation_opt_in_template_id = ssm_client.get_parameter(
-            Name=os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID'), WithDecryption=True
-        )['Parameter']['Value']
-
     except Exception as error:
         logger.exception(f'Error fetching SSM parameters: {error}')
         return
+
+    comp_and_pen_sms_sender_id = os.getenv('COMP_AND_PEN_SMS_SENDER_ID')
+    confirmation_opt_in_template_id = os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID')
 
     now = datetime.now(timezone.utc)
     cutoff_datetime = datetime(now.year, now.month, *COMP_AND_PEN_OPT_IN_CUTOFF_TIME_UTC, tzinfo=timezone.utc)
