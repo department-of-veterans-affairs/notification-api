@@ -723,7 +723,8 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
     mock_date,
     expected_month,
 ):
-    mocker.patch(f'{LAMBDA_MODULE}.datetime', return_value=mock_date)
+    mocker.patch(f'{LAMBDA_MODULE}.datetime', mocker.Mock(wraps=datetime))
+    mocker.patch(f'{LAMBDA_MODULE}.datetime.now', return_value=mock_date)
 
     mocker.patch(f'{LAMBDA_MODULE}.jwt_is_valid', return_value=True)
 
