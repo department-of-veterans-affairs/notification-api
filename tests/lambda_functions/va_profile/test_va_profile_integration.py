@@ -19,7 +19,6 @@ from json import dumps, loads
 from lambda_functions.va_profile.va_profile_opt_in_out_lambda import jwt_is_valid, va_profile_opt_in_out_lambda_handler
 from random import randint
 from sqlalchemy import delete, func, select, text
-from unittest import mock
 
 
 # Base path for mocks
@@ -711,8 +710,8 @@ def test_va_profile_opt_in_out_lambda_handler_integration_testing(
 @pytest.mark.parametrize(
     'mock_date,expected_month',
     [
-        (datetime(2022, 4, 11, 9, 59, tzinfo=timezone.utc), 'April'),  # Before 11th 10:00 AM UTC
-        (datetime(2022, 4, 11, 10, 1, tzinfo=timezone.utc), 'May'),  # After 11th 10:00 AM UTC
+        (datetime(2024, 4, 11, 9, 59, tzinfo=timezone.utc), 'April'),  # Before 11th 10:00 AM UTC
+        (datetime(2024, 4, 11, 10, 1, tzinfo=timezone.utc), 'May'),  # After 11th 10:00 AM UTC
     ],
 )
 def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
@@ -724,11 +723,13 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
     mock_date,
     expected_month,
 ):
-    mocker.patch('lambda_functions.va_profile.va_profile_opt_in_out_lambda.datetime', mock.Mock(wraps=datetime))
-    mocker.patch('lambda_functions.va_profile.va_profile_opt_in_out_lambda.datetime.now', return_value=mock_date)
+    mocker.patch(f'{LAMBDA_MODULE}.datetime', return_value=mock_date)
 
-    mock_https = mocker.patch('http.client.HTTPSConnection', autospec=True)
-    mock_https_instance = mock_https.return_value
+    mocker.patch(f'{LAMBDA_MODULE}.jwt_is_valid', return_value=True)
+
+    mock_https_instance = mocker.Mock()
+    mocker.patch(f'{LAMBDA_MODULE}.HTTPSConnection', return_value=mock_https_instance)
+
     mock_response = mocker.Mock()
     mock_response.status = 200
     mock_response.read.return_value = b'{"success": true}'
@@ -737,9 +738,9 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
     mock_ssm = mocker.patch('boto3.client')
     mock_ssm_instance = mock_ssm.return_value
     mock_ssm_instance.get_parameter.side_effect = [
-        {'Parameter': {'Value': 'mock_va_notify_api_key'}},  # For comp_and_pen_opt_in_api_key
-        {'Parameter': {'Value': 'mock_sms_sender_id'}},  # For comp_and_pen_sms_sender_id
-        {'Parameter': {'Value': 'mock_template_id'}},  # For confirmation_opt_in_template_id
+        {'Parameter': {'Value': 'mock_va_notify_api_key'}},  # comp_and_pen_opt_in_api_key
+        {'Parameter': {'Value': 'mock_sms_sender_id'}},  # comp_and_pen_sms_sender_id
+        {'Parameter': {'Value': 'mock_template_id'}},  # confirmation_opt_in_template_id
     ]
 
     # Set environment variables

@@ -42,5 +42,5 @@ fileignoreconfig:
 - filename: tests/app/v2/notifications/test_post_notifications.py
   checksum: 3181930a13e3679bb2f17eaa3f383512eb9caf4ed5d5e14496ca4193c6083965
 - filename: tests/lambda_functions/va_profile/test_va_profile_integration.py
-  checksum: d9ddbda44de0bf5e037fb9407f66079d33ab4a857fed616e715bda34fd8f42e6
+  checksum: 15c1df28cf4309858407f9d46e28c9b9d82469dbcaa0e7706ac1079ec7468751
 version: "1.0"
