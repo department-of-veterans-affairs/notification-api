@@ -48,6 +48,11 @@ def put_mock(mocker):
     return mocker.patch(f'{LAMBDA_MODULE}.make_PUT_request')
 
 
+@pytest.fixture
+def post_opt_in_confirmation_mock(mocker):
+    return mocker.patch(f'{LAMBDA_MODULE}.send_comp_and_pen_opt_in_confirmation')
+
+
 @pytest.fixture(scope='module')
 def private_key():
     # This assumes tests are run from the project root directory.
