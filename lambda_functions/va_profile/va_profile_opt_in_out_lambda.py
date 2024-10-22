@@ -26,7 +26,11 @@ import logging
 import os
 import ssl
 import sys
-from datetime import datetime, time, timezone
+import hmac
+import hashlib
+import base64
+import time
+from datetime import datetime, timezone
 from http.client import HTTPSConnection
 from tempfile import NamedTemporaryFile
 
@@ -489,7 +493,7 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
     sms_data = json.dumps(
         {
             'template_id': confirmation_opt_in_template_id,
-            'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
+            'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': str(va_profile_id)},
             'sms_sender_id': comp_and_pen_sms_sender_id,
             'personalisation': {'month': month_personalisation},
         }
@@ -498,10 +502,15 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
     try:
         logger.debug('Sending opt-in confirmation SMS to vaProfileId %s' % va_profile_id)
 
-        conn = HTTPSConnection(f'{NOTIFY_ENVIRONMENT}.api.notifications.va.gov')
+        conn = HTTPSConnection(f'{NOTIFY_ENVIRONMENT}.api.notifications.va.gov', context=ssl_context)
+        encoded_header = generate_jwt(comp_and_pen_opt_in_api_key, comp_and_pen_service_id)
 
-        encoded_header = build_header(comp_and_pen_service_id, comp_and_pen_opt_in_api_key)
-        conn.request('POST', '/v2/notifications/sms', body=sms_data, headers=encoded_header)
+        conn.request(
+            'POST',
+            '/v2/notifications/sms',
+            body=sms_data,
+            headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {encoded_header}'},
+        )
 
         response = conn.getresponse()
         response_data = response.read().decode()
@@ -514,25 +523,28 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
         logger.exception('An error occurred while sending SMS to vaProfileId %s: %s' % (va_profile_id, e))
 
 
-def encode_jwt(issuer: str, secret_key: str, algo: str = 'HS256') -> bytes:
-    """
-    Encodes a JWT with the issuer, secret key, and optional algorithm.
-    """
+def base64url(source):
+    encoded_source = base64.b64encode(source).decode('utf-8')
+    encoded_source = encoded_source.rstrip('=').replace('+', '-').replace('/', '_')
+    return encoded_source
+
+
+def generate_jwt(service_api_key, service_id):
+    header = {'typ': 'JWT', 'alg': 'HS256'}
     current_timestamp = int(time.time())
-    data = {
-        'iss': issuer,
-        'iat': current_timestamp,
-        'exp': current_timestamp + 30,  # Token expiration (30 seconds for this example)
-        'jti': 'jwt_nonce',
-    }
-    return jwt.encode(data, secret_key, algorithm=algo)
 
+    data = {'iss': service_id, 'iat': current_timestamp}
 
-def build_header(service_id: str, api_key: str) -> dict:
-    """
-    Builds authorization header with the JWT token using the service ID.
-    """
-    return {'Content-Type': 'application/json', 'Authorization': f'Bearer {encode_jwt(service_id, api_key)}'}
+    encoded_header = base64url(json.dumps(header).encode('utf-8'))
+    encoded_data = base64url(json.dumps(data).encode('utf-8'))
+
+    token = f'{encoded_header}.{encoded_data}'
+
+    signature = hmac.new(service_api_key.encode('utf-8'), token.encode('utf-8'), hashlib.sha256).digest()
+    encoded_signature = base64url(signature)
+
+    signed_token = f'{token}.{encoded_signature}'
+    return signed_token
 
 
 def get_integration_testing_public_cert() -> Certificate:
