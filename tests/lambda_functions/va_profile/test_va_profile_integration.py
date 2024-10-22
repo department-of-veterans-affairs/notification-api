@@ -8,18 +8,24 @@ created or updated; otherwise, False.
 
 import json
 import os
-import jwt
 import pytest
-from app.models import VAProfileLocalCache
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend
-from cryptography.x509 import Certificate, load_pem_x509_certificate
 from datetime import datetime, timedelta, timezone
 from json import dumps, loads
-from lambda_functions.va_profile.va_profile_opt_in_out_lambda import jwt_is_valid, va_profile_opt_in_out_lambda_handler
 from random import randint
+from unittest.mock import Mock, patch
+
+import jwt
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.x509 import Certificate, load_pem_x509_certificate
 from sqlalchemy import delete, func, select, text
 
+from app.models import VAProfileLocalCache
+from lambda_functions.va_profile.va_profile_opt_in_out_lambda import (
+    generate_jwt,
+    jwt_is_valid,
+    va_profile_opt_in_out_lambda_handler,
+)
 
 # Base path for mocks
 LAMBDA_MODULE = 'lambda_functions.va_profile.va_profile_opt_in_out_lambda'
@@ -396,7 +402,7 @@ def test_va_profile_opt_in_out_lambda_handler_valid_bytes(notify_db_session, eve
     put_mock.assert_called_once_with('txAuditId', expected_put_body)
 
     # Verify one row was created using a delete statement that doubles as teardown.
-    event = loads(event_bytes['body'].decode())['bios'][0]
+    event = json.loads(event_bytes['body'].decode())['bios'][0]
     stmt = delete(VAProfileLocalCache).where(
         VAProfileLocalCache.va_profile_id == event['vaProfileId'],
         VAProfileLocalCache.communication_item_id == event['communicationItemId'],
@@ -723,20 +729,22 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
     mock_date,
     expected_month,
 ):
-    mocker.patch(f'{LAMBDA_MODULE}.datetime', mocker.Mock(wraps=datetime))
-    mocker.patch(f'{LAMBDA_MODULE}.datetime.now', return_value=mock_date)
+    # Mock datetime to ensure cutoff logic works as expected
+    mock_datetime = patch('lambda_functions.va_profile.va_profile_opt_in_out_lambda.datetime').start()
+    mock_datetime.now.return_value = mock_date
+    mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
 
-    mocker.patch(f'{LAMBDA_MODULE}.jwt_is_valid', return_value=True)
-
-    mock_https_instance = mocker.Mock()
-    mocker.patch(f'{LAMBDA_MODULE}.HTTPSConnection', return_value=mock_https_instance)
-
-    mock_response = mocker.Mock()
+    # Mock SSL context and HTTPS request handling
+    mock_https_instance = Mock()
+    patch(
+        'lambda_functions.va_profile.va_profile_opt_in_out_lambda.HTTPSConnection', return_value=mock_https_instance
+    ).start()
+    mock_response = Mock()
     mock_response.status = 200
     mock_response.read.return_value = b'{"success": true}'
     mock_https_instance.getresponse.return_value = mock_response
 
-    mock_ssm = mocker.patch('boto3.client')
+    mock_ssm = patch('boto3.client').start()
     mock_ssm_instance = mock_ssm.return_value
     mock_ssm_instance.get_parameter.return_value = {'Parameter': {'Value': 'mock_va_notify_api_key'}}
 
@@ -746,9 +754,15 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
             'COMP_AND_PEN_OPT_IN_TEMPLATE_ID': 'mock_template_id',
             'COMP_AND_PEN_SMS_SENDER_ID': 'mock_sms_sender_id',
             'COMP_AND_PEN_OPT_IN_API_KEY': 'mock_va_notify_api_key',
+            'COMP_AND_PEN_SERVICE_ID': 'mock_service_id',
         },
     )
 
+    # Generate a dynamic JWT token using the mocked API key
+    # Use to compare against actual request sent
+    encoded_header = generate_jwt('mock_va_notify_api_key', 'mock_service_id')
+
+    # Setup new va_profile_id
     va_profile_id = randint(1000, 100000)
 
     # Check initial state in DB (there should be no records)
@@ -761,7 +775,6 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
             VAProfileLocalCache.communication_channel_id == 1,
         )
     )
-
     assert notify_db_session.session.scalar(stmt) == 0
 
     # Create the event with appropriate parameters for COMP and PEN Opt-In
@@ -795,12 +808,12 @@ def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
         body=json.dumps(
             {
                 'template_id': 'mock_template_id',
-                'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
+                'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': str(va_profile_id)},
                 'sms_sender_id': 'mock_sms_sender_id',
-                'personalisation': {'month': expected_month},  # Check for correct month
+                'personalisation': {'month': expected_month},
             }
         ),
-        headers={'Authorization': 'Bearer mock_va_notify_api_key', 'Content-Type': 'application/json'},
+        headers={'Authorization': f'Bearer {encoded_header}', 'Content-Type': 'application/json'},
     )
 
     # Verify that one row was created in the DB

@@ -34,7 +34,7 @@ fileignoreconfig:
 - filename: tests/app/celery/test_service_callback_tasks.py
   checksum: 70575434f7a4fedd43d4c9164bc899a606768526d432c364db372524eec26542
 - filename: lambda_functions/va_profile/va_profile_opt_in_out_lambda.py
-  checksum: 9e1d7ef7301ab94071676e4d875b48c4989f7a28dfd468fec4240a7abf1ccf13
+  checksum: f9fdfcde669c8ece589cf405a70170c88d21992b08a6fb07b624138b759984b9
 - filename: tests/app/conftest.py
   checksum: a80aa727586db82ed1b50bdb81ddfe1379e649a9dfc1ece2c36047486b41b83d
 - filename: tests/app/notifications/test_process_notifications_for_profile_v3.py
@@ -42,5 +42,5 @@ fileignoreconfig:
 - filename: tests/app/v2/notifications/test_post_notifications.py
   checksum: 3181930a13e3679bb2f17eaa3f383512eb9caf4ed5d5e14496ca4193c6083965
 - filename: tests/lambda_functions/va_profile/test_va_profile_integration.py
-  checksum: 15c1df28cf4309858407f9d46e28c9b9d82469dbcaa0e7706ac1079ec7468751
+  checksum: f9fdfcde669c8ece589cf405a70170c88d21992b08a6fb07b624138b759984b9
 version: "1.0"
