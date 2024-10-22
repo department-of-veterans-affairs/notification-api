@@ -76,14 +76,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.setup-environment.outputs.tag }}
-      - name: Build and Push Artifacts
-        uses: ./.github/actions/build-push-artifacts
-        with:
-          ref: ${{ needs.setup-environment.outputs.tag }}
-          environment: ${{ needs.setup-environment.outputs.environment }}
-          aws-access-key-id: ${{ secrets.VAEC_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.VAEC_AWS_SECRET_ACCESS_KEY }}
-          role-to-assume: ${{ secrets.VAEC_DEPLOY_ROLE }}
+      - name: Upload Env File to S3
+        shell: bash
+        run: |
+          aws s3 cp cd/application-deployment/${{ inputs.environment }}/${{ inputs.environment }}.env s3://vanotify-environment-variables-${{ inputs.environment }}/
 
   run-lambda-deploy:
     if: ${{ inputs.lambdaDeploy }}

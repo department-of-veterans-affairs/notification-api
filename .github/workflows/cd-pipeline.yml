@@ -41,14 +41,35 @@ jobs:
           echo "Deploying commit SHA ${{ github.sha }}, the latest merge to main"
           echo "Deployment paused for manual approval."
 
+  create-and-post-tag:
+    needs: approval-deploy-perf
+    uses: ./.github/workflows/create-and-post-tag.yml
+    secrets: inherit
+
+  build-push-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.setup-environment.outputs.tag }}
+      - name: Build and Push Artifacts
+        uses: ./.github/actions/build-push-artifacts
+        with:
+          ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
+          aws-access-key-id: ${{ secrets.VAEC_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.VAEC_AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.VAEC_DEPLOY_ROLE }}
+
+
   # this job deploys the SHA that triggered this workflow
   deploy-to-perf:
-    needs: approval-deploy-perf
-    uses: ./.github/workflows/dev_deploy.yml
+    needs: [approval-deploy-perf, create-and-post-tag]
+    uses: ./.github/workflows/deploy-release.yml
     secrets: inherit
     with:
       environment: perf
-      ref: ${{ github.sha }}
+      ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
       lambdaDeploy: true
 
   pre-tag-summary:
@@ -64,11 +85,6 @@ jobs:
     steps:
       - name: Pause for manual approval
         run: echo "Deployment paused for manual approval."
-
-  create-and-post-tag:
-    needs: approval-deploy-staging
-    uses: ./.github/workflows/create-and-post-tag.yml
-    secrets: inherit
 
   create-release-notes:
     needs: create-and-post-tag
