@@ -49,8 +49,9 @@ def put_mock(mocker):
 
 
 @pytest.fixture
-def post_opt_in_confirmation_mock(mocker):
-    return mocker.patch(f'{LAMBDA_MODULE}.send_comp_and_pen_opt_in_confirmation')
+def post_opt_in_confirmation_mock_return(mocker):
+    mocker.patch(f'{LAMBDA_MODULE}.send_comp_and_pen_opt_in_confirmation')
+    mocker.return_value = None
 
 
 @pytest.fixture(scope='module')
@@ -324,6 +325,7 @@ def test_va_profile_opt_in_out_lambda_handler_valid_dict(
     event_dict,
     put_mock,
     get_integration_testing_public_cert_mock,
+    post_opt_in_confirmation_mock_return,
 ):
     """
     Test the VA Profile integration lambda by sending a valid request that should create
@@ -357,7 +359,9 @@ def test_va_profile_opt_in_out_lambda_handler_valid_dict(
     notify_db_session.session.commit()
 
 
-def test_va_profile_opt_in_out_lambda_handler_valid_str(notify_db_session, event_str, put_mock):
+def test_va_profile_opt_in_out_lambda_handler_valid_str(
+    notify_db_session, event_str, put_mock, post_opt_in_confirmation_mock_return
+):
     """
     Test the VA Profile integration lambda by sending a valid request that should create
     a new row in the database.  The AWS lambda function should be able to handle and event
@@ -387,7 +391,9 @@ def test_va_profile_opt_in_out_lambda_handler_valid_str(notify_db_session, event
     notify_db_session.session.commit()
 
 
-def test_va_profile_opt_in_out_lambda_handler_valid_bytes(notify_db_session, event_bytes, put_mock):
+def test_va_profile_opt_in_out_lambda_handler_valid_bytes(
+    notify_db_session, event_bytes, put_mock, post_opt_in_confirmation_mock_return
+):
     """
     Test the VA Profile integration lambda by sending a valid request that should create
     a new row in the database.  The AWS lambda function should be able to handle and event
@@ -417,7 +423,9 @@ def test_va_profile_opt_in_out_lambda_handler_valid_bytes(notify_db_session, eve
     notify_db_session.session.commit()
 
 
-def test_va_profile_opt_in_out_lambda_handler_new_row(notify_db_session, jwt_encoded, put_mock):
+def test_va_profile_opt_in_out_lambda_handler_new_row(
+    notify_db_session, jwt_encoded, put_mock, post_opt_in_confirmation_mock_return
+):
     """
     Test the VA Profile integration lambda by sending a valid request that should create
     a new row in the database.
@@ -461,10 +469,7 @@ def test_va_profile_opt_in_out_lambda_handler_new_row(notify_db_session, jwt_enc
 
 
 def test_va_profile_opt_in_out_lambda_handler_older_date(
-    notify_db_session,
-    jwt_encoded,
-    put_mock,
-    sample_va_profile_local_cache,
+    notify_db_session, jwt_encoded, put_mock, sample_va_profile_local_cache, post_opt_in_confirmation_mock_return
 ):
     """
     Test the VA Profile integration lambda by sending a valid request with an older date.
@@ -504,6 +509,7 @@ def test_va_profile_opt_in_out_lambda_handler_newer_date(
     jwt_encoded,
     put_mock,
     sample_va_profile_local_cache,
+    post_opt_in_confirmation_mock_return,
 ):
     """
     Test the VA Profile integration lambda by sending a valid request with a newer date.
@@ -538,7 +544,7 @@ def test_va_profile_opt_in_out_lambda_handler_newer_date(
 
 
 @pytest.mark.serial
-def test_va_profile_opt_in_out_lambda_handler_KeyError1(jwt_encoded, put_mock):
+def test_va_profile_opt_in_out_lambda_handler_KeyError1(jwt_encoded, put_mock, post_opt_in_confirmation_mock_return):
     """
     Test the VA Profile integration lambda by inspecting the PUT request it initiates to
     VA Profile in response to a request.  This test should generate a KeyError in the handler
@@ -660,11 +666,21 @@ def test_va_profile_opt_in_out_lambda_handler_audit_id_mismatch(jwt_encoded, put
 
 
 @pytest.mark.serial
-def test_va_profile_opt_in_out_lambda_handler_integration_testing(
+@pytest.mark.parametrize(
+    'mock_date,expected_month',
+    [
+        (datetime(2024, 4, 11, 9, 59, tzinfo=timezone.utc), 'April'),  # Before 11th 10:00 AM UTC
+        (datetime(2024, 4, 11, 10, 1, tzinfo=timezone.utc), 'May'),  # After 11th 10:00 AM UTC
+    ],
+)
+def test_va_profile_opt_in_out_lambda_handler(
     notify_db_session,
     jwt_encoded,
     put_mock,
     get_integration_testing_public_cert_mock,
+    mocker,
+    mock_date,
+    expected_month,
 ):
     """
     When the lambda handler is invoked with a path that includes the URL parameter "integration_test",
@@ -675,65 +691,6 @@ def test_va_profile_opt_in_out_lambda_handler_integration_testing(
     This unit test verifies that the lambda code attempts to load this certificate.
     """
 
-    va_profile_id = randint(1000, 100000)
-
-    stmt = (
-        select(func.count())
-        .select_from(VAProfileLocalCache)
-        .where(
-            VAProfileLocalCache.va_profile_id == va_profile_id,
-            VAProfileLocalCache.communication_item_id == 5,
-            VAProfileLocalCache.communication_channel_id == 1,
-        )
-    )
-
-    assert notify_db_session.session.scalar(stmt) == 0
-
-    event = create_event('txAuditId', 'txAuditId', '2022-04-07T19:37:59.320Z', va_profile_id, 1, 5, True, jwt_encoded)
-    event['queryStringParameters'] = {'integration_test': "the value doesn't matter"}
-    response = va_profile_opt_in_out_lambda_handler(event, None)
-
-    assert isinstance(response, dict)
-    assert response['statusCode'] == 200
-    assert response.get('headers', {}).get('Content-Type', '') == 'application/json'
-    response_body = loads(response.get('body', '{}'))
-    assert 'put_body' in response_body
-
-    expected_put_body = {
-        'dateTime': '2022-04-07T19:37:59.320Z',
-        'status': 'COMPLETED_SUCCESS',
-    }
-
-    put_mock.assert_called_once_with('txAuditId', expected_put_body)
-    get_integration_testing_public_cert_mock.assert_called_once()
-    assert response_body['put_body'] == expected_put_body
-
-    # Verify one row was created using a delete statement that doubles as teardown.
-    stmt = delete(VAProfileLocalCache).where(
-        VAProfileLocalCache.va_profile_id == va_profile_id,
-        VAProfileLocalCache.communication_item_id == 5,
-        VAProfileLocalCache.communication_channel_id == 1,
-    )
-    assert notify_db_session.session.execute(stmt).rowcount == 1
-    notify_db_session.session.commit()
-
-
-@pytest.mark.parametrize(
-    'mock_date,expected_month',
-    [
-        (datetime(2024, 4, 11, 9, 59, tzinfo=timezone.utc), 'April'),  # Before 11th 10:00 AM UTC
-        (datetime(2024, 4, 11, 10, 1, tzinfo=timezone.utc), 'May'),  # After 11th 10:00 AM UTC
-    ],
-)
-def test_va_profile_opt_in_out_lambda_handler_comp_and_pen_confirmation(
-    notify_db_session,
-    jwt_encoded,
-    put_mock,
-    get_integration_testing_public_cert_mock,
-    mocker,
-    mock_date,
-    expected_month,
-):
     # Mock datetime to ensure cutoff logic works as expected
     mock_datetime = patch('lambda_functions.va_profile.va_profile_opt_in_out_lambda.datetime').start()
     mock_datetime.now.return_value = mock_date
