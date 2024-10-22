@@ -463,73 +463,118 @@ def make_PUT_request(
 
 def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
     """
-    Send a POST request to Comp and Pen's v2/notifications/sms endpoint to send an opt-in confirmation SMS.
+    Send an opt-in confirmation SMS notification based on user's VAProfile ID.
+
+    Args:
+        va_profile_id (int): The VA profile ID of the user the notification should be sent to.
     """
 
     try:
         ssm_client = boto3.client('ssm')
-
         comp_and_pen_opt_in_api_key = ssm_client.get_parameter(
             Name=os.getenv('COMP_AND_PEN_OPT_IN_API_KEY'), WithDecryption=True
         )['Parameter']['Value']
 
-    except Exception as error:
-        logger.exception(f'Error fetching SSM parameters: {error}')
+    except boto3.exceptions.Boto3Error as error:
+        logger.exception('Error fetching SSM parameters: %s', {error})
         return
 
-    comp_and_pen_sms_sender_id = os.getenv('COMP_AND_PEN_SMS_SENDER_ID')
-    comp_and_pen_service_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
-    confirmation_opt_in_template_id = os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID')
-
-    now = datetime.now(timezone.utc)
-    cutoff_datetime = datetime(now.year, now.month, *COMP_AND_PEN_OPT_IN_CUTOFF_TIME_UTC, tzinfo=timezone.utc)
-
-    if now < cutoff_datetime:
-        month_personalisation = calendar.month_name[now.month]
-    else:
-        next_month = (now.month % 12) + 1
-        month_personalisation = calendar.month_name[next_month]
-
-    sms_data = json.dumps(
-        {
-            'template_id': confirmation_opt_in_template_id,
-            'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': str(va_profile_id)},
-            'sms_sender_id': comp_and_pen_sms_sender_id,
-            'personalisation': {'month': month_personalisation},
-        }
-    )
-
     try:
-        logger.debug('Sending opt-in confirmation SMS to vaProfileId %s' % va_profile_id)
+        # Environment variable management and validation
+        comp_and_pen_sms_sender_id = os.getenv('COMP_AND_PEN_SMS_SENDER_ID')
+        comp_and_pen_service_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
+        confirmation_opt_in_template_id = os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID')
 
-        conn = HTTPSConnection(f'{NOTIFY_ENVIRONMENT}.api.notifications.va.gov', context=ssl_context)
+        if not all([comp_and_pen_sms_sender_id, comp_and_pen_service_id, confirmation_opt_in_template_id]):
+            raise ValueError('Missing one or more required environment variables.')
+
+        # Personalization for opt-in confirmation notification SMS based on cutoff date
+        # to enroll in monthly Comp and Pen notification
+        now = datetime.now(timezone.utc)
+        cutoff_datetime = datetime(now.year, now.month, *COMP_AND_PEN_OPT_IN_CUTOFF_TIME_UTC, tzinfo=timezone.utc)
+
+        if now < cutoff_datetime:
+            month_personalisation = calendar.month_name[now.month]
+        else:
+            next_month = (now.month % 12) + 1
+            month_personalisation = calendar.month_name[next_month]
+
+        sms_data = json.dumps(
+            {
+                'template_id': confirmation_opt_in_template_id,
+                'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': str(va_profile_id)},
+                'sms_sender_id': comp_and_pen_sms_sender_id,
+                'personalisation': {'month': month_personalisation},
+            }
+        )
+
+        logger.debug('Sending Comp and Pen opt-in confirmation SMS notification vaProfileId %s', va_profile_id)
+
+        conn = HTTPSConnection('{}.api.notifications.va.gov'.format(NOTIFY_ENVIRONMENT), context=ssl_context)
         encoded_header = generate_jwt(comp_and_pen_opt_in_api_key, comp_and_pen_service_id)
 
         conn.request(
             'POST',
             '/v2/notifications/sms',
             body=sms_data,
-            headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {encoded_header}'},
+            headers={'Content-Type': 'application/json', 'Authorization': 'Bearer {}'.format(encoded_header)},
         )
 
         response = conn.getresponse()
         response_data = response.read().decode()
 
-        logger.info(f'SMS sent successfully. Response status: {response.status}, Response data: {response_data}')
-        conn.close()
+        if response.status == 201:
+            logger.info(
+                'Comp and Pen opt-in confirmation SMS notification sent successfully. Response status: %s, Response data: %s',
+                {response.status},
+                {response_data},
+            )
+        else:
+            logger.error(
+                'Failed to send Comp and Pen opt-in confirmation SMS notification. Response status: %s, Response data: %s',
+                {response.status},
+                {response_data},
+            )
 
-    # TODO - #1979 Add better Exception handling
+    except ValueError as ve:
+        logger.exception(
+            'Configuration error while attempting to send Comp and Pen opt-in confirmation SMS notification: %s', {ve}
+        )
+
     except Exception as e:
-        logger.exception('An error occurred while sending SMS to vaProfileId %s: %s' % (va_profile_id, e))
+        logger.exception(
+            'An error occurred while attempting to send Comp and Pen opt-in confirmation SMS notification to vaProfileId %s: %s',
+            va_profile_id,
+            e,
+        )
 
 
-def base64url(source):
+def base64url(source: bytes) -> str:
+    """
+    Encode a byte source to a base64 URL-safe string.
+
+    Args:
+        source (bytes): The byte source to be encoded.
+
+    Returns:
+        str: The base64 URL-safe encoded string.
+    """
     encoded_source = base64.b64encode(source).decode('utf-8')
     encoded_source = encoded_source.rstrip('=').replace('+', '-').replace('/', '_')
     return encoded_source
 
 
-def generate_jwt(service_api_key, service_id):
+def generate_jwt(service_api_key: str, service_id: str) -> str:
+    """
+    Generate a JWT token for authentication purposes.
+
+    Args:
+        service_api_key (str): The API key used to sign the JWT.
+        service_id (str): The service identifier.
+
+    Returns:
+        str: The generated JWT token.
+    """
     header = {'typ': 'JWT', 'alg': 'HS256'}
     current_timestamp = int(time.time())
 
@@ -538,12 +583,12 @@ def generate_jwt(service_api_key, service_id):
     encoded_header = base64url(json.dumps(header).encode('utf-8'))
     encoded_data = base64url(json.dumps(data).encode('utf-8'))
 
-    token = f'{encoded_header}.{encoded_data}'
+    token = '{}.{}'.format(encoded_header, encoded_data)
 
     signature = hmac.new(service_api_key.encode('utf-8'), token.encode('utf-8'), hashlib.sha256).digest()
     encoded_signature = base64url(signature)
 
-    signed_token = f'{token}.{encoded_signature}'
+    signed_token = '{}.{}'.format(token, encoded_signature)
     return signed_token
 
 
