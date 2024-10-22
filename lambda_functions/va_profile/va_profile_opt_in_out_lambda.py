@@ -375,8 +375,11 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
                     }
                 )
 
-        if bio['allowed']:
-            send_comp_and_pen_opt_in_confirmation(bio['vaProfileId'])
+        # Send comp and pen opt-in confirmation if PUT request can be sent
+        # And user is opting into Comp and Pen notifications
+        if post_response['statusCode'] == 200 and bio['allowed']:
+            if bio.get('communicationItemId') == 5 or bio.get('communicationChannelId') == 1:
+                send_comp_and_pen_opt_in_confirmation(bio['vaProfileId'])
 
     logger.info('POST response: %s', post_response)
     return post_response
