@@ -375,7 +375,7 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
                     }
                 )
 
-        if bio['allowed'] == 'true':
+        if bio['allowed']:
             send_comp_and_pen_opt_in_confirmation(bio['vaProfileId'])
 
     logger.info('POST response: %s', post_response)
