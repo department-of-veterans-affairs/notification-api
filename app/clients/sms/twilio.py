@@ -130,6 +130,15 @@ class TwilioSMSClient(SmsClient):
         return self.name
 
     def get_twilio_message(self, message_sid: str) -> MessageInstance | None:
+        """
+        Fetches a Twilio message by its message sid.
+
+        Args:
+            message_sid (str): the Twilio message id
+
+        Returns:
+            MessageInstance: the Twilio message instance if found, otherwise None
+        """
         message = None
         with suppress(TwilioRestException):
             message = self._client.messages(message_sid).fetch()
@@ -262,6 +271,15 @@ class TwilioSMSClient(SmsClient):
         return status
 
     def update_notification_status(self, message_sid: str) -> None:
+        """
+        Updates the status of the notification based on the Twilio message status.
+
+        Args:
+            message_sid (str): the Twilio message id
+
+        Returns:
+            None
+        """
         from app.dao.notifications_dao import dao_update_notifications_by_reference
 
         self.logger.info('Updating notification status for message: %s', message_sid)
@@ -285,6 +303,18 @@ class TwilioSMSClient(SmsClient):
             )
 
     def _parse_twilio_message(self, twilio_delivery_status_message: MessageInstance) -> tuple[str, dict]:
+        """
+        Parses the base64 encoded delivery status message from Twilio and returns a dictionary.
+
+        Args:
+            twilio_delivery_status_message (str): the base64 encoded Twilio delivery status message
+
+        Returns:
+            tuple: a tuple containing the decoded message and a dictionary of the parsed message
+
+        Raises:
+            ValueError: if the Twilio delivery status message is empty
+        """
         if not twilio_delivery_status_message:
             raise ValueError('Twilio delivery status message is empty')
 
@@ -294,6 +324,20 @@ class TwilioSMSClient(SmsClient):
         return decoded_msg, parsed_dict
 
     def _evaluate_status(self, message_sid: str, twilio_delivery_status: str, error_codes: list) -> tuple[str, str]:
+        """
+        Evaluates the Twilio delivery status and error codes to determine the notification status.
+
+        Args:
+            message_sid (str): the Twilio message id
+            twilio_delivery_status (str): the Twilio message status
+            error_codes (list): the Twilio error codes
+
+        Returns:
+            tuple: a tuple containing the notification status and status reason
+
+        Raises:
+            ValueError: if the Twilio delivery status is invalid
+        """
         if twilio_delivery_status not in self.twilio_notify_status_map:
             value_error = f'Invalid Twilio delivery status:  {twilio_delivery_status}'
             raise ValueError(value_error)
