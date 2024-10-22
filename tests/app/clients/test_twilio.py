@@ -710,7 +710,7 @@ def test_get_twilio_message(
     assert response.status == 'sent'
 
 
-def test_update_notification_status(
+def test_update_notification_status_override(
     notify_api,
     mocker,
     sample_notification,
@@ -730,7 +730,7 @@ def test_update_notification_status(
             status_code=200,
         )
 
-        twilio_sms_client.update_notification_status(twilio_sid)
+        twilio_sms_client.update_notification_status_override(twilio_sid)
 
     # Retrieve the updated notification
     notify_db_session.session.refresh(notification)
@@ -751,7 +751,7 @@ def test_update_notification_with_unknown_sid(
     mocker.patch('app.clients')
     mocker.patch('app.clients.sms.twilio.TwilioSMSClient.get_twilio_message', side_effect=TwilioRestException)
 
-    twilio_sms_client.update_notification_status(twilio_sid)
+    twilio_sms_client.update_notification_status_override(twilio_sid)
 
     # Retrieve the updated notification
     notify_db_session.session.refresh(notification)

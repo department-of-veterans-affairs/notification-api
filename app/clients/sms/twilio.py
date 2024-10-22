@@ -1,5 +1,4 @@
 import base64
-from contextlib import suppress
 from dataclasses import dataclass
 from logging import Logger
 from monotonic import monotonic
@@ -140,8 +139,10 @@ class TwilioSMSClient(SmsClient):
             MessageInstance: the Twilio message instance if found, otherwise None
         """
         message = None
-        with suppress(TwilioRestException):
+        try:
             message = self._client.messages(message_sid).fetch()
+        except TwilioRestException:
+            self.logger.warning('Twilio message not found: %s', message_sid)
         return message
 
     def send_sms(
@@ -270,9 +271,9 @@ class TwilioSMSClient(SmsClient):
 
         return status
 
-    def update_notification_status(self, message_sid: str) -> None:
+    def update_notification_status_override(self, message_sid: str) -> None:
         """
-        Updates the status of the notification based on the Twilio message status.
+        Updates the status of the notification based on the Twilio message status, bypassing any logic.
 
         Args:
             message_sid (str): the Twilio message id
@@ -280,6 +281,7 @@ class TwilioSMSClient(SmsClient):
         Returns:
             None
         """
+        # Importing inline to resolve a circular import error when importing at the top of the file
         from app.dao.notifications_dao import dao_update_notifications_by_reference
 
         self.logger.info('Updating notification status for message: %s', message_sid)
@@ -287,19 +289,23 @@ class TwilioSMSClient(SmsClient):
         message = self.get_twilio_message(message_sid)
         self.logger.debug('Twilio message: %s', message)
 
-        if not message:
-            self.logger.error('Twilio message not found: %s', message_sid)
-        else:
+        if message:
             status, status_reason = self._evaluate_status(message_sid, message.status, [])
             update_dict = {
                 'status': status,
                 'status_reason': status_reason,
             }
-            dao_update_notifications_by_reference(
+            updated_count, updated_history_count = dao_update_notifications_by_reference(
                 [
                     message_sid,
                 ],
                 update_dict,
+            )
+            self.logger.info(
+                'Updated notification status for message: %s. Updated %s notifications and %s notification history',
+                message_sid,
+                updated_count,
+                updated_history_count,
             )
 
     def _parse_twilio_message(self, twilio_delivery_status_message: MessageInstance) -> tuple[str, dict]:
