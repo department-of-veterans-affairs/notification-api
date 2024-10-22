@@ -378,10 +378,17 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
 
         # Send comp and pen opt-in confirmation
         va_profile_id = bio['vaProfileId']
+        # Send Comp and Pen Opt-In confirmation if anticipated status code still 200
+        # And if Opt-In confirmation (bio['allowed'] == True)
         if post_response['statusCode'] == 200 and bio['allowed']:
             response = send_comp_and_pen_opt_in_confirmation(va_profile_id)
+
+            # Save notification_id from POST sms response if method returned
+            # a value AND the response status code is 201.
             if response is not None and response.status == 201:
-                notification_id = response.read()['id']
+                response_data = response.read().decode('utf-8')
+                response_json = json.loads(response_data)
+                notification_id = response_json['id']
                 save_notification_id_to_cache(va_profile_id, notification_id)
             else:
                 logger.critical('Could not send Comp and Pen opt-in confirmation to VAProfileId: %s', va_profile_id)
@@ -561,7 +568,48 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> Optional[HTTPRe
 
 
 def save_notification_id_to_cache(va_profile_id: int, notification_id: str):
-    pass
+    """
+    Update the VAProfileLocalCache table by inserting the notification_id for the given va_profile_id.
+
+    Args:
+        va_profile_id (int): The VA profile ID of the user the notification was sent to.
+        notification_id (str): The notification UUID.
+    """
+    try:
+        with db_connection.cursor() as cursor:
+            update_query = """
+                UPDATE va_profile_local_cache
+                SET notification_id = %s
+                WHERE va_profile_id = %s
+            """
+
+            # Execute the SQL query with the provided parameters.
+            cursor.execute(update_query, (notification_id, va_profile_id))
+
+            db_connection.commit()
+            logger.info(
+                'Successfully updated VAProfileLocalCache with notification_id %s for va_profile_id %s.',
+                notification_id,
+                va_profile_id,
+            )
+
+    except psycopg2.IntegrityError as e:
+        db_connection.rollback()
+        logger.error(
+            'Failed to insert notification_id %s for va_profile_id %s. IntegrityError: %s',
+            notification_id,
+            va_profile_id,
+            str(e),
+        )
+    except Exception as e:
+        db_connection.rollback()
+        logger.error(
+            'An error occurred while attempting to update notification_id for va_profile_id %s: %s',
+            va_profile_id,
+            str(e),
+        )
+    finally:
+        cursor.close()
 
 
 def base64url(source: bytes) -> str:
