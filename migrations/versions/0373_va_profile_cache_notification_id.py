@@ -1,5 +1,5 @@
 """
-Revision ID: 0373_va_profiile_cache_notification_id
+Revision ID: 0373_va_profile_cache_notification_id
 Revises: 0372_remove_service_id_index
 Create Date: 2024-10-22 12:56:00
 """
@@ -7,7 +7,7 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
 
-revision = '0373_va_profiile_cache_notification_id'
+revision = '0373_va_profile_cache_notification_id'
 down_revision = '0372_remove_service_id_index'
 
 def upgrade():
