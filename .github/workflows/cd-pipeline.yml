@@ -61,8 +61,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.VAEC_AWS_SECRET_ACCESS_KEY }}
           role-to-assume: ${{ secrets.VAEC_DEPLOY_ROLE }}
 
-
-  # this job deploys the SHA that triggered this workflow
   deploy-to-perf:
     needs: [approval-deploy-perf, create-and-post-tag]
     uses: ./.github/workflows/deploy-release.yml
