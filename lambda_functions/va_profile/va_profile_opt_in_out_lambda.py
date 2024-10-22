@@ -479,7 +479,7 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
         )['Parameter']['Value']
 
     except boto3.exceptions.Boto3Error as error:
-        logger.exception('Error fetching SSM parameters: %s', {error})
+        logger.critical('Error fetching SSM parameters: %s', {error})
         return
 
     try:
@@ -489,7 +489,8 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
         confirmation_opt_in_template_id = os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID')
 
         if not all([comp_and_pen_sms_sender_id, comp_and_pen_service_id, confirmation_opt_in_template_id]):
-            raise ValueError('Missing one or more required environment variables.')
+            logger.critical('Missing one or more required environment variables in va_profile_opt_in_lambda')
+            return
 
         # Personalization for opt-in confirmation notification SMS based on cutoff date
         # to enroll in monthly Comp and Pen notification
