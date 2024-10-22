@@ -15,6 +15,7 @@ from random import randint
 from unittest.mock import Mock, patch
 
 import jwt
+from botocore.exceptions import ClientError
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.x509 import Certificate, load_pem_x509_certificate
@@ -24,6 +25,7 @@ from app.models import VAProfileLocalCache
 from lambda_functions.va_profile.va_profile_opt_in_out_lambda import (
     generate_jwt,
     jwt_is_valid,
+    send_comp_and_pen_opt_in_confirmation,
     va_profile_opt_in_out_lambda_handler,
 )
 
@@ -663,6 +665,86 @@ def test_va_profile_opt_in_out_lambda_handler_audit_id_mismatch(jwt_encoded, put
     }
 
     put_mock.assert_called_once_with('txAuditId', expected_put_body)
+
+
+@patch(f'{LAMBDA_MODULE}.boto3.client')
+@patch(f'{LAMBDA_MODULE}.os.getenv')
+@patch(f'{LAMBDA_MODULE}.HTTPSConnection')
+@patch(f'{LAMBDA_MODULE}.generate_jwt')
+@patch(f'{LAMBDA_MODULE}.logger')
+def test_send_comp_and_pen_opt_in_confirmation_boto3_exception(
+    mock_logger, mock_generate_jwt, mock_https, mock_getenv, mock_boto3_client
+):
+    # Mock boto3 to raise a ClientError
+    client_error = ClientError({}, 'DescribeParameters')
+    mock_boto3_client.get_parameter.side_effect = client_error
+
+    va_profile_id = 12345
+    send_comp_and_pen_opt_in_confirmation(va_profile_id)
+
+    # Check the logger call with the string representation of the ClientError
+    mock_logger.critical.assert_called_once_with('Error fetching SSM parameters: %s', str(client_error))
+
+
+@patch(f'{LAMBDA_MODULE}.boto3.client')
+@patch(f'{LAMBDA_MODULE}.os.getenv')
+@patch(f'{LAMBDA_MODULE}.HTTPSConnection')
+@patch(f'{LAMBDA_MODULE}.generate_jwt')
+@patch(f'{LAMBDA_MODULE}.logger')
+def test_send_comp_and_pen_opt_in_confirmation_missing_env_vars(
+    mock_logger, mock_generate_jwt, mock_https, mock_getenv, mock_boto3_client
+):
+    # Mock environment variables to be None
+    mock_getenv.side_effect = [None, 'service_id', 'template_id']
+
+    va_profile_id = 12345
+    send_comp_and_pen_opt_in_confirmation(va_profile_id)
+
+    mock_logger.critical.assert_called_once_with(
+        'Missing one or more required environment variables in va_profile_opt_in_lambda'
+    )
+
+
+@patch(f'{LAMBDA_MODULE}.boto3.client')
+@patch(f'{LAMBDA_MODULE}.os.getenv')
+@patch(f'{LAMBDA_MODULE}.HTTPSConnection')
+@patch(f'{LAMBDA_MODULE}.generate_jwt')
+@patch(f'{LAMBDA_MODULE}.logger')
+def test_send_comp_and_pen_opt_in_confirmation_value_error(
+    mock_logger, mock_generate_jwt, mock_https, mock_getenv, mock_boto3_client
+):
+    mock_getenv.side_effect = ['sender_id', 'service_id', 'template_id']
+    mock_boto3_client.return_value.get_parameter.side_effect = ValueError('Some value error')
+
+    va_profile_id = 12345
+    send_comp_and_pen_opt_in_confirmation(va_profile_id)
+
+    mock_logger.exception.assert_called_once_with(
+        'Configuration error while attempting to send Comp and Pen opt-in confirmation SMS notification: %s',
+        {'Some value error'},
+    )
+
+
+@patch(f'{LAMBDA_MODULE}.boto3.client')
+@patch(f'{LAMBDA_MODULE}.os.getenv')
+@patch(f'{LAMBDA_MODULE}.HTTPSConnection')
+@patch(f'{LAMBDA_MODULE}.generate_jwt')
+@patch(f'{LAMBDA_MODULE}.logger')
+def test_send_comp_and_pen_opt_in_confirmation_general_exception(
+    mock_logger, mock_generate_jwt, mock_https, mock_getenv, mock_boto3_client
+):
+    # Mock a general exception during the HTTPS request
+    mock_getenv.side_effect = ['sender_id', 'service_id', 'template_id']
+    mock_https.side_effect = Exception('General error')
+
+    va_profile_id = 12345
+    send_comp_and_pen_opt_in_confirmation(va_profile_id)
+
+    mock_logger.exception.assert_called_once_with(
+        'An error occurred while attempting to send Comp and Pen opt-in confirmation SMS notification to vaProfileId %s: %s',
+        va_profile_id,
+        'General error',
+    )
 
 
 @pytest.mark.serial
