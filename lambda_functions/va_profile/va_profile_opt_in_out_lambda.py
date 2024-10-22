@@ -335,9 +335,6 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
             put_body['status'] = 'COMPLETED_SUCCESS' if c.fetchone()[0] else 'COMPLETED_NOOP'
             db_connection.commit()
 
-            # TODO - #1979 Confirm this is for Comp and Pen Only
-            send_comp_and_pen_opt_in_confirmation(bio['vaProfileId'])
-
         logger.debug('Executed the stored function.')
     except KeyError as e:
         # Bad Request.  Required attributes are missing.
@@ -377,6 +374,9 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
                         'put_body': put_body,
                     }
                 )
+
+        if bio['allowed'] == 'true':
+            send_comp_and_pen_opt_in_confirmation(bio['vaProfileId'])
 
     logger.info('POST response: %s', post_response)
     return post_response
