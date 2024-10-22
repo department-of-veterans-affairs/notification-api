@@ -20,19 +20,20 @@ envronment, it is the Lambda execution environment, which should make certain fi
 via lambda layers.
 """
 
+import base64
 import calendar
+import hashlib
+import hmac
 import json
 import logging
 import os
 import ssl
 import sys
-import hmac
-import hashlib
-import base64
 import time
 from datetime import datetime, timezone
-from http.client import HTTPSConnection
+from http.client import HTTPSConnection, HTTPResponse
 from tempfile import NamedTemporaryFile
+from typing import Optional
 
 import boto3
 import jwt
@@ -375,11 +376,15 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
                     }
                 )
 
-        # Send comp and pen opt-in confirmation if PUT request can be sent
-        # And user is opting into Comp and Pen notifications
+        # Send comp and pen opt-in confirmation
+        va_profile_id = bio['vaProfileId']
         if post_response['statusCode'] == 200 and bio['allowed']:
-            if bio.get('communicationItemId') == 5 or bio.get('communicationChannelId') == 1:
-                send_comp_and_pen_opt_in_confirmation(bio['vaProfileId'])
+            response = send_comp_and_pen_opt_in_confirmation(va_profile_id)
+            if response is not None and response.status == 201:
+                notification_id = response.read()['id']
+                save_notification_id_to_cache(va_profile_id, notification_id)
+            else:
+                logger.critical('Could not send Comp and Pen opt-in confirmation to VAProfileId: %s', va_profile_id)
 
     logger.info('POST response: %s', post_response)
     return post_response
@@ -464,7 +469,7 @@ def make_PUT_request(
         https_connection.close()
 
 
-def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
+def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> Optional[HTTPResponse]:
     """
     Send an opt-in confirmation SMS notification based on user's VAProfile ID.
 
@@ -478,9 +483,9 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
             Name=os.getenv('COMP_AND_PEN_OPT_IN_API_KEY'), WithDecryption=True
         )['Parameter']['Value']
 
-    except boto3.exceptions.Boto3Error as error:
+    except ClientError as error:
         logger.critical('Error fetching SSM parameters: %s', {error})
-        return
+        return None
 
     try:
         # Environment variable management and validation
@@ -490,7 +495,7 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
 
         if not all([comp_and_pen_sms_sender_id, comp_and_pen_service_id, confirmation_opt_in_template_id]):
             logger.critical('Missing one or more required environment variables in va_profile_opt_in_lambda')
-            return
+            return None
 
         # Personalization for opt-in confirmation notification SMS based on cutoff date
         # to enroll in monthly Comp and Pen notification
@@ -533,6 +538,7 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
                 {response.status},
                 {response_data},
             )
+            return response
         else:
             logger.error(
                 'Failed to send Comp and Pen opt-in confirmation SMS notification. Response status: %s, Response data: %s',
@@ -551,6 +557,11 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> None:
             va_profile_id,
             e,
         )
+    return None
+
+
+def save_notification_id_to_cache(va_profile_id: int, notification_id: str):
+    pass
 
 
 def base64url(source: bytes) -> str:
