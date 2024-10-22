@@ -48,11 +48,15 @@ logger.setLevel(getattr(logging, os.getenv('LOG_LEVEL', 'DEBUG')))
 ALB_CERTIFICATE_ARN = os.getenv('ALB_CERTIFICATE_ARN')
 ALB_PRIVATE_KEY_PATH = os.getenv('ALB_PRIVATE_KEY_PATH')
 CA_PATH = '/opt/VA_CAs/'
+COMP_AND_PEN_OPT_IN_CUTOFF_TIME_UTC = 11, 10, 0, 0
+COMP_AND_PEN_OPT_IN_API_KEY_PARAM_PATH = os.getenv('COMP_AND_PEN_OPT_IN_API_KEY')
+COMP_AND_PEN_OPT_IN_TEMPLATE_ID = os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID')
+COMP_AND_PEN_SERVICE_ID = os.getenv('COMP_AND_PEN_SERVICE_ID')
+COMP_AND_PEN_SMS_SENDER_ID = os.getenv('COMP_AND_PEN_SMS_SENDER_ID')
 NOTIFY_ENVIRONMENT = os.getenv('NOTIFY_ENVIRONMENT')
 OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s);"""
 VA_PROFILE_DOMAIN = os.getenv('VA_PROFILE_DOMAIN')
 VA_PROFILE_PATH_BASE = '/communication-hub/communication/v1/status/changelog/'
-COMP_AND_PEN_OPT_IN_CUTOFF_TIME_UTC = 11, 10, 0, 0
 
 
 if NOTIFY_ENVIRONMENT is None:
@@ -137,6 +141,12 @@ elif NOTIFY_ENVIRONMENT != 'test':
             f.seek(0)
 
             ssl_context.load_cert_chain(f.name)
+
+        # Get Comp and Pen API Key from Parameter Store
+        ssm_response_api_key = ssm_client.get_parameter(
+            Name=COMP_AND_PEN_OPT_IN_API_KEY_PARAM_PATH, WithDecryption=True
+        )
+        COMP_AND_PEN_OPT_IN_API_KEY = ssm_response_api_key['Parameter']['Value'].encode()
     except (OSError, ClientError, ssl.SSLError, ValidationError, KeyError) as e:
         logger.exception(e)
         if isinstance(e, ssl.SSLError):
@@ -485,25 +495,6 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> Optional[HTTPRe
     """
 
     try:
-        ssm_client = boto3.client('ssm')
-        comp_and_pen_opt_in_api_key = ssm_client.get_parameter(
-            Name=os.getenv('COMP_AND_PEN_OPT_IN_API_KEY'), WithDecryption=True
-        )['Parameter']['Value']
-
-    except ClientError as error:
-        logger.critical('Error fetching SSM parameters: %s', {error})
-        return None
-
-    try:
-        # Environment variable management and validation
-        comp_and_pen_sms_sender_id = os.getenv('COMP_AND_PEN_SMS_SENDER_ID')
-        comp_and_pen_service_id = os.getenv('COMP_AND_PEN_SERVICE_ID')
-        confirmation_opt_in_template_id = os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID')
-
-        if not all([comp_and_pen_sms_sender_id, comp_and_pen_service_id, confirmation_opt_in_template_id]):
-            logger.critical('Missing one or more required environment variables in va_profile_opt_in_lambda')
-            return None
-
         # Personalization for opt-in confirmation notification SMS based on cutoff date
         # to enroll in monthly Comp and Pen notification
         now = datetime.now(timezone.utc)
@@ -517,9 +508,9 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> Optional[HTTPRe
 
         sms_data = json.dumps(
             {
-                'template_id': confirmation_opt_in_template_id,
+                'template_id': COMP_AND_PEN_OPT_IN_TEMPLATE_ID,
                 'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': str(va_profile_id)},
-                'sms_sender_id': comp_and_pen_sms_sender_id,
+                'sms_sender_id': COMP_AND_PEN_SMS_SENDER_ID,
                 'personalisation': {'month': month_personalisation},
             }
         )
@@ -527,7 +518,7 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> Optional[HTTPRe
         logger.debug('Sending Comp and Pen opt-in confirmation SMS notification vaProfileId %s', va_profile_id)
 
         conn = HTTPSConnection('{}.api.notifications.va.gov'.format(NOTIFY_ENVIRONMENT), context=ssl_context)
-        encoded_header = generate_jwt(comp_and_pen_opt_in_api_key, comp_and_pen_service_id)
+        encoded_header = generate_jwt(COMP_AND_PEN_OPT_IN_API_KEY, COMP_AND_PEN_SMS_SENDER_ID)
 
         conn.request(
             'POST',
