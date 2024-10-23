@@ -386,8 +386,8 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
                     }
                 )
 
-        # Send comp and pen opt-in confirmation
         va_profile_id = bio['vaProfileId']
+
         # Send Comp and Pen Opt-In confirmation if anticipated status code still 200
         # And if Opt-In confirmation (bio['allowed'] == True)
         if post_response['statusCode'] == 200 and bio['allowed']:
@@ -396,7 +396,7 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
             # Save notification_id from POST sms response if method returned
             # a value AND the response status code is 201.
             if response is not None and response.status == 201:
-                response_data = response.read().decode('utf-8')
+                response_data = response.read().decode()
                 response_json = json.loads(response_data)
                 notification_id = response_json['id']
                 save_notification_id_to_cache(va_profile_id, notification_id)
@@ -528,20 +528,17 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> Optional[HTTPRe
         )
 
         response = conn.getresponse()
-        response_data = response.read().decode()
 
         if response.status == 201:
             logger.info(
-                'Comp and Pen opt-in confirmation SMS notification sent successfully. Response status: %s, Response data: %s',
+                'Comp and Pen opt-in confirmation SMS notification sent successfully. Response status: %s',
                 {response.status},
-                {response_data},
             )
             return response
         else:
             logger.error(
-                'Failed to send Comp and Pen opt-in confirmation SMS notification. Response status: %s, Response data: %s',
+                'Failed to send Comp and Pen opt-in confirmation SMS notification. Response status: %s',
                 {response.status},
-                {response_data},
             )
 
     except ValueError as ve:
