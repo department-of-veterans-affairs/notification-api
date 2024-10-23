@@ -30,8 +30,12 @@ jobs:
     uses: ./.github/workflows/pr-label-semver.yml
     secrets: inherit
 
+  pre-tag-summary:
+    uses: ./.github/workflows/pre-tag-summary.yml
+    secrets: inherit
+
   approval-deploy-perf:
-    needs: pr-label-summary
+    needs: pre-tag-summary
     environment: 
       name: perf-deploy
     runs-on: ubuntu-latest
@@ -63,7 +67,7 @@ jobs:
           role-to-assume: ${{ secrets.VAEC_DEPLOY_ROLE }}
 
   deploy-to-perf:
-    needs: [approval-deploy-perf, create-and-post-tag]
+    needs: create-and-post-tag
     uses: ./.github/workflows/deploy-release.yml
     secrets: inherit
     with:
@@ -71,13 +75,8 @@ jobs:
       ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
       lambdaDeploy: true
 
-  pre-tag-summary:
-    needs: deploy-to-perf
-    uses: ./.github/workflows/pre-tag-summary.yml
-    secrets: inherit
-
   approval-deploy-staging:
-    needs: pre-tag-summary
+    needs: deploy-to-perf
     environment: 
       name: staging-deploy
     runs-on: ubuntu-latest
@@ -86,7 +85,7 @@ jobs:
         run: echo "Deployment paused for manual approval."
 
   create-release-notes:
-    needs: create-and-post-tag
+    needs: [create-and-post-tag, approval-deploy-staging]
     uses: ./.github/workflows/create-release-notes.yml
     secrets: inherit
     with:

@@ -68,7 +68,7 @@ jobs:
       tag: ${{ steps.set-outputs.outputs.tag }}
       environment: ${{ steps.set-outputs.outputs.environment }}
 
-  build-push-artifacts:
+  upload-env-file:
     needs: [setup-environment]
     runs-on: ubuntu-latest
     steps:
@@ -92,7 +92,7 @@ jobs:
     secrets: inherit
 
   run-deployment:
-    needs: [setup-environment, build-push-artifacts]
+    needs: [setup-environment, upload-env-file]
     uses: ./.github/workflows/deployment.yml
     with:
       environment: ${{ needs.setup-environment.outputs.environment }}
