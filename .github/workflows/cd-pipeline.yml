@@ -18,6 +18,10 @@ on:
     branches:
       - 1971-build-docker-image-once
 
+concurrency:
+      group: continuous_deployment_pipeline
+      cancel-in-progress: false
+
 jobs:
   prepare-deployment:
     runs-on: ubuntu-latest
