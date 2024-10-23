@@ -511,14 +511,14 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> Optional[HTTPRe
                 'template_id': COMP_AND_PEN_OPT_IN_TEMPLATE_ID,
                 'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': str(va_profile_id)},
                 'sms_sender_id': COMP_AND_PEN_SMS_SENDER_ID,
-                'personalisation': {'month': month_personalisation},
+                'personalisation': {'month-name': month_personalisation},
             }
         )
 
         logger.debug('Sending Comp and Pen opt-in confirmation SMS notification vaProfileId %s', va_profile_id)
 
         conn = HTTPSConnection('{}.api.notifications.va.gov'.format(NOTIFY_ENVIRONMENT), context=ssl_context)
-        encoded_header = generate_jwt(COMP_AND_PEN_OPT_IN_API_KEY, COMP_AND_PEN_SMS_SENDER_ID)
+        encoded_header = generate_jwt(COMP_AND_PEN_OPT_IN_API_KEY, COMP_AND_PEN_SERVICE_ID)
 
         conn.request(
             'POST',
