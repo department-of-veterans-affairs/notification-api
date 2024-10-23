@@ -16,7 +16,7 @@ name: Continuous Deployment Pipeline
 on:
   push:
     branches:
-      - main
+      - hotfix-tag-pr-sha
 
 jobs:
   prepare-deployment:
