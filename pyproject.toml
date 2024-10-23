@@ -49,7 +49,7 @@ twilio = "*"
 Unidecode = "*"
 validatesns = "*"
 Werkzeug = "*"
-notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git"}
+notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git", branch = "1383-GA4-img-styling"}
 
 [tool.poetry.group.test]
 optional = true
