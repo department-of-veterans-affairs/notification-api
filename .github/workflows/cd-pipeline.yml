@@ -67,7 +67,7 @@ jobs:
           role-to-assume: ${{ secrets.VAEC_DEPLOY_ROLE }}
 
   deploy-to-perf:
-    needs: create-and-post-tag
+    needs: [create-and-post-tag, build-push-artifacts]
     uses: ./.github/workflows/deploy-release.yml
     secrets: inherit
     with:
