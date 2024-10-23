@@ -42,7 +42,7 @@ fileignoreconfig:
 - filename: tests/app/celery/test_service_callback_tasks.py
   checksum: 70575434f7a4fedd43d4c9164bc899a606768526d432c364db372524eec26542
 - filename: lambda_functions/va_profile/va_profile_opt_in_out_lambda.py
-  checksum: 7f0d04ff72fd4bf7b9a2a39cb38ba017b3389a2637cbd96151d2228dc3ee01ef
+  checksum: 5f851c24f8a44a9290326a5ad19e3b2e96e0a6b997a72bfc398a6941c36e3c30
 - filename: tests/app/conftest.py
   checksum: a80aa727586db82ed1b50bdb81ddfe1379e649a9dfc1ece2c36047486b41b83d
 - filename: tests/app/notifications/test_process_notifications_for_profile_v3.py

@@ -146,7 +146,7 @@ elif NOTIFY_ENVIRONMENT != 'test':
         ssm_response_api_key = ssm_client.get_parameter(
             Name=COMP_AND_PEN_OPT_IN_API_KEY_PARAM_PATH, WithDecryption=True
         )
-        COMP_AND_PEN_OPT_IN_API_KEY = ssm_response_api_key['Parameter']['Value'].encode()
+        COMP_AND_PEN_OPT_IN_API_KEY = ssm_response_api_key['Parameter']['Value']
     except (OSError, ClientError, ssl.SSLError, ValidationError, KeyError) as e:
         logger.exception(e)
         if isinstance(e, ssl.SSLError):
