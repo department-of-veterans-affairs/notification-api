@@ -53,3 +53,5 @@ fileignoreconfig:
   checksum: d149822d65e28a9488c04602528eb6e4f148c0b508f95c95460fbe4b4531d73c
 - filename: app/va/va_profile/va_profile_client.py
   checksum: fe634f26f7dc3874f4afcfd1ba3f03bae380b53befe973a752c7347097a88701
+- filename: tests/lambda_functions/vetext_incoming_forwarder_lambda/test_vetext_incoming_forwarder_lambda.py
+  checksum: 7494eb4321fd2fbc3ff3915d8753d8fec7a936a69dc6ab78f0b532a701f032eb
