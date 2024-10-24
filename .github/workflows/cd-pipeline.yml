@@ -48,7 +48,7 @@ jobs:
     secrets: inherit
 
   create-and-post-tag:
-    needs: approval-deploy-perf
+    needs: pre-tag-summary
     uses: ./.github/workflows/create-and-post-tag.yml
     secrets: inherit
 
