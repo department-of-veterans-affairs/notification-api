@@ -403,7 +403,7 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
                 response_data = response.read().decode()
                 response_json = json.loads(response_data)
                 notification_id = response_json['id']
-                save_notification_id_to_cache(va_profile_id, notification_id)
+                save_notification_id_to_cache(va_profile_id, notification_id, bio['sourceDate'])
             else:
                 logger.critical('Could not send Comp and Pen opt-in confirmation to VAProfileId: %s', va_profile_id)
 
@@ -559,7 +559,7 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> Optional[HTTPRe
     return None
 
 
-def save_notification_id_to_cache(va_profile_id: int, notification_id: str):
+def save_notification_id_to_cache(va_profile_id: int, notification_id: str, source_date: str):
     """
     Update the VAProfileLocalCache table by inserting the notification_id for the given va_profile_id.
 
@@ -569,15 +569,15 @@ def save_notification_id_to_cache(va_profile_id: int, notification_id: str):
     """
     try:
         with db_connection.cursor() as cursor:
-            # TODO - CONFIRM ONlY ONE ROW UPDATED.
             update_query = """
                 UPDATE va_profile_local_cache
                 SET notification_id = %s
                 WHERE va_profile_id = %s
+                AND source_datetime = %s
             """
 
             # Execute the SQL query with the provided parameters.
-            cursor.execute(update_query, (notification_id, va_profile_id))
+            cursor.execute(update_query, (notification_id, va_profile_id, source_date))
 
             db_connection.commit()
             logger.info(
