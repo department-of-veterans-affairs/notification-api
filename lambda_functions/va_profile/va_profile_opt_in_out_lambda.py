@@ -550,7 +550,7 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> Optional[HTTPRe
             'POST',
             '/v2/notifications/sms',
             body=sms_data,
-            headers={'Content-Type': 'application/json', 'Authorization': 'Bearer {}'.format(encoded_header)},
+            headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {encoded_header}'},
         )
 
         response = conn.getresponse()
@@ -649,12 +649,12 @@ def generate_jwt(service_api_key: str, service_id: str) -> str:
     encoded_header = base64url(json.dumps(header).encode('utf-8'))
     encoded_data = base64url(json.dumps(data).encode('utf-8'))
 
-    token = '{}.{}'.format(encoded_header, encoded_data)
+    token = f'{encoded_header}.{encoded_data}'
 
     signature = hmac.new(service_api_key.encode('utf-8'), token.encode('utf-8'), hashlib.sha256).digest()
     encoded_signature = base64url(signature)
 
-    return '{}.{}'.format(token, encoded_signature)
+    return f'{token}.{encoded_signature}'
 
 
 def get_integration_testing_public_cert() -> Certificate:
