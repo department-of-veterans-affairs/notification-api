@@ -18,7 +18,7 @@ on:
     branches:
       - 1971-build-docker-image-once
 
-## test comment 2
+## test comment 3
 jobs:
   prepare-deployment:
     runs-on: ubuntu-latest
