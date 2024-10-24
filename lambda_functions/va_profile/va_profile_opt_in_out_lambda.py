@@ -397,6 +397,7 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
 
         va_profile_id = bio['vaProfileId']
 
+    try:
         # Send Comp and Pen Opt-In confirmation if anticipated status code still 200
         # And if Opt-In confirmation (bio['allowed'] == True)
         if post_response['statusCode'] == 200 and bio['allowed']:
@@ -430,6 +431,13 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
                     response.status,
                 )
                 save_notification_id_to_cache(va_profile_id, notification_id, bio['sourceDate'])
+
+    except Exception as e:
+        logger.critical(
+            'Critical error during the process of sending a Comp and Pen Opt-in confirmation notification to VaProfileId: %s. Error: %s',
+            va_profile_id,
+            e,
+        )
 
     logger.info('POST response: %s', post_response)
     return post_response
