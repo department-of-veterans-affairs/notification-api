@@ -401,13 +401,25 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
 
             # Save notification_id from POST sms response if method returned
             # a value AND the response status code is 201.
-            if response is not None and response.status == 201:
+            if response is None:
+                logger.critical(
+                    'Could not send Comp and Pen opt-in confirmation to VAProfileId: %s. No response status or response body to record.',
+                    va_profile_id,
+                )
+            elif response.status != 201:
+                response_data = response.read().decode()
+                response_json = json.loads(response_data)
+                logger.critical(
+                    'Could not send Comp and Pen opt-in confirmation to VAProfileId: %s. Response status: %s, Response: %s',
+                    va_profile_id,
+                    response.status,
+                    response_data,
+                )
+            else:
                 response_data = response.read().decode()
                 response_json = json.loads(response_data)
                 notification_id = response_json['id']
                 save_notification_id_to_cache(va_profile_id, notification_id, bio['sourceDate'])
-            else:
-                logger.critical('Could not send Comp and Pen opt-in confirmation to VAProfileId: %s', va_profile_id)
 
     logger.info('POST response: %s', post_response)
     return post_response
