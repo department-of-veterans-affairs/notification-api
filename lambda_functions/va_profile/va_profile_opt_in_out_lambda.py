@@ -20,16 +20,12 @@ envronment, it is the Lambda execution environment, which should make certain fi
 via lambda layers.
 """
 
-import base64
 import calendar
-import hashlib
-import hmac
 import json
 import logging
 import os
 import ssl
 import sys
-import time
 from datetime import datetime, timezone
 from http.client import HTTPSConnection, HTTPResponse
 from tempfile import NamedTemporaryFile
@@ -550,7 +546,7 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> Optional[HTTPRe
         logger.debug('Sending Comp and Pen opt-in confirmation SMS notification vaProfileId %s', va_profile_id)
 
         conn = HTTPSConnection(VA_NOTIFY_DOMAIN, context=ssl_context)
-        encoded_header = generate_jwt(COMP_AND_PEN_OPT_IN_API_KEY, COMP_AND_PEN_SERVICE_ID)
+        encoded_header = generate_jwt()
 
         conn.request(
             'POST',
@@ -623,22 +619,7 @@ def save_notification_id_to_cache(va_profile_id: int, notification_id: str, sour
         cursor.close()
 
 
-def base64url(source: bytes) -> str:
-    """
-    Encode a byte source to a base64 URL-safe string.
-
-    Args:
-        source (bytes): The byte source to be encoded.
-
-    Returns:
-        str: The base64 URL-safe encoded string.
-    """
-    encoded_source = base64.b64encode(source).decode('utf-8')
-    encoded_source = encoded_source.rstrip('=').replace('+', '-').replace('/', '_')
-    return encoded_source
-
-
-def generate_jwt(service_api_key: str, service_id: str) -> str:
+def generate_jwt() -> str:
     """
     Generate a JWT token for authentication purposes.
 
@@ -649,20 +630,14 @@ def generate_jwt(service_api_key: str, service_id: str) -> str:
     Returns:
         str: The generated JWT token.
     """
-    header = {'typ': 'JWT', 'alg': 'HS256'}
-    current_timestamp = int(time.time())
 
-    data = {'iss': service_id, 'iat': current_timestamp}
+    headers = {'typ': 'JWT', 'alg': 'HS256'}
 
-    encoded_header = base64url(json.dumps(header).encode('utf-8'))
-    encoded_data = base64url(json.dumps(data).encode('utf-8'))
+    current_timestamp = int(datetime.datetime.now().timestamp())
+    payload = {'iss': COMP_AND_PEN_SERVICE_ID, 'iat': current_timestamp}
 
-    token = f'{encoded_header}.{encoded_data}'
-
-    signature = hmac.new(service_api_key.encode('utf-8'), token.encode('utf-8'), hashlib.sha256).digest()
-    encoded_signature = base64url(signature)
-
-    return f'{token}.{encoded_signature}'
+    # Generate and return the signed JWT token using the pyJWT library
+    return jwt.encode(payload, COMP_AND_PEN_OPT_IN_API_KEY, algorithm='HS256', headers=headers)
 
 
 def get_integration_testing_public_cert() -> Certificate:

@@ -776,7 +776,7 @@ def test_va_profile_opt_in_out_lambda_handler(
 
     # Generate a dynamic JWT token using the mocked API key
     # Use to compare against actual request sent
-    encoded_header = generate_jwt('mock_va_notify_api_key', 'mock_service_id')
+    encoded_header = generate_jwt()
 
     # Setup new va_profile_id
     va_profile_id = randint(1000, 100000)
