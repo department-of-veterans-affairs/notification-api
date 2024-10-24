@@ -560,6 +560,8 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> Optional[HTTPRe
                 'Failed to send Comp and Pen opt-in confirmation SMS notification. Response status: %s',
                 {response.status},
             )
+        else:
+            return response
 
     except ValueError as ve:
         logger.exception(
