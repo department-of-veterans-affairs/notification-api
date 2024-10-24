@@ -50,7 +50,7 @@ fileignoreconfig:
 - filename: tests/app/v2/notifications/test_post_notifications.py
   checksum: 3181930a13e3679bb2f17eaa3f383512eb9caf4ed5d5e14496ca4193c6083965
 - filename: tests/lambda_functions/va_profile/test_va_profile_integration.py
-  checksum: d149822d65e28a9488c04602528eb6e4f148c0b508f95c95460fbe4b4531d73c
+  checksum: 94f3e59c05ed2024a08495e15dab266cdc27d33eb6bc56d8256bd53b38668f9a
 - filename: app/va/va_profile/va_profile_client.py
   checksum: fe634f26f7dc3874f4afcfd1ba3f03bae380b53befe973a752c7347097a88701
 - filename: tests/lambda_functions/vetext_incoming_forwarder_lambda/test_vetext_incoming_forwarder_lambda.py

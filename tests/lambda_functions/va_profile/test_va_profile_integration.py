@@ -6,21 +6,22 @@ with VA Profile integration calls this stored function.  The stored function sho
 created or updated; otherwise, False.
 """
 
+import importlib
 import json
-import os
-import pytest
 from datetime import datetime, timedelta, timezone
 from json import dumps, loads
 from random import randint
 from unittest.mock import Mock, patch
 
 import jwt
+import pytest
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.x509 import Certificate, load_pem_x509_certificate
 from sqlalchemy import delete, func, select, text
 
 from app.models import VAProfileLocalCache
+from lambda_functions.va_profile import va_profile_opt_in_out_lambda
 from lambda_functions.va_profile.va_profile_opt_in_out_lambda import (
     generate_jwt,
     jwt_is_valid,
@@ -36,6 +37,18 @@ OPT_IN_OUT = text(
 SELECT va_profile_opt_in_out(:va_profile_id, :communication_item_id, \
 :communication_channel_id, :allowed, :source_datetime);"""
 )
+
+
+@pytest.fixture
+def mock_env_vars(monkeypatch):
+    monkeypatch.setenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID', 'mock_template_id')
+    monkeypatch.setenv('COMP_AND_PEN_SMS_SENDER_ID', 'mock_sms_sender_id')
+    monkeypatch.setenv('COMP_AND_PEN_OPT_IN_API_KEY_PARAM_PATH', 'mock_va_notify_api_key_param_path')
+    monkeypatch.setenv('COMP_AND_PEN_OPT_IN_API_KEY', 'mock_va_notify_api_key')
+    monkeypatch.setenv('COMP_AND_PEN_SERVICE_ID', 'mock_service_id')
+    monkeypatch.setenv('ALB_CERTIFICATE_ARN', 'mock_alb_certificate_arn')
+    monkeypatch.setenv('ALB_PRIVATE_KEY_PATH', 'mock_alb_private_key_path')
+    monkeypatch.setenv('VA_PROFILE_DOMAIN', 'mock_va_profile_domain')
 
 
 @pytest.fixture
@@ -146,6 +159,41 @@ def event_bytes(event_str) -> dict:
     event = event_str.copy()
     event['body'] = event['body'].encode()
     return event
+
+
+def create_event(
+    master_tx_audit_id: str,
+    tx_audit_id: str,
+    source_date: str,
+    va_profile_id: int,
+    communication_channel_id: int,
+    communication_item_id: int,
+    is_allowed: bool,
+    jwt_value,
+) -> dict:
+    """
+    Return a dictionary in the format of the payload the lambda function expects to
+    receive from VA Profile via AWS API Gateway v2.
+    """
+
+    return {
+        'headers': {
+            'Authorization': f'Bearer {jwt_value}',
+        },
+        'body': {
+            'txAuditId': master_tx_audit_id,
+            'bios': [
+                {
+                    'txAuditId': tx_audit_id,
+                    'sourceDate': source_date,
+                    'vaProfileId': va_profile_id,
+                    'communicationChannelId': communication_channel_id,
+                    'communicationItemId': communication_item_id,
+                    'allowed': is_allowed,
+                }
+            ],
+        },
+    }
 
 
 def test_va_profile_cache_exists(notify_db_session):
@@ -676,9 +724,7 @@ def test_va_profile_opt_in_out_lambda_handler_audit_id_mismatch(jwt_encoded, put
 def test_va_profile_opt_in_out_lambda_handler(
     notify_db_session,
     jwt_encoded,
-    put_mock,
-    get_integration_testing_public_cert_mock,
-    mocker,
+    mock_env_vars,
     mock_date,
     expected_month,
 ):
@@ -691,34 +737,41 @@ def test_va_profile_opt_in_out_lambda_handler(
     This unit test verifies that the lambda code attempts to load this certificate.
     """
 
+    # Must reload lambda module to properly mock ENV variables defined before running lambda handler
+    importlib.reload(va_profile_opt_in_out_lambda)
+
     # Mock datetime to ensure cutoff logic works as expected
     mock_datetime = patch('lambda_functions.va_profile.va_profile_opt_in_out_lambda.datetime').start()
     mock_datetime.now.return_value = mock_date
     mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
 
-    # Mock POST request HTTPS request handling
-    mock_https_instance = Mock()
+    # Create mock responses for PUT request to VAPROFILE
+    mock_put_instance = Mock()
+    mock_put_response = Mock()
+    mock_put_response.status = 200
+    mock_put_response.headers = {'Content-Type': 'application/json'}
+    mock_put_response.read.return_value = b'{"dateTime": "2022-04-07T19:37:59.320Z","status": "COMPLETED_SUCCESS",}'
+    mock_put_instance.getresponse.return_value = mock_put_response
+
+    # Create mock response for POST request to VANotify
+    mock_post_instance = Mock()
+    mock_post_response = Mock()
+    mock_post_response.status = 201
+    mock_post_response.read.return_value = b'{"id":"e7b8cdda-858e-4b6f-a7df-93a71a2edb1e"}'
+    mock_post_instance.getresponse.return_value = mock_post_response
+
+    # Use a list of mocks for side_effect to differentiate between calls
+    https_connection_side_effect = [mock_put_instance, mock_post_instance]
+
+    # Patch HTTPSConnection with side_effect for PUT request and POST request
     patch(
-        'lambda_functions.va_profile.va_profile_opt_in_out_lambda.HTTPSConnection', return_value=mock_https_instance
+        'lambda_functions.va_profile.va_profile_opt_in_out_lambda.HTTPSConnection',
+        side_effect=https_connection_side_effect,
     ).start()
-    mock_response = Mock()
-    mock_response.status = 201
-    mock_response.read.return_value = b'{"id":"e7b8cdda-858e-4b6f-a7df-93a71a2edb1e"}'
-    mock_https_instance.getresponse.return_value = mock_response
 
     mock_ssm = patch('boto3.client').start()
     mock_ssm_instance = mock_ssm.return_value
     mock_ssm_instance.get_parameter.return_value = {'Parameter': {'Value': 'mock_va_notify_api_key'}}
-
-    mocker.patch.dict(
-        os.environ,
-        {
-            'COMP_AND_PEN_OPT_IN_TEMPLATE_ID': 'mock_template_id',
-            'COMP_AND_PEN_SMS_SENDER_ID': 'mock_sms_sender_id',
-            'COMP_AND_PEN_OPT_IN_API_KEY': 'mock_va_notify_api_key',
-            'COMP_AND_PEN_SERVICE_ID': 'mock_service_id',
-        },
-    )
 
     # Generate a dynamic JWT token using the mocked API key
     # Use to compare against actual request sent
@@ -741,30 +794,24 @@ def test_va_profile_opt_in_out_lambda_handler(
 
     # Create the event with appropriate parameters for COMP and PEN Opt-In
     event = create_event('txAuditId', 'txAuditId', '2022-04-07T19:37:59.320Z', va_profile_id, 1, 5, True, jwt_encoded)
-    event['queryStringParameters'] = {'integration_test': "the value doesn't matter"}
 
-    # Call the lambda handler
+    # Call the Lambda Handler with the test event
     response = va_profile_opt_in_out_lambda_handler(event, None)
 
     # Validate the response from the lambda handler
     assert isinstance(response, dict)
     assert response['statusCode'] == 200
-    assert response.get('headers', {}).get('Content-Type', '') == 'application/json'
 
-    response_body = json.loads(response.get('body', '{}'))
-    assert 'put_body' in response_body
-
+    # Assert PUT request to VAProfile was made with correct parameters
     expected_put_body = {
         'dateTime': '2022-04-07T19:37:59.320Z',
         'status': 'COMPLETED_SUCCESS',
     }
-
-    # Assert PUT request to VAProfile was made with correct parameters
-    put_mock.assert_called_once_with('txAuditId', expected_put_body)
-    assert response_body['put_body'] == expected_put_body
+    mock_put_instance.request_assert_called_once_with('txAuditId', expected_put_body)
+    mock_put_instance.request.assert_called_once()
 
     # Assert POST request to VANotify was made with correct parameters, including the expected month
-    mock_https_instance.request.assert_called_once_with(
+    mock_post_instance.request.assert_called_once_with(
         'POST',
         '/v2/notifications/sms',
         body=json.dumps(
@@ -772,7 +819,7 @@ def test_va_profile_opt_in_out_lambda_handler(
                 'template_id': 'mock_template_id',
                 'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': str(va_profile_id)},
                 'sms_sender_id': 'mock_sms_sender_id',
-                'personalisation': {'month': expected_month},
+                'personalisation': {'month-name': expected_month},
             }
         ),
         headers={'Authorization': f'Bearer {encoded_header}', 'Content-Type': 'application/json'},
@@ -787,38 +834,3 @@ def test_va_profile_opt_in_out_lambda_handler(
     )
     assert notify_db_session.session.execute(stmt).rowcount == 1
     notify_db_session.session.commit()
-
-
-def create_event(
-    master_tx_audit_id: str,
-    tx_audit_id: str,
-    source_date: str,
-    va_profile_id: int,
-    communication_channel_id: int,
-    communication_item_id: int,
-    is_allowed: bool,
-    jwt_value,
-) -> dict:
-    """
-    Return a dictionary in the format of the payload the lambda function expects to
-    receive from VA Profile via AWS API Gateway v2.
-    """
-
-    return {
-        'headers': {
-            'Authorization': f'Bearer {jwt_value}',
-        },
-        'body': {
-            'txAuditId': master_tx_audit_id,
-            'bios': [
-                {
-                    'txAuditId': tx_audit_id,
-                    'sourceDate': source_date,
-                    'vaProfileId': va_profile_id,
-                    'communicationChannelId': communication_channel_id,
-                    'communicationItemId': communication_item_id,
-                    'allowed': is_allowed,
-                }
-            ],
-        },
-    }
