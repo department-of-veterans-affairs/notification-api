@@ -419,6 +419,13 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
                 response_data = response.read().decode()
                 response_json = json.loads(response_data)
                 notification_id = response_json['id']
+
+                logger.info(
+                    'Sent Comp and Pen opt-in confirmation to VAProfileId: %s with notification_id: %s. Response status: %s',
+                    va_profile_id,
+                    notification_id,
+                    response.status,
+                )
                 save_notification_id_to_cache(va_profile_id, notification_id, bio['sourceDate'])
 
     logger.info('POST response: %s', post_response)
@@ -547,13 +554,7 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> Optional[HTTPRe
 
         response = conn.getresponse()
 
-        if response.status == 201:
-            logger.info(
-                'Comp and Pen opt-in confirmation SMS notification sent successfully. Response status: %s',
-                {response.status},
-            )
-            return response
-        else:
+        if response.status != 201:
             logger.error(
                 'Failed to send Comp and Pen opt-in confirmation SMS notification. Response status: %s',
                 {response.status},
