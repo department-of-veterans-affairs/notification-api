@@ -15,6 +15,8 @@ fileignoreconfig:
   checksum: b42aefd1ae0e6ea76e75db4cf14d425facd0941943b17f7ba2e41f850ad1ec23
 - filename: app/template/rest.py
   checksum: 1e5bdac8bc694d50f8f656dec127dd036b7b1b5b6156e3282d3411956c71ba0b
+- filename: app/va/va_profile/va_profile_client.py
+  checksum: fe634f26f7dc3874f4afcfd1ba3f03bae380b53befe973a752c7347097a88701
 - filename: cd/application-deployment/dev/dev.env
   checksum: a6bed7de359c7cec67940c1f0113826365400684c5a3bd182e8237d48ad5c1f1
 - filename: cd/application-deployment/dev/vaec-api-task-definition.json
@@ -32,7 +34,7 @@ fileignoreconfig:
 - filename: lambda_functions/ses_callback/ses_callback_lambda.py
   checksum: b20c36921290a9609f158784e2a3278c36190887e6054ea548004a67675fd79b
 - filename: poetry.lock
-  checksum: 29057b41776a4bda33e4cb80fdba023e4a1a2327f9e9ec5eddbabfe26a13dcf3
+  checksum: c89dce365f3d3ed96a5e8d5b947df0d4aa057eb2e845de074ec492c64458a9f4
 - filename: scripts/trigger_task.py
   checksum: 0e9d244dbe285de23fc84bb643407963dacf7d25a3358373f01f6272fb217778
 - filename: tests/app/callback/test_webhook_callback_strategy.py
@@ -47,8 +49,6 @@ fileignoreconfig:
   checksum: 4e15e63d349635131173ffdd7aebcd547621db08de877ef926d3a41fde72d065
 - filename: tests/app/v2/notifications/test_post_notifications.py
   checksum: 3181930a13e3679bb2f17eaa3f383512eb9caf4ed5d5e14496ca4193c6083965
-- filename: app/va/va_profile/va_profile_client.py
-  checksum: fe634f26f7dc3874f4afcfd1ba3f03bae380b53befe973a752c7347097a88701
 - filename: tests/lambda_functions/vetext_incoming_forwarder_lambda/test_vetext_incoming_forwarder_lambda.py
   checksum: 7494eb4321fd2fbc3ff3915d8753d8fec7a936a69dc6ab78f0b532a701f032eb
 version: "1.0"
