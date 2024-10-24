@@ -633,7 +633,7 @@ def generate_jwt() -> str:
 
     headers = {'typ': 'JWT', 'alg': 'HS256'}
 
-    current_timestamp = int(datetime.datetime.now().timestamp())
+    current_timestamp = int(datetime.now().timestamp())
     payload = {'iss': COMP_AND_PEN_SERVICE_ID, 'iat': current_timestamp}
 
     # Generate and return the signed JWT token using the pyJWT library
