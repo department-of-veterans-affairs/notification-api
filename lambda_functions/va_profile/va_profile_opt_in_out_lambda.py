@@ -653,8 +653,7 @@ def generate_jwt(service_api_key: str, service_id: str) -> str:
     signature = hmac.new(service_api_key.encode('utf-8'), token.encode('utf-8'), hashlib.sha256).digest()
     encoded_signature = base64url(signature)
 
-    signed_token = '{}.{}'.format(token, encoded_signature)
-    return signed_token
+    return '{}.{}'.format(token, encoded_signature)
 
 
 def get_integration_testing_public_cert() -> Certificate:
