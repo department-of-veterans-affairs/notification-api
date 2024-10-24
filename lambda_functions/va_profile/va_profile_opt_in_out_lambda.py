@@ -237,9 +237,8 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
         assert integration_testing_public_cert is not None
 
     # Authenticate the POST request by verifying the JWT signature.
-    auth_header_value = headers.get('Authorization', headers.get('authorization', ''))
     if not jwt_is_valid(
-        auth_header_value,
+        headers.get('Authorization', headers.get('authorization', '')),
         integration_testing_public_cert if is_integration_test else va_profile_public_cert,
     ):
         logger.info('Authentication failed.  Returning 401.')
