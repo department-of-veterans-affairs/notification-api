@@ -63,8 +63,9 @@ def put_mock(mocker):
 
 @pytest.fixture
 def post_opt_in_confirmation_mock_return(mocker):
-    mocker.patch(f'{LAMBDA_MODULE}.send_comp_and_pen_opt_in_confirmation')
-    mocker.return_value = None
+    mock = mocker.patch(f'{LAMBDA_MODULE}.send_comp_and_pen_opt_in_confirmation')
+    mock.return_value = None
+    return mock
 
 
 @pytest.fixture(scope='module')
