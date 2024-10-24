@@ -55,6 +55,9 @@ COMP_AND_PEN_SERVICE_ID = os.getenv('COMP_AND_PEN_SERVICE_ID')
 COMP_AND_PEN_SMS_SENDER_ID = os.getenv('COMP_AND_PEN_SMS_SENDER_ID')
 NOTIFY_ENVIRONMENT = os.getenv('NOTIFY_ENVIRONMENT')
 OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s);"""
+OPT_IN_OUT_ADD_NOTIFICATION_ID_QUERY = (
+    """ UPDATE va_profile_local_cache SET notification_id = %s WHERE va_profile_id = %s AND source_datetime = %s; """
+)
 VA_PROFILE_DOMAIN = os.getenv('VA_PROFILE_DOMAIN')
 VA_PROFILE_PATH_BASE = '/communication-hub/communication/v1/status/changelog/'
 
@@ -569,15 +572,8 @@ def save_notification_id_to_cache(va_profile_id: int, notification_id: str, sour
     """
     try:
         with db_connection.cursor() as cursor:
-            update_query = """
-                UPDATE va_profile_local_cache
-                SET notification_id = %s
-                WHERE va_profile_id = %s
-                AND source_datetime = %s
-            """
-
             # Execute the SQL query with the provided parameters.
-            cursor.execute(update_query, (notification_id, va_profile_id, source_date))
+            cursor.execute(OPT_IN_OUT_ADD_NOTIFICATION_ID_QUERY, (notification_id, va_profile_id, source_date))
 
             db_connection.commit()
             logger.info(
