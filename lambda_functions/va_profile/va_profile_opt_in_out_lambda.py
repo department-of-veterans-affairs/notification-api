@@ -60,7 +60,13 @@ OPT_IN_OUT_ADD_NOTIFICATION_ID_QUERY = (
 )
 VA_PROFILE_DOMAIN = os.getenv('VA_PROFILE_DOMAIN')
 VA_PROFILE_PATH_BASE = '/communication-hub/communication/v1/status/changelog/'
-VA_NOTIFY_DOMAIN = 'api.notifications.va.gov'
+VA_NOTIFY_SEND_SMS_PATH = '/v2/notifications/sms'
+
+# Build domain based on environment
+if NOTIFY_ENVIRONMENT == 'prod':
+    VA_NOTIFY_DOMAIN = 'api.notifications.va.gov'
+else:
+    VA_NOTIFY_DOMAIN = f'{NOTIFY_ENVIRONMENT}.api.notifications.va.gov'
 
 
 if NOTIFY_ENVIRONMENT is None:
@@ -543,12 +549,12 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: int) -> Optional[HTTPRe
 
         logger.debug('Sending Comp and Pen opt-in confirmation SMS notification vaProfileId %s', va_profile_id)
 
-        conn = HTTPSConnection(f'{NOTIFY_ENVIRONMENT}.{VA_NOTIFY_DOMAIN}', context=ssl_context)
+        conn = HTTPSConnection(VA_NOTIFY_DOMAIN, context=ssl_context)
         encoded_header = generate_jwt(COMP_AND_PEN_OPT_IN_API_KEY, COMP_AND_PEN_SERVICE_ID)
 
         conn.request(
             'POST',
-            '/v2/notifications/sms',
+            VA_NOTIFY_SEND_SMS_PATH,
             body=sms_data,
             headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {encoded_header}'},
         )
