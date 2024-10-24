@@ -16,9 +16,8 @@ name: Continuous Deployment Pipeline
 on:
   push:
     branches:
-      - 1971-build-docker-image-once
+      - main
 
-## test comment 3
 jobs:
   prepare-deployment:
     runs-on: ubuntu-latest
@@ -102,27 +101,27 @@ jobs:
       ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
       lambdaDeploy: true
 
- # approval-deploy-prod:
- #   needs: deploy-to-staging
- #   environment: 
- #     name: prod-deploy
- #   runs-on: ubuntu-latest
- #   steps:
- #     - name: Pause for manual approval
- #       run: echo "Pipeline paused for pending approval of staging by QA"
+  approval-deploy-prod:
+    needs: deploy-to-staging
+    environment: 
+      name: prod-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pause for manual approval
+        run: echo "Pipeline paused for pending approval of staging by QA"
 
- # publish-release-notes:
- #   needs: [create-release-notes, approval-deploy-prod]
- #   uses: ./.github/workflows/publish-release-notes.yml
- #   secrets: inherit
- #   with:
- #     draftReleaseReference: ${{ needs.create-release-notes.outputs.draftReleaseReference }}
+  publish-release-notes:
+    needs: [create-release-notes, approval-deploy-prod]
+    uses: ./.github/workflows/publish-release-notes.yml
+    secrets: inherit
+    with:
+      draftReleaseReference: ${{ needs.create-release-notes.outputs.draftReleaseReference }}
 
- # deploy-to-prod:
- #   needs: [publish-release-notes, create-and-post-tag]
- #   uses: ./.github/workflows/deploy-release.yml
- #   secrets: inherit
- #   with:
- #     environment: prod
- #     ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
- #     lambdaDeploy: true
+  deploy-to-prod:
+    needs: [publish-release-notes, create-and-post-tag]
+    uses: ./.github/workflows/deploy-release.yml
+    secrets: inherit
+    with:
+      environment: prod
+      ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
+      lambdaDeploy: true
