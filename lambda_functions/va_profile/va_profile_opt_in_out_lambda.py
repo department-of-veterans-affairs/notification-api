@@ -605,7 +605,8 @@ def save_notification_id_to_cache(va_profile_id: int, notification_id: str, sour
     except Exception as e:
         db_connection.rollback()
         logger.error(
-            'An error occurred while attempting to update notification_id for va_profile_id %s: %s',
+            'An error occurred while attempting to update notification_id: %s for va_profile_id %s: %s',
+            notification_id,
             va_profile_id,
             str(e),
         )
