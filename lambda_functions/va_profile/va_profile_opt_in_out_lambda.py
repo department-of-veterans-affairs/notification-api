@@ -110,6 +110,10 @@ if sqlalchemy_database_uri is None:
 # The certificates are not necessary for testing, wherein the PUT request is mocked.
 ssl_context = None
 
+# Use mock API Key in env variables for testing, else set to None
+# Outside of testing, COMP_AND_PEN_OPT_IN_API_KEY is defined by its paramater store value
+COMP_AND_PEN_OPT_IN_API_KEY = os.getenv('COMP_AND_PEN_OPT_IN_API_KEY', None)
+
 if ALB_CERTIFICATE_ARN is None:
     logger.error('ALB_CERTIFICATE_ARN is not set.')
 elif ALB_PRIVATE_KEY_PATH is None:
@@ -565,6 +569,7 @@ def save_notification_id_to_cache(va_profile_id: int, notification_id: str):
     """
     try:
         with db_connection.cursor() as cursor:
+            # TODO - CONFIRM ONlY ONE ROW UPDATED.
             update_query = """
                 UPDATE va_profile_local_cache
                 SET notification_id = %s
