@@ -107,7 +107,7 @@
       "healthCheck": {
         "command": [
           "CMD-SHELL",
-          "curl -f http://127.0.0.1:6011/_status?simple=simple || exit 1"
+          "./scripts/wait_for_it.sh 127.0.0.1:6011 -t 0 || exit 1"
         ],
         "interval": 6,
         "retries": 10,
