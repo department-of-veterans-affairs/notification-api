@@ -292,9 +292,6 @@ def create_delivery_status_callback_data_v3(notification: Notification) -> dict[
     Returns:
         dict[str, str]: Data for callbacks
     """
-
-    from app import DATETIME_FORMAT  # Circular import
-
     data = {
         'id': str(notification.id),
         'reference': notification.client_reference,
@@ -319,8 +316,6 @@ def create_complaint_callback_data(
     service_callback_api,
     recipient,
 ):
-    from app import DATETIME_FORMAT, encryption
-
     data = {
         'complaint_id': str(complaint.id),
         'notification_id': str(notification.id),
