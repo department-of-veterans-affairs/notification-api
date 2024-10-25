@@ -109,9 +109,9 @@
           "CMD-SHELL",
           "curl -f http://127.0.0.1:6011/_status?simple=simple || exit 1"
         ],
-        "interval": 5,
-        "retries": 12,
-        "timeout": 5
+        "interval": 6,
+        "retries": 10,
+        "timeout": 3
       }
     },
     {
