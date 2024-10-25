@@ -1,6 +1,7 @@
 from sqlalchemy import delete
 
-from app.models import BRANDING_ORG, EmailBranding
+from app.constants import BRANDING_ORG
+from app.models import EmailBranding
 
 
 def test_get_email_branding_options(

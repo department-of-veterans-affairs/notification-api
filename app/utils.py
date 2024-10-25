@@ -7,6 +7,8 @@ from flask import url_for
 from notifications_utils.template import SMSMessageTemplate, WithSubjectTemplate, get_html_email_body
 from sqlalchemy import func
 
+from app.constants import EMAIL_TYPE, LETTER_TYPE, PRECOMPILED_LETTER, PUSH_TYPE, SMS_TYPE, UPLOAD_DOCUMENT
+
 local_timezone = pytz.timezone(os.getenv('TIMEZONE', 'America/Toronto'))
 
 
@@ -43,16 +45,12 @@ def get_template_instance(
     template,
     values,
 ):
-    from app.models import SMS_TYPE, EMAIL_TYPE, LETTER_TYPE
-
     return {SMS_TYPE: SMSMessageTemplate, EMAIL_TYPE: WithSubjectTemplate, LETTER_TYPE: WithSubjectTemplate}[
         template['template_type']
     ](template, values)
 
 
 def get_html_email_body_from_template(template_instance):
-    from app.models import EMAIL_TYPE
-
     if template_instance.template_type != EMAIL_TYPE:
         return None
 
@@ -111,8 +109,6 @@ def get_public_notify_type_text(
     notify_type,
     plural=False,
 ):
-    from app.models import SMS_TYPE, UPLOAD_DOCUMENT, PRECOMPILED_LETTER, PUSH_TYPE
-
     notify_type_text = notify_type
     if notify_type == SMS_TYPE:
         notify_type_text = 'text message'

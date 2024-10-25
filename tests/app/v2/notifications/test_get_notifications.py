@@ -1,10 +1,12 @@
 import datetime
+
 import pytest
-from sqlalchemy import select
-from app import DATETIME_FORMAT
-from app.models import EMAIL_TYPE, SMS_TYPE, ScheduledNotification
-from app.va.identifier import IdentifierType
 from flask import json, url_for
+from sqlalchemy import select
+
+from app.constants import DATETIME_FORMAT, EMAIL_TYPE, SMS_TYPE
+from app.models import ScheduledNotification
+from app.va.identifier import IdentifierType
 from tests import create_authorization_header
 from tests.app.db import create_notification
 

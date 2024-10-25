@@ -6,17 +6,19 @@ with VA Profile integration calls this stored function.  The stored function sho
 created or updated; otherwise, False.
 """
 
+from datetime import datetime, timedelta, timezone
+from json import dumps, loads
+from random import randint
+
 import jwt
 import pytest
-from app.models import VAProfileLocalCache
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from datetime import datetime, timedelta, timezone
-from json import dumps, loads
-from lambda_functions.va_profile.va_profile_opt_in_out_lambda import jwt_is_valid, va_profile_opt_in_out_lambda_handler
-from random import randint
 from sqlalchemy import delete, func, select, text
+
+from app.models import VAProfileLocalCache
+from lambda_functions.va_profile.va_profile_opt_in_out_lambda import jwt_is_valid, va_profile_opt_in_out_lambda_handler
 
 
 # Base path for mocks

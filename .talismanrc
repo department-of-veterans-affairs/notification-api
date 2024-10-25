@@ -11,8 +11,6 @@ fileignoreconfig:
   checksum: ab93313f306c8a3f6576141e8f32d9fc99b0de7da8d44a1ddbe6ea55d167dcdb
 - filename: app/notifications/process_notifications.py
   checksum: ae4e31c6eb56d91ec80ae09d13baf4558cf461c65f08893b93fee43f036a17a7
-- filename: app/service/rest.py
-  checksum: b42aefd1ae0e6ea76e75db4cf14d425facd0941943b17f7ba2e41f850ad1ec23
 - filename: app/template/rest.py
   checksum: 1e5bdac8bc694d50f8f656dec127dd036b7b1b5b6156e3282d3411956c71ba0b
 - filename: cd/application-deployment/dev/dev.env
@@ -51,4 +49,28 @@ fileignoreconfig:
   checksum: fe634f26f7dc3874f4afcfd1ba3f03bae380b53befe973a752c7347097a88701
 - filename: tests/lambda_functions/vetext_incoming_forwarder_lambda/test_vetext_incoming_forwarder_lambda.py
   checksum: 7494eb4321fd2fbc3ff3915d8753d8fec7a936a69dc6ab78f0b532a701f032eb
+- filename: app/celery/nightly_tasks.py
+  checksum: b5b4999f778361603fdc7d710772968461e79a016f66badfbafd590bf70c5a11
+- filename: tests/app/dao/test_api_key_dao.py
+  checksum: ef306fcc1dc512b74abeb5dde5f20977cf95e67a2fa049df6289a7b5500339a9
+- filename: tests/app/notifications/test_send_notifications.py
+  checksum: 69304e1edd6993acd9a842a87dba8ee16854befc643863e1589b15c303a71464
+- filename: tests/app/v3/notifications/test_rest.py
+  checksum: 25aeb31ce5974f0a414ff43a9a75f787a6cf41c783f7eacf2415ce1fedf54c1d
+- filename: app/commands.py
+  checksum: 79d914948e4e28dabc9c074956a11a9ceec27e7ae57b8eb8fb483f4a6217f07d
+- filename: app/constants.py
+  checksum: 9262bddf98c91c1eb0bbad4aae89b436f898ae664050920a5755b6475d2821a9
+- filename: app/letters/utils.py
+  checksum: 5e6071b9cab380f9f3ee172f8c731061241200f53453a9863f22bb5eaa05e6af
+- filename: app/service/utils.py
+  checksum: c1e34f85b5b0fc32eb6a3afcc16c7099b74294e578487004dc6ba3bc46832010
+- filename: app/v3/notifications/rest.py
+  checksum: aea8f32b796f324e4b57e1be6703b31c0550447011550d944cdb461489203f7d
+- filename: app/user/rest.py
+  checksum: e867ef2c802c8a3fd187fd0df76533e62cccb1721582c4fc4d2a920eb11c1e3b
+- filename: app/notifications/send_notifications.py
+  checksum: 12ed8e1334772c0d65cc13be03b6d5197ebbf4d35460aee2fac1fc2a9644e9e1
+- filename: app/service/rest.py
+  checksum: 7f8a30dd84b3ceb0d08bae949b5b127fd408ee2fd8097eb7d4b291ede61f8d0f
 version: "1.0"

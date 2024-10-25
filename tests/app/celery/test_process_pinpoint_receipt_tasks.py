@@ -6,9 +6,7 @@ from uuid import uuid4
 import pytest
 
 from app.celery import process_pinpoint_receipt_tasks
-from app.dao import notifications_dao
-from app.feature_flags import FeatureFlag
-from app.models import (
+from app.constants import (
     NOTIFICATION_DELIVERED,
     NOTIFICATION_SENDING,
     NOTIFICATION_TECHNICAL_FAILURE,
@@ -16,6 +14,8 @@ from app.models import (
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_PREFERENCES_DECLINED,
 )
+from app.dao import notifications_dao
+from app.feature_flags import FeatureFlag
 
 
 def test_passes_if_toggle_disabled(mocker):

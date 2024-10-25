@@ -1,13 +1,32 @@
-import pytest
 from datetime import datetime, timedelta
 from functools import partial
+from uuid import uuid4
+
+import pytest
 from freezegun import freeze_time
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
-from uuid import uuid4
 
-
+from app.constants import (
+    NOTIFICATION_CREATED,
+    NOTIFICATION_STATUS_TYPES,
+    NOTIFICATION_STATUS_TYPES_FAILED,
+    NOTIFICATION_TEMPORARY_FAILURE,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_PENDING,
+    NOTIFICATION_PENDING_VIRUS_CHECK,
+    NOTIFICATION_SENT,
+    NOTIFICATION_DELIVERED,
+    KEY_TYPE_NORMAL,
+    KEY_TYPE_TEAM,
+    KEY_TYPE_TEST,
+    JOB_STATUS_IN_PROGRESS,
+    NOTIFICATION_PERMANENT_FAILURE,
+    EMAIL_TYPE,
+    LETTER_TYPE,
+    SMS_TYPE,
+)
 from app.dao.notifications_dao import (
     dao_create_notification,
     dao_created_scheduled_notification,
@@ -16,6 +35,7 @@ from app.dao.notifications_dao import (
     dao_get_last_template_usage,
     dao_get_notifications_by_to_field,
     dao_get_scheduled_notifications,
+    dao_update_notification_delivery_status,
     dao_timeout_notifications,
     dao_update_notification,
     dao_update_notification_by_id,
@@ -33,31 +53,13 @@ from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
     dao_get_notification_history_by_reference,
     notifications_not_yet_sent,
-    update_notification_delivery_status,
 )
 from app.models import (
     Job,
     Notification,
     NotificationHistory,
     ScheduledNotification,
-    NOTIFICATION_CREATED,
-    NOTIFICATION_STATUS_TYPES,
-    NOTIFICATION_STATUS_TYPES_FAILED,
-    NOTIFICATION_TEMPORARY_FAILURE,
-    NOTIFICATION_SENDING,
-    NOTIFICATION_PENDING,
-    NOTIFICATION_PENDING_VIRUS_CHECK,
-    NOTIFICATION_SENT,
-    NOTIFICATION_DELIVERED,
-    KEY_TYPE_NORMAL,
-    KEY_TYPE_TEAM,
-    KEY_TYPE_TEST,
-    JOB_STATUS_IN_PROGRESS,
     RecipientIdentifier,
-    NOTIFICATION_PERMANENT_FAILURE,
-    EMAIL_TYPE,
-    LETTER_TYPE,
-    SMS_TYPE,
 )
 from app.notifications.process_notifications import persist_notification
 from app.va.identifier import IdentifierType
@@ -1843,7 +1845,6 @@ def test_update_notification_status_updates_failure_reason(
     sample_job,
     sample_notification,
 ):
-    mocker.patch('app.dao.notifications_dao.is_feature_enabled', return_value=True)
     template = sample_template()
     job = sample_job(template)
     notification = sample_notification(template=template, status=NOTIFICATION_SENT, job=job)
@@ -2118,7 +2119,7 @@ def test_update_notification_delivery_status_valid_updates(
     initial_status_reason = '' if (current_status == NOTIFICATION_DELIVERED) else 'Because I said so!'
     final_status_reason = initial_status_reason if (new_status == current_status) else 'just because'
 
-    notification = sample_notification(
+    notification: Notification = sample_notification(
         template=sample_template(),
         status=current_status,
         status_reason=initial_status_reason,
@@ -2127,8 +2128,9 @@ def test_update_notification_delivery_status_valid_updates(
     assert notification.status == current_status
     assert notification.status_reason == initial_status_reason
 
-    update_notification_delivery_status(
+    dao_update_notification_delivery_status(
         notification_id=notification.id,
+        notification_type=notification.notification_type,
         new_status=new_status,
         new_status_reason=final_status_reason,
     )
@@ -2166,7 +2168,7 @@ def test_update_notification_delivery_status_invalid_updates(
 ):
     status_reason = '' if (current_status == NOTIFICATION_DELIVERED) else 'Because I said so!'
 
-    notification = sample_notification(
+    notification: Notification = sample_notification(
         template=sample_template(),
         status=current_status,
         status_reason=status_reason,
@@ -2175,8 +2177,9 @@ def test_update_notification_delivery_status_invalid_updates(
     assert notification.status == current_status
     assert notification.status_reason == status_reason
 
-    update_notification_delivery_status(
+    dao_update_notification_delivery_status(
         notification_id=notification.id,
+        notification_type=notification.notification_type,
         new_status=new_status,
     )
 

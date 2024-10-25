@@ -4,14 +4,14 @@ from uuid import uuid4
 from freezegun import freeze_time
 import pytest
 
-from app.models import (
+from app.celery.common import log_notification_total_time
+from app.constants import (
     NOTIFICATION_CREATED,
     NOTIFICATION_DELIVERED,
     NOTIFICATION_PENDING,
     NOTIFICATION_SENDING,
     NOTIFICATION_SENT,
 )
-from app.celery.common import log_notification_total_time
 
 
 @pytest.mark.parametrize('provider', ['pinpoint', 'ses', 'twilio'])

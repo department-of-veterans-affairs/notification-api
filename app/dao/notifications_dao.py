@@ -1,11 +1,11 @@
-import functools
-import string
-from typing import Optional
-from uuid import UUID
 from datetime import (
     datetime,
     timedelta,
 )
+import functools
+import string
+from typing import Any, Optional
+from uuid import UUID
 
 from botocore.exceptions import ClientError
 from flask import current_app
@@ -29,14 +29,7 @@ from werkzeug.datastructures import MultiDict
 
 from app import db, create_uuid
 from app.aws.s3 import remove_s3_object, get_s3_bucket_objects
-from app.dao.dao_utils import transactional
-from app.errors import InvalidRequest
-from app.feature_flags import is_feature_enabled, FeatureFlag
-from app.letters.utils import LETTERS_PDF_FILE_LOCATION_STRUCTURE
-from app.models import (
-    Notification,
-    NotificationHistory,
-    ScheduledNotification,
+from app.constants import (
     KEY_TYPE_TEST,
     LETTER_TYPE,
     NOTIFICATION_CREATED,
@@ -51,6 +44,14 @@ from app.models import (
     NOTIFICATION_PREFERENCES_DECLINED,
     SMS_TYPE,
     EMAIL_TYPE,
+)
+from app.dao.dao_utils import transactional
+from app.errors import InvalidRequest
+from app.letters.utils import LETTERS_PDF_FILE_LOCATION_STRUCTURE
+from app.models import (
+    Notification,
+    NotificationHistory,
+    ScheduledNotification,
     ServiceDataRetention,
     Service,
 )
@@ -109,20 +110,46 @@ def dao_create_notification(notification):
     db.session.add(notification)
 
 
-def _decide_permanent_temporary_failure(
-    current_status,
-    status,
-):
-    # Firetext will send pending, then send either success or fail.
-    # If we go from pending to delivered we need to set failure type as temporary-failure
-    if current_status == NOTIFICATION_PENDING and status == NOTIFICATION_PERMANENT_FAILURE:
-        status = NOTIFICATION_TEMPORARY_FAILURE
-    return status
-
-
 def country_records_delivery(phone_prefix):
     dlr = INTERNATIONAL_BILLING_RATES[phone_prefix]['attributes']['dlr']
     return dlr and dlr.lower() == 'yes'
+
+
+def sms_conditions(incoming_status: str) -> Any:
+    return or_(
+        # update to delivered, unless it's already set to delivered
+        and_(incoming_status == NOTIFICATION_DELIVERED, Notification.status != NOTIFICATION_DELIVERED),
+        # update to final status if the current status is not a final status
+        and_(incoming_status in FINAL_STATUS_STATES, Notification.status.not_in(FINAL_STATUS_STATES)),
+        # update to sent or temporary failure if the current status is a transient status
+        and_(
+            incoming_status in [NOTIFICATION_SENT, NOTIFICATION_TEMPORARY_FAILURE],
+            Notification.status.in_(TRANSIENT_STATUSES),
+        ),
+        # update to pending if the current status is created or sending
+        and_(
+            incoming_status == NOTIFICATION_PENDING,
+            Notification.status.in_([NOTIFICATION_CREATED, NOTIFICATION_SENDING]),
+        ),
+        # update to sending from created
+        and_(incoming_status == NOTIFICATION_SENDING, Notification.status == NOTIFICATION_CREATED),
+    )
+
+
+def get_sms_delivery_status_update_statement(
+    notification_id: UUID,
+    incoming_status: str,
+    incoming_status_reason: str | None,
+):
+    stmt = (
+        update(Notification)
+        .where(Notification.id == notification_id)
+        .where(sms_conditions(incoming_status))
+        .values(status=incoming_status, status_reason=incoming_status_reason)
+        .execution_options(synchronize_session='fetch')
+    )
+    current_app.logger.debug('sms delivery status statement: %s', stmt)
+    return stmt
 
 
 def _get_notification_status_update_statement(
@@ -200,7 +227,7 @@ def _update_notification_status(
     notification: Notification, status: str, status_reason: str | None = None
 ) -> Notification:
     """
-    Update the notification status if it should be updated.
+    Update the notification EMAIL status if it should be updated.
 
     Args:
         notification (Notification): The notification to update.
@@ -217,6 +244,7 @@ def _update_notification_status(
             'Attempting to update notification %s to a status that does not exist %s', notification.id, status
         )
 
+    # KWM - email
     update_statement = _get_notification_status_update_statement(notification.id, status, status_reason)
 
     try:
@@ -256,7 +284,7 @@ def update_notification_status_by_id(
     if current_status:
         stmt = stmt.where(Notification.status == current_status)
 
-    notification = db.session.scalar(stmt)
+    notification: Notification = db.session.scalar(stmt)
     if notification is None:
         current_app.logger.info('notification not found for id %s (update to status %s)', notification_id, status)
         return None
@@ -267,47 +295,53 @@ def update_notification_status_by_id(
     if not notification.sent_by and sent_by:
         notification.sent_by = sent_by
 
-    if is_feature_enabled(FeatureFlag.NOTIFICATION_FAILURE_REASON_ENABLED) and status_reason:
-        notification.status_reason = status_reason
-
     return dao_update_notification_by_id(
         notification_id=notification.id,
         status=status,
-        status_reason=notification.status_reason,
-        sent_by=notification.sent_by,
+        status_reason=status_reason,
+        sent_by=sent_by,
     )
 
 
 @statsd(namespace='dao')
-def update_notification_delivery_status(
+def dao_update_notification_delivery_status(
     notification_id: UUID,
+    notification_type: str,
     new_status: str,
     new_status_reason: str = None,
-) -> None:
-    """
-    Update a notification's delivery status.
+) -> Notification:
+    """Update an SMS notification delivery status.
 
     Based on the desired update status, a query is constructed that cannot put the notification in an incorrect state.
 
-    Arguments:
-        notification_id (UUID): Notification id,
-        new_status (str): Status to update the notification to,
+    Args:
+        provider (str): The provider being used
+        notification_id (UUID): The id to update
+        new_status (str): The new status being set
+        new_status_reason (str, optional): The new status reason beign set. Defaults to None.
+
+    Returns:
+        Notification: A Notification object
     """
 
-    current_app.logger.info('Update notification: %s to status: %s', notification_id, new_status)
-    stmt = _get_notification_status_update_statement(
-        notification_id=notification_id,
-        incoming_status=new_status,
-        incoming_status_reason=new_status_reason,
-    )
+    if notification_type == SMS_TYPE:
+        stmt = get_sms_delivery_status_update_statement(
+            notification_id=notification_id,
+            incoming_status=new_status,
+            incoming_status_reason=new_status_reason,
+        )
+    else:
+        raise NotImplementedError(f'dao_update_notification_delivery_status not configured for {notification_type} yet')
 
     try:
         db.session.execute(stmt)
         db.session.commit()
-    except Exception as e:
-        current_app.logger.critical('Updating notification %s to status "%s" failed.', notification_id, new_status)
-        current_app.logger.exception(e)
+    except Exception:
+        current_app.logger.exception('Updating notification %s to status "%s" failed.', notification_id, new_status)
         db.session.rollback()
+        raise
+
+    return db.session.get(Notification, notification_id)
 
 
 @statsd(namespace='dao')
@@ -341,7 +375,7 @@ def dao_update_notification_by_id(
     **kwargs,
 ) -> Optional[Notification]:
     """
-    Update the notification by ID, ensure kwargs paramaters are named appropriately according to the notification model.
+    Update the SMS notification by ID, ensure kwargs paramaters are named appropriately according to the notification model.
 
     Args:
         notification_id (str): The notification uuid in string form

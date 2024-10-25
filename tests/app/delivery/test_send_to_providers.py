@@ -3,6 +3,7 @@ from unittest.mock import ANY
 import uuid
 
 from flask import current_app
+from notifications_utils.recipients import validate_and_format_phone_number
 import pytest
 from requests import HTTPError
 from sqlalchemy import select
@@ -11,6 +12,22 @@ import app
 from app import aws_sns_client, mmg_client, ProviderService
 from app.clients.email import EmailClient
 from app.clients.sms import SmsClient
+from app.constants import (
+    BRANDING_ORG,
+    BRANDING_BOTH,
+    BRANDING_ORG_BANNER,
+    EMAIL_TYPE,
+    FIRETEXT_PROVIDER,
+    KEY_TYPE_NORMAL,
+    KEY_TYPE_TEST,
+    KEY_TYPE_TEAM,
+    MMG_PROVIDER,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_DELIVERED,
+    SERVICE_PERMISSION_TYPES,
+    SES_PROVIDER,
+    SMS_TYPE,
+)
 from app.dao import provider_details_dao, notifications_dao
 from app.dao.provider_details_dao import dao_switch_sms_provider_to_provider_with_identifier
 from app.delivery import send_to_providers
@@ -18,28 +35,13 @@ from app.delivery.send_to_providers import load_provider
 from app.exceptions import NotificationTechnicalFailureException, InvalidProviderException
 from app.feature_flags import FeatureFlag
 from app.models import (
-    BRANDING_ORG,
-    BRANDING_BOTH,
-    BRANDING_ORG_BANNER,
-    EMAIL_TYPE,
     EmailBranding,
-    FIRETEXT_PROVIDER,
-    KEY_TYPE_NORMAL,
-    KEY_TYPE_TEST,
-    KEY_TYPE_TEAM,
-    MMG_PROVIDER,
     Notification,
-    NOTIFICATION_SENDING,
-    NOTIFICATION_DELIVERED,
     ProviderDetails,
     Service,
-    SERVICE_PERMISSION_TYPES,
-    SES_PROVIDER,
-    SMS_TYPE,
     Template,
     TemplateHistory,
 )
-from notifications_utils.recipients import validate_and_format_phone_number
 from tests.conftest import set_config_values
 
 

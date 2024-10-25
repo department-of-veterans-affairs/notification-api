@@ -4,6 +4,8 @@ from uuid import uuid4
 
 from celery.exceptions import Retry
 from freezegun import freeze_time
+from notifications_utils.columns import Row
+from notifications_utils.template import SMSMessageTemplate, WithSubjectTemplate
 import pytest
 from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
@@ -22,23 +24,19 @@ from app.celery.tasks import (
     get_template_class,
     s3,
 )
-from app.dao import service_email_reply_to_dao
-from app.feature_flags import FeatureFlag
-from app.models import (
-    Job,
-    Notification,
+from app.constants import (
     EMAIL_TYPE,
     KEY_TYPE_NORMAL,
     JOB_STATUS_FINISHED,
     JOB_STATUS_ERROR,
     JOB_STATUS_IN_PROGRESS,
     LETTER_TYPE,
-    ServiceSmsSender,
     SMS_TYPE,
 )
+from app.dao import service_email_reply_to_dao
+from app.feature_flags import FeatureFlag
+from app.models import Job, Notification, ServiceSmsSender
 
-from notifications_utils.columns import Row
-from notifications_utils.template import SMSMessageTemplate, WithSubjectTemplate
 from tests.app import load_example_csv
 from tests.app.factories.feature_flag import mock_feature_flag
 

@@ -1,10 +1,12 @@
-import pytest
-from app.models import EMAIL_TYPE
-from flask import json
 from itertools import product
-from tests import create_authorization_header
-from tests.app.conftest import TEMPLATE_TYPES
 from uuid import uuid4
+
+import pytest
+from flask import json
+
+from app.constants import EMAIL_TYPE
+from tests import create_authorization_header
+from tests.app.conftest import RESTRICTED_TEMPLATE_TYPES
 
 
 def test_get_all_templates_returns_200(
@@ -20,7 +22,7 @@ def test_get_all_templates_returns_200(
             subject='subject_{}'.format(name) if tmp_type == EMAIL_TYPE else '',
             name=name,
         )
-        for name, tmp_type in product((f'A {uuid4()}', f'B {uuid4()}', f'C {uuid4()}'), TEMPLATE_TYPES)
+        for name, tmp_type in product((f'A {uuid4()}', f'B {uuid4()}', f'C {uuid4()}'), RESTRICTED_TEMPLATE_TYPES)
     ]
 
     auth_header = create_authorization_header(api_key)
@@ -42,7 +44,7 @@ def test_get_all_templates_returns_200(
             assert template['subject'] == templates[index].subject
 
 
-@pytest.mark.parametrize('tmp_type', TEMPLATE_TYPES)
+@pytest.mark.parametrize('tmp_type', RESTRICTED_TEMPLATE_TYPES)
 def test_get_all_templates_for_valid_type_returns_200(
     client,
     sample_api_key,
@@ -81,7 +83,7 @@ def test_get_all_templates_for_valid_type_returns_200(
             assert template['subject'] == templates[index].subject
 
 
-@pytest.mark.parametrize('tmp_type', TEMPLATE_TYPES)
+@pytest.mark.parametrize('tmp_type', RESTRICTED_TEMPLATE_TYPES)
 def test_get_correct_num_templates_for_valid_type_returns_200(
     client,
     sample_api_key,
@@ -95,7 +97,7 @@ def test_get_correct_num_templates_for_valid_type_returns_200(
     for _ in range(num_templates):
         templates.append(sample_template(service=api_key.service, template_type=tmp_type))
 
-    for other_type in TEMPLATE_TYPES:
+    for other_type in RESTRICTED_TEMPLATE_TYPES:
         if other_type != tmp_type:
             templates.append(sample_template(service=api_key.service, template_type=other_type))
 

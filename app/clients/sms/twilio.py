@@ -8,8 +8,15 @@ from twilio.rest import Client
 from twilio.rest.api.v2010.account.message import MessageInstance
 from twilio.base.exceptions import TwilioRestException
 
+from app.celery.exceptions import NonRetryableException
 from app.clients.sms import SmsClient, SmsStatusRecord
-
+from app.constants import (
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_SENT,
+    NOTIFICATION_TECHNICAL_FAILURE,
+)
 from app.exceptions import InvalidProviderException
 
 
@@ -25,15 +32,15 @@ TWILIO_RESPONSE_MAP = {
 }
 
 
-def get_twilio_responses(status):
-    return TWILIO_RESPONSE_MAP[status]
-
-
 @dataclass
 class TwilioStatus:
     code: int | None
     status: str
     status_reason: str | None
+
+
+def get_twilio_responses(status):
+    return TWILIO_RESPONSE_MAP[status]
 
 
 class TwilioSMSClient(SmsClient):
@@ -57,16 +64,6 @@ class TwilioSMSClient(SmsClient):
         self._account_sid = account_sid
         self._auth_token = auth_token
         self._client = Client(account_sid, auth_token)
-
-        # Importing inline to resolve a circular import error when importing
-        # at the top of the file
-        from app.models import (
-            NOTIFICATION_DELIVERED,
-            NOTIFICATION_TECHNICAL_FAILURE,
-            NOTIFICATION_SENDING,
-            NOTIFICATION_PERMANENT_FAILURE,
-            NOTIFICATION_SENT,
-        )
 
         self.twilio_error_code_map = {
             '30001': TwilioStatus(30001, NOTIFICATION_TECHNICAL_FAILURE, 'Queue overflow'),
@@ -239,7 +236,7 @@ class TwilioSMSClient(SmsClient):
 
     def translate_delivery_status(
         self,
-        twilio_delivery_status_message: str,
+        delivery_status_message: str | dict[str, str],
     ) -> SmsStatusRecord:
         """
         Parses the base64 encoded delivery status message from Twilio and returns a dictionary.
@@ -249,27 +246,23 @@ class TwilioSMSClient(SmsClient):
         - payload: the original payload from twilio
         https://github.com/department-of-veterans-affairs/vanotify-team/blob/main/Engineering/SPIKES/SMS-Delivery-Status.md#twilio-implementation-of-delivery-statuses
         """
-        self.logger.info('Translating Twilio delivery status')
-        self.logger.debug(twilio_delivery_status_message)
+        if not isinstance(delivery_status_message, str):
+            raise NonRetryableException('Did not receive twilio delivery status as a string')
 
-        decoded_msg, parsed_dict = self._parse_twilio_message(twilio_delivery_status_message)
-
+        decoded_msg, parsed_dict = self._parse_twilio_message(delivery_status_message)
         message_sid = parsed_dict['MessageSid'][0]
         twilio_delivery_status = parsed_dict['MessageStatus'][0]
         error_code = parsed_dict.get('ErrorCode', [])
-
         status, status_reason = self._evaluate_status(message_sid, twilio_delivery_status, error_code)
-
-        status = SmsStatusRecord(
+        notification_platform_status = SmsStatusRecord(
             decoded_msg,
             message_sid,
             status,
             status_reason,
+            'twilio',
         )
 
-        self.logger.debug('Twilio delivery status translation: %s', status)
-
-        return status
+        return notification_platform_status
 
     def update_notification_status_override(self, message_sid: str) -> None:
         """

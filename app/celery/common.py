@@ -5,7 +5,7 @@ from flask import current_app
 
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.dao.notifications_dao import get_notification_by_id, update_notification_status_by_id
-from app.models import NOTIFICATION_DELIVERED, NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_TECHNICAL_FAILURE
+from app.constants import NOTIFICATION_DELIVERED, NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_TECHNICAL_FAILURE
 
 
 RETRIES_EXCEEDED = 'Retries exceeded'
@@ -94,16 +94,22 @@ def log_and_update_permanent_failure(
 
 def log_notification_total_time(
     notification_id: UUID,
-    created_at: datetime.datetime,
+    start_time: datetime.datetime,
     status: str,
     provider: str,
+    event_timestamp_in_ms: str | None = None,
 ) -> None:
     """Logs how long it took a notification to go from created to delivered"""
     if status == NOTIFICATION_DELIVERED:
+        end_time = (
+            datetime.datetime.fromtimestamp(int(event_timestamp_in_ms) / 1000)
+            if event_timestamp_in_ms
+            else datetime.datetime.now()
+        )
         current_app.logger.info(
             'notification %s took %ss total time to reach %s status - %s',
             notification_id,
-            (datetime.datetime.now() - created_at).total_seconds(),
+            (end_time - start_time).total_seconds(),
             status,
             provider,
         )

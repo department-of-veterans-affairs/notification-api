@@ -1,20 +1,23 @@
 import base64
+
 import pytest
 import requests_mock
+from twilio.base.exceptions import TwilioRestException
+from urllib.parse import parse_qsl
+
 from app import twilio_sms_client
+from app.celery.exceptions import NonRetryableException
 from app.clients.sms import SmsStatusRecord
 from app.clients.sms.twilio import get_twilio_responses, TwilioSMSClient
-from app.exceptions import InvalidProviderException
-from app.models import (
+from app.constants import (
     NOTIFICATION_DELIVERED,
     NOTIFICATION_TECHNICAL_FAILURE,
     NOTIFICATION_SENDING,
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_SENT,
 )
+from app.exceptions import InvalidProviderException
 from tests.app.db import create_service_sms_sender
-from twilio.base.exceptions import TwilioRestException
-from urllib.parse import parse_qsl
 
 
 class MockSmsSenderObject:
@@ -392,7 +395,7 @@ def test_returned_payload_is_decoded(event, twilio_sms_client_mock):
 
 
 def test_exception_on_empty_twilio_status_message(twilio_sms_client_mock):
-    with pytest.raises(ValueError):
+    with pytest.raises(NonRetryableException):
         twilio_sms_client_mock.translate_delivery_status(None)
 
 

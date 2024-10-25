@@ -6,10 +6,7 @@ from freezegun import freeze_time
 from sqlalchemy.exc import IntegrityError
 
 from app import encryption
-from app.models import (
-    ServiceCallback,
-    ServiceWhitelist,
-    Notification,
+from app.constants import (
     SMS_TYPE,
     MOBILE_TYPE,
     EMAIL_TYPE,
@@ -25,6 +22,11 @@ from app.models import (
     COMPLAINT_CALLBACK_TYPE,
     QUEUE_CHANNEL_TYPE,
     WEBHOOK_CHANNEL_TYPE,
+)
+from app.models import (
+    ServiceCallback,
+    ServiceWhitelist,
+    Notification,
 )
 from app.va.identifier import IdentifierType
 

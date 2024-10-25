@@ -1,10 +1,10 @@
 import pytest
-
 from flask import current_app
 from sqlalchemy import select
 
+from app.constants import EMAIL_TYPE, SMS_TYPE
 from app.dao.services_dao import dao_add_user_to_service
-from app.models import Notification, EMAIL_TYPE, SMS_TYPE, User
+from app.models import Notification, User
 from app.service.sender import send_notification_to_service_users
 
 
