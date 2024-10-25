@@ -109,9 +109,9 @@
           "CMD-SHELL",
           "./scripts/wait_for_it.sh 127.0.0.1:6011 -t 0 || exit 1"
         ],
-        "interval": 6,
-        "retries": 10,
-        "timeout": 3
+        "interval": 30,
+        "retries": 5,
+        "timeout": 10
       }
     },
     {
