@@ -103,7 +103,16 @@
           "name": "VETEXT_PASSWORD",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/dev/notification-api/vetext/password"
         }
-      ]
+      ],
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:6011/healthcheck || exit 1"
+        ],
+        "interval": 5,
+        "retries": 12,
+        "timeout": 5
+      }
     },
     {
       "name": "datadog-agent",
