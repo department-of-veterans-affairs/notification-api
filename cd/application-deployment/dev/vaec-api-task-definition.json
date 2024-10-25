@@ -107,7 +107,7 @@
       "healthCheck": {
         "command": [
           "CMD-SHELL",
-          "curl -f http://localhost:6011/healthcheck || exit 1"
+          "curl -f http://127.0.0.1:6011/_status?simple=simple || exit 1"
         ],
         "interval": 5,
         "retries": 12,
