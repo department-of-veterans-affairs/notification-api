@@ -36,7 +36,7 @@ class SmsStatusRecord:
     provider: str
     message_parts: int = 1
     price_millicents: float = 0.0
-    updated_at: datetime
+    provider_updated_at: datetime
 
 
 class SmsClient(Client):

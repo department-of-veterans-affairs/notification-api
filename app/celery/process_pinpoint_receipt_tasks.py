@@ -54,11 +54,12 @@ def process_pinpoint_results(
 
     current_app.logger.info(
         'Processing pinpoint result. | reference: %s | event_type: %s | record_status: %s | '
-        'message_parts: %s | price_millicents: %s',
+        'message_parts: %s | price_millicents: %s | provider_updated_at: %s',
         notification_platform_status.reference,
         event_type,
         record_status,
         notification_platform_status.message_parts,
         notification_platform_status.price_millicents,
+        notification_platform_status.provider_updated_at,
     )
     sms_status_update(notification_platform_status, pinpoint_message['event_timestamp'])

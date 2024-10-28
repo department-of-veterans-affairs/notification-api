@@ -25,6 +25,7 @@ from app.constants import (
     NOTIFICATION_TEMPORARY_FAILURE,
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_PREFERENCES_DECLINED,
+    PINPOINT_PROVIDER,
 )
 from app.exceptions import InvalidProviderException
 
@@ -212,9 +213,10 @@ class AwsPinpointClient(SmsClient):
             pinpoint_attributes['message_id'],
             status,
             status_reason,
-            'pinpoint',
+            PINPOINT_PROVIDER,
             pinpoint_attributes['number_of_message_parts'],
             delivery_status_message['metrics']['price_in_millicents_usd'],
+            updated_at=delivery_status_message['date_updated'],
         )
 
         return notification_platform_status

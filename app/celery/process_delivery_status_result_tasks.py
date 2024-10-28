@@ -42,7 +42,6 @@ def process_delivery_status(
 
     current_app.logger.debug('twilio incoming sms update: %s', event)
 
-    # first attempt to process the incoming event
     try:
         sqs_message = _get_sqs_message(event)
         current_app.logger.debug('twilio decoded sms update: %s', sqs_message)
@@ -55,12 +54,13 @@ def process_delivery_status(
 
     current_app.logger.info(
         'Processing %s result.  | reference: %s | notification_status: %s | '
-        'message_parts: %s | price_millicents: %s',
+        'message_parts: %s | price_millicents: %s | provider_updated_at: %s',
         provider_name,
         notification_platform_status.reference,
         notification_platform_status.status,
         notification_platform_status.message_parts,
         notification_platform_status.price_millicents,
+        notification_platform_status.provider_updated_at,
     )
     sms_status_update(notification_platform_status, event_in_seconds=(self.request.retries * self.default_retry_delay))
 
@@ -214,8 +214,8 @@ def sms_status_update(
         sms_status.status_reason,
     )
 
+    # Never include a status reason for a delivered notification.
     if sms_status.status == NOTIFICATION_DELIVERED:
-        # Never include a status reason for a delivered notification.
         sms_status.status_reason = None
 
     try:
@@ -246,11 +246,11 @@ def sms_status_update(
         notification.created_at,
         sms_status.status,
         sms_status.provider,
-        event_timestamp,
+        sms_status.provider_updated_at,
     )
 
     # Our clients are not prepared to deal with pinpoint payloads
-    if sms_status.provider == 'pinpoint' or not _get_include_payload_status(notification):
+    if not _get_include_payload_status(notification):
         sms_status.payload = None
 
     try:
