@@ -48,7 +48,7 @@ def get_twilio_responses(status):
 
 
 class TwilioSMSClient(SmsClient):
-    RAW_DLR_DONE_DATE_FMT = '%y%m%H%d%M'
+    RAW_DLR_DONE_DATE_FMT = '%y%m%d%H%M'
 
     def __init__(
         self,
@@ -285,6 +285,7 @@ class TwilioSMSClient(SmsClient):
         try:
             done_datetime = datetime.strptime(done_date, TwilioSMSClient.RAW_DLR_DONE_DATE_FMT)
         except ValueError:
+            self.logger.exception('RawDlrDoneDate from twilio came in an unexpected format')
             done_datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         return done_datetime
 
