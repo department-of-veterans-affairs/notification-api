@@ -40,6 +40,7 @@ from app.va.vetext import VETextClient
 from app.encryption import Encryption
 from app.attachments.store import AttachmentStore
 from app.db import db
+from app.mobile_app.mobile_app_registry import MobileAppRegistry
 
 DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 DATE_FORMAT = '%Y-%m-%d'
@@ -55,6 +56,7 @@ firetext_client = FiretextClient()
 loadtest_client = LoadtestingClient()
 mmg_client = MMGClient()
 aws_ses_client = AwsSesClient()
+mobile_app_registry = MobileAppRegistry
 
 from app.clients.email.govdelivery_client import GovdeliveryClient  # noqa
 
@@ -218,6 +220,7 @@ def create_app(application):
     )
 
     jwt.init_app(application)
+    mobile_app_registry(application.logger)
 
     register_blueprint(application)
     register_v2_blueprints(application)

@@ -1,9 +1,8 @@
-from flask import jsonify, Blueprint, request
+from flask import jsonify, Blueprint, request, current_app
 
 from app import db, version, provider_service
 from app.dao.services_dao import dao_count_live_services
 from app.dao.organisation_dao import dao_count_organsations_with_live_services
-from app.mobile_app import mobile_app_registry_instance
 from app.notifications.notification_type import NotificationType
 from .redis_check import redis_check
 
@@ -24,7 +23,7 @@ def show_status():
             sms_strategy=provider_service.strategies[NotificationType.SMS].__name__,
             db_version=get_db_version(),
             redis=redis_check(),
-            mobile_apps=mobile_app_registry_instance.get_registered_apps(),
+            mobile_apps=current_app.mobile_app_registry.get_registered_apps(),
         ), 200
 
 

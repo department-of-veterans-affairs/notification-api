@@ -1,18 +1,19 @@
 from typing import List
-from flask import current_app
 from .mobile_app_types import MobileAppType
 from .mobile_app import MobileApp
 
 
 class MobileAppRegistry:
-    def __init__(self):
+    def __init__(self, logger):
+        self.logger = logger
         self._registry = {}
-        current_app.logger.info('Intializing MobileAppRegistry')
+
+        logger.info('Intializing MobileAppRegistry')
         for type in MobileAppType:
             try:
                 app = MobileApp(type)
             except ValueError:
-                current_app.logger.warning('Missing environment sid for type: %s and value: %s_SID', type, type.value)
+                logger.warning('Missing environment sid for type: %s and value: %s_SID', type, type.value)
             else:
                 self._registry[type] = app
 

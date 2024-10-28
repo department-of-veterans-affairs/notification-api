@@ -1,6 +1,6 @@
 from app import authenticated_service, vetext_client
 from app.feature_flags import is_feature_enabled, FeatureFlag
-from app.mobile_app import MobileAppRegistry, MobileAppType, DEAFULT_MOBILE_APP_TYPE
+from app.mobile_app import MobileAppType, DEAFULT_MOBILE_APP_TYPE
 from app.models import PUSH_TYPE
 from app.schema_validation import validate
 from app.utils import get_public_notify_type_text
@@ -8,7 +8,7 @@ from app.v2.errors import BadRequestError
 from app.v2.notifications import v2_notification_blueprint
 from app.v2.notifications.notification_schemas import push_notification_request, push_notification_broadcast_request
 from app.va.vetext import VETextRetryableException, VETextNonRetryableException, VETextBadRequestException
-from flask import request, jsonify
+from flask import request, jsonify, current_app
 
 
 @v2_notification_blueprint.route('/push', methods=['POST'])
@@ -36,7 +36,7 @@ def push_notification_helper(schema: dict, is_broadcast: bool):
         )
 
     req_json = validate(request.get_json(), schema)
-    registry = MobileAppRegistry()
+    registry = current_app.mobile_app_registry
 
     if req_json.get('mobile_app'):
         app_instance = registry.get_app(MobileAppType[req_json['mobile_app']])
