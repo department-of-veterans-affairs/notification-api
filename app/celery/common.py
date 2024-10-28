@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from flask import current_app
@@ -94,18 +94,14 @@ def log_and_update_permanent_failure(
 
 def log_notification_total_time(
     notification_id: UUID,
-    start_time: datetime.datetime,
+    start_time: datetime,
     status: str,
     provider: str,
-    event_timestamp_in_ms: str | None = None,
+    event_timestamp: datetime | None = None,
 ) -> None:
     """Logs how long it took a notification to go from created to delivered"""
     if status == NOTIFICATION_DELIVERED:
-        end_time = (
-            datetime.datetime.fromtimestamp(int(event_timestamp_in_ms) / 1000)
-            if event_timestamp_in_ms
-            else datetime.datetime.now()
-        )
+        end_time = event_timestamp or datetime.now(timezone.utc).replace(tzinfo=None)
         current_app.logger.info(
             'notification %s took %ss total time to reach %s status - %s',
             notification_id,
