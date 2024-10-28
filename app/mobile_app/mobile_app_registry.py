@@ -7,6 +7,7 @@ from .mobile_app import MobileApp
 class MobileAppRegistry:
     def __init__(self):
         self._registry = {}
+        current_app.logger.info('Intializing MobileAppRegistry')
         for type in MobileAppType:
             try:
                 app = MobileApp(type)
