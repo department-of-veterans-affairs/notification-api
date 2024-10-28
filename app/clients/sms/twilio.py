@@ -259,15 +259,16 @@ class TwilioSMSClient(SmsClient):
         error_code = parsed_dict.get('ErrorCode', [])
         status, status_reason = self._evaluate_status(message_sid, twilio_delivery_status, error_code)
         raw_dlr_done_date_list = parsed_dict.get('RawDlrDoneDate', [])
-        raw_dlr_done_date = raw_dlr_done_date_list[0] if raw_dlr_done_date_list else None
-
+        provider_updated_at = (
+            self._translate_raw_dlr_done_date(raw_dlr_done_date_list[0]) if raw_dlr_done_date_list else None
+        )
         notification_platform_status = SmsStatusRecord(
             decoded_msg,
             message_sid,
             status,
             status_reason,
             TWILIO_PROVIDER,
-            provider_updated_at=self._translate_raw_dlr_done_date(raw_dlr_done_date) if raw_dlr_done_date else None,
+            provider_updated_at=provider_updated_at,
         )
 
         return notification_platform_status
