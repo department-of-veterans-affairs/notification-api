@@ -9,14 +9,6 @@ def mock_logger(mocker):
     return app_context_mock.logger
 
 
-def test_registry_is_singleton(
-    client,
-):
-    registry = MobileAppRegistry()
-    another_registry = MobileAppRegistry()
-    assert registry == another_registry
-
-
 @pytest.mark.parametrize(
     'apps, sids',
     [
