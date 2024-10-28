@@ -307,7 +307,9 @@ def test_sms_status_update_notification_not_found(notify_api, mocker, sample_not
     )
 
     notification = sample_notification(reference=str(uuid4()))
-    sms_status = SmsStatusRecord(None, notification.reference, NOTIFICATION_DELIVERED, None, TWILIO_PROVIDER)
+    sms_status = SmsStatusRecord(
+        None, notification.reference, NOTIFICATION_DELIVERED, None, TWILIO_PROVIDER, datetime.now(timezone.utc)
+    )
     with pytest.raises(NonRetryableException) as exc_info:
         sms_status_update(sms_status)
     assert 'Unable to update notification' in str(exc_info)
@@ -316,7 +318,12 @@ def test_sms_status_update_notification_not_found(notify_api, mocker, sample_not
 def test_sms_status_delivered_status_reason_set_to_none(notify_api, mocker, sample_notification):
     notification = sample_notification(status_reason='test_sms_status_delivered_status_update', reference=str(uuid4()))
     sms_status = SmsStatusRecord(
-        None, notification.reference, NOTIFICATION_DELIVERED, 'ignored reason', TWILIO_PROVIDER
+        None,
+        notification.reference,
+        NOTIFICATION_DELIVERED,
+        'ignored reason',
+        TWILIO_PROVIDER,
+        datetime.now(timezone.utc),
     )
     assert notification.status_reason == 'test_sms_status_delivered_status_update'
 
@@ -330,7 +337,12 @@ def test_sms_status_provider_payload_set_to_none(notify_api, mocker, sample_noti
 
     notification = sample_notification(reference=str(uuid4()))
     sms_status = SmsStatusRecord(
-        'not none', notification.reference, NOTIFICATION_DELIVERED, 'ignored reason', PINPOINT_PROVIDER
+        'not none',
+        notification.reference,
+        NOTIFICATION_DELIVERED,
+        'ignored reason',
+        PINPOINT_PROVIDER,
+        datetime.now(timezone.utc),
     )
     assert sms_status.payload is not None
 
@@ -357,7 +369,9 @@ def test_sms_status_check_and_queue_called(notify_api, mocker, sample_notificati
 
     # xdist has issues if the sample is built into the SmsStatusRecord, build separately
     notification = sample_notification(status=start_status, reference=str(uuid4()))
-    sms_status = SmsStatusRecord('not none', notification.reference, end_status, 'ignored reason', PINPOINT_PROVIDER)
+    sms_status = SmsStatusRecord(
+        'not none', notification.reference, end_status, 'ignored reason', PINPOINT_PROVIDER, datetime.now(timezone.utc)
+    )
 
     sms_status_update(sms_status)
     mock_callback.assert_called_once()
@@ -387,7 +401,9 @@ def test_sms_status_check_and_queue_not_called(notify_api, mocker, sample_notifi
         'app.celery.process_delivery_status_result_tasks.dao_update_notification_delivery_status',
         return_value=notification,
     )
-    sms_status = SmsStatusRecord('not none', notification.reference, end_status, 'ignored reason', PINPOINT_PROVIDER)
+    sms_status = SmsStatusRecord(
+        'not none', notification.reference, end_status, 'ignored reason', PINPOINT_PROVIDER, datetime.now(timezone.utc)
+    )
 
     sms_status_update(sms_status)
     mock_callback.assert_not_called()
@@ -399,7 +415,12 @@ def test_sms_status_check_and_queue_exception(notify_api, mocker, sample_notific
 
     notification = sample_notification(reference=str(uuid4()))
     sms_status = SmsStatusRecord(
-        'not none', notification.reference, NOTIFICATION_DELIVERED, 'ignored reason', PINPOINT_PROVIDER
+        'not none',
+        notification.reference,
+        NOTIFICATION_DELIVERED,
+        'ignored reason',
+        PINPOINT_PROVIDER,
+        datetime.now(timezone.utc),
     )
 
     # Exception is caught and not re-raised
@@ -494,6 +515,7 @@ def test_get_notification_platform_status(notify_api, sample_delivery_status_res
         provider='twilio',
         message_parts=1,
         price_millicents=0.0,
+        provider_updated_at=datetime.now(timezone.utc),
     )
     assert expected_sms_status_record == get_notification_platform_status(
         TwilioSMSClient(), sample_delivery_status_result_message['message']['body']
