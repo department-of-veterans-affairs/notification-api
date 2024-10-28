@@ -77,4 +77,6 @@ fileignoreconfig:
   checksum: 12ed8e1334772c0d65cc13be03b6d5197ebbf4d35460aee2fac1fc2a9644e9e1
 - filename: app/service/rest.py
   checksum: 7f8a30dd84b3ceb0d08bae949b5b127fd408ee2fd8097eb7d4b291ede61f8d0f
+- filename: tests/app/celery/test_process_delivery_status_result_tasks.py
+  checksum: c1c596d40f5bc8c8621204c6cfdd1c8adda0092a396fcd73b1d9f843f4951d7f
 version: "1.0"

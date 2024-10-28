@@ -7,8 +7,7 @@ from notifications_utils.recipients import validate_and_format_phone_number, val
 from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate, SMSMessageTemplate
 
 
-from app import attachment_store
-from app import clients, statsd_client, create_uuid, provider_service
+from app import attachment_store, clients, statsd_client, provider_service
 from app.attachments.types import UploadedAttachmentMetadata
 from app.celery.research_mode_tasks import send_sms_response, send_email_response
 from app.constants import (
@@ -38,6 +37,7 @@ from app.models import (
     ProviderDetails,
 )
 from app.service.utils import compute_source_email_address
+from app.utils import create_uuid
 
 
 def send_sms_to_provider(
@@ -144,7 +144,7 @@ def send_email_to_provider(notification: Notification):
     plain_text_email = PlainTextEmailTemplate(template_dict, values=personalisation_data)
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
-        notification.reference = str(create_uuid())
+        notification.reference = create_uuid()
         update_notification_to_sending(notification, client)
         send_email_response(notification.reference, notification.to)
     else:

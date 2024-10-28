@@ -459,6 +459,7 @@ def test_process_row_when_sender_id_is_provided(mocker, fake_uuid):
     )
 
 
+@pytest.mark.serial
 def test_should_send_template_to_correct_sms_task_and_persist(
     notify_db_session,
     sample_service,

@@ -4,9 +4,9 @@ import json
 from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 
-from app import notify_celery
+from app import aws_pinpoint_client, notify_celery, statsd_client
 from app.celery.exceptions import AutoRetryException, NonRetryableException
-from app.clients.sms import SmsStatusRecord
+from app.clients.sms import SmsStatusRecord, UNABLE_TO_TRANSLATE
 from app.celery.process_delivery_status_result_tasks import sms_status_update, get_notification_platform_status
 
 
@@ -37,7 +37,6 @@ def process_pinpoint_results(
     should never receive input trying to send a message to the opted-out veteran.
     """
     current_app.logger.debug('Incoming pinpoint sms update: %s', response)
-    from app import aws_pinpoint_client, statsd_client  # Circular import
 
     try:
         pinpoint_message = json.loads(base64.b64decode(response['Message']))
@@ -46,7 +45,7 @@ def process_pinpoint_results(
     except (json.decoder.JSONDecodeError, ValueError, TypeError, KeyError) as e:
         current_app.logger.exception('Unable to decode the incoming pinpoint message')
         statsd_client.incr('clients.sms.pinpoint.status_update.error')
-        raise NonRetryableException(f'Found {type(e).__name__}, terminating processing')
+        raise NonRetryableException(f'Found {type(e).__name__}, {UNABLE_TO_TRANSLATE}')
 
     notification_platform_status: SmsStatusRecord = get_notification_platform_status(
         aws_pinpoint_client, pinpoint_message

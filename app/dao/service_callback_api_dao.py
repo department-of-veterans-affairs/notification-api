@@ -2,10 +2,11 @@ from datetime import datetime
 
 from sqlalchemy import select
 
-from app import db, create_uuid
+from app import db
 from app.constants import COMPLAINT_CALLBACK_TYPE, DELIVERY_STATUS_CALLBACK_TYPE, INBOUND_SMS_CALLBACK_TYPE
 from app.dao.dao_utils import transactional, version_class
 from app.models import ServiceCallback
+from app.utils import create_uuid
 
 
 @transactional

@@ -11,7 +11,7 @@ from app.celery.common import log_notification_total_time
 from app.celery.exceptions import AutoRetryException, NonRetryableException
 from app.celery.process_pinpoint_inbound_sms import CeleryEvent
 from app.celery.service_callback_tasks import check_and_queue_callback_task
-from app.clients.sms import SmsClient, SmsStatusRecord
+from app.clients.sms import SmsClient, SmsStatusRecord, UNABLE_TO_TRANSLATE
 from app.constants import DELIVERY_STATUS_CALLBACK_TYPE, NOTIFICATION_DELIVERED
 from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
@@ -75,7 +75,7 @@ def get_notification_platform_status(
     except (ValueError, KeyError) as e:
         current_app.logger.exception('The event message data is missing expected attributes: %s', body)
         statsd_client.incr(f'clients.sms.{provider}.status_update.error')
-        raise NonRetryableException(f'Found {type(e).__name__}, unable to translate delivery status')
+        raise NonRetryableException(f'Found {type(e).__name__}, {UNABLE_TO_TRANSLATE}')
 
     current_app.logger.debug('retrieved delivery status: %s', notification_platform_status)
 
@@ -111,7 +111,7 @@ def _get_sqs_message(event: CeleryEvent) -> dict:
     if sqs_message is None:
         # Logic was previously setup this way. Not sure why we're retrying on type/key errors
         current_app.logger.error('Unable to parse event format for event: %s', event)
-        raise NonRetryableException('Unable to find "message" in event, unable to translate delivery status')
+        raise NonRetryableException(f'Unable to find "message" in event, {UNABLE_TO_TRANSLATE}')
     return sqs_message
 
 
@@ -123,7 +123,7 @@ def _get_provider_info(sqs_message: dict) -> Tuple[str, any]:
     # provider cannot None
     if provider is None:
         current_app.logger.warning('Unable to find provider given the following message: %s', sqs_message)
-        raise NonRetryableException('Found no provider, unable to translate delivery status')
+        raise NonRetryableException(f'Found no provider, {UNABLE_TO_TRANSLATE}')
 
     return provider_name, provider
 
@@ -152,17 +152,22 @@ def _get_notification(
     Returns:
         Notification: A Notification object
     """
+
+    def log_and_retry():
+        current_app.logger.info(
+            '%s callback event for reference %s was received less than five minutes ago.', provider, reference
+        )
+        statsd_client.incr(f'clients.sms.{provider}.status_update.retry')
+        raise AutoRetryException('Found NoResultFound, autoretrying...')
+
+    def log_and_fail(reason: str):
+        current_app.logger.exception('%s: %s', reason, reference)
+        statsd_client.incr(f'clients.sms.{provider}.status_update.error')
+        raise NonRetryableException(reason)
+
     try:
         notification = dao_get_notification_by_reference(reference)
     except NoResultFound:
-
-        def log_and_retry():
-            current_app.logger.info(
-                '%s callback event for reference %s was received less than five minutes ago.', provider, reference
-            )
-            statsd_client.incr(f'clients.sms.{provider}.status_update.retry')
-            raise AutoRetryException('Found NoResultFound, autoretrying...')
-
         # A race condition exists wherein a callback might be received before a notification
         # persists in the database.  Continue retrying for up to 5 minutes (300 seconds).
         if event_timestamp_in_ms:
@@ -170,17 +175,15 @@ def _get_notification(
             message_time = datetime.datetime.fromtimestamp(int(event_timestamp_in_ms) / 1000)
             if datetime.datetime.utcnow() - message_time < datetime.timedelta(minutes=5):
                 log_and_retry()
+            else:
+                log_and_fail('Notification not found')
         elif event_time_in_seconds < 300:
             # If it happened within the last 5 minutes
             log_and_retry()
         else:
-            current_app.logger.exception('notification not found for reference: %s', reference)
-            statsd_client.incr(f'clients.sms.{provider}.status_update.error')
-            raise NonRetryableException('Notification not found')
+            log_and_fail('Notification not found')
     except MultipleResultsFound:
-        current_app.logger.exception('multiple notifications found for reference: %s', reference)
-        statsd_client.incr(f'clients.sms.{provider}.status_update.error')
-        raise NonRetryableException('Multiple notifications found')
+        log_and_fail('Multiple notifications found')
 
     return notification
 
@@ -188,7 +191,7 @@ def _get_notification(
 def sms_status_update(
     sms_status: SmsStatusRecord,
     event_timestamp: str | None = None,
-    event_in_seconds: int = -1,
+    event_in_seconds: int = 300,  # Don't retry by default
 ) -> None:
     """Get and update a notification.
 
@@ -201,6 +204,7 @@ def sms_status_update(
         NonRetryableException: Unable to update the notification
     """
     notification = _get_notification(sms_status.reference, sms_status.provider, event_timestamp, event_in_seconds)
+    last_updated_at = notification.updated_at
 
     current_app.logger.info(
         'Iniital %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s',
@@ -219,8 +223,8 @@ def sms_status_update(
         notification: Notification = dao_update_notification_delivery_status(
             notification_id=notification.id,
             notification_type=notification.notification_type,
-            status=sms_status.status,
-            status_reason=sms_status.status_reason,
+            new_status=sms_status.status,
+            new_status_reason=sms_status.status_reason,
             segments_count=sms_status.message_parts,
             cost_in_millicents=sms_status.price_millicents,
         )
@@ -248,10 +252,13 @@ def sms_status_update(
 
     # Our clients are not prepared to deal with pinpoint payloads
     if sms_status.provider == 'pinpoint' or not _get_include_payload_status(notification):
-        sms_status.payload = {}
+        sms_status.payload = None
+
     try:
-        check_and_queue_callback_task(notification)
+        # Only send if there was an update
+        if last_updated_at != notification.updated_at:
+            check_and_queue_callback_task(notification, sms_status.payload)
         statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.success')
     except Exception:
-        current_app.logger.exception('Failed to check and queue callback task for notification: %s', notification.id)
+        current_app.logger.exception('Failed to check_and_queue_callback_task for notification: %s', notification.id)
         statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')

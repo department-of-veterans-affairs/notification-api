@@ -3,7 +3,7 @@ from freezegun import freeze_time
 
 import pytest
 
-from app import create_uuid
+from app.utils import create_uuid
 from app.constants import NOTIFICATION_FAILED, NOTIFICATION_SENT
 from app.models import Notification
 from app.notifications.aws_sns_status_callback import send_callback_metrics

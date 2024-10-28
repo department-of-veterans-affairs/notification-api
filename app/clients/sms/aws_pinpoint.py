@@ -15,6 +15,7 @@ from app.clients.sms import (
     PRICE_THRESHOLD_EXCEEDED,
     REPORTED_AS_SPAM,
     RETRYABLE_AWS_RESPONSE,
+    UNABLE_TO_TRANSLATE,
     UNEXPECTED_PROVIDER_RESULT,
 )
 from app.constants import (
@@ -199,7 +200,8 @@ class AwsPinpointClient(SmsClient):
             SmsStatusRecord: Object representing an sms status
         """
         if not isinstance(delivery_status_message, dict):
-            raise NonRetryableException('Did not receive pinpoint delivery status as a dict')
+            self.logger.error('Did not receive pinpoint delivery status as a string')
+            raise NonRetryableException(f'Incorrect datatype sent to pinpoint, {UNABLE_TO_TRANSLATE}')
 
         pinpoint_attributes = delivery_status_message['attributes']
         event_type = delivery_status_message['event_type']

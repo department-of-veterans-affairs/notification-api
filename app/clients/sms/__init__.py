@@ -7,6 +7,7 @@ OPT_OUT_MESSAGE = 'The individual has opted out'
 PRICE_THRESHOLD_EXCEEDED = 'Price threshold exceeded'
 REPORTED_AS_SPAM = 'The message has been reported as spam'
 RETRYABLE_AWS_RESPONSE = 'Encountered a temporary failure. Send the request to VA Notify again'
+UNABLE_TO_TRANSLATE = 'unable to translate delivery status'
 UNEXPECTED_PROVIDER_RESULT = 'Unexpected result'
 
 

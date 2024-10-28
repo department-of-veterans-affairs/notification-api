@@ -1,10 +1,11 @@
-# TODO - This file contains multiple functions that contain import statements.  Is this to avoid a circular
-# dependency?  If not, import only at the beginning of the file.  See issue #1044.
 import os
-import pytz
 from datetime import datetime, timedelta
+from uuid import uuid4
+
 from flask import url_for
 from notifications_utils.template import SMSMessageTemplate, WithSubjectTemplate, get_html_email_body
+from notifications_utils.url_safe_token import generate_token
+import pytz
 from sqlalchemy import func
 
 from app.constants import EMAIL_TYPE, LETTER_TYPE, PRECOMPILED_LETTER, PUSH_TYPE, SMS_TYPE, UPLOAD_DOCUMENT
@@ -34,8 +35,6 @@ def url_with_token(
     config,
     base_url=None,
 ):
-    from notifications_utils.url_safe_token import generate_token
-
     token = generate_token(data, config['SECRET_KEY'], config['DANGEROUS_SALT'])
     base_url = (base_url or config['ADMIN_BASE_URL']) + url
     return base_url + token
@@ -141,3 +140,7 @@ def update_dct_to_str(update_dct):
         str += '- {}'.format(key.replace('_', ' '))
         str += '\n'
     return str
+
+
+def create_uuid() -> str:
+    return str(uuid4())

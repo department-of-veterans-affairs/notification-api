@@ -452,14 +452,13 @@ def test_send_email_to_provider_should_call_research_mode_task_response_task_if_
     )
     template.service.research_mode = research_mode
 
-    # reference = uuid.uuid4()
-    mocker.patch('app.uuid.uuid4', return_value=reference)
     mocker.patch('app.delivery.send_to_providers.send_email_response')
 
     send_to_providers.send_email_to_provider(notification)
 
     assert not mock_email_client.send_email.called
-    app.delivery.send_to_providers.send_email_response.assert_called_once_with(reference, f'{reference}john@smith.com')
+    research_ref = app.delivery.send_to_providers.send_email_response.call_args[0][0]
+    assert research_ref != reference
     persisted_notification = notify_db_session.session.get(Notification, notification.id)
     assert persisted_notification.to == f'{reference}john@smith.com'
     assert persisted_notification.template_id == template.id
@@ -467,7 +466,7 @@ def test_send_email_to_provider_should_call_research_mode_task_response_task_if_
     assert persisted_notification.sent_at <= datetime.utcnow()
     assert persisted_notification.created_at <= datetime.utcnow()
     assert persisted_notification.sent_by == mock_email_client.get_name()
-    assert persisted_notification.reference == reference
+    assert persisted_notification.reference == research_ref
     assert persisted_notification.billable_units == 0
 
 

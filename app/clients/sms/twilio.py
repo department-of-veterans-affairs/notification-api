@@ -9,26 +9,29 @@ from twilio.rest.api.v2010.account.message import MessageInstance
 from twilio.base.exceptions import TwilioRestException
 
 from app.celery.exceptions import NonRetryableException
-from app.clients.sms import SmsClient, SmsStatusRecord
+from app.clients.sms import SmsClient, SmsStatusRecord, UNABLE_TO_TRANSLATE
 from app.constants import (
+    NOTIFICATION_CREATED,
     NOTIFICATION_DELIVERED,
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_SENDING,
     NOTIFICATION_SENT,
     NOTIFICATION_TECHNICAL_FAILURE,
+    TWILIO_PROVIDER,
 )
 from app.exceptions import InvalidProviderException
 
 
+# https://www.twilio.com/docs/messaging/api/message-resource#message-status-values
 TWILIO_RESPONSE_MAP = {
-    'accepted': 'created',
-    'queued': 'sending',
-    'sending': 'sending',
-    'sent': 'sent',
-    'delivered': 'delivered',
-    'undelivered': 'permanent-failure',
-    'failed': 'technical-failure',
-    'received': 'received',
+    'accepted': NOTIFICATION_CREATED,
+    'queued': NOTIFICATION_SENDING,
+    'sending': NOTIFICATION_SENDING,
+    'sent': NOTIFICATION_SENT,
+    'delivered': NOTIFICATION_DELIVERED,
+    'undelivered': NOTIFICATION_PERMANENT_FAILURE,
+    'failed': NOTIFICATION_TECHNICAL_FAILURE,
+    'received': NOTIFICATION_SENDING,
 }
 
 
@@ -120,7 +123,7 @@ class TwilioSMSClient(SmsClient):
 
     @property
     def name(self):
-        return 'twilio'
+        return TWILIO_PROVIDER
 
     def get_name(self):
         return self.name
@@ -139,7 +142,7 @@ class TwilioSMSClient(SmsClient):
         try:
             message = self._client.messages(message_sid).fetch()
         except TwilioRestException:
-            self.logger.warning('Twilio message not found: %s', message_sid)
+            self.logger.exception('Twilio message not found: %s', message_sid)
         return message
 
     def send_sms(
@@ -157,15 +160,12 @@ class TwilioSMSClient(SmsClient):
         """
 
         start_time = monotonic()
+        from app.dao.service_sms_sender_dao import (
+            dao_get_service_sms_sender_by_service_id_and_number,
+            dao_get_service_sms_sender_by_id,
+        )
 
         try:
-            # Importing inline to resolve a circular import error when
-            # importing at the top of the file
-            from app.dao.service_sms_sender_dao import (
-                dao_get_service_sms_sender_by_service_id_and_number,
-                dao_get_service_sms_sender_by_id,
-            )
-
             from_number = None
             messaging_service_sid = None
             sms_sender_id = kwargs.get('sms_sender_id')
@@ -247,7 +247,8 @@ class TwilioSMSClient(SmsClient):
         https://github.com/department-of-veterans-affairs/vanotify-team/blob/main/Engineering/SPIKES/SMS-Delivery-Status.md#twilio-implementation-of-delivery-statuses
         """
         if not isinstance(delivery_status_message, str):
-            raise NonRetryableException('Did not receive twilio delivery status as a string')
+            self.logger.error('Did not receive twilio delivery status as a string')
+            raise NonRetryableException(f'Incorrect datatype sent to twilio, {UNABLE_TO_TRANSLATE}')
 
         decoded_msg, parsed_dict = self._parse_twilio_message(delivery_status_message)
         message_sid = parsed_dict['MessageSid'][0]
@@ -259,7 +260,7 @@ class TwilioSMSClient(SmsClient):
             message_sid,
             status,
             status_reason,
-            'twilio',
+            TWILIO_PROVIDER,
         )
 
         return notification_platform_status

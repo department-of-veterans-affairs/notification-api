@@ -1,4 +1,5 @@
 import base64
+from uuid import uuid4
 
 import pytest
 import requests_mock
@@ -18,6 +19,19 @@ from app.constants import (
 )
 from app.exceptions import InvalidProviderException
 from tests.app.db import create_service_sms_sender
+
+
+class FakeClient:
+    def __init__(self, **kwargs):
+        self.messages = self.MessageFactory()
+
+    class MessageFactory:
+        def __call__(self, *args, **kwds):
+            return self
+
+        @staticmethod
+        def fetch(**kwargs):
+            raise TwilioRestException(status=kwargs.get('status', 0), uri=kwargs.get('uri', 'https://www.va.gov'))
 
 
 class MockSmsSenderObject:
@@ -743,19 +757,10 @@ def test_update_notification_status_override(
 def test_update_notification_with_unknown_sid(
     notify_api,
     mocker,
-    sample_notification,
-    notify_db_session,
 ):
-    twilio_sid = 'test_sid'
+    twilio_sid = f'{str(uuid4())}-twilio-sid'
+    twilio_sms_client._client = FakeClient()
 
-    notification = sample_notification(status='sending', reference=twilio_sid)
-
-    # Mock the call to get_twilio_message
-    mocker.patch('app.clients')
-    mocker.patch('app.clients.sms.twilio.TwilioSMSClient.get_twilio_message', side_effect=TwilioRestException)
-
+    mock_logger = mocker.spy(twilio_sms_client.logger, 'exception')
     twilio_sms_client.update_notification_status_override(twilio_sid)
-
-    # Retrieve the updated notification
-    notify_db_session.session.refresh(notification)
-    assert notification.status == 'sending'
+    mock_logger.assert_called_once_with('Twilio message not found: %s', twilio_sid)

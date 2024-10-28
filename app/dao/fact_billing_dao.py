@@ -256,7 +256,6 @@ def fetch_billing_totals_for_year(
     year,
 ):
     year_start_date, year_end_date = get_financial_year(year)
-    print(year_start_date, year_end_date)
 
     """
       Billing for email: only record the total number of emails.

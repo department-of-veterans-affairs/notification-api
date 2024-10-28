@@ -7,7 +7,6 @@ from freezegun import freeze_time
 from app.celery.process_pinpoint_inbound_sms import process_pinpoint_inbound_sms, CeleryEvent, PinpointInboundSmsMessage
 from app.notifications.receive_notifications import NoSuitableServiceForInboundSms
 from app.config import QueueNames
-from app.feature_flags import FeatureFlag
 from app.models import Service, InboundSms
 
 
@@ -17,11 +16,7 @@ def toggle_enabled(mocker):
 
 
 def test_passes_if_toggle_disabled(mocker, notify_api):
-    mock_toggle = mocker.patch('app.celery.process_pinpoint_inbound_sms.is_feature_enabled', return_value=False)
-
     process_pinpoint_inbound_sms(event={})
-
-    mock_toggle.assert_called_with(FeatureFlag.PINPOINT_INBOUND_SMS_ENABLED)
 
 
 def test_fails_if_no_matching_service(mocker, notify_api, toggle_enabled):

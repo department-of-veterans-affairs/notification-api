@@ -1243,7 +1243,6 @@ def test_get_detailed_service(notify_api, notify_db_session, sample_service, sam
     assert service_resp['id'] == str(service.id)
     assert 'statistics' in service_resp
     assert set(service_resp['statistics'].keys()) == {SMS_TYPE, EMAIL_TYPE, LETTER_TYPE}
-    print('STATS:\n ', service_resp['statistics'])
     assert service_resp['statistics'][SMS_TYPE] == stats
 
     # Teardown

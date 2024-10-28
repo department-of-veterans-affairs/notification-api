@@ -12,7 +12,6 @@ from notifications_utils.timezones import convert_utc_to_local_timezone
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import (
-    create_uuid,
     create_random_identifier,
     encryption,
     notify_celery,
@@ -62,6 +61,7 @@ from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.models import DailySortedLetter
 from app.notifications.process_notifications import persist_notification
 from app.service.utils import service_allowed_to_send_to
+from app.utils import create_uuid
 
 
 @notify_celery.task(name='process-job')

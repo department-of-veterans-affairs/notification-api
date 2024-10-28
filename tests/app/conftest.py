@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import os
 from random import randint, randrange
@@ -1478,6 +1478,9 @@ def sample_notification(notify_db_session, sample_api_key, sample_template):  # 
         if 'created_by_id' not in kwargs:
             kwargs['created_by_id'] = kwargs['template'].created_by_id
 
+        # xdist has issues with parameterize and allowing the DB to set the notification id
+        kwargs['reference'] = kwargs.get('reference', str(uuid4()))
+
         # commits the notification
         notification = create_notification(*args, **kwargs)
         created_notification_ids.append(notification.id)
@@ -2462,6 +2465,23 @@ def mock_va_profile_client(mocker, notify_api):
 def mock_va_profile_response():
     with open('tests/app/va/va_profile/mock_response.json', 'r') as f:
         return json.load(f)
+
+
+@pytest.fixture
+def x_minutes_ago():
+    """Generate a timestamp in the past.
+
+    Helper to make sure timestamps are sufficiently different
+
+    Returns:
+        datetime: 5 minutes ago, no timezone
+    """
+
+    # Database does not store tzinfo, so this has to be stripped for comparison purposes
+    def _wrapper(x: int = 5):
+        return (datetime.now(timezone.utc) - timedelta(minutes=x)).replace(tzinfo=None)
+
+    yield _wrapper
 
 
 #######################################################################################################################

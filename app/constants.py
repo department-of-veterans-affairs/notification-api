@@ -231,6 +231,7 @@ FIRETEXT_PROVIDER = 'firetext'
 PINPOINT_PROVIDER = 'pinpoint'
 SNS_PROVIDER = 'sns'
 SES_PROVIDER = 'ses'
+TWILIO_PROVIDER = 'twilio'
 
 # Jobs
 JOB_STATUS_PENDING = 'pending'

@@ -7,7 +7,7 @@ from flask_jwt_extended import create_access_token
 from freezegun import freeze_time
 from sqlalchemy import select
 
-from app import create_uuid
+from app.utils import create_uuid
 from app.constants import (
     COMPLAINT_CALLBACK_TYPE,
     DELIVERY_STATUS_CALLBACK_TYPE,

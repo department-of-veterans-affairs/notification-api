@@ -10,14 +10,15 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from app.constants import (
     NOTIFICATION_CREATED,
-    NOTIFICATION_STATUS_TYPES,
-    NOTIFICATION_STATUS_TYPES_FAILED,
-    NOTIFICATION_TEMPORARY_FAILURE,
-    NOTIFICATION_SENDING,
+    NOTIFICATION_DELIVERED,
     NOTIFICATION_PENDING,
     NOTIFICATION_PENDING_VIRUS_CHECK,
+    NOTIFICATION_TECHNICAL_FAILURE,
+    NOTIFICATION_TEMPORARY_FAILURE,
+    NOTIFICATION_SENDING,
     NOTIFICATION_SENT,
-    NOTIFICATION_DELIVERED,
+    NOTIFICATION_STATUS_TYPES,
+    NOTIFICATION_STATUS_TYPES_FAILED,
     KEY_TYPE_NORMAL,
     KEY_TYPE_TEAM,
     KEY_TYPE_TEST,
@@ -2088,26 +2089,33 @@ def test_update_notification_status_by_id_can_update_status_in_order_when_given_
         (NOTIFICATION_CREATED, NOTIFICATION_DELIVERED),
         (NOTIFICATION_CREATED, NOTIFICATION_TEMPORARY_FAILURE),
         (NOTIFICATION_CREATED, NOTIFICATION_PERMANENT_FAILURE),
+        (NOTIFICATION_CREATED, NOTIFICATION_TECHNICAL_FAILURE),
         (NOTIFICATION_PENDING, NOTIFICATION_PENDING),
         (NOTIFICATION_PENDING, NOTIFICATION_SENT),
         (NOTIFICATION_PENDING, NOTIFICATION_DELIVERED),
         (NOTIFICATION_PENDING, NOTIFICATION_TEMPORARY_FAILURE),
         (NOTIFICATION_PENDING, NOTIFICATION_PERMANENT_FAILURE),
+        (NOTIFICATION_PENDING, NOTIFICATION_TECHNICAL_FAILURE),
         (NOTIFICATION_SENDING, NOTIFICATION_SENDING),
         (NOTIFICATION_SENDING, NOTIFICATION_PENDING),
         (NOTIFICATION_SENDING, NOTIFICATION_SENT),
         (NOTIFICATION_SENDING, NOTIFICATION_DELIVERED),
         (NOTIFICATION_SENDING, NOTIFICATION_TEMPORARY_FAILURE),
         (NOTIFICATION_SENDING, NOTIFICATION_PERMANENT_FAILURE),
+        (NOTIFICATION_SENDING, NOTIFICATION_TECHNICAL_FAILURE),
         (NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_SENT),
         (NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_DELIVERED),
         (NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_TEMPORARY_FAILURE),
         (NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_PERMANENT_FAILURE),
+        (NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_TECHNICAL_FAILURE),
         (NOTIFICATION_SENT, NOTIFICATION_SENT),
         (NOTIFICATION_SENT, NOTIFICATION_DELIVERED),
         (NOTIFICATION_SENT, NOTIFICATION_TEMPORARY_FAILURE),
+        (NOTIFICATION_SENT, NOTIFICATION_TECHNICAL_FAILURE),
         (NOTIFICATION_DELIVERED, NOTIFICATION_DELIVERED),
+        (NOTIFICATION_DELIVERED, NOTIFICATION_TECHNICAL_FAILURE),
         (NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_DELIVERED),
+        (NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_TECHNICAL_FAILURE),
     ],
 )
 def test_update_notification_delivery_status_valid_updates(
@@ -2133,6 +2141,8 @@ def test_update_notification_delivery_status_valid_updates(
         notification_type=notification.notification_type,
         new_status=new_status,
         new_status_reason=final_status_reason,
+        segments_count=1,
+        cost_in_millicents=0.0,
     )
 
     assert notification.status == new_status
@@ -2166,7 +2176,7 @@ def test_update_notification_delivery_status_invalid_updates(
     current_status,
     new_status,
 ):
-    status_reason = '' if (current_status == NOTIFICATION_DELIVERED) else 'Because I said so!'
+    status_reason = None if (current_status == NOTIFICATION_DELIVERED) else 'Because I said so!'
 
     notification: Notification = sample_notification(
         template=sample_template(),
@@ -2181,6 +2191,9 @@ def test_update_notification_delivery_status_invalid_updates(
         notification_id=notification.id,
         notification_type=notification.notification_type,
         new_status=new_status,
+        new_status_reason=status_reason,
+        segments_count=1,
+        cost_in_millicents=0.0,
     )
 
     assert notification.status != new_status

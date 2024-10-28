@@ -1,7 +1,4 @@
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime, timedelta
 import functools
 import string
 from typing import Any, Optional
@@ -27,7 +24,7 @@ from sqlalchemy.sql.expression import case
 from sqlalchemy.dialects.postgresql import insert
 from werkzeug.datastructures import MultiDict
 
-from app import db, create_uuid
+from app import db
 from app.aws.s3 import remove_s3_object, get_s3_bucket_objects
 from app.constants import (
     KEY_TYPE_TEST,
@@ -55,9 +52,17 @@ from app.models import (
     ServiceDataRetention,
     Service,
 )
-from app.utils import get_local_timezone_midnight_in_utc
+from app.utils import create_uuid, get_local_timezone_midnight_in_utc
 from app.utils import midnight_n_days_ago, escape_special_characters
 
+# No response from the provider yet, or the response is that they have not done anything (pending)
+UNSENT_STATUSES = (
+    NOTIFICATION_CREATED,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_PENDING,
+)
+
+# Non-final state
 TRANSIENT_STATUSES = (
     NOTIFICATION_CREATED,
     NOTIFICATION_SENDING,
@@ -67,11 +72,81 @@ TRANSIENT_STATUSES = (
     NOTIFICATION_TEMPORARY_FAILURE,
 )
 
+# Final state - Can sometimes move between final states
 FINAL_STATUS_STATES = (
     NOTIFICATION_DELIVERED,
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_TECHNICAL_FAILURE,
     NOTIFICATION_PREFERENCES_DECLINED,
+)
+
+_CREATED_UPDATES = (
+    NOTIFICATION_SENDING,
+    NOTIFICATION_PENDING,
+    NOTIFICATION_SENT,
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_TEMPORARY_FAILURE,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_PREFERENCES_DECLINED,
+    NOTIFICATION_TECHNICAL_FAILURE,
+)
+
+_SENDING_UPDATES = (
+    NOTIFICATION_PENDING,
+    NOTIFICATION_SENT,
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_TEMPORARY_FAILURE,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_PREFERENCES_DECLINED,
+    NOTIFICATION_TECHNICAL_FAILURE,
+)
+
+_PENDING_UPDATES = (
+    NOTIFICATION_SENT,
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_TEMPORARY_FAILURE,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_PREFERENCES_DECLINED,
+    NOTIFICATION_TECHNICAL_FAILURE,
+)
+
+
+_SENT_UPDATES = (
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_TEMPORARY_FAILURE,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_PREFERENCES_DECLINED,
+    NOTIFICATION_TECHNICAL_FAILURE,
+)
+
+_DELIVERED_UPDATES = (
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_PREFERENCES_DECLINED,
+    NOTIFICATION_TECHNICAL_FAILURE,
+)
+
+_TEMPORARY_FAILURE_UPDATES = (
+    NOTIFICATION_SENT,
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_PREFERENCES_DECLINED,
+    NOTIFICATION_TECHNICAL_FAILURE,
+)
+
+_PERMANENT_FAILURE_UPDATES = (
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_PREFERENCES_DECLINED,
+    NOTIFICATION_TECHNICAL_FAILURE,
+)
+
+_TECHNICAL_FAILURE_UPDATES = (
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_PREFERENCES_DECLINED,
+)
+
+_PREFERENCES_DECLINED_UPDATES = (
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_TECHNICAL_FAILURE,
 )
 
 
@@ -116,23 +191,26 @@ def country_records_delivery(phone_prefix):
 
 
 def sms_conditions(incoming_status: str) -> Any:
+    """Build conditions in which to update an sms notification.
+
+    Args:
+        incoming_status (str): The incoming notification status
+
+    Returns:
+        Any: Conditions for a where clause
+    """
     return or_(
-        # update to delivered, unless it's already set to delivered
-        and_(incoming_status == NOTIFICATION_DELIVERED, Notification.status != NOTIFICATION_DELIVERED),
-        # update to final status if the current status is not a final status
-        and_(incoming_status in FINAL_STATUS_STATES, Notification.status.not_in(FINAL_STATUS_STATES)),
-        # update to sent or temporary failure if the current status is a transient status
+        and_(Notification.status == NOTIFICATION_CREATED, incoming_status in _CREATED_UPDATES),
+        and_(Notification.status == NOTIFICATION_SENDING, incoming_status in _SENDING_UPDATES),
+        and_(Notification.status == NOTIFICATION_PENDING, incoming_status in _PENDING_UPDATES),
+        and_(Notification.status == NOTIFICATION_SENT, incoming_status in _SENT_UPDATES),
+        and_(Notification.status == NOTIFICATION_DELIVERED, incoming_status in _DELIVERED_UPDATES),
+        and_(Notification.status == NOTIFICATION_TEMPORARY_FAILURE, incoming_status in _TEMPORARY_FAILURE_UPDATES),
+        and_(Notification.status == NOTIFICATION_PERMANENT_FAILURE, incoming_status in _PERMANENT_FAILURE_UPDATES),
+        and_(Notification.status == NOTIFICATION_TECHNICAL_FAILURE, incoming_status in _TECHNICAL_FAILURE_UPDATES),
         and_(
-            incoming_status in [NOTIFICATION_SENT, NOTIFICATION_TEMPORARY_FAILURE],
-            Notification.status.in_(TRANSIENT_STATUSES),
+            Notification.status == NOTIFICATION_PREFERENCES_DECLINED, incoming_status in _PREFERENCES_DECLINED_UPDATES
         ),
-        # update to pending if the current status is created or sending
-        and_(
-            incoming_status == NOTIFICATION_PENDING,
-            Notification.status.in_([NOTIFICATION_CREATED, NOTIFICATION_SENDING]),
-        ),
-        # update to sending from created
-        and_(incoming_status == NOTIFICATION_SENDING, Notification.status == NOTIFICATION_CREATED),
     )
 
 
@@ -140,12 +218,19 @@ def get_sms_delivery_status_update_statement(
     notification_id: UUID,
     incoming_status: str,
     incoming_status_reason: str | None,
+    segments_count: int,
+    cost_in_millicents: float,
 ):
     stmt = (
         update(Notification)
         .where(Notification.id == notification_id)
         .where(sms_conditions(incoming_status))
-        .values(status=incoming_status, status_reason=incoming_status_reason)
+        .values(
+            status=incoming_status,
+            status_reason=incoming_status_reason,
+            segments_count=segments_count,
+            cost_in_millicents=cost_in_millicents,
+        )
         .execution_options(synchronize_session='fetch')
     )
     current_app.logger.debug('sms delivery status statement: %s', stmt)
@@ -244,7 +329,6 @@ def _update_notification_status(
             'Attempting to update notification %s to a status that does not exist %s', notification.id, status
         )
 
-    # KWM - email
     update_statement = _get_notification_status_update_statement(notification.id, status, status_reason)
 
     try:
@@ -308,7 +392,9 @@ def dao_update_notification_delivery_status(
     notification_id: UUID,
     notification_type: str,
     new_status: str,
-    new_status_reason: str = None,
+    new_status_reason: str | None,
+    segments_count: int,
+    cost_in_millicents: float,
 ) -> Notification:
     """Update an SMS notification delivery status.
 
@@ -329,6 +415,8 @@ def dao_update_notification_delivery_status(
             notification_id=notification_id,
             incoming_status=new_status,
             incoming_status_reason=new_status_reason,
+            segments_count=segments_count,
+            cost_in_millicents=cost_in_millicents,
         )
     else:
         raise NotImplementedError(f'dao_update_notification_delivery_status not configured for {notification_type} yet')
@@ -922,7 +1010,7 @@ def dao_get_notifications_by_to_field(
 
 
 @statsd(namespace='dao')
-def dao_get_notification_by_reference(reference):
+def dao_get_notification_by_reference(reference) -> Notification:
     stmt = select(Notification).where(Notification.reference == reference)
     return db.session.scalars(stmt).one()
 

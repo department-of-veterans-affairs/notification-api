@@ -1,4 +1,7 @@
 import itertools
+
+from flask import current_app
+
 from app import db
 from app.history_meta import create_history
 from functools import wraps
@@ -16,8 +19,6 @@ def transactional(func):
         *args,
         **kwargs,
     ):
-        from flask import current_app
-
         try:
             res = func(*args, **kwargs)
             db.session.commit()
