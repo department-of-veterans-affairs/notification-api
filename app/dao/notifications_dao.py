@@ -214,29 +214,6 @@ def sms_conditions(incoming_status: str) -> Any:
     )
 
 
-def get_sms_delivery_status_update_statement(
-    notification_id: UUID,
-    incoming_status: str,
-    incoming_status_reason: str | None,
-    segments_count: int,
-    cost_in_millicents: float,
-):
-    stmt = (
-        update(Notification)
-        .where(Notification.id == notification_id)
-        .where(sms_conditions(incoming_status))
-        .values(
-            status=incoming_status,
-            status_reason=incoming_status_reason,
-            segments_count=segments_count,
-            cost_in_millicents=cost_in_millicents,
-        )
-        .execution_options(synchronize_session='fetch')
-    )
-    current_app.logger.debug('sms delivery status statement: %s', stmt)
-    return stmt
-
-
 def _get_notification_status_update_statement(
     notification_id: str,
     incoming_status: str,
@@ -411,13 +388,19 @@ def dao_update_notification_delivery_status(
     """
 
     if notification_type == SMS_TYPE:
-        stmt = get_sms_delivery_status_update_statement(
-            notification_id=notification_id,
-            incoming_status=new_status,
-            incoming_status_reason=new_status_reason,
-            segments_count=segments_count,
-            cost_in_millicents=cost_in_millicents,
+        stmt = (
+            update(Notification)
+            .where(Notification.id == notification_id)
+            .where(sms_conditions(new_status))
+            .values(
+                status=new_status,
+                status_reason=new_status_reason,
+                segments_count=segments_count,
+                cost_in_millicents=cost_in_millicents,
+            )
+            .execution_options(synchronize_session='fetch')
         )
+        current_app.logger.debug('sms delivery status statement: %s', stmt)
     else:
         raise NotImplementedError(f'dao_update_notification_delivery_status not configured for {notification_type} yet')
 

@@ -36,10 +36,11 @@ def process_pinpoint_results(
     different than Notify's communication item preferences.  If a veteran opts-out at that level, Pinpoint
     should never receive input trying to send a message to the opted-out veteran.
     """
-    current_app.logger.debug('Incoming pinpoint sms update: %s', response)
+    current_app.logger.debug('pinpoint incoming sms update: %s', response)
 
     try:
         pinpoint_message = json.loads(base64.b64decode(response['Message']))
+        current_app.logger.debug('pinpoint decoded sms update: %s', pinpoint_message)
         event_type = pinpoint_message['event_type']
         record_status = pinpoint_message['attributes']['record_status']
     except (json.decoder.JSONDecodeError, ValueError, TypeError, KeyError) as e:

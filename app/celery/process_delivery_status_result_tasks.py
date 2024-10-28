@@ -40,11 +40,12 @@ def process_delivery_status(
     This is a Celery task for updating the delivery status of a Twilio notification.
     """
 
-    current_app.logger.debug('Incoming twilio sms update: %s', event)
+    current_app.logger.debug('twilio incoming sms update: %s', event)
 
     # first attempt to process the incoming event
     try:
         sqs_message = _get_sqs_message(event)
+        current_app.logger.debug('twilio decoded sms update: %s', sqs_message)
         provider_name, provider = _get_provider_info(sqs_message)
     except NonRetryableException:
         statsd_client.incr('clients.sms.twilio.status_update.error')
@@ -105,8 +106,6 @@ def _get_include_payload_status(
 
 def _get_sqs_message(event: CeleryEvent) -> dict:
     """Gets the sms message from the CeleryEvent"""
-    sqs_message = None
-    current_app.logger.info('Get SQS message')
     sqs_message = event.get('message')
     if sqs_message is None:
         # Logic was previously setup this way. Not sure why we're retrying on type/key errors
