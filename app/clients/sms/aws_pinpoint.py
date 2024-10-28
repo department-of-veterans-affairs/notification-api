@@ -1,3 +1,4 @@
+from datetime import datetime
 from logging import Logger
 from time import monotonic
 from typing import Tuple
@@ -216,6 +217,7 @@ class AwsPinpointClient(SmsClient):
             PINPOINT_PROVIDER,
             pinpoint_attributes['number_of_message_parts'],
             delivery_status_message['metrics']['price_in_millicents_usd'],
+            datetime.fromtimestamp(delivery_status_message['event_timestamp'] / 1000),
         )
 
         return notification_platform_status

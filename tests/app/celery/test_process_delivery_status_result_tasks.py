@@ -506,6 +506,7 @@ def test_get_notification_platform_status(notify_api, sample_delivery_status_res
         provider='twilio',
         message_parts=1,
         price_millicents=0.0,
+        provider_updated_at=datetime.strptime('2303222338', TwilioSMSClient.RAW_DLR_DONE_DATE_FMT),
     )
     assert expected_sms_status_record == get_notification_platform_status(
         TwilioSMSClient(), sample_delivery_status_result_message['message']['body']

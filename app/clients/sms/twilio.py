@@ -1,5 +1,6 @@
 import base64
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from logging import Logger
 from monotonic import monotonic
 from urllib.parse import parse_qs
@@ -47,6 +48,8 @@ def get_twilio_responses(status):
 
 
 class TwilioSMSClient(SmsClient):
+    RAW_DLR_DONE_DATE_FMT = '%y%m%H%d%M'
+
     def __init__(
         self,
         account_sid=None,
@@ -255,15 +258,34 @@ class TwilioSMSClient(SmsClient):
         twilio_delivery_status = parsed_dict['MessageStatus'][0]
         error_code = parsed_dict.get('ErrorCode', [])
         status, status_reason = self._evaluate_status(message_sid, twilio_delivery_status, error_code)
+        raw_dlr_done_date_list = parsed_dict.get('RawDlrDoneDate', [])
+        raw_dlr_done_date = raw_dlr_done_date_list[0] if raw_dlr_done_date_list else None
+
         notification_platform_status = SmsStatusRecord(
             decoded_msg,
             message_sid,
             status,
             status_reason,
             TWILIO_PROVIDER,
+            provider_updated_at=self._translate_raw_dlr_done_date(raw_dlr_done_date) if raw_dlr_done_date else None,
         )
 
         return notification_platform_status
+
+    def _translate_raw_dlr_done_date(self, done_date: str) -> datetime:
+        """Translate RawDlrDoneDate into a timezone unaware datetime object.
+
+        Args:
+            done_date (str): The incoming RawDlrDoneDate
+
+        Returns:
+            datetime: Time that Twilio received this update from the carrier
+        """
+        try:
+            done_datetime = datetime.strptime(done_date, TwilioSMSClient.RAW_DLR_DONE_DATE_FMT)
+        except ValueError:
+            done_datetime = datetime.now(timezone.utc).replace(tzinfo=None)
+        return done_datetime
 
     def update_notification_status_override(self, message_sid: str) -> None:
         """
