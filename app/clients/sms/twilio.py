@@ -1,6 +1,5 @@
 import base64
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from logging import Logger
 from monotonic import monotonic
 from urllib.parse import parse_qs
@@ -262,7 +261,6 @@ class TwilioSMSClient(SmsClient):
             status,
             status_reason,
             TWILIO_PROVIDER,
-            datetime.now(timezone.utc).replace(tzinfo=None),
         )
 
         return notification_platform_status

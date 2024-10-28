@@ -216,7 +216,7 @@ class AwsPinpointClient(SmsClient):
             PINPOINT_PROVIDER,
             pinpoint_attributes['number_of_message_parts'],
             delivery_status_message['metrics']['price_in_millicents_usd'],
-            updated_at=delivery_status_message['date_updated'],
+            provider_updated_at=delivery_status_message['date_updated'],
         )
 
         return notification_platform_status

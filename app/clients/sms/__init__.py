@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.clients import Client, ClientException
 
@@ -36,7 +36,7 @@ class SmsStatusRecord:
     provider: str
     message_parts: int = 1
     price_millicents: float = 0.0
-    provider_updated_at: datetime
+    provider_updated_at: datetime = datetime.now(timezone.utc)
 
 
 class SmsClient(Client):
