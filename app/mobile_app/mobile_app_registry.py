@@ -1,6 +1,7 @@
 from typing import List
-from .mobile_app_types import MobileAppType
+
 from .mobile_app import MobileApp
+from .mobile_app_types import MobileAppType
 
 
 class MobileAppRegistry:

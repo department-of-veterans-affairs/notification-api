@@ -1,14 +1,15 @@
+from flask import current_app, jsonify, request
+
 from app import authenticated_service, vetext_client
-from app.feature_flags import is_feature_enabled, FeatureFlag
-from app.mobile_app import MobileAppType, DEAFULT_MOBILE_APP_TYPE
+from app.feature_flags import FeatureFlag, is_feature_enabled
+from app.mobile_app import DEAFULT_MOBILE_APP_TYPE, MobileAppType
 from app.models import PUSH_TYPE
 from app.schema_validation import validate
 from app.utils import get_public_notify_type_text
 from app.v2.errors import BadRequestError
 from app.v2.notifications import v2_notification_blueprint
-from app.v2.notifications.notification_schemas import push_notification_request, push_notification_broadcast_request
-from app.va.vetext import VETextRetryableException, VETextNonRetryableException, VETextBadRequestException
-from flask import request, jsonify, current_app
+from app.v2.notifications.notification_schemas import push_notification_broadcast_request, push_notification_request
+from app.va.vetext import VETextBadRequestException, VETextNonRetryableException, VETextRetryableException
 
 
 @v2_notification_blueprint.route('/push', methods=['POST'])

@@ -1,8 +1,9 @@
-from unittest.mock import Mock
-from app.mobile_app.mobile_app_types import MobileAppType
-import pytest
 import os
+import pytest
+from unittest.mock import Mock
+
 from app.mobile_app.mobile_app_registry import MobileAppRegistry
+from app.mobile_app.mobile_app_types import MobileAppType
 
 
 @pytest.fixture(autouse=True)
