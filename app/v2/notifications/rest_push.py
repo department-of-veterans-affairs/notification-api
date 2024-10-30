@@ -1,6 +1,6 @@
-from flask import current_app, jsonify, request
+from flask import jsonify, request
 
-from app import authenticated_service, vetext_client
+from app import authenticated_service, vetext_client, mobile_app_registry
 from app.feature_flags import FeatureFlag, is_feature_enabled
 from app.mobile_app import DEAFULT_MOBILE_APP_TYPE, MobileAppType
 from app.models import PUSH_TYPE
@@ -37,13 +37,11 @@ def push_notification_helper(schema: dict, is_broadcast: bool):
         )
 
     req_json = validate(request.get_json(), schema)
-    registry = current_app.mobile_app_registry
 
     if req_json.get('mobile_app'):
-        app_instance = registry.get_app(MobileAppType[req_json['mobile_app']])
+        app_instance = mobile_app_registry.get_app(MobileAppType[req_json['mobile_app']])
     else:
-        app_instance = registry.get_app(DEAFULT_MOBILE_APP_TYPE)
-
+        app_instance = mobile_app_registry.get_app(DEAFULT_MOBILE_APP_TYPE)
     if not app_instance:
         return jsonify(result='error', message='Mobile app is not initialized'), 503
     try:
