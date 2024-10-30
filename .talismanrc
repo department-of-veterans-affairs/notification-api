@@ -27,6 +27,8 @@ fileignoreconfig:
   checksum: 9e5161e8a0a13974d9b67d8a7e61d1b3fed9657a7e2dfeb6d82fd8ace64e2715
 - filename: ci/docker-compose-test.yml
   checksum: e3efec2749e8c19e60f5bfc68eafabe24eba647530a482ceccfc4e0e62cff424
+- filename: ci/.local.env
+  checksum: 8caee8cf67974ad5195c835d3d266d81dbc4c635c547b7cc49704c0593e7833b
 - filename: lambda_functions/pinpoint_callback/pinpoint_callback_lambda.py
   checksum: 7bd4900e14b1fa789bbb2568b8a8d7a400e3c8350ba32fb44cc0b5b66a2df037
 - filename: lambda_functions/ses_callback/ses_callback_lambda.py
