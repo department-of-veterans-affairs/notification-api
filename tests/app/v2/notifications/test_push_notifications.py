@@ -216,7 +216,7 @@ class TestPushSending:
 
         post_send_notification(client, sample_api_key(service), PUSH_TYPE, payload)
         vetext_client.send_push_notification.assert_called_once_with(
-            f'some_sid_for_{app}',
+            f'{app}_sid',
             payload['template_id'],
             payload['recipient_identifier']['id_value'],
             False,
