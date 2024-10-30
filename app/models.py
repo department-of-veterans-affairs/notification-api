@@ -52,7 +52,6 @@ from app.constants import (
     NOTIFICATION_STATUS_LETTER_ACCEPTED,
     NOTIFICATION_STATUS_LETTER_RECEIVED,
     NOTIFICATION_STATUS_TYPES,
-    NOTIFICATION_STATUS_TYPES_BILLABLE,
     NOTIFICATION_STATUS_TYPES_COMPLETED,
     NOTIFICATION_STATUS_TYPES_FAILED,
     NOTIFICATION_TYPE,
@@ -74,12 +73,11 @@ from app.model import User
 from app.va.identifier import IdentifierType
 
 # models.py only constants
-NOTIFICATION_STATUS_TYPES_NON_BILLABLE = list(set(NOTIFICATION_STATUS_TYPES) - set(NOTIFICATION_STATUS_TYPES_BILLABLE))
 UNKNOWN_COMPLAINT_TYPE = 'unknown complaint type'
-VERIFY_CODE_TYPES = [EMAIL_TYPE, SMS_TYPE]
+VERIFY_CODE_TYPES = (EMAIL_TYPE, SMS_TYPE)
 # models.py only but order dependent
-SMS_PROVIDERS = [MMG_PROVIDER, FIRETEXT_PROVIDER, PINPOINT_PROVIDER, SNS_PROVIDER]
-EMAIL_PROVIDERS = [SES_PROVIDER]
+SMS_PROVIDERS = (MMG_PROVIDER, FIRETEXT_PROVIDER, PINPOINT_PROVIDER, SNS_PROVIDER)
+EMAIL_PROVIDERS = (SES_PROVIDER,)
 PROVIDERS = SMS_PROVIDERS + EMAIL_PROVIDERS
 
 # Model enums
@@ -407,8 +405,8 @@ class Service(db.Model, Versioned):
     ):
         if isinstance(permissions_to_check_for, InstrumentedList):
             _permissions_to_check_for = [p.permission for p in permissions_to_check_for]
-        elif not isinstance(permissions_to_check_for, list):
-            _permissions_to_check_for = [permissions_to_check_for]
+        elif not isinstance(permissions_to_check_for, list) and not isinstance(permissions_to_check_for, tuple):
+            _permissions_to_check_for = (permissions_to_check_for,)
         else:
             _permissions_to_check_for = permissions_to_check_for
 

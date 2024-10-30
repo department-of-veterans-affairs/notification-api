@@ -238,7 +238,8 @@ class TestCreateServiceCallback:
 
         resp_json = response.json['data']
         created_service_callback_api = get_service_callback(resp_json['id'])
-        assert created_service_callback_api.notification_statuses == NOTIFICATION_STATUS_TYPES_COMPLETED
+        # Database returns it as a list, but it is declared in code as a tuple
+        assert created_service_callback_api.notification_statuses == list(NOTIFICATION_STATUS_TYPES_COMPLETED)
 
     @pytest.mark.parametrize('callback_type', [INBOUND_SMS_CALLBACK_TYPE, COMPLAINT_CALLBACK_TYPE])
     def test_create_service_callback_returns_400_if_statuses_passed_with_incompatible_callback_type(
@@ -309,7 +310,7 @@ class TestCreateServiceCallback:
         assert resp_json['errors'][0]['error'] == 'ValidationError'
         assert (
             resp_json['errors'][0]['message'] == f"callback_channel {data['callback_channel']} is not one of "
-            f"[webhook, queue]"
+            f"(webhook, queue)"
         )
 
     def test_users_cannot_create_service_callbacks_with_queue_channel(self, client, sample_service):

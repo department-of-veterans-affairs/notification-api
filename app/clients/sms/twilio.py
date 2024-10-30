@@ -262,7 +262,7 @@ class TwilioSMSClient(SmsClient):
         provider_updated_at = (
             self._translate_raw_dlr_done_date(raw_dlr_done_date_list[0]) if raw_dlr_done_date_list else None
         )
-        notification_platform_status = SmsStatusRecord(
+        return SmsStatusRecord(
             decoded_msg,
             message_sid,
             status,
@@ -270,8 +270,6 @@ class TwilioSMSClient(SmsClient):
             TWILIO_PROVIDER,
             provider_updated_at=provider_updated_at,
         )
-
-        return notification_platform_status
 
     def _translate_raw_dlr_done_date(self, done_date: str) -> datetime:
         """Translate RawDlrDoneDate into a timezone unaware datetime object.

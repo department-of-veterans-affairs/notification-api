@@ -302,7 +302,7 @@ def test_process_delivery_status_no_status_reason_for_delivered(
 
 def test_sms_status_update_notification_not_found(notify_api, mocker, sample_notification):
     mocker.patch(
-        'app.celery.process_delivery_status_result_tasks.dao_update_notification_delivery_status',
+        'app.celery.process_delivery_status_result_tasks.dao_update_sms_notification_delivery_status',
         side_effect=Exception,
     )
 
@@ -392,7 +392,7 @@ def test_sms_status_check_and_queue_not_called(notify_api, mocker, sample_notifi
     notification = sample_notification(status=start_status, reference=str(uuid4()))
     # Prevent the DB update so check_and_queue isn't called
     mocker.patch(
-        'app.celery.process_delivery_status_result_tasks.dao_update_notification_delivery_status',
+        'app.celery.process_delivery_status_result_tasks.dao_update_sms_notification_delivery_status',
         return_value=notification,
     )
     sms_status = SmsStatusRecord('not none', notification.reference, end_status, 'ignored reason', PINPOINT_PROVIDER)
@@ -437,7 +437,7 @@ def test_get_notification_notification_not_found_retryable(
     event_time_in_seconds,
 ):
     mock_dao_method = mocker.patch(
-        'app.celery.process_delivery_status_result_tasks.dao_update_notification_delivery_status'
+        'app.celery.process_delivery_status_result_tasks.dao_update_sms_notification_delivery_status'
     )
     if event_timestamp_in_ms is not None:
         # Get a datetime from x minutes ago and convert to epoch time in milliseconds

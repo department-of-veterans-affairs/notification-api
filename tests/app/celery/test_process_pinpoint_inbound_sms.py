@@ -15,10 +15,6 @@ def toggle_enabled(mocker):
     mocker.patch('app.celery.process_pinpoint_inbound_sms.is_feature_enabled', return_value=True)
 
 
-def test_passes_if_toggle_disabled(mocker, notify_api):
-    process_pinpoint_inbound_sms(event={})
-
-
 def test_fails_if_no_matching_service(mocker, notify_api, toggle_enabled):
     mock_fetch_potential_service = mocker.patch(
         'app.celery.process_pinpoint_inbound_sms.fetch_potential_service', side_effect=NoSuitableServiceForInboundSms

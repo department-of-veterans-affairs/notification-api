@@ -1,6 +1,6 @@
 import base64
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
@@ -19,18 +19,6 @@ from app.constants import (
     PINPOINT_PROVIDER,
 )
 from app.dao import notifications_dao
-
-
-def five_minutes_ago() -> datetime:
-    """Generate a timestamp in the past.
-
-    Helper to make sure timestamps are sufficiently different
-
-    Returns:
-        datetime: 5 minutes ago, no timezone
-    """
-    # Database does not store tzinfo, so this has to be stripped for comparison purposes
-    return (datetime.now(timezone.utc) - timedelta(minutes=5)).replace(tzinfo=None)
 
 
 @pytest.mark.parametrize(
@@ -101,12 +89,13 @@ def test_process_pinpoint_results_should_not_update_notification_status_if_uncha
     mocker,
     sample_template,
     sample_notification,
+    x_minutes_ago,
 ):
     mock_callback = mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
 
     test_reference = f'{uuid4()}-test_process_pinpoint_results_should_not_update_notification_status_if_unchanged'
     template = sample_template()
-    last_updated_at = five_minutes_ago()
+    last_updated_at = x_minutes_ago(5)
 
     sample_notification(
         template=template, reference=test_reference, updated_at=last_updated_at, status=NOTIFICATION_SENDING
@@ -130,11 +119,12 @@ def test_process_pinpoint_results_should_not_update_notification_status_to_sendi
     sample_template,
     status,
     sample_notification,
+    x_minutes_ago,
 ):
     mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
 
     test_reference = f'{uuid4()}-notification_status_to_sending_if_status_already_final'
-    last_updated_at = five_minutes_ago()
+    last_updated_at = x_minutes_ago(5)
     sample_notification(template=sample_template(), reference=test_reference, updated_at=last_updated_at, status=status)
 
     process_pinpoint_results(
@@ -162,14 +152,16 @@ def test_process_pinpoint_results_should_not_update_notification_status_to_sendi
 )
 def test_process_pinpoint_results_delivered_clears_status_reason(
     mocker,
+    notify_db_session,
     sample_template,
     status,
     sample_notification,
+    x_minutes_ago,
 ):
     mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
 
     test_reference = f'{uuid4()}-update_notification_status_with_delivered'
-    last_updated_at = five_minutes_ago()
+    last_updated_at = x_minutes_ago(5)
     template = sample_template()
     sample_notification(
         template=template,

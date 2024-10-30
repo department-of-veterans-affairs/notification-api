@@ -15,7 +15,7 @@ from app.clients.sms import SmsClient, SmsStatusRecord, UNABLE_TO_TRANSLATE
 from app.constants import DELIVERY_STATUS_CALLBACK_TYPE, NOTIFICATION_DELIVERED
 from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
-    dao_update_notification_delivery_status,
+    dao_update_sms_notification_delivery_status,
 )
 from app.dao.service_callback_dao import dao_get_callback_include_payload_status
 from app.models import Notification
@@ -50,7 +50,9 @@ def process_delivery_status(
         statsd_client.incr('clients.sms.twilio.status_update.error')
         raise
 
-    notification_platform_status: SmsStatusRecord = get_notification_platform_status(provider, sqs_message.get('body'))
+    notification_platform_status: SmsStatusRecord = get_notification_platform_status(
+        provider, sqs_message.get('body', '')
+    )
 
     current_app.logger.info(
         'Processing %s result.  | reference: %s | notification_status: %s | '
@@ -196,8 +198,8 @@ def sms_status_update(
 
     Args:
         sms_status (SmsStatusRecord): The status record update
-        event_timestamp (str | None, optional): Timestamp the event came in. Defaults to None.
-        event_in_seconds (int, optional): How many seconds it has retried. Defaults to -1.
+        event_timestamp (str | None, optional): Timestamp the Pinpoint event came in. Defaults to None.
+        event_in_seconds (int, optional): How many seconds Twilio updates have retried. Defaults to 300
 
     Raises:
         NonRetryableException: Unable to update the notification
@@ -219,7 +221,7 @@ def sms_status_update(
         sms_status.status_reason = None
 
     try:
-        notification: Notification = dao_update_notification_delivery_status(
+        notification: Notification = dao_update_sms_notification_delivery_status(
             notification_id=notification.id,
             notification_type=notification.notification_type,
             new_status=sms_status.status,

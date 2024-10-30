@@ -118,5 +118,5 @@ def test_create_email_branding_reject_invalid_brand_type(
     data = {'name': 'test email_branding', 'brand_type': 'NOT A TYPE'}
     response = admin_request.post('email_branding.create_email_branding', _data=data, _expected_status=400)
 
-    expect = 'brand_type NOT A TYPE is not one of [org, both, org_banner, no_branding]'
+    expect = 'brand_type NOT A TYPE is not one of (org, both, org_banner, no_branding)'
     assert response['errors'][0]['message'] == expect

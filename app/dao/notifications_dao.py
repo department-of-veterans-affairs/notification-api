@@ -289,7 +289,7 @@ def _update_notification_status(
     notification: Notification, status: str, status_reason: str | None = None
 ) -> Notification:
     """
-    Update the notification EMAIL status if it should be updated.
+    Update the notification status if it should be updated.
 
     Args:
         notification (Notification): The notification to update.
@@ -365,7 +365,7 @@ def update_notification_status_by_id(
 
 
 @statsd(namespace='dao')
-def dao_update_notification_delivery_status(
+def dao_update_sms_notification_delivery_status(
     notification_id: UUID,
     notification_type: str,
     new_status: str,
@@ -402,7 +402,9 @@ def dao_update_notification_delivery_status(
         )
         current_app.logger.debug('sms delivery status statement: %s', stmt)
     else:
-        raise NotImplementedError(f'dao_update_notification_delivery_status not configured for {notification_type} yet')
+        raise NotImplementedError(
+            f'dao_update_sms_notification_delivery_status not configured for {notification_type} yet'
+        )
 
     try:
         db.session.execute(stmt)
@@ -446,7 +448,7 @@ def dao_update_notification_by_id(
     **kwargs,
 ) -> Optional[Notification]:
     """
-    Update the SMS notification by ID, ensure kwargs paramaters are named appropriately according to the notification model.
+    Update the notification by ID, ensure kwargs paramaters are named appropriately according to the notification model.
 
     Args:
         notification_id (str): The notification uuid in string form

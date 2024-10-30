@@ -35,29 +35,29 @@ class AwsPinpointException(SmsClientResponseException):
     pass
 
 
-# This is not an exhaustive list of all possible record statuses.  See the documentation linked below.
-_sms_record_status_mapping = {
-    'SUCCESSFUL': (NOTIFICATION_DELIVERED, None),
-    'DELIVERED': (NOTIFICATION_DELIVERED, None),
-    'PENDING': (NOTIFICATION_SENDING, None),
-    'INVALID': (NOTIFICATION_TECHNICAL_FAILURE, UNEXPECTED_PROVIDER_RESULT),
-    'UNREACHABLE': (NOTIFICATION_TEMPORARY_FAILURE, RETRYABLE_AWS_RESPONSE),
-    'UNKNOWN': (NOTIFICATION_TEMPORARY_FAILURE, RETRYABLE_AWS_RESPONSE),
-    'BLOCKED': (NOTIFICATION_PERMANENT_FAILURE, BLOCKED_MESSAGE),
-    'CARRIER_UNREACHABLE': (NOTIFICATION_TEMPORARY_FAILURE, RETRYABLE_AWS_RESPONSE),
-    'SPAM': (NOTIFICATION_PERMANENT_FAILURE, REPORTED_AS_SPAM),
-    'INVALID_MESSAGE': (NOTIFICATION_TECHNICAL_FAILURE, UNEXPECTED_PROVIDER_RESULT),
-    'CARRIER_BLOCKED': (NOTIFICATION_PERMANENT_FAILURE, BLOCKED_MESSAGE),
-    'TTL_EXPIRED': (NOTIFICATION_TEMPORARY_FAILURE, RETRYABLE_AWS_RESPONSE),
-    'MAX_PRICE_EXCEEDED': (NOTIFICATION_TECHNICAL_FAILURE, PRICE_THRESHOLD_EXCEEDED),
-    'OPTED_OUT': (NOTIFICATION_PREFERENCES_DECLINED, OPT_OUT_MESSAGE),
-}
-
-
 class AwsPinpointClient(SmsClient):
     """
     AwsSns pinpoint client
     """
+
+    # https://docs.aws.amazon.com/pinpoint/latest/developerguide/event-streams-data-sms.html
+    # Maps record_status to (status, status_reason)
+    _sms_record_status_mapping = {
+        'SUCCESSFUL': (NOTIFICATION_DELIVERED, None),
+        'DELIVERED': (NOTIFICATION_DELIVERED, None),
+        'PENDING': (NOTIFICATION_SENDING, None),
+        'INVALID': (NOTIFICATION_TECHNICAL_FAILURE, UNEXPECTED_PROVIDER_RESULT),
+        'UNREACHABLE': (NOTIFICATION_TEMPORARY_FAILURE, RETRYABLE_AWS_RESPONSE),
+        'UNKNOWN': (NOTIFICATION_TEMPORARY_FAILURE, RETRYABLE_AWS_RESPONSE),
+        'BLOCKED': (NOTIFICATION_PERMANENT_FAILURE, BLOCKED_MESSAGE),
+        'CARRIER_UNREACHABLE': (NOTIFICATION_TEMPORARY_FAILURE, RETRYABLE_AWS_RESPONSE),
+        'SPAM': (NOTIFICATION_PERMANENT_FAILURE, REPORTED_AS_SPAM),
+        'INVALID_MESSAGE': (NOTIFICATION_TECHNICAL_FAILURE, UNEXPECTED_PROVIDER_RESULT),
+        'CARRIER_BLOCKED': (NOTIFICATION_PERMANENT_FAILURE, BLOCKED_MESSAGE),
+        'TTL_EXPIRED': (NOTIFICATION_TEMPORARY_FAILURE, RETRYABLE_AWS_RESPONSE),
+        'MAX_PRICE_EXCEEDED': (NOTIFICATION_TECHNICAL_FAILURE, PRICE_THRESHOLD_EXCEEDED),
+        'OPTED_OUT': (NOTIFICATION_PREFERENCES_DECLINED, OPT_OUT_MESSAGE),
+    }
 
     def __init__(self):
         self.name = 'pinpoint'
@@ -153,11 +153,11 @@ class AwsPinpointClient(SmsClient):
             raise AwsPinpointException(error_message)
 
     def _get_status_mapping(self, record_status) -> Tuple[str, str]:
-        if record_status not in _sms_record_status_mapping:
+        if record_status not in self._sms_record_status_mapping:
             # This is a programming error, or Pinpoint's response format has changed.
             self.logger.critical('Unanticipated Pinpoint record status: %s', record_status)
 
-        return _sms_record_status_mapping.get(
+        return self._sms_record_status_mapping.get(
             record_status, (NOTIFICATION_TECHNICAL_FAILURE, UNEXPECTED_PROVIDER_RESULT)
         )
 
@@ -209,7 +209,7 @@ class AwsPinpointClient(SmsClient):
         event_type = delivery_status_message['event_type']
         record_status = pinpoint_attributes['record_status']
         status, status_reason = self._get_aws_status(event_type, record_status)
-        notification_platform_status = SmsStatusRecord(
+        return SmsStatusRecord(
             None,
             pinpoint_attributes['message_id'],
             status,
@@ -219,5 +219,3 @@ class AwsPinpointClient(SmsClient):
             delivery_status_message['metrics']['price_in_millicents_usd'],
             datetime.fromtimestamp(delivery_status_message['event_timestamp'] / 1000),
         )
-
-        return notification_platform_status

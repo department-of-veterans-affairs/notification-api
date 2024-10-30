@@ -36,7 +36,7 @@ from app.dao.notifications_dao import (
     dao_get_last_template_usage,
     dao_get_notifications_by_to_field,
     dao_get_scheduled_notifications,
-    dao_update_notification_delivery_status,
+    dao_update_sms_notification_delivery_status,
     dao_timeout_notifications,
     dao_update_notification,
     dao_update_notification_by_id,
@@ -2136,7 +2136,7 @@ def test_update_notification_delivery_status_valid_updates(
     assert notification.status == current_status
     assert notification.status_reason == initial_status_reason
 
-    dao_update_notification_delivery_status(
+    dao_update_sms_notification_delivery_status(
         notification_id=notification.id,
         notification_type=notification.notification_type,
         new_status=new_status,
@@ -2187,7 +2187,7 @@ def test_update_notification_delivery_status_invalid_updates(
     assert notification.status == current_status
     assert notification.status_reason == status_reason
 
-    dao_update_notification_delivery_status(
+    dao_update_sms_notification_delivery_status(
         notification_id=notification.id,
         notification_type=notification.notification_type,
         new_status=new_status,
