@@ -38,12 +38,11 @@ def push_notification_helper(schema: dict, is_broadcast: bool):
 
     req_json = validate(request.get_json(), schema)
 
-    if req_json.get('mobile_app'):
+    if 'mobile_app' in req_json:
         app_instance = mobile_app_registry.get_app(MobileAppType[req_json['mobile_app']])
     else:
         app_instance = mobile_app_registry.get_app(DEAFULT_MOBILE_APP_TYPE)
-    if not app_instance:
-        return jsonify(result='error', message='Mobile app is not initialized'), 503
+
     try:
         vetext_client.send_push_notification(
             app_instance.sid,

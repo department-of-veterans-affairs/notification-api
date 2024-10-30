@@ -56,6 +56,8 @@ firetext_client = FiretextClient()
 loadtest_client = LoadtestingClient()
 mmg_client = MMGClient()
 aws_ses_client = AwsSesClient()
+
+# This is initialized below, in create_app.
 mobile_app_registry = None
 
 from app.clients.email.govdelivery_client import GovdeliveryClient  # noqa

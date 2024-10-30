@@ -52,10 +52,14 @@ def test_registry_initilizes_only_apps_with_sids_in_env(
     registered_app,
     mock_logger,
 ):
+    """
+    Note that the case where both apps have SIDs is tested above, in test_registry_initilizes_mobile_apps.
+    """
+
     mocker.patch.dict(os.environ, env)
     registry = MobileAppRegistry(mock_logger)
 
-    expected_list = [registered_app] if registered_app else []
+    expected_list = [registered_app] if (registered_app is not None) else []
     assert registry.get_registered_apps() == expected_list
 
 

@@ -21,7 +21,7 @@ class MobileAppRegistry:
     def get_app(
         self,
         app_type: MobileAppType,
-    ) -> MobileApp:
+    ) -> MobileApp | None:
         return self._registry.get(app_type)
 
     def get_registered_apps(self) -> List[MobileAppType]:
