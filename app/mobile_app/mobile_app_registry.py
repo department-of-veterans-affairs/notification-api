@@ -9,7 +9,7 @@ class MobileAppRegistry:
         self.logger = logger
         self._registry = {}
 
-        logger.info('Intializing MobileAppRegistry')
+        logger.info('Initializing MobileAppRegistry')
         for type in MobileAppType:
             try:
                 app = MobileApp(type)
