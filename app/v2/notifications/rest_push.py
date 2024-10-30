@@ -1,9 +1,9 @@
 from flask import jsonify, request
 
 from app import authenticated_service, vetext_client, mobile_app_registry
+from app.constants import PUSH_TYPE
 from app.feature_flags import FeatureFlag, is_feature_enabled
 from app.mobile_app import DEAFULT_MOBILE_APP_TYPE, MobileAppType
-from app.models import PUSH_TYPE
 from app.schema_validation import validate
 from app.utils import get_public_notify_type_text
 from app.v2.errors import BadRequestError
