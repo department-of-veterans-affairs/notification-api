@@ -56,7 +56,7 @@ firetext_client = FiretextClient()
 loadtest_client = LoadtestingClient()
 mmg_client = MMGClient()
 aws_ses_client = AwsSesClient()
-mobile_app_registry = MobileAppRegistry
+mobile_app_registry = None
 
 from app.clients.email.govdelivery_client import GovdeliveryClient  # noqa
 
@@ -220,7 +220,9 @@ def create_app(application):
     )
 
     jwt.init_app(application)
-    mobile_app_registry(application.logger)
+
+    global mobile_app_registry
+    mobile_app_registry = MobileAppRegistry(application.logger)
 
     register_blueprint(application)
     register_v2_blueprints(application)
