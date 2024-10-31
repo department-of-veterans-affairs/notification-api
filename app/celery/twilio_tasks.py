@@ -12,12 +12,14 @@ def _get_notifications()->list:
     """
     Returns a list of notifications not in final state
     """
+    current_app.logger.info("Getting notifications to update status")
     # query = select([Notification]).where(Notification.status != 'delivered').limit(TWILIO_STATUS_PAGE_SIZE)
     query = select([Notification]).where(Notification.status.in_(NOTIFICATION_STATUS_TYPES_COMPLETED)).limit(TWILIO_STATUS_PAGE_SIZE)
+    current_app.logger.debug("Query: %s", query)
     return db.session.execute(query).all()
 
 
-@notify_celery.task(bind=True, name='update-twilio-status')
+@notify_celery.task(name='update-twilio-status')
 def update_twilio_status():
     """
     Update the status of notifications sent via Twilio

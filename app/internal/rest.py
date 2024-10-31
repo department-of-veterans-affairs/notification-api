@@ -18,6 +18,7 @@ from werkzeug.exceptions import UnsupportedMediaType
 from contextlib import suppress
 from flask import Blueprint, current_app, request
 
+from app.celery.twilio_tasks import update_twilio_status
 
 internal_blueprint = Blueprint('internal', __name__, url_prefix='/internal')
 
@@ -56,4 +57,7 @@ def handler(generic):
     else:
         response_body = {generic: request.json}
 
+    if generic == 'update-twilio-status':
+        update_twilio_status()
+        response_body = {'message': 'Twilio status update task has been scheduled.'}
     return response_body, status_code

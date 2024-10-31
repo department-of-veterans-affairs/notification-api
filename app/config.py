@@ -235,6 +235,7 @@ class Config(object):
             'app.celery.process_delivery_status_result_tasks',
             'app.celery.v3.notification_tasks',
             'app.celery.process_ses_receipts_tasks',
+            'app.celery.twilio_tasks',
         ),
         'beat_schedule': {
             # app/celery/scheduled_tasks.py
@@ -322,7 +323,7 @@ class Config(object):
             },
             'update-twilio-status': {
                 'task': 'update-twilio-status',
-                'schedule': crontab(minute=5),
+                'schedule': crontab(hour="*", minute="*/5"),
                 'options': {'queue': QueueNames.PERIODIC},
             },
         },
@@ -516,7 +517,7 @@ class Test(Development):
         'read-db': os.getenv('SQLALCHEMY_DATABASE_URI_READ', 'postgresql://postgres@localhost/notification_api')
     }
 
-    CELERY_SETTINGS = {'broker_url': 'you-forgot-to-mock-celery-in-your-tests://'}
+    # CELERY_SETTINGS = {'broker_url': 'you-forgot-to-mock-celery-in-your-tests://'}
 
     ANTIVIRUS_ENABLED = True
 
