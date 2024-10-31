@@ -18,7 +18,6 @@ from werkzeug.exceptions import UnsupportedMediaType
 from contextlib import suppress
 from flask import Blueprint, current_app, request
 
-from app.celery.twilio_tasks import update_twilio_status
 
 internal_blueprint = Blueprint('internal', __name__, url_prefix='/internal')
 
