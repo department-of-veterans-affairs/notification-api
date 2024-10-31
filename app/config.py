@@ -320,6 +320,11 @@ class Config(object):
                 'schedule': crontab(hour='13-21', day_of_month='24-31', minute='*/2'),
                 'options': {'queue': QueueNames.PERIODIC},
             },
+            'update-twilio-status': {
+                'task': 'update-twilio-status',
+                'schedule': crontab(minute=5),
+                'options': {'queue': QueueNames.PERIODIC},
+            },
         },
         'task_queues': [Queue(queue, Exchange('default'), routing_key=queue) for queue in QueueNames.all_queues()],
         'task_routes': {
