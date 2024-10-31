@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from flask import current_app
 from sqlalchemy import select
 
@@ -14,12 +16,12 @@ def _get_notifications() -> list:
     Returns a list of notifications not in final state
     """
     current_app.logger.info('Getting notifications to update status')
-    # query = select([Notification]).where(Notification.status != 'delivered').limit(TWILIO_STATUS_PAGE_SIZE)
+    one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
     query = (
         select([Notification])
         .where(Notification.status.in_(NOTIFICATION_STATUS_TYPES_COMPLETED))
         # Limit to 1 hour ago
-        .where(Notification.created_at > db.func.now() - db.func.interval('1 hour'))
+        .where(Notification.created_at > one_hour_ago)
         .limit(TWILIO_STATUS_PAGE_SIZE)
     )
     current_app.logger.debug('Query: %s', query)
