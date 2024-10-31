@@ -1,4 +1,4 @@
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, jsonify, request
 
 from app import db, mobile_app_registry, version, provider_service
 from app.dao.services_dao import dao_count_live_services
