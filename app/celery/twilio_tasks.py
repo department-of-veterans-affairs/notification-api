@@ -18,6 +18,8 @@ def _get_notifications() -> list:
     query = (
         select([Notification])
         .where(Notification.status.in_(NOTIFICATION_STATUS_TYPES_COMPLETED))
+        # Limit to 1 hour ago
+        .where(Notification.created_at > db.func.now() - db.func.interval('1 hour'))
         .limit(TWILIO_STATUS_PAGE_SIZE)
     )
     current_app.logger.debug('Query: %s', query)

@@ -57,7 +57,4 @@ def handler(generic):
     else:
         response_body = {generic: request.json}
 
-    if generic == 'update-twilio-status':
-        update_twilio_status()
-        response_body = {'message': 'Twilio status update task has been scheduled.'}
     return response_body, status_code
