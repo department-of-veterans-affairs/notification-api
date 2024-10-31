@@ -30,8 +30,4 @@ def update_twilio_status():
 
         # The twilio message sid is in the 'reference' field
         message_sid = notification.reference
-        twilio_message = twilio_sms_client.get_twilio_message(message_sid)
-
-        if twilio_message:
-            notification.status = twilio_message.status
-            current_app.logger.info("Updated status for notification %s to %s", notification.id, notification.status)
+        twilio_sms_client.update_notification_status_override(message_sid)
