@@ -19,13 +19,12 @@ def _get_notifications() -> list:
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
     query = (
         select([Notification])
-        .where(Notification.status.in_(NOTIFICATION_STATUS_TYPES_COMPLETED))
-        # Limit to 1 hour ago
+        .where(~Notification.status.in_(NOTIFICATION_STATUS_TYPES_COMPLETED))
         .where(Notification.created_at > one_hour_ago)
         .limit(TWILIO_STATUS_PAGE_SIZE)
     )
     current_app.logger.debug('Query: %s', query)
-    return db.session.execute(query).all()
+    return db.session.execute(query).scalars().all()
 
 
 @notify_celery.task(name='update-twilio-status')
