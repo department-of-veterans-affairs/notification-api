@@ -17,9 +17,6 @@ from app.constants import (
 )
 
 
-TWILIO_STATUS_PAGE_SIZE = 5
-
-
 @pytest.mark.parametrize(
     'status, expected',
     [
@@ -35,7 +32,7 @@ TWILIO_STATUS_PAGE_SIZE = 5
 )
 def test__get_notifications_statuses(sample_notification, status, expected):
     created_at = datetime.now(timezone.utc) - timedelta(minutes=30)
-    notification = sample_notification(created_at=created_at, status=status)
+    notification = sample_notification(created_at=created_at, status=status, sent_by='twilio')
 
     notifications = _get_notifications()
     notification_ids = [n.id for n in notifications]
@@ -56,7 +53,7 @@ def test__get_notifications_statuses(sample_notification, status, expected):
 )
 def test__get_notifications_datefilter(sample_notification, minute_offset, expected):
     created_at = datetime.now(timezone.utc) - timedelta(minutes=minute_offset)
-    notification = sample_notification(created_at=created_at, status=NOTIFICATION_CREATED)
+    notification = sample_notification(created_at=created_at, status=NOTIFICATION_CREATED, sent_by='twilio')
 
     notifications = _get_notifications()
     notification_ids = [n.id for n in notifications]
@@ -67,7 +64,7 @@ def test__get_notifications_datefilter(sample_notification, minute_offset, expec
 
 
 def test_update_twilio_status_with_results(mocker, sample_notification):
-    notification = sample_notification()
+    notification = sample_notification(status=NOTIFICATION_CREATED, sent_by='twilio')
 
     mocker.patch('app.celery.twilio_tasks._get_notifications', return_value=[notification])
 

@@ -4,7 +4,6 @@ from flask import current_app
 from sqlalchemy import select
 
 from app import db, notify_celery, twilio_sms_client
-from app.config import TWILIO_STATUS_PAGE_SIZE
 from app.constants import NOTIFICATION_STATUS_TYPES_COMPLETED
 from app.models import Notification
 
@@ -13,6 +12,7 @@ def _get_notifications() -> list:
     """
     Returns a list of notifications not in final state
     """
+
     current_app.logger.info('Getting notifications to update status')
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
     query = (
@@ -21,7 +21,7 @@ def _get_notifications() -> list:
         .where(Notification.sent_by == 'twilio')
         .where(~Notification.status.in_(NOTIFICATION_STATUS_TYPES_COMPLETED))
         .where(Notification.created_at > one_hour_ago)
-        .limit(TWILIO_STATUS_PAGE_SIZE)
+        .limit(current_app.config['TWILIO_STATUS_PAGE_SIZE'])
     )
     current_app.logger.debug('Query: %s', query)
     return db.session.execute(query).scalars().all()
