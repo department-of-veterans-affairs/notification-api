@@ -14,8 +14,8 @@ def _get_notifications() -> list:
 
     current_app.logger.info('Getting notifications to update status')
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
-    query = (
-        select([Notification])
+    stmt = (
+        select(Notification)
         .where(Notification.notification_type == 'sms')
         .where(Notification.sent_by == 'twilio')
         .where(~Notification.status.in_(NOTIFICATION_STATUS_TYPES_COMPLETED))
@@ -23,7 +23,7 @@ def _get_notifications() -> list:
         .order_by(Notification.created_at)
         .limit(current_app.config['TWILIO_STATUS_PAGE_SIZE'])
     )
-    return db.session.execute(query).scalars().all()
+    return db.session.scalars(stmt).all()
 
 
 @notify_celery.task(name='update-twilio-status')
