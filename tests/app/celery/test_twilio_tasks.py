@@ -99,7 +99,7 @@ def test_update_twilio_status_no_results(mocker):
 
 def test_update_twilio_status_exception(mocker, sample_notification):
     """Test that update_twilio_status() logs an error when twilio_sms_client.update_notification_status_override()
-    raises a NonRetryableException."""
+    raises a NonRetryableException, and does not update any more notifications."""
     created_at = datetime.now(timezone.utc) - timedelta(minutes=99)
     notification_one = sample_notification(status=NOTIFICATION_CREATED, sent_by='twilio', created_at=created_at)
     created_at = datetime.now(timezone.utc) - timedelta(minutes=90)
