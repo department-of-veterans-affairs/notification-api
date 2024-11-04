@@ -55,7 +55,7 @@ def test__get_notifications_statuses(sample_notification, status, expected):
         (180, True),
     ],
 )
-def test__get_notifications_datefilter(sample_notification, minute_offset, expected):
+def test_get_notifications_datefilter(sample_notification, minute_offset, expected):
     """Test that _get_notifications() returns either a list with the test notification, or an empty list, depending
     on the parametrized minute_offset. If the notification was created more than one hour ago, it is not returned."""
     created_at = datetime.now(timezone.utc) - timedelta(minutes=minute_offset)
