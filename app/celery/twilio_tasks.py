@@ -20,6 +20,7 @@ def _get_notifications() -> list:
         .where(Notification.sent_by == 'twilio')
         .where(~Notification.status.in_(NOTIFICATION_STATUS_TYPES_COMPLETED))
         .where(Notification.created_at < one_hour_ago)
+        .order_by(Notification.created_at)
         .limit(current_app.config['TWILIO_STATUS_PAGE_SIZE'])
     )
     current_app.logger.debug('Query: %s', query)
@@ -41,6 +42,10 @@ def update_twilio_status():
             twilio_sms_client.update_notification_status_override(notification.reference)
         except NonRetryableException as e:
             current_app.logger.error(
-                'Failed to update notification %s: %s due to rate limit, aborting.', notification.id, e
+                'Failed to update notification %s: %s due to rate limit, aborting.', str(notification.id), str(e)
             )
             break
+        else:
+            current_app.logger.info('Notification %s updated', notification.id)
+
+    current_app.logger.info('Finished updating notifications')
