@@ -320,8 +320,9 @@ class TwilioSMSClient(SmsClient):
                 update_dict,
             )
             self.logger.info(
-                'Updated notification status for message: %s. Updated %s notifications and %s notification history',
+                'Updated notification status for message: %s to %s. Updated %s notifications and %s notification history',
                 message_sid,
+                status,
                 updated_count,
                 updated_history_count,
             )
