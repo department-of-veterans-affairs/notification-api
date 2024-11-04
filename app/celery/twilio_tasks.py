@@ -36,7 +36,7 @@ def update_twilio_status():
     current_app.logger.info('Found %s notifications to update', len(notifications))
 
     for message in twilio_sms_client._client.messages.stream(
-        date_sent_after=datetime.now(timezone.utc) - timedelta(minutes=1)
+        date_sent_after=datetime.now(timezone.utc) - timedelta(minutes=2)
     ):
         if message.sid in notification_sids:
             twilio_sms_client.update_notification_status_override(message.sid, message=message)
