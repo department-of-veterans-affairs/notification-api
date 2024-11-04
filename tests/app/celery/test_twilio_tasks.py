@@ -34,7 +34,7 @@ def test__get_notifications_statuses(sample_notification, status, expected):
     """Test that _get_notifications() returns either a list with the test notification, or an empty list, depending
     on the parametrized status. If the status is in the NOTIFICATION_STATUS_TYPES_COMPLETED list, the notification is
     not returned."""
-    created_at = datetime.now(timezone.utc) - timedelta(minutes=30)
+    created_at = datetime.now(timezone.utc) - timedelta(minutes=90)
     notification = sample_notification(created_at=created_at, status=status, sent_by='twilio')
 
     notifications = _get_notifications()
@@ -48,10 +48,10 @@ def test__get_notifications_statuses(sample_notification, status, expected):
 @pytest.mark.parametrize(
     'minute_offset, expected',
     [
-        (5, True),
-        (30, True),
-        (61, False),
-        (180, False),
+        (5, False),
+        (45, False),
+        (90, True),
+        (180, True),
     ],
 )
 def test__get_notifications_datefilter(sample_notification, minute_offset, expected):
