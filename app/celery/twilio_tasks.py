@@ -31,8 +31,17 @@ def update_twilio_status():
     their status using the app's Twilio client.
     """
     notifications = _get_notifications()
+    notification_sids = [n.ref for n in notifications]
+
     current_app.logger.info('Found %s notifications to update', len(notifications))
-    for notification in notifications:
-        # The twilio message sid is in the 'reference' field
-        message_sid = notification.reference
-        twilio_sms_client.update_notification_status_override(message_sid)
+
+    for message in twilio_sms_client._client.messages.stream(
+        date_sent_after=datetime.now(timezone.utc) - timedelta(minutes=1)
+    ):
+        if message.sid in notification_sids:
+            twilio_sms_client.update_notification_status_override(message.sid, message=message)
+
+    # for notification in notifications:
+    #     # The twilio message sid is in the 'reference' field
+    #     message_sid = notification.reference
+    #     twilio_sms_client.update_notification_status_override(message_sid)
