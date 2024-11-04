@@ -9,9 +9,7 @@ from app.models import Notification
 
 
 def _get_notifications() -> list:
-    """
-    Returns a list of notifications not in final state
-    """
+    """Returns a list of notifications not in final state."""
 
     current_app.logger.info('Getting notifications to update status')
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
@@ -23,14 +21,14 @@ def _get_notifications() -> list:
         .where(Notification.created_at > one_hour_ago)
         .limit(current_app.config['TWILIO_STATUS_PAGE_SIZE'])
     )
-    current_app.logger.debug('Query: %s', query)
     return db.session.execute(query).scalars().all()
 
 
 @notify_celery.task(name='update-twilio-status')
 def update_twilio_status():
-    """
-    Update the status of notifications sent via Twilio
+    """Update the status of notifications sent via Twilio. This task is scheduled to run every 5 minutes. It fetches
+    notifications that are not in a final state, limited to the config setting TWILIO_STATUS_PAGE_SIZE, and updates
+    their status using the app's Twilio client.
     """
     notifications = _get_notifications()
     current_app.logger.info('Found %s notifications to update', len(notifications))
