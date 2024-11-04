@@ -323,7 +323,7 @@ class Config(object):
             },
             'update-twilio-status': {
                 'task': 'update-twilio-status',
-                'schedule': crontab(hour='*', minute='*/5'),
+                'schedule': crontab(hour='*', minute='*/2'),
                 'options': {'queue': QueueNames.PERIODIC},
             },
         },
