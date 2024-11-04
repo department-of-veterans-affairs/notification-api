@@ -31,7 +31,7 @@ from app.constants import (
         (NOTIFICATION_PREFERENCES_DECLINED, False),
     ],
 )
-def test__get_notifications_statuses(sample_notification, status, expected):
+def test_get_notifications_statuses(sample_notification, status, expected):
     """Test that _get_notifications() returns either a list with the test notification, or an empty list, depending
     on the parametrized status. If the status is in the NOTIFICATION_STATUS_TYPES_COMPLETED list, the notification is
     not returned."""
