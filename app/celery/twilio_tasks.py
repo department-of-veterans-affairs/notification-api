@@ -23,7 +23,6 @@ def _get_notifications() -> list:
         .order_by(Notification.created_at)
         .limit(current_app.config['TWILIO_STATUS_PAGE_SIZE'])
     )
-    current_app.logger.debug('Query: %s', query)
     return db.session.execute(query).scalars().all()
 
 
