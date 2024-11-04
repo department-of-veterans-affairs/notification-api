@@ -290,7 +290,7 @@ class TwilioSMSClient(SmsClient):
             done_datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         return done_datetime
 
-    def update_notification_status_override(self, message_sid: str, message: MessageInstance = None) -> None:
+    def update_notification_status_override(self, message_sid: str) -> None:
         """
         Updates the status of the notification based on the Twilio message status, bypassing any logic.
 
@@ -305,9 +305,7 @@ class TwilioSMSClient(SmsClient):
 
         self.logger.info('Updating notification status for message: %s', message_sid)
 
-        if message is None:
-            message = self.get_twilio_message(message_sid)
-            self.logger.debug('Twilio message: %s', message)
+        message = self.get_twilio_message(message_sid)
 
         if message:
             status, status_reason = self._evaluate_status(message_sid, message.status, [])
