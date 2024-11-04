@@ -16,7 +16,7 @@ name: Continuous Deployment Pipeline
 on:
   push:
     branches:
-      - main
+      - 1972-automated-slack-posting
 
 jobs:
   prepare-deployment:
@@ -76,52 +76,70 @@ jobs:
       ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
       lambdaDeploy: true
 
-  approval-deploy-staging:
+  # approval-deploy-staging:
+  #   needs: deploy-to-perf
+  #   environment: 
+  #     name: staging-deploy
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Pause for manual approval
+  #       run: echo "Deployment paused for manual approval."
+
+  # create-release-notes:
+  #   needs: [create-and-post-tag, approval-deploy-staging]
+  #   uses: ./.github/workflows/create-release-notes.yml
+  #   secrets: inherit
+  #   with:
+  #     previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
+
+  # deploy-to-staging:
+  #   needs: [create-release-notes, create-and-post-tag]
+  #   uses: ./.github/workflows/deploy-release.yml
+  #   secrets: inherit
+  #   with:
+  #     environment: staging
+  #     ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
+  #     lambdaDeploy: true
+
+  # approval-deploy-prod:
+  #   needs: deploy-to-staging
+  #   environment: 
+  #     name: prod-deploy
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Pause for manual approval
+  #       run: echo "Pipeline paused for pending approval of staging by QA"
+
+  # publish-release-notes:
+  #   needs: [create-release-notes, approval-deploy-prod]
+  #   uses: ./.github/workflows/publish-release-notes.yml
+  #   secrets: inherit
+  #   with:
+  #     draftReleaseReference: ${{ needs.create-release-notes.outputs.draftReleaseReference }}
+
+  # deploy-to-prod:
+  #   needs: [publish-release-notes, create-and-post-tag]
+  #   uses: ./.github/workflows/deploy-release.yml
+  #   secrets: inherit
+  #   with:
+  #     environment: prod
+  #     ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
+  #     lambdaDeploy: true
+
+  send-slack-notifications:
     needs: deploy-to-perf
-    environment: 
-      name: staging-deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Pause for manual approval
-        run: echo "Deployment paused for manual approval."
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-  create-release-notes:
-    needs: [create-and-post-tag, approval-deploy-staging]
-    uses: ./.github/workflows/create-release-notes.yml
-    secrets: inherit
-    with:
-      previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
-
-  deploy-to-staging:
-    needs: [create-release-notes, create-and-post-tag]
-    uses: ./.github/workflows/deploy-release.yml
-    secrets: inherit
-    with:
-      environment: staging
-      ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
-      lambdaDeploy: true
-
-  approval-deploy-prod:
-    needs: deploy-to-staging
-    environment: 
-      name: prod-deploy
-    runs-on: ubuntu-latest
-    steps:
-      - name: Pause for manual approval
-        run: echo "Pipeline paused for pending approval of staging by QA"
-
-  publish-release-notes:
-    needs: [create-release-notes, approval-deploy-prod]
-    uses: ./.github/workflows/publish-release-notes.yml
-    secrets: inherit
-    with:
-      draftReleaseReference: ${{ needs.create-release-notes.outputs.draftReleaseReference }}
-
-  deploy-to-prod:
-    needs: [publish-release-notes, create-and-post-tag]
-    uses: ./.github/workflows/deploy-release.yml
-    secrets: inherit
-    with:
-      environment: prod
-      ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
-      lambdaDeploy: true
+      - name: Post to Oddball Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.RELEASE_NOTES_SLACK_WEBHOOK }}
+          TAG: ${{ needs.create-and-post-tag.outputs.newVersion }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data "{
+            \"text\": \":llama: Production Release Alert :llama:\n*Notification-API* \`${TAG}\` was released to production.\n:rocket: *<https://github.com/department-of-veterans-affairs/notification-api/releases/tag/${TAG}|Release notes are here>*\"
+          }" \
+          "$SLACK_WEBHOOK_URL"
