@@ -1,6 +1,6 @@
 import base64
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from logging import Logger
 from monotonic import monotonic
 from urllib.parse import parse_qs
@@ -287,7 +287,7 @@ class TwilioSMSClient(SmsClient):
             done_datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         return done_datetime
 
-    def update_notification_status_override(self, message_sid: str, message: MessageInstance=None) -> None:
+    def update_notification_status_override(self, message_sid: str, message: MessageInstance = None) -> None:
         """
         Updates the status of the notification based on the Twilio message status, bypassing any logic.
 
