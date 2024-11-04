@@ -144,8 +144,11 @@ class TwilioSMSClient(SmsClient):
         message = None
         try:
             message = self._client.messages(message_sid).fetch()
-        except TwilioRestException:
+        except TwilioRestException as e:
             self.logger.exception('Twilio message not found: %s', message_sid)
+            if e.status == 429:
+                self.logger.exception('Twilio rate limit exceeded')
+                raise NonRetryableException('Twilio rate limit exceeded') from e
         return message
 
     def send_sms(

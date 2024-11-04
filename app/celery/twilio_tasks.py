@@ -4,6 +4,7 @@ from flask import current_app
 from sqlalchemy import select
 
 from app import db, notify_celery, twilio_sms_client
+from app.celery.exceptions import NonRetryableException
 from app.constants import NOTIFICATION_STATUS_TYPES_COMPLETED
 from app.models import Notification
 
@@ -19,7 +20,6 @@ def _get_notifications() -> list:
         .where(Notification.sent_by == 'twilio')
         .where(~Notification.status.in_(NOTIFICATION_STATUS_TYPES_COMPLETED))
         .where(Notification.created_at < one_hour_ago)
-        .where(Notification.created_at)
         .limit(current_app.config['TWILIO_STATUS_PAGE_SIZE'])
     )
     current_app.logger.debug('Query: %s', query)
@@ -37,4 +37,10 @@ def update_twilio_status():
 
     for notification in notifications:
         current_app.logger.info('Updating notification %s', notification.id)
-        twilio_sms_client.update_notification_status_override(notification.reference)
+        try:
+            twilio_sms_client.update_notification_status_override(notification.reference)
+        except NonRetryableException as e:
+            current_app.logger.error(
+                'Failed to update notification %s: %s due to rate limit, aborting.', notification.id, e
+            )
+            break
