@@ -31,6 +31,9 @@ from app.constants import (
     ],
 )
 def test__get_notifications_statuses(sample_notification, status, expected):
+    """Test that _get_notifications() returns either a list with the test notification, or an empty list, depending
+    on the parametrized status. If the status is in the NOTIFICATION_STATUS_TYPES_COMPLETED list, the notification is
+    not returned."""
     created_at = datetime.now(timezone.utc) - timedelta(minutes=30)
     notification = sample_notification(created_at=created_at, status=status, sent_by='twilio')
 
@@ -52,6 +55,8 @@ def test__get_notifications_statuses(sample_notification, status, expected):
     ],
 )
 def test__get_notifications_datefilter(sample_notification, minute_offset, expected):
+    """Test that _get_notifications() returns either a list with the test notification, or an empty list, depending
+    on the parametrized minute_offset. If the notification was created more than one hour ago, it is not returned."""
     created_at = datetime.now(timezone.utc) - timedelta(minutes=minute_offset)
     notification = sample_notification(created_at=created_at, status=NOTIFICATION_CREATED, sent_by='twilio')
 
@@ -64,6 +69,8 @@ def test__get_notifications_datefilter(sample_notification, minute_offset, expec
 
 
 def test_update_twilio_status_with_results(mocker, sample_notification):
+    """Test that update_twilio_status() calls twilio_sms_client.update_notification_status_override() with the
+    notification reference when there are notifications to update."""
     notification = sample_notification(status=NOTIFICATION_CREATED, sent_by='twilio')
 
     mocker.patch('app.celery.twilio_tasks._get_notifications', return_value=[notification])
@@ -77,6 +84,8 @@ def test_update_twilio_status_with_results(mocker, sample_notification):
 
 
 def test_update_twilio_status_no_results(mocker):
+    """Test that update_twilio_status() does not call twilio_sms_client.update_notification_status_override() when
+    there are no notifications to update."""
     mocker.patch('app.celery.twilio_tasks._get_notifications', return_value=[])
 
     with patch(
