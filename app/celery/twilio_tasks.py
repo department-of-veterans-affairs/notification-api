@@ -13,12 +13,15 @@ def _get_notifications() -> list:
 
     current_app.logger.info('Getting notifications to update status')
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+    five_minutes_ago = datetime.now(timezone.utc) - timedelta(minutes=5)
+
     query = (
         select([Notification])
         .where(Notification.notification_type == 'sms')
         .where(Notification.sent_by == 'twilio')
         .where(~Notification.status.in_(NOTIFICATION_STATUS_TYPES_COMPLETED))
         .where(Notification.created_at > one_hour_ago)
+        .where(Notification.created_at < five_minutes_ago)
         .limit(current_app.config['TWILIO_STATUS_PAGE_SIZE'])
     )
     current_app.logger.debug('Query: %s', query)
