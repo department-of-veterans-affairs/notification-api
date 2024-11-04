@@ -57,7 +57,7 @@ def test__get_notifications_statuses(sample_notification, status, expected):
 )
 def test_get_notifications_datefilter(sample_notification, minute_offset, expected):
     """Test that _get_notifications() returns either a list with the test notification, or an empty list, depending
-    on the parametrized minute_offset. If the notification was created more than one hour ago, it is not returned."""
+    on the parametrized minute_offset. If the notification was created less than one hour ago, it is not returned."""
     created_at = datetime.now(timezone.utc) - timedelta(minutes=minute_offset)
     notification = sample_notification(created_at=created_at, status=NOTIFICATION_CREATED, sent_by='twilio')
 
