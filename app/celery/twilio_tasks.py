@@ -36,7 +36,7 @@ def update_twilio_status():
     current_app.logger.info('Found %s notifications to update', len(notifications))
 
     for notification in notifications:
-        current_app.logger.info('Updating notification %s', notification.id)
+        current_app.logger.info('Updating notification %s with status %s', notification.id, notification.status)
         try:
             twilio_sms_client.update_notification_status_override(notification.reference)
         except NonRetryableException as e:
