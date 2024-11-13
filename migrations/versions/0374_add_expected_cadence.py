@@ -1,6 +1,6 @@
 """
 
-Revision ID: 0641de8adbdc
+Revision ID: 0374_add_expected_cadence
 Revises: 0373_va_profile_notification
 Create Date: 2024-11-13 18:59:38.418467
 
