@@ -1,6 +1,5 @@
 [tool.poetry]
 name = "notification-api"
-version = "1.8.3"
 description = "VA Enterprise Notification Platform"
 authors = [
     "VA Notify <vanotify@va.gov>",
