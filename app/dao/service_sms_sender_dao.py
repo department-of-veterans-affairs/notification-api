@@ -1,14 +1,17 @@
+from typing import Optional
+
+from sqlalchemy import desc, select, update
+
 from app import db
 from app.dao.dao_utils import transactional
 from app.exceptions import ArchiveValidationError
 from app.models import ServiceSmsSender, InboundNumber
 from app.service.exceptions import (
     SmsSenderDefaultValidationException,
+    SmsSenderProviderValidationException,
     SmsSenderInboundNumberIntegrityException,
     SmsSenderRateLimitIntegrityException,
 )
-from sqlalchemy import desc, select, update
-from typing import Optional
 
 
 def insert_service_sms_sender(
@@ -66,11 +69,16 @@ def dao_add_sms_sender_for_service(
     service_id,
     sms_sender,
     is_default,
+    provider_id,
+    description,
     inbound_number_id=None,
     rate_limit=None,
     rate_limit_interval=None,
     sms_sender_specifics={},
 ):
+    # this causes a circular import, so it's being imported here...
+    from app.dao.provider_details_dao import get_provider_details_by_id
+
     default_sms_sender = _get_default_sms_sender_for_service(service_id=service_id)
 
     if not default_sms_sender and not is_default:
@@ -86,9 +94,7 @@ def dao_add_sms_sender_for_service(
         raise SmsSenderRateLimitIntegrityException('rate_limit_interval cannot be less than 1.')
 
     # TODO - Refactor validation after merging inbound number & sms_sender
-    if (rate_limit is not None and rate_limit_interval is None) or (
-        rate_limit_interval is not None and rate_limit is None
-    ):
+    if (rate_limit is None) != (rate_limit_interval is None):
         raise SmsSenderRateLimitIntegrityException('Provide both rate_limit and rate_limit_interval.')
 
     if inbound_number_id is not None:
@@ -100,13 +106,20 @@ def dao_add_sms_sender_for_service(
                 f"and the Inbound Number '{inbound_number.id}' ('{inbound_number.number}')."
             )
 
+    provider_details = get_provider_details_by_id(provider_id)
+    if provider_details is None:
+        raise SmsSenderProviderValidationException(f'No provider details found for id {provider_id}')
+
     new_sms_sender = ServiceSmsSender(
-        service_id=service_id,
-        sms_sender=sms_sender,
+        description=description,
         is_default=is_default,
         inbound_number_id=inbound_number_id,
+        provider=provider_details,
+        provider_id=provider_id,
         rate_limit=rate_limit,
         rate_limit_interval=rate_limit_interval,
+        service_id=service_id,
+        sms_sender=sms_sender,
         sms_sender_specifics=sms_sender_specifics,
     )
 

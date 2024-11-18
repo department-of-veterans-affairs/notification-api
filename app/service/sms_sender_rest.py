@@ -12,6 +12,7 @@ from app.schema_validation import validate
 from app.service.exceptions import (
     SmsSenderDefaultValidationException,
     SmsSenderInboundNumberIntegrityException,
+    SmsSenderProviderValidationException,
     SmsSenderRateLimitIntegrityException,
 )
 from app.service.service_senders_schema import (
@@ -35,6 +36,7 @@ service_sms_sender_blueprint.before_request(_validate_service_exists)
 @service_sms_sender_blueprint.errorhandler(SmsSenderRateLimitIntegrityException)
 @service_sms_sender_blueprint.errorhandler(SmsSenderDefaultValidationException)
 @service_sms_sender_blueprint.errorhandler(SmsSenderInboundNumberIntegrityException)
+@service_sms_sender_blueprint.errorhandler(SmsSenderProviderValidationException)
 def handle_errors(error):
     current_app.logger.info(error)
     return jsonify(result='error', message=str(error)), 400
@@ -51,6 +53,7 @@ def get_service_sms_senders_for_service(service_id):
 
 @service_sms_sender_blueprint.route('', methods=['POST'])
 def add_service_sms_sender(service_id):
+    # TODO 1687: add stuff here
     form = validate(request.get_json(), add_service_sms_sender_request)
     new_sms_sender = dao_add_sms_sender_for_service(service_id=service_id, **form)
     return jsonify(new_sms_sender.serialize()), 201
@@ -70,6 +73,7 @@ def update_service_sms_sender(
     service_id,
     sms_sender_id,
 ):
+    # TODO 1687: add stuff here
     form = validate(request.get_json(), update_service_sms_sender_request)
     updated_sms_sender = dao_update_service_sms_sender(
         service_id=service_id, service_sms_sender_id=sms_sender_id, **form

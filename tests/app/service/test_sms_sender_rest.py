@@ -1,7 +1,9 @@
 from datetime import datetime
+from unittest.mock import ANY
 import uuid
 
 from flask import current_app
+import pytest
 from sqlalchemy import select
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -30,6 +32,93 @@ def test_add_service_sms_sender_calls_dao_method(admin_request, mocker):
 
     dao_add_sms_sender_for_service.assert_called_with(service_id=service_id, sms_sender='second', is_default=False)
     assert response_json == added_service_sms_sender.serialize()
+
+
+def test_add_service_sms_sender_returns_201_with_proper_data(admin_request, sample_provider, sample_service) -> None:
+    service = sample_service()
+    provider = sample_provider(display_name='test_provider_name')
+
+    test_sms_sender = '+1234567890'
+
+    expected_data = {
+        'archived': False,
+        'created_at': ANY,
+        'description': 'test description',
+        'id': ANY,
+        'inbound_number_id': None,
+        'is_default': True,
+        'provider_id': str(provider.id),
+        'provider_name': 'test_provider_name',
+        'rate_limit': None,
+        'rate_limit_interval': None,
+        'service_id': str(service.id),
+        'sms_sender': test_sms_sender,
+        'sms_sender_specifics': {},
+        'updated_at': ANY,
+    }
+
+    response_json = admin_request.post(
+        'service_sms_sender.add_service_sms_sender',
+        service_id=service.id,
+        _data={
+            'description': 'test description',
+            'is_default': True,
+            'provider_id': str(provider.id),
+            'sms_sender': test_sms_sender,
+        },
+        _expected_status=201,
+    )
+
+    assert response_json == expected_data
+
+
+@pytest.mark.parametrize(
+    'include_provider, include_description',
+    [(True, False), (False, True), (False, False)],
+    ids=['no_provider', 'no_description', 'no_provider_nor_description'],
+)
+def test_add_service_sms_sender_returns_400_error_when_missing_expected_data(
+    admin_request,
+    sample_provider,
+    sample_service,
+    include_provider,
+    include_description,
+) -> None:
+    service = sample_service()
+    provider = sample_provider(display_name='test_provider_name')
+
+    resp_json = admin_request.post(
+        'service_sms_sender.add_service_sms_sender',
+        service_id=service.id,
+        _data={
+            'description': 'test description' if include_description else None,
+            'is_default': True,
+            'provider_id': str(provider.id) if include_provider else None,
+            'sms_sender': '+1234567890',
+        },
+        _expected_status=400,
+    )
+
+    assert 'ValidationError' in resp_json['errors'][0]['error']
+
+
+def test_add_service_sms_sender_returns_400_error_when_provider_does_not_exist(admin_request, sample_service) -> None:
+    service = sample_service()
+    missing_provider_id = str(uuid.uuid4())
+
+    resp_json = admin_request.post(
+        'service_sms_sender.add_service_sms_sender',
+        service_id=service.id,
+        _data={
+            'description': 'test description',
+            'is_default': True,
+            'provider_id': missing_provider_id,
+            'sms_sender': '+1234567890',
+        },
+        _expected_status=400,
+    )
+
+    assert 'No provider details found' in resp_json['message']
 
 
 def test_add_service_sms_sender_return_404_when_service_does_not_exist(admin_request, mocker):
