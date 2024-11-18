@@ -106,7 +106,7 @@ def get_profile_result(
         )
 
 
-def handle_lookup_contact_info_exception(  # noqa: C901
+def handle_lookup_contact_info_exception(
     lookup_task: Task, notification: Notification, recipient_identifier: RecipientIdentifier, e: Exception
 ):
     """

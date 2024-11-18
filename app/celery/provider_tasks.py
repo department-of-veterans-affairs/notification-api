@@ -110,7 +110,7 @@ def deliver_sms(
     retry_backoff_max=60,
 )
 @statsd(namespace='tasks')
-def deliver_sms_with_rate_limiting(  # noqa: C901
+def deliver_sms_with_rate_limiting(
     self,
     notification_id,
     sms_sender_id=None,
