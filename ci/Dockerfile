@@ -1,6 +1,6 @@
 # Python 3.10 is supported until October 2026.
 # Alpine Linux 3.19 is supported until 1 November 2025
-FROM python:3.10.13-alpine3.19 as builder
+FROM python:3.10-alpine3.19 as builder
 
 # REQUESTS_CA_BUNDLE is for the "requests" Python package.
 #   https://requests.readthedocs.io/en/latest/user/advanced/#ssl-cert-verification
