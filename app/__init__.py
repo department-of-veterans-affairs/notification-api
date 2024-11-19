@@ -7,6 +7,7 @@ from flask import request, g, jsonify, make_response
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from time import monotonic
+from ddtrace import patch
 from notifications_utils.clients.zendesk.zendesk_client import ZendeskClient
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
 from notifications_utils.clients.redis.redis_client import RedisClient
@@ -41,6 +42,7 @@ from app.mobile_app.mobile_app_registry import MobileAppRegistry
 
 load_dotenv()
 
+patch(celery=True)
 
 migrate = Migrate()
 ma = Marshmallow()
