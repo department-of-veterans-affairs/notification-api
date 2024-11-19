@@ -6,7 +6,6 @@ from flask import current_app
 from ddtrace import patch, tracer
 
 patch(celery=True)
-current_app.logger.info('Celery has been patched with DataDog APM.')
 
 
 @worker_process_init.connect
