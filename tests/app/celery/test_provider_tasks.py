@@ -461,9 +461,9 @@ def test_deliver_sms_opt_out(
     from the given SMS sender should result in permanent failure with a relevant status reason.
     """
 
-    service=sample_service()
+    service = sample_service()
     sms_sender = sample_sms_sender(service_id=service.id, sms_sender='17045555555')
-    template=sample_template(service=service)
+    template = sample_template(service=service)
     notification = sample_notification(
         template=template,
         status=NOTIFICATION_CREATED,
@@ -475,7 +475,7 @@ def test_deliver_sms_opt_out(
 
     mock_send_sms_to_provider = mocker.patch(
         'app.delivery.send_to_providers.send_sms_to_provider',
-        side_effect=NonRetryableException('Destination phone number opted out')
+        side_effect=NonRetryableException('Destination phone number opted out'),
     )
     deliver_sms(notification.id, sms_sender_id=notification.sms_sender_id)
     mock_send_sms_to_provider.assert_called_once()
