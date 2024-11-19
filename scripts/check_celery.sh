@@ -9,6 +9,7 @@ function get_celery_pids {
 
   set +o pipefail # so grep returning no matches does not premature fail pipe
   APP_PIDS=$(pstree -p `cat /tmp/celery.pid` | sed 's/\(.*\)-celery(\(\d*\))/\2/')
+  echo "Here are the APP_PIDS: ${APP_PIDS}"
   set -o pipefail # pipefail should be set everywhere else
 }
 
