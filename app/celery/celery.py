@@ -1,8 +1,13 @@
 import time
 
-from celery import Celery, Task
+import celery
+from celery import Task
 from celery.signals import worker_process_shutdown, worker_shutting_down, worker_process_init
 from flask import current_app
+
+from ddtrace import patch
+
+patch(celery=True)
 
 
 @worker_process_init.connect
@@ -78,7 +83,7 @@ def make_task(app):
     return NotifyTask
 
 
-class NotifyCelery(Celery):
+class NotifyCelery(celery.Celery):
     def init_app(
         self,
         app,
