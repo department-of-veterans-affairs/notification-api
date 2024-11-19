@@ -77,11 +77,17 @@ def deliver_sms(
         raise NotificationTechnicalFailureException from e
     except NonRetryableException as e:
         # Likely an opted out from pinpoint
+
+        if 'opted out' in str(e).lower():
+            status_reason = 'Destination phone number opted out'
+        else:
+            status_reason = 'ERROR: NonRetryableException - permanent failure, not retrying'
+
         log_and_update_permanent_failure(
             notification.id,
             'deliver_sms',
             e,
-            'ERROR: NonRetryableException - permanent failure, not retrying',
+            status_reason,
         )
         # Expected chain termination
         self.request.chain = None
