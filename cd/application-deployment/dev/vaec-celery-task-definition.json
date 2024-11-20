@@ -105,7 +105,6 @@
       "command": [
         "sh",
         "-c",
-        "ddtrace-run",
         "/app/scripts/run_celery.sh"
       ],
       "healthCheck": {
@@ -117,8 +116,7 @@
         ],
         "interval": 30,
         "retries": 5,
-        "timeout": 60, 
-        "startPeriod": 300
+        "timeout": 10
       }
     },
     {
@@ -197,9 +195,9 @@
   "requiresCompatibilities": [
     "FARGATE"
   ],
-  "cpu": "4096",
+  "cpu": "1024",
   "pidMode": "task",
-  "memory": "8192",
+  "memory": "4096",
   "tags": [
     {
       "key": "Stack",
