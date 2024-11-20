@@ -48,7 +48,7 @@ class NotifyStatsdClient(StatsdClient):
 
     def histogram(self, stat, value, rate=1):
         """Increment a stat by `histogram`."""
-        self.statsd_client.statsd_client._send_stat(stat, '%s|h' % value, rate)
+        self.statsd_client._send_stat(stat, '%s|h' % value, rate)
 
 
 migrate = Migrate()
