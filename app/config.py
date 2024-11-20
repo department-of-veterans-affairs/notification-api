@@ -237,96 +237,96 @@ class Config(object):
             'app.celery.process_ses_receipts_tasks',
             'app.celery.twilio_tasks',
         ),
-        'beat_schedule': {
-            # app/celery/scheduled_tasks.py
-            'run-scheduled-jobs': {
-                'task': 'run-scheduled-jobs',
-                'schedule': crontab(minute=1),
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-            'delete-verify-codes': {
-                'task': 'delete-verify-codes',
-                'schedule': timedelta(minutes=63),
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-            'delete-invitations': {
-                'task': 'delete-invitations',
-                'schedule': timedelta(minutes=66),
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-            'check-job-status': {
-                'task': 'check-job-status',
-                'schedule': crontab(),
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-            'replay-created-notifications': {
-                'task': 'replay-created-notifications',
-                'schedule': crontab(minute='0, 15, 30, 45'),
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-            # app/celery/nightly_tasks.py
-            'timeout-sending-notifications': {
-                'task': 'timeout-sending-notifications',
-                'schedule': crontab(hour=0, minute=5),
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-            'create-nightly-billing': {
-                'task': 'create-nightly-billing',
-                'schedule': crontab(hour=0, minute=15),
-                'options': {'queue': QueueNames.NOTIFY},
-            },
-            'create-nightly-notification-status': {
-                'task': 'create-nightly-notification-status',
-                'schedule': crontab(hour=0, minute=30),
-                'options': {'queue': QueueNames.NOTIFY},
-            },
-            'delete-sms-notifications': {
-                'task': 'delete-sms-notifications',
-                'schedule': crontab(hour=4, minute=15),  # after 'create-nightly-notification-status'
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-            'delete-email-notifications': {
-                'task': 'delete-email-notifications',
-                'schedule': crontab(hour=4, minute=30),  # after 'create-nightly-notification-status'
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-            'delete-letter-notifications': {
-                'task': 'delete-letter-notifications',
-                'schedule': crontab(hour=4, minute=45),  # after 'create-nightly-notification-status'
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-            'delete-inbound-sms': {
-                'task': 'delete-inbound-sms',
-                'schedule': crontab(hour=1, minute=40),
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-            'send-daily-performance-platform-stats': {
-                'task': 'send-daily-performance-platform-stats',
-                'schedule': crontab(hour=2, minute=0),
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-            'remove_transformed_dvla_files': {
-                'task': 'remove_transformed_dvla_files',
-                'schedule': crontab(hour=3, minute=40),
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-            'remove_sms_email_jobs': {
-                'task': 'remove_sms_email_jobs',
-                'schedule': crontab(hour=4, minute=0),
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-            'send-scheduled-comp-and-pen-sms': {
-                'task': 'send-scheduled-comp-and-pen-sms',
-                # Every 2 minutes past every hour from 13 through 21 on every day-of-month from 22 through end-of-month
-                'schedule': crontab(hour='13-21', day_of_month='22-31', minute='*/2'),
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-            'update-twilio-status': {
-                'task': 'update-twilio-status',
-                'schedule': crontab(hour='*', minute='*/5'),
-                'options': {'queue': QueueNames.PERIODIC},
-            },
-        },
+        # 'beat_schedule': {
+        #     # app/celery/scheduled_tasks.py
+        #     'run-scheduled-jobs': {
+        #         'task': 'run-scheduled-jobs',
+        #         'schedule': crontab(minute=1),
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        #     'delete-verify-codes': {
+        #         'task': 'delete-verify-codes',
+        #         'schedule': timedelta(minutes=63),
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        #     'delete-invitations': {
+        #         'task': 'delete-invitations',
+        #         'schedule': timedelta(minutes=66),
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        #     'check-job-status': {
+        #         'task': 'check-job-status',
+        #         'schedule': crontab(),
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        #     'replay-created-notifications': {
+        #         'task': 'replay-created-notifications',
+        #         'schedule': crontab(minute='0, 15, 30, 45'),
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        #     # app/celery/nightly_tasks.py
+        #     'timeout-sending-notifications': {
+        #         'task': 'timeout-sending-notifications',
+        #         'schedule': crontab(hour=0, minute=5),
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        #     'create-nightly-billing': {
+        #         'task': 'create-nightly-billing',
+        #         'schedule': crontab(hour=0, minute=15),
+        #         'options': {'queue': QueueNames.NOTIFY},
+        #     },
+        #     'create-nightly-notification-status': {
+        #         'task': 'create-nightly-notification-status',
+        #         'schedule': crontab(hour=0, minute=30),
+        #         'options': {'queue': QueueNames.NOTIFY},
+        #     },
+        #     'delete-sms-notifications': {
+        #         'task': 'delete-sms-notifications',
+        #         'schedule': crontab(hour=4, minute=15),  # after 'create-nightly-notification-status'
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        #     'delete-email-notifications': {
+        #         'task': 'delete-email-notifications',
+        #         'schedule': crontab(hour=4, minute=30),  # after 'create-nightly-notification-status'
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        #     'delete-letter-notifications': {
+        #         'task': 'delete-letter-notifications',
+        #         'schedule': crontab(hour=4, minute=45),  # after 'create-nightly-notification-status'
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        #     'delete-inbound-sms': {
+        #         'task': 'delete-inbound-sms',
+        #         'schedule': crontab(hour=1, minute=40),
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        #     'send-daily-performance-platform-stats': {
+        #         'task': 'send-daily-performance-platform-stats',
+        #         'schedule': crontab(hour=2, minute=0),
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        #     'remove_transformed_dvla_files': {
+        #         'task': 'remove_transformed_dvla_files',
+        #         'schedule': crontab(hour=3, minute=40),
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        #     'remove_sms_email_jobs': {
+        #         'task': 'remove_sms_email_jobs',
+        #         'schedule': crontab(hour=4, minute=0),
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        #     'send-scheduled-comp-and-pen-sms': {
+        #         'task': 'send-scheduled-comp-and-pen-sms',
+        #         # Every 2 minutes past every hour from 13 through 21 on every day-of-month from 22 through end-of-month
+        #         'schedule': crontab(hour='13-21', day_of_month='22-31', minute='*/2'),
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        #     'update-twilio-status': {
+        #         'task': 'update-twilio-status',
+        #         'schedule': crontab(hour='*', minute='*/5'),
+        #         'options': {'queue': QueueNames.PERIODIC},
+        #     },
+        # },
         'task_queues': [Queue(queue, Exchange('default'), routing_key=queue) for queue in QueueNames.all_queues()],
         'task_routes': {
             'app.celery.v3.notification_tasks.v3_process_notification': {'queue': QueueNames.NOTIFY},
