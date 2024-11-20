@@ -1,13 +1,12 @@
 import time
 
 from celery import Celery, Task
-from ddtrace import patch
+# from ddtrace import patch
 
-patch(celery=True)
+# patch(celery=True)
 
 from celery.signals import worker_process_shutdown, worker_shutting_down, worker_process_init
 from flask import current_app
-
 
 
 @worker_process_init.connect

@@ -112,6 +112,7 @@
           "CMD",
           "sh",
           "-c",
+          "ddtrace-run",
           "./scripts/check_celery.sh"
         ],
         "interval": 30,
