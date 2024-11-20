@@ -42,6 +42,15 @@ from app.mobile_app.mobile_app_registry import MobileAppRegistry
 load_dotenv()
 
 
+class NotifyStatsdClient(StatsdClient):
+    def __init__(self):
+        super().__init__(prefix='notify')
+
+    def histogram(self, stat, value, rate=1):
+        """Increment a stat by `histogram`."""
+        self._send_stat(stat, '%s|h' % value, rate)
+
+
 migrate = Migrate()
 ma = Marshmallow()
 notify_celery = NotifyCelery()
@@ -65,7 +74,7 @@ twilio_sms_client = TwilioSMSClient(
 aws_pinpoint_client = AwsPinpointClient()
 sqs_client = SQSClient()
 zendesk_client = ZendeskClient()
-statsd_client = StatsdClient()
+statsd_client = NotifyStatsdClient()
 redis_store = RedisClient()
 performance_platform_client = PerformancePlatformClient()
 va_onsite_client = VAOnsiteClient()
