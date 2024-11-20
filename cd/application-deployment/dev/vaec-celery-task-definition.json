@@ -105,6 +105,7 @@
       "command": [
         "sh",
         "-c",
+        "ddtrace-run",
         "/app/scripts/run_celery.sh"
       ],
       "healthCheck": {
@@ -112,7 +113,6 @@
           "CMD",
           "sh",
           "-c",
-          "ddtrace-run",
           "./scripts/check_celery.sh"
         ],
         "interval": 30,
