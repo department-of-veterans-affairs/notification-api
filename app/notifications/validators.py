@@ -194,7 +194,7 @@ def validate_template(
     template_with_content = create_content_for_notification(template, personalisation)
 
     if template.template_type == SMS_TYPE:
-        current_app.statsd_client.gauge('sms.content_length', len(template_with_content.content_count))
+        current_app.statsd_client.gauge('sms.content_length', template_with_content.content_count)
 
     if template.template_type == SMS_TYPE and template_with_content.content_count > SMS_CHAR_COUNT_LIMIT:
         current_app.logger.warning(
