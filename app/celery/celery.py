@@ -3,7 +3,7 @@ import time
 from celery import Celery, Task
 from celery.signals import worker_process_shutdown, worker_shutting_down, worker_process_init
 from flask import current_app
-from ddtrace import patch, tracer
+from ddtrace import patch
 
 patch(celery=True)
 
@@ -76,8 +76,6 @@ def make_task(app):
             # ensure task has flask context to access config, logger, etc
             with app.app_context():
                 self.start = time.time()
-                with tracer.trace(self.name, service='celery-task'):
-                    return super().__call__(*args, **kwargs)
 
     return NotifyTask
 
