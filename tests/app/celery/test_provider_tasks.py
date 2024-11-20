@@ -4,6 +4,7 @@ from app.celery.common import RETRIES_EXCEEDED
 from app.celery.exceptions import NonRetryableException, AutoRetryException
 from app.celery.provider_tasks import deliver_sms, deliver_email, deliver_sms_with_rate_limiting
 from app.clients.email.aws_ses import AwsSesClientThrottlingSendRateException
+from app.clients.sms import OPT_OUT_MESSAGE
 from app.config import QueueNames
 from app.constants import (
     EMAIL_TYPE,
@@ -469,6 +470,7 @@ def test_deliver_sms_opt_out(
         status=NOTIFICATION_CREATED,
         sms_sender_id=sms_sender.id,
     )
+    assert notification.notification_type == SMS_TYPE
     assert notification.status == NOTIFICATION_CREATED
     assert notification.sms_sender_id == sms_sender.id
     assert notification.status_reason is None
@@ -482,4 +484,4 @@ def test_deliver_sms_opt_out(
 
     notify_db_session.session.refresh(notification)
     assert notification.status == NOTIFICATION_PERMANENT_FAILURE
-    assert notification.status_reason == 'Destination phone number opted out'
+    assert notification.status_reason == OPT_OUT_MESSAGE
