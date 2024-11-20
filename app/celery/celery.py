@@ -76,6 +76,7 @@ def make_task(app):
             # ensure task has flask context to access config, logger, etc
             with app.app_context():
                 self.start = time.time()
+                return super().__call__(*args, **kwargs)
 
     return NotifyTask
 
