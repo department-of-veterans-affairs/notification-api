@@ -44,7 +44,7 @@ load_dotenv()
 
 class NotifyStatsdClient(StatsdClient):
     def __init__(self):
-        super().__init__(prefix='notify')
+        super().__init__()
 
     def histogram(self, stat, value, rate=1):
         """Increment a stat by `histogram`."""
