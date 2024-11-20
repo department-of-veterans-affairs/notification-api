@@ -116,7 +116,8 @@
         ],
         "interval": 30,
         "retries": 5,
-        "timeout": 60
+        "timeout": 60, 
+        "startPeriod": 60
       }
     },
     {
