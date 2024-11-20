@@ -549,8 +549,7 @@ class ServiceSmsSender(db.Model):
     def get_reply_to_text(self):
         return try_validate_and_format_phone_number(self.sms_sender)
 
-    def serialize(self):
-        # TODO 1687: Add provider display name
+    def serialize(self) -> dict[str, bool | int | str | None]:
         return {
             'archived': self.archived,
             'created_at': self.created_at.strftime(DATETIME_FORMAT),

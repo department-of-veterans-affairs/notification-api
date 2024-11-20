@@ -19,7 +19,6 @@ add_service_letter_contact_block_request = {
     'required': ['contact_block', 'is_default'],
 }
 
-# TODO 1687: add provider_id and description to schema
 add_service_sms_sender_request = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'POST add service SMS sender',
@@ -38,7 +37,6 @@ add_service_sms_sender_request = {
     'required': ['description', 'is_default', 'provider_id', 'sms_sender'],
 }
 
-# TODO 1687: add provider_id and description to schema
 update_service_sms_sender_request = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'POST update service SMS sender',
