@@ -116,7 +116,7 @@
         ],
         "interval": 30,
         "retries": 5,
-        "timeout": 10
+        "timeout": 60
       }
     },
     {
@@ -195,7 +195,7 @@
   "requiresCompatibilities": [
     "FARGATE"
   ],
-  "cpu": "1024",
+  "cpu": "2048",
   "pidMode": "task",
   "memory": "4096",
   "tags": [
