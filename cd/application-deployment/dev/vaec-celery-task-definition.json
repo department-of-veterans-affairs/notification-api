@@ -195,7 +195,7 @@
   "requiresCompatibilities": [
     "FARGATE"
   ],
-  "cpu": "4096",
+  "cpu": "1024",
   "pidMode": "task",
   "memory": "4096",
   "tags": [
