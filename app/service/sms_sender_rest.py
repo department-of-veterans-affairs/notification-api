@@ -53,7 +53,6 @@ def get_service_sms_senders_for_service(service_id):
 
 @service_sms_sender_blueprint.route('', methods=['POST'])
 def add_service_sms_sender(service_id):
-    # TODO 1687: add stuff here
     form = validate(request.get_json(), add_service_sms_sender_request)
     new_sms_sender = dao_add_sms_sender_for_service(service_id=service_id, **form)
     return jsonify(new_sms_sender.serialize()), 201
@@ -73,7 +72,6 @@ def update_service_sms_sender(
     service_id,
     sms_sender_id,
 ):
-    # TODO 1687: add stuff here
     form = validate(request.get_json(), update_service_sms_sender_request)
     updated_sms_sender = dao_update_service_sms_sender(
         service_id=service_id, service_sms_sender_id=sms_sender_id, **form

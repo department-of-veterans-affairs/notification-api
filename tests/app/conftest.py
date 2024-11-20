@@ -2126,7 +2126,6 @@ def sample_sms_sender(notify_db_session):
 
     def _wrapper(
         service_id,
-        provider_id,
         sms_sender=None,
         is_default=True,
         inbound_number_id=None,
@@ -2134,6 +2133,7 @@ def sample_sms_sender(notify_db_session):
         rate_limit_interval=None,
         sms_sender_specifics=None,
         archived=None,
+        provider_id=None,
     ):
         data = {
             'service_id': service_id,

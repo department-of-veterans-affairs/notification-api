@@ -12,6 +12,7 @@ from app.models import ServiceSmsSender, Service
 
 def test_add_service_sms_sender_calls_dao_method(admin_request, mocker):
     service_id = uuid.uuid4()
+    provider_id = str(uuid.uuid4())
     added_service_sms_sender = ServiceSmsSender(created_at=datetime.utcnow())
 
     dao_add_sms_sender_for_service = mocker.patch(
@@ -24,13 +25,21 @@ def test_add_service_sms_sender_calls_dao_method(admin_request, mocker):
         'service_sms_sender.add_service_sms_sender',
         service_id=service_id,
         _data={
-            'sms_sender': 'second',
+            'description': 'test description',
             'is_default': False,
+            'provider_id': provider_id,
+            'sms_sender': 'second',
         },
         _expected_status=201,
     )
 
-    dao_add_sms_sender_for_service.assert_called_with(service_id=service_id, sms_sender='second', is_default=False)
+    dao_add_sms_sender_for_service.assert_called_with(
+        service_id=service_id,
+        description='test description',
+        is_default=False,
+        provider_id=provider_id,
+        sms_sender='second',
+    )
     assert response_json == added_service_sms_sender.serialize()
 
 
@@ -155,6 +164,7 @@ def test_add_service_sms_sender_return_404_when_rate_limit_too_small(admin_reque
 def test_add_service_sms_sender_new_sender_to_default(
     notify_db_session,
     admin_request,
+    sample_provider,
     sample_service,
 ):
     """
@@ -164,6 +174,8 @@ def test_add_service_sms_sender_new_sender_to_default(
 
     # This fixture also should create a default ServiceSmsSender instance.
     service = sample_service()
+
+    provider = sample_provider()
 
     stmt = select(ServiceSmsSender.id).where(
         ServiceSmsSender.service_id == service.id, ServiceSmsSender.is_default.is_(True)
@@ -175,6 +187,8 @@ def test_add_service_sms_sender_new_sender_to_default(
         'service_sms_sender.add_service_sms_sender',
         service_id=service.id,
         _data={
+            'description': 'test description',
+            'provider_id': str(provider.id),
             'sms_sender': '54321',
             'is_default': True,
         },
@@ -222,6 +236,85 @@ def test_update_service_sms_sender_sender_specifics(
     assert not response_json['inbound_number_id']
     assert not response_json['is_default']
     assert response_json['sms_sender_specifics'] == sender_specifics
+
+
+def test_update_service_sms_sender_provider(
+    admin_request,
+    sample_provider,
+    sample_service,
+    sample_sms_sender,
+) -> None:
+    """
+    Test updating the provider_id field of a given service_sms_sender row. This test does
+    not attempt to affect the default sender.
+    """
+
+    service = sample_service()
+    provider = sample_provider()
+
+    service_sms_sender = sample_sms_sender(
+        service_id=service.id,
+        sms_sender='1235',
+        is_default=False,
+    )
+
+    assert service_sms_sender.provider_id is None
+
+    response_json = admin_request.post(
+        'service_sms_sender.update_service_sms_sender',
+        service_id=service.id,
+        sms_sender_id=service_sms_sender.id,
+        _data={
+            'sms_sender': 'second',
+            'is_default': False,
+            'provider_id': str(provider.id),
+        },
+        _expected_status=200,
+    )
+
+    assert response_json['sms_sender'] == 'second'
+    assert not response_json['inbound_number_id']
+    assert not response_json['is_default']
+    assert response_json['provider_id'] == str(provider.id)
+
+
+def test_update_service_sms_sender_checks_for_invalid_provider(
+    admin_request,
+    sample_provider,
+    sample_service,
+    sample_sms_sender,
+) -> None:
+    """
+    Test updating the provider_id field of a given service_sms_sender row. This test does
+    not attempt to affect the default sender.
+    """
+
+    service = sample_service()
+    provider = sample_provider()
+
+    service_sms_sender = sample_sms_sender(
+        service_id=service.id,
+        sms_sender='1235',
+        is_default=False,
+        provider_id=provider.id,
+    )
+
+    assert service_sms_sender.provider_id == provider.id
+
+    response_json = admin_request.post(
+        'service_sms_sender.update_service_sms_sender',
+        service_id=service.id,
+        sms_sender_id=service_sms_sender.id,
+        _data={
+            'sms_sender': '54321',
+            'is_default': False,
+            'provider_id': str(uuid.uuid4()),
+        },
+        _expected_status=400,
+    )
+
+    assert response_json['result'] == 'error'
+    assert 'No provider details found' in response_json['message']
 
 
 def test_update_service_sms_sender_does_not_allow_sender_update_for_inbound_number(
