@@ -208,7 +208,7 @@ class TestDaoAddSmsSenderForService:
                 description='test',
             )
 
-        assert 'Provide both rate_limit and rate_limit_interval.' in str(e.value)
+        assert 'Provide both rate_limit and rate_limit_interval' in str(e.value)
 
     def test_raises_exception_if_adding_number_to_use_already_allocated_inbound_number(
         self,
@@ -609,15 +609,9 @@ class TestGetSmsSenderByServiceIdAndNumber:
         [1, -1, True],
     ),
 )
-def test_validate_rate_limit(
-    sample_service,
-    sample_sms_sender,
-    rate_limit,
-    rate_limit_interval,
-    raises_exception,
-) -> None:
-    service = sample_service()
-    sms_sender = sample_sms_sender(service_id=service.id)
+def test_validate_rate_limit(rate_limit, rate_limit_interval, raises_exception) -> None:
+    """Test that rate_limit and rate_limit_interval are validated correctly, raising an exception when necessary."""
+    sms_sender = ServiceSmsSender(service_id=uuid.uuid4())
 
     if raises_exception:
         with pytest.raises(SmsSenderRateLimitIntegrityException):

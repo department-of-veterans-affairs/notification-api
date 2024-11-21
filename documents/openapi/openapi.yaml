@@ -421,11 +421,15 @@ paths:
             schema:
               type: object
               properties:
+                description:
+                  type: string
                 inbound_number_id:
                   $ref: '#/components/schemas/Id'
                 is_default:
                   type: boolean
                   example: false
+                provider_id:
+                  $ref: '#/components/schemas/Id'
                 rate_limit:
                   type: integer
                   minimum: 1
@@ -434,13 +438,16 @@ paths:
                   minimum: 1
                 sms_sender:
                   type: string
+                  example: '+19876543210'
                 sms_sender_specifics:
                   description: Arbitrary JSON relevant to a specific messaging service provider
                   type: object
                   example: '{"messaging_service_sid": "MG0000000000000000000000"}'
               required:
-                - sms_sender
+                - description
                 - is_default
+                - provider_id
+                - sms_sender
       responses:
         '201':
           description: OK
@@ -491,11 +498,15 @@ paths:
             schema:
               type: object
               properties:
+                description:
+                  type: string
                 inbound_number_id:
                   $ref: '#/components/schemas/Id'
                 is_default:
                   type: boolean
                   example: false
+                provider_id:
+                  $ref: '#/components/schemas/Id'
                 rate_limit:
                   type: integer
                   minimum: 1
@@ -2993,6 +3004,8 @@ components:
           type: boolean
         provider_id:
           $ref: '#/components/schemas/Id'
+        provider_name:
+          type: string
         rate_limit:
           type: integer
         rate_limit_interval:
