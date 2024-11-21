@@ -88,7 +88,7 @@ def dao_add_sms_sender_for_service(
 
     # TODO - Refactor validation after merging inbound number & sms_sender
     if (rate_limit is None) != (rate_limit_interval is None):
-        raise SmsSenderRateLimitIntegrityException('Provide both rate_limit and rate_limit_interval.')
+        raise SmsSenderRateLimitIntegrityException('Provide both rate_limit and rate_limit_interval, or neither.')
 
     if inbound_number_id is not None:
         inbound_number = _allocate_inbound_number_for_service(service_id, inbound_number_id)
@@ -176,12 +176,12 @@ def dao_update_service_sms_sender(
 def _handle_default_sms_sender(service_id: str, service_sms_sender_id: str, is_default: bool) -> None:
     """Check the default SMS sender.
     This is a helper function when updating an SMS sender. It ensures there is a default SMS sender for the service and
-    raises an exception if there won't be one after the update.
+    raises an exception if there won't be a default sender after the update.
 
     Args:
         service_id (str): The ID of the service.
         service_sms_sender_id (str): The ID of the SMS sender.
-        is_default (bool): Whether the SMS sender is the default.
+        is_default (bool): Whether the SMS sender should be updated to be the default.
 
     Raises:
         SmsSenderDefaultValidationException: If there is no default SMS sender for the service.

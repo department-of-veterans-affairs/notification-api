@@ -17,6 +17,7 @@ from app.dao.service_sms_sender_dao import (
     dao_get_service_sms_sender_by_service_id_and_number,
     dao_get_sms_senders_by_service_id,
     dao_update_service_sms_sender,
+    _validate_rate_limit,
 )
 from app.exceptions import ArchiveValidationError
 from app.models import InboundNumber, ServiceSmsSender
@@ -595,3 +596,31 @@ class TestGetSmsSenderByServiceIdAndNumber:
         )
 
         assert found_sms_sender is sms_sender
+
+
+@pytest.mark.parametrize(
+    'rate_limit, rate_limit_interval, raises_exception',
+    (
+        [1, 1, False],
+        [1, None, True],
+        [None, 1, True],
+        [None, None, False],
+        [-1, 1, True],
+        [1, -1, True],
+    ),
+)
+def test_validate_rate_limit(
+    sample_service,
+    sample_sms_sender,
+    rate_limit,
+    rate_limit_interval,
+    raises_exception,
+) -> None:
+    service = sample_service()
+    sms_sender = sample_sms_sender(service_id=service.id)
+
+    if raises_exception:
+        with pytest.raises(SmsSenderRateLimitIntegrityException):
+            _validate_rate_limit(sms_sender, rate_limit, rate_limit_interval)
+    else:
+        assert _validate_rate_limit(sms_sender, rate_limit, rate_limit_interval) is None
