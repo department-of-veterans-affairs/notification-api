@@ -557,7 +557,7 @@ class ServiceSmsSender(db.Model):
             'id': str(self.id),
             'inbound_number_id': str(self.inbound_number_id) if self.inbound_number_id else None,
             'is_default': self.is_default,
-            'provider_id': str(self.provider_id),
+            'provider_id': str(self.provider_id) if self.provider_id else None,
             'provider_name': self.provider.display_name if self.provider else None,
             'rate_limit': self.rate_limit if self.rate_limit else None,
             'rate_limit_interval': self.rate_limit_interval if self.rate_limit_interval else None,
