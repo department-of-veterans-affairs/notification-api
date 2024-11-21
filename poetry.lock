@@ -2398,8 +2398,8 @@ statsd = ">=3.3.0"
 [package.source]
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
-reference = "2079-sms-content-length"
-resolved_reference = "001e36113a28b53af5ea8b53e6aa51e2a671397e"
+reference = "HEAD"
+resolved_reference = "979cbb61dcd6f67a04f64d1b01c40acafb162b1a"
 
 [[package]]
 name = "notifications-python-client"
@@ -4089,4 +4089,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "0ff14730a6b94da12d06cc043bb21c58ced6351b3c1e3002acd41ea46af2875c"
+content-hash = "41af37aab0a2ec30f75a4f010fc29dd149f4cb6177c6f2935b1bac771f144019"
