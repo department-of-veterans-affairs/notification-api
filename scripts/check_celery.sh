@@ -5,8 +5,6 @@ set -e
 grep_string="run_celery.notify_celery\ worker"
 celery_pid_count=$(ps aux | grep -E run_celery.notify_celery\ worker | grep -v grep | wc -l)
 
-echo "$CELERY_CONCURRENCY"
-
 CELERY_CONCURRENCY_INT=$(echo "$CELERY_CONCURRENCY" | tr -d '[[:space:]]')
 
 if ! [ "$CELERY_CONCURRENCY_INT" -eq "$CELERY_CONCURRENCY_INT" ] 2>/dev/null; then
