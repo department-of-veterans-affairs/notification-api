@@ -17,7 +17,7 @@ function ensure_celery_is_running {
     echo "There are no celery processes running, this container is bad"
     exit 1
   fi
-
+  echo "HERES AN ECHO STATEMENT - IN A FUNCTION" 
   for APP_PID in ${APP_PIDS}; do
       kill -0 ${APP_PID} 2&>/dev/null || return 1
   done
@@ -26,3 +26,5 @@ function ensure_celery_is_running {
 get_celery_pids
 
 ensure_celery_is_running
+
+echo "HERE AN ECHO STATEMENT"
