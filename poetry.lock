@@ -2399,7 +2399,7 @@ statsd = ">=3.3.0"
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
 reference = "2079-sms-content-length"
-resolved_reference = "1ba0d182c197c5992fd187d377c9be7695e5cd01"
+resolved_reference = "10b5260b3bca61dae97fd5b4546425f23772a9db"
 
 [[package]]
 name = "notifications-python-client"
