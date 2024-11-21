@@ -24,7 +24,7 @@
       ],
       "environment": [
         { "name": "CELERY_CONCURRENCY", 
-          "value": 16
+          "value": "16"
         },
         {
           "name": "DD_SERVICE",
