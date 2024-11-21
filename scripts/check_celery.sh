@@ -3,9 +3,7 @@
 set -e
 
 grep_string="run_celery.notify_celery\ worker"
-# celery_pid_count=$(ps aux | grep -E run_celery.notify_celery\ worker | grep -v grep | wc -l)
-
-celery_pid_count="2"
+celery_pid_count=$(ps aux | grep -E run_celery.notify_celery\ worker | grep -v grep | wc -l)
 
 CELERY_CONCURRENCY_INT=$(echo "$CELERY_CONCURRENCY" | tr -d '[[:space:]]')
 
