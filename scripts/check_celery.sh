@@ -3,19 +3,14 @@
 set -e
 
 function get_celery_pids {
-  # First, get the PID from the celery.pid file
-  MAIN_PID=$(cat /tmp/celery.pid)
+  # get the PIDs of the process whose parent is the main celery process, saved in celery.pid
+  # print only pid and their command, get the ones with "celery" in their name
+  # and keep only these PIDs
 
-  # Check if the main process is ddtrace-run or Celery directly
-  if pstree -p ${MAIN_PID} | grep -q 'ddtrace'; then
-    # If ddtrace-run is present, navigate to the child process
-    APP_PIDS=$(pstree -p ${MAIN_PID} | sed 's/.*-ddtrace(\([0-9]*\)).*-celery(\([0-9]*\)).*/\2/')
-  else
-    # If no ddtrace-run, assume the main process is Celery
-    APP_PIDS=$(pstree -p ${MAIN_PID} | sed 's/.*-celery(\([0-9]*\)).*/\1/')
-  fi
-
+  set +o pipefail # so grep returning no matches does not premature fail pipe
+  APP_PIDS=$(pstree -p `cat /tmp/celery.pid` | sed 's/\(.*\)-celery(\(\d*\))/\2/')
   echo "Here are the APP_PIDS: ${APP_PIDS}"
+  set -o pipefail # pipefail should be set everywhere else
 }
 
 function ensure_celery_is_running {
@@ -25,7 +20,7 @@ function ensure_celery_is_running {
   fi
 
   for APP_PID in ${APP_PIDS}; do
-      kill -0 ${APP_PID} 2>/dev/null || return 1
+      kill -0 ${APP_PID} 2&>/dev/null || return 1
   done
 }
 
