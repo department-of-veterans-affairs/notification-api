@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 
 from sqlalchemy import desc, select, update
 
@@ -86,10 +87,6 @@ def dao_add_sms_sender_for_service(
 
     _validate_rate_limit(None, rate_limit, rate_limit_interval)
 
-    # TODO - Refactor validation after merging inbound number & sms_sender
-    if (rate_limit is None) != (rate_limit_interval is None):
-        raise SmsSenderRateLimitIntegrityException('Provide both rate_limit and rate_limit_interval, or neither.')
-
     if inbound_number_id is not None:
         inbound_number = _allocate_inbound_number_for_service(service_id, inbound_number_id)
 
@@ -118,12 +115,12 @@ def dao_add_sms_sender_for_service(
     return new_sms_sender
 
 
-def _validate_provider(provider_id: str) -> ProviderDetails:
+def _validate_provider(provider_id: UUID) -> ProviderDetails:
     """Validate the provider_details. This is a helper function when adding or updating an SMS sender.
     It checks the provider exists and raises an Exception if it doesn't.
 
     Args:
-        provider_id (str): The ID of the provider to validate.
+        provider_id (UUID): The ID of the provider to validate.
 
     Returns:
         ProviderDetails: The provider details.
@@ -173,14 +170,14 @@ def dao_update_service_sms_sender(
     return sms_sender_to_update
 
 
-def _handle_default_sms_sender(service_id: str, service_sms_sender_id: str, is_default: bool) -> None:
+def _handle_default_sms_sender(service_id: UUID, service_sms_sender_id: UUID, is_default: bool) -> None:
     """Check the default SMS sender.
     This is a helper function when updating an SMS sender. It ensures there is a default SMS sender for the service and
     raises an exception if there won't be a default sender after the update.
 
     Args:
-        service_id (str): The ID of the service.
-        service_sms_sender_id (str): The ID of the SMS sender.
+        service_id (UUID): The ID of the service.
+        service_sms_sender_id (UUID): The ID of the SMS sender.
         is_default (bool): Whether the SMS sender should be updated to be the default.
 
     Raises:
@@ -237,6 +234,10 @@ def _validate_rate_limit(
                 raise SmsSenderRateLimitIntegrityException(
                     'Cannot update sender to have only one of rate limit value and interval.'
                 )
+    else:
+        # when adding a new sender ensure both rate limit and rate limit interval are provided, or neither
+        if (rate_limit is None) != (rate_limit_interval is None):
+            raise SmsSenderRateLimitIntegrityException('Provide both rate_limit and rate_limit_interval, or neither.')
 
 
 @transactional
