@@ -71,8 +71,6 @@ optional = true
 [tool.poetry.group.static_tools.dependencies]
 ruff = "*"
 pre-commit = "*"
-flask-shell-ipython = "*"
-pdbpp = "*"
 
 [tool.ruff]
 exclude = [
