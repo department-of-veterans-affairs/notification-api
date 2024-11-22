@@ -41,6 +41,7 @@ from app.mobile_app.mobile_app_registry import MobileAppRegistry
 
 load_dotenv()
 
+
 migrate = Migrate()
 ma = Marshmallow()
 notify_celery = NotifyCelery()
