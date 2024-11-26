@@ -19,6 +19,7 @@ from app.constants import (
     NOTIFICATION_SENT,
     NOTIFICATION_TECHNICAL_FAILURE,
     NOTIFICATION_TEMPORARY_FAILURE,
+    RETRYABLE_STATUS_REASON,
     TWILIO_PROVIDER,
 )
 from app.exceptions import InvalidProviderException
@@ -70,6 +71,7 @@ class TwilioSMSClient(SmsClient):
         '30010': TwilioStatus(30010, NOTIFICATION_TECHNICAL_FAILURE, 'Message price exceeds max price'),
         '30024': TwilioStatus(30024, NOTIFICATION_TECHNICAL_FAILURE, 'Sender not provisioned by carrier'),
         '30034': TwilioStatus(30034, NOTIFICATION_PERMANENT_FAILURE, 'Used an unregistered 10DLC Number'),
+        '30500': TwilioStatus(30500, NOTIFICATION_TEMPORARY_FAILURE, RETRYABLE_STATUS_REASON),
         '60005': TwilioStatus(60005, NOTIFICATION_TEMPORARY_FAILURE, 'Carrier error'),
     }
 
