@@ -49,7 +49,7 @@ twilio = "*"
 Unidecode = "*"
 validatesns = "*"
 Werkzeug = "*"
-notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git"}
+notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git", branch = "API-1123-dd-traceid"}
 
 [tool.poetry.group.test]
 optional = true
