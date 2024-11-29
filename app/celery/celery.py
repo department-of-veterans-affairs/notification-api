@@ -1,7 +1,8 @@
+import logging
 import time
 
 from celery import Celery, Task
-from celery.signals import worker_process_shutdown, worker_shutting_down, worker_process_init
+from celery.signals import task_prerun, task_postrun, worker_process_shutdown, worker_shutting_down, worker_process_init
 from flask import current_app
 
 
@@ -90,3 +91,28 @@ class NotifyCelery(Celery):
         )
 
         self.conf.update(app.config['CELERY_SETTINGS'])
+
+
+class CeleryRequestIdFilter(logging.Filter):
+    def __init__(self, request_id: str, name=''):
+        self.request_id = request_id
+        super().__init__(name)
+
+    def filter(self, record):
+        record.requestId = self.request_id
+        return record
+
+
+@task_prerun.connect
+def add_id_to_logger(task_id, task, *args, **kwargs):
+    logger = logging.getLogger('celery.task')
+    request_id = kwargs.get('notification_id', task_id)
+    logger.addHandler(CeleryRequestIdFilter(request_id, f'celery-{request_id}'))
+
+
+@task_postrun.connect
+def id_cleanup_logger(task_id, task, *args, **kwargs):
+    logger = logging.getLogger('celery.task')
+    for handler in logger.handlers:
+        if handler.name.startswith('celery-'):
+            logger.removeHandler(handler)
