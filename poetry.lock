@@ -2254,7 +2254,7 @@ statsd = ">=3.3.0"
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
 reference = "API-1123-dd-traceid"
-resolved_reference = "c584853f6b493cdfdc42f2de75a6721026646ec1"
+resolved_reference = "8a07034a20a9bbd8c51ed7df10202d12b92ac5e0"
 
 [[package]]
 name = "notifications-python-client"
