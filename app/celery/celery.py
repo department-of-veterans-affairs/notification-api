@@ -114,4 +114,4 @@ def id_cleanup_logger(task_id, task, *args, **kwargs):
     request_id = kwargs.get('notification_id', task_id)
     for filter in current_app.logger.filters:
         if filter.name == f'celery-{request_id}':
-            current_app.logger.removeFilter()
+            current_app.logger.removeFilter(filter)
