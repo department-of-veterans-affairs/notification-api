@@ -113,6 +113,7 @@ def add_id_to_logger(task_id, task, *args, **kwargs):
 @task_postrun.connect
 def id_cleanup_logger(task_id, task, *args, **kwargs):
     logger = logging.getLogger('celery.task')
+    request_id = kwargs.get('notification_id', task_id)
     for handler in logger.handlers:
-        if handler.name.startswith('celery-'):
+        if handler.name == f'celery-{request_id}':
             logger.removeHandler(handler)
