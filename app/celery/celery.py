@@ -105,14 +105,12 @@ class CeleryRequestIdFilter(logging.Filter):
 
 @task_prerun.connect
 def add_id_to_logger(task_id, task, *args, **kwargs):
-    current_app.logger.info('this is a prerun test!')
     request_id = kwargs.get('notification_id', task_id)
     current_app.logger.addHandler(CeleryRequestIdFilter(request_id, f'celery-{request_id}'))
 
 
 @task_postrun.connect
 def id_cleanup_logger(task_id, task, *args, **kwargs):
-    current_app.logger.info('this is a postrun test!')
     request_id = kwargs.get('notification_id', task_id)
     for handler in current_app.logger.handlers:
         if handler.name == f'celery-{request_id}':
