@@ -371,8 +371,7 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
         'Sending email status to VA Profile, checking feature flag... | notification %s', notification.id
     )
 
-    # Update to VA_PROFILE_EMAIL_STATUS_ENABLED to SMS. Move to top and return if disabled.
-    if is_feature_enabled(FeatureFlag.VA_PROFILE_EMAIL_STATUS_ENABLED):
+    if is_feature_enabled(FeatureFlag.VA_PROFILE_SMS_STATUS_ENABLED) or notification.notification_type == EMAIL_TYPE:
         current_app.logger.debug(
             'Sending email status to VA Profile, collecting data for notification %s', notification.id
         )
@@ -390,10 +389,11 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
         }
 
         # data passed to tasks must be JSON serializable
-        send_email_status_to_va_profile.delay(notification_data)
+        # TODO 2137: Put back delay
+        send_email_status_to_va_profile(notification_data)
     else:
         current_app.logger.debug(
-            'Email status not sent to VA Profile, feature flag disabled | notification %s', notification.id
+            'SMS status not sent to VA Profile, feature flag disabled | notification %s', notification.id
         )
 
 
