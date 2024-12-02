@@ -115,8 +115,11 @@ def _get_request_id(task_id: str, *args, **kwargs) -> str:
     logger = logging.getLogger()
     logger.critical('celery args: %s | kwargs: %s | task_id: %s', args, kwargs, task_id)
     try:
-        request_id = kwargs.get('kwargs', {}).get('notification_id', task_id)
-    except AttributeError:
+        if len(args) > 1 and not kwargs:
+            request_id = args[1].get('kwargs', {}).get('notification_id', task_id)
+        else:
+            request_id = kwargs.get('kwargs', {}).get('notification_id', task_id)
+    except (AttributeError, IndexError):
         logger = logging.getLogger()
         logger.exception('celery prerun args: %s | kwargs: %s | task_id: %s', args, kwargs, task_id)
         request_id = task_id
