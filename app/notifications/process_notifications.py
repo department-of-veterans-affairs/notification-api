@@ -176,9 +176,7 @@ def send_notification_to_queue(
 
     # Including sms_sender_id is necessary so the correct sender can be chosen.
     # https://docs.celeryq.dev/en/v4.4.7/userguide/canvas.html#immutability
-    deliver_task, queue = _get_delivery_task(
-        notification, research_mode, queue, sms_sender_id, notification_id=str(notification.id)
-    )
+    deliver_task, queue = _get_delivery_task(notification, research_mode, queue, sms_sender_id)
     tasks.append(deliver_task.si(notification_id=str(notification.id), sms_sender_id=sms_sender_id).set(queue=queue))
 
     try:
