@@ -112,6 +112,8 @@ def _get_request_id(task_id: str, *args, **kwargs) -> str:
     Returns:
         str: The request_id to use for all logging related to this task
     """
+    logger = logging.getLogger()
+    logger.exception('celery prerun args: %s | kwargs: %s | task_id: %s', args, kwargs, task_id)
     try:
         request_id = kwargs.get('kwargs', {}).get('notification_id', task_id)
     except AttributeError:
