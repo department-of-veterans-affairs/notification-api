@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from flask import current_app
+from flask import current_app, g
 from celery import chain
 
 from notifications_utils.clients import redis
@@ -92,7 +92,8 @@ def persist_notification(
     notification_created_at = created_at or datetime.utcnow()
 
     if notification_id is None:
-        notification_id = uuid.uuid4()
+        # utils sets this so we can unify logging
+        notification_id = g.request_id if getattr(g, 'request_id', '') else uuid.uuid4()
 
     notification = Notification(
         id=notification_id,
