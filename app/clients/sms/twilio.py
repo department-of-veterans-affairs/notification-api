@@ -176,7 +176,6 @@ class TwilioSMSClient(SmsClient):
 
         Return: a string containing the Twilio message.sid
         """
-
         start_time = monotonic()
         from app.dao.service_sms_sender_dao import (
             dao_get_service_sms_sender_by_service_id_and_number,
@@ -239,12 +238,12 @@ class TwilioSMSClient(SmsClient):
             if e.status == 400 and 'phone number' in e.msg:
                 self.logger.exception('Twilio send SMS request for %s failed', reference)
                 raise InvalidProviderException from e
-            # elif e.status == 400 and e.code == 21617:  # Twilio error code for max length exceeded
-            #     self.logger.exception(
-            #         'Twilio send SMS request for %s failed, message content max length exceeded.', reference
-            #     )
-            #     self.logger.debug('Twilio error details for %s - %s: %s', reference, e.code, e.msg)
-            #     raise NonRetryableException('Twilio request failed') from e
+            elif e.status == 400 and e.code == 21617:  # Twilio error code for max length exceeded
+                self.logger.exception(
+                    'Twilio send SMS request for %s failed, message content max length exceeded.', reference
+                )
+                self.logger.debug('Twilio error details for %s - %s: %s', reference, e.code, e.msg)
+                raise NonRetryableException('Twilio request failed') from e
             else:
                 raise
         except:
