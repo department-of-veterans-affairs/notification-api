@@ -105,6 +105,8 @@ class CeleryRequestIdFilter(logging.Filter):
 
 @task_prerun.connect
 def add_id_to_logger(task_id, task, *args, **kwargs):
+    logger = logging.getLogger()
+    logger.info('celery args: %s | kwargs: %s | task_id: %s', args, kwargs, task_id)
     request_id = kwargs.get('notification_id', task_id)
     current_app.logger.addFilter(CeleryRequestIdFilter(request_id, f'celery-{request_id}'))
 
