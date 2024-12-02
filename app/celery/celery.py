@@ -103,17 +103,33 @@ class CeleryRequestIdFilter(logging.Filter):
         return record
 
 
+def _get_request_id(task_id: str, *args, **kwargs) -> str:
+    """Get the notification id if it is available, otherwise use the task id.
+
+    Args:
+        task_id (str): Celery task id
+
+    Returns:
+        str: The request_id to use for all logging related to this task
+    """
+    try:
+        request_id = kwargs.get('kwargs', {}).get('notification_id', task_id)
+    except AttributeError:
+        logger = logging.getLogger()
+        logger.exception('celery prerun args: %s | kwargs: %s | task_id: %s', args, kwargs, task_id)
+        request_id = task_id
+    return request_id
+
+
 @task_prerun.connect
 def add_id_to_logger(task_id, task, *args, **kwargs):
-    logger = logging.getLogger()
-    logger.critical('celery args: %s | kwargs: %s | task_id: %s', args, kwargs, task_id)
-    request_id = kwargs.get('kwargs', {}).get('notification_id', task_id)
+    request_id = _get_request_id(task_id, args, kwargs)
     current_app.logger.addFilter(CeleryRequestIdFilter(request_id, f'celery-{request_id}'))
 
 
 @task_postrun.connect
 def id_cleanup_logger(task_id, task, *args, **kwargs):
-    request_id = kwargs.get('kwargs', {}).get('notification_id', task_id)
+    request_id = _get_request_id(task_id, args, kwargs)
     for filter in current_app.logger.filters:
         if filter.name == f'celery-{request_id}':
             current_app.logger.removeFilter(filter)
