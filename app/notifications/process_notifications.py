@@ -270,7 +270,7 @@ def send_to_queue_for_recipient_info_based_on_recipient_identifier(
         ]
 
     tasks.append(lookup_contact_info.si(notification.id).set(queue=QueueNames.LOOKUP_CONTACT_INFO))
-    deliver_task, deliver_queue = _get_delivery_task(notification, notification_id=notification.id)
+    deliver_task, deliver_queue = _get_delivery_task(notification)
     tasks.append(deliver_task.si(notification_id=notification.id).set(queue=deliver_queue))
 
     try:
