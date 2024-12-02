@@ -171,9 +171,7 @@ def send_notification_to_queue(
         if communication_item_id is not None:
             if recipient_id_type != IdentifierType.VA_PROFILE_ID.value:
                 tasks.append(
-                    lookup_va_profile_id.si(notification_id=str(notification.id)).set(
-                        queue=QueueNames.LOOKUP_VA_PROFILE_ID
-                    )
+                    lookup_va_profile_id.si(notification_id=notification.id).set(queue=QueueNames.LOOKUP_VA_PROFILE_ID)
                 )
 
     # Including sms_sender_id is necessary so the correct sender can be chosen.
@@ -181,7 +179,7 @@ def send_notification_to_queue(
     deliver_task, queue = _get_delivery_task(
         notification, research_mode, queue, sms_sender_id, notification_id=str(notification.id)
     )
-    tasks.append(deliver_task.si(str(notification.id), sms_sender_id).set(queue=queue))
+    tasks.append(deliver_task.si(notification_id=str(notification.id), sms_sender_id=sms_sender_id).set(queue=queue))
 
     try:
         # This executes the task list.  Each task calls a function that makes a request to
@@ -205,7 +203,6 @@ def _get_delivery_task(
     research_mode=False,
     queue=None,
     sms_sender_id=None,
-    notification_id=None,
 ):
     """
     The return value "deliver_task" is a function decorated to be a Celery task.
@@ -276,7 +273,7 @@ def send_to_queue_for_recipient_info_based_on_recipient_identifier(
 
     tasks.append(lookup_contact_info.si(notification.id).set(queue=QueueNames.LOOKUP_CONTACT_INFO))
     deliver_task, deliver_queue = _get_delivery_task(notification, notification_id=notification.id)
-    tasks.append(deliver_task.si(notification.id, notification_id=notification.id).set(queue=deliver_queue))
+    tasks.append(deliver_task.si(notification_id=notification.id).set(queue=deliver_queue))
 
     try:
         # This executes the task list.  Each task calls a function that makes a request to
