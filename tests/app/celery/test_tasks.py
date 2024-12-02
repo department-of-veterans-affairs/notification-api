@@ -495,7 +495,11 @@ def test_should_send_template_to_correct_sms_task_and_persist(
     assert persisted_notification.personalisation == {'name': 'Jo'}
     assert persisted_notification._personalisation == encryption.encrypt({'name': 'Jo'})
     assert persisted_notification.notification_type == SMS_TYPE
-    mocked_deliver_sms.assert_called_once_with([str(persisted_notification.id)], queue='send-sms-tasks')
+    mocked_deliver_sms.assert_called_once_with(
+        args=(),
+        kwargs={'notification_id': str(persisted_notification.id)},
+        queue='send-sms-tasks',
+    )
 
 
 def test_should_put_save_sms_task_in_research_mode_queue_if_research_mode_service(
@@ -567,7 +571,9 @@ def test_should_save_sms_if_restricted_service_and_valid_number(
     assert not persisted_notification.personalisation
     assert persisted_notification.notification_type == SMS_TYPE
     provider_tasks.deliver_sms.apply_async.assert_called_once_with(
-        [str(persisted_notification.id)], queue='send-sms-tasks'
+        args=(),
+        kwargs={'notification_id': str(persisted_notification.id)},
+        queue='send-sms-tasks',
     )
 
 
@@ -784,9 +790,10 @@ def test_should_save_sms_template_to_and_persist_with_job_id(
     assert persisted_notification.api_key_id is None
     assert persisted_notification.key_type == KEY_TYPE_NORMAL
     assert persisted_notification.notification_type == SMS_TYPE
-
     provider_tasks.deliver_sms.apply_async.assert_called_once_with(
-        [str(persisted_notification.id)], queue='send-sms-tasks'
+        args=(),
+        kwargs={'notification_id': str(persisted_notification.id)},
+        queue='send-sms-tasks',
     )
 
 
