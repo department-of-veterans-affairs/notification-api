@@ -520,7 +520,9 @@ def test_should_put_save_sms_task_in_research_mode_queue_if_research_mode_servic
     persisted_notification = notify_db_session.session.get(Notification, notification_id)
 
     provider_tasks.deliver_sms.apply_async.assert_called_once_with(
-        [str(persisted_notification.id)], queue='notify-internal-tasks'
+        args=(),
+        kwargs={'notification_id': str(persisted_notification.id)},
+        queue='notify-internal-tasks',
     )
     assert mocked_deliver_sms.called
 
@@ -600,7 +602,11 @@ def test_save_sms_should_call_deliver_sms_with_rate_limiting_if_sender_id_provid
     notification2 = notify_db_session.session.get(Notification, notification_id)
     assert notification2 is not None
 
-    deliver_sms.assert_called_once_with([str(notification_id)], queue='send-sms-tasks')
+    deliver_sms.assert_called_once_with(
+        args=(),
+        kwargs={'notification_id': str(notification_id)},
+        queue='send-sms-tasks',
+    )
 
 
 def test_save_email_should_save_default_email_reply_to_text_on_notification(
@@ -861,6 +867,7 @@ def test_should_use_email_template_and_persist(
     )
 
 
+@pytest.mark.serial
 def test_save_email_should_use_template_version_from_job_not_latest(
     notify_db_session,
     sample_template,
@@ -884,6 +891,7 @@ def test_save_email_should_use_template_version_from_job_not_latest(
 
     notification_id = uuid4()
 
+    # Intermittently makes the status 'technical-failure'
     save_email(
         template.service_id,
         notification_id,

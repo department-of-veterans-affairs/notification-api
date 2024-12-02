@@ -427,7 +427,7 @@ def test_should_send_email_to_anyone_with_test_key(
     mocked.assert_called_once()
 
     result_notification_id, result_queue = mocked.call_args
-    result_id, *rest = result_notification_id[0]
+    result_id = result_notification_id[1].get('notification_id')
     assert result_id == mocked_uuid
     assert result_queue['queue'] == 'notify-internal-tasks'
 

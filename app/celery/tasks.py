@@ -228,13 +228,13 @@ def save_sms(
 
         if is_feature_enabled(FeatureFlag.SMS_SENDER_RATE_LIMIT_ENABLED) and sms_sender and sms_sender.rate_limit:
             provider_tasks.deliver_sms_with_rate_limiting.apply_async(
-                args=[],
+                args=(),
                 kwargs={'notification_id': str(saved_notification.id)},
                 queue=QueueNames.SEND_SMS if not service.research_mode else QueueNames.NOTIFY,
             )
         else:
             provider_tasks.deliver_sms.apply_async(
-                args=[],
+                args=(),
                 kwargs={'notification_id': str(saved_notification.id)},
                 queue=QueueNames.SEND_SMS if not service.research_mode else QueueNames.NOTIFY,
             )
