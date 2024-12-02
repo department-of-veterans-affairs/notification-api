@@ -367,11 +367,11 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
 
     :param notification: the email notification to collect data from
     """
-
     current_app.logger.debug(
         'Sending email status to VA Profile, checking feature flag... | notification %s', notification.id
     )
 
+    # Update to VA_PROFILE_EMAIL_STATUS_ENABLED to SMS. Move to top and return if disabled.
     if is_feature_enabled(FeatureFlag.VA_PROFILE_EMAIL_STATUS_ENABLED):
         current_app.logger.debug(
             'Sending email status to VA Profile, collecting data for notification %s', notification.id
