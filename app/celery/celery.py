@@ -112,14 +112,15 @@ def _get_request_id(task_id: str, *args, **kwargs) -> str:
     Returns:
         str: The request_id to use for all logging related to this task
     """
-    logger = logging.getLogger()
-    logger.critical('celery args: %s | kwargs: %s | task_id: %s', args, kwargs, task_id)
+    request_id = ''
     try:
-        if len(args) > 1 and not kwargs:
-            request_id = args[1].get('kwargs', {}).get('notification_id', task_id)
-        else:
+        # Depending on the call it may be an arg
+        if len(args) > 1:
+            request_id = args[1].get('kwargs', {}).get('notification_id', '')
+        #  or kwarg - separated for readability
+        if not request_id:
             request_id = kwargs.get('kwargs', {}).get('notification_id', task_id)
-    except (AttributeError, IndexError):
+    except AttributeError:
         logger = logging.getLogger()
         logger.exception('celery prerun args: %s | kwargs: %s | task_id: %s', args, kwargs, task_id)
         request_id = task_id
