@@ -22,6 +22,7 @@ from app.constants import (
     RETRYABLE_STATUS_REASON,
     TWILIO_PROVIDER,
 )
+from app.exceptions import InvalidProviderException
 
 
 # https://www.twilio.com/docs/messaging/api/message-resource#message-status-values
@@ -234,9 +235,17 @@ class TwilioSMSClient(SmsClient):
 
             return message.sid
         except TwilioRestException as e:
-            self.logger.exception('Twilio send SMS request for %s failed', reference)
-            self.logger.debug('Twilio error code: %s, message: %s, details: %s', e.code, e.msg, e.details)
-            raise NonRetryableException('Twilio request failed') from e
+            if e.status == 400 and 'phone number' in e.msg:
+                self.logger.exception('Twilio send SMS request for %s failed', reference)
+                raise InvalidProviderException from e
+            elif e.status == 400 and e.code == 21617:  # Twilio error code for max length exceeded
+                self.logger.exception(
+                    'Twilio send SMS request for %s failed, message content max length exceeded.', reference
+                )
+                self.logger.debug('Twilio error details - %s: %s', e.code, e.msg)
+                raise NonRetryableException('Twilio request failed') from e
+            else:
+                raise
         except:
             self.logger.exception('Twilio send SMS request for %s failed', reference)
             raise
