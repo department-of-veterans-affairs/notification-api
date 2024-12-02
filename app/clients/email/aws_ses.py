@@ -98,7 +98,6 @@ class AwsSesClient(EmailClient):
         html_body='',
         reply_to_address=None,
         attachments=None,
-        notification_id=None,
     ):
         def create_mime_base(
             attachments,

@@ -181,7 +181,7 @@ def send_notification_to_queue(
     deliver_task, queue = _get_delivery_task(
         notification, research_mode, queue, sms_sender_id, notification_id=str(notification.id)
     )
-    tasks.append(deliver_task.si(notification_id=str(notification.id), sms_sender_id=sms_sender_id).set(queue=queue))
+    tasks.append(deliver_task.si(str(notification.id), sms_sender_id).set(queue=queue))
 
     try:
         # This executes the task list.  Each task calls a function that makes a request to
