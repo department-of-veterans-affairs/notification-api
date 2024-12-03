@@ -40,8 +40,7 @@ def check_and_queue_va_profile_email_status_callback(notification: Notification)
         }
 
         # data passed to tasks must be JSON serializable
-        # TODO 2137: Put back delay
-        send_email_status_to_va_profile(notification_data)
+        send_email_status_to_va_profile.delay(notification_data)
     else:
         current_app.logger.debug(
             'SMS status not sent to VA Profile, feature flag disabled | notification %s', notification.id
