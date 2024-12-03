@@ -98,9 +98,17 @@ class CeleryRequestIdFilter(logging.Filter):
         self.request_id = request_id
         super().__init__(name)
 
-    def filter(self, record):
+    def filter(self, record) -> bool:
+        """Determine if the specified record is to be logged.
+
+        Args:
+            record (LogRecord): The log record representing this log
+
+        Returns:
+            bool: If the record should be logged
+        """
         record.requestId = self.request_id
-        return record
+        return True
 
 
 def _get_request_id(task_id: str, *args, **kwargs) -> str:
@@ -132,12 +140,24 @@ def _get_request_id(task_id: str, *args, **kwargs) -> str:
 
 @task_prerun.connect
 def add_id_to_logger(task_id, task, *args, **kwargs):
+    """Create filter for all logs related to this task.
+
+    Args:
+        task_id (str): The celery task id
+        task (Task): The celery Task object
+    """
     request_id = _get_request_id(task_id, args, kwargs)
     current_app.logger.addFilter(CeleryRequestIdFilter(request_id, f'celery-{request_id}'))
 
 
 @task_postrun.connect
 def id_cleanup_logger(task_id, task, *args, **kwargs):
+    """Removes previously created filters when they are no longer necessary.
+
+    Args:
+        task_id (str): The celery task id
+        task (Task): The celery Task object
+    """
     request_id = _get_request_id(task_id, args, kwargs)
     for filter in current_app.logger.filters:
         if filter.name == f'celery-{request_id}':
