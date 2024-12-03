@@ -441,7 +441,7 @@ def check_and_queue_notification_callback_task(notification: Notification) -> No
     callback_signature = generate_callback_signature(notification.api_key_id, notification_data)
 
     send_delivery_status_from_notification.apply_async(
-        [callback_signature, notification.callback_url, notification_data, notification.id],
+        [callback_signature, notification.callback_url, notification_data, str(notification.id)],
         queue=QueueNames.CALLBACKS,
     )
 
