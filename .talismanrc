@@ -54,7 +54,7 @@ fileignoreconfig:
 - filename: lambda_functions/va_profile/va_profile_opt_in_out_lambda.py
   checksum: a05165537ffbfac90000c5d04d8628251d771f6d1334c91c3aed28bf6c32368c
 - filename: poetry.lock
-  checksum: e7941f290b5982eda196f38a3d4a00934a79c94caaf0e7e6a027650f4733334f
+  checksum: a6fb48156e3701461e564d78ab3b30fa69c91000a7d321c67a0a5e10c2432be8
 - filename: scripts/trigger_task.py
   checksum: 0e9d244dbe285de23fc84bb643407963dacf7d25a3358373f01f6272fb217778
 - filename: tests/README.md
