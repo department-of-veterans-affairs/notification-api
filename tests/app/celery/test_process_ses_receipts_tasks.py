@@ -153,9 +153,9 @@ def test_it_ses_callback_should_not_send_email_status_to_va_profile_when_feature
     with freeze_time('2001-01-01T12:00:00'):
         mock_log_total_time = mocker.patch('app.celery.common.log_notification_total_time')
         mocker.patch('app.celery.process_ses_receipts_tasks.check_and_queue_callback_task')
-        mocker.patch('app.celery.process_ses_receipts_tasks.is_feature_enabled', return_value=False)
+        mocker.patch('app.celery.send_va_profile_notification_status.is_feature_enabled', return_value=False)
         mock_send_email_status = mocker.patch(
-            'app.celery.process_ses_receipts_tasks.send_email_status_to_va_profile.apply_async'
+            'app.celery.send_va_profile_notification_status.send_email_status_to_va_profile.apply_async'
         )
         ref = str(uuid4())
 
@@ -187,9 +187,9 @@ def test_it_ses_callback_should_send_email_status_to_va_profile_when_set_to_deli
     with freeze_time('2001-01-01T12:00:00'):
         mock_log_total_time = mocker.patch('app.celery.common.log_notification_total_time')
         mocker.patch('app.celery.process_ses_receipts_tasks.check_and_queue_callback_task')
-        mocker.patch('app.celery.process_ses_receipts_tasks.is_feature_enabled', return_value=True)
+        mocker.patch('app.celery.send_va_profile_notification_status.is_feature_enabled', return_value=True)
         mock_send_email_status = mocker.patch(
-            'app.celery.process_ses_receipts_tasks.send_email_status_to_va_profile.apply_async'
+            'app.celery.send_va_profile_notification_status.send_email_status_to_va_profile.apply_async'
         )
         ref = str(uuid4())
 
@@ -224,9 +224,9 @@ def test_it_ses_callback_should_send_email_status_to_va_profile_with_notificatio
         mocker.patch('app.celery.process_ses_receipts_tasks.notifications_dao.dao_update_notification')
         mocker.patch('app.celery.process_ses_receipts_tasks.process_ses_results.retry')
         mocker.patch('app.celery.process_ses_receipts_tasks.check_and_queue_callback_task')
-        mocker.patch('app.celery.process_ses_receipts_tasks.is_feature_enabled', return_value=True)
+        mocker.patch('app.celery.send_va_profile_notification_status.is_feature_enabled', return_value=True)
         mock_send_email_status = mocker.patch(
-            'app.celery.process_ses_receipts_tasks.send_email_status_to_va_profile.apply_async'
+            'app.celery.send_va_profile_notification_status.send_email_status_to_va_profile.apply_async'
         )
         ref = str(uuid4())
 
@@ -262,9 +262,9 @@ def test_it_ses_callback_should_send_email_status_to_va_profile_with_notificatio
         mock_log_total_time = mocker.patch('app.celery.common.log_notification_total_time')
         mocker.patch('app.celery.process_ses_receipts_tasks.notifications_dao.dao_update_notification')
         mock_callback = mocker.patch('app.celery.process_ses_receipts_tasks.check_and_queue_callback_task')
-        mocker.patch('app.celery.process_ses_receipts_tasks.is_feature_enabled', return_value=True)
+        mocker.patch('app.celery.send_va_profile_notification_status.is_feature_enabled', return_value=True)
         mock_send_email_status = mocker.patch(
-            'app.celery.process_ses_receipts_tasks.send_email_status_to_va_profile.apply_async'
+            'app.celery.send_va_profile_notification_status.send_email_status_to_va_profile.apply_async'
         )
         ref = str(uuid4())
 
@@ -405,6 +405,8 @@ def test_ses_callback_should_set_status_to_temporary_failure(
     sample_service_callback,
     status,
 ):
+    # TODO Test failing possibly related to removing old VA_PROFILE_EMAIL_STATUS_ENABLED FF
+    # during refactor. process_ses_receipts_tasks.process_ses_results(ses_soft_bounce_callback(reference=ref)) returns True
     send_mock = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
 
     template = sample_template(template_type=EMAIL_TYPE)
@@ -416,7 +418,6 @@ def test_ses_callback_should_set_status_to_temporary_failure(
     ).id
 
     sample_service_callback(service=template.service, url='https://original_url.com')
-
     assert process_ses_receipts_tasks.process_ses_results(ses_soft_bounce_callback(reference=ref)) is None
     db_notification = notify_db_session.session.get(Notification, notification_id)
     assert db_notification.status == NOTIFICATION_TEMPORARY_FAILURE
