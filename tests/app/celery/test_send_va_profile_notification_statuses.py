@@ -35,6 +35,8 @@ class TestSendNotificationStatusesToVAProfile:
 
     @patch('app.va.va_profile.va_profile_client.requests.post')
     def test_can_send_sms_notification_status_to_va_profile(self, mock_post, notify_api, mocker):
+        # TODO Failing because of `send_email_status_to_va_profile.delay`
+        # Need to figure out how to update celery configs to `task always eager`
         mocker.patch.dict(os.environ, {'VA_PROFILE_SMS_STATUS_ENABLED': 'True'})
 
         sms_notification = Notification(**self.mock_sms_notification_data)
@@ -66,6 +68,8 @@ class TestSendNotificationStatusesToVAProfile:
 
     @patch('app.va.va_profile.va_profile_client.requests.post')
     def test_can_send_email_notification_status_to_va_profile(self, mock_post, notify_api, mocker):
+        # TODO Failing because of `send_email_status_to_va_profile.delay`
+        # Need to figure out how to update celery configs to `task always eager`
         mocker.patch.dict(os.environ, {'VA_PROFILE_SMS_STATUS_ENABLED': 'False'})
 
         email_notification = Notification(**self.mock_email_notification_data)
