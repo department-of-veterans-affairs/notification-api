@@ -93,6 +93,7 @@ def persist_notification(
 
     if notification_id is None:
         # utils sets this so we can unify logging
+        # Any internal code that calls this method in a loop cannot use g (Example: send_notification_to_service_users)
         notification_id = g.request_id if getattr(g, 'request_id', '') else uuid.uuid4()
 
     notification = Notification(
