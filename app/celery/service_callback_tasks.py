@@ -367,6 +367,7 @@ def send_delivery_status_from_notification(
     callback_signature: str,
     callback_url: str,
     notification_data: dict[str, str],
+    notification_id: str,
 ) -> None:
     """
     Send a delivery status notification to the given callback URL.
@@ -393,7 +394,7 @@ def send_delivery_status_from_notification(
         response.raise_for_status()
     except Timeout as e:
         current_app.logger.warning(
-            'Timeout error sending callback for notification %s, url %s', notification_data['id'], callback_url
+            'Timeout error sending callback for notification %s, url %s', notification_id, callback_url
         )
         raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e)
     except RequestException as e:
@@ -403,7 +404,7 @@ def send_delivery_status_from_notification(
         if e.response is not None and e.response.status_code == 429 or e.response.status_code >= 500:
             current_app.logger.warning(
                 'Retryable error sending callback for notification %s, url %s | status code: %s, exception: %s',
-                notification_data.get('id'),
+                notification_id,
                 callback_url,
                 e.response.status_code if e.response is not None else 'unknown',
                 str(e),
@@ -412,7 +413,7 @@ def send_delivery_status_from_notification(
         else:
             current_app.logger.warning(
                 'Non-retryable error sending callback for notification %s, url %s | status code: %s, exception: %s',
-                notification_data.get('id'),
+                notification_id,
                 callback_url,
                 e.response.status_code if e.response is not None else 'unknown',
                 str(e),
@@ -421,7 +422,7 @@ def send_delivery_status_from_notification(
 
     current_app.logger.debug(
         'Callback successfully sent for notification %s, url: %s | status code: %d',
-        notification_data.get('id'),
+        notification_id,
         callback_url,
         response.status_code,
     )
@@ -440,7 +441,7 @@ def check_and_queue_notification_callback_task(notification: Notification) -> No
     callback_signature = generate_callback_signature(notification.api_key_id, notification_data)
 
     send_delivery_status_from_notification.apply_async(
-        [callback_signature, notification.callback_url, notification_data],
+        [callback_signature, notification.callback_url, notification_data, notification.id],
         queue=QueueNames.CALLBACKS,
     )
 

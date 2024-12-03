@@ -148,5 +148,4 @@ def remove_log_handler(*args, **kwargs) -> None:
     Just by using .connect this will disable the logger hijacking.
     https://docs.celeryq.dev/en/stable/userguide/signals.html#setup-logging
     """
-    logger = logging.getLogger()
-    logger.critical('Celery setup_logging args: %s | kwargs: %s')
+    pass
