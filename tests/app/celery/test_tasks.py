@@ -751,7 +751,11 @@ def test_should_put_save_email_task_in_research_mode_queue_if_research_mode_serv
     persisted_notification = notify_db_session.session.get(Notification, notification_id)
 
     provider_tasks.deliver_email.apply_async.assert_called_once_with(
-        [str(persisted_notification.id)], queue='notify-internal-tasks'
+        args=(),
+        kwargs={
+            'notification_id': str(persisted_notification.id),
+        },
+        queue='notify-internal-tasks',
     )
 
 
@@ -1048,7 +1052,11 @@ def test_should_use_email_template_and_persist_without_personalisation(
     assert not persisted_notification.reference
     assert persisted_notification.notification_type == EMAIL_TYPE
     provider_tasks.deliver_email.apply_async.assert_called_once_with(
-        [str(persisted_notification.id)], queue='send-email-tasks'
+        args=(),
+        kwargs={
+            'notification_id': str(persisted_notification.id),
+        },
+        queue='send-email-tasks',
     )
 
 

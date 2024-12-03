@@ -344,7 +344,13 @@ def check_and_queue_service_callback_task(notification: Notification, payload=No
         # build dictionary for notification
         notification_data = create_delivery_status_callback_data(notification, service_callback_api, payload)
         send_delivery_status_to_service.apply_async(
-            [service_callback_api.id, str(notification.id), notification_data], queue=QueueNames.CALLBACKS
+            args=(),
+            kwargs={
+                'service_callback_id': service_callback_api.id,
+                'notification_id': str(notification.id),
+                'encrypted_status_update': notification_data,
+            },
+            queue=QueueNames.CALLBACKS,
         )
     else:
         current_app.logger.debug(
@@ -441,7 +447,13 @@ def check_and_queue_notification_callback_task(notification: Notification) -> No
     callback_signature = generate_callback_signature(notification.api_key_id, notification_data)
 
     send_delivery_status_from_notification.apply_async(
-        [callback_signature, notification.callback_url, notification_data, str(notification.id)],
+        args=(),
+        kwargs={
+            'callback_signature': callback_signature,
+            'callback_url': notification.callback_url,
+            'notification_data': notification_data,
+            'notification_id': str(notification.id),
+        },
         queue=QueueNames.CALLBACKS,
     )
 

@@ -116,9 +116,12 @@ def _get_request_id(task_id: str, *args, **kwargs) -> str:
     try:
         # Depending on the call it may be an arg
         if len(args) > 1:
+            # Example: tasks = [deliver_email.si(notification_id=str(notification.id))]; chain(*tasks).apply_async()
             request_id = args[1].get('kwargs', {}).get('notification_id', '')
+
         #  or kwarg - separated for readability
         if not request_id:
+            # Example: deliver_email.apply_async(args=(),kwargs={'notification_id':str(notification.id)})
             request_id = kwargs.get('kwargs', {}).get('notification_id', task_id)
     except AttributeError:
         logger = logging.getLogger()

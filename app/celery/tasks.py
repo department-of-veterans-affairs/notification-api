@@ -291,7 +291,8 @@ def save_email(
         )
 
         provider_tasks.deliver_email.apply_async(
-            [str(saved_notification.id)],
+            args=(),
+            kwargs={'notification_id': str(saved_notification.id)},
             queue=QueueNames.SEND_EMAIL if not service.research_mode else QueueNames.NOTIFY,
         )
 
