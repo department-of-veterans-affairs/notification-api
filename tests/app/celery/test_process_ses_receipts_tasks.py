@@ -405,9 +405,11 @@ def test_ses_callback_should_set_status_to_temporary_failure(
     sample_service_callback,
     status,
 ):
-    # TODO Test failing possibly related to removing old VA_PROFILE_EMAIL_STATUS_ENABLED FF
-    # during refactor. process_ses_receipts_tasks.process_ses_results(ses_soft_bounce_callback(reference=ref)) returns True
     send_mock = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
+    mock_send_email_status = mocker.patch(
+        'app.celery.send_va_profile_notification_status.send_email_status_to_va_profile.apply_async'
+    )
+    mock_send_email_status.return_value = None
 
     template = sample_template(template_type=EMAIL_TYPE)
     ref = str(uuid4())
