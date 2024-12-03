@@ -35,9 +35,14 @@ from tests.app.db import (
 )
 
 
-def test_process_ses_results(notify_db_session, sample_template, sample_notification):
+def test_process_ses_results(notify_db_session, sample_template, sample_notification, mocker):
     template = sample_template(template_type=EMAIL_TYPE)
     ref = str(uuid4())
+
+    mock_send_email_status = mocker.patch(
+        'app.celery.send_va_profile_notification_status.send_email_status_to_va_profile.apply_async'
+    )
+    mock_send_email_status.return_value = None
 
     notification = sample_notification(
         template=template,
@@ -98,6 +103,10 @@ def test_ses_callback_should_call_send_delivery_status_to_service(
     notify_db_session, mocker, client, sample_template, sample_notification
 ):
     send_mock = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
+    mock_send_email_status = mocker.patch(
+        'app.celery.send_va_profile_notification_status.send_email_status_to_va_profile.apply_async'
+    )
+    mock_send_email_status.return_value = None
 
     template = sample_template(template_type=EMAIL_TYPE)
     ref = str(uuid4())
@@ -125,38 +134,11 @@ def test_wt_ses_callback_should_log_total_time(
     with freeze_time('2001-01-01T12:00:00'):
         mock_log_total_time = mocker.patch('app.celery.common.log_notification_total_time')
         mocker.patch('app.celery.service_callback_tasks.check_and_queue_callback_task')
-        ref = str(uuid4())
-
-        notification = sample_notification(template=template, status=NOTIFICATION_SENDING, reference=ref)
-        # Mock db call
-        mocker.patch(
-            'app.dao.notifications_dao.dao_get_notification_by_reference',
-            return_value=notification,
-        )
-        process_ses_receipts_tasks.process_ses_results(ses_notification_callback(reference=ref))
-
-        assert mock_log_total_time.called_once_with(
-            notification.id,
-            notification.created_at,
-            NOTIFICATION_DELIVERED,
-            'ses',
-        )
-
-
-def test_it_ses_callback_should_not_send_email_status_to_va_profile_when_feature_flag_disabled(
-    mocker,
-    client,
-    sample_template,
-    sample_notification,
-):
-    template = sample_template(template_type=EMAIL_TYPE)
-    with freeze_time('2001-01-01T12:00:00'):
-        mock_log_total_time = mocker.patch('app.celery.common.log_notification_total_time')
-        mocker.patch('app.celery.process_ses_receipts_tasks.check_and_queue_callback_task')
-        mocker.patch('app.celery.send_va_profile_notification_status.is_feature_enabled', return_value=False)
         mock_send_email_status = mocker.patch(
             'app.celery.send_va_profile_notification_status.send_email_status_to_va_profile.apply_async'
         )
+        mock_send_email_status.return_value = None
+
         ref = str(uuid4())
 
         notification = sample_notification(template=template, status=NOTIFICATION_SENDING, reference=ref)
@@ -173,8 +155,6 @@ def test_it_ses_callback_should_not_send_email_status_to_va_profile_when_feature
             NOTIFICATION_DELIVERED,
             'ses',
         )
-
-        mock_send_email_status.assert_not_called()
 
 
 def test_it_ses_callback_should_send_email_status_to_va_profile_when_set_to_delivered(
@@ -438,6 +418,10 @@ def test_ses_callback_should_set_status_to_permanent_failure(
     status,
 ):
     send_mock = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
+    mock_send_email_status = mocker.patch(
+        'app.celery.send_va_profile_notification_status.send_email_status_to_va_profile.apply_async'
+    )
+    mock_send_email_status.return_value = None
 
     template = sample_template(template_type=EMAIL_TYPE)
     ref = str(uuid4())
