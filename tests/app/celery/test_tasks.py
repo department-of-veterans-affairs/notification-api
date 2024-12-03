@@ -874,7 +874,7 @@ def test_should_use_email_template_and_persist(
     assert persisted_notification.notification_type == EMAIL_TYPE
 
     provider_tasks.deliver_email.apply_async.assert_called_once_with(
-        [str(persisted_notification.id)], queue='send-email-tasks'
+        args=(), kwargs={'notification_id': str(persisted_notification.id)}, queue='send-email-tasks'
     )
 
 
@@ -920,7 +920,9 @@ def test_save_email_should_use_template_version_from_job_not_latest(
     assert not persisted_notification.sent_by
     assert persisted_notification.notification_type == EMAIL_TYPE
     provider_tasks.deliver_email.apply_async.assert_called_once_with(
-        [str(persisted_notification.id)], queue='send-email-tasks'
+        args=(),
+        kwargs={'notification_id': str(persisted_notification.id)},
+        queue='send-email-tasks',
     )
 
 
@@ -958,7 +960,11 @@ def test_should_use_email_template_subject_placeholders(
     assert persisted_notification.personalisation == {'name': 'Jo'}
     assert not persisted_notification.reference
     assert persisted_notification.notification_type == EMAIL_TYPE
-    provider_tasks.deliver_email.apply_async.assert_called_once_with([str(notification_id)], queue='send-email-tasks')
+    provider_tasks.deliver_email.apply_async.assert_called_once_with(
+        args=(),
+        kwargs={'notification_id': str(notification_id)},
+        queue='send-email-tasks',
+    )
 
 
 def test_save_email_uses_the_reply_to_text_when_provided(
@@ -1053,9 +1059,7 @@ def test_should_use_email_template_and_persist_without_personalisation(
     assert persisted_notification.notification_type == EMAIL_TYPE
     provider_tasks.deliver_email.apply_async.assert_called_once_with(
         args=(),
-        kwargs={
-            'notification_id': str(persisted_notification.id),
-        },
+        kwargs={'notification_id': str(persisted_notification.id)},
         queue='send-email-tasks',
     )
 
