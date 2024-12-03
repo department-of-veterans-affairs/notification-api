@@ -1,7 +1,7 @@
 import logging
 import time
 
-from celery import Celery, Task
+from celery import Celery, signals, Task
 from celery.signals import task_prerun, task_postrun, worker_process_shutdown, worker_shutting_down, worker_process_init
 from flask import current_app
 
@@ -139,3 +139,14 @@ def id_cleanup_logger(task_id, task, *args, **kwargs):
     for filter in current_app.logger.filters:
         if filter.name == f'celery-{request_id}':
             current_app.logger.removeFilter(filter)
+
+
+@signals.setup_logging.connect
+def remove_log_handler(*args, **kwargs) -> None:
+    """Remove Celery log handler.
+
+    Just by using .connect this will disable the logger hijacking.
+    https://docs.celeryq.dev/en/stable/userguide/signals.html#setup-logging
+    """
+    logger = logging.getLogger()
+    logger.critical('Celery setup_logging args: %s | kwargs: %s')
