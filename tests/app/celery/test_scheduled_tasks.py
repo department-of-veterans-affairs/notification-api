@@ -321,11 +321,11 @@ def test_replay_created_notifications(
     )
 
     replay_created_notifications()
-    _, kwargs = mocked.call_args.args
-    assert kwargs['notification_id'] == str(old_notification.id)
 
-    assert mocked.call_args.kwargs['queue'] == f'send-{notification_type}-tasks'
     mocked.assert_called_once()
+    args, kwargs = mocked.call_args
+    assert args[1] == {'notification_id': str(old_notification.id), 'sms_sender_id': None}
+    assert kwargs['queue'] == f'send-{notification_type}-tasks'
 
 
 @pytest.mark.serial
