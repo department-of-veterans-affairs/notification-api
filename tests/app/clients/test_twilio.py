@@ -625,7 +625,7 @@ def test_send_sms_twilio_callback(
         'message-too-long',
     ),
 )
-def test_send_sms_raises_invalid_provider_error_with_invalid_twilio_number(
+def test_send_sms_raises_non_retryable_exception_with_invalid_request(
     notify_api,
     mocker,
     response_dict,
