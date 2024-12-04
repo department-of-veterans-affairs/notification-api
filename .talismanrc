@@ -42,7 +42,7 @@ fileignoreconfig:
 - filename: cd/application-deployment/prod/prod.env
   checksum: 949dc3234b36d9fc8706a927b5c342372aa1ac5d6ba8f9458f7482e0ee31a180
 - filename: cd/application-deployment/staging/staging.env
-  checksum: 21e3b7b3249dd80251670bee519a6bbc3b5fff0261177b83f6f1a801f5951975
+  checksum: 15e41a76cd47e45be327188513e82763aa1a8d4d64ead457a8866f6f854e61d7
 - filename: ci/.local.env
   checksum: 2c4024d4e94ffa39ff73e6039d65f0b1d19557067ddf6d97ef14aea86cfb58ad
 - filename: ci/docker-compose-test.yml
