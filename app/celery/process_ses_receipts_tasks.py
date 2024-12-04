@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-from app.celery.send_va_profile_notification_status import check_and_queue_va_profile_notification_status_callback
 import iso8601
 from app.celery.common import log_notification_total_time
 from celery.exceptions import Retry
@@ -17,6 +16,7 @@ import enum
 import requests
 
 from app import notify_celery, statsd_client
+from app.celery.send_va_profile_notification_status_tasks import check_and_queue_va_profile_notification_status_callback
 from app.celery.service_callback_tasks import publish_complaint
 from app.config import QueueNames
 from app.constants import (
