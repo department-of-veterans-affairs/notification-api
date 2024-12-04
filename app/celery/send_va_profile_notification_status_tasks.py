@@ -17,13 +17,13 @@ def check_and_queue_va_profile_notification_status_callback(notification: Notifi
     :param notification: the notification (email or sms) to collect data from
     """
     current_app.logger.debug(
-        'Sending email status to VA Profile, checking VA_PROFILE_SMS_STATUS_ENABLE feature flag... | notification %s',
+        'Sending notification status to VA Profile, checking VA_PROFILE_SMS_STATUS_ENABLE feature flag... | notification %s',
         notification.id,
     )
 
     if is_feature_enabled(FeatureFlag.VA_PROFILE_SMS_STATUS_ENABLED) or notification.notification_type == EMAIL_TYPE:
         current_app.logger.debug(
-            'Sending email status to VA Profile, collecting data for notification %s', notification.id
+            'Sending notification status to VA Profile, collecting data for notification %s', notification.id
         )
         notification_data = {
             'id': str(notification.id),  # this is the notification id
