@@ -1,20 +1,16 @@
 import json
 import pytest
-import uuid
 from datetime import datetime
 from freezegun import freeze_time
-from requests import ConnectTimeout, ReadTimeout
 from sqlalchemy import select
 from uuid import uuid4
 
 from app.celery import process_ses_receipts_tasks
-from app.celery.exceptions import AutoRetryException
 from app.celery.research_mode_tasks import (
     ses_hard_bounce_callback,
     ses_notification_callback,
     ses_soft_bounce_callback,
 )
-from app.celery.send_va_profile_notification_status_tasks import send_notification_status_to_va_profile
 from app.celery.service_callback_tasks import create_delivery_status_callback_data
 from app.constants import (
     EMAIL_TYPE,
@@ -610,58 +606,6 @@ def get_complaint_notification_and_email(mocker):
     )
     recipient_email = 'recipient1@example.com'
     return complaint, notification, recipient_email
-
-
-class TestSendEmailStatusToVAProfile:
-    mock_notification_data = {
-        'id': '2e9e6920-4f6f-4cd5-9e16-fc306fe23867',  # this is the notification id
-        'reference': None,
-        'to': 'test@email.com',  # this is the recipient's contact info (email)
-        'status': 'delivered',  # this will specify the delivery status of the notification
-        'status_reason': '',  # populated if there's additional context on the delivery status
-        'created_at': '2024-07-25T10:00:00.0',
-        'completed_at': '2024-07-25T11:00:00.0',
-        'sent_at': '2024-07-25T11:00:00.0',
-        'notification_type': EMAIL_TYPE,  # this is the channel/type of notification (email)
-        'provider': 'ses',  # email provider
-    }
-
-    @pytest.fixture()
-    def mock_notification(self) -> Notification:
-        notification_mock = Notification()
-
-        notification_mock.id = uuid.UUID('2e9e6920-4f6f-4cd5-9e16-fc306fe23867')
-        notification_mock.client_reference = None
-        notification_mock.to = 'test@email.com'
-        notification_mock.status = 'delivered'
-        # notification_mock.status_reason = ''
-        notification_mock.created_at = datetime.fromisoformat('2024-07-25T10:00:00.0')
-        notification_mock.updated_at = datetime.fromisoformat('2024-07-25T11:00:00.0')
-        notification_mock.sent_at = datetime.fromisoformat('2024-07-25T11:00:00.0')
-        notification_mock.notification_type = EMAIL_TYPE
-        notification_mock.sent_by = 'ses'
-
-        return notification_mock
-
-    def test_ut_send_email_status_to_va_profile(self, mocker):
-        mock_send_va_profile_notification_status = mocker.patch(
-            'app.celery.send_va_profile_notification_status_tasks.va_profile_client.send_va_profile_notification_status'
-        )
-
-        send_notification_status_to_va_profile(self.mock_notification_data)
-
-        mock_send_va_profile_notification_status.assert_called_once_with(self.mock_notification_data)
-
-    def test_ut_send_email_status_to_va_profile_raises_auto_retry_exception(self, mocker):
-        mock_send_va_profile_notification_status = mocker.patch(
-            'app.celery.send_va_profile_notification_status_tasks.va_profile_client.send_va_profile_notification_status',
-            side_effect=[ConnectTimeout, ReadTimeout],
-        )
-
-        with pytest.raises(AutoRetryException):
-            send_notification_status_to_va_profile(self.mock_notification_data)
-
-        mock_send_va_profile_notification_status.assert_called_once()
 
 
 @pytest.mark.parametrize('status', (NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_TEMPORARY_FAILURE))
