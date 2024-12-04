@@ -11,8 +11,10 @@ from app.models import Notification
 
 def check_and_queue_va_profile_notification_status_callback(notification: Notification) -> None:
     """
-    This checks the feature flag is enabled. If it is, queues the celery task and collects data from the notification.
-    Otherwise, it only logs a message.
+    This checks the feature flag to send SMS statuses is enabled.
+    If it is, queues the celery task and collects data from the notification. Otherwise, it only logs a message.
+
+    Status for email notifications are always sent.
 
     :param notification: the notification (email or sms) to collect data from
     """
