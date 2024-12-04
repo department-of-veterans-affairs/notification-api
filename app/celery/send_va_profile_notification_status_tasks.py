@@ -61,6 +61,7 @@ def send_notification_status_to_va_profile(notification_data: dict) -> None:
     """
 
     try:
+        current_app.logger.debug('send_notification_status_to_va_profile called %s', notification_data)
         va_profile_client.send_va_profile_notification_status(notification_data)
     except requests.Timeout:
         # logging in send_va_profile_notification_status
