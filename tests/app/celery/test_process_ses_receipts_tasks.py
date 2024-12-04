@@ -644,24 +644,24 @@ class TestSendEmailStatusToVAProfile:
         return notification_mock
 
     def test_ut_send_email_status_to_va_profile(self, mocker):
-        mock_send_va_profile_email_status = mocker.patch(
-            'app.celery.send_va_profile_notification_status.va_profile_client.send_va_profile_email_status'
+        mock_send_va_profile_notification_status = mocker.patch(
+            'app.celery.send_va_profile_notification_status.va_profile_client.send_va_profile_notification_status'
         )
 
         send_notification_status_to_va_profile(self.mock_notification_data)
 
-        mock_send_va_profile_email_status.assert_called_once_with(self.mock_notification_data)
+        mock_send_va_profile_notification_status.assert_called_once_with(self.mock_notification_data)
 
     def test_ut_send_email_status_to_va_profile_raises_auto_retry_exception(self, mocker):
-        mock_send_va_profile_email_status = mocker.patch(
-            'app.celery.send_va_profile_notification_status.va_profile_client.send_va_profile_email_status',
+        mock_send_va_profile_notification_status = mocker.patch(
+            'app.celery.send_va_profile_notification_status.va_profile_client.send_va_profile_notification_status',
             side_effect=[ConnectTimeout, ReadTimeout],
         )
 
         with pytest.raises(AutoRetryException):
             send_notification_status_to_va_profile(self.mock_notification_data)
 
-        mock_send_va_profile_email_status.assert_called_once()
+        mock_send_va_profile_notification_status.assert_called_once()
 
 
 @pytest.mark.parametrize('status', (NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_TEMPORARY_FAILURE))

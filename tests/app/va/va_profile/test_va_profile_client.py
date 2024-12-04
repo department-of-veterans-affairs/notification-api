@@ -499,32 +499,32 @@ class TestSendEmailStatus:
         'provider': 'ses',  # email provider
     }
 
-    def test_send_va_profile_email_status_sent_successfully(self, rmock, mock_va_profile_client, mocker):
+    def test_send_va_profile_notification_status_sent_successfully(self, rmock, mock_va_profile_client, mocker):
         rmock.post(requests_mock.ANY, json=self.mock_response, status_code=200)
 
-        mock_va_profile_client.send_va_profile_email_status(self.mock_notification_data)
+        mock_va_profile_client.send_va_profile_notification_status(self.mock_notification_data)
 
         assert rmock.called
 
         expected_url = f'{MOCK_VA_PROFILE_URL}/contact-information-vanotify/notify/status'
         assert rmock.request_history[0].url == expected_url
 
-    def test_send_va_profile_email_status_timeout(self, rmock, mock_va_profile_client, mocker):
+    def test_send_va_profile_notification_status_timeout(self, rmock, mock_va_profile_client, mocker):
         rmock.post(requests_mock.ANY, exc=requests.ReadTimeout)
 
         with pytest.raises(requests.Timeout):
-            mock_va_profile_client.send_va_profile_email_status(self.mock_notification_data)
+            mock_va_profile_client.send_va_profile_notification_status(self.mock_notification_data)
 
         assert rmock.called
 
         expected_url = f'{MOCK_VA_PROFILE_URL}/contact-information-vanotify/notify/status'
         assert rmock.request_history[0].url == expected_url
 
-    def test_send_va_profile_email_status_throws_exception(self, rmock, mock_va_profile_client, mocker):
+    def test_send_va_profile_notification_status_throws_exception(self, rmock, mock_va_profile_client, mocker):
         rmock.post(requests_mock.ANY, exc=requests.RequestException)
 
         with pytest.raises(requests.RequestException):
-            mock_va_profile_client.send_va_profile_email_status(self.mock_notification_data)
+            mock_va_profile_client.send_va_profile_notification_status(self.mock_notification_data)
 
         assert rmock.called
 

@@ -61,11 +61,11 @@ def send_notification_status_to_va_profile(notification_data: dict) -> None:
     """
 
     try:
-        va_profile_client.send_va_profile_email_status(notification_data)
+        va_profile_client.send_va_profile_notification_status(notification_data)
     except requests.Timeout:
-        # logging in send_va_profile_email_status
+        # logging in send_va_profile_notification_status
         raise AutoRetryException
     except requests.RequestException:
-        # logging in send_va_profile_email_status
+        # logging in send_va_profile_notification_status
         # In this case the error is being handled by not retrying this celery task
         pass

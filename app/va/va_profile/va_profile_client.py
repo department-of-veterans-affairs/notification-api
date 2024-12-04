@@ -352,7 +352,7 @@ class VAProfileClient:
 
             raise exception from error
 
-    def send_va_profile_email_status(self, notification_data: dict) -> None:
+    def send_va_profile_notification_status(self, notification_data: dict) -> None:
         """
         This method sends notification status data to VA Profile. This is part of our integration to help VA Profile
         provide better service by letting them know which emails and phone numbers are good, and which ones result in bounces.
