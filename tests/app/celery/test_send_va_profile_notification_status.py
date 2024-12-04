@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 from unittest.mock import patch
 
-from app.celery.send_va_profile_notification_status import check_and_queue_va_profile_email_status_callback
+from app.celery.send_va_profile_notification_status import check_and_queue_va_profile_notification_status_callback
 from app.constants import EMAIL_TYPE, SMS_TYPE
 from app.models import Notification
 
@@ -40,7 +40,7 @@ class TestSendNotificationStatusesToVAProfile:
 
         sms_notification = Notification(**self.mock_sms_notification_data)
 
-        check_and_queue_va_profile_email_status_callback(sms_notification)
+        check_and_queue_va_profile_notification_status_callback(sms_notification)
 
         va_profile_url = os.getenv('VA_PROFILE_URL')
         expected_url = f'{va_profile_url}/contact-information-vanotify/notify/status'
@@ -71,7 +71,7 @@ class TestSendNotificationStatusesToVAProfile:
 
         email_notification = Notification(**self.mock_email_notification_data)
 
-        check_and_queue_va_profile_email_status_callback(email_notification)
+        check_and_queue_va_profile_notification_status_callback(email_notification)
 
         va_profile_url = os.getenv('VA_PROFILE_URL')
         expected_url = f'{va_profile_url}/contact-information-vanotify/notify/status'

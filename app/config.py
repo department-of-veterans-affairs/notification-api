@@ -333,7 +333,9 @@ class Config(object):
             'app.celery.v3.notification_tasks.v3_send_email_notification': {'queue': QueueNames.SEND_EMAIL},
             'app.celery.v3.notification_tasks.v3_send_sms_notification': {'queue': QueueNames.SEND_SMS},
             'app.celery.process_ga4_measurement_tasks.post_to_ga4': {'queue': QueueNames.SEND_EMAIL},
-            'app.celery.process_ses_receipts_tasks.send_email_status_to_va_profile': {'queue': QueueNames.CALLBACKS},
+            'app.celery.process_ses_receipts_tasks.send_notification_status_to_va_profile': {
+                'queue': QueueNames.CALLBACKS
+            },
         },
     }
 

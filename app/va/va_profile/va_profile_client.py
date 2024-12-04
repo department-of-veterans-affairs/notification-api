@@ -355,7 +355,7 @@ class VAProfileClient:
     def send_va_profile_email_status(self, notification_data: dict) -> None:
         """
         This method sends notification status data to VA Profile. This is part of our integration to help VA Profile
-        provide better service by letting them know which emails are good, and which ones result in bounces.
+        provide better service by letting them know which emails and phone numbers are good, and which ones result in bounces.
 
         :param notification_data: the data to include with the POST request to VA Profile
 
@@ -367,7 +367,9 @@ class VAProfileClient:
         url = f'{self.va_profile_url}/contact-information-vanotify/notify/status'
 
         self.logger.debug(
-            'Sending email status to VA Profile with url: %s | notification: %s', url, notification_data.get('id')
+            'Sending notification status to VA Profile with url: %s | notification: %s',
+            url,
+            notification_data.get('id'),
         )
 
         # make POST request to VA Profile endpoint for notification statuses
@@ -376,13 +378,13 @@ class VAProfileClient:
             response = requests.post(url, json=notification_data, headers=headers, timeout=self.timeout)
         except requests.Timeout:
             self.logger.exception(
-                'Request timeout attempting to send email status to VA Profile for notification %s | retrying...',
+                'Request timeout attempting to send notification status to VA Profile for notification %s | retrying...',
                 notification_data.get('id'),
             )
             raise
         except requests.RequestException:
             self.logger.exception(
-                'Unexpected request exception.  E-mail status NOT sent to VA Profile for notification %s.',
+                'Unexpected request exception.  Notification status NOT sent to VA Profile for notification %s.',
                 notification_data.get('id'),
             )
             raise
