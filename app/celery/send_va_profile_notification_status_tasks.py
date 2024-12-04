@@ -27,6 +27,8 @@ def check_and_queue_va_profile_notification_status_callback(notification: Notifi
         current_app.logger.debug(
             'Sending notification status to VA Profile, collecting data for notification %s', notification.id
         )
+
+        current_app.logger.debug('This is what the notification object looks like:  %s', notification)
         notification_data = {
             'id': str(notification.id),  # this is the notification id
             'reference': notification.client_reference,
