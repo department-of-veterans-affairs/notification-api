@@ -1,6 +1,7 @@
-from datetime import datetime
 import os
+from datetime import datetime
 from unittest.mock import patch
+
 from app.celery.send_va_profile_notification_status import check_and_queue_va_profile_email_status_callback
 from app.constants import EMAIL_TYPE, SMS_TYPE
 from app.models import Notification

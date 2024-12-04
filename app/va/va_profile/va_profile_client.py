@@ -1,11 +1,9 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
 from enum import Enum
 from http.client import responses
 from logging import Logger
 from typing import TYPE_CHECKING, Optional
-
 
 import iso8601
 import requests

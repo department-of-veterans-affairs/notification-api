@@ -1,12 +1,10 @@
-from flask import current_app
 import requests
+
+from flask import current_app
 
 from app import notify_celery, va_profile_client
 from app.celery.exceptions import AutoRetryException
-from app.constants import (
-    DATETIME_FORMAT,
-    EMAIL_TYPE,
-)
+from app.constants import DATETIME_FORMAT, EMAIL_TYPE
 from app.feature_flags import FeatureFlag, is_feature_enabled
 from app.models import Notification
 
