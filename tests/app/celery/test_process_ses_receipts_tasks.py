@@ -1,36 +1,42 @@
-from datetime import datetime
 import json
-import uuid
-from uuid import uuid4
-
 import pytest
+import uuid
+from datetime import datetime
 from freezegun import freeze_time
 from requests import ConnectTimeout, ReadTimeout
 from sqlalchemy import select
+from uuid import uuid4
 
 from app.celery import process_ses_receipts_tasks
 from app.celery.exceptions import AutoRetryException
-from app.celery.research_mode_tasks import ses_hard_bounce_callback, ses_soft_bounce_callback, ses_notification_callback
+from app.celery.research_mode_tasks import (
+    ses_hard_bounce_callback,
+    ses_notification_callback,
+    ses_soft_bounce_callback,
+)
+from app.celery.send_va_profile_notification_status import send_email_status_to_va_profile
 from app.celery.service_callback_tasks import create_delivery_status_callback_data
 from app.constants import (
     EMAIL_TYPE,
     NOTIFICATION_DELIVERED,
-    NOTIFICATION_SENT,
-    NOTIFICATION_SENDING,
     NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_SENT,
     NOTIFICATION_TEMPORARY_FAILURE,
 )
 from app.dao.notifications_dao import get_notification_by_id
 from app.models import Complaint, Notification, Service, Template
 from app.model import User
-from app.notifications.notifications_ses_callback import remove_emails_from_complaint, remove_emails_from_bounce
-
+from app.notifications.notifications_ses_callback import (
+    remove_emails_from_bounce,
+    remove_emails_from_complaint,
+)
 from tests.app.db import (
+    create_service_callback_api,
     ses_complaint_callback,
     ses_smtp_complaint_callback,
-    create_service_callback_api,
-    ses_smtp_notification_callback,
     ses_smtp_hard_bounce_callback,
+    ses_smtp_notification_callback,
     ses_smtp_soft_bounce_callback,
 )
 
@@ -335,6 +341,10 @@ def test_ses_callback_does_not_call_send_delivery_status_if_no_db_entry(
     with freeze_time('2001-01-01T12:00:00'):
         ref = str(uuid4())
         send_mock = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
+        mock_send_email_status = mocker.patch(
+            'app.celery.send_va_profile_notification_status.send_email_status_to_va_profile.apply_async'
+        )
+        mock_send_email_status.return_value = None
         notification_id = sample_notification(template=template, status=NOTIFICATION_SENDING, reference=ref).id
 
         assert process_ses_receipts_tasks.process_ses_results(ses_notification_callback(reference=ref))
@@ -351,6 +361,11 @@ def test_ses_callback_should_update_multiple_notification_status_sent(
     sample_notification,
 ):
     send_mock = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
+
+    mock_send_email_status = mocker.patch(
+        'app.celery.send_va_profile_notification_status.send_email_status_to_va_profile.apply_async'
+    )
+    mock_send_email_status.return_value = None
 
     template = sample_template(template_type=EMAIL_TYPE)
     sample_notification(
@@ -628,45 +643,23 @@ class TestSendEmailStatusToVAProfile:
 
         return notification_mock
 
-    def test_ut_check_and_queue_va_profile_email_status_callback_does_not_queue_task_if_feature_disabled(self, mocker):
-        mocker.patch('app.celery.process_ses_receipts_tasks.is_feature_enabled', return_value=False)
-        mock_send_email_status = mocker.patch(
-            'app.celery.process_ses_receipts_tasks.send_email_status_to_va_profile.apply_async'
-        )
-        mock_notification = mocker.patch('app.celery.process_ses_receipts_tasks.Notification')
-
-        process_ses_receipts_tasks.check_and_queue_va_profile_email_status_callback(mock_notification)
-
-        mock_send_email_status.assert_not_called()
-
-    def test_ut_check_and_queue_va_profile_email_status_callback_queues_task_if_feature_enabled(self, mocker):
-        mocker.patch('app.celery.process_ses_receipts_tasks.is_feature_enabled', return_value=True)
-        mock_send_email_status = mocker.patch(
-            'app.celery.process_ses_receipts_tasks.send_email_status_to_va_profile.apply_async'
-        )
-        mock_notification = mocker.patch('app.celery.process_ses_receipts_tasks.Notification')
-
-        process_ses_receipts_tasks.check_and_queue_va_profile_email_status_callback(mock_notification)
-
-        mock_send_email_status.assert_called_once()
-
     def test_ut_send_email_status_to_va_profile(self, mocker):
         mock_send_va_profile_email_status = mocker.patch(
-            'app.celery.process_ses_receipts_tasks.va_profile_client.send_va_profile_email_status'
+            'app.celery.send_va_profile_notification_status.va_profile_client.send_va_profile_email_status'
         )
 
-        process_ses_receipts_tasks.send_email_status_to_va_profile(self.mock_notification_data)
+        send_email_status_to_va_profile(self.mock_notification_data)
 
         mock_send_va_profile_email_status.assert_called_once_with(self.mock_notification_data)
 
     def test_ut_send_email_status_to_va_profile_raises_auto_retry_exception(self, mocker):
         mock_send_va_profile_email_status = mocker.patch(
-            'app.celery.process_ses_receipts_tasks.va_profile_client.send_va_profile_email_status',
+            'app.celery.send_va_profile_notification_status.va_profile_client.send_va_profile_email_status',
             side_effect=[ConnectTimeout, ReadTimeout],
         )
 
         with pytest.raises(AutoRetryException):
-            process_ses_receipts_tasks.send_email_status_to_va_profile(self.mock_notification_data)
+            send_email_status_to_va_profile(self.mock_notification_data)
 
         mock_send_va_profile_email_status.assert_called_once()
 
