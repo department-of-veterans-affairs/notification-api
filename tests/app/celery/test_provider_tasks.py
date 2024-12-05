@@ -4,7 +4,7 @@ from app.celery.common import RETRIES_EXCEEDED
 from app.celery.exceptions import NonRetryableException, AutoRetryException
 from app.celery.provider_tasks import deliver_sms, deliver_email, deliver_sms_with_rate_limiting
 from app.clients.email.aws_ses import AwsSesClientThrottlingSendRateException
-from app.clients.sms import OPT_OUT_MESSAGE
+from app.clients.sms import MESSAGE_TOO_LONG, OPT_OUT_MESSAGE
 from app.config import QueueNames
 from app.constants import (
     EMAIL_TYPE,
@@ -485,3 +485,50 @@ def test_deliver_sms_opt_out(
     notify_db_session.session.refresh(notification)
     assert notification.status == NOTIFICATION_PERMANENT_FAILURE
     assert notification.status_reason == OPT_OUT_MESSAGE
+
+
+@pytest.mark.parametrize(
+    'exception_message, status_reason',
+    (
+        ('Message too long', MESSAGE_TOO_LONG),
+        ('Destination phone number opted out', OPT_OUT_MESSAGE),
+    ),
+)
+def test_deliver_sms_content_exceeded(
+    notify_db_session,
+    mocker,
+    sample_service,
+    sample_sms_sender,
+    sample_template,
+    sample_notification,
+    exception_message,
+    status_reason,
+):
+    """
+    An SMS notification sent with content that exceeds the maximum length allowed
+    should result in permanent failure with a relevant status reason.
+    """
+
+    service = sample_service()
+    sms_sender = sample_sms_sender(service_id=service.id, sms_sender='17045555555')
+    template = sample_template(service=service)
+    notification = sample_notification(
+        template=template,
+        status=NOTIFICATION_CREATED,
+        sms_sender_id=sms_sender.id,
+    )
+    assert notification.notification_type == SMS_TYPE
+    assert notification.status == NOTIFICATION_CREATED
+    assert notification.sms_sender_id == sms_sender.id
+    assert notification.status_reason is None
+
+    mock_send_sms_to_provider = mocker.patch(
+        'app.delivery.send_to_providers.send_sms_to_provider',
+        side_effect=NonRetryableException(exception_message),
+    )
+    deliver_sms(notification.id, sms_sender_id=notification.sms_sender_id)
+    mock_send_sms_to_provider.assert_called_once()
+
+    notify_db_session.session.refresh(notification)
+    assert notification.status == NOTIFICATION_PERMANENT_FAILURE
+    assert notification.status_reason == status_reason
