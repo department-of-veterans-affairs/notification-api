@@ -41,7 +41,7 @@ from notifications_utils.statsd_decorators import statsd
     retry_backoff_max=60,
 )
 @statsd(namespace='tasks')
-def deliver_sms(
+def deliver_sms(  # noqa: C901
     self: Task,
     notification_id,
     sms_sender_id=None,
