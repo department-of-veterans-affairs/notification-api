@@ -367,7 +367,7 @@ class VAProfileClient:
         url = f'{self.va_profile_url}/contact-information-vanotify/notify/status'
 
         self.logger.debug(
-            'Sending notification status to VA Profile with url: %s | notification: %s | notification_status: %s',
+            'Sending notification status to VA Profile with url: %s | notification_id: %s | notification_status: %s',
             url,
             notification_data.get('id'),
             notification_data.get('status'),
