@@ -34,7 +34,7 @@ def check_and_queue_va_profile_notification_status_callback(notification: Notifi
             'to': notification.to,  # this is the recipient's contact info
             'status': notification.status,  # this will specify the delivery status of the notification
             'status_reason': notification.status_reason,  # populated if there's additional context on the delivery status
-            'created_at': notification.created_at.strftime(DATETIME_FORMAT),  # noqa: F821
+            'created_at': notification.created_at.strftime(DATETIME_FORMAT),
             'completed_at': notification.updated_at.strftime(DATETIME_FORMAT) if notification.updated_at else None,
             'sent_at': notification.sent_at.strftime(DATETIME_FORMAT) if notification.sent_at else None,
             'notification_type': notification.notification_type,  # this is the channel/type of notification (email or sms)
