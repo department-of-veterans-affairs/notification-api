@@ -202,7 +202,7 @@ def check_templated_letter_state():
 @statsd(namespace='tasks')
 def send_scheduled_comp_and_pen_sms() -> None:
     start_time = monotonic()
-    # this is the agreed upon message per 2 minute limit
+    # this is the agreed upon message per 1 minute limit
     messages_per_min = 90
 
     # get config info
