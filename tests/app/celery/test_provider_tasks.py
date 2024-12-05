@@ -449,44 +449,6 @@ def test_deliver_sms_with_rate_limiting_max_retries_exceeded(
     mocked_check_and_queue_callback_task.assert_called_once()
 
 
-def test_deliver_sms_opt_out(
-    notify_db_session,
-    mocker,
-    sample_service,
-    sample_sms_sender,
-    sample_template,
-    sample_notification,
-):
-    """
-    An SMS notification sent to a recipient who has opted out of receiving notifications
-    from the given SMS sender should result in permanent failure with a relevant status reason.
-    """
-
-    service = sample_service()
-    sms_sender = sample_sms_sender(service_id=service.id, sms_sender='17045555555')
-    template = sample_template(service=service)
-    notification = sample_notification(
-        template=template,
-        status=NOTIFICATION_CREATED,
-        sms_sender_id=sms_sender.id,
-    )
-    assert notification.notification_type == SMS_TYPE
-    assert notification.status == NOTIFICATION_CREATED
-    assert notification.sms_sender_id == sms_sender.id
-    assert notification.status_reason is None
-
-    mock_send_sms_to_provider = mocker.patch(
-        'app.delivery.send_to_providers.send_sms_to_provider',
-        side_effect=NonRetryableException('Destination phone number opted out'),
-    )
-    deliver_sms(notification.id, sms_sender_id=notification.sms_sender_id)
-    mock_send_sms_to_provider.assert_called_once()
-
-    notify_db_session.session.refresh(notification)
-    assert notification.status == NOTIFICATION_PERMANENT_FAILURE
-    assert notification.status_reason == OPT_OUT_MESSAGE
-
-
 @pytest.mark.parametrize(
     'exception_message, status_reason',
     (
@@ -494,7 +456,7 @@ def test_deliver_sms_opt_out(
         ('Destination phone number opted out', OPT_OUT_MESSAGE),
     ),
 )
-def test_deliver_sms_content_exceeded(
+def test_deliver_sms_non_retryables(
     notify_db_session,
     mocker,
     sample_service,
@@ -505,8 +467,8 @@ def test_deliver_sms_content_exceeded(
     status_reason,
 ):
     """
-    An SMS notification sent with content that exceeds the maximum length allowed
-    should result in permanent failure with a relevant status reason.
+    An SMS notification sent to a non-retryable exception should be marked as permanent failure and have an
+    appropriate status reason.
     """
 
     service = sample_service()
