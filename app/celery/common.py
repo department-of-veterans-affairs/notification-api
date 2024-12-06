@@ -106,7 +106,11 @@ def log_notification_total_time(
 
         # Twilio RawDlrDoneDate can make this negative
         # https://www.twilio.com/en-us/changelog/addition-of-rawdlrdonedate-to-delivered-and-undelivered-status-webhooks
-        corrected_total_time = total_time if total_time > 0.0 else 0.0
+        corrected_total_time = (
+            total_time
+            if total_time > 0.0
+            else (datetime.now(timezone.utc).replace(tzinfo=None) - start_time).total_seconds()
+        )
         current_app.logger.info(
             'notification %s took %ss total time to reach %s status - %s',
             notification_id,
