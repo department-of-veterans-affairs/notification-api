@@ -1159,11 +1159,11 @@ paths:
                   email_address: test@notification.com
                   personalisation:
                     full_name: John Smith
+                    claim_id: '123456'
                     tasks:
                       - "Task 1"
                       - "Task 2"
                       - "Task 3"
-                    claim_id: '123456'
                   billing_code: string
                   callback_url: https://staging-api.va.gov/vanotify/internal/swagger
                   email_reply_to_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
@@ -1178,6 +1178,10 @@ paths:
                   personalisation:
                     full_name: John Smith
                     claim_id: '123456'
+                    tasks:
+                      - "Task 1"
+                      - "Task 2"
+                      - "Task 3"
                   billing_code: string
                   callback_url: https://staging-api.va.gov/vanotify/internal/swagger
                   email_reply_to_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
