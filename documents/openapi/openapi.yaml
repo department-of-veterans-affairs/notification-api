@@ -1119,27 +1119,28 @@ paths:
 
         ### Advanced usage
 
-        * `personlisation`
-          The `personalisation` object allows for passing variables to populate the template. 
+        * `personalisation`
+
+          The `personalisation` properties allows for passing variables to populate the template. 
           
           - Keys represent variable names in the template.
           - Values can be strings or lists.
             - If a value is a list, it will be rendered as a bulleted list in the email.
 
-          Example:
+            Example:
 
-          ```json
-          {
-            "personalisation": {
-              "full_name": "John Smith",
-              "list_example": [
-                "item 1",
-                "item 2",
-                "item 3"
-              ]
+            ```json
+            {
+              "personalisation": {
+                "full_name": "John Smith",
+                "list_example": [
+                  "item 1",
+                  "item 2",
+                  "item 3"
+                ]
+              }
             }
-          }
-          ```
+            ```
         
       security:
         - serviceAuth: []
