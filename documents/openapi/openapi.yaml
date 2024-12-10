@@ -1117,6 +1117,30 @@ paths:
         * `reference` - A string to indicate any reference
         * `scheduled_for` - A datetime indicated when to send the notification (not available at this time)
 
+        ### Advanced usage
+
+        * `personlisation`
+          The `personalisation` object allows for passing variables to populate the template. 
+          
+          - Keys represent variable names in the template.
+          - Values can be strings or lists.
+            - If a value is a list, it will be rendered as a bulleted list in the email.
+
+          Example:
+
+          ```json
+          {
+            "personalisation": {
+              "full_name": "John Smith",
+              "list_example": [
+                "item 1",
+                "item 2",
+                "item 3"
+              ]
+            }
+          }
+          ```
+        
       security:
         - serviceAuth: []
       tags:
