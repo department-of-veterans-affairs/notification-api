@@ -1121,9 +1121,9 @@ paths:
 
         * `personalisation`
 
-          The `personalisation` properties allows for passing variables to populate the template. 
+          The `personalisation` properties allows for passing variables to populate the notification template. 
           
-          - Keys represent variable names in the template.
+          - Keys represent variable names in the notification template.
           - Values can be strings or lists.
             - If a value is a list, it will be rendered as a bulleted list in the email.
 
