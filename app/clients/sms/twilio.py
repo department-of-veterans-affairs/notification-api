@@ -19,7 +19,8 @@ from app.constants import (
     NOTIFICATION_SENT,
     NOTIFICATION_TECHNICAL_FAILURE,
     NOTIFICATION_TEMPORARY_FAILURE,
-    RETRYABLE_STATUS_REASON,
+    STATUS_REASON_RETRYABLE,
+    STATUS_REASON_UNREACHABLE,
     TWILIO_PROVIDER,
 )
 from app.exceptions import InvalidProviderException
@@ -62,7 +63,7 @@ class TwilioSMSClient(SmsClient):
         '21635': TwilioStatus(21635, NOTIFICATION_PERMANENT_FAILURE, 'Non-mobile number'),
         '30001': TwilioStatus(30001, NOTIFICATION_TEMPORARY_FAILURE, 'Queue overflow'),
         '30002': TwilioStatus(30002, NOTIFICATION_PERMANENT_FAILURE, 'Account suspended'),
-        '30003': TwilioStatus(30003, NOTIFICATION_PERMANENT_FAILURE, 'Unreachable destination handset'),
+        '30003': TwilioStatus(30003, NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_UNREACHABLE),
         '30004': TwilioStatus(30004, NOTIFICATION_PERMANENT_FAILURE, 'Message blocked'),
         '30005': TwilioStatus(30005, NOTIFICATION_PERMANENT_FAILURE, 'Unknown destination handset'),
         '30006': TwilioStatus(30006, NOTIFICATION_PERMANENT_FAILURE, 'Landline or unreachable carrier'),
@@ -72,7 +73,7 @@ class TwilioSMSClient(SmsClient):
         '30010': TwilioStatus(30010, NOTIFICATION_TECHNICAL_FAILURE, 'Message price exceeds max price'),
         '30024': TwilioStatus(30024, NOTIFICATION_TECHNICAL_FAILURE, 'Sender not provisioned by carrier'),
         '30034': TwilioStatus(30034, NOTIFICATION_PERMANENT_FAILURE, 'Used an unregistered 10DLC Number'),
-        '30500': TwilioStatus(30500, NOTIFICATION_TEMPORARY_FAILURE, RETRYABLE_STATUS_REASON),
+        '30500': TwilioStatus(30500, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE),
         '60005': TwilioStatus(60005, NOTIFICATION_TEMPORARY_FAILURE, 'Carrier error'),
     }
 

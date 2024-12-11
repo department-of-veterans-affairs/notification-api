@@ -256,6 +256,15 @@ JOB_STATUS_TYPES = (
 )
 
 # Status reasons
-RETRYABLE_STATUS_REASON = (
+STATUS_REASON_RETRYABLE = (
     'Retryable - Notification is unable to be processed at this time. Replay the request to VA Notify.'
 )
+STATUS_REASON_INVALID_NUMBER = 'Undeliverable - Phone number is invalid'
+STATUS_REASON_UNREACHABLE = 'Undeliverable - Individual unreachable'
+STATUS_REASON_BLOCKED = 'Undeliverable - Individual or carrier has blocked the request'
+STATUS_REASON_DECLINED = 'Undeliverable - Preferences declined in VA Profile'
+STATUS_REASON_NO_CONTACT = 'Undeliverable - No VA Profile contact information'
+STATUS_REASON_NO_PROFILE = 'Undeliverable - No VA Profile found in MPI'
+STATUS_REASON_NO_ID_FOUND = 'Undeliverable - Identifier not found in MPI'
+STATUS_REASON_DECEASED = 'Undeliverable - Individual is deceased'
+STATUS_REASON_UNDELIVERABLE = 'Undeliverable - Unable to deliver'
