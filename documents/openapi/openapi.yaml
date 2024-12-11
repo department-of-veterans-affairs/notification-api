@@ -1113,33 +1113,18 @@ paths:
         * `billing_code` - A string to indicate your billing code
         * `callback_url` - An https URL; note that this overrides any service level callback
         * `email_reply_to_id` - A UUID
-        * `personalisation` - If the template includes personalisation, the fields to populate (see examples)
+        * `personalisation` - A JSON object containing the fields needed to populate the notification template. See **Advanced Usage** section and **dynamic bullet list** example for details.
         * `reference` - A string to indicate any reference
         * `scheduled_for` - A datetime indicated when to send the notification (not available at this time)
 
         ### Advanced usage
 
-        * `personalisation`
+          The `personalisation` JSON object allows for dynamic customization of the notification template by passing variables:
 
-          The `personalisation` properties allows for passing variables to populate the notification template. 
-          
-          - Keys represent variable names in the notification template.
-          - Values can be strings or lists.
-            - If a value is a list, it will be rendered as a bulleted list in the email.
-
-            Example:
-
-            ```json
-            {
-              "personalisation": {
-                "full_name": "John Smith",
-                "list_example": [
-                  "item 1",
-                  "item 2",
-                  "item 3"
-                ]
-              }
-            }
+          - **Keys**: Represent variable names defined in the notification template.
+          - **Values**: Specify the data to replace the variables. Values can be:
+            - **Strings**: Used for simple text replacement.
+            - **Lists**: Rendered as bulleted lists in the email notification.
             ```
         
       security:
@@ -1160,10 +1145,6 @@ paths:
                   personalisation:
                     full_name: John Smith
                     claim_id: '123456'
-                    tasks:
-                      - "Task 1"
-                      - "Task 2"
-                      - "Task 3"
                   billing_code: string
                   callback_url: https://staging-api.va.gov/vanotify/internal/swagger
                   email_reply_to_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
@@ -1175,6 +1156,18 @@ paths:
                   recipient_identifier:
                     id_type: ICN
                     id_value: 1000000000V000000
+                  personalisation:
+                    full_name: John Smith
+                    claim_id: '123456'
+                  billing_code: string
+                  callback_url: https://staging-api.va.gov/vanotify/internal/swagger
+                  email_reply_to_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  reference: string
+                  scheduled_for: string
+              dynamic bulleted list:
+                value:
+                  template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  email_address: test@notification.com
                   personalisation:
                     full_name: John Smith
                     claim_id: '123456'
