@@ -72,7 +72,7 @@ fileignoreconfig:
 - filename: tests/app/conftest.py
   checksum: a80aa727586db82ed1b50bdb81ddfe1379e649a9dfc1ece2c36047486b41b83d
 - filename: tests/app/dao/test_api_key_dao.py
-  checksum: ef306fcc1dc512b74abeb5dde5f20977cf95e67a2fa049df6289a7b5500339a9
+  checksum: 40e551ca6677aab7657bbb43efdac56aa3c51065ed99052faff9bc1519e5b0df
 - filename: tests/app/notifications/test_process_notifications_for_profile_v3.py
   checksum: 4e15e63d349635131173ffdd7aebcd547621db08de877ef926d3a41fde72d065
 - filename: tests/app/notifications/test_send_notifications.py
