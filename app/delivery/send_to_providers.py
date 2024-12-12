@@ -15,7 +15,7 @@ from app.constants import (
     BRANDING_ORG_BANNER,
     EMAIL_TYPE,
     KEY_TYPE_TEST,
-    NOTIFICATION_TECHNICAL_FAILURE,
+    NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_VIRUS_SCAN_FAILED,
     NOTIFICATION_SENDING,
     SMS_TYPE,
@@ -285,10 +285,10 @@ def get_html_email_options(notification: Notification) -> Dict[str, Union[str, b
 
 
 def technical_failure(notification):
-    notification.status = NOTIFICATION_TECHNICAL_FAILURE
+    notification.status = NOTIFICATION_PERMANENT_FAILURE
     dao_update_notification(notification)
     raise NotificationTechnicalFailureException(
-        'Send {} for notification id {} to provider is not allowed: service {} is inactive'.format(
+        'Send {} for notification {} to provider is not allowed: service {} is inactive'.format(
             notification.notification_type, notification.id, notification.service_id
         )
     )
