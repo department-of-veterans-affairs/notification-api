@@ -1331,7 +1331,7 @@ class Notification(db.Model):
     def content(self):
         from app.utils import get_template_instance
 
-        template_object = get_template_instance(self.template.__dict__, self.personalisation)
+        template_object = get_template_instance(self.template.__dict__, {k: '<redacted>' for k in self.personalisation})
         return str(template_object)
 
     @property
