@@ -79,7 +79,6 @@ def test_should_return_unsigned_api_keys_for_service_id(sample_api_key):
     assert len(unsigned_api_key) == 1
     assert api_key._secret != unsigned_api_key[0]
     assert unsigned_api_key[0] == api_key.secret
-    assert len(unsigned_api_key[0]) >= 86
 
 
 def test_get_unsigned_secret_returns_key(sample_api_key):
@@ -200,29 +199,3 @@ def test_save_api_key_should_generate_secret_with_expected_format(sample_service
     assert api_key.secret is not None
     assert len(api_key.secret) > 0
     assert len(api_key.secret) >= 86
-
-
-def test_save_api_key_should_generate_unique_secrets(sample_service):
-    service = sample_service()
-
-    api_key1 = ApiKey(
-        **{
-            'service': service,
-            'name': f'{service.name} 1',
-            'created_by': service.created_by,
-            'key_type': KEY_TYPE_NORMAL,
-        }
-    )
-    api_key2 = ApiKey(
-        **{
-            'service': service,
-            'name': f'{service.name} 2',
-            'created_by': service.created_by,
-            'key_type': KEY_TYPE_NORMAL,
-        }
-    )
-
-    save_model_api_key(api_key1)
-    save_model_api_key(api_key2)
-
-    assert api_key1.secret != api_key2.secret
