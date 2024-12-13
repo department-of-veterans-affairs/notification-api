@@ -197,5 +197,4 @@ def test_save_api_key_should_generate_secret_with_expected_format(sample_service
     save_model_api_key(api_key)
 
     assert api_key.secret is not None
-    assert len(api_key.secret) > 0
     assert len(api_key.secret) >= 86
