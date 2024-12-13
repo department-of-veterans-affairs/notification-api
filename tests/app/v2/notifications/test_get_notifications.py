@@ -933,4 +933,4 @@ def test_get_notifications_removes_personalisation_from_subject(
 
     json_response = json.loads(response.get_data(as_text=True))
     assert response.status_code == 200
-    assert json_response['subject'] == 'Hello &lt;redacted&gt;'
+    assert json_response['subject'] == 'Hello <redacted>'

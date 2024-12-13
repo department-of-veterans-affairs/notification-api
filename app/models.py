@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 import datetime
+import html
 import itertools
 import uuid
 
@@ -1342,7 +1343,7 @@ class Notification(db.Model):
             template_object = get_template_instance(
                 self.template.__dict__, {k: '<redacted>' for k in self.personalisation}
             )
-            return str(template_object.subject)
+            return html.unescape(str(template_object.subject))
 
     @property
     def formatted_status(self):
