@@ -11,19 +11,14 @@ from app.clients.sms import (
     SmsClient,
     SmsClientResponseException,
     SmsStatusRecord,
-    BLOCKED_MESSAGE,
-    OPT_OUT_MESSAGE,
-    PRICE_THRESHOLD_EXCEEDED,
     REPORTED_AS_SPAM,
     UNABLE_TO_TRANSLATE,
-    UNEXPECTED_PROVIDER_RESULT,
 )
 from app.constants import (
     NOTIFICATION_DELIVERED,
     NOTIFICATION_SENDING,
     NOTIFICATION_TEMPORARY_FAILURE,
     NOTIFICATION_PERMANENT_FAILURE,
-    NOTIFICATION_PREFERENCES_DECLINED,
     PINPOINT_PROVIDER,
     STATUS_REASON_BLOCKED,
     STATUS_REASON_RETRYABLE,
@@ -57,7 +52,7 @@ class AwsPinpointClient(SmsClient):
         'CARRIER_BLOCKED': (NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_BLOCKED),
         'TTL_EXPIRED': (NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE),
         'MAX_PRICE_EXCEEDED': (NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_UNDELIVERABLE),
-        'OPTED_OUT': (NOTIFICATION_PERMANENT_FAILURE, OPT_OUT_MESSAGE),
+        'OPTED_OUT': (NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_BLOCKED),
     }
 
     def __init__(self):
@@ -179,7 +174,7 @@ class AwsPinpointClient(SmsClient):
             Tuple[str, str]: status and status_reason
         """
         if event_type == '_SMS.OPTOUT':
-            status = NOTIFICATION_PREFERENCES_DECLINED
+            status = NOTIFICATION_PERMANENT_FAILURE
             status_reason = STATUS_REASON_BLOCKED
         else:
             status, status_reason = self._get_status_mapping(record_status)
