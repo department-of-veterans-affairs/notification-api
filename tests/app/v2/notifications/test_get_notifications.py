@@ -908,3 +908,29 @@ def test_get_notifications_removes_personalisation_from_content(
     json_response = json.loads(response.get_data(as_text=True))
     assert response.status_code == 200
     assert json_response['body'] == 'Hello <redacted>\nThis is an email from VA Notify about some <redacted>'
+
+
+def test_get_notifications_removes_personalisation_from_subject(
+    client,
+    sample_api_key,
+    sample_notification,
+    sample_template,
+):
+    template = sample_template(
+        subject='Hello ((name))',
+        content='This is an email',
+        template_type=EMAIL_TYPE,
+    )
+    notification = sample_notification(
+        template=template,
+        personalisation={'name': 'Bob'},
+    )
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
+    response = client.get(
+        path=url_for('v2_notifications.get_notification_by_id', notification_id=notification.id),
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
+
+    json_response = json.loads(response.get_data(as_text=True))
+    assert response.status_code == 200
+    assert json_response['subject'] == 'Hello &lt;redacted&gt;'

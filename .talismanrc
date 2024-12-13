@@ -80,7 +80,7 @@ fileignoreconfig:
 - filename: tests/app/notifications/test_send_notifications.py
   checksum: 69304e1edd6993acd9a842a87dba8ee16854befc643863e1589b15c303a71464
 - filename: tests/app/v2/notifications/test_get_notifications.py
-  checksum: f7cef983750a27dfdedb6db88c791fe9e20fd34768577dbcaeb0c42bfc7457b4
+  checksum: f2460d8b22ff7ff2e89778dbbf3e0740cbb41dead60c49c32648d367aa05fe0e
 - filename: tests/app/v2/notifications/test_post_notifications.py
   checksum: 3181930a13e3679bb2f17eaa3f383512eb9caf4ed5d5e14496ca4193c6083965
 - filename: tests/app/v3/notifications/test_rest.py
