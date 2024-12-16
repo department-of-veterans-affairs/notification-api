@@ -142,9 +142,7 @@ def handle_lookup_contact_info_exception(
         )
         current_app.logger.info('%s - %s:  %s', e.__class__.__name__, str(e), message)
 
-        update_notification_status_by_id(
-            notification.id, NOTIFICATION_PERMANENT_FAILURE, status_reason=e.failure_reason
-        )
+        update_notification_status_by_id(notification.id, NOTIFICATION_PERMANENT_FAILURE, status_reason=e.status_reason)
         check_and_queue_callback_task(notification)
         # Expected chain termination
         lookup_task.request.chain = None
@@ -154,9 +152,7 @@ def handle_lookup_contact_info_exception(
             'Notification has been updated to permanent-failure'
         )
         current_app.logger.info(message)
-        update_notification_status_by_id(
-            notification.id, NOTIFICATION_PERMANENT_FAILURE, status_reason=e.failure_reason
-        )
+        update_notification_status_by_id(notification.id, NOTIFICATION_PERMANENT_FAILURE, status_reason=e.status_reason)
         check_and_queue_callback_task(notification)
         # Expected chain termination
         lookup_task.request.chain = None
@@ -168,9 +164,9 @@ def handle_lookup_contact_info_exception(
         )
         if not notification.default_send:
             update_notification_status_by_id(
-                notification_id=notification.id,
-                status=NOTIFICATION_PERMANENT_FAILURE,
-                status_reason='No recipient opt-in found for explicit preference',
+                notification.id,
+                NOTIFICATION_PERMANENT_FAILURE,
+                status_reason=e.status_reason,
             )
             check_and_queue_callback_task(notification)
             # Expected chain termination
