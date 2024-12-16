@@ -129,7 +129,6 @@ def post_notification(notification_type):  # noqa: C901
                 current_app.logger.debug('Sending a notification without contact information is not implemented.')
                 return jsonify(result='error', message='Not Implemented'), 501
 
-        # template_with_content.values = notification.personalisation
         template_with_content.values = {k: '<redacted>' for k in notification.personalisation}
 
     if notification_type == SMS_TYPE:
