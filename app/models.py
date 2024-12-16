@@ -1286,7 +1286,7 @@ class Notification(db.Model):
         'failed'
 
         < OUT
-        ['technical-failure', 'temporary-failure', 'permanent-failure']
+        ['temporary-failure', 'permanent-failure']
 
         -
 
@@ -1294,7 +1294,7 @@ class Notification(db.Model):
         ['failed', 'created', 'accepted']
 
         < OUT
-        ['technical-failure', 'temporary-failure', 'permanent-failure', 'created', 'sending']
+        ['temporary-failure', 'permanent-failure', 'created', 'sending']
 
 
         -
@@ -1347,7 +1347,6 @@ class Notification(db.Model):
         return {
             'email': {
                 'failed': 'Failed',
-                'technical-failure': 'Technical failure',
                 'temporary-failure': 'Inbox not accepting messages right now',
                 'permanent-failure': 'Email address doesn’t exist',
                 'delivered': 'Delivered',
@@ -1357,7 +1356,6 @@ class Notification(db.Model):
             },
             'sms': {
                 'failed': 'Failed',
-                'technical-failure': 'Technical failure',
                 'temporary-failure': 'Phone not accepting messages right now',
                 'permanent-failure': 'Phone number doesn’t exist',
                 'delivered': 'Delivered',
@@ -1366,7 +1364,6 @@ class Notification(db.Model):
                 'sent': 'Sent internationally',
             },
             'letter': {
-                'technical-failure': 'Technical failure',
                 'sending': 'Accepted',
                 'created': 'Accepted',
                 'delivered': 'Received',

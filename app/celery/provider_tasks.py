@@ -8,7 +8,6 @@ from app.celery.common import (
 from app.celery.exceptions import NonRetryableException, AutoRetryException
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.clients.email.aws_ses import AwsSesClientThrottlingSendRateException
-from app.clients.sms import MESSAGE_TOO_LONG
 from app.config import QueueNames
 from app.constants import (
     STATUS_REASON_BLOCKED,
@@ -206,10 +205,8 @@ def _handle_delivery_failure(
     elif isinstance(e, NonRetryableException):
         if 'opted out' in str(e).lower():
             status_reason = STATUS_REASON_BLOCKED
-        elif str(e) == MESSAGE_TOO_LONG:
-            # Leaving this condition to call out the status reason assigned to messages that are too long.
-            status_reason = STATUS_REASON_UNDELIVERABLE
         else:
+            # Calling out this includes that are too long.
             status_reason = STATUS_REASON_UNDELIVERABLE
 
         log_and_update_permanent_failure(
