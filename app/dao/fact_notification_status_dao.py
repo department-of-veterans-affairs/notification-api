@@ -19,7 +19,6 @@ from app.constants import (
     NOTIFICATION_FAILED,
     NOTIFICATION_SENDING,
     NOTIFICATION_SENT,
-    NOTIFICATION_TECHNICAL_FAILURE,
     NOTIFICATION_TEMPORARY_FAILURE,
     NOTIFICATION_PERMANENT_FAILURE,
     SMS_TYPE,
@@ -820,9 +819,8 @@ def fetch_monthly_notification_statuses_per_service(
                 case(
                     [
                         (
-                            FactNotificationStatus.notification_status.in_(
-                                [NOTIFICATION_TECHNICAL_FAILURE, NOTIFICATION_FAILED]
-                            ),
+                            # TODO: remove this after technical-failure is removed from the codebase
+                            FactNotificationStatus.notification_status.in_(['technical-failure', NOTIFICATION_FAILED]),
                             FactNotificationStatus.notification_count,
                         )
                     ],
