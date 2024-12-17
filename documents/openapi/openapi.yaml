@@ -2202,7 +2202,6 @@ components:
         - failed
         - sending
         - sent
-        - technical-failure
         - temporary-failure
         - pending
         - pending-virus-check

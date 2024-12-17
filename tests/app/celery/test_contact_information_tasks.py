@@ -203,7 +203,7 @@ def test_lookup_contact_info_should_retry_on_timeout(
     assert recipient_identifier.id_value == EXAMPLE_VA_PROFILE_ID
 
 
-def test_should_update_notification_to_technical_failure_on_max_retries(
+def test_should_update_notification_to_permanent_failure_on_max_retries(
     client, mocker, sample_template, sample_notification
 ):
     template = sample_template(template_type=EMAIL_TYPE)

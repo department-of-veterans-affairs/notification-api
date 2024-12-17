@@ -101,12 +101,12 @@ def test_should_retry_on_retryable_exception(client, mocker, sample_notification
     mocked_mpi_client.get_va_profile_id.assert_called_with(notification)
 
 
-def test_should_update_notification_to_technical_failure_on_max_retries_and_should_call_callback(
+def test_should_update_notification_to_permanent_failure_on_max_retries_and_should_call_callback(
     client, mocker, sample_notification
 ):
     """
     Raising MpiRetryableException and subsequently determining the the maximum number of retries has been
-    reached should result in a technical failure.
+    reached should result in a permanent failure.
     """
 
     notification = sample_notification()

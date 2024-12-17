@@ -86,7 +86,7 @@ def lookup_va_profile_id(
     except Exception as e:
         message = (
             f'Failed to retrieve VA Profile ID from MPI for notification: {notification_id} '
-            'Notification has been updated to technical-failure'
+            'Notification has been updated to permanent-failure'
         )
         current_app.logger.exception(message)
         notifications_dao.update_notification_status_by_id(

@@ -376,23 +376,6 @@ def update_letter_notifications_to_sent_to_dvla(
     current_app.logger.info('Updated %s letter notifications to sending', updated_count)
 
 
-# @notify_celery.task(bind=True, name='update-letter-notifications-to-error')
-# @statsd(namespace='tasks')
-# def update_letter_notifications_to_error(
-#     self,
-#     notification_references,
-# ):
-#     # This task will be called by the FTP app to update notifications as sent to DVLA
-
-#     updated_count, _ = dao_update_notifications_by_reference(
-#         notification_references, {'status': NOTIFICATION_PERMANENT_FAILURE, 'updated_at': datetime.utcnow()}
-#     )
-#     message = 'Updated {} letter notifications to technical-failure with references {}'.format(
-#         updated_count, notification_references
-#     )
-#     raise NotificationTechnicalFailureException(message)
-
-
 def handle_exception(
     task,
     notification,
