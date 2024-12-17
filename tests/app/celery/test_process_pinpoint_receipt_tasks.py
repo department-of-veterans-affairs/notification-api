@@ -16,27 +16,29 @@ from app.constants import (
     NOTIFICATION_PERMANENT_FAILURE,
     PINPOINT_PROVIDER,
     STATUS_REASON_BLOCKED,
+    STATUS_REASON_RETRYABLE,
+    STATUS_REASON_UNDELIVERABLE,
 )
 from app.dao import notifications_dao
 
 
 @pytest.mark.parametrize(
-    'event_type, record_status, expected_notification_status',
+    'event_type, record_status, expected_notification_status, expected_notification_status_reason',
     [
-        ('_SMS.BUFFERED', 'SUCCESSFUL', NOTIFICATION_DELIVERED),
-        ('_SMS.SUCCESS', 'DELIVERED', NOTIFICATION_DELIVERED),
-        ('_SMS.FAILURE', 'INVALID', NOTIFICATION_PERMANENT_FAILURE),
-        ('_SMS.FAILURE', 'UNREACHABLE', NOTIFICATION_TEMPORARY_FAILURE),
-        ('_SMS.FAILURE', 'UNKNOWN', NOTIFICATION_TEMPORARY_FAILURE),
-        ('_SMS.FAILURE', 'BLOCKED', NOTIFICATION_PERMANENT_FAILURE),
-        ('_SMS.FAILURE', 'CARRIER_UNREACHABLE', NOTIFICATION_TEMPORARY_FAILURE),
-        ('_SMS.FAILURE', 'SPAM', NOTIFICATION_PERMANENT_FAILURE),
-        ('_SMS.FAILURE', 'INVALID_MESSAGE', NOTIFICATION_PERMANENT_FAILURE),
-        ('_SMS.FAILURE', 'CARRIER_BLOCKED', NOTIFICATION_PERMANENT_FAILURE),
-        ('_SMS.FAILURE', 'TTL_EXPIRED', NOTIFICATION_TEMPORARY_FAILURE),
-        ('_SMS.FAILURE', 'MAX_PRICE_EXCEEDED', NOTIFICATION_PERMANENT_FAILURE),
-        ('_SMS.FAILURE', 'OPTED_OUT', NOTIFICATION_PERMANENT_FAILURE),
-        ('_SMS.OPTOUT', '', NOTIFICATION_PERMANENT_FAILURE),
+        ('_SMS.BUFFERED', 'SUCCESSFUL', NOTIFICATION_DELIVERED, None),
+        ('_SMS.SUCCESS', 'DELIVERED', NOTIFICATION_DELIVERED, None),
+        ('_SMS.FAILURE', 'INVALID', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_UNDELIVERABLE),
+        ('_SMS.FAILURE', 'UNREACHABLE', NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE),
+        ('_SMS.FAILURE', 'UNKNOWN', NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE),
+        ('_SMS.FAILURE', 'BLOCKED', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_BLOCKED),
+        ('_SMS.FAILURE', 'CARRIER_UNREACHABLE', NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE),
+        ('_SMS.FAILURE', 'SPAM', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_BLOCKED),
+        ('_SMS.FAILURE', 'INVALID_MESSAGE', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_UNDELIVERABLE),
+        ('_SMS.FAILURE', 'CARRIER_BLOCKED', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_BLOCKED),
+        ('_SMS.FAILURE', 'TTL_EXPIRED', NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE),
+        ('_SMS.FAILURE', 'MAX_PRICE_EXCEEDED', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_UNDELIVERABLE),
+        ('_SMS.FAILURE', 'OPTED_OUT', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_BLOCKED),
+        ('_SMS.OPTOUT', '', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_BLOCKED),
     ],
 )
 def test_process_pinpoint_results_notification_final_status(
@@ -45,6 +47,7 @@ def test_process_pinpoint_results_notification_final_status(
     event_type,
     record_status,
     expected_notification_status,
+    expected_notification_status_reason,
     sample_notification,
 ):
     """
@@ -77,7 +80,7 @@ def test_process_pinpoint_results_notification_final_status(
     assert notification.status == expected_notification_status
 
     if expected_notification_status == NOTIFICATION_PERMANENT_FAILURE:
-        assert notification.status_reason == STATUS_REASON_BLOCKED
+        assert notification.status_reason == expected_notification_status_reason
     elif expected_notification_status == NOTIFICATION_DELIVERED:
         assert notification.status_reason is None
 
