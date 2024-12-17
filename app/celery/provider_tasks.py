@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from app import notify_celery
 from app.celery.common import (
     can_retry,
@@ -10,6 +12,8 @@ from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.clients.email.aws_ses import AwsSesClientThrottlingSendRateException
 from app.config import QueueNames
 from app.constants import (
+    EMAIL_TYPE,
+    SMS_TYPE,
     STATUS_REASON_BLOCKED,
     STATUS_REASON_INVALID_NUMBER,
     STATUS_REASON_UNDELIVERABLE,
@@ -64,7 +68,7 @@ def deliver_sms(
         send_to_providers.send_sms_to_provider(notification, sms_sender_id)
         current_app.logger.info('Successfully sent sms for notification id: %s', notification_id)
     except Exception as e:
-        _handle_delivery_failure(task, notification, 'deliver_sms', e)
+        _handle_delivery_failure(task, notification, 'deliver_sms', e, notification_id, SMS_TYPE)
 
 
 # Including sms_sender_id is necessary in case it's passed in when being called
@@ -113,7 +117,7 @@ def deliver_sms_with_rate_limiting(
 
         task.retry(queue=QueueNames.RETRY, max_retries=None, countdown=retry_time)
     except Exception as e:
-        _handle_delivery_failure(task, notification, 'deliver_sms_with_rate_limiting', e)
+        _handle_delivery_failure(task, notification, 'deliver_sms_with_rate_limiting', e, notification_id, SMS_TYPE)
 
 
 # Including sms_sender_id is necessary in case it's passed in when being called.
@@ -129,8 +133,8 @@ def deliver_sms_with_rate_limiting(
 @statsd(namespace='tasks')
 def deliver_email(
     task: Task,
-    notification_id: str,
-    sms_sender_id=None,
+    notification_id: UUID,
+    sms_sender_id: UUID = None,
 ):
     current_app.logger.info('Start sending email for notification id: %s', notification_id)
 
@@ -154,22 +158,26 @@ def deliver_email(
         raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
 
     except Exception as e:
-        _handle_delivery_failure(task, notification, 'deliver_email', e)
+        _handle_delivery_failure(task, notification, 'deliver_email', e, notification_id, EMAIL_TYPE)
 
 
 def _handle_delivery_failure(
     celery_task: Task,
-    notification: Notification,
+    notification: Notification | None,
     method_name: str,
     e: Exception,
+    notification_id: UUID,
+    notification_type: str,
 ) -> None:
     """Handle the various exceptions that can be raised during the delivery of an email or SMS notification
 
     Args:
         celery_task (Task): The task that raised an exception
-        notification (Notification): The notification that failed to send
+        notification (Notification | None): The notification that failed to send, this can be None is rare cases
         method_name (str): The name of the method that raised an exception
         e (Exception): The exception that was raised
+        notification_id (UUID): The UUID of the notification that was attempted to send when the exception was raised
+        notification_type (str): This will be sms or email in this case
 
     Raises:
         NotificationTechnicalFailureException: If the exception is a technical failure
@@ -177,7 +185,7 @@ def _handle_delivery_failure(
     """
     if isinstance(e, (InactiveServiceException, InvalidProviderException)):
         log_and_update_critical_failure(
-            notification.id,
+            notification_id,
             method_name,
             e,
             STATUS_REASON_UNDELIVERABLE,
@@ -186,7 +194,7 @@ def _handle_delivery_failure(
 
     elif isinstance(e, InvalidPhoneError):
         log_and_update_permanent_failure(
-            notification.id,
+            notification_id,
             method_name,
             e,
             STATUS_REASON_INVALID_NUMBER,
@@ -195,7 +203,7 @@ def _handle_delivery_failure(
 
     elif isinstance(e, InvalidEmailError):
         log_and_update_permanent_failure(
-            notification.id,
+            notification_id,
             method_name,
             e,
             STATUS_REASON_UNREACHABLE,
@@ -210,7 +218,7 @@ def _handle_delivery_failure(
             status_reason = STATUS_REASON_UNDELIVERABLE
 
         log_and_update_permanent_failure(
-            notification.id,
+            notification_id,
             method_name,
             e,
             status_reason,
@@ -220,7 +228,7 @@ def _handle_delivery_failure(
 
     elif isinstance(e, (NullValueForNonConditionalPlaceholderException, AttributeError, RuntimeError)):
         log_and_update_critical_failure(
-            notification.id,
+            notification_id,
             method_name,
             e,
             STATUS_REASON_UNDELIVERABLE,
@@ -228,19 +236,18 @@ def _handle_delivery_failure(
         raise NotificationTechnicalFailureException(f'Found {type(e).__name__}, NOT retrying...', e, e.args)
 
     else:
-        current_app.logger.exception(
-            '%s delivery failed for notification %s', notification.notification_type, notification.id
-        )
+        current_app.logger.exception('%s delivery failed for notification %s', notification_type, notification_id)
 
-        if can_retry(celery_task.request.retries, celery_task.max_retries, notification.id):
+        if can_retry(celery_task.request.retries, celery_task.max_retries, notification_id):
             current_app.logger.warning(
                 '%s unable to send for notification %s, retrying',
-                notification.notification_type,
-                notification.id,
+                notification_type,
+                notification_id,
             )
             raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
 
         else:
-            msg = handle_max_retries_exceeded(notification.id, method_name)
-            check_and_queue_callback_task(notification)
+            msg = handle_max_retries_exceeded(notification_id, method_name)
+            if notification:
+                check_and_queue_callback_task(notification)
             raise NotificationTechnicalFailureException(msg)

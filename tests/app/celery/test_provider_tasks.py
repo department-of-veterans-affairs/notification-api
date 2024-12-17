@@ -116,9 +116,7 @@ def test_should_permanent_error_and_not_retry_if_invalid_email(
     sample_notification,
 ):
     mocker.patch('app.delivery.send_to_providers.send_email_to_provider', side_effect=InvalidEmailError('bad email'))
-    mocked_check_and_queue_callback_task = mocker.patch(
-        'app.celery.provider_tasks.check_and_queue_callback_task',
-    )
+    mocked_check_and_queue_callback_task = mocker.patch('app.celery.common.check_and_queue_callback_task')
 
     template = sample_template(template_type=EMAIL_TYPE)
     assert template.template_type == EMAIL_TYPE
@@ -300,7 +298,7 @@ def test_should_queue_callback_task_if_technical_failure_exception_is_thrown(
 
     notify_db_session.session.refresh(notification)
     assert notification.status == NOTIFICATION_PERMANENT_FAILURE
-    assert notification.status_reason == STATUS_REASON_UNREACHABLE
+    assert notification.status_reason == STATUS_REASON_UNDELIVERABLE
     assert callback_mocker.called_once
 
 
