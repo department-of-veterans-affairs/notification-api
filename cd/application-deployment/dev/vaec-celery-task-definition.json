@@ -155,6 +155,10 @@
           "value": "true"
         },
         {
+          "name": "DD_LOG_LEVEL",
+          "value": "debug"
+        },
+        {
           "name": "DD_PROCESS_AGENT_ENABLED",
           "value": "true"
         },
