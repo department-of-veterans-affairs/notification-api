@@ -2207,7 +2207,6 @@ components:
         - pending-virus-check
         - permanent-failure
         - pii-check-failed
-        - preferences-declined
         - returned-letter
         - validation-failed
         - virus-scan-failed
