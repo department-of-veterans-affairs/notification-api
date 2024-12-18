@@ -67,6 +67,7 @@ def deliver_sms(
             )
         send_to_providers.send_sms_to_provider(notification, sms_sender_id)
         current_app.logger.info('Successfully sent sms for notification id: %s', notification_id)
+
     except Exception as e:
         _handle_delivery_failure(task, notification, 'deliver_sms', e, notification_id, SMS_TYPE)
 
@@ -106,6 +107,7 @@ def deliver_sms_with_rate_limiting(
         check_sms_sender_over_rate_limit(notification.service_id, sms_sender)
         send_to_providers.send_sms_to_provider(notification, sms_sender_id)
         current_app.logger.info('Successfully sent sms with rate limiting for notification id: %s', notification_id)
+
     except RateLimitError:
         retry_time = sms_sender.rate_limit_interval / sms_sender.rate_limit
         current_app.logger.info(
@@ -116,6 +118,7 @@ def deliver_sms_with_rate_limiting(
         )
 
         task.retry(queue=QueueNames.RETRY, max_retries=None, countdown=retry_time)
+
     except Exception as e:
         _handle_delivery_failure(task, notification, 'deliver_sms_with_rate_limiting', e, notification_id, SMS_TYPE)
 
@@ -149,6 +152,7 @@ def deliver_email(
             )
         send_to_providers.send_email_to_provider(notification)
         current_app.logger.info('Successfully sent email for notification id: %s', notification_id)
+
     except AwsSesClientThrottlingSendRateException as e:
         current_app.logger.warning(
             'RETRY number %s: Email notification %s was rate limited by SES',
