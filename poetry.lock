@@ -2253,8 +2253,8 @@ statsd = ">=3.3.0"
 [package.source]
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
-reference = "169-mistune3-rev2"
-resolved_reference = "c8a12151e76e42bede3f6488f3a7ae579988b9f5"
+reference = "HEAD"
+resolved_reference = "14881f7287e0d6f454c26d6223c9d4f4a4c61a2b"
 
 [[package]]
 name = "notifications-python-client"
@@ -3785,4 +3785,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "f4928e3b7bd60812fd040a158d40637dc9bbf8beb4b5ba4b065e0dd21cd8382f"
+content-hash = "6f4ad3d76fafd4d90cfbe120bce515eb2bcd56eeaba2436b9498073cc1bf9488"
