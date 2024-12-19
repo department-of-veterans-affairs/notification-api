@@ -3,7 +3,6 @@ from enum import Enum
 from app.constants import STATUS_REASON_NO_PROFILE
 
 
-# TODO: Refactor this file to have actual classes that contain suffix, oid properties etc instead of all these dicts
 class IdentifierType(Enum):
     VA_PROFILE_ID = 'VAPROFILEID'
     PID = 'PID'

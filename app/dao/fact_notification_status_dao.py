@@ -815,7 +815,7 @@ def fetch_monthly_notification_statuses_per_service(
                     else_=0,
                 )
             ).label('count_delivered'),
-            # TODO: remove this after technical-failure is removed from the codebase
+            # TODO 2191 - remove this after technical-failure is removed from the codebase
             func.sum(
                 case(
                     [

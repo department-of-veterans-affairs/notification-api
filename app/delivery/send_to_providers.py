@@ -29,7 +29,7 @@ from app.dao.provider_details_dao import (  # noqa F401
     get_provider_details_by_notification_type,
 )
 from app.dao.templates_dao import dao_get_template_by_id
-from app.exceptions import NotificationTechnicalFailureException, InvalidProviderException, InactiveServiceException
+from app.exceptions import InactiveServiceException, InvalidProviderException, NotificationTechnicalFailureException
 from app.feature_flags import is_gapixel_enabled, is_feature_enabled, FeatureFlag
 from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
 from app.models import (
@@ -294,11 +294,14 @@ def get_html_email_options(notification: Notification) -> Dict[str, Union[str, b
 
 
 def inactive_service_failure(notification: Notification):
-    # notification.status = NOTIFICATION_PERMANENT_FAILURE
-    # dao_update_notification(notification)
+    """Called when the service is inactive to raise InactiveServiceException with the proper error message.
+
+    Raises:
+        InactiveServiceException: always
+    """
     raise InactiveServiceException(
-        f'Send {notification.notification_type} for notification {notification.id} to provider is not allowed: '
-        f'service {notification.service_id} is inactive'
+        f'Send {notification.notification_type} to provider is not allowed. '
+        f'Service {notification.service_id} is inactive. Notification {notification.id}'
     )
 
 
