@@ -202,7 +202,7 @@ def handle_communication_not_allowed(
         recipient_identifier.id_value,
         notification.id,
     )
-    # reason = permission_message if permission_message is not None else 'Contact preferences set to false'
+
     update_notification_status_by_id(
         notification.id, NOTIFICATION_PERMANENT_FAILURE, status_reason=STATUS_REASON_DECLINED
     )
