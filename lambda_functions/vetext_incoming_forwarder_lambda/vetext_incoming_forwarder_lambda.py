@@ -22,7 +22,7 @@ try:
     logger.setLevel(LOG_LEVEL)
 except ValueError:
     logger.setLevel('INFO')
-    logger.error('Invalid log level specified.  Defaulting to INFO.')
+    logger.exception('Invalid log level specified.  Defaulting to INFO.')
 
 # http timeout for calling vetext endpoint
 HTTPTIMEOUT = (3.05, 1)
@@ -157,7 +157,7 @@ def vetext_incoming_forwarder_lambda_handler(
                         encryption.encrypt(json.dumps(event).encode()).decode(),
                     )
                 except Exception:
-                    # In the event encryption or the dump fails, still log the event
+                    # In the event encryption or the dump fails, still log the event.
                     logger.error(
                         'Returning 403 on unauthenticated Twilio request for event: %s - Unable to encrypt/json dump',
                         event,
@@ -347,6 +347,7 @@ def make_vetext_request(request_body):  # noqa: C901 (too complex 13 > 10)
 
     logger.info('Making POST Request to VeText using URL endpoint: %s, To: %s', endpoint_uri, body['to'])
     logger.debug('json dumps: %s', json.dumps(body))
+    response = None
 
     try:
         response = requests.post(endpoint_uri, verify=False, json=body, timeout=HTTPTIMEOUT, headers=headers)  # nosec
@@ -360,24 +361,30 @@ def make_vetext_request(request_body):  # noqa: C901 (too complex 13 > 10)
         logged_body = body.copy()
         logged_body['body'] = 'redacted'
         logger.warning(
-            'HTTPError With Call To VeText url: %s, with body: %s and error: %s', endpoint_uri, logged_body, e
+            'HTTPError With Call To VeText url: %s, with body: %s, response: %s, and error: %s',
+            endpoint_uri,
+            logged_body,
+            response.content if (response is not None) else 'none',
+            e,
         )
     except requests.RequestException as e:
         logged_body = body.copy()
         logged_body['body'] = 'redacted'
         logger.warning(
-            'RequestException With Call To VeText url: %s, with body: %s and error: %s',
+            'RequestException With Call To VeText url: %s, with body: %s, response: %s, and error: %s',
             endpoint_uri,
             logged_body,
+            response.content if (response is not None) else 'none',
             e,
         )
     except Exception:
         logged_body = body.copy()
         logged_body['body'] = 'redacted'
         logger.exception(
-            'Unexpected Exception With Call to VeText url: %s, with body: %s',
+            'Unexpected Exception With Call to VeText url: %s, with body: %s, and response %s',
             endpoint_uri,
             logged_body,
+            response.content if (response is not None) else 'none',
         )
 
     return None
