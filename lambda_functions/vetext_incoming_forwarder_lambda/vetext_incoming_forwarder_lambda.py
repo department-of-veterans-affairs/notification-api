@@ -364,7 +364,7 @@ def make_vetext_request(request_body):  # noqa: C901 (too complex 13 > 10)
             'HTTPError With Call To VeText url: %s, with body: %s, response: %s, and error: %s',
             endpoint_uri,
             logged_body,
-            response.content if (response is not None) else 'none',
+            getattr(response, 'content', 'none'),
             e,
         )
     except requests.RequestException as e:
@@ -374,7 +374,7 @@ def make_vetext_request(request_body):  # noqa: C901 (too complex 13 > 10)
             'RequestException With Call To VeText url: %s, with body: %s, response: %s, and error: %s',
             endpoint_uri,
             logged_body,
-            response.content if (response is not None) else 'none',
+            getattr(response, 'content', 'none'),
             e,
         )
     except Exception:
@@ -384,7 +384,7 @@ def make_vetext_request(request_body):  # noqa: C901 (too complex 13 > 10)
             'Unexpected Exception With Call to VeText url: %s, with body: %s, and response %s',
             endpoint_uri,
             logged_body,
-            response.content if (response is not None) else 'none',
+            getattr(response, 'content', 'none'),
         )
 
     return None
