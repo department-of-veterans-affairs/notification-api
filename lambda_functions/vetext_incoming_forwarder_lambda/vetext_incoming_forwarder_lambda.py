@@ -158,7 +158,7 @@ def vetext_incoming_forwarder_lambda_handler(
                     )
                 except Exception:
                     # In the event encryption or the dump fails, still log the event.
-                    logger.error(
+                    logger.exception(
                         'Returning 403 on unauthenticated Twilio request for event: %s - Unable to encrypt/json dump',
                         event,
                     )
