@@ -17,6 +17,11 @@ cachelib = "*"
 cachetools = "*"
 celery = {extras = ["sqs"], version = "*"}
 click-datetime = "*"
+# This is not a top-level dependency.  v44 is compiled against OpenSSL 3.4.0, but the version
+# of Alpine we use as of 24 DEC 2024 includes OpenSSL v3.1.7-r1.
+# https://cryptography.io/en/latest/changelog/#v44-0-0
+# https://pkgs.alpinelinux.org/package/v3.19/main/x86_64/openssl
+cryptography = "~43"
 ddtrace = "*"
 docopt = "*"
 fido2 = "*"
