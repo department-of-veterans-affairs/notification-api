@@ -226,6 +226,7 @@ class Config(object):
         'task_serializer': 'json',
         'imports': (
             'app.celery.tasks',
+            'app.celery.process_comp_and_pen',
             'app.celery.scheduled_tasks',
             'app.celery.reporting_tasks',
             'app.celery.nightly_tasks',
