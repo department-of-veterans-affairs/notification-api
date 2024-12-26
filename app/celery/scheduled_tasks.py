@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta
-from time import monotonic
 
-from botocore.exceptions import ClientError
 from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 from sqlalchemy import and_, select
@@ -28,11 +26,8 @@ from app.dao.notifications_dao import (
     dao_old_letters_with_created_status,
 )
 from app.dao.users_dao import delete_codes_older_created_more_than_a_day_ago
-from app.feature_flags import is_feature_enabled, FeatureFlag
-from app.integrations.comp_and_pen.scheduled_message_helpers import CompPenMsgHelper
 from app.models import Job
 from app.notifications.process_notifications import send_notification_to_queue
-from app.notifications.send_notifications import lookup_notification_sms_setup_data
 from app.v2.errors import JobIncompleteError
 
 
