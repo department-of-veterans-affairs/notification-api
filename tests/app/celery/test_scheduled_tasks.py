@@ -1,14 +1,12 @@
 from datetime import datetime, timedelta
 from decimal import getcontext
-from unittest.mock import ANY, call, patch
-from uuid import UUID
+from unittest.mock import call
 
 import pytest
 from freezegun import freeze_time
 
 from app.celery import scheduled_tasks
 from app.celery.scheduled_tasks import (
-    send_scheduled_comp_and_pen_sms,
     check_job_status,
     delete_invitations,
     delete_verify_codes,
