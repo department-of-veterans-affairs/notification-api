@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from uuid import uuid4
 
 from flask import current_app
@@ -11,9 +12,15 @@ from app.models import (
     Service,
     Template,
 )
-from app.integrations.comp_and_pen.scheduled_message_helpers import DynamoRecord
 from app.notifications.send_notifications import lookup_notification_sms_setup_data, send_notification_bypass_route
 from app.va.identifier import IdentifierType
+
+
+@dataclass
+class DynamoRecord:
+    participant_id: str
+    payment_amount: str
+    vaprofile_id: str
 
 
 @notify_celery.task(name='comp-and-pen-batch-process')
