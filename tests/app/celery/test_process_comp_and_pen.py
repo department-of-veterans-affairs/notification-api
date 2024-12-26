@@ -7,7 +7,7 @@ from app.celery.process_comp_and_pen import comp_and_pen_batch_process
 from app.exceptions import NotificationTechnicalFailureException
 
 
-def test_comp_and_pen_batch_process_happy_path(mocker, sample_template, perf_number) -> None:
+def test_comp_and_pen_batch_process_happy_path(mocker, sample_template) -> None:
     template = sample_template()
     mocker.patch(
         'app.celery.process_comp_and_pen.lookup_notification_sms_setup_data',
