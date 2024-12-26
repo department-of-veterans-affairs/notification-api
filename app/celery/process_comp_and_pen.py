@@ -37,7 +37,7 @@ def comp_and_pen_batch_process(records: list[dict[str, str]]) -> None:
         template,
         sms_sender_id,
         reply_to_text,
-        [DynamoRecord(item) for item in records],
+        [DynamoRecord(**item) for item in records],
         current_app.config['COMP_AND_PEN_PERF_TO_NUMBER'],
     )
 
