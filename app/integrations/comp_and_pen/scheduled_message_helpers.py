@@ -47,8 +47,8 @@ class CompPenMsgHelper:
             :param service (Service): The service used to send the SMS notifications.
             :param template (Template): The template used for the SMS notifications.
             :param sms_sender_id (str): The ID of the SMS sender.
-            :param comp_and_pen_messages (list[dict[str, int | float]]): A list of dictionaries from the dynamodb
-                table containing the details needed to send the messages.
+            :param comp_and_pen_messages (list[DynamoRecord): A list of dictionaries from the dynamodb table containing
+                the details needed to send the messages.
             :param perf_to_number (str): The recipient's phone number.
 
         Raises:
