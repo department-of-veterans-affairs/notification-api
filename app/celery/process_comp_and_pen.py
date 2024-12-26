@@ -19,6 +19,11 @@ from app.va.identifier import IdentifierType
 @notify_celery.task(name='comp-and-pen-batch-process')
 @statsd(namespace='tasks')
 def comp_and_pen_batch_process(records: list[dict[str, str]]) -> None:
+    """Process batches of Comp and Pen notification requests.
+
+    Args:
+        records (list[dict[str, str]]): The incoming records
+    """
     current_app.logger.debug(f'comp_and_pen_batch_process records: {records}')
 
     # Grab all the necessary data
