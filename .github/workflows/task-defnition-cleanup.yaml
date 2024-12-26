@@ -45,7 +45,7 @@ jobs:
           echo "Dry run mode: $DRY_RUN"
 
           # -----------------------------------------------------------------------------
-          # 1. Function to deregister task definitions (or perform dry run).
+          # 1. Function to deregister task definitions (with exponential backoff & jitter).
           # -----------------------------------------------------------------------------
           deregister_task_definition() {
             local task_def_arn="$1"
@@ -54,8 +54,22 @@ jobs:
               echo "[Dry Run] Would deregister task definition: $task_def_arn"
             else
               echo "Deregistering task definition: $task_def_arn"
-              aws ecs deregister-task-definition --task-definition "$task_def_arn" --region "$REGION"
-              echo "Deregistered $task_def_arn"
+              
+              # We'll attempt up to 5 times in case of rate limiting
+              for attempt in {1..5}; do
+                if aws ecs deregister-task-definition --task-definition "$task_def_arn" --region "$REGION"; then
+                  echo "Deregistered $task_def_arn"
+                  break
+                else
+                  echo "Attempt $attempt to deregister $task_def_arn failed. Sleeping before retry..."
+                  sleep $((attempt * 2))  # exponential backoff (2, 4, 6, 8, 10 seconds)
+                fi
+              done
+
+              # Introduce a small random jitter between deregistrations
+              sleep_time=$((1 + RANDOM % 3)) # 1–3 seconds
+              echo "Sleeping for $sleep_time second(s) to reduce rate-limit risk..."
+              sleep $sleep_time
             fi
           }
 
