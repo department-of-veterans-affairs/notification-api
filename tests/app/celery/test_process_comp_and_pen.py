@@ -39,7 +39,9 @@ def test_comp_and_pen_batch_process_perf_number_happy_path(mocker, sample_templa
         {'participant_id': '55', 'payment_amount': '55.56', 'vaprofile_id': '57'},
         {'participant_id': '42', 'payment_amount': '42.42', 'vaprofile_id': '43627'},
     ]
-    with patch.dict('os.environ', {'COMP_AND_PEN_PERF_TO_NUMBER': '8675309'}):
+    with patch.dict(
+        'app.celery.process_comp_and_pen.current_app.config', {'COMP_AND_PEN_PERF_TO_NUMBER': '8888675309'}
+    ):
         comp_and_pen_batch_process(records)
 
     # comp_and_pen_batch_process can fail without raising an exception, so test it called send_notification_to_queue
