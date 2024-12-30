@@ -201,6 +201,7 @@ class AwsPinpointClient(SmsClient):
             self.logger.error('Did not receive pinpoint delivery status as a string')
             raise NonRetryableException(f'Incorrect datatype sent to pinpoint, {UNABLE_TO_TRANSLATE}')
 
+        self.logger.debug('Translate delivery status pinpoint: %s', delivery_status_message)
         pinpoint_attributes = delivery_status_message['attributes']
         event_type = delivery_status_message['event_type']
         record_status = pinpoint_attributes['record_status']
