@@ -92,7 +92,7 @@ class AwsPinpointClient(SmsClient):
         try:
             start_time = monotonic()
             response = self._post_message_request(recipient_number, content, aws_phone_number)
-
+            return response
         except (botocore.exceptions.ClientError, Exception) as e:
             self.statsd_client.incr('clients.pinpoint.error')
             raise AwsPinpointException(str(e))
