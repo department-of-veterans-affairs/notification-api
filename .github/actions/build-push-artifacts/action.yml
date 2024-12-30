@@ -51,4 +51,4 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
-        gh workflow run -r 2188-enhanced-image-scan -F image-tag=${{ inputs.ref }} enhanced-image-scan.yml
+        gh workflow run -r main -F image-tag=${{ inputs.ref }} enhanced-image-scan.yml
