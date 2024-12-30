@@ -290,8 +290,9 @@ class TwilioSMSClient(SmsClient):
             self.logger.error('Did not receive twilio delivery status as a string')
             raise NonRetryableException(f'Incorrect datatype sent to twilio, {UNABLE_TO_TRANSLATE}')
 
-        self.logger.debug('Translate delivery status twilio: %s', delivery_status_message)
         decoded_msg, parsed_dict = self._parse_twilio_message(delivery_status_message)
+        self.logger.info('Translate raw delivery status twilio: %s | %s', parsed_dict, delivery_status_message)
+
         message_sid = parsed_dict['MessageSid'][0]
         twilio_delivery_status = parsed_dict['MessageStatus'][0]
         error_code = parsed_dict.get('ErrorCode', [])
