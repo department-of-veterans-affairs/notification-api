@@ -2,6 +2,7 @@ from datetime import datetime
 from logging import Logger
 from time import monotonic
 from typing import Tuple
+from uuid import uuid4
 
 import boto3
 import botocore
@@ -122,7 +123,7 @@ class AwsPinpointClient(SmsClient):
                 'SMSMessage': {'Body': content, 'MessageType': 'TRANSACTIONAL', 'OriginationNumber': aws_phone_number}
             },
         }
-
+        return str(uuid4())
         return self._client.send_messages(
             ApplicationId=self.aws_pinpoint_app_id, MessageRequest=message_request_payload
         )
