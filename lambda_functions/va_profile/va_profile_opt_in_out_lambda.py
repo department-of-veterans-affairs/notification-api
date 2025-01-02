@@ -482,8 +482,8 @@ def jwt_is_valid(
             # Blank if the key is less than 35 characters
             logger.debug('Used key: %s', i)
             return True
-        except (jwt.exceptions.InvalidTokenError, TypeError) as e:
-            logger.exception(e)
+        except (jwt.exceptions.InvalidTokenError, TypeError):
+            logger.exception('Failed to validate key: %s', i)
 
     return False
 
