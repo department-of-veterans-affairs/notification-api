@@ -473,14 +473,14 @@ def jwt_is_valid(
         'require': ['exp', 'iat'],
         'verify_exp': 'verify_signature',
     }
-    for public_key in public_keys:
+    for i, public_key in enumerate(public_keys):
         try:
             # This returns the claims as a dictionary, but we aren't using them.  Require the
             # Issued at Time (iat) claim to ensure the JWT varies with each request.  Otherwise,
             # an attacker could replay the static Bearer value.
             jwt.decode(token, public_key, algorithms=['RS256'], options=options)
             # Blank if the key is less than 35 characters
-            logger.debug('Last 10 characters of public key: %s', public_key[-35:-25])
+            logger.debug('Used key: %s', i)
             return True
         except (jwt.exceptions.InvalidTokenError, TypeError) as e:
             logger.exception(e)
