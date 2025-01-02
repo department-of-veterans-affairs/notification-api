@@ -479,6 +479,8 @@ def jwt_is_valid(
             # Issued at Time (iat) claim to ensure the JWT varies with each request.  Otherwise,
             # an attacker could replay the static Bearer value.
             jwt.decode(token, public_key, algorithms=['RS256'], options=options)
+            # Blank if the key is less than 35 characters
+            logger.debug('Last 10 characters of public key: %s', public_key[-35:-25])
             return True
         except (jwt.exceptions.InvalidTokenError, TypeError) as e:
             logger.exception(e)
