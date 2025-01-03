@@ -6,6 +6,7 @@ authors = [
 ]
 readme = "README.md"
 package-mode = false
+poetry_version = "1.8.4"
 
 [tool.poetry.dependencies]
 python = "~3.10"
