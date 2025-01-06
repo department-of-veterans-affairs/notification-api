@@ -1,0 +1,46 @@
+name: Enhanced Image Scanning
+
+on:
+  workflow_dispatch:
+    inputs:
+      image-tag:
+        required: true
+        type: string
+  push:
+    branches: "2188-enhanced-image-scan"
+
+jobs:
+  enhanced-image-scan:
+    runs-on: ${{ vars.RUNS_ON }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Configure VAEC AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4.0.2
+        with:
+          aws-access-key-id: ${{ secrets.VAEC_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.VAEC_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-gov-west-1
+          role-to-assume: ${{ secrets.VAEC_DEPLOY_ROLE }}
+          role-skip-session-tagging: true
+          role-duration-seconds: 900
+
+      - name: Login to VAEC ECR
+        id: login-ecr-vaec
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: 'true'
+
+      - name: Scan built image with Inspector
+        uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
+        id: inspector
+        with:
+          artifact_type: 'repository'
+          artifact_path: '171875617347.dkr.ecr.us-gov-west-1.amazonaws.com/notification_api:ce8772711cc14250b6bb7d6b894ac228c0c2658d' # ${{ inputs.image-tag }}
+          critical_threshold: 0 # testing forced failure
+          high_threshold: ${{ secrets.SCAN_HIGH_THRESHOLD }}
+  
+      - name: Fail job if vulnerability threshold is exceeded
+        run: exit ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
