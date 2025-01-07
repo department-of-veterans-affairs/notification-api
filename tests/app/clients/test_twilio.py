@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 import requests_mock
+from requests.exceptions import ConnectionError, ReadTimeout
 from twilio.base.exceptions import TwilioRestException
 from urllib.parse import parse_qsl
 
@@ -482,26 +483,46 @@ def test_send_sms_sends_from_hardcoded_number(
     assert d['From'] == '+18194120710'
 
 
-def test_send_sms_raises_if_twilio_rejects(
+@pytest.mark.parametrize('test_exception', (ConnectionError, ReadTimeout))
+def test_send_sms_raises_if_twilio_requests_exception(
     notify_api,
-    mocker,
+    test_exception,
 ):
     to = '+61412345678'
     content = 'my message'
     reference = 'my reference'
-    response_dict = {'code': 60082, 'message': 'it did not work'}
+    err_msg = 'it did not work'
 
+    uri = f'https://api.twilio.com/2010-04-01/Accounts/{twilio_sms_client._account_sid}/Messages.json'
     with pytest.raises(RetryableException) as exc:
         with requests_mock.Mocker() as r_mock:
             r_mock.post(
-                f'https://api.twilio.com/2010-04-01/Accounts/{twilio_sms_client._account_sid}/Messages.json',
-                json=response_dict,
-                status_code=400,
+                uri,
+                exc=test_exception(err_msg),
             )
-
             twilio_sms_client.send_sms(to, content, reference)
 
-    assert response_dict['message'] in str(exc)
+    assert err_msg in str(exc)
+
+
+def test_send_sms_raises_if_twilio_rejects(
+    notify_api,
+):
+    to = '+61412345678'
+    content = 'my message'
+    reference = 'my reference'
+    err_msg = 'it did not work'
+
+    uri = f'https://api.twilio.com/2010-04-01/Accounts/{twilio_sms_client._account_sid}/Messages.json'
+    with pytest.raises(RetryableException) as exc:
+        with requests_mock.Mocker() as r_mock:
+            r_mock.post(
+                uri,
+                exc=TwilioRestException(status=400, uri=uri, msg=err_msg),
+            )
+            twilio_sms_client.send_sms(to, content, reference)
+
+    assert err_msg in str(exc)
 
 
 def test_send_sms_raises_if_twilio_fails_to_return_json(
