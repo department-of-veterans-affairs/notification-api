@@ -244,6 +244,8 @@ def _handle_delivery_failure(
             # Retryable should log where it happened, if it is here without RetryableException this is unexpected
             current_app.logger.exception('%s delivery failed for notification %s', notification_type, notification_id)
 
+        # We retry everything because it ensures missed exceptions do not prevent notifications from going out. Logs are
+        # checked daily and tickets opened for narrowing the not 'RetryableException's that make it this far.
         if can_retry(celery_task.request.retries, celery_task.max_retries, notification_id):
             current_app.logger.warning(
                 '%s unable to send for notification %s, retrying',
