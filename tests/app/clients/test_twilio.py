@@ -492,8 +492,8 @@ def test_send_sms_raises_if_twilio_requests_exception(
     content = 'my message'
     reference = 'my reference'
     err_msg = 'it did not work'
-
     uri = f'https://api.twilio.com/2010-04-01/Accounts/{twilio_sms_client._account_sid}/Messages.json'
+
     with pytest.raises(RetryableException) as exc:
         with requests_mock.Mocker() as r_mock:
             r_mock.post(
@@ -512,8 +512,8 @@ def test_send_sms_raises_if_twilio_rejects(
     content = 'my message'
     reference = 'my reference'
     err_msg = 'it did not work'
-
     uri = f'https://api.twilio.com/2010-04-01/Accounts/{twilio_sms_client._account_sid}/Messages.json'
+
     with pytest.raises(RetryableException) as exc:
         with requests_mock.Mocker() as r_mock:
             r_mock.post(
