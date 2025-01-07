@@ -8,7 +8,7 @@ from twilio.base.exceptions import TwilioRestException
 from urllib.parse import parse_qsl
 
 from app import twilio_sms_client
-from app.celery.exceptions import NonRetryableException
+from app.celery.exceptions import NonRetryableException, RetryableException
 from app.clients.sms import SmsStatusRecord
 from app.clients.sms.twilio import get_twilio_responses, TwilioSMSClient, TwilioStatus
 from app.constants import (
@@ -491,7 +491,7 @@ def test_send_sms_raises_if_twilio_rejects(
     reference = 'my reference'
     response_dict = {'code': 60082, 'message': 'it did not work'}
 
-    with pytest.raises(TwilioRestException) as exc:
+    with pytest.raises(RetryableException) as exc:
         with requests_mock.Mocker() as r_mock:
             r_mock.post(
                 f'https://api.twilio.com/2010-04-01/Accounts/{twilio_sms_client._account_sid}/Messages.json',
@@ -501,9 +501,7 @@ def test_send_sms_raises_if_twilio_rejects(
 
             twilio_sms_client.send_sms(to, content, reference)
 
-    assert exc.value.status == 400
-    assert exc.value.code == 60082
-    assert exc.value.msg == 'Unable to create record: it did not work'
+    assert response_dict['message'] in str(exc)
 
 
 def test_send_sms_raises_if_twilio_fails_to_return_json(
