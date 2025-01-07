@@ -86,7 +86,7 @@ def test_create_content_for_notification_allows_additional_personalisation(
     create_content_for_notification(db_template, {'name': 'Bobby', 'Additional placeholder': 'Data'})
 
 
-@pytest.mark.serial
+# @pytest.mark.serial
 @freeze_time('2016-01-01 11:09:00.061258')
 def test_persist_notification_creates_and_save_to_db(
     notify_db_session,
