@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 import requests_mock
-from requests.exceptions import ConnectionError, ReadTimeout
+from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 from twilio.base.exceptions import TwilioRestException
 from urllib.parse import parse_qsl
 
@@ -483,7 +483,7 @@ def test_send_sms_sends_from_hardcoded_number(
     assert d['From'] == '+18194120710'
 
 
-@pytest.mark.parametrize('test_exception', (ConnectionError, ReadTimeout))
+@pytest.mark.parametrize('test_exception', (ConnectionError, ConnectTimeout, ReadTimeout))
 def test_send_sms_raises_if_twilio_requests_exception(
     notify_api,
     test_exception,
