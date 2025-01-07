@@ -262,7 +262,11 @@ class TwilioSMSClient(SmsClient):
                 self.logger.debug('Twilio error details for %s - %s: %s', reference, e.code, e.msg)
                 raise NonRetryableException(status.status_reason) from e
             else:
-                self.logger.warning('Encountered a retryable error with sending an sms request to Twilio: %s', str(e))
+                self.logger.warning(
+                    'Notification: %s encountered a retryable error with sending an sms request to Twilio: %s',
+                    reference,
+                    str(e),
+                )
                 raise RetryableException(str(e)) from e
         except:
             self.logger.exception('Twilio send SMS request for %s failed', reference)
