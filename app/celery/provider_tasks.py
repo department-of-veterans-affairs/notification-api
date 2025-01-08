@@ -106,7 +106,7 @@ def deliver_sms_with_rate_limiting(
         # app/v2/notifications/post_notifications.py::post_notification via the call to get_reply_to_text, which is
         # in the same file.  The value is a phone number.  When notification POST data specifies an SMS sender, the
         # phone number should be the phone number associated with that sender.  Otherwise, the phone number should
-        # be the phone number associated with authenticated service's default SMS sender.  Ergo, the SMS sender
+        # be the phone number associated with the authenticated service's default SMS sender.  Ergo, the SMS sender
         # returned in the next line should be the correct SMS sender to test for a rate-limiting condition.
         sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
             notification.service_id, notification.reply_to_text
