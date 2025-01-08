@@ -114,7 +114,6 @@ def test_persist_notification_creates_and_save_to_db(
         'personalisation': {},
     }
 
-    # Intermittently makes the status 'technical-failure'
     # Cleaned by the template cleanup
     persist_notification(**data)
 

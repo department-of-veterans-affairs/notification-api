@@ -550,7 +550,6 @@ def test_should_save_sms_if_restricted_service_and_valid_number(
     notification_id = uuid4()
     encrypt_notification = encryption.encrypt(notification)
 
-    # Intermittently makes the status 'technical-failure'
     save_sms(
         service.id,
         notification_id,
@@ -900,7 +899,6 @@ def test_save_email_should_use_template_version_from_job_not_latest(
 
     notification_id = uuid4()
 
-    # Intermittently makes the status 'technical-failure'
     save_email(
         template.service_id,
         notification_id,
@@ -941,7 +939,7 @@ def test_should_use_email_template_subject_placeholders(
 
     notification_id = uuid4()
     now = datetime.utcnow()
-    # Intermittently makes the status 'technical-failure'
+
     save_email(
         template.service_id,
         notification_id,
