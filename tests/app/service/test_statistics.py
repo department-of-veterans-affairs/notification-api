@@ -58,9 +58,8 @@ NewStatsRow = collections.namedtuple('row', ('notification_type', 'status', 'key
         'convert_fail_statuses_to_failed': (
             [
                 StatsRow(EMAIL_TYPE, NOTIFICATION_FAILED, 1),
-                StatsRow(EMAIL_TYPE, NOTIFICATION_PERMANENT_FAILURE, 1),
                 StatsRow(EMAIL_TYPE, NOTIFICATION_TEMPORARY_FAILURE, 1),
-                StatsRow(EMAIL_TYPE, NOTIFICATION_PERMANENT_FAILURE, 1),
+                StatsRow(EMAIL_TYPE, NOTIFICATION_PERMANENT_FAILURE, 2),
                 StatsRow(LETTER_TYPE, NOTIFICATION_VALIDATION_FAILED, 1),
                 StatsRow(LETTER_TYPE, NOTIFICATION_VIRUS_SCAN_FAILED, 1),
                 StatsRow(LETTER_TYPE, NOTIFICATION_PERMANENT_FAILURE, 1),
