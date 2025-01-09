@@ -455,6 +455,8 @@ class Config(object):
     ATTACHMENTS_BUCKET = os.getenv('ATTACHMENTS_BUCKET', 'dev-notifications-va-gov-attachments')
     MAX_CONTENT_LENGTH = 1024 * 1024  # = 1024 KB
 
+    JWT_VERIFY_SUB = False
+
 
 ######################
 # Config overrides ###
