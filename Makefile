@@ -31,7 +31,9 @@ install-safety:
 	pip install safety
 
 check-dependencies: install-safety ## Scan dependencies for security vulnerabilities
-	safety check -r poetry.lock --full-report
+	# 12 Dec 2023: 51668 is fixed with >= 2.0.0b1 of SQLAlchemy. Ongoing refactor to upgrade.
+
+	safety check -r poetry.lock --full-report -i 51668
 
 .PHONY:
 	help \
