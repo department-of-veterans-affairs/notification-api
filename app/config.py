@@ -455,6 +455,9 @@ class Config(object):
     ATTACHMENTS_BUCKET = os.getenv('ATTACHMENTS_BUCKET', 'dev-notifications-va-gov-attachments')
     MAX_CONTENT_LENGTH = 1024 * 1024  # = 1024 KB
 
+    # Flask JWT Extended
+    # JWT_VERIFY_SUB set to False as "sub" is used for callbacks
+    # https://flask-jwt-extended.readthedocs.io/en/stable/options.html#JWT_VERIFY_SUB
     JWT_VERIFY_SUB = False
 
 
