@@ -22,7 +22,7 @@ cachetools = "*"
 celery = {extras = ["sqs"], version = "*"}
 click-datetime = "*"
 # 24 DEC 2024: Upgrading to the next minor version causes deployments to fail at the "run-deployment/deploy-api" step.
-ddtrace = "~2.17"
+ddtrace = "~2.18"
 docopt = "*"
 fido2 = "*"
 Flask = "*"
