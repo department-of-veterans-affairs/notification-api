@@ -379,7 +379,7 @@ class VAProfileClient:
             response = requests.post(url, json=notification_data, headers=headers, timeout=self.timeout)
         except (requests.Timeout, requests.ConnectTimeout, requests.exceptions.SSLError) as e:
             self.logger.warning(
-                'Retryable exception when send notification status to VA Profile for notification %s | %s',
+                'Retryable exception when sending notification status to VA Profile for notification %s | %s',
                 notification_data.get('id'),
                 str(e),
             )
