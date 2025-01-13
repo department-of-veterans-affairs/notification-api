@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from uuid import uuid4
 
 from flask import current_app
 from sqlalchemy.orm.exc import NoResultFound
@@ -12,7 +11,7 @@ from app.models import (
     Service,
     Template,
 )
-from app.notifications.send_notifications import lookup_notification_sms_setup_data, send_notification_bypass_route
+from app.notifications.send_notifications import lookup_notification_sms_setup_data
 from app.va.identifier import IdentifierType
 
 
@@ -92,28 +91,34 @@ def _send_comp_and_pen_sms(
             }
         )
 
-        try:
-            # call generic method to send messages
-            send_notification_bypass_route(
-                service=service,
-                template=template,
-                reply_to_text=reply_to_text,
-                personalisation={'amount': item.payment_amount},
-                sms_sender_id=sms_sender_id,
-                recipient=perf_to_number,
-                recipient_item=recipient_item,
-                notification_id=uuid4(),
-            )
-        except Exception:
-            current_app.logger.exception(
-                'Error attempting to send Comp and Pen notification with '
-                'send_comp_and_pen_sms | record from dynamodb: %s',
-                item.participant_id,
-            )
-        else:
-            if perf_to_number is not None:
-                current_app.logger.info(
-                    'Notification sent using Perf simulated number %s instead of vaprofile_id', perf_to_number
-                )
+        current_app.logger.debug(
+            'Comp and Pen sending disabled. Processed record from dynamodb: %s The message would have been sent to %s',
+            item.participant_id,
+            recipient_item,
+        )
 
-            current_app.logger.info('Notification sent to queue for record from dynamodb: %s', item.participant_id)
+        # try:
+        #     # call generic method to send messages
+        #     send_notification_bypass_route(
+        #         service=service,
+        #         template=template,
+        #         reply_to_text=reply_to_text,
+        #         personalisation={'amount': item.payment_amount},
+        #         sms_sender_id=sms_sender_id,
+        #         recipient=perf_to_number,
+        #         recipient_item=recipient_item,
+        #         notification_id=uuid4(),
+        #     )
+        # except Exception:
+        #     current_app.logger.exception(
+        #         'Error attempting to send Comp and Pen notification with '
+        #         'send_comp_and_pen_sms | record from dynamodb: %s',
+        #         item.participant_id,
+        #     )
+        # else:
+        #     if perf_to_number is not None:
+        #         current_app.logger.info(
+        #             'Notification sent using Perf simulated number %s instead of vaprofile_id', perf_to_number
+        #         )
+
+        #     current_app.logger.info('Notification sent to queue for record from dynamodb: %s', item.participant_id)
