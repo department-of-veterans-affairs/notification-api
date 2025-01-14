@@ -154,7 +154,7 @@ def persist_notification(
 
 
 def send_notification_to_queue(
-    notification, research_mode, queue=None, recipient_id_type: str = None, sms_sender_id=None
+    notification, research_mode, queue=None, recipient_id_type: str = None, sms_sender_id=None, delay: int = 0
 ):
     """
     Create, enqueue, and asynchronously execute a Celery task to send a notification.
@@ -184,7 +184,7 @@ def send_notification_to_queue(
     try:
         # This executes the task list.  Each task calls a function that makes a request to
         # the backend provider.
-        chain(*tasks).apply_async()
+        chain(*tasks).apply_async(countdown=delay)
     except Exception as e:
         current_app.logger.critical(
             'apply_async failed in send_notification_to_queue for notification %s.', notification.id

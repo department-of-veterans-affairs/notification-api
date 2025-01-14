@@ -1,4 +1,5 @@
 import datetime
+import random
 from typing import Tuple
 
 from app.celery.process_ses_receipts_tasks import check_and_queue_va_profile_notification_status_callback
@@ -7,19 +8,26 @@ from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
-from app import notify_celery, statsd_client, clients
+from app import clients, notify_celery, redis_store, statsd_client
 from app.celery.common import log_notification_total_time
 from app.celery.exceptions import AutoRetryException, NonRetryableException
 from app.celery.process_pinpoint_inbound_sms import CeleryEvent
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.clients.sms import SmsClient, SmsStatusRecord, UNABLE_TO_TRANSLATE
-from app.constants import DELIVERY_STATUS_CALLBACK_TYPE, NOTIFICATION_DELIVERED
+from app.constants import (
+    DELIVERY_STATUS_CALLBACK_TYPE,
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_PENDING,
+    NOTIFICATION_PERMANENT_FAILURE,
+    STATUS_REASON_UNDELIVERABLE,
+)
 from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
     dao_update_sms_notification_delivery_status,
 )
 from app.dao.service_callback_dao import dao_get_callback_include_payload_status
 from app.models import Notification
+from app.notifications.process_notifications import send_notification_to_queue
 
 
 # Create SQS Queue for Process Deliver Status.
@@ -221,6 +229,10 @@ def sms_status_update(
     if sms_status.status == NOTIFICATION_DELIVERED:
         sms_status.status_reason = None
 
+    # _SMS.BUFFERED / PENDING should not include price_millicents
+    if sms_status.status == NOTIFICATION_PENDING:
+        sms_status.price_millicents = 0
+
     try:
         notification: Notification = dao_update_sms_notification_delivery_status(
             notification_id=notification.id,
@@ -228,7 +240,7 @@ def sms_status_update(
             new_status=sms_status.status,
             new_status_reason=sms_status.status_reason,
             segments_count=sms_status.message_parts,
-            cost_in_millicents=sms_status.price_millicents,
+            cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
         )
         statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
     except Exception:
@@ -265,3 +277,114 @@ def sms_status_update(
     except Exception:
         current_app.logger.exception('Failed to check_and_queue_callback_task for notification: %s', notification.id)
         statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
+
+
+def can_retry(
+    retries: int,
+    max_retries: int,
+    sent_at: datetime,
+    retry_window: datetime.timedelta,
+) -> bool:
+    if datetime.utcnow() - sent_at > retry_window:
+        return False
+    return retries < max_retries
+
+
+def get_retry_delay(
+    retry_count: int,
+) -> int:
+    """Get a delay in seconds computed from the current retry count
+
+    Assumes 4 total retries
+    1st retry 900s = 15 minutes
+    2nd retry 3600s = 1 hour
+    3rd retry 10800s = 3 hours
+    4th retry 21600s = 6 hours
+
+    Add a random jitter of at most 20% of base delay
+    """
+    delay_lookup = (900, 3660, 10800, 21600)
+
+    try:
+        delay = delay_lookup[retry_count]
+    except IndexError:
+        delay = delay_lookup[-1]
+    # apply jitter, 20%
+    delay = delay + random.randrange(int(delay * 0.2))  # nosec
+
+
+def sms_attempt_retry(
+    sms_status: SmsStatusRecord,
+    event_timestamp: str | None = None,
+    event_in_seconds: int = 300,  # Don't retry by default
+) -> None:
+    """Attempt retry sending notification.
+
+    Retry notification if within permissible limits and update notification.
+    If retry limit or retry window exceeded call sms_status_update with STATUS_REASON_UNDELIVERABLE
+
+    Args:
+        sms_status (SmsStatusRecord): The status record update
+        event_timestamp (str | None, optional): Timestamp the Pinpoint event came in. Defaults to None.
+        event_in_seconds (int, optional): How many seconds Twilio updates have retried. Defaults to 300
+
+    Raises:
+        NonRetryableException: Unable to update the notification
+    """
+    notification = _get_notification(sms_status.reference, sms_status.provider, event_timestamp, event_in_seconds)
+
+    current_app.logger.info(
+        'Initial retry %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s',
+        sms_status.provider,
+        sms_status.reference,
+        notification.id,
+        sms_status.status,
+        sms_status.status_reason,
+    )
+
+    notification_retry_id = 'notification-rety-count-{}'.format(str(notification.id))
+
+    # initialize to zero if not exists, three day TTL
+    redis_ttl = 259200
+    redis_store.set(notification_retry_id, 0, ex=redis_ttl, nx=True)
+    retry_count = redis_store.get(notification_retry_id)
+
+    MAX_RETRIES = 3
+    MAX_RETRY_WINDOW = datetime.timedelta(days=3)
+
+    if not can_retry(retry_count, MAX_RETRIES, notification.sent_at, MAX_RETRY_WINDOW):
+        redis_store.delete(notification_retry_id)
+        # mark as permanant failure and update
+        sms_status = NOTIFICATION_PERMANENT_FAILURE
+        sms_status.status_reason = STATUS_REASON_UNDELIVERABLE
+        return sms_status_update(sms_status, event_timestamp)
+
+    try:
+        notification: Notification = dao_update_sms_notification_delivery_status(
+            notification_id=notification.id,
+            notification_type=notification.notification_type,
+            new_status=sms_status.status,
+            new_status_reason=sms_status.status_reason,
+            segments_count=sms_status.message_parts,
+            cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
+        )
+        statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
+    except Exception:
+        statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
+        raise NonRetryableException('Unable to update notification')
+
+    retry_delay = get_retry_delay(retry_count)
+
+    send_notification_to_queue(notification, notification.service.research_mode, delay=retry_delay)
+
+    retry_count = redis_store.incr(notification_retry_id(notification.id))
+
+    current_app.logger.info(
+        'Final retry %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | retry: %s',
+        sms_status.provider,
+        sms_status.reference,
+        notification.id,
+        notification.status,
+        notification.status_reason,
+        str(retry_count),
+    )
