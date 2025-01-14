@@ -14,6 +14,7 @@ from app.celery.process_delivery_status_result_tasks import (
     _get_provider_info,
     get_notification_platform_status,
     process_delivery_status,
+    sms_attempt_retry,
     sms_status_update,
 )
 from app.dao.notifications_dao import (
@@ -35,6 +36,7 @@ from app.constants import (
     NOTIFICATION_PERMANENT_FAILURE,
     PINPOINT_PROVIDER,
     NOTIFICATION_TEMPORARY_FAILURE,
+    STATUS_REASON_RETRYABLE,
     TWILIO_PROVIDER,
 )
 
@@ -536,3 +538,17 @@ def test_get_include_payload_status_exception(notify_api, mocker, sample_notific
         'app.celery.process_delivery_status_result_tasks.dao_get_callback_include_payload_status', side_effect=exception
     )
     assert not _get_include_payload_status(sample_notification())
+
+
+def test_sms_attempt_retry_retry_limit_exceeded(notify_api, mocker, sample_notification):
+    notification = sample_notification(reference=str(uuid4()))
+    sms_status = SmsStatusRecord(
+        None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
+    )
+    mocker.patch('app.celery.process_delivery_status_result_tasks._get_notification', return_value=notification)
+    mocker.patch('app.redis_store.set')
+    mocker.patch('app.redis_store.get')
+    mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry', return_value=False)
+    sms_status_update = mocker.patch('app.celery.process_delivery_status_result_tasks.sms_status_update')
+    sms_attempt_retry(sms_status)
+    sms_status_update.assert_called()

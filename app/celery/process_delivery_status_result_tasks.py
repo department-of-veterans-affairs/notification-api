@@ -284,9 +284,9 @@ def can_retry(
     sent_at: datetime,
     retry_window: datetime.timedelta,
 ) -> bool:
-    if datetime.datetime.utcnow() - sent_at > retry_window:
+    if retries >= max_retries:
         return False
-    return retries < max_retries
+    return datetime.datetime.utcnow() - sent_at < retry_window
 
 
 def get_retry_delay(
@@ -357,7 +357,7 @@ def sms_attempt_retry(
     if not can_retry(retry_count, MAX_RETRIES, notification.sent_at, MAX_RETRY_WINDOW):
         redis_store.delete(notification_retry_id)
         # mark as permanant failure and update
-        sms_status = NOTIFICATION_PERMANENT_FAILURE
+        sms_status.status = NOTIFICATION_PERMANENT_FAILURE
         sms_status.status_reason = STATUS_REASON_UNDELIVERABLE
         return sms_status_update(sms_status, event_timestamp)
 
