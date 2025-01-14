@@ -1057,3 +1057,39 @@ def test_send_notification_without_sms_sender_rate_limit_uses_regular_delivery_t
 
     assert mocked_chain.call_args[0][0].task == 'deliver_sms'
     deliver_sms_with_rate_limiting.assert_not_called()
+
+
+def test_send_notification_with_delay_uses_apply_async_countdown(client, mocker):
+    deliver_sms = mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
+
+    MockService = namedtuple('Service', ['id'])
+    service = MockService(id='some service id')
+
+    MockTemplate = namedtuple('MockTemplate', ['communication_item_id'])
+    template = MockTemplate(communication_item_id=1)
+
+    MockSmsSender = namedtuple('ServiceSmsSender', ['service_id', 'sms_sender', 'rate_limit'])
+    sms_sender = MockSmsSender(service_id=service.id, sms_sender='+18888888888', rate_limit=None)
+
+    mocker.patch(
+        'app.notifications.process_notifications.dao_get_service_sms_sender_by_service_id_and_number',
+        return_value=sms_sender,
+    )
+
+    notification = Notification(
+        id=str(uuid.uuid4()),
+        notification_type=SMS_TYPE,
+        reply_to_text=sms_sender.sms_sender,
+        service_id=service.id,
+        template=template,
+    )
+
+    expected_delay = 10
+
+    send_notification_to_queue(notification, False, delay=expected_delay)
+
+    deliver_sms.assert_called()
+    call_args = deliver_sms.call_args.kwargs
+    assert (
+        call_args['countdown'] == expected_delay
+    ), f"Expected countdown={expected_delay} but got {call_args['countdown']}"

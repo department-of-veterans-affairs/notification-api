@@ -27,7 +27,6 @@ from app.dao.notifications_dao import (
 )
 from app.dao.service_callback_dao import dao_get_callback_include_payload_status
 from app.models import Notification
-from app.notifications.process_notifications import send_notification_to_queue
 
 
 # Create SQS Queue for Process Deliver Status.
@@ -285,7 +284,7 @@ def can_retry(
     sent_at: datetime,
     retry_window: datetime.timedelta,
 ) -> bool:
-    if datetime.utcnow() - sent_at > retry_window:
+    if datetime.datetime.utcnow() - sent_at > retry_window:
         return False
     return retries < max_retries
 
@@ -331,6 +330,9 @@ def sms_attempt_retry(
     Raises:
         NonRetryableException: Unable to update the notification
     """
+
+    from app.notifications.process_notifications import send_notification_to_queue
+
     notification = _get_notification(sms_status.reference, sms_status.provider, event_timestamp, event_in_seconds)
 
     current_app.logger.info(
