@@ -379,7 +379,7 @@ def sms_attempt_retry(
 
     send_notification_to_queue(notification, notification.service.research_mode, delay=retry_delay)
 
-    retry_count = redis_store.incr(notification_retry_id(notification.id))
+    retry_count = redis_store.incr(notification_retry_id)
 
     current_app.logger.info(
         'Final retry %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | retry: %s',
