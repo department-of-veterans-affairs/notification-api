@@ -547,21 +547,21 @@ def test_can_retry_within_limits_is_true():
     retries = CARRIER_SMS_MAX_RETRIES - 1
     sent_at = datetime.utcnow() - timedelta(minutes=15)
 
-    assert can_retry_sms_request(retries, CARRIER_SMS_MAX_RETRIES, sent_at, CARRIER_SMS_MAX_RETRY_WINDOW) is True
+    assert can_retry_sms_request(retries, CARRIER_SMS_MAX_RETRIES, sent_at, CARRIER_SMS_MAX_RETRY_WINDOW)
 
 
 def test_can_retry_exceeding_retries_is_false():
     retries = CARRIER_SMS_MAX_RETRIES
     sent_at = datetime.utcnow() - timedelta(minutes=15)
 
-    assert can_retry_sms_request(retries, CARRIER_SMS_MAX_RETRIES, sent_at, CARRIER_SMS_MAX_RETRY_WINDOW) is False
+    assert not can_retry_sms_request(retries, CARRIER_SMS_MAX_RETRIES, sent_at, CARRIER_SMS_MAX_RETRY_WINDOW)
 
 
 def test_can_retry_exceeding_retry_window_is_false():
     retries = CARRIER_SMS_MAX_RETRIES - 1
     sent_at = datetime.utcnow() - CARRIER_SMS_MAX_RETRY_WINDOW - timedelta(days=1)
 
-    assert can_retry_sms_request(retries, CARRIER_SMS_MAX_RETRIES, sent_at, CARRIER_SMS_MAX_RETRY_WINDOW) is False
+    assert not can_retry_sms_request(retries, CARRIER_SMS_MAX_RETRIES, sent_at, CARRIER_SMS_MAX_RETRY_WINDOW)
 
 
 def test_sms_attempt_retry_retry_limit_exceeded(mocker, sample_notification):
@@ -569,7 +569,6 @@ def test_sms_attempt_retry_retry_limit_exceeded(mocker, sample_notification):
     sms_status = SmsStatusRecord(
         None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
     )
-    mocker.patch('app.celery.process_delivery_status_result_tasks._get_notification', return_value=notification)
     mocker.patch('app.redis_store.set')
     mocker.patch('app.redis_store.get')
     mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=False)

@@ -304,12 +304,7 @@ def can_retry_sms_request(
     # Calculate the time elapsed since the message was sent
     time_elapsed = datetime.datetime.utcnow() - sent_at
 
-    # If the elapsed time exceeds the retry window, retries are not allowed
-    if time_elapsed > retry_window:
-        return False
-
-    # Check if the number of retries is within the allowable limit
-    return retries < max_retries
+    return (retries < max_retries) and (time_elapsed < retry_window)
 
 
 def get_sms_retry_delay(retry_count: int) -> int:
@@ -329,12 +324,12 @@ def get_sms_retry_delay(retry_count: int) -> int:
     Returns:
         int: Delay in seconds with applied jitter.
     """
-    delay_with_jitter = [
+    delay_with_jitter = (
         (60, 6),  # 60 seconds +/- 6 seconds (10%)
         (900, 90),  # 15 minutes +/- 90 seconds (10%)
         (3600, 360),  # 1 hour +/- 360 seconds (10%)
         (21600, 2160),  # 6 hours +/- 2160 seconds (10%)
-    ]
+    )
 
     # Safeguard against retry counts outside the defined range
     base_delay, jitter_range = delay_with_jitter[min(retry_count, len(delay_with_jitter) - 1)]

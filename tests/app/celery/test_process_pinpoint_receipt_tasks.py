@@ -52,20 +52,15 @@ def test_process_pinpoint_results_should_attempt_retry_for_retryable(
     sms_attempt_retry = mocker.patch('app.celery.process_pinpoint_receipt_tasks.sms_attempt_retry')
     sms_status_update = mocker.patch('app.celery.process_pinpoint_receipt_tasks.sms_status_update')
 
-    test_reference = str(uuid4())
     template = sample_template()
     sample_notification(
         template=template,
-        reference=test_reference,
         sent_at=datetime.now(timezone.utc),
         status=NOTIFICATION_SENDING,
-        status_reason='just because',
     )
 
     process_pinpoint_results(
-        response=pinpoint_notification_callback_record(
-            reference=test_reference, event_type=event_type, record_status=record_status
-        )
+        response=pinpoint_notification_callback_record(event_type=event_type, record_status=record_status)
     )
 
     if is_retryble:
