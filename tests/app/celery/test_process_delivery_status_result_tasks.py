@@ -565,7 +565,7 @@ def test_can_retry_exceeding_retry_window_is_false():
 
 
 def test_sms_attempt_retry_retry_limit_exceeded(mocker, sample_notification):
-    notification = sample_notification(reference=str(uuid4()))
+    notification = sample_notification()
     sms_status = SmsStatusRecord(
         None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
     )
