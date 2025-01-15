@@ -23,6 +23,58 @@ from app.dao import notifications_dao
 
 
 @pytest.mark.parametrize(
+    'event_type, record_status, is_retryble',
+    [
+        ('_SMS.BUFFERED', 'SUCCESSFUL', False),
+        ('_SMS.SUCCESS', 'DELIVERED', False),
+        ('_SMS.FAILURE', 'INVALID', False),
+        ('_SMS.FAILURE', 'UNREACHABLE', True),
+        ('_SMS.FAILURE', 'UNKNOWN', True),
+        ('_SMS.FAILURE', 'BLOCKED', False),
+        ('_SMS.FAILURE', 'CARRIER_UNREACHABLE', True),
+        ('_SMS.FAILURE', 'SPAM', False),
+        ('_SMS.FAILURE', 'INVALID_MESSAGE', False),
+        ('_SMS.FAILURE', 'CARRIER_BLOCKED', False),
+        ('_SMS.FAILURE', 'TTL_EXPIRED', True),
+        ('_SMS.FAILURE', 'MAX_PRICE_EXCEEDED', False),
+        ('_SMS.FAILURE', 'OPTED_OUT', False),
+        ('_SMS.OPTOUT', '', False),
+    ],
+)
+def test_process_pinpoint_results_should_attempt_retry_for_retryable(
+    mocker,
+    sample_template,
+    event_type,
+    record_status,
+    is_retryble,
+    sample_notification,
+):
+    sms_attempt_retry = mocker.patch('app.celery.process_pinpoint_receipt_tasks.sms_attempt_retry')
+    sms_status_update = mocker.patch('app.celery.process_pinpoint_receipt_tasks.sms_status_update')
+
+    test_reference = str(uuid4())
+    template = sample_template()
+    sample_notification(
+        template=template,
+        reference=test_reference,
+        sent_at=datetime.now(timezone.utc),
+        status=NOTIFICATION_SENDING,
+        status_reason='just because',
+    )
+
+    process_pinpoint_results(
+        response=pinpoint_notification_callback_record(
+            reference=test_reference, event_type=event_type, record_status=record_status
+        )
+    )
+
+    if is_retryble:
+        sms_attempt_retry.assert_called()
+    else:
+        sms_status_update.assert_called()
+
+
+@pytest.mark.parametrize(
     'event_type, record_status, expected_notification_status, expected_notification_status_reason',
     [
         ('_SMS.BUFFERED', 'SUCCESSFUL', NOTIFICATION_DELIVERED, None),
