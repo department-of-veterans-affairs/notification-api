@@ -29,6 +29,8 @@ from app.dao.notifications_dao import (
     _PERMANENT_FAILURE_UPDATES,
 )
 from app.constants import (
+    CARRIER_SMS_MAX_RETRIES,
+    CARRIER_SMS_MAX_RETRY_WINDOW,
     NOTIFICATION_CREATED,
     NOTIFICATION_DELIVERED,
     NOTIFICATION_PENDING,
@@ -541,34 +543,28 @@ def test_get_include_payload_status_exception(notify_api, mocker, sample_notific
     assert not _get_include_payload_status(sample_notification())
 
 
-def test_can_retry_within_limits_is_true(mocker):
-    retries = 2
-    max_retries = 4
-    sent_at = datetime.utcnow() - timedelta(days=1)
-    retry_window = timedelta(days=3)
+def test_can_retry_within_limits_is_true():
+    retries = CARRIER_SMS_MAX_RETRIES - 1
+    sent_at = datetime.utcnow() - timedelta(minutes=15)
 
-    assert can_retry_sms_request(retries, max_retries, sent_at, retry_window) is True
+    assert can_retry_sms_request(retries, CARRIER_SMS_MAX_RETRIES, sent_at, CARRIER_SMS_MAX_RETRY_WINDOW) is True
 
 
-def test_can_retry_exceeding_retries_is_false(mocker):
-    retries = 4
-    max_retries = 4
-    sent_at = datetime.utcnow() - timedelta(days=1)
-    retry_window = timedelta(days=3)
+def test_can_retry_exceeding_retries_is_false():
+    retries = CARRIER_SMS_MAX_RETRIES
+    sent_at = datetime.utcnow() - timedelta(minutes=15)
 
-    assert can_retry_sms_request(retries, max_retries, sent_at, retry_window) is False
+    assert can_retry_sms_request(retries, CARRIER_SMS_MAX_RETRIES, sent_at, CARRIER_SMS_MAX_RETRY_WINDOW) is False
 
 
-def test_can_retry_exceeding_retry_window_is_false(mocker):
-    retries = 2
-    max_retries = 4
-    sent_at = datetime.utcnow() - timedelta(days=4)
-    retry_window = timedelta(days=3)
+def test_can_retry_exceeding_retry_window_is_false():
+    retries = CARRIER_SMS_MAX_RETRIES - 1
+    sent_at = datetime.utcnow() - CARRIER_SMS_MAX_RETRY_WINDOW - timedelta(days=1)
 
-    assert can_retry_sms_request(retries, max_retries, sent_at, retry_window) is False
+    assert can_retry_sms_request(retries, CARRIER_SMS_MAX_RETRIES, sent_at, CARRIER_SMS_MAX_RETRY_WINDOW) is False
 
 
-def test_sms_attempt_retry_retry_limit_exceeded(notify_api, mocker, sample_notification):
+def test_sms_attempt_retry_retry_limit_exceeded(mocker, sample_notification):
     notification = sample_notification(reference=str(uuid4()))
     sms_status = SmsStatusRecord(
         None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER

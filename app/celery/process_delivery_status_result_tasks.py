@@ -15,6 +15,8 @@ from app.celery.process_pinpoint_inbound_sms import CeleryEvent
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.clients.sms import SmsClient, SmsStatusRecord, UNABLE_TO_TRANSLATE
 from app.constants import (
+    CARRIER_SMS_MAX_RETRIES,
+    CARRIER_SMS_MAX_RETRY_WINDOW,
     DELIVERY_STATUS_CALLBACK_TYPE,
     NOTIFICATION_DELIVERED,
     NOTIFICATION_PENDING,
@@ -313,7 +315,9 @@ def can_retry_sms_request(
 def get_sms_retry_delay(retry_count: int) -> int:
     """Calculate the retry delay for SMS delivery with random jitter.
 
-    Assumes up to 4 retries:
+    Delays were chosen to cover transient errors and small to large scale service disruptions
+
+    Assumes up to 4 retries, repeating final delay for subsequent:
     1st retry: 60 seconds +/- 10%
     2nd retry: 15 minutes (900 seconds) +/- 10%
     3rd retry: 1 hour (3600 seconds) +/- 10%
@@ -336,7 +340,7 @@ def get_sms_retry_delay(retry_count: int) -> int:
     base_delay, jitter_range = delay_with_jitter[min(retry_count, len(delay_with_jitter) - 1)]
 
     # Apply jitter
-    return base_delay + random.randint(-jitter_range, jitter_range)  # nosec
+    return base_delay + random.randint(-jitter_range, jitter_range)  # nosec non-cryptographic use case
 
 
 def sms_attempt_retry(
@@ -358,6 +362,7 @@ def sms_attempt_retry(
         NonRetryableException: Unable to update the notification
     """
 
+    # avoid circular import
     from app.notifications.process_notifications import send_notification_to_queue
 
     notification = _get_notification(sms_status.reference, sms_status.provider, event_timestamp, event_in_seconds)
@@ -371,18 +376,16 @@ def sms_attempt_retry(
         sms_status.status_reason,
     )
 
-    notification_retry_id = 'notification-rety-count-{}'.format(str(notification.id))
+    notification_retry_id = f'notification-carrier-sms-retry-count-{notification.id}'
 
     # initialize to zero if not exists, three day TTL
     redis_ttl = 259200
     redis_store.set(notification_retry_id, 0, ex=redis_ttl, nx=True)
     retry_count = redis_store.get(notification_retry_id)
 
-    MAX_RETRIES = 4
-    MAX_RETRY_WINDOW = datetime.timedelta(days=3)
-
-    if not can_retry_sms_request(retry_count, MAX_RETRIES, notification.sent_at, MAX_RETRY_WINDOW):
-        redis_store.delete(notification_retry_id)
+    if not can_retry_sms_request(
+        retry_count, CARRIER_SMS_MAX_RETRIES, notification.sent_at, CARRIER_SMS_MAX_RETRY_WINDOW
+    ):
         # mark as permanant failure and update
         sms_status.status = NOTIFICATION_PERMANENT_FAILURE
         sms_status.status_reason = STATUS_REASON_UNDELIVERABLE
@@ -392,8 +395,8 @@ def sms_attempt_retry(
         notification: Notification = dao_update_sms_notification_delivery_status(
             notification_id=notification.id,
             notification_type=notification.notification_type,
-            new_status=sms_status.status,
-            new_status_reason=sms_status.status_reason,
+            new_status=notification.status,
+            new_status_reason=notification.status_reason,
             segments_count=sms_status.message_parts,
             cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
         )
