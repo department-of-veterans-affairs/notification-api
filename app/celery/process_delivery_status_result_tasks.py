@@ -278,38 +278,65 @@ def sms_status_update(
         statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
 
 
-def can_retry(
+def can_retry_sms_request(
     retries: int,
     max_retries: int,
     sent_at: datetime,
     retry_window: datetime.timedelta,
 ) -> bool:
-    if datetime.datetime.utcnow() - sent_at > retry_window:
+    """Determine if a retry is allowed.
+
+    Determine if a retry is allowed based on the number of retries,
+    the maximum retries allowed, the time the message was sent, and
+    the retry window.
+
+    Parameters:
+        retries (int): The number of retries already attempted.
+        max_retries (int): The maximum number of retries allowed.
+        sent_at (datetime): The timestamp when the message was initially sent.
+        retry_window (timedelta): The allowable time window for retries.
+
+    Returns:
+        bool: True if retrying is allowed, False otherwise.
+    """
+    # Calculate the time elapsed since the message was sent
+    time_elapsed = datetime.datetime.utcnow() - sent_at
+
+    # If the elapsed time exceeds the retry window, retries are not allowed
+    if time_elapsed > retry_window:
         return False
+
+    # Check if the number of retries is within the allowable limit
     return retries < max_retries
 
 
-def get_retry_delay(
-    retry_count: int,
-) -> int:
-    """Get a delay in seconds computed from the current retry count
+def get_sms_retry_delay(retry_count: int) -> int:
+    """Calculate the retry delay for SMS delivery with random jitter.
 
-    Assumes 4 total retries
-    1st retry 900s = 15 minutes
-    2nd retry 3600s = 1 hour
-    3rd retry 10800s = 3 hours
-    4th retry 21600s = 6 hours
+    Assumes up to 4 retries:
+    1st retry: 60 seconds +/- 10%
+    2nd retry: 15 minutes (900 seconds) +/- 10%
+    3rd retry: 1 hour (3600 seconds) +/- 10%
+    4th retry: 6 hours (21600 seconds) +/- 10%
 
-    Add a random jitter of at most 20% of base delay
+    Parameters:
+        retry_count (int): The retry attempt number (0-indexed).
+
+    Returns:
+        int: Delay in seconds with applied jitter.
     """
-    delay_lookup = (900, 3660, 10800, 21600)
+    delay_with_jitter = [
+        (60, 6),  # 60 seconds +/- 6 seconds (10%)
+        (900, 90),  # 15 minutes +/- 90 seconds (10%)
+        (3600, 360),  # 1 hour +/- 360 seconds (10%)
+        (21600, 2160),  # 6 hours +/- 2160 seconds (10%)
+    ]
 
-    try:
-        delay = delay_lookup[retry_count]
-    except IndexError:
-        delay = delay_lookup[-1]
-    # apply jitter, 20%
-    return delay + random.randrange(int(delay * 0.2))  # nosec
+    # Safeguard against retry counts outside the defined range
+    base_delay, jitter_range = delay_with_jitter[min(retry_count, len(delay_with_jitter) - 1)]
+
+    # Apply jitter
+    return base_delay + random.randint(-jitter_range, jitter_range)  # nosec
 
 
 def sms_attempt_retry(
@@ -354,7 +381,7 @@ def sms_attempt_retry(
     MAX_RETRIES = 3
     MAX_RETRY_WINDOW = datetime.timedelta(days=3)
 
-    if not can_retry(retry_count, MAX_RETRIES, notification.sent_at, MAX_RETRY_WINDOW):
+    if not can_retry_sms_request(retry_count, MAX_RETRIES, notification.sent_at, MAX_RETRY_WINDOW):
         redis_store.delete(notification_retry_id)
         # mark as permanant failure and update
         sms_status.status = NOTIFICATION_PERMANENT_FAILURE
@@ -375,7 +402,7 @@ def sms_attempt_retry(
         statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
         raise NonRetryableException('Unable to update notification')
 
-    retry_delay = get_retry_delay(retry_count)
+    retry_delay = get_sms_retry_delay(retry_count)
 
     send_notification_to_queue(notification, notification.service.research_mode, delay=retry_delay)
 

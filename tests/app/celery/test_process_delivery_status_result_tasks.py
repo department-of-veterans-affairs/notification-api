@@ -12,7 +12,7 @@ from app.celery.process_delivery_status_result_tasks import (
     _get_include_payload_status,
     _get_notification,
     _get_provider_info,
-    can_retry,
+    can_retry_sms_request,
     get_notification_platform_status,
     process_delivery_status,
     sms_attempt_retry,
@@ -547,7 +547,7 @@ def test_can_retry_within_limits_is_true(mocker):
     sent_at = datetime.utcnow() - timedelta(days=1)
     retry_window = timedelta(days=3)
 
-    assert can_retry(retries, max_retries, sent_at, retry_window) is True
+    assert can_retry_sms_request(retries, max_retries, sent_at, retry_window) is True
 
 
 def test_can_retry_exceeding_retries_is_false(mocker):
@@ -556,7 +556,7 @@ def test_can_retry_exceeding_retries_is_false(mocker):
     sent_at = datetime.utcnow() - timedelta(days=1)
     retry_window = timedelta(days=3)
 
-    assert can_retry(retries, max_retries, sent_at, retry_window) is False
+    assert can_retry_sms_request(retries, max_retries, sent_at, retry_window) is False
 
 
 def test_can_retry_exceeding_retry_window_is_false(mocker):
@@ -565,7 +565,7 @@ def test_can_retry_exceeding_retry_window_is_false(mocker):
     sent_at = datetime.utcnow() - timedelta(days=4)
     retry_window = timedelta(days=3)
 
-    assert can_retry(retries, max_retries, sent_at, retry_window) is False
+    assert can_retry_sms_request(retries, max_retries, sent_at, retry_window) is False
 
 
 def test_sms_attempt_retry_retry_limit_exceeded(notify_api, mocker, sample_notification):
@@ -576,7 +576,7 @@ def test_sms_attempt_retry_retry_limit_exceeded(notify_api, mocker, sample_notif
     mocker.patch('app.celery.process_delivery_status_result_tasks._get_notification', return_value=notification)
     mocker.patch('app.redis_store.set')
     mocker.patch('app.redis_store.get')
-    mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry', return_value=False)
+    mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=False)
     sms_status_update = mocker.patch('app.celery.process_delivery_status_result_tasks.sms_status_update')
     sms_attempt_retry(sms_status)
     sms_status_update.assert_called()
