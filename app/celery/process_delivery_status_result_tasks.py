@@ -378,7 +378,7 @@ def sms_attempt_retry(
     redis_store.set(notification_retry_id, 0, ex=redis_ttl, nx=True)
     retry_count = redis_store.get(notification_retry_id)
 
-    MAX_RETRIES = 3
+    MAX_RETRIES = 4
     MAX_RETRY_WINDOW = datetime.timedelta(days=3)
 
     if not can_retry_sms_request(retry_count, MAX_RETRIES, notification.sent_at, MAX_RETRY_WINDOW):
