@@ -284,9 +284,9 @@ def can_retry(
     sent_at: datetime,
     retry_window: datetime.timedelta,
 ) -> bool:
-    if retries >= max_retries:
+    if datetime.datetime.utcnow() - sent_at > retry_window:
         return False
-    return datetime.datetime.utcnow() - sent_at < retry_window
+    return retries < max_retries
 
 
 def get_retry_delay(
@@ -309,7 +309,7 @@ def get_retry_delay(
     except IndexError:
         delay = delay_lookup[-1]
     # apply jitter, 20%
-    delay = delay + random.randrange(int(delay * 0.2))  # nosec
+    return delay + random.randrange(int(delay * 0.2))  # nosec
 
 
 def sms_attempt_retry(

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from logging import getLogger
 from uuid import uuid4
 
@@ -12,6 +12,7 @@ from app.celery.process_delivery_status_result_tasks import (
     _get_include_payload_status,
     _get_notification,
     _get_provider_info,
+    can_retry,
     get_notification_platform_status,
     process_delivery_status,
     sms_attempt_retry,
@@ -538,6 +539,33 @@ def test_get_include_payload_status_exception(notify_api, mocker, sample_notific
         'app.celery.process_delivery_status_result_tasks.dao_get_callback_include_payload_status', side_effect=exception
     )
     assert not _get_include_payload_status(sample_notification())
+
+
+def test_can_retry_within_limits_is_true(mocker):
+    retries = 2
+    max_retries = 4
+    sent_at = datetime.utcnow() - timedelta(days=1)
+    retry_window = timedelta(days=3)
+
+    assert can_retry(retries, max_retries, sent_at, retry_window) is True
+
+
+def test_can_retry_exceeding_retries_is_false(mocker):
+    retries = 4
+    max_retries = 4
+    sent_at = datetime.utcnow() - timedelta(days=1)
+    retry_window = timedelta(days=3)
+
+    assert can_retry(retries, max_retries, sent_at, retry_window) is False
+
+
+def test_can_retry_exceeding_retry_window_is_false(mocker):
+    retries = 2
+    max_retries = 4
+    sent_at = datetime.utcnow() - timedelta(days=4)
+    retry_window = timedelta(days=3)
+
+    assert can_retry(retries, max_retries, sent_at, retry_window) is False
 
 
 def test_sms_attempt_retry_retry_limit_exceeded(notify_api, mocker, sample_notification):
