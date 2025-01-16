@@ -75,4 +75,4 @@ def process_pinpoint_results(
             notification_platform_status, pinpoint_message['event_timestamp']
         )
 
-    sms_status_update(notification_platform_status, pinpoint_message['event_timestamp'], notification)
+    sms_status_update(notification_platform_status, pinpoint_message['event_timestamp'], notification=notification)
