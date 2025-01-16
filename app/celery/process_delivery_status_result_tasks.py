@@ -412,7 +412,7 @@ def sms_attempt_retry(
         retry_delay = get_sms_retry_delay(retry_count)
 
         current_app.logger.info(
-            'Attempt retry %s logic | reference: %s | notification_id: %s | retry_delay: %s | retry_count: %s',
+            'Attempt retry %s logic | reference: %s | notification_id: %s | retry_delay: %s seconds | retry_count: %s',
             sms_status.provider,
             sms_status.reference,
             notification.id,
