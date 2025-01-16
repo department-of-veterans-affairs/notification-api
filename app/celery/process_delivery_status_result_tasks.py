@@ -306,6 +306,16 @@ def can_retry_sms_request(
     # Calculate the time elapsed since the message was sent
     time_elapsed = datetime.datetime.utcnow() - sent_at
 
+    current_app.logger.info(
+        'Retry SMS conditional | retry_attempts: %s | max_retries: %s | sent_at: %s | elapsed: %s | is_retryable_count %s | is_retryable_window %s',
+        str(retries),
+        str(max_retries),
+        str(sent_at),
+        str(time_elapsed),
+        str(retries < max_retries),
+        str(time_elapsed < retry_window),
+    )
+
     return (retries < max_retries) and (time_elapsed < retry_window)
 
 
@@ -367,10 +377,12 @@ def sms_attempt_retry(
     notification = _get_notification(sms_status.reference, sms_status.provider, event_timestamp, event_in_seconds)
 
     current_app.logger.info(
-        'Initial retry %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s',
+        'Initial retry %s logic | reference: %s | notification_id: %s | notification_status: %s | notification_status_reason: %s | sms_status: %s | sms_status_reason: %s',
         sms_status.provider,
         sms_status.reference,
         notification.id,
+        notification.status,
+        notification.status_reason,
         sms_status.status,
         sms_status.status_reason,
     )
@@ -399,22 +411,44 @@ def sms_attempt_retry(
 
         retry_delay = get_sms_retry_delay(retry_count)
 
+        current_app.logger.info(
+            'Attempt retry %s logic | reference: %s | notification_id: %s | retry_delay: %s | retry_count: %s',
+            sms_status.provider,
+            sms_status.reference,
+            notification.id,
+            str(retry_delay),
+            str(retry_count),
+        )
+
         send_notification_to_queue(notification, notification.service.research_mode, delay=retry_delay)
 
         retry_count = redis_store.incr(notification_retry_id)
 
         current_app.logger.info(
-            'Final retry %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | retry: %s',
+            'Retry attempted %s logic | reference: %s | notification_id: %s | notification_status: %s | notification_status_reason: %s | sms_status: %s | sms_status_reason: %s | retry_count: %s',
             sms_status.provider,
             sms_status.reference,
             notification.id,
             notification.status,
             notification.status_reason,
+            sms_status.status,
+            sms_status.status_reason,
             str(retry_count),
         )
     else:
         # mark as permanant failure
         sms_status.status = NOTIFICATION_PERMANENT_FAILURE
         sms_status.status_reason = STATUS_REASON_UNDELIVERABLE
+
+    current_app.logger.info(
+        'Final retry %s logic | reference: %s | notification_id: %s | notification_status: %s | notification_status_reason: %s | sms_status: %s | sms_status_reason: %s',
+        sms_status.provider,
+        sms_status.reference,
+        notification.id,
+        notification.status,
+        notification.status_reason,
+        sms_status.status,
+        sms_status.status_reason,
+    )
 
     return (notification, sms_status)
