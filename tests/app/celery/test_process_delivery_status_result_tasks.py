@@ -577,6 +577,22 @@ def test_sms_attempt_retry_not_requeued_if_retry_limit_exceeded(mocker, sample_n
     send_notification_to_queue.assert_not_called()
 
 
+def test_sms_attempt_retry_notification_updated_at_field_not_updated_on_retry(mocker, sample_notification):
+    notification = sample_notification()
+    sms_status = SmsStatusRecord(
+        None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
+    )
+    mocker.patch('app.redis_store.set')
+    mocker.patch('app.redis_store.get', return_value=0)
+    mocker.patch('app.redis_store.incr', return_value=1)
+    mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=True)
+    mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+
+    last_updated_at = notification.updated_at
+    notification, sms_status = sms_attempt_retry(sms_status)
+    assert last_updated_at == notification.updated_at
+
+
 def test_sms_attempt_retry_notification_not_found(mocker, sample_notification):
     mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=True)
     mocker.patch(
