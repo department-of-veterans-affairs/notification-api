@@ -203,6 +203,7 @@ def sms_status_update(
     sms_status: SmsStatusRecord,
     event_timestamp: str | None = None,
     event_in_seconds: int = 300,  # Don't retry by default
+    notification: Notification = None,
 ) -> None:
     """Get and update a notification.
 
@@ -214,7 +215,8 @@ def sms_status_update(
     Raises:
         NonRetryableException: Unable to update the notification
     """
-    notification = _get_notification(sms_status.reference, sms_status.provider, event_timestamp, event_in_seconds)
+    if notification is None:
+        notification = _get_notification(sms_status.reference, sms_status.provider, event_timestamp, event_in_seconds)
     last_updated_at = notification.updated_at
 
     current_app.logger.info(
@@ -355,6 +357,10 @@ def sms_attempt_retry(
 
     Raises:
         NonRetryableException: Unable to update the notification
+
+    Returns:
+        Notification: The notification
+        SmsStatusRecord: The status record, updated to NOTIFICATION_PERMANENT_FAILURE if retry limit exceeded
     """
 
     # avoid circular import
@@ -378,40 +384,39 @@ def sms_attempt_retry(
     redis_store.set(notification_retry_id, 0, ex=redis_ttl, nx=True)
     retry_count = redis_store.get(notification_retry_id)
 
-    if not can_retry_sms_request(
-        retry_count, CARRIER_SMS_MAX_RETRIES, notification.sent_at, CARRIER_SMS_MAX_RETRY_WINDOW
-    ):
-        # mark as permanant failure and update
+    if can_retry_sms_request(retry_count, CARRIER_SMS_MAX_RETRIES, notification.sent_at, CARRIER_SMS_MAX_RETRY_WINDOW):
+        try:
+            notification: Notification = dao_update_sms_notification_delivery_status(
+                notification_id=notification.id,
+                notification_type=notification.notification_type,
+                new_status=notification.status,
+                new_status_reason=notification.status_reason,
+                segments_count=sms_status.message_parts,
+                cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
+            )
+            statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
+        except Exception:
+            statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
+            raise NonRetryableException('Unable to update notification')
+
+        retry_delay = get_sms_retry_delay(retry_count)
+
+        send_notification_to_queue(notification, notification.service.research_mode, delay=retry_delay)
+
+        retry_count = redis_store.incr(notification_retry_id)
+
+        current_app.logger.info(
+            'Final retry %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | retry: %s',
+            sms_status.provider,
+            sms_status.reference,
+            notification.id,
+            notification.status,
+            notification.status_reason,
+            str(retry_count),
+        )
+    else:
+        # mark as permanant failure
         sms_status.status = NOTIFICATION_PERMANENT_FAILURE
         sms_status.status_reason = STATUS_REASON_UNDELIVERABLE
-        return sms_status_update(sms_status, event_timestamp)
 
-    try:
-        notification: Notification = dao_update_sms_notification_delivery_status(
-            notification_id=notification.id,
-            notification_type=notification.notification_type,
-            new_status=notification.status,
-            new_status_reason=notification.status_reason,
-            segments_count=sms_status.message_parts,
-            cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
-        )
-        statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
-    except Exception:
-        statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
-        raise NonRetryableException('Unable to update notification')
-
-    retry_delay = get_sms_retry_delay(retry_count)
-
-    send_notification_to_queue(notification, notification.service.research_mode, delay=retry_delay)
-
-    retry_count = redis_store.incr(notification_retry_id)
-
-    current_app.logger.info(
-        'Final retry %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | retry: %s',
-        sms_status.provider,
-        sms_status.reference,
-        notification.id,
-        notification.status,
-        notification.status_reason,
-        str(retry_count),
-    )
+    return (notification, sms_status)

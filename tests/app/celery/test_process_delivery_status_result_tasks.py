@@ -545,14 +545,14 @@ def test_get_include_payload_status_exception(notify_api, mocker, sample_notific
 
 def test_can_retry_within_limits_is_true():
     retries = CARRIER_SMS_MAX_RETRIES - 1
-    sent_at = datetime.utcnow() - timedelta(minutes=15)
+    sent_at = datetime.utcnow() - timedelta(minutes=1)
 
     assert can_retry_sms_request(retries, CARRIER_SMS_MAX_RETRIES, sent_at, CARRIER_SMS_MAX_RETRY_WINDOW)
 
 
 def test_can_retry_exceeding_retries_is_false():
     retries = CARRIER_SMS_MAX_RETRIES
-    sent_at = datetime.utcnow() - timedelta(minutes=15)
+    sent_at = datetime.utcnow() - timedelta(minutes=1)
 
     assert not can_retry_sms_request(retries, CARRIER_SMS_MAX_RETRIES, sent_at, CARRIER_SMS_MAX_RETRY_WINDOW)
 
@@ -564,7 +564,7 @@ def test_can_retry_exceeding_retry_window_is_false():
     assert not can_retry_sms_request(retries, CARRIER_SMS_MAX_RETRIES, sent_at, CARRIER_SMS_MAX_RETRY_WINDOW)
 
 
-def test_sms_attempt_retry_retry_limit_exceeded(mocker, sample_notification):
+def test_sms_attempt_retry_not_requeued_if_retry_limit_exceeded(mocker, sample_notification):
     notification = sample_notification()
     sms_status = SmsStatusRecord(
         None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
@@ -572,6 +572,22 @@ def test_sms_attempt_retry_retry_limit_exceeded(mocker, sample_notification):
     mocker.patch('app.redis_store.set')
     mocker.patch('app.redis_store.get')
     mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=False)
-    sms_status_update = mocker.patch('app.celery.process_delivery_status_result_tasks.sms_status_update')
+    send_notification_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
     sms_attempt_retry(sms_status)
-    sms_status_update.assert_called()
+    send_notification_to_queue.assert_not_called()
+
+
+def test_sms_attempt_retry_notification_not_found(mocker, sample_notification):
+    mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=True)
+    mocker.patch(
+        'app.celery.process_delivery_status_result_tasks.dao_update_sms_notification_delivery_status',
+        side_effect=Exception,
+    )
+
+    notification = sample_notification()
+    sms_status = SmsStatusRecord(
+        None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
+    )
+    with pytest.raises(NonRetryableException) as exc_info:
+        sms_attempt_retry(sms_status)
+    assert 'Unable to update notification' in str(exc_info)
