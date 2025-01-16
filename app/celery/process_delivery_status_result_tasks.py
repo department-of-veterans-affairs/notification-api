@@ -314,11 +314,11 @@ def get_sms_retry_delay(retry_count: int) -> int:
 
     Delays were chosen to cover transient errors and small to large scale service disruptions
 
-    Assumes up to 4 retries, repeating final delay for subsequent:
+    Note: Delays limited to under 900s due to AWS SQS limitation
+
+    Assumes up to 2 retries, repeating final delay for subsequent:
     1st retry: 60 seconds +/- 10%
-    2nd retry: 15 minutes (900 seconds) +/- 10%
-    3rd retry: 1 hour (3600 seconds) +/- 10%
-    4th retry: 6 hours (21600 seconds) +/- 10%
+    2nd retry: 10 minutes (600 seconds) +/- 10%
 
     Parameters:
         retry_count (int): The retry attempt number (0-indexed).
@@ -328,9 +328,7 @@ def get_sms_retry_delay(retry_count: int) -> int:
     """
     delay_with_jitter = (
         (60, 6),  # 60 seconds +/- 6 seconds (10%)
-        (900, 90),  # 15 minutes +/- 90 seconds (10%)
-        (3600, 360),  # 1 hour +/- 360 seconds (10%)
-        (21600, 2160),  # 6 hours +/- 2160 seconds (10%)
+        (600, 60),  # 10 minutes +/- 60 seconds (10%)
     )
 
     # Safeguard against retry counts outside the defined range

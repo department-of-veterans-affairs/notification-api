@@ -263,5 +263,5 @@ STATUS_REASON_DECEASED = 'Undeliverable - Individual is deceased'
 STATUS_REASON_UNDELIVERABLE = 'Undeliverable - Unable to deliver'
 
 # Carrier
-CARRIER_SMS_MAX_RETRIES = 4
+CARRIER_SMS_MAX_RETRIES = 2
 CARRIER_SMS_MAX_RETRY_WINDOW = timedelta(days=3)
