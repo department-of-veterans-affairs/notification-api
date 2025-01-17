@@ -306,16 +306,6 @@ def can_retry_sms_request(
     # Calculate the time elapsed since the message was sent
     time_elapsed = datetime.datetime.utcnow() - sent_at
 
-    current_app.logger.info(
-        'Retry SMS conditional | retry_attempts: %s | max_retries: %s | sent_at: %s | elapsed: %s | is_retryable_count %s | is_retryable_window %s',
-        str(retries),
-        str(max_retries),
-        str(sent_at),
-        str(time_elapsed),
-        str(retries < max_retries),
-        str(time_elapsed < retry_window),
-    )
-
     return (retries <= max_retries) and (time_elapsed < retry_window)
 
 
@@ -342,8 +332,8 @@ def get_sms_retry_delay(retry_count: int) -> int:
     )
 
     # Safeguard against retry counts outside the defined range
-    retry_count = max(retry_count, 0)
-    base_delay, jitter_range = delay_with_jitter[min(retry_count, len(delay_with_jitter) - 1)]
+    index = max(retry_count - 1, 0)
+    base_delay, jitter_range = delay_with_jitter[min(index, len(delay_with_jitter) - 1)]
 
     # Apply jitter
     delay = int(base_delay + random.randint(-jitter_range, jitter_range))  # nosec non-cryptographic use case
@@ -378,7 +368,7 @@ def sms_attempt_retry(
     sms_status: SmsStatusRecord,
     event_timestamp: str | None = None,
     event_in_seconds: int = 300,  # Don't retry by default
-) -> None:
+) -> tuple[Notification, SmsStatusRecord]:
     """Attempt retry sending notification.
 
     Retry notification if within permissible limits and update notification.
@@ -423,20 +413,6 @@ def sms_attempt_retry(
         raise NonRetryableException('Unable to update SMS retry count')
 
     if can_retry_sms_request(retry_count, CARRIER_SMS_MAX_RETRIES, notification.sent_at, CARRIER_SMS_MAX_RETRY_WINDOW):
-        try:
-            notification: Notification = dao_update_sms_notification_delivery_status(
-                notification_id=notification.id,
-                notification_type=notification.notification_type,
-                new_status=notification.status,
-                new_status_reason=notification.status_reason,
-                segments_count=sms_status.message_parts,
-                cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
-            )
-            statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
-        except Exception:
-            statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
-            raise NonRetryableException('Unable to update notification')
-
         retry_delay = get_sms_retry_delay(retry_count)
 
         current_app.logger.info(
@@ -448,7 +424,18 @@ def sms_attempt_retry(
             str(retry_count),
         )
 
-        send_notification_to_queue(notification, notification.service.research_mode, delay=retry_delay)
+        send_notification_to_queue(
+            notification,
+            notification.service.research_mode,
+            recipient_id_type=notification.recipient_identifiers,
+            sms_sender_id=notification.sms_sender_id,
+            delay=retry_delay,
+        )
+
+        # notification has been re-queued for delivery
+        # overwrite sms_status current notification status so client update not triggered in sms_status_update
+        sms_status.status = notification.status
+        sms_status.status_reason = notification.status_reason
 
         current_app.logger.info(
             'Retry attempted %s logic | reference: %s | notification_id: %s | notification_status: %s | notification_status_reason: %s | sms_status: %s | sms_status_reason: %s | retry_count: %s',
@@ -462,7 +449,7 @@ def sms_attempt_retry(
             str(retry_count),
         )
     else:
-        # mark as permanant failure
+        # mark as permanant failure so client can be updated
         sms_status.status = NOTIFICATION_PERMANENT_FAILURE
         sms_status.status_reason = STATUS_REASON_UNDELIVERABLE
 
