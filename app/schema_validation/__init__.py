@@ -65,8 +65,7 @@ def validate(
     json_to_validate,
     schema,
 ):
-    """Validate a JSON object against a schema.  If the validation fails, log the JSON object with redacted
-    personalisation and ICN information, and raise a ValidationError.
+    """Validate a JSON object against a schema.  If the validation fails raise a ValidationError.
 
     Args:
         json_to_validate (dict): The JSON object to validate.
