@@ -122,3 +122,21 @@ def test_validate_v2_notifications_icn_and_personalisation_redaction(
         'Validation failed for: %s',
         {'recipient_identifier': {'id_type': 'ICN', 'id_value': '<redacted>'}, 'personalisation': '<redacted>'},
     )
+
+
+def test_validate_with_invalid_json(
+    notify_api,
+    mocker,
+):
+    """
+    When POST data validation fails for a Notification, the application should raise a ValidationError.
+
+    """
+    # patch the call to decode_personalisation_files
+    mocker.patch('app.schema_validation.decode_personalisation_files', return_value=({}, ['error']))
+
+    payload = {
+        'personalisation': {'file': 'foo'},
+    }
+    with pytest.raises(ValidationError):
+        validate(payload, {})
