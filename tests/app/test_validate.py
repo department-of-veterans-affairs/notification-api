@@ -143,7 +143,14 @@ def test_validate_with_personalisation_files(
 
 @pytest.mark.parametrize(
     'payload',
-    ['not a dictionary', 12345, ['a', 'list'], None, '', False],
+    [
+        'not a dictionary',
+        12345,
+        ['a', 'list'],
+        None,
+        '',
+        False,
+    ],
 )
 def test_validate_with_invalid_dict(
     notify_api,
