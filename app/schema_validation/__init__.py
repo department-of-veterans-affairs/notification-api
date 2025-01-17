@@ -65,9 +65,22 @@ def validate(
     json_to_validate,
     schema,
 ):
+    """Validate a JSON object against a schema.  If the validation fails, log the JSON object with redacted
+    personalisation and ICN information, and raise a ValidationError.
+
+    Args:
+        json_to_validate (dict): The JSON object to validate.
+        schema (dict): The JSON schema to validate against.
+
+    Raises:
+        ValidationError: If the JSON object fails validation.
+
+    Returns:
+        dict: The JSON object with redacted personalisation and ICN information
+    """
     validator = Draft7Validator(schema, format_checker=format_checker)
     errors = list(validator.iter_errors(json_to_validate))
-    if len(errors) > 0:
+    if errors:
         if isinstance(json_to_validate, dict):
             # Redact "personalisation"
             if 'personalisation' in json_to_validate:
@@ -90,14 +103,15 @@ def validate(
         current_app.logger.info('Validation failed for: %s', json_to_validate)
         raise ValidationError(build_error_message(errors))
 
-    # TODO - This assumes that json_to_validate is a dictionary.  It could raise AttributeError.
-    if json_to_validate.get('personalisation'):
+    if isinstance(json_to_validate, dict) and json_to_validate.get('personalisation'):
         json_to_validate['personalisation'], errors = decode_personalisation_files(
             json_to_validate.get('personalisation', {})
         )
-        if len(errors) > 0:
+        if errors:
             error_message = json.dumps({'status_code': 400, 'errors': errors})
+            current_app.logger.info('Validation failed for: %s', json_to_validate)
             raise ValidationError(error_message)
+
     return json_to_validate
 
 
