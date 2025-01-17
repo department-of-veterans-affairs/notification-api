@@ -139,3 +139,24 @@ def test_validate_with_personalisation_files(
     }
     with pytest.raises(ValidationError):
         validate(payload, {})
+
+
+@pytest.mark.parametrize(
+    'payload',
+    [
+        'not a dictionary',
+        12345,
+        ['a', 'list'],
+    ],
+)
+def test_validate_with_invalid_json(
+    notify_api,
+    mocker,
+    payload,
+):
+    """
+    When the payload is not a dictionary, a ValidationError should be raised.
+    """
+    payload = 'not a dictionary'
+    with pytest.raises(ValidationError):
+        validate(payload, {})
