@@ -316,13 +316,13 @@ def can_retry_sms_request(
         str(time_elapsed < retry_window),
     )
 
-    return (retries < max_retries) and (time_elapsed < retry_window)
+    return (retries <= max_retries) and (time_elapsed < retry_window)
 
 
 def get_sms_retry_delay(retry_count: int) -> int:
     """Calculate the retry delay for SMS delivery with random jitter.
 
-    Delays were chosen to cover transient errors and small to large scale service disruptions
+    Delays were chosen to cover transient errors and small scale service disruptions
 
     Note: Delays limited to under 900s due to AWS SQS limitation
 
@@ -331,7 +331,7 @@ def get_sms_retry_delay(retry_count: int) -> int:
     2nd retry: 10 minutes (600 seconds) +/- 10%
 
     Parameters:
-        retry_count (int): The retry attempt number (0-indexed).
+        retry_count (int): The retry attempt number.
 
     Returns:
         int: Delay in seconds with applied jitter.
@@ -342,10 +342,36 @@ def get_sms_retry_delay(retry_count: int) -> int:
     )
 
     # Safeguard against retry counts outside the defined range
+    retry_count = max(retry_count, 0)
     base_delay, jitter_range = delay_with_jitter[min(retry_count, len(delay_with_jitter) - 1)]
 
     # Apply jitter
-    return base_delay + random.randint(-jitter_range, jitter_range)  # nosec non-cryptographic use case
+    delay = int(base_delay + random.randint(-jitter_range, jitter_range))  # nosec non-cryptographic use case
+
+    return delay
+
+
+def update_sms_retry_count(notification_retry_id: str, initial_value: int = 0, ttl: int | None = None) -> int:
+    """Get updated retry count for this notification from redis store, initializing pre-increment initial value if it doesn't exist
+
+    Args:
+        notification_retry_id (str): The value to retrieve from redis.
+        initial_value (int): The initial value to set if the key doesn't exist.
+        ttl (int, optional): Time-to-live for the value, in seconds.
+
+    Returns:
+        int: The current retry count
+    """
+    # Set the initial value only if the value does not exist
+    redis_store.set(notification_retry_id, initial_value, ex=ttl, nx=True)
+    value = redis_store.incr(notification_retry_id)
+
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        raise ValueError(
+            f"Expected an integer value for id '{notification_retry_id}', but got: {value} (type: {type(value)})"
+        )
 
 
 def sms_attempt_retry(
@@ -364,6 +390,7 @@ def sms_attempt_retry(
         event_in_seconds (int, optional): How many seconds Twilio updates have retried. Defaults to 300
 
     Raises:
+        NonRetryableException: Unable to update SMS retry count
         NonRetryableException: Unable to update the notification
 
     Returns:
@@ -389,10 +416,11 @@ def sms_attempt_retry(
 
     notification_retry_id = f'notification-carrier-sms-retry-count-{notification.id}'
 
-    # initialize to zero if not exists, three day TTL
-    redis_ttl = 259200
-    redis_store.set(notification_retry_id, 0, ex=redis_ttl, nx=True)
-    retry_count = redis_store.get(notification_retry_id)
+    try:
+        retry_count_redis_ttl = int(CARRIER_SMS_MAX_RETRY_WINDOW.total_seconds())
+        retry_count = update_sms_retry_count(notification_retry_id, ttl=retry_count_redis_ttl)
+    except Exception:
+        raise NonRetryableException('Unable to update SMS retry count')
 
     if can_retry_sms_request(retry_count, CARRIER_SMS_MAX_RETRIES, notification.sent_at, CARRIER_SMS_MAX_RETRY_WINDOW):
         try:
@@ -421,8 +449,6 @@ def sms_attempt_retry(
         )
 
         send_notification_to_queue(notification, notification.service.research_mode, delay=retry_delay)
-
-        retry_count = redis_store.incr(notification_retry_id)
 
         current_app.logger.info(
             'Retry attempted %s logic | reference: %s | notification_id: %s | notification_status: %s | notification_status_reason: %s | sms_status: %s | sms_status_reason: %s | retry_count: %s',

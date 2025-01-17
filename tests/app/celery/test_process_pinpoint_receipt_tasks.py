@@ -148,6 +148,7 @@ def test_process_pinpoint_results_notification_final_status(
         status_reason='just because',
     )
     mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=False)
+    mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', retrurn_value=1)
     process_pinpoint_results(
         response=pinpoint_notification_callback_record(
             reference=test_reference, event_type=event_type, record_status=record_status
