@@ -149,7 +149,7 @@ def test_validate_with_personalisation_files(
         ['a', 'list'],
     ],
 )
-def test_validate_with_invalid_json(
+def test_validate_with_invalid_dict(
     notify_api,
     mocker,
     payload,
