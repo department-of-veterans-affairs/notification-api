@@ -65,7 +65,8 @@ def validate(
     json_to_validate,
     schema,
 ):
-    """Validate a JSON object against a schema.  If the validation fails raise a ValidationError.
+    """Validate a JSON object against a schema.  If the validation fails, log the JSON object with redacted
+    personalisation and ICN information, and raise a ValidationError.
 
     Args:
         json_to_validate (dict): The JSON object to validate.
@@ -77,40 +78,46 @@ def validate(
     Returns:
         dict: The JSON object with redacted personalisation and ICN information
     """
+    # Ensure that json_to_validate is a dictionary
+    if not isinstance(json_to_validate, dict):
+        current_app.logger.info('Validation failed for: %s', json_to_validate)
+        errors = [{'error': 'ValidationError', 'message': 'Payload is not json.'}]
+        error_message = json.dumps({'status_code': 400, 'errors': errors})
+        raise ValidationError(error_message)
+
     validator = Draft7Validator(schema, format_checker=format_checker)
     errors = list(validator.iter_errors(json_to_validate))
-    if errors:
-        if isinstance(json_to_validate, dict):
-            # Redact "personalisation"
-            if 'personalisation' in json_to_validate:
-                if isinstance(json_to_validate.get('personalisation'), dict):
-                    json_to_validate['personalisation'] = {
-                        key: '<redacted>' for key in json_to_validate['personalisation']
-                    }
-                else:
-                    json_to_validate['personalisation'] = '<redacted>'
+    if len(errors) > 0:
+        # Redact "personalisation"
+        if 'personalisation' in json_to_validate:
+            if isinstance(json_to_validate.get('personalisation'), dict):
+                json_to_validate['personalisation'] = {key: '<redacted>' for key in json_to_validate['personalisation']}
+            else:
+                json_to_validate['personalisation'] = '<redacted>'
 
-            # Redact ICN
-            if 'recipient_identifier' in json_to_validate:
-                if (
-                    isinstance(json_to_validate.get('recipient_identifier'), dict)  # Short circuit dictionary check
-                    and json_to_validate['recipient_identifier'].get('id_type') == 'ICN'
-                ):
-                    json_to_validate['recipient_identifier']['id_value'] = '<redacted>'
-                else:
-                    json_to_validate['recipient_identifier'] = '<redacted>'
+        # Redact ICN
+        if 'recipient_identifier' in json_to_validate:
+            if (
+                isinstance(json_to_validate.get('recipient_identifier'), dict)  # Short circuit dictionary check
+                and json_to_validate['recipient_identifier'].get('id_type') == 'ICN'
+            ):
+                json_to_validate['recipient_identifier']['id_value'] = '<redacted>'
+            else:
+                json_to_validate['recipient_identifier'] = '<redacted>'
         current_app.logger.info('Validation failed for: %s', json_to_validate)
         raise ValidationError(build_error_message(errors))
 
-    # Validate personalisation files
-    if isinstance(json_to_validate, dict) and json_to_validate.get('personalisation'):
-        json_to_validate['personalisation'], errors = decode_personalisation_files(
-            json_to_validate.get('personalisation', {})
-        )
-        if errors:
-            error_message = json.dumps({'status_code': 400, 'errors': errors})
-            current_app.logger.info('Validation failed for: %s', json_to_validate)
-            raise ValidationError(error_message)
+    try:
+        if json_to_validate.get('personalisation'):
+            json_to_validate['personalisation'], errors = decode_personalisation_files(
+                json_to_validate.get('personalisation', {})
+            )
+            if len(errors) > 0:
+                error_message = json.dumps({'status_code': 400, 'errors': errors})
+                raise ValidationError(error_message)
+    except AttributeError:
+        current_app.logger.info('Validation failed for: %s', json_to_validate)
+        raise ValidationError('Payload is not json.')
 
     return json_to_validate
 
