@@ -124,13 +124,12 @@ def test_validate_v2_notifications_icn_and_personalisation_redaction(
     )
 
 
-def test_validate_with_invalid_json(
+def test_validate_with_personalisation_files(
     notify_api,
     mocker,
 ):
     """
-    When POST data validation fails for a Notification, the application should raise a ValidationError.
-
+    When the call to decode_personalisation_files fails, a ValidationError should be raised.
     """
     # patch the call to decode_personalisation_files
     mocker.patch('app.schema_validation.decode_personalisation_files', return_value=({}, ['error']))
