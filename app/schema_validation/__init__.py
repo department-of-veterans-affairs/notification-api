@@ -107,10 +107,9 @@ def validate(
         current_app.logger.info('Validation failed for: %s', json_to_validate)
         raise ValidationError(build_error_message(errors))
 
+    # Validate personalisation files
     if json_to_validate.get('personalisation'):
-        json_to_validate['personalisation'], errors = decode_personalisation_files(
-            json_to_validate.get('personalisation', {})
-        )
+        json_to_validate['personalisation'], errors = decode_personalisation_files(json_to_validate['personalisation'])
         if len(errors) > 0:
             error_message = json.dumps({'status_code': 400, 'errors': errors})
             raise ValidationError(error_message)
