@@ -81,7 +81,7 @@ def validate(
     # Ensure that json_to_validate is a dictionary
     if not isinstance(json_to_validate, dict):
         current_app.logger.info('Validation failed for: %s', json_to_validate)
-        errors = [{'error': 'ValidationError', 'message': 'Payload is not json.'}]
+        errors = [{'error': 'ValidationError', 'message': 'Payload is not a dictionary.'}]
         error_message = json.dumps({'status_code': 400, 'errors': errors})
         raise ValidationError(error_message)
 
@@ -107,17 +107,13 @@ def validate(
         current_app.logger.info('Validation failed for: %s', json_to_validate)
         raise ValidationError(build_error_message(errors))
 
-    try:
-        if json_to_validate.get('personalisation'):
-            json_to_validate['personalisation'], errors = decode_personalisation_files(
-                json_to_validate.get('personalisation', {})
-            )
-            if len(errors) > 0:
-                error_message = json.dumps({'status_code': 400, 'errors': errors})
-                raise ValidationError(error_message)
-    except AttributeError:
-        current_app.logger.info('Validation failed for: %s', json_to_validate)
-        raise ValidationError('Payload is not json.')
+    if json_to_validate.get('personalisation'):
+        json_to_validate['personalisation'], errors = decode_personalisation_files(
+            json_to_validate.get('personalisation', {})
+        )
+        if len(errors) > 0:
+            error_message = json.dumps({'status_code': 400, 'errors': errors})
+            raise ValidationError(error_message)
 
     return json_to_validate
 
