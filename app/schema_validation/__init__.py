@@ -101,6 +101,8 @@ def validate(
                 isinstance(json_to_validate.get('recipient_identifier'), dict)  # Short circuit dictionary check
                 and json_to_validate['recipient_identifier'].get('id_type') == 'ICN'
             ):
+                # Redact ICN, as it is sensitive
+                # # https://depo-platform-documentation.scrollhelp.site/developer-docs/personal-identifiable-information-pii-guidelines#PersonalIdentifiableInformation(PII)guidelines-NotesandpoliciesregardingICNs
                 json_to_validate['recipient_identifier']['id_value'] = '<redacted>'
             else:
                 json_to_validate['recipient_identifier'] = '<redacted>'
