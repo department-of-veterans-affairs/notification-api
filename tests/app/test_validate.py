@@ -160,6 +160,5 @@ def test_validate_with_invalid_dict(
     """
     When the payload is not a dictionary, a ValidationError should be raised.
     """
-    payload = 'not a dictionary'
     with pytest.raises(ValidationError):
         validate(payload, {})
