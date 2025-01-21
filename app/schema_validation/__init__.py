@@ -62,9 +62,9 @@ def validate_schema_date_with_hour(instance):
 
 
 def validate(
-    json_to_validate,
-    schema,
-):
+    json_to_validate: dict,
+    schema: dict,
+) -> dict:
     """Validate a JSON object against a schema.  If the validation fails, log the JSON object with redacted
     personalisation and ICN information, and raise a ValidationError.
 
