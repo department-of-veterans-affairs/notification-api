@@ -725,3 +725,18 @@ def test_sms_attempt_retry_notification_set_to_permanent_failure_when_retry_cond
     sms_attempt_retry(sms_status)
     updated_notification = get_notification_by_id(notification.id)
     assert updated_notification.status == NOTIFICATION_PERMANENT_FAILURE
+
+
+def test_sms_attempt_retry_check_and_queue_exception(mocker, sample_notification):
+    notification = sample_notification()
+    sms_status = SmsStatusRecord(
+        None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
+    )
+    mock_logger = mocker.patch('app.celery.process_delivery_status_result_tasks.current_app.logger.exception')
+    mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count')
+    mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=False)
+    mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task', side_effect=Exception)
+
+    # Exception is caught and not re-raised
+    sms_status_update(sms_status)
+    mock_logger.assert_called_once_with('Failed to check_and_queue_callback_task for notification: %s', notification.id)

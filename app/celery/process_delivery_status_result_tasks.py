@@ -18,7 +18,6 @@ from app.constants import (
     CARRIER_SMS_MAX_RETRIES,
     CARRIER_SMS_MAX_RETRY_WINDOW,
     DELIVERY_STATUS_CALLBACK_TYPE,
-    NOTIFICATION_CREATED,
     NOTIFICATION_DELIVERED,
     NOTIFICATION_PENDING,
     NOTIFICATION_PERMANENT_FAILURE,
@@ -27,7 +26,6 @@ from app.constants import (
 )
 from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
-    dao_update_notification,
     dao_update_sms_notification_delivery_status,
     dao_update_sms_notification_status_to_created_for_retry,
 )
@@ -207,7 +205,6 @@ def sms_status_update(
     sms_status: SmsStatusRecord,
     event_timestamp: str | None = None,
     event_in_seconds: int = 300,  # Don't retry by default
-    notification: Notification = None,
 ) -> None:
     """Get and update a notification.
 
@@ -219,8 +216,7 @@ def sms_status_update(
     Raises:
         NonRetryableException: Unable to update the notification
     """
-    if notification is None:
-        notification = _get_notification(sms_status.reference, sms_status.provider, event_timestamp, event_in_seconds)
+    notification = _get_notification(sms_status.reference, sms_status.provider, event_timestamp, event_in_seconds)
     last_updated_at = notification.updated_at
 
     current_app.logger.info(
@@ -370,17 +366,10 @@ def update_sms_retry_count(notification_retry_id: str, initial_value: int = 0, t
         )
 
 
-def update_notification_to_created(
-    notification,
-):
-    notification.status = NOTIFICATION_CREATED
-    dao_update_notification(notification)
-
-
 def sms_attempt_retry(
     sms_status: SmsStatusRecord,
     event_timestamp: str | None = None,
-    event_in_seconds: int = 300,  # Don't retry by default
+    event_in_seconds: int = 300,  # Don't retry _get_notification by default
 ):
     """Attempt retry sending notification.
 
@@ -390,7 +379,7 @@ def sms_attempt_retry(
     Args:
         sms_status (SmsStatusRecord): The status record update
         event_timestamp (str | None, optional): Timestamp the Pinpoint event came in. Defaults to None.
-        event_in_seconds (int, optional): How many seconds Twilio updates have retried. Defaults to 300
+        event_in_seconds (int, optional): How long since initial event. Defaults to 300
 
     Raises:
         NonRetryableException: Unable to update SMS retry count or update the notification
