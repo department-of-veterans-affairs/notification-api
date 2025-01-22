@@ -18,14 +18,18 @@ from app.constants import (
     CARRIER_SMS_MAX_RETRIES,
     CARRIER_SMS_MAX_RETRY_WINDOW,
     DELIVERY_STATUS_CALLBACK_TYPE,
+    NOTIFICATION_CREATED,
     NOTIFICATION_DELIVERED,
     NOTIFICATION_PENDING,
     NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_SENDING,
     STATUS_REASON_UNDELIVERABLE,
 )
 from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
+    dao_update_notification,
     dao_update_sms_notification_delivery_status,
+    dao_update_sms_notification_status_to_created_for_retry,
 )
 from app.dao.service_callback_dao import dao_get_callback_include_payload_status
 from app.models import Notification
@@ -283,6 +287,7 @@ def sms_status_update(
 
 
 def can_retry_sms_request(
+    status: str,
     retries: int,
     max_retries: int,
     sent_at: datetime,
@@ -290,11 +295,12 @@ def can_retry_sms_request(
 ) -> bool:
     """Determine if a retry is allowed.
 
-    Determine if a retry is allowed based on the number of retries,
+    Determine if a retry is allowed based on the status, number of retries,
     the maximum retries allowed, the time the message was sent, and
     the retry window.
 
     Parameters:
+        status (str): Current notification status.
         retries (int): The number of retries already attempted.
         max_retries (int): The maximum number of retries allowed.
         sent_at (datetime): The timestamp when the message was initially sent.
@@ -306,7 +312,7 @@ def can_retry_sms_request(
     # Calculate the time elapsed since the message was sent
     time_elapsed = datetime.datetime.utcnow() - sent_at
 
-    return (retries <= max_retries) and (time_elapsed < retry_window)
+    return (status == NOTIFICATION_SENDING) and (retries <= max_retries) and (time_elapsed < retry_window)
 
 
 def get_sms_retry_delay(retry_count: int) -> int:
@@ -364,11 +370,18 @@ def update_sms_retry_count(notification_retry_id: str, initial_value: int = 0, t
         )
 
 
+def update_notification_to_created(
+    notification,
+):
+    notification.status = NOTIFICATION_CREATED
+    dao_update_notification(notification)
+
+
 def sms_attempt_retry(
     sms_status: SmsStatusRecord,
     event_timestamp: str | None = None,
     event_in_seconds: int = 300,  # Don't retry by default
-) -> tuple[Notification, SmsStatusRecord]:
+):
     """Attempt retry sending notification.
 
     Retry notification if within permissible limits and update notification.
@@ -380,12 +393,7 @@ def sms_attempt_retry(
         event_in_seconds (int, optional): How many seconds Twilio updates have retried. Defaults to 300
 
     Raises:
-        NonRetryableException: Unable to update SMS retry count
-        NonRetryableException: Unable to update the notification
-
-    Returns:
-        Notification: The notification
-        SmsStatusRecord: The status record, updated to NOTIFICATION_PERMANENT_FAILURE if retry limit exceeded
+        NonRetryableException: Unable to update SMS retry count or update the notification
     """
 
     # avoid circular import
@@ -394,7 +402,7 @@ def sms_attempt_retry(
     notification = _get_notification(sms_status.reference, sms_status.provider, event_timestamp, event_in_seconds)
 
     current_app.logger.info(
-        'Initial retry %s logic | reference: %s | notification_id: %s | notification_status: %s | notification_status_reason: %s | sms_status: %s | sms_status_reason: %s',
+        'Entering %s retryable failure logic | reference: %s | notification_id: %s | notification_status: %s | notification_status_reason: %s | sms_status: %s | sms_status_reason: %s',
         sms_status.provider,
         sms_status.reference,
         notification.id,
@@ -412,17 +420,33 @@ def sms_attempt_retry(
     except Exception:
         raise NonRetryableException('Unable to update SMS retry count')
 
-    if can_retry_sms_request(retry_count, CARRIER_SMS_MAX_RETRIES, notification.sent_at, CARRIER_SMS_MAX_RETRY_WINDOW):
+    if can_retry_sms_request(
+        notification.status, retry_count, CARRIER_SMS_MAX_RETRIES, notification.sent_at, CARRIER_SMS_MAX_RETRY_WINDOW
+    ):
         retry_delay = get_sms_retry_delay(retry_count)
 
         current_app.logger.info(
-            'Attempt retry %s logic | reference: %s | notification_id: %s | retry_delay: %s seconds | retry_count: %s',
+            'Attempting %s requeue | reference: %s | notification_id: %s | retry_delay: %s seconds | retry_count: %s',
             sms_status.provider,
             sms_status.reference,
             notification.id,
             str(retry_delay),
             str(retry_count),
         )
+
+        # need to roll notification status back to 'created' for requeue to work
+        # TODO: re-add exception test
+        try:
+            notification: Notification = dao_update_sms_notification_status_to_created_for_retry(
+                notification_id=notification.id,
+                notification_type=notification.notification_type,
+                cost_in_millicents=notification.cost_in_millicents + sms_status.price_millicents,
+            )
+
+            statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
+        except Exception:
+            statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
+            raise NonRetryableException('Unable to update notification')
 
         send_notification_to_queue(
             notification,
@@ -432,36 +456,51 @@ def sms_attempt_retry(
             delay=retry_delay,
         )
 
-        # notification has been re-queued for delivery
-        # overwrite sms_status current notification status so client update not triggered in sms_status_update
-        sms_status.status = notification.status
-        sms_status.status_reason = notification.status_reason
-
         current_app.logger.info(
-            'Retry attempted %s logic | reference: %s | notification_id: %s | notification_status: %s | notification_status_reason: %s | sms_status: %s | sms_status_reason: %s | retry_count: %s',
+            'Requeued notification for delayed %s delivery | reference: %s | notification_id: %s | retry_delay: %s seconds',
             sms_status.provider,
             sms_status.reference,
             notification.id,
-            notification.status,
-            notification.status_reason,
-            sms_status.status,
-            sms_status.status_reason,
-            str(retry_count),
+            str(retry_delay),
         )
     else:
         # mark as permanant failure so client can be updated
         sms_status.status = NOTIFICATION_PERMANENT_FAILURE
         sms_status.status_reason = STATUS_REASON_UNDELIVERABLE
 
-    current_app.logger.info(
-        'Final retry %s logic | reference: %s | notification_id: %s | notification_status: %s | notification_status_reason: %s | sms_status: %s | sms_status_reason: %s',
-        sms_status.provider,
-        sms_status.reference,
-        notification.id,
-        notification.status,
-        notification.status_reason,
-        sms_status.status,
-        sms_status.status_reason,
-    )
+        try:
+            notification: Notification = dao_update_sms_notification_delivery_status(
+                notification_id=notification.id,
+                notification_type=notification.notification_type,
+                new_status=sms_status.status,
+                new_status_reason=sms_status.status_reason,
+                segments_count=sms_status.message_parts,
+                cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
+            )
+            statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
+        except Exception:
+            statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
+            raise NonRetryableException('Unable to update notification')
 
-    return (notification, sms_status)
+        current_app.logger.info(
+            'Final %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s',
+            sms_status.provider,
+            sms_status.reference,
+            notification.id,
+            notification.status,
+            notification.status_reason,
+        )
+
+        # Our clients are not prepared to deal with pinpoint payloads
+        if not _get_include_payload_status(notification):
+            sms_status.payload = None
+
+        try:
+            check_and_queue_callback_task(notification, sms_status.payload)
+            check_and_queue_va_profile_notification_status_callback(notification)
+            statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.success')
+        except Exception:
+            current_app.logger.exception(
+                'Failed to check_and_queue_callback_task for notification: %s', notification.id
+            )
+            statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')

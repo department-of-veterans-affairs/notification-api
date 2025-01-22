@@ -68,11 +68,7 @@ def process_pinpoint_results(
         notification_platform_status.provider_updated_at,
     )
 
-    notification = None
-
     if notification_platform_status.status_reason == STATUS_REASON_RETRYABLE:
-        notification, notification_platform_status = sms_attempt_retry(
-            notification_platform_status, pinpoint_message['event_timestamp']
-        )
-
-    sms_status_update(notification_platform_status, pinpoint_message['event_timestamp'], notification=notification)
+        sms_attempt_retry(notification_platform_status, pinpoint_message['event_timestamp'])
+    else:
+        sms_status_update(notification_platform_status, pinpoint_message['event_timestamp'])

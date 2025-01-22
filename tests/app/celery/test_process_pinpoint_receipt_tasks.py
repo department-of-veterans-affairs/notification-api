@@ -45,9 +45,7 @@ def test_process_pinpoint_results_should_attempt_retry_for_retryable(
         status=NOTIFICATION_SENDING,
     )
 
-    sms_attempt_retry = mocker.patch(
-        'app.celery.process_pinpoint_receipt_tasks.sms_attempt_retry', return_value=(None, None)
-    )
+    sms_attempt_retry = mocker.patch('app.celery.process_pinpoint_receipt_tasks.sms_attempt_retry')
     sms_status_update = mocker.patch('app.celery.process_pinpoint_receipt_tasks.sms_status_update')
 
     process_pinpoint_results(
@@ -55,7 +53,7 @@ def test_process_pinpoint_results_should_attempt_retry_for_retryable(
     )
 
     sms_attempt_retry.assert_called()
-    sms_status_update.assert_called()
+    sms_status_update.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -191,9 +189,7 @@ def test_process_pinpoint_results_should_not_update_notification_status_if_uncha
     mock_callback.assert_not_called()
 
 
-@pytest.mark.parametrize(
-    'status', [NOTIFICATION_DELIVERED, NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_PERMANENT_FAILURE]
-)
+@pytest.mark.parametrize('status', [NOTIFICATION_DELIVERED, NOTIFICATION_PERMANENT_FAILURE])
 def test_process_pinpoint_results_should_not_update_notification_status_to_sending_if_status_already_final(
     mocker,
     sample_template,

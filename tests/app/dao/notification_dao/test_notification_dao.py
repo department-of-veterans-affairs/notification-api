@@ -40,6 +40,7 @@ from app.dao.notifications_dao import (
     dao_update_notification,
     dao_update_notification_by_id,
     dao_update_notifications_by_reference,
+    dao_update_sms_notification_status_to_created_for_retry,
     delete_notifications_older_than_retention_by_type,
     get_notification_by_id,
     get_notification_for_job,
@@ -2197,6 +2198,60 @@ def test_update_notification_delivery_status_invalid_updates(
     )
 
     assert notification.status != new_status
+    assert notification.status_reason == status_reason
+
+
+def test_dao_update_sms_notification_status_to_created_for_retry_valid_update(
+    sample_template,
+    sample_notification,
+):
+    notification: Notification = sample_notification(
+        template=sample_template(),
+        status=NOTIFICATION_SENDING,
+        status_reason='Because I said so!',
+        cost_in_millicents=0.0,
+    )
+
+    assert notification.status == NOTIFICATION_SENDING
+
+    dao_update_sms_notification_status_to_created_for_retry(
+        notification_id=notification.id,
+        notification_type=notification.notification_type,
+        cost_in_millicents=10.0,
+    )
+
+    assert notification.status == NOTIFICATION_CREATED
+    assert notification.status_reason is None
+    assert notification.cost_in_millicents == 10.0
+
+
+@pytest.mark.parametrize(
+    'current_status',
+    [NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_DELIVERED],
+)
+def test_dao_update_sms_notification_status_to_created_for_retry_invalid_updates(
+    sample_template,
+    sample_notification,
+    current_status,
+):
+    status_reason = None if (current_status == NOTIFICATION_DELIVERED) else 'Because I said so!'
+
+    notification: Notification = sample_notification(
+        template=sample_template(),
+        status=current_status,
+        status_reason=status_reason,
+    )
+
+    assert notification.status == current_status
+    assert notification.status_reason == status_reason
+
+    dao_update_sms_notification_status_to_created_for_retry(
+        notification_id=notification.id,
+        notification_type=notification.notification_type,
+        cost_in_millicents=0.0,
+    )
+
+    assert notification.status == current_status
     assert notification.status_reason == status_reason
 
 
