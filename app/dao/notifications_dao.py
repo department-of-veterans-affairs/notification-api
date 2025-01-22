@@ -393,6 +393,7 @@ def dao_update_sms_notification_status_to_created_for_retry(
 
     SMS messages that result in retryable errors may be able to be retried.
     This is a special case update statement to update the notification to NOTIFICATION_CREATED in order to attempt requeue.
+    Provider reference is also cleared to prevent lookup by old value
     The normal status state transition checks are not enforced, only that the notification is currently NOTIFICATION_SENDING
     Current cost is also updated to keep track of the running cost
 
@@ -413,6 +414,7 @@ def dao_update_sms_notification_status_to_created_for_retry(
             .values(
                 status=NOTIFICATION_CREATED,
                 status_reason=None,
+                reference=None,
                 cost_in_millicents=cost_in_millicents,
             )
             .execution_options(synchronize_session='fetch')

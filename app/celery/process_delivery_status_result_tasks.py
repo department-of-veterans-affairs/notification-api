@@ -251,12 +251,13 @@ def sms_status_update(
         raise NonRetryableException('Unable to update notification')
 
     current_app.logger.info(
-        'Final %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s',
+        'Final %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | cost_in_millicents: %s',
         sms_status.provider,
         sms_status.reference,
         notification.id,
         notification.status,
         notification.status_reason,
+        notification.cost_in_millicents,
     )
 
     log_notification_total_time(
@@ -391,7 +392,7 @@ def sms_attempt_retry(
     notification = _get_notification(sms_status.reference, sms_status.provider, event_timestamp, event_in_seconds)
 
     current_app.logger.info(
-        'Entering %s retryable failure logic | reference: %s | notification_id: %s | notification_status: %s | notification_status_reason: %s | sms_status: %s | sms_status_reason: %s',
+        'Entering %s retryable failure logic to process event | reference: %s | notification_id: %s | current_status: %s | current_status_reason: %s | event_sms_status: %s | event_sms_status_reason: %s',
         sms_status.provider,
         sms_status.reference,
         notification.id,
@@ -414,15 +415,6 @@ def sms_attempt_retry(
     ):
         retry_delay = get_sms_retry_delay(retry_count)
 
-        current_app.logger.info(
-            'Attempting %s requeue | reference: %s | notification_id: %s | retry_delay: %s seconds | retry_count: %s',
-            sms_status.provider,
-            sms_status.reference,
-            notification.id,
-            str(retry_delay),
-            str(retry_count),
-        )
-
         # need to roll notification status back to 'created' for requeue to work
         # TODO: re-add exception test
         try:
@@ -432,10 +424,24 @@ def sms_attempt_retry(
                 cost_in_millicents=notification.cost_in_millicents + sms_status.price_millicents,
             )
 
+            current_app.logger.info(
+                'Notification updated prior to requeue attempt | notification_id: %s | notification_status: %s | cost_in_milicents %s',
+                notification.id,
+                notification.status,
+                notification.cost_in_millicents,
+            )
             statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
         except Exception:
             statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
             raise NonRetryableException('Unable to update notification')
+
+        current_app.logger.info(
+            'Attempting %s requeue | notification_id: %s | retry_delay: %s seconds | retry_count: %s',
+            sms_status.provider,
+            notification.id,
+            str(retry_delay),
+            str(retry_count),
+        )
 
         send_notification_to_queue(
             notification,
@@ -446,9 +452,8 @@ def sms_attempt_retry(
         )
 
         current_app.logger.info(
-            'Requeued notification for delayed %s delivery | reference: %s | notification_id: %s | retry_delay: %s seconds',
+            'Requeued notification for delayed %s delivery | notification_id: %s | retry_delay: %s seconds',
             sms_status.provider,
-            sms_status.reference,
             notification.id,
             str(retry_delay),
         )
@@ -472,12 +477,13 @@ def sms_attempt_retry(
             raise NonRetryableException('Unable to update notification')
 
         current_app.logger.info(
-            'Final %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s',
+            'Final %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | cost_in_millicents: %s',
             sms_status.provider,
             sms_status.reference,
             notification.id,
             notification.status,
             notification.status_reason,
+            notification.cost_in_millicents,
         )
 
         # Our clients are not prepared to deal with pinpoint payloads

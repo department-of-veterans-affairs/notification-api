@@ -640,6 +640,31 @@ def test_sms_attempt_retry_cost_updated_if_retryable(mocker, sample_notification
     assert updated_notification.cost_in_millicents == 10
 
 
+def test_sms_attempt_retry_notification_status_created_if_retryable(mocker, sample_notification):
+    notification = sample_notification(
+        status=NOTIFICATION_SENDING,
+        status_reason=None,
+        cost_in_millicents=5,
+    )
+    sms_status = SmsStatusRecord(
+        None,
+        notification.reference,
+        NOTIFICATION_TEMPORARY_FAILURE,
+        STATUS_REASON_RETRYABLE,
+        PINPOINT_PROVIDER,
+        price_millicents=5,
+    )
+    mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
+    mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+
+    sms_attempt_retry(sms_status)
+
+    updated_notification = get_notification_by_id(notification.id)
+    assert updated_notification.status == NOTIFICATION_CREATED
+    assert updated_notification.status_reason is None
+    assert updated_notification.reference is None
+
+
 def test_sms_attempt_retry_not_queued_if_retry_conditions_not_met(mocker, sample_notification):
     notification = sample_notification()
     sms_status = SmsStatusRecord(
