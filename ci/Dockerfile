@@ -84,7 +84,8 @@ COPY --from=builder --chown=vanotify /usr/share/ca-certificates /usr/share/ca-ce
 # Populate /etc/ssl/certs/ with symlinks to /usr/[local/]share/ca-certificates/ certs
 RUN apk add --no-cache ca-certificates build-base bash libcurl openssl-dev \
     && update-ca-certificates \
-    && apk del --no-cache ca-certificates
+    && apk del --no-cache ca-certificates \
+    && pip3 install --upgrade pip setuptools
 
 USER vanotify
 
