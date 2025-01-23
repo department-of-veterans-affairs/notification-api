@@ -19,7 +19,6 @@ from app.constants import (
     CARRIER_SMS_MAX_RETRY_WINDOW,
     DELIVERY_STATUS_CALLBACK_TYPE,
     NOTIFICATION_DELIVERED,
-    NOTIFICATION_PENDING,
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_SENDING,
     STATUS_REASON_UNDELIVERABLE,
@@ -232,10 +231,6 @@ def sms_status_update(
     if sms_status.status == NOTIFICATION_DELIVERED:
         sms_status.status_reason = None
 
-    # _SMS.BUFFERED / PENDING should not include price_millicents
-    if sms_status.status == NOTIFICATION_PENDING:
-        sms_status.price_millicents = 0
-
     try:
         notification: Notification = dao_update_sms_notification_delivery_status(
             notification_id=notification.id,
@@ -416,7 +411,7 @@ def sms_attempt_retry(
         retry_delay = get_sms_retry_delay(retry_count)
 
         # need to roll notification status back to 'created' for requeue to work
-        # TODO: re-add exception test
+        # reference is also cleared to avoid race conditions while being requeued
         try:
             notification: Notification = dao_update_sms_notification_status_to_created_for_retry(
                 notification_id=notification.id,
@@ -439,8 +434,8 @@ def sms_attempt_retry(
             'Attempting %s requeue | notification_id: %s | retry_delay: %s seconds | retry_count: %s',
             sms_status.provider,
             notification.id,
-            str(retry_delay),
-            str(retry_count),
+            retry_delay,
+            retry_count,
         )
 
         send_notification_to_queue(
@@ -455,7 +450,7 @@ def sms_attempt_retry(
             'Requeued notification for delayed %s delivery | notification_id: %s | retry_delay: %s seconds',
             sms_status.provider,
             notification.id,
-            str(retry_delay),
+            retry_delay,
         )
     else:
         # mark as permanant failure so client can be updated
