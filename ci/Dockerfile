@@ -36,7 +36,7 @@ ARG TEST_FOLDER="[none-if-not-testing]"
 
 # # RUN apk add --no-cache --virtual .build-deps gcc musl-dev rust cargo curl \
 RUN apk add --no-cache --virtual .build-deps cargo curl gcc musl-dev rust \
-    && curl -sSL https://install.python-poetry.org | python3 - \
+    && curl -sSL https://install.python-poetry.org | python3 - --version 1.8.4 \
     && poetry install --no-root --no-ansi $POETRY_ARGS
 
 ########################################################################################################################
