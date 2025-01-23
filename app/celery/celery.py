@@ -164,11 +164,11 @@ def id_cleanup_logger(task_id, task, *args, **kwargs):
             current_app.logger.removeFilter(filter)
 
 
-@signals.setup_logging.connect
-def remove_log_handler(*args, **kwargs) -> None:
-    """Remove Celery log handler.
+# @signals.setup_logging.connect
+# def remove_log_handler(*args, **kwargs) -> None:
+#     """Remove Celery log handler.
 
-    Just by using .connect this will disable the logger hijacking.
-    https://docs.celeryq.dev/en/stable/userguide/signals.html#setup-logging
-    """
-    pass
+#     Just by using .connect this will disable the logger hijacking.
+#     https://docs.celeryq.dev/en/stable/userguide/signals.html#setup-logging
+#     """
+#     pass
