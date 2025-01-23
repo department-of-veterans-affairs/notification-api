@@ -2247,7 +2247,7 @@ statsd = ">=4.0.1"
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
 reference = "190-update-dependencies"
-resolved_reference = "1ad4ee0336bce9c34d89da11d3020b5a482e861c"
+resolved_reference = "ec1cc2f0916a305b0c9e794630328c94788c4e58"
 
 [[package]]
 name = "notifications-python-client"
