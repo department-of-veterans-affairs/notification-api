@@ -1,6 +1,6 @@
 # Python 3.10 is supported until October 2026.
 # Alpine Linux 3.19 is supported until 1 November 2025
-FROM python:3.10-alpine3.19 as builder
+FROM python:3.10-alpine3.19 AS builder
 
 # REQUESTS_CA_BUNDLE is for the "requests" Python package.
 #   https://requests.readthedocs.io/en/latest/user/advanced/#ssl-cert-verification
@@ -36,6 +36,7 @@ ARG TEST_FOLDER="[none-if-not-testing]"
 
 # # RUN apk add --no-cache --virtual .build-deps gcc musl-dev rust cargo curl \
 RUN apk add --no-cache --virtual .build-deps cargo curl gcc musl-dev rust \
+    && pip3 install --upgrade pip setuptools \
     && curl -sSL https://install.python-poetry.org | python3 - \
     && poetry install --no-root --no-ansi $POETRY_ARGS
 
@@ -75,6 +76,9 @@ COPY --chown=vanotify certs/ certs
 # Tests, using glob pattern to avoid copying
 COPY $TEST_FOLDER/ tests
 
+# upgrade system pip and setuptools
+RUN pip3 install --upgrade pip setuptools
+
 # Copy builder files - version must come after context COPY, importing to absolute location
 COPY --from=builder /.venv /.venv
 COPY --from=builder --chown=vanotify /app/version.py /app/app/version.py
@@ -84,8 +88,7 @@ COPY --from=builder --chown=vanotify /usr/share/ca-certificates /usr/share/ca-ce
 # Populate /etc/ssl/certs/ with symlinks to /usr/[local/]share/ca-certificates/ certs
 RUN apk add --no-cache ca-certificates build-base bash libcurl openssl-dev \
     && update-ca-certificates \
-    && apk del --no-cache ca-certificates \
-    && pip3 install --upgrade pip setuptools
+    && apk del --no-cache ca-certificates
 
 USER vanotify
 
