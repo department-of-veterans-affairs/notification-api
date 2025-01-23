@@ -26,6 +26,9 @@
         { "name": "CELERY_CONCURRENCY", 
           "value": "16"
         },
+        { "name": "CELERY_LOG_LEVEL", 
+          "value": "info"
+        },
         {
           "name": "FLASK_APP",
           "value": "run_celery.py"
