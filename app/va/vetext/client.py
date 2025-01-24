@@ -50,10 +50,10 @@ class VETextClient:
         self,
         payload: dict[str, str],
     ) -> None:
-        """_summary_
+        """Send the notification to VEText and handle any errors.
 
         Args:
-            payload (dict[str, str]): _description_
+            payload (dict[str, str]): The data to send to VEText
         """
         self.logger.debug('VEText Payload information: %s', payload)
         start_time = monotonic()
@@ -105,13 +105,21 @@ class VETextClient:
         self,
         http_exception,
     ):
+        """Parse the response and raise an exception as this is always an exception
+
+        Args:
+            http_exception (Exception): The exception raised
+
+        Raises:
+            NonRetryableException: Raised exception
+        """
         try:
             payload = http_exception.response.json()
+            field = payload.get('idType')
+            message = payload.get('error')
+            self.logger.warning('Bad response from VEText: %s with field: ', message, field)
+            raise NonRetryableException from http_exception
         except Exception:
             message = http_exception.response.text
             self.logger.warning('Bad response from VEText: %s', message)
-            raise NonRetryableException(message=message) from http_exception
-        else:
-            field = payload.get('idType')
-            message = payload.get('error')
-            raise NonRetryableException(field=field, message=message) from http_exception
+            raise NonRetryableException from http_exception

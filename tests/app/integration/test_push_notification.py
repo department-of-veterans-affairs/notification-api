@@ -114,9 +114,6 @@ def test_mobile_app_push_notification_celery_exception(
 ):
     service = sample_service(service_permissions=[PUSH_TYPE])
     api_key = sample_api_key(service=service)
-    rmock.register_uri(
-        'POST', f"{client.application.config['VETEXT_URL']}/mobile/push/send", json={'result': 'success'}
-    )
 
     mocker.patch('app.v2.notifications.rest_push.deliver_push.delay', side_effect=test_exception)
     push_request_body = {

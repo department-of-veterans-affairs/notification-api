@@ -287,7 +287,7 @@ def deliver_push(
     celery_task: Task,
     payload: V2PushPayload,
 ) -> None:
-    """Deliver a validated push payload to the provider client."""
+    """Deliver a validated push (or broadcast) payload to the provider client."""
     vetext_payload = vetext_client.format_for_vetext(payload)
     try:
         vetext_client.send_push_notification(vetext_payload)
