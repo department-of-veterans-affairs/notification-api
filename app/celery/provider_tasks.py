@@ -34,7 +34,7 @@ from app.exceptions import (
     NotificationTechnicalFailureException,
 )
 from app.models import Notification
-from app.v2.notifications.notification_schemas import V2PushPayload
+from app.v2.dataclasses import V2PushPayload
 from app.v2.errors import RateLimitError
 
 

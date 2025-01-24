@@ -11,7 +11,7 @@ from app.schema_validation import validate
 from app.utils import get_public_notify_type_text
 from app.v2.errors import BadRequestError
 from app.v2.notifications import v2_notification_blueprint
-from app.v2.notifications.dataclasses import V2PushPayload
+from app.v2.dataclasses import V2PushPayload
 from app.v2.notifications.notification_schemas import push_notification_broadcast_request, push_notification_request
 
 

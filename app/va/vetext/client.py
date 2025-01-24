@@ -7,7 +7,7 @@ from requests.auth import HTTPBasicAuth
 from notifications_utils.clients.statsd.statsd_client import StatsdClient
 
 from app.celery.exceptions import NonRetryableException, RetryableException
-from app.v2.notifications.dataclasses import V2PushPayload
+from app.v2.dataclasses import V2PushPayload
 
 
 class Credentials(TypedDict):
