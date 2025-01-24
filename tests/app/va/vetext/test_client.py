@@ -1,9 +1,14 @@
-import pytest
-import requests
 from base64 import b64encode
-from requests_mock import ANY
 from unittest import mock
 from uuid import uuid4
+
+import pytest
+from requests import HTTPError, Response
+from requests.exceptions import ConnectTimeout, ReadTimeout, RequestException
+from requests_mock import ANY
+
+from app.celery.exceptions import NonRetryableException, RetryableException
+from app.mobile_app import DEAFULT_MOBILE_APP_TYPE
 from app.va.identifier import IdentifierType
 from app.va.vetext import VETextClient
 from app.va.vetext.exceptions import (
@@ -12,6 +17,7 @@ from app.va.vetext.exceptions import (
     VETextNonRetryableException,
     VETextRetryableException,
 )
+from app.v2.dataclasses import V2PushPayload
 from tests.app.factories.recipient_idenfier import sample_recipient_identifier
 from tests.app.factories.mobile_app import sample_mobile_app_type
 
@@ -30,6 +36,23 @@ def test_vetext_client(mocker):
         MOCK_VETEXT_URL, {'username': MOCK_USER, 'password': MOCK_PASSWORD}, logger=mock_logger, statsd=mock_statsd
     )
     return test_vetext_client
+
+
+@pytest.fixture
+def sample_vetext_push_payload(test_vetext_client):
+    """Defaults to ICN (normal push, not broadcast)"""
+
+    def _wrapper(
+        mobile_app: str = DEAFULT_MOBILE_APP_TYPE,
+        template_id: str = 'any_template_id',
+        icn: str | None = 'some_icn',
+        topic_sid: str | None = None,
+        personalisation: dict[str, str] | None = None,
+    ) -> dict[str, str]:
+        payload = V2PushPayload(mobile_app, template_id, icn, topic_sid, personalisation)
+        return test_vetext_client.format_for_vetext(payload)
+
+    yield _wrapper
 
 
 def test_send_push_notification_correct_request(rmock, test_vetext_client):
@@ -76,7 +99,7 @@ def test_send_push_captures_statsd_metrics_on_success(rmock, test_vetext_client)
 
 class TestRequestExceptions:
     def test_raises_retryable_error_on_request_exception(self, rmock, test_vetext_client):
-        rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', exc=requests.exceptions.ConnectTimeout)
+        rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', exc=ConnectTimeout)
 
         with pytest.raises(VETextRetryableException):
             test_vetext_client.send_push_notification(
@@ -86,7 +109,7 @@ class TestRequestExceptions:
             )
 
     def test_logs_exception_on_read_timeout(self, rmock, test_vetext_client):
-        rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', exc=requests.exceptions.ReadTimeout)
+        rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', exc=ReadTimeout)
 
         test_vetext_client.send_push_notification(
             'app_sid',
@@ -96,7 +119,7 @@ class TestRequestExceptions:
         assert test_vetext_client.logger.exception.called_once
 
     def test_increments_statsd_and_timing_on_request_exception(self, rmock, test_vetext_client):
-        rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', exc=requests.exceptions.ConnectTimeout)
+        rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', exc=ConnectTimeout)
 
         with pytest.raises(VETextRetryableException):
             test_vetext_client.send_push_notification(
@@ -185,3 +208,113 @@ class TestHTTPExceptions:
             )
         assert e.value.field is None
         assert e.value.message == response
+
+
+class TestFormatVetextPayload:
+    def test_format_happy_path_push(self):
+        payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', icn='some_icn')
+        VETextClient.format_for_vetext(payload)
+
+    def test_format_happy_path_broadcast(self):
+        payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', topic_sid='some_topic_sid')
+        VETextClient.format_for_vetext(payload)
+
+    def test_format_personalisation_happy_path(self):
+        payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id')
+        VETextClient.format_for_vetext(payload)
+
+
+class TestSendPushNotification:
+    def test_deliver_push_happy_path_icn(
+        self,
+        client,
+        rmock,
+        test_vetext_client,
+        sample_vetext_push_payload,
+    ):
+        rmock.register_uri(
+            'POST',
+            f'{MOCK_VETEXT_URL}/mobile/push/send',
+            json={'message': 'success'},
+            status_code=201,
+        )
+
+        # Should run without exceptions
+        test_vetext_client.send_push_notification(sample_vetext_push_payload())
+
+    def test_deliver_push_happy_path_topic(
+        self,
+        client,
+        rmock,
+        test_vetext_client,
+        sample_vetext_push_payload,
+    ):
+        rmock.register_uri(
+            'POST',
+            f'{MOCK_VETEXT_URL}/mobile/push/send',
+            json={'message': 'success'},
+            status_code=201,
+        )
+
+        # Should run without exceptions
+        test_vetext_client.send_push_notification(sample_vetext_push_payload(icn=None, topic_sid='some_topic_sid'))
+
+    @pytest.mark.parametrize(
+        'test_exception, status_code',
+        [
+            (ConnectTimeout(), None),
+            (HTTPError(response=Response()), 429),
+            (HTTPError(response=Response()), 500),
+            (HTTPError(response=Response()), 502),
+            (HTTPError(response=Response()), 503),
+            (HTTPError(response=Response()), 504),
+        ],
+    )
+    def test_deliver_push_retryable_exception(
+        self,
+        client,
+        rmock,
+        test_exception,
+        status_code,
+        test_vetext_client,
+        sample_vetext_push_payload,
+    ):
+        if status_code is not None:
+            test_exception.response.status_code = status_code
+        rmock.register_uri(
+            'POST',
+            f'{MOCK_VETEXT_URL}/mobile/push/send',
+            exc=test_exception,
+        )
+
+        with pytest.raises(RetryableException):
+            test_vetext_client.send_push_notification(sample_vetext_push_payload())
+
+    @pytest.mark.parametrize(
+        'test_exception, status_code',
+        [
+            (HTTPError(response=Response()), 400),
+            (HTTPError(response=Response()), 403),
+            (HTTPError(response=Response()), 405),
+            (RequestException(), None),
+        ],
+    )
+    def test_deliver_push_nonretryable_exception(
+        self,
+        client,
+        test_exception,
+        status_code,
+        rmock,
+        test_vetext_client,
+        sample_vetext_push_payload,
+    ):
+        if status_code is not None:
+            test_exception.response.status_code = status_code
+        rmock.register_uri(
+            'POST',
+            f'{MOCK_VETEXT_URL}/mobile/push/send',
+            exc=test_exception,
+        )
+
+        with pytest.raises(NonRetryableException):
+            test_vetext_client.send_push_notification(sample_vetext_push_payload())

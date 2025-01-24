@@ -2,7 +2,7 @@ from requests import HTTPError, Response
 from requests.exceptions import ConnectTimeout, RequestException
 import pytest
 
-from app.celery.exceptions import AutoRetryException, NonRetryableException, RetryableException
+from app.celery.exceptions import AutoRetryException, NonRetryableException
 from app.celery.provider_tasks import deliver_email, deliver_push, deliver_sms, deliver_sms_with_rate_limiting
 from app.clients.email.aws_ses import AwsSesClientThrottlingSendRateException
 from app.config import QueueNames
