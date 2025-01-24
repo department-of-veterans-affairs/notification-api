@@ -503,9 +503,12 @@ def test_deliver_push_happy_path_icn(
     rmock,
 ):
     rmock.register_uri(
-        'POST', f"{client.application.config['VETEXT_URL']}/mobile/push/send", json={'message': 'success'}, status_code=201,
+        'POST',
+        f"{client.application.config['VETEXT_URL']}/mobile/push/send",
+        json={'message': 'success'},
+        status_code=201,
     )
-    payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE,'any_template_id', icn='some_icn')
+    payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', icn='some_icn')
 
     # Should run without exceptions
     deliver_push(payload)
@@ -516,15 +519,19 @@ def test_deliver_push_happy_path_topic(
     rmock,
 ):
     rmock.register_uri(
-        'POST', f"{client.application.config['VETEXT_URL']}/mobile/push/send", json={'message': 'success'}, status_code=201,
+        'POST',
+        f"{client.application.config['VETEXT_URL']}/mobile/push/send",
+        json={'message': 'success'},
+        status_code=201,
     )
-    payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE,'any_template_id', topic_sid='some_topic_sid')
+    payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', topic_sid='some_topic_sid')
 
     # Should run without exceptions
     deliver_push(payload)
 
 
-@pytest.mark.parametrize('test_exception, status_code',
+@pytest.mark.parametrize(
+    'test_exception, status_code',
     [
         (ConnectTimeout(), None),
         (HTTPError(response=Response()), 429),
@@ -532,7 +539,7 @@ def test_deliver_push_happy_path_topic(
         (HTTPError(response=Response()), 502),
         (HTTPError(response=Response()), 503),
         (HTTPError(response=Response()), 504),
-    ]
+    ],
 )
 def test_deliver_push_retryable_exception(
     client,
@@ -543,21 +550,24 @@ def test_deliver_push_retryable_exception(
     if status_code is not None:
         test_exception.response.status_code = status_code
     rmock.register_uri(
-        'POST', f"{client.application.config['VETEXT_URL']}/mobile/push/send", exc=test_exception,
+        'POST',
+        f"{client.application.config['VETEXT_URL']}/mobile/push/send",
+        exc=test_exception,
     )
-    payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE,'any_template_id', 'some_icn')
+    payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', 'some_icn')
 
     with pytest.raises(AutoRetryException):
         deliver_push(payload)
 
 
-@pytest.mark.parametrize('test_exception, status_code',
+@pytest.mark.parametrize(
+    'test_exception, status_code',
     [
         (HTTPError(response=Response()), 400),
         (HTTPError(response=Response()), 403),
         (HTTPError(response=Response()), 405),
         (RequestException(), None),
-    ]
+    ],
 )
 def test_deliver_push_nonretryable_exception(
     client,
@@ -568,9 +578,11 @@ def test_deliver_push_nonretryable_exception(
     if status_code is not None:
         test_exception.response.status_code = status_code
     rmock.register_uri(
-        'POST', f"{client.application.config['VETEXT_URL']}/mobile/push/send", exc=test_exception,
+        'POST',
+        f"{client.application.config['VETEXT_URL']}/mobile/push/send",
+        exc=test_exception,
     )
-    payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE,'any_template_id', 'some_icn')
+    payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', 'some_icn')
 
     with pytest.raises(NonRetryableException):
         deliver_push(payload)

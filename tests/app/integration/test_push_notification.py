@@ -54,11 +54,14 @@ def test_mobile_app_push_notification_delivered(
     assert response.status_code == 201
 
 
-@pytest.mark.parametrize('function, app', [
-    ('validate', None),
-    ('mobile_app_registry.get_app', 'mobile_app'),
-    ('mobile_app_registry.get_app', None),
-])
+@pytest.mark.parametrize(
+    'function, app',
+    [
+        ('validate', None),
+        ('mobile_app_registry.get_app', 'mobile_app'),
+        ('mobile_app_registry.get_app', None),
+    ],
+)
 @pytest.mark.parametrize('test_exception', [KeyError, TypeError, ValidationError])
 def test_mobile_app_push_notification_failed_validation(
     client,
