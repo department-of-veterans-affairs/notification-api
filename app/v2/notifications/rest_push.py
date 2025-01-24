@@ -1,7 +1,7 @@
 from celery.exceptions import CeleryError
 from jsonschema import ValidationError
 from kombu.exceptions import OperationalError
-from flask import current_app, jsonify, request, Request
+from flask import current_app, jsonify, request
 
 from app import authenticated_service, mobile_app_registry
 from app.celery.provider_tasks import deliver_push
@@ -38,21 +38,21 @@ def push_notification_helper(schema: dict):
             status_code=403,
         )
 
-    payload = validate_push_payload(request, schema)
+    payload = validate_push_payload(schema)
 
     try:
         # Choosing to use the email queue for push to limit the number of empty queues
         deliver_push.delay(payload)
     except (CeleryError, OperationalError):
         current_app.logger.exception('Failed to enqueue deliver_push request')
-        response = jsonify(result='error', status=502, message='VA Notify service impaired, please try again')
+        response = jsonify(result='error', message='VA Notify service impaired, please try again'), 502
     else:
-        response = jsonify(result='success', status=201)
-
+        response = jsonify(result='success'), 201
+    # Flask turns the tuple into a json and status_code
     return response
 
 
-def validate_push_payload(schema: dict[str, str], request: Request) -> V2PushPayload:
+def validate_push_payload(schema: dict[str, str]) -> V2PushPayload:
     """Validate an incoming push request.
 
     Args:
@@ -74,7 +74,7 @@ def validate_push_payload(schema: dict[str, str], request: Request) -> V2PushPay
             app_sid = mobile_app_registry.get_app(DEAFULT_MOBILE_APP_TYPE).sid
     except (KeyError, TypeError, ValidationError) as e:
         current_app.logger.warning('Push request failed validation: %s', e)
-        raise BadRequestError(message=e.message, status_code=400)
+        raise BadRequestError(message=str(e), status_code=400)
     except Exception:
         msg = 'Unable to process request for push notification - bad request'
         current_app.logger.exception(msg)
@@ -88,5 +88,5 @@ def validate_push_payload(schema: dict[str, str], request: Request) -> V2PushPay
         req_json.get('topic_sid'),
         req_json.get('personalisation'),
     )
-    current_app.logger.debug('V2PushPayload: %s', payload)
+    current_app.logger.debug('V2PushPayload is: %s', payload)
     return payload
