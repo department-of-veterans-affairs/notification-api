@@ -176,6 +176,9 @@ class AwsPinpointClient(SmsClient):
         if event_type == '_SMS.OPTOUT':
             status = NOTIFICATION_PERMANENT_FAILURE
             status_reason = STATUS_REASON_BLOCKED
+        elif event_type == '_SMS.BUFFERED':
+            status = NOTIFICATION_SENDING
+            status_reason = None
         else:
             status, status_reason = self._get_status_mapping(record_status)
         return status, status_reason

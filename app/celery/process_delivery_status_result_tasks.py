@@ -231,6 +231,15 @@ def sms_status_update(
     if sms_status.status == NOTIFICATION_DELIVERED:
         sms_status.status_reason = None
 
+    # avoid an out-of-order/contradictory double billing, previous permanent_failure or delivered already counted price
+    # dao sms_conditions allow this status flip
+    # temporary_failure not possible with retry handling
+    if (notification.status, sms_status.status) in (
+        (NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_DELIVERED),
+        (NOTIFICATION_DELIVERED, NOTIFICATION_PERMANENT_FAILURE),
+    ):
+        sms_status.price_millicents = 0
+
     try:
         notification: Notification = dao_update_sms_notification_delivery_status(
             notification_id=notification.id,
@@ -456,6 +465,11 @@ def sms_attempt_retry(
         # mark as permanant failure so client can be updated
         sms_status.status = NOTIFICATION_PERMANENT_FAILURE
         sms_status.status_reason = STATUS_REASON_UNDELIVERABLE
+
+        # avoid an out-of-order double billing, previous permanent_failure or delivered already counted
+        # temporary_failure not possible with retry handling
+        if notification.status != NOTIFICATION_SENDING:
+            sms_status.price_millicents = 0
 
         try:
             notification: Notification = dao_update_sms_notification_delivery_status(
