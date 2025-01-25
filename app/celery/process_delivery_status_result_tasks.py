@@ -316,6 +316,7 @@ def can_retry_sms_request(
     return (status == NOTIFICATION_SENDING) and (retries <= max_retries) and (time_elapsed < retry_window)
 
 
+# TODO: defaults
 def get_sms_retry_delay(retry_count: int) -> int:
     """Calculate the retry delay for SMS delivery with random jitter.
 
@@ -333,14 +334,16 @@ def get_sms_retry_delay(retry_count: int) -> int:
     Returns:
         int: Delay in seconds with applied jitter.
     """
-    delay_with_jitter = (
-        (60, 6),  # 60 seconds +/- 6 seconds (10%)
-        (600, 60),  # 10 minutes +/- 60 seconds (10%)
-    )
+    delay_with_jitter_by_retry_count = {
+        1: (60, 6),  # 60 seconds +/- 6 seconds (10%)
+        2: (600, 60),  # 10 minutes +/- 60 seconds (10%)
+    }
 
     # Safeguard against retry counts outside the defined range
-    index = max(retry_count - 1, 0)
-    base_delay, jitter_range = delay_with_jitter[min(index, len(delay_with_jitter) - 1)]
+    # Default to largest delay
+    default_delay_with_jitter = (600, 60)
+
+    base_delay, jitter_range = delay_with_jitter_by_retry_count.get(retry_count, default_delay_with_jitter)
 
     # Apply jitter
     delay = int(base_delay + random.randint(-jitter_range, jitter_range))  # nosec non-cryptographic use case
@@ -426,6 +429,7 @@ def sms_attempt_retry(
                 notification_id=notification.id,
                 notification_type=notification.notification_type,
                 cost_in_millicents=notification.cost_in_millicents + sms_status.price_millicents,
+                segments_count=sms_status.message_parts,
             )
 
             current_app.logger.info(

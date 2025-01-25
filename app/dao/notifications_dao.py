@@ -388,6 +388,7 @@ def dao_update_sms_notification_status_to_created_for_retry(
     notification_id: UUID,
     notification_type: str,
     cost_in_millicents: float,
+    segments_count: int,
 ) -> Notification:
     """Update an SMS notification status to created for retry.
 
@@ -401,6 +402,7 @@ def dao_update_sms_notification_status_to_created_for_retry(
         provider (str): The provider being used
         notification_id (UUID): The id to update
         cost_in_millicents (float): The amount that charged to send the message (running total for retries)
+        segments_count (int): The number of message parts that Amazon Pinpoint created in order to send the message.
 
     Returns:
         Notification: A Notification object
@@ -416,6 +418,7 @@ def dao_update_sms_notification_status_to_created_for_retry(
                 status_reason=None,
                 reference=None,
                 cost_in_millicents=cost_in_millicents,
+                segments_count=segments_count,
             )
             .execution_options(synchronize_session='fetch')
         )

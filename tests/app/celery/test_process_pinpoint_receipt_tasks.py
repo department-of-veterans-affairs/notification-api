@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from app.dao.notifications_dao import dao_update_notification_by_id
 from app.models import Notification
 import pytest
 
@@ -95,6 +96,38 @@ def test_process_pinpoint_results_should_not_attempt_retry(
     sms_status_update.assert_called()
 
 
+@pytest.mark.parametrize(
+    'event_type, record_status',
+    [
+        ('_SMS.FAILURE', 'UNREACHABLE'),
+        ('_SMS.FAILURE', 'UNKNOWN'),
+        ('_SMS.FAILURE', 'CARRIER_UNREACHABLE'),
+        ('_SMS.FAILURE', 'TTL_EXPIRED'),
+    ],
+)
+def test_process_pinpoint_results_should_queue_retry(
+    mocker,
+    sample_notification,
+    event_type,
+    record_status,
+):
+    mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
+    mocked_send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+
+    notification = sample_notification(
+        sent_at=datetime.now(timezone.utc),
+        status=NOTIFICATION_SENDING,
+    )
+
+    process_pinpoint_results(
+        response=pinpoint_notification_callback_record(
+            reference=notification.reference, event_type=event_type, record_status=record_status
+        )
+    )
+
+    mocked_send_to_queue.assert_called()
+
+
 @pytest.mark.parametrize('status', [NOTIFICATION_CREATED, NOTIFICATION_DELIVERED, NOTIFICATION_PERMANENT_FAILURE])
 def test_process_pinpoint_results_should_not_queue_retry(
     mocker,
@@ -104,13 +137,17 @@ def test_process_pinpoint_results_should_not_queue_retry(
     sms_attempt_retry = mocker.patch('app.celery.process_pinpoint_receipt_tasks.sms_attempt_retry')
     mocked_send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
 
-    sample_notification(
-        sent_at=datetime.now(timezone.utc),
+    sent_at_timestamp = datetime.now(timezone.utc) if status != NOTIFICATION_CREATED else None
+
+    notification = sample_notification(
+        sent_at=sent_at_timestamp,
         status=status,
     )
 
     process_pinpoint_results(
-        response=pinpoint_notification_callback_record(event_type='_SMS.FAILURE', record_status='UNREACHABLE')
+        response=pinpoint_notification_callback_record(
+            reference=notification.reference, event_type='_SMS.FAILURE', record_status='UNREACHABLE'
+        )
     )
 
     sms_attempt_retry.assert_called()
@@ -262,7 +299,7 @@ def test_process_pinpoint_results_should_not_update_notification_status_to_sendi
 @pytest.mark.parametrize(
     'status',
     [
-        NOTIFICATION_CREATED,
+        NOTIFICATION_CREATED,  # TODO: Valid?
         NOTIFICATION_SENDING,
         NOTIFICATION_TEMPORARY_FAILURE,
         NOTIFICATION_PERMANENT_FAILURE,
@@ -499,3 +536,167 @@ def test_process_pinpoint_results_should_not_update_cost_in_millicents(
 
     send_to_queue.assert_not_called()
     assert notification.cost_in_millicents == 0
+
+
+def test_process_pinpoint_results_sequence_retry_delivered(
+    mocker,
+    sample_notification,
+    notify_db_session,
+):
+    """
+    Test processing a Pinpoint SMS stream event.  Messages long enough to require multiple segments only
+    result in one event that contains the aggregate cost.
+    """
+    mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
+    mocker.patch('app.celery.process_delivery_status_result_tasks.get_sms_retry_delay', return_value=60)
+    send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+
+    notification = sample_notification(sent_at=datetime.now(timezone.utc), status=NOTIFICATION_SENDING)
+
+    assert notification.segments_count == 0, 'This is the default.'
+    assert notification.cost_in_millicents == 0.0, 'This is the default.'
+
+    cost_per_attempt = 1000.0
+
+    # Receiving a _SMS.FAILURE+UNKNOWN event first should trigger retry
+    process_pinpoint_results(
+        response=pinpoint_notification_callback_record(
+            reference=notification.reference,
+            event_type='_SMS.FAILURE',
+            record_status='UNKNOWN',
+            number_of_message_parts=6,
+            price=cost_per_attempt,
+        )
+    )
+
+    send_to_queue.assert_called()
+
+    notify_db_session.session.refresh(notification)
+
+    assert notification.status == NOTIFICATION_CREATED
+    assert notification.segments_count == 6  # TODO
+    assert notification.cost_in_millicents == cost_per_attempt
+    assert notification.status_reason is None
+    assert notification.reference is None
+
+    # simulate successful send to provider
+    notification = dao_update_notification_by_id(
+        notification_id=notification.id,
+        status=NOTIFICATION_SENDING,
+        status_reason=None,
+        reference=str(uuid4()),
+        sent_at=datetime.now(timezone.utc),
+    )
+
+    # A subsequent _SMS.SUCCESS+DELIVERED event should process as delivered with summed cost
+    process_pinpoint_results(
+        response=pinpoint_notification_callback_record(
+            reference=notification.reference,
+            event_type='_SMS.SUCCESS',
+            record_status='DELIVERED',
+            number_of_message_parts=6,
+            price=cost_per_attempt,
+        )
+    )
+
+    notify_db_session.session.refresh(notification)
+    assert notification.status == NOTIFICATION_DELIVERED
+    assert notification.segments_count == 6
+    # total cost of original failed attempt and subsequent retry
+    assert notification.cost_in_millicents == cost_per_attempt * 2
+    assert notification.status_reason is None
+
+
+def test_process_pinpoint_results_sequence_retry_stale_reference(
+    mocker,
+    sample_notification,
+    notify_db_session,
+):
+    """
+    Test processing a Pinpoint SMS stream event.  Messages long enough to require multiple segments only
+    result in one event that contains the aggregate cost.
+    """
+    mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
+    mocker.patch('app.celery.process_delivery_status_result_tasks.get_sms_retry_delay', return_value=60)
+    send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+
+    notification = sample_notification(sent_at=datetime.now(timezone.utc), status=NOTIFICATION_SENDING)
+
+    original_reference = notification.reference
+
+    assert notification.segments_count == 0, 'This is the default.'
+    assert notification.cost_in_millicents == 0.0, 'This is the default.'
+
+    cost_per_attempt = 1000.0
+
+    # Receiving a _SMS.FAILURE+UNKNOWN event first should trigger retry
+    process_pinpoint_results(
+        response=pinpoint_notification_callback_record(
+            reference=notification.reference,
+            event_type='_SMS.FAILURE',
+            record_status='UNKNOWN',
+            number_of_message_parts=6,
+            price=cost_per_attempt,
+        )
+    )
+
+    send_to_queue.assert_called()
+
+    notify_db_session.session.refresh(notification)
+
+    assert notification.status == NOTIFICATION_CREATED
+    assert notification.segments_count == 6
+    assert notification.cost_in_millicents == cost_per_attempt
+    assert notification.status_reason is None
+    assert notification.reference is None
+
+    # simulate successful send to provider
+    notification = dao_update_notification_by_id(
+        notification_id=notification.id,
+        status=NOTIFICATION_SENDING,
+        status_reason=None,
+        reference=str(uuid4()),
+        sent_at=datetime.now(timezone.utc),
+    )
+
+    # A subsequent out-of-order/late _SMS.SUCCESS+DELIVERED event with stale reference should throw NonRetryableException
+    # The original reference was cleared for requeue so the notification can not be found by reference
+    # The cost of the attempt has already been recorded by the earlier retry attempt
+    # The out-of-order/late events can lead to duplicate delivery attempts but this is unavoidable
+    with pytest.raises(NonRetryableException):
+        process_pinpoint_results(
+            response=pinpoint_notification_callback_record(
+                reference=original_reference,
+                event_type='_SMS.SUCCESS',
+                record_status='DELIVERED',
+                number_of_message_parts=6,
+                price=cost_per_attempt,
+            )
+        )
+
+    notify_db_session.session.refresh(notification)
+
+    assert notification.status == NOTIFICATION_SENDING
+    assert notification.cost_in_millicents == cost_per_attempt
+    assert notification.status_reason is None
+    assert notification.reference is not original_reference
+
+    # A subsequent _SMS.SUCCESS+DELIVERED event should process as delivered with summed cost
+    process_pinpoint_results(
+        response=pinpoint_notification_callback_record(
+            reference=notification.reference,
+            event_type='_SMS.SUCCESS',
+            record_status='DELIVERED',
+            number_of_message_parts=6,
+            price=cost_per_attempt,
+        )
+    )
+
+    notify_db_session.session.refresh(notification)
+
+    assert notification.status == NOTIFICATION_DELIVERED
+    assert notification.segments_count == 6
+    # total cost of original failed attempt and subsequent retry
+    # out-of-order/late success event is not double counted
+    assert notification.cost_in_millicents == cost_per_attempt * 2
+    assert notification.status_reason is None

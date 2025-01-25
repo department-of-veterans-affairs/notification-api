@@ -2218,6 +2218,7 @@ def test_dao_update_sms_notification_status_to_created_for_retry_valid_update(
         notification_id=notification.id,
         notification_type=notification.notification_type,
         cost_in_millicents=10.0,
+        segments_count=6,
     )
 
     assert notification.status == NOTIFICATION_CREATED
@@ -2249,6 +2250,7 @@ def test_dao_update_sms_notification_status_to_created_for_retry_invalid_updates
         notification_id=notification.id,
         notification_type=notification.notification_type,
         cost_in_millicents=0.0,
+        segments_count=6,
     )
 
     assert notification.status == current_status

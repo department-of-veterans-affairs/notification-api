@@ -584,8 +584,8 @@ def test_can_retry_sms_request_status_not_sending_returns_false():
 @pytest.mark.parametrize(
     'retry_count, expected_base_delay',
     [
-        (-1, 60),
-        (0, 60),
+        (-1, 600),
+        (0, 600),
         (1, 60),
         (2, 600),
         (3, 600),
@@ -640,7 +640,7 @@ def test_sms_attempt_retry_cost_updated_if_retryable(mocker, sample_notification
     assert updated_notification.cost_in_millicents == 10
 
 
-def test_sms_attempt_retry_notification_status_created_if_retryable(mocker, sample_notification):
+def test_sms_attempt_retry_notification_update_if_retryable(mocker, sample_notification):
     notification = sample_notification(
         status=NOTIFICATION_SENDING,
         status_reason=None,
