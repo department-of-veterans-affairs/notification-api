@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from app.dao import notifications_dao
 from app.dao.notifications_dao import dao_update_notification_by_id
 from app.models import Notification
 import pytest
@@ -33,7 +34,7 @@ from app.constants import (
         ('_SMS.FAILURE', 'TTL_EXPIRED'),
     ],
 )
-def test_process_pinpoint_results_should_attempt_retry(
+def test_ut_process_pinpoint_results_should_attempt_retry(
     mocker,
     event_type,
     record_status,
@@ -71,9 +72,8 @@ def test_process_pinpoint_results_should_attempt_retry(
         ('_SMS.OPTOUT', ''),
     ],
 )
-def test_process_pinpoint_results_should_not_attempt_retry(
+def test_ut_process_pinpoint_results_should_not_attempt_retry(
     mocker,
-    sample_template,
     event_type,
     record_status,
     sample_notification,
@@ -81,9 +81,7 @@ def test_process_pinpoint_results_should_not_attempt_retry(
     sms_attempt_retry = mocker.patch('app.celery.process_pinpoint_receipt_tasks.sms_attempt_retry')
     sms_status_update = mocker.patch('app.celery.process_pinpoint_receipt_tasks.sms_status_update')
 
-    template = sample_template()
     sample_notification(
-        template=template,
         sent_at=datetime.now(timezone.utc),
         status=NOTIFICATION_SENDING,
     )
@@ -105,7 +103,7 @@ def test_process_pinpoint_results_should_not_attempt_retry(
         ('_SMS.FAILURE', 'TTL_EXPIRED'),
     ],
 )
-def test_process_pinpoint_results_should_queue_retry(
+def test_it_process_pinpoint_results_should_queue_retry(
     mocker,
     sample_notification,
     event_type,
@@ -129,7 +127,7 @@ def test_process_pinpoint_results_should_queue_retry(
 
 
 @pytest.mark.parametrize('status', [NOTIFICATION_CREATED, NOTIFICATION_DELIVERED, NOTIFICATION_PERMANENT_FAILURE])
-def test_process_pinpoint_results_should_not_queue_retry(
+def test_it_process_pinpoint_results_should_not_queue_retry(
     mocker,
     status,
     sample_notification,
@@ -175,8 +173,8 @@ def test_process_pinpoint_results_should_not_queue_retry(
     ],
 )
 def test_process_pinpoint_results_notification_final_status(
-    notify_db_session,
     mocker,
+    notify_db_session,
     event_type,
     record_status,
     expected_notification_status,
@@ -198,11 +196,12 @@ def test_process_pinpoint_results_notification_final_status(
     Note: Retryable errors will result in a permanent failure if retry attempts have been exhausted.
     """
 
-    mock_callback = mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
-    mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=False)
     mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
+    mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=False)
+    mock_callback = mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
 
     notification = sample_notification(
+        sent_at=datetime.now(timezone.utc),
         status=NOTIFICATION_SENDING,
     )
 
@@ -270,28 +269,26 @@ def test_process_pinpoint_results_should_not_update_notification_status_if_uncha
 
 @pytest.mark.parametrize('status', [NOTIFICATION_DELIVERED, NOTIFICATION_PERMANENT_FAILURE])
 def test_process_pinpoint_results_should_not_update_notification_status_to_sending_if_status_already_final(
-    notify_db_session,
     mocker,
+    sample_template,
     status,
     sample_notification,
     x_minutes_ago,
 ):
     mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
 
+    test_reference = f'{uuid4()}-notification_status_to_sending_if_status_already_final'
     last_updated_at = x_minutes_ago(5)
-
-    notification = sample_notification(updated_at=last_updated_at, status=status)
+    sample_notification(template=sample_template(), reference=test_reference, updated_at=last_updated_at, status=status)
 
     process_pinpoint_results(
         response=pinpoint_notification_callback_record(
-            reference=notification.reference,
+            reference=test_reference,
             event_type='_SMS.BUFFERED',
             record_status='PENDING',  # AWS equivalent of sending
         )
     )
-
-    notify_db_session.session.refresh(notification)
-
+    notification = notifications_dao.dao_get_notification_by_reference(test_reference)
     assert notification.status == status
     assert notification.updated_at == last_updated_at
 
@@ -299,15 +296,16 @@ def test_process_pinpoint_results_should_not_update_notification_status_to_sendi
 @pytest.mark.parametrize(
     'status',
     [
-        NOTIFICATION_CREATED,  # TODO: Valid?
+        NOTIFICATION_CREATED,
         NOTIFICATION_SENDING,
         NOTIFICATION_TEMPORARY_FAILURE,
         NOTIFICATION_PERMANENT_FAILURE,
     ],
 )
 def test_process_pinpoint_results_delivered_clears_status_reason(
-    notify_db_session,
     mocker,
+    notify_db_session,
+    sample_template,
     status,
     sample_notification,
     x_minutes_ago,
@@ -316,7 +314,9 @@ def test_process_pinpoint_results_delivered_clears_status_reason(
 
     test_reference = f'{uuid4()}-update_notification_status_with_delivered'
     last_updated_at = x_minutes_ago(5)
-    notification = sample_notification(
+    template = sample_template()
+    sample_notification(
+        template=template,
         reference=test_reference,
         sent_at=last_updated_at,
         updated_at=last_updated_at,
@@ -325,14 +325,12 @@ def test_process_pinpoint_results_delivered_clears_status_reason(
     )
     process_pinpoint_results(
         response=pinpoint_notification_callback_record(
-            reference=notification.reference,
+            reference=test_reference,
             event_type='_SMS.SUCCESS',
             record_status='DELIVERED',  # Pinpoint-specific
         )
     )
-
-    notify_db_session.session.refresh(notification)
-
+    notification = notifications_dao.dao_get_notification_by_reference(test_reference)
     assert notification.status == NOTIFICATION_DELIVERED
     assert notification.status_reason is None
     assert notification.updated_at != last_updated_at
