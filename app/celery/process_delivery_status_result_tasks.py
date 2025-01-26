@@ -316,7 +316,6 @@ def can_retry_sms_request(
     return (status == NOTIFICATION_SENDING) and (retries <= max_retries) and (time_elapsed < retry_window)
 
 
-# TODO: defaults
 def get_sms_retry_delay(retry_count: int) -> int:
     """Calculate the retry delay for SMS delivery with random jitter.
 
