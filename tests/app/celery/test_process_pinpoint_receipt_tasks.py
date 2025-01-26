@@ -376,6 +376,7 @@ def pinpoint_notification_callback_record(
 
 def test_wt_process_pinpoint_callback_should_log_total_time(
     mocker,
+    client,
     sample_template,
     sample_notification,
 ):
@@ -403,6 +404,7 @@ def test_wt_process_pinpoint_callback_should_log_total_time(
 
 @pytest.mark.parametrize('exception', [json.decoder.JSONDecodeError, ValueError, TypeError, KeyError])
 def test_process_pinpoint_callback_message_parse_exception(
+    notify_api,
     mocker,
     exception,
 ):
