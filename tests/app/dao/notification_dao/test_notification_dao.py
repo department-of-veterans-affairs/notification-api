@@ -2201,15 +2201,18 @@ def test_update_notification_delivery_status_invalid_updates(
     assert notification.status_reason == status_reason
 
 
-def test_dao_update_sms_notification_status_to_created_for_retry_valid_update(
+def test_ut_dao_update_sms_notification_status_to_created_for_retry_valid_update(
     sample_template,
     sample_notification,
 ):
+    initial_cost = 10.0
+    final_cost = 30.0
+
     notification: Notification = sample_notification(
-        template=sample_template(),
         status=NOTIFICATION_SENDING,
         status_reason='Because I said so!',
-        cost_in_millicents=0.0,
+        cost_in_millicents=initial_cost,
+        segments_count=6,
     )
 
     assert notification.status == NOTIFICATION_SENDING
@@ -2217,20 +2220,22 @@ def test_dao_update_sms_notification_status_to_created_for_retry_valid_update(
     dao_update_sms_notification_status_to_created_for_retry(
         notification_id=notification.id,
         notification_type=notification.notification_type,
-        cost_in_millicents=10.0,
+        cost_in_millicents=final_cost,
         segments_count=6,
     )
 
     assert notification.status == NOTIFICATION_CREATED
     assert notification.status_reason is None
-    assert notification.cost_in_millicents == 10.0
+    notification.cost_in_millicents
+    assert notification.cost_in_millicents == final_cost
+    assert notification.segments_count == 6
 
 
 @pytest.mark.parametrize(
     'current_status',
     [NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_DELIVERED],
 )
-def test_dao_update_sms_notification_status_to_created_for_retry_invalid_updates(
+def test_ut_dao_update_sms_notification_status_to_created_for_retry_invalid_updates(
     sample_template,
     sample_notification,
     current_status,
