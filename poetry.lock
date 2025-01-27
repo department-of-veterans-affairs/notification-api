@@ -2246,8 +2246,8 @@ statsd = ">=4.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
-reference = "181-blockquotes"
-resolved_reference = "abcaa3af0b3828f52691f66df2343eff97298131"
+reference = "HEAD"
+resolved_reference = "0486efdb682b92caf179e6f22891e603c9764a43"
 
 [[package]]
 name = "notifications-python-client"
@@ -3798,4 +3798,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "3a5be687be544b95bd277a21c72063cae213f76fb4716caa0661ab21ba53ff36"
+content-hash = "379b11ec4862fc9ac63de84edf9f247e1d4282cb29c7b0dabce72dad2065c16b"
