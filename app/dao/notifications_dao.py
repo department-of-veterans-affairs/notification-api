@@ -353,17 +353,21 @@ def dao_update_sms_notification_delivery_status(
         Notification: A Notification object
     """
 
-    stmt_values = {
-        'status': new_status,
-        'status_reason': new_status_reason,
-        'segments_count': segments_count,
-        'cost_in_millicents': cost_in_millicents,
-    }
-
-    if new_status in FINAL_STATUS_STATES:
-        stmt_values['_personalisation'] = encryption.encrypt('<redacted>')
-
     if notification_type == SMS_TYPE:
+        stmt_values = {
+            'status': new_status,
+            'status_reason': new_status_reason,
+            'segments_count': segments_count,
+            'cost_in_millicents': cost_in_millicents,
+        }
+
+        if new_status in FINAL_STATUS_STATES:
+            # IDK how to do this without an additional query
+            notification = db.session.get(Notification, notification_id)
+            stmt_values['_personalisation'] = encryption.encrypt(
+                {k: '<redacted>' for k in notification.personalisation}
+            )
+
         stmt = (
             update(Notification)
             .where(Notification.id == notification_id)
