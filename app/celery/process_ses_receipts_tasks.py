@@ -205,6 +205,9 @@ def process_ses_results(  # noqa: C901 (too complex 14 > 10)
             )
             return
 
+        if incoming_status in (NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_DELIVERED):
+            notification.personalisation = '<redacted>'
+
         # This is a test of the new status.  Is it a bounce?
         if incoming_status in (NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_PERMANENT_FAILURE):
             # Add the failure status reason to the notification.
