@@ -664,7 +664,7 @@ def test_it_process_pinpoint_results_sequence_retry_delivered(
     notify_db_session.session.refresh(notification)
 
     assert notification.status == NOTIFICATION_CREATED
-    assert notification.segments_count == 6  # TODO
+    assert notification.segments_count == 6
     assert notification.cost_in_millicents == cost_per_attempt
     assert notification.status_reason is None
     assert notification.reference is None
