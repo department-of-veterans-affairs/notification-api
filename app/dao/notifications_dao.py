@@ -353,19 +353,25 @@ def dao_update_sms_notification_delivery_status(
         Notification: A Notification object
     """
 
+    stmt_values = {
+        'status': new_status,
+        'status_reason': new_status_reason,
+        'segments_count': segments_count,
+        'cost_in_millicents': cost_in_millicents,
+    }
+
+    # if new_status in FINAL_STATUS_STATES:
+    #     stmt_values['personalisation'] = {'foo': 'bar'}
+
     if notification_type == SMS_TYPE:
         stmt = (
             update(Notification)
             .where(Notification.id == notification_id)
             .where(sms_conditions(new_status))
-            .values(
-                status=new_status,
-                status_reason=new_status_reason,
-                segments_count=segments_count,
-                cost_in_millicents=cost_in_millicents,
-            )
+            .values(**stmt_values)
             .execution_options(synchronize_session='fetch')
         )
+
         current_app.logger.debug('sms delivery status statement: %s', stmt)
     else:
         raise NotImplementedError(

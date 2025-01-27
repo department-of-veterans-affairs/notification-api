@@ -351,3 +351,31 @@ def test_process_pinpoint_callback_message_parse_exception(
     with pytest.raises(NonRetryableException) as exc_info:
         process_pinpoint_results(pinpoint_notification_callback_record(reference=str(uuid4())))
     assert UNABLE_TO_TRANSLATE in str(exc_info)
+
+
+def test_process_pinpoint_results_notification_final_status_personalisation(
+    mocker,
+    sample_template,
+    event_type,
+    sample_notification,
+):
+    mock_callback = mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
+
+    test_reference = str(uuid4())
+    template = sample_template(content='Hello ((name))')
+    sample_notification(
+        template=template,
+        reference=test_reference,
+        sent_at=datetime.now(timezone.utc),
+        status=NOTIFICATION_SENDING,
+        status_reason='just because',
+        personalisation={'name': 'Bob'},
+    )
+    process_pinpoint_results(
+        response=pinpoint_notification_callback_record(
+            reference=test_reference, event_type=event_type, record_status='DELIVERED'
+        )
+    )
+    notification = notifications_dao.dao_get_notification_by_reference(test_reference)
+    assert notification.personalisation == '<redacted>'
+    mock_callback.assert_called_once()
