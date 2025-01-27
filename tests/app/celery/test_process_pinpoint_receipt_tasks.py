@@ -514,7 +514,7 @@ def test_process_pinpoint_callback_message_parse_exception(
         ('_SMS.FAILURE', 'INVALID'),  # NOTIFICATION_PERMANENT_FAILURE
     ],
 )
-def test_process_pinpoint_results_should_update_cost_in_millicents(
+def test_it_process_pinpoint_results_should_update_cost_in_millicents(
     notify_db_session,
     mocker,
     event_type,
@@ -554,7 +554,7 @@ def test_process_pinpoint_results_should_update_cost_in_millicents(
         ('_SMS.FAILURE', 'TTL_EXPIRED'),
     ],
 )
-def test_process_pinpoint_results_should_update_cost_in_millicents_retries_exhausted(
+def test_it_process_pinpoint_results_should_update_cost_in_millicents_retries_exhausted(
     notify_db_session,
     mocker,
     event_type,
@@ -599,7 +599,7 @@ def test_process_pinpoint_results_should_update_cost_in_millicents_retries_exhau
         (NOTIFICATION_PERMANENT_FAILURE, '_SMS.SUCCESS', 'DELIVERED'),
     ],
 )
-def test_process_pinpoint_results_should_not_update_cost_in_millicents(
+def test_it_process_pinpoint_results_should_not_update_cost_in_millicents(
     notify_db_session,
     mocker,
     initial_status,
@@ -628,7 +628,7 @@ def test_process_pinpoint_results_should_not_update_cost_in_millicents(
     assert notification.cost_in_millicents == 0
 
 
-def test_process_pinpoint_results_sequence_retry_delivered(
+def test_it_process_pinpoint_results_sequence_retry_delivered(
     mocker,
     sample_notification,
     notify_db_session,
@@ -697,7 +697,7 @@ def test_process_pinpoint_results_sequence_retry_delivered(
     assert notification.status_reason is None
 
 
-def test_process_pinpoint_results_sequence_retry_stale_reference(
+def test_it_process_pinpoint_results_sequence_retry_stale_reference(
     mocker,
     sample_notification,
     notify_db_session,

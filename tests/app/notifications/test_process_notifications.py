@@ -1060,7 +1060,7 @@ def test_send_notification_without_sms_sender_rate_limit_uses_regular_delivery_t
     deliver_sms_with_rate_limiting.assert_not_called()
 
 
-def test_send_notification_with_delay_uses_apply_async_countdown(mocker, sample_notification, sample_template):
+def test_ut_send_notification_with_delay_uses_apply_async_countdown(mocker, sample_notification, sample_template):
     template = sample_template()
     notification = sample_notification(
         template=template,

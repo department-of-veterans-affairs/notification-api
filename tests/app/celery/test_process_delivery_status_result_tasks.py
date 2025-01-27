@@ -545,7 +545,7 @@ def test_get_include_payload_status_exception(notify_api, mocker, sample_notific
     assert not _get_include_payload_status(sample_notification())
 
 
-def test_can_retry_sms_request_valid_case_returns_true():
+def test_ut_can_retry_sms_request_valid_case_returns_true():
     retries = 1
     sent_at = datetime.utcnow() - timedelta(minutes=1)
 
@@ -554,7 +554,7 @@ def test_can_retry_sms_request_valid_case_returns_true():
     )
 
 
-def test_can_retry_sms_request_exceeds_retry_limit_returns_false():
+def test_ut_can_retry_sms_request_exceeds_retry_limit_returns_false():
     retries = CARRIER_SMS_MAX_RETRIES + 1
     sent_at = datetime.utcnow() - timedelta(minutes=1)
 
@@ -563,7 +563,7 @@ def test_can_retry_sms_request_exceeds_retry_limit_returns_false():
     )
 
 
-def test_can_retry_sms_request_exceeds_retry_window_returns_false():
+def test_ut_can_retry_sms_request_exceeds_retry_window_returns_false():
     retries = 1
     sent_at = datetime.utcnow() - CARRIER_SMS_MAX_RETRY_WINDOW - timedelta(days=1)
 
@@ -572,7 +572,7 @@ def test_can_retry_sms_request_exceeds_retry_window_returns_false():
     )
 
 
-def test_can_retry_sms_request_status_not_sending_returns_false():
+def test_ut_can_retry_sms_request_status_not_sending_returns_false():
     retries = 1
     sent_at = datetime.utcnow() - timedelta(minutes=1)
 
@@ -591,7 +591,7 @@ def test_can_retry_sms_request_status_not_sending_returns_false():
         (3, 600),
     ],
 )
-def test_get_sms_retry_delay_returns_within_delay_range(retry_count, expected_base_delay):
+def test_ut_get_sms_retry_delay_returns_within_delay_range(retry_count, expected_base_delay):
     # delay should be within +/- 10% of expected base delay
     jitter_percent = 0.1
     assert (
@@ -601,7 +601,7 @@ def test_get_sms_retry_delay_returns_within_delay_range(retry_count, expected_ba
     )
 
 
-def test_sms_attempt_retry_queued_if_retryable(mocker, sample_notification):
+def test_ut_sms_attempt_retry_queued_if_retryable(mocker, sample_notification):
     notification = sample_notification(
         status=NOTIFICATION_SENDING,
         status_reason=None,
@@ -617,7 +617,7 @@ def test_sms_attempt_retry_queued_if_retryable(mocker, sample_notification):
     send_notification_to_queue.assert_called()
 
 
-def test_sms_attempt_retry_cost_updated_if_retryable(mocker, sample_notification):
+def test_ut_sms_attempt_retry_cost_updated_if_retryable(mocker, sample_notification):
     notification = sample_notification(
         status=NOTIFICATION_SENDING,
         status_reason=None,
@@ -640,7 +640,7 @@ def test_sms_attempt_retry_cost_updated_if_retryable(mocker, sample_notification
     assert updated_notification.cost_in_millicents == 10
 
 
-def test_sms_attempt_retry_notification_update_if_retryable(mocker, sample_notification):
+def test_ut_sms_attempt_retry_notification_update_if_retryable(mocker, sample_notification):
     notification = sample_notification(
         status=NOTIFICATION_SENDING,
         status_reason=None,
@@ -665,7 +665,7 @@ def test_sms_attempt_retry_notification_update_if_retryable(mocker, sample_notif
     assert updated_notification.reference is None
 
 
-def test_sms_attempt_retry_not_queued_if_retry_conditions_not_met(mocker, sample_notification):
+def test_ut_sms_attempt_retry_not_queued_if_retry_conditions_not_met(mocker, sample_notification):
     notification = sample_notification()
     sms_status = SmsStatusRecord(
         None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
@@ -686,7 +686,7 @@ def test_sms_attempt_retry_not_queued_if_retry_conditions_not_met(mocker, sample
     check_and_queue_callback_task.assert_called()
 
 
-def test_sms_attempt_retry_not_requeued_if_notification_update_exception(mocker, sample_notification):
+def test_ut_sms_attempt_retry_not_requeued_if_notification_update_exception(mocker, sample_notification):
     notification = sample_notification(
         status=NOTIFICATION_SENDING,
         status_reason=None,
@@ -707,7 +707,7 @@ def test_sms_attempt_retry_not_requeued_if_notification_update_exception(mocker,
     assert send_notification_to_queue.not_called()
 
 
-def test_sms_attempt_retry_callbacks_not_attempted_if_notification_update_exception(mocker, sample_notification):
+def test_ut_sms_attempt_retry_callbacks_not_attempted_if_notification_update_exception(mocker, sample_notification):
     notification = sample_notification(
         status=NOTIFICATION_SENDING,
         status_reason=None,
@@ -733,7 +733,7 @@ def test_sms_attempt_retry_callbacks_not_attempted_if_notification_update_except
     assert check_and_queue_callback_task.not_called()
 
 
-def test_sms_attempt_retry_notification_set_to_permanent_failure_when_retry_conditions_not_met(
+def test_ut_sms_attempt_retry_notification_set_to_permanent_failure_when_retry_conditions_not_met(
     mocker, sample_notification
 ):
     notification = sample_notification()
@@ -752,7 +752,7 @@ def test_sms_attempt_retry_notification_set_to_permanent_failure_when_retry_cond
     assert updated_notification.status == NOTIFICATION_PERMANENT_FAILURE
 
 
-def test_sms_attempt_retry_check_and_queue_exception(mocker, sample_notification):
+def test_ut_sms_attempt_retry_check_and_queue_exception(mocker, sample_notification):
     notification = sample_notification()
     sms_status = SmsStatusRecord(
         None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER

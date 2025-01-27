@@ -231,7 +231,8 @@ def sms_status_update(
     if sms_status.status == NOTIFICATION_DELIVERED:
         sms_status.status_reason = None
 
-    # avoid an out-of-order/contradictory double billing, previous permanent_failure or delivered already counted price
+    # avoid double billing resulting from out-of-order/partial delivery/failure.
+    # Previous permanent_failure or delivered already counted price
     # dao sms_conditions allow this status flip
     # temporary_failure not possible with retry handling
     if (notification.status, sms_status.status) in (

@@ -164,7 +164,7 @@ class AwsPinpointClient(SmsClient):
     ) -> Tuple[str, str]:
         """Get the status.
 
-        Checks for opt out and then maps status and status reason.
+        Checks for opt out or buffered and then maps status and status reason.
 
         Args:
             event_type (str): AWS event type
