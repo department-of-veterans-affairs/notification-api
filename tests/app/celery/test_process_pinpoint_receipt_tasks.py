@@ -356,7 +356,6 @@ def test_process_pinpoint_callback_message_parse_exception(
 def test_process_pinpoint_results_notification_final_status_personalisation(
     mocker,
     sample_template,
-    event_type,
     sample_notification,
 ):
     mock_callback = mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
@@ -373,7 +372,7 @@ def test_process_pinpoint_results_notification_final_status_personalisation(
     )
     process_pinpoint_results(
         response=pinpoint_notification_callback_record(
-            reference=test_reference, event_type=event_type, record_status='DELIVERED'
+            reference=test_reference, event_type='_SMS.SUCCESS', record_status='DELIVERED'
         )
     )
     notification = notifications_dao.dao_get_notification_by_reference(test_reference)
