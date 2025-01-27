@@ -593,10 +593,6 @@ def test_it_process_pinpoint_results_should_update_cost_in_millicents_retries_ex
     [
         (NOTIFICATION_SENDING, '_SMS.BUFFERED', 'PENDING'),
         (NOTIFICATION_SENDING, '_SMS.BUFFERED', 'SUCCESSFUL'),
-        (NOTIFICATION_DELIVERED, '_SMS.FAILURE', 'UNREACHABLE'),  # STATUS_REASON_RETRYABLE
-        (NOTIFICATION_DELIVERED, '_SMS.FAILURE', 'INVALID'),  # NOTIFICATION_PERMANENT_FAILURE
-        (NOTIFICATION_PERMANENT_FAILURE, '_SMS.FAILURE', 'UNREACHABLE'),  # STATUS_REASON_RETRYABLE
-        (NOTIFICATION_PERMANENT_FAILURE, '_SMS.SUCCESS', 'DELIVERED'),
     ],
 )
 def test_it_process_pinpoint_results_should_not_update_cost_in_millicents(
