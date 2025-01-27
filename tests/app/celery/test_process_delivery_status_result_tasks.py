@@ -560,4 +560,4 @@ def test_process_delivery_status_redacts_personalisation(
     process_delivery_status(event=sample_delivery_status_result_message)
 
     notification = dao_get_notification_by_reference('SMyyy')
-    assert notification.personalisation == '<redacted>'
+    assert notification.personalisation == {'foo': '<redacted>'}

@@ -376,5 +376,5 @@ def test_process_pinpoint_results_notification_final_status_personalisation(
         )
     )
     notification = notifications_dao.dao_get_notification_by_reference(test_reference)
-    assert notification.personalisation == '<redacted>'
+    assert notification.personalisation == {'name': '<redacted>'}
     mock_callback.assert_called_once()

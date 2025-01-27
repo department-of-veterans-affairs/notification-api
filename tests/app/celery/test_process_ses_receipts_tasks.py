@@ -676,4 +676,4 @@ def test_process_ses_results_personalisation(notify_db_session, sample_template,
 
     notify_db_session.session.refresh(notification)
     assert notification.status == NOTIFICATION_DELIVERED
-    assert notification.personalisation == '<redacted>'
+    assert notification.personalisation == {'name': '<redacted>'}
