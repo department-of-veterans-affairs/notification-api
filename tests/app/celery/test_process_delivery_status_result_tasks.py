@@ -541,6 +541,7 @@ def test_get_include_payload_status_exception(notify_api, mocker, sample_notific
 @pytest.mark.serial
 def test_process_delivery_status_redacts_personalisation(
     mocker,
+    notify_db_session,
     sample_delivery_status_result_message,
     sample_template,
     sample_notification,
@@ -548,7 +549,7 @@ def test_process_delivery_status_redacts_personalisation(
     """
     Test that the Celery task will redact personalisation if the delivery status is in a final state.
     """
-    sample_notification(
+    notification = sample_notification(
         template=sample_template(content='Test ((foo))'),
         reference='SMyyy',
         sent_at=datetime.now(timezone.utc),
@@ -558,5 +559,5 @@ def test_process_delivery_status_redacts_personalisation(
 
     process_delivery_status(event=sample_delivery_status_result_message)
 
-    notification = dao_get_notification_by_reference('SMyyy')
+    notify_db_session.session.refresh(notification)
     assert notification.personalisation == {'foo': '<redacted>'}
