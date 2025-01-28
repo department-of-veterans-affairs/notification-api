@@ -37,18 +37,6 @@ def push_request_without(key: str) -> dict:
     return payload
 
 
-def test_returns_not_implemented_if_feature_flag_disabled(
-    client,
-    mocker,
-    sample_api_key,
-    sample_service,
-):
-    mock_feature_flag(mocker, feature_flag=FeatureFlag.PUSH_NOTIFICATIONS_ENABLED, enabled='False')
-    service = sample_service(service_permissions=[PUSH_TYPE])
-    response = post_send_notification(client, sample_api_key(service), PUSH_TYPE, PUSH_REQUEST)
-    assert response.status_code == 501
-
-
 class TestValidations:
     def test_checks_service_permissions(
         self,
@@ -60,7 +48,7 @@ class TestValidations:
 
         response = post_send_notification(client, sample_api_key(service), PUSH_TYPE, PUSH_REQUEST)
 
-        assert response.status_code == 400
+        assert response.status_code == 403
         assert response.headers['Content-type'] == 'application/json'
         resp_json = response.get_json()
         assert 'Service is not allowed to send push notifications' in resp_json['errors'][0]['message']

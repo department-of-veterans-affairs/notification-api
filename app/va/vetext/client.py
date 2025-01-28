@@ -72,7 +72,6 @@ class VETextClient:
             self.statsd.incr(f'{self.STATSD_KEY}.error.connection_timeout')
             raise RetryableException from e
         except requests.HTTPError as e:
-            self.logger.exception('HTTPError raised sending push notification')
             self.statsd.incr(f'{self.STATSD_KEY}.error.{e.response.status_code}')
             if e.response.status_code in [429, 500, 502, 503, 504]:
                 self.logger.warning('Retryable exception raised with status code: %s', e.response.status_code)

@@ -1,3 +1,5 @@
+import json
+
 from celery.exceptions import CeleryError
 from jsonschema import ValidationError
 from kombu.exceptions import OperationalError
@@ -72,9 +74,16 @@ def validate_push_payload(schema: dict[str, str]) -> V2PushPayload:
             app_sid = mobile_app_registry.get_app(MobileAppType[req_json['mobile_app']]).sid
         else:
             app_sid = mobile_app_registry.get_app(DEAFULT_MOBILE_APP_TYPE).sid
-    except (KeyError, TypeError, ValidationError) as e:
-        current_app.logger.warning('Push request failed validation: %s', e)
+    except (KeyError, TypeError) as e:
+        current_app.logger.warning('Push request failed validation due to mobile app setup: %s', e)
         raise BadRequestError(message=str(e), status_code=400)
+    except ValidationError as e:
+        current_app.logger.warning('Push request failed validation: %s', e)
+        error_data = json.loads(e.message)
+        error_data['errors'] = error_data['errors'][0]
+        print(error_data)
+        print(json.loads(e.message))
+        raise BadRequestError(message=error_data, status_code=400)
     except Exception:
         msg = 'Unable to process request for push notification - bad request'
         current_app.logger.exception(msg)

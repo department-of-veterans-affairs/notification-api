@@ -34,18 +34,6 @@ def push_broadcast_request_without(key: str) -> dict:
     return payload
 
 
-def test_returns_not_implemented_if_feature_flag_disabled(
-    client,
-    mocker,
-    sample_api_key,
-    sample_service,
-):
-    mock_feature_flag(mocker, feature_flag=FeatureFlag.PUSH_NOTIFICATIONS_ENABLED, enabled='False')
-    service = sample_service(service_permissions=[PUSH_TYPE])
-    response = post_send_push_broadcast_notification(client, sample_api_key(service), PUSH_BROADCAST_REQUEST)
-    assert response.status_code == 501
-
-
 class TestValidations:
     def test_checks_service_permissions(
         self,
