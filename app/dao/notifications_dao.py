@@ -420,7 +420,6 @@ def dao_update_sms_notification_status_to_created_for_retry(
                 cost_in_millicents=cost_in_millicents,
                 segments_count=segments_count,
             )
-            .execution_options(synchronize_session='fetch')
         )
         current_app.logger.debug('sms delivery status statement: %s', stmt)
     else:

@@ -304,7 +304,12 @@ def can_retry_sms_request(
     # Calculate the time elapsed since the message was sent
     time_elapsed = datetime.datetime.utcnow() - sent_at
 
-    return (status == NOTIFICATION_SENDING) and (retries <= max_retries) and (time_elapsed < retry_window)
+    return (
+        (retries is not None)
+        and (status == NOTIFICATION_SENDING)
+        and (retries <= max_retries)
+        and (time_elapsed < retry_window)
+    )
 
 
 def get_sms_retry_delay(retry_count: int) -> int:
@@ -351,17 +356,23 @@ def update_sms_retry_count(notification_retry_id: str, initial_value: int = 0, t
 
     Returns:
         int: The current retry count
+
+    Raises:
+        ValueError: Unable to retrieve from redis
     """
-    # Set the initial value only if the value does not exist
-    redis_store.set(notification_retry_id, initial_value, ex=ttl, nx=True)
-    value = redis_store.incr(notification_retry_id)
 
     try:
+        # Set the initial value only if the value does not exist
+        redis_store.set(notification_retry_id, initial_value, ex=ttl, nx=True)
+        value = redis_store.incr(notification_retry_id)
         return int(value)
     except (ValueError, TypeError):
         raise ValueError(
             f"Expected an integer value for id '{notification_retry_id}', but got: {value} (type: {type(value)})"
         )
+    except Exception:
+        # base redis exception already logged in redis client
+        raise Exception('Unable to retrieve value from redis.')
 
 
 def sms_attempt_retry(
@@ -405,7 +416,8 @@ def sms_attempt_retry(
         retry_count_redis_ttl = int(CARRIER_SMS_MAX_RETRY_WINDOW.total_seconds())
         retry_count = update_sms_retry_count(notification_retry_id, ttl=retry_count_redis_ttl)
     except Exception:
-        raise NonRetryableException('Unable to update SMS retry count')
+        current_app.logger.error('Unable to retrieve value from Redis')
+        retry_count = None
 
     if can_retry_sms_request(
         notification.status, retry_count, CARRIER_SMS_MAX_RETRIES, notification.sent_at, CARRIER_SMS_MAX_RETRY_WINDOW
