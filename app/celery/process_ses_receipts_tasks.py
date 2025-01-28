@@ -25,9 +25,10 @@ from app.constants import (
     HTTP_TIMEOUT,
     KEY_TYPE_NORMAL,
     NOTIFICATION_DELIVERED,
-    NOTIFICATION_SENDING,
     NOTIFICATION_PENDING,
     NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_SENDING,
+    NOTIFICATION_STATUS_TYPES_COMPLETED,
     NOTIFICATION_TEMPORARY_FAILURE,
     STATUS_REASON_RETRYABLE,
     STATUS_REASON_UNREACHABLE,
@@ -205,7 +206,7 @@ def process_ses_results(  # noqa: C901 (too complex 14 > 10)
             )
             return
 
-        if incoming_status in (NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_DELIVERED):
+        if incoming_status in NOTIFICATION_STATUS_TYPES_COMPLETED:
             notification.personalisation = {k: '<redacted>' for k in notification.personalisation}
 
         # This is a test of the new status.  Is it a bounce?
