@@ -207,8 +207,7 @@ def process_ses_results(  # noqa: C901 (too complex 14 > 10)
             return
 
         if incoming_status in NOTIFICATION_STATUS_TYPES_COMPLETED:
-            for key in notification.personalisation:
-                notification.personalisation[key] = '<redacted>'
+            notification.personalisation = {k: '<redacted>' for k in notification.personalisation}
 
         # This is a test of the new status.  Is it a bounce?
         if incoming_status in (NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_PERMANENT_FAILURE):
