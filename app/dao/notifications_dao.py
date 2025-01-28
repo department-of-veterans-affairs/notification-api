@@ -362,7 +362,6 @@ def dao_update_sms_notification_delivery_status(
         }
 
         if new_status in FINAL_STATUS_STATES:
-            # IDK how to do this without an additional query
             notification = db.session.get(Notification, notification_id)
             stmt_values['_personalisation'] = encryption.encrypt(
                 {k: '<redacted>' for k in notification.personalisation}
