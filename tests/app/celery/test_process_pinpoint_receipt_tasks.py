@@ -355,6 +355,7 @@ def test_process_pinpoint_callback_message_parse_exception(
 
 def test_process_pinpoint_results_notification_final_status_personalisation(
     mocker,
+    notify_db_session,
     sample_template,
     sample_notification,
 ):
@@ -362,7 +363,7 @@ def test_process_pinpoint_results_notification_final_status_personalisation(
 
     test_reference = str(uuid4())
     template = sample_template(content='Hello ((name))')
-    sample_notification(
+    notification = sample_notification(
         template=template,
         reference=test_reference,
         sent_at=datetime.now(timezone.utc),
@@ -375,6 +376,6 @@ def test_process_pinpoint_results_notification_final_status_personalisation(
             reference=test_reference, event_type='_SMS.SUCCESS', record_status='DELIVERED'
         )
     )
-    notification = notifications_dao.dao_get_notification_by_reference(test_reference)
+    notify_db_session.session.refresh(notification)
     assert notification.personalisation == {'name': '<redacted>'}
     mock_callback.assert_called_once()
