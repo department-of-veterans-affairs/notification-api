@@ -556,7 +556,7 @@ def test_process_delivery_status_redacts_personalisation(
         personalisation={'foo': 'bar'},
     )
 
-    mocker.patch('app.celery.process_delivery_status_result_tasks._get_include_payload_status', returns=True)
+    # mocker.patch('app.celery.process_delivery_status_result_tasks._get_include_payload_status', returns=True)
     process_delivery_status(event=sample_delivery_status_result_message)
 
     notification = dao_get_notification_by_reference('SMyyy')
