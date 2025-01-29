@@ -584,5 +584,7 @@ def process_returned_letters_list(notification_references):
 
 
 @notify_celery.task(bind=True, name='kwm')
-def kwm(self):
+def kwm(self, sleep_minutes: int):
     current_app.logger.info('made it here')
+    from time import sleep
+    sleep(sleep_minutes * 60)
