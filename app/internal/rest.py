@@ -63,7 +63,7 @@ def handler(generic):
 
 
 @internal_blueprint.route('/chain', methods=['POST', 'GET'])
-def kwm_chain(generic):
+def kwm_chain():
     tasks = [
         kwm.si().set(queue=QueueNames.KWM),
         kwm.si().set(queue=QueueNames.KWM),
