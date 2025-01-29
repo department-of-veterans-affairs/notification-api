@@ -207,8 +207,12 @@ def send_notification_to_queue(
 
 
 def send_notification_to_queue_delayed(
-    notification, research_mode, queue_name=None, sms_sender_id=None, delay_seconds: int = 0
-):
+    notification: Notification,
+    research_mode: bool,
+    queue_name: str | None = None,
+    sms_sender_id: str | None = None,
+    delay_seconds: int = 0,
+) -> None:
     # notification sms delivery already attempted at least once so safe to skip lookup_va_profile_id
     deliver_task, queue_name = _get_delivery_task(notification, research_mode, queue_name, sms_sender_id)
 
@@ -275,10 +279,10 @@ def send_notification_to_queue_delayed(
 
 
 def _get_delivery_task(
-    notification,
-    research_mode=False,
-    queue=None,
-    sms_sender_id=None,
+    notification: Notification,
+    research_mode: bool = False,
+    queue: str | None = None,
+    sms_sender_id: str | None = None,
 ):
     """
     The return value "deliver_task" is a function decorated to be a Celery task.

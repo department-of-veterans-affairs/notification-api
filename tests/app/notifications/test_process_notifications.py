@@ -3,6 +3,8 @@ import uuid
 
 import pytest
 from boto3.exceptions import Boto3Error
+from botocore.exceptions import ClientError
+from moto import mock_aws
 from sqlalchemy.exc import SQLAlchemyError
 from freezegun import freeze_time
 from collections import namedtuple
@@ -31,8 +33,9 @@ from app.notifications.process_notifications import (
     persist_notification,
     persist_scheduled_notification,
     send_notification_to_queue,
-    simulated_recipient,
+    send_notification_to_queue_delayed,
     send_to_queue_for_recipient_info_based_on_recipient_identifier,
+    simulated_recipient,
 )
 from notifications_utils.recipients import validate_and_format_phone_number, validate_and_format_email_address
 from app.v2.errors import BadRequestError
@@ -1023,3 +1026,53 @@ def test_send_notification_with_sms_sender_rate_limit_uses_rate_limit_delivery_t
     send_notification_to_queue(notification, False)
 
     assert mocked_chain.call_args[0][0].task == 'deliver_sms_with_rate_limiting'
+
+
+@mock_aws
+def test_send_notification_to_queue_delayed(client, sample_notification, mock_sqs, mocker) -> None:
+    """Test send_notification_to_queue_delayed happy path"""
+    # create queue for testing
+    sqs_client, q_url = mock_sqs
+
+    notification: Notification = sample_notification()
+
+    debug_logger = mocker.spy(client.application.logger, 'debug')
+
+    assert (
+        send_notification_to_queue_delayed(
+            notification=notification,
+            research_mode=False,
+            queue_name='test_queue',
+            sms_sender_id=None,
+            delay_seconds=0,
+        )
+        is None
+    )
+
+    debug_logger.assert_called_once()
+
+    # MaxNumberOfMessages ranges from 1-10, want to ensure only one message was added to the queue
+    messages = sqs_client.receive_message(QueueUrl=q_url, MaxNumberOfMessages=10)
+    assert len(messages.get('Messages')) == 1
+
+
+@mock_aws
+def test_send_notification_to_queue_delayed_throws_exception_when_missing_queue(
+    client, sample_notification, mocker
+) -> None:
+    """Test send_notification_to_queue_delayed error when queue does not exist"""
+
+    notification: Notification = sample_notification()
+
+    logger = mocker.spy(client.application.logger, 'critical')
+
+    with pytest.raises(ClientError):
+        send_notification_to_queue_delayed(
+            notification=notification,
+            research_mode=False,
+            queue_name='test_queue',
+            sms_sender_id=None,
+            delay_seconds=0,
+        )
+
+    logger.assert_called_once()
