@@ -81,9 +81,10 @@ def validate_push_payload(schema: dict[str, str]) -> V2PushPayload:
         current_app.logger.warning('Push request failed validation: %s', e)
         error_data = json.loads(e.message)
         error_data['errors'] = error_data['errors'][0]
-        print(error_data)
-        print(json.loads(e.message))
-        raise BadRequestError(message=error_data, status_code=400)
+        # TODO #2171 - Discuss with Kyle.
+        # This was orginally `raise BadRequestError(message=error_data, status_code=400)`
+        # This caused issue with `tests/app/v2/notifications/test_push_notifications.py::TestValidations::test_required_fields`
+        raise e
     except Exception:
         msg = 'Unable to process request for push notification - bad request'
         current_app.logger.exception(msg)
