@@ -581,3 +581,8 @@ def process_returned_letters_list(notification_references):
         updated_history,
         len(notification_references),
     )
+
+
+@notify_celery.task(bind=True, name='kwm')
+def kwm(self):
+    current_app.logger.info('made it here')

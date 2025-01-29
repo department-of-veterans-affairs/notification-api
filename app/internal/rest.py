@@ -14,10 +14,13 @@ Logging is performed for the following request attributes:
     - trace_id
 """
 
+from celery import chain
 from werkzeug.exceptions import UnsupportedMediaType
 from contextlib import suppress
-from flask import Blueprint, current_app, request
+from flask import Blueprint, current_app, request, jsonify
 
+from app.celery.tasks import kwm
+from app.config import QueueNames
 
 internal_blueprint = Blueprint('internal', __name__, url_prefix='/internal')
 
@@ -57,3 +60,14 @@ def handler(generic):
         response_body = {generic: request.json}
 
     return response_body, status_code
+
+
+@internal_blueprint.route('/chain', methods=['POST', 'GET'])
+def kwm_chain(generic):
+    tasks = [
+        kwm.si().set(queue=QueueNames.KWM),
+        kwm.si().set(queue=QueueNames.KWM),
+        kwm.si().set(queue=QueueNames.KWM),
+    ]
+    chain(*tasks).apply_async()
+    return jsonify('chain'), 201

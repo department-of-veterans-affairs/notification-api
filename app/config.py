@@ -42,6 +42,7 @@ class QueueNames(object):
     RETRY = 'retry-tasks'
     SEND_EMAIL = 'send-email-tasks'
     SEND_SMS = 'send-sms-tasks'
+    KWM = 'job-tasks'
 
     @staticmethod
     def all_queues():
@@ -56,6 +57,7 @@ class QueueNames(object):
             QueueNames.RETRY,
             QueueNames.SEND_EMAIL,
             QueueNames.SEND_SMS,
+            QueueNames.KWM,
         ]
 
 
