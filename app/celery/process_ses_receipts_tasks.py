@@ -28,7 +28,6 @@ from app.constants import (
     NOTIFICATION_PENDING,
     NOTIFICATION_PERMANENT_FAILURE,
     NOTIFICATION_SENDING,
-    NOTIFICATION_STATUS_TYPES_COMPLETED,
     NOTIFICATION_TEMPORARY_FAILURE,
     STATUS_REASON_RETRYABLE,
     STATUS_REASON_UNREACHABLE,
@@ -206,7 +205,9 @@ def process_ses_results(  # noqa: C901 (too complex 14 > 10)
             )
             return
 
-        if incoming_status in NOTIFICATION_STATUS_TYPES_COMPLETED:
+        # Redact personalisation when an email is in a final state. An email may go from delivered to a bounce, but
+        # that will not affect the redaction, as the email will not be retried.
+        if incoming_status in (NOTIFICATION_DELIVERED, NOTIFICATION_PERMANENT_FAILURE):
             notification.personalisation = {k: '<redacted>' for k in notification.personalisation}
 
         # This is a test of the new status.  Is it a bounce?
