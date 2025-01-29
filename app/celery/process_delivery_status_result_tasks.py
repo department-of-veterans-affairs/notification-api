@@ -395,7 +395,7 @@ def sms_attempt_retry(
     """
 
     # avoid circular import
-    from app.notifications.process_notifications import send_notification_to_queue
+    from app.notifications.process_notifications import send_notification_to_queue_delayed
 
     notification = _get_notification(sms_status.reference, sms_status.provider, event_timestamp, event_in_seconds)
 
@@ -453,12 +453,11 @@ def sms_attempt_retry(
             retry_count,
         )
 
-        send_notification_to_queue(
+        send_notification_to_queue_delayed(
             notification,
             notification.service.research_mode,
-            recipient_id_type=notification.recipient_identifiers,
             sms_sender_id=notification.sms_sender_id,
-            delay=retry_delay,
+            delay_seconds=retry_delay,
         )
 
         current_app.logger.info(
