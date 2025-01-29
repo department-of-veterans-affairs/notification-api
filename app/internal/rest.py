@@ -65,9 +65,9 @@ def handler(generic):
 @internal_blueprint.route('/chain', methods=['POST', 'GET'])
 def kwm_chain():
     tasks = [
-        kwm.si().set(queue=QueueNames.KWM),
-        kwm.si().set(queue=QueueNames.KWM),
-        kwm.si().set(queue=QueueNames.KWM),
+        kwm.si(2).set(queue=QueueNames.KWM),
+        kwm.si(3).set(queue=QueueNames.KWM),
+        kwm.si(4).set(queue=QueueNames.KWM),
     ]
     chain(*tasks).apply_async()
     return jsonify('chain'), 201
