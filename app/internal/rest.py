@@ -70,4 +70,4 @@ def kwm_chain():
         kwm.si(4).set(queue=QueueNames.KWM),
     ]
     chain(*tasks).apply_async()
-    return jsonify('chain'), 201
+    return jsonify({'result':'chain'}), 201
