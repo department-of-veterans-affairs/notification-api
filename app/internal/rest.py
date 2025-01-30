@@ -16,7 +16,7 @@ Logging is performed for the following request attributes:
 
 from werkzeug.exceptions import UnsupportedMediaType
 from contextlib import suppress
-from flask import Blueprint, current_app, request
+from flask import Blueprint, current_app, jsonify, request
 
 
 internal_blueprint = Blueprint('internal', __name__, url_prefix='/internal')
@@ -57,3 +57,14 @@ def handler(generic):
         response_body = {generic: request.json}
 
     return response_body, status_code
+
+
+@internal_blueprint.route('/502', methods=['POST', 'GET'])
+def throw_502(generic):
+    return jsonify(result='error', message='hello world'), 502
+
+
+@internal_blueprint.route('/sleep', methods=['POST', 'GET'])
+def sleep(generic):
+    sleep(30)
+    return jsonify(result='success', message='slept for 30s'), 201
