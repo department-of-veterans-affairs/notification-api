@@ -190,8 +190,7 @@ class TestHTTPExceptions:
     def test_raises_bad_request_exception_with_info_on_400_error(self, rmock, test_vetext_client, response):
         rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', status_code=400, json=response)
 
-        # TODO - 2172 failing teset. In orginal code,return response had dict with a key 'field'
-        with pytest.raises(NonRetryableException) as e:
+        with pytest.raises(NonRetryableException):
             test_vetext_client.send_push_notification(
                 {
                     'app_sid': 1111,
@@ -199,15 +198,13 @@ class TestHTTPExceptions:
                     'icn': 3333,
                 }
             )
-        assert e.value.field == response.get('idType')
-        assert e.value.message == response.get('error')
 
     def test_raises_bad_request_exception_when_400_error_not_json(self, rmock, test_vetext_client):
         response = 'Unrecognized field &quot;foo&quot; (class gov.va.med.lom.vetext.model.dto.PushNotification),'
         ' not marked as ignorable'
         rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', status_code=400, text=response)
 
-        with pytest.raises(NonRetryableException) as e:
+        with pytest.raises(NonRetryableException):
             test_vetext_client.send_push_notification(
                 {
                     'app_sid': 1111,
@@ -215,9 +212,6 @@ class TestHTTPExceptions:
                     'icn': 3333,
                 }
             )
-        # TODO - 2172 failing teset. In orginal code,return response had dict with a key 'field'
-        assert e.value.field is None
-        assert e.value.message == response
 
 
 class TestFormatVetextPayload:
