@@ -11,10 +11,8 @@ from app.celery.exceptions import NonRetryableException, RetryableException
 from app.mobile_app import DEAFULT_MOBILE_APP_TYPE
 from app.va.identifier import IdentifierType
 from app.va.vetext import VETextClient
-from app.va.vetext.exceptions import (
-    VETextRetryableException,
-)
 from app.v2.dataclasses import V2PushPayload
+
 from tests.app.factories.recipient_idenfier import sample_recipient_identifier
 from tests.app.factories.mobile_app import sample_mobile_app_type
 
@@ -63,7 +61,14 @@ def test_send_push_notification_correct_request(rmock, test_vetext_client):
 
     formatted_personalization = {'%FOO_1%': 'bar', '%BAZ_TWO%': 'abc', '%TMP%': '123'}
 
-    test_vetext_client.send_push_notification(mobile_app_id, template_id, icn.id_value, False, personalization)
+    payload = {
+        'icn': sample_recipient_identifier(IdentifierType.ICN).id_value,
+        'template_sid': str(uuid4()),
+        'app_sid': sample_mobile_app_type(),
+        'personalization': personalization,
+    }
+
+    test_vetext_client.send_push_notification(payload)
     assert rmock.called
 
     expected_url = f'{MOCK_VETEXT_URL}/mobile/push/send'
@@ -84,11 +89,13 @@ def test_send_push_captures_statsd_metrics_on_success(rmock, test_vetext_client)
     response = {'success': True, 'statusCode': 200}
     rmock.post(ANY, json=response, status_code=200)
 
-    mobile_app_id = sample_mobile_app_type()
-    template_id = str(uuid4())
-    icn = sample_recipient_identifier(IdentifierType.ICN)
+    payload = {
+        'app_sid': sample_mobile_app_type(),
+        'template_sid': str(uuid4()),
+        'icn': sample_recipient_identifier(IdentifierType.ICN).id_value,
+    }
 
-    test_vetext_client.send_push_notification(mobile_app_id, template_id, icn.id_value)
+    test_vetext_client.send_push_notification(payload)
 
     test_vetext_client.statsd.incr.assert_called_with('clients.vetext.success')
     test_vetext_client.statsd.timing.assert_called_with('clients.vetext.request_time', mock.ANY)
@@ -98,31 +105,37 @@ class TestRequestExceptions:
     def test_raises_retryable_error_on_request_exception(self, rmock, test_vetext_client):
         rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', exc=ConnectTimeout)
 
-        with pytest.raises(VETextRetryableException):
+        with pytest.raises(RetryableException):
             test_vetext_client.send_push_notification(
-                'app_sid',
-                'template_sid',
-                'icn',
+                {
+                    'app_sid': 1111,
+                    'template_sid': 2222,
+                    'icn': 3333,
+                }
             )
 
     def test_logs_exception_on_read_timeout(self, rmock, test_vetext_client):
         rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', exc=ReadTimeout)
 
         test_vetext_client.send_push_notification(
-            'app_sid',
-            'template_sid',
-            'icn',
+            {
+                'app_sid': 1111,
+                'template_sid': 2222,
+                'icn': 3333,
+            }
         )
         assert test_vetext_client.logger.exception.called_once
 
     def test_increments_statsd_and_timing_on_request_exception(self, rmock, test_vetext_client):
         rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', exc=ConnectTimeout)
 
-        with pytest.raises(VETextRetryableException):
+        with pytest.raises(RetryableException):
             test_vetext_client.send_push_notification(
-                'app_sid',
-                'template_sid',
-                'icn',
+                {
+                    'app_sid': 1111,
+                    'template_sid': 2222,
+                    'icn': 3333,
+                }
             )
         test_vetext_client.statsd.incr.assert_called_with('clients.vetext.error.connection_timeout')
         test_vetext_client.statsd.timing.assert_called_with('clients.vetext.request_time', mock.ANY)
