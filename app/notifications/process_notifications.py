@@ -220,7 +220,7 @@ def send_notification_to_queue_delayed(
     prefixed_queue_name = f'{queue_prefix}{queue_name}'
 
     try:
-        sqs = boto3.resource('sqs', region_name='us-gov-west-1')
+        sqs = boto3.resource('sqs', current_app.config['AWS_REGION'])
         queue = sqs.get_queue_by_name(QueueName=prefixed_queue_name)
     except ClientError as e:
         current_app.logger.critical(

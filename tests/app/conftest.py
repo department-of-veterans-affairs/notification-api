@@ -2466,7 +2466,7 @@ def mock_va_profile_client(mocker, notify_api):
 @pytest.fixture
 def mock_sqs():
     with mock_aws():
-        sqs_client = boto3.client('sqs')
+        sqs_client = boto3.client('sqs', current_app.config['AWS_REGION'])
         response = sqs_client.create_queue(QueueName='vanotify-test_queue')
 
         yield sqs_client, response.get('QueueUrl')
