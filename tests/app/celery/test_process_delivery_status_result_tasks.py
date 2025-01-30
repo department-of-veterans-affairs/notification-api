@@ -590,7 +590,7 @@ def test_update_sms_retry_count_value_error(mocker):
         (NOTIFICATION_DELIVERED, 1, timedelta(minutes=1), False, 'Notification status not sending, should not retry'),
     ],
 )
-def test_can_retry_sms_request_does_not_retry_on_red(
+def test_can_retry_sms_request(
     initital_status,
     retry_count,
     time_elapsed,
