@@ -1,20 +1,15 @@
-import os
-
 import pytest
 import requests
 import requests_mock
+from celery.exceptions import CeleryError
+from kombu.exceptions import OperationalError
+
+from app.constants import PUSH_TYPE
+from app.feature_flags import FeatureFlag
+
+from tests.app.factories.feature_flag import mock_feature_flag
 
 from . import post_send_notification
-from app.constants import PUSH_TYPE
-from app.va.vetext import (
-    VETextClient,
-    VETextBadRequestException,
-    VETextNonRetryableException,
-    VETextRetryableException,
-)
-from app.feature_flags import FeatureFlag
-from app.mobile_app import MobileAppType, DEAFULT_MOBILE_APP_TYPE
-from tests.app.factories.feature_flag import mock_feature_flag
 
 
 @pytest.fixture(autouse=True)
@@ -138,24 +133,7 @@ class TestValidations:
         assert 'Additional properties are not allowed (foo was unexpected)' in resp_json['errors'][0]['message']
 
 
-class TestPushSending:
-    @pytest.fixture(autouse=True)
-    def mobile_app_sids(self, mocker, request):
-        if 'disable_autouse' in request.keywords:
-            for app in MobileAppType.values():
-                mocker.patch.dict(os.environ, {f'{app}_SID': ''})
-            yield
-        else:
-            for app in MobileAppType.values():
-                mocker.patch.dict(os.environ, {f'{app}_SID': f'some_sid_for_{app}'})
-            yield
-
-    @pytest.fixture()
-    def vetext_client(self, mocker):
-        client = mocker.Mock(spec=VETextClient)
-        mocker.patch('app.v2.notifications.rest_push.vetext_client', client)
-        return client
-
+class TestDeliverPushCelery:
     @pytest.fixture()
     def deliver_push_celery(self, mocker):
         mocker.patch('app.v2.notifications.rest_push.deliver_push.delay')
@@ -171,7 +149,6 @@ class TestPushSending:
         response = post_send_notification(client, sample_api_key(service), PUSH_TYPE, PUSH_REQUEST)
         assert response.status_code == 201
 
-    # TODO - REMOVE
     def test_returns_201_after_read_timeout(
         self,
         client,
@@ -186,78 +163,9 @@ class TestPushSending:
         response = post_send_notification(client, sample_api_key(service), PUSH_TYPE, PUSH_REQUEST)
         assert response.status_code == 201
 
-    # TODO - REMOVE
-    @pytest.mark.parametrize(
-        'payload, personalisation, app',
-        [
-            (PUSH_REQUEST, None, DEAFULT_MOBILE_APP_TYPE.value),
-            (
-                {**PUSH_REQUEST, 'personalisation': {'foo': 'bar'}, 'mobile_app': MobileAppType.VETEXT.value},
-                {'foo': 'bar'},
-                MobileAppType.VETEXT.value,
-            ),
-        ],
-    )
-    def test_makes_call_to_vetext_client(
-        self,
-        client,
-        sample_api_key,
-        sample_service,
-        vetext_client,
-        payload,
-        personalisation,
-        app,
-    ):
+    @pytest.mark.parametrize('side_effect, expected_status', [(CeleryError, 502), (OperationalError, 502)])
+    def test_celery_returns_502(self, client, sample_api_key, sample_service, mocker, side_effect, expected_status):
+        mocker.patch('app.v2.notifications.rest_push.deliver_push.delay', side_effect=side_effect)
         service = sample_service(service_permissions=[PUSH_TYPE])
-
-        post_send_notification(client, sample_api_key(service), PUSH_TYPE, payload)
-        vetext_client.send_push_notification.assert_called_once_with(
-            f'{app}_sid',
-            payload['template_id'],
-            payload['recipient_identifier']['id_value'],
-            False,
-            personalisation,
-        )
-
-    @pytest.mark.parametrize('exception', [VETextRetryableException, VETextNonRetryableException])
-    def test_returns_502_on_exception_other_than_bad_request(
-        self,
-        client,
-        sample_api_key,
-        sample_service,
-        vetext_client,
-        exception,
-    ):
-        vetext_client.send_push_notification.side_effect = exception
-        service = sample_service(service_permissions=[PUSH_TYPE])
-
         response = post_send_notification(client, sample_api_key(service), PUSH_TYPE, PUSH_REQUEST)
-
-        assert response.status_code == 502
-        resp_json = response.get_json()
-        assert resp_json['result'] == 'error'
-        assert resp_json['message'] == 'Invalid response from downstream service'
-
-    @pytest.mark.parametrize(
-        'exception',
-        [
-            VETextBadRequestException(message='Invalid Application SID'),
-            VETextBadRequestException(message='Invalid Template SID'),
-        ],
-    )
-    def test_maps_bad_request_exception(
-        self,
-        client,
-        sample_api_key,
-        sample_service,
-        vetext_client,
-        exception,
-    ):
-        vetext_client.send_push_notification.side_effect = exception
-        service = sample_service(service_permissions=[PUSH_TYPE])
-
-        response = post_send_notification(client, sample_api_key(service), PUSH_TYPE, PUSH_REQUEST)
-
-        assert response.status_code == 400
-        resp_json = response.get_json()
-        assert {'error': 'BadRequestError', 'message': exception.message} in resp_json['errors']
+        assert response.status_code == expected_status
