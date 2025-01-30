@@ -346,7 +346,11 @@ def get_sms_retry_delay(retry_count: int) -> int:
     return delay
 
 
-def update_sms_retry_count(notification_retry_id: str, initial_value: int = 0, ttl: int | None = None) -> int:
+def update_sms_retry_count(
+    notification_retry_id: str,
+    initial_value: int = 0,
+    ttl: int | None = None,
+) -> int:
     """Get updated retry count for this notification from redis store, initializing pre-increment initial value if it doesn't exist
 
     Args:
