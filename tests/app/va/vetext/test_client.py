@@ -63,8 +63,8 @@ def test_send_push_notification_correct_request(rmock, test_vetext_client):
 
     payload = {
         'icn': sample_recipient_identifier(IdentifierType.ICN).id_value,
-        'template_sid': str(uuid4()),
-        'app_sid': sample_mobile_app_type(),
+        'templateSid': str(uuid4()),
+        'appSid': sample_mobile_app_type(),
         'personalization': personalization,
     }
 
@@ -90,8 +90,8 @@ def test_send_push_captures_statsd_metrics_on_success(rmock, test_vetext_client)
     rmock.post(ANY, json=response, status_code=200)
 
     payload = {
-        'app_sid': sample_mobile_app_type(),
-        'template_sid': str(uuid4()),
+        'appSid': sample_mobile_app_type(),
+        'templateSid': str(uuid4()),
         'icn': sample_recipient_identifier(IdentifierType.ICN).id_value,
     }
 
@@ -108,8 +108,8 @@ class TestRequestExceptions:
         with pytest.raises(RetryableException):
             test_vetext_client.send_push_notification(
                 {
-                    'app_sid': 1111,
-                    'template_sid': 2222,
+                    'appSid': 1111,
+                    'templateSid': 2222,
                     'icn': 3333,
                 }
             )
@@ -119,8 +119,8 @@ class TestRequestExceptions:
 
         test_vetext_client.send_push_notification(
             {
-                'app_sid': 1111,
-                'template_sid': 2222,
+                'appSid': 1111,
+                'templateSid': 2222,
                 'icn': 3333,
             }
         )
@@ -132,8 +132,8 @@ class TestRequestExceptions:
         with pytest.raises(RetryableException):
             test_vetext_client.send_push_notification(
                 {
-                    'app_sid': 1111,
-                    'template_sid': 2222,
+                    'appSid': 1111,
+                    'templateSid': 2222,
                     'icn': 3333,
                 }
             )
@@ -147,8 +147,8 @@ class TestHTTPExceptions:
         rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', status_code=http_status_code)
 
         payload = {
-            'app_sid': 1111,
-            'template_sid': 2222,
+            'appSid': 1111,
+            'templateSid': 2222,
             'icn': 3333,
         }
         with pytest.raises(RetryableException):
@@ -162,8 +162,8 @@ class TestHTTPExceptions:
         with pytest.raises(NonRetryableException):
             test_vetext_client.send_push_notification(
                 {
-                    'app_sid': 1111,
-                    'template_sid': 2222,
+                    'appSid': 1111,
+                    'templateSid': 2222,
                     'icn': 3333,
                 }
             )
@@ -178,8 +178,8 @@ class TestHTTPExceptions:
         with pytest.raises(RetryableException):
             test_vetext_client.send_push_notification(
                 {
-                    'app_sid': 1111,
-                    'template_sid': 2222,
+                    'appSid': 1111,
+                    'templateSid': 2222,
                     'icn': 3333,
                 }
             )
@@ -206,8 +206,8 @@ class TestHTTPExceptions:
         with pytest.raises(NonRetryableException):
             test_vetext_client.send_push_notification(
                 {
-                    'app_sid': 1111,
-                    'template_sid': 2222,
+                    'appSid': 1111,
+                    'templateSid': 2222,
                     'icn': 3333,
                 }
             )
@@ -220,8 +220,8 @@ class TestHTTPExceptions:
         with pytest.raises(NonRetryableException):
             test_vetext_client.send_push_notification(
                 {
-                    'app_sid': 1111,
-                    'template_sid': 2222,
+                    'appSid': 1111,
+                    'templateSid': 2222,
                     'icn': 3333,
                 }
             )
