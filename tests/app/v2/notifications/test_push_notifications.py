@@ -156,23 +156,28 @@ class TestPushSending:
         mocker.patch('app.v2.notifications.rest_push.vetext_client', client)
         return client
 
+    @pytest.fixture()
+    def deliver_push_celery(self, mocker):
+        mocker.patch('app.v2.notifications.rest_push.deliver_push.delay')
+
     def test_returns_201(
         self,
         client,
         sample_api_key,
         sample_service,
-        vetext_client,
+        deliver_push_celery,
     ):
         service = sample_service(service_permissions=[PUSH_TYPE])
         response = post_send_notification(client, sample_api_key(service), PUSH_TYPE, PUSH_REQUEST)
         assert response.status_code == 201
 
+    # TODO - REMOVE
     def test_returns_201_after_read_timeout(
         self,
         client,
         sample_api_key,
         sample_service,
-        vetext_client,
+        deliver_push_celery,
     ):
         with requests_mock.Mocker() as m:
             m.post(f'{client.application.config["VETEXT_URL"]}/mobile/push/send', exc=requests.exceptions.ReadTimeout)
@@ -181,6 +186,7 @@ class TestPushSending:
         response = post_send_notification(client, sample_api_key(service), PUSH_TYPE, PUSH_REQUEST)
         assert response.status_code == 201
 
+    # TODO - REMOVE
     @pytest.mark.parametrize(
         'payload, personalisation, app',
         [
