@@ -813,3 +813,28 @@ def test_ut_sms_attempt_retry_check_and_queue_exception(mocker, sample_notificat
     # Exception is caught and not re-raised
     sms_status_update(sms_status)
     mock_logger.assert_called_once_with('Failed to check_and_queue_callback_task for notification: %s', notification.id)
+
+
+@pytest.mark.serial
+def test_process_delivery_status_redacts_personalisation(
+    mocker,
+    notify_db_session,
+    sample_delivery_status_result_message,
+    sample_template,
+    sample_notification,
+):
+    """
+    Test that the Celery task will redact personalisation if the delivery status is in a final state.
+    """
+    notification = sample_notification(
+        template=sample_template(content='Test ((foo))'),
+        reference='SMyyy',
+        sent_at=datetime.now(timezone.utc),
+        status=NOTIFICATION_SENDING,
+        personalisation={'foo': 'bar'},
+    )
+
+    process_delivery_status(event=sample_delivery_status_result_message)
+
+    notify_db_session.session.refresh(notification)
+    assert notification.personalisation == {'foo': '<redacted>'}
