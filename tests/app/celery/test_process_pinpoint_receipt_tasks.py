@@ -110,7 +110,7 @@ def test_it_process_pinpoint_results_should_queue_retry(
     record_status,
 ):
     mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
-    mocked_send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+    mocked_send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue_delayed')
 
     notification = sample_notification(
         sent_at=datetime.now(timezone.utc),
@@ -133,7 +133,7 @@ def test_it_process_pinpoint_results_should_not_queue_retry(
     sample_notification,
 ):
     sms_attempt_retry = mocker.patch('app.celery.process_pinpoint_receipt_tasks.sms_attempt_retry')
-    mocked_send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+    mocked_send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue_delayed')
 
     sent_at_timestamp = datetime.now(timezone.utc) if status != NOTIFICATION_CREATED else None
 
@@ -532,7 +532,7 @@ def test_it_process_pinpoint_results_should_update_cost_in_millicents(
 
     mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
     mocker.patch('app.celery.process_delivery_status_result_tasks.get_sms_retry_delay', return_value=60)
-    mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+    mocker.patch('app.notifications.process_notifications.send_notification_to_queue_delayed')
 
     process_pinpoint_results(
         response=pinpoint_notification_callback_record(
@@ -574,7 +574,7 @@ def test_it_process_pinpoint_results_should_update_cost_in_millicents_retries_ex
         'app.celery.process_delivery_status_result_tasks.update_sms_retry_count',
         return_value=CARRIER_SMS_MAX_RETRIES + 1,
     )
-    mocked_send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+    mocked_send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue_delayed')
 
     process_pinpoint_results(
         response=pinpoint_notification_callback_record(
@@ -612,7 +612,7 @@ def test_it_process_pinpoint_results_should_not_update_cost_in_millicents(
 
     mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
     mocker.patch('app.celery.process_delivery_status_result_tasks.get_sms_retry_delay', return_value=60)
-    send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+    mocked_send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue_delayed')
 
     process_pinpoint_results(
         response=pinpoint_notification_callback_record(notification.reference, event_type, record_status)
@@ -620,7 +620,7 @@ def test_it_process_pinpoint_results_should_not_update_cost_in_millicents(
 
     notify_db_session.session.refresh(notification)
 
-    send_to_queue.assert_not_called()
+    mocked_send_to_queue.assert_not_called()
     assert notification.cost_in_millicents == 0
 
 
@@ -635,7 +635,7 @@ def test_it_process_pinpoint_results_sequence_retry_delivered(
     """
     mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
     mocker.patch('app.celery.process_delivery_status_result_tasks.get_sms_retry_delay', return_value=60)
-    send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+    mocked_send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue_delayed')
 
     notification = sample_notification(sent_at=datetime.now(timezone.utc), status=NOTIFICATION_SENDING)
 
@@ -655,7 +655,7 @@ def test_it_process_pinpoint_results_sequence_retry_delivered(
         )
     )
 
-    send_to_queue.assert_called()
+    mocked_send_to_queue.assert_called()
 
     notify_db_session.session.refresh(notification)
 
@@ -704,7 +704,7 @@ def test_it_process_pinpoint_results_sequence_retry_stale_reference(
     """
     mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
     mocker.patch('app.celery.process_delivery_status_result_tasks.get_sms_retry_delay', return_value=60)
-    send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+    mocked_send_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue_delayed')
 
     notification = sample_notification(sent_at=datetime.now(timezone.utc), status=NOTIFICATION_SENDING)
 
@@ -726,7 +726,7 @@ def test_it_process_pinpoint_results_sequence_retry_stale_reference(
         )
     )
 
-    send_to_queue.assert_called()
+    mocked_send_to_queue.assert_called()
 
     notify_db_session.session.refresh(notification)
 
