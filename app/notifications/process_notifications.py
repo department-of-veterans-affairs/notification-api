@@ -273,8 +273,12 @@ def send_notification_to_queue_delayed(
         )
 
     except Exception as e:
-        current_app.logger.exception(e)
-        current_app.logger.critical('something meaningful')
+        current_app.logger.critical(
+            'SQS resource failed to queue message for sqs queue "%s". notification_id: %s | Exception: %s',
+            prefixed_queue_name,
+            notification.id,
+            e,
+        )
         raise
 
 

@@ -453,12 +453,15 @@ def sms_attempt_retry(
             retry_count,
         )
 
-        send_notification_to_queue_delayed(
-            notification,
-            notification.service.research_mode,
-            sms_sender_id=notification.sms_sender_id,
-            delay_seconds=retry_delay,
-        )
+        try:
+            send_notification_to_queue_delayed(
+                notification,
+                notification.service.research_mode,
+                sms_sender_id=notification.sms_sender_id,
+                delay_seconds=retry_delay,
+            )
+        except Exception:
+            raise NonRetryableException('Unable to queue notification for delivery retry')
 
         current_app.logger.info(
             'Requeued notification for delayed %s delivery | notification_id: %s | retry_delay: %s seconds',
