@@ -12,9 +12,6 @@ from app.mobile_app import DEAFULT_MOBILE_APP_TYPE
 from app.va.identifier import IdentifierType
 from app.va.vetext import VETextClient
 from app.va.vetext.exceptions import (
-    VETextException,
-    VETextBadRequestException,
-    VETextNonRetryableException,
     VETextRetryableException,
 )
 from app.v2.dataclasses import V2PushPayload
@@ -136,35 +133,42 @@ class TestHTTPExceptions:
     def test_raises_on_retryable_http_exception_and_logs(self, rmock, test_vetext_client, http_status_code):
         rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', status_code=http_status_code)
 
-        with pytest.raises(VETextRetryableException):
-            test_vetext_client.send_push_notification(
-                'app_sid',
-                'template_sid',
-                'icn',
-            )
+        payload = {
+            'app_sid': 1111,
+            'template_sid': 2222,
+            'icn': 3333,
+        }
+        with pytest.raises(RetryableException):
+            test_vetext_client.send_push_notification(payload)
         assert test_vetext_client.logger.warning.called
 
     @pytest.mark.parametrize('http_status_code', [401, 404])
     def test_raises_nonretryable_on_request_exception_and_logs(self, rmock, test_vetext_client, http_status_code):
         rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', status_code=http_status_code)
 
-        with pytest.raises(VETextNonRetryableException):
+        with pytest.raises(NonRetryableException):
             test_vetext_client.send_push_notification(
-                'app_sid',
-                'template_sid',
-                'icn',
+                {
+                    'app_sid': 1111,
+                    'template_sid': 2222,
+                    'icn': 3333,
+                }
             )
-        assert test_vetext_client.logger.critical.called
+        assert test_vetext_client.logger.exception.called
+        test_vetext_client.statsd.incr.assert_called_with(f'clients.vetext.error.{http_status_code}')
+        test_vetext_client.statsd.timing.assert_called_with('clients.vetext.request_time', mock.ANY)
 
-    @pytest.mark.parametrize('http_status_code', [401, 404, 429, 500, 502, 503, 504])
+    @pytest.mark.parametrize('http_status_code', [429, 500, 502, 503, 504])
     def test_increments_statsd_and_timing_on_http_exception(self, rmock, test_vetext_client, http_status_code):
         rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', status_code=http_status_code)
 
-        with pytest.raises(VETextException):
+        with pytest.raises(RetryableException):
             test_vetext_client.send_push_notification(
-                'app_sid',
-                'template_sid',
-                'icn',
+                {
+                    'app_sid': 1111,
+                    'template_sid': 2222,
+                    'icn': 3333,
+                }
             )
         test_vetext_client.statsd.incr.assert_called_with(f'clients.vetext.error.{http_status_code}')
         test_vetext_client.statsd.timing.assert_called_with('clients.vetext.request_time', mock.ANY)
@@ -186,11 +190,14 @@ class TestHTTPExceptions:
     def test_raises_bad_request_exception_with_info_on_400_error(self, rmock, test_vetext_client, response):
         rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', status_code=400, json=response)
 
-        with pytest.raises(VETextBadRequestException) as e:
+        # TODO - 2172 failing teset. In orginal code,return response had dict with a key 'field'
+        with pytest.raises(NonRetryableException) as e:
             test_vetext_client.send_push_notification(
-                'app_sid',
-                'template_sid',
-                'icn',
+                {
+                    'app_sid': 1111,
+                    'template_sid': 2222,
+                    'icn': 3333,
+                }
             )
         assert e.value.field == response.get('idType')
         assert e.value.message == response.get('error')
@@ -200,12 +207,15 @@ class TestHTTPExceptions:
         ' not marked as ignorable'
         rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', status_code=400, text=response)
 
-        with pytest.raises(VETextBadRequestException) as e:
+        with pytest.raises(NonRetryableException) as e:
             test_vetext_client.send_push_notification(
-                'app_sid',
-                'template_sid',
-                'icn',
+                {
+                    'app_sid': 1111,
+                    'template_sid': 2222,
+                    'icn': 3333,
+                }
             )
+        # TODO - 2172 failing teset. In orginal code,return response had dict with a key 'field'
         assert e.value.field is None
         assert e.value.message == response
 
