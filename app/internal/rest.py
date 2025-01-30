@@ -14,6 +14,7 @@ Logging is performed for the following request attributes:
     - trace_id
 """
 
+import time
 from werkzeug.exceptions import UnsupportedMediaType
 from contextlib import suppress
 from flask import Blueprint, current_app, jsonify, request
@@ -60,11 +61,11 @@ def handler(generic):
 
 
 @internal_blueprint.route('/502', methods=['POST', 'GET'])
-def throw_502(generic):
+def throw_502():
     return jsonify(result='error', message='hello world'), 502
 
 
 @internal_blueprint.route('/sleep', methods=['POST', 'GET'])
-def sleep(generic):
-    sleep(30)
+def sleep():
+    time.sleep(30)
     return jsonify(result='success', message='slept for 30s'), 201
