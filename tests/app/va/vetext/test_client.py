@@ -56,15 +56,13 @@ def test_send_push_notification_correct_request(rmock, test_vetext_client):
 
     mobile_app_id = sample_mobile_app_type()
     template_id = str(uuid4())
-    icn = sample_recipient_identifier(IdentifierType.ICN)
-    personalization = {'foo_1': 'bar', 'baz_two': 'abc', 'tmp': '123'}
-
-    formatted_personalization = {'%FOO_1%': 'bar', '%BAZ_TWO%': 'abc', '%TMP%': '123'}
+    icn = sample_recipient_identifier(IdentifierType.ICN).id_value
+    personalization = {'%FOO_1%': 'bar', '%BAZ_TWO%': 'abc', '%TMP%': '123'}
 
     payload = {
-        'icn': sample_recipient_identifier(IdentifierType.ICN).id_value,
-        'templateSid': str(uuid4()),
-        'appSid': sample_mobile_app_type(),
+        'icn': icn,
+        'templateSid': template_id,
+        'appSid': mobile_app_id,
         'personalization': personalization,
     }
 
@@ -77,8 +75,8 @@ def test_send_push_notification_correct_request(rmock, test_vetext_client):
     assert request.json() == {
         'appSid': mobile_app_id,
         'templateSid': template_id,
-        'icn': icn.id_value,
-        'personalization': formatted_personalization,
+        'icn': icn,
+        'personalization': personalization,
     }
     expected_auth = 'Basic ' + b64encode(bytes(f'{MOCK_USER}:{MOCK_PASSWORD}', 'utf-8')).decode('ascii')
     assert request.headers.get('Authorization') == expected_auth
@@ -230,15 +228,21 @@ class TestHTTPExceptions:
 class TestFormatVetextPayload:
     def test_format_happy_path_push(self):
         payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', icn='some_icn')
-        VETextClient.format_for_vetext(payload)
+        formatted_payload = VETextClient.format_for_vetext(payload)
+        expected_formatted_payload = {}
+        assert formatted_payload == expected_formatted_payload
 
     def test_format_happy_path_broadcast(self):
         payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', topic_sid='some_topic_sid')
-        VETextClient.format_for_vetext(payload)
+        formatted_payload = VETextClient.format_for_vetext(payload)
+        expected_formatted_payload = {}
+        assert formatted_payload == expected_formatted_payload
 
     def test_format_personalisation_happy_path(self):
         payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id')
-        VETextClient.format_for_vetext(payload)
+        formatted_payload = VETextClient.format_for_vetext(payload)
+        expected_formatted_payload = {}
+        assert formatted_payload == expected_formatted_payload
 
 
 class TestSendPushNotification:
