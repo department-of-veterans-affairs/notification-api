@@ -1,4 +1,6 @@
+import base64
 import datetime
+import json
 import uuid
 
 import pytest
@@ -1076,3 +1078,35 @@ def test_send_notification_to_queue_delayed_throws_exception_when_missing_queue(
         )
 
     logger.assert_called_once()
+
+
+@mock_aws
+def test_send_notification_to_queue_delayed_message_content(client, sample_notification, mock_sqs, mocker) -> None:
+    """Test send_notification_to_queue_delayed delivers expected task message content"""
+    # create queue for testing
+    sqs_client, q_url = mock_sqs
+
+    notification: Notification = sample_notification()
+
+    debug_logger = mocker.spy(client.application.logger, 'debug')
+
+    send_notification_to_queue_delayed(
+        notification=notification,
+        research_mode=False,
+        queue_name='test_queue',
+        sms_sender_id=None,
+        delay_seconds=0,
+    )
+
+    debug_logger.assert_called_once()
+
+    messages = sqs_client.receive_message(QueueUrl=q_url, MaxNumberOfMessages=1)
+
+    message = messages.get('Messages')[0]
+    message_body = json.loads(base64.b64decode(message.get('Body')).decode('utf-8'))
+    task_body = json.loads(base64.b64decode(message_body.get('body')).decode('utf-8'))
+
+    assert task_body.get('task') == 'deliver_sms'
+
+    task_args = task_body.get('args')
+    assert task_args == [str(notification.id), str(None)]
