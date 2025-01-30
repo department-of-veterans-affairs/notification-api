@@ -635,11 +635,13 @@ def test_ut_sms_attempt_retry_queued_if_retryable(mocker, sample_notification):
         None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
     )
     mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
-    send_notification_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+    mocked_send_notification_to_queue_delayed = mocker.patch(
+        'app.notifications.process_notifications.send_notification_to_queue_delayed'
+    )
 
     sms_attempt_retry(sms_status)
 
-    send_notification_to_queue.assert_called()
+    mocked_send_notification_to_queue_delayed.assert_called()
 
 
 def test_ut_sms_attempt_retry_cost_updated_if_retryable(mocker, sample_notification):
@@ -657,7 +659,7 @@ def test_ut_sms_attempt_retry_cost_updated_if_retryable(mocker, sample_notificat
         price_millicents=5,
     )
     mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
-    mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+    mocker.patch('app.notifications.process_notifications.send_notification_to_queue_delayed')
 
     sms_attempt_retry(sms_status)
 
@@ -680,7 +682,7 @@ def test_ut_sms_attempt_retry_notification_update_if_retryable(mocker, sample_no
         price_millicents=5,
     )
     mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
-    mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+    mocker.patch('app.notifications.process_notifications.send_notification_to_queue_delayed')
 
     sms_attempt_retry(sms_status)
 
@@ -699,7 +701,9 @@ def test_ut_sms_attempt_retry_not_queued_if_exception_on_retry_count(mocker, sam
         None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
     )
     mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', side_effect=Exception)
-    send_notification_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+    mocked_send_notification_to_queue_delayed = mocker.patch(
+        'app.notifications.process_notifications.send_notification_to_queue_delayed'
+    )
     check_and_queue_callback_task = mocker.patch(
         'app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task'
     )
@@ -709,7 +713,7 @@ def test_ut_sms_attempt_retry_not_queued_if_exception_on_retry_count(mocker, sam
 
     sms_attempt_retry(sms_status)
 
-    send_notification_to_queue.assert_not_called()
+    mocked_send_notification_to_queue_delayed.assert_not_called()
     check_and_queue_callback_task.assert_called()
 
 
@@ -720,7 +724,9 @@ def test_ut_sms_attempt_retry_not_queued_if_retry_conditions_not_met(mocker, sam
     )
     mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count')
     mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=False)
-    send_notification_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+    mocked_send_notification_to_queue_delayed = mocker.patch(
+        'app.notifications.process_notifications.send_notification_to_queue_delayed'
+    )
     check_and_queue_callback_task = mocker.patch(
         'app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task'
     )
@@ -730,7 +736,7 @@ def test_ut_sms_attempt_retry_not_queued_if_retry_conditions_not_met(mocker, sam
 
     sms_attempt_retry(sms_status)
 
-    send_notification_to_queue.assert_not_called()
+    mocked_send_notification_to_queue_delayed.assert_not_called()
     check_and_queue_callback_task.assert_called()
 
 
@@ -748,11 +754,13 @@ def test_ut_sms_attempt_retry_not_requeued_if_notification_update_exception(mock
         'app.celery.process_delivery_status_result_tasks.dao_update_sms_notification_status_to_created_for_retry',
         side_effect=Exception,
     )
-    send_notification_to_queue = mocker.patch('app.notifications.process_notifications.send_notification_to_queue')
+    mocked_send_notification_to_queue_delayed = mocker.patch(
+        'app.notifications.process_notifications.send_notification_to_queue_delayed'
+    )
 
     with pytest.raises(Exception):
         sms_attempt_retry(sms_status)
-    assert send_notification_to_queue.not_called()
+    assert mocked_send_notification_to_queue_delayed.not_called()
 
 
 def test_ut_sms_attempt_retry_callbacks_not_attempted_if_notification_update_exception(mocker, sample_notification):
