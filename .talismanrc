@@ -15,6 +15,8 @@ fileignoreconfig:
   checksum: 572fb3a52e89ae19c5a94be881bcbfe0247bae112bce58d4ae1e9eff5a5c91b7
 - filename: tests/app/v2/notifications/test_get_notifications.py
   checksum: 167aa80c8aac01566b3cf627cdaa839feac9dc77f0b13b6d0a008035aa8e15f1
+- filename: tests/app/v2/notifications/test_push_broadcast_notifications.py
+  checksum: a2e9c2d625158d39622cfe82f1cc38d9623acc6bf4c2d56ea816910143ad15dd
 - filename: tests/app/v2/notifications/test_push_notifications.py
   checksum: 8781698e08707a8c9f50fc4f6e4342065a65a069614b88a1192e8ee8f89c268c
 version: "1.0"
