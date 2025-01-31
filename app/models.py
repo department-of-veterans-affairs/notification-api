@@ -380,11 +380,11 @@ class Service(db.Model, Versioned):
 
         return None
 
-    def get_default_reply_to_email_address(self):
-        # there should only be one default reply to email per service
-        for default_reply_to in self.reply_to_email_addresses:
-            if default_reply_to.is_default:
-                return default_reply_to.email_address
+    def get_default_reply_to_email_address(self) -> None:
+        """
+        Changes for #1112 removed the ServiceReplyToEmail table, which contained a back-reference
+        used in this method, which is still referenced elsewhere in the code base.
+        """
 
         return None
 
@@ -1739,32 +1739,6 @@ class LetterRate(db.Model):
     rate = db.Column(db.Numeric(), nullable=False)
     crown = db.Column(db.Boolean, nullable=False)
     post_class = db.Column(db.String, nullable=False)
-
-
-class ServiceEmailReplyTo(db.Model):
-    __tablename__ = 'service_email_reply_to'
-
-    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-
-    service_id = db.Column(UUID(as_uuid=True), db.ForeignKey('services.id'), unique=False, index=True, nullable=False)
-    service = db.relationship(Service, backref=db.backref('reply_to_email_addresses'))
-
-    email_address = db.Column(db.Text, nullable=False, index=False, unique=False)
-    is_default = db.Column(db.Boolean, nullable=False, default=True)
-    archived = db.Column(db.Boolean, nullable=False, default=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.datetime.utcnow)
-
-    def serialize(self):
-        return {
-            'id': str(self.id),
-            'service_id': str(self.service_id),
-            'email_address': self.email_address,
-            'is_default': self.is_default,
-            'archived': self.archived,
-            'created_at': self.created_at.strftime(DATETIME_FORMAT),
-            'updated_at': self.updated_at.strftime(DATETIME_FORMAT) if self.updated_at else None,
-        }
 
 
 class ServiceLetterContact(db.Model):
