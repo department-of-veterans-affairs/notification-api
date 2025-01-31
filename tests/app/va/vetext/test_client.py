@@ -33,72 +33,6 @@ def test_vetext_client(mocker):
     return test_vetext_client
 
 
-@pytest.fixture
-def sample_vetext_push_payload(test_vetext_client):
-    """Defaults to ICN (normal push, not broadcast)"""
-
-    def _wrapper(
-        mobile_app: str = DEAFULT_MOBILE_APP_TYPE,
-        template_id: str = 'any_template_id',
-        icn: str | None = 'some_icn',
-        topic_sid: str | None = None,
-        personalisation: dict[str, str] | None = None,
-    ) -> dict[str, str]:
-        payload = V2PushPayload(mobile_app, template_id, icn, topic_sid, personalisation)
-        return test_vetext_client.format_for_vetext(payload)
-
-    yield _wrapper
-
-
-def test_send_push_notification_correct_request(rmock, test_vetext_client):
-    response = {'success': True, 'statusCode': 200}
-    rmock.post(ANY, json=response, status_code=200)
-
-    mobile_app_id = sample_mobile_app_type()
-    template_id = str(uuid4())
-    icn = sample_recipient_identifier(IdentifierType.ICN).id_value
-    personalization = {'%FOO_1%': 'bar', '%BAZ_TWO%': 'abc', '%TMP%': '123'}
-
-    payload = {
-        'icn': icn,
-        'templateSid': template_id,
-        'appSid': mobile_app_id,
-        'personalization': personalization,
-    }
-
-    test_vetext_client.send_push_notification(payload)
-    assert rmock.called
-
-    expected_url = f'{MOCK_VETEXT_URL}/mobile/push/send'
-    request = rmock.request_history[0]
-    assert request.url == expected_url
-    assert request.json() == {
-        'appSid': mobile_app_id,
-        'templateSid': template_id,
-        'icn': icn,
-        'personalization': personalization,
-    }
-    expected_auth = 'Basic ' + b64encode(bytes(f'{MOCK_USER}:{MOCK_PASSWORD}', 'utf-8')).decode('ascii')
-    assert request.headers.get('Authorization') == expected_auth
-    assert request.timeout == test_vetext_client.TIMEOUT
-
-
-def test_send_push_captures_statsd_metrics_on_success(rmock, test_vetext_client):
-    response = {'success': True, 'statusCode': 200}
-    rmock.post(ANY, json=response, status_code=200)
-
-    payload = {
-        'appSid': sample_mobile_app_type(),
-        'templateSid': str(uuid4()),
-        'icn': sample_recipient_identifier(IdentifierType.ICN).id_value,
-    }
-
-    test_vetext_client.send_push_notification(payload)
-
-    test_vetext_client.statsd.incr.assert_called_with('clients.vetext.success')
-    test_vetext_client.statsd.timing.assert_called_with('clients.vetext.request_time', mock.ANY)
-
-
 class TestRequestExceptions:
     def test_raises_retryable_error_on_request_exception(self, rmock, test_vetext_client):
         rmock.post(url=f'{MOCK_VETEXT_URL}/mobile/push/send', exc=ConnectTimeout)
@@ -266,7 +200,70 @@ class TestFormatVetextPayload:
 
 
 class TestSendPushNotification:
-    def test_deliver_push_happy_path_icn(
+    @pytest.fixture
+    def sample_vetext_push_payload(self, test_vetext_client):
+        """Defaults to ICN (normal push, not broadcast)"""
+
+        def _wrapper(
+            mobile_app: str = DEAFULT_MOBILE_APP_TYPE,
+            template_id: str = 'any_template_id',
+            icn: str | None = 'some_icn',
+            topic_sid: str | None = None,
+            personalisation: dict[str, str] | None = None,
+        ) -> dict[str, str]:
+            payload = V2PushPayload(mobile_app, template_id, icn, topic_sid, personalisation)
+            return test_vetext_client.format_for_vetext(payload)
+
+        yield _wrapper
+
+    def test_send_push_notification_correct_request(self, rmock, test_vetext_client):
+        response = {'success': True, 'statusCode': 200}
+        rmock.post(ANY, json=response, status_code=200)
+
+        mobile_app_id = sample_mobile_app_type()
+        template_id = str(uuid4())
+        icn = sample_recipient_identifier(IdentifierType.ICN).id_value
+        personalization = {'%FOO_1%': 'bar', '%BAZ_TWO%': 'abc', '%TMP%': '123'}
+
+        payload = {
+            'icn': icn,
+            'templateSid': template_id,
+            'appSid': mobile_app_id,
+            'personalization': personalization,
+        }
+
+        test_vetext_client.send_push_notification(payload)
+        assert rmock.called
+
+        expected_url = f'{MOCK_VETEXT_URL}/mobile/push/send'
+        request = rmock.request_history[0]
+        assert request.url == expected_url
+        assert request.json() == {
+            'appSid': mobile_app_id,
+            'templateSid': template_id,
+            'icn': icn,
+            'personalization': personalization,
+        }
+        expected_auth = 'Basic ' + b64encode(bytes(f'{MOCK_USER}:{MOCK_PASSWORD}', 'utf-8')).decode('ascii')
+        assert request.headers.get('Authorization') == expected_auth
+        assert request.timeout == test_vetext_client.TIMEOUT
+
+    def test_send_push_captures_statsd_metrics_on_success(self, rmock, test_vetext_client):
+        response = {'success': True, 'statusCode': 200}
+        rmock.post(ANY, json=response, status_code=200)
+
+        payload = {
+            'appSid': sample_mobile_app_type(),
+            'templateSid': str(uuid4()),
+            'icn': sample_recipient_identifier(IdentifierType.ICN).id_value,
+        }
+
+        test_vetext_client.send_push_notification(payload)
+
+        test_vetext_client.statsd.incr.assert_called_with('clients.vetext.success')
+        test_vetext_client.statsd.timing.assert_called_with('clients.vetext.request_time', mock.ANY)
+
+    def test_send_push_notification_happy_path_icn(
         self,
         client,
         rmock,
@@ -283,7 +280,7 @@ class TestSendPushNotification:
         # Should run without exceptions
         test_vetext_client.send_push_notification(sample_vetext_push_payload())
 
-    def test_deliver_push_happy_path_topic(
+    def test_send_push_notification_happy_path_topic(
         self,
         client,
         rmock,
@@ -311,7 +308,7 @@ class TestSendPushNotification:
             (HTTPError(response=Response()), 504),
         ],
     )
-    def test_deliver_push_retryable_exception(
+    def test_send_push_notification_retryable_exception(
         self,
         client,
         rmock,
@@ -340,7 +337,7 @@ class TestSendPushNotification:
             (RequestException(), None),
         ],
     )
-    def test_deliver_push_nonretryable_exception(
+    def test_send_push_notification_nonretryable_exception(
         self,
         client,
         test_exception,

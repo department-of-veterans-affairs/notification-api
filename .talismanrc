@@ -19,4 +19,6 @@ fileignoreconfig:
   checksum: a2e9c2d625158d39622cfe82f1cc38d9623acc6bf4c2d56ea816910143ad15dd
 - filename: tests/app/v2/notifications/test_push_notifications.py
   checksum: 8781698e08707a8c9f50fc4f6e4342065a65a069614b88a1192e8ee8f89c268c
+- filename: tests/app/va/vetext/test_client.py
+  checksum: 36fb86b6221e49703e51eda249e1a6d090483968a1c7a198be231470e021642c
 version: "1.0"
