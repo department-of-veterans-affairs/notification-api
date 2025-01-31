@@ -62,10 +62,24 @@ def handler(generic):
 
 @internal_blueprint.route('/502', methods=['POST', 'GET'])
 def throw_502():
+    """
+    Returns a 502 Bad Gateway response for testing purposes.
+
+    Returns:
+        Response: A JSON response with 'result' set to 'error' and 'message',
+        along with a 502 status code.
+    """
     return jsonify(result='error', message='hello world'), 502
 
 
 @internal_blueprint.route('/sleep', methods=['POST', 'GET'])
 def sleep():
+    """
+    Simulates a delayed response by sleeping for 30 seconds.
+
+    Returns:
+        Response: A JSON response indicating success, with a 'message' stating the sleep duration,
+          along with a 201 status code.
+    """
     time.sleep(30)
     return jsonify(result='success', message='slept for 30s'), 201
