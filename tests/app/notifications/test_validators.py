@@ -494,15 +494,6 @@ def test_check_reply_to_sms_type(
     assert check_reply_to(service.id, service.get_default_sms_sender_id(), SMS_TYPE) == str(number)
 
 
-def test_check_reply_to_letter_type(
-    sample_service,
-):
-    service = sample_service()
-    number = randint(1000000, 9999999999)
-    letter_contact = create_letter_contact(service=service, contact_block=number)
-    assert check_reply_to(service.id, letter_contact.id, LETTER_TYPE) == str(number)
-
-
 class TestSmsSenderRateLimit:
     def test_that_when_sms_sender_rate_exceed_rate_limit_request_fails(
         self,

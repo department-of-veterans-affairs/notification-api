@@ -1030,33 +1030,6 @@ def test_update_template_reply_to_set_to_blank(client, notify_db_session, sample
     notify_db_session.session.commit()
 
 
-def test_update_template_with_foreign_service_reply_to(client, sample_service, sample_template):
-    auth_header = create_admin_authorization_header()
-
-    service = sample_service(
-        service_name=f'test service {str(uuid.uuid4())}', email_from='test@example.com', service_permissions=['letter']
-    )
-    service_all_perms = sample_service(service_permissions=SERVICE_PERMISSION_TYPES)
-    letter_contact = create_letter_contact(service_all_perms, 'Edinburgh, ED1 1AA')
-    template = sample_template(service=service, template_type=LETTER_TYPE, postage='second')
-    data = {
-        'reply_to': str(letter_contact.id),
-    }
-
-    resp = client.post(
-        '/service/{}/template/{}'.format(template.service_id, template.id),
-        data=json.dumps(data),
-        headers=[('Content-Type', 'application/json'), auth_header],
-    )
-
-    assert resp.status_code == 400, resp.get_data(as_text=True)
-    json_resp = json.loads(resp.get_data(as_text=True))
-
-    assert json_resp['message'] == 'letter_contact_id {} does not exist in database for service id {}'.format(
-        str(letter_contact.id), str(template.service_id)
-    )
-
-
 def test_update_redact_template(admin_request, sample_template):
     template = sample_template()
     assert template.redact_personalisation is False

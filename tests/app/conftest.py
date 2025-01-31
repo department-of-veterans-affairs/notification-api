@@ -71,7 +71,6 @@ from app.models import (
     ScheduledNotification,
     ServiceCallback,
     ServiceDataRetention,
-    ServiceEmailReplyTo,
     ServiceLetterContact,
     ServicePermission,
     ServiceSmsSender,
@@ -2457,9 +2456,7 @@ def x_minutes_ago():
 
 
 @pytest.fixture(scope='session')
-def sample_notify_service_user_session(
-    notify_db, sample_service_session, sample_user_session
-):
+def sample_notify_service_user_session(notify_db, sample_service_session, sample_user_session):
     u_id = current_app.config['NOTIFY_USER_ID']
     s_id = current_app.config['NOTIFY_SERVICE_ID']
 
