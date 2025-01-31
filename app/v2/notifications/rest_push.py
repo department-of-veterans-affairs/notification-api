@@ -1,5 +1,3 @@
-import json
-
 from celery.exceptions import CeleryError
 from jsonschema import ValidationError
 from kombu.exceptions import OperationalError
@@ -27,7 +25,7 @@ def send_push_broadcast_notification():
     return push_notification_helper(push_notification_broadcast_request)
 
 
-def push_notification_helper(schema: dict):
+def push_notification_helper(request_data: dict):
     """
     Note that this helper cannot be called other than as part of a request because it accesses
     the Flask "request" instance.
@@ -40,7 +38,7 @@ def push_notification_helper(schema: dict):
             status_code=403,
         )
 
-    payload = validate_push_payload(schema)
+    payload = validate_push_payload(request_data)
 
     try:
         # Choosing to use the email queue for push to limit the number of empty queues
@@ -54,40 +52,37 @@ def push_notification_helper(schema: dict):
     return response
 
 
-def validate_push_payload(schema: dict[str, str]) -> V2PushPayload:
+def validate_push_payload(request_data: dict[str, str]) -> V2PushPayload:
     """Validate an incoming push request.
 
     Args:
-        schema (dict[str, str]): The incoming request
+        request_data (dict[str, str]): The incoming request
 
     Raises:
-        BadRequestError: Failed validation
+        ValidationError: Failed validation due to request data
+        BadRequestError: Failed vaildation due to mobile setup
+
 
     Returns:
         dict[str, str]: Validated request dictionary
     """
     try:
-        req_json: dict[str, str] = validate(request.get_json(), schema)
+        req_json: dict[str, str] = validate(request.get_json(), request_data)
+    except ValidationError as e:
+        current_app.logger.warning('Push request failed validation: %s', e)
+        raise
 
+    try:
         # Validate the application they sent us is valid or use the default
         if 'mobile_app' in req_json:
             app_sid = mobile_app_registry.get_app(MobileAppType[req_json['mobile_app']]).sid
         else:
             app_sid = mobile_app_registry.get_app(DEAFULT_MOBILE_APP_TYPE).sid
-    except (KeyError, TypeError) as e:
+    except KeyError as e:
         current_app.logger.warning('Push request failed validation due to mobile app setup: %s', e)
         raise BadRequestError(message=str(e), status_code=400)
-    except ValidationError as e:
-        current_app.logger.warning('Push request failed validation: %s', e)
-        error_data = json.loads(e.message)
-        error_data['errors'] = error_data['errors'][0]
-        raise e
-    except Exception:
-        msg = 'Unable to process request for push notification - bad request'
-        current_app.logger.exception(msg)
-        raise BadRequestError(message=msg, status_code=400)
 
-    # Use get() on optionals - schema validated it is correct
+    # Use get() on optionals - request_data validated it is correct
     payload = V2PushPayload(
         app_sid,
         req_json['template_id'],
