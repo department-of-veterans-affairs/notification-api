@@ -227,21 +227,41 @@ class TestHTTPExceptions:
 
 class TestFormatVetextPayload:
     def test_format_happy_path_push(self):
-        payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', icn='some_icn')
+        payload = V2PushPayload(
+            DEAFULT_MOBILE_APP_TYPE,
+            'any_template_id',
+            personalisation={'foo_1': 'bar', 'baz_two': 'abc', 'tmp': '123'},
+            icn='some_icn',
+        )
         formatted_payload = VETextClient.format_for_vetext(payload)
-        expected_formatted_payload = {}
+        expected_formatted_payload = {
+            'appSid': DEAFULT_MOBILE_APP_TYPE,
+            'icn': 'some_icn',
+            'personalization': {'%FOO_1%': 'bar', '%BAZ_TWO%': 'abc', '%TMP%': '123'},
+            'templateSid': 'any_template_id',
+        }
         assert formatted_payload == expected_formatted_payload
 
     def test_format_happy_path_broadcast(self):
         payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', topic_sid='some_topic_sid')
         formatted_payload = VETextClient.format_for_vetext(payload)
-        expected_formatted_payload = {}
+        expected_formatted_payload = {
+            'appSid': DEAFULT_MOBILE_APP_TYPE,
+            'personalization': None,
+            'templateSid': 'any_template_id',
+            'topicSid': 'some_topic_sid',
+        }
         assert formatted_payload == expected_formatted_payload
 
     def test_format_personalisation_happy_path(self):
         payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id')
         formatted_payload = VETextClient.format_for_vetext(payload)
-        expected_formatted_payload = {}
+        expected_formatted_payload = {
+            'appSid': DEAFULT_MOBILE_APP_TYPE,
+            'icn': None,
+            'personalization': None,
+            'templateSid': 'any_template_id',
+        }
         assert formatted_payload == expected_formatted_payload
 
 
