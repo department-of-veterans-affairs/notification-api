@@ -1067,7 +1067,7 @@ def test_send_notification_without_sms_sender_rate_limit_uses_regular_delivery_t
 
 
 @mock_aws
-def test_send_notification_to_queue_delayed(client, mock_sqs, mocker, sample_notification) -> None:
+def test_send_notification_to_queue_delayed_zero_delay(client, mock_sqs, mocker, sample_notification) -> None:
     """Test send_notification_to_queue_delayed happy path"""
     # create queue for testing
     sqs_client, q_url = mock_sqs
@@ -1076,13 +1076,15 @@ def test_send_notification_to_queue_delayed(client, mock_sqs, mocker, sample_not
 
     debug_logger = mocker.spy(client.application.logger, 'debug')
 
+    delay_seconds = 0
+
     assert (
         send_notification_to_queue_delayed(
             notification=notification,
             research_mode=False,
             queue_name='test_queue',
             sms_sender_id=None,
-            delay_seconds=0,
+            delay_seconds=delay_seconds,
         )
         is None
     )
@@ -1092,12 +1094,15 @@ def test_send_notification_to_queue_delayed(client, mock_sqs, mocker, sample_not
 
     # MaxNumberOfMessages ranges from 1-10, want to ensure only one message was added to the queue
     messages = sqs_client.receive_message(QueueUrl=q_url, MaxNumberOfMessages=10)
+
+    # ensuring that only one message was delivered
     assert len(messages.get('Messages')) == 1
-    assert (monotonic() - start) < 1
+    # should be delivered without delay, less than one second
+    assert (monotonic() - start) < (delay_seconds + 1)
 
 
 @mock_aws
-def test_send_notification_to_queue_delayed_delays_properly(client, mock_sqs, mocker, sample_notification) -> None:
+def test_send_notification_to_queue_delayed_nonzero_delay(client, mock_sqs, mocker, sample_notification) -> None:
     """Test send_notification_to_queue_delayed happy path with delay value"""
     # create queue for testing
     sqs_client, q_url = mock_sqs
@@ -1106,13 +1111,15 @@ def test_send_notification_to_queue_delayed_delays_properly(client, mock_sqs, mo
 
     debug_logger = mocker.spy(client.application.logger, 'debug')
 
+    delay_seconds = 1
+
     assert (
         send_notification_to_queue_delayed(
             notification=notification,
             research_mode=False,
             queue_name='test_queue',
             sms_sender_id=None,
-            delay_seconds=1,
+            delay_seconds=delay_seconds,
         )
         is None
     )
@@ -1125,14 +1132,14 @@ def test_send_notification_to_queue_delayed_delays_properly(client, mock_sqs, mo
     while messages.get('Messages') is None:
         messages = sqs_client.receive_message(QueueUrl=q_url, MaxNumberOfMessages=10)
         # prevent infinite loop if nothing is added to the queue
-        if monotonic() - start > 2:
+        if (monotonic() - start) > (delay_seconds + 1):
             break
 
+    # ensuring that only one message was delivered
     assert len(messages.get('Messages')) == 1
 
     # verify it took at least 1 sec to get message
-    delay = monotonic() - start
-    assert delay > 1
+    assert (monotonic() - start) > delay_seconds
 
 
 @mock_aws
@@ -1164,7 +1171,7 @@ def test_send_notification_to_queue_delayed_message_content(client, sample_notif
     assert task_body.get('task') == 'deliver_sms'
 
     task_args = task_body.get('args')
-    assert task_args == [str(notification.id), str(None)]
+    assert task_args == [str(notification.id), 'None']
 
 
 @mock_aws
@@ -1204,7 +1211,7 @@ def test_send_notification_to_queue_delayed_throws_exception_when_send_message_f
 
     notification: Notification = sample_notification()
 
-    logger = mocker.spy(client.application.logger, 'critical')
+    logger = mocker.spy(client.application.logger, 'exception')
 
     with pytest.raises(Exception) as e:
         send_notification_to_queue_delayed(

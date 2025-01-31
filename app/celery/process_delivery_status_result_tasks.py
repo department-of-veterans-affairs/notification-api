@@ -374,12 +374,12 @@ def update_sms_retry_count(
         raise ValueError(
             f"Expected an integer value for id '{notification_retry_id}', but got: {value} (type: {type(value)})"
         )
-    except Exception:
+    except BaseException:
         # base redis exception already logged in redis client
         raise Exception('Unable to retrieve value from redis.')
 
 
-def sms_attempt_retry(
+def sms_attempt_retry(  # noqa: C901 (too complex 11 > 10)
     sms_status: SmsStatusRecord,
     event_timestamp: str | None = None,
     event_in_seconds: int = 300,  # Don't retry _get_notification by default
@@ -513,10 +513,16 @@ def sms_attempt_retry(
 
         try:
             check_and_queue_callback_task(notification, sms_status.payload)
-            check_and_queue_va_profile_notification_status_callback(notification)
-            statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.success')
         except Exception:
-            current_app.logger.exception(
-                'Failed to check_and_queue_callback_task for notification: %s', notification.id
-            )
+            current_app.logger.exception('Failed check_and_queue_callback_task for notification: %s', notification.id)
             statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
+        else:
+            try:
+                check_and_queue_va_profile_notification_status_callback(notification)
+                statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.success')
+            except Exception:
+                current_app.logger.exception(
+                    'Failed check_and_queue_va_profile_notification_status_callback for notification: %s',
+                    notification.id,
+                )
+                statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')

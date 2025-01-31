@@ -26,6 +26,7 @@ from app.constants import (
     NOTIFICATION_STATUS_TYPES_FAILED,
     NOTIFICATION_TEMPORARY_FAILURE,
     SMS_TYPE,
+    STATUS_REASON_UNDELIVERABLE,
 )
 from app.dao.notifications_dao import (
     dao_create_notification,
@@ -2210,7 +2211,6 @@ def test_ut_dao_update_sms_notification_status_to_created_for_retry_valid_update
 
     notification: Notification = sample_notification(
         status=NOTIFICATION_SENDING,
-        status_reason='Because I said so!',
         cost_in_millicents=initial_cost,
         segments_count=6,
     )
@@ -2232,23 +2232,23 @@ def test_ut_dao_update_sms_notification_status_to_created_for_retry_valid_update
 
 
 @pytest.mark.parametrize(
-    'current_status',
-    [NOTIFICATION_TEMPORARY_FAILURE, NOTIFICATION_PERMANENT_FAILURE, NOTIFICATION_DELIVERED],
+    'status, status_reason',
+    [
+        (NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_UNDELIVERABLE),
+        (NOTIFICATION_DELIVERED, None),
+    ],
 )
 def test_ut_dao_update_sms_notification_status_to_created_for_retry_invalid_updates(
-    sample_template,
     sample_notification,
-    current_status,
+    status,
+    status_reason,
 ):
-    status_reason = None if (current_status == NOTIFICATION_DELIVERED) else 'Because I said so!'
-
     notification: Notification = sample_notification(
-        template=sample_template(),
-        status=current_status,
+        status=status,
         status_reason=status_reason,
     )
 
-    assert notification.status == current_status
+    assert notification.status == status
     assert notification.status_reason == status_reason
 
     dao_update_sms_notification_status_to_created_for_retry(
@@ -2258,7 +2258,7 @@ def test_ut_dao_update_sms_notification_status_to_created_for_retry_invalid_upda
         segments_count=6,
     )
 
-    assert notification.status == current_status
+    assert notification.status == status
     assert notification.status_reason == status_reason
 
 

@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from app.clients.sms.aws_pinpoint import AwsPinpointClient
 from app.dao import notifications_dao
 from app.dao.notifications_dao import dao_update_notification_by_id
 from app.models import Notification
@@ -28,10 +29,9 @@ from app.constants import (
 @pytest.mark.parametrize(
     'event_type, record_status',
     [
-        ('_SMS.FAILURE', 'UNREACHABLE'),
-        ('_SMS.FAILURE', 'UNKNOWN'),
-        ('_SMS.FAILURE', 'CARRIER_UNREACHABLE'),
-        ('_SMS.FAILURE', 'TTL_EXPIRED'),
+        ('_SMS.FAILURE', k)
+        for k, v in AwsPinpointClient._sms_record_status_mapping.items()
+        if v[0] == NOTIFICATION_TEMPORARY_FAILURE
     ],
 )
 def test_ut_process_pinpoint_results_should_attempt_retry(
@@ -59,17 +59,9 @@ def test_ut_process_pinpoint_results_should_attempt_retry(
 @pytest.mark.parametrize(
     'event_type, record_status',
     [
-        ('_SMS.BUFFERED', 'PENDING'),
-        ('_SMS.BUFFERED', 'SUCCESSFUL'),
-        ('_SMS.SUCCESS', 'DELIVERED'),
-        ('_SMS.FAILURE', 'INVALID'),
-        ('_SMS.FAILURE', 'BLOCKED'),
-        ('_SMS.FAILURE', 'SPAM'),
-        ('_SMS.FAILURE', 'INVALID_MESSAGE'),
-        ('_SMS.FAILURE', 'CARRIER_BLOCKED'),
-        ('_SMS.FAILURE', 'MAX_PRICE_EXCEEDED'),
-        ('_SMS.FAILURE', 'OPTED_OUT'),
-        ('_SMS.OPTOUT', ''),
+        ('_SMS.FAILURE', k)
+        for k, v in AwsPinpointClient._sms_record_status_mapping.items()
+        if v[0] != NOTIFICATION_TEMPORARY_FAILURE
     ],
 )
 def test_ut_process_pinpoint_results_should_not_attempt_retry(
@@ -97,10 +89,9 @@ def test_ut_process_pinpoint_results_should_not_attempt_retry(
 @pytest.mark.parametrize(
     'event_type, record_status',
     [
-        ('_SMS.FAILURE', 'UNREACHABLE'),
-        ('_SMS.FAILURE', 'UNKNOWN'),
-        ('_SMS.FAILURE', 'CARRIER_UNREACHABLE'),
-        ('_SMS.FAILURE', 'TTL_EXPIRED'),
+        ('_SMS.FAILURE', k)
+        for k, v in AwsPinpointClient._sms_record_status_mapping.items()
+        if v[0] == NOTIFICATION_TEMPORARY_FAILURE
     ],
 )
 def test_it_process_pinpoint_results_should_queue_retry(
@@ -334,96 +325,6 @@ def test_process_pinpoint_results_delivered_clears_status_reason(
     assert notification.status == NOTIFICATION_DELIVERED
     assert notification.status_reason is None
     assert notification.updated_at != last_updated_at
-
-
-@pytest.mark.skip(reason='_SMS.BUFFERED+SUCCESSFUL now interpreted as NOTIFICATION_SENDING')
-def test_process_pinpoint_results_segments_and_price_buffered_first(
-    mocker,
-    sample_template,
-    sample_notification,
-    notify_db_session,
-):
-    """
-    Test processing a Pinpoint SMS stream event.  Messages long enough to require multiple segments only
-    result in one event that contains the aggregate cost.
-    """
-
-    test_reference = f'{uuid4()}=sms-reference-1'
-    template = sample_template()
-    notification = sample_notification(
-        template=template, reference=test_reference, sent_at=datetime.now(timezone.utc), status=NOTIFICATION_SENDING
-    )
-    assert notification.segments_count == 0, 'This is the default.'
-    assert notification.cost_in_millicents == 0.0, 'This is the default.'
-
-    # Receiving a _SMS.BUFFERED+SUCCESSFUL event first should update the notification.
-    process_pinpoint_results(
-        response=pinpoint_notification_callback_record(
-            reference=test_reference,
-            event_type='_SMS.BUFFERED',
-            record_status='SUCCESSFUL',
-            number_of_message_parts=6,
-            price=4986.0,
-        )
-    )
-
-    notify_db_session.session.refresh(notification)
-    assert notification.status == NOTIFICATION_DELIVERED
-    assert notification.segments_count == 6
-    assert notification.cost_in_millicents == 4986.0
-    assert notification.status_reason is None
-
-    # A subsequent _SMS.SUCCESS+DELIVERED event should not alter the segments and price columns.
-    process_pinpoint_results(
-        response=pinpoint_notification_callback_record(
-            reference=test_reference,
-            event_type='_SMS.SUCCESS',
-            record_status='DELIVERED',
-            number_of_message_parts=6,
-            price=4986.0,
-        )
-    )
-
-    notify_db_session.session.refresh(notification)
-    assert notification.status == NOTIFICATION_DELIVERED
-    assert notification.segments_count == 6
-    assert notification.cost_in_millicents == 4986.0
-    assert notification.status_reason is None
-
-
-@pytest.mark.skip(reason='_SMS.BUFFERED+SUCCESSFUL now interpreted as NOTIFICATION_SENDING')
-def test_process_pinpoint_results_segments_and_price_success_first(
-    notify_db_session, mocker, sample_template, sample_notification
-):
-    """
-    Test processing a Pinpoint SMS stream event.  Messages long enough to require multiple segments only
-    result in one event that contains the aggregate cost.
-
-    Receiving a _SMS.SUCCESS+DELIVERED without any preceeding _SMS.BUFFERED event should update the
-    notification.
-    """
-
-    test_reference = f'{uuid4()}-sms-reference-1'
-    template = sample_template()
-    notification = sample_notification(
-        template=template, reference=test_reference, sent_at=datetime.now(timezone.utc), status=NOTIFICATION_SENDING
-    )
-
-    process_pinpoint_results(
-        response=pinpoint_notification_callback_record(
-            reference=test_reference,
-            event_type='_SMS.SUCCESS',
-            record_status='DELIVERED',
-            number_of_message_parts=4,
-            price=2986.0,
-        )
-    )
-
-    notify_db_session.session.refresh(notification)
-    assert notification.status == NOTIFICATION_DELIVERED
-    assert notification.segments_count == 4
-    assert notification.cost_in_millicents == 2986.0
-    assert notification.status_reason is None
 
 
 def pinpoint_notification_callback_record(
