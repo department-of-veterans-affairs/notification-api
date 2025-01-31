@@ -1,6 +1,5 @@
 from app import create_random_identifier
 from app.dao.notifications_dao import _update_notification_status
-from app.dao.service_email_reply_to_dao import dao_get_reply_to_by_id
 from app.dao.service_sms_sender_dao import dao_get_service_sms_sender_by_id
 from app.dao.services_dao import dao_fetch_service_by_id
 from app.dao.templates_dao import dao_get_template_by_id_and_service_id
@@ -19,6 +18,7 @@ from app.constants import (
     NOTIFICATION_DELIVERED,
 )
 from app.v2.errors import BadRequestError
+from flask import current_app
 from sqlalchemy.orm.exc import NoResultFound
 
 
@@ -105,7 +105,8 @@ def get_reply_to_text(
         try:
             if notification_type == EMAIL_TYPE:
                 message = 'Reply to email address not found'
-                reply_to = dao_get_reply_to_by_id(service.id, sender_id).email_address
+                reply_to = ''
+                current_app.logger.warning("Couldn't find the reply-to e-mail address.")
             elif notification_type == SMS_TYPE:
                 message = 'SMS sender not found'
                 reply_to = dao_get_service_sms_sender_by_id(service.id, sender_id).get_reply_to_text()
