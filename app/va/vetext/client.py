@@ -31,7 +31,6 @@ class VETextClient:
         self.logger = logger
         self.statsd = statsd
 
-    @staticmethod
     def format_for_vetext(self, payload: V2PushPayload) -> dict[str, str]:
         self.logger.debug('format_for_vetext: Attempting to format payload: %s', payload)
         if payload.personalisation:
