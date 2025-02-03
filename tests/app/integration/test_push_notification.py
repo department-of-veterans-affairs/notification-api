@@ -118,7 +118,7 @@ def test_mobile_app_push_notification_celery_exception(
     service = sample_service(service_permissions=[PUSH_TYPE])
     api_key = sample_api_key(service=service)
 
-    mocker.patch('app.v2.notifications.rest_push.deliver_push.delay', side_effect=test_exception)
+    mocker.patch('app.v2.notifications.rest_push.deliver_push.apply_async', side_effect=test_exception)
     push_request_body = {
         'mobile_app': 'VETEXT',
         'template_id': 'some-template-id',

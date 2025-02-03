@@ -48,7 +48,7 @@ def push_notification_helper(schema: dict):
 
     try:
         # Choosing to use the email queue for push to limit the number of empty queues
-        deliver_push.delay(payload)
+        deliver_push.apply_async(payload)
     except (CeleryError, OperationalError):
         current_app.logger.exception('Failed to enqueue deliver_push request')
         response = jsonify(result='error', message='VA Notify service impaired, please try again'), 502

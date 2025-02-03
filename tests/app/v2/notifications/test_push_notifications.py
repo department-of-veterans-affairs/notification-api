@@ -136,7 +136,7 @@ class TestValidations:
 class TestDeliverPushCelery:
     @pytest.fixture()
     def deliver_push_celery(self, mocker):
-        mocker.patch('app.v2.notifications.rest_push.deliver_push.delay')
+        mocker.patch('app.v2.notifications.rest_push.deliver_push.apply_async')
 
     def test_returns_201(
         self,
@@ -165,7 +165,7 @@ class TestDeliverPushCelery:
 
     @pytest.mark.parametrize('side_effect', [CeleryError, OperationalError])
     def test_celery_returns_502(self, client, sample_api_key, sample_service, mocker, side_effect):
-        mocker.patch('app.v2.notifications.rest_push.deliver_push.delay', side_effect=side_effect)
+        mocker.patch('app.v2.notifications.rest_push.deliver_push.apply_async', side_effect=side_effect)
         service = sample_service(service_permissions=[PUSH_TYPE])
         response = post_send_notification(client, sample_api_key(service), PUSH_TYPE, PUSH_REQUEST)
         assert response.status_code == 502
