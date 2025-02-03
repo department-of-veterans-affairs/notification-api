@@ -379,7 +379,71 @@ def update_sms_retry_count(
         raise Exception('Unable to retrieve value from redis.')
 
 
-def sms_attempt_retry(  # noqa: C901 (too complex 11 > 10)
+def mark_retry_as_permanent_failure(notification: Notification, sms_status: SmsStatusRecord):
+    """Mark retry as permanent failure and attempt callbacks.
+
+    Args:
+        notfication (Notification): The notification that is not eligible for further retires
+        sms_status (SmsStatusRecord): The status record update
+
+    Raises:
+        NonRetryableException: Unable update the notification
+    """
+    # mark as permanant failure so client can be updated
+    sms_status.status = NOTIFICATION_PERMANENT_FAILURE
+    sms_status.status_reason = STATUS_REASON_UNDELIVERABLE
+
+    # avoid an out-of-order double billing, previous permanent_failure or delivered already counted
+    # temporary_failure not possible with retry handling
+    if notification.status != NOTIFICATION_SENDING:
+        sms_status.price_millicents = 0
+
+    try:
+        notification: Notification = dao_update_sms_notification_delivery_status(
+            notification_id=notification.id,
+            notification_type=notification.notification_type,
+            new_status=sms_status.status,
+            new_status_reason=sms_status.status_reason,
+            segments_count=sms_status.message_parts,
+            cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
+        )
+        statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
+    except Exception:
+        statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
+        raise NonRetryableException('Unable to update notification')
+
+    current_app.logger.info(
+        'Final %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | cost_in_millicents: %s',
+        sms_status.provider,
+        sms_status.reference,
+        notification.id,
+        notification.status,
+        notification.status_reason,
+        notification.cost_in_millicents,
+    )
+
+    # Our clients are not prepared to deal with pinpoint payloads
+    if not _get_include_payload_status(notification):
+        sms_status.payload = None
+
+    try:
+        check_and_queue_callback_task(notification, sms_status.payload)
+    except Exception:
+        current_app.logger.exception('Failed check_and_queue_callback_task for notification: %s', notification.id)
+        statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
+    else:
+        try:
+            check_and_queue_va_profile_notification_status_callback(notification)
+            statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.success')
+        except Exception:
+            current_app.logger.exception(
+                'Failed check_and_queue_va_profile_notification_status_callback for notification: %s',
+                notification.id,
+            )
+            statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
+
+
+def sms_attempt_retry(
     sms_status: SmsStatusRecord,
     event_timestamp: str | None = None,
     event_in_seconds: int = 300,  # Don't retry _get_notification by default
@@ -474,55 +538,4 @@ def sms_attempt_retry(  # noqa: C901 (too complex 11 > 10)
             retry_delay,
         )
     else:
-        # mark as permanant failure so client can be updated
-        sms_status.status = NOTIFICATION_PERMANENT_FAILURE
-        sms_status.status_reason = STATUS_REASON_UNDELIVERABLE
-
-        # avoid an out-of-order double billing, previous permanent_failure or delivered already counted
-        # temporary_failure not possible with retry handling
-        if notification.status != NOTIFICATION_SENDING:
-            sms_status.price_millicents = 0
-
-        try:
-            notification: Notification = dao_update_sms_notification_delivery_status(
-                notification_id=notification.id,
-                notification_type=notification.notification_type,
-                new_status=sms_status.status,
-                new_status_reason=sms_status.status_reason,
-                segments_count=sms_status.message_parts,
-                cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
-            )
-            statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
-        except Exception:
-            statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
-            raise NonRetryableException('Unable to update notification')
-
-        current_app.logger.info(
-            'Final %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | cost_in_millicents: %s',
-            sms_status.provider,
-            sms_status.reference,
-            notification.id,
-            notification.status,
-            notification.status_reason,
-            notification.cost_in_millicents,
-        )
-
-        # Our clients are not prepared to deal with pinpoint payloads
-        if not _get_include_payload_status(notification):
-            sms_status.payload = None
-
-        try:
-            check_and_queue_callback_task(notification, sms_status.payload)
-        except Exception:
-            current_app.logger.exception('Failed check_and_queue_callback_task for notification: %s', notification.id)
-            statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
-        else:
-            try:
-                check_and_queue_va_profile_notification_status_callback(notification)
-                statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.success')
-            except Exception:
-                current_app.logger.exception(
-                    'Failed check_and_queue_va_profile_notification_status_callback for notification: %s',
-                    notification.id,
-                )
-                statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
+        mark_retry_as_permanent_failure(notification, sms_status)

@@ -17,6 +17,7 @@ from app.celery.process_delivery_status_result_tasks import (
     can_retry_sms_request,
     get_notification_platform_status,
     get_sms_retry_delay,
+    mark_retry_as_permanent_failure,
     process_delivery_status,
     sms_attempt_retry,
     sms_status_update,
@@ -630,13 +631,147 @@ def test_ut_get_sms_retry_delay(mocker, retry_count, expected_base_delay):
     assert get_sms_retry_delay(retry_count) == expected_base_delay
 
 
+def test_mark_retry_as_permanent_failure_updates_price_if_status_sending(
+    mocker,
+    sample_notification,
+):
+    price_millicents = 100
+
+    notification = sample_notification(
+        status=NOTIFICATION_SENDING,
+    )
+    sms_status = SmsStatusRecord(
+        None,
+        notification.reference,
+        NOTIFICATION_TEMPORARY_FAILURE,
+        STATUS_REASON_RETRYABLE,
+        PINPOINT_PROVIDER,
+        price_millicents=price_millicents,
+    )
+
+    mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
+    mocker.patch(
+        'app.celery.process_delivery_status_result_tasks.check_and_queue_va_profile_notification_status_callback'
+    )
+
+    orig_cost_in_millicents = notification.cost_in_millicents
+
+    mark_retry_as_permanent_failure(notification, sms_status)
+
+    notification = get_notification_by_id(notification.id)
+
+    assert notification.cost_in_millicents == orig_cost_in_millicents + price_millicents
+
+
+@pytest.mark.parametrize('status', [NOTIFICATION_CREATED, NOTIFICATION_DELIVERED, NOTIFICATION_PERMANENT_FAILURE])
+def test_mark_retry_as_permanent_failure_does_not_update_price_if_status_not_sending(
+    mocker,
+    sample_notification,
+    status,
+):
+    notification = sample_notification(
+        status=status,
+    )
+    sms_status = SmsStatusRecord(
+        None,
+        notification.reference,
+        NOTIFICATION_TEMPORARY_FAILURE,
+        STATUS_REASON_RETRYABLE,
+        PINPOINT_PROVIDER,
+        price_millicents=100,
+    )
+
+    mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
+    mocker.patch(
+        'app.celery.process_delivery_status_result_tasks.check_and_queue_va_profile_notification_status_callback'
+    )
+
+    orig_cost_in_millicents = notification.cost_in_millicents
+
+    mark_retry_as_permanent_failure(notification, sms_status)
+
+    notification = get_notification_by_id(notification.id)
+
+    assert notification.cost_in_millicents == orig_cost_in_millicents
+
+
+def test_mark_retry_as_permanent_failure_notification_update_exception_raises_non_retryable_exception(
+    mocker, sample_notification
+):
+    notification = sample_notification()
+    sms_status = SmsStatusRecord(
+        None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
+    )
+    mocker.patch(
+        'app.celery.process_delivery_status_result_tasks.dao_update_sms_notification_delivery_status',
+        side_effect=Exception,
+    )
+    mocked_check_and_queue_callback_task = mocker.patch(
+        'app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task',
+    )
+    mocked_notification_status_callback = mocker.patch(
+        'app.celery.process_delivery_status_result_tasks.check_and_queue_va_profile_notification_status_callback',
+    )
+
+    with pytest.raises(NonRetryableException):
+        mark_retry_as_permanent_failure(notification, sms_status)
+    mocked_check_and_queue_callback_task.assert_not_called()
+    mocked_notification_status_callback.assert_not_called()
+
+
+def test_mark_retry_as_permanent_failure_check_and_queue_callback_task_exception(mocker, sample_notification):
+    notification = sample_notification()
+    sms_status = SmsStatusRecord(
+        None,
+        notification.reference,
+        NOTIFICATION_TEMPORARY_FAILURE,
+        STATUS_REASON_RETRYABLE,
+        PINPOINT_PROVIDER,
+    )
+    mock_logger = mocker.patch('app.celery.process_delivery_status_result_tasks.current_app.logger.exception')
+    mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task', side_effect=Exception)
+
+    # Exception is caught and not re-raised
+    mark_retry_as_permanent_failure(notification, sms_status)
+    mock_logger.assert_called_once_with('Failed check_and_queue_callback_task for notification: %s', notification.id)
+
+
+def test_mark_retry_as_permanent_failure_check_and_queue_va_profile_notification_status_callback_exception(
+    mocker, sample_notification
+):
+    notification = sample_notification()
+    sms_status = SmsStatusRecord(
+        None,
+        notification.reference,
+        NOTIFICATION_TEMPORARY_FAILURE,
+        STATUS_REASON_RETRYABLE,
+        PINPOINT_PROVIDER,
+    )
+    mock_logger = mocker.patch('app.celery.process_delivery_status_result_tasks.current_app.logger.exception')
+    mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
+    mocker.patch(
+        'app.celery.process_delivery_status_result_tasks.check_and_queue_va_profile_notification_status_callback',
+        side_effect=Exception,
+    )
+
+    # Exception is caught and not re-raised
+    mark_retry_as_permanent_failure(notification, sms_status)
+    mock_logger.assert_called_once_with(
+        'Failed check_and_queue_va_profile_notification_status_callback for notification: %s', notification.id
+    )
+
+
 @pytest.mark.parametrize('retry_count', [value for value in range(CARRIER_SMS_MAX_RETRIES)])
 def test_ut_sms_attempt_retry_queued_if_retryable(mocker, sample_notification, retry_count):
     notification = sample_notification(
         status=NOTIFICATION_SENDING,
     )
     sms_status = SmsStatusRecord(
-        None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
+        None,
+        notification.reference,
+        NOTIFICATION_TEMPORARY_FAILURE,
+        STATUS_REASON_RETRYABLE,
+        PINPOINT_PROVIDER,
     )
     mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=retry_count)
     mocked_send_notification_to_queue_delayed = mocker.patch(
@@ -707,17 +842,14 @@ def test_ut_sms_attempt_retry_not_queued_if_exception_on_retry_count(mocker, sam
     mocked_send_notification_to_queue_delayed = mocker.patch(
         'app.notifications.process_notifications.send_notification_to_queue_delayed'
     )
-    check_and_queue_callback_task = mocker.patch(
-        'app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task'
-    )
-    mocker.patch(
-        'app.celery.process_delivery_status_result_tasks.check_and_queue_va_profile_notification_status_callback'
+    mocked_mark_retry_as_permanent_failure = mocker.patch(
+        'app.celery.process_delivery_status_result_tasks.mark_retry_as_permanent_failure'
     )
 
     sms_attempt_retry(sms_status)
 
     mocked_send_notification_to_queue_delayed.assert_not_called()
-    check_and_queue_callback_task.assert_called()
+    mocked_mark_retry_as_permanent_failure.assert_called()
 
 
 def test_ut_sms_attempt_retry_not_queued_if_retry_conditions_not_met(mocker, sample_notification):
@@ -730,17 +862,14 @@ def test_ut_sms_attempt_retry_not_queued_if_retry_conditions_not_met(mocker, sam
     mocked_send_notification_to_queue_delayed = mocker.patch(
         'app.notifications.process_notifications.send_notification_to_queue_delayed'
     )
-    check_and_queue_callback_task = mocker.patch(
-        'app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task'
-    )
-    mocker.patch(
-        'app.celery.process_delivery_status_result_tasks.check_and_queue_va_profile_notification_status_callback'
+    mocked_mark_retry_as_permanent_failure = mocker.patch(
+        'app.celery.process_delivery_status_result_tasks.mark_retry_as_permanent_failure'
     )
 
     sms_attempt_retry(sms_status)
 
     mocked_send_notification_to_queue_delayed.assert_not_called()
-    check_and_queue_callback_task.assert_called()
+    mocked_mark_retry_as_permanent_failure.assert_called()
 
 
 def test_ut_sms_attempt_retry_not_requeued_if_notification_update_exception(mocker, sample_notification):
@@ -765,7 +894,7 @@ def test_ut_sms_attempt_retry_not_requeued_if_notification_update_exception(mock
     assert mocked_send_notification_to_queue_delayed.not_called()
 
 
-def test_ut_sms_attempt_retry_callbacks_not_attempted_if_notification_update_exception(mocker, sample_notification):
+def test_sms_attempt_retry_notification_update_exception(mocker, sample_notification):
     notification = sample_notification(
         status=NOTIFICATION_SENDING,
     )
@@ -773,21 +902,18 @@ def test_ut_sms_attempt_retry_callbacks_not_attempted_if_notification_update_exc
         None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
     )
     mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
-    mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=False)
+    mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=True)
     mocker.patch(
         'app.celery.process_delivery_status_result_tasks.dao_update_sms_notification_delivery_status',
         side_effect=Exception,
     )
-    check_and_queue_callback_task = mocker.patch(
-        'app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task'
-    )
-    mocker.patch(
-        'app.celery.process_delivery_status_result_tasks.check_and_queue_va_profile_notification_status_callback'
+    mocked_mark_retry_as_permanent_failure = mocker.patch(
+        'app.celery.process_delivery_status_result_tasks.mark_retry_as_permanent_failure'
     )
 
-    with pytest.raises(Exception):
+    with pytest.raises(NonRetryableException):
         sms_attempt_retry(sms_status)
-    assert check_and_queue_callback_task.not_called()
+    assert mocked_mark_retry_as_permanent_failure.not_called()
 
 
 def test_ut_sms_attempt_retry_notification_set_to_permanent_failure_when_retry_conditions_not_met(
@@ -808,44 +934,6 @@ def test_ut_sms_attempt_retry_notification_set_to_permanent_failure_when_retry_c
     updated_notification = get_notification_by_id(notification.id)
     assert updated_notification.status == NOTIFICATION_PERMANENT_FAILURE
     assert updated_notification.status_reason == STATUS_REASON_UNDELIVERABLE
-
-
-def test_ut_sms_attempt_retry_check_and_queue_callback_task_exception(mocker, sample_notification):
-    notification = sample_notification()
-    sms_status = SmsStatusRecord(
-        None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
-    )
-    mock_logger = mocker.patch('app.celery.process_delivery_status_result_tasks.current_app.logger.exception')
-    mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count')
-    mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=False)
-    mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task', side_effect=Exception)
-
-    # Exception is caught and not re-raised
-    sms_attempt_retry(sms_status)
-    mock_logger.assert_called_once_with('Failed check_and_queue_callback_task for notification: %s', notification.id)
-
-
-def test_ut_sms_attempt_retry_check_and_queue_va_profile_notification_status_callback_exception(
-    mocker, sample_notification
-):
-    notification = sample_notification()
-    sms_status = SmsStatusRecord(
-        None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
-    )
-    mock_logger = mocker.patch('app.celery.process_delivery_status_result_tasks.current_app.logger.exception')
-    mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count')
-    mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=False)
-    mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
-    mocker.patch(
-        'app.celery.process_delivery_status_result_tasks.check_and_queue_va_profile_notification_status_callback',
-        side_effect=Exception,
-    )
-
-    # Exception is caught and not re-raised
-    sms_attempt_retry(sms_status)
-    mock_logger.assert_called_once_with(
-        'Failed check_and_queue_va_profile_notification_status_callback for notification: %s', notification.id
-    )
 
 
 @pytest.mark.serial
