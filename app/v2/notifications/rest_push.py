@@ -7,6 +7,7 @@ from flask import current_app, jsonify, request
 
 from app import authenticated_service, mobile_app_registry
 from app.celery.provider_tasks import deliver_push
+from app.config import QueueNames
 from app.constants import PUSH_TYPE
 from app.mobile_app import DEAFULT_MOBILE_APP_TYPE, MobileAppType
 from app.schema_validation import validate
@@ -48,7 +49,10 @@ def push_notification_helper(schema: dict):
 
     try:
         # Choosing to use the email queue for push to limit the number of empty queues
-        deliver_push.apply_async(payload)
+        deliver_push.apply_async(
+            args=(payload,),  # Pass payload as a positional argument
+            queue=QueueNames.SEND_SMS,
+        )
     except (CeleryError, OperationalError):
         current_app.logger.exception('Failed to enqueue deliver_push request')
         response = jsonify(result='error', message='VA Notify service impaired, please try again'), 502
