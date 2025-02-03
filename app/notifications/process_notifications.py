@@ -222,18 +222,16 @@ def send_notification_to_queue_delayed(
     try:
         sqs = boto3.resource('sqs', current_app.config['AWS_REGION'])
         queue = sqs.get_queue_by_name(QueueName=prefixed_queue_name)
-    except ClientError as e:
-        current_app.logger.critical(
-            'ClientError, failed to create SQS resource or could not get sqs queue "%s". Exception: %s',
+    except ClientError:
+        current_app.logger.exception(
+            'ClientError, failed to create SQS resource or could not get sqs queue "%s"',
             prefixed_queue_name,
-            e,
         )
         raise
-    except Exception as e:
-        current_app.logger.critical(
-            'Exception, failed to create SQS resource or could not get sqs queue "%s". Exception: %s',
+    except Exception:
+        current_app.logger.exception(
+            'Exception, failed to create SQS resource or could not get sqs queue "%s".',
             prefixed_queue_name,
-            e,
         )
         raise
 

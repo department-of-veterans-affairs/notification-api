@@ -1182,7 +1182,7 @@ def test_send_notification_to_queue_delayed_throws_exception_when_missing_queue(
 
     notification: Notification = sample_notification()
 
-    logger = mocker.spy(client.application.logger, 'critical')
+    logger = mocker.spy(client.application.logger, 'exception')
 
     with pytest.raises(ClientError):
         send_notification_to_queue_delayed(
