@@ -42,6 +42,10 @@ def push_notification_helper(schema: dict):
 
     payload = validate_push_payload(schema)
 
+    current_app.logger.debug(
+        'push_notification_helper: Attempting to call deliver_push celery task with validated payload: %s', payload
+    )
+
     try:
         # Choosing to use the email queue for push to limit the number of empty queues
         deliver_push.delay(payload)

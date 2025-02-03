@@ -288,8 +288,13 @@ def deliver_push(
     payload: V2PushPayload,
 ) -> None:
     """Deliver a validated push (or broadcast) payload to the provider client."""
+
     vetext_payload = vetext_client.format_for_vetext(payload)
     try:
+        current_app.logger(
+            'deliver_push celery task: Attempting to send push notification to VEText. Formatted payload %s.',
+            vetext_payload,
+        )
         vetext_client.send_push_notification(vetext_payload)
     except RetryableException:
         max_retries = celery_task.max_retries

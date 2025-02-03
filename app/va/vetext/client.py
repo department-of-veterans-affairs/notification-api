@@ -1,5 +1,6 @@
 from logging import Logger
 from time import monotonic
+from flask import current_app
 from typing_extensions import TypedDict
 
 import requests
@@ -33,6 +34,7 @@ class VETextClient:
 
     @staticmethod
     def format_for_vetext(payload: V2PushPayload) -> dict[str, str]:
+        current_app.logger.debug('format_for_vetext: Attempting to format payload: %s', payload)
         if payload.personalisation:
             payload.personalisation = {f'%{k.upper()}%': v for k, v in payload.personalisation.items()}
         formatted_payload = {
@@ -61,7 +63,7 @@ class VETextClient:
             response = requests.post(
                 f'{self.base_url}/mobile/push/send', auth=self.auth, json=payload, timeout=self.TIMEOUT
             )
-            self.logger.info('VEText response: %s', response.json() if response.ok else response.text)
+            self.logger.info('VEText response: %s', response.json() if response.ok else response.status_code)
             response.raise_for_status()
         except requests.exceptions.ReadTimeout:
             # Discussion with VEText: read timeouts are still processed, so no need to retry
