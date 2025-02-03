@@ -82,10 +82,6 @@ def validate_push_payload(schema: dict[str, str]) -> V2PushPayload:
         error_data = json.loads(e.message)
         error_data['errors'] = error_data['errors'][0]
         raise e
-    except Exception:
-        msg = 'Unable to process request for push notification - bad request'
-        current_app.logger.exception(msg)
-        raise BadRequestError(message=msg, status_code=400)
 
     # Use get() on optionals - schema validated it is correct
     payload = V2PushPayload(
