@@ -288,7 +288,7 @@ def deliver_push(
     payload: V2PushPayload,
 ) -> None:
     """Deliver a validated push (or broadcast) payload to the provider client."""
-
+    current_app.logger.debug('deliver_push celery task called with payload: %s', payload)
     vetext_payload = vetext_client.format_for_vetext(payload)
     try:
         current_app.logger.debug(

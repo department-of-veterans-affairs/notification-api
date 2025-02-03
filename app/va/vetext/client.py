@@ -1,6 +1,5 @@
 from logging import Logger
 from time import monotonic
-from flask import current_app
 from typing_extensions import TypedDict
 
 import requests
@@ -33,8 +32,8 @@ class VETextClient:
         self.statsd = statsd
 
     @staticmethod
-    def format_for_vetext(payload: V2PushPayload) -> dict[str, str]:
-        current_app.logger.debug('format_for_vetext: Attempting to format payload: %s', payload)
+    def format_for_vetext(self, payload: V2PushPayload) -> dict[str, str]:
+        self.logger.debug('format_for_vetext: Attempting to format payload: %s', payload)
         if payload.personalisation:
             payload.personalisation = {f'%{k.upper()}%': v for k, v in payload.personalisation.items()}
         formatted_payload = {
