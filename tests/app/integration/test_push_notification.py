@@ -2,7 +2,10 @@ import json
 import os
 
 import pytest
+from celery.exceptions import CeleryError
 from flask import url_for
+from jsonschema import ValidationError
+from kombu.exceptions import OperationalError
 
 from app.constants import PUSH_TYPE
 from app.feature_flags import FeatureFlag
@@ -17,7 +20,6 @@ def push_notification_toggle_enabled(mocker):
 
 def test_mobile_app_push_notification_delivered(
     client,
-    push_notification_toggle_enabled,
     rmock,
     mocker,
     sample_api_key,
@@ -29,6 +31,7 @@ def test_mobile_app_push_notification_delivered(
         'POST', f"{client.application.config['VETEXT_URL']}/mobile/push/send", json={'result': 'success'}
     )
 
+    mocker.patch('app.v2.notifications.rest_push.deliver_push')
     push_request_body = {
         'mobile_app': 'VETEXT',
         'template_id': 'some-template-id',
@@ -47,6 +50,120 @@ def test_mobile_app_push_notification_delivered(
         ],
     )
 
-    assert rmock.called
     assert response.json.get('result') == 'success'
     assert response.status_code == 201
+
+
+def test_push_notification_validation_fails(
+    client,
+    rmock,
+    mocker,
+    sample_api_key,
+    sample_service,
+):
+    service = sample_service(service_permissions=[PUSH_TYPE])
+    api_key = sample_api_key(service=service)
+    rmock.register_uri(
+        'POST', f"{client.application.config['VETEXT_URL']}/mobile/push/send", json={'result': 'success'}
+    )
+
+    push_request_body = {
+        'template_id': 'some-template-id',
+        'recipient_identifier': {'id_type': 'ICN', 'id_value': 'some-icn'},
+        'personalisation': {'%FOO%': 'bar'},
+    }
+
+    mocker.patch('app.v2.notifications.rest_push.validate', side_effect=ValidationError('Validation failed'))
+
+    response = client.post(
+        url_for('v2_notifications.send_push_notification', service_id=service.id),
+        data=json.dumps(push_request_body),
+        headers=[
+            ('Content-Type', 'application/json'),
+            create_authorization_header(api_key),
+        ],
+    )
+    assert 'BadRequestError' in str(response.json)
+    assert response.status_code == 400
+
+
+@pytest.mark.parametrize(
+    'mobile_app, test_exception',
+    [
+        ('VETEXT', KeyError('Key error')),
+        (None, KeyError('Key error')),
+    ],
+)
+def test_push_notification_app_registry_lookup_fails(
+    client,
+    mobile_app,
+    test_exception,
+    rmock,
+    mocker,
+    sample_api_key,
+    sample_service,
+):
+    service = sample_service(service_permissions=[PUSH_TYPE])
+    api_key = sample_api_key(service=service)
+    rmock.register_uri(
+        'POST', f"{client.application.config['VETEXT_URL']}/mobile/push/send", json={'result': 'success'}
+    )
+
+    push_request_body = {
+        'template_id': 'some-template-id',
+        'recipient_identifier': {'id_type': 'ICN', 'id_value': 'some-icn'},
+        'personalisation': {'%FOO%': 'bar'},
+    }
+
+    if mobile_app:
+        push_request_body['mobile_app'] = mobile_app
+        mocker.patch.dict(os.environ, {'VETEXT_SID': '1234', 'VA_FLAGSHIP_APP_SID': '1234'})
+
+    mocker.patch('app.v2.notifications.rest_push.mobile_app_registry.get_app', side_effect=test_exception)
+
+    response = client.post(
+        url_for('v2_notifications.send_push_notification', service_id=service.id),
+        data=json.dumps(push_request_body),
+        headers=[
+            ('Content-Type', 'application/json'),
+            create_authorization_header(api_key),
+        ],
+    )
+
+    assert 'BadRequestError' in str(response.json)
+    assert response.status_code == 400
+
+
+@pytest.mark.parametrize('test_exception', [CeleryError, OperationalError])
+def test_mobile_app_push_notification_celery_exception(
+    client,
+    test_exception,
+    rmock,
+    mocker,
+    sample_api_key,
+    sample_service,
+):
+    service = sample_service(service_permissions=[PUSH_TYPE])
+    api_key = sample_api_key(service=service)
+
+    mocker.patch('app.v2.notifications.rest_push.deliver_push.delay', side_effect=test_exception)
+    push_request_body = {
+        'mobile_app': 'VETEXT',
+        'template_id': 'some-template-id',
+        'recipient_identifier': {'id_type': 'ICN', 'id_value': 'some-icn'},
+        'personalisation': {'%FOO%': 'bar'},
+    }
+
+    mocker.patch.dict(os.environ, {'VETEXT_SID': '1234', 'VA_FLAGSHIP_APP_SID': '1234'})
+
+    response = client.post(
+        url_for('v2_notifications.send_push_notification', service_id=service.id),
+        data=json.dumps(push_request_body),
+        headers=[
+            ('Content-Type', 'application/json'),
+            create_authorization_header(api_key),
+        ],
+    )
+
+    assert response.json.get('result') == 'error'
+    assert response.status_code == 502
