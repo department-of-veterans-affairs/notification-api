@@ -291,7 +291,7 @@ def deliver_push(
 
     vetext_payload = vetext_client.format_for_vetext(payload)
     try:
-        current_app.logger(
+        current_app.logger.debug(
             'deliver_push celery task: Attempting to send push notification to VEText. Formatted payload %s.',
             vetext_payload,
         )
