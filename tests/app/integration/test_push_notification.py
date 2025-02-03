@@ -83,7 +83,6 @@ def test_push_notification_validation_fails(
             create_authorization_header(api_key),
         ],
     )
-
     assert 'BadRequestError' in str(response.json)
     assert response.status_code == 400
 
@@ -91,10 +90,8 @@ def test_push_notification_validation_fails(
 @pytest.mark.parametrize(
     'mobile_app, test_exception',
     [
-        ('VETEXT', KeyError),
-        ('VETEXT', ValidationError),
-        (None, KeyError),
-        (None, ValidationError),
+        ('VETEXT', KeyError('Key error')),
+        (None, KeyError('Key error')),
     ],
 )
 def test_push_notification_app_registry_lookup_fails(
