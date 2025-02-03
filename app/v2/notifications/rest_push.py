@@ -70,7 +70,7 @@ def validate_push_payload(request_data: dict[str, str]) -> V2PushPayload:
         req_json: dict[str, str] = validate(request.get_json(), request_data)
     except ValidationError as e:
         current_app.logger.warning('Push request failed validation: %s', e)
-        raise e
+        raise BadRequestError(message=str(e), status_code=400)
 
     try:
         # Validate the application they sent us is valid or use the default
