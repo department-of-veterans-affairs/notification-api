@@ -163,9 +163,9 @@ class TestDeliverPushCelery:
         response = post_send_notification(client, sample_api_key(service), PUSH_TYPE, PUSH_REQUEST)
         assert response.status_code == 201
 
-    @pytest.mark.parametrize('side_effect, expected_status', [(CeleryError, 502), (OperationalError, 502)])
-    def test_celery_returns_502(self, client, sample_api_key, sample_service, mocker, side_effect, expected_status):
+    @pytest.mark.parametrize('side_effect', [CeleryError, OperationalError])
+    def test_celery_returns_502(self, client, sample_api_key, sample_service, mocker, side_effect):
         mocker.patch('app.v2.notifications.rest_push.deliver_push.delay', side_effect=side_effect)
         service = sample_service(service_permissions=[PUSH_TYPE])
         response = post_send_notification(client, sample_api_key(service), PUSH_TYPE, PUSH_REQUEST)
-        assert response.status_code == expected_status
+        assert response.status_code == 502
