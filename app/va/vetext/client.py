@@ -31,8 +31,8 @@ class VETextClient:
         self.logger = logger
         self.statsd = statsd
 
-    def format_for_vetext(self, payload: V2PushPayload) -> dict[str, str]:
-        self.logger.debug('format_for_vetext: Attempting to format payload: %s', payload)
+    @staticmethod
+    def format_for_vetext(payload: V2PushPayload) -> dict[str, str]:
         if payload.personalisation:
             payload.personalisation = {f'%{k.upper()}%': v for k, v in payload.personalisation.items()}
         formatted_payload = {
