@@ -57,7 +57,7 @@ class VETextClient:
             self.logger.info(
                 'VEText response: %s for payload 2172: %s',
                 response.json() if response.ok else response.status_code,
-                payload,
+                asdict(payload),
             )
             self.logger.info('VEText response text 2172: %s', response.text)
             response.raise_for_status()
