@@ -62,6 +62,7 @@ class VETextClient:
                 f'{self.base_url}/mobile/push/send', auth=self.auth, json=payload, timeout=self.TIMEOUT
             )
             self.logger.info('VEText response: %s', response.json() if response.ok else response.status_code)
+            self.logger.info('VEText response text: %s', response.text)
             response.raise_for_status()
         except requests.exceptions.ReadTimeout:
             # Discussion with VEText: read timeouts are still processed, so no need to retry
