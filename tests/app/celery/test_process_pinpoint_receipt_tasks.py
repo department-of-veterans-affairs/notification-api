@@ -34,7 +34,7 @@ from app.constants import (
         if v[0] == NOTIFICATION_TEMPORARY_FAILURE
     ],
 )
-def test_ut_process_pinpoint_results_should_attempt_retry(
+def test_process_pinpoint_results_should_attempt_retry(
     mocker,
     event_type,
     record_status,
@@ -64,7 +64,7 @@ def test_ut_process_pinpoint_results_should_attempt_retry(
         if v[0] != NOTIFICATION_TEMPORARY_FAILURE
     ],
 )
-def test_ut_process_pinpoint_results_should_not_attempt_retry(
+def test_process_pinpoint_results_should_not_attempt_retry(
     mocker,
     event_type,
     record_status,
@@ -94,7 +94,7 @@ def test_ut_process_pinpoint_results_should_not_attempt_retry(
         if v[0] == NOTIFICATION_TEMPORARY_FAILURE
     ],
 )
-def test_it_process_pinpoint_results_should_queue_retry(
+def test_process_pinpoint_results_should_queue_retry(
     mocker,
     sample_notification,
     event_type,
@@ -118,7 +118,7 @@ def test_it_process_pinpoint_results_should_queue_retry(
 
 
 @pytest.mark.parametrize('status', [NOTIFICATION_CREATED, NOTIFICATION_DELIVERED, NOTIFICATION_PERMANENT_FAILURE])
-def test_it_process_pinpoint_results_should_not_queue_retry(
+def test_process_pinpoint_results_should_not_queue_retry(
     mocker,
     status,
     sample_notification,
@@ -415,7 +415,7 @@ def test_process_pinpoint_callback_message_parse_exception(
         ('_SMS.FAILURE', 'INVALID'),  # NOTIFICATION_PERMANENT_FAILURE
     ],
 )
-def test_it_process_pinpoint_results_should_update_cost_in_millicents(
+def test_process_pinpoint_results_should_update_cost_in_millicents(
     notify_db_session,
     mocker,
     event_type,
@@ -455,7 +455,7 @@ def test_it_process_pinpoint_results_should_update_cost_in_millicents(
         ('_SMS.FAILURE', 'TTL_EXPIRED'),
     ],
 )
-def test_it_process_pinpoint_results_should_update_cost_in_millicents_retries_exhausted(
+def test_process_pinpoint_results_should_update_cost_in_millicents_retries_exhausted(
     notify_db_session,
     mocker,
     event_type,
@@ -496,7 +496,7 @@ def test_it_process_pinpoint_results_should_update_cost_in_millicents_retries_ex
         (NOTIFICATION_SENDING, '_SMS.BUFFERED', 'SUCCESSFUL'),
     ],
 )
-def test_it_process_pinpoint_results_should_not_update_cost_in_millicents(
+def test_process_pinpoint_results_should_not_update_cost_in_millicents(
     notify_db_session,
     mocker,
     initial_status,
@@ -525,7 +525,7 @@ def test_it_process_pinpoint_results_should_not_update_cost_in_millicents(
     assert notification.cost_in_millicents == 0
 
 
-def test_it_process_pinpoint_results_sequence_retry_delivered(
+def test_process_pinpoint_results_sequence_retry_delivered(
     mocker,
     sample_notification,
     notify_db_session,
@@ -594,7 +594,7 @@ def test_it_process_pinpoint_results_sequence_retry_delivered(
     assert notification.status_reason is None
 
 
-def test_it_process_pinpoint_results_sequence_retry_stale_reference(
+def test_process_pinpoint_results_sequence_retry_stale_reference(
     mocker,
     sample_notification,
     notify_db_session,

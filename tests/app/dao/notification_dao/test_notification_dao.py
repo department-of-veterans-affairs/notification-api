@@ -2202,8 +2202,7 @@ def test_update_notification_delivery_status_invalid_updates(
     assert notification.status_reason == status_reason
 
 
-def test_ut_dao_update_sms_notification_status_to_created_for_retry_valid_update(
-    sample_template,
+def test_dao_update_sms_notification_status_to_created_for_retry_valid_update(
     sample_notification,
 ):
     initial_cost = 10.0
@@ -2238,7 +2237,7 @@ def test_ut_dao_update_sms_notification_status_to_created_for_retry_valid_update
         (NOTIFICATION_DELIVERED, None),
     ],
 )
-def test_ut_dao_update_sms_notification_status_to_created_for_retry_invalid_updates(
+def test_dao_update_sms_notification_status_to_created_for_retry_invalid_updates(
     sample_notification,
     status,
     status_reason,
