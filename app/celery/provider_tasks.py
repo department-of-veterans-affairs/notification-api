@@ -302,7 +302,7 @@ def deliver_push(
 
         if retries < max_retries:
             current_app.logger.warning(
-                'Push notification retrying: %s, max retries: %s, retries: %s', max_retries, retries
+                'Push notification retrying: %s, max retries: %s, retries: %s', vetext_payload, max_retries, retries
             )
             raise AutoRetryException('Found RetryableException, autoretrying...')
         else:
