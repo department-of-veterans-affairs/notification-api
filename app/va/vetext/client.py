@@ -66,7 +66,9 @@ class VETextClient:
             response = requests.post(
                 f'{self.base_url}/mobile/push/send', auth=self.auth, json=payload, timeout=self.TIMEOUT
             )
-            self.logger.info('VEText response: %s', response.json() if response.ok else response.status_code)
+            self.logger.info(
+                'VEText response: %s for payload: %s', response.json() if response.ok else response.status_code, payload
+            )
             self.logger.info('VEText response text: %s', response.text)
             response.raise_for_status()
         except requests.exceptions.ReadTimeout:
