@@ -289,20 +289,16 @@ def deliver_push(
 ) -> None:
     """Deliver a validated push (or broadcast) payload to the provider client."""
     current_app.logger.debug('deliver_push celery task called with payload: %s', payload)
-    vetext_payload = vetext_client.format_for_vetext(payload)
+
     try:
-        current_app.logger.debug(
-            'deliver_push celery task: Attempting to send push notification to VEText. Formatted payload %s.',
-            vetext_payload,
-        )
-        vetext_client.send_push_notification(vetext_payload)
+        vetext_client.send_push_notification(payload)
     except RetryableException:
         max_retries = celery_task.max_retries
         retries = celery_task.request.retries
 
         if retries < max_retries:
             current_app.logger.warning(
-                'Push notification retrying: %s, max retries: %s, retries: %s', vetext_payload, max_retries, retries
+                'Push notification retrying: %s, max retries: %s, retries: %s', payload, max_retries, retries
             )
             raise AutoRetryException('Found RetryableException, autoretrying...')
         else:

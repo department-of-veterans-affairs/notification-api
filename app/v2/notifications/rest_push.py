@@ -5,7 +5,7 @@ from jsonschema import ValidationError
 from kombu.exceptions import OperationalError
 from flask import current_app, jsonify, request
 
-from app import authenticated_service, mobile_app_registry
+from app import authenticated_service, mobile_app_registry, vetext_client
 from app.celery.provider_tasks import deliver_push
 from app.config import QueueNames
 from app.constants import PUSH_TYPE
@@ -41,16 +41,19 @@ def push_notification_helper(schema: dict):
             status_code=403,
         )
 
-    payload = validate_push_payload(schema)
+    validated_payload = validate_push_payload(schema)
+
+    vetext_formatted_payload = vetext_client.format_for_vetext(validated_payload)
 
     current_app.logger.debug(
-        'push_notification_helper: Attempting to call deliver_push celery task with validated payload: %s', payload
+        'push_notification_helper: Attempting to call deliver_push celery task with validated payload: %s',
+        vetext_formatted_payload,
     )
 
     try:
         # Choosing to use the email queue for push to limit the number of empty queues
         deliver_push.apply_async(
-            args=(payload,),  # Pass payload as a positional argument
+            args=(vetext_formatted_payload,),
             queue=QueueNames.SEND_SMS,
         )
     except (CeleryError, OperationalError):
