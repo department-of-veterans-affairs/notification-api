@@ -46,7 +46,7 @@ def push_notification_helper(schema: dict):
     vetext_formatted_payload = vetext_client.format_for_vetext(validated_payload)
 
     current_app.logger.debug(
-        'push_notification_helper: Attempting to call deliver_push celery task with validated payload: %s',
+        'push_notification_helper 2172: Attempting to call deliver_push celery task with validated payload: %s',
         vetext_formatted_payload,
     )
 
