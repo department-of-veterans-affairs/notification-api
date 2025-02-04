@@ -74,6 +74,8 @@ class VETextClient:
         except requests.HTTPError as e:
             self.statsd.incr(f'{self.STATSD_KEY}.error.{e.response.status_code}')
             if e.response.status_code in [429, 500, 502, 503, 504]:
+                # TODO - #2172 DEV Failing Here
+                # https://vanotify.ddog-gov.com/logs?query=host%3Adev-notification-api-log-group&agg_m=count&agg_m_source=base&agg_t=count&cols=host%2Cservice&fromUser=true&messageDisplay=inline&refresh_mode=paused&storage=hot&stream_sort=desc&viz=stream&from_ts=1738635667657&to_ts=1738635706556&live=false
                 self.logger.warning('Retryable exception raised with status code: %s', e.response.status_code)
                 raise RetryableException from e
             elif e.response.status_code == 400:
