@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from logging import Logger
 from time import monotonic
 from typing_extensions import TypedDict
@@ -32,39 +33,26 @@ class VETextClient:
         self.statsd = statsd
 
     @staticmethod
-    def format_for_vetext(payload: V2PushPayload) -> dict[str, str]:
+    def format_for_vetext(payload: V2PushPayload) -> V2PushPayload:
         if payload.personalisation:
             payload.personalisation = {f'%{k.upper()}%': v for k, v in payload.personalisation.items()}
-        if payload.is_broadcast():
-            formatted_payload = {
-                'appSid': payload.app_sid,
-                'templateSid': payload.template_id,
-                'topicSid': payload.topic_sid,
-                'personalization': payload.personalisation,
-            }
-        else:
-            formatted_payload = {
-                'appSid': payload.app_sid,
-                'icn': payload.icn,
-                'templateSid': payload.template_id,
-                'personalization': payload.personalisation,
-            }
-        return formatted_payload
+
+        return payload
 
     def send_push_notification(
         self,
-        payload: dict[str, str],
+        payload: V2PushPayload,
     ) -> None:
         """Send the notification to VEText and handle any errors.
 
         Args:
-            payload (dict[str, str]): The data to send to VEText
+            payload (V2PushPayload): The data to send to VEText
         """
         self.logger.debug('VEText Payload information 2172: %s', payload)
         start_time = monotonic()
         try:
             response = requests.post(
-                f'{self.base_url}/mobile/push/send', auth=self.auth, json=payload, timeout=self.TIMEOUT
+                f'{self.base_url}/mobile/push/send', auth=self.auth, json=asdict(payload), timeout=self.TIMEOUT
             )
             self.logger.info(
                 'VEText response: %s for payload 2172: %s',
