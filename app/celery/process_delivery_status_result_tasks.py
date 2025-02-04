@@ -341,9 +341,7 @@ def get_sms_retry_delay(retry_count: int) -> int:
     base_delay, jitter_range = delay_with_jitter_by_retry_count.get(retry_count, default_delay_with_jitter)
 
     # Apply jitter
-    delay = int(base_delay + random.randint(-jitter_range, jitter_range))  # nosec non-cryptographic use case
-
-    return delay
+    return int(base_delay + random.randint(-jitter_range, jitter_range))  # nosec non-cryptographic use case
 
 
 def update_sms_retry_count(
@@ -369,7 +367,6 @@ def update_sms_retry_count(
         # Set the initial value only if the value does not exist
         redis_store.set(notification_retry_id, initial_value, ex=ttl, nx=True)
         value = redis_store.incr(notification_retry_id)
-        return int(value)
     except (ValueError, TypeError):
         raise ValueError(
             f"Expected an integer value for id '{notification_retry_id}', but got: {value} (type: {type(value)})"
@@ -377,6 +374,8 @@ def update_sms_retry_count(
     except BaseException:
         # base redis exception already logged in redis client
         raise Exception('Unable to retrieve value from redis.')
+
+    return int(value)
 
 
 def mark_retry_as_permanent_failure(notification: Notification, sms_status: SmsStatusRecord):
@@ -479,9 +478,9 @@ def sms_attempt_retry(
     )
 
     notification_retry_id = f'notification-carrier-sms-retry-count-{notification.id}'
+    retry_count_redis_ttl = int(CARRIER_SMS_MAX_RETRY_WINDOW.total_seconds())
 
     try:
-        retry_count_redis_ttl = int(CARRIER_SMS_MAX_RETRY_WINDOW.total_seconds())
         retry_count = update_sms_retry_count(notification_retry_id, ttl=retry_count_redis_ttl)
     except Exception:
         current_app.logger.error('Unable to retrieve value from Redis')
@@ -501,17 +500,17 @@ def sms_attempt_retry(
                 cost_in_millicents=notification.cost_in_millicents + sms_status.price_millicents,
                 segments_count=sms_status.message_parts,
             )
-
-            current_app.logger.info(
-                'Notification updated prior to requeue attempt | notification_id: %s | notification_status: %s | cost_in_milicents %s',
-                notification.id,
-                notification.status,
-                notification.cost_in_millicents,
-            )
-            statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
         except Exception:
             statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
             raise NonRetryableException('Unable to update notification')
+
+        current_app.logger.info(
+            'Notification updated prior to requeue attempt | notification_id: %s | notification_status: %s | cost_in_milicents %s',
+            notification.id,
+            notification.status,
+            notification.cost_in_millicents,
+        )
+        statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
 
         current_app.logger.info(
             'Attempting %s requeue | notification_id: %s | retry_delay: %s seconds | retry_count: %s',
