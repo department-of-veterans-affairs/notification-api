@@ -52,13 +52,15 @@ class VETextClient:
         start_time = monotonic()
         try:
             self.logger.debug('Sending to VEText base url: %s', self.base_url)
+            payload_dict = asdict(payload)
+
             response = requests.post(
-                f'{self.base_url}/mobile/push/send', auth=self.auth, json=asdict(payload), timeout=self.TIMEOUT
+                f'{self.base_url}/mobile/push/send', auth=self.auth, json=payload_dict, timeout=self.TIMEOUT
             )
             self.logger.info(
                 'VEText response: %s for payload 2172: %s',
                 response.json() if response.ok else response.status_code,
-                asdict(payload),
+                payload_dict,
             )
             self.logger.info('VEText response text 2172: %s', response.text)
             response.raise_for_status()
@@ -78,18 +80,18 @@ class VETextClient:
             elif e.response.status_code == 400:
                 self._decode_bad_request_response(e)
             else:
-                payload['icn'] = '<redacted>'
+                payload_dict['icn'] = '<redacted>'
                 self.logger.exception(
                     'Status: %s - Not retrying - payload: %s',
                     e.response.status_code,
-                    payload,
+                    payload_dict,
                 )
                 raise NonRetryableException from e
         except requests.RequestException as e:
-            payload['icn'] = '<redacted>'
+            payload_dict['icn'] = '<redacted>'
             self.logger.exception(
                 'Exception raised sending push notification. Not retrying - payload: %s',
-                payload,
+                payload_dict,
             )
             self.statsd.incr(f'{self.STATSD_KEY}.error.request_exception')
             raise NonRetryableException from e
