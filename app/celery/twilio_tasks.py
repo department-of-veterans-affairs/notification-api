@@ -20,7 +20,6 @@ def _get_notifications() -> list:
         .where(Notification.sent_by == 'twilio')
         .where(~Notification.status.in_(NOTIFICATION_STATUS_TYPES_COMPLETED))
         .where(Notification.created_at < one_hour_ago)
-        .order_by(Notification.created_at)
         .limit(current_app.config['TWILIO_STATUS_PAGE_SIZE'])
     )
     return db.session.scalars(stmt).all()
