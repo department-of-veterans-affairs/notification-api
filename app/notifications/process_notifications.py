@@ -38,6 +38,7 @@ from app.models import (
     Notification,
     ScheduledNotification,
     RecipientIdentifier,
+    Template
 )
 from app.dao.notifications_dao import (
     dao_create_notification,
@@ -50,18 +51,23 @@ from app.va.identifier import IdentifierType
 
 
 def create_content_for_notification(
-    template,
-    personalisation,
+    template: Template,
+    personalisation: dict,
 ):
-    template_object = get_template_instance(template.__dict__, personalisation)
-    check_placeholders(template_object)
+    """
+    Return an appropriate template instance from the notifications-utils repository,
+    or raise BadRequestError.
+    """
 
-    return template_object
+    utils_template_instance = get_template_instance(template.__dict__, personalisation)
+    check_placeholders(utils_template_instance)
+
+    return utils_template_instance
 
 
-def check_placeholders(template_object):
-    if template_object.missing_data:
-        message = 'Missing personalisation: {}'.format(', '.join(template_object.missing_data))
+def check_placeholders(utils_template_instance):
+    if utils_template_instance.missing_data:
+        message = 'Missing personalisation: {}'.format(', '.join(utils_template_instance.missing_data))
         raise BadRequestError(fields=[{'template': message}], message=message)
 
 
