@@ -65,6 +65,7 @@ class VETextClient:
         start_time = monotonic()
         try:
             self.logger.debug('Sending to VEText base url 2172: %s', self.base_url)
+            self.logger.debug('Sending to VEText headers 2172: %s', self.auth)
             self.logger.debug('Payload is dict instance 2172: %s', isinstance(payload, dict))
 
             response = requests.post(
