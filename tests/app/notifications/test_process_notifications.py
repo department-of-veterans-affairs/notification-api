@@ -1239,7 +1239,7 @@ def test_send_notification_to_queue_delayed_throws_exception_when_send_message_f
         ('subject', 'hello ((name))', {'name': 'name'}),
         ('subject ((name))', 'hello', {'name': 'name'}),
         ('subject ((subject_name))', 'hello ((content_name))', {'subject_name': 'name', 'content_name': 'name'}),
-    ]
+    ],
 )
 def test_check_placeholders_email(sample_template, subject, content, personalisation):
     """
@@ -1259,7 +1259,7 @@ def test_check_placeholders_email(sample_template, subject, content, personalisa
         ('subject ((name))', 'hello', {}),
         ('subject', 'hello ((name))', {'other': 'other'}),
         ('subject ((name))', 'hello', {'other': 'other'}),
-    ]
+    ],
 )
 def test_check_placeholders_email_missing_personalisation(sample_template, subject, content, personalisation):
     template = sample_template(template_type=EMAIL_TYPE, subject=subject, content=content)

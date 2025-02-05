@@ -34,12 +34,7 @@ from app.dao.service_sms_sender_dao import (
     dao_get_service_sms_sender_by_service_id_and_number,
 )
 from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
-from app.models import (
-    Notification,
-    ScheduledNotification,
-    RecipientIdentifier,
-    Template
-)
+from app.models import Notification, ScheduledNotification, RecipientIdentifier, Template
 from app.dao.notifications_dao import (
     dao_create_notification,
     dao_delete_notification_by_id,

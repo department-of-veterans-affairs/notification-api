@@ -48,7 +48,7 @@ def get_template_instance(
     Return an appropriate template instance from the notifications-utils repository.  This happens here
     in order to validate that POST data for sending a notification has the correct personalisation values.
     Note that the same process inefficiently happens again later, in Celery, when the message is sending.
-    
+
     template - A dictionary of the attributes and values of a Template instance
     personalisation - personalization for a template instance
     """
