@@ -273,7 +273,6 @@ def _handle_delivery_failure(
 
 @notify_celery.task(
     bind=True,
-    serializer='pickle',
     name='deliver_push',
     throws=(AutoRetryException,),
     autoretry_for=(AutoRetryException,),

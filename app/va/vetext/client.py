@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from logging import Logger
 from time import monotonic
 from typing_extensions import TypedDict
@@ -33,34 +32,47 @@ class VETextClient:
         self.statsd = statsd
 
     @staticmethod
-    def format_for_vetext(payload: V2PushPayload) -> V2PushPayload:
-        if payload.personalisation:
+    def format_for_vetext(payload: V2PushPayload) -> dict[str, str]:
+        if payload.personalisation is not None:
             payload.personalisation = {f'%{k.upper()}%': v for k, v in payload.personalisation.items()}
 
-        return payload
+        if payload.is_broadcast():
+            formatted_payload = {
+                'appSid': payload.app_sid,
+                'templateSid': payload.template_id,
+                'topicSid': payload.topic_sid,
+                'personalization': payload.personalisation,
+            }
+        else:
+            formatted_payload = {
+                'appSid': payload.app_sid,
+                'icn': payload.icn,
+                'templateSid': payload.template_id,
+                'personalization': payload.personalisation,
+            }
+        return formatted_payload
 
     def send_push_notification(
         self,
-        payload: V2PushPayload,
+        payload: dict[str, str],
     ) -> None:
         """Send the notification to VEText and handle any errors.
 
         Args:
-            payload (V2PushPayload): The data to send to VEText
+            payload (dict[str, str]): The data to send to VEText
         """
         self.logger.debug('VEText Payload information 2172: %s', payload)
         start_time = monotonic()
         try:
             self.logger.debug('Sending to VEText base url: %s', self.base_url)
-            payload_dict = asdict(payload)
 
             response = requests.post(
-                f'{self.base_url}/mobile/push/send', auth=self.auth, json=payload_dict, timeout=self.TIMEOUT
+                f'{self.base_url}/mobile/push/send', auth=self.auth, json=payload, timeout=self.TIMEOUT
             )
             self.logger.info(
                 'VEText response: %s for payload 2172: %s',
                 response.json() if response.ok else response.status_code,
-                payload_dict,
+                payload,
             )
             self.logger.info('VEText response text 2172: %s', response.text)
             response.raise_for_status()
@@ -80,18 +92,18 @@ class VETextClient:
             elif e.response.status_code == 400:
                 self._decode_bad_request_response(e)
             else:
-                payload_dict['icn'] = '<redacted>'
+                payload['icn'] = '<redacted>'
                 self.logger.exception(
                     'Status: %s - Not retrying - payload: %s',
                     e.response.status_code,
-                    payload_dict,
+                    payload,
                 )
                 raise NonRetryableException from e
         except requests.RequestException as e:
-            payload_dict['icn'] = '<redacted>'
+            payload['icn'] = '<redacted>'
             self.logger.exception(
                 'Exception raised sending push notification. Not retrying - payload: %s',
-                payload_dict,
+                payload,
             )
             self.statsd.incr(f'{self.STATSD_KEY}.error.request_exception')
             raise NonRetryableException from e

@@ -21,7 +21,6 @@ from app.exceptions import (
 )
 from app.mobile_app import DEAFULT_MOBILE_APP_TYPE
 from app.models import Notification
-from app.v2.dataclasses import V2PushPayload
 from app.v2.errors import RateLimitError
 from collections import namedtuple
 from notifications_utils.field import NullValueForNonConditionalPlaceholderException
@@ -508,10 +507,15 @@ def test_deliver_push_happy_path_icn(
         json={'message': 'success'},
         status_code=201,
     )
-    payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', icn='some_icn')
+    formatted_payload = {
+        'appSid': DEAFULT_MOBILE_APP_TYPE,
+        'templateSid': '2222',
+        'icn': '3333',
+        'personalization': {'%MSG_ID': '4444'},
+    }
 
     # Should run without exceptions
-    deliver_push(payload)
+    deliver_push(formatted_payload)
 
 
 def test_deliver_push_happy_path_topic(
@@ -524,10 +528,15 @@ def test_deliver_push_happy_path_topic(
         json={'message': 'success'},
         status_code=201,
     )
-    payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', topic_sid='some_topic_sid')
+    formatted_payload = {
+        'appSid': DEAFULT_MOBILE_APP_TYPE,
+        'templateSid': '2222',
+        'topicSid': '3333',
+        'personalization': {'%MSG_ID': '4444'},
+    }
 
     # Should run without exceptions
-    deliver_push(payload)
+    deliver_push(formatted_payload)
 
 
 @pytest.mark.parametrize(
@@ -554,10 +563,15 @@ def test_deliver_push_retryable_exception(
         f'{client.application.config["VETEXT_URL"]}/mobile/push/send',
         exc=test_exception,
     )
-    payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', 'some_icn')
+    formatted_payload = {
+        'appSid': DEAFULT_MOBILE_APP_TYPE,
+        'templateSid': '2222',
+        'icn': '3333',
+        'personalization': {'%MSG_ID': '4444'},
+    }
 
     with pytest.raises(AutoRetryException):
-        deliver_push(payload)
+        deliver_push(formatted_payload)
 
 
 @pytest.mark.parametrize(
@@ -582,7 +596,12 @@ def test_deliver_push_nonretryable_exception(
         f'{client.application.config["VETEXT_URL"]}/mobile/push/send',
         exc=test_exception,
     )
-    payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', 'some_icn')
+    formatted_payload = {
+        'appSid': DEAFULT_MOBILE_APP_TYPE,
+        'templateSid': '2222',
+        'icn': '3333',
+        'personalization': {'%MSG_ID': '4444'},
+    }
 
     with pytest.raises(NonRetryableException):
-        deliver_push(payload)
+        deliver_push(formatted_payload)
