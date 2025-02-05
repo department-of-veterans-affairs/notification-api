@@ -504,7 +504,7 @@ def test_deliver_push_happy_path_icn(
 ):
     rmock.register_uri(
         'POST',
-        f"{client.application.config['VETEXT_URL']}/mobile/push/send",
+        f'{client.application.config["VETEXT_URL"]}/mobile/push/send',
         json={'message': 'success'},
         status_code=201,
     )
@@ -520,7 +520,7 @@ def test_deliver_push_happy_path_topic(
 ):
     rmock.register_uri(
         'POST',
-        f"{client.application.config['VETEXT_URL']}/mobile/push/send",
+        f'{client.application.config["VETEXT_URL"]}/mobile/push/send',
         json={'message': 'success'},
         status_code=201,
     )
@@ -551,7 +551,7 @@ def test_deliver_push_retryable_exception(
         test_exception.response.status_code = status_code
     rmock.register_uri(
         'POST',
-        f"{client.application.config['VETEXT_URL']}/mobile/push/send",
+        f'{client.application.config["VETEXT_URL"]}/mobile/push/send',
         exc=test_exception,
     )
     payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', 'some_icn')
@@ -579,7 +579,7 @@ def test_deliver_push_nonretryable_exception(
         test_exception.response.status_code = status_code
     rmock.register_uri(
         'POST',
-        f"{client.application.config['VETEXT_URL']}/mobile/push/send",
+        f'{client.application.config["VETEXT_URL"]}/mobile/push/send',
         exc=test_exception,
     )
     payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', 'some_icn')
