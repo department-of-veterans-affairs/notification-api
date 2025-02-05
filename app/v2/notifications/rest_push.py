@@ -54,7 +54,7 @@ def push_notification_helper(schema: dict):
         # Choosing to use the email queue for push to limit the number of empty queues
         deliver_push.apply_async(
             args=(vetext_formatted_payload,),
-            queue=QueueNames.SEND_SMS,
+            queue=QueueNames.SEND_EMAIL,
         )
     except (CeleryError, OperationalError):
         current_app.logger.exception('Failed to enqueue deliver_push request')
