@@ -1266,7 +1266,5 @@ def test_check_placeholders_email_missing_personalisation(sample_template, subje
     utils_template_instance = get_template_instance(template.__dict__, personalisation)
     assert isinstance(utils_template_instance, WithSubjectTemplate)
 
-    print(utils_template_instance.missing_data)  # TODO - delete
-
     with pytest.raises(BadRequestError):
         check_placeholders(utils_template_instance)
