@@ -1,18 +1,9 @@
 name: Continuous Deployment Pipeline
-# note:
-# It's useful to recognize that this workflow is designed to be triggered by a merge to the default branch. 
-# Therefore, ${{ github.sha }} will always be in reference to the SHA that originally triggered this workflow. 
-# $GITHUB_SHA, on the other hand, is created whenever actions/checkout@v4 is run
+# Note:
+# This workflow is designed to be triggered by a merge to the default branch.
+# Therefore, ${{ github.sha }} will always be in reference to the SHA that originally triggered this workflow.
+# $GITHUB_SHA, on the other hand, is created whenever actions/checkout@v4 is run.
 
-# note:
-# environment:
-  # name:
-# is keyword for using the environment protections.
-
-# with: 
-  # environment:
-# is simply using a variable named environment 
-  
 on:
   push:
     branches:
@@ -101,16 +92,9 @@ jobs:
       ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
       lambdaDeploy: true
 
-  publish-release-notes:
-    needs: [create-release-notes, deploy-to-staging]
-    uses: ./.github/workflows/publish-release-notes.yml
-    secrets: inherit
-    with:
-      draftReleaseReference: ${{ needs.create-release-notes.outputs.draftReleaseReference }}
-
   deploy-to-prod:
     if: vars.CODE_FREEZE == 'false'
-    needs: [publish-release-notes, create-and-post-tag]
+    needs: [create-release-notes, deploy-to-staging, create-and-post-tag]
     uses: ./.github/workflows/deploy-release.yml
     secrets: inherit
     with:
