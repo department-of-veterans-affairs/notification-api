@@ -34,10 +34,10 @@ def push_notification_helper(schema: dict):
     the Flask "request" instance.
     """
     if not authenticated_service.has_permissions(PUSH_TYPE):
+        public_notify_type = get_public_notify_type_text(PUSH_TYPE, plural=True)
+
         raise BadRequestError(
-            message='Service is not allowed to send {}'.format(
-                get_public_notify_type_text(PUSH_TYPE, plural=True),
-            ),
+            message=f'Service is not allowed to send {public_notify_type}',
             status_code=403,
         )
 
