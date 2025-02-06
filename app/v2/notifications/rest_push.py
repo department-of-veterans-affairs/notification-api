@@ -9,7 +9,7 @@ from app import authenticated_service, mobile_app_registry, vetext_client
 from app.celery.provider_tasks import deliver_push
 from app.config import QueueNames
 from app.constants import PUSH_TYPE
-from app.mobile_app import DEAFULT_MOBILE_APP_TYPE, MobileAppType
+from app.mobile_app import DEFAULT_MOBILE_APP_TYPE, MobileAppType
 from app.schema_validation import validate
 from app.utils import get_public_notify_type_text
 from app.v2.errors import BadRequestError
@@ -84,7 +84,7 @@ def validate_push_payload(schema: dict[str, str]) -> V2PushPayload:
         if 'mobile_app' in req_json:
             app_sid = mobile_app_registry.get_app(MobileAppType[req_json['mobile_app']]).sid
         else:
-            app_sid = mobile_app_registry.get_app(DEAFULT_MOBILE_APP_TYPE).sid
+            app_sid = mobile_app_registry.get_app(DEFAULT_MOBILE_APP_TYPE).sid
     except (KeyError, TypeError) as e:
         current_app.logger.warning('Push request failed validation due to mobile app setup: %s', e)
         raise BadRequestError(message=str(e), status_code=400)

@@ -8,7 +8,7 @@ from requests.exceptions import ConnectTimeout, ReadTimeout, RequestException
 from requests_mock import ANY
 
 from app.celery.exceptions import NonRetryableException, RetryableException
-from app.mobile_app import DEAFULT_MOBILE_APP_TYPE
+from app.mobile_app import DEFAULT_MOBILE_APP_TYPE
 from app.va.identifier import IdentifierType
 from app.va.vetext import VETextClient
 from app.v2.dataclasses import V2PushPayload
@@ -162,14 +162,14 @@ class TestHTTPExceptions:
 class TestFormatVetextPayload:
     def test_format_happy_path_push(self):
         payload = V2PushPayload(
-            DEAFULT_MOBILE_APP_TYPE,
+            DEFAULT_MOBILE_APP_TYPE,
             'any_template_id',
             personalisation={'foo_1': 'bar', 'baz_two': 'abc', 'tmp': '123'},
             icn='some_icn',
         )
         formatted_payload = VETextClient.format_for_vetext(payload)
         expected_formatted_payload = {
-            'appSid': DEAFULT_MOBILE_APP_TYPE,
+            'appSid': DEFAULT_MOBILE_APP_TYPE,
             'icn': 'some_icn',
             'personalization': {'%FOO_1%': 'bar', '%BAZ_TWO%': 'abc', '%TMP%': '123'},
             'templateSid': 'any_template_id',
@@ -177,10 +177,10 @@ class TestFormatVetextPayload:
         assert formatted_payload == expected_formatted_payload
 
     def test_format_happy_path_broadcast(self):
-        payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id', topic_sid='some_topic_sid')
+        payload = V2PushPayload(DEFAULT_MOBILE_APP_TYPE, 'any_template_id', topic_sid='some_topic_sid')
         formatted_payload = VETextClient.format_for_vetext(payload)
         expected_formatted_payload = {
-            'appSid': DEAFULT_MOBILE_APP_TYPE,
+            'appSid': DEFAULT_MOBILE_APP_TYPE,
             'personalization': None,
             'templateSid': 'any_template_id',
             'topicSid': 'some_topic_sid',
@@ -188,10 +188,10 @@ class TestFormatVetextPayload:
         assert formatted_payload == expected_formatted_payload
 
     def test_format_personalisation_happy_path(self):
-        payload = V2PushPayload(DEAFULT_MOBILE_APP_TYPE, 'any_template_id')
+        payload = V2PushPayload(DEFAULT_MOBILE_APP_TYPE, 'any_template_id')
         formatted_payload = VETextClient.format_for_vetext(payload)
         expected_formatted_payload = {
-            'appSid': DEAFULT_MOBILE_APP_TYPE,
+            'appSid': DEFAULT_MOBILE_APP_TYPE,
             'icn': None,
             'personalization': None,
             'templateSid': 'any_template_id',
@@ -205,7 +205,7 @@ class TestSendPushNotification:
         """Defaults to ICN (normal push, not broadcast)"""
 
         def _wrapper(
-            mobile_app: str = DEAFULT_MOBILE_APP_TYPE,
+            mobile_app: str = DEFAULT_MOBILE_APP_TYPE,
             template_id: str = 'any_template_id',
             icn: str | None = 'some_icn',
             topic_sid: str | None = None,

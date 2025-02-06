@@ -19,7 +19,7 @@ from app.exceptions import (
     NotificationTechnicalFailureException,
     InvalidProviderException,
 )
-from app.mobile_app import DEAFULT_MOBILE_APP_TYPE
+from app.mobile_app import DEFAULT_MOBILE_APP_TYPE
 from app.models import Notification
 from app.v2.errors import RateLimitError
 from collections import namedtuple
@@ -508,7 +508,7 @@ def test_deliver_push_happy_path_icn(
         status_code=201,
     )
     formatted_payload = {
-        'appSid': DEAFULT_MOBILE_APP_TYPE,
+        'appSid': DEFAULT_MOBILE_APP_TYPE,
         'templateSid': '2222',
         'icn': '3333',
         'personalization': {'%MSG_ID': '4444'},
@@ -529,7 +529,7 @@ def test_deliver_push_happy_path_topic(
         status_code=201,
     )
     formatted_payload = {
-        'appSid': DEAFULT_MOBILE_APP_TYPE,
+        'appSid': DEFAULT_MOBILE_APP_TYPE,
         'templateSid': '2222',
         'topicSid': '3333',
         'personalization': {'%MSG_ID': '4444'},
@@ -564,7 +564,7 @@ def test_deliver_push_retryable_exception(
         exc=test_exception,
     )
     formatted_payload = {
-        'appSid': DEAFULT_MOBILE_APP_TYPE,
+        'appSid': DEFAULT_MOBILE_APP_TYPE,
         'templateSid': '2222',
         'icn': '3333',
         'personalization': {'%MSG_ID': '4444'},
@@ -597,7 +597,7 @@ def test_deliver_push_nonretryable_exception(
         exc=test_exception,
     )
     formatted_payload = {
-        'appSid': DEAFULT_MOBILE_APP_TYPE,
+        'appSid': DEFAULT_MOBILE_APP_TYPE,
         'templateSid': '2222',
         'icn': '3333',
         'personalization': {'%MSG_ID': '4444'},
