@@ -86,7 +86,7 @@ jobs:
         run: echo "Deployment paused for manual approval to staging and production."
 
   deploy-to-staging:
-    needs: [create-release-notes, create-and-post-tag]
+    needs: [approval-deploy, create-and-post-tag]
     uses: ./.github/workflows/deploy-release.yml
     secrets: inherit
     with:
@@ -96,7 +96,7 @@ jobs:
 
   deploy-to-prod:
     if: vars.CODE_FREEZE == 'false'
-    needs: [create-release-notes, deploy-to-staging, create-and-post-tag]
+    needs: [deploy-to-staging, create-and-post-tag]
     uses: ./.github/workflows/deploy-release.yml
     secrets: inherit
     with:
@@ -105,14 +105,14 @@ jobs:
       lambdaDeploy: true
 
   create-release-notes:
-    needs: [create-and-post-tag]
+    needs: [create-and-post-tag, deploy-to-prod]
     uses: ./.github/workflows/create-release-notes.yml
     secrets: inherit
     with:
       previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
 
   send-slack-notifications:
-    needs: [deploy-to-prod, create-and-post-tag]
+    needs: [create-release-notes, create-and-post-tag]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
