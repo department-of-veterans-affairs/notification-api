@@ -45,12 +45,12 @@ def push_notification_helper(schema: dict):
 
     vetext_formatted_payload = vetext_client.format_for_vetext(validated_payload)
 
-    current_app.logger.debug(
-        'push_notification_helper 2172: Attempting to call deliver_push celery task with validated payload: %s',
-        vetext_formatted_payload,
-    )
-
     try:
+        current_app.logger.debug(
+            'Attempting to call deliver_push celery task with validated payload: %s',
+            vetext_formatted_payload,
+        )
+
         # Choosing to use the email queue for push to limit the number of empty queues
         deliver_push.apply_async(
             args=(vetext_formatted_payload,),

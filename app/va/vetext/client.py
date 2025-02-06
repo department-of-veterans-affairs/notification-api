@@ -61,21 +61,21 @@ class VETextClient:
         Args:
             payload (dict[str, str]): The data to send to VEText
         """
-        self.logger.debug('VEText Payload information 2172: %s', payload)
+        self.logger.debug('VEText Payload information %s', payload)
         start_time = monotonic()
         try:
-            self.logger.debug('Sending to VEText base url 2172: %s', self.base_url)
-            self.logger.debug('Payload is dict instance 2172: %s', isinstance(payload, dict))
+            self.logger.debug('Sending to VEText base url %s', self.base_url)
 
             response = requests.post(
                 f'{self.base_url}/mobile/push/send', auth=self.auth, json=payload, timeout=self.TIMEOUT
             )
+
             self.logger.info(
-                'VEText response: %s for payload 2172: %s',
+                'VEText response: %s for payload %s',
                 response.json() if response.ok else response.status_code,
                 payload,
             )
-            self.logger.info('VEText response text 2172: %s', response.text)
+            self.logger.info('VEText response text %s', response.text)
             response.raise_for_status()
         except requests.exceptions.ReadTimeout:
             # Discussion with VEText: read timeouts are still processed, so no need to retry
@@ -88,7 +88,7 @@ class VETextClient:
         except requests.HTTPError as e:
             self.statsd.incr(f'{self.STATSD_KEY}.error.{e.response.status_code}')
             if e.response.status_code in [429, 500, 502, 503, 504]:
-                self.logger.warning('Retryable exception raised with status code 2172: %s', e.response.status_code)
+                self.logger.warning('Retryable exception raised with status code %s', e.response.status_code)
                 raise RetryableException from e
             elif e.response.status_code == 400:
                 self._decode_bad_request_response(e)
