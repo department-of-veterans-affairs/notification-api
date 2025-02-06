@@ -4,12 +4,20 @@ name: Continuous Deployment Pipeline
 # Therefore, ${{ github.sha }} will always be in reference to the SHA that originally triggered this workflow.
 # $GITHUB_SHA, on the other hand, is created whenever actions/checkout@v4 is run.
 
+# note:
+# environment:
+  # name:
+# is keyword for using the environment protections.
+
+# with: 
+  # environment:
+# is simply using a variable named environment 
+
 on:
   push:
     branches:
-      - 2246-release-notes-simplifying
+      - main
 
-      
 jobs:
   prepare-deployment:
     runs-on: ${{ vars.RUNS_ON }}
@@ -22,23 +30,6 @@ jobs:
     uses: ./.github/workflows/pr-label-semver.yml
     secrets: inherit
 
-  pre-tag-summary:
-    #needs: approval-deploy-perf
-    uses: ./.github/workflows/pre-tag-summary.yml
-    secrets: inherit
-  
-  create-and-post-tag:
-    needs: pre-tag-summary
-    uses: ./.github/workflows/create-and-post-tag.yml
-    secrets: inherit
-
-  create-release-notes:
-    needs: [create-and-post-tag]
-    uses: ./.github/workflows/create-release-notes.yml
-    secrets: inherit
-    with:
-      previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
-
   approval-deploy-perf:
     needs: prepare-deployment
     environment: 
@@ -50,7 +41,15 @@ jobs:
           echo "Deploying commit SHA ${{ github.sha }}, the latest merge to main"
           echo "Deployment paused for manual approval."
 
+  pre-tag-summary:
+    needs: approval-deploy-perf
+    uses: ./.github/workflows/pre-tag-summary.yml
+    secrets: inherit
 
+  create-and-post-tag:
+    needs: pre-tag-summary
+    uses: ./.github/workflows/create-and-post-tag.yml
+    secrets: inherit
 
   build-push-artifacts:
     needs: create-and-post-tag
@@ -86,8 +85,6 @@ jobs:
       - name: Pause for manual approval
         run: echo "Deployment paused for manual approval to staging and production."
 
-
-
   deploy-to-staging:
     needs: [create-release-notes, create-and-post-tag]
     uses: ./.github/workflows/deploy-release.yml
@@ -106,6 +103,13 @@ jobs:
       environment: prod
       ref: ${{ needs.create-and-post-tag.outputs.newVersion }}
       lambdaDeploy: true
+
+  create-release-notes:
+    needs: [create-and-post-tag]
+    uses: ./.github/workflows/create-release-notes.yml
+    secrets: inherit
+    with:
+      previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
 
   send-slack-notifications:
     needs: [deploy-to-prod, create-and-post-tag]
