@@ -138,4 +138,4 @@ def test_mobile_app_push_notification_celery_exception(
     )
 
     assert response.json.get('result') == 'error'
-    assert response.status_code == 502
+    assert response.status_code == 503

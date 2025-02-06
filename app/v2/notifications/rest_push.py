@@ -58,7 +58,7 @@ def push_notification_helper(schema: dict):
         )
     except (CeleryError, OperationalError):
         current_app.logger.exception('Failed to enqueue deliver_push request')
-        response = jsonify(result='error', message='VA Notify service impaired, please try again'), 502
+        response = jsonify(result='error', message='VA Notify service impaired, please try again'), 503
     else:
         response = jsonify(result='success'), 201
     # Flask turns the tuple into a json and status_code

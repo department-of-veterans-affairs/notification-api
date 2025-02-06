@@ -168,4 +168,4 @@ class TestDeliverPushCelery:
         mocker.patch('app.v2.notifications.rest_push.deliver_push.apply_async', side_effect=side_effect)
         service = sample_service(service_permissions=[PUSH_TYPE])
         response = post_send_notification(client, sample_api_key(service), PUSH_TYPE, PUSH_REQUEST)
-        assert response.status_code == 502
+        assert response.status_code == 503
