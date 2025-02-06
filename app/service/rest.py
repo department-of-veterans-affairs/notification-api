@@ -251,14 +251,15 @@ def update_service(service_id):
 
 @service_blueprint.route('/<uuid:service_id>/api-key', methods=['POST'])
 @requires_admin_auth()
-def create_api_key(service_id: UUID | None = None) -> tuple[Response, Literal[201]]:
+def create_api_key(service_id: UUID) -> tuple[Response, Literal[201, 400]]:
     """Create API key for the given service.
 
     Args:
         service_id (UUID): The id of the service the api key is being added to.
 
     Returns:
-        The unencrypted key and a 201 response if successful.
+        tuple[Response, Literal[201, 400]]: The unencrypted key and a 201 response if successful.
+            Error message and 400 if not successful.
     """
     fetched_service = dao_fetch_service_by_id(service_id=service_id)
 
@@ -266,7 +267,12 @@ def create_api_key(service_id: UUID | None = None) -> tuple[Response, Literal[20
     valid_api_key.service = fetched_service
     valid_api_key.expiry_date = datetime.utcnow() + timedelta(days=180)
 
-    save_model_api_key(valid_api_key)
+    try:
+        save_model_api_key(valid_api_key)
+    except IntegrityError:
+        err_msg = 'Could not create requested API key, ensure key name is unique for service.'
+        current_app.logger.exception(err_msg)
+        return jsonify(message=err_msg, result='error'), 400
 
     unsigned_api_key = get_unsigned_secret(valid_api_key.id)
 

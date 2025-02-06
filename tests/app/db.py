@@ -1,5 +1,6 @@
 import json
 import random
+import secrets
 from app import db
 from app.dao.email_branding_dao import dao_create_email_branding
 from app.dao.inbound_sms_dao import dao_create_inbound_sms
@@ -587,7 +588,7 @@ def create_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None, expired=Fal
         'created_by': service.created_by,
         'key_type': key_type,
         'id': id_,
-        'secret': str(uuid4()),
+        'secret': secrets.token_urlsafe(64),
         'expiry_date': datetime.utcnow() + timedelta(days=180),
     }
 

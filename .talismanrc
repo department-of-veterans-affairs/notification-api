@@ -7,26 +7,30 @@ fileignoreconfig:
   checksum: c936faa84364c0741afaecc5420c6b1b55a39492257beb180afa78d3c37bc38f
 - filename: app/dao/services_dao.py
   checksum: 2e635a8c61b167f82645c04b72f2d7ee00a0459665fc7036cf989074bf7ecd66
+- filename: app/models.py
+  checksum: 79d0f675baa0bb0bf5dc6abe65b8f4812e2b6285d7303c7aa521fada5fe0003e
 - filename: app/notifications/process_notifications.py
   checksum: 199e175df804d0d9cc5413630ae0d3be805a3bfc54f2822f9a54936054354c9a
 - filename: app/schema_validation/__init__.py
   checksum: 9487ddbb105a20f5fd495eb4426b7c27ee3be1894b69a189363363ed616722c0
 - filename: app/service/rest.py
-  checksum: 72f90c36071b2f6c62e4a014994e14978b50dda18877fc8f21ab71f9c32ba66e
+  checksum: 379a1d861d0f2bf79a66aeb42f78df8cb85cf09cbeba5f00fb7628b9c1d51ffb
 - filename: app/service/service_data.py
   checksum: 75029bbe6ea4192ba253d720df9845235e8069e620faeec71a23328e047e58af
 - filename: migrations/versions/0375_add_key_revoked.py
-  checksum: f4963a8849c30dfcaec8b356396e8b029301b5ebcbd3951b29cf32f828e1c5c2
+  checksum: ea86998a7fab94142502b280ea48ec1c87b7bcd3d36327c7ee2ba8c46e229502
 - filename: poetry.lock
   checksum: 1fb22a1a20ebe8084ccdd64b9a57f30fd0a9fbe35edfeaca4ea3cba8b9fb725b
 - filename: tests/app/celery/test_process_ga4_measurement_task.py
   checksum: f25a9c4e5a2711a4c35ba1ac98031d23d072c58f1345d39a5f5ed4329368d558
 - filename: tests/app/dao/test_api_key_dao.py
-  checksum: a90e8258cfb168929bee708b294cbcea6f64718a1e1b267db89e119d6ab014eb
+  checksum: 6add8e3e9bb448e6ee083037bc8a9466c8e6e0155a326f3bfa0ccbb4812d6353
 - filename: tests/app/dao/test_ft_billing_dao.py
   checksum: dc425af859e49b9822259fad20d0ff99f3fde5c0237728fe73e5c9db2b78591b
 - filename: tests/app/dao/test_services_dao.py
   checksum: 27ec11fe012877db731f3509eeec0c83d0ef6d8f63c05f8d044e57f57784095f
+- filename: tests/app/db.py
+  checksum: 14ed0f42d05ca1fdfaf3c47f2b6d310c960ea48fe4aaceea9bea5753a66a4b43
 - filename: tests/app/service/test_rest.py
   checksum: c96c7dfbace6d2e2e607ae45c0cc269ae46a06b6897882bd024f681614ab1f65
 - filename: tests/app/v2/notifications/test_get_notifications.py
