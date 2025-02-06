@@ -110,7 +110,7 @@
         },
         {
           "name": "VETEXT_PASSWORD",
-          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/dev/notification-api/vetext/password"
+          "valueFrom": ""
         }
       ],
       "command": [
