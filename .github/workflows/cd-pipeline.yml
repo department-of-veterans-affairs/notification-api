@@ -7,7 +7,7 @@ name: Continuous Deployment Pipeline
 on:
   push:
     branches:
-      - main
+      - 2246-release-notes-simplifying
 
 jobs:
   prepare-deployment:
@@ -21,6 +21,23 @@ jobs:
     uses: ./.github/workflows/pr-label-semver.yml
     secrets: inherit
 
+  pre-tag-summary:
+    #needs: approval-deploy-perf
+    uses: ./.github/workflows/pre-tag-summary.yml
+    secrets: inherit
+  
+  create-and-post-tag:
+    needs: pre-tag-summary
+    uses: ./.github/workflows/create-and-post-tag.yml
+    secrets: inherit
+
+  create-release-notes:
+    needs: [create-and-post-tag]
+    uses: ./.github/workflows/create-release-notes.yml
+    secrets: inherit
+    with:
+      previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
+
   approval-deploy-perf:
     needs: prepare-deployment
     environment: 
@@ -32,15 +49,7 @@ jobs:
           echo "Deploying commit SHA ${{ github.sha }}, the latest merge to main"
           echo "Deployment paused for manual approval."
 
-  pre-tag-summary:
-    needs: approval-deploy-perf
-    uses: ./.github/workflows/pre-tag-summary.yml
-    secrets: inherit
 
-  create-and-post-tag:
-    needs: pre-tag-summary
-    uses: ./.github/workflows/create-and-post-tag.yml
-    secrets: inherit
 
   build-push-artifacts:
     needs: create-and-post-tag
@@ -76,12 +85,7 @@ jobs:
       - name: Pause for manual approval
         run: echo "Deployment paused for manual approval to staging and production."
 
-  create-release-notes:
-    needs: [create-and-post-tag, approval-deploy]
-    uses: ./.github/workflows/create-release-notes.yml
-    secrets: inherit
-    with:
-      previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
+
 
   deploy-to-staging:
     needs: [create-release-notes, create-and-post-tag]
