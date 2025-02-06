@@ -1,10 +1,24 @@
 import itertools
+from datetime import datetime, timedelta
+from typing import Literal
+from uuid import UUID
+
+from flask import current_app, Blueprint, jsonify, request
+from flask.wrappers import Response
+from nanoid import generate
+from notifications_utils.letter_timings import letter_can_be_cancelled
+from notifications_utils.timezones import convert_utc_to_local_timezone
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import NoResultFound
+
 from app import db
 from app.authentication.auth import requires_admin_auth, requires_admin_auth_or_user_in_service
 from app.config import QueueNames
 from app.constants import KEY_TYPE_NORMAL, LETTER_TYPE, NOTIFICATION_CANCELLED
 from app.dao import fact_notification_status_dao, notifications_dao
 from app.dao.api_key_dao import (
+    get_model_api_key,
     save_model_api_key,
     get_model_api_keys,
     get_unsigned_secret,
@@ -79,14 +93,6 @@ from app.schemas import (
 from app.smtp.aws import smtp_add, smtp_get_user_key, smtp_remove
 from app.user.users_schema import post_set_permissions_schema
 from app.utils import pagination_links
-from datetime import datetime
-from flask import current_app, Blueprint, jsonify, request
-from nanoid import generate
-from notifications_utils.letter_timings import letter_can_be_cancelled
-from notifications_utils.timezones import convert_utc_to_local_timezone
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.exc import NoResultFound
 
 CAN_T_BE_EMPTY_ERROR_MESSAGE = "Can't be empty"
 
@@ -245,21 +251,43 @@ def update_service(service_id):
 
 @service_blueprint.route('/<uuid:service_id>/api-key', methods=['POST'])
 @requires_admin_auth()
-def create_api_key(service_id=None):
+def create_api_key(service_id: UUID | None = None) -> tuple[Response, Literal[201]]:
+    """Create API key for the given service.
+
+    Args:
+        service_id (UUID): The id of the service the api key is being added to.
+
+    Returns:
+        The unencrypted key and a 201 response if successful.
+    """
     fetched_service = dao_fetch_service_by_id(service_id=service_id)
+
     valid_api_key = api_key_schema.load(request.get_json())
     valid_api_key.service = fetched_service
+    valid_api_key.expiry_date = datetime.utcnow() + timedelta(days=180)
+
     save_model_api_key(valid_api_key)
+
     unsigned_api_key = get_unsigned_secret(valid_api_key.id)
+
     return jsonify(data=unsigned_api_key), 201
 
 
 @service_blueprint.route('/<uuid:service_id>/api-key/revoke/<uuid:api_key_id>', methods=['POST'])
 @requires_admin_auth()
 def revoke_api_key(
-    service_id,
-    api_key_id,
-):
+    service_id: UUID,
+    api_key_id: UUID,
+) -> tuple[Response, Literal[202]]:
+    """Revokes the API key for the given service and key id.
+
+    Args:
+        service_id (UUID): The id of the service to which the soon to be revoked key belongs
+        api_key_id (UUID): The id of the key to revoke
+
+    Returns:
+        202 accepted
+    """
     expire_api_key(service_id=service_id, api_key_id=api_key_id)
     return jsonify(), 202
 
@@ -270,16 +298,16 @@ def revoke_api_key(
 def get_api_keys(
     service_id,
     key_id=None,
-):
+) -> tuple[Response, Literal[200]]:
     dao_fetch_service_by_id(service_id=service_id)
 
     try:
         if key_id:
-            api_keys = [get_model_api_keys(service_id=service_id, id=key_id)]
+            api_keys = [get_model_api_key(key_id=key_id)]
         else:
             api_keys = get_model_api_keys(service_id=service_id)
     except NoResultFound:
-        error = 'API key not found for id: {}'.format(service_id)
+        error = f'No valid API key found for service {service_id}'
         raise InvalidRequest(error, status_code=404)
 
     return jsonify(apiKeys=api_key_schema.dump(api_keys, many=True)), 200

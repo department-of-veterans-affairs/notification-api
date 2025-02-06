@@ -56,7 +56,7 @@ from app.models import (
     DELIVERY_STATUS_CALLBACK_TYPE,
     WEBHOOK_CHANNEL_TYPE,
 )
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from sqlalchemy import select, or_
 from sqlalchemy.orm.attributes import flag_dirty
 from uuid import UUID, uuid4
@@ -588,10 +588,12 @@ def create_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None, expired=Fal
         'key_type': key_type,
         'id': id_,
         'secret': str(uuid4()),
+        'expiry_date': datetime.utcnow() + timedelta(days=180),
     }
 
     if expired:
         data['expiry_date'] = datetime.utcnow()
+        data['revoked'] = True
 
     api_key = ApiKey(**data)
     db.session.add(api_key)

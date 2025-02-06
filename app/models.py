@@ -702,6 +702,7 @@ class ApiKey(db.Model, Versioned):
     service = db.relationship('Service', backref='api_keys')
     key_type = db.Column(db.String(255), db.ForeignKey('key_types.name'), index=True, nullable=False)
     expiry_date = db.Column(db.DateTime)
+    revoked = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, index=False, unique=False, nullable=False, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, index=False, unique=False, nullable=True, onupdate=datetime.datetime.utcnow)
     created_by = db.relationship('User')
