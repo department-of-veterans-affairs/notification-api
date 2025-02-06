@@ -531,6 +531,7 @@ def test_should_put_save_sms_task_in_research_mode_queue_if_research_mode_servic
     assert mocked_deliver_sms.called
 
 
+@pytest.mark.serial
 def test_should_save_sms_if_restricted_service_and_valid_number(
     notify_db_session,
     mocker,
@@ -546,6 +547,8 @@ def test_should_save_sms_if_restricted_service_and_valid_number(
     notification = _notification_json(template, '+16502532222')
     encrypt_notification = encryption.encrypt(notification)
     notification_id = uuid4()
+
+    mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
 
     save_sms(
         service.id,
@@ -565,8 +568,6 @@ def test_should_save_sms_if_restricted_service_and_valid_number(
     assert not persisted_notification.job_id
     assert not persisted_notification.personalisation
     assert persisted_notification.notification_type == SMS_TYPE
-
-    mocker.patch('app.celery.provider_tasks.deliver_sms.apply_async')
 
     provider_tasks.deliver_sms.apply_async.assert_called_once_with(
         args=(),
