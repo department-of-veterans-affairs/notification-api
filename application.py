@@ -14,13 +14,12 @@ from flask import Flask
 from sentry_sdk.integrations.flask import FlaskIntegration
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-# Imports out of order to avoid issues with error 'Missing environment sid for type'
+from app import create_app
+from app.version import __git_commit__
+
 from dotenv import load_dotenv
 
 load_dotenv()
-
-from app import create_app  # noqa E402
-from app.version import __git_commit__  # noqa E402
 
 sentry_sdk.init(
     dsn=os.environ.get('SENTRY_URL', ''),
