@@ -9,6 +9,7 @@ on:
     branches:
       - 2246-release-notes-simplifying
 
+      
 jobs:
   prepare-deployment:
     runs-on: ${{ vars.RUNS_ON }}
