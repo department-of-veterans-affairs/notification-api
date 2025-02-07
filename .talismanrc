@@ -10,7 +10,7 @@ fileignoreconfig:
 - filename: app/schema_validation/__init__.py
   checksum: 9487ddbb105a20f5fd495eb4426b7c27ee3be1894b69a189363363ed616722c0
 - filename: migrations/versions/0375_add_key_revoked.py
-  checksum: ea86998a7fab94142502b280ea48ec1c87b7bcd3d36327c7ee2ba8c46e229502
+  checksum: a76b253c71cc0d1ea3c77467ab82cbdd7c0b7d4da598caa89674446c2a668069
 - filename: poetry.lock
   checksum: 5a38233437be4d758c89889492e0848616c7d7394e1148e85398a4ba9ee00962
 - filename: tests/app/celery/test_process_ga4_measurement_task.py
