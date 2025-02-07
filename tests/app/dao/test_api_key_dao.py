@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from uuid import uuid4
 
 import pytest
 from sqlalchemy import delete, func, select
@@ -104,18 +103,19 @@ def test_get_unsigned_secret_returns_key(sample_api_key):
     assert unsigned_api_key == api_key.secret
 
 
-def test_should_not_allow_duplicate_key_names_per_service(sample_api_key, fake_uuid):
+def test_should_not_allow_duplicate_key_names_per_service(sample_api_key):
     api_key = sample_api_key()
-
-    key_data: dict = api_key.__dict__
-    key_data.pop('_sa_instance_state')
-    key_data.pop('_secret')
-    key_data['id'] = fake_uuid
-
-    api_key = ApiKey(**key_data)
+    new_api_key = ApiKey(
+        **{
+            'service': api_key.service,
+            'name': api_key.name,
+            'created_by': api_key.created_by,
+            'key_type': KEY_TYPE_NORMAL,
+        }
+    )
 
     with pytest.raises(IntegrityError):
-        save_model_api_key(api_key)
+        save_model_api_key(new_api_key)
 
 
 def test_save_api_key_can_create_key_with_same_name_if_other_is_expired(
@@ -126,20 +126,19 @@ def test_save_api_key_can_create_key_with_same_name_if_other_is_expired(
     service = sample_service()
 
     # Create an expired API key.
-    expired_key = sample_api_key(
+    sample_api_key(
         service=service,
         key_name='normal api key',
         expired=True,
     )
 
-    key_data: dict = expired_key.__dict__
-    key_data.pop('_sa_instance_state')
-    key_data.pop('_secret')
-    key_data['id'] = str(uuid4())
-    key_data['revoked'] = False
-    key_data['expiry_date'] = datetime.utcnow() + timedelta(days=180)
-
-    api_key = ApiKey(**key_data)
+    api_key = ApiKey(
+        service=service,
+        name='normal api key',
+        created_by=service.created_by,
+        key_type=KEY_TYPE_NORMAL,
+        expiry_date=datetime.utcnow() + timedelta(days=180),
+    )
 
     # This should not raise IntegrityError.
     save_model_api_key(api_key)
