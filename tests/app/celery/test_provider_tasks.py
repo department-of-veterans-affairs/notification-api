@@ -1,5 +1,6 @@
 from requests import HTTPError, Response
 from requests.exceptions import ConnectTimeout, RequestException
+from app.mobile_app.mobile_app_types import MobileAppType
 import pytest
 
 from app.celery.exceptions import AutoRetryException, NonRetryableException
@@ -19,7 +20,6 @@ from app.exceptions import (
     NotificationTechnicalFailureException,
     InvalidProviderException,
 )
-from app.mobile_app import DEFAULT_MOBILE_APP_TYPE
 from app.models import Notification
 from app.v2.errors import RateLimitError
 from collections import namedtuple
@@ -511,7 +511,7 @@ def test_deliver_push_happy_path_icn(
     )
 
     formatted_payload = {
-        'appSid': DEFAULT_MOBILE_APP_TYPE,
+        'appSid': f'{MobileAppType.VA_FLAGSHIP_APP}_SID',
         'templateSid': '2222',
         'icn': '3333',
         'personalization': {'%MSG_ID': '4444'},
@@ -540,7 +540,7 @@ def test_deliver_push_happy_path_topic(
     )
 
     formatted_payload = {
-        'appSid': DEFAULT_MOBILE_APP_TYPE,
+        'appSid': f'{MobileAppType.VA_FLAGSHIP_APP}_SID',
         'templateSid': '2222',
         'topicSid': '3333',
         'personalization': {'%MSG_ID': '4444'},
@@ -583,7 +583,7 @@ def test_deliver_push_retryable_exception(
         exc=test_exception,
     )
     formatted_payload = {
-        'appSid': DEFAULT_MOBILE_APP_TYPE,
+        'appSid': f'{MobileAppType.VA_FLAGSHIP_APP}_SID',
         'templateSid': '2222',
         'icn': '3333',
         'personalization': {'%MSG_ID': '4444'},
@@ -625,7 +625,7 @@ def test_deliver_push_nonretryable_exception(
     )
 
     formatted_payload = {
-        'appSid': DEFAULT_MOBILE_APP_TYPE,
+        'appSid': f'{MobileAppType.VA_FLAGSHIP_APP}_SID',
         'templateSid': '2222',
         'icn': '3333',
         'personalization': {'%MSG_ID': '4444'},
