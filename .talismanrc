@@ -1,4 +1,6 @@
 fileignoreconfig:
+- filename: .github/workflows/cd-pipeline.yml
+  checksum: 88abe246c332d8d7223b16405b6c25d0db8c89564130da20addeeb458df132cc
 - filename: app/authentication/auth.py
   checksum: 9edb37bf6085446d6bd1f7ea8f3b62032bfa53c64d64c8fb79db79f5f0678247
 - filename: app/celery/process_ses_receipts_tasks.py
@@ -20,7 +22,7 @@ fileignoreconfig:
 - filename: migrations/versions/0375_add_key_revoked.py
   checksum: ea86998a7fab94142502b280ea48ec1c87b7bcd3d36327c7ee2ba8c46e229502
 - filename: poetry.lock
-  checksum: 1fb22a1a20ebe8084ccdd64b9a57f30fd0a9fbe35edfeaca4ea3cba8b9fb725b
+  checksum: 5a38233437be4d758c89889492e0848616c7d7394e1148e85398a4ba9ee00962
 - filename: tests/app/celery/test_process_ga4_measurement_task.py
   checksum: f25a9c4e5a2711a4c35ba1ac98031d23d072c58f1345d39a5f5ed4329368d558
 - filename: tests/app/dao/test_api_key_dao.py
