@@ -10,13 +10,13 @@ fileignoreconfig:
 - filename: app/schema_validation/__init__.py
   checksum: 9487ddbb105a20f5fd495eb4426b7c27ee3be1894b69a189363363ed616722c0
 - filename: migrations/versions/0375_add_key_revoked.py
-  checksum: a76b253c71cc0d1ea3c77467ab82cbdd7c0b7d4da598caa89674446c2a668069
+  checksum: e55773aebd65f6e1c7686d920953441966d530b3966af2a095b9a11195935b7f
 - filename: poetry.lock
   checksum: 5a38233437be4d758c89889492e0848616c7d7394e1148e85398a4ba9ee00962
 - filename: tests/app/celery/test_process_ga4_measurement_task.py
   checksum: f25a9c4e5a2711a4c35ba1ac98031d23d072c58f1345d39a5f5ed4329368d558
 - filename: tests/app/dao/test_api_key_dao.py
-  checksum: 5bab4eaddf8760c502111ae3e5f9f8bee59482d99f053f94598e8c77bd10b7b6
+  checksum: 1b665b855e6b587255bb9c9a7a5f81278a200b565c9127f6f9a162c6a93aa3f0
 - filename: tests/app/dao/test_ft_billing_dao.py
   checksum: dc425af859e49b9822259fad20d0ff99f3fde5c0237728fe73e5c9db2b78591b
 - filename: tests/app/dao/test_services_dao.py
