@@ -125,9 +125,9 @@ class VETextClient:
             payload = http_exception.response.json()
             field = payload.get('idType')
             message = payload.get('error')
-            self.logger.warning('Bad response from VEText: %s with field: ', message, field)
+            self.logger.error('Bad response from VEText: %s with field: ', message, field)
             raise NonRetryableException from http_exception
         except Exception:
             message = http_exception.response.text
-            self.logger.warning('Bad response from VEText: %s', message)
+            self.logger.error('Bad response from VEText: %s', message)
             raise NonRetryableException from http_exception
