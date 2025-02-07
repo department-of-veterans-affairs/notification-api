@@ -592,6 +592,7 @@ def create_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None, expired=Fal
 
     if expired:
         data['expiry_date'] = datetime.utcnow()
+        data['revoked'] = True
 
     api_key = ApiKey(**data)
     db.session.add(api_key)
