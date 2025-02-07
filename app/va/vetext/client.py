@@ -33,23 +33,20 @@ class VETextClient:
 
     @staticmethod
     def format_for_vetext(payload: V2PushPayload) -> dict[str, str]:
-        if payload.personalisation is not None:
+        if payload.personalisation:
             payload.personalisation = {f'%{k.upper()}%': v for k, v in payload.personalisation.items()}
 
+        formatted_payload = {
+            'appSid': payload.app_sid,
+            'templateSid': payload.template_id,
+            'personalization': payload.personalisation,
+        }
+
         if payload.is_broadcast():
-            formatted_payload = {
-                'appSid': payload.app_sid,
-                'templateSid': payload.template_id,
-                'topicSid': payload.topic_sid,
-                'personalization': payload.personalisation,
-            }
+            formatted_payload['topicSid'] = payload.topic_sid
         else:
-            formatted_payload = {
-                'appSid': payload.app_sid,
-                'icn': payload.icn,
-                'templateSid': payload.template_id,
-                'personalization': payload.personalisation,
-            }
+            formatted_payload['icn'] = payload.icn
+
         return formatted_payload
 
     def send_push_notification(
