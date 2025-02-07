@@ -574,9 +574,12 @@ def test_deliver_push_retryable_exception(
 ):
     if status_code is not None:
         test_exception.response.status_code = status_code
+
+    url = f'{client.application.config["VETEXT_URL"]}/mobile/push/send'
+
     rmock.register_uri(
         'POST',
-        f'{client.application.config["VETEXT_URL"]}/mobile/push/send',
+        url,
         exc=test_exception,
     )
     formatted_payload = {
@@ -588,6 +591,11 @@ def test_deliver_push_retryable_exception(
 
     with pytest.raises(AutoRetryException):
         deliver_push(formatted_payload)
+
+    assert rmock.called
+    assert rmock.last_request.method == 'POST'
+    assert rmock.last_request.url == url
+    assert rmock.last_request.json() == formatted_payload
 
 
 @pytest.mark.parametrize(
@@ -607,11 +615,15 @@ def test_deliver_push_nonretryable_exception(
 ):
     if status_code is not None:
         test_exception.response.status_code = status_code
+
+    url = f'{client.application.config["VETEXT_URL"]}/mobile/push/send'
+
     rmock.register_uri(
         'POST',
-        f'{client.application.config["VETEXT_URL"]}/mobile/push/send',
+        url,
         exc=test_exception,
     )
+
     formatted_payload = {
         'appSid': DEFAULT_MOBILE_APP_TYPE,
         'templateSid': '2222',
@@ -621,3 +633,8 @@ def test_deliver_push_nonretryable_exception(
 
     with pytest.raises(NonRetryableException):
         deliver_push(formatted_payload)
+
+    assert rmock.called
+    assert rmock.last_request.method == 'POST'
+    assert rmock.last_request.url == url
+    assert rmock.last_request.json() == formatted_payload
