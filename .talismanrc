@@ -4,7 +4,7 @@ fileignoreconfig:
 - filename: app/dao/api_key_dao.py
   checksum: c44cbd8ae02fb1d551a1f0941365c11977564a6444950ee2b0282ee4b5fd1314
 - filename: app/models.py
-  checksum: 79d0f675baa0bb0bf5dc6abe65b8f4812e2b6285d7303c7aa521fada5fe0003e
+  checksum: 386e62b8fc698c2ceb709c46b062b0880ff8289aaaad05bd8934ca1941027cc1
 - filename: app/notifications/process_notifications.py
   checksum: 199e175df804d0d9cc5413630ae0d3be805a3bfc54f2822f9a54936054354c9a
 - filename: app/schema_validation/__init__.py
