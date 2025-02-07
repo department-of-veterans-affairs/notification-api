@@ -88,7 +88,9 @@ class VETextClient:
             elif e.response.status_code == 400:
                 self._decode_bad_request_response(e)
             else:
-                payload['icn'] = '<redacted>'
+                if 'icn' in payload:
+                    payload['icn'] = '<redacted>'
+
                 self.logger.exception(
                     'Status: %s - Not retrying - payload: %s',
                     e.response.status_code,
@@ -96,7 +98,9 @@ class VETextClient:
                 )
                 raise NonRetryableException from e
         except requests.RequestException as e:
-            payload['icn'] = '<redacted>'
+            if 'icn' in payload:
+                payload['icn'] = '<redacted>'
+
             self.logger.exception(
                 'Exception raised sending push notification. Not retrying - payload: %s',
                 payload,

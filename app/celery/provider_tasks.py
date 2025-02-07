@@ -296,6 +296,9 @@ def deliver_push(
         retries = celery_task.request.retries
 
         if retries < max_retries:
+            if 'icn' in payload:
+                payload['icn'] = '<redacted>'
+
             current_app.logger.warning(
                 'Push notification retrying: %s, max retries: %s, retries: %s', payload, max_retries, retries
             )
