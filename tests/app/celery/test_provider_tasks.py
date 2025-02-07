@@ -530,12 +530,15 @@ def test_deliver_push_happy_path_topic(
     client,
     rmock,
 ):
+    url = f'{client.application.config["VETEXT_URL"]}/mobile/push/send'
+
     rmock.register_uri(
         'POST',
-        f'{client.application.config["VETEXT_URL"]}/mobile/push/send',
+        url,
         json={'message': 'success'},
         status_code=201,
     )
+
     formatted_payload = {
         'appSid': DEFAULT_MOBILE_APP_TYPE,
         'templateSid': '2222',
@@ -545,6 +548,11 @@ def test_deliver_push_happy_path_topic(
 
     # Should run without exceptions
     deliver_push(formatted_payload)
+
+    assert rmock.called
+    assert rmock.last_request.method == 'POST'
+    assert rmock.last_request.url == url
+    assert rmock.last_request.json() == formatted_payload
 
 
 @pytest.mark.parametrize(
