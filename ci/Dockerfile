@@ -21,7 +21,7 @@ COPY certs/* /usr/local/share/ca-certificates/
 COPY .git Makefile scripts/import-va-certs.sh poetry.lock pyproject.toml /
 
 # Install dependencies
-RUN apk add --no-cache bash build-base git postgresql-dev g++ make libffi-dev libmagic libcurl python3-dev openssl-dev \
+RUN apk add --no-cache bash build-base git postgresql-dev postgresql-client g++ make libffi-dev libmagic libcurl python3-dev openssl-dev \
     curl-dev wget openssl
 
 # Import all VA Certs not in the certs folder and make a version.py file

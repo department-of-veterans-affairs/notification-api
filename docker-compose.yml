@@ -1,0 +1,137 @@
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=notification_api
+      - POSTGRES_PASSWORD=LocalPassword
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://host.docker.internal:3100/loki/api/v1/push"
+
+  datadog:
+    image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent
+    ports:
+      - "127.0.0.1:9126:8126"
+    volumes:
+      - ./tests/snapshots:/snapshots
+    environment:
+      - SNAPSHOT_DIR=/snapshots
+      - SNAPSHOT_CI=0
+        # - DD_POOL_TRACE_CHECK_FAILURES=true
+      # - DD_DISABLE_ERROR_RESPONSES=true
+      # - ENABLED_CHECKS=trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+      # - SNAPSHOT_IGNORED_ATTRS=span_id,trace_id,parent_id,duration,start,metrics.system.pid,metrics.system.process_id,metrics.process_id,meta.runtime-id,meta._dd.p.tid,meta.pathway.hash,metrics._dd.tracer_kr,meta._dd.parent_id
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://host.docker.internal:3100/loki/api/v1/push"
+
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+
+  graphite:
+    image: graphiteapp/graphite-statsd:latest
+    ports:
+      - 2003-2004:2003-2004
+      - 2023-2024:2023-2024
+      - 8125:8125/udp
+      - 8126:8126
+      - 8080:80
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    ports:
+      - 3000:3000
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+
+  loki:
+    image: grafana/loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    # volumes:
+    #   - ./loki-config.yaml:/etc/loki/local-config.yaml # If you want to use a custom config
+
+  pyroscope:
+    image: grafana/pyroscope
+    ports:
+      - "4040:4040"
+
+  localstack:
+    container_name: "vanotify-cloud"
+    image: localstack/localstack-pro
+    ports:
+      - "127.0.0.1:4566:4566" # LocalStack Gateway
+      - "127.0.0.1:4510-4559:4510-4559" # external services port range
+      - "127.0.0.1:443:443" # LocalStack HTTPS Gateway (Pro)
+    environment:
+      - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:?} # required for Pro
+      # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
+      - DEBUG=${DEBUG:-0}
+      - PERSISTENCE=${PERSISTENCE:-0}
+      - ECS_REMOVE_CONTAINERS=0
+      - SMTP_HOST=maildev:1025
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  maildev:
+    image: maildev/maildev
+    ports:
+      - "1080:1080"
+
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - 8888:8080
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - 9100:9100
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
+
+networks:
+  default:
+    name: va-notify
+    external: true
+
+volumes:
+  prometheus_data: {}

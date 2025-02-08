@@ -5,7 +5,7 @@ services:
       context: ..
       dockerfile: &vanotify_dockerfile ci/Dockerfile
       args:
-        POETRY_ARGS: --with static_tools
+        POETRY_ARGS: --with static_tools,test
     image: &vanotify_image notification_api
     volumes: &vanotify_volumes
       - "../:/app:rw"
@@ -15,17 +15,11 @@ services:
       - .local.env
     depends_on:
       - migrations
-      - localstack
     command: ./scripts/run_app.sh
-
-  db:
-    image: postgres:15
-    restart: unless-stopped
-    ports:
-      - 5432:5432
-    environment:
-      - POSTGRES_DB=notification_api
-      - POSTGRES_PASSWORD=LocalPassword
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://host.docker.internal:3100/loki/api/v1/push"
 
   migrations:
     build:
@@ -33,24 +27,8 @@ services:
     image: *vanotify_image
     env_file: *vanotify_env_file
     volumes: *vanotify_volumes
-    depends_on:
-      - db
     command: ["bash", "-c", "flask db upgrade"]
 
-  localstack:
-    image: localstack/localstack
-    container_name: localstack
-    ports:
-      - "4566:4566"
-    env_file: *vanotify_env_file
-    environment:
-      - SERVICES=ec2,iam,lambda,s3,ses,sqs,sts
-      - DEFAULT_REGION=us-east-2
-      - DATA_DIR=/tmp/localstack/data
-      - START_WEB=0
-      - HOSTNAME_EXTERNAL=localstack
-    volumes:
-      - './localstack_setup.sh:/docker-entrypoint-initaws.d/setup.sh'
 
   celery:
     image: *vanotify_image
@@ -58,30 +36,19 @@ services:
     env_file: *vanotify_env_file
     command: >
       sh -c "/app/scripts/wait_for_it.sh localstack:4566 --timeout=30 -- /app/scripts/run_celery.sh"
-    depends_on:
-      - app
-      - localstack
-      - mountebank
-    healthcheck:
-      test: ["CMD", "sh", "-c", "/app/scripts/check_celery.sh"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://host.docker.internal:3100/loki/api/v1/push"
 
-  mountebank:
-    container_name: mountebank
-    image: bbyars/mountebank:2.4.0
-    volumes:
-      - ../scripts/mountebank:/mountebank
-    ports:
-      - 2525:2525
-      - 7005:7005
-      - 7006:7006
-      - 7007:7007
-      - 7008:7008
-    command: start --configfile /mountebank/imposters.ejs --allowInjection
+  beat:
+    image: *vanotify_image
+    volumes: *vanotify_volumes
+    env_file: *vanotify_env_file
+    command: >
+      sh -c "/app/scripts/wait_for_it.sh localstack:4566 --timeout=30 -- /app/scripts/run_celery_beat.sh"
 
-  redis:
-    image: redis
-    ports:
-      - "6379:6379"
+networks:
+  default:
+    name: va-notify
+    external: true
