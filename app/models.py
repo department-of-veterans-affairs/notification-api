@@ -708,10 +708,6 @@ class ApiKey(db.Model, Versioned):
     created_by = db.relationship('User')
     created_by_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), index=True, nullable=False)
 
-    __table_args__ = (
-        Index('uix_service_and_key_name', 'service_id', 'name', unique=True, postgresql_where=revoked.is_(False)),
-    )
-
     @property
     def secret(self):
         if self._secret:
