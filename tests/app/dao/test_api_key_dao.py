@@ -119,8 +119,13 @@ def test_save_api_key_can_create_keys_with_same_name(
     save_model_api_key(api_key)
 
     api_keys = get_model_api_keys(service.id)
+
+    # ensure there are 3 keys
     assert len(api_keys) == 3
+    # ensure they have unique ids
     assert len(set([key.id for key in api_keys])) == 3
+    # ensure the names are the same
+    assert len(set([key.name for key in api_keys])) == 1
 
     try:
         assert api_key.expiry_date is None, 'The key should not be expired.'
