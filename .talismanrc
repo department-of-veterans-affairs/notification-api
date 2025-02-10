@@ -12,7 +12,7 @@ fileignoreconfig:
 - filename: migrations/versions/0375_add_key_revoked.py
   checksum: e55773aebd65f6e1c7686d920953441966d530b3966af2a095b9a11195935b7f
 - filename: poetry.lock
-  checksum: 5a38233437be4d758c89889492e0848616c7d7394e1148e85398a4ba9ee00962
+  checksum: 8c411d33b37e4d0a60851e15d921fe9109fb9355e031c0deb417f8776971c8de
 - filename: tests/app/celery/test_process_ga4_measurement_task.py
   checksum: f25a9c4e5a2711a4c35ba1ac98031d23d072c58f1345d39a5f5ed4329368d558
 - filename: tests/app/dao/test_api_key_dao.py
