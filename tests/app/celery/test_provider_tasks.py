@@ -521,9 +521,9 @@ def test_deliver_push_happy_path_icn(
     deliver_push(formatted_payload)
 
     assert rmock.called
-    assert rmock.last_request.method == 'POST'
-    assert rmock.last_request.url == url
-    assert rmock.last_request.json() == formatted_payload
+    assert rmock.request_history[0].method == 'POST'
+    assert rmock.request_history[0].url == url
+    assert rmock.request_history[0].json()
 
 
 def test_deliver_push_happy_path_topic(
@@ -550,9 +550,9 @@ def test_deliver_push_happy_path_topic(
     deliver_push(formatted_payload)
 
     assert rmock.called
-    assert rmock.last_request.method == 'POST'
-    assert rmock.last_request.url == url
-    assert rmock.last_request.json() == formatted_payload
+    assert rmock.request_history[0].method == 'POST'
+    assert rmock.request_history[0].url == url
+    assert rmock.request_history[0].json()
 
 
 @pytest.mark.parametrize(
@@ -593,9 +593,9 @@ def test_deliver_push_retryable_exception(
         deliver_push(formatted_payload)
 
     assert rmock.called
-    assert rmock.last_request.method == 'POST'
-    assert rmock.last_request.url == url
-    assert rmock.last_request.json() == formatted_payload
+    assert rmock.request_history[0].method == 'POST'
+    assert rmock.request_history[0].url == url
+    assert rmock.request_history[0].json()
 
 
 @pytest.mark.parametrize(
@@ -635,6 +635,6 @@ def test_deliver_push_nonretryable_exception(
         deliver_push(formatted_payload)
 
     assert rmock.called
-    assert rmock.last_request.method == 'POST'
-    assert rmock.last_request.url == url
-    assert rmock.last_request.json() == formatted_payload
+    assert rmock.request_history[0].method == 'POST'
+    assert rmock.request_history[0].url == url
+    assert rmock.request_history[0].json()
