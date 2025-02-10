@@ -48,7 +48,7 @@ python-dotenv = "*"
 python-magic = "*"
 rfc3339-validator = "*"
 sentry-sdk = {extras = ["flask"], version = "*"}
-SQLAlchemy = "^1.4"
+SQLAlchemy = "^2.0"
 twilio = "*"
 Unidecode = "*"
 validatesns = "*"
