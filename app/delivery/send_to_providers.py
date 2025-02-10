@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, Union
 
 from flask import current_app
@@ -155,7 +155,7 @@ def send_email_to_provider(notification: Notification):
         current_app.logger.info(
             'Total time spent to send %s notification: %s seconds',
             EMAIL_TYPE,
-            (datetime.now(timezone.utc) - notification.created_at).total_seconds(),
+            (datetime.utcnow() - notification.created_at).total_seconds(),
         )
         reference = client.send_email(
             source=compute_source_email_address(service, client),
