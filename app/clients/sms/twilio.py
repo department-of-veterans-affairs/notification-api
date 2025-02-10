@@ -230,9 +230,9 @@ class TwilioSMSClient(SmsClient):
 
             # Log how long it spent in our system before we sent it
             self.logger.info(
-                'Total time spent to send %s notification: %s',
+                'Total time spent to send %s notification: %s seconds',
                 SMS_TYPE,
-                (datetime.utcnow() - created_at).total_seconds(),
+                (datetime.now(timezone.utc) - created_at).total_seconds(),
             )
 
             if messaging_service_sid is None:

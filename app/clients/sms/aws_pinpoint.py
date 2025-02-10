@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from logging import Logger
 from time import monotonic
 from typing import Tuple
@@ -94,9 +94,9 @@ class AwsPinpointClient(SmsClient):
             start_time = monotonic()
             # Log how long it spent in our system before we sent it
             self.logger.info(
-                'Total time spent to send %s notification: %s',
+                'Total time spent to send %s notification: %s seconds',
                 SMS_TYPE,
-                (datetime.utcnow() - created_at).total_seconds(),
+                (datetime.now(timezone.utc) - created_at).total_seconds(),
             )
             response = self._post_message_request(recipient_number, content, aws_phone_number)
 
