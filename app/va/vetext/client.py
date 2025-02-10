@@ -1,3 +1,4 @@
+import copy
 from logging import Logger
 from time import monotonic
 from typing_extensions import TypedDict
@@ -86,22 +87,24 @@ class VETextClient:
             elif e.response.status_code == 400:
                 self._decode_bad_request_response(e)
             else:
-                if 'icn' in payload:
-                    payload['icn'] = '<redacted>'
+                redacted_payload = copy(payload)
+                if 'icn' in redacted_payload:
+                    redacted_payload['icn'] = '<redacted>'
 
                 self.logger.exception(
                     'Status: %s - Not retrying - payload: %s',
                     e.response.status_code,
-                    payload,
+                    redacted_payload,
                 )
                 raise NonRetryableException from e
         except requests.RequestException as e:
-            if 'icn' in payload:
-                payload['icn'] = '<redacted>'
+            redacted_payload = copy(payload)
+            if 'icn' in redacted_payload:
+                redacted_payload['icn'] = '<redacted>'
 
             self.logger.exception(
                 'Exception raised sending push notification. Not retrying - payload: %s',
-                payload,
+                redacted_payload,
             )
             self.statsd.incr(f'{self.STATSD_KEY}.error.request_exception')
             raise NonRetryableException from e

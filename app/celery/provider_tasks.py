@@ -1,3 +1,4 @@
+import copy
 from uuid import UUID
 
 from celery import Task
@@ -296,11 +297,12 @@ def deliver_push(
         retries = celery_task.request.retries
 
         if retries < max_retries:
-            if 'icn' in payload:
-                payload['icn'] = '<redacted>'
+            redacted_payload = copy(payload)
+            if 'icn' in redacted_payload:
+                redacted_payload['icn'] = '<redacted>'
 
             current_app.logger.warning(
-                'Push notification retrying: %s, max retries: %s, retries: %s', payload, max_retries, retries
+                'Push notification retrying: %s, max retries: %s, retries: %s', redacted_payload, max_retries, retries
             )
             raise AutoRetryException('Found RetryableException, autoretrying...')
         else:
