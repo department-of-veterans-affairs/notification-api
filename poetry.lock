@@ -2250,8 +2250,8 @@ statsd = ">=4.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
-reference = "143-phonenumbers"
-resolved_reference = "eaaff8f7112a9cc4ed8c38793343d41a1bdf1d73"
+reference = "HEAD"
+resolved_reference = "08a94e0dcd6096419cdfbcbd2b10de5bb72917a6"
 
 [[package]]
 name = "notifications-python-client"
@@ -3818,4 +3818,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "d0308abdc0abf2739c9ff86237e6a959e3e77873a2e10ac188beac343e202b47"
+content-hash = "f3a69b3a5bcd7c5ec5d6df87152a7fab8471696caa488bd4015a2d2a54a3c8fe"
