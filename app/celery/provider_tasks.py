@@ -297,7 +297,7 @@ def deliver_push(
         retries = celery_task.request.retries
 
         if retries < max_retries:
-            redacted_payload = copy(payload)
+            redacted_payload = copy.deepcopy(payload)
             if 'icn' in redacted_payload:
                 redacted_payload['icn'] = '<redacted>'
 

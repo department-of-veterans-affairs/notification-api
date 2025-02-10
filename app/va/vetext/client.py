@@ -87,7 +87,7 @@ class VETextClient:
             elif e.response.status_code == 400:
                 self._decode_bad_request_response(e)
             else:
-                redacted_payload = copy(payload)
+                redacted_payload = copy.deepcopy(payload)
                 if 'icn' in redacted_payload:
                     redacted_payload['icn'] = '<redacted>'
 
@@ -98,7 +98,7 @@ class VETextClient:
                 )
                 raise NonRetryableException from e
         except requests.RequestException as e:
-            redacted_payload = copy(payload)
+            redacted_payload = copy.deepcopy(payload)
             if 'icn' in redacted_payload:
                 redacted_payload['icn'] = '<redacted>'
 
