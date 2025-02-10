@@ -101,7 +101,7 @@ def test_save_api_key_can_create_keys_with_same_name(
         expired=True,
     )
 
-    # Create an unexpired API key with the same name.
+    # Create an API key with the same name that is not expired
     sample_api_key(
         service=service,
         key_name='normal api key',
@@ -115,10 +115,12 @@ def test_save_api_key_can_create_keys_with_same_name(
         key_type=KEY_TYPE_NORMAL,
     )
 
-    # Adding a key with the same data twice should not raise IntegrityError. They will have unique IDs and secrets.
+    # Adding a key with the same name should not raise IntegrityError. They will have unique IDs and secrets.
     save_model_api_key(api_key)
 
-    assert len(get_model_api_keys(service.id)) == 3
+    api_keys = get_model_api_keys(service.id)
+    assert len(api_keys) == 3
+    assert len(set([key.id for key in api_keys])) == 3
 
     try:
         assert api_key.expiry_date is None, 'The key should not be expired.'

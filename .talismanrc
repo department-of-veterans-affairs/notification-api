@@ -16,7 +16,7 @@ fileignoreconfig:
 - filename: tests/app/celery/test_process_ga4_measurement_task.py
   checksum: f25a9c4e5a2711a4c35ba1ac98031d23d072c58f1345d39a5f5ed4329368d558
 - filename: tests/app/dao/test_api_key_dao.py
-  checksum: 1b665b855e6b587255bb9c9a7a5f81278a200b565c9127f6f9a162c6a93aa3f0
+  checksum: 836997bf3ef0f86836f25eeb658e39d53d9497de35c7fcaef7144732f4f54829
 - filename: tests/app/dao/test_ft_billing_dao.py
   checksum: dc425af859e49b9822259fad20d0ff99f3fde5c0237728fe73e5c9db2b78591b
 - filename: tests/app/dao/test_services_dao.py
