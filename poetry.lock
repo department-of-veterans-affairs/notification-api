@@ -2221,7 +2221,7 @@ files = [
 
 [[package]]
 name = "notification-utils"
-version = "2.3.2"
+version = "2.3.3"
 description = "Shared python code for VA Notify. Forked from https://github.com/cds-snc/notification-utils"
 optional = false
 python-versions = "*"
@@ -2238,7 +2238,7 @@ Jinja2 = ">=3.1.5"
 MarkupSafe = ">=3.0.2"
 mistune = "3.0.2"
 monotonic = ">=1.6"
-phonenumbers = ">=8.12.12,<8.13.0"
+phonenumbers = ">=8.13.54,<8.14.0"
 pypdf = ">=5.1.0"
 python-json-logger = ">=3.2.1"
 pytz = ">=2024.2"
@@ -2250,8 +2250,8 @@ statsd = ">=4.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
-reference = "HEAD"
-resolved_reference = "c9392a6b282d021994673fa21c93013b09f1791b"
+reference = "143-phonenumbers"
+resolved_reference = "eaaff8f7112a9cc4ed8c38793343d41a1bdf1d73"
 
 [[package]]
 name = "notifications-python-client"
@@ -2321,13 +2321,13 @@ files = [
 
 [[package]]
 name = "phonenumbers"
-version = "8.12.57"
+version = "8.13.54"
 description = "Python version of Google's common library for parsing, formatting, storing and validating international phone numbers."
 optional = false
 python-versions = "*"
 files = [
-    {file = "phonenumbers-8.12.57-py2.py3-none-any.whl", hash = "sha256:0b234c4a9519fac18d00b3c542f5b429513ea69372d4f95fbd0f716f5e2a89b5"},
-    {file = "phonenumbers-8.12.57.tar.gz", hash = "sha256:057d1966962fb86b3dc447bfac2c8e25ceed774509e49b180926a13a99910318"},
+    {file = "phonenumbers-8.13.54-py2.py3-none-any.whl", hash = "sha256:97624ada7260daafd09538baa6574b14cb9151cf29c5b22d9278abd050957edf"},
+    {file = "phonenumbers-8.13.54.tar.gz", hash = "sha256:4c32e3c941b24e5ce28d2211f624f0fef08462781e3d7e5e85192275cfd6c680"},
 ]
 
 [[package]]
@@ -3818,4 +3818,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "f3a69b3a5bcd7c5ec5d6df87152a7fab8471696caa488bd4015a2d2a54a3c8fe"
+content-hash = "d0308abdc0abf2739c9ff86237e6a959e3e77873a2e10ac188beac343e202b47"
