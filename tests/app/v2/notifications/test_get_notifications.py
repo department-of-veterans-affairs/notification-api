@@ -1,7 +1,10 @@
+"""
+TODO - Delete instances of create_notification; replace with sample_notification
+"""
 import datetime
 
 import pytest
-from flask import json, url_for
+from flask import url_for
 from sqlalchemy import select
 
 from app.constants import (
@@ -50,7 +53,7 @@ def test_get_notification_by_id_returns_200(
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     expected_template_response = {
         'id': '{}'.format(first_notification.serialize()['template']['id']),
@@ -134,7 +137,7 @@ def test_get_notification_by_id_with_placeholders_and_recipient_identifiers_retu
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     expected_template_response = {
         'id': '{}'.format(notification.serialize()['template']['id']),
@@ -202,7 +205,7 @@ def test_get_notification_by_reference_returns_200(
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
     assert len(json_response['notifications']) == 1
 
     assert json_response['notifications'][0]['id'] == str(sample_notification_with_reference.id)
@@ -258,7 +261,7 @@ def test_get_notifications_returns_scheduled_for(
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
     assert len(json_response['notifications']) == 1
 
     assert json_response['notifications'][0]['id'] == str(notification_with_ref.id)
@@ -283,7 +286,7 @@ def test_get_notification_by_reference_nonexistent_reference_returns_no_notifica
         headers=[('Content-Type', 'application/json'), auth_header],
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -306,7 +309,7 @@ def test_get_notification_by_id_nonexistent_id(
     assert response.status_code == 404
     assert response.headers['Content-type'] == 'application/json'
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
     assert json_response == {'errors': [{'error': 'NoResultFound', 'message': 'No result found'}], 'status_code': 404}
 
 
@@ -326,7 +329,7 @@ def test_get_notification_by_id_invalid_id(
     assert response.status_code == 400
     assert response.headers['Content-type'] == 'application/json'
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
     assert json_response == {
         'errors': [{'error': 'ValidationError', 'message': 'notification_id is not a valid UUID'}],
         'status_code': 400,
@@ -360,7 +363,7 @@ def test_get_notification_adds_delivery_estimate_for_letters(
         headers=[('Content-Type', 'application/json'), auth_header],
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
     assert response.status_code == 200
     assert json_response['postage'] == postage
     assert json_response['estimated_delivery'] == estimated_delivery
@@ -383,7 +386,7 @@ def test_get_notification_doesnt_have_delivery_estimate_for_non_letters(
         headers=[('Content-Type', 'application/json'), auth_header],
     )
     assert response.status_code == 200
-    assert 'estimated_delivery' not in json.loads(response.get_data(as_text=True))
+    assert 'estimated_delivery' not in response.get_json()
 
     # Teardown
     notify_db_session.session.delete(mocked_notification)
@@ -405,7 +408,7 @@ def test_get_all_notifications_except_job_notifications_returns_200(
     auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(path='/v2/notifications', headers=[('Content-Type', 'application/json'), auth_header])
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -442,7 +445,7 @@ def test_get_all_notifications_with_include_jobs_arg_returns_200(
         path='/v2/notifications?include_jobs=true', headers=[('Content-Type', 'application/json'), auth_header]
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert response.status_code == 200
     assert json_response['links']['current'].endswith('/v2/notifications?include_jobs=true')
@@ -463,7 +466,7 @@ def test_get_all_notifications_no_notifications_if_no_notifications(
     auth_header = create_authorization_header(sample_api_key())
     response = client.get(path='/v2/notifications', headers=[('Content-Type', 'application/json'), auth_header])
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -491,7 +494,7 @@ def test_get_all_notifications_filter_by_template_type(
         path='/v2/notifications?template_type=email', headers=[('Content-Type', 'application/json'), auth_header]
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -524,7 +527,7 @@ def test_get_all_notifications_filter_by_template_type_invalid_template_type(
         path='/v2/notifications?template_type=orange', headers=[('Content-Type', 'application/json'), auth_header]
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert response.status_code == 400
     assert response.headers['Content-type'] == 'application/json'
@@ -549,7 +552,7 @@ def test_get_all_notifications_filter_by_single_status(
         path='/v2/notifications?status=pending', headers=[('Content-Type', 'application/json'), auth_header]
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -582,7 +585,7 @@ def test_get_all_notifications_filter_by_status_invalid_status(
         path=f'/v2/notifications?status={fake_status}', headers=[('Content-Type', 'application/json'), auth_header]
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert response.status_code == 400
     assert response.headers['Content-type'] == 'application/json'
@@ -614,7 +617,7 @@ def test_get_all_notifications_filter_by_multiple_statuses(
         headers=[('Content-Type', 'application/json'), auth_header],
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -653,7 +656,7 @@ def test_get_all_notifications_filter_by_failed_status(
         path='/v2/notifications?status=failed', headers=[('Content-Type', 'application/json'), auth_header]
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -690,7 +693,7 @@ def test_get_all_notifications_filter_by_id(
         headers=[('Content-Type', 'application/json'), auth_header],
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -716,7 +719,7 @@ def test_get_all_notifications_filter_by_id_invalid_id(
         headers=[('Content-Type', 'application/json'), auth_header],
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert json_response['status_code'] == 400
     assert len(json_response['errors']) == 1
@@ -738,7 +741,7 @@ def test_get_all_notifications_filter_by_id_no_notifications_if_nonexistent_id(
         headers=[('Content-Type', 'application/json'), auth_header],
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -768,7 +771,7 @@ def test_get_all_notifications_filter_by_id_no_notifications_if_last_notificatio
         headers=[('Content-Type', 'application/json'), auth_header],
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -810,7 +813,7 @@ def test_get_all_notifications_filter_multiple_query_parameters(
         headers=[('Content-Type', 'application/json'), auth_header],
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
@@ -845,7 +848,7 @@ def test_get_all_notifications_renames_letter_statuses(client, sample_letter_not
         path=url_for('v2_notifications.get_notifications'), headers=[('Content-Type', 'application/json'), auth_header]
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
     assert response.status_code == 200
 
     for noti in json_response['notifications']:
@@ -879,7 +882,7 @@ def test_get_notifications_renames_letter_statuses(client, sample_letter_templat
         headers=[('Content-Type', 'application/json'), auth_header],
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
     assert response.status_code == 200
     assert json_response['status'] == expected_status
 
@@ -906,7 +909,7 @@ def test_get_notifications_removes_personalisation_from_content(
         headers=[('Content-Type', 'application/json'), auth_header],
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
     assert response.status_code == 200
     assert json_response['body'] == 'Hello <redacted>\nThis is an email from VA Notify about some <redacted>'
 
@@ -932,6 +935,27 @@ def test_get_notifications_removes_personalisation_from_subject(
         headers=[('Content-Type', 'application/json'), auth_header],
     )
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
     assert response.status_code == 200
     assert json_response['subject'] == 'Hello <redacted>'
+
+
+def test_get_notification_redacts_icn(
+    client,
+    sample_api_key,
+    sample_template,
+    sample_notification
+):
+    notification = create_notification(
+        template=sample_template(),
+        recipient_identifiers=[{'id_type': IdentifierType.ICN.value, 'id_value': 'icn'}]
+    )
+    assert notification.recipient_identifiers['ICN'].id_value == 'icn'
+    auth_header = create_authorization_header(sample_api_key(service=notification.template.service))
+
+    response = client.get(
+        path=url_for('v2_notifications.get_notification_by_id', notification_id=notification.id),
+        headers=[('Content-Type', 'application/json'), auth_header]
+    )
+
+    assert response.get_json()['recipient_identifiers'][0]['id_value'] == '<redacted>'
