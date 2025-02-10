@@ -57,7 +57,7 @@ def handler(generic):
     else:
         response_body = {generic: request.json}
 
-    # TODO will be addressed in #1487
+    # TODO - will be addressed in TEAM-1487
     return response_body, status_code
 
 
