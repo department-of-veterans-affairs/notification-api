@@ -113,7 +113,7 @@ def test_get_notification_by_id_with_placeholders_and_recipient_identifiers_retu
     auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
         path=url_for('v2_notifications.get_notification_by_id', notification_id=notification.id),
-        headers=[('Content-Type', 'application/json'), auth_header]
+        headers=[('Content-Type', 'application/json'), auth_header],
     )
 
     assert response.status_code == 200
@@ -851,22 +851,16 @@ def test_get_notifications_removes_personalisation_from_subject(
     assert json_response['subject'] == 'Hello <redacted>'
 
 
-def test_get_notification_by_id_redacts_icn(
-    client,
-    sample_api_key,
-    sample_template,
-    sample_notification
-):
+def test_get_notification_by_id_redacts_icn(client, sample_api_key, sample_template, sample_notification):
     notification = sample_notification(
-        template=sample_template(),
-        recipient_identifiers=[{'id_type': IdentifierType.ICN.value, 'id_value': 'icn'}]
+        template=sample_template(), recipient_identifiers=[{'id_type': IdentifierType.ICN.value, 'id_value': 'icn'}]
     )
     assert notification.recipient_identifiers['ICN'].id_value == 'icn'
     auth_header = create_authorization_header(sample_api_key(service=notification.template.service))
 
     response = client.get(
         path=url_for('v2_notifications.get_notification_by_id', notification_id=notification.id),
-        headers=[('Content-Type', 'application/json'), auth_header]
+        headers=[('Content-Type', 'application/json'), auth_header],
     ).get_json()
 
     assert response['recipient_identifiers'][0]['id_type'] == 'ICN'
@@ -874,22 +868,15 @@ def test_get_notification_by_id_redacts_icn(
 
 
 @pytest.mark.serial
-def test_get_notifications_redacts_icn(
-    client,
-    sample_api_key,
-    sample_template,
-    sample_notification
-):
+def test_get_notifications_redacts_icn(client, sample_api_key, sample_template, sample_notification):
     notification = sample_notification(
-        template=sample_template(),
-        recipient_identifiers=[{'id_type': IdentifierType.ICN.value, 'id_value': 'icn'}]
+        template=sample_template(), recipient_identifiers=[{'id_type': IdentifierType.ICN.value, 'id_value': 'icn'}]
     )
     assert notification.recipient_identifiers['ICN'].id_value == 'icn'
     auth_header = create_authorization_header(sample_api_key(service=notification.template.service))
 
     response = client.get(
-        path=url_for('v2_notifications.get_notifications'),
-        headers=[('Content-Type', 'application/json'), auth_header]
+        path=url_for('v2_notifications.get_notifications'), headers=[('Content-Type', 'application/json'), auth_header]
     ).get_json()
 
     assert response['notifications'][0]['recipient_identifiers'][0]['id_type'] == 'ICN'
