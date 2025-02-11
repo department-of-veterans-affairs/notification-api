@@ -60,9 +60,9 @@ def get_model_api_key(
         ApiKey: The API key with the given id if one is found.
 
     Raises:
-        NoResultFound: If there is no key with the given ID, or the key has been revoked.
+        NoResultFound: If there is no key with the given ID.
     """
-    stmt = select(ApiKey).where(ApiKey.id == key_id, ApiKey.revoked.is_(False))
+    stmt = select(ApiKey).where(ApiKey.id == key_id)
     return db.session.scalars(stmt).one()
 
 
@@ -78,8 +78,6 @@ def get_model_api_keys(service_id: UUID) -> list[ApiKey]:
     Raises:
         NoResultFound: If there is no key associated with the given service, or the key has been revoked.
     """
-    # TODO - should we restrict keys to only those expired wihtin a certain amount of time (was 7 days)
-    # seven_days_ago = datetime.utcnow() - timedelta(days=7)
     stmt = select(ApiKey).where(ApiKey.service_id == service_id)
     keys = db.db.session.scalars(stmt).all()
 

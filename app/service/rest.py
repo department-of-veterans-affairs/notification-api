@@ -9,7 +9,7 @@ from nanoid import generate
 from notifications_utils.letter_timings import letter_can_be_cancelled
 from notifications_utils.timezones import convert_utc_to_local_timezone
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, DataError
 from sqlalchemy.orm.exc import NoResultFound
 
 from app import db
@@ -258,21 +258,37 @@ def create_api_key(service_id: UUID) -> tuple[Response, Literal[201, 400]]:
         service_id (UUID): The id of the service the api key is being added to.
 
     Returns:
-        tuple[Response, Literal[201, 400]]: The unencrypted key and a 201 response if successful.
-            Error message and 400 if not successful.
+        tuple[Response, Literal[201, 400]]:
+        - The response includes the unencrypted key and a 201 response if successful.
+
+    Raises:
+        InvalidRequest: 400 Bad Request
+        - If unsuccessful for a variety of reasons a usefull error message is provided in the json response body.
     """
+    err_msg = 'Could not create requested API key.'
+
     fetched_service = dao_fetch_service_by_id(service_id=service_id)
 
-    valid_api_key = api_key_schema.load(request.get_json())
+    try:
+        valid_api_key = api_key_schema.load(request.get_json())
+    except DataError:
+        err_msg += ' DataError, ensure created_by user id is a valid uuid'
+        current_app.logger.exception(err_msg)
+        raise InvalidRequest(err_msg, 400)
+    except Exception as e:
+        err_msg += f' Unexpected exception of type {e.__class__.__name__}'
+        current_app.logger.exception(err_msg)
+        raise InvalidRequest(err_msg, 400)
+
     valid_api_key.service = fetched_service
     valid_api_key.expiry_date = datetime.utcnow() + timedelta(days=180)
 
     try:
         save_model_api_key(valid_api_key)
     except IntegrityError:
-        err_msg = 'Could not create requested API key, ensure key name is unique for service.'
+        err_msg += ' DB IntegrityError, ensure created_by id is valid and key_type is one of [normal, team, test]'
         current_app.logger.exception(err_msg)
-        return jsonify(message=err_msg, result='error'), 400
+        raise InvalidRequest(err_msg, 400)
 
     unsigned_api_key = get_unsigned_secret(valid_api_key.id)
 
@@ -284,7 +300,7 @@ def create_api_key(service_id: UUID) -> tuple[Response, Literal[201, 400]]:
 def revoke_api_key(
     service_id: UUID,
     api_key_id: UUID,
-) -> tuple[Response, Literal[202]]:
+) -> tuple[Response, Literal[202, 404]]:
     """Revokes the API key for the given service and key id.
 
     Args:
@@ -292,9 +308,18 @@ def revoke_api_key(
         api_key_id (UUID): The id of the key to revoke
 
     Returns:
-        202 accepted
+        tuple[Response, Literal[202, 404]]: 202 Accepted
+        - If the requested api key was found and revoked.
+
+    Raises:
+        InvalidRequest: 404 NoResultsFound
+        - If the service or key is not found.
     """
-    expire_api_key(service_id=service_id, api_key_id=api_key_id)
+    try:
+        expire_api_key(service_id=service_id, api_key_id=api_key_id)
+    except NoResultFound:
+        error_message = f'No valid API key found for service {service_id} with id {api_key_id}'
+        raise InvalidRequest(error_message, status_code=404)
     return jsonify(), 202
 
 
@@ -302,9 +327,23 @@ def revoke_api_key(
 @service_blueprint.route('/<uuid:service_id>/api-keys/<uuid:key_id>', methods=['GET'])
 @requires_admin_auth()
 def get_api_keys(
-    service_id,
-    key_id=None,
-) -> tuple[Response, Literal[200]]:
+    service_id: UUID,
+    key_id: UUID | None = None,
+) -> tuple[Response, Literal[200, 404]]:
+    """Returns a list of api keys from the given service.
+
+    Args:
+        service_id (UUID): The uuid of the service from which to pull keys
+        key_id (UUID): The uuid of the key to lookup
+
+    Returns:
+        tuple[Response, Literal[200, 404]]: 200 OK
+        - Returns json list of API keys for the given service, or a list with the indicated key if a key_id is included.
+
+    Raises:
+        InvalidRequest: 404 NoResultsFound
+        - If there are no valid API keys for the requested service, or the requested service id does not exist.
+    """
     dao_fetch_service_by_id(service_id=service_id)
 
     try:

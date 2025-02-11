@@ -210,7 +210,7 @@ def validate_service_api_key_auth():  # noqa: C901
             )
         elif api_key.expiry_date is None:
             current_app.logger.warning(
-                'service %s - %s is using an old-style api key %s with no expiry_date',
+                'service %s - %s used old-style api key %s with no expiry_date',
                 service.id,
                 service.name,
                 api_key.id,

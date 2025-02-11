@@ -87,6 +87,12 @@ def test_should_return_api_key_for_id(sample_api_key):
     assert api_key2 == api_key1
 
 
+def test_should_return_api_key_for_id_when_revoked(sample_api_key):
+    api_key1 = sample_api_key(expired=True)
+    api_key2 = get_model_api_key(key_id=api_key1.id)
+    assert api_key2 == api_key1
+
+
 def test_should_return_unsigned_api_keys_for_service_id(sample_api_key):
     api_key = sample_api_key()
     unsigned_api_key = get_unsigned_secrets(api_key.service_id)
@@ -181,31 +187,6 @@ def test_save_api_key_should_not_create_new_service_history(
 
     assert notify_db_session.session.scalar(stmt_service) == 1, 'No new Service history'
     assert notify_db_session.session.scalar(stmt_api_key) == 1, 'Only one ApiKey history'
-
-
-@pytest.mark.skip(reason='Revisit this when API key expiry_date is used to determine if keys are valid.')
-@pytest.mark.parametrize('days_old, expected_length', [(5, 1), (8, 0)])
-def test_should_not_return_revoked_api_keys_older_than_7_days(
-    sample_service,
-    days_old,
-    expected_length,
-):
-    service = sample_service()
-    expired_api_key = ApiKey(
-        **{
-            'service': service,
-            'name': service.name,
-            'created_by': service.created_by,
-            'key_type': KEY_TYPE_NORMAL,
-            'expiry_date': datetime.utcnow() - timedelta(days=days_old),
-            'revoked': True,
-        }
-    )
-    save_model_api_key(expired_api_key)
-
-    all_api_keys = get_model_api_keys(service_id=service.id)
-
-    assert len(all_api_keys) == expected_length
 
 
 def test_save_api_key_should_generate_secret_with_expected_format(sample_service):
