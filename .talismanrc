@@ -17,8 +17,6 @@ fileignoreconfig:
   checksum: 322feb39b95edeb2714cb7ea86b396f2d27a197d44b64cf85d52be04c06ec31e
 - filename: migrations/versions/0375_add_key_revoked.py
   checksum: e55773aebd65f6e1c7686d920953441966d530b3966af2a095b9a11195935b7f
-- filename: tests/app/service/test_api_key_endpoints.py
-  checksum: eed891b98b314c62fdeb844019ee81f2a68fefa538d103a04b5bcc9a42b6f401
 - filename: poetry.lock
   checksum: 8c411d33b37e4d0a60851e15d921fe9109fb9355e031c0deb417f8776971c8de
 - filename: tests/app/celery/test_process_ga4_measurement_task.py
@@ -31,8 +29,10 @@ fileignoreconfig:
   checksum: 27ec11fe012877db731f3509eeec0c83d0ef6d8f63c05f8d044e57f57784095f
 - filename: tests/app/db.py
   checksum: 14ed0f42d05ca1fdfaf3c47f2b6d310c960ea48fe4aaceea9bea5753a66a4b43
+- filename: tests/app/service/test_api_key_endpoints.py
+  checksum: 7e25bbf06a8315acdba0f350067930bdbc5cdf3204a4abe711b982b1587422de
 - filename: tests/app/service/test_rest.py
-  checksum: c96c7dfbace6d2e2e607ae45c0cc269ae46a06b6897882bd024f681614ab1f65
+  checksum: 4445a68807e214e9376f1d78667d01932b27ac24d7b1cede5f1c82d80a59b94a
 - filename: tests/app/v2/notifications/test_get_notifications.py
   checksum: 167aa80c8aac01566b3cf627cdaa839feac9dc77f0b13b6d0a008035aa8e15f1
 version: "1.0"

@@ -21,7 +21,6 @@ from app.constants import (
     LETTER_TYPE,
     SMS_TYPE,
 )
-from app.dao.api_key_dao import get_model_api_keys
 from app.dao.services_dao import dao_remove_user_from_service
 from app.dao.templates_dao import dao_redact_template
 from app.models import (
@@ -1015,35 +1014,6 @@ def test_default_permissions_are_added_for_user_service(notify_api, sample_user)
             service_permissions = json_resp['data']['permissions'][service_0_id]
 
             assert sorted(DEFAULT_SERVICE_MANAGEMENT_PERMISSIONS) == sorted(service_permissions)
-
-
-def test_api_key_generation(client, sample_service, sample_user) -> None:
-    """Test the service/api-key POST route. Ensure the key is generated correclty."""
-    service: Service = sample_service()
-    user = sample_user()
-
-    test_data = {
-        'created_by': str(user.id),
-        'key_type': 'normal',
-        'name': 'test-key',
-    }
-
-    auth_header = create_admin_authorization_header()
-    headers = [('Content-Type', 'application/json'), auth_header]
-    response = client.post(f'/service/{service.id}/api-key', headers=headers, data=json.dumps(test_data))
-    assert response.status_code == 201
-
-    keys = get_model_api_keys(service.id)
-
-    assert len(keys) == 1
-    key = keys[0]
-    assert key.service_id == service.id, 'Expected API key to be added to the test service'
-    # check revoked is False on newly created keys
-    assert not key.revoked, 'Expected the API key to not be revoked'
-    # check the expiry_date is at least 180 days out
-    assert key.expiry_date > (datetime.utcnow() + timedelta(days=179)), (
-        'Expected the expiry_date to be at least 180 days out'
-    )
 
 
 # This test is just here verify get_service_and_api_key_history that is a temp solution
