@@ -13,10 +13,15 @@ from tests import create_admin_authorization_header
 
 
 def test_api_key_should_create_new_api_key_for_service(notify_api, notify_db_session, sample_service):
+    """Test new API key is created with expected data."""
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
             service = sample_service()
-            data = {'name': 'some secret name', 'created_by': str(service.created_by.id), 'key_type': KEY_TYPE_NORMAL}
+            data = {
+                'name': 'some secret name',
+                'created_by': str(service.created_by.id),
+                'key_type': KEY_TYPE_NORMAL,
+            }
             auth_header = create_admin_authorization_header()
             response = client.post(
                 url_for('service.create_api_key', service_id=service.id),
@@ -25,9 +30,12 @@ def test_api_key_should_create_new_api_key_for_service(notify_api, notify_db_ses
             )
             assert response.status_code == 201
             assert 'data' in json.loads(response.get_data(as_text=True))
-            saved_api_key = notify_db_session.session.scalar(select(ApiKey).where(ApiKey.service_id == service.id))
+            saved_api_key: ApiKey = notify_db_session.session.scalar(
+                select(ApiKey).where(ApiKey.service_id == service.id)
+            )
             assert saved_api_key.service_id == service.id
             assert saved_api_key.name == 'some secret name'
+            assert saved_api_key.expiry_date is not None
 
             # Teardown
             # No model for api_keys_history
@@ -83,8 +91,9 @@ def test_revoke_should_expire_api_key_for_service(notify_api, notify_db_session,
             # "Accepted" status code
             assert response.status_code == 202
             assert response.get_json() is None
-            api_keys_for_service = notify_db_session.session.get(ApiKey, api_key.id)
-            assert api_keys_for_service.expiry_date is not None
+            revoked_api_key: ApiKey = notify_db_session.session.get(ApiKey, api_key.id)
+            assert revoked_api_key.expiry_date is not None
+            assert revoked_api_key.revoked
 
 
 def test_api_key_should_create_multiple_new_api_key_for_service(notify_api, notify_db_session, sample_service):

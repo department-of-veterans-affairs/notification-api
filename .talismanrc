@@ -17,6 +17,8 @@ fileignoreconfig:
   checksum: 322feb39b95edeb2714cb7ea86b396f2d27a197d44b64cf85d52be04c06ec31e
 - filename: migrations/versions/0375_add_key_revoked.py
   checksum: e55773aebd65f6e1c7686d920953441966d530b3966af2a095b9a11195935b7f
+- filename: tests/app/service/test_api_key_endpoints.py
+  checksum: eed891b98b314c62fdeb844019ee81f2a68fefa538d103a04b5bcc9a42b6f401
 - filename: poetry.lock
   checksum: 8c411d33b37e4d0a60851e15d921fe9109fb9355e031c0deb417f8776971c8de
 - filename: tests/app/celery/test_process_ga4_measurement_task.py

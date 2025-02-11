@@ -275,10 +275,6 @@ def create_api_key(service_id: UUID) -> tuple[Response, Literal[201, 400]]:
         err_msg += ' DataError, ensure created_by user id is a valid uuid'
         current_app.logger.exception(err_msg)
         raise InvalidRequest(err_msg, 400)
-    except Exception as e:
-        err_msg += f' Unexpected exception of type {e.__class__.__name__}'
-        current_app.logger.exception(err_msg)
-        raise InvalidRequest(err_msg, 400)
 
     valid_api_key.service = fetched_service
     valid_api_key.expiry_date = datetime.utcnow() + timedelta(days=180)
