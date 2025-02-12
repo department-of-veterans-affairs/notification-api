@@ -34,5 +34,15 @@ fileignoreconfig:
 - filename: tests/app/service/test_rest.py
   checksum: 4445a68807e214e9376f1d78667d01932b27ac24d7b1cede5f1c82d80a59b94a
 - filename: tests/app/v2/notifications/test_get_notifications.py
-  checksum: 167aa80c8aac01566b3cf627cdaa839feac9dc77f0b13b6d0a008035aa8e15f1
+  checksum: b20c4b5e1e1e1204dea37b7cb37fec94f6720b7bb58d216af3b94d0520e09a69
+- filename: tests/app/v2/notifications/test_push_broadcast_notifications.py
+  checksum: 430fb5f087b3d9995af9cff700fe0fc0152b5582901cfc46db7d0ec884367d12
+- filename: tests/app/v2/notifications/test_push_notifications.py
+  checksum: c531a02d1edd37fa615a3b2d984ff841ace9e175306f47361fbf549c79c2d372
+- filename: tests/app/va/vetext/test_client.py
+  checksum: 36fb86b6221e49703e51eda249e1a6d090483968a1c7a198be231470e021642c
+- filename: app/notifications/process_notifications.py
+  checksum: 199e175df804d0d9cc5413630ae0d3be805a3bfc54f2822f9a54936054354c9a
+- filename: tests/app/celery/test_process_ga4_measurement_task.py
+  checksum: f25a9c4e5a2711a4c35ba1ac98031d23d072c58f1345d39a5f5ed4329368d558
 version: "1.0"
