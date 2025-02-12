@@ -90,7 +90,7 @@ class TestCheckAndQueueVANotificationCallback:
     )
 
     @pytest.mark.parametrize('notification', [mock_sms_notification, mock_email_notification])
-    def test_send_sms_feature_flag_enabled(self, mocker, notify_api, notification):
+    def test_send_sms(self, mocker, notify_api, notification):
         mock_send_notification_status_to_va_profile = mocker.patch(
             'app.celery.send_va_profile_notification_status_tasks.send_notification_status_to_va_profile'
         )
@@ -98,16 +98,3 @@ class TestCheckAndQueueVANotificationCallback:
         check_and_queue_va_profile_notification_status_callback(notification)
 
         mock_send_notification_status_to_va_profile.delay.assert_called_once()
-
-    @pytest.mark.parametrize('notification', [mock_sms_notification, mock_email_notification])
-    def test_send_sms_feature_flag_disabled(self, mocker, notify_api, notification):
-        mock_send_notification_status_to_va_profile = mocker.patch(
-            'app.celery.send_va_profile_notification_status_tasks.send_notification_status_to_va_profile'
-        )
-
-        check_and_queue_va_profile_notification_status_callback(notification)
-
-        if notification.notification_type == SMS_TYPE:
-            mock_send_notification_status_to_va_profile.delay.assert_not_called()
-        else:
-            mock_send_notification_status_to_va_profile.delay.assert_called_once()
