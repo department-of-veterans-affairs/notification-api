@@ -79,7 +79,7 @@ def get_model_api_keys(service_id: UUID) -> list[ApiKey]:
         NoResultFound: If there is no key associated with the given service, or the key has been revoked.
     """
     stmt = select(ApiKey).where(ApiKey.service_id == service_id)
-    keys = db.db.session.scalars(stmt).all()
+    keys = db.session.scalars(stmt).all()
 
     if not keys:
         raise NoResultFound()

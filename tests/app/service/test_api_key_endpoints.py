@@ -30,9 +30,11 @@ def test_api_key_should_create_new_api_key_for_service(notify_api, notify_db_ses
             )
             assert response.status_code == 201
             assert 'data' in json.loads(response.get_data(as_text=True))
-            saved_api_key: ApiKey = notify_db_session.session.scalar(
-                select(ApiKey).where(ApiKey.service_id == service.id)
-            )
+
+            saved_api_keys: ApiKey = get_model_api_keys(service.id)
+            assert len(saved_api_keys) == 1
+
+            saved_api_key = saved_api_keys[0]
             assert saved_api_key.service_id == service.id
             assert saved_api_key.name == 'some secret name'
             assert saved_api_key.expiry_date is not None
@@ -88,7 +90,7 @@ def test_api_key_should_return_error_when_key_type_invlid(
         with notify_api.test_client() as client:
             data = {
                 'name': 'some secret name',
-                'created_by': str(uuid4()),
+                'created_by': str(service.created_by.id),
                 'key_type': 'fake_type',
             }
             auth_header = create_admin_authorization_header()

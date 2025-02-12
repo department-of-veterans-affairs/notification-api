@@ -1,4 +1,6 @@
 fileignoreconfig:
+- filename: app/dao/api_key_dao.py
+  checksum: ce13e50eb2989e73a04c5414dc7019505a815150831ebb1813196b4e222f72ba
 - filename: tests/app/service/test_api_key_endpoints.py
-  checksum: dc920d69beef0cf9349927d455a331b404f7f34e9f67d7087a0f385a6d1464e3
+  checksum: 5eb0442e5ad525c7a3e33c43db8eeb8c52d40c91ca9a1b770dbd4a95de6975a8
 version: "1.0"
