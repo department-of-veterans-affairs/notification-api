@@ -57,6 +57,50 @@ def test_api_key_should_return_error_when_service_does_not_exist(notify_api):
             assert response.status_code == 404
 
 
+def test_api_key_should_return_error_when_user_does_not_exist(notify_api, sample_service):
+    service = sample_service()
+
+    with notify_api.test_request_context():
+        with notify_api.test_client() as client:
+            missing_user_id = str(uuid4())
+            data = {
+                'name': 'some secret name',
+                'created_by': missing_user_id,
+                'key_type': KEY_TYPE_NORMAL,
+            }
+            auth_header = create_admin_authorization_header()
+            response = client.post(
+                url_for('service.create_api_key', service_id=service.id),
+                data=json.dumps(data),
+                headers=[('Content-Type', 'application/json'), auth_header],
+            )
+            assert response.status_code == 400
+            assert 'IntegrityError' in response.json['message']
+
+
+def test_api_key_should_return_error_when_key_type_invlid(
+    notify_api,
+    sample_service,
+):
+    service = sample_service()
+
+    with notify_api.test_request_context():
+        with notify_api.test_client() as client:
+            data = {
+                'name': 'some secret name',
+                'created_by': str(uuid4()),
+                'key_type': 'fake_type',
+            }
+            auth_header = create_admin_authorization_header()
+            response = client.post(
+                url_for('service.create_api_key', service_id=service.id),
+                data=json.dumps(data),
+                headers=[('Content-Type', 'application/json'), auth_header],
+            )
+            assert response.status_code == 400
+            assert 'IntegrityError' in response.json['message']
+
+
 def test_create_api_key_without_key_type_rejects(notify_api, notify_db_session, sample_service):
     with notify_api.test_request_context(), notify_api.test_client() as client:
         service = sample_service()
