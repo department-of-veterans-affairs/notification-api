@@ -5,7 +5,6 @@ from flask import current_app
 from app import notify_celery, va_profile_client
 from app.celery.exceptions import AutoRetryException
 from app.constants import DATETIME_FORMAT, EMAIL_TYPE
-from app.feature_flags import FeatureFlag, is_feature_enabled
 from app.models import Notification
 
 
@@ -23,7 +22,7 @@ def check_and_queue_va_profile_notification_status_callback(notification: Notifi
         notification.id,
     )
 
-    if is_feature_enabled(FeatureFlag.VA_PROFILE_SMS_STATUS_ENABLED) or notification.notification_type == EMAIL_TYPE:
+    if notification.notification_type == EMAIL_TYPE:
         current_app.logger.debug(
             'Sending notification status to VA Profile, collecting data for notification %s', notification.id
         )
@@ -45,7 +44,7 @@ def check_and_queue_va_profile_notification_status_callback(notification: Notifi
         send_notification_status_to_va_profile.delay(notification_data)
     else:
         current_app.logger.debug(
-            'SMS status not sent to VA Profile, feature flag disabled | notification %s', notification.id
+            'SMS status not sent to VA Profile, notification_type is not EMAIL_TYPE %s', notification.id
         )
 
 
