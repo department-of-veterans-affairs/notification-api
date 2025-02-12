@@ -1,3 +1,4 @@
+import os
 from urllib.parse import urlencode
 
 import requests
@@ -109,7 +110,9 @@ def post_to_ga4(notification_id: str, event_name, event_source, event_medium) ->
     status = False
     try:
         current_app.logger.info('Posting event to GA4: %s', event_name)
-        response = requests.post(url, json=event_body, headers=headers, timeout=1)
+        response = requests.post(
+            url, json=event_body, headers=headers, timeout=1, verify=os.getenv('REQUESTS_CA_BUNDLE')
+        )
         current_app.logger.debug('GA4 response: %s', response.status_code)
         response.raise_for_status()
         status = response.status_code == 204
