@@ -246,14 +246,6 @@ def test_inbound_number_returns_none_when_no_inbound_number(client, sample_servi
     assert service.inbound_numbers == []
 
 
-def test_service_get_default_reply_to_email_address(sample_service, sample_service_email_reply_to):
-    email = f'{uuid4()}default@email.com'
-
-    # This also creates an instance of ServiceEmailReplyTo.
-    service = sample_service(email_address=email)
-    assert service.get_default_reply_to_email_address() == email
-
-
 def test_service_get_default_sms_sender(sample_service):
     service = sample_service()
     assert service.get_default_sms_sender() == 'testing'

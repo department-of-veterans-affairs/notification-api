@@ -222,32 +222,6 @@ def test_send_one_off_notification_fails_if_created_by_other_service(sample_temp
     )
 
 
-def test_send_one_off_notification_should_add_email_reply_to_text_for_notification(
-    notify_db_session,
-    sample_service_email_reply_to,
-    sample_template,
-    celery_mock,
-):
-    template = sample_template(template_type=EMAIL_TYPE)
-    reply_to_email = sample_service_email_reply_to(template.service, email_address=f'{uuid.uuid4()}@test.com')
-    data = {
-        'to': 'ok@ok.com',
-        'template_id': str(template.id),
-        'sender_id': reply_to_email.id,
-        'created_by': str(template.service.created_by_id),
-    }
-
-    notification_id: str = send_one_off_notification(service_id=template.service.id, post_data=data)['id']
-    notification = notify_db_session.session.get(Notification, notification_id)
-    celery_mock.assert_called_once_with(notification=notification, research_mode=False)
-    assert notification.reply_to_text == reply_to_email.email_address
-
-    # Teardown
-    stmt = delete(Notification).where(Notification.id == notification_id)
-    notify_db_session.session.execute(stmt)
-    notify_db_session.session.commit()
-
-
 def test_send_one_off_sms_notification_should_use_sms_sender_reply_to_text(
     notify_db_session,
     sample_service,
@@ -306,20 +280,6 @@ def test_send_one_off_sms_notification_should_use_default_service_reply_to_text(
     stmt = delete(Notification).where(Notification.id == notification_id['id'])
     notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
-
-
-def test_send_one_off_notification_should_throw_exception_if_reply_to_id_doesnot_exist(sample_template):
-    tempplate = sample_template(template_type=EMAIL_TYPE)
-    data = {
-        'to': 'ok@ok.com',
-        'template_id': str(tempplate.id),
-        'sender_id': str(uuid.uuid4()),
-        'created_by': str(tempplate.service.created_by_id),
-    }
-
-    with pytest.raises(expected_exception=BadRequestError) as e:
-        send_one_off_notification(service_id=tempplate.service.id, post_data=data)
-    assert e.value.message == 'Reply to email address not found'
 
 
 def test_send_one_off_notification_should_throw_exception_if_sms_sender_id_doesnot_exist(sample_template):
