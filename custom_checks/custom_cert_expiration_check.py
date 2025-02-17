@@ -3,13 +3,14 @@ import datetime
 from OpenSSL import crypto
 from datadog_checks.base import AgentCheck
 
+
 class CertExpirationCheck(AgentCheck):
     def check(self, instance):
         # Directory where our non-ACM certificates reside
         cert_dir = instance.get('cert_dir', '/usr/local/share/ca-certificates/')
-        
+
         if not os.path.isdir(cert_dir):
-            self.log.error("Certificate directory %s does not exist.", cert_dir)
+            self.log.error('Certificate directory %s does not exist.', cert_dir)
             return
 
         for filename in os.listdir(cert_dir):
@@ -31,13 +32,9 @@ class CertExpirationCheck(AgentCheck):
                     days_remaining = (expiry_date - now).days
 
                     # Emit a gauge metric with the certificate name as a tag
-                    self.gauge(
-                        'certificates.days_to_expire',
-                        days_remaining,
-                        tags=[f'certificate:{filename}']
-                    )
-                    
-                    self.log.debug("Certificate %s expires in %s days.", filename, days_remaining)
+                    self.gauge('certificates.days_to_expire', days_remaining, tags=[f'certificate:{filename}'])
+
+                    self.log.debug('Certificate %s expires in %s days.', filename, days_remaining)
 
                 except Exception as e:
-                    self.log.error("Error processing certificate %s: %s", filename, str(e))
+                    self.log.error('Error processing certificate %s: %s', filename, str(e))
