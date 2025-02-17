@@ -3,6 +3,7 @@ import datetime
 from OpenSSL import crypto
 from datadog_checks.base import AgentCheck
 
+
 # https://docs.datadoghq.com/developers/custom_checks/write_agent_check/ for info on how custom checks work
 class CertExpirationCheck(AgentCheck):
     def check(self, instance):
