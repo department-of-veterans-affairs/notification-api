@@ -282,6 +282,20 @@ def test_send_one_off_sms_notification_should_use_default_service_reply_to_text(
     notify_db_session.session.commit()
 
 
+def test_send_one_off_notification_should_throw_exception_if_reply_to_id_doesnot_exist(sample_template):
+    tempplate = sample_template(template_type=EMAIL_TYPE)
+    data = {
+        'to': 'ok@ok.com',
+        'template_id': str(tempplate.id),
+        'sender_id': str(uuid.uuid4()),
+        'created_by': str(tempplate.service.created_by_id),
+    }
+
+    with pytest.raises(expected_exception=BadRequestError) as e:
+        send_one_off_notification(service_id=tempplate.service.id, post_data=data)
+    assert e.value.message == 'Reply to email address not found'
+
+
 def test_send_one_off_notification_should_throw_exception_if_sms_sender_id_doesnot_exist(sample_template):
     template = sample_template()
     data = {

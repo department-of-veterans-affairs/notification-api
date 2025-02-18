@@ -316,6 +316,8 @@ def get_reply_to_text(
     form,
     template,
 ):
+    reply_to = None
+
     if notification_type == EMAIL_TYPE:
         reply_to = template.reply_to_email
 

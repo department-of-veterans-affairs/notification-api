@@ -16,7 +16,6 @@ from app.constants import (
     INTERNATIONAL_SMS_TYPE,
     SMS_TYPE,
     EMAIL_TYPE,
-    LETTER_TYPE,
     KEY_TYPE_TEST,
     KEY_TYPE_TEAM,
     SCHEDULE_NOTIFICATIONS,

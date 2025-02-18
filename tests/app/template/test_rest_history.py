@@ -1,14 +1,11 @@
 import json
 from datetime import datetime, date
-from uuid import uuid4
 
 import pytest
 from flask import url_for
 
-from app.constants import SERVICE_PERMISSION_TYPES, LETTER_TYPE
 from app.dao.templates_dao import dao_update_template
 from tests import create_admin_authorization_header
-from tests.app.db import create_letter_contact
 
 
 def test_template_history_version(notify_api, sample_user, sample_template):

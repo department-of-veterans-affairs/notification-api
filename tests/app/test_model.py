@@ -1,6 +1,5 @@
 import pytest
 from random import randint
-from uuid import uuid4
 
 from freezegun import freeze_time
 from sqlalchemy.exc import IntegrityError

@@ -105,8 +105,10 @@ def _get_reply_to_text(
         try:
             if notification_type == EMAIL_TYPE:
                 message = 'Reply to email address not found'
-                reply_to = ''
-                current_app.logger.warning("Couldn't find the reply-to e-mail address.")
+
+                # Prior to #1112, this "if" block indirectly performed a query that called ScalarResult.one,
+                # which raises NoResultFound if there isn't exactly one result.
+                raise NoResultFound
             elif notification_type == SMS_TYPE:
                 message = 'SMS sender not found'
                 reply_to = dao_get_service_sms_sender_by_id(service.id, sender_id).get_reply_to_text()
