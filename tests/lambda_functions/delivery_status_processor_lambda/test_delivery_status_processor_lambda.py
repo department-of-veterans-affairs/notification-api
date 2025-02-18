@@ -195,3 +195,13 @@ def test_twilio_validate_failure(mocker, event, all_path_env_param_set):
     del missing_header['headers']['x-twilio-signature']
     response = delivery_status_processor_lambda_handler(missing_header, True)
     assert response['statusCode'] == 403
+
+
+def test_twilio_validate_failure_body(mocker, event, all_path_env_param_set):
+    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+        delivery_status_processor_lambda_handler,
+    )
+
+    event_invalid_body = event['body'] = {'kyle_message': 'test'}
+    response = delivery_status_processor_lambda_handler(event_invalid_body, True)
+    assert response['statusCode'] == 403

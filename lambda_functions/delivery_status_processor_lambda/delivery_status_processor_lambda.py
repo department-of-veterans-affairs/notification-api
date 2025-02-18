@@ -111,6 +111,8 @@ def delivery_status_processor_lambda_handler(
 
         logger.info('Valid ALB request received')
         logger.debug(event['body'])
+
+        # TODO 1769 - Look at testing here
         if 'TwilioProxy' in event['headers']['user-agent'] and context and not validate_twilio_event(event):
             logger.error('Returning 403 on unauthenticated Twilio request')
             return {
