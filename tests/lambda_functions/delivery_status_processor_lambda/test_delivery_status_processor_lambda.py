@@ -1,5 +1,7 @@
 import pytest
 import os
+import base64
+import json
 
 
 @pytest.fixture
@@ -74,9 +76,10 @@ def test_invalid_event_event_none(mocker, all_path_env_param_set):
     event = None
 
     # Test a event is None
-    delivery_status_processor_lambda_handler(event, None)
+    response = delivery_status_processor_lambda_handler(event, None)
 
-    sqs_mock.assert_called_once_with(event, os.getenv('DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER'), False)
+    sqs_mock.assert_not_called()
+    assert response['statusCode'] == 403
 
 
 def test_invalid_event_body_none(mocker, event, all_path_env_param_set):
@@ -89,10 +92,10 @@ def test_invalid_event_body_none(mocker, event, all_path_env_param_set):
 
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
 
-    # Test a event is None
-    delivery_status_processor_lambda_handler(event, None)
+    response = delivery_status_processor_lambda_handler(event, None)
 
-    sqs_mock.assert_called_once_with(event, os.getenv('DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER'), False)
+    sqs_mock.assert_not_called()
+    assert response['statusCode'] == 403
 
 
 def test_invalid_event_headers_none(mocker, event, all_path_env_param_set):
@@ -105,10 +108,10 @@ def test_invalid_event_headers_none(mocker, event, all_path_env_param_set):
 
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
 
-    # Test a event is None
-    delivery_status_processor_lambda_handler(event, None)
+    response = delivery_status_processor_lambda_handler(event, None)
 
-    sqs_mock.assert_called_once_with(event, os.getenv('DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER'), False)
+    sqs_mock.assert_not_called()
+    assert response['statusCode'] == 403
 
 
 def test_invalid_event_user_agent_none(mocker, event, all_path_env_param_set):
@@ -121,10 +124,10 @@ def test_invalid_event_user_agent_none(mocker, event, all_path_env_param_set):
 
     sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
 
-    # Test a event is None
-    delivery_status_processor_lambda_handler(event, None)
+    response = delivery_status_processor_lambda_handler(event, None)
 
-    sqs_mock.assert_called_once_with(event, os.getenv('DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER'), False)
+    sqs_mock.assert_not_called()
+    assert response['statusCode'] == 403
 
 
 def test_valid_event(event, all_path_env_param_set):
@@ -197,11 +200,16 @@ def test_twilio_validate_failure(mocker, event, all_path_env_param_set):
     assert response['statusCode'] == 403
 
 
-def test_twilio_validate_failure_body(mocker, event, all_path_env_param_set):
+def test_twilio_validate_failure_malformed_body(mocker, event, all_path_env_param_set):
     from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
         delivery_status_processor_lambda_handler,
     )
 
-    event_invalid_body = event['body'] = {'kyle_message': 'test'}
-    response = delivery_status_processor_lambda_handler(event_invalid_body, True)
+    original_string = json.dumps({'bad_value': 'bad_key'})
+    encoded_string = base64.b64encode(original_string.encode('utf-8')).decode('utf-8')
+    event['body'] = encoded_string
+
+    sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
+    response = delivery_status_processor_lambda_handler(event, True)
+    sqs_mock.assert_not_called()
     assert response['statusCode'] == 403
