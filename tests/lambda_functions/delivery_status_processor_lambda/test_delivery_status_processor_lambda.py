@@ -213,3 +213,16 @@ def test_twilio_validate_failure_malformed_body(mocker, event, all_path_env_para
     response = delivery_status_processor_lambda_handler(event, True)
     sqs_mock.assert_not_called()
     assert response['statusCode'] == 403
+
+
+def test_twilio_validate_failure_malformed_not_encoded_body(mocker, event, all_path_env_param_set):
+    from lambda_functions.delivery_status_processor_lambda.delivery_status_processor_lambda import (
+        delivery_status_processor_lambda_handler,
+    )
+
+    event['body'] = {'bad_value': 'bad_key'}
+
+    sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
+    response = delivery_status_processor_lambda_handler(event, True)
+    sqs_mock.assert_not_called()
+    assert response['statusCode'] == 403
