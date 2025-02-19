@@ -106,7 +106,6 @@ def delivery_status_processor_lambda_handler(
 
         if not valid_event(event):
             logger.error('Invalid event: %s', event)
-            push_to_sqs(event, DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER, False)
             return {
                 'statusCode': 403,
             }
