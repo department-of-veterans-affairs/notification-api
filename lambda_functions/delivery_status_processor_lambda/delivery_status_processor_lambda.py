@@ -72,7 +72,6 @@ def validate_twilio_event(event: dict) -> bool:
 
     try:
         signature = event['headers'].get('x-twilio-signature', '')
-
         validator = RequestValidator(auth_token)
         uri = f'https://{event["headers"]["host"]}/vanotify/sms/deliverystatus'
         decoded = base64.b64decode(event.get('body')).decode()
@@ -107,12 +106,14 @@ def delivery_status_processor_lambda_handler(
 
         if not valid_event(event):
             logger.error('Invalid event: %s', event)
-            raise Exception('Invalid event')
+            push_to_sqs(event, DELIVERY_STATUS_RESULT_TASK_QUEUE_DEAD_LETTER, False)
+            return {
+                'statusCode': 403,
+            }
 
         logger.info('Valid ALB request received')
         logger.debug(event['body'])
 
-        # TODO 1769 - Look at testing here
         if 'TwilioProxy' in event['headers']['user-agent'] and context and not validate_twilio_event(event):
             logger.error('Returning 403 on unauthenticated Twilio request')
             return {
