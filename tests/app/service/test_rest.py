@@ -888,8 +888,8 @@ def test_should_not_update_service_with_duplicate_name(notify_api, sample_servic
             assert "Duplicate service name '{}'".format(service_name) in json_resp['message']['name']
 
 
-@pytest.mark.skip(reason='Mislabelled for route removal, fails when unskipped')
 def test_should_not_update_service_with_duplicate_email_from(notify_api, sample_service):
+    # TODO 1682 - Confirm functionality. I do not see this check in the code path.
     # No services in any environment use email_from
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
@@ -1218,7 +1218,7 @@ def test_set_sms_prefixing_for_service_cant_be_none(
 
 
 # This always returns 0. Does not appear to be used
-@pytest.mark.skip(reason='Mislabelled for route removal, fails when unskipped')
+@pytest.mark.skip(reason=', fails when unskipped')
 @pytest.mark.parametrize(
     'today_only,stats',
     [('False', {'requested': 2, 'delivered': 1, 'failed': 0}), ('True', {'requested': 1, 'delivered': 0, 'failed': 0})],
@@ -1286,7 +1286,7 @@ def test_get_services_with_detailed_flag(
     }
 
 
-@pytest.mark.skip(reason='Mislabelled for route removal, fails when unskipped')
+@pytest.mark.skip(reason=', fails when unskipped')
 def test_get_services_with_detailed_flag_excluding_from_test_key(notify_api, sample_template):
     create_notification(sample_template, key_type=KEY_TYPE_NORMAL)
     create_notification(sample_template, key_type=KEY_TYPE_TEAM)
@@ -1335,7 +1335,7 @@ def test_get_services_with_detailed_flag_defaults_to_today(client, mocker):
     assert resp.status_code == 200
 
 
-@pytest.mark.skip(reason='Mislabelled for route removal, fails when unskipped')
+@pytest.mark.skip(reason=', fails when unskipped')
 def test_get_detailed_services_groups_by_service(notify_db_session, sample_api_key, sample_service, sample_template):
     from app.service.rest import get_detailed_services
 
@@ -1377,7 +1377,7 @@ def test_get_detailed_services_groups_by_service(notify_db_session, sample_api_k
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason='Mislabelled for route removal, fails when unskipped')
+@pytest.mark.skip(reason=', fails when unskipped')
 def test_get_detailed_services_includes_services_with_no_notifications(
     notify_db_session,
     sample_api_key,
@@ -1411,7 +1411,7 @@ def test_get_detailed_services_includes_services_with_no_notifications(
     }
 
 
-@pytest.mark.skip(reason='Mislabelled for route removal, fails when unskipped')
+@pytest.mark.skip(reason=', fails when unskipped')
 # This test assumes the local timezone is EST
 def test_get_detailed_services_only_includes_todays_notifications(notify_db_session, sample_api_key, sample_template):
     from app.service.rest import get_detailed_services
@@ -1436,7 +1436,7 @@ def test_get_detailed_services_only_includes_todays_notifications(notify_db_sess
     }
 
 
-@pytest.mark.skip(reason='Mislabelled for route removal, fails when unskipped')
+@pytest.mark.skip(reason=', fails when unskipped')
 @pytest.mark.parametrize('start_date_delta, end_date_delta', [(2, 1), (3, 2), (1, 0)])
 @freeze_time('2017-03-28T12:00:00')
 def test_get_detailed_services_for_date_range(
