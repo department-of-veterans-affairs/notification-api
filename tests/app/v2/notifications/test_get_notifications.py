@@ -2,7 +2,6 @@ import datetime
 
 import pytest
 from flask import url_for
-from sqlalchemy import select
 
 from app.constants import (
     DATETIME_FORMAT,
@@ -11,7 +10,6 @@ from app.constants import (
     NOTIFICATION_TEMPORARY_FAILURE,
     SMS_TYPE,
 )
-from app.models import ScheduledNotification
 from app.va.identifier import IdentifierType
 from tests import create_authorization_header
 
@@ -36,7 +34,7 @@ def test_get_notification_by_id_returns_200(
         callback_url='https://www.test.com',
     )
 
-    second_notification = sample_notification(
+    sample_notification(
         template=template, billable_units=billable_units, sent_by=provider, scheduled_for='2017-06-12 15:15'
     )
 
@@ -305,7 +303,6 @@ def test_get_notification_by_id_invalid_id(
         (6, 'first', '2000-06-03T15:00:00.000000Z'),  # 4pm BST in summer (two days before 2nd class due to weekends)
     ],
 )
-@pytest.mark.skip(reason='mislabelled for route removal, fails when unskipped')
 def test_get_notification_adds_delivery_estimate_for_letters(
     client,
     sample_api_key,
@@ -349,7 +346,6 @@ def test_get_notification_doesnt_have_delivery_estimate_for_non_letters(
     assert 'estimated_delivery' not in response.get_json()
 
 
-@pytest.mark.skip(reason='mislabelled for route removal, fails when unskipped')
 def test_get_all_notifications_except_job_notifications_returns_200(
     client,
     sample_api_key,
@@ -358,7 +354,8 @@ def test_get_all_notifications_except_job_notifications_returns_200(
     sample_job,
 ):
     template = sample_template()
-    sample_notification(template=template, job=sample_job)  # should not return this job notification
+    job = sample_job(template=template)
+    sample_notification(template=template, job=job)  # should not return this job notification
     notifications = [sample_notification(template=template) for _ in range(2)]
     notification = notifications[-1]
 
@@ -385,7 +382,6 @@ def test_get_all_notifications_except_job_notifications_returns_200(
     assert not json_response['notifications'][0]['scheduled_for']
 
 
-@pytest.mark.skip(reason='mislabelled for route removal, fails when unskipped')
 def test_get_all_notifications_with_include_jobs_arg_returns_200(
     client,
     sample_api_key,
@@ -394,7 +390,8 @@ def test_get_all_notifications_with_include_jobs_arg_returns_200(
     sample_job,
 ):
     template = sample_template()
-    notifications = [sample_notification(template=template, job=sample_job), sample_notification(template=template)]
+    job = sample_job(template=template)
+    notifications = [sample_notification(template=template, job=job), sample_notification(template=template)]
     notification = notifications[-1]
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
@@ -445,7 +442,7 @@ def test_get_all_notifications_filter_by_template_type(
     sms_template = sample_template(service=service, template_type=SMS_TYPE)
 
     notification = sample_notification(template=email_template, to_field='don.draper@scdp.biz')
-    sms_notification = sample_notification(template=sms_template)
+    sample_notification(template=sms_template)
 
     auth_header = create_authorization_header(sample_api_key(service=email_template.service))
     response = client.get(
@@ -498,7 +495,7 @@ def test_get_all_notifications_filter_by_single_status(
 ):
     template = sample_template()
     notification = sample_notification(template=template, status='pending')
-    non_pending_notification = sample_notification(template=template)
+    sample_notification(template=template)
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
@@ -525,7 +522,7 @@ def test_get_all_notifications_filter_by_status_invalid_status(
 ):
     fake_status = 'non-existant-status'
     api_key = sample_api_key()
-    notification = sample_notification(template=sample_template(service=api_key.service))
+    sample_notification(template=sample_template(service=api_key.service))
     auth_header = create_authorization_header(api_key)
 
     response = client.get(
@@ -659,7 +656,7 @@ def test_get_all_notifications_filter_by_id_no_notifications_if_nonexistent_id(
     sample_notification,
 ):
     template = sample_template()
-    notification = sample_notification(template=template)
+    sample_notification(template=template)
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
     response = client.get(
@@ -714,16 +711,16 @@ def test_get_all_notifications_filter_multiple_query_parameters(
     older_notification = sample_notification(template=template, status='pending')
 
     # wrong status
-    wrong_status_notification = sample_notification(template=template)
+    sample_notification(template=template)
     wrong_template = sample_template(service=template.service, template_type=SMS_TYPE)
     # wrong template
-    wrong_template_notification = sample_notification(template=wrong_template, status='pending')
+    sample_notification(template=wrong_template, status='pending')
 
     # we only want notifications created before this one
     newer_notification = sample_notification(template=template)
 
     # this notification was created too recently
-    recent_notification = sample_notification(template=template, status='pending')
+    sample_notification(template=template, status='pending')
 
     auth_header = create_authorization_header(api_key)
     response = client.get(
@@ -750,7 +747,6 @@ def test_get_all_notifications_filter_multiple_query_parameters(
     assert json_response['notifications'][0]['id'] == str(older_notification.id)
 
 
-@pytest.mark.skip(reason='Mislabelled for route removal, fails when unskipped')
 def test_get_all_notifications_renames_letter_statuses(client, sample_letter_notification):
     auth_header = create_authorization_header(service_id=sample_letter_notification.service_id)
     response = client.get(
@@ -769,7 +765,6 @@ def test_get_all_notifications_renames_letter_statuses(client, sample_letter_not
             pytest.fail()
 
 
-@pytest.mark.skip(reason='Mislabelled for route removal, fails when unskipped')
 @pytest.mark.parametrize(
     'db_status,expected_status',
     [
@@ -780,10 +775,11 @@ def test_get_all_notifications_renames_letter_statuses(client, sample_letter_not
     ],
 )
 def test_get_notifications_renames_letter_statuses(
-    client, sample_letter_template, db_status, expected_status, sample_notification
+    client, sample_service, db_status, expected_status, sample_notification
 ):
+    service = sample_service()
     letter_noti = sample_notification(
-        sample_letter_template,
+        service,
         status=db_status,
         personalisation={'address_line_1': 'Mr Foo', 'address_line_2': '1 Bar Street', 'postcode': 'N1'},
     )
