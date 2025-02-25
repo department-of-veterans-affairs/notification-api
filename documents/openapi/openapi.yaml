@@ -2506,6 +2506,12 @@ components:
           format: date-time
         version:
           type: number
+        content_as_html:
+          type: string
+          nullable: true
+        content_as_plain_text:
+          type: string
+          nullable: true
     CreateHTMLPreviewRequest:
       type: object
       properties:
