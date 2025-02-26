@@ -3,7 +3,6 @@ import time
 from typing import Any
 
 from celery import Celery, Task
-from celery.worker.request import Request
 from celery.signals import (
     task_internal_error,
     task_prerun,
@@ -16,6 +15,7 @@ from celery.signals import (
     worker_shutting_down,
     worker_process_init,
 )
+from celery.worker.request import Request
 from flask import current_app
 
 
