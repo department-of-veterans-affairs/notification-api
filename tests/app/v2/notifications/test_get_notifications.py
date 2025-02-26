@@ -1,5 +1,3 @@
-import datetime
-
 import pytest
 from flask import url_for
 
@@ -292,38 +290,6 @@ def test_get_notification_by_id_invalid_id(
         'errors': [{'error': 'ValidationError', 'message': 'notification_id is not a valid UUID'}],
         'status_code': 400,
     }
-
-
-@pytest.mark.parametrize(
-    'created_at_month, postage, estimated_delivery',
-    [
-        (12, 'second', '2000-12-06T16:00:00.000000Z'),  # 4pm GMT in winter
-        (6, 'second', '2000-06-05T15:00:00.000000Z'),  # 4pm BST in summer
-        (12, 'first', '2000-12-05T16:00:00.000000Z'),  # 4pm GMT in winter
-        (6, 'first', '2000-06-03T15:00:00.000000Z'),  # 4pm BST in summer (two days before 2nd class due to weekends)
-    ],
-)
-def test_get_notification_adds_delivery_estimate_for_letters(
-    client,
-    sample_api_key,
-    sample_letter_notification,
-    created_at_month,
-    postage,
-    estimated_delivery,
-):
-    sample_letter_notification.created_at = datetime.date(2000, created_at_month, 1)
-    sample_letter_notification.postage = postage
-
-    auth_header = create_authorization_header(sample_api_key(service=sample_letter_notification.service))
-    response = client.get(
-        path='/v2/notifications/{}'.format(sample_letter_notification.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-    )
-
-    json_response = response.get_json()
-    assert response.status_code == 200
-    assert json_response['postage'] == postage
-    assert json_response['estimated_delivery'] == estimated_delivery
 
 
 @pytest.mark.parametrize('template_type', [SMS_TYPE, EMAIL_TYPE])
@@ -745,53 +711,6 @@ def test_get_all_notifications_filter_multiple_query_parameters(
     assert len(json_response['notifications']) == 1
 
     assert json_response['notifications'][0]['id'] == str(older_notification.id)
-
-
-def test_get_all_notifications_renames_letter_statuses(client, sample_letter_notification):
-    auth_header = create_authorization_header(service_id=sample_letter_notification.service_id)
-    response = client.get(
-        path=url_for('v2_notifications.get_notifications'), headers=[('Content-Type', 'application/json'), auth_header]
-    )
-
-    json_response = response.get_json()
-    assert response.status_code == 200
-
-    for noti in json_response['notifications']:
-        if noti['type'] == SMS_TYPE or noti['type'] == EMAIL_TYPE:
-            assert noti['status'] == 'created'
-        elif noti['type'] == 'letter':
-            assert noti['status'] == 'accepted'
-        else:
-            pytest.fail()
-
-
-@pytest.mark.parametrize(
-    'db_status,expected_status',
-    [
-        ('created', 'accepted'),
-        ('sending', 'accepted'),
-        ('delivered', 'received'),
-        ('pending', 'pending'),
-    ],
-)
-def test_get_notifications_renames_letter_statuses(
-    client, sample_service, db_status, expected_status, sample_notification
-):
-    service = sample_service()
-    letter_noti = sample_notification(
-        service,
-        status=db_status,
-        personalisation={'address_line_1': 'Mr Foo', 'address_line_2': '1 Bar Street', 'postcode': 'N1'},
-    )
-    auth_header = create_authorization_header(service_id=letter_noti.service_id)
-    response = client.get(
-        path=url_for('v2_notifications.get_notification_by_id', notification_id=letter_noti.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-    )
-
-    json_response = response.get_json()
-    assert response.status_code == 200
-    assert json_response['status'] == expected_status
 
 
 @pytest.mark.parametrize('template_type', [SMS_TYPE, EMAIL_TYPE])
