@@ -95,18 +95,16 @@ def test_task_unknown_logging(mocker, notify_api):
     """Test logging for celery task_unknown signal."""
     mock_logger = mocker.patch('app.celery.celery.current_app.logger.exception')
 
-    message = 'Unknown task received'
     exc = Exception('UnknownTaskError')
     name = 'unknown_name'
     id = '12345'
 
-    task_unknown.send(sender=None, message=message, exc=exc, name=name, id=id)
+    task_unknown.send(sender=None, exc=exc, name=name, id=id)
 
     mock_logger.assert_called_once_with(
-        'celery task_unknown name: %s | id: %s | message: %s | error: %s',
+        'celery task_unknown name: %s | id: %s | error: %s',
         name,
         id,
-        message,
         exc,
     )
 
@@ -115,13 +113,11 @@ def test_task_rejected_logging(mocker, notify_api):
     """Test logging for celery task_rejected signal."""
     mock_logger = mocker.patch('app.celery.celery.current_app.logger.exception')
 
-    message = 'Task rejected'
     exc = Exception('TaskRejectedError')
 
-    task_rejected.send(sender=None, message=message, exc=exc)
+    task_rejected.send(sender=None, exc=exc)
 
     mock_logger.assert_called_once_with(
-        'celery task_rejected message: %s | error: %s',
-        message,
+        'celery task_rejected error: %s',
         exc,
     )

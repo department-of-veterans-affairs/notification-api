@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Any
 
 from celery import Celery, Task
 from celery.worker.request import Request
@@ -193,7 +194,7 @@ def id_cleanup_logger(task_id: str, task: Task, *args, **kwargs) -> None:
 @task_internal_error.connect
 def log_internal_error(
     task_id: str,
-    request: Request,
+    request: dict[str, Any],
     exception: Exception,
     *args,
     **kwargs,
@@ -202,6 +203,11 @@ def log_internal_error(
 
     available signal args:
     'task_id', 'args', 'kwargs', 'request', 'exception', 'traceback', 'einfo'
+
+    Args:
+        task_id (str): The celery task id
+        request (Request): The original request dictionary
+        exception (Exception): Exception instance raised
     """
 
     task_name = getattr(request, 'task_name', 'UNKNOWN')
@@ -227,6 +233,12 @@ def log_task_revoked(
 
     available signal args:
     'request', 'terminated', 'signum', 'expired'
+
+    Args:
+        request (Request): The celery Request (context instance) object
+        terminated (bool): Set to True if the task was terminated
+        signum (int): Signal number used to terminate the task
+        expired (bool): Set to True if the task expired
     """
 
     request_task = getattr(request, 'task', 'UNKNOWN')
@@ -244,7 +256,6 @@ def log_task_revoked(
 
 @task_unknown.connect
 def log_task_unknown(
-    message: str,
     exc: Exception,
     name: str,
     id: str,
@@ -255,26 +266,33 @@ def log_task_unknown(
 
     available signal args:
     'message', 'exc', 'name', 'id'
+
+    Args:
+        exc (Exception): The error that occurred
+        name (str): Name of task not found in registry
+        id (str): The task id found in the message
     """
     # logger formatter includes notification_id if it is available
     current_app.logger.exception(
-        'celery task_unknown name: %s | id: %s | message: %s | error: %s',
+        'celery task_unknown name: %s | id: %s | error: %s',
         name,
         id,
-        message,
         exc,
     )
 
 
 @task_rejected.connect
-def log_task_rejected(message: str, exc: Exception, *args, **kwargs) -> None:
+def log_task_rejected(exc: Exception, *args, **kwargs) -> None:
     """Log when a task is rejected.
 
     available signal args:
     'message', 'exc'
+
+    Args:
+        exc (Exception): The error that occurred (if any).
     """
     # logger formatter includes notification_id if it is available
-    current_app.logger.exception('celery task_rejected message: %s | error: %s', message, exc)
+    current_app.logger.exception('celery task_rejected error: %s', exc)
 
 
 @setup_logging.connect
