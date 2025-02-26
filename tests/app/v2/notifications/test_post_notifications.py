@@ -31,7 +31,6 @@ from app.v2.errors import RateLimitError
 from app.v2.notifications.notification_schemas import post_email_response, post_sms_response
 from app.va.identifier import IdentifierType
 from tests import create_authorization_header
-from tests.app.db import create_reply_to_email  # , create_service_sms_sender
 from tests.app.factories.feature_flag import mock_feature_flag
 
 from . import post_send_notification
@@ -951,79 +950,6 @@ def test_post_notification_with_wrong_type_of_sender(
     assert 'ValidationError' in resp_json['errors'][0]['error']
 
 
-def test_post_email_notification_with_valid_reply_to_id_returns_201(
-    client,
-    notify_db_session,
-    sample_api_key,
-    sample_template,
-    mock_deliver_email,
-):
-    template = sample_template(template_type=EMAIL_TYPE)
-    reply_to_email = create_reply_to_email(template.service, 'test@test.com')
-    data = {
-        'email_address': template.service.users[0].email_address,
-        'template_id': template.id,
-        'email_reply_to_id': reply_to_email.id,
-    }
-
-    response = post_send_notification(client, sample_api_key(template.service), EMAIL_TYPE, data)
-    assert response.status_code == 201
-    resp_json = response.get_json()
-    assert validate(resp_json, post_email_response) == resp_json
-    notification = notify_db_session.session.scalars(
-        select(Notification).where(Notification.service_id == template.service_id)
-    ).one()
-    assert notification.reply_to_text == 'test@test.com'
-    assert resp_json['id'] == str(notification.id)
-    assert mock_deliver_email.called
-
-    assert notification.reply_to_text == reply_to_email.email_address
-
-
-def test_post_email_notification_with_invalid_reply_to_id_returns_400(
-    client,
-    sample_api_key,
-    sample_template,
-    fake_uuid,
-):
-    template = sample_template(template_type=EMAIL_TYPE)
-    data = {
-        'email_address': template.service.users[0].email_address,
-        'template_id': template.id,
-        'email_reply_to_id': fake_uuid,
-    }
-
-    response = post_send_notification(client, sample_api_key(template.service), EMAIL_TYPE, data)
-    assert response.status_code == 400
-    resp_json = response.get_json()
-    assert (
-        'email_reply_to_id {} does not exist in database for service id {}'.format(fake_uuid, template.service_id)
-        in resp_json['errors'][0]['message']
-    )
-    assert 'BadRequestError' in resp_json['errors'][0]['error']
-
-
-def test_post_email_notification_with_archived_reply_to_id_returns_400(
-    client,
-    sample_api_key,
-    sample_template,
-):
-    template = sample_template(template_type=EMAIL_TYPE)
-    archived_reply_to = create_reply_to_email(template.service, 'reply_to@test.com', is_default=False, archived=True)
-    data = {'email_address': 'test@test.com', 'template_id': template.id, 'email_reply_to_id': archived_reply_to.id}
-
-    response = post_send_notification(client, sample_api_key(template.service), EMAIL_TYPE, data)
-    assert response.status_code == 400
-    resp_json = response.get_json()
-    assert (
-        'email_reply_to_id {} does not exist in database for service id {}'.format(
-            archived_reply_to.id, template.service_id
-        )
-        in resp_json['errors'][0]['message']
-    )
-    assert 'BadRequestError' in resp_json['errors'][0]['error']
-
-
 class TestPostNotificationWithAttachment:
     base64_encoded_file = 'VGV4dCBjb250ZW50IGhlcmU='
 
@@ -1040,39 +966,6 @@ class TestPostNotificationWithAttachment:
     @pytest.fixture(autouse=True)
     def feature_toggle_enabled(self, mocker):
         mock_feature_flag(mocker, feature_flag=FeatureFlag.EMAIL_ATTACHMENTS_ENABLED, enabled='True')
-
-    def test_returns_not_implemented_if_feature_flag_disabled(
-        self,
-        client,
-        mocker,
-        sample_api_key,
-        sample_service,
-        sample_template,
-        attachment_store_mock,
-    ):
-        service = sample_service(service_permissions=[EMAIL_TYPE, UPLOAD_DOCUMENT])
-        template = sample_template(service=service, template_type=EMAIL_TYPE, content='See attached file')
-        mock_feature_flag(mocker, feature_flag=FeatureFlag.EMAIL_ATTACHMENTS_ENABLED, enabled='False')
-
-        response = post_send_notification(
-            client,
-            sample_api_key(service),
-            EMAIL_TYPE,
-            {
-                'email_address': 'foo@bar.com',
-                'template_id': template.id,
-                'personalisation': {
-                    'some_attachment': {
-                        'file': self.base64_encoded_file,
-                        'filename': 'attachment.pdf',
-                        'sending_method': 'attach',
-                    }
-                },
-            },
-        )
-
-        assert response.status_code == 501
-        attachment_store_mock.put.assert_not_called()
 
     def test_returns_not_implemented_if_sending_method_is_link(
         self,

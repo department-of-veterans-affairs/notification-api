@@ -1,6 +1,10 @@
+import base64
+import json
 import uuid
 from datetime import datetime
 
+import boto3
+from botocore.exceptions import ClientError
 from flask import current_app, g
 from celery import chain
 
@@ -30,11 +34,7 @@ from app.dao.service_sms_sender_dao import (
     dao_get_service_sms_sender_by_service_id_and_number,
 )
 from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
-from app.models import (
-    Notification,
-    ScheduledNotification,
-    RecipientIdentifier,
-)
+from app.models import Notification, ScheduledNotification, RecipientIdentifier, Template
 from app.dao.notifications_dao import (
     dao_create_notification,
     dao_delete_notification_by_id,
@@ -46,18 +46,23 @@ from app.va.identifier import IdentifierType
 
 
 def create_content_for_notification(
-    template,
-    personalisation,
+    template: Template,
+    personalisation: dict,
 ):
-    template_object = get_template_instance(template.__dict__, personalisation)
-    check_placeholders(template_object)
+    """
+    Return an appropriate template instance from the notifications-utils repository,
+    or raise BadRequestError.
+    """
 
-    return template_object
+    utils_template_instance = get_template_instance(template.__dict__, personalisation)
+    check_placeholders(utils_template_instance)
+
+    return utils_template_instance
 
 
-def check_placeholders(template_object):
-    if template_object.missing_data:
-        message = 'Missing personalisation: {}'.format(', '.join(template_object.missing_data))
+def check_placeholders(utils_template_instance):
+    if utils_template_instance.missing_data:
+        message = 'Missing personalisation: {}'.format(', '.join(utils_template_instance.missing_data))
         raise BadRequestError(fields=[{'template': message}], message=message)
 
 
@@ -154,7 +159,11 @@ def persist_notification(
 
 
 def send_notification_to_queue(
-    notification, research_mode, queue=None, recipient_id_type: str = None, sms_sender_id=None
+    notification,
+    research_mode,
+    queue=None,
+    recipient_id_type: str = None,
+    sms_sender_id=None,
 ):
     """
     Create, enqueue, and asynchronously execute a Celery task to send a notification.
@@ -198,11 +207,84 @@ def send_notification_to_queue(
     )
 
 
+def send_notification_to_queue_delayed(
+    notification: Notification,
+    research_mode: bool,
+    queue_name: str | None = None,
+    sms_sender_id: str | None = None,
+    delay_seconds: int = 0,
+) -> None:
+    # notification sms delivery already attempted at least once so safe to skip lookup_va_profile_id
+    deliver_task, queue_name = _get_delivery_task(notification, research_mode, queue_name, sms_sender_id)
+
+    queue_prefix = current_app.config['NOTIFICATION_QUEUE_PREFIX']
+    prefixed_queue_name = f'{queue_prefix}{queue_name}'
+
+    try:
+        sqs = boto3.resource('sqs', current_app.config['AWS_REGION'])
+        queue = sqs.get_queue_by_name(QueueName=prefixed_queue_name)
+    except ClientError:
+        current_app.logger.exception(
+            'ClientError, failed to create SQS resource or could not get sqs queue "%s"',
+            prefixed_queue_name,
+        )
+        raise
+    except Exception:
+        current_app.logger.exception(
+            'Exception, failed to create SQS resource or could not get sqs queue "%s".',
+            prefixed_queue_name,
+        )
+        raise
+
+    task_body = {
+        'task': deliver_task.name,
+        'id': str(uuid.uuid4()),
+        'args': [str(notification.id), str(sms_sender_id)],
+        'kwargs': {},
+        'retries': 0,
+    }
+
+    envelope = {
+        'body': base64.b64encode(bytes(json.dumps(task_body), 'utf-8')).decode('utf-8'),
+        'content-encoding': 'utf-8',
+        'content-type': 'application/json',
+        'headers': {},
+        'properties': {
+            'reply_to': str(uuid.uuid4()),
+            'correlation_id': str(uuid.uuid4()),
+            'delivery_mode': 2,
+            'delivery_info': {'priority': 0, 'exchange': 'default', 'routing_key': prefixed_queue_name},
+            'body_encoding': 'base64',
+            'delivery_tag': str(uuid.uuid4()),
+        },
+    }
+
+    queue_msg = base64.b64encode(bytes(json.dumps(envelope), 'utf-8')).decode('utf-8')
+
+    try:
+        queue.send_message(MessageBody=queue_msg, DelaySeconds=delay_seconds)
+        current_app.logger.debug(
+            '%s %s sent to the %s queue for delivery | DelaySeconds: %s',
+            notification.notification_type,
+            notification.id,
+            queue,
+            delay_seconds,
+        )
+
+    except Exception:
+        current_app.logger.exception(
+            'SQS resource failed to queue message for sqs queue "%s". notification_id: %s',
+            prefixed_queue_name,
+            notification.id,
+        )
+        raise
+
+
 def _get_delivery_task(
-    notification,
-    research_mode=False,
-    queue=None,
-    sms_sender_id=None,
+    notification: Notification,
+    research_mode: bool = False,
+    queue: str | None = None,
+    sms_sender_id: str | None = None,
 ):
     """
     The return value "deliver_task" is a function decorated to be a Celery task.
@@ -281,8 +363,7 @@ def send_to_queue_for_recipient_info_based_on_recipient_identifier(
         chain(*tasks).apply_async()
     except Exception as e:
         current_app.logger.critical(
-            'apply_async failed in send_to_queue_for_recipient_info_based_on_recipient_identifier '
-            'for notification %s.',
+            'apply_async failed in send_to_queue_for_recipient_info_based_on_recipient_identifier for notification %s.',
             notification.id,
         )
         current_app.logger.exception(e)

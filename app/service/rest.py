@@ -1,10 +1,24 @@
 import itertools
+from datetime import datetime, timedelta
+from typing import Literal
+from uuid import UUID
+
+from flask import current_app, Blueprint, jsonify, request
+from flask.wrappers import Response
+from nanoid import generate
+from notifications_utils.letter_timings import letter_can_be_cancelled
+from notifications_utils.timezones import convert_utc_to_local_timezone
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError, DataError
+from sqlalchemy.orm.exc import NoResultFound
+
 from app import db
 from app.authentication.auth import requires_admin_auth, requires_admin_auth_or_user_in_service
 from app.config import QueueNames
 from app.constants import KEY_TYPE_NORMAL, LETTER_TYPE, NOTIFICATION_CANCELLED
 from app.dao import fact_notification_status_dao, notifications_dao
 from app.dao.api_key_dao import (
+    get_model_api_key,
     save_model_api_key,
     get_model_api_keys,
     get_unsigned_secret,
@@ -42,13 +56,6 @@ from app.dao.service_data_retention_dao import (
     insert_service_data_retention,
     update_service_data_retention,
 )
-from app.dao.service_email_reply_to_dao import (
-    add_reply_to_email_address_for_service,
-    archive_reply_to_email_address,
-    dao_get_reply_to_by_id,
-    dao_get_reply_to_by_service_id,
-    update_reply_to_email_address,
-)
 from app.dao.templates_dao import dao_get_template_by_id
 from app.dao.users_dao import get_user_by_id
 from app.errors import InvalidRequest, register_errors
@@ -79,14 +86,6 @@ from app.schemas import (
 from app.smtp.aws import smtp_add, smtp_get_user_key, smtp_remove
 from app.user.users_schema import post_set_permissions_schema
 from app.utils import pagination_links
-from datetime import datetime
-from flask import current_app, Blueprint, jsonify, request
-from nanoid import generate
-from notifications_utils.letter_timings import letter_can_be_cancelled
-from notifications_utils.timezones import convert_utc_to_local_timezone
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.exc import NoResultFound
 
 CAN_T_BE_EMPTY_ERROR_MESSAGE = "Can't be empty"
 
@@ -245,22 +244,71 @@ def update_service(service_id):
 
 @service_blueprint.route('/<uuid:service_id>/api-key', methods=['POST'])
 @requires_admin_auth()
-def create_api_key(service_id=None):
+def create_api_key(service_id: UUID) -> tuple[Response, Literal[201, 400]]:
+    """Create API key for the given service.
+
+    Args:
+        service_id (UUID): The id of the service the api key is being added to.
+
+    Returns:
+        tuple[Response, Literal[201, 400]]:
+        - The response includes the unencrypted key and a 201 response if successful.
+
+    Raises:
+        InvalidRequest: 400 Bad Request
+        - If unsuccessful for a variety of reasons a usefull error message is provided in the json response body.
+    """
+    err_msg = 'Could not create requested API key.'
+
     fetched_service = dao_fetch_service_by_id(service_id=service_id)
-    valid_api_key = api_key_schema.load(request.get_json())
+
+    try:
+        valid_api_key = api_key_schema.load(request.get_json())
+    except DataError:
+        err_msg += ' DataError, ensure created_by user id is a valid uuid'
+        current_app.logger.exception(err_msg)
+        raise InvalidRequest(err_msg, 400)
+
     valid_api_key.service = fetched_service
-    save_model_api_key(valid_api_key)
+    valid_api_key.expiry_date = datetime.utcnow() + timedelta(days=180)
+
+    try:
+        save_model_api_key(valid_api_key)
+    except IntegrityError:
+        err_msg += ' DB IntegrityError, ensure created_by id is valid and key_type is one of [normal, team, test]'
+        current_app.logger.exception(err_msg)
+        raise InvalidRequest(err_msg, 400)
+
     unsigned_api_key = get_unsigned_secret(valid_api_key.id)
+
     return jsonify(data=unsigned_api_key), 201
 
 
 @service_blueprint.route('/<uuid:service_id>/api-key/revoke/<uuid:api_key_id>', methods=['POST'])
 @requires_admin_auth()
 def revoke_api_key(
-    service_id,
-    api_key_id,
-):
-    expire_api_key(service_id=service_id, api_key_id=api_key_id)
+    service_id: UUID,
+    api_key_id: UUID,
+) -> tuple[Response, Literal[202, 404]]:
+    """Revokes the API key for the given service and key id.
+
+    Args:
+        service_id (UUID): The id of the service to which the soon to be revoked key belongs
+        api_key_id (UUID): The id of the key to revoke
+
+    Returns:
+        tuple[Response, Literal[202, 404]]: 202 Accepted
+        - If the requested api key was found and revoked.
+
+    Raises:
+        InvalidRequest: 404 NoResultsFound
+        - If the service or key is not found.
+    """
+    try:
+        expire_api_key(service_id=service_id, api_key_id=api_key_id)
+    except NoResultFound:
+        error_message = f'No valid API key found for service {service_id} with id {api_key_id}'
+        raise InvalidRequest(error_message, status_code=404)
     return jsonify(), 202
 
 
@@ -268,18 +316,32 @@ def revoke_api_key(
 @service_blueprint.route('/<uuid:service_id>/api-keys/<uuid:key_id>', methods=['GET'])
 @requires_admin_auth()
 def get_api_keys(
-    service_id,
-    key_id=None,
-):
+    service_id: UUID,
+    key_id: UUID | None = None,
+) -> tuple[Response, Literal[200, 404]]:
+    """Returns a list of api keys from the given service.
+
+    Args:
+        service_id (UUID): The uuid of the service from which to pull keys
+        key_id (UUID): The uuid of the key to lookup
+
+    Returns:
+        tuple[Response, Literal[200, 404]]: 200 OK
+        - Returns json list of API keys for the given service, or a list with the indicated key if a key_id is included.
+
+    Raises:
+        InvalidRequest: 404 NoResultsFound
+        - If there are no valid API keys for the requested service, or the requested service id does not exist.
+    """
     dao_fetch_service_by_id(service_id=service_id)
 
     try:
         if key_id:
-            api_keys = [get_model_api_keys(service_id=service_id, id=key_id)]
+            api_keys = [get_model_api_key(key_id=key_id)]
         else:
             api_keys = get_model_api_keys(service_id=service_id)
     except NoResultFound:
-        error = 'API key not found for id: {}'.format(service_id)
+        error = f'No valid API key found for service {service_id}'
         raise InvalidRequest(error, status_code=404)
 
     return jsonify(apiKeys=api_key_schema.dump(api_keys, many=True)), 200
@@ -646,89 +708,6 @@ def create_one_off_notification(service_id):
     return jsonify(resp), 201
 
 
-@service_blueprint.route('/<uuid:service_id>/email-reply-to', methods=['GET'])
-@requires_admin_auth()
-def get_email_reply_to_addresses(service_id):
-    result = dao_get_reply_to_by_service_id(service_id)
-    return jsonify([i.serialize() for i in result]), 200
-
-
-@service_blueprint.route('/<uuid:service_id>/email-reply-to/<uuid:reply_to_id>', methods=['GET'])
-@requires_admin_auth()
-def get_email_reply_to_address(
-    service_id,
-    reply_to_id,
-):
-    result = dao_get_reply_to_by_id(service_id=service_id, reply_to_id=reply_to_id)
-    return jsonify(result.serialize()), 200
-
-
-@service_blueprint.route('/<uuid:service_id>/email-reply-to/verify', methods=['POST'])
-@requires_admin_auth()
-def verify_reply_to_email_address(service_id):
-    email_address, errors = email_data_request_schema.load(request.get_json())
-    check_if_reply_to_address_already_in_use(service_id, email_address['email'])
-    template = dao_get_template_by_id(current_app.config['REPLY_TO_EMAIL_ADDRESS_VERIFICATION_TEMPLATE_ID'])
-    notify_service = db.session.get(Service, current_app.config['NOTIFY_SERVICE_ID'])
-    saved_notification = persist_notification(
-        template_id=template.id,
-        template_version=template.version,
-        recipient=email_address['email'],
-        service_id=notify_service.id,
-        personalisation='',
-        notification_type=template.template_type,
-        api_key_id=None,
-        key_type=KEY_TYPE_NORMAL,
-        reply_to_text=notify_service.get_default_reply_to_email_address(),
-    )
-
-    send_notification_to_queue(saved_notification, False, queue=QueueNames.NOTIFY)
-
-    return jsonify(data={'id': saved_notification.id}), 201
-
-
-@service_blueprint.route('/<uuid:service_id>/email-reply-to', methods=['POST'])
-@requires_admin_auth()
-def add_service_reply_to_email_address(service_id):
-    # validate the service exists, throws ResultNotFound exception.
-    dao_fetch_service_by_id(service_id)
-    form = validate(request.get_json(), add_service_email_reply_to_request)
-    check_if_reply_to_address_already_in_use(service_id, form['email_address'])
-    new_reply_to = add_reply_to_email_address_for_service(
-        service_id=service_id, email_address=form['email_address'], is_default=form.get('is_default', True)
-    )
-    return jsonify(data=new_reply_to.serialize()), 201
-
-
-@service_blueprint.route('/<uuid:service_id>/email-reply-to/<uuid:reply_to_email_id>', methods=['POST'])
-@requires_admin_auth()
-def update_service_reply_to_email_address(
-    service_id,
-    reply_to_email_id,
-):
-    # validate the service exists, throws ResultNotFound exception.
-    dao_fetch_service_by_id(service_id)
-    form = validate(request.get_json(), add_service_email_reply_to_request)
-    new_reply_to = update_reply_to_email_address(
-        service_id=service_id,
-        reply_to_id=reply_to_email_id,
-        email_address=form['email_address'],
-        is_default=form.get('is_default', True),
-    )
-    return jsonify(data=new_reply_to.serialize()), 200
-
-
-@service_blueprint.route('/<uuid:service_id>/email-reply-to/<uuid:reply_to_email_id>/archive', methods=['POST'])
-@requires_admin_auth()
-def delete_service_reply_to_email_address(
-    service_id,
-    reply_to_email_id,
-):
-    archived_reply_to = archive_reply_to_email_address(service_id, reply_to_email_id)
-
-    return jsonify(data=archived_reply_to.serialize()), 200
-
-
 @service_blueprint.route('/<uuid:service_id>/organisation', methods=['GET'])
 @requires_admin_auth()
 def get_organisation_for_service(service_id):
@@ -894,14 +873,3 @@ def check_request_args(request):
     if errors:
         raise InvalidRequest(errors, status_code=400)
     return service_id, name, email_from
-
-
-def check_if_reply_to_address_already_in_use(
-    service_id,
-    email_address,
-):
-    existing_reply_to_addresses = dao_get_reply_to_by_service_id(service_id)
-    if email_address in [i.email_address for i in existing_reply_to_addresses]:
-        raise InvalidRequest(
-            'Your service already uses ‘{}’ as an email reply-to address.'.format(email_address), status_code=400
-        )

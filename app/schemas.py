@@ -339,7 +339,6 @@ class ServiceSchema(BaseSchema):
             'templates',
             'jobs',
             'service_sms_senders',
-            'reply_to_email_addresses',
             'letter_contacts',
             'complaints',
             'inbound_sms',
@@ -437,11 +436,11 @@ class ServiceCallbackSchema(BaseSchema):
     ):
         if 'callback_type' in data and 'notification_statuses' in data:
             if data['callback_type'] != DELIVERY_STATUS_CALLBACK_TYPE and data['notification_statuses'] is not None:
-                raise ValidationError(f"Callback type {data['callback_type']} should not have notification statuses")
+                raise ValidationError(f'Callback type {data["callback_type"]} should not have notification statuses')
 
         if 'callback_channel' in data and 'bearer_token' not in data:
             if data['callback_channel'] == 'webhook':
-                raise ValidationError(f"Callback channel {data['callback_channel']} should have bearer_token")
+                raise ValidationError(f'Callback channel {data["callback_channel"]} should have bearer_token')
 
     @validates('callback_channel')
     def validate_callback_channel(
@@ -496,7 +495,6 @@ class DetailedServiceSchema(BaseSchema):
             'jobs',
             'email_branding',
             'service_sms_senders',
-            'reply_to_email_addresses',
             'message_limit',
             'email_from',
             'whitelist',
@@ -530,16 +528,10 @@ class BaseTemplateSchema(BaseSchema):
     def set_reply_to(self, obj):
         return str(obj)
 
-    def get_reply_to(
-        self,
-        obj,
-    ):
+    def get_reply_to(self, obj):
         return obj.reply_to
 
-    def get_reply_to_text(
-        self,
-        obj,
-    ):
+    def get_reply_to_text(self, obj):
         return obj.get_reply_to_text()
 
     class Meta:

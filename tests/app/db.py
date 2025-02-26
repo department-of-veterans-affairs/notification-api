@@ -1,5 +1,6 @@
 import json
 import random
+import secrets
 from app import db
 from app.dao.email_branding_dao import dao_create_email_branding
 from app.dao.inbound_sms_dao import dao_create_inbound_sms
@@ -29,7 +30,6 @@ from app.models import (
     Permission,
     Rate,
     Service,
-    ServiceEmailReplyTo,
     ServiceCallback,
     ServiceLetterContact,
     ScheduledNotification,
@@ -56,7 +56,7 @@ from app.models import (
     DELIVERY_STATUS_CALLBACK_TYPE,
     WEBHOOK_CHANNEL_TYPE,
 )
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from sqlalchemy import select, or_
 from sqlalchemy.orm.attributes import flag_dirty
 from uuid import UUID, uuid4
@@ -587,11 +587,13 @@ def create_api_key(service, key_type=KEY_TYPE_NORMAL, key_name=None, expired=Fal
         'created_by': service.created_by,
         'key_type': key_type,
         'id': id_,
-        'secret': str(uuid4()),
+        'secret': secrets.token_urlsafe(64),
+        'expiry_date': datetime.utcnow() + timedelta(days=180),
     }
 
     if expired:
         data['expiry_date'] = datetime.utcnow()
+        data['revoked'] = True
 
     api_key = ApiKey(**data)
     db.session.add(api_key)
@@ -621,21 +623,6 @@ def create_inbound_number(
     db.session.add(inbound_number)
     db.session.commit()
     return inbound_number
-
-
-def create_reply_to_email(service, email_address, is_default=True, archived=False):
-    data = {
-        'service': service,
-        'email_address': email_address,
-        'is_default': is_default,
-        'archived': archived,
-    }
-    reply_to = ServiceEmailReplyTo(**data)
-
-    db.session.add(reply_to)
-    db.session.commit()
-
-    return reply_to
 
 
 def create_service_sms_sender(

@@ -380,14 +380,6 @@ class Service(db.Model, Versioned):
 
         return None
 
-    def get_default_reply_to_email_address(self):
-        # there should only be one default reply to email per service
-        for default_reply_to in self.reply_to_email_addresses:
-            if default_reply_to.is_default:
-                return default_reply_to.email_address
-
-        return None
-
     def get_default_letter_contact(self):
         # there should only be one default letter contact per service
         for default_letter_contact in self.letter_contacts:
@@ -427,6 +419,7 @@ class Service(db.Model, Versioned):
         return {'id': str(self.id), 'name': self.name, 'research_mode': self.research_mode}
 
 
+# Portal uses this table.  Do not drop it without consulting the front-end team.
 class ReplyToInbox(db.Model):
     __tablename__ = 'reply_to_inbox'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -702,14 +695,11 @@ class ApiKey(db.Model, Versioned):
     service = db.relationship('Service', backref='api_keys')
     key_type = db.Column(db.String(255), db.ForeignKey('key_types.name'), index=True, nullable=False)
     expiry_date = db.Column(db.DateTime)
+    revoked = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, index=False, unique=False, nullable=False, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, index=False, unique=False, nullable=True, onupdate=datetime.datetime.utcnow)
     created_by = db.relationship('User')
     created_by_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), index=True, nullable=False)
-
-    __table_args__ = (
-        Index('uix_service_to_key_name', 'service_id', 'name', unique=True, postgresql_where=expiry_date.is_(None)),
-    )
 
     @property
     def secret(self):
@@ -812,6 +802,8 @@ class TemplateBase(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.datetime.utcnow)
     content = db.Column(db.Text, nullable=False)
+    content_as_html = db.Column(db.Text, nullable=True)
+    content_as_plain_text = db.Column(db.Text, nullable=True)
     archived = db.Column(db.Boolean, nullable=False, default=False)
     hidden = db.Column(db.Boolean, nullable=False, default=False)
     onsite_notification = db.Column(db.Boolean, nullable=False, default=False)
@@ -888,15 +880,11 @@ class TemplateBase(db.Model):
         else:
             raise ValueError('Unable to set sender for {} template'.format(self.template_type))
 
-    def get_reply_to_text(self) -> str:
-        if self.template_type == LETTER_TYPE:
-            return self.service_letter_contact.contact_block if self.service_letter_contact else None
-        elif self.template_type == EMAIL_TYPE:
-            return self.service.get_default_reply_to_email_address()
-        elif self.template_type == SMS_TYPE:
+    def get_reply_to_text(self) -> Optional[str]:
+        if self.template_type == SMS_TYPE:
             return try_validate_and_format_phone_number(self.service.get_default_sms_sender())
-        else:
-            return None
+
+        return None
 
     # https://docs.sqlalchemy.org/en/13/orm/extensions/hybrid.html
     # https://stackoverflow.com/questions/55690796/sqlalchemy-typeerror-boolean-value-of-this-clause-is-not-defined/55692795#55692795
@@ -939,6 +927,8 @@ class TemplateBase(db.Model):
             'created_by': self.created_by.email_address,
             'version': self.version,
             'body': self.content,
+            'html': self.content_as_html,
+            'plain_text': self.content_as_plain_text,
             'subject': self.subject if self.template_type != SMS_TYPE else None,
             'name': self.name,
             'personalisation': {
@@ -1464,7 +1454,14 @@ class Notification(db.Model):
             ),
             'postage': self.postage,
             'recipient_identifiers': [
-                {'id_type': recipient_identifier.id_type, 'id_value': recipient_identifier.id_value}
+                {
+                    'id_type': recipient_identifier.id_type,
+                    'id_value': (
+                        '<redacted>'
+                        if (recipient_identifier.id_type == IdentifierType.ICN.value)
+                        else recipient_identifier.id_value
+                    ),
+                }
                 for recipient_identifier in self.recipient_identifiers.values()
             ],
             'billing_code': self.billing_code,
@@ -1739,32 +1736,6 @@ class LetterRate(db.Model):
     rate = db.Column(db.Numeric(), nullable=False)
     crown = db.Column(db.Boolean, nullable=False)
     post_class = db.Column(db.String, nullable=False)
-
-
-class ServiceEmailReplyTo(db.Model):
-    __tablename__ = 'service_email_reply_to'
-
-    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-
-    service_id = db.Column(UUID(as_uuid=True), db.ForeignKey('services.id'), unique=False, index=True, nullable=False)
-    service = db.relationship(Service, backref=db.backref('reply_to_email_addresses'))
-
-    email_address = db.Column(db.Text, nullable=False, index=False, unique=False)
-    is_default = db.Column(db.Boolean, nullable=False, default=True)
-    archived = db.Column(db.Boolean, nullable=False, default=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.datetime.utcnow)
-
-    def serialize(self):
-        return {
-            'id': str(self.id),
-            'service_id': str(self.service_id),
-            'email_address': self.email_address,
-            'is_default': self.is_default,
-            'archived': self.archived,
-            'created_at': self.created_at.strftime(DATETIME_FORMAT),
-            'updated_at': self.updated_at.strftime(DATETIME_FORMAT) if self.updated_at else None,
-        }
 
 
 class ServiceLetterContact(db.Model):
