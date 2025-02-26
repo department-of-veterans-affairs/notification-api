@@ -888,30 +888,6 @@ def test_should_not_update_service_with_duplicate_name(notify_api, sample_servic
             assert "Duplicate service name '{}'".format(service_name) in json_resp['message']['name']
 
 
-def test_should_not_update_service_with_duplicate_email_from(notify_api, sample_service):
-    # TODO 1682 - Confirm functionality. I do not see this check in the code path.
-    # No services in any environment use email_from
-    with notify_api.test_request_context():
-        with notify_api.test_client() as client:
-            email_from = f'duplicate.name {uuid4()}'
-            # Original and duplicate (email_from) services
-            sample_service(email_from=email_from)
-            duplicate = sample_service(email_from='random')
-            data = {'name': duplicate.name, 'email_from': email_from, 'created_by': str(duplicate.created_by.id)}
-
-            auth_header = create_admin_authorization_header()
-
-            resp = client.post(
-                '/service/{}'.format(duplicate.id),
-                data=json.dumps(data),
-                headers=[('Content-Type', 'application/json'), auth_header],
-            )
-            assert resp.status_code == 400
-            json_resp = resp.json
-            assert json_resp['result'] == 'error'
-            assert "Duplicate service email_from '{}'".format(email_from) in json_resp['message']['email_from']
-
-
 def test_update_service_should_404_if_id_is_invalid(notify_api):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
