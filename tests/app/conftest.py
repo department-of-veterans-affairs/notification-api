@@ -636,7 +636,14 @@ def service_cleanup(  # noqa: C901
         # Clear service_letter_contacts
         session.execute(delete(ServiceLetterContact).where(ServiceLetterContact.service_id == service_id))
 
-        # Clear template_folder
+        # Clear template_folder and template_reacted object
+        template_ids_query = select(Template.id).where(Template.service_id == service_id)
+        template_ids = session.scalars(template_ids_query).all()
+
+        for template_id in template_ids:
+            session.execute(delete(TemplateRedacted).where(TemplateRedacted.template_id == template_id))
+            session.execute(delete(template_folder_map).where(template_folder_map.c.template_id == template_id))
+
         session.execute(delete(TemplateFolder).where(TemplateFolder.service_id == service_id))
 
         # Clear user_to_service
@@ -671,6 +678,19 @@ def service_cleanup(  # noqa: C901
 
         # Clear inbound_numbers
         session.execute(delete(InboundSms).where(InboundSms.service_id == service_id))
+
+        # Clear all templates, template folders, and template redactions related to this service
+        template_ids_query = select(Template.id).where(Template.service_id == service_id)
+        template_ids = session.scalars(template_ids_query).all()  # Fetch results
+
+        for template_id in template_ids:
+            session.execute(delete(TemplateRedacted).where(TemplateRedacted.template_id == template_id))
+            session.execute(delete(template_folder_map).where(template_folder_map.c.template_id == template_id))
+
+        session.execute(delete(TemplateFolder).where(TemplateFolder.service_id == service_id))
+
+        session.execute(delete(Template).where(Template.service_id == service_id))
+        session.execute(delete(TemplateHistory).where(TemplateHistory.service_id == service_id))
 
         session.execute(delete(Service).where(Service.id == service_id))
     if commit:
