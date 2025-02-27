@@ -1,6 +1,8 @@
 import base64
 import botocore
 import json
+
+# from app.model.user import User
 import pytest
 import random
 import requests_mock
@@ -14,21 +16,28 @@ from freezegun import freeze_time
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
 from notifications_utils.template import HTMLEmailTemplate
 from pypdf.errors import PdfReadError
-from sqlalchemy import select
+from sqlalchemy import select, Table, delete
 
-from app.constants import EDIT_TEMPLATES, EMAIL_TYPE, LETTER_TYPE, SERVICE_PERMISSION_TYPES, SMS_TYPE
+from app.constants import EDIT_TEMPLATES, EMAIL_TYPE, LETTER_TYPE, SERVICE_PERMISSION_TYPES, SES_PROVIDER, SMS_TYPE
 from app.dao.permissions_dao import permission_dao
-from app.dao.service_permissions_dao import dao_add_service_permission
 from app.dao.templates_dao import dao_get_template_by_id, dao_redact_template
 from app.feature_flags import FeatureFlag
 from app.models import (
+    Notification,
+    Service,
+    ServicePermission,
+    ServiceSmsSender,
+    ServiceUser,
     Template,
+    TemplateFolder,
     TemplateHistory,
     TemplateRedacted,
     ProviderDetails,
     Permission,
+    User,
 )
 from tests import create_admin_authorization_header
+from tests.app.conftest import service_cleanup
 from tests.app.db import (
     create_letter_contact,
     create_template_folder,
@@ -37,13 +46,46 @@ from tests.app.factories.feature_flag import mock_feature_flag
 from tests.conftest import set_config_values
 
 
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped', run=False)
+@pytest.fixture(autouse=True)
+def clean_up(notify_db_session):
+    yield
+
+    notify_db_session.session.rollback()
+
+    notify_db_session.session.query(TemplateRedacted).delete()
+    notify_db_session.session.query(TemplateHistory).delete()
+
+    folder_mappings = Table('template_folder_map', notify_db_session.Model.metadata)
+    notify_db_session.session.execute(delete(folder_mappings))
+
+    notify_db_session.session.query(Notification).delete()
+
+    notify_db_session.session.query(ServiceSmsSender).delete()
+    notify_db_session.session.query(ServicePermission).delete()
+    notify_db_session.session.query(ServiceUser).delete()
+
+    notify_db_session.session.query(Permission).delete()
+
+    user_folder_permissions = Table('user_folder_permissions', notify_db_session.Model.metadata)
+    notify_db_session.session.execute(delete(user_folder_permissions))
+
+    services_history_table = Table('services_history', notify_db_session.Model.metadata)
+    notify_db_session.session.execute(delete(services_history_table))
+
+    notify_db_session.session.query(TemplateFolder).delete()
+    notify_db_session.session.query(Template).delete()
+    notify_db_session.session.query(Service).delete()
+
+    notify_db_session.session.query(User).delete()
+
+    notify_db_session.session.commit()
+
+
 @pytest.mark.parametrize(
     'template_type, subject',
     [
         (SMS_TYPE, None),
         (EMAIL_TYPE, 'subject'),
-        (LETTER_TYPE, 'subject'),
     ],
 )
 def test_should_create_a_new_template_for_a_service(
@@ -54,18 +96,17 @@ def test_should_create_a_new_template_for_a_service(
     template_type,
     subject,
 ):
+    user = sample_user()
     service = sample_service(service_permissions=[template_type])
     data = {
         'name': 'my template',
         'template_type': template_type,
         'content': 'template <b>content</b>',
         'service': str(service.id),
-        'created_by': str(sample_user.id),
+        'created_by': str(user.id),
     }
     if subject:
         data.update({'subject': subject})
-    if template_type == LETTER_TYPE:
-        data.update({'postage': 'first'})
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
 
@@ -83,7 +124,7 @@ def test_should_create_a_new_template_for_a_service(
     assert json_resp['data']['id']
     assert json_resp['data']['version'] == 1
     assert json_resp['data']['process_type'] == 'normal'
-    assert json_resp['data']['created_by'] == str(sample_user.id)
+    assert json_resp['data']['created_by'] == str(user.id)
     if subject:
         assert json_resp['data']['subject'] == 'subject'
     else:
@@ -100,22 +141,23 @@ def test_should_create_a_new_template_for_a_service(
     assert sorted(json_resp['data']) == sorted(template_schema.dump(template))
 
 
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped', run=False)
 def test_should_create_a_new_template_with_a_valid_provider(
     notify_db_session,
     client,
     sample_service,
     sample_user,
-    ses_provider,
+    sample_provider,
 ):
+    user = sample_user()
+    provider = sample_provider(identifier=SES_PROVIDER, notification_type=EMAIL_TYPE)
     service = sample_service(service_permissions=[EMAIL_TYPE])
     data = {
         'name': 'my template',
         'template_type': EMAIL_TYPE,
         'content': 'template <b>content</b>',
         'service': str(service.id),
-        'created_by': str(sample_user.id),
-        'provider_id': str(ses_provider.id),
+        'created_by': str(user.id),
+        'provider_id': str(provider.id),
         'subject': 'subject',
     }
     data = json.dumps(data)
@@ -126,10 +168,12 @@ def test_should_create_a_new_template_with_a_valid_provider(
     )
     assert response.status_code == 201
     json_resp = response.get_json()
-    assert json_resp['data']['provider_id'] == str(ses_provider.id)
+    assert json_resp['data']['provider_id'] == str(provider.id)
 
     template = notify_db_session.session.get(Template, json_resp['data']['id'])
-    assert template.provider_id == ses_provider.id
+    assert template.provider_id == provider.id
+
+    service_cleanup([service.id], notify_db_session.session)
 
 
 @pytest.mark.parametrize('template_type', (EMAIL_TYPE, SMS_TYPE))
@@ -238,7 +282,6 @@ def test_should_not_create_template_with_incorrect_provider_type(
     assert json_resp['message'] == f'invalid {template_type}_provider_id'
 
 
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped', run=False)
 def test_create_a_new_template_for_a_service_adds_folder_relationship(notify_db_session, client, sample_service):
     service = sample_service()
     parent_folder = create_template_folder(service=service, name='parent folder')
@@ -265,41 +308,6 @@ def test_create_a_new_template_for_a_service_adds_folder_relationship(notify_db_
     template = notify_db_session.session.scalars(stmt).first()
 
     assert template.folder == parent_folder
-
-
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped', run=False)
-@pytest.mark.parametrize(
-    'template_type, expected_postage', [(SMS_TYPE, None), (EMAIL_TYPE, None), (LETTER_TYPE, 'second')]
-)
-def test_create_a_new_template_for_a_service_adds_postage_for_letters_only(
-    notify_db_session, client, sample_service, template_type, expected_postage
-):
-    service = sample_service()
-    dao_add_service_permission(service_id=service.id, permission=LETTER_TYPE)
-    data = {
-        'name': 'my template',
-        'template_type': template_type,
-        'content': 'template <b>content</b>',
-        'service': str(service.id),
-        'created_by': str(service.users[0].id),
-    }
-    if template_type in [EMAIL_TYPE, LETTER_TYPE]:
-        data['subject'] = 'Hi, I have good news'
-
-    data = json.dumps(data)
-    auth_header = create_admin_authorization_header()
-
-    response = client.post(
-        '/service/{}/template'.format(service.id),
-        headers=[('Content-Type', 'application/json'), auth_header],
-        data=data,
-    )
-    assert response.status_code == 201
-
-    stmt = select(Template).where(Template.name == 'my template')
-    template = notify_db_session.session.scalars(stmt).first()
-
-    assert template.postage == expected_postage
 
 
 def test_create_template_should_return_400_if_folder_is_for_a_different_service(client, sample_service):
@@ -449,8 +457,6 @@ def test_should_be_error_on_update_if_no_permission(
     assert json_resp['message'] == expected_error
 
 
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped', run=False)
-# def test_should_error_if_created_by_missing(client, sample_user, sample_service):
 def test_should_error_if_created_by_missing(client, sample_service):
     service_id = str(sample_service().id)
     data = {'name': 'my template', 'template_type': SMS_TYPE, 'content': 'template content', 'service': service_id}
@@ -509,17 +515,15 @@ def test_must_have_a_subject_on_an_email_or_letter_template(client, sample_user,
     assert json_resp['errors'][0]['message'] == 'subject is a required property'
 
 
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped', run=False)
 def test_update_should_update_a_template(client, sample_user, sample_service, sample_template):
-    service = sample_service(service_permissions=[LETTER_TYPE])
-    template = sample_template(service=service, template_type=LETTER_TYPE, postage='second')
+    service = sample_service(service_permissions=[SMS_TYPE])
+    template = sample_template(service=service, template_type=SMS_TYPE)
 
     new_content = 'My template has new content.'
     data = json.dumps(
         {
             'content': new_content,
             'created_by': str(sample_user().id),
-            'postage': 'first',
         }
     )
 
@@ -534,13 +538,11 @@ def test_update_should_update_a_template(client, sample_user, sample_service, sa
     assert update_response.status_code == 200
     update_json_resp = update_response.get_json()
     assert update_json_resp['data']['content'] == new_content
-    assert update_json_resp['data']['postage'] == 'first'
     assert update_json_resp['data']['name'] == template.name
     assert update_json_resp['data']['template_type'] == template.template_type
     assert update_json_resp['data']['version'] == 2
 
 
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped', run=False)
 def test_should_be_able_to_archive_template(notify_db_session, client, sample_template):
     template = sample_template()
     data = {
@@ -592,8 +594,8 @@ def test_get_precompiled_template_for_service_when_service_has_existing_precompi
     assert data['hidden'] is True
 
 
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped', run=False)
 def test_should_be_able_to_get_all_templates_for_a_service(client, sample_user, sample_service):
+    user = sample_user()
     service = sample_service()
     data = {
         'name': 'my template 1',
@@ -601,7 +603,7 @@ def test_should_be_able_to_get_all_templates_for_a_service(client, sample_user, 
         'subject': 'subject 1',
         'content': 'template content',
         'service': str(service.id),
-        'created_by': str(sample_user.id),
+        'created_by': str(user.id),
     }
     data_1 = json.dumps(data)
     data = {
@@ -610,7 +612,7 @@ def test_should_be_able_to_get_all_templates_for_a_service(client, sample_user, 
         'subject': 'subject 2',
         'content': 'template content',
         'service': str(service.id),
-        'created_by': str(sample_user.id),
+        'created_by': str(user.id),
     }
     data_2 = json.dumps(data)
     auth_header = create_admin_authorization_header()
@@ -817,14 +819,16 @@ def test_update_400_for_over_limit_content(client, sample_template):
     ]['content']
 
 
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped', run=False)
-def test_should_return_all_template_versions_for_service_and_template_id(client, sample_template):
+def test_should_return_all_template_versions_for_service_and_template_id(client, notify_db_session, sample_template):
     template = sample_template()
     original_content = template.content
     from app.dao.templates_dao import dao_update_template
 
     template.content = original_content + '1'
     dao_update_template(template)
+
+    notify_db_session.session.refresh(template)
+
     template.content = original_content + '2'
     dao_update_template(template)
 
@@ -863,76 +867,19 @@ def test_update_does_not_create_new_version_when_there_is_no_change(client, samp
     assert dao_template.version == 1
 
 
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped', run=False)
 def test_update_set_process_type_on_template(client, sample_template):
     auth_header = create_admin_authorization_header()
+    template = sample_template()
     data = {'process_type': 'priority'}
     resp = client.post(
-        '/service/{}/template/{}'.format(sample_template.service_id, sample_template.id),
+        '/service/{}/template/{}'.format(template.service_id, template.id),
         data=json.dumps(data),
         headers=[('Content-Type', 'application/json'), auth_header],
     )
     assert resp.status_code == 200
 
-    template = dao_get_template_by_id(sample_template.id)
+    template = dao_get_template_by_id(template.id)
     assert template.process_type == 'priority'
-
-
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped', run=False)
-def test_create_a_template_with_reply_to(notify_db_session, admin_request, sample_service, sample_user):
-    service = sample_service(service_permissions=['letter'])
-    letter_contact = create_letter_contact(service, 'Edinburgh, ED1 1AA')
-    data = {
-        'name': 'my template',
-        'subject': 'subject',
-        'template_type': 'letter',
-        'content': 'template <b>content</b>',
-        'service': str(service.id),
-        'created_by': str(sample_user.id),
-        'reply_to': str(letter_contact.id),
-    }
-
-    json_resp = admin_request.post('template.create_template', service_id=service.id, _data=data, _expected_status=201)
-
-    assert json_resp['data']['template_type'] == 'letter'
-    assert json_resp['data']['reply_to'] == str(letter_contact.id)
-    assert json_resp['data']['reply_to_text'] == letter_contact.contact_block
-
-    template = notify_db_session.session.get(Template, json_resp['data']['id'])
-    from app.schemas import template_schema
-
-    assert sorted(json_resp['data']) == sorted(template_schema.dump(template))
-
-    stmt = select(TemplateHistory).where(TemplateHistory.id == template.id, TemplateHistory.version == 1)
-    th = notify_db_session.session.scalars(stmt).one()
-
-    assert th.service_letter_contact_id == letter_contact.id
-
-
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped', run=False)
-def test_create_a_template_with_foreign_service_reply_to(admin_request, sample_service, sample_user):
-    service = sample_service(service_permissions=[LETTER_TYPE])
-    service2 = sample_service(
-        service_name=f'test service {str(uuid.uuid4())}',
-        email_from='test@example.com',
-        service_permissions=[LETTER_TYPE],
-    )
-    letter_contact = create_letter_contact(service2, 'Edinburgh, ED1 1AA')
-    data = {
-        'name': 'my template',
-        'subject': 'subject',
-        'template_type': 'letter',
-        'content': 'template <b>content</b>',
-        'service': str(service.id),
-        'created_by': str(sample_user.id),
-        'reply_to': str(letter_contact.id),
-    }
-
-    json_resp = admin_request.post('template.create_template', service_id=service.id, _data=data, _expected_status=400)
-
-    assert json_resp['message'] == 'letter_contact_id {} does not exist in database for service id {}'.format(
-        str(letter_contact.id), str(service.id)
-    )
 
 
 def test_update_template_reply_to(client, notify_db_session, sample_template, sample_service):
@@ -1088,10 +1035,10 @@ def test_preview_letter_template_by_id_invalid_file_type(admin_request, sample_s
     assert ['file_type must be pdf or png'] == resp['message']['content']
 
 
-@pytest.mark.xfail(reason='Mislabelled for route removal, fails when unskipped', run=False)
-def test_should_update_template_with_a_valid_provider(admin_request, sample_template, ses_provider):
+def test_should_update_template_with_a_valid_provider(admin_request, sample_template, sample_provider):
     template = sample_template(template_type=EMAIL_TYPE)
-    provider_id = str(ses_provider.id)
+    provider = sample_provider(identifier=SES_PROVIDER, notification_type=EMAIL_TYPE)
+    provider_id = str(provider.id)
     data = {'provider_id': provider_id}
     json_resp = admin_request.post(
         'template.update_template',
@@ -1104,7 +1051,7 @@ def test_should_update_template_with_a_valid_provider(admin_request, sample_temp
     assert json_resp['data']['provider_id'] == provider_id
 
     updated_template = dao_get_template_by_id(template.id)
-    assert updated_template.provider_id == ses_provider.id
+    assert updated_template.provider_id == provider.id
 
 
 def test_should_not_update_template_with_non_existent_provider(admin_request, sample_template, fake_uuid):
