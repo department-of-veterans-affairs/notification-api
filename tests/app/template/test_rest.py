@@ -16,25 +16,18 @@ from freezegun import freeze_time
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
 from notifications_utils.template import HTMLEmailTemplate
 from pypdf.errors import PdfReadError
-from sqlalchemy import select, Table, delete
+from sqlalchemy import select
 
 from app.constants import EDIT_TEMPLATES, EMAIL_TYPE, LETTER_TYPE, SERVICE_PERMISSION_TYPES, SES_PROVIDER, SMS_TYPE
 from app.dao.permissions_dao import permission_dao
 from app.dao.templates_dao import dao_get_template_by_id, dao_redact_template
 from app.feature_flags import FeatureFlag
 from app.models import (
-    Notification,
-    Service,
-    ServicePermission,
-    ServiceSmsSender,
-    ServiceUser,
     Template,
-    TemplateFolder,
     TemplateHistory,
     TemplateRedacted,
     ProviderDetails,
     Permission,
-    User,
 )
 from tests import create_admin_authorization_header
 from tests.app.conftest import service_cleanup
@@ -44,41 +37,6 @@ from tests.app.db import (
 )
 from tests.app.factories.feature_flag import mock_feature_flag
 from tests.conftest import set_config_values
-
-
-@pytest.fixture(autouse=True)
-def clean_up(notify_db_session):
-    yield
-
-    notify_db_session.session.rollback()
-
-    notify_db_session.session.query(TemplateRedacted).delete()
-    notify_db_session.session.query(TemplateHistory).delete()
-
-    folder_mappings = Table('template_folder_map', notify_db_session.Model.metadata)
-    notify_db_session.session.execute(delete(folder_mappings))
-
-    notify_db_session.session.query(Notification).delete()
-
-    notify_db_session.session.query(ServiceSmsSender).delete()
-    notify_db_session.session.query(ServicePermission).delete()
-    notify_db_session.session.query(ServiceUser).delete()
-
-    notify_db_session.session.query(Permission).delete()
-
-    user_folder_permissions = Table('user_folder_permissions', notify_db_session.Model.metadata)
-    notify_db_session.session.execute(delete(user_folder_permissions))
-
-    services_history_table = Table('services_history', notify_db_session.Model.metadata)
-    notify_db_session.session.execute(delete(services_history_table))
-
-    notify_db_session.session.query(TemplateFolder).delete()
-    notify_db_session.session.query(Template).delete()
-    notify_db_session.session.query(Service).delete()
-
-    notify_db_session.session.query(User).delete()
-
-    notify_db_session.session.commit()
 
 
 @pytest.mark.parametrize(
