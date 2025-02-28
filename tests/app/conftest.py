@@ -645,6 +645,15 @@ def service_cleanup(  # noqa: C901
             session.execute(delete(template_folder_map).where(template_folder_map.c.template_id == template_id))
 
         session.execute(delete(TemplateFolder).where(TemplateFolder.service_id == service_id))
+        session.execute(delete(TemplateHistory).where(TemplateHistory.service_id == service_id))
+        session.execute(delete(Template).where(Template.service_id == service_id))
+
+        # Clear communication items
+        communication_item_ids_query = select(Template.communication_item_id).where(Template.service_id == service_id)
+        communication_item_ids = session.scalars(communication_item_ids_query).all()
+
+        for communication_item_id in communication_item_ids:
+            session.execute(delete(CommunicationItem).where(CommunicationItem.id == communication_item_id))
 
         # Clear user_to_service
         session.execute(delete(user_folder_permissions).where(user_folder_permissions.c.service_id == service_id))
@@ -678,19 +687,6 @@ def service_cleanup(  # noqa: C901
 
         # Clear inbound_numbers
         session.execute(delete(InboundSms).where(InboundSms.service_id == service_id))
-
-        # Clear all templates, template folders, and template redactions related to this service
-        template_ids_query = select(Template.id).where(Template.service_id == service_id)
-        template_ids = session.scalars(template_ids_query).all()  # Fetch results
-
-        for template_id in template_ids:
-            session.execute(delete(TemplateRedacted).where(TemplateRedacted.template_id == template_id))
-            session.execute(delete(template_folder_map).where(template_folder_map.c.template_id == template_id))
-
-        session.execute(delete(TemplateFolder).where(TemplateFolder.service_id == service_id))
-
-        session.execute(delete(Template).where(Template.service_id == service_id))
-        session.execute(delete(TemplateHistory).where(TemplateHistory.service_id == service_id))
 
         session.execute(delete(Service).where(Service.id == service_id))
     if commit:
@@ -1713,7 +1709,6 @@ def sample_provider(notify_db_session, worker_id):
         notify_db_session.session.add(provider)
         notify_db_session.session.commit()
         created_provider_ids[worker_id].append(provider.id)
-
         # Add provider_details_history - Has to happen after the provider_details are commit
         history = ProviderDetailsHistory.from_original(provider)
         notify_db_session.session.add(history)
@@ -1724,6 +1719,20 @@ def sample_provider(notify_db_session, worker_id):
     yield _sample_provider
 
     # Teardown
+
+    # Clear template_folder and template_reacted
+    template_ids_query = select(Template.id).where(Template.provider_id.in_(created_provider_ids[worker_id]))
+    template_ids = notify_db_session.session.execute(template_ids_query).scalars().all()
+
+    for template_id in template_ids:
+        notify_db_session.session.execute(delete(TemplateRedacted).where(TemplateRedacted.template_id == template_id))
+        notify_db_session.session.execute(
+            delete(template_folder_map).where(template_folder_map.c.template_id == template_id)
+        )
+
+    stmt = delete(Template).where(Template.provider_id.in_(created_provider_ids[worker_id]))
+    notify_db_session.session.execute(stmt)
+
     stmt = delete(ProviderDetailsHistory).where(ProviderDetailsHistory.id.in_(created_provider_ids[worker_id]))
     notify_db_session.session.execute(stmt)
 
