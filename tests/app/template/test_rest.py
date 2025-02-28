@@ -245,7 +245,7 @@ def test_create_a_new_template_for_a_service_adds_folder_relationship(notify_db_
     parent_folder = create_template_folder(service=service, name='parent folder')
 
     data = {
-        'name': 'my template',
+        'name': 'my template 123',
         'template_type': SMS_TYPE,
         'content': 'template <b>content</b>',
         'service': str(service.id),
@@ -262,7 +262,7 @@ def test_create_a_new_template_for_a_service_adds_folder_relationship(notify_db_
     )
     assert response.status_code == 201
 
-    stmt = select(Template).where(Template.name == 'my template')
+    stmt = select(Template).where(Template.name == 'my template 123')
     template = notify_db_session.session.scalars(stmt).first()
 
     assert template.folder == parent_folder
@@ -504,7 +504,7 @@ def test_update_should_update_a_template(client, sample_user, sample_service, sa
 def test_should_be_able_to_archive_template(notify_db_session, client, sample_template):
     template = sample_template()
     data = {
-        'name': template.name,
+        'name': 'test template',
         'template_type': template.template_type,
         'content': template.content,
         'archived': True,
@@ -523,8 +523,8 @@ def test_should_be_able_to_archive_template(notify_db_session, client, sample_te
     )
 
     assert resp.status_code == 200
-    stmt = select(Template)
-    assert notify_db_session.session.scalars(stmt).first().archived
+    stmt = select(Template).where(Template.name == 'test template')
+    assert notify_db_session.session.scalars(stmt).one().archived
 
 
 def test_get_precompiled_template_for_service_when_service_has_existing_precompiled_template(
