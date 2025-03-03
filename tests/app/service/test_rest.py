@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 from flask import url_for, current_app
 from freezegun import freeze_time
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
 from app.constants import (
     DEFAULT_SERVICE_MANAGEMENT_PERMISSIONS,
@@ -24,6 +24,7 @@ from app.constants import (
 from app.dao.services_dao import dao_remove_user_from_service
 from app.dao.templates_dao import dao_redact_template
 from app.models import (
+    FactNotificationStatus,
     Notification,
     Service,
     ServicePermission,
@@ -1354,8 +1355,9 @@ def test_get_detailed_services_groups_by_service(
     notify_db_session.session.commit()
 
 
+@pytest.mark.serial
 def test_get_detailed_services_includes_services_with_no_notifications(
-    notify_db_session, sample_api_key, sample_service, sample_template, sample_notification
+    sample_api_key, sample_service, sample_template, sample_notification
 ):
     from app.service.rest import get_detailed_services
 
@@ -1450,6 +1452,9 @@ def test_get_detailed_services_for_date_range(
     assert data[0]['statistics'][LETTER_TYPE] == {'delivered': 0, 'failed': 0, 'requested': 0}
 
     # Teardown
+    notify_db_session.session.execute(
+        delete(FactNotificationStatus).where(FactNotificationStatus.service_id == template.service.id)
+    )
     notify_db_session.session.delete(notification)
     notify_db_session.session.commit()
 
