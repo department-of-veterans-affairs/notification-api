@@ -38,6 +38,7 @@ from tests.app.factories.feature_flag import mock_feature_flag
 from tests.conftest import set_config_values
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize(
     'template_type, subject',
     [
