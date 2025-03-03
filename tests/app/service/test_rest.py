@@ -1193,21 +1193,23 @@ def test_set_sms_prefixing_for_service_cant_be_none(
     assert resp['message'] == {'prefix_sms': ['Field may not be null.']}
 
 
-# This always returns 0. Does not appear to be used
-@pytest.mark.skip(reason=', fails when unskipped')
+@pytest.mark.skip(reason='TODO BUG')
+@pytest.mark.serial
 @pytest.mark.parametrize(
     'today_only,stats',
     [('False', {'requested': 2, 'delivered': 1, 'failed': 0}), ('True', {'requested': 1, 'delivered': 0, 'failed': 0})],
     ids=['seven_days', 'today'],
 )
-def test_get_detailed_service(notify_api, notify_db_session, sample_service, sample_template, today_only, stats):
+def test_get_detailed_service(
+    notify_api, notify_db_session, sample_service, sample_template, sample_notification, today_only, stats
+):
     with notify_api.test_request_context(), notify_api.test_client() as client:
         service = sample_service()
-        template = sample_template()
+        template = sample_template(service=service)
         ft_notification = create_ft_notification_status(date(2000, 1, 2), 'sms', template=template, count=1)
         with freeze_time('2000-01-02T12:00:00'):
-            notification_0 = create_notification(template=template, status='created')
-            notification_1 = create_notification(template=template, status='created')
+            sample_notification(template=template, status='created')
+            sample_notification(template=template, status='created')
             resp = client.get(
                 '/service/{}?detailed=True&today_only={}'.format(service.id, today_only),
                 headers=[create_admin_authorization_header()],
@@ -1222,8 +1224,6 @@ def test_get_detailed_service(notify_api, notify_db_session, sample_service, sam
     assert service_resp['statistics'][SMS_TYPE] == stats
 
     # Teardown
-    notify_db_session.session.delete(notification_0)
-    notify_db_session.session.delete(notification_1)
     notify_db_session.session.delete(ft_notification)
     notify_db_session.session.commit()
 
@@ -1262,13 +1262,13 @@ def test_get_services_with_detailed_flag(
     }
 
 
-@pytest.mark.skip(reason=', fails when unskipped')
-def test_get_services_with_detailed_flag_excluding_from_test_key(notify_api, sample_template):
-    create_notification(sample_template, key_type=KEY_TYPE_NORMAL)
-    create_notification(sample_template, key_type=KEY_TYPE_TEAM)
-    create_notification(sample_template, key_type=KEY_TYPE_TEST)
-    create_notification(sample_template, key_type=KEY_TYPE_TEST)
-    create_notification(sample_template, key_type=KEY_TYPE_TEST)
+def test_get_services_with_detailed_flag_excluding_from_test_key(notify_api, sample_template, sample_notification):
+    template = sample_template()
+    sample_notification(template=template, key_type=KEY_TYPE_NORMAL)
+    sample_notification(template=template, key_type=KEY_TYPE_TEAM)
+    sample_notification(template=template, key_type=KEY_TYPE_TEST)
+    sample_notification(template=template, key_type=KEY_TYPE_TEST)
+    sample_notification(template=template, key_type=KEY_TYPE_TEST)
 
     with notify_api.test_request_context(), notify_api.test_client() as client:
         resp = client.get(
@@ -1311,8 +1311,9 @@ def test_get_services_with_detailed_flag_defaults_to_today(client, mocker):
     assert resp.status_code == 200
 
 
-@pytest.mark.skip(reason=', fails when unskipped')
-def test_get_detailed_services_groups_by_service(notify_db_session, sample_api_key, sample_service, sample_template):
+def test_get_detailed_services_groups_by_service(
+    notify_db_session, sample_api_key, sample_service, sample_template, sample_notification
+):
     from app.service.rest import get_detailed_services
 
     service_0 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='1')
@@ -1324,10 +1325,10 @@ def test_get_detailed_services_groups_by_service(notify_db_session, sample_api_k
     service_1_template = sample_template(service=service_1)
 
     notifications = [
-        create_notification(service_0_template, api_key=api_key_0, status='created'),
-        create_notification(service_1_template, api_key=api_key_1, status='created'),
-        create_notification(service_0_template, api_key=api_key_0, status='delivered'),
-        create_notification(service_0_template, api_key=api_key_0, status='created'),
+        sample_notification(template=service_0_template, api_key=api_key_0, status='created'),
+        sample_notification(template=service_1_template, api_key=api_key_1, status='created'),
+        sample_notification(template=service_0_template, api_key=api_key_0, status='delivered'),
+        sample_notification(template=service_0_template, api_key=api_key_0, status='created'),
     ]
 
     data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
@@ -1353,24 +1354,21 @@ def test_get_detailed_services_groups_by_service(notify_db_session, sample_api_k
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason=', fails when unskipped')
 def test_get_detailed_services_includes_services_with_no_notifications(
-    notify_db_session,
-    sample_api_key,
-    sample_service,
-    sample_template,
+    notify_db_session, sample_api_key, sample_service, sample_template, sample_notification
 ):
     from app.service.rest import get_detailed_services
 
-    service_0 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='1')
-    service_1 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='2')
-    api_key_0 = sample_api_key(service=service_0)
+    with freeze_time('2015-10-10T12:00:00'):
+        service_0 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='1')
+        service_1 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='2')
+        api_key_0 = sample_api_key(service=service_0)
 
-    service_0_template = sample_template(service=service_0)
-    create_notification(service_0_template, api_key=api_key_0)
+        service_0_template = sample_template(service=service_0)
+        sample_notification(template=service_0_template, api_key=api_key_0)
 
-    data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
-    data = sorted(data, key=lambda x: x['name'])
+        data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
+        data = sorted(data, key=lambda x: x['name'])
 
     assert len(data) == 2
     assert data[0]['id'] == str(service_0.id)
@@ -1387,18 +1385,19 @@ def test_get_detailed_services_includes_services_with_no_notifications(
     }
 
 
-@pytest.mark.skip(reason=', fails when unskipped')
 # This test assumes the local timezone is EST
-def test_get_detailed_services_only_includes_todays_notifications(notify_db_session, sample_api_key, sample_template):
+def test_get_detailed_services_only_includes_todays_notifications(
+    notify_db_session, sample_api_key, sample_template, sample_notification
+):
     from app.service.rest import get_detailed_services
 
     api_key = sample_api_key()
     template = sample_template(service=api_key.service)
 
-    create_notification(template, api_key=api_key, created_at=datetime(2015, 10, 10, 3, 59))
-    create_notification(template, api_key=api_key, created_at=datetime(2015, 10, 10, 4, 0))
-    create_notification(template, api_key=api_key, created_at=datetime(2015, 10, 10, 12, 0))
-    create_notification(template, api_key=api_key, created_at=datetime(2015, 10, 11, 3, 0))
+    sample_notification(template=template, api_key=api_key, created_at=datetime(2015, 10, 10, 3, 59))
+    sample_notification(template=template, api_key=api_key, created_at=datetime(2015, 10, 10, 4, 0))
+    sample_notification(template=template, api_key=api_key, created_at=datetime(2015, 10, 10, 12, 0))
+    sample_notification(template=template, api_key=api_key, created_at=datetime(2015, 10, 11, 3, 0))
 
     with freeze_time('2015-10-10T12:00:00'):
         data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
@@ -1412,13 +1411,13 @@ def test_get_detailed_services_only_includes_todays_notifications(notify_db_sess
     }
 
 
-@pytest.mark.skip(reason=', fails when unskipped')
 @pytest.mark.parametrize('start_date_delta, end_date_delta', [(2, 1), (3, 2), (1, 0)])
 @freeze_time('2017-03-28T12:00:00')
 def test_get_detailed_services_for_date_range(
     notify_db_session,
     sample_api_key,
     sample_template,
+    sample_notification,
     start_date_delta,
     end_date_delta,
 ):
@@ -1436,7 +1435,7 @@ def test_get_detailed_services_for_date_range(
         utc_date=(datetime.utcnow() - timedelta(days=1)).date(), service=template.service, notification_type='sms'
     )
 
-    notification = create_notification(template=template, created_at=datetime.utcnow(), status='delivered')
+    notification = sample_notification(template=template, created_at=datetime.utcnow(), status='delivered')
 
     start_date = (datetime.utcnow() - timedelta(days=start_date_delta)).date()
     end_date = (datetime.utcnow() - timedelta(days=end_date_delta)).date()
