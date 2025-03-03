@@ -312,6 +312,7 @@ def test_should_not_create_service_with_missing_user_id_field(notify_api, fake_u
             assert 'Missing data for required field.' in json_resp['message']['user_id']
 
 
+@pytest.mark.serial
 def test_should_error_if_created_by_missing(notify_api, sample_user):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
