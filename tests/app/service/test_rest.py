@@ -1204,29 +1204,31 @@ def test_set_sms_prefixing_for_service_cant_be_none(
 def test_get_detailed_service(
     notify_api, notify_db_session, sample_service, sample_template, sample_notification, today_only, stats
 ):
-    with notify_api.test_request_context(), notify_api.test_client() as client:
-        service = sample_service()
-        template = sample_template(service=service)
-        ft_notification = create_ft_notification_status(date(2000, 1, 2), 'sms', template=template, count=1)
-        with freeze_time('2000-01-02T12:00:00'):
-            sample_notification(template=template, status='created')
-            sample_notification(template=template, status='created')
-            resp = client.get(
-                '/service/{}?detailed=True&today_only={}'.format(service.id, today_only),
-                headers=[create_admin_authorization_header()],
-            )
+    try:
+        with notify_api.test_request_context(), notify_api.test_client() as client:
+            service = sample_service()
+            template = sample_template(service=service)
+            ft_notification = create_ft_notification_status(date(2000, 1, 2), 'sms', template=template, count=1)
+            with freeze_time('2000-01-02T12:00:00'):
+                sample_notification(template=template, status='created')
+                sample_notification(template=template, status='created')
+                resp = client.get(
+                    '/service/{}?detailed=True&today_only={}'.format(service.id, today_only),
+                    headers=[create_admin_authorization_header()],
+                )
 
-    assert resp.status_code == 200
-    service_resp = resp.json['data']
+        assert resp.status_code == 200
+        service_resp = resp.json['data']
 
-    assert service_resp['id'] == str(service.id)
-    assert 'statistics' in service_resp
-    assert set(service_resp['statistics'].keys()) == {SMS_TYPE, EMAIL_TYPE, LETTER_TYPE}
-    assert service_resp['statistics'][SMS_TYPE] == stats
+        assert service_resp['id'] == str(service.id)
+        assert 'statistics' in service_resp
+        assert set(service_resp['statistics'].keys()) == {SMS_TYPE, EMAIL_TYPE, LETTER_TYPE}
+        assert service_resp['statistics'][SMS_TYPE] == stats
 
-    # Teardown
-    notify_db_session.session.delete(ft_notification)
-    notify_db_session.session.commit()
+    finally:
+        # Teardown
+        notify_db_session.session.delete(ft_notification)
+        notify_db_session.session.commit()
 
 
 @pytest.mark.serial  # Cannot handle multiple workers
@@ -1263,6 +1265,7 @@ def test_get_services_with_detailed_flag(
     }
 
 
+@pytest.mark.serial
 def test_get_services_with_detailed_flag_excluding_from_test_key(notify_api, sample_template, sample_notification):
     template = sample_template()
     sample_notification(template=template, key_type=KEY_TYPE_NORMAL)
@@ -1312,9 +1315,11 @@ def test_get_services_with_detailed_flag_defaults_to_today(client, mocker):
     assert resp.status_code == 200
 
 
+@pytest.mark.serial
 def test_get_detailed_services_groups_by_service(
     notify_db_session, sample_api_key, sample_service, sample_template, sample_notification
 ):
+    # TODO - Update order
     from app.service.rest import get_detailed_services
 
     service_0 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='1')
@@ -1388,9 +1393,8 @@ def test_get_detailed_services_includes_services_with_no_notifications(
 
 
 # This test assumes the local timezone is EST
-def test_get_detailed_services_only_includes_todays_notifications(
-    notify_db_session, sample_api_key, sample_template, sample_notification
-):
+@pytest.mark.serial
+def test_get_detailed_services_only_includes_todays_notifications(sample_api_key, sample_template, sample_notification):
     from app.service.rest import get_detailed_services
 
     api_key = sample_api_key()
@@ -1413,6 +1417,7 @@ def test_get_detailed_services_only_includes_todays_notifications(
     }
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize('start_date_delta, end_date_delta', [(2, 1), (3, 2), (1, 0)])
 @freeze_time('2017-03-28T12:00:00')
 def test_get_detailed_services_for_date_range(

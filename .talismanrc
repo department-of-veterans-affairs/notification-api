@@ -16,7 +16,7 @@ fileignoreconfig:
 - filename: tests/app/v2/notifications/test_get_notifications.py
   checksum: 167aa80c8aac01566b3cf627cdaa839feac9dc77f0b13b6d0a008035aa8e15f1
 - filename: tests/app/service/test_rest.py
-  checksum: d37e224252b4437049f08c8cb311808fc71cbfa8c58861fe1d53b56edd80e03a
+  checksum: 33cb1eada66bc9d95bd44a9596110b8bcbc76c3440a33d3a962e6af3e745bbc5
 - filename: migrations/versions/0376_drop_reply_to.py
   checksum: 975bc9274cead1a9f9dd7cb67634e706d7b1656a0ce90264cfcd245669f42efd
 - filename: cd/application-deployment/prod/prod.env

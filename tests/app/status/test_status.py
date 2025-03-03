@@ -14,6 +14,7 @@ def test_get_status_all_ok(client, path):
     assert resp_json['build_time']
 
 
+@pytest.mark.serial
 def test_empty_live_service_and_organisation_counts(admin_request):
     assert admin_request.get('status.live_service_and_organisation_counts') == {
         'organisations': 0,
@@ -21,6 +22,7 @@ def test_empty_live_service_and_organisation_counts(admin_request):
     }
 
 
+@pytest.mark.serial
 def test_populated_live_service_and_organisation_counts(admin_request, sample_organisation, sample_service):
     # Org 1 has three real live services and one fake, for a total of 3
     org_1 = sample_organisation('org 1')
