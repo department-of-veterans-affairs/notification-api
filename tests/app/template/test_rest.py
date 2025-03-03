@@ -417,6 +417,7 @@ def test_should_be_error_on_update_if_no_permission(
     assert json_resp['message'] == expected_error
 
 
+@pytest.mark.serial
 def test_should_error_if_created_by_missing(client, sample_service):
     service_id = str(sample_service().id)
     data = {'name': 'my template', 'template_type': SMS_TYPE, 'content': 'template content', 'service': service_id}
