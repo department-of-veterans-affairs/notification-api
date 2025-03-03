@@ -1360,21 +1360,24 @@ def test_get_detailed_services_groups_by_service(
 
 
 @pytest.mark.serial
+@freeze_time('2015-10-10T12:00:00', auto_tick_seconds=0)
 def test_get_detailed_services_includes_services_with_no_notifications(
-    sample_api_key, sample_service, sample_template, sample_notification
+    sample_api_key,
+    sample_service,
+    sample_template,
+    sample_notification,
 ):
-    with freeze_time('2015-10-10T12:00:00'):
-        from app.service.rest import get_detailed_services
+    from app.service.rest import get_detailed_services
 
-        service_0 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='1')
-        service_1 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='2')
-        api_key_0 = sample_api_key(service=service_0)
+    service_0 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='1')
+    service_1 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='2')
+    api_key_0 = sample_api_key(service=service_0)
 
-        service_0_template = sample_template(service=service_0)
-        sample_notification(template=service_0_template, api_key=api_key_0)
+    service_0_template = sample_template(service=service_0)
+    sample_notification(template=service_0_template, api_key=api_key_0)
 
-        data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
-        data = sorted(data, key=lambda x: x['name'])
+    data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
+    data = sorted(data, key=lambda x: x['name'])
 
     expected_data = [
         {
@@ -1406,6 +1409,7 @@ def test_get_detailed_services_includes_services_with_no_notifications(
             },
         },
     ]
+
     assert len(data) == 2
     assert data == expected_data
 
