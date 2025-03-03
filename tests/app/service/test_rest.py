@@ -1319,7 +1319,6 @@ def test_get_services_with_detailed_flag_defaults_to_today(client, mocker):
 def test_get_detailed_services_groups_by_service(
     notify_db_session, sample_api_key, sample_service, sample_template, sample_notification
 ):
-    # TODO - Update order
     from app.service.rest import get_detailed_services
 
     service_0 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='1')
@@ -1364,9 +1363,9 @@ def test_get_detailed_services_groups_by_service(
 def test_get_detailed_services_includes_services_with_no_notifications(
     sample_api_key, sample_service, sample_template, sample_notification
 ):
-    from app.service.rest import get_detailed_services
-
     with freeze_time('2015-10-10T12:00:00'):
+        from app.service.rest import get_detailed_services
+
         service_0 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='1')
         service_1 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='2')
         api_key_0 = sample_api_key(service=service_0)
@@ -1377,19 +1376,38 @@ def test_get_detailed_services_includes_services_with_no_notifications(
         data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
         data = sorted(data, key=lambda x: x['name'])
 
+    expected_data = [
+        {
+            'active': True,
+            'created_at': datetime(2015, 10, 10, 12),
+            'id': str(service_0.id),
+            'name': str(service_0.name),
+            'notification_type': SMS_TYPE,
+            'research_mode': False,
+            'restricted': False,
+            'statistics': {
+                EMAIL_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
+                SMS_TYPE: {'delivered': 1, 'failed': 0, 'requested': 3},
+                LETTER_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
+            },
+        },
+        {
+            'active': True,
+            'created_at': datetime(2015, 10, 10, 12),
+            'id': str(service_1.id),
+            'name': str(service_1.name),
+            'notification_type': SMS_TYPE,
+            'research_mode': False,
+            'restricted': False,
+            'statistics': {
+                EMAIL_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
+                SMS_TYPE: {'delivered': 0, 'failed': 0, 'requested': 1},
+                LETTER_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
+            },
+        },
+    ]
     assert len(data) == 2
-    assert data[0]['id'] == str(service_0.id)
-    assert data[0]['statistics'] == {
-        EMAIL_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
-        SMS_TYPE: {'delivered': 0, 'failed': 0, 'requested': 1},
-        LETTER_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
-    }
-    assert data[1]['id'] == str(service_1.id)
-    assert data[1]['statistics'] == {
-        EMAIL_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
-        SMS_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
-        LETTER_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
-    }
+    assert data == expected_data
 
 
 # This test assumes the local timezone is EST
