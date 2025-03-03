@@ -99,6 +99,7 @@ def test_should_create_a_new_template_for_a_service(
     assert sorted(json_resp['data']) == sorted(template_schema.dump(template))
 
 
+@pytest.mark.serial
 def test_should_create_a_new_template_with_a_valid_provider(
     notify_db_session,
     client,
@@ -240,6 +241,7 @@ def test_should_not_create_template_with_incorrect_provider_type(
     assert json_resp['message'] == f'invalid {template_type}_provider_id'
 
 
+@pytest.mark.serial
 def test_create_a_new_template_for_a_service_adds_folder_relationship(notify_db_session, client, sample_service):
     service = sample_service()
     parent_folder = create_template_folder(service=service, name='parent folder')
@@ -552,6 +554,7 @@ def test_get_precompiled_template_for_service_when_service_has_existing_precompi
     assert data['hidden'] is True
 
 
+@pytest.mark.serial
 def test_should_be_able_to_get_all_templates_for_a_service(client, sample_user, sample_service):
     user = sample_user()
     service = sample_service()
