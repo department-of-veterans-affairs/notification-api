@@ -2,7 +2,6 @@ import base64
 import botocore
 import json
 
-# from app.model.user import User
 import pytest
 import random
 import requests_mock
