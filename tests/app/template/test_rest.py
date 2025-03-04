@@ -241,9 +241,9 @@ def test_should_not_create_template_with_incorrect_provider_type(
 def test_create_a_new_template_for_a_service_adds_folder_relationship(notify_db_session, client, sample_service):
     service = sample_service()
     parent_folder = create_template_folder(service=service, name='parent folder')
-
+    template_name = str(uuid.uuid4())
     data = {
-        'name': 'my template 123',
+        'name': template_name,
         'template_type': SMS_TYPE,
         'content': 'template <b>content</b>',
         'service': str(service.id),
@@ -260,7 +260,7 @@ def test_create_a_new_template_for_a_service_adds_folder_relationship(notify_db_
     )
     assert response.status_code == 201
 
-    stmt = select(Template).where(Template.name == 'my template 123')
+    stmt = select(Template).where(Template.name == template_name)
     template = notify_db_session.session.scalars(stmt).first()
 
     assert template.folder == parent_folder
@@ -500,9 +500,10 @@ def test_update_should_update_a_template(client, sample_user, sample_service, sa
 
 
 def test_should_be_able_to_archive_template(notify_db_session, client, sample_template):
-    template = sample_template()
+    template_name = f'template {str(uuid.uuid4())}'
+    template = sample_template(name=template_name)
     data = {
-        'name': 'test template',
+        'name': template.name,
         'template_type': template.template_type,
         'content': template.content,
         'archived': True,
@@ -521,7 +522,7 @@ def test_should_be_able_to_archive_template(notify_db_session, client, sample_te
     )
 
     assert resp.status_code == 200
-    stmt = select(Template).where(Template.name == 'test template')
+    stmt = select(Template).where(Template.name == template.name)
     assert notify_db_session.session.scalars(stmt).one().archived
 
 
