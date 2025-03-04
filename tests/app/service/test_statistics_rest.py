@@ -1,18 +1,17 @@
 import uuid
 from datetime import date
 
-from app.models import FactNotificationStatus
 import pytest
 from freezegun import freeze_time
+from sqlalchemy import delete
 
 from app.constants import (
     EMAIL_TYPE,
-    SMS_TYPE,
     LETTER_TYPE,
+    SMS_TYPE,
 )
-
+from app.models import FactNotificationStatus
 from tests.app.db import create_ft_notification_status
-from sqlalchemy import delete
 
 
 @pytest.mark.parametrize(

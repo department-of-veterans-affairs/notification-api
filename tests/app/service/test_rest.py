@@ -1339,9 +1339,6 @@ def test_get_detailed_services_groups_by_service(
     ]
 
     data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
-    data = sorted(data, key=lambda x: x['name'])
-
-    data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
 
     data_dict = {item['id']: item for item in data}
 

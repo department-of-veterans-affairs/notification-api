@@ -1,7 +1,6 @@
 import base64
 import botocore
 import json
-
 import pytest
 import random
 import requests_mock
