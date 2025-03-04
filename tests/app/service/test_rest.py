@@ -1195,7 +1195,7 @@ def test_set_sms_prefixing_for_service_cant_be_none(
     assert resp['message'] == {'prefix_sms': ['Field may not be null.']}
 
 
-@pytest.mark.skip(reason='TODO BUG')
+@pytest.mark.skip(reason='TODO #2335 - Expected behavior unknown')
 @pytest.mark.serial
 @pytest.mark.parametrize(
     'today_only,stats',
