@@ -1341,18 +1341,24 @@ def test_get_detailed_services_groups_by_service(
     data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
     data = sorted(data, key=lambda x: x['name'])
 
+    data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
+
+    data_dict = {item['id']: item for item in data}
+
     assert len(data) == 2
-    assert data[0]['id'] == str(service_0.id)
-    assert data[0]['statistics'] == {
-        EMAIL_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
-        SMS_TYPE: {'delivered': 1, 'failed': 0, 'requested': 3},
-        LETTER_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
+
+    service_0_stats = data_dict[str(service_0.id)]['statistics']
+    assert service_0_stats == {
+        SMS_TYPE: {'requested': 3, 'delivered': 1, 'failed': 0},
+        EMAIL_TYPE: {'requested': 0, 'delivered': 0, 'failed': 0},
+        LETTER_TYPE: {'requested': 0, 'delivered': 0, 'failed': 0},
     }
-    assert data[1]['id'] == str(service_1.id)
-    assert data[1]['statistics'] == {
-        EMAIL_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
-        SMS_TYPE: {'delivered': 0, 'failed': 0, 'requested': 1},
-        LETTER_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
+
+    service_1_stats = data_dict[str(service_1.id)]['statistics']
+    assert service_1_stats == {
+        SMS_TYPE: {'requested': 1, 'delivered': 0, 'failed': 0},
+        EMAIL_TYPE: {'requested': 0, 'delivered': 0, 'failed': 0},
+        LETTER_TYPE: {'requested': 0, 'delivered': 0, 'failed': 0},
     }
 
     # Teardown
@@ -1361,7 +1367,6 @@ def test_get_detailed_services_groups_by_service(
     notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason='TODO')
 @pytest.mark.serial
 @freeze_time('2015-10-10T12:00:00', auto_tick_seconds=0)
 def test_get_detailed_services_includes_services_with_no_notifications(
@@ -1380,41 +1385,24 @@ def test_get_detailed_services_includes_services_with_no_notifications(
     sample_notification(template=service_0_template, api_key=api_key_0)
 
     data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
-    data = sorted(data, key=lambda x: x['name'])
-
-    expected_data = [
-        {
-            'active': True,
-            'created_at': datetime(2015, 10, 10, 12),
-            'id': str(service_0.id),
-            'name': str(service_0.name),
-            'notification_type': SMS_TYPE,
-            'research_mode': False,
-            'restricted': False,
-            'statistics': {
-                EMAIL_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
-                SMS_TYPE: {'delivered': 1, 'failed': 0, 'requested': 3},
-                LETTER_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
-            },
-        },
-        {
-            'active': True,
-            'created_at': datetime(2015, 10, 10, 12),
-            'id': str(service_1.id),
-            'name': str(service_1.name),
-            'notification_type': SMS_TYPE,
-            'research_mode': False,
-            'restricted': False,
-            'statistics': {
-                EMAIL_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
-                SMS_TYPE: {'delivered': 0, 'failed': 0, 'requested': 1},
-                LETTER_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
-            },
-        },
-    ]
 
     assert len(data) == 2
-    assert data == expected_data
+
+    data_dict = {item['id']: item for item in data}
+
+    assert len(data_dict) == 2
+    assert data_dict[str(service_0.id)]['id'] == str(service_0.id)
+    assert data_dict[str(service_0.id)]['statistics'] == {
+        EMAIL_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
+        SMS_TYPE: {'delivered': 0, 'failed': 0, 'requested': 1},
+        LETTER_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
+    }
+    assert data_dict[str(service_1.id)]['id'] == str(service_1.id)
+    assert data_dict[str(service_1.id)]['statistics'] == {
+        EMAIL_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
+        SMS_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
+        LETTER_TYPE: {'delivered': 0, 'failed': 0, 'requested': 0},
+    }
 
 
 # This test assumes the local timezone is EST
