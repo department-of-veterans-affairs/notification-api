@@ -31,12 +31,13 @@ def test_get_service_notification_statistics(
             'service.get_service_notification_statistics', service_id=template.service_id, today_only=today_only
         )
 
-    assert set(resp['data'].keys()) == {SMS_TYPE, EMAIL_TYPE, LETTER_TYPE}
-    assert resp['data'][SMS_TYPE] == stats
-
-    stmt = delete(FactNotificationStatus).where(FactNotificationStatus.service_id == service.id)
-    notify_db_session.session.execute(stmt)
-    notify_db_session.session.commit()
+    try:
+        assert set(resp['data'].keys()) == {SMS_TYPE, EMAIL_TYPE, LETTER_TYPE}
+        assert resp['data'][SMS_TYPE] == stats
+    finally:
+        stmt = delete(FactNotificationStatus).where(FactNotificationStatus.service_id == service.id)
+        notify_db_session.session.execute(stmt)
+        notify_db_session.session.commit()
 
 
 def test_get_service_notification_statistics_with_unknown_service(admin_request):
