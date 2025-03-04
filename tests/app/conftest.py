@@ -640,9 +640,8 @@ def service_cleanup(  # noqa: C901
         template_ids_query = select(Template.id).where(Template.service_id == service_id)
         template_ids = session.scalars(template_ids_query).all()
 
-        for template_id in template_ids:
-            session.execute(delete(TemplateRedacted).where(TemplateRedacted.template_id == template_id))
-            session.execute(delete(template_folder_map).where(template_folder_map.c.template_id == template_id))
+        session.execute(delete(TemplateRedacted).where(TemplateRedacted.template_id.in_(template_ids)))
+        session.execute(delete(template_folder_map).where(template_folder_map.c.template_id.in_(template_ids)))
 
         session.execute(delete(TemplateFolder).where(TemplateFolder.service_id == service_id))
         session.execute(delete(TemplateHistory).where(TemplateHistory.service_id == service_id))
