@@ -1707,6 +1707,7 @@ def sample_provider(notify_db_session, worker_id):
         notify_db_session.session.add(provider)
         notify_db_session.session.commit()
         created_provider_ids[worker_id].append(provider.id)
+
         # Add provider_details_history - Has to happen after the provider_details are commit
         history = ProviderDetailsHistory.from_original(provider)
         notify_db_session.session.add(history)
