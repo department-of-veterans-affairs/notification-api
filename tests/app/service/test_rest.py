@@ -1435,40 +1435,41 @@ def test_get_detailed_services_for_date_range(
     start_date_delta,
     end_date_delta,
 ):
-    from app.service.rest import get_detailed_services
+    try:
+        from app.service.rest import get_detailed_services
 
-    api_key = sample_api_key()
-    template = sample_template(service=api_key.service)
-    create_ft_notification_status(
-        utc_date=(datetime.utcnow() - timedelta(days=3)).date(), service=template.service, notification_type='sms'
-    )
-    create_ft_notification_status(
-        utc_date=(datetime.utcnow() - timedelta(days=2)).date(), service=template.service, notification_type='sms'
-    )
-    create_ft_notification_status(
-        utc_date=(datetime.utcnow() - timedelta(days=1)).date(), service=template.service, notification_type='sms'
-    )
+        api_key = sample_api_key()
+        template = sample_template(service=api_key.service)
+        create_ft_notification_status(
+            utc_date=(datetime.utcnow() - timedelta(days=3)).date(), service=template.service, notification_type='sms'
+        )
+        create_ft_notification_status(
+            utc_date=(datetime.utcnow() - timedelta(days=2)).date(), service=template.service, notification_type='sms'
+        )
+        create_ft_notification_status(
+            utc_date=(datetime.utcnow() - timedelta(days=1)).date(), service=template.service, notification_type='sms'
+        )
 
-    notification = sample_notification(template=template, created_at=datetime.utcnow(), status='delivered')
+        sample_notification(template=template, created_at=datetime.utcnow(), status='delivered')
 
-    start_date = (datetime.utcnow() - timedelta(days=start_date_delta)).date()
-    end_date = (datetime.utcnow() - timedelta(days=end_date_delta)).date()
+        start_date = (datetime.utcnow() - timedelta(days=start_date_delta)).date()
+        end_date = (datetime.utcnow() - timedelta(days=end_date_delta)).date()
 
-    data = get_detailed_services(
-        only_active=False, include_from_test_key=True, start_date=start_date, end_date=end_date
-    )
+        data = get_detailed_services(
+            only_active=False, include_from_test_key=True, start_date=start_date, end_date=end_date
+        )
 
-    assert len(data) == 1
-    assert data[0]['statistics'][EMAIL_TYPE] == {'delivered': 0, 'failed': 0, 'requested': 0}
-    assert data[0]['statistics'][SMS_TYPE] == {'delivered': 2, 'failed': 0, 'requested': 2}
-    assert data[0]['statistics'][LETTER_TYPE] == {'delivered': 0, 'failed': 0, 'requested': 0}
+        assert len(data) == 1
+        assert data[0]['statistics'][EMAIL_TYPE] == {'delivered': 0, 'failed': 0, 'requested': 0}
+        assert data[0]['statistics'][SMS_TYPE] == {'delivered': 2, 'failed': 0, 'requested': 2}
+        assert data[0]['statistics'][LETTER_TYPE] == {'delivered': 0, 'failed': 0, 'requested': 0}
 
-    # Teardown
-    notify_db_session.session.execute(
-        delete(FactNotificationStatus).where(FactNotificationStatus.service_id == template.service.id)
-    )
-    notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
+    finally:
+        # Teardown
+        notify_db_session.session.execute(
+            delete(FactNotificationStatus).where(FactNotificationStatus.service_id == template.service.id)
+        )
+        notify_db_session.session.commit()
 
 
 def test_search_for_notification_by_to_field(client, notify_db_session, sample_template):
