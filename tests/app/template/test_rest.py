@@ -37,8 +37,7 @@ from tests.app.factories.feature_flag import mock_feature_flag
 from tests.conftest import set_config_values
 
 
-@pytest.mark.skip(reason='TODO #2336 - Fail due to orphaned User object.')
-@pytest.mark.serial
+# @pytest.mark.skip(reason='TODO #2336 - Fail due to orphaned User object.')
 @pytest.mark.parametrize(
     'template_type, subject',
     [
