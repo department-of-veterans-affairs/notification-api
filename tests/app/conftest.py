@@ -1724,7 +1724,9 @@ def sample_provider(notify_db_session, worker_id):
     template_ids = notify_db_session.session.scalars(template_ids_query).all()
 
     notify_db_session.session.execute(delete(TemplateRedacted).where(TemplateRedacted.template_id.in_(template_ids)))
-    notify_db_session.execute(delete(template_folder_map).where(template_folder_map.c.template_id.in_(template_ids)))
+    notify_db_session.session.execute(
+        delete(template_folder_map).where(template_folder_map.c.template_id.in_(template_ids))
+    )
 
     stmt = delete(Template).where(Template.provider_id.in_(created_provider_ids[worker_id]))
     notify_db_session.session.execute(stmt)
