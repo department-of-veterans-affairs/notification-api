@@ -651,8 +651,7 @@ def service_cleanup(  # noqa: C901
         communication_item_ids_query = select(Template.communication_item_id).where(Template.service_id == service_id)
         communication_item_ids = session.scalars(communication_item_ids_query).all()
 
-        for communication_item_id in communication_item_ids:
-            session.execute(delete(CommunicationItem).where(CommunicationItem.id == communication_item_id))
+        session.execute(delete(CommunicationItem).where(CommunicationItem.id.in_(communication_item_ids)))
 
         # Clear user_to_service
         session.execute(delete(user_folder_permissions).where(user_folder_permissions.c.service_id == service_id))
