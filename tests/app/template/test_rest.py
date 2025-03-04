@@ -97,8 +97,6 @@ def test_should_create_a_new_template_for_a_service(
     assert sorted(json_resp['data']) == sorted(template_schema.dump(template))
 
 
-@pytest.mark.skip(reason='TODO #2336 - Fail due to orphaned User object')
-@pytest.mark.serial
 def test_should_create_a_new_template_with_a_valid_provider(
     notify_db_session,
     client,
