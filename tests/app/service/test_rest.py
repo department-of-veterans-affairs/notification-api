@@ -1337,10 +1337,9 @@ def test_get_detailed_services_groups_by_service(
     ]
 
     data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
+    assert len(data) == 2
 
     data_dict = {item['id']: item for item in data}
-
-    assert len(data) == 2
 
     service_0_stats = data_dict[str(service_0.id)]['statistics']
     assert service_0_stats == {
