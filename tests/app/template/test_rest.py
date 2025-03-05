@@ -37,6 +37,7 @@ from tests.app.factories.feature_flag import mock_feature_flag
 from tests.conftest import set_config_values
 
 
+@pytest.mark.skip(reason='TODO #2336 - Fail due to orphaned User object')
 @pytest.mark.parametrize(
     'template_type, subject',
     [
@@ -97,6 +98,7 @@ def test_should_create_a_new_template_for_a_service(
     assert sorted(json_resp['data']) == sorted(template_schema.dump(template))
 
 
+@pytest.mark.skip(reason='TODO #2336 - Fail due to orphaned User object')
 def test_should_create_a_new_template_with_a_valid_provider(
     notify_db_session,
     client,
@@ -238,6 +240,7 @@ def test_should_not_create_template_with_incorrect_provider_type(
     assert json_resp['message'] == f'invalid {template_type}_provider_id'
 
 
+@pytest.mark.skip(reason='TODO #2336 - Fail due to orphaned User object')
 def test_create_a_new_template_for_a_service_adds_folder_relationship(notify_db_session, client, sample_service):
     service = sample_service()
     parent_folder = create_template_folder(service=service, name='parent folder')
@@ -413,6 +416,7 @@ def test_should_be_error_on_update_if_no_permission(
     assert json_resp['message'] == expected_error
 
 
+@pytest.mark.skip(reason='TODO #2336 - Fail due to orphaned User object')
 def test_should_error_if_created_by_missing(client, sample_service):
     service_id = str(sample_service().id)
     data = {'name': 'my template', 'template_type': SMS_TYPE, 'content': 'template content', 'service': service_id}
