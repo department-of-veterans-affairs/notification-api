@@ -21,8 +21,8 @@ function display_result {
 }
 
 # Code style
-# ruff format --check
-# display_result $? 1 "Code style check"
+ruff format --check
+display_result $? 1 "Code style check"
 
 # Poetry version stability check
 POETRY_VERSION=$(grep "poetry_version" pyproject.toml | grep -oE "[0-9]{1}.[0-9]{1,3}.[0-9]{1,3}")
@@ -32,8 +32,6 @@ display_result $? 1 "Expected Poetry version: ${POETRY_VERSION}, found: $(head -
 
 # Run tests in concurrent threads when able and serial otherwise
 # https://docs.pytest.org/en/stable/reference/customize.html
-# params="-rfe --disable-pytest-warnings --cov=app --cov-report=term-missing --junitxml=test_results.xml -q"
-# pytest ${params} -n auto -m "not serial" tests/ && pytest ${params} -m "serial" tests/
-# display_result $? 2 "Unit tests"
-
-tail -f
+params="-rfe --disable-pytest-warnings --cov=app --cov-report=term-missing --junitxml=test_results.xml -q"
+pytest ${params} -n auto -m "not serial" tests/ && pytest ${params} -m "serial" tests/
+display_result $? 2 "Unit tests"
