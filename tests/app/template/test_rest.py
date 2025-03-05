@@ -554,17 +554,21 @@ def test_get_precompiled_template_for_service_when_service_has_existing_precompi
 def test_should_be_able_to_get_all_templates_for_a_service(client, sample_user, sample_service):
     user = sample_user()
     service = sample_service()
+    template_name_1 = str(uuid.uuid4())
+    template_name_2 = str(uuid.uuid4())
+
     data = {
-        'name': 'my template 1',
+        'name': template_name_1,
         'template_type': EMAIL_TYPE,
         'subject': 'subject 1',
         'content': 'template content',
         'service': str(service.id),
         'created_by': str(user.id),
     }
+
     data_1 = json.dumps(data)
     data = {
-        'name': 'my template 2',
+        'name': template_name_2,
         'template_type': EMAIL_TYPE,
         'subject': 'subject 2',
         'content': 'template content',
@@ -591,13 +595,16 @@ def test_should_be_able_to_get_all_templates_for_a_service(client, sample_user, 
     response = client.get('/service/{}/template'.format(service.id), headers=[auth_header])
 
     assert response.status_code == 200
+
     update_json_resp = response.get_json()
-    assert update_json_resp['data'][0]['name'] == 'my template 1'
-    assert update_json_resp['data'][0]['version'] == 1
-    assert update_json_resp['data'][0]['created_at']
-    assert update_json_resp['data'][1]['name'] == 'my template 2'
-    assert update_json_resp['data'][1]['version'] == 1
-    assert update_json_resp['data'][1]['created_at']
+    data_dict = {item['name']: item for item in update_json_resp['data']}
+
+    assert data_dict[template_name_1]['name'] == template_name_1
+    assert data_dict[template_name_1]['version'] == 1
+    assert data_dict[template_name_1]['created_at']
+    assert data_dict[template_name_2]['name'] == template_name_2
+    assert data_dict[template_name_2]['version'] == 1
+    assert data_dict[template_name_2]['created_at']
 
 
 def test_should_get_only_templates_for_that_service(admin_request, sample_service, sample_template):
