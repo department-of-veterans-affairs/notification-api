@@ -1435,26 +1435,25 @@ def test_get_detailed_services_for_date_range(
     start_date_delta,
     end_date_delta,
 ):
+    from app.service.rest import get_detailed_services
+
+    api_key = sample_api_key()
+    template = sample_template(service=api_key.service)
+    create_ft_notification_status(
+        utc_date=(datetime.utcnow() - timedelta(days=3)).date(), service=template.service, notification_type='sms'
+    )
+    create_ft_notification_status(
+        utc_date=(datetime.utcnow() - timedelta(days=2)).date(), service=template.service, notification_type='sms'
+    )
+    create_ft_notification_status(
+        utc_date=(datetime.utcnow() - timedelta(days=1)).date(), service=template.service, notification_type='sms'
+    )
+
+    sample_notification(template=template, created_at=datetime.utcnow(), status='delivered')
+
+    start_date = (datetime.utcnow() - timedelta(days=start_date_delta)).date()
+    end_date = (datetime.utcnow() - timedelta(days=end_date_delta)).date()
     try:
-        from app.service.rest import get_detailed_services
-
-        api_key = sample_api_key()
-        template = sample_template(service=api_key.service)
-        create_ft_notification_status(
-            utc_date=(datetime.utcnow() - timedelta(days=3)).date(), service=template.service, notification_type='sms'
-        )
-        create_ft_notification_status(
-            utc_date=(datetime.utcnow() - timedelta(days=2)).date(), service=template.service, notification_type='sms'
-        )
-        create_ft_notification_status(
-            utc_date=(datetime.utcnow() - timedelta(days=1)).date(), service=template.service, notification_type='sms'
-        )
-
-        sample_notification(template=template, created_at=datetime.utcnow(), status='delivered')
-
-        start_date = (datetime.utcnow() - timedelta(days=start_date_delta)).date()
-        end_date = (datetime.utcnow() - timedelta(days=end_date_delta)).date()
-
         data = get_detailed_services(
             only_active=False, include_from_test_key=True, start_date=start_date, end_date=end_date
         )
