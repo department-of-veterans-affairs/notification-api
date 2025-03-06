@@ -20,7 +20,8 @@ from app.dao.service_callback_api_dao import (
     get_service_callback,
 )
 from app.dao.service_sms_sender_dao import dao_get_service_sms_sender_by_service_id_and_number
-from app.models import Complaint, Notification, ServiceCallback
+from app.dao.templates_dao import dao_get_template_by_id
+from app.models import Complaint, Notification, NotificationHistory, ServiceCallback, Template
 
 
 @notify_celery.task(
@@ -490,11 +491,20 @@ def _check_and_queue_complaint_callback_task(
 
 def publish_complaint(
     complaint: Complaint,
-    notification: Notification,
+    notification: Notification | NotificationHistory,
     recipient_email: str,
 ) -> bool:
+    if isinstance(notification, NotificationHistory):
+        template: Template = dao_get_template_by_id(
+            notification.template_id,
+            notification.template_version,
+        )
+        template_name = template.name
+    else:
+        template_name = notification.template.name
+
     provider_name = notification.sent_by
     _check_and_queue_complaint_callback_task(complaint, notification, recipient_email)
-    send_complaint_to_vanotify.apply_async([str(complaint.id), notification.template.name], queue=QueueNames.NOTIFY)
+    send_complaint_to_vanotify.apply_async([str(complaint.id), template_name], queue=QueueNames.NOTIFY)
     statsd_client.incr(f'callback.{provider_name}.complaint_count')
     return True
