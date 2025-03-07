@@ -127,7 +127,6 @@ class AwsPinpointClient(SmsClient):
             DestinationPhoneNumber=recipient_number,
             OriginationIdentity=aws_phone_number,
             MessageBody=content,
-            MessageType='TRANSACTIONAL',
         )
 
     def _validate_response(
