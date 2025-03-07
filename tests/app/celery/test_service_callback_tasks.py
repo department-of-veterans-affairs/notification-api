@@ -1,10 +1,9 @@
 import json
-from app.model.user import User
 import pytest
-import uuid
-from datetime import datetime
-
 import requests_mock
+import uuid
+
+from datetime import datetime
 from flask import current_app
 from freezegun import freeze_time
 from sqlalchemy import delete
@@ -35,6 +34,7 @@ from app.constants import (
     SMS_TYPE,
 )
 from app.exceptions import NotificationTechnicalFailureException
+from app.model.user import User
 from app.models import Complaint, Notification, NotificationHistory, Service, ServiceCallback, Template
 from tests.app.db import (
     create_complaint,
