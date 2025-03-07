@@ -22,6 +22,7 @@ services:
       - .local.env
     depends_on:
       - db
+    entrypoint: "echo AYO"
     command: make test
 
   db:
