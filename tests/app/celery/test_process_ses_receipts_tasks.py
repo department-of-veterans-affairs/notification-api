@@ -69,7 +69,7 @@ def test_process_ses_results_notification_complaint(notify_db_session, sample_te
 
     template = sample_template(template_type=EMAIL_TYPE)
     notification: Notification = sample_notification(
-        status=NOTIFICATION_SENDING,
+        status=NOTIFICATION_DELIVERED,
         template=template,
     )
 
@@ -89,7 +89,7 @@ def test_process_ses_results_notification_history_complaint(
 
     template = sample_template(template_type=EMAIL_TYPE)
     notification: NotificationHistory = sample_notification_history(
-        status=NOTIFICATION_SENDING,
+        status=NOTIFICATION_DELIVERED,
         template=template,
     )
 
