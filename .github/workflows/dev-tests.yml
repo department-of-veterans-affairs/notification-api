@@ -25,37 +25,19 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-22.04
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: notification_api
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
 
-      - name: Build Docker Image for Testing
+      - name: Run tests using docker-compose
         run: |
-          docker build \
-            --build-arg POETRY_ARGS="--with static_tools,test" \
-            --build-arg TEST_FOLDER=tests \
-            -t notification-api-test \
-            -f ci/Dockerfile .
-  
-      - name: Run tests in Docker container
-        run: |
-          docker run --rm --network=host notification-api-test sh -c "\
-            export PATH=\$(pwd)/.venv/bin:\$PATH && \
-            sed -i 's/LocalPassword@db:5432/postgres@localhost/g' .env && \
-            make test"
+          # Build images, start containers, and run tests.
+          docker compose -f ci/docker-compose-test.yml up --build --abort-on-container-exit
+          # Tear down containers after tests complete
+          docker compose -f ci/docker-compose-test.yml down
 
   # code-scan:
   #   runs-on: ${{ vars.RUNS_ON }}
