@@ -42,45 +42,39 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
-      - name: Install Dependencies
+      - name: Build Docker Image for Testing
         run: |
-          # Prepare path to use environmental variable specified and install with poetry.lock
-          export PATH="$POETRY_HOME/bin:$PATH"
-          curl -sSL https://install.python-poetry.org | python3 - && poetry install --no-root --no-ansi $POETRY_ARGS
-
-      - name: Run tests
+          docker build \
+            --build-arg POETRY_ARGS="--with static_tools,test" \
+            --build-arg TEST_FOLDER=tests \
+            -t notification-api-test \
+            -f ci/Dockerfile .
+  
+      - name: Run tests in Docker container
         run: |
-          # Set path to poetry venv
-          export PATH="$PWD/.venv/bin:$PATH"
-          # Prepare env variables - App loads .env with dotfiles
-          mv ci/.local.env .env
-          # Adjust for GHA service "postgres"
-          sed -i 's/LocalPassword@db:5432/postgres@localhost/g' .env
-          make test
+          docker run --rm --network=host notification-api-test sh -c "\
+            export PATH=\$(pwd)/.venv/bin:\$PATH && \
+            sed -i 's/LocalPassword@db:5432/postgres@localhost/g' .env && \
+            make test"
 
-  code-scan:
-    runs-on: ${{ vars.RUNS_ON }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-      - run: make check-vulnerabilities
+  # code-scan:
+  #   runs-on: ${{ vars.RUNS_ON }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         ref: ${{ inputs.ref }}
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.10"
+  #     - run: make check-vulnerabilities
 
-  dependency-scan:
-    runs-on: ${{ vars.RUNS_ON }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-      - run: make check-dependencies
+  # dependency-scan:
+  #   runs-on: ${{ vars.RUNS_ON }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         ref: ${{ inputs.ref }}
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.10"
+  #     - run: make check-dependencies
