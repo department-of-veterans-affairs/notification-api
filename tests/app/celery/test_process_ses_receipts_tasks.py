@@ -87,11 +87,6 @@ def test_process_ses_results_notification_history_complaint(
     )
     send_complaint_to_vanotify.return_value = None
 
-    mock_send_email_status = mocker.patch(
-        'app.celery.send_va_profile_notification_status_tasks.send_notification_status_to_va_profile.apply_async'
-    )
-    mock_send_email_status.return_value = None
-
     template = sample_template(template_type=EMAIL_TYPE)
     notification: NotificationHistory = sample_notification_history(
         status=NOTIFICATION_SENDING,
