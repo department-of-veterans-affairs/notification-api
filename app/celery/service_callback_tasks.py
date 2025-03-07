@@ -4,6 +4,8 @@ from celery import Task
 from flask import current_app
 from requests import post
 from requests.exceptions import Timeout, RequestException
+from sqlalchemy.orm.exc import NoResultFound
+
 from notifications_utils.statsd_decorators import statsd
 
 from app import notify_celery, encryption, statsd_client
@@ -495,10 +497,17 @@ def publish_complaint(
     recipient_email: str,
 ) -> bool:
     if isinstance(notification, NotificationHistory):
-        template: Template = dao_get_template_by_id(
-            notification.template_id,
-            notification.template_version,
-        )
+        try:
+            template: Template = dao_get_template_by_id(notification.template_id, notification.template_version)
+        except NoResultFound:
+            current_app.logger.error(
+                'template not found for notification_id: %s | template_id: %s | template_version: %s',
+                notification.id,
+                notification.template_id,
+                notification.template_version,
+            )
+            return
+
         template_name = template.name
     else:
         template_name = notification.template.name

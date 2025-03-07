@@ -1,4 +1,5 @@
 import json
+from app.model.user import User
 import pytest
 import uuid
 from datetime import datetime
@@ -34,7 +35,7 @@ from app.constants import (
     SMS_TYPE,
 )
 from app.exceptions import NotificationTechnicalFailureException
-from app.models import Complaint, Notification, NotificationHistory, ServiceCallback
+from app.models import Complaint, Notification, NotificationHistory, Service, ServiceCallback, Template
 from tests.app.db import (
     create_complaint,
     create_service_callback_api,
@@ -393,6 +394,37 @@ def test_publish_complaint_results_in_invoking_handler_using_notification_histor
 
     assert publish_complaint(complaint, notification_history, recipient_email)
     assert notification_db.call_count == 0
+
+
+def test_publish_complaint_missing_template_using_notification_history_logs_error(
+    mocker,
+    notify_api,
+):
+    mock_logger = mocker.patch('app.celery.service_callback_tasks.current_app.logger.error')
+
+    service = mocker.Mock(Service, id='service_id', name='Service Name', users=[mocker.Mock(User, id='user_id')])
+    template = mocker.Mock(
+        Template, id=uuid.uuid4(), name='Email Template Name', service=service, template_type=EMAIL_TYPE
+    )
+    notification_history = mocker.Mock(
+        NotificationHistory,
+        service_id=template.service.id,
+        service=template.service,
+        template_id=template.id,
+        template_version=None,
+        status='sending',
+        reference='ref1',
+    )
+
+    complaint, recipient_email = get_complaint_and_email(
+        mocker,
+        notification_id=notification_history.id,
+        service_id=notification_history.service_id,
+    )
+
+    publish_complaint(complaint, notification_history, recipient_email)
+
+    mock_logger.assert_called()
 
 
 def test_publish_complaint_notifies_vanotify(
