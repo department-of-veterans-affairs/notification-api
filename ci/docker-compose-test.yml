@@ -22,12 +22,8 @@ services:
       - .local.env
     depends_on:
       - db
-    entrypoint: 
-      - /bin/sh 
-      - -c
-    command:
-     - make
-     - test
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["make test"]
 
   db:
     image: postgres:15
