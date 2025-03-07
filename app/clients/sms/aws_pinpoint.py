@@ -67,7 +67,7 @@ class AwsPinpointClient(SmsClient):
         origination_number,
         statsd_client,
     ):
-        self._client = boto3.client('pinpoint', region_name=aws_region)
+        self._client = boto3.client('pinpoint-sms-voice-v2', region_name=aws_region)
         self.aws_pinpoint_app_id = aws_pinpoint_app_id
         self.aws_region = aws_region
         self.origination_number = origination_number
@@ -103,20 +103,19 @@ class AwsPinpointClient(SmsClient):
         except (botocore.exceptions.ClientError, Exception) as e:
             self.statsd_client.incr('clients.pinpoint.error')
             raise AwsPinpointException(str(e))
-        else:
-            self._validate_response(response['MessageResponse']['Result'][recipient_number])
-            aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
-            elapsed_time = monotonic() - start_time
-            self.logger.info(
-                'AWS Pinpoint SMS request using %s finished in %s for notificationId:%s and reference:%s',
-                aws_phone_number,
-                elapsed_time,
-                reference,
-                aws_reference,
-            )
-            self.statsd_client.timing('clients.pinpoint.request-time', elapsed_time)
-            self.statsd_client.incr('clients.pinpoint.success')
-            return aws_reference
+
+        elapsed_time = monotonic() - start_time
+        aws_reference = response.get('MessageId')
+        self.logger.info(
+            'AWS Pinpoint SMS request using %s finished in %s for notificationId:%s and reference:%s',
+            aws_phone_number,
+            elapsed_time,
+            reference,
+            aws_reference,
+        )
+        self.statsd_client.timing('clients.pinpoint.request-time', elapsed_time)
+        self.statsd_client.incr('clients.pinpoint.success')
+        return aws_reference
 
     def _post_message_request(
         self,
@@ -124,15 +123,10 @@ class AwsPinpointClient(SmsClient):
         content,
         aws_phone_number,
     ):
-        message_request_payload = {
-            'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
-            'MessageConfiguration': {
-                'SMSMessage': {'Body': content, 'MessageType': 'TRANSACTIONAL', 'OriginationNumber': aws_phone_number}
-            },
-        }
-
-        return self._client.send_messages(
-            ApplicationId=self.aws_pinpoint_app_id, MessageRequest=message_request_payload
+        return self._client.send_text_message(
+            DestinationPhoneNumber=recipient_number,
+            OriginationIdentity=aws_phone_number,
+            MessageBody=content,
         )
 
     def _validate_response(
