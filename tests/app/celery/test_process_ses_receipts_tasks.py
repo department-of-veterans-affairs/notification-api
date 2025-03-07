@@ -23,7 +23,7 @@ from app.constants import (
     STATUS_REASON_UNREACHABLE,
 )
 from app.dao.notifications_dao import get_notification_by_id
-from app.models import Complaint, Notification, Service, Template
+from app.models import Complaint, Notification, NotificationHistory, Service, Template
 from app.model import User
 from app.notifications.notifications_ses_callback import (
     remove_emails_from_bounce,
@@ -59,6 +59,49 @@ def test_process_ses_results(notify_db_session, sample_template, sample_notifica
     notify_db_session.session.refresh(notification)
     assert notification.status == NOTIFICATION_DELIVERED
     assert notification.status_reason is None
+
+
+def test_process_ses_results_notification_complaint(notify_db_session, sample_template, sample_notification, mocker):
+    send_complaint_to_vanotify = mocker.patch(
+        'app.celery.service_callback_tasks.send_complaint_to_vanotify.apply_async'
+    )
+    send_complaint_to_vanotify.return_value = None
+
+    template = sample_template(template_type=EMAIL_TYPE)
+    notification: Notification = sample_notification(
+        status=NOTIFICATION_SENDING,
+        template=template,
+    )
+
+    assert process_ses_receipts_tasks.process_ses_results(
+        response=ses_notification_complaint_callback(reference=notification.reference)
+    )
+    send_complaint_to_vanotify.assert_called()
+
+
+def test_process_ses_results_notification_history_complaint(
+    notify_db_session, sample_template, sample_notification_history, mocker
+):
+    send_complaint_to_vanotify = mocker.patch(
+        'app.celery.service_callback_tasks.send_complaint_to_vanotify.apply_async'
+    )
+    send_complaint_to_vanotify.return_value = None
+
+    mock_send_email_status = mocker.patch(
+        'app.celery.send_va_profile_notification_status_tasks.send_notification_status_to_va_profile.apply_async'
+    )
+    mock_send_email_status.return_value = None
+
+    template = sample_template(template_type=EMAIL_TYPE)
+    notification: NotificationHistory = sample_notification_history(
+        status=NOTIFICATION_SENDING,
+        template=template,
+    )
+
+    assert process_ses_receipts_tasks.process_ses_results(
+        response=ses_notification_complaint_callback(reference=notification.reference)
+    )
+    send_complaint_to_vanotify.assert_called()
 
 
 def test_process_ses_results_retry_called(mocker, sample_template, sample_notification):
@@ -575,3 +618,47 @@ def test_process_ses_results_personalisation(notify_db_session, sample_template,
     notify_db_session.session.refresh(notification)
     assert notification.status == NOTIFICATION_DELIVERED
     assert notification.personalisation == {'name': '<redacted>'}
+
+
+def ses_notification_complaint_callback(reference):
+    ses_message_body = {
+        'complaint': {
+            'arrivalDate': str(datetime.utcnow()),
+            'complaintSubType': None,
+            'feedbackId': reference,
+            'timestamp': str(datetime.utcnow()),
+            'complainedRecipients': [{'emailAddress': 'richard@example.com'}],
+        },
+        'eventType': 'Complaint',
+        'mail': {
+            'headersTruncated': False,
+            'messageId': reference,
+            'sendingAccountId': '171875617347',
+            'source': '"U.S. Department of Veterans Affairs" <do-not-reply@notifications.va.gov>',
+            'sourceArn': 'arn:aws-us-gov:ses:us-gov-west-1:171875617347:identity/notifications.va.gov',
+            'destination': 'richard@example.com',
+            'tags': {
+                'ses:caller-identity': ['project-dev-notification-api-task-role'],
+                'ses:configuration-set': ['dev-configuration-set'],
+                'ses:from-domain': ['dev-notifications.va.gov'],
+                'ses:operation': ['SendRawEmail'],
+                'ses:source-ip': ['152.129.43.2'],
+                'ses:source-tls-version': ['TLSv1.3'],
+            },
+            'timestamp': str(datetime.utcnow()),
+        },
+    }
+
+    return {
+        'Type': 'Notification',
+        'MessageId': '8e83c020-1234-1234-1234-92a8ee9baa0a',
+        'TopicArn': 'arn:aws:sns:eu-west-1:12341234:ses_notifications',
+        'Subject': None,
+        'Message': json.dumps(ses_message_body),
+        'Timestamp': '2017-11-17T12:14:03.710Z',
+        'SignatureVersion': '1',
+        'Signature': '[REDACTED]',
+        'SigningCertUrl': 'https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-[REDACTED].pem',
+        'UnsubscribeUrl': 'https://sns.eu-west-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=[REACTED]',
+        'MessageAttributes': {},
+    }
