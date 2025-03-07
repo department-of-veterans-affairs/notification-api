@@ -150,7 +150,13 @@ def process_ses_results(  # noqa: C901 (too complex 14 > 10)
     except Retry:
         raise
 
-    except Exception as e:
-        current_app.logger.exception(e)
-        current_app.logger.error('Error processing SES results: %s', type(e))
+    except Exception:
+        try:
+            current_app.logger.exception(
+                'Error processing SES results: reference: %s | notification_id: %s',
+                notification.reference,
+                notification.id,
+            )
+        except UnboundLocalError:
+            current_app.logger.exception('Error processing SES results: notification_id: None')
         self.retry(queue=QueueNames.RETRY)
