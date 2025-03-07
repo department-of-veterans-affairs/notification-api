@@ -63,6 +63,7 @@ RUN adduser -h /app -D vanotify
 # From context and only what is necessary, importing relative to WORKDIR
 COPY app/ app
 COPY cd/ cd
+COPY ci/.local.env .env
 COPY migrations/ migrations
 COPY scripts/ scripts
 COPY images/ images
