@@ -22,7 +22,7 @@ services:
     depends_on:
       - db
     entrypoint: ["/bin/sh", "-c"]
-    command: ["ls -la"]
+    command: ["make test"]
 
   db:
     image: postgres:15
