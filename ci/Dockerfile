@@ -68,7 +68,7 @@ COPY scripts/ scripts
 COPY images/ images
 
 # Non-relative import since multiple files
-COPY gunicorn_config.py application.py Makefile pytest.ini run_celery.py pyproject.toml /app/
+COPY gunicorn_config.py application.py Makefile pytest.ini run_celery.py pyproject.toml poetry.lock /app/
 
 # Assign ownership of the certs to vanotify due to save_certificate.sh
 COPY --chown=vanotify certs/ certs
