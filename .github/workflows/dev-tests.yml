@@ -32,6 +32,12 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      - name: echo workspace
+        run: echo ${{ github.workspace }}
+
+      - name: list files
+        run: ls ${{ github.workspace }}
+        
       - name: Run tests using docker-compose
         run: |
           # Build images, start containers, and run tests.
