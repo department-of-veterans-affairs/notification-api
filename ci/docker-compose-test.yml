@@ -1,4 +1,3 @@
-version: "3"
 services:
   test:
     build:
@@ -22,7 +21,8 @@ services:
       - .local.env
     depends_on:
       - db
-    command: make test
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["make test"]
 
   db:
     image: postgres:15
