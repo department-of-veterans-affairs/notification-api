@@ -150,7 +150,7 @@ def process_ses_results(  # noqa: C901 (too complex 14 > 10)
         return True
 
     except JSONDecodeError:
-        current_app.logger.exception('Error decoding SES results')
+        current_app.logger.exception('Error decoding SES results: full response data: %s', response)
 
     except Retry:
         raise

@@ -35,6 +35,39 @@ from tests.app.db import (
 )
 
 
+def ses_notification_complaint_callback(reference):
+    """Sample callback data for an SES complaint event"""
+    ses_message_body = {
+        'complaint': {
+            'arrivalDate': str(datetime.utcnow()),
+            'complaintSubType': None,
+            'feedbackId': reference,
+            'timestamp': str(datetime.utcnow()),
+            'complainedRecipients': [{'emailAddress': 'richard@example.com'}],
+        },
+        'eventType': 'Complaint',
+        'mail': {
+            'headersTruncated': False,
+            'messageId': reference,
+            'sendingAccountId': '171875617347',
+            'source': '"U.S. Department of Veterans Affairs" <do-not-reply@notifications.va.gov>',
+            'sourceArn': 'arn:aws-us-gov:ses:us-gov-west-1:171875617347:identity/notifications.va.gov',
+            'destination': ['richard@example.com'],
+            'tags': {
+                'ses:caller-identity': ['project-dev-notification-api-task-role'],
+                'ses:configuration-set': ['dev-configuration-set'],
+                'ses:from-domain': ['dev-notifications.va.gov'],
+                'ses:operation': ['SendRawEmail'],
+                'ses:source-ip': ['152.129.43.2'],
+                'ses:source-tls-version': ['TLSv1.3'],
+            },
+            'timestamp': str(datetime.utcnow()),
+        },
+    }
+
+    return {'Message': json.dumps(ses_message_body)}
+
+
 def test_process_ses_results(notify_db_session, sample_template, sample_notification, mocker):
     template = sample_template(template_type=EMAIL_TYPE)
     ref = str(uuid4())
@@ -62,6 +95,7 @@ def test_process_ses_results(notify_db_session, sample_template, sample_notifica
 
 
 def test_process_ses_results_notification_complaint(notify_db_session, sample_template, sample_notification, mocker):
+    """Test that SES complaint referencing a notification is processed without error."""
     send_complaint_to_vanotify = mocker.patch(
         'app.celery.service_callback_tasks.send_complaint_to_vanotify.apply_async'
     )
@@ -82,6 +116,10 @@ def test_process_ses_results_notification_complaint(notify_db_session, sample_te
 def test_process_ses_results_notification_history_complaint(
     notify_db_session, sample_template, sample_notification_history, mocker
 ):
+    """Test that SES complaint referencing a notification in NotificationHistory is processed without error.
+
+    NotificationHistory does not contain template so additional lookup is required during processing.
+    """
     send_complaint_to_vanotify = mocker.patch(
         'app.celery.service_callback_tasks.send_complaint_to_vanotify.apply_async'
     )
@@ -613,35 +651,3 @@ def test_process_ses_results_personalisation(notify_db_session, sample_template,
     notify_db_session.session.refresh(notification)
     assert notification.status == NOTIFICATION_DELIVERED
     assert notification.personalisation == {'name': '<redacted>'}
-
-
-def ses_notification_complaint_callback(reference):
-    ses_message_body = {
-        'complaint': {
-            'arrivalDate': str(datetime.utcnow()),
-            'complaintSubType': None,
-            'feedbackId': reference,
-            'timestamp': str(datetime.utcnow()),
-            'complainedRecipients': [{'emailAddress': 'richard@example.com'}],
-        },
-        'eventType': 'Complaint',
-        'mail': {
-            'headersTruncated': False,
-            'messageId': reference,
-            'sendingAccountId': '171875617347',
-            'source': '"U.S. Department of Veterans Affairs" <do-not-reply@notifications.va.gov>',
-            'sourceArn': 'arn:aws-us-gov:ses:us-gov-west-1:171875617347:identity/notifications.va.gov',
-            'destination': ['richard@example.com'],
-            'tags': {
-                'ses:caller-identity': ['project-dev-notification-api-task-role'],
-                'ses:configuration-set': ['dev-configuration-set'],
-                'ses:from-domain': ['dev-notifications.va.gov'],
-                'ses:operation': ['SendRawEmail'],
-                'ses:source-ip': ['152.129.43.2'],
-                'ses:source-tls-version': ['TLSv1.3'],
-            },
-            'timestamp': str(datetime.utcnow()),
-        },
-    }
-
-    return {'Message': json.dumps(ses_message_body)}

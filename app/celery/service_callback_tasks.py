@@ -497,13 +497,13 @@ def publish_complaint(
     recipient_email: str,
 ) -> bool:
     if isinstance(notification, NotificationHistory):
+        current_app.logger.debug(
+            'publish_complaint: template lookup for reference: %s | notification_id: %s | template_id: %s',
+            notification.reference,
+            notification.id,
+            notification.template_id,
+        )
         try:
-            current_app.logger.debug(
-                'publish_complaint: template lookup for reference: %s | notification_id: %s | template_id: %s',
-                notification.reference,
-                notification.id,
-                notification.template_id,
-            )
             template: Template = dao_get_template_by_id(notification.template_id, notification.template_version)
         except NoResultFound:
             current_app.logger.error(
@@ -512,7 +512,7 @@ def publish_complaint(
                 notification.template_id,
                 notification.template_version,
             )
-            return
+            return False
 
         template_name = template.name
     else:
