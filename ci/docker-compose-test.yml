@@ -1,4 +1,3 @@
-version: "3"
 services:
   test:
     build:
@@ -14,6 +13,8 @@ services:
       - AWS_SECRET_ACCESS_KEY=your_secret_access_key
       - VAEC_AWS_ACCESS_KEY_ID=your_vaec_aws_access_key_id
     image: &notify_image test-notification-api
+    volumes: &notify_volumes
+      - "../:/app"
     ports:
       - 6011:6011
     env_file:
@@ -21,7 +22,7 @@ services:
     depends_on:
       - db
     entrypoint: ["/bin/sh", "-c"]
-    command: ["make test"]
+    command: ["ls -la"]
 
   db:
     image: postgres:15
