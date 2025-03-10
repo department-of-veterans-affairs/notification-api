@@ -495,7 +495,7 @@ def publish_complaint(
     complaint: Complaint,
     notification: Notification | NotificationHistory,
     recipient_email: str,
-) -> bool:
+) -> bool | None:
     if isinstance(notification, NotificationHistory):
         current_app.logger.debug(
             'publish_complaint: template lookup for reference: %s | notification_id: %s | template_id: %s',
@@ -512,7 +512,7 @@ def publish_complaint(
                 notification.template_id,
                 notification.template_version,
             )
-            return False
+            return
 
         template_name = template.name
     else:
