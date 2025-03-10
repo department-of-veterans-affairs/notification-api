@@ -512,7 +512,7 @@ def publish_complaint(
                 notification.template_id,
                 notification.template_version,
             )
-            return
+            return None
 
         template_name = template.name
     else:
