@@ -1,16 +1,18 @@
-from datetime import datetime, timedelta
-
 import iso8601
-from app.celery.common import log_notification_total_time
+
 from celery.exceptions import Retry
+from datetime import datetime, timedelta
 from flask import (
     current_app,
     json,
 )
+from json import JSONDecodeError
+
 from notifications_utils.statsd_decorators import statsd
 from sqlalchemy.orm.exc import NoResultFound
 
 from app import notify_celery
+from app.celery.common import log_notification_total_time
 from app.celery.send_va_profile_notification_status_tasks import check_and_queue_va_profile_notification_status_callback
 from app.celery.service_callback_tasks import publish_complaint
 from app.config import QueueNames
@@ -147,16 +149,16 @@ def process_ses_results(  # noqa: C901 (too complex 14 > 10)
 
         return True
 
+    except JSONDecodeError:
+        current_app.logger.exception('Error decoding SES results')
+
     except Retry:
         raise
 
     except Exception:
-        try:
-            current_app.logger.exception(
-                'Error processing SES results: reference: %s | notification_id: %s',
-                notification.reference,
-                notification.id,
-            )
-        except UnboundLocalError:
-            current_app.logger.exception('Error processing SES results: notification_id: None')
+        current_app.logger.exception(
+            'Error processing SES results: reference: %s | notification_id: %s',
+            notification.reference,
+            notification.id,
+        )
         self.retry(queue=QueueNames.RETRY)
