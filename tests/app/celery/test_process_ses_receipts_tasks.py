@@ -631,7 +631,7 @@ def ses_notification_complaint_callback(reference):
             'sendingAccountId': '171875617347',
             'source': '"U.S. Department of Veterans Affairs" <do-not-reply@notifications.va.gov>',
             'sourceArn': 'arn:aws-us-gov:ses:us-gov-west-1:171875617347:identity/notifications.va.gov',
-            'destination': 'richard@example.com',
+            'destination': ['richard@example.com'],
             'tags': {
                 'ses:caller-identity': ['project-dev-notification-api-task-role'],
                 'ses:configuration-set': ['dev-configuration-set'],
