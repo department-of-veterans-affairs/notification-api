@@ -14,9 +14,7 @@ services:
       - VAEC_AWS_ACCESS_KEY_ID=your_vaec_aws_access_key_id
     image: &notify_image test-notification-api
     volumes: &notify_volumes
-      - type: bind
-        source: ..
-        target: /app
+      - "../:/app:rw,Z"
     ports:
       - 6011:6011
     env_file:
