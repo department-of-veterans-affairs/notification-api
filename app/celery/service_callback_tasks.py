@@ -180,13 +180,11 @@ def send_complaint_to_vanotify(
                 'complaint_date': complaint.complaint_date.strftime(DATETIME_FORMAT),
             },
         )
-        current_app.logger.info(
-            'Successfully sent complaint email to %s. notification_id: %s', complaint.service.name, complaint_id
-        )
+        current_app.logger.info('Successfully sent complaint email to va-notify. notification_id: %s', complaint_id)
 
     except Exception as e:
         current_app.logger.exception(
-            'Problem sending complaint to %s for notification %s: %s', complaint.service.name, complaint_id, str(e)
+            'Problem sending complaint to va-notify for notification %s: %s', complaint_id, str(e)
         )
 
 
