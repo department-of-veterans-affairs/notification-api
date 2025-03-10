@@ -644,16 +644,4 @@ def ses_notification_complaint_callback(reference):
         },
     }
 
-    return {
-        'Type': 'Notification',
-        'MessageId': '8e83c020-1234-1234-1234-92a8ee9baa0a',
-        'TopicArn': 'arn:aws:sns:eu-west-1:12341234:ses_notifications',
-        'Subject': None,
-        'Message': json.dumps(ses_message_body),
-        'Timestamp': '2017-11-17T12:14:03.710Z',
-        'SignatureVersion': '1',
-        'Signature': '[REDACTED]',
-        'SigningCertUrl': 'https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-[REDACTED].pem',
-        'UnsubscribeUrl': 'https://sns.eu-west-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=[REACTED]',
-        'MessageAttributes': {},
-    }
+    return {'Message': json.dumps(ses_message_body)}
