@@ -499,16 +499,15 @@ def publish_complaint(
     if isinstance(notification, NotificationHistory):
         try:
             current_app.logger.debug(
-                'template lookup for reference: %s | notification_id: %s | template_id: %s | template_version: %s',
+                'publish_complaint: template lookup for reference: %s | notification_id: %s | template_id: %s',
                 notification.reference,
                 notification.id,
                 notification.template_id,
-                notification.template_version,
             )
             template: Template = dao_get_template_by_id(notification.template_id, notification.template_version)
         except NoResultFound:
             current_app.logger.error(
-                'template not found for notification_id: %s | template_id: %s | template_version: %s',
+                'publish_complaint: template not found for notification_id: %s | template_id: %s | template_version: %s',
                 notification.id,
                 notification.template_id,
                 notification.template_version,
