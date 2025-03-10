@@ -260,7 +260,7 @@ def test_send_email_complaint_to_vanotify_fails(
     send_complaint_to_vanotify(complaint.id, template_name)
 
     mock_logger.assert_called_once_with(
-        'Problem sending complaint to va-notify for notification %s: %s', complaint.id, 'error!!!'
+        'Problem sending complaint to %s for notification %s: %s', complaint.service.name, complaint.id, 'error!!!'
     )
 
 
