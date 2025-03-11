@@ -46,8 +46,7 @@ COPY scripts/ scripts
 COPY images/ images
 COPY gunicorn_config.py application.py Makefile pytest.ini run_celery.py pyproject.toml poetry.lock /app/
 
-# Upgrade pip and setuptools (if needed)
-RUN pip3 install --upgrade pip setuptools
+ENV PATH="/.venv/bin:$PATH"
 
 # Create and switch to a non-root user
 RUN adduser -h /app -D vanotify

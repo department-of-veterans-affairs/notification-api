@@ -1,9 +1,10 @@
+
+version: "3"
 services:
   test:
     build:
       context: ..
       dockerfile: ci/Dockerfile
-      target: ci
       args:
         POETRY_ARGS: --with static_tools,test
         FLASK_DEBUG: 1
@@ -14,13 +15,15 @@ services:
       - AWS_SECRET_ACCESS_KEY=your_secret_access_key
       - VAEC_AWS_ACCESS_KEY_ID=your_vaec_aws_access_key_id
     image: &notify_image test-notification-api
+    volumes: &notify_volumes
+      - "../:/app"
     ports:
       - 6011:6011
     env_file:
       - .local.env
     depends_on:
       - db
-    command: ["make test"]
+    command: make test
 
   db:
     image: postgres:15
