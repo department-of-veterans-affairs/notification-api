@@ -14,8 +14,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from app import db
 from app.authentication.auth import requires_admin_auth, requires_admin_auth_or_user_in_service
-from app.config import QueueNames
-from app.constants import KEY_TYPE_NORMAL, LETTER_TYPE, NOTIFICATION_CANCELLED
+from app.constants import LETTER_TYPE, NOTIFICATION_CANCELLED
 from app.dao import fact_notification_status_dao, notifications_dao
 from app.dao.api_key_dao import (
     get_model_api_key,
@@ -56,7 +55,6 @@ from app.dao.service_data_retention_dao import (
     insert_service_data_retention,
     update_service_data_retention,
 )
-from app.dao.templates_dao import dao_get_template_by_id
 from app.dao.users_dao import get_user_by_id
 from app.errors import InvalidRequest, register_errors
 from app.letters.utils import letter_print_day
@@ -65,7 +63,6 @@ from app.models import (
     Service,
     EmailBranding,
 )
-from app.notifications.process_notifications import persist_notification, send_notification_to_queue
 from app.schema_validation import validate
 from app.service import statistics
 from app.service.send_notification import send_one_off_notification
@@ -74,14 +71,12 @@ from app.service.service_data_retention_schema import (
     add_service_data_retention_request,
     update_service_data_retention_request,
 )
-from app.service.service_senders_schema import add_service_email_reply_to_request
 from app.schemas import (
     service_schema,
     api_key_schema,
     notification_with_template_schema,
     notifications_filter_schema,
     detailed_service_schema,
-    email_data_request_schema,
 )
 from app.smtp.aws import smtp_add, smtp_get_user_key, smtp_remove
 from app.user.users_schema import post_set_permissions_schema
@@ -319,7 +314,8 @@ def get_api_keys(
     service_id: UUID,
     key_id: UUID | None = None,
 ) -> tuple[Response, Literal[200, 404]]:
-    """Returns a list of api keys from the given service.
+    """Returns a list of api keys from the given service. The request may be filtered by including a min_expiry and/or
+    max_expiry query parameter. If no query parameters are included, only keys that are not expired or revoked.
 
     Args:
         service_id (UUID): The uuid of the service from which to pull keys
@@ -335,11 +331,20 @@ def get_api_keys(
     """
     dao_fetch_service_by_id(service_id=service_id)
 
+    min_expiry = request.args.get('min_expiry')
+    max_expiry = request.args.get('max_expiry')
+
     try:
         if key_id:
             api_keys = [get_model_api_key(key_id=key_id)]
         else:
             api_keys = get_model_api_keys(service_id=service_id)
+            if min_expiry:
+                min_expiry_date = datetime.strptime(min_expiry, '%Y-%m-%d')
+                api_keys = [key for key in api_keys if key.expiry_date >= min_expiry_date]
+            if max_expiry:
+                max_expiry_date = datetime.strptime(max_expiry, '%Y-%m-%d')
+                api_keys = [key for key in api_keys if key.expiry_date <= max_expiry_date]
     except NoResultFound:
         error = f'No valid API key found for service {service_id}'
         raise InvalidRequest(error, status_code=404)

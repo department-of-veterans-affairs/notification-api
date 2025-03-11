@@ -2027,3 +2027,50 @@ def test_delete_smtp_relay_for_service_returns_201_if_success(
 
     delete_mock.assert_called_once()
     assert resp.status_code == 201
+
+
+# Tests for the min_expiry/max_expiry filters in GET api keys
+def test_get_api_keys_returns_all_keys_when_no_expiry_filter(client, sample_api_key):
+    sample_api_key()
+    sample_api_key()
+    sample_api_key()
+
+    response = client.get('/api_key', headers=[create_admin_authorization_header()])
+    api_keys = response.get_json()['apiKeys']
+
+    assert response.status_code == 200
+    assert len(api_keys) == 3
+
+
+def test_get_api_keys_returns_keys_with_expiry_date_within_range(client, sample_api_key):
+    sample_api_key()
+    sample_api_key()
+    sample_api_key()
+    sample_api_key(expiry_date=datetime.utcnow() + timedelta(days=5))
+    sample_api_key(expiry_date=datetime.utcnow() + timedelta(days=10))
+    sample_api_key(expiry_date=datetime.utcnow() + timedelta(days=15))
+
+    response = client.get(
+        '/api_key?min_expiry_date=5&max_expiry_date=10', headers=[create_admin_authorization_header()]
+    )
+    api_keys = response.get_json()['apiKeys']
+
+    assert response.status_code == 200
+    assert len(api_keys) == 1
+
+
+def test_get_api_keys_returns_keys_with_expiry_date_within_range_inclusive(client, sample_api_key):
+    sample_api_key()
+    sample_api_key()
+    sample_api_key()
+    sample_api_key(expiry_date=datetime.utcnow() + timedelta(days=5))
+    sample_api_key(expiry_date=datetime.utcnow() + timedelta(days=10))
+    sample_api_key(expiry_date=datetime.utcnow() + timedelta(days=15))
+
+    response = client.get(
+        '/api_key?min_expiry_date=5&max_expiry_date=10', headers=[create_admin_authorization_header()]
+    )
+    api_keys = response.get_json()['apiKeys']
+
+    assert response.status_code == 200
+    assert len(api_keys) == 1

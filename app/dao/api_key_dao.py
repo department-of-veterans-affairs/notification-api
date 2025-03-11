@@ -51,7 +51,7 @@ def expire_api_key(
 def get_model_api_key(
     key_id: UUID,
 ) -> ApiKey:
-    """Retrieves the API key with the given id.
+    """Retrieves the API key with the given id, if it is not expired/revoked.
 
     Args:
         key_id (UUID): The API key uuid to lookup.
@@ -62,7 +62,7 @@ def get_model_api_key(
     Raises:
         NoResultFound: If there is no key with the given ID.
     """
-    stmt = select(ApiKey).where(ApiKey.id == key_id)
+    stmt = select(ApiKey).where(ApiKey.id == key_id, ApiKey.revoked.is_(False))
     return db.session.scalars(stmt).one()
 
 
@@ -78,7 +78,7 @@ def get_model_api_keys(service_id: UUID) -> list[ApiKey]:
     Raises:
         NoResultFound: If there is no key associated with the given service, or the key has been revoked.
     """
-    stmt = select(ApiKey).where(ApiKey.service_id == service_id)
+    stmt = select(ApiKey).where(ApiKey.service_id == service_id, ApiKey.revoked.is_(False))
     keys = db.session.scalars(stmt).all()
 
     if not keys:
