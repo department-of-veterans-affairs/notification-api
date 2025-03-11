@@ -22,7 +22,7 @@ fileignoreconfig:
 - filename: tests/app/service/test_api_key_endpoints.py
   checksum: 5eb0442e5ad525c7a3e33c43db8eeb8c52d40c91ca9a1b770dbd4a95de6975a8
 - filename: tests/app/service/test_rest.py
-  checksum: 611819598937e48d076ae863b40e37bc8e136ea13ed6cb8699f79e2ead2880a7
+  checksum: 9e04718d4fedf36691047babbd7df74335813f126acb4953b0d16105a4653c82
 - filename: tests/app/v2/notifications/test_get_notifications.py
   checksum: 167aa80c8aac01566b3cf627cdaa839feac9dc77f0b13b6d0a008035aa8e15f1
 version: "1.0"

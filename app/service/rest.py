@@ -331,19 +331,19 @@ def get_api_keys(
     """
     dao_fetch_service_by_id(service_id=service_id)
 
-    min_expiry = request.args.get('min_expiry')
-    max_expiry = request.args.get('max_expiry')
+    min_expiry_days = request.args.get('min_expiry')
+    max_expiry_days = request.args.get('max_expiry')
 
     try:
         if key_id:
             api_keys = [get_model_api_key(key_id=key_id)]
         else:
             api_keys = get_model_api_keys(service_id=service_id)
-            if min_expiry:
-                min_expiry_date = datetime.strptime(min_expiry, '%Y-%m-%d')
+            if min_expiry_days:
+                min_expiry_date = datetime.utcnow() + timedelta(days=int(min_expiry_days))
                 api_keys = [key for key in api_keys if key.expiry_date >= min_expiry_date]
-            if max_expiry:
-                max_expiry_date = datetime.strptime(max_expiry, '%Y-%m-%d')
+            if max_expiry_days:
+                max_expiry_date = datetime.utcnow() + timedelta(days=int(max_expiry_days))
                 api_keys = [key for key in api_keys if key.expiry_date <= max_expiry_date]
     except NoResultFound:
         error = f'No valid API key found for service {service_id}'
