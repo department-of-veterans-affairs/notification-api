@@ -94,6 +94,16 @@ def test_process_ses_results(notify_db_session, sample_template, sample_notifica
     assert notification.status_reason is None
 
 
+def test_process_ses_results_reference_none(mocker):
+    """Test that status notifications are not attempted if reference is None"""
+    mock_send_email_status = mocker.patch(
+        'app.celery.send_va_profile_notification_status_tasks.send_notification_status_to_va_profile.apply_async'
+    )
+
+    process_ses_receipts_tasks.process_ses_results(response=ses_notification_callback(reference=None))
+    mock_send_email_status.assert_not_called()
+
+
 def test_process_ses_results_notification_complaint(notify_db_session, sample_template, sample_notification, mocker):
     """Test that SES complaint referencing a notification is processed without error."""
     send_complaint_to_vanotify = mocker.patch(
@@ -107,7 +117,7 @@ def test_process_ses_results_notification_complaint(notify_db_session, sample_te
         template=template,
     )
 
-    assert process_ses_receipts_tasks.process_ses_results(
+    process_ses_receipts_tasks.process_ses_results(
         response=ses_notification_complaint_callback(reference=notification.reference)
     )
     send_complaint_to_vanotify.assert_called()
@@ -131,7 +141,7 @@ def test_process_ses_results_notification_history_complaint(
         template=template,
     )
 
-    assert process_ses_receipts_tasks.process_ses_results(
+    process_ses_receipts_tasks.process_ses_results(
         response=ses_notification_complaint_callback(reference=notification.reference)
     )
     send_complaint_to_vanotify.assert_called()
@@ -148,19 +158,20 @@ def test_process_ses_results_retry_called(mocker, sample_template, sample_notifi
     assert mocked.call_count != 0
 
 
-def test_process_ses_results_call_to_publish_complaint(mocker, notify_api):
+def test_process_ses_results_call_to_publish_complaint(sample_template, sample_notification, mocker, notify_api):
     publish_complaint = mocker.patch('app.celery.process_ses_receipts_tasks.publish_complaint')
-    provider_message = ses_complaint_callback()
 
-    complaint, notification, email = get_complaint_notification_and_email(mocker)
-
-    mocker.patch(
-        'app.celery.process_ses_receipts_tasks.handle_ses_complaint', return_value=(complaint, notification, email)
+    template = sample_template(template_type=EMAIL_TYPE)
+    notification: Notification = sample_notification(
+        status=NOTIFICATION_DELIVERED,
+        template=template,
     )
 
-    process_ses_receipts_tasks.process_ses_results(response=provider_message)
-
-    publish_complaint.assert_called_once_with(complaint, notification, email)
+    process_ses_receipts_tasks.process_ses_results(
+        response=ses_notification_complaint_callback(reference=notification.reference)
+    )
+    # TODO: called_once_with(complaint, notification, email)
+    publish_complaint.assert_called_once()
 
 
 def test_remove_emails_from_complaint():

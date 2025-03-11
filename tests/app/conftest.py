@@ -1555,7 +1555,7 @@ def sample_notification_history(
             key_type=key_type,
             api_key=api_key,
             api_key_id=api_key.id,
-            reference=reference,
+            reference=reference or uuid4(),
             sent_at=sent_at,
             sms_sender_id=sms_sender_id,
         )
