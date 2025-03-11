@@ -9,7 +9,7 @@ from flask import (
 from json import JSONDecodeError
 
 from notifications_utils.statsd_decorators import statsd
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 from app import notify_celery
 from app.celery.common import log_notification_total_time
@@ -60,7 +60,7 @@ def process_ses_results(  # noqa: C901 (too complex 14 > 10)
 
         try:
             notification = notifications_dao.dao_get_notification_by_reference(reference)
-        except NoResultFound:
+        except (NoResultFound, MultipleResultsFound):
             message_time = iso8601.parse_date(ses_message['mail']['timestamp']).replace(tzinfo=None)
             if datetime.utcnow() - message_time < timedelta(minutes=5):
                 self.retry(queue=QueueNames.RETRY)
