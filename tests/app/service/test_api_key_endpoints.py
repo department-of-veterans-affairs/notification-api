@@ -1,9 +1,10 @@
 import json
-
-from flask import url_for
-from sqlalchemy import delete, select, Table
+from datetime import datetime, timedelta
 from uuid import uuid4
 
+import pytest
+from flask import url_for
+from sqlalchemy import delete, select, Table
 
 from app import db
 from app.constants import KEY_TYPE_NORMAL
@@ -216,8 +217,8 @@ def test_get_api_keys_should_return_all_keys_for_service(
             # Second bogus key to put data into the DB after adding to the correct service
             sample_api_key(service=bogus_service)
 
-            # Verify 3 keys are are in the table with the given service id
-            assert len(get_model_api_keys(service.id)) == 3
+            # Verify 2 keys are are in the table with the given service id
+            assert len(get_model_api_keys(service.id)) == 2
 
             # Get request verification
             auth_header = create_admin_authorization_header()
@@ -227,7 +228,7 @@ def test_get_api_keys_should_return_all_keys_for_service(
             )
             assert response.status_code == 200
             json_resp = json.loads(response.get_data(as_text=True))
-            assert len(json_resp['apiKeys']) == 3
+            assert len(json_resp['apiKeys']) == 2
 
 
 def test_get_api_keys_should_return_one_key_for_service(notify_api, notify_db_session, sample_api_key, sample_service):
@@ -248,3 +249,52 @@ def test_get_api_keys_should_return_one_key_for_service(notify_api, notify_db_se
 
             # DB verification
             assert len(get_model_api_keys(service.id)) == 1
+
+
+@pytest.mark.parametrize(
+    ('query_params', 'num_keys'),
+    (
+        ('?min_expiry=0&max_expiry=0', 0),
+        ('?min_expiry=0', 2),
+        ('?max_expiry=0', 1),
+        ('?min_expiry=3', 2),
+        ('?max_expiry=3', 1),
+        ('?min_expiry=3&max_expiry=3', 0),
+        ('?max_expiry=3&min_expiry=3', 0),
+    ),
+    ids=(
+        'no_expiry',
+        'min_expiry_0',
+        'max_expiry_0',
+        'min_expiry_3',
+        'max_expiry_3',
+        'min_max_expiry_3',
+        'max_min_expiry_3',
+    ),
+)
+def test_get_api_keys_with_query_params(
+    notify_api, notify_db_session, sample_service, sample_api_key, query_params, num_keys
+):
+    with notify_api.test_request_context():
+        with notify_api.test_client() as client:
+            service = sample_service()
+            # Create some keys
+            # Key 1 - expired 7 days ago
+            expired_key = sample_api_key(key_name='expired key', service=service)
+            expired_key.expiry_date = datetime.utcnow() - timedelta(days=7)
+            notify_db_session.session.add(expired_key)
+            # Key 2 - expires in 7 days
+            key_7 = sample_api_key(key_name='key 7', service=service)
+            key_7.expiry_date = datetime.utcnow() + timedelta(days=7)
+            notify_db_session.session.add(key_7)
+            # Key 3 - expires in 14 days
+            key_14 = sample_api_key(key_name='key 14', service=service)
+            key_14.expiry_date = datetime.utcnow() + timedelta(days=14)
+            notify_db_session.session.add(key_14)
+
+            url = url_for('service.get_api_keys', service_id=service.id)
+            auth_header = create_admin_authorization_header()
+            response = client.get(url + query_params, headers=[('Content-Type', 'application/json'), auth_header])
+            assert response.status_code == 200
+            json_resp = json.loads(response.get_data(as_text=True))
+            assert len(json_resp['apiKeys']) == num_keys

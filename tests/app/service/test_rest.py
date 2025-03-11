@@ -2027,23 +2027,3 @@ def test_delete_smtp_relay_for_service_returns_201_if_success(
 
     delete_mock.assert_called_once()
     assert resp.status_code == 201
-
-
-# Tests for the min_expiry/max_expiry filters in GET api keys
-@pytest.mark.parametrize(('min_expiry', 'max_expiry'), ((None, None),))
-def test_get_api_keys_returns_all_keys_when_no_expiry_filter(client, sample_api_key, min_expiry, max_expiry):
-    sample_api_key()
-    sample_api_key()
-    sample_api_key()
-
-    url = '/api_key'
-    if min_expiry:
-        url += f'?min_expiry={min_expiry}'
-    if max_expiry:
-        url += f'?max_expiry={max_expiry}'
-
-    response = client.get(url, headers=[create_admin_authorization_header()])
-    api_keys = response.get_json()['apiKeys']
-
-    assert response.status_code == 200
-    assert len(api_keys) == 3

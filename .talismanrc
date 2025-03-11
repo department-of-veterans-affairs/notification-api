@@ -1,6 +1,6 @@
 fileignoreconfig:
 - filename: app/dao/api_key_dao.py
-  checksum: 5174cd06957432ba71ce08b681fa406fa7927b8b78acef480a50d677d94d341a
+  checksum: 13ec626fa8347a5732fd219f2a0c05188d0601ef5e9b14604e47c39142f0f7cd
 - filename: app/schema_validation/__init__.py
   checksum: 9487ddbb105a20f5fd495eb4426b7c27ee3be1894b69a189363363ed616722c0
 - filename: app/service/rest.py
@@ -20,7 +20,7 @@ fileignoreconfig:
 - filename: tests/app/dao/test_services_dao.py
   checksum: 572fb3a52e89ae19c5a94be881bcbfe0247bae112bce58d4ae1e9eff5a5c91b7
 - filename: tests/app/service/test_api_key_endpoints.py
-  checksum: 5eb0442e5ad525c7a3e33c43db8eeb8c52d40c91ca9a1b770dbd4a95de6975a8
+  checksum: a53d1342a998f3889fe8ce9352d8d02b468110dd7483893bfd65f5b61ef4606d
 - filename: tests/app/service/test_rest.py
   checksum: 9e04718d4fedf36691047babbd7df74335813f126acb4953b0d16105a4653c82
 - filename: tests/app/v2/notifications/test_get_notifications.py
