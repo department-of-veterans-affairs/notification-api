@@ -322,6 +322,8 @@ def test_get_api_keys_with_query_params(
         'min_expiry_invalid',
         'max_expiry_invalid',
         'min_max_expiry_invalid',
+        'min_expiry_negative',
+        'max_expiry_negative',
     ),
 )
 def test_get_api_keys_with_invalid_query_params(
