@@ -1796,7 +1796,7 @@ components:
       schema:
         type: integer
       required: false
-      description: Number of days from now
+      description: Results will include API keys that expire starting from this number of days
       example: 7
     MaxExpiryDays:
       name: max_expiry_days
@@ -1804,7 +1804,7 @@ components:
       schema:
         type: integer
       required: false
-      description: Number of days from now
+      description: Results will include API keys that expire within this number of days
       example: 14
   responses:
     PushCreated:
