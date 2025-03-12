@@ -22,7 +22,7 @@ def handle_ses_complaint(ses_message: dict, notification: Notification) -> Tuple
         'Complaint from SES: \n{}'.format(json.dumps(ses_message).replace('{', '(').replace('}', ')'))
     )
 
-    ses_complaint = ses_message.get('complaint', None)
+    ses_complaint = ses_message.get('complaint')
     complaint_type = ses_complaint.get('complaintFeedbackType', None) if ses_complaint else None
 
     if not complaint_type:

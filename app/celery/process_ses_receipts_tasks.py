@@ -40,19 +40,30 @@ def process_ses_results(  # noqa: C901 (too complex 19 > 10)
     response,
 ):
     current_app.logger.debug('Full SES result response: %s', response)
+
     try:
         ses_message = json.loads(response['Message'])
+    except JSONDecodeError:
+        current_app.logger.exception('Error decoding SES results: full response data: %s', response)
+        return
 
-        reference = ses_message['mail']['messageId']
-        if not reference:
-            current_app.logger.warning(
-                'SES complaint: unable to lookup notification, messageId (reference) was None | ses_message: %s',
-                ses_message,
-            )
-            return
+    reference = ses_message.get('mail', {}).get('messageId')
+    if not reference:
+        current_app.logger.warning(
+            'SES complaint: unable to lookup notification, messageId (reference) was None | ses_message: %s',
+            ses_message,
+        )
+        return
 
-        notification_type = ses_message.get('eventType')
+    notification_type = ses_message.get('eventType')
+    if notification_type is None:
+        current_app.logger.warning(
+            'SES response: nothing to process, eventType was None | ses_message: %s',
+            ses_message,
+        )
+        return
 
+    try:
         if notification_type == 'Bounce':
             # Bounces have ran their course with AWS and should be considered done. Clients can retry soft bounces.
             notification_type = determine_notification_bounce_type(notification_type, ses_message)
@@ -168,9 +179,6 @@ def process_ses_results(  # noqa: C901 (too complex 19 > 10)
         check_and_queue_va_profile_notification_status_callback(notification)
 
         return True
-
-    except JSONDecodeError:
-        current_app.logger.exception('Error decoding SES results: full response data: %s', response)
 
     except KeyError:
         current_app.logger.exception('AWS message malformed: full response data: %s', response)

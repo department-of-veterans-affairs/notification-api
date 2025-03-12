@@ -5,7 +5,7 @@ from sqlalchemy import select
 from uuid import uuid4
 
 from app.dao.notifications_dao import get_notification_by_id
-from app.models import Complaint, EMAIL_TYPE, Notification, NotificationHistory, UNKNOWN_COMPLAINT_TYPE
+from app.models import Complaint, EMAIL_TYPE, NotificationHistory, UNKNOWN_COMPLAINT_TYPE
 from app.notifications.notifications_ses_callback import handle_ses_complaint, handle_smtp_complaint
 
 from tests.app.db import (
@@ -30,7 +30,7 @@ def test_process_ses_results_in_complaint(
     sample_notification,
 ):
     ref = str(uuid4())
-    notification: Notification = sample_notification(gen_type=EMAIL_TYPE, reference=ref)
+    notification = sample_notification(gen_type=EMAIL_TYPE, reference=ref)
     complaint = ses_complaint_callback()['Message'].replace('ref1', ref)
     handle_ses_complaint(json.loads(complaint), notification)
 

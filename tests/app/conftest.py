@@ -1544,6 +1544,9 @@ def sample_notification_history(
         if api_key is None:
             api_key = sample_api_key(template.service, key_type=key_type)
 
+        if reference is None:
+            reference = str(uuid4())
+
         notification_history = NotificationHistory(
             id=uuid4(),
             service=template.service,
@@ -1555,7 +1558,7 @@ def sample_notification_history(
             key_type=key_type,
             api_key=api_key,
             api_key_id=api_key.id,
-            reference=reference or uuid4(),
+            reference=reference,
             sent_at=sent_at,
             sms_sender_id=sms_sender_id,
         )
