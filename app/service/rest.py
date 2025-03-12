@@ -321,6 +321,10 @@ def get_api_keys(
         service_id (UUID): The uuid of the service from which to pull keys
         key_id (UUID): The uuid of the key to lookup
 
+    Params:
+        min_expiry (int): The minimum number of days until expiry
+        max_expiry (int): The maximum number of days until expiry
+
     Returns:
         tuple[Response, Literal[200, 404]]: 200 OK
         - Returns json list of API keys for the given service, or a list with the indicated key if a key_id is included.
@@ -339,23 +343,26 @@ def get_api_keys(
         raise InvalidRequest(error, status_code=400)
 
     max_expiry_days = request.args.get('max_expiry')
+    # Ensure that min and max expiry days are integers
     try:
         max_expiry_days = int(max_expiry_days) if max_expiry_days else None
     except ValueError:
         error = f"Maximum expiry days must be an integer, received '{request.args.get('max_expiry')}'"
         raise InvalidRequest(error, status_code=400)
 
+    # Ensure that min_expiry_days is less than max_expiry_days, if both are provided
     if (min_expiry_days is not None and max_expiry_days is not None) and (min_expiry_days > max_expiry_days):
         error = f"Minimum expiry days '{min_expiry_days}' must be less than maximum expiry days '{max_expiry_days}'"
         raise InvalidRequest(error, status_code=400)
 
-    # Ensure that the max and min are not negative
+    # Ensure that min_expiry_days and max_expiry_days are greater than 0, if provided
     if min_expiry_days and min_expiry_days < 0:
         error = f"Minimum expiry days '{min_expiry_days}' must be greater than 0"
         raise InvalidRequest(error, status_code=400)
     if max_expiry_days and max_expiry_days < 0:
         error = f"Maximum expiry days '{max_expiry_days}' must be greater than 0"
         raise InvalidRequest(error, status_code=400)
+
     try:
         if key_id:
             api_keys = [get_model_api_key(key_id=key_id)]
