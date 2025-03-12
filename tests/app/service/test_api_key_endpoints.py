@@ -315,6 +315,8 @@ def test_get_api_keys_with_query_params(
         ('?min_expiry=a', "Minimum expiry days must be an integer, received 'a'"),
         ('?max_expiry=a', "Maximum expiry days must be an integer, received 'a'"),
         ('?min_expiry=1&max_expiry=0', "Minimum expiry days '1' must be less than maximum expiry days '0'"),
+        ('?min_expiry=-5', "Minimum expiry days '-5' must be greater than or equal to 0"),
+        ('?max_expiry=-5', "Maximum expiry days '-5' must be greater than or equal to 0"),
     ),
     ids=(
         'min_expiry_invalid',

@@ -349,6 +349,13 @@ def get_api_keys(
         error = f"Minimum expiry days '{min_expiry_days}' must be less than maximum expiry days '{max_expiry_days}'"
         raise InvalidRequest(error, status_code=400)
 
+    # Ensure that the max and min are not negative
+    if min_expiry_days and min_expiry_days < 0:
+        error = f"Minimum expiry days '{min_expiry_days}' must be greater than 0"
+        raise InvalidRequest(error, status_code=400)
+    if max_expiry_days and max_expiry_days < 0:
+        error = f"Maximum expiry days '{max_expiry_days}' must be greater than 0"
+        raise InvalidRequest(error, status_code=400)
     try:
         if key_id:
             api_keys = [get_model_api_key(key_id=key_id)]
