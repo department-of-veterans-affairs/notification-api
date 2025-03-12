@@ -336,7 +336,9 @@ def get_api_keys(
         if key_id:
             api_keys = [get_model_api_key(key_id=key_id)]
         else:
-            include_revoked = 'include_revoked' in request.args
+            include_revoked = request.args.get('include_revoked', False)
+            # Convert string to boolean
+            include_revoked = include_revoked in [True, 'true', 't', 'True', 'T']
             api_keys = get_model_api_keys(service_id=service_id, include_revoked=include_revoked)
     except NoResultFound:
         error = f'No valid API key found for service {service_id}'
