@@ -81,6 +81,20 @@ def test_process_ses_results_reference_none(mocker, notify_api):
     )
 
 
+def test_process_ses_results_event_type_none(mocker, notify_api):
+    """Test that status notifications are not attempted if event type is None"""
+    mock_logger = mocker.patch('app.celery.process_ses_receipts_tasks.current_app.logger')
+    response = ses_notification_callback(reference=None)
+    ses_message = json.loads(response['Message'])
+    ses_message.pop('eventType')
+
+    process_ses_receipts_tasks.process_ses_results(response={'Message': json.dumps(ses_message)})
+    mock_logger.warning.assert_called_with(
+        'SES complaint: unable to lookup notification, messageId (reference) was None | ses_message: %s',
+        ses_message,
+    )
+
+
 def test_process_ses_results_notification_delivery(notify_db_session, sample_template, sample_notification, mocker):
     template = sample_template(template_type=EMAIL_TYPE)
     ref = str(uuid4())
