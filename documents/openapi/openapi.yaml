@@ -1044,6 +1044,8 @@ paths:
   /service/{service_id}/api-keys:
     parameters:
       - $ref: "#/components/parameters/ServiceId"
+      - $ref: "#/components/parameters/MinExpiryDays"
+      - $ref: "#/components/parameters/MaxExpiryDays"
     get:
       tags:
         - api key
@@ -1788,6 +1790,22 @@ components:
       required: true
       description: CommunicationItem identifier
       example: e925b547-8195-4ed2-83c5-0633a74d780a
+    MinExpiryDays:
+      name: min_expiry_days
+      in: query
+      schema:
+        type: integer
+      required: false
+      description: Number of days from now
+      example: 7
+    MaxExpiryDays:
+      name: max_expiry_days
+      in: query
+      schema:
+        type: integer
+      required: false
+      description: Number of days from now
+      example: 14
   responses:
     PushCreated:
       description: CREATED
