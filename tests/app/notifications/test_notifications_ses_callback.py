@@ -40,19 +40,6 @@ def test_process_ses_results_in_complaint(
     assert complaints[0].notification_id == notification.id
 
 
-# lookup moved out of function
-# def test_handle_complaint_does_not_raise_exception_if_reference_is_missing():
-#     response = json.loads(ses_complaint_callback_malformed_message_id()['Message'])
-#     handle_ses_complaint(response, 'ref1')
-
-
-# lookup moved out of function
-# def test_handle_complaint_does_raise_exception_if_notification_not_found():
-#     response = json.loads(ses_complaint_callback()['Message'])
-#     with pytest.raises(expected_exception=SQLAlchemyError):
-#         handle_ses_complaint(response)
-
-
 def test_process_ses_results_in_complaint_if_notification_history_does_not_exist(
     notify_db_session,
     sample_notification,
