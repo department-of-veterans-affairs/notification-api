@@ -359,7 +359,7 @@ def get_api_keys(
     if min_expiry_days is not None and min_expiry_days <= 0:
         error = f"Minimum expiry days '{min_expiry_days}' must be greater than 0"
         raise InvalidRequest(error, status_code=400)
-    if max_expiry_days and max_expiry_days < 0:
+    if max_expiry_days is not None and max_expiry_days <= 0:
         error = f"Maximum expiry days '{max_expiry_days}' must be greater than 0"
         raise InvalidRequest(error, status_code=400)
 
