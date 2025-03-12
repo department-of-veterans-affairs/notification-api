@@ -255,8 +255,8 @@ def test_get_api_keys_should_return_one_key_for_service(notify_api, notify_db_se
     ('query_params', 'num_keys'),
     (
         ('', 4),
-        ('?min_expiry=0', 4),
-        ('?max_expiry=0', 4),
+        ('?min_expiry=1', 4),
+        ('?max_expiry=1', 0),
         ('?min_expiry=4', 3),
         ('?max_expiry=4', 1),
         ('?min_expiry=4&max_expiry=16', 3),
@@ -264,8 +264,8 @@ def test_get_api_keys_should_return_one_key_for_service(notify_api, notify_db_se
     ),
     ids=(
         'no_params',
-        'min_expiry_0',
-        'max_expiry_0',
+        'min_expiry_1',
+        'max_expiry_1',
         'min_expiry_4',
         'max_expiry_4',
         'min_max_expiry_4_16',
@@ -315,8 +315,8 @@ def test_get_api_keys_with_query_params(
         ('?min_expiry=a', "Minimum expiry days must be an integer, received 'a'"),
         ('?max_expiry=a', "Maximum expiry days must be an integer, received 'a'"),
         ('?min_expiry=1&max_expiry=0', "Minimum expiry days '1' must be less than maximum expiry days '0'"),
-        ('?min_expiry=-5', "Minimum expiry days '-5' must be greater than or equal to 0"),
-        ('?max_expiry=-5', "Maximum expiry days '-5' must be greater than or equal to 0"),
+        ('?min_expiry=-5', "Minimum expiry days '-5' must be greater than 0"),
+        ('?max_expiry=-5', "Maximum expiry days '-5' must be greater than 0"),
     ),
     ids=(
         'min_expiry_invalid',
