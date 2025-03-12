@@ -20,7 +20,7 @@ fileignoreconfig:
 - filename: tests/app/dao/test_services_dao.py
   checksum: 572fb3a52e89ae19c5a94be881bcbfe0247bae112bce58d4ae1e9eff5a5c91b7
 - filename: tests/app/service/test_api_key_endpoints.py
-  checksum: f362beef1b712d9e2c4aa9fd9b9bc75caa7b2625606569f06631140a5ac5e231
+  checksum: 9cdd892c6ea6b6e911e50f216ed64401f9106ee0dd364d8935ebe96988dd556c
 - filename: tests/app/service/test_rest.py
   checksum: 9e04718d4fedf36691047babbd7df74335813f126acb4953b0d16105a4653c82
 - filename: tests/app/v2/notifications/test_get_notifications.py
