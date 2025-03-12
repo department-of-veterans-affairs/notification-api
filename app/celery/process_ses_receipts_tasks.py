@@ -35,7 +35,7 @@ from app.celery.service_callback_tasks import check_and_queue_callback_task
 
 @notify_celery.task(bind=True, name='process-ses-result', max_retries=5, default_retry_delay=300)
 @statsd(namespace='tasks')
-def process_ses_results(  # noqa: C901 (too complex 14 > 10)
+def process_ses_results(  # noqa: C901 (too complex 19 > 10)
     self,
     response,
 ):
@@ -46,7 +46,8 @@ def process_ses_results(  # noqa: C901 (too complex 14 > 10)
         reference = ses_message['mail']['messageId']
         if reference is None:
             current_app.logger.warning(
-                'SES complaint: unable to lookup notification, messageId was None | ses_message: %s', ses_message
+                'SES complaint: unable to lookup notification, messageId (reference) was None | ses_message: %s',
+                ses_message,
             )
             return
 
