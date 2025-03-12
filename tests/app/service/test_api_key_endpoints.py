@@ -254,47 +254,83 @@ def test_get_api_keys_should_return_one_key_for_service(notify_api, notify_db_se
 @pytest.mark.parametrize(
     ('query_params', 'num_keys'),
     (
-        ('?min_expiry=0&max_expiry=0', 0),
-        ('?min_expiry=0', 2),
-        ('?max_expiry=0', 1),
-        ('?min_expiry=3', 2),
-        ('?max_expiry=3', 1),
-        ('?min_expiry=3&max_expiry=3', 0),
-        ('?max_expiry=3&min_expiry=3', 0),
+        ('', 4),
+        ('?min_expiry=0', 4),
+        ('?max_expiry=0', 4),
+        ('?min_expiry=4', 3),
+        ('?max_expiry=4', 1),
+        ('?min_expiry=4&max_expiry=16', 3),
+        ('?max_expiry=16&min_expiry=4', 3),
     ),
     ids=(
-        'no_expiry',
+        'no_params',
         'min_expiry_0',
         'max_expiry_0',
-        'min_expiry_3',
-        'max_expiry_3',
-        'min_max_expiry_3',
-        'max_min_expiry_3',
+        'min_expiry_4',
+        'max_expiry_4',
+        'min_max_expiry_4_16',
+        'max_min_expiry_4_16',
     ),
 )
 def test_get_api_keys_with_query_params(
     notify_api, notify_db_session, sample_service, sample_api_key, query_params, num_keys
 ):
+    service = sample_service()
+
+    # Create some keys
+    # Expired 7 days ago
+    expired_key = sample_api_key(key_name='expired key', service=service)
+    expired_key.expiry_date = datetime.utcnow() - timedelta(days=7)
+    notify_db_session.session.add(expired_key)
+    # Expires in 3 days
+    key_3 = sample_api_key(key_name='key 3', service=service)
+    key_3.expiry_date = datetime.utcnow() + timedelta(days=3)
+    notify_db_session.session.add(key_3)
+    # Expires in 7 days
+    key_7 = sample_api_key(key_name='key 7', service=service)
+    key_7.expiry_date = datetime.utcnow() + timedelta(days=7)
+    notify_db_session.session.add(key_7)
+    # Expires in 10 days
+    key_10 = sample_api_key(key_name='key 10', service=service)
+    key_10.expiry_date = datetime.utcnow() + timedelta(days=10)
+    notify_db_session.session.add(key_10)
+    # Expires in 14 days
+    key_14 = sample_api_key(key_name='key 14', service=service)
+    key_14.expiry_date = datetime.utcnow() + timedelta(days=14)
+    notify_db_session.session.add(key_14)
+
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
-            service = sample_service()
-            # Create some keys
-            # Key 1 - expired 7 days ago
-            expired_key = sample_api_key(key_name='expired key', service=service)
-            expired_key.expiry_date = datetime.utcnow() - timedelta(days=7)
-            notify_db_session.session.add(expired_key)
-            # Key 2 - expires in 7 days
-            key_7 = sample_api_key(key_name='key 7', service=service)
-            key_7.expiry_date = datetime.utcnow() + timedelta(days=7)
-            notify_db_session.session.add(key_7)
-            # Key 3 - expires in 14 days
-            key_14 = sample_api_key(key_name='key 14', service=service)
-            key_14.expiry_date = datetime.utcnow() + timedelta(days=14)
-            notify_db_session.session.add(key_14)
-
             url = url_for('service.get_api_keys', service_id=service.id)
             auth_header = create_admin_authorization_header()
             response = client.get(url + query_params, headers=[('Content-Type', 'application/json'), auth_header])
             assert response.status_code == 200
             json_resp = json.loads(response.get_data(as_text=True))
             assert len(json_resp['apiKeys']) == num_keys
+
+
+@pytest.mark.parametrize(
+    ('query_params', 'error_message'),
+    (
+        ('?min_expiry=a', "Minimum expiry days must be an integer, received 'a'"),
+        ('?max_expiry=a', "Maximum expiry days must be an integer, received 'a'"),
+        ('?min_expiry=1&max_expiry=0', "Minimum expiry days '1' must be less than maximum expiry days '0'"),
+    ),
+    ids=(
+        'min_expiry_invalid',
+        'max_expiry_invalid',
+        'min_max_expiry_invalid',
+    ),
+)
+def test_get_api_keys_with_invalid_query_params(
+    notify_api, notify_db_session, sample_service, query_params, error_message
+):
+    with notify_api.test_request_context():
+        with notify_api.test_client() as client:
+            service = sample_service()
+            url = url_for('service.get_api_keys', service_id=service.id)
+            auth_header = create_admin_authorization_header()
+            response = client.get(url + query_params, headers=[('Content-Type', 'application/json'), auth_header])
+            assert response.status_code == 400
+            json_resp = json.loads(response.get_data(as_text=True))
+            assert json_resp['message'] == error_message

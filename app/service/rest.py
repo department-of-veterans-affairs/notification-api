@@ -330,9 +330,24 @@ def get_api_keys(
         - If there are no valid API keys for the requested service, or the requested service id does not exist.
     """
     dao_fetch_service_by_id(service_id=service_id)
-
     min_expiry_days = request.args.get('min_expiry')
+
+    try:
+        min_expiry_days = int(min_expiry_days) if min_expiry_days else None
+    except ValueError:
+        error = f"Minimum expiry days must be an integer, received '{request.args.get('min_expiry')}'"
+        raise InvalidRequest(error, status_code=400)
+
     max_expiry_days = request.args.get('max_expiry')
+    try:
+        max_expiry_days = int(max_expiry_days) if max_expiry_days else None
+    except ValueError:
+        error = f"Maximum expiry days must be an integer, received '{request.args.get('max_expiry')}'"
+        raise InvalidRequest(error, status_code=400)
+
+    if (min_expiry_days is not None and max_expiry_days is not None) and (min_expiry_days > max_expiry_days):
+        error = f"Minimum expiry days '{min_expiry_days}' must be less than maximum expiry days '{max_expiry_days}'"
+        raise InvalidRequest(error, status_code=400)
 
     try:
         if key_id:
@@ -340,10 +355,10 @@ def get_api_keys(
         else:
             api_keys = get_model_api_keys(service_id=service_id)
             if min_expiry_days:
-                min_expiry_date = datetime.utcnow() + timedelta(days=int(min_expiry_days))
+                min_expiry_date = datetime.utcnow() + timedelta(days=min_expiry_days)
                 api_keys = [key for key in api_keys if key.expiry_date >= min_expiry_date]
             if max_expiry_days:
-                max_expiry_date = datetime.utcnow() + timedelta(days=int(max_expiry_days))
+                max_expiry_date = datetime.utcnow() + timedelta(days=max_expiry_days)
                 api_keys = [key for key in api_keys if key.expiry_date <= max_expiry_date]
     except NoResultFound:
         error = f'No valid API key found for service {service_id}'
