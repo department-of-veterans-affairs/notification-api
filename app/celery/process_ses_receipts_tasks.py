@@ -44,7 +44,7 @@ def process_ses_results(  # noqa: C901 (too complex 19 > 10)
         ses_message = json.loads(response['Message'])
 
         reference = ses_message['mail']['messageId']
-        if reference is None:
+        if not reference:
             current_app.logger.warning(
                 'SES complaint: unable to lookup notification, messageId (reference) was None | ses_message: %s',
                 ses_message,
