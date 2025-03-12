@@ -185,7 +185,6 @@ def test_process_ses_results_call_to_publish_complaint(sample_template, sample_n
     process_ses_receipts_tasks.process_ses_results(
         response=ses_notification_complaint_callback(reference=notification.reference)
     )
-    # TODO: called_once_with(complaint, notification, email)
     publish_complaint.assert_called_once()
 
 
