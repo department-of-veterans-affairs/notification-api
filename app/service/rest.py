@@ -314,16 +314,14 @@ def get_api_keys(
     service_id: UUID,
     key_id: UUID | None = None,
 ) -> tuple[Response, Literal[200, 404]]:
-    """Returns a list of api keys from the given service. The request may be filtered by including a min_expiry and/or
-    max_expiry query parameter. If no query parameters are included, only keys that are not expired or revoked.
+    """Returns a list of api keys from the given service.
 
     Args:
         service_id (UUID): The uuid of the service from which to pull keys
         key_id (UUID): The uuid of the key to lookup
 
     Params:
-        min_expiry (int): The minimum number of days until expiry
-        max_expiry (int): The maximum number of days until expiry
+        include_revoked: Including this param will return all keys, including revoked ones.
 
     Returns:
         tuple[Response, Literal[200, 404]]: 200 OK
@@ -334,46 +332,12 @@ def get_api_keys(
         - If there are no valid API keys for the requested service, or the requested service id does not exist.
     """
     dao_fetch_service_by_id(service_id=service_id)
-    min_expiry_days = request.args.get('min_expiry')
-
-    try:
-        min_expiry_days = int(min_expiry_days) if min_expiry_days else None
-    except ValueError:
-        error = f"Minimum expiry days must be an integer, received '{request.args.get('min_expiry')}'"
-        raise InvalidRequest(error, status_code=400)
-
-    max_expiry_days = request.args.get('max_expiry')
-    # Ensure that min and max expiry days are integers
-    try:
-        max_expiry_days = int(max_expiry_days) if max_expiry_days else None
-    except ValueError:
-        error = f"Maximum expiry days must be an integer, received '{request.args.get('max_expiry')}'"
-        raise InvalidRequest(error, status_code=400)
-
-    # Ensure that min_expiry_days is less than max_expiry_days, if both are provided
-    if (min_expiry_days is not None and max_expiry_days is not None) and (min_expiry_days > max_expiry_days):
-        error = f"Minimum expiry days '{min_expiry_days}' must be less than maximum expiry days '{max_expiry_days}'"
-        raise InvalidRequest(error, status_code=400)
-
-    # Ensure that min_expiry_days and max_expiry_days are greater than 0, if provided
-    if min_expiry_days is not None and min_expiry_days <= 0:
-        error = f"Minimum expiry days '{min_expiry_days}' must be greater than 0"
-        raise InvalidRequest(error, status_code=400)
-    if max_expiry_days is not None and max_expiry_days <= 0:
-        error = f"Maximum expiry days '{max_expiry_days}' must be greater than 0"
-        raise InvalidRequest(error, status_code=400)
-
     try:
         if key_id:
             api_keys = [get_model_api_key(key_id=key_id)]
         else:
-            api_keys = get_model_api_keys(service_id=service_id)
-            if min_expiry_days:
-                min_expiry_date = datetime.utcnow() + timedelta(days=min_expiry_days)
-                api_keys = [key for key in api_keys if key.expiry_date >= min_expiry_date]
-            if max_expiry_days:
-                max_expiry_date = datetime.utcnow() + timedelta(days=max_expiry_days)
-                api_keys = [key for key in api_keys if key.expiry_date <= max_expiry_date]
+            include_revoked = 'include_revoked' in request.args
+            api_keys = get_model_api_keys(service_id=service_id, include_revoked=include_revoked)
     except NoResultFound:
         error = f'No valid API key found for service {service_id}'
         raise InvalidRequest(error, status_code=404)

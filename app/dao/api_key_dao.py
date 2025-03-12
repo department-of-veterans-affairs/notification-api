@@ -66,12 +66,13 @@ def get_model_api_key(
     return db.session.scalars(stmt).one()
 
 
-def get_model_api_keys(service_id: UUID) -> list[ApiKey]:
+def get_model_api_keys(service_id: UUID, include_revoked=False) -> list[ApiKey]:
     """Retrieves the API keys associated with the given service id. Only returns keys that are not revoked and have not
     expired.
 
     Args:
         service_id (UUID): The service id uuid to use when looking up API keys.
+        include_revoked (bool): If True, include revoked keys in the results. Defaults to False.
 
     Returns:
         list[ApiKey]: The API keys associated with the given service id, if any are found.
@@ -79,9 +80,10 @@ def get_model_api_keys(service_id: UUID) -> list[ApiKey]:
     Raises:
         NoResultFound: If there is no key associated with the given service, or the key has been revoked.
     """
-    stmt = select(ApiKey).where(
-        ApiKey.service_id == service_id, ApiKey.revoked.is_(False), ApiKey.expiry_date > datetime.utcnow()
-    )
+    stmt = select(ApiKey).where(ApiKey.service_id == service_id)
+    if not include_revoked:
+        stmt = stmt.where(ApiKey.revoked.is_(False))
+
     keys = db.session.scalars(stmt).all()
 
     if not keys:
