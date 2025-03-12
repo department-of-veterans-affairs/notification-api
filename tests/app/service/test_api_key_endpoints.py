@@ -217,7 +217,7 @@ def test_get_api_keys_should_return_all_keys_for_service(
             # Second bogus key to put data into the DB after adding to the correct service
             sample_api_key(service=bogus_service)
 
-            # Verify 2 keys are are in the table with the given service id
+            # Verify 2 keys are in the table with the given service id
             assert len(get_model_api_keys(service.id)) == 2
 
             # Get request verification
