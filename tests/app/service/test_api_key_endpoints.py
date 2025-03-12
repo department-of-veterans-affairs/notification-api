@@ -259,7 +259,7 @@ def test_get_api_keys_with_is_revoked(notify_api, notify_db_session, sample_serv
             expire_api_key(service_id=expired_key.service_id, api_key_id=expired_key.id)
             # Get request verification
             auth_header = create_admin_authorization_header()
-            # Generate a url, with the is_revoked query parameter present
+            # Generate a url, with the include_revoked query parameter present
             url = url_for('service.get_api_keys', service_id=service.id)
             url += '?include_revoked'
             response = client.get(
