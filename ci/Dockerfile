@@ -39,7 +39,6 @@ WORKDIR /app
 # Copy full context for CI (tests, lambda_functions, and app)
 COPY app/ app
 COPY lambda_functions/ lambda_functions
-COPY tests/ tests
 COPY test_csv_files/ test_csv_files
 COPY migrations/ migrations
 COPY scripts/ scripts
