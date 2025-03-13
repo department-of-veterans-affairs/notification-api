@@ -53,8 +53,9 @@ def handler(generic):
     logs.append(f'HEADERS: {headers_string}')
     current_app.logger.info('Generic Internal Request: %s', ' | '.join(logs))
     if request.method == 'GET':
-        response_message = f'GET request received for endpoint {request.full_path}'
-        response_body = {'message': response_message}
+        # response_message = f'GET request received for endpoint {request.full_path}'
+        # response_body = {'message': response_message}
+        response_body = jsonify(message=f'GET request received for endpoint {request.full_path}')
     else:
         response_body = {generic: request.json}
 
