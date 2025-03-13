@@ -482,6 +482,7 @@ def test_update_should_update_a_template(client, sample_user, sample_service, sa
     new_content = 'My template has new content.'
     data = json.dumps(
         {
+            'reply_to_text': '+18009998888',
             'content': new_content,
             'created_by': str(sample_user().id),
         }
@@ -501,6 +502,7 @@ def test_update_should_update_a_template(client, sample_user, sample_service, sa
     assert update_json_resp['data']['name'] == template.name
     assert update_json_resp['data']['template_type'] == template.template_type
     assert update_json_resp['data']['version'] == 2
+    assert update_json_resp['data']['reply_to_text'] == '+18009998888'
 
 
 def test_should_be_able_to_archive_template(notify_db_session, client, sample_template):

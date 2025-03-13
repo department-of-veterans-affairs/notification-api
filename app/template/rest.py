@@ -146,6 +146,9 @@ def update_template(
         # Don't update anything else.
         return redact_template(fetched_template, data)
 
+    # BUG #1200 - see test test_update_should_update_a_template
+    # if statement catches `reply_to_text` but does not update
+    # returns update template early
     if 'reply_to' in data:
         check_reply_to(service_id, data.get('reply_to'), fetched_template.template_type)
         updated = dao_update_template_reply_to(template_id=template_id, reply_to=data.get('reply_to'))
