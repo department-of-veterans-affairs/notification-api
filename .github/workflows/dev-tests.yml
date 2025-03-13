@@ -14,15 +14,6 @@ on:
         type: string
         required: true
 
-env:
-  PYTHONDONTWRITEBYTECODE: 1
-  REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
-  PORT: 6011
-  POETRY_ARGS: "--with static_tools,test"
-  POETRY_HOME: "/opt/poetry" 
-  POETRY_VIRTUALENVS_IN_PROJECT: 1 
-  POETRY_NO_INTERACTION: 1
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -32,12 +23,6 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
-      - name: echo workspace
-        run: echo ${{ github.workspace }}
-
-      - name: list files
-        run: ls ${{ github.workspace }}
-
       - name: Run tests using docker-compose
         run: |
           # Build images, start containers, and run tests.
@@ -45,24 +30,24 @@ jobs:
           # Tear down containers after tests complete
           docker compose -f ci/docker-compose-ci.yml down
 
-  # code-scan:
-  #   runs-on: ${{ vars.RUNS_ON }}
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         ref: ${{ inputs.ref }}
-  #     - uses: actions/setup-python@v5
-  #       with:
-  #         python-version: "3.10"
-  #     - run: make check-vulnerabilities
+  code-scan:
+    runs-on: ${{ vars.RUNS_ON }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: make check-vulnerabilities
 
-  # dependency-scan:
-  #   runs-on: ${{ vars.RUNS_ON }}
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         ref: ${{ inputs.ref }}
-  #     - uses: actions/setup-python@v5
-  #       with:
-  #         python-version: "3.10"
-  #     - run: make check-dependencies
+  dependency-scan:
+    runs-on: ${{ vars.RUNS_ON }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: make check-dependencies
