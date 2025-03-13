@@ -53,7 +53,6 @@ def handler(generic):
     logs.append(f'HEADERS: {headers_string}')
     current_app.logger.info('Generic Internal Request: %s', ' | '.join(logs))
     if request.method == 'GET':
-        # response_body = f'GET request received for endpoint {request.full_path}'
         response_message = f'GET request received for endpoint {request.full_path}'
         response_body = {'message': response_message}
     else:
