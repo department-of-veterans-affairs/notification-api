@@ -291,3 +291,23 @@ def test_get_api_keys_with_is_revoked(
             assert response.status_code == 200
             json_resp = json.loads(response.get_data(as_text=True))
             assert len(json_resp['apiKeys']) == num_keys
+
+
+def test_get_api_keys_with_invalid_is_revoked_param(notify_api, notify_db_session, sample_service, sample_api_key):
+    with notify_api.test_request_context():
+        with notify_api.test_client() as client:
+            service = sample_service()
+            sample_api_key(service=service, key_name='key1')
+            sample_api_key(service=service, key_name='key2')
+            expired_key = sample_api_key(service=service, key_name='expired_key')
+            expire_api_key(service_id=expired_key.service_id, api_key_id=expired_key.id)
+
+            auth_header = create_admin_authorization_header()
+            url = url_for('service.get_api_keys', service_id=service.id, include_revoked='invalid')
+            response = client.get(
+                url,
+                headers=[('Content-Type', 'application/json'), auth_header],
+            )
+            assert response.status_code == 400
+            json_resp = json.loads(response.get_data(as_text=True))
+            assert json_resp['message'] == 'Invalid value for include_revoked'
