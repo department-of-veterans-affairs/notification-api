@@ -336,8 +336,8 @@ def get_api_keys(
     include_revoked = str(include_revoked).lower()
     if include_revoked not in ('true', 't', 'false', 'f'):
         raise InvalidRequest('Invalid value for include_revoked', status_code=400)
-
     include_revoked = include_revoked in ('true', 't')
+
     dao_fetch_service_by_id(service_id=service_id)
 
     try:
