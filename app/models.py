@@ -536,6 +536,9 @@ class ServiceSmsSender(db.Model):
     sms_sender_specifics = db.Column(db.JSON(), doc='A placeholder for any service provider we might want to use.')
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.datetime.utcnow)
 
+    # SPIKE #1200 - get_reply_to_text exists in two places
+    # One the ServiceSmsSender and TemplateBase
+    # This get_reply_to_text uses sms_sender's phone number
     def get_reply_to_text(self):
         return try_validate_and_format_phone_number(self.sms_sender)
 
@@ -880,6 +883,9 @@ class TemplateBase(db.Model):
         else:
             raise ValueError('Unable to set sender for {} template'.format(self.template_type))
 
+    # SPIKE #1200 - get_reply_to_text exists in two places
+    # One the ServiceSmsSender and TemplateBase
+    # This get_reply_to_text uses the template's service default_sms_sender number
     def get_reply_to_text(self) -> Optional[str]:
         if self.template_type == SMS_TYPE:
             return try_validate_and_format_phone_number(self.service.get_default_sms_sender())

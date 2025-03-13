@@ -475,6 +475,7 @@ def test_must_have_a_subject_on_an_email_or_letter_template(client, sample_user,
     assert json_resp['errors'][0]['message'] == 'subject is a required property'
 
 
+# SPIKE - #1200 failing test for updating reply_to_text attribute on template
 def test_update_should_update_a_template(client, sample_user, sample_service, sample_template):
     service = sample_service(service_permissions=[SMS_TYPE])
     template = sample_template(service=service, template_type=SMS_TYPE)
