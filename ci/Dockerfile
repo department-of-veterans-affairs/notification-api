@@ -41,7 +41,6 @@ COPY app/ app
 COPY lambda_functions/ lambda_functions
 COPY tests/ tests
 COPY test_csv_files/ test_csv_files
-COPY cd/ cd
 COPY migrations/ migrations
 COPY scripts/ scripts
 COPY images/ images
