@@ -67,8 +67,7 @@ def get_model_api_key(
 
 
 def get_model_api_keys(service_id: UUID, include_revoked=False) -> list[ApiKey]:
-    """Retrieves the API keys associated with the given service id. Only returns keys that are not revoked and have not
-    expired.
+    """Retrieves the API keys associated with the given service id. By default, only active keys are returned.
 
     Args:
         service_id (UUID): The service id uuid to use when looking up API keys.

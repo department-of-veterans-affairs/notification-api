@@ -321,7 +321,8 @@ def get_api_keys(
         key_id (UUID): The uuid of the key to lookup
 
     Params:
-        include_revoked: Including this param will return all keys, including revoked ones.
+        include_revoked: Including this param will return all keys, including revoked ones. By default, returns only
+        non-revoked keys.
 
     Returns:
         tuple[Response, Literal[200, 404]]: 200 OK
@@ -332,13 +333,17 @@ def get_api_keys(
         - If there are no valid API keys for the requested service, or the requested service id does not exist.
     """
     dao_fetch_service_by_id(service_id=service_id)
+
+    include_revoked = request.args.get('include_revoked', 'f')
+    include_revoked = str(include_revoked).lower()
+    if include_revoked not in ('true', 't', 'false', 'f'):
+        raise InvalidRequest('Invalid value for include_revoked', status_code=400)
+    include_revoked = include_revoked in ('true', 't')
+
     try:
         if key_id:
             api_keys = [get_model_api_key(key_id=key_id)]
         else:
-            include_revoked = request.args.get('include_revoked', False)
-            # Convert string to boolean
-            include_revoked = include_revoked in [True, 'true', 't', 'True', 'T']
             api_keys = get_model_api_keys(service_id=service_id, include_revoked=include_revoked)
     except NoResultFound:
         error = f'No valid API key found for service {service_id}'

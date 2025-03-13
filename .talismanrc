@@ -1,10 +1,10 @@
 fileignoreconfig:
 - filename: app/dao/api_key_dao.py
-  checksum: b705ce0649864c851c93ad648f4b6a6ea508770803fd91dbd4c4138610f02ae5
+  checksum: dae75b4691d745e1ec93bd7e87adad225bce77869cb8ec2f8acac50e7a091f09
 - filename: app/schema_validation/__init__.py
   checksum: 9487ddbb105a20f5fd495eb4426b7c27ee3be1894b69a189363363ed616722c0
 - filename: app/service/rest.py
-  checksum: 64ad0715bf30255b4a530f262faffb6a3a95e4b28967f6b9f48ca3ef8b4b969a
+  checksum: 4a0bca683668148a5fe6b7b36543f5950d207aa1655d8c1ab64eeb738b812495
 - filename: cd/application-deployment/prod/prod.env
   checksum: b2170727ac8f76eb7595f88fa16a34ee786a3e6743e2cd3690eef27f670e296f
 - filename: cd/application-deployment/staging/staging.env
