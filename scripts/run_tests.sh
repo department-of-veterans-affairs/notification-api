@@ -21,7 +21,7 @@ function display_result {
 }
 
 # Code style
-ruff format --check --no-cache
+ruff format --check
 display_result $? 1 "Code style check"
 
 # Poetry version stability check
