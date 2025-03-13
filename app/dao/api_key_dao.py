@@ -66,7 +66,7 @@ def get_model_api_key(
     return db.session.scalars(stmt).one()
 
 
-def get_model_api_keys(service_id: UUID, include_revoked=False) -> list[ApiKey]:
+def get_model_api_keys(service_id: UUID, include_revoked: bool = False) -> list[ApiKey]:
     """Retrieves the API keys associated with the given service id. By default, only active keys are returned.
 
     Args:

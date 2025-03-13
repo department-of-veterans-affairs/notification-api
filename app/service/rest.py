@@ -332,13 +332,13 @@ def get_api_keys(
         InvalidRequest: 404 NoResultsFound
         - If there are no valid API keys for the requested service, or the requested service id does not exist.
     """
-    dao_fetch_service_by_id(service_id=service_id)
-
     include_revoked = request.args.get('include_revoked', 'f')
     include_revoked = str(include_revoked).lower()
     if include_revoked not in ('true', 't', 'false', 'f'):
         raise InvalidRequest('Invalid value for include_revoked', status_code=400)
+
     include_revoked = include_revoked in ('true', 't')
+    dao_fetch_service_by_id(service_id=service_id)
 
     try:
         if key_id:
