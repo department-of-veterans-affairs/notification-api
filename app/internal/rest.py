@@ -18,6 +18,7 @@ import time
 from werkzeug.exceptions import UnsupportedMediaType
 from contextlib import suppress
 from flask import Blueprint, current_app, jsonify, request
+from markupsafe import escape
 
 
 internal_blueprint = Blueprint('internal', __name__, url_prefix='/internal')
@@ -53,7 +54,7 @@ def handler(generic):
     logs.append(f'HEADERS: {headers_string}')
     current_app.logger.info('Generic Internal Request: %s', ' | '.join(logs))
     if request.method == 'GET':
-        response_body = f'GET request received for endpoint {request.full_path}'
+        response_body = f'GET request received for endpoint {escape(request.full_path)}'
     else:
         response_body = {generic: request.json}
 

@@ -7,9 +7,9 @@ from unittest.mock import patch
 @pytest.mark.parametrize(
     'query_string',
     [
-        ({'foo': 'bar'}, 'foo=bar'),
-        ({}, ''),
-        ({'foo': 'bar', 'baz': 'qux'}, 'foo=bar&baz=qux'),
+        ({'foo': 'bar'}, 'foo=bar', 'foo=bar'),
+        ({}, '', ''),
+        ({'foo': 'bar', 'baz': 'qux'}, 'foo=bar&amp;baz=qux', 'foo=bar&baz=qux'),
     ],
 )
 def test_ut_get_internal(client, mocker, query_string):
@@ -23,7 +23,7 @@ def test_ut_get_internal(client, mocker, query_string):
     assert actual == expected, 'The logger was not called with the expected message.'
 
     actual = mock_logger.call_args_list[0].args[1]
-    assert f"QUERY_STRING: b'{query_string[1]}'" in actual, 'The logged info did not contain the correct QUERY_STRING.'
+    assert f"QUERY_STRING: b'{query_string[2]}'" in actual, 'The logged info did not contain the correct QUERY_STRING.'
 
 
 @pytest.mark.parametrize('method', ['GET', 'POST'])
