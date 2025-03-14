@@ -27,4 +27,6 @@ fileignoreconfig:
   checksum: 9e04718d4fedf36691047babbd7df74335813f126acb4953b0d16105a4653c82
 - filename: tests/app/v2/notifications/test_get_notifications.py
   checksum: 167aa80c8aac01566b3cf627cdaa839feac9dc77f0b13b6d0a008035aa8e15f1
+- filename: comp_pen_call_center/export.ndjson
+  checksum: f9774372613b92654dadb534eed4a24c2219bd6e4cff48badd21b5dc612dc207
 version: "1.0"

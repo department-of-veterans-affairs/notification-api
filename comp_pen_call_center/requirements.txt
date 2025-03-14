@@ -1,0 +1,4 @@
+elasticsearch>=8.0.0
+loguru
+pandas
+xlrd
