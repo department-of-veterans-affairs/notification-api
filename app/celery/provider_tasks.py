@@ -67,6 +67,7 @@ def deliver_sms(
             raise RuntimeError(
                 f'The "to" field was not set for notification {notification_id}.  This is a programming error.'
             )
+        # SPIKE #1200 - Start of sending SMS message
         send_to_providers.send_sms_to_provider(notification, sms_sender_id)
         current_app.logger.info('Successfully sent sms for notification id: %s', notification_id)
 
@@ -104,6 +105,7 @@ def deliver_sms_with_rate_limiting(
                 f'The "to" field was not set for notification {notification_id}.  This is a programming error.'
             )
 
+        # SPIKE #1200 - Dave's Comment Below
         # notification.reply_to_text is set for v2 send routes in
         # app/v2/notifications/post_notifications.py::post_notification via the call to get_reply_to_text, which is
         # in the same file.  The value is a phone number.  When notification POST data specifies an SMS sender, the

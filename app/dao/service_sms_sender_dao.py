@@ -155,6 +155,8 @@ def dao_update_service_sms_sender(
 
     _validate_rate_limit(sms_sender_to_update, kwargs.get('rate_limit'), kwargs.get('rate_limit_interval'))
 
+    # SPIKE #1200 - Should we use `try_validate_and_format_phone_number` to validate the the phone number BEFORE
+    # save it to the ServiceSmsSender object ?
     if 'sms_sender' in kwargs and sms_sender_to_update.inbound_number_id:
         raise SmsSenderInboundNumberIntegrityException(
             'You cannot update the number for this SMS sender because it has an associated Inbound Number.'

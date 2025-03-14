@@ -67,6 +67,7 @@ def get_service_sms_sender_by_id(
     return jsonify(sms_sender.serialize()), 200
 
 
+# SPIKE #1200 - `{{notification-api-url}}/service/{{service-id}}/sms-sender/{{sms-sender-id}}`
 @service_sms_sender_blueprint.route('/<uuid:sms_sender_id>', methods=['POST'])
 def update_service_sms_sender(
     service_id,

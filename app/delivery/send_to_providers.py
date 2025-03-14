@@ -81,6 +81,7 @@ def send_sms_to_provider(
     else:
         try:
             # Send a SMS message using the "to" attribute to specify the recipient.
+            # SPIKE #1200 - Send SMS message `sender=notification.reply_to_text`
             reference = client.send_sms(
                 to=validate_and_format_phone_number(notification.to, international=notification.international),
                 content=str(template),

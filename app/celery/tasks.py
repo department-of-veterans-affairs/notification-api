@@ -197,6 +197,7 @@ def save_sms(
     if sender_id:
         reply_to_text = dao_get_service_sms_sender_by_id(service_id, sender_id).sms_sender
     else:
+        # SPIKE 1200 Uses the default sms sender if not provided
         reply_to_text = template.get_reply_to_text()
 
     if not service_allowed_to_send_to(notification['to'], service, KEY_TYPE_NORMAL):
@@ -261,6 +262,7 @@ def save_email(
     service = dao_fetch_service_by_id(service_id)
     template = dao_get_template_by_id(notification['template'], version=notification['template_version'])
 
+    # 1200 SPIKE - Why is this here?
     reply_to_text = template.get_reply_to_text()
 
     if not service_allowed_to_send_to(notification['to'], service, KEY_TYPE_NORMAL):
