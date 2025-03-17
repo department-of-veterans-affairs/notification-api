@@ -22,7 +22,7 @@ def save_model_api_key(api_key: ApiKey) -> None:
         api_key.id = uuid4()  # must be set now so version history model can use same id
 
     if not api_key.secret:
-        api_key.secret = secrets.token_urlsafe(64)
+        api_key.secret = uuid4()
 
     db.session.add(api_key)
 
