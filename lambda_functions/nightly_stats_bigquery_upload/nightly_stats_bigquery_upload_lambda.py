@@ -11,6 +11,10 @@ from google.cloud import bigquery
 from google.oauth2 import service_account
 from google.cloud.exceptions import NotFound
 
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'test')
+TABLE_ID_STATS = f'vsp-analytics-and-insights.platform_vanotify.{ENVIRONMENT}-statistics'
+TABLE_ID_BILLING = f'vsp-analytics-and-insights.platform_vanotify.{ENVIRONMENT}-billing'
+
 
 def read_service_account_info_from_ssm() -> Dict:
     ssm_client = boto3.client('ssm')
@@ -43,7 +47,7 @@ def delete_existing_rows_for_date(
     table_id: str,
     object_key: str,
 ) -> None:
-    date, _extension = object_key.split('.')
+    date, _type, _ext = object_key.split('.')
     dml_statement = f"DELETE FROM `{table_id}` WHERE date = '{date}'"
     bigquery_client.query(dml_statement).result()
 
@@ -76,26 +80,24 @@ def add_updated_rows_for_date(
 def lambda_handler(
     event,
     _context,
-):
+) -> dict[str, int]:
     service_account_info = read_service_account_info_from_ssm()
     credentials = service_account.Credentials.from_service_account_info(service_account_info)
 
     bigquery_client = bigquery.Client(credentials=credentials)
 
-    table_id = f'vsp-analytics-and-insights.platform_vanotify.{os.getenv("ENVIRONMENT")}-statistics'
-
     bucket_name = get_bucket_name(event)
     object_key = get_object_key(event)
 
     try:
-        bigquery_client.get_table(table_id)
+        bigquery_client.get_table(TABLE_ID_STATS)
     except NotFound:
         pass
     else:
-        delete_existing_rows_for_date(bigquery_client, table_id, object_key)
+        delete_existing_rows_for_date(bigquery_client, TABLE_ID_STATS, object_key)
 
     nightly_stats = read_nightly_stats_from_s3(bucket_name, object_key)
 
-    add_updated_rows_for_date(bigquery_client, table_id, nightly_stats)
+    add_updated_rows_for_date(bigquery_client, TABLE_ID_STATS, nightly_stats)
 
     return {'statusCode': 200}
