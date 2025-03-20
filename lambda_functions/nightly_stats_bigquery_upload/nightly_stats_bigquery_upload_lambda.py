@@ -14,7 +14,7 @@ ENVIRONMENT = os.getenv('ENVIRONMENT', 'test')
 TABLE_ID_STATS = f'vsp-analytics-and-insights.platform_vanotify.{ENVIRONMENT}-statistics'
 TABLE_ID_BILLING = f'vsp-analytics-and-insights.platform_vanotify.{ENVIRONMENT}-billing'
 
-logger = logging.getLogger('TwoWaySMSv2')
+logger = logging.getLogger('NightlyBigQueryLambda')
 logger.setLevel(logging.INFO if ENVIRONMENT == 'prod' else logging.DEBUG)
 
 
