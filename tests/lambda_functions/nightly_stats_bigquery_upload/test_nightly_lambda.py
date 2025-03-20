@@ -1,11 +1,13 @@
+import copy
 import csv
-from io import StringIO
 import json
+from io import StringIO
 
 import boto3
 import pytest
 from google.auth.credentials import Credentials
 from google.cloud.bigquery import Client
+from google.cloud.exceptions import NotFound
 from moto import mock_aws
 
 import lambda_functions.nightly_stats_bigquery_upload.nightly_stats_bigquery_upload_lambda as nightly_lambda
@@ -51,7 +53,7 @@ EXAMPLE_S3_EVENT_STATS = {
     ]
 }
 
-EXAMPLE_S3_EVENT_BILLING = EXAMPLE_S3_EVENT_STATS.copy()
+EXAMPLE_S3_EVENT_BILLING = copy.deepcopy(EXAMPLE_S3_EVENT_STATS)
 EXAMPLE_S3_EVENT_BILLING['Records'][0]['s3']['object']['key'] = OBJECT_KEY_BILLING
 
 EXAMPLE_SERVICE_ACCOUNT_INFO = {
@@ -188,57 +190,130 @@ def mock_credentials(mocker):
     mock_service_account.Credentials.from_service_account_info.return_value = mocker.Mock(Credentials)
 
 
-def test_read_service_account_info_from_ssm(mock_ssm_client) -> None:
-    assert nightly_lambda.read_service_account_info_from_ssm() == EXAMPLE_SERVICE_ACCOUNT_INFO
+class TestParameterAccess:
+    @staticmethod
+    def test_read_service_account_info_from_ssm(mock_ssm_client) -> None:
+        assert nightly_lambda.read_service_account_info_from_ssm() == EXAMPLE_SERVICE_ACCOUNT_INFO
 
 
-def test_get_object_key():
-    assert nightly_lambda.get_object_key(EXAMPLE_S3_EVENT_STATS) == OBJECT_KEY_STATS
+class TestEventParsing:
+    @staticmethod
+    @pytest.mark.parametrize(
+        'example_event, expected_object_key',
+        [
+            (EXAMPLE_S3_EVENT_STATS, OBJECT_KEY_STATS),
+            (EXAMPLE_S3_EVENT_BILLING, OBJECT_KEY_BILLING),
+        ],
+        ids=['stats', 'billing'],
+    )
+    def test_get_object_key(example_event, expected_object_key) -> None:
+        assert nightly_lambda.get_object_key(example_event) == expected_object_key
+
+    @staticmethod
+    def test_get_bucket_name() -> None:
+        assert nightly_lambda.get_bucket_name(EXAMPLE_S3_EVENT_STATS) == BUCKET_NAME
 
 
-def test_get_bucket_name():
-    assert nightly_lambda.get_bucket_name(EXAMPLE_S3_EVENT_STATS) == BUCKET_NAME
+class TestS3Access:
+    @staticmethod
+    @pytest.mark.parametrize(
+        'object_key, expected_response',
+        [
+            (OBJECT_KEY_STATS, example_nightly_stats_bytes()),
+            (OBJECT_KEY_BILLING, example_nightly_billing_bytes()),
+        ],
+        ids=['stats', 'billing'],
+    )
+    def test_read_nightly_stats_from_s3(mock_s3_client, object_key, expected_response) -> None:
+        response = nightly_lambda.read_nightly_stats_from_s3(BUCKET_NAME, object_key)
+        assert response == expected_response
 
 
-@pytest.mark.parametrize(
-    'object_key, expected_response',
-    [
-        (OBJECT_KEY_STATS, example_nightly_stats_bytes()),
-        (OBJECT_KEY_BILLING, example_nightly_billing_bytes()),
-    ],
-    ids=['stats', 'billing'],
-)
-def test_read_nightly_stats_from_s3(mock_s3_client, object_key, expected_response) -> None:
-    response = nightly_lambda.read_nightly_stats_from_s3(BUCKET_NAME, object_key)
-    assert response == expected_response
+class TestBigQueryAccess:
+    @staticmethod
+    def test_delete_existing_rows_for_date(mock_bigquery_client) -> None:
+        date, _type, _ext = OBJECT_KEY_STATS.split('.')
+
+        nightly_lambda.delete_existing_rows_for_date(mock_bigquery_client, BQ_TABLE_ID, date)
+
+        mock_bigquery_client.query.assert_called_once_with(f"DELETE FROM `{BQ_TABLE_ID}` WHERE date = '{date}'")
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        'bq_table_id, example_nightly_bytes',
+        [
+            (nightly_lambda.TABLE_ID_STATS, example_nightly_stats_bytes()),
+            (nightly_lambda.TABLE_ID_BILLING, example_nightly_billing_bytes()),
+        ],
+        ids=['stats', 'billing'],
+    )
+    def test_add_updated_rows_for_date(mock_bigquery_client, bq_table_id, example_nightly_bytes) -> None:
+        nightly_lambda.add_updated_rows_for_date(mock_bigquery_client, bq_table_id, example_nightly_bytes)
+
+        _, kwargs = mock_bigquery_client.load_table_from_file.call_args
+
+        assert kwargs['destination'] == bq_table_id
+        assert kwargs['file_obj'].getvalue() == example_nightly_bytes
+
+    @staticmethod
+    def test_get_schema() -> None:
+        schema = nightly_lambda._get_schema(nightly_lambda.TABLE_ID_STATS)
+
+        # there are 9 columns in the stats table
+        assert len(schema) == 9
+
+        # check the first and last column names and types
+        assert schema[0].name == 'date'
+        assert schema[0].field_type == 'DATE'
+        assert schema[-1].name == 'channel_type'
+        assert schema[-1].field_type == 'STRING'
+
+    @staticmethod
+    def test_get_schema_raises_error_with_incorrect_table() -> None:
+        table_id = 'unexpected_table_id'
+
+        with pytest.raises(ValueError):
+            nightly_lambda._get_schema(table_id)
 
 
-def test_delete_existing_rows_for_date(mock_bigquery_client) -> None:
-    date, _type, _ext = OBJECT_KEY_STATS.split('.')
+class TestLambdaHandler:
+    @staticmethod
+    @pytest.mark.parametrize(
+        'example_event, expected_table_id',
+        [
+            (EXAMPLE_S3_EVENT_STATS, nightly_lambda.TABLE_ID_STATS),
+            (EXAMPLE_S3_EVENT_BILLING, nightly_lambda.TABLE_ID_BILLING),
+        ],
+        ids=['stats', 'billing'],
+    )
+    def test_lambda_handler(
+        mock_ssm_client,
+        mock_s3_client,
+        mock_bigquery_client,
+        example_event,
+        expected_table_id,
+    ) -> None:
+        response = nightly_lambda.lambda_handler(example_event, 'some context')
 
-    nightly_lambda.delete_existing_rows_for_date(mock_bigquery_client, BQ_TABLE_ID, OBJECT_KEY_STATS)
+        assert mock_bigquery_client.get_table.called_with(expected_table_id)
+        assert mock_bigquery_client.query.called
+        assert mock_bigquery_client.load_table_from_file.called
 
-    mock_bigquery_client.query.assert_called_once_with(f"DELETE FROM `{BQ_TABLE_ID}` WHERE date = '{date}'")
+        assert response == {'statusCode': 200}
 
+    @staticmethod
+    def test_should_not_delete_existing_stats_from_bigquery_table_if_table_does_not_exist(mock_bigquery_client) -> None:
+        mock_bigquery_client.get_table.side_effect = NotFound('foo')
 
-def test_add_updated_rows_for_date(mock_bigquery_client) -> None:
-    nightly_lambda.add_updated_rows_for_date(mock_bigquery_client, BQ_TABLE_ID, example_nightly_stats_bytes())
+        with pytest.raises(NotFound):
+            nightly_lambda.lambda_handler(EXAMPLE_S3_EVENT_STATS, 'some context')
 
-    _, kwargs = mock_bigquery_client.load_table_from_file.call_args
+        mock_bigquery_client.query.assert_not_called()
 
-    assert kwargs['destination'] == BQ_TABLE_ID
-    assert kwargs['file_obj'].getvalue() == example_nightly_stats_bytes()
+    @staticmethod
+    def test_handler_raises_error_if_data_type_is_not_found(mock_ssm_client, mock_bigquery_client) -> None:
+        example_s3_event_invalid = copy.deepcopy(EXAMPLE_S3_EVENT_STATS)
+        example_s3_event_invalid['Records'][0]['s3']['object']['key'] = '2021-06-28.invalid.csv'
 
-
-def test_lambda_handler(
-    mock_ssm_client,
-    mock_s3_client,
-    mock_bigquery_client,
-) -> None:
-    response = nightly_lambda.lambda_handler(EXAMPLE_S3_EVENT_STATS, 'some context')
-
-    assert mock_bigquery_client.query.called
-    assert mock_bigquery_client.load_table_from_file.called
-    assert mock_bigquery_client.get_table.called
-
-    assert response == {'statusCode': 200}
+        with pytest.raises(ValueError):
+            nightly_lambda.lambda_handler(example_s3_event_invalid, 'some context')

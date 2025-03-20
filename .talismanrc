@@ -1,4 +1,6 @@
 fileignoreconfig:
+- filename: app/celery/reporting_tasks.py
+  checksum: 904b8bc7ea2a3f03c37cef0060b9ba3456b00c1a1a197049e647b87e6b81affd
 - filename: app/dao/api_key_dao.py
   checksum: c1c17266b7ef13ac0f24d5296623fa871501d1cc8f5a8a04f0a51939a6537a39
 - filename: app/schema_validation/__init__.py
@@ -15,6 +17,8 @@ fileignoreconfig:
   checksum: 975bc9274cead1a9f9dd7cb67634e706d7b1656a0ce90264cfcd245669f42efd
 - filename: poetry.lock
   checksum: a7fd8e9bc1068589b70c9aab44bf754c7e44e611004865acee95aed2b526601a
+- filename: tests/app/celery/test_reporting_tasks.py
+  checksum: 7fe91ac97c6cd00f6b506802599160edcd623c1562013fd03036eb9d081c1c5b
 - filename: tests/app/dao/test_api_key_dao.py
   checksum: 5bab4eaddf8760c502111ae3e5f9f8bee59482d99f053f94598e8c77bd10b7b6
 - filename: tests/app/dao/test_ft_billing_dao.py

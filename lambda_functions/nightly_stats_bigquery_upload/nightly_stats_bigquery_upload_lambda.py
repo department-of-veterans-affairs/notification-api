@@ -45,20 +45,16 @@ def read_nightly_stats_from_s3(
 def delete_existing_rows_for_date(
     bigquery_client: bigquery.Client,
     table_id: str,
-    object_key: str,
+    date: str,
 ) -> None:
-    date, _type, _ext = object_key.split('.')
-    dml_statement = f"DELETE FROM `{table_id}` WHERE date = '{date}'"
+    dml_statement = f"DELETE FROM `{table_id}` WHERE date = '{date}'"  # nosec
     bigquery_client.query(dml_statement).result()
 
 
-def add_updated_rows_for_date(
-    bigquery_client: bigquery.Client,
-    table_id: str,
-    nightly_stats: bytes,
-) -> None:
-    job_config = bigquery.LoadJobConfig(
-        schema=[
+def _get_schema(table_id: str) -> list[bigquery.SchemaField]:
+    schema = []
+    if table_id == TABLE_ID_STATS:
+        schema = [
             bigquery.SchemaField('date', 'DATE'),
             bigquery.SchemaField('service_id', 'STRING'),
             bigquery.SchemaField('service_name', 'STRING'),
@@ -68,7 +64,35 @@ def add_updated_rows_for_date(
             bigquery.SchemaField('status_reason', 'STRING'),
             bigquery.SchemaField('count', 'INTEGER'),
             bigquery.SchemaField('channel_type', 'STRING'),
-        ],
+        ]
+    elif table_id == TABLE_ID_BILLING:
+        schema = [
+            bigquery.SchemaField('date', 'DATE'),
+            bigquery.SchemaField('service_name', 'STRING'),
+            bigquery.SchemaField('service_id', 'STRING'),
+            bigquery.SchemaField('template_name', 'STRING'),
+            bigquery.SchemaField('template_id', 'STRING'),
+            bigquery.SchemaField('sender', 'STRING'),
+            bigquery.SchemaField('sender_id', 'STRING'),
+            bigquery.SchemaField('billing_code', 'STRING'),
+            bigquery.SchemaField('count', 'INTEGER'),
+            bigquery.SchemaField('channel_type', 'STRING'),
+            bigquery.SchemaField('total_message_parts', 'INTEGER'),
+            bigquery.SchemaField('total_cost', 'FLOAT'),
+        ]
+    else:
+        raise ValueError(f'Unexpected table_id: {table_id}')
+
+    return schema
+
+
+def add_updated_rows_for_date(
+    bigquery_client: bigquery.Client,
+    table_id: str,
+    nightly_stats: bytes,
+) -> None:
+    job_config = bigquery.LoadJobConfig(
+        schema=_get_schema(table_id),
         skip_leading_rows=1,
     )
 
@@ -89,15 +113,26 @@ def lambda_handler(
     bucket_name = get_bucket_name(event)
     object_key = get_object_key(event)
 
-    try:
-        bigquery_client.get_table(TABLE_ID_STATS)
-    except NotFound:
-        pass
+    # get the date and data_type (billing or stats) from the s3 object key
+    date, data_type, _ext = object_key.split('.')
+
+    # determine the table id based on the data_type
+    if data_type == 'stats':
+        table_id = TABLE_ID_STATS
+    elif data_type == 'billing':
+        table_id = TABLE_ID_BILLING
     else:
-        delete_existing_rows_for_date(bigquery_client, TABLE_ID_STATS, object_key)
+        raise ValueError(f'Unexpected data type, expected "stats" or "billing" got: "{data_type}"')
+
+    try:
+        bigquery_client.get_table(table_id)
+    except NotFound:
+        raise
+    else:
+        delete_existing_rows_for_date(bigquery_client, table_id, date)
 
     nightly_stats = read_nightly_stats_from_s3(bucket_name, object_key)
 
-    add_updated_rows_for_date(bigquery_client, TABLE_ID_STATS, nightly_stats)
+    add_updated_rows_for_date(bigquery_client, table_id, nightly_stats)
 
     return {'statusCode': 200}
