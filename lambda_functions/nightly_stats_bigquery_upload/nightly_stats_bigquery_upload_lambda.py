@@ -1,12 +1,11 @@
+import json
+import logging
 import os
-import urllib
 import six
+import urllib
 from typing import Dict
 
-import json
-
 import boto3
-
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from google.cloud.exceptions import NotFound
@@ -14,6 +13,9 @@ from google.cloud.exceptions import NotFound
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'test')
 TABLE_ID_STATS = f'vsp-analytics-and-insights.platform_vanotify.{ENVIRONMENT}-statistics'
 TABLE_ID_BILLING = f'vsp-analytics-and-insights.platform_vanotify.{ENVIRONMENT}-billing'
+
+logger = logging.getLogger('TwoWaySMSv2')
+logger.setLevel(logging.INFO if ENVIRONMENT == 'prod' else logging.DEBUG)
 
 
 def read_service_account_info_from_ssm() -> Dict:
@@ -105,13 +107,19 @@ def lambda_handler(
     event,
     _context,
 ) -> dict[str, int]:
+    logger.debug('get credentials . . .')
     service_account_info = read_service_account_info_from_ssm()
     credentials = service_account.Credentials.from_service_account_info(service_account_info)
+    logger.debug('. . . credentials obtained')
 
+    logger.debug('creating bigquery client . . .')
     bigquery_client = bigquery.Client(credentials=credentials)
+    logger.debug('. . . bigquery client created')
 
+    logger.debug('getting bucket name and object key . . .')
     bucket_name = get_bucket_name(event)
     object_key = get_object_key(event)
+    logger.debug('. . . bucket name (%s) and object key (%s) obtained', bucket_name, object_key)
 
     # get the date and data_type (billing or stats) from the s3 object key
     date, data_type, _ext = object_key.split('.')
@@ -124,15 +132,21 @@ def lambda_handler(
     else:
         raise ValueError(f'Unexpected data type, expected "stats" or "billing" got: "{data_type}"')
 
+    logger.debug('checking if table exists . . .')
     try:
         bigquery_client.get_table(table_id)
     except NotFound:
         raise
     else:
         delete_existing_rows_for_date(bigquery_client, table_id, date)
+        logger.debug('. . . table exists')
 
+    logger.debug('reading nightly stats from s3 . . .')
     nightly_stats = read_nightly_stats_from_s3(bucket_name, object_key)
+    logger.debug('. . . nightly stats read from s3')
 
+    logger.debug('adding updated rows for date . . .')
     add_updated_rows_for_date(bigquery_client, table_id, nightly_stats)
+    logger.debug('. . . updated rows added for table %s for date %s', data_type, date)
 
     return {'statusCode': 200}
