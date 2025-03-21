@@ -121,7 +121,7 @@ def lambda_handler(
     logger.debug('getting bucket name and object key . . .')
     bucket_name = get_bucket_name(event)
     object_key = get_object_key(event)
-    logger.debug('. . . bucket name (%s) and object key (%s) obtained', bucket_name, object_key)
+    logger.debug('. . . bucket name and object key obtained')
 
     # get the date and data_type (billing or stats) from the s3 object key
     date, data_type, _ext = object_key.split('.')
@@ -134,23 +134,23 @@ def lambda_handler(
     else:
         raise ValueError(f'Unexpected data type, expected "stats" or "billing" got: "{data_type}"')
 
-    logger.debug('checking if table exists with id "%s" . . .', table_id)
+    logger.debug('checking if table exists . . .')
     try:
         bigquery_client.get_table(table_id)
     except NotFound:
         raise
     logger.debug('. . . table exists')
 
-    logger.debug('deleting existing rows for date %s from table %s . . .', date, table_id)
+    logger.debug('deleting existing rows for data_type %s for date %s . . .', data_type, date)
     delete_existing_rows_for_date(bigquery_client, table_id, date)
-    logger.debug('. . . deleted existing rows for date %s from table %s', date, table_id)
+    logger.debug('. . . deleted existing rows data_type %s for date %s', data_type, date)
 
-    logger.debug('reading nightly stats from s3 bucket %s object %s . . .', bucket_name, object_key)
+    logger.debug('reading nightly stats from s3 for %s and date %s . . .', data_type, date)
     nightly_stats = read_nightly_stats_from_s3(bucket_name, object_key)
-    logger.debug('. . . nightly stats read from s3 bucket %s object %s', bucket_name, object_key)
+    logger.debug('. . . nightly stats read from s3 for %s and date %s', data_type, date)
 
     logger.debug('adding updated %s rows for date %s . . .', data_type, date)
     add_updated_rows_for_date(bigquery_client, table_id, nightly_stats)
-    logger.debug('. . . updated rows added for table %s for date %s', table_id, date)
+    logger.debug('. . . updated rows for %s and date %s', data_type, date)
 
     return {'statusCode': 200}
