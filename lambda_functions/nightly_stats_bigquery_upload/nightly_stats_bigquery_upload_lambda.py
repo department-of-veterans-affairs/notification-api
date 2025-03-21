@@ -51,8 +51,14 @@ def delete_existing_rows_for_date(
     table_id: str,
     date: str,
 ) -> None:
-    dml_statement = f"DELETE FROM `{table_id}` WHERE date = '{date}'"  # nosec
-    bigquery_client.query(dml_statement).result()
+    dml_statement = f'DELETE FROM `{table_id}` WHERE date = @date'  # nosec
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter('date', 'STRING', date),
+        ]
+    )
+
+    bigquery_client.query_and_wait(dml_statement, job_config=job_config)
 
 
 def _get_schema(table_id: str) -> list[bigquery.SchemaField]:
@@ -138,6 +144,8 @@ def lambda_handler(
     try:
         bigquery_client.get_table(table_id)
     except NotFound:
+        # logging table_id is sensitive information, so we log the data_type instead
+        logger.exception('%s table not found', data_type)
         raise
     logger.debug('. . . table exists')
 

@@ -2,6 +2,7 @@ import copy
 import csv
 import json
 from io import StringIO
+from unittest import mock
 
 import boto3
 import pytest
@@ -112,18 +113,11 @@ EXAMPLE_NIGHTLY_BILLING_LIST = [
 ]
 
 
-def example_nightly_stats_bytes() -> bytes:
-    nightly_stats_buffer = StringIO()
-    writer = csv.writer(nightly_stats_buffer)
-    writer.writerows(EXAMPLE_NIGHTLY_STATS_LIST)
-    return nightly_stats_buffer.getvalue().encode()
-
-
-def example_nightly_billing_bytes() -> bytes:
-    nightly_billing_buffer = StringIO()
-    writer = csv.writer(nightly_billing_buffer)
-    writer.writerows(EXAMPLE_NIGHTLY_BILLING_LIST)
-    return nightly_billing_buffer.getvalue().encode()
+def example_bytes(example_list: list[list[str]]) -> bytes:
+    buffer = StringIO()
+    writer = csv.writer(buffer)
+    writer.writerows(example_list)
+    return buffer.getvalue().encode()
 
 
 @pytest.fixture(scope='module')
@@ -138,13 +132,13 @@ def mock_s3_client():
         s3_client.put_object(
             Bucket=BUCKET_NAME,
             Key=OBJECT_KEY_STATS,
-            Body=example_nightly_stats_bytes(),
+            Body=example_bytes(EXAMPLE_NIGHTLY_STATS_LIST),
         )
 
         s3_client.put_object(
             Bucket=BUCKET_NAME,
             Key=OBJECT_KEY_BILLING,
-            Body=example_nightly_billing_bytes(),
+            Body=example_bytes(EXAMPLE_NIGHTLY_STATS_LIST),
         )
 
         yield s3_client
@@ -219,8 +213,8 @@ class TestS3Access:
     @pytest.mark.parametrize(
         'object_key, expected_response',
         [
-            (OBJECT_KEY_STATS, example_nightly_stats_bytes()),
-            (OBJECT_KEY_BILLING, example_nightly_billing_bytes()),
+            (OBJECT_KEY_STATS, example_bytes(EXAMPLE_NIGHTLY_STATS_LIST)),
+            (OBJECT_KEY_BILLING, example_bytes(EXAMPLE_NIGHTLY_STATS_LIST)),
         ],
         ids=['stats', 'billing'],
     )
@@ -236,14 +230,17 @@ class TestBigQueryAccess:
 
         nightly_lambda.delete_existing_rows_for_date(mock_bigquery_client, BQ_TABLE_ID, date)
 
-        mock_bigquery_client.query.assert_called_once_with(f"DELETE FROM `{BQ_TABLE_ID}` WHERE date = '{date}'")
+        mock_bigquery_client.query_and_wait.assert_called_once_with(
+            f'DELETE FROM `{BQ_TABLE_ID}` WHERE date = @date',
+            job_config=mock.ANY,
+        )
 
     @staticmethod
     @pytest.mark.parametrize(
         'bq_table_id, example_nightly_bytes',
         [
-            (nightly_lambda.TABLE_ID_STATS, example_nightly_stats_bytes()),
-            (nightly_lambda.TABLE_ID_BILLING, example_nightly_billing_bytes()),
+            (nightly_lambda.TABLE_ID_STATS, example_bytes(EXAMPLE_NIGHTLY_STATS_LIST)),
+            (nightly_lambda.TABLE_ID_BILLING, example_bytes(EXAMPLE_NIGHTLY_STATS_LIST)),
         ],
         ids=['stats', 'billing'],
     )
@@ -270,10 +267,8 @@ class TestBigQueryAccess:
 
     @staticmethod
     def test_get_schema_raises_error_with_incorrect_table() -> None:
-        table_id = 'unexpected_table_id'
-
         with pytest.raises(ValueError):
-            nightly_lambda._get_schema(table_id)
+            nightly_lambda._get_schema('unexpected_table_id')
 
 
 class TestLambdaHandler:
@@ -296,7 +291,7 @@ class TestLambdaHandler:
         response = nightly_lambda.lambda_handler(example_event, 'some context')
 
         assert mock_bigquery_client.get_table.called_with(expected_table_id)
-        assert mock_bigquery_client.query.called
+        assert mock_bigquery_client.query_and_wait.called
         assert mock_bigquery_client.load_table_from_file.called
 
         assert response == {'statusCode': 200}
@@ -308,7 +303,7 @@ class TestLambdaHandler:
         with pytest.raises(NotFound):
             nightly_lambda.lambda_handler(EXAMPLE_S3_EVENT_STATS, 'some context')
 
-        mock_bigquery_client.query.assert_not_called()
+        mock_bigquery_client.query_and_wait.assert_not_called()
 
     @staticmethod
     def test_handler_raises_error_if_data_type_is_not_found(mock_ssm_client, mock_bigquery_client) -> None:
