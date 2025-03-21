@@ -11,11 +11,13 @@ from google.oauth2 import service_account
 from google.cloud.exceptions import NotFound
 
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'test')
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO' if ENVIRONMENT == 'prod' else 'DEBUG')
+
 TABLE_ID_STATS = f'vsp-analytics-and-insights.platform_vanotify.{ENVIRONMENT}-statistics'
 TABLE_ID_BILLING = f'vsp-analytics-and-insights.platform_vanotify.{ENVIRONMENT}-billing'
 
 logger = logging.getLogger('NightlyBigQueryLambda')
-logger.setLevel(logging.INFO if ENVIRONMENT == 'prod' else logging.DEBUG)
+logger.setLevel(LOG_LEVEL)
 
 
 def read_service_account_info_from_ssm() -> Dict:
@@ -132,21 +134,23 @@ def lambda_handler(
     else:
         raise ValueError(f'Unexpected data type, expected "stats" or "billing" got: "{data_type}"')
 
-    logger.debug('checking if table exists . . .')
+    logger.debug('checking if table exists with id "%s" . . .', table_id)
     try:
         bigquery_client.get_table(table_id)
     except NotFound:
         raise
-    else:
-        delete_existing_rows_for_date(bigquery_client, table_id, date)
-        logger.debug('. . . table exists')
+    logger.debug('. . . table exists')
 
-    logger.debug('reading nightly stats from s3 . . .')
+    logger.debug('deleting existing rows for date %s from table %s . . .', date, table_id)
+    delete_existing_rows_for_date(bigquery_client, table_id, date)
+    logger.debug('. . . deleted existing rows for date %s from table %s', date, table_id)
+
+    logger.debug('reading nightly stats from s3 bucket %s object %s . . .', bucket_name, object_key)
     nightly_stats = read_nightly_stats_from_s3(bucket_name, object_key)
-    logger.debug('. . . nightly stats read from s3')
+    logger.debug('. . . nightly stats read from s3 bucket %s object %s', bucket_name, object_key)
 
-    logger.debug('adding updated rows for date . . .')
+    logger.debug('adding updated %s rows for date %s . . .', data_type, date)
     add_updated_rows_for_date(bigquery_client, table_id, nightly_stats)
-    logger.debug('. . . updated rows added for table %s for date %s', data_type, date)
+    logger.debug('. . . updated rows added for table %s for date %s', table_id, date)
 
     return {'statusCode': 200}

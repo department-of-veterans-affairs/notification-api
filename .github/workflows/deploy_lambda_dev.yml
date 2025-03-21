@@ -31,7 +31,6 @@ on:
           - ProfileOptInOut
           - ProfileRemoveOldOptOuts
           - NightBigQueryUpload
-          - NightBillingBQUpload
           - DeliveryStatusProcessor
 
 jobs:
