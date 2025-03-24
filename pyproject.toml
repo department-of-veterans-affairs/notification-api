@@ -13,7 +13,7 @@ poetry_version = "1.8.4"
 
 [tool.poetry.dependencies]
 python = "~3.10"
-alembic-utils = "*"
+alembic-utils = "^0.8.6"
 Authlib = "*"
 boto3 = "*"
 botocore = "*"
