@@ -155,7 +155,7 @@ def deliver_email(
     try:
         notification = notifications_dao.get_notification_by_id(notification_id)
         if not notification:
-            # Race condition, thought this has not been observed to ever occur between Dec 24, 2024 and Mar 24, 2025
+            # Race condition, though this has not been observed to ever occur between Dec 24, 2024 and Mar 24, 2025
             current_app.logger.warning('Notification not found for: %s, retrying', notification_id)
             raise AutoRetryException
         if not notification.to:
