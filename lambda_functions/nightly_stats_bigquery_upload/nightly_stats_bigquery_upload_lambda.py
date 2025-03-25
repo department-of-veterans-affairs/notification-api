@@ -54,7 +54,7 @@ def delete_existing_rows_for_date(
     dml_statement = f'DELETE FROM `{table_id}` WHERE date = @date'  # nosec
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
-            bigquery.ScalarQueryParameter('date', 'STRING', date),
+            bigquery.ScalarQueryParameter('date', 'DATE', date),
         ]
     )
 
@@ -80,13 +80,13 @@ def _get_schema(table_id: str) -> list[bigquery.SchemaField]:
             bigquery.SchemaField('date', 'DATE'),
             bigquery.SchemaField('service_name', 'STRING'),
             bigquery.SchemaField('service_id', 'STRING'),
+            bigquery.SchemaField('channel_type', 'STRING'),
             bigquery.SchemaField('template_name', 'STRING'),
             bigquery.SchemaField('template_id', 'STRING'),
             bigquery.SchemaField('sender', 'STRING'),
             bigquery.SchemaField('sender_id', 'STRING'),
             bigquery.SchemaField('billing_code', 'STRING'),
             bigquery.SchemaField('count', 'INTEGER'),
-            bigquery.SchemaField('channel_type', 'STRING'),
             bigquery.SchemaField('total_message_parts', 'INTEGER'),
             bigquery.SchemaField('total_cost', 'FLOAT'),
         ]
@@ -149,13 +149,13 @@ def lambda_handler(
         raise
     logger.debug('. . . table exists')
 
-    logger.debug('deleting existing rows for data_type %s for date %s . . .', data_type, date)
-    delete_existing_rows_for_date(bigquery_client, table_id, date)
-    logger.debug('. . . deleted existing rows data_type %s for date %s', data_type, date)
-
     logger.debug('reading nightly stats from s3 for %s and date %s . . .', data_type, date)
     nightly_stats = read_nightly_stats_from_s3(bucket_name, object_key)
     logger.debug('. . . nightly stats read from s3 for %s and date %s', data_type, date)
+
+    logger.debug('deleting existing rows for data_type %s for date %s . . .', data_type, date)
+    delete_existing_rows_for_date(bigquery_client, table_id, date)
+    logger.debug('. . . deleted existing rows data_type %s for date %s', data_type, date)
 
     logger.debug('adding updated %s rows for date %s . . .', data_type, date)
     add_updated_rows_for_date(bigquery_client, table_id, nightly_stats)
