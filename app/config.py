@@ -272,12 +272,16 @@ class Config(object):
             },
             'create-nightly-billing': {
                 'task': 'create-nightly-billing',
-                'schedule': crontab(hour=0, minute=15),
+                # TODO - running every 15 minutes for testing purposes
+                'schedule': crontab(minute='*/15'),
+                # 'schedule': crontab(hour=0, minute=15),
                 'options': {'queue': QueueNames.NOTIFY},
             },
             'create-nightly-notification-status': {
                 'task': 'create-nightly-notification-status',
-                'schedule': crontab(hour=0, minute=30),
+                # TODO - running every 15 minutes for testing purposes
+                'schedule': crontab(minute='*/15'),
+                # 'schedule': crontab(hour=0, minute=30),
                 'options': {'queue': QueueNames.NOTIFY},
             },
             'delete-sms-notifications': {
