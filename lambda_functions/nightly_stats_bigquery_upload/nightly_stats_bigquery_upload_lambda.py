@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from time import sleep
 import six
 import urllib
 from typing import Dict
@@ -156,6 +157,9 @@ def lambda_handler(
     logger.debug('deleting existing rows for data_type %s for date %s . . .', data_type, date)
     delete_existing_rows_for_date(bigquery_client, table_id, date)
     logger.debug('. . . deleted existing rows data_type %s for date %s', data_type, date)
+
+    # sleep to avoid BQ rate limiting
+    sleep(0.1)
 
     logger.debug('adding updated %s rows for date %s . . .', data_type, date)
     add_updated_rows_for_date(bigquery_client, table_id, nightly_stats)
