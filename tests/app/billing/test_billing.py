@@ -339,7 +339,7 @@ def test_get_yearly_billing_usage_summary_from_ft_billing_returns_empty_list_if_
     assert response.get_json() == []
 
 
-# This test takes a long time to run.
+# Cannot be ran in parallel - Gathers all
 @pytest.mark.serial
 def test_get_yearly_billing_usage_summary_from_ft_billing(
     notify_db_session,
