@@ -2282,7 +2282,7 @@ statsd = ">=4.0.1"
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
 reference = "204-bug-action-link-in-block-quotes"
-resolved_reference = "6f2aedfbb18a6b879f0ec68758a625d45c7c99b1"
+resolved_reference = "830138c6d57b997ccbc3054e5105ec1f7bf5b9cd"
 
 [[package]]
 name = "notifications-python-client"
