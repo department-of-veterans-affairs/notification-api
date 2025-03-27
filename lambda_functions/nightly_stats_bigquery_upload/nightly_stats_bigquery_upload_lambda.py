@@ -52,8 +52,6 @@ def delete_existing_rows_for_date(
     table_id: str,
     date: str,
 ) -> None:
-    data_type = table_id.split('.')[-1].split('-')[-1]
-
     dml_statement = f'DELETE FROM `{table_id}` WHERE date = @date'  # nosec
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
@@ -65,16 +63,8 @@ def delete_existing_rows_for_date(
         bigquery_client.query_and_wait(dml_statement, job_config=job_config)
     except TooManyRequests:
         logger.exception(
-            'TooManyRequests error when deleting existing rows for type %s and date %s. '
+            'TooManyRequests error when deleting existing rows for date %s. '
             'Setting reserved concurrency to 2 fixed this issue previously.',
-            data_type,
-            date,
-        )
-        raise
-    except Exception:
-        logger.exception(
-            'nightly_stats_lambda unexpected error deleting existing rows for type %s and date %s',
-            data_type,
             date,
         )
         raise
@@ -120,7 +110,6 @@ def add_updated_rows_for_date(
     table_id: str,
     nightly_stats: bytes,
 ) -> None:
-    data_type = table_id.split('.')[-1].split('-')[-1]
     job_config = bigquery.LoadJobConfig(
         schema=_get_schema(table_id),
         skip_leading_rows=1,
@@ -132,15 +121,7 @@ def add_updated_rows_for_date(
         ).result()
     except TooManyRequests:
         logger.exception(
-            'TooManyRequests error when adding rows for type %s. '
-            'Setting reserved concurrency to 2 fixed this issue previously.',
-            data_type,
-        )
-        raise
-    except Exception:
-        logger.exception(
-            'nightly_stats_lambda unexpected error uploading data to BQ for type %s',
-            data_type,
+            'TooManyRequests error when adding rows. Setting reserved concurrency to 2 fixed this issue previously.'
         )
         raise
 
