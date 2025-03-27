@@ -1,12 +1,12 @@
 import json
 import logging
 import os
-from time import sleep
 import six
 import urllib
 from typing import Dict
 
 import boto3
+from google.api_core.exceptions import TooManyRequests
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from google.cloud.exceptions import NotFound
@@ -59,7 +59,23 @@ def delete_existing_rows_for_date(
         ]
     )
 
-    bigquery_client.query_and_wait(dml_statement, job_config=job_config)
+    try:
+        bigquery_client.query_and_wait(dml_statement, job_config=job_config)
+    except TooManyRequests:
+        logger.exception(
+            'TooManyRequests error when deleting existing rows for type %s and date %s. '
+            'Setting reserved concurrency to 2 fixed this issue previously.',
+            table_id.split('.')[-1],
+            date,
+        )
+        raise
+    except Exception:
+        logger.exception(
+            'nightly_stats_lambda unexpected error deleting existing rows for type %s and date %s',
+            table_id.split('.')[-1],
+            date,
+        )
+        raise
 
 
 def _get_schema(table_id: str) -> list[bigquery.SchemaField]:
@@ -107,9 +123,23 @@ def add_updated_rows_for_date(
         skip_leading_rows=1,
     )
 
-    bigquery_client.load_table_from_file(
-        file_obj=six.BytesIO(nightly_stats), destination=table_id, job_config=job_config
-    ).result()
+    try:
+        bigquery_client.load_table_from_file(
+            file_obj=six.BytesIO(nightly_stats), destination=table_id, job_config=job_config
+        ).result()
+    except TooManyRequests:
+        logger.exception(
+            'TooManyRequests error when adding rows for type %s. '
+            'Setting reserved concurrency to 2 fixed this issue previously.',
+            table_id.split('.')[-1],
+        )
+        raise
+    except Exception:
+        logger.exception(
+            'nightly_stats_lambda unexpected error uploading data to BQ for type %s',
+            table_id.split('.')[-1],
+        )
+        raise
 
 
 def lambda_handler(
@@ -157,9 +187,6 @@ def lambda_handler(
     logger.debug('deleting existing rows for data_type %s for date %s . . .', data_type, date)
     delete_existing_rows_for_date(bigquery_client, table_id, date)
     logger.debug('. . . deleted existing rows data_type %s for date %s', data_type, date)
-
-    # sleep to avoid BQ rate limiting
-    sleep(0.1)
 
     logger.debug('adding updated %s rows for date %s . . .', data_type, date)
     add_updated_rows_for_date(bigquery_client, table_id, nightly_stats)

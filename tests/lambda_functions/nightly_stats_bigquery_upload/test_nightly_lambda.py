@@ -6,6 +6,7 @@ from unittest import mock
 
 import boto3
 import pytest
+from google.api_core.exceptions import TooManyRequests
 from google.auth.credentials import Credentials
 from google.cloud.bigquery import Client
 from google.cloud.exceptions import NotFound
@@ -236,6 +237,14 @@ class TestBigQueryAccess:
         )
 
     @staticmethod
+    @pytest.mark.parametrize('exception_raised', [TooManyRequests, RuntimeError])
+    def test_delete_existing_rows_for_date_raises_error_if_exception(mock_bigquery_client, exception_raised) -> None:
+        mock_bigquery_client.query_and_wait.side_effect = exception_raised('test')
+
+        with pytest.raises(exception_raised):
+            nightly_lambda.delete_existing_rows_for_date(mock_bigquery_client, BQ_TABLE_ID, '2021-06-28')
+
+    @staticmethod
     @pytest.mark.parametrize(
         'bq_table_id, example_nightly_bytes',
         [
@@ -251,6 +260,14 @@ class TestBigQueryAccess:
 
         assert kwargs['destination'] == bq_table_id
         assert kwargs['file_obj'].getvalue() == example_nightly_bytes
+
+    @staticmethod
+    @pytest.mark.parametrize('exception_raised', [TooManyRequests, RuntimeError])
+    def test_add_updated_rows_for_date_raises_exception(mock_bigquery_client, exception_raised) -> None:
+        mock_bigquery_client.load_table_from_file.side_effect = exception_raised('test')
+
+        with pytest.raises(exception_raised):
+            nightly_lambda.add_updated_rows_for_date(mock_bigquery_client, nightly_lambda.TABLE_ID_STATS, b'foo')
 
     @staticmethod
     def test_get_schema() -> None:
