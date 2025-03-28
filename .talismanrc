@@ -18,7 +18,7 @@ fileignoreconfig:
 - filename: migrations/versions/0376_drop_reply_to.py
   checksum: 975bc9274cead1a9f9dd7cb67634e706d7b1656a0ce90264cfcd245669f42efd
 - filename: poetry.lock
-  checksum: 9a2eb23fca9940c1401b0e8111f58bf38a21b5bc482765e9db3772a987362dc0
+  checksum: d0124068d11bb96ab1363fded04afa9c810de4333d87b5441c91507351a60811
 - filename: tests/app/celery/test_reporting_tasks.py
   checksum: 7fe91ac97c6cd00f6b506802599160edcd623c1562013fd03036eb9d081c1c5b
 - filename: tests/app/dao/test_api_key_dao.py
