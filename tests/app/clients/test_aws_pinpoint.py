@@ -200,7 +200,7 @@ def test_send_sms_raises_invalid_provider_error_with_invalide_number(aws_pinpoin
 
 
 @pytest.mark.parametrize('code', AwsPinpointClient._retryable_v1_codes)
-def test_send_sms_post_message_request_raises_RetryableException(mocker, aws_pinpoint_client, code):
+def test_send_sms_post_message_request_raises_retryable_exception(mocker, aws_pinpoint_client, code):
     # These are retryable but expected
     mocker.patch.object(
         aws_pinpoint_client,
@@ -213,8 +213,8 @@ def test_send_sms_post_message_request_raises_RetryableException(mocker, aws_pin
 
 
 @pytest.mark.parametrize('code', ('123', '418'))
-def test_send_sms_post_message_request_raises_AwsPinpointException(mocker, aws_pinpoint_client, code):
-    # These are retryable so we can figure out why thing exploded
+def test_send_sms_post_message_request_raises_aws_exception(mocker, aws_pinpoint_client, code):
+    # These are retryable so we can figure out why the thing exploded
     mocker.patch.object(
         aws_pinpoint_client,
         '_post_message_request',
