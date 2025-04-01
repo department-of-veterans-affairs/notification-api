@@ -3,7 +3,6 @@ import pytest
 from typing import Dict
 from authlib.integrations.base_client import OAuthError
 from flask_jwt_extended.exceptions import NoAuthorizationError
-from flask_jwt_extended import decode_token
 from requests import Response
 from sqlalchemy.orm.exc import NoResultFound
 
