@@ -9,7 +9,7 @@ package-mode = false
 
 # https://peps.python.org/pep-0518/#tool-table
 [tool.static_tests]
-poetry_version = "1.8.4"
+poetry_version = "2.1.2"
 
 [tool.poetry.dependencies]
 python = "~3.10"
