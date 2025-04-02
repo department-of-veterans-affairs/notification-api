@@ -930,7 +930,21 @@ class TemplateBase(db.Model):
 
     @property
     def text(self):
-        return self.content_as_plain_text
+        if self.content_as_plain_text:
+            return self.content_as_plain_text
+        else:
+            if self.template_type == EMAIL_TYPE:
+                from notifications_utils.template import PlainTextEmailTemplate
+
+                template_object = PlainTextEmailTemplate({'content': self.content, 'subject': self.subject})
+                return str(template_object)
+            elif self.template_type == SMS_TYPE:
+                from notifications_utils.template import SMSMessageTemplate
+
+                template_object = SMSMessageTemplate({'content': self.content})
+                return str(template_object)
+            else:
+                return self.content
 
     def _as_utils_template(self):
         if self.template_type == EMAIL_TYPE:
