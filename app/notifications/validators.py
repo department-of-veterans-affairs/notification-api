@@ -185,7 +185,11 @@ def validate_template(
     except NoResultFound:
         # Putting this in the "message" would be a breaking change for API responses
         current_app.logger.info(
-            'Validation failure for %s (%s) template not found: %s', service.id, service.name, template_id
+            '%s Validation failure for service: %s (%s) template: %s not found',
+            notification_type,
+            service.id,
+            service.name,
+            template_id,
         )
         message = 'Template not found'
         raise BadRequestError(message=message, fields=[{'template': message}])
