@@ -912,6 +912,26 @@ class TemplateBase(db.Model):
     ):
         pass
 
+    @property
+    def html(self):
+        if self.content_as_html:
+            return self.content_as_html
+        else:
+            if self.template_type == EMAIL_TYPE:
+                from notifications_utils.template import HTMLEmailTemplate
+
+                template_object = HTMLEmailTemplate({'content': self.content, 'subject': self.subject})
+                return str(template_object)
+            elif self.template_type == SMS_TYPE:
+                # SMS templates don't have HTML representation
+                return None
+            else:
+                return None
+
+    @property
+    def text(self):
+        return self.content_as_plain_text
+
     def _as_utils_template(self):
         if self.template_type == EMAIL_TYPE:
             return PlainTextEmailTemplate({'content': self.content, 'subject': self.subject})
@@ -927,8 +947,8 @@ class TemplateBase(db.Model):
             'created_by': self.created_by.email_address,
             'version': self.version,
             'body': self.content,
-            'html': self.content_as_html,
-            'plain_text': self.content_as_plain_text,
+            'html': self.html,
+            'plain_text': self.text,
             'subject': self.subject if self.template_type != SMS_TYPE else None,
             'name': self.name,
             'personalisation': {
