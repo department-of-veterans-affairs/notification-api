@@ -2281,8 +2281,8 @@ statsd = ">=4.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
-reference = "204-bug-action-link-in-block-quotes-v3"
-resolved_reference = "dda5fab2248be104a84f0a2be3b011a3370d3f73"
+reference = "HEAD"
+resolved_reference = "446ea2aaeedb4912dd64ed5a645910ff6af8f6e5"
 
 [[package]]
 name = "notifications-python-client"
@@ -3887,4 +3887,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "67546bff9d1251fda17924910dc1129cb4243ad7650c34445dadb3b8a562c4ac"
+content-hash = "c4fe164345b3406b90d90e6a4d8f150761404a836b84c5dfdefba0aaae7b4f41"

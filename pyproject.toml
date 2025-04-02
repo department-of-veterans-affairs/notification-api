@@ -56,7 +56,7 @@ twilio = "*"
 Unidecode = "*"
 validatesns = "*"
 Werkzeug = "*"
-notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git", branch="204-bug-action-link-in-block-quotes-v3"}
+notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git"}
 
 [tool.poetry.group.test]
 optional = true
