@@ -984,6 +984,36 @@ class Template(TemplateBase):
         fields['folder'] = folder
         return cls(**fields)
 
+    @property
+    def html(self):
+        if current_app.config.get('TEMPLATE_CONTENT_PROPERTIES_ENABLED'):
+            if self.content_as_html:
+                return self.content_as_html
+
+            from app.utils import get_template_instance
+
+            template_object = get_template_instance(self.__dict__, {})
+            self.content_as_html = str(template_object.get_html_body())
+            db.session.add(self)
+            db.session.commit()
+            return self.content_as_html
+        return self.content_as_html
+
+    @property
+    def text(self):
+        if current_app.config.get('TEMPLATE_CONTENT_PROPERTIES_ENABLED'):
+            if self.content_as_plain_text:
+                return self.content_as_plain_text
+
+            from app.utils import get_template_instance
+
+            template_object = get_template_instance(self.__dict__, {})
+            self.content_as_plain_text = str(template_object)
+            db.session.add(self)
+            db.session.commit()
+            return self.content_as_plain_text
+        return self.content_as_plain_text
+
 
 class TemplateRedacted(db.Model):
     __tablename__ = 'template_redacted'

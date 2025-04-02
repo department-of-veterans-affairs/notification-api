@@ -206,6 +206,8 @@ class Config(object):
     SMTP_TEMPLATE_ID = '3a4cab41-c47d-4d49-96ba-f4c4fa91d44b'
     EMAIL_COMPLAINT_TEMPLATE_ID = '064e85da-c238-47a3-b9a7-21493ea23dd3'
 
+    TEMPLATE_CONTENT_PROPERTIES_ENABLED = os.getenv('TEMPLATE_CONTENT_PROPERTIES_ENABLED', 'False') == 'True'
+
     CELERY_SETTINGS = {
         'broker_url': os.getenv('BROKER_URL', 'sqs://sqs.us-gov-west-1.amazonaws.com'),
         'broker_transport_options': {
