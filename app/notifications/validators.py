@@ -183,7 +183,7 @@ def validate_template(
     try:
         template = templates_dao.dao_get_template_by_id_and_service_id(template_id=template_id, service_id=service.id)
     except NoResultFound:
-        message = 'Template not found'
+        message = f'Validation failure for {service.id} ({service.name}) template not found: {template_id}'
         raise BadRequestError(message=message, fields=[{'template': message}])
 
     check_template_is_for_notification_type(notification_type, template.template_type)
