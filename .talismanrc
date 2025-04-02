@@ -13,5 +13,5 @@ fileignoreconfig:
 - filename: app/celery/reporting_tasks.py
   checksum: 2374dafe0993f493addc7ea8276342371584cf98d1a60c152a419981f85ea05a
 - filename: poetry.lock
-  checksum: aa60845e790e1662216d147d299e7421851e9aa8f2366d7f0304d80aca10c934
+  checksum: 1a762ec2e6f7081522f5f6f058e7bd34312daff2208a714766a4e6abab463941
 version: "1.0"
