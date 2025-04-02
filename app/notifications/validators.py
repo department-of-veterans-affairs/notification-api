@@ -183,7 +183,11 @@ def validate_template(
     try:
         template = templates_dao.dao_get_template_by_id_and_service_id(template_id=template_id, service_id=service.id)
     except NoResultFound:
-        message = f'Validation failure for {service.id} ({service.name}) template not found: {template_id}'
+        # Putting this in the "message" would be a breaking change for API responses
+        current_app.logger.info(
+            'Validation failure for %s (%s) template not found: %s', service.id, service.name, template_id
+        )
+        message = 'Template not found'
         raise BadRequestError(message=message, fields=[{'template': message}])
 
     check_template_is_for_notification_type(notification_type, template.template_type)
