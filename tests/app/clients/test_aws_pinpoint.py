@@ -30,7 +30,7 @@ def aws_pinpoint_client(notify_api, mocker):
 
 @pytest.fixture(scope='function')
 def boto_mock(aws_pinpoint_client, mocker):
-    boto_mock = mocker.patch.object(aws_pinpoint_client, '_client', create=True)
+    boto_mock = mocker.patch.object(aws_pinpoint_client, '_pinpoint_client', create=True)
     return boto_mock
 
 

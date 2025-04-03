@@ -151,7 +151,11 @@ class AwsPinpointClient(SmsClient):
             message_request_payload = {
                 'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
                 'MessageConfiguration': {
-                    'SMSMessage': {'Body': content, 'MessageType': 'TRANSACTIONAL', 'OriginationNumber': aws_phone_number}
+                    'SMSMessage': {
+                        'Body': content,
+                        'MessageType': 'TRANSACTIONAL',
+                        'OriginationNumber': aws_phone_number,
+                    }
                 },
             }
 
