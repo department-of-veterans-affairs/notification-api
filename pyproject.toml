@@ -13,6 +13,8 @@ poetry_version = "1.8.4"
 
 [tool.poetry.dependencies]
 python = "~3.10"
+# 3.11.16 causes issues
+aiohttp = "3.11.12"
 alembic-utils = "*"
 Authlib = "*"
 boto3 = "*"
@@ -21,7 +23,7 @@ cachelib = "*"
 cachetools = "*"
 celery = {extras = ["sqs"], version = "*"}
 click-datetime = "*"
-ddtrace = "3.1.0"
+ddtrace = "*"
 docopt = "*"
 fido2 = "*"
 Flask = "*"
