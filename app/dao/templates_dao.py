@@ -1,6 +1,12 @@
 import uuid
+from datetime import datetime
+
+from flask import current_app
+from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate
+from sqlalchemy import asc, desc, func, select, update
+
 from app import db
-from app.constants import LETTER_TYPE, SECOND_CLASS
+from app.constants import EMAIL_TYPE, LETTER_TYPE, SECOND_CLASS, SMS_TYPE
 from app.dao.dao_utils import (
     transactional,
     version_class,
@@ -12,9 +18,11 @@ from app.models import (
     TemplateHistory,
     TemplateRedacted,
 )
-from datetime import datetime
-from flask import current_app
-from sqlalchemy import asc, desc, func, select, update
+from app.utils import get_template_instance
+
+
+def render_template(template, values=None):
+    return str(get_template_instance(template.__dict__, values))
 
 
 @transactional
@@ -33,7 +41,20 @@ def dao_create_template(template):
         redacted_dict.update({'updated_by_id': template.created_by_id})
 
     template.template_redacted = TemplateRedacted(**redacted_dict)
+    template.content_as_html = None
+    template.content_as_plain_text = None
 
+    if template.template_type == EMAIL_TYPE:
+        template_object = HTMLEmailTemplate({'content': template.content, 'subject': template.subject})
+        template.content_as_html = str(template_object)
+
+        template_object = PlainTextEmailTemplate({'content': template.content, 'subject': template.subject})
+        template.content_as_plain_text = str(template_object)
+    elif template.template_type == SMS_TYPE:
+        from notifications_utils.template import SMSMessageTemplate
+
+        template_object = SMSMessageTemplate({'content': template.content})
+        template.content_as_plain_text = str(template_object)
     db.session.add(template)
 
 

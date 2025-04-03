@@ -37,6 +37,16 @@ def test_get_template_by_id_returns_200(
 
     json_response = json.loads(response.get_data(as_text=True))
 
+    html_content = json_response.pop('html')
+    plain_text_content = json_response.pop('plain_text')
+
+    if template.template_type == EMAIL_TYPE:
+        assert html_content == template.content_as_html
+        assert plain_text_content == template.content_as_plain_text
+    else:
+        assert html_content is None
+        assert plain_text_content == template.content_as_plain_text
+
     expected_response = {
         'id': '{}'.format(template.id),
         'type': '{}'.format(template.template_type),
@@ -45,8 +55,6 @@ def test_get_template_by_id_returns_200(
         'version': template.version,
         'created_by': template.created_by.email_address,
         'body': template.content,
-        'html': None,
-        'plain_text': None,
         'subject': template.subject,
         'name': template.name,
         'personalisation': {},
