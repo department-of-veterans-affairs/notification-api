@@ -13,8 +13,6 @@ poetry_version = "1.8.4"
 
 [tool.poetry.dependencies]
 python = "~3.10"
-# Poetry wants to use 3.11.13 but it was yanked, so have to go one lower
-aiohttp = "3.11.12"
 alembic-utils = "*"
 Authlib = "*"
 boto3 = "*"
@@ -23,7 +21,7 @@ cachelib = "*"
 cachetools = "*"
 celery = {extras = ["sqs"], version = "*"}
 click-datetime = "*"
-ddtrace = "*"
+ddtrace = "3.1.*"
 docopt = "*"
 fido2 = "*"
 Flask = "*"
