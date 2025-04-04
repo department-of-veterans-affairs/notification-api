@@ -115,8 +115,12 @@ class AwsPinpointClient(SmsClient):
                 self.logger.exception('Encountered an unexpected exception sending Pinpoint SMS')
                 raise AwsPinpointException(str(e))
         else:
-            self._validate_response(response['MessageResponse']['Result'][recipient_number])
-            aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
+            if is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2):
+                aws_reference = response['MessageId']
+            else:
+                # The V2 response doesn't contain additional fields to validate.
+                self._validate_response(response['MessageResponse']['Result'][recipient_number])
+                aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
             elapsed_time = monotonic() - start_time
             self.logger.info(
                 'AWS Pinpoint SMS request using %s finished in %s for notificationId:%s and reference:%s',
