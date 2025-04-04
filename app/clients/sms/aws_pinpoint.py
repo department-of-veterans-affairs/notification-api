@@ -116,9 +116,9 @@ class AwsPinpointClient(SmsClient):
                 raise AwsPinpointException(str(e))
         else:
             if is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2):
+                # The V2 response doesn't contain additional fields to validate.
                 aws_reference = response['MessageId']
             else:
-                # The V2 response doesn't contain additional fields to validate.
                 self._validate_response(response['MessageResponse']['Result'][recipient_number])
                 aws_reference = response['MessageResponse']['Result'][recipient_number]['MessageId']
             elapsed_time = monotonic() - start_time
