@@ -76,15 +76,13 @@ if NOTIFY_ENVIRONMENT == 'test':
 elif NOTIFY_ENVIRONMENT == 'prod':
     jwt_cert_paths = ('/opt/jwt/Profile_prod_public.pem',)
 else:
-    jwt_cert_paths = ('/opt/jwt/Profile_nonprod_public.pem', '/opt/jwt/Profile_2025_nonprod_public.pem')
+    jwt_cert_paths = '/opt/jwt/Profile_2025_nonprod_public.pem'
 
 # Load VA Profile's public certificate used to verify JWT signatures for POST requests.
 # In deployment environments, the certificate should be available via a lambda layer.
-va_profile_public_certs = []
 try:
-    for cert_path in jwt_cert_paths:
-        with open(cert_path, 'rb') as f:
-            va_profile_public_certs.append(load_pem_x509_certificate(f.read()).public_key())
+    with open(jwt_cert_paths, 'rb') as f:
+        va_profile_public_cert = load_pem_x509_certificate(f.read()).public_key()
 except (OSError, ValueError) as e:
     logger.exception(e)
     sys.exit('The JWT public certificate is missing or invalid.  Cannot authenticate POST requests.')
@@ -228,7 +226,7 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
     logger.info('POST request received.')
     logger.debug('POST event: %s', event)
 
-    global integration_testing_public_cert
+    global va_profile_public_cert, integration_testing_public_cert
 
     headers = event.get('headers', {})
     is_integration_test = 'integration_test' in event.get('queryStringParameters', {})
@@ -244,7 +242,7 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
     # Authenticate the POST request by verifying the JWT signature.
     if not jwt_is_valid(
         headers.get('Authorization', headers.get('authorization', '')),
-        [integration_testing_public_cert] if is_integration_test else va_profile_public_certs,
+        [integration_testing_public_cert] if is_integration_test else va_profile_public_cert,
     ):
         logger.info('Authentication failed.  Returning 401.')
         return {'statusCode': 401}
