@@ -42,7 +42,7 @@ from app.notifications.process_notifications import (
     send_to_queue_for_recipient_info_based_on_recipient_identifier,
     simulated_recipient,
 )
-from notifications_utils.recipients import validate_and_format_phone_number, validate_and_format_email_address
+from notifications_utils.recipients import ValidatedPhoneNumber, validate_and_format_email_address
 from notifications_utils.template import WithSubjectTemplate
 from app.utils import get_template_instance
 from app.v2.errors import BadRequestError
@@ -628,7 +628,7 @@ def test_simulated_recipient(
     if notification_type == EMAIL_TYPE:
         formatted_address = validate_and_format_email_address(to_address)
     else:
-        formatted_address = validate_and_format_phone_number(to_address)
+        formatted_address = ValidatedPhoneNumber(to_address).formatted
 
     is_simulated_address = simulated_recipient(formatted_address, notification_type)
 
