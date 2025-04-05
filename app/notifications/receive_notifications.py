@@ -194,9 +194,7 @@ def create_inbound_sms_object(
     date_received: datetime,
     provider_name: str,
 ) -> InboundSms:
-    user_number = try_validate_and_format_phone_number(
-        from_number, international=True, log_msg='Invalid from_number received'
-    )
+    user_number = try_validate_and_format_phone_number(from_number, log_msg='Invalid from_number received')
 
     inbound = InboundSms(
         service=service,
