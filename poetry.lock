@@ -2282,7 +2282,7 @@ statsd = ">=4.0.1"
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
 reference = "212-refactor-phonenumbers"
-resolved_reference = "e70ae07b1be7bf93408ec7282a92dd5b65a75d16"
+resolved_reference = "e6f23bb3c0ee39d6f368a2b45eb4c50cbb797148"
 
 [[package]]
 name = "notifications-python-client"

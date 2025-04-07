@@ -159,8 +159,10 @@ def validate_and_format_recipient(
     service_can_send_to_recipient(send_to, key_type, service, allow_whitelisted_recipients)
 
     if notification_type == SMS_TYPE:
+        validated_phone_number = ValidatedPhoneNumber(send_to)
         try:
-            validated_phone_number = ValidatedPhoneNumber(send_to)
+            # check if able to lookup billable units, should be non-zero
+            assert validated_phone_number.billable_units
         except KeyError:
             current_app.logger.warn('Service used invalid International Billing Rate prefix: %s', send_to)
             raise BadRequestError(message='Invalid International Billing Prefix')
