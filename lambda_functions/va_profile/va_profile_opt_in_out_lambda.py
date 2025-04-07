@@ -72,9 +72,9 @@ if NOTIFY_ENVIRONMENT != 'test' and not os.path.isdir(CA_PATH):
     sys.exit('The VA CA certificate directory is missing.  Is the lambda layer in use?')
 
 if NOTIFY_ENVIRONMENT == 'test':
-    jwt_cert_paths = ('tests/lambda_functions/va_profile/cert.pem',)
+    jwt_cert_paths = 'tests/lambda_functions/va_profile/cert.pem'
 elif NOTIFY_ENVIRONMENT == 'prod':
-    jwt_cert_paths = ('/opt/jwt/Profile_prod_public.pem',)
+    jwt_cert_paths = '/opt/jwt/Profile_prod_public.pem'
 else:
     jwt_cert_paths = '/opt/jwt/Profile_2025_nonprod_public.pem'
 
@@ -445,13 +445,13 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
 
 def jwt_is_valid(
     auth_header_value: str,
-    public_keys: list[Certificate],
+    public_key: Certificate,
 ) -> bool:
     """
     The POST request should have sent an asymmetrically signed JWT.  Attempt to verify the signature.
     """
 
-    assert public_keys
+    assert public_key
     if not auth_header_value:
         return False
 
@@ -471,17 +471,14 @@ def jwt_is_valid(
         'require': ['exp', 'iat'],
         'verify_exp': 'verify_signature',
     }
-    for i, public_key in enumerate(public_keys):
-        try:
-            # This returns the claims as a dictionary, but we aren't using them.  Require the
-            # Issued at Time (iat) claim to ensure the JWT varies with each request.  Otherwise,
-            # an attacker could replay the static Bearer value.
-            jwt.decode(token, public_key, algorithms=['RS256'], options=options)
-            # Blank if the key is less than 35 characters
-            logger.debug('Used key: %s', i)
-            return True
-        except (jwt.exceptions.InvalidTokenError, TypeError):
-            logger.exception('Failed to validate key: %s', i)
+    try:
+        # This returns the claims as a dictionary, but we aren't using them.  Require the
+        # Issued at Time (iat) claim to ensure the JWT varies with each request.  Otherwise,
+        # an attacker could replay the static Bearer value.
+        jwt.decode(token, public_key, algorithms=['RS256'], options=options)
+        return True
+    except (jwt.exceptions.InvalidTokenError, TypeError):
+        logger.exception('Failed to validate key')
 
     return False
 
