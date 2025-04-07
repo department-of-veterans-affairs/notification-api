@@ -83,7 +83,7 @@ def send_sms_to_provider(
             # Send a SMS message using the "to" attribute to specify the recipient.
             reference = client.send_sms(
                 to=validate_and_format_phone_number(notification.to, international=notification.international),
-                content=template.text,
+                content=str(template),
                 reference=str(notification.id),
                 sender=notification.reply_to_text,
                 service_id=notification.service_id,
@@ -141,7 +141,6 @@ def send_email_to_provider(notification: Notification):
     template_dict = dao_get_template_by_id(notification.template_id, notification.template_version).__dict__
 
     html_email = HTMLEmailTemplate(template_dict, values=personalisation_data, **get_html_email_options(notification))
-
     plain_text_email = PlainTextEmailTemplate(template_dict, values=personalisation_data)
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
@@ -161,8 +160,8 @@ def send_email_to_provider(notification: Notification):
             source=compute_source_email_address(service, client),
             to_addresses=validate_and_format_email_address(notification.to),
             subject=plain_text_email.subject,
-            body=plain_text_email.text,
-            html_body=html_email.html,
+            body=str(plain_text_email),
+            html_body=str(html_email),
             reply_to_address=validate_and_format_email_address(email_reply_to) if email_reply_to else None,
             attachments=attachments,
         )
