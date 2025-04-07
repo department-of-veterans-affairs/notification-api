@@ -8,7 +8,7 @@ fileignoreconfig:
 - filename: cd/application-deployment/staging/staging.env
   checksum: 975bc9274cead1a9f9dd7cb67634e706d7b1656a0ce90264cfcd245669f42efd
 - filename: poetry.lock
-  checksum: 2e92de18eeca68da0416a1accfc121dcaff844dd5cca600db9a3623ceccff67e
+  checksum: 7138fd8e733ca55479f4be975f00b837159aadfe067d7ab6390cc94fe82afc65
 - filename: app/celery/reporting_tasks.py
   checksum: 2374dafe0993f493addc7ea8276342371584cf98d1a60c152a419981f85ea05a
 version: "1.0"
