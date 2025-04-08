@@ -72,16 +72,16 @@ if NOTIFY_ENVIRONMENT != 'test' and not os.path.isdir(CA_PATH):
     sys.exit('The VA CA certificate directory is missing.  Is the lambda layer in use?')
 
 if NOTIFY_ENVIRONMENT == 'test':
-    jwt_cert_paths = 'tests/lambda_functions/va_profile/cert.pem'
+    jwt_cert_path = 'tests/lambda_functions/va_profile/cert.pem'
 elif NOTIFY_ENVIRONMENT == 'prod':
-    jwt_cert_paths = '/opt/jwt/Profile_prod_public.pem'
+    jwt_cert_path = '/opt/jwt/Profile_prod_public.pem'
 else:
-    jwt_cert_paths = '/opt/jwt/Profile_2025_nonprod_public.pem'
+    jwt_cert_path = '/opt/jwt/Profile_2025_nonprod_public.pem'
 
 # Load VA Profile's public certificate used to verify JWT signatures for POST requests.
 # In deployment environments, the certificate should be available via a lambda layer.
 try:
-    with open(jwt_cert_paths, 'rb') as f:
+    with open(jwt_cert_path, 'rb') as f:
         va_profile_public_cert = load_pem_x509_certificate(f.read()).public_key()
 except (OSError, ValueError) as e:
     logger.exception(e)
