@@ -81,7 +81,7 @@ class VETextClient:
             raise RetryableException from e
         except requests.HTTPError as e:
             self.statsd.incr(f'{self.STATSD_KEY}.error.{e.response.status_code}')
-            if e.response.status_code in [429, 500, 502, 503, 504]:
+            if e.response.status_code in [404, 429, 500, 502, 503, 504]:
                 self.logger.warning('Retryable exception raised with status code %s', e.response.status_code)
                 raise RetryableException from e
             elif e.response.status_code == 400:
