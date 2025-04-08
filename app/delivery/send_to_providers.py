@@ -3,8 +3,21 @@ from typing import Dict, Union
 
 from flask import current_app
 
+from notifications_utils.field import Field
+from notifications_utils.formatters import (
+    add_prefix,
+    normalise_newlines,
+    remove_whitespace_before_punctuation,
+    sms_encode,
+)
 from notifications_utils.recipients import validate_and_format_phone_number, validate_and_format_email_address
-from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate, SMSMessageTemplate
+from notifications_utils.template import (
+    compose1,
+    HTMLEmailTemplate,
+    PlainTextEmailTemplate,
+    get_sms_fragment_count,
+    is_unicode,
+)
 
 
 from app import attachment_store, clients, statsd_client, provider_service
@@ -32,10 +45,7 @@ from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import InactiveServiceException, InvalidProviderException, NotificationTechnicalFailureException
 from app.feature_flags import is_gapixel_enabled, is_feature_enabled, FeatureFlag
 from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
-from app.models import (
-    Notification,
-    ProviderDetails,
-)
+from app.models import Notification, ProviderDetails
 from app.service.utils import compute_source_email_address
 from app.utils import create_uuid
 
@@ -51,7 +61,6 @@ def send_sms_to_provider(
     When the backend provider has sms_sender_specifics, use messaging_service_sid, if available, for the sender's
     identity instead of the sender's phone number.
     """
-
     service = notification.service
 
     if not service.active:
@@ -64,13 +73,15 @@ def send_sms_to_provider(
     # This is an instance of one of the classes defined in app/clients/.
     client = client_to_use(notification)
 
-    template_model = dao_get_template_by_id(notification.template_id, notification.template_version)
-
-    template = SMSMessageTemplate(
-        template_model.__dict__,
-        values=notification.personalisation,
-        prefix=service.name,
-        show_prefix=service.prefix_sms,
+    content = Field(notification.template.content, notification.personalisation, html='passthrough')
+    if service.prefix_sms:
+        content = add_prefix(content.replaced, notification.template.service.name)
+    content = compose1(
+        content,
+        sms_encode,
+        remove_whitespace_before_punctuation,
+        normalise_newlines,
+        str.strip,
     )
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
@@ -83,7 +94,7 @@ def send_sms_to_provider(
             # Send a SMS message using the "to" attribute to specify the recipient.
             reference = client.send_sms(
                 to=validate_and_format_phone_number(notification.to, international=notification.international),
-                content=str(template),
+                content=content,
                 reference=str(notification.id),
                 sender=notification.reply_to_text,
                 service_id=notification.service_id,
@@ -91,11 +102,11 @@ def send_sms_to_provider(
                 created_at=notification.created_at,
             )
         except Exception as e:
-            notification.billable_units = template.fragment_count
+            notification.billable_units = get_sms_fragment_count(len(content), is_unicode(content))
             dao_update_notification(notification)
             raise e
 
-        notification.billable_units = template.fragment_count
+        notification.billable_units = get_sms_fragment_count(len(content), is_unicode(content))
         notification.reference = reference
         update_notification_to_sending(notification, client)
         current_app.logger.info(f'Saved provider reference: {reference} for notification id: {notification.id}')
