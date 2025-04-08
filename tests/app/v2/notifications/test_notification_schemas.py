@@ -249,7 +249,7 @@ def test_post_sms_schema_with_personalisation_that_is_not_a_dict(client):
             '08515111111',
             'phone_number Not a valid number',
         ),
-        ('notaphoneumber', 'phone_number Not a valid number'),
+        ('notaphoneumber', 'phone_number Phone numbers must not contain letters'),
         (7700900001, 'phone_number 7700900001 is not of type string'),
         (None, 'phone_number None is not of type string'),
         ([], 'phone_number [] is not of type string'),
