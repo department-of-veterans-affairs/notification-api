@@ -45,15 +45,29 @@ def dao_create_template(template):
     template.content_as_plain_text = None
 
     if template.template_type == EMAIL_TYPE:
-        template_object = HTMLEmailTemplate({'content': template.content, 'subject': template.subject})
+        template_object = HTMLEmailTemplate(
+            {
+                'content': template.content,
+                'subject': template.subject,
+            },
+        )
         template.content_as_html = str(template_object)
 
-        template_object = PlainTextEmailTemplate({'content': template.content, 'subject': template.subject})
+        template_object = PlainTextEmailTemplate(
+            {
+                'content': template.content,
+                'subject': template.subject,
+            },
+        )
         template.content_as_plain_text = str(template_object)
     elif template.template_type == SMS_TYPE:
         from notifications_utils.template import SMSMessageTemplate
 
-        template_object = SMSMessageTemplate({'content': template.content})
+        template_object = SMSMessageTemplate(
+            template.__dict__,
+            prefix=template.service.name,
+            show_prefix=template.service.prefix_sms,
+        )
         template.content_as_plain_text = str(template_object)
     db.session.add(template)
 

@@ -932,7 +932,9 @@ class TemplateBase(db.Model):
                 template_object = PlainTextEmailTemplate({'content': self.content, 'subject': self.subject})
                 return str(template_object)
             elif self.template_type == SMS_TYPE:
-                template_object = SMSMessageTemplate({'content': self.content})
+                template_object = SMSMessageTemplate(
+                    self.__dict__, prefix=self.service.name, show_prefix=self.service.prefix_sms
+                )
                 return str(template_object)
             else:
                 return self.content

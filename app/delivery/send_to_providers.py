@@ -1,20 +1,28 @@
 from datetime import datetime
+from html import unescape
+import re
 from typing import Dict, Union
 
 from flask import current_app
-
+from markupsafe import Markup
 from notifications_utils.field import Field
 from notifications_utils.formatters import (
     add_prefix,
+    notify_markdown,
     normalise_newlines,
     remove_whitespace_before_punctuation,
     sms_encode,
+    strip_leading_whitespace,
+    strip_unsupported_characters,
+    add_trailing_newline,
+    insert_block_quotes,
+    insert_list_spaces,
 )
 from notifications_utils.recipients import validate_and_format_phone_number, validate_and_format_email_address
 from notifications_utils.template import (
     compose1,
     HTMLEmailTemplate,
-    PlainTextEmailTemplate,
+    do_nice_typography,
     get_sms_fragment_count,
     is_unicode,
 )
@@ -73,16 +81,11 @@ def send_sms_to_provider(
     # This is an instance of one of the classes defined in app/clients/.
     client = client_to_use(notification)
 
-    content = Field(notification.template.content, notification.personalisation, html='passthrough')
-    if service.prefix_sms:
-        content = add_prefix(content.replaced, notification.template.service.name)
-    content = compose1(
-        content,
-        sms_encode,
-        remove_whitespace_before_punctuation,
-        normalise_newlines,
-        str.strip,
-    )
+    content = notification.template.text
+    for key, value in notification.personalisation.items():
+        # Match both plain (( key )) and HTML-formatted <span class='placeholder'>(( key ))</span> placeholders
+        regex_str = r'(?:<span class=[\'"]placeholder[\'"]>)?[(]{2}\s*' + key + r'\s*[)]{2}(?:</span>)?'
+        content = re.sub(regex_str, value, content, flags=re.IGNORECASE)
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
         notification.reference = create_uuid()
@@ -149,10 +152,30 @@ def send_email_to_provider(notification: Notification):
         else:
             personalisation_data[key] = personalisation_data[key]['url']
 
-    template_dict = dao_get_template_by_id(notification.template_id, notification.template_version).__dict__
+    subject = str(Field(notification.template.subject, personalisation_data, html='passthrough'))
 
+    template_dict = dao_get_template_by_id(notification.template_id, notification.template_version).__dict__
     html_email = HTMLEmailTemplate(template_dict, values=personalisation_data, **get_html_email_options(notification))
-    plain_text_email = PlainTextEmailTemplate(template_dict, values=personalisation_data)
+
+    text_content = Field(
+        notification.template.content,
+        personalisation_data,
+        html='passthrough',
+        markdown_lists=True,
+    )
+    text_content = compose1(
+        str(text_content),
+        strip_unsupported_characters,
+        add_trailing_newline,
+        insert_block_quotes,
+        insert_list_spaces,
+        notify_markdown,
+        do_nice_typography,
+        unescape,
+        strip_leading_whitespace,
+        add_trailing_newline,
+    )
+    text_content = Markup(text_content)
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
         notification.reference = create_uuid()
@@ -170,8 +193,8 @@ def send_email_to_provider(notification: Notification):
         reference = client.send_email(
             source=compute_source_email_address(service, client),
             to_addresses=validate_and_format_email_address(notification.to),
-            subject=plain_text_email.subject,
-            body=str(plain_text_email),
+            subject=subject,
+            body=str(text_content),
             html_body=str(html_email),
             reply_to_address=validate_and_format_email_address(email_reply_to) if email_reply_to else None,
             attachments=attachments,
