@@ -164,7 +164,7 @@ def validate_and_format_recipient(
             validated_phone_number = ValidatedPhoneNumber(send_to)
         except InvalidPhoneError as exp:
             # country code used as billing prefix key
-            if str(exp) == 'Not a valid country code':
+            if str(exp) == 'Not a valid country prefix':
                 current_app.logger.warn('Service used invalid International Billing Rate prefix: %s', send_to)
                 raise BadRequestError(message='Invalid International Billing Prefix')
             else:
