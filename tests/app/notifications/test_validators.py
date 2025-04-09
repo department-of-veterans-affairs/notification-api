@@ -412,6 +412,19 @@ def test_rejects_api_calls_with_no_recipient():
     assert e.value.message == "Recipient can't be empty"
 
 
+@pytest.mark.parametrize('key_type', ['test', 'normal'])
+def test_validate_and_format_recipient_raises_with_invalid_country_code(
+    key_type,
+    sample_service,
+):
+    service = sample_service(
+        service_name=f'sample service full permissions {uuid4()}', service_permissions=SERVICE_PERMISSION_TYPES
+    )
+    with pytest.raises(BadRequestError) as e:
+        validate_and_format_recipient('+681 4321 0987', key_type, service, SMS_TYPE)
+    assert e.value.message == 'Invalid International Billing Prefix'
+
+
 @pytest.mark.parametrize('notification_type', [SMS_TYPE, EMAIL_TYPE, LETTER_TYPE])
 def test_check_service_sms_sender_id_where_sms_sender_id_is_none(notification_type):
     assert check_service_sms_sender_id(None, None, notification_type) is None

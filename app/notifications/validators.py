@@ -5,6 +5,7 @@ from cachetools import TTLCache, cached
 from flask import current_app
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
 from notifications_utils.recipients import (
+    InvalidPhoneError,
     ValidatedPhoneNumber,
     validate_and_format_email_address,
 )
@@ -159,13 +160,15 @@ def validate_and_format_recipient(
     service_can_send_to_recipient(send_to, key_type, service, allow_whitelisted_recipients)
 
     if notification_type == SMS_TYPE:
-        validated_phone_number = ValidatedPhoneNumber(send_to)
         try:
-            # check if able to lookup billable units, should be non-zero
-            assert validated_phone_number.billable_units
-        except KeyError:
-            current_app.logger.warn('Service used invalid International Billing Rate prefix: %s', send_to)
-            raise BadRequestError(message='Invalid International Billing Prefix')
+            validated_phone_number = ValidatedPhoneNumber(send_to)
+        except InvalidPhoneError as exp:
+            # country code used as billing prefix key
+            if str(exp) == 'Not a valid country code':
+                current_app.logger.warn('Service used invalid International Billing Rate prefix: %s', send_to)
+                raise BadRequestError(message='Invalid International Billing Prefix')
+            else:
+                raise
 
         if validated_phone_number.international and not service.has_permissions(INTERNATIONAL_SMS_TYPE):
             raise BadRequestError(message='Cannot send to international mobile numbers')
