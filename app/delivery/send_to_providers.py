@@ -1,6 +1,5 @@
 from datetime import datetime
 from html import unescape
-import re
 from typing import Dict, Union
 
 from flask import current_app
@@ -78,8 +77,8 @@ def send_sms_to_provider(
     # This is an instance of one of the classes defined in app/clients/.
     client = client_to_use(notification)
 
-    # content_formatted = str(Field(notification.template.text).formatted)
-    content = str(Field(notification.template.text, values=notification.personalisation))
+    content = str(Field(notification.template.text, values=notification.personalisation, html='passthrough'))
+    content = SanitiseSMS.encode(content)
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
         notification.reference = create_uuid()
