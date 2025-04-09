@@ -8,7 +8,7 @@ fileignoreconfig:
 - filename: cd/application-deployment/staging/staging.env
   checksum: 8cc5e0cbdb3066828cfc3bec1333f6ce1adab662a658276755992844fd54184c
 - filename: poetry.lock
-  checksum: 22102d2fdc855e18be94607c6678691a3266e7d391475acfcddb09b80955c542
+  checksum: fcdeac2241aa3b3b3c090f13cf9e2da9833bb2f43971cce62d28f8ab0d1e0ac8
 - filename: app/celery/reporting_tasks.py
   checksum: 2374dafe0993f493addc7ea8276342371584cf98d1a60c152a419981f85ea05a
 - filename: lambda_functions/va_profile/va_profile_opt_in_out_lambda.py
