@@ -78,7 +78,6 @@ def send_sms_to_provider(
     # This is an instance of one of the classes defined in app/clients/.
     client = client_to_use(notification)
 
-    breakpoint()
     # content_formatted = str(Field(notification.template.text).formatted)
     content = str(Field(notification.template.text, values=notification.personalisation))
 

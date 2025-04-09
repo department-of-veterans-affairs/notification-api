@@ -787,3 +787,32 @@ def test_template_with_provider_id_persists_provider_id(
     assert notify_db_session.session.get(Template, template.id).provider_id == provider.id
     # Teardown
     template_cleanup(notify_db_session.session, template.id)
+
+
+def test_create_template_sets_content_as_plain_text(
+    notify_db_session,
+    sample_service,
+):
+    service = sample_service()
+
+    sms_template_data = {
+        'name': 'SMS Plain Text Test',
+        'template_type': SMS_TYPE,
+        'content': 'Hello ((name)), this is a test SMS with placeholder',
+        'service': service,
+        'created_by': service.created_by,
+    }
+    sms_template = Template(**sms_template_data)
+    dao_create_template(sms_template)
+    db_sms_template = notify_db_session.session.get(Template, sms_template.id)
+
+    # Assertions
+    # SMS templates should include service name as prefix if prefix_sms is True
+    if service.prefix_sms:
+        assert service.name in db_sms_template.content_as_plain_text
+
+    # Rendering a template can add html tags, ensure that does not happen for plain text
+    assert 'Hello ((name)), this is a test SMS with placeholder' == db_sms_template.content_as_plain_text
+
+    # Also check the text property
+    assert 'Hello ((name)), this is a test SMS with placeholder' == db_sms_template.text
