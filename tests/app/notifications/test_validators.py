@@ -6,6 +6,8 @@ import pytest
 from freezegun import freeze_time
 from flask import current_app
 
+from notifications_utils.recipients import InvalidPhoneError
+
 import app
 from app.constants import EMAIL_TYPE, LETTER_TYPE, SERVICE_PERMISSION_TYPES, SMS_TYPE
 from app.feature_flags import FeatureFlag
@@ -420,9 +422,9 @@ def test_validate_and_format_recipient_raises_with_invalid_country_code(
     service = sample_service(
         service_name=f'sample service full permissions {uuid4()}', service_permissions=SERVICE_PERMISSION_TYPES
     )
-    with pytest.raises(BadRequestError) as e:
+    with pytest.raises(InvalidPhoneError) as e:
         validate_and_format_recipient('+681 4321 0987', key_type, service, SMS_TYPE)
-    assert e.value.message == 'Invalid International Billing Prefix'
+    assert e.value.message == 'Not a valid country prefix'
 
 
 @pytest.mark.parametrize('notification_type', [SMS_TYPE, EMAIL_TYPE, LETTER_TYPE])
