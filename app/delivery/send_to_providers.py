@@ -7,11 +7,7 @@ from flask import current_app
 from markupsafe import Markup
 from notifications_utils.field import Field
 from notifications_utils.formatters import (
-    add_prefix,
     notify_markdown,
-    normalise_newlines,
-    remove_whitespace_before_punctuation,
-    sms_encode,
     strip_leading_whitespace,
     strip_unsupported_characters,
     add_trailing_newline,
@@ -19,6 +15,7 @@ from notifications_utils.formatters import (
     insert_list_spaces,
 )
 from notifications_utils.recipients import validate_and_format_phone_number, validate_and_format_email_address
+from notifications_utils.sanitise_text import SanitiseSMS
 from notifications_utils.template import (
     compose1,
     HTMLEmailTemplate,
@@ -81,11 +78,9 @@ def send_sms_to_provider(
     # This is an instance of one of the classes defined in app/clients/.
     client = client_to_use(notification)
 
-    content = notification.template.text
-    for key, value in notification.personalisation.items():
-        # Match both plain (( key )) and HTML-formatted <span class='placeholder'>(( key ))</span> placeholders
-        regex_str = r'(?:<span class=[\'"]placeholder[\'"]>)?[(]{2}\s*' + key + r'\s*[)]{2}(?:</span>)?'
-        content = re.sub(regex_str, value, content, flags=re.IGNORECASE)
+    breakpoint()
+    # content_formatted = str(Field(notification.template.text).formatted)
+    content = str(Field(notification.template.text, values=notification.personalisation))
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
         notification.reference = create_uuid()
