@@ -2,18 +2,11 @@ import uuid
 from datetime import datetime
 
 from flask import current_app
-from notifications_utils.field import Field
-from notifications_utils.formatters import (
-    add_prefix,
-    normalise_newlines,
-    remove_whitespace_before_punctuation,
-    sms_encode,
-)
-from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate, compose1
+from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate
 from sqlalchemy import asc, desc, func, select, update
 
 from app import db
-from app.constants import EMAIL_TYPE, LETTER_TYPE, SECOND_CLASS, SMS_TYPE
+from app.constants import EMAIL_TYPE, LETTER_TYPE, SECOND_CLASS
 from app.dao.dao_utils import (
     transactional,
     version_class,
@@ -67,25 +60,6 @@ def dao_create_template(template):
             },
         )
         template.content_as_plain_text = str(template_object)
-    elif template.template_type == SMS_TYPE:
-        field = Field(template.content, html='passthrough')
-        field.placeholder_tag = '(({}))'
-        field.placeholder_tag_with_highlight = '(({}))'
-        field.conditional_placeholder_tag = '(({}??{}))'
-        field.placeholder_tag_no_brackets = '{}'
-        field.placeholder_tag_redacted = 'hidden'
-
-        if template.service.prefix_sms:
-            field = add_prefix(field, template.service.name)
-
-        content = compose1(
-            field,
-            sms_encode,
-            remove_whitespace_before_punctuation,
-            normalise_newlines,
-            str.strip,
-        )
-        template.content_as_plain_text = content
     db.session.add(template)
 
 

@@ -923,22 +923,6 @@ class TemplateBase(db.Model):
             else:
                 return None
 
-    @property
-    def text(self):
-        if self.content_as_plain_text:
-            return self.content_as_plain_text
-        else:
-            if self.template_type == EMAIL_TYPE:
-                template_object = PlainTextEmailTemplate({'content': self.content, 'subject': self.subject})
-                return str(template_object)
-            elif self.template_type == SMS_TYPE:
-                template_object = SMSMessageTemplate(
-                    self.__dict__, prefix=self.service.name, show_prefix=self.service.prefix_sms
-                )
-                return str(template_object)
-            else:
-                return self.content
-
     def _as_utils_template(self):
         if self.template_type == EMAIL_TYPE:
             return PlainTextEmailTemplate({'content': self.content, 'subject': self.subject})
