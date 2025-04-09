@@ -424,7 +424,7 @@ def test_validate_and_format_recipient_raises_with_invalid_country_code(
     )
     with pytest.raises(InvalidPhoneError) as e:
         validate_and_format_recipient('+681 4321 0987', key_type, service, SMS_TYPE)
-    assert e.value.message == 'Not a valid country prefix'
+    assert str(e.value) == 'Not a valid country prefix'
 
 
 @pytest.mark.parametrize('notification_type', [SMS_TYPE, EMAIL_TYPE, LETTER_TYPE])
