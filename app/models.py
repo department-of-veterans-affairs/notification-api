@@ -939,7 +939,7 @@ class TemplateBase(db.Model):
             'version': self.version,
             'body': self.content,
             'html': self.html,
-            'plain_text': self.text,
+            'plain_text': self.content_as_plain_text,
             'subject': self.subject if self.template_type != SMS_TYPE else None,
             'name': self.name,
             'personalisation': {

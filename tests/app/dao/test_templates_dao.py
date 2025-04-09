@@ -789,30 +789,41 @@ def test_template_with_provider_id_persists_provider_id(
     template_cleanup(notify_db_session.session, template.id)
 
 
-def test_create_template_sets_content_as_plain_text(
+@pytest.mark.parametrize(
+    'template_type, expected_html',
+    [
+        (SMS_TYPE, None),
+        (EMAIL_TYPE, True),
+    ],
+)
+def test_dao_create_template_sets_content_as_html_correctly(
     notify_db_session,
     sample_service,
+    template_type,
+    expected_html,
 ):
     service = sample_service()
-
-    sms_template_data = {
-        'name': 'SMS Plain Text Test',
-        'template_type': SMS_TYPE,
-        'content': 'Hello ((name)), this is a test SMS with placeholder',
+    data = {
+        'name': f'Sample Template {str(uuid4())}',
+        'template_type': template_type,
+        'content': 'Template <em>content</em> with <strong>formatting</strong>',
         'service': service,
         'created_by': service.created_by,
     }
-    sms_template = Template(**sms_template_data)
-    dao_create_template(sms_template)
-    db_sms_template = notify_db_session.session.get(Template, sms_template.id)
 
-    # Assertions
-    # SMS templates should include service name as prefix if prefix_sms is True
-    if service.prefix_sms:
-        assert service.name in db_sms_template.content_as_plain_text
+    if template_type == EMAIL_TYPE:
+        data['subject'] = 'Email Subject'
 
-    # Rendering a template can add html tags, ensure that does not happen for plain text
-    assert 'Hello ((name)), this is a test SMS with placeholder' == db_sms_template.content_as_plain_text
+    template = Template(**data)
+    dao_create_template(template)
 
-    # Also check the text property
-    assert 'Hello ((name)), this is a test SMS with placeholder' == db_sms_template.text
+    persisted_template = notify_db_session.session.get(Template, template.id)
+
+    if expected_html:
+        assert persisted_template.content_as_html is not None
+        assert 'Template <em>content</em> with <strong>formatting</strong>' in persisted_template.content_as_html
+    else:
+        assert persisted_template.content_as_html is None
+
+    # Teardown
+    template_cleanup(notify_db_session.session, template.id)

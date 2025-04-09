@@ -1,27 +1,10 @@
 from datetime import datetime
-from html import unescape
 from typing import Dict, Union
 
 from flask import current_app
-from markupsafe import Markup
-from notifications_utils.field import Field
-from notifications_utils.formatters import (
-    notify_markdown,
-    strip_leading_whitespace,
-    strip_unsupported_characters,
-    add_trailing_newline,
-    insert_block_quotes,
-    insert_list_spaces,
-)
+
 from notifications_utils.recipients import validate_and_format_phone_number, validate_and_format_email_address
-from notifications_utils.sanitise_text import SanitiseSMS
-from notifications_utils.template import (
-    compose1,
-    HTMLEmailTemplate,
-    do_nice_typography,
-    get_sms_fragment_count,
-    is_unicode,
-)
+from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate, SMSMessageTemplate
 
 
 from app import attachment_store, clients, statsd_client, provider_service
@@ -49,7 +32,10 @@ from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import InactiveServiceException, InvalidProviderException, NotificationTechnicalFailureException
 from app.feature_flags import is_gapixel_enabled, is_feature_enabled, FeatureFlag
 from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
-from app.models import Notification, ProviderDetails
+from app.models import (
+    Notification,
+    ProviderDetails,
+)
 from app.service.utils import compute_source_email_address
 from app.utils import create_uuid
 
@@ -65,6 +51,7 @@ def send_sms_to_provider(
     When the backend provider has sms_sender_specifics, use messaging_service_sid, if available, for the sender's
     identity instead of the sender's phone number.
     """
+
     service = notification.service
 
     if not service.active:
@@ -77,8 +64,14 @@ def send_sms_to_provider(
     # This is an instance of one of the classes defined in app/clients/.
     client = client_to_use(notification)
 
-    content = str(Field(notification.template.text, values=notification.personalisation, html='passthrough'))
-    content = SanitiseSMS.encode(content)
+    template_model = dao_get_template_by_id(notification.template_id, notification.template_version)
+
+    template = SMSMessageTemplate(
+        template_model.__dict__,
+        values=notification.personalisation,
+        prefix=service.name,
+        show_prefix=service.prefix_sms,
+    )
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
         notification.reference = create_uuid()
@@ -90,7 +83,7 @@ def send_sms_to_provider(
             # Send a SMS message using the "to" attribute to specify the recipient.
             reference = client.send_sms(
                 to=validate_and_format_phone_number(notification.to, international=notification.international),
-                content=content,
+                content=str(template),
                 reference=str(notification.id),
                 sender=notification.reply_to_text,
                 service_id=notification.service_id,
@@ -98,11 +91,11 @@ def send_sms_to_provider(
                 created_at=notification.created_at,
             )
         except Exception as e:
-            notification.billable_units = get_sms_fragment_count(len(content), is_unicode(content))
+            notification.billable_units = template.fragment_count
             dao_update_notification(notification)
             raise e
 
-        notification.billable_units = get_sms_fragment_count(len(content), is_unicode(content))
+        notification.billable_units = template.fragment_count
         notification.reference = reference
         update_notification_to_sending(notification, client)
         current_app.logger.info(f'Saved provider reference: {reference} for notification id: {notification.id}')
@@ -145,30 +138,11 @@ def send_email_to_provider(notification: Notification):
         else:
             personalisation_data[key] = personalisation_data[key]['url']
 
-    subject = str(Field(notification.template.subject, personalisation_data, html='passthrough'))
-
     template_dict = dao_get_template_by_id(notification.template_id, notification.template_version).__dict__
+
     html_email = HTMLEmailTemplate(template_dict, values=personalisation_data, **get_html_email_options(notification))
 
-    text_content = Field(
-        notification.template.content,
-        personalisation_data,
-        html='passthrough',
-        markdown_lists=True,
-    )
-    text_content = compose1(
-        str(text_content),
-        strip_unsupported_characters,
-        add_trailing_newline,
-        insert_block_quotes,
-        insert_list_spaces,
-        notify_markdown,
-        do_nice_typography,
-        unescape,
-        strip_leading_whitespace,
-        add_trailing_newline,
-    )
-    text_content = Markup(text_content)
+    plain_text_email = PlainTextEmailTemplate(template_dict, values=personalisation_data)
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
         notification.reference = create_uuid()
@@ -186,8 +160,8 @@ def send_email_to_provider(notification: Notification):
         reference = client.send_email(
             source=compute_source_email_address(service, client),
             to_addresses=validate_and_format_email_address(notification.to),
-            subject=subject,
-            body=str(text_content),
+            subject=plain_text_email.subject,
+            body=str(plain_text_email),
             html_body=str(html_email),
             reply_to_address=validate_and_format_email_address(email_reply_to) if email_reply_to else None,
             attachments=attachments,

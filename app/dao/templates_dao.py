@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from flask import current_app
-from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate
+from notifications_utils.template import HTMLEmailTemplate
 from sqlalchemy import asc, desc, func, select, update
 
 from app import db
@@ -52,14 +52,6 @@ def dao_create_template(template):
             },
         )
         template.content_as_html = str(template_object)
-
-        template_object = PlainTextEmailTemplate(
-            {
-                'content': template.content,
-                'subject': template.subject,
-            },
-        )
-        template.content_as_plain_text = str(template_object)
     db.session.add(template)
 
 
