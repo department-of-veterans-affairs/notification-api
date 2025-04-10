@@ -163,6 +163,7 @@ def test_send_email_to_provider_should_compute_source_email_address(
     mock_compute_email_from.assert_called_once_with(db_notification.service, mock_email_client)
 
 
+@pytest.mark.parametrize('name_value', ['Jo', 'John Smith', 'Jane Doe-Smith'])
 def test_should_send_personalised_template_to_correct_email_provider_and_persist(
     notify_db_session,
     sample_api_key,
@@ -171,6 +172,7 @@ def test_should_send_personalised_template_to_correct_email_provider_and_persist
     mock_email_client,
     notify_api,
     mock_source_email_address,
+    name_value,
 ):
     template = sample_template(
         template_type=EMAIL_TYPE,
@@ -180,7 +182,7 @@ def test_should_send_personalised_template_to_correct_email_provider_and_persist
     db_notification = sample_notification(
         template=template,
         to_field='jo.smith@example.com',
-        personalisation={'name': 'Jo'},
+        personalisation={'name': name_value},
         api_key=sample_api_key(service=template.service),
     )
 
@@ -190,8 +192,8 @@ def test_should_send_personalised_template_to_correct_email_provider_and_persist
     mock_email_client.send_email.assert_called_once_with(
         source=mock_source_email_address[0],
         to_addresses='jo.smith@example.com',
-        subject='Jo <em>some HTML</em>',
-        body='Hello Jo\nThis is an email from VA with <em>some HTML</em>\n\n',
+        subject=f'{name_value} <em>some HTML</em>',
+        body=f'Hello {name_value}\nThis is an email from VA with <em>some HTML</em>\n\n',
         html_body=ANY,
         reply_to_address=None,
         attachments=[],
@@ -199,6 +201,10 @@ def test_should_send_personalised_template_to_correct_email_provider_and_persist
 
     assert '<!DOCTYPE html' in mock_email_client.send_email.call_args[1]['html_body']
     assert '&lt;em&gt;some HTML&lt;/em&gt;' in mock_email_client.send_email.call_args[1]['html_body']
+    assert (
+        f'Hello {name_value}<br />\nThis is an email from VA with <em>some HTML</em>'
+        in mock_email_client.send_email.call_args[1]['html_body']
+    )
 
     stmt = select(Notification).where(Notification.id == db_notification.id)
     notification = notify_db_session.session.scalars(stmt).one()
@@ -206,7 +212,7 @@ def test_should_send_personalised_template_to_correct_email_provider_and_persist
     assert notification.status == NOTIFICATION_SENDING
     assert notification.sent_at <= datetime.utcnow()
     assert notification.sent_by == mock_email_client.get_name()
-    assert notification.personalisation == {'name': 'Jo'}
+    assert notification.personalisation == {'name': name_value}
 
 
 def test_should_not_send_email_message_when_service_is_inactive_notification_is_not_updated(
