@@ -5,7 +5,7 @@ from typing import Dict, Union
 from flask import current_app
 
 from notifications_utils.recipients import validate_and_format_phone_number, validate_and_format_email_address
-from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate, SMSMessageTemplate
+from notifications_utils.template import PlainTextEmailTemplate, SMSMessageTemplate
 
 
 from app import attachment_store, clients, statsd_client, provider_service
@@ -144,8 +144,8 @@ def send_email_to_provider(notification: Notification):
 
     html_content = notification.template.html
     if html_content:
-        for key, value in notification.personalisation.items():
-            regex = rf"<span class='placeholder'>\s*\(\(\s*{key}\s*\)\)\s*</span>"
+        for key, value in personalisation_data.items():
+            regex = rf"<span class='placeholder'>\s*\(\(\s*{key}\s*\)\)\s*</span>"  # Match the placeholder in HTML
             html_content = re.sub(regex, re.escape(str(value)), html_content)
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
