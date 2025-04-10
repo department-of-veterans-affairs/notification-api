@@ -18,11 +18,6 @@ from app.models import (
     TemplateHistory,
     TemplateRedacted,
 )
-from app.utils import get_template_instance
-
-
-def render_template(template, values=None):
-    return str(get_template_instance(template.__dict__, values))
 
 
 @transactional
