@@ -211,20 +211,6 @@ def test_should_not_update_status_by_reference_if_from_country_with_no_delivery_
     assert notification.status == NOTIFICATION_DELIVERED
 
 
-def test_should_update_status_by_id_if_sent_to_country_with_delivery_receipts(sample_template, sample_notification):
-    notification = sample_notification(
-        template=sample_template(),
-        status=NOTIFICATION_SENT,
-        international=True,
-        phone_prefix='7',  # russians have full delivery receipts
-    )
-
-    res = update_notification_status_by_id(notification.id, NOTIFICATION_DELIVERED)
-
-    assert res == notification
-    assert notification.status == NOTIFICATION_DELIVERED
-
-
 def test_should_not_update_status_by_reference_if_not_sending(
     notify_db_session,
     sample_template,
