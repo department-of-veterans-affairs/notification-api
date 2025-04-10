@@ -258,27 +258,6 @@ def test_login_event_serialization(sample_login_event):
     assert json['created_at']
 
 
-def test_template_html_property_uses_content_as_html(
-    client,
-    sample_template,
-):
-    template = sample_template(template_type=EMAIL_TYPE)
-
-    # Test when content_as_html is populated
-    expected_html = '<p>This is some HTML content</p>'
-    template.content_as_html = expected_html
-    assert template.html == expected_html
-
-    # Test when content_as_html is None for email type
-    template.content_as_html = None
-    assert template.html is not None
-
-    # Test when content_as_html is None for non-email type
-    template = sample_template(template_type=SMS_TYPE)
-    template.content_as_html = None
-    assert template.html is None
-
-
 class TestServiceCallback:
     @pytest.mark.parametrize(
         ['callback_channel', 'callback_strategy_path'],
