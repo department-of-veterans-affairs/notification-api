@@ -10,10 +10,10 @@ import sys
 from typing import Optional
 from functools import lru_cache
 from urllib.parse import parse_qsl, parse_qs
+import requests
+from requests.exceptions import Timeout
 
 import boto3
-from flask import current_app
-import requests
 from twilio.request_validator import RequestValidator
 
 logger = logging.getLogger('vetext_incoming_forwarder_lambda')
@@ -351,9 +351,9 @@ def make_vetext_request(request_body):  # noqa: C901 (too complex 13 > 10)
     response = None
 
     try:
-        base_url = current_app.config.get('ADMIN_BASE_URL')
         logger.debug('START simulate timeout')
-        response = requests.get(f'{base_url}/internal/sleep')
+        raise Timeout('Simulated timeout') 
+        # response = requests.get(f'https://dev-api.va.gov/vanotify/internal/sleep')
         logger.debug('END simulated timeout')
         # response = requests.post(endpoint_uri, verify=False, json=body, timeout=HTTPTIMEOUT, headers=headers)  # nosec
         logger.info('VeText POST complete')
