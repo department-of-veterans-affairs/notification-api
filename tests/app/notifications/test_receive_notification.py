@@ -166,7 +166,37 @@ def test_create_inbound_sms_object(
     assert inbound_sms.content == 'hello there 📩'
     assert inbound_sms.provider == 'twilio'
 
-    # Teardown
+
+def test_create_inbound_sms_object_logs_invalid_from_number(
+    notify_api,
+    mocker,
+    sample_service,
+):
+    service = sample_service()
+    ref = str(uuid4())
+    number = '+16502532222'
+    invalid_from_number = 'ALPHANUM3R1C'
+
+    mock_logger = mocker.patch('notifications_utils.recipients.logging.exception')
+
+    inbound_sms = create_inbound_sms_object(
+        service=service,
+        content='no matter where you go, there you are',
+        notify_number=number,
+        from_number=invalid_from_number,
+        provider_ref=ref,
+        date_received=datetime.utcnow(),
+        provider_name='twilio',
+    )
+
+    assert inbound_sms.service_id == service.id
+    assert inbound_sms.notify_number == number
+    assert inbound_sms.user_number == invalid_from_number
+    assert inbound_sms.content == 'no matter where you go, there you are'
+
+    mock_logger.assert_called_with(
+        f'Inbound SMS service_id: {service.id} ({service.name}), Invalid from_number received: {invalid_from_number}'
+    )
 
 
 def test_create_inbound_sms_object_works_with_alphanumeric_sender(
