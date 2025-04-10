@@ -790,18 +790,25 @@ def test_template_with_provider_id_persists_provider_id(
 
 
 @pytest.mark.parametrize(
-    'template_type, expected_html',
+    'template_type, feature_flag_enabled, expected_html',
     [
-        (SMS_TYPE, None),
-        (EMAIL_TYPE, True),
+        (SMS_TYPE, True, None),  # SMS templates never have HTML content
+        (SMS_TYPE, False, None),  # SMS templates never have HTML content
+        (EMAIL_TYPE, True, True),  # Email templates have HTML content when flag is enabled
+        (EMAIL_TYPE, False, None),  # Email templates don't have HTML content when flag is disabled
     ],
 )
 def test_dao_create_template_sets_content_as_html_correctly(
     notify_db_session,
     sample_service,
     template_type,
+    feature_flag_enabled,
     expected_html,
+    mocker,
 ):
+    # Mock the feature flag
+    mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=feature_flag_enabled)
+
     service = sample_service()
     data = {
         'name': f'Sample Template {str(uuid4())}',

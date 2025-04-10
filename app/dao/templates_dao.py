@@ -13,6 +13,7 @@ from app.dao.dao_utils import (
     VersionOptions,
 )
 from app.dao.users_dao import get_user_by_id
+from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.models import (
     Template,
     TemplateHistory,
@@ -39,7 +40,7 @@ def dao_create_template(template):
     template.content_as_html = None
     template.content_as_plain_text = None
 
-    if template.template_type == EMAIL_TYPE:
+    if template.template_type == EMAIL_TYPE and is_feature_enabled(FeatureFlag.STORE_TEMPLATE_CONTENT):
         template_object = HTMLEmailTemplate(
             {
                 'content': template.content,
