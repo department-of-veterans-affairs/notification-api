@@ -423,7 +423,7 @@ def test_validate_and_format_recipient_raises_with_invalid_country_code(
         service_name=f'sample service full permissions {uuid4()}', service_permissions=SERVICE_PERMISSION_TYPES
     )
     with pytest.raises(InvalidPhoneError) as e:
-        validate_and_format_recipient('+681 4321 0987', key_type, service, SMS_TYPE)
+        validate_and_format_recipient('+80888888888', key_type, service, SMS_TYPE)
     assert str(e.value) == 'Not a valid country prefix'
 
 
