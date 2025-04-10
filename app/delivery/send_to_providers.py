@@ -145,8 +145,12 @@ def send_email_to_provider(notification: Notification):
     html_content = notification.template.html
     if html_content:
         for key, value in personalisation_data.items():
-            regex = rf"<span class='placeholder'>\s*\(\(\s*{key}\s*\)\)\s*</span>"  # Match the placeholder in HTML
-            html_content = re.sub(regex, re.escape(str(value)), html_content)
+            # Escape the key to prevent regex injection
+            key = re.escape(key)
+            # Match the placeholder in HTML. The regex captures the placeholder and any surrounding whitespace.
+            # The span tag is dictated by the Field class in the utils template.
+            regex = rf"<span class='placeholder'>\s*\(\(\s*{key}\s*\)\)\s*</span>"
+            html_content = re.sub(regex, str(value), html_content)
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
         notification.reference = create_uuid()

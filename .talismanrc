@@ -2,7 +2,7 @@ fileignoreconfig:
 - filename: app/celery/reporting_tasks.py
   checksum: 2374dafe0993f493addc7ea8276342371584cf98d1a60c152a419981f85ea05a
 - filename: app/delivery/send_to_providers.py
-  checksum: aa13f0f0181b2dc62f0759552e7f31577cabaa72a00271dfcecb663a2d4fcc4d
+  checksum: 86477ce0c2e0aca4d3d4b6a0813236400e45d864593c05a7806a0c2a19232ac1
 - filename: app/feature_flags.py
   checksum: e6ffbab28f29de186ece73eda6602376e221e42d5bbfd8f25d9958dd3594e9af
 - filename: cd/application-deployment/dev/dev.env
