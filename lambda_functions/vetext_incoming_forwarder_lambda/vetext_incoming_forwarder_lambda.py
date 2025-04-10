@@ -12,6 +12,7 @@ from functools import lru_cache
 from urllib.parse import parse_qsl, parse_qs
 
 import boto3
+from flask import current_app
 import requests
 from twilio.request_validator import RequestValidator
 
@@ -350,7 +351,11 @@ def make_vetext_request(request_body):  # noqa: C901 (too complex 13 > 10)
     response = None
 
     try:
-        response = requests.post(endpoint_uri, verify=False, json=body, timeout=HTTPTIMEOUT, headers=headers)  # nosec
+        base_url = current_app.config.get('ADMIN_BASE_URL')
+        logger.debug('START simulate timeout')
+        response = requests.get(f'{base_url}/internal/sleep')
+        logger.debug('END simulated timeout')
+        # response = requests.post(endpoint_uri, verify=False, json=body, timeout=HTTPTIMEOUT, headers=headers)  # nosec
         logger.info('VeText POST complete')
         response.raise_for_status()
 
