@@ -245,12 +245,10 @@ def test_post_sms_schema_with_personalisation_that_is_not_a_dict(client):
 @pytest.mark.parametrize(
     'invalid_phone_number, err_msg',
     [
-        (
-            '08515111111',
-            'phone_number Not a valid number',
-        ),
+        ('08515111111', 'phone_number Not a valid number'),
         ('notaphoneumber', 'phone_number Phone numbers must not contain letters'),
         (7700900001, 'phone_number 7700900001 is not of type string'),
+        ('+80888888888', 'phone_number Not a valid country prefix'),
         (None, 'phone_number None is not of type string'),
         ([], 'phone_number [] is not of type string'),
         ({}, 'phone_number {} is not of type string'),

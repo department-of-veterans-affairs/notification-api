@@ -419,6 +419,7 @@ def test_validate_and_format_recipient_raises_with_invalid_country_code(
     key_type,
     sample_service,
 ):
+    """Should raise InvalidPhoneError when number with country code in non-geographic region is used."""
     service = sample_service(
         service_name=f'sample service full permissions {uuid4()}', service_permissions=SERVICE_PERMISSION_TYPES
     )
