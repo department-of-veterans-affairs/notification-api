@@ -282,7 +282,7 @@ def get_logo_url(
 def get_html_email_options(notification: Notification) -> Dict[str, Union[str, bool]]:
     options_dict = {}
     if is_gapixel_enabled(current_app):
-        options_dict['ga4_open_email_event_url'] = build_dynamic_ga4_pixel_tracking_url(notification)
+        options_dict['ga4_open_email_event_url'] = build_dynamic_ga4_pixel_tracking_url(notification.id)
 
     service = notification.service
     if service.email_branding is None:

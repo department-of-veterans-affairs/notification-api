@@ -1237,3 +1237,46 @@ def test_template_or_service_provider_is_not_used_when_feature_flag_is_off(
     send_to_providers.client_to_use(mocker.Mock(Notification))
 
     mock_load_provider.assert_not_called()
+
+
+def test_send_email_to_provider_includes_ga4_pixel_tracking_in_html_content(
+    sample_api_key,
+    sample_notification,
+    sample_template,
+    mock_email_client,
+    notify_api,
+    mocker,
+):
+    """
+    Test that emails sent through send_email_to_provider include a GA4 pixel tracking image in the HTML content.
+    This test ensures the tracking pixel is correctly added to the email HTML body.
+    """
+    # Create test data
+    template = sample_template(
+        template_type=EMAIL_TYPE,
+        subject='Test Subject',
+        content='Test Content',
+    )
+
+    db_notification = sample_notification(
+        template=template,
+        to_field='test@example.com',
+        api_key=sample_api_key(service=template.service),
+    )
+
+    # Set up mocks
+    pixel_url = 'https://test-api.va.gov/vanotify/ga4/open-email-tracking/123-456'
+    mocker.patch('app.delivery.send_to_providers.build_dynamic_ga4_pixel_tracking_url', return_value=pixel_url)
+
+    mocker.patch('app.delivery.send_to_providers.is_gapixel_enabled', return_value=True)
+
+    # Call the function under test
+    send_to_providers.send_email_to_provider(db_notification)
+
+    # Get the HTML content that was sent to the email client
+    mock_email_client.send_email.assert_called_once()
+    html_body = mock_email_client.send_email.call_args[1]['html_body']
+
+    # Check for the GA4 pixel tracking image in the HTML
+    expected_pixel_img = f'<img src="{pixel_url}"'
+    assert expected_pixel_img in html_body, f'GA4 pixel tracking image not found in HTML: {html_body}'
