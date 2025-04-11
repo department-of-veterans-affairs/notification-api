@@ -62,6 +62,7 @@ def test_get_platform_stats_with_real_query(
     response = admin_request.get(
         'platform_stats.get_platform_stats',
         start_date=date(1973, 10, 29),
+        end_date=date(1973, 10, 31),
     )
     assert response == {
         'email': {
