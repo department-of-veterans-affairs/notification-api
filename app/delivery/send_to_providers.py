@@ -1,10 +1,11 @@
+import re
 from datetime import datetime
 from typing import Dict, Union
 
 from flask import current_app
 
 from notifications_utils.recipients import ValidatedPhoneNumber, validate_and_format_email_address
-from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate, SMSMessageTemplate
+from notifications_utils.template import PlainTextEmailTemplate, SMSMessageTemplate
 
 
 from app import attachment_store, clients, statsd_client, provider_service
@@ -139,10 +140,17 @@ def send_email_to_provider(notification: Notification):
             personalisation_data[key] = personalisation_data[key]['url']
 
     template_dict = dao_get_template_by_id(notification.template_id, notification.template_version).__dict__
-
-    html_email = HTMLEmailTemplate(template_dict, values=personalisation_data, **get_html_email_options(notification))
-
     plain_text_email = PlainTextEmailTemplate(template_dict, values=personalisation_data)
+
+    html_content = notification.template.html
+    if html_content:
+        for key, value in personalisation_data.items():
+            # Escape the key to prevent regex injection
+            key = re.escape(key)
+            # Match the placeholder in HTML. The regex captures the placeholder and any surrounding whitespace.
+            # The span tag is dictated by the Field class in the utils template.
+            regex = rf"<span class='placeholder'>\s*\(\(\s*{key}\s*\)\)\s*</span>"
+            html_content = re.sub(regex, str(value), html_content)
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
         notification.reference = create_uuid()
@@ -162,7 +170,7 @@ def send_email_to_provider(notification: Notification):
             to_addresses=validate_and_format_email_address(notification.to),
             subject=plain_text_email.subject,
             body=str(plain_text_email),
-            html_body=str(html_email),
+            html_body=html_content,
             reply_to_address=validate_and_format_email_address(email_reply_to) if email_reply_to else None,
             attachments=attachments,
         )
@@ -274,7 +282,7 @@ def get_logo_url(
 def get_html_email_options(notification: Notification) -> Dict[str, Union[str, bool]]:
     options_dict = {}
     if is_gapixel_enabled(current_app):
-        options_dict['ga4_open_email_event_url'] = build_dynamic_ga4_pixel_tracking_url(notification)
+        options_dict['ga4_open_email_event_url'] = build_dynamic_ga4_pixel_tracking_url(notification.id)
 
     service = notification.service
     if service.email_branding is None:
