@@ -826,11 +826,12 @@ def test_dao_create_template_sets_content_as_html_correctly(
 
     persisted_template = notify_db_session.session.get(Template, template.id)
 
-    if expected_html:
-        assert persisted_template.content_as_html is not None
-        assert 'Template <em>content</em> with <strong>formatting</strong>' in persisted_template.content_as_html
-    else:
-        assert persisted_template.content_as_html is None
-
-    # Teardown
-    template_cleanup(notify_db_session.session, template.id)
+    try:
+        if expected_html:
+            assert persisted_template.content_as_html is not None
+            assert 'Template <em>content</em> with <strong>formatting</strong>' in persisted_template.content_as_html
+        else:
+            assert persisted_template.content_as_html is None
+    finally:
+        # Teardown
+        template_cleanup(notify_db_session.session, template.id)

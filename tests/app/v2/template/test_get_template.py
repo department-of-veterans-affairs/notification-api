@@ -39,7 +39,7 @@ def test_get_template_by_id_returns_200(
     assert response.status_code == 200
     assert response.headers['Content-type'] == 'application/json'
 
-    json_response = json.loads(response.get_data(as_text=True))
+    json_response = response.get_json()
 
     html_content = json_response.pop('html')
     plain_text_content = json_response.pop('plain_text')
