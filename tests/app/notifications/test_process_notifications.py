@@ -642,6 +642,8 @@ def test_simulated_recipient(
         ('+16502532222', False, '1', 1),  # NA
         ('+79587714230', True, '7', 1),  # Russia
         ('+360623400400', True, '36', 1),  # Hungary
+        ('+63253012000', True, '63', 1),  # Philippines
+        ('+1613-238-5335', True, '1', 1),  # Canada
     ],
 )
 def test_persist_notification_with_international_info_stores_correct_info(

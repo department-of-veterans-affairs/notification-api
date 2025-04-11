@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from freezegun import freeze_time
 
-from app.constants import INBOUND_SMS_TYPE, SMS_TYPE
+from app.constants import INBOUND_SMS_TYPE, SMS_TYPE, TWILIO_PROVIDER
 from app.models import Permission, Service
 from app.notifications.receive_notifications import (
     NoSuitableServiceForInboundSms,
@@ -154,7 +154,7 @@ def test_create_inbound_sms_object(
         from_number='+61412345678',
         provider_ref=ref,
         date_received=datetime.utcnow(),
-        provider_name='twilio',
+        provider_name=TWILIO_PROVIDER,
     )
 
     assert inbound_sms.service_id == service.id
@@ -164,7 +164,7 @@ def test_create_inbound_sms_object(
     assert inbound_sms.provider_reference == ref
     assert inbound_sms._content != 'hello there 📩'
     assert inbound_sms.content == 'hello there 📩'
-    assert inbound_sms.provider == 'twilio'
+    assert inbound_sms.provider == TWILIO_PROVIDER
 
 
 def test_create_inbound_sms_object_logs_invalid_from_number(
@@ -186,7 +186,7 @@ def test_create_inbound_sms_object_logs_invalid_from_number(
         from_number=invalid_from_number,
         provider_ref=ref,
         date_received=datetime.utcnow(),
-        provider_name='twilio',
+        provider_name=TWILIO_PROVIDER,
     )
 
     assert inbound_sms.service_id == service.id
