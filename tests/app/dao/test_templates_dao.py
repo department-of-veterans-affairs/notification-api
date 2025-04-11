@@ -835,3 +835,68 @@ def test_dao_create_template_sets_content_as_html_correctly(
     finally:
         # Teardown
         template_cleanup(notify_db_session.session, template.id)
+
+
+@pytest.mark.parametrize(
+    'template_type, feature_flag_enabled, expected_html',
+    [
+        (SMS_TYPE, True, None),  # SMS templates never have HTML content
+        (SMS_TYPE, False, None),  # SMS templates never have HTML content
+        (EMAIL_TYPE, True, True),  # Email templates have HTML content when flag is enabled
+        (EMAIL_TYPE, False, None),  # Email templates don't have HTML content when flag is disabled
+    ],
+)
+def test_dao_update_template_updates_content_as_html_correctly(
+    notify_db_session,
+    sample_service,
+    template_type,
+    feature_flag_enabled,
+    expected_html,
+    mocker,
+):
+    # Mock the feature flag
+    mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=feature_flag_enabled)
+
+    service = sample_service()
+    template_name = f'Sample Template {str(uuid4())}'
+
+    # Create initial template
+    template = create_template(
+        service=service,
+        template_name=template_name,
+        template_type=template_type,
+        content='Initial template content',
+        subject='Email Subject' if template_type == EMAIL_TYPE else None,
+    )
+
+    # Refresh session to ensure clean state
+    notify_db_session.session.expire_all()
+
+    # Fetch the template
+    template = dao_get_template_by_id_and_service_id(template.id, service.id)
+
+    # Update template with new content including HTML formatting
+    template.content = 'Updated <em>content</em> with <strong>formatting</strong>'
+    dao_update_template(template)
+
+    # Get the updated template from the database
+    updated_template = notify_db_session.session.get(Template, template.id)
+
+    try:
+        # Verify content_as_html is updated correctly based on feature flag
+        if expected_html:
+            assert updated_template.content_as_html is not None
+            assert 'Updated <em>content</em> with <strong>formatting</strong>' in updated_template.content_as_html
+        else:
+            assert updated_template.content_as_html is None
+
+        # Also verify history was created properly
+        template_history = notify_db_session.session.scalars(
+            select(TemplateHistory).where(TemplateHistory.id == template.id).where(TemplateHistory.version == 2)
+        ).first()
+
+        assert template_history is not None
+        assert template_history.content == 'Updated <em>content</em> with <strong>formatting</strong>'
+    finally:
+        # Teardown
+        template_cleanup(notify_db_session.session, template.id)

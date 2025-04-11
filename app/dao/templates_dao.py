@@ -56,6 +56,15 @@ def dao_create_template(template):
 def dao_update_template(template):
     if template.archived:
         template.folder = None
+
+    elif template.template_type == EMAIL_TYPE and is_feature_enabled(FeatureFlag.STORE_TEMPLATE_CONTENT):
+        template_object = HTMLEmailTemplate(
+            {
+                'content': template.content,
+                'subject': template.subject,
+            },
+        )
+        template.content_as_html = str(template_object)
     db.session.add(template)
 
 
