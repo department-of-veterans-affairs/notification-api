@@ -7,7 +7,6 @@ from uuid import uuid4
 import pytest
 from flask import url_for, current_app
 from freezegun import freeze_time
-from freezegun.api import FakeDate
 from sqlalchemy import select, delete
 
 from app.constants import (
@@ -38,9 +37,6 @@ from tests.app.db import (
     create_ft_notification_status,
     create_notification,
 )
-
-UNIQUE_EMAIL = 'unique'
-UNIQUE_NAME = 'unique'
 
 
 def test_get_service_list(client, sample_service, sample_user):
@@ -1840,7 +1836,7 @@ def test_is_service_name_unique_returns_200_with_name_capitalized_or_punctuation
     The variations tested in the parameterization do not play nice with a random UUID, had to get fancy with it.
     """
     addon = str(uuid4())
-    service = sample_service(service_name=f'{UNIQUE_NAME}-{addon}', email_from=f'{UNIQUE_EMAIL}-{addon}')
+    service = sample_service(service_name=f'unique-{addon}', email_from=f'unique-{addon}')
 
     response = admin_request.get(
         'service.is_service_name_unique',
