@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 from flask import url_for, current_app
 from freezegun import freeze_time
+from freezegun.api import FakeDate
 from sqlalchemy import select, delete
 
 from app.constants import (
@@ -31,11 +32,15 @@ from app.models import (
     ServiceSmsSender,
     ProviderDetails,
 )
+from app.service.rest import get_detailed_services
 from tests import create_admin_authorization_header
 from tests.app.db import (
     create_ft_notification_status,
     create_notification,
 )
+
+UNIQUE_EMAIL = 'unique'
+UNIQUE_NAME = 'unique'
 
 
 def test_get_service_list(client, sample_service, sample_user):
@@ -132,9 +137,9 @@ def test_get_service_list_by_user_should_return_empty_list_if_no_services(admin_
     assert len(json_resp['data']) == 0
 
 
-@pytest.mark.serial  # Cannot handle multiple workers
+@pytest.mark.serial
 def test_get_service_list_should_return_empty_list_if_no_services(admin_request):
-    # Tests involving a check on all services cannot be done with multiple workers
+    # Cannot be ran in parallel - Returns all
     json_resp = admin_request.get('service.get_services')
     assert len(json_resp['data']) == 0
 
@@ -500,7 +505,6 @@ def test_update_service(
     assert result['data']['email_branding'] is None
 
 
-@pytest.mark.serial  # intermittent
 def test_update_service_with_valid_provider(
     notify_api,
     admin_request,
@@ -1230,8 +1234,7 @@ def test_get_detailed_service(
         notify_db_session.session.commit()
 
 
-@pytest.mark.skip(reason='TODO #2336 - Fail due to orphaned User object')
-@pytest.mark.serial  # Cannot handle multiple workers
+@pytest.mark.serial
 def test_get_services_with_detailed_flag(
     client,
     sample_api_key,
@@ -1250,7 +1253,7 @@ def test_get_services_with_detailed_flag(
         sample_notification(template=template, api_key=test_api_key),
     ]
 
-    # Tests involving a check on all services cannot be done with multiple workers
+    # Cannot be ran in parallel - Returns all
     resp = client.get('/service?detailed=True', headers=[create_admin_authorization_header()])
 
     assert resp.status_code == 200
@@ -1275,6 +1278,7 @@ def test_get_services_with_detailed_flag_excluding_from_test_key(notify_api, sam
     sample_notification(template=template, key_type=KEY_TYPE_TEST)
 
     with notify_api.test_request_context(), notify_api.test_client() as client:
+        # Cannot be ran in parallel - Returns all
         resp = client.get(
             '/service?detailed=True&include_from_test_key=False',  # We do not use this functionality at all
             headers=[create_admin_authorization_header()],
@@ -1319,8 +1323,6 @@ def test_get_services_with_detailed_flag_defaults_to_today(client, mocker):
 def test_get_detailed_services_groups_by_service(
     notify_db_session, sample_api_key, sample_service, sample_template, sample_notification
 ):
-    from app.service.rest import get_detailed_services
-
     service_0 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='1')
     service_1 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='2')
     api_key_0 = sample_api_key(service=service_0)
@@ -1329,13 +1331,12 @@ def test_get_detailed_services_groups_by_service(
     service_0_template = sample_template(service=service_0)
     service_1_template = sample_template(service=service_1)
 
-    notifications = [
-        sample_notification(template=service_0_template, api_key=api_key_0, status='created'),
-        sample_notification(template=service_1_template, api_key=api_key_1, status='created'),
-        sample_notification(template=service_0_template, api_key=api_key_0, status='delivered'),
-        sample_notification(template=service_0_template, api_key=api_key_0, status='created'),
-    ]
+    sample_notification(template=service_0_template, api_key=api_key_0, status='created')
+    sample_notification(template=service_1_template, api_key=api_key_1, status='created')
+    sample_notification(template=service_0_template, api_key=api_key_0, status='delivered')
+    sample_notification(template=service_0_template, api_key=api_key_0, status='created')
 
+    # Cannot be ran in parallel - Pulls in sample services created in other tests
     data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
     assert len(data) == 2
 
@@ -1355,11 +1356,6 @@ def test_get_detailed_services_groups_by_service(
         LETTER_TYPE: {'requested': 0, 'delivered': 0, 'failed': 0},
     }
 
-    # Teardown
-    for notification in notifications:
-        notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
-
 
 @pytest.mark.serial
 @freeze_time('2015-10-10T12:00:00', auto_tick_seconds=0)
@@ -1369,8 +1365,6 @@ def test_get_detailed_services_includes_services_with_no_notifications(
     sample_template,
     sample_notification,
 ):
-    from app.service.rest import get_detailed_services
-
     service_0 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='1')
     service_1 = sample_service(service_name=f'get detailed services {uuid4()}', email_from='2')
     api_key_0 = sample_api_key(service=service_0)
@@ -1378,6 +1372,7 @@ def test_get_detailed_services_includes_services_with_no_notifications(
     service_0_template = sample_template(service=service_0)
     sample_notification(template=service_0_template, api_key=api_key_0)
 
+    # Cannot be ran in parallel - Pulls in sample services created in other tests
     data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
 
     assert len(data) == 2
@@ -1402,8 +1397,6 @@ def test_get_detailed_services_includes_services_with_no_notifications(
 # This test assumes the local timezone is EST
 @pytest.mark.serial
 def test_get_detailed_services_only_includes_todays_notifications(sample_api_key, sample_template, sample_notification):
-    from app.service.rest import get_detailed_services
-
     api_key = sample_api_key()
     template = sample_template(service=api_key.service)
 
@@ -1413,6 +1406,7 @@ def test_get_detailed_services_only_includes_todays_notifications(sample_api_key
     sample_notification(template=template, api_key=api_key, created_at=datetime(2015, 10, 11, 3, 0))
 
     with freeze_time('2015-10-10T12:00:00'):
+        # Cannot be ran in parallel - Pulls in sample services created in other tests
         data = get_detailed_services(start_date=datetime.utcnow().date(), end_date=datetime.utcnow().date())
         data = sorted(data, key=lambda x: x['id'])
 
@@ -1435,8 +1429,6 @@ def test_get_detailed_services_for_date_range(
     start_date_delta,
     end_date_delta,
 ):
-    from app.service.rest import get_detailed_services
-
     api_key = sample_api_key()
     template = sample_template(service=api_key.service)
     create_ft_notification_status(
@@ -1454,6 +1446,7 @@ def test_get_detailed_services_for_date_range(
     start_date = (datetime.utcnow() - timedelta(days=start_date_delta)).date()
     end_date = (datetime.utcnow() - timedelta(days=end_date_delta)).date()
     try:
+        # Cannot be ran in parallel - Pulls in sample services created in other tests
         data = get_detailed_services(
             only_active=False, include_from_test_key=True, start_date=start_date, end_date=end_date
         )
@@ -1829,7 +1822,6 @@ def test_is_service_name_unique_returns_200_if_unique(admin_request, sample_serv
     assert response == {'result': True}
 
 
-@pytest.mark.serial  # Would have to break into multiple tests or many if/else checks in the test if ran w/many workers
 @pytest.mark.parametrize(
     'name, email_from',
     [
@@ -1845,13 +1837,17 @@ def test_is_service_name_unique_returns_200_with_name_capitalized_or_punctuation
     sample_service,
 ):
     """
-    The variations tested in the parameterization do not play nice with a random UUID, so this should be ran with a
-    specific service name that tests various similar naming techniques.
+    The variations tested in the parameterization do not play nice with a random UUID, had to get fancy with it.
     """
-    service = sample_service(service_name='unique', email_from='unique')
+    addon = str(uuid4())
+    service = sample_service(service_name=f'{UNIQUE_NAME}-{addon}', email_from=f'{UNIQUE_EMAIL}-{addon}')
 
     response = admin_request.get(
-        'service.is_service_name_unique', _expected_status=200, service_id=service.id, name=name, email_from=email_from
+        'service.is_service_name_unique',
+        _expected_status=200,
+        service_id=service.id,
+        name=f'{name}-{addon}',
+        email_from=f'{email_from}-{addon}',
     )
 
     assert response == {'result': True}
