@@ -225,8 +225,8 @@ def sms_status_update(
         notification.id,
         sms_status.status,
         sms_status.status_reason,
-        notification.service.id,
-        notification.template.id,
+        notification.service_id,
+        notification.template_id,
     )
 
     # Never include a status reason for a delivered notification.
@@ -255,8 +255,8 @@ def sms_status_update(
         notification.status,
         notification.status_reason,
         notification.cost_in_millicents,
-        notification.service.id,
-        notification.template.id,
+        notification.service_id,
+        notification.template_id,
     )
 
     log_notification_total_time(
