@@ -55,7 +55,7 @@ def dao_create_template(template: Template):
 
 @transactional
 @version_class(VersionOptions(Template, history_class=TemplateHistory))
-def dao_update_template(template):
+def dao_update_template(template: Template):
     if template.archived:
         template.folder = None
 
