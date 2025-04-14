@@ -17,4 +17,6 @@ fileignoreconfig:
   checksum: 93b9aac800f82240d8b1fa135e47925d7237043a362455d1239fdd1c9d342ba9
 - filename: tests/app/notifications/test_validators.py
   checksum: 7e95b0854fdc12ab60e97347f5e6498e99b29b9df3b635487ab89189ed11fabb
+- filename: tests/app/service/test_rest.py
+  checksum: b2126023c505e04dc66e4cc2be876c49daad154acd0c2ac63f03961e2ea8bef2
 version: "1.0"

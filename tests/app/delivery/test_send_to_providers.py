@@ -30,7 +30,7 @@ from app.constants import (
     SES_PROVIDER,
     SMS_TYPE,
 )
-from app.dao import provider_details_dao, notifications_dao
+from app.dao import notifications_dao
 from app.dao.provider_details_dao import dao_switch_sms_provider_to_provider_with_identifier
 from app.delivery import send_to_providers
 from app.delivery.send_to_providers import load_provider
@@ -56,50 +56,6 @@ def mock_source_email_address(mocker):
         'app.delivery.send_to_providers.compute_source_email_address', return_value=source_email_address
     )
     return (source_email_address, mock_compute_function)
-
-
-@pytest.mark.xfail(reason='#1631', run=False)
-@pytest.mark.serial
-def test_should_return_highest_priority_active_provider(
-    client,
-    sample_api_key,
-    sample_template,
-    sample_provider,
-    sample_notification,
-):
-    pd_10 = sample_provider(priority=10)
-    pd_20 = sample_provider(priority=20)
-
-    # Checks like this require serial execution (no workers)
-    providers = provider_details_dao.get_provider_details_by_notification_type(SMS_TYPE)
-
-    assert pd_10 == providers[0]
-    assert pd_20 == providers[1]
-
-    template = sample_template()
-    notification = sample_notification(template=template, api_key=sample_api_key(service=template.service))
-
-    assert send_to_providers.client_to_use(notification).name == pd_10.identifier
-
-    pd_10.priority, pd_20.priority = pd_20.priority, pd_10.priority
-
-    provider_details_dao.dao_update_provider_details(pd_10)
-    provider_details_dao.dao_update_provider_details(pd_20)
-
-    assert send_to_providers.client_to_use(notification).name == pd_20.identifier
-
-    pd_10.priority, pd_20.priority = pd_20.priority, pd_10.priority
-    pd_10.active = False
-
-    provider_details_dao.dao_update_provider_details(pd_10)
-    provider_details_dao.dao_update_provider_details(pd_20)
-
-    assert send_to_providers.client_to_use(notification).name == pd_20.identifier
-
-    pd_10.active = True
-    provider_details_dao.dao_update_provider_details(pd_10)
-
-    assert send_to_providers.client_to_use(notification).name == pd_10.identifier
 
 
 def test_should_send_personalised_template_to_correct_sms_provider_and_persist(
