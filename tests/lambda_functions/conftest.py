@@ -24,7 +24,7 @@ def sample_va_profile_local_cache(notify_db_session):
 
         va_profile_local_cache = VAProfileLocalCache(
             allowed=allowed,
-            va_profile_id=va_profile_id or randint(1000, 100000),
+            va_profile_id=(va_profile_id if (va_profile_id is not None) else randint(1000, 100000)),
             communication_item_id=communication_item_id,
             communication_channel_id=communication_channel_id,
             source_datetime=source_datetime,
