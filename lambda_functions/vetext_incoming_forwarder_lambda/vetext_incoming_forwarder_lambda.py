@@ -189,8 +189,13 @@ def vetext_incoming_forwarder_lambda_handler(
                 continue
             response = make_vetext_request(event_body)
 
-            if response is None:
+            retry_count_num = event_body.get('retry_count', 0)
+            if response is None and retry_count_num < 3:
+                event_body['retry_count'] = retry_count_num + 1
+                logger.debug('push_to_retry_sqs called')
                 push_to_retry_sqs(event_body)
+            elif retry_count_num == 3:
+                push_to_dead_letter_sqs(event, 'vetext_incoming_forwarder_lambda_handler')
 
         return create_twilio_response()
     except Exception:
