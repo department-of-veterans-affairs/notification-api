@@ -5,7 +5,7 @@ from moto import mock_aws
 
 
 def test_pinpoint_callback_lambda_raises_client_error():
-    # Withuot the SQS data being available to the lambda we expect a ClientError
+    # Without the SQS data being available to the lambda, expect a ClientError.
     with pytest.raises(ClientError):
         import lambda_functions.pinpoint_callback.pinpoint_callback_lambda
 

@@ -48,10 +48,10 @@ def test_create_only_one_template(
     if template_type == EMAIL_TYPE:
         data.update({'subject': 'subject'})
     template = Template(**data)
-    try:
-        dao_create_template(template)
+    dao_create_template(template)
 
-        persisted_template = notify_db_session.session.get(Template, template.id)
+    persisted_template = notify_db_session.session.get(Template, template.id)
+    try:
         assert persisted_template == template
     finally:
         # Teardown because we cannot use a sample here
