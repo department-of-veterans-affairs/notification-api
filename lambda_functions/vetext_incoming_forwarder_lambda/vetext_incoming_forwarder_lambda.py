@@ -409,7 +409,7 @@ def push_to_retry_sqs(event_body):
         queue_msg = json.dumps(event_body)
         queue_msg_attrs = {'source': {'DataType': 'String', 'StringValue': 'twilio'}}
 
-        sqs.send_message(QueueUrl=queue_url, MessageAttributes=queue_msg_attrs, MessageBody=queue_msg)
+        sqs.send_message(QueueUrl=queue_url, MessageAttributes=queue_msg_attrs, MessageBody=queue_msg, DelayedSecond=3)
 
         logger.info('Completed enqueue of message to retry queue')
     except Exception:
