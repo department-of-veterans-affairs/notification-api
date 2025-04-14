@@ -1,6 +1,5 @@
 import re
 from datetime import datetime
-from typing import Dict, Union
 
 from flask import current_app
 
@@ -13,8 +12,6 @@ from app.attachments.types import UploadedAttachmentMetadata
 from app.celery.research_mode_tasks import send_sms_response, send_email_response
 from app.clients import Client
 from app.constants import (
-    BRANDING_BOTH,
-    BRANDING_ORG_BANNER,
     EMAIL_TYPE,
     KEY_TYPE_TEST,
     NOTIFICATION_VIRUS_SCAN_FAILED,
@@ -31,8 +28,7 @@ from app.dao.provider_details_dao import (  # noqa F401
 )
 from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import InactiveServiceException, InvalidProviderException, NotificationTechnicalFailureException
-from app.feature_flags import is_gapixel_enabled, is_feature_enabled, FeatureFlag
-from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
+from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.models import (
     Notification,
     ProviderDetails,
@@ -144,6 +140,7 @@ def send_email_to_provider(notification: Notification):
 
     html_content = notification.template.html
     if html_content:
+        html_content = html_content.replace('xx_notification_id_xx', str(notification.id))
         for key, value in personalisation_data.items():
             # Escape the key to prevent regex injection
             key = re.escape(key)
@@ -268,44 +265,6 @@ def get_provider_id(notification: Notification) -> str:
     ]
 
     return next((provider for provider in providers if provider is not None), None)
-
-
-def get_logo_url(
-    base_url,
-    logo_file,
-):
-    bucket = current_app.config['ASSET_UPLOAD_BUCKET_NAME']
-    domain = current_app.config['ASSET_DOMAIN']
-    return 'https://{}.{}/{}'.format(bucket, domain, logo_file)
-
-
-def get_html_email_options(notification: Notification) -> Dict[str, Union[str, bool]]:
-    options_dict = {}
-    if is_gapixel_enabled(current_app):
-        options_dict['ga4_open_email_event_url'] = build_dynamic_ga4_pixel_tracking_url(notification.id)
-
-    service = notification.service
-    if service.email_branding is None:
-        options_dict.update({'default_banner': True, 'brand_banner': False})
-    else:
-        logo_url = (
-            get_logo_url(current_app.config['ADMIN_BASE_URL'], service.email_branding.logo)
-            if service.email_branding.logo
-            else None
-        )
-
-        options_dict.update(
-            {
-                'default_banner': service.email_branding.brand_type == BRANDING_BOTH,
-                'brand_banner': service.email_branding.brand_type == BRANDING_ORG_BANNER,
-                'brand_colour': service.email_branding.colour,
-                'brand_logo': logo_url,
-                'brand_text': service.email_branding.text,
-                'brand_name': service.email_branding.name,
-            }
-        )
-
-    return options_dict
 
 
 def inactive_service_failure(notification: Notification):

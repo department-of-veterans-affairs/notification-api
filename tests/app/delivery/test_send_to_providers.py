@@ -43,6 +43,8 @@ from app.models import (
     Service,
     Template,
     TemplateHistory,
+    get_html_email_options,
+    get_logo_url,
 )
 from tests.conftest import set_config_values
 
@@ -537,7 +539,7 @@ def test_get_html_email_renderer_should_return_for_normal_service(
     notify_api,
     sample_notification_model_with_organization,
 ):
-    options = send_to_providers.get_html_email_options(sample_notification_model_with_organization)
+    options = get_html_email_options(sample_notification_model_with_organization)
     assert options['default_banner'] is True
     assert 'brand_colour' not in options.keys()
     assert 'brand_logo' not in options.keys()
@@ -564,7 +566,7 @@ def test_get_html_email_renderer_with_branding_details(
     )
     sample_notification_model_with_organization.service.email_branding = email_branding
 
-    options = send_to_providers.get_html_email_options(sample_notification_model_with_organization)
+    options = get_html_email_options(sample_notification_model_with_organization)
 
     assert options['default_banner'] == default_banner
     assert options['brand_colour'] == '#000000'
@@ -583,7 +585,7 @@ def test_get_html_email_renderer_with_branding_details_and_render_default_banner
 ):
     sample_notification_model_with_organization.service.email_branding = None
 
-    options = send_to_providers.get_html_email_options(sample_notification_model_with_organization)
+    options = get_html_email_options(sample_notification_model_with_organization)
 
     assert {'default_banner': True, 'brand_banner': False}.items() <= options.items()
 
@@ -601,7 +603,7 @@ def test_get_html_email_renderer_prepends_logo_path(
     )
     sample_notification_model_with_organization.service.email_branding = email_branding
 
-    renderer = send_to_providers.get_html_email_options(sample_notification_model_with_organization)
+    renderer = get_html_email_options(sample_notification_model_with_organization)
     domain = 'https://dev-notifications-va-gov-assets.s3.amazonaws.com'
     assert renderer['brand_logo'] == '{}{}'.format(domain, '/justice-league.png')
 
@@ -620,7 +622,7 @@ def test_get_html_email_renderer_handles_email_branding_without_logo(
 
     sample_notification_model_with_organization.service.email_branding = email_branding
 
-    renderer = send_to_providers.get_html_email_options(sample_notification_model_with_organization)
+    renderer = get_html_email_options(sample_notification_model_with_organization)
 
     assert renderer['default_banner'] is False
     assert renderer['brand_banner'] is True
@@ -645,7 +647,7 @@ def test_get_logo_url_works_for_different_environments(
 ):
     logo_file = 'filename.png'
 
-    logo_url = send_to_providers.get_logo_url(base_url, logo_file)
+    logo_url = get_logo_url(base_url, logo_file)
     domain = 'dev-notifications-va-gov-assets.s3.amazonaws.com'
     assert logo_url == 'https://{}/{}'.format(domain, expected_url)
 
@@ -1251,6 +1253,9 @@ def test_send_email_to_provider_includes_ga4_pixel_tracking_in_html_content(
     Test that emails sent through send_email_to_provider include a GA4 pixel tracking image in the HTML content.
     This test ensures the tracking pixel is correctly added to the email HTML body.
     """
+    # Mock is_feature_enabled to return True for STORE_TEMPLATE_CONTENT
+    mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=True)
+
     # Create test data
     template = sample_template(
         template_type=EMAIL_TYPE,
@@ -1265,10 +1270,9 @@ def test_send_email_to_provider_includes_ga4_pixel_tracking_in_html_content(
     )
 
     # Set up mocks
-    pixel_url = 'https://test-api.va.gov/vanotify/ga4/open-email-tracking/123-456'
-    mocker.patch('app.delivery.send_to_providers.build_dynamic_ga4_pixel_tracking_url', return_value=pixel_url)
-
-    mocker.patch('app.delivery.send_to_providers.is_gapixel_enabled', return_value=True)
+    pixel_url = f'https://test-api.va.gov/vanotify/ga4/open-email-tracking/{db_notification.id}'
+    mocker.patch('app.models.build_dynamic_ga4_pixel_tracking_url', return_value=pixel_url)
+    mocker.patch('app.models.is_gapixel_enabled', return_value=True)
 
     # Call the function under test
     send_to_providers.send_email_to_provider(db_notification)
@@ -1278,5 +1282,5 @@ def test_send_email_to_provider_includes_ga4_pixel_tracking_in_html_content(
     html_body = mock_email_client.send_email.call_args[1]['html_body']
 
     # Check for the GA4 pixel tracking image in the HTML
-    expected_pixel_img = f'<img src="{pixel_url}"'
+    expected_pixel_img = f'<img id="ga4_open_email_event_url" src="{pixel_url}"'
     assert expected_pixel_img in html_body, f'GA4 pixel tracking image not found in HTML: {html_body}'

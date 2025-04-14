@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import datetime
 import html
@@ -29,7 +29,9 @@ from notifications_utils.timezones import convert_local_timezone_to_utc, convert
 
 from app import encryption
 from app.constants import (
+    BRANDING_BOTH,
     BRANDING_ORG,
+    BRANDING_ORG_BANNER,
     DATETIME_FORMAT,
     DELIVERY_STATUS_CALLBACK_TYPE,
     EMAIL_TYPE,
@@ -65,6 +67,8 @@ from app.constants import (
 )
 from app.db import db
 from app.encryption import check_hash, hashpw
+from app.feature_flags import is_gapixel_enabled
+from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
 from app.history_meta import Versioned
 from app.model import User
 from app.va.identifier import IdentifierType
@@ -86,6 +90,41 @@ _whitelist_recipient_types = db.Enum(*WHITELIST_RECIPIENT_TYPE, name='recipient_
 
 def filter_null_value_fields(obj):
     return dict(filter(lambda x: x[1] is not None, obj.items()))
+
+
+def get_logo_url(base_url, logo_file):
+    bucket = current_app.config['ASSET_UPLOAD_BUCKET_NAME']
+    domain = current_app.config['ASSET_DOMAIN']
+    return 'https://{}.{}/{}'.format(bucket, domain, logo_file)
+
+
+def get_html_email_options(template: TemplateBase) -> Dict[str, Union[str, bool]]:
+    options_dict = {}
+    if is_gapixel_enabled(current_app):
+        options_dict['ga4_open_email_event_url'] = build_dynamic_ga4_pixel_tracking_url('xx_notification_id_xx')
+
+    service = template.service
+    if service.email_branding is None:
+        options_dict.update({'default_banner': True, 'brand_banner': False})
+    else:
+        logo_url = (
+            get_logo_url(current_app.config['ADMIN_BASE_URL'], service.email_branding.logo)
+            if service.email_branding.logo
+            else None
+        )
+
+        options_dict.update(
+            {
+                'default_banner': service.email_branding.brand_type == BRANDING_BOTH,
+                'brand_banner': service.email_branding.brand_type == BRANDING_ORG_BANNER,
+                'brand_colour': service.email_branding.colour,
+                'brand_logo': logo_url,
+                'brand_text': service.email_branding.text,
+                'brand_name': service.email_branding.name,
+            }
+        )
+
+    return options_dict
 
 
 class HistoryModel:

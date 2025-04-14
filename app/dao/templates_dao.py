@@ -18,12 +18,13 @@ from app.models import (
     Template,
     TemplateHistory,
     TemplateRedacted,
+    get_html_email_options,
 )
 
 
 @transactional
 @version_class(VersionOptions(Template, history_class=TemplateHistory))
-def dao_create_template(template):
+def dao_create_template(template: Template):
     template.id = template.id or uuid.uuid4()  # must be set now so version history model can use same id
     template.archived = False
 
@@ -46,6 +47,7 @@ def dao_create_template(template):
                 'content': template.content,
                 'subject': template.subject,
             },
+            **get_html_email_options(template),
         )
         template.content_as_html = str(template_object)
     db.session.add(template)
@@ -63,6 +65,7 @@ def dao_update_template(template):
                 'content': template.content,
                 'subject': template.subject,
             },
+            **get_html_email_options(template),
         )
         template.content_as_html = str(template_object)
     db.session.add(template)
