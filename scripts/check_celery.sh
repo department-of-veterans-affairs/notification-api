@@ -12,9 +12,9 @@ TOTAL_CELERY_PIDS=$((CELERY_CONCURRENCY_INT + 2))
 
 echo -E "${TOTAL_CELERY_PIDS} - Celery heatlh check okay"
 
-# if [ $celery_pid_count -ne $TOTAL_CELERY_PIDS ]; then
-#   echo -e "There are an incorrect number of Celery PIDs: $celery_pid_count"
-#   exit 1
-# else
-#   echo "Celery health check okay"
-# fi
+if [ $celery_pid_count -ne $TOTAL_CELERY_PIDS ]; then
+  echo -e "There are an incorrect number of Celery PIDs: $celery_pid_count"
+  exit 1
+else
+  echo "Celery health check okay"
+fi
