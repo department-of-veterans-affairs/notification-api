@@ -166,8 +166,9 @@ def add_id_to_logger(task_id: str, task: Task, *args, **kwargs) -> None:
     current_app.logger.addFilter(CeleryRequestIdFilter(request_id, f'celery-{request_id}'))
 
     task_name = getattr(task, 'name', 'UNKNOWN')
+    worker = task.request.hostname
     # logger formatter includes notification_id if it is available
-    current_app.logger.debug('celery task_prerun task_id: %s | task_name: %s', task_id, task_name)
+    current_app.logger.debug('%s celery task_prerun task_id: %s | task_name: %s', worker, task_id, task_name)
 
 
 @task_postrun.connect
@@ -187,8 +188,9 @@ def id_cleanup_logger(task_id: str, task: Task, *args, **kwargs) -> None:
             current_app.logger.removeFilter(filter)
 
     task_name = getattr(task, 'name', 'UNKNOWN')
+    worker = task.request.hostname
     # logger formatter includes notification_id if it is available
-    current_app.logger.debug('celery task_postrun task_id: %s | task_name: %s', task_id, task_name)
+    current_app.logger.debug('%s celery task_postrun task_id: %s | task_name: %s', worker, task_id, task_name)
 
 
 @task_internal_error.connect
