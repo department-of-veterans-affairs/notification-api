@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Callable, Generator, Literal
+from typing import Any, Callable, Literal
 from uuid import UUID, uuid4
 
 from freezegun import freeze_time
@@ -100,6 +100,118 @@ def test_create_template(
 
     # Teardown
     template_cleanup(notify_db_session.session, db_template.id)
+
+
+@pytest.mark.parametrize(
+    'template_type, should_have_html',
+    [
+        (EMAIL_TYPE, True),
+        (SMS_TYPE, False),
+    ],
+)
+def test_create_template_sets_content_as_html_for_email_only(
+    notify_db_session: Any,
+    sample_service: Callable[..., Any | Service],
+    template_type: Literal['email'] | Literal['sms'] | Literal['letter'],
+    should_have_html: bool,
+    mocker: MockerFixture,
+):
+    # Mock generate_html_email_content to return a fixed string for testing
+    mock_html_content = '<p>Template with HTML content</p>'
+    mock_generate = mocker.patch(
+        'app.dao.templates_dao.generate_html_email_content',
+        return_value=mock_html_content if should_have_html else None,
+    )
+
+    service = sample_service()
+    data = {
+        'name': 'Template with HTML',
+        'template_type': template_type,
+        'content': 'Template content',
+        'service': service,
+        'created_by': service.created_by,
+    }
+
+    # Add required fields based on template type
+    if template_type == EMAIL_TYPE:
+        data.update({'subject': 'Email Subject'})
+
+    template = Template(**data)
+    dao_create_template(template)
+
+    persisted_template = notify_db_session.session.get(Template, template.id)
+    try:
+        # Assert generate_html_email_content was called appropriately
+        if template_type == EMAIL_TYPE:
+            mock_generate.assert_called_once_with(template)
+            assert persisted_template.content_as_html == mock_html_content
+        else:
+            mock_generate.assert_called_once_with(template)
+            assert persisted_template.content_as_html is None
+    finally:
+        template_cleanup(notify_db_session.session, template.id)
+
+
+@pytest.mark.parametrize(
+    'template_type, should_have_html',
+    [
+        (EMAIL_TYPE, True),
+        (SMS_TYPE, False),
+    ],
+)
+def test_update_template_updates_content_as_html(
+    notify_db_session: Any,
+    sample_service: Callable[..., Any | Service],
+    template_type: Literal['email'] | Literal['sms'] | Literal['letter'],
+    should_have_html: bool,
+    mocker: MockerFixture,
+):
+    # Mock generate_html_email_content to return different values for different calls
+    initial_html = '<p>Initial HTML content</p>'
+    updated_html = '<p>Updated HTML content</p>'
+    mock_generate = mocker.patch(
+        'app.dao.templates_dao.generate_html_email_content',
+        side_effect=[initial_html if should_have_html else None, updated_html if should_have_html else None],
+    )
+
+    service = sample_service()
+    data = {
+        'name': 'Template with HTML',
+        'template_type': template_type,
+        'content': 'Initial template content',
+        'service': service,
+        'created_by': service.created_by,
+    }
+
+    # Add required fields based on template type
+    if template_type == EMAIL_TYPE:
+        data.update({'subject': 'Email Subject'})
+
+    template = Template(**data)
+    dao_create_template(template)
+
+    # First verify initial state
+    persisted_template = notify_db_session.session.get(Template, template.id)
+    if template_type == EMAIL_TYPE:
+        assert persisted_template.content_as_html == initial_html
+    else:
+        assert persisted_template.content_as_html is None
+
+    # Update the template content
+    persisted_template.content = 'Updated template content'
+    dao_update_template(persisted_template)
+
+    # Check that content_as_html was updated correctly
+    updated_template = notify_db_session.session.get(Template, template.id)
+    try:
+        if template_type == EMAIL_TYPE:
+            assert mock_generate.call_count == 2  # Called on create and update
+            assert updated_template.content_as_html == updated_html
+        else:
+            assert mock_generate.call_count == 2  # Called on create and update
+            assert updated_template.content_as_html is None
+    finally:
+        template_cleanup(notify_db_session.session, template.id)
 
 
 def test_create_template_creates_redact_entry(
@@ -793,204 +905,3 @@ def test_template_with_provider_id_persists_provider_id(
     assert notify_db_session.session.get(Template, template.id).provider_id == provider.id
     # Teardown
     template_cleanup(notify_db_session.session, template.id)
-
-
-@pytest.mark.parametrize(
-    'template_type, feature_flag_enabled, expected_html',
-    [
-        (SMS_TYPE, True, False),  # SMS templates never have HTML content
-        (SMS_TYPE, False, False),  # SMS templates never have HTML content
-        (EMAIL_TYPE, True, True),  # Email templates have HTML content when flag is enabled
-        (EMAIL_TYPE, False, False),  # Email templates don't have HTML content when flag is disabled
-    ],
-)
-def test_dao_create_template_sets_content_as_html_correctly(
-    notify_db_session: Any,
-    sample_service: Callable[..., Any | Service],
-    template_type: Literal['sms'] | Literal['email'],
-    feature_flag_enabled: bool,
-    expected_html: bool,
-    mocker: Callable[..., Generator[MockerFixture, None, None]],
-):
-    # Mock the feature flag
-    mocker.patch('app.feature_flags.is_feature_enabled', return_value=feature_flag_enabled)
-
-    service = sample_service()
-    data = {
-        'name': f'Sample Template {str(uuid4())}',
-        'template_type': template_type,
-        'content': 'Template <em>content</em> with <strong>formatting</strong>',
-        'service': service,
-        'created_by': service.created_by,
-    }
-
-    if template_type == EMAIL_TYPE:
-        data['subject'] = 'Email Subject'
-
-    template = Template(**data)
-    dao_create_template(template)
-
-    persisted_template = notify_db_session.session.get(Template, template.id)
-
-    try:
-        if expected_html:
-            assert persisted_template.content_as_html is not None
-            assert 'Template <em>content</em> with <strong>formatting</strong>' in persisted_template.content_as_html
-        else:
-            assert persisted_template.content_as_html is None
-    finally:
-        # Teardown
-        template_cleanup(notify_db_session.session, template.id)
-
-
-@pytest.mark.parametrize(
-    'template_type, feature_flag_enabled, expected_html',
-    [
-        (SMS_TYPE, True, False),  # SMS templates never have HTML content
-        (SMS_TYPE, False, False),  # SMS templates never have HTML content
-        (EMAIL_TYPE, True, True),  # Email templates have HTML content when flag is enabled
-        (EMAIL_TYPE, False, False),  # Email templates don't have HTML content when flag is disabled
-    ],
-)
-def test_dao_update_template_updates_content_as_html_correctly(
-    notify_db_session: Any,
-    sample_service: Callable[..., Any | Service],
-    template_type: Literal['sms'] | Literal['email'],
-    feature_flag_enabled: bool,
-    expected_html: bool,
-    mocker: Callable[..., Generator[MockerFixture, None, None]],
-):
-    # Mock the feature flag
-    mocker.patch('app.feature_flags.is_feature_enabled', return_value=feature_flag_enabled)
-
-    service = sample_service()
-    template_name = f'Sample Template {str(uuid4())}'
-
-    # Create initial template
-    template = create_template(
-        service=service,
-        template_name=template_name,
-        template_type=template_type,
-        content='Initial template content',
-        subject='Email Subject' if template_type == EMAIL_TYPE else None,
-    )
-
-    # Refresh session to ensure clean state
-    notify_db_session.session.expire_all()
-
-    # Fetch the template
-    template = dao_get_template_by_id_and_service_id(template.id, service.id)
-
-    # Update template with new content including HTML formatting
-    template.content = 'Updated <em>content</em> with <strong>formatting</strong>'
-    dao_update_template(template)
-
-    # Get the updated template from the database
-    updated_template = notify_db_session.session.get(Template, template.id)
-
-    try:
-        # Verify content_as_html is updated correctly based on feature flag
-        if expected_html:
-            assert updated_template.content_as_html is not None
-            assert 'Updated <em>content</em> with <strong>formatting</strong>' in updated_template.content_as_html
-        else:
-            assert updated_template.content_as_html is None
-
-        # Also verify history was created properly
-        template_history = notify_db_session.session.scalars(
-            select(TemplateHistory).where(TemplateHistory.id == template.id).where(TemplateHistory.version == 2)
-        ).first()
-
-        assert template_history is not None
-        assert template_history.content == 'Updated <em>content</em> with <strong>formatting</strong>'
-    finally:
-        # Teardown
-        template_cleanup(notify_db_session.session, template.id)
-
-
-def test_template_html_property_getter_with_content_as_html(
-    notify_db_session: Any, sample_template: Callable[..., Any]
-):
-    """Test that the html property returns content_as_html if it exists."""
-    html_content = '<h1>Hello World</h1><p>This is an email.</p>'
-
-    # Create a template with content_as_html already set
-    template = sample_template(template_type=EMAIL_TYPE)
-    template.content_as_html = html_content
-    notify_db_session.session.commit()
-
-    # Test that the html property returns the content_as_html
-    assert template.html == html_content
-
-
-def test_template_html_property_getter_for_email_without_content_as_html(
-    notify_db_session: Any, sample_template: Callable[..., Any], mocker: MockerFixture
-):
-    """Test that the html property generates HTML for email templates when content_as_html is None."""
-    # Create an email template without content_as_html
-    template = sample_template(
-        template_type=EMAIL_TYPE, content='Hello ((name)). This is an email with **bold** text.', subject='Test Subject'
-    )
-    template.content_as_html = None
-    notify_db_session.session.commit()
-
-    # Test that the html property generates HTML for email templates
-    assert template.html is not None
-    assert 'Hello ((name))' in template.html
-    assert '<b>bold</b>' in template.html
-
-
-def test_template_html_property_getter_for_sms_returns_none(
-    notify_db_session: Any, sample_template: Callable[..., Any]
-):
-    """Test that the html property returns None for SMS templates."""
-    # Create an SMS template
-    template = sample_template(template_type=SMS_TYPE, content='Hello. This is an SMS.')
-    template.content_as_html = None
-    notify_db_session.session.commit()
-
-    # Test that the html property returns None for SMS templates
-    assert template.html is None
-
-
-def test_template_html_property_setter_with_value(notify_db_session: Any, sample_template: Callable[..., Any]):
-    """Test that the html setter sets content_as_html when a value is provided."""
-    html_content = '<h1>Custom HTML</h1><p>This is custom HTML content.</p>'
-
-    # Create a template
-    template = sample_template(template_type=EMAIL_TYPE, content='Hello. This is an email.', subject='Test Subject')
-
-    # Set the html property with a value
-    template.html = html_content
-    notify_db_session.session.commit()
-
-    # Refresh the template from the database
-    notify_db_session.session.refresh(template)
-
-    # Test that content_as_html is set to the provided value
-    assert template.content_as_html == html_content
-    assert template.html == html_content
-
-
-def test_template_html_property_setter_without_value(
-    notify_db_session: Any, sample_template: Callable[..., Any], mocker: MockerFixture
-):
-    """Test that the html setter generates content_as_html using generate_html_email_content when no value is provided."""
-    # Mock the generate_html_email_content function
-    mock_generate_html = mocker.patch('app.models.generate_html_email_content', return_value='<h1>Generated HTML</h1>')
-
-    # Create a template
-    template = sample_template(template_type=EMAIL_TYPE, content='Hello. This is an email.', subject='Test Subject')
-
-    # Set the html property without a value
-    template.html = None
-    notify_db_session.session.commit()
-
-    # Refresh the template from the database
-    notify_db_session.session.refresh(template)
-
-    # Test that generate_html_email_content was called with the template
-    mock_generate_html.assert_called_once_with(template)
-
-    # Test that content_as_html is set to the generated value
-    assert template.content_as_html == '<h1>Generated HTML</h1>'

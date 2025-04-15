@@ -4,7 +4,7 @@ from typing import Dict, Union
 from uuid import uuid4
 
 from flask import current_app, url_for
-from notifications_utils.template import SMSMessageTemplate, WithSubjectTemplate, get_html_email_body
+from notifications_utils.template import HTMLEmailTemplate, SMSMessageTemplate, WithSubjectTemplate, get_html_email_body
 from notifications_utils.url_safe_token import generate_token
 import pytz
 from sqlalchemy import func
@@ -21,6 +21,7 @@ from app.constants import (
 )
 from app.feature_flags import is_gapixel_enabled
 from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
+from app.feature_flags import is_feature_enabled, FeatureFlag
 
 local_timezone = pytz.timezone(os.getenv('TIMEZONE', 'America/New_York'))
 
@@ -247,8 +248,6 @@ def generate_html_email_content(template) -> str:
         str: HTML content for the template if it's an email template,
              None otherwise
     """
-    from notifications_utils.template import HTMLEmailTemplate
-    from app.feature_flags import is_feature_enabled, FeatureFlag
 
     # Only generate HTML content for email templates when the feature flag is enabled
     if template.template_type == EMAIL_TYPE and is_feature_enabled(FeatureFlag.STORE_TEMPLATE_CONTENT):

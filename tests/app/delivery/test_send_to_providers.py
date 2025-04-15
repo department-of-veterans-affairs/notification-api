@@ -1206,10 +1206,12 @@ def test_send_email_to_provider_includes_ga4_pixel_tracking_in_html_content(
 ):
     """
     Test that emails sent through send_email_to_provider include a GA4 pixel tracking image in the HTML content.
-    This test ensures the tracking pixel is correctly added to the email HTML body.
     """
-    # Mock is_feature_enabled to return True for STORE_TEMPLATE_CONTENT
-    mocker.patch('app.feature_flags.is_feature_enabled', return_value=True)
+    # Set up mocks
+    pixel_url = 'https://test-api.va.gov/vanotify/ga4/open-email-tracking/xx_notification_id_xx'
+    mocker.patch('app.utils.is_feature_enabled', return_value=True)
+    mocker.patch('app.utils.is_gapixel_enabled', return_value=True)
+    mocker.patch('app.googleanalytics.pixels.build_dynamic_ga4_pixel_tracking_url', return_value=pixel_url)
 
     # Create test data
     template = sample_template(
@@ -1223,12 +1225,7 @@ def test_send_email_to_provider_includes_ga4_pixel_tracking_in_html_content(
         to_field='test@example.com',
         api_key=sample_api_key(service=template.service),
     )
-
-    # Set up mocks
-    pixel_url = f'https://test-api.va.gov/vanotify/ga4/open-email-tracking/{db_notification.id}'
-    mocker.patch('app.googleanalytics.pixels.build_dynamic_ga4_pixel_tracking_url', return_value=pixel_url)
-    mocker.patch('app.feature_flags.is_gapixel_enabled', return_value=True)
-
+    expected_pixel_url = pixel_url.replace('xx_notification_id_xx', str(db_notification.id))
     # Call the function under test
     send_to_providers.send_email_to_provider(db_notification)
 
@@ -1237,5 +1234,5 @@ def test_send_email_to_provider_includes_ga4_pixel_tracking_in_html_content(
     html_body = mock_email_client.send_email.call_args[1]['html_body']
 
     # Check for the GA4 pixel tracking image in the HTML
-    expected_pixel_img = f'<img id="ga4_open_email_event_url" src="{pixel_url}"'
+    expected_pixel_img = f'<img id="ga4_open_email_event_url" src="{expected_pixel_url}"'
     assert expected_pixel_img in html_body, f'GA4 pixel tracking image not found in HTML: {html_body}'
