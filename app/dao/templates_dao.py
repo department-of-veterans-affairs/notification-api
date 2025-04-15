@@ -23,6 +23,23 @@ from app.utils import generate_html_email_content
 @transactional
 @version_class(VersionOptions(Template, history_class=TemplateHistory))
 def dao_create_template(template: Template):
+    """Create a new template and associated records.
+
+    This function persists a template to the database, along with:
+    - generating a UUID if one isn't provided
+    - setting the archived flag to False
+    - creating a TemplateRedacted entry with default values
+    - generating HTML content for email templates
+
+    A template history record is automatically created via the version_class decorator.
+
+    Args:
+        template: The Template object to be created. Should have service, created_by,
+                 name, template_type, and content attributes set.
+
+    Returns:
+        None - The template parameter is modified in place with generated values.
+    """
     template.id = template.id or uuid.uuid4()  # must be set now so version history model can use same id
     template.archived = False
 
@@ -47,6 +64,20 @@ def dao_create_template(template: Template):
 @transactional
 @version_class(VersionOptions(Template, history_class=TemplateHistory))
 def dao_update_template(template: Template):
+    """Update an existing template and create a history record.
+
+    This function:
+    - Removes the template from its folder if the template is being archived
+    - Regenerates HTML content for email templates if the template is not archived
+    - Creates a new template history record via the version_class decorator
+
+    Args:
+        template: The Template object to be updated with modified attributes.
+                 The template.id must reference an existing template.
+
+    Returns:
+        None - The template parameter is updated in place.
+    """
     if template.archived:
         template.folder = None
     else:
