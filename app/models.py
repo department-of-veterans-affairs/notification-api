@@ -923,6 +923,19 @@ class TemplateBase(db.Model):
             else:
                 return None
 
+    @html.setter
+    def html(self, value):
+        """
+        Sets the content_as_html value either directly from provided value
+        or by generating it using the utility function.
+        """
+        if value is not None:
+            self.content_as_html = value
+        else:
+            from app.utils import generate_html_email_content
+
+            self.content_as_html = generate_html_email_content(self)
+
     def _as_utils_template(self):
         if self.template_type == EMAIL_TYPE:
             return PlainTextEmailTemplate({'content': self.content, 'subject': self.subject})

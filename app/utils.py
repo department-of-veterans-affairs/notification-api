@@ -234,3 +234,31 @@ def get_html_email_options(template) -> Dict[str, Union[str, bool]]:
         )
 
     return options_dict
+
+
+def generate_html_email_content(template) -> str:
+    """
+    Generate HTML content for an email template if applicable.
+
+    Args:
+        template: The template object that contains content and subject fields
+
+    Returns:
+        str: HTML content for the template if it's an email template,
+             None otherwise
+    """
+    from notifications_utils.template import HTMLEmailTemplate
+    from app.feature_flags import is_feature_enabled, FeatureFlag
+
+    # Only generate HTML content for email templates when the feature flag is enabled
+    if template.template_type == EMAIL_TYPE and is_feature_enabled(FeatureFlag.STORE_TEMPLATE_CONTENT):
+        template_object = HTMLEmailTemplate(
+            {
+                'content': template.content,
+                'subject': template.subject,
+            },
+            **get_html_email_options(template),
+        )
+        return str(template_object)
+
+    return None

@@ -2,24 +2,22 @@ import uuid
 from datetime import datetime
 
 from flask import current_app
-from notifications_utils.template import HTMLEmailTemplate
 from sqlalchemy import asc, desc, func, select, update
 
 from app import db
-from app.constants import EMAIL_TYPE, LETTER_TYPE, SECOND_CLASS
+from app.constants import LETTER_TYPE, SECOND_CLASS
 from app.dao.dao_utils import (
     transactional,
     version_class,
     VersionOptions,
 )
 from app.dao.users_dao import get_user_by_id
-from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.models import (
     Template,
     TemplateHistory,
     TemplateRedacted,
 )
-from app.utils import get_html_email_options
+from app.utils import generate_html_email_content
 
 
 @transactional
@@ -38,18 +36,11 @@ def dao_create_template(template: Template):
         redacted_dict.update({'updated_by_id': template.created_by_id})
 
     template.template_redacted = TemplateRedacted(**redacted_dict)
-    template.content_as_html = None
     template.content_as_plain_text = None
 
-    if template.template_type == EMAIL_TYPE and is_feature_enabled(FeatureFlag.STORE_TEMPLATE_CONTENT):
-        template_object = HTMLEmailTemplate(
-            {
-                'content': template.content,
-                'subject': template.subject,
-            },
-            **get_html_email_options(template),
-        )
-        template.content_as_html = str(template_object)
+    # Generate HTML content for email templates if needed
+    template.content_as_html = generate_html_email_content(template)
+
     db.session.add(template)
 
 
@@ -58,16 +49,10 @@ def dao_create_template(template: Template):
 def dao_update_template(template: Template):
     if template.archived:
         template.folder = None
+    else:
+        # Generate HTML content for email templates if needed
+        template.content_as_html = generate_html_email_content(template)
 
-    elif template.template_type == EMAIL_TYPE and is_feature_enabled(FeatureFlag.STORE_TEMPLATE_CONTENT):
-        template_object = HTMLEmailTemplate(
-            {
-                'content': template.content,
-                'subject': template.subject,
-            },
-            **get_html_email_options(template),
-        )
-        template.content_as_html = str(template_object)
     db.session.add(template)
 
 
