@@ -813,7 +813,7 @@ def test_dao_create_template_sets_content_as_html_correctly(
     mocker: Callable[..., Generator[MockerFixture, None, None]],
 ):
     # Mock the feature flag
-    mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=feature_flag_enabled)
+    mocker.patch('app.feature_flags.is_feature_enabled', return_value=feature_flag_enabled)
 
     service = sample_service()
     data = {
@@ -861,7 +861,7 @@ def test_dao_update_template_updates_content_as_html_correctly(
     mocker: Callable[..., Generator[MockerFixture, None, None]],
 ):
     # Mock the feature flag
-    mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=feature_flag_enabled)
+    mocker.patch('app.feature_flags.is_feature_enabled', return_value=feature_flag_enabled)
 
     service = sample_service()
     template_name = f'Sample Template {str(uuid4())}'

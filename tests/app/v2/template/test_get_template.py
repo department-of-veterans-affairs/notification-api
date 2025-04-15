@@ -23,7 +23,7 @@ def test_get_template_by_id_returns_200(
     mocker,
 ):
     # Mock the feature flag to return True
-    mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=True)
+    mocker.patch('app.feature_flags.is_feature_enabled', return_value=True)
 
     api_key = sample_api_key()
     template = sample_template(service=api_key.service, template_type=tmp_type)
