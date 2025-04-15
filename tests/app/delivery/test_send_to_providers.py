@@ -43,9 +43,8 @@ from app.models import (
     Service,
     Template,
     TemplateHistory,
-    get_html_email_options,
-    get_logo_url,
 )
+from app.utils import get_html_email_options, get_logo_url
 from tests.conftest import set_config_values
 
 
@@ -1227,8 +1226,8 @@ def test_send_email_to_provider_includes_ga4_pixel_tracking_in_html_content(
 
     # Set up mocks
     pixel_url = f'https://test-api.va.gov/vanotify/ga4/open-email-tracking/{db_notification.id}'
-    mocker.patch('app.models.build_dynamic_ga4_pixel_tracking_url', return_value=pixel_url)
-    mocker.patch('app.models.is_gapixel_enabled', return_value=True)
+    mocker.patch('app.googleanalytics.pixels.build_dynamic_ga4_pixel_tracking_url', return_value=pixel_url)
+    mocker.patch('app.feature_flags.is_gapixel_enabled', return_value=True)
 
     # Call the function under test
     send_to_providers.send_email_to_provider(db_notification)

@@ -19,4 +19,6 @@ fileignoreconfig:
   checksum: 7e95b0854fdc12ab60e97347f5e6498e99b29b9df3b635487ab89189ed11fabb
 - filename: tests/app/service/test_rest.py
   checksum: b2126023c505e04dc66e4cc2be876c49daad154acd0c2ac63f03961e2ea8bef2
+- filename: tests/lambda_functions/nightly_stats_bigquery_upload/test_nightly_lambda.py
+  checksum: db79656ed019ef873475215ad09a6c3cfedd6079bfafe6ab1e56754fcf50ebe4
 version: "1.0"

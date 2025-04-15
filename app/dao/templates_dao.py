@@ -18,8 +18,8 @@ from app.models import (
     Template,
     TemplateHistory,
     TemplateRedacted,
-    get_html_email_options,
 )
+from app.utils import get_html_email_options
 
 
 @transactional
