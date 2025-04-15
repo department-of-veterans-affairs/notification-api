@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timedelta
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 from uuid import uuid4
 
 from flask import current_app, url_for
@@ -237,7 +237,7 @@ def get_html_email_options(template) -> Dict[str, Union[str, bool]]:
     return options_dict
 
 
-def generate_html_email_content(template) -> str:
+def generate_html_email_content(template) -> Optional[str]:
     """
     Generate HTML content for an email template if applicable.
 

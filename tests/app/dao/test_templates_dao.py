@@ -20,6 +20,7 @@ from app.dao.templates_dao import (
     dao_update_template_reply_to,
     dao_get_number_of_templates_by_service_id_and_name,
 )
+from app.db import SQLAlchemy
 from app.models import (
     ProviderDetails,
     Service,
@@ -36,7 +37,7 @@ from tests.app.conftest import template_cleanup
 
 @pytest.mark.parametrize('template_type', [SMS_TYPE, EMAIL_TYPE])
 def test_create_only_one_template(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
     template_type: Literal['sms'] | Literal['email'],
 ):
@@ -71,7 +72,7 @@ def test_create_only_one_template(
     ],
 )
 def test_create_template(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
     template_type: Literal['sms'] | Literal['email'] | Literal['letter'],
     subject: None | Literal['subject'],
@@ -110,7 +111,7 @@ def test_create_template(
     ],
 )
 def test_create_template_sets_content_as_html_for_email_only(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
     sample_template: Callable[..., Any],
     template_type: Literal['email'] | Literal['sms'] | Literal['letter'],
@@ -152,7 +153,7 @@ def test_create_template_sets_content_as_html_for_email_only(
     ],
 )
 def test_update_template_updates_content_as_html(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
     sample_template: Callable[..., Any],
     template_type: Literal['email'] | Literal['sms'] | Literal['letter'],
@@ -183,7 +184,7 @@ def test_update_template_updates_content_as_html(
 
 
 def test_create_template_creates_redact_entry(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -199,7 +200,7 @@ def test_create_template_creates_redact_entry(
 
 
 def test_create_template_with_reply_to(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -225,7 +226,7 @@ def test_create_template_with_reply_to(
 
 
 def test_update_template(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -250,7 +251,7 @@ def test_update_template(
 
 
 def test_update_template_in_a_folder_to_archived(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -286,7 +287,7 @@ def test_update_template_in_a_folder_to_archived(
 
 
 def test_dao_update_template_reply_to_none_to_some(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -324,7 +325,7 @@ def test_dao_update_template_reply_to_none_to_some(
 
 
 def test_dao_update_template_reply_to_some_to_some(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -361,7 +362,7 @@ def test_dao_update_template_reply_to_some_to_some(
 
 
 def test_dao_update_template_reply_to_some_to_none(
-    notify_db_session: Any, sample_service: Callable[..., Any | Service]
+    notify_db_session: SQLAlchemy, sample_service: Callable[..., Any | Service]
 ):
     service = sample_service()
     letter_contact = create_letter_contact(service, 'Edinburgh, ED1 1AA')
@@ -393,7 +394,7 @@ def test_dao_update_template_reply_to_some_to_none(
 
 
 def test_redact_template(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_template: Callable[..., Any],
 ):
     template = sample_template()
@@ -411,7 +412,7 @@ def test_redact_template(
 
 
 def test_get_all_templates_for_service(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
     sample_template: Callable[..., Any],
 ):
@@ -459,7 +460,7 @@ def test_get_all_templates_for_service(
 
 
 def test_get_all_templates_for_service_is_alphabetised(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     """
@@ -507,7 +508,7 @@ def test_get_all_templates_for_service_is_alphabetised(
 
 
 def test_get_all_returns_empty_list_if_no_templates(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -516,7 +517,7 @@ def test_get_all_returns_empty_list_if_no_templates(
 
 
 def test_get_all_templates_ignores_archived_templates(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -538,7 +539,7 @@ def test_get_all_templates_ignores_archived_templates(
 
 
 def test_get_all_templates_ignores_hidden_templates(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -557,7 +558,7 @@ def test_get_all_templates_ignores_hidden_templates(
 
 
 def test_get_template_by_id_and_service(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -575,7 +576,7 @@ def test_get_template_by_id_and_service(
 
 
 def test_get_template_by_id_and_service_returns_none_for_hidden_templates(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -589,7 +590,7 @@ def test_get_template_by_id_and_service_returns_none_for_hidden_templates(
 
 
 def test_get_template_version_returns_none_for_hidden_templates(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -612,7 +613,7 @@ def test_get_template_by_id_and_service_returns_none_if_no_template(
 
 
 def test_create_template_creates_a_history_record_with_current_data(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -643,7 +644,7 @@ def test_create_template_creates_a_history_record_with_current_data(
 
 
 def test_update_template_creates_a_history_record_with_current_data(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -760,7 +761,7 @@ def test_get_template_versions(
 
 
 def test_get_template_versions_is_empty_for_hidden_templates(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     template = create_template(
@@ -777,7 +778,7 @@ def test_get_template_versions_is_empty_for_hidden_templates(
 
 @pytest.mark.parametrize('template_type,postage', [(LETTER_TYPE, 'third'), (SMS_TYPE, 'second')])
 def test_template_postage_constraint_on_create(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
     template_type: Literal['letter'] | Literal['sms'],
     postage: Literal['third'] | Literal['second'],
@@ -800,7 +801,7 @@ def test_template_postage_constraint_on_create(
 
 
 def test_template_postage_constraint_on_update(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -827,7 +828,7 @@ def test_template_postage_constraint_on_update(
 
 
 def test_template_with_no_given_provider_id_has_null_provider_id(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
 ):
     service = sample_service()
@@ -850,7 +851,7 @@ def test_template_with_no_given_provider_id_has_null_provider_id(
 
 @pytest.mark.parametrize('identifier,notification_type', [(SES_PROVIDER, EMAIL_TYPE), (PINPOINT_PROVIDER, SMS_TYPE)])
 def test_template_with_provider_id_persists_provider_id(
-    notify_db_session: Any,
+    notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
     sample_provider: Callable[..., Any | ProviderDetails],
     identifier: Literal['ses'] | Literal['pinpoint'],
