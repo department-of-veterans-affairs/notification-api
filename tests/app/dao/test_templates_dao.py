@@ -112,6 +112,7 @@ def test_create_template(
 def test_create_template_sets_content_as_html_for_email_only(
     notify_db_session: Any,
     sample_service: Callable[..., Any | Service],
+    sample_template: Callable[..., Any],
     template_type: Literal['email'] | Literal['sms'] | Literal['letter'],
     should_have_html: bool,
     mocker: MockerFixture,
@@ -122,23 +123,14 @@ def test_create_template_sets_content_as_html_for_email_only(
         'app.dao.templates_dao.generate_html_email_content',
         return_value=mock_html_content if should_have_html else None,
     )
+    mocker.patch('app.utils.is_feature_enabled', return_value=True)
 
     service = sample_service()
-    data = {
-        'name': 'Template with HTML',
-        'template_type': template_type,
-        'content': 'Template content',
-        'service': service,
-        'created_by': service.created_by,
-    }
-
-    # Add required fields based on template type
-    if template_type == EMAIL_TYPE:
-        data.update({'subject': 'Email Subject'})
-
-    template = Template(**data)
-    dao_create_template(template)
-
+    template = sample_template(
+        template_type=template_type,
+        content='Template with content',
+        service=service,
+    )
     persisted_template = notify_db_session.session.get(Template, template.id)
     try:
         # Assert generate_html_email_content was called appropriately
