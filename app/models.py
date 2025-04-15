@@ -67,7 +67,6 @@ from app.db import db
 from app.encryption import check_hash, hashpw
 from app.history_meta import Versioned
 from app.model import User
-from app.utils import generate_html_email_content
 from app.va.identifier import IdentifierType
 
 # models.py only constants
@@ -923,17 +922,6 @@ class TemplateBase(db.Model):
                 return str(template_object)
             else:
                 return None
-
-    @html.setter
-    def html(self, value=None):
-        """
-        Sets the content_as_html value either directly from provided value
-        or by generating it using the utility function.
-        """
-        if value is not None:
-            self.content_as_html = value
-        else:
-            self.content_as_html = generate_html_email_content(self)
 
     def _as_utils_template(self):
         if self.template_type == EMAIL_TYPE:
