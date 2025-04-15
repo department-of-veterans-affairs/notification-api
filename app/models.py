@@ -532,7 +532,11 @@ class ServiceSmsSender(db.Model):
     rate_limit_interval = db.Column(db.Integer, nullable=True)
     service = db.relationship(Service, backref=db.backref('service_sms_senders', uselist=True))
     service_id = db.Column(UUID(as_uuid=True), db.ForeignKey('services.id'), index=True, nullable=False)
-    sms_sender: str = db.Column(db.String(12), nullable=False, doc="This is the sender's phone number.")
+    sms_sender: str = db.Column(
+        db.String(256),
+        nullable=False,
+        doc="This can be the sender's PhoneNumber, PhoneNumberId, PhoneNumberArn, SenderId, SenderIdArn, PoolId, or PoolArn.",
+    )
     sms_sender_specifics = db.Column(db.JSON(), doc='A placeholder for any service provider we might want to use.')
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.datetime.utcnow)
 

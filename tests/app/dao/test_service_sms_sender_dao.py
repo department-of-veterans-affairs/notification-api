@@ -8,7 +8,7 @@ import uuid
 
 import pytest
 from sqlalchemy import select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import DataError, SQLAlchemyError
 
 from app.dao.service_sms_sender_dao import (
     archive_sms_sender,
@@ -180,6 +180,25 @@ class TestDaoAddSmsSenderForService:
         new_sms_sender_after_updates = notify_db_session.session.scalars(stmt).one()
 
         assert new_sms_sender_after_updates.is_default
+
+    def test_dao_add_sms_sender_raises_exception_if_sms_sender_too_long(
+        self,
+        notify_db_session,
+        sample_provider,
+        sample_service,
+    ) -> None:
+        provider = sample_provider()
+        service = sample_service()
+
+        with pytest.raises(DataError):
+            dao_add_sms_sender_for_service(
+                service_id=service.id,
+                sms_sender='TooLongString288 - Its a dangerous business, Frodo, going out your door. You step onto the road, and if you dont keep your feet, theres no knowing where you might be swept off to. - One Ring to rule them all, One Ring to find them, One Ring to bring them all and in the darkness bind them',
+                is_default=False,
+                inbound_number_id=None,
+                provider_id=provider.id,
+                description='test',
+            )
 
     @pytest.mark.parametrize('rate_limit, rate_limit_interval', ([1, None], [None, 1]))
     def test_raises_exception_if_only_one_of_rate_limit_value_and_interval_provided(
