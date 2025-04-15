@@ -532,6 +532,8 @@ class ServiceSmsSender(db.Model):
     rate_limit_interval = db.Column(db.Integer, nullable=True)
     service = db.relationship(Service, backref=db.backref('service_sms_senders', uselist=True))
     service_id = db.Column(UUID(as_uuid=True), db.ForeignKey('services.id'), index=True, nullable=False)
+    # sms_sender is intended to be used with boto3's send_text_message method as the OriginationIdentity parameter.
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint-sms-voice-v2/client/send_text_message.html
     sms_sender: str = db.Column(
         db.String(256),
         nullable=False,
