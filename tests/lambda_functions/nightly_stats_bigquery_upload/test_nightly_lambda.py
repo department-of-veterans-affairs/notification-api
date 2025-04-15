@@ -149,8 +149,8 @@ def mock_s3_client():
         s3_client.delete_bucket(Bucket=BUCKET_NAME)
 
 
-@pytest.fixture
-def mock_ssm_client(monkeypatch, mock_s3_client):
+@pytest.fixture(scope='module')
+def mock_ssm_client():
     with mock_aws():
         ssm_client = boto3.client('ssm', region_name=AWS_REGION)
         ssm_client.put_parameter(
@@ -158,18 +158,6 @@ def mock_ssm_client(monkeypatch, mock_s3_client):
             Value=json.dumps(EXAMPLE_SERVICE_ACCOUNT_INFO),
             Type='SecureString',
         )
-
-        # Patch the boto3.client function to return our mocked client when SSM is requested
-        original_boto3_client = boto3.client
-
-        def mock_boto3_client(service_name, *args, **kwargs):
-            if service_name == 'ssm':
-                return ssm_client
-            elif service_name == 's3':
-                return mock_s3_client
-            return original_boto3_client(service_name, *args, **kwargs)
-
-        monkeypatch.setattr(boto3, 'client', mock_boto3_client)
 
         yield ssm_client
 
