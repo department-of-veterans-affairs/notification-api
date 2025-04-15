@@ -95,7 +95,7 @@ def filter_null_value_fields(obj):
 def get_logo_url(base_url, logo_file):
     bucket = current_app.config['ASSET_UPLOAD_BUCKET_NAME']
     domain = current_app.config['ASSET_DOMAIN']
-    return 'https://{}.{}/{}'.format(bucket, domain, logo_file)
+    return f'https://{bucket}.{domain}/{logo_file}'
 
 
 def get_html_email_options(template: TemplateBase) -> Dict[str, Union[str, bool]]:
