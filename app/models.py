@@ -99,6 +99,30 @@ def get_logo_url(base_url, logo_file):
 
 
 def get_html_email_options(template: TemplateBase) -> Dict[str, Union[str, bool]]:
+    """
+    Generate HTML email options dictionary for email rendering.
+
+    This function creates a dictionary of options that will be used when rendering HTML emails.
+    It determines which branding elements to include based on the service's email_branding configuration.
+    If email_branding is None, it will use the default banner.
+    Otherwise, it will include branding elements like colors, logos, and text from the service's email_branding.
+
+    If Google Analytics pixel tracking is enabled, it also adds a tracking URL to the options.
+
+    Args:
+        template (TemplateBase): The template object that contains a reference to the service
+                                with branding configuration
+
+    Returns:
+        Dict[str, Union[str, bool]]: A dictionary containing HTML email options including:
+            - default_banner: Whether to use the default banner
+            - brand_banner: Whether to use the custom brand banner
+            - brand_colour: The brand color (if available)
+            - brand_logo: URL to the brand logo (if available)
+            - brand_text: The brand text (if available)
+            - brand_name: The brand name (if available)
+            - ga4_open_email_event_url: Google Analytics tracking URL (if enabled)
+    """
     options_dict = {}
     if is_gapixel_enabled(current_app):
         options_dict['ga4_open_email_event_url'] = build_dynamic_ga4_pixel_tracking_url('xx_notification_id_xx')
