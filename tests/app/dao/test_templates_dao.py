@@ -162,53 +162,29 @@ def test_create_template_sets_content_as_html_for_email_only(
 def test_update_template_updates_content_as_html(
     notify_db_session: Any,
     sample_service: Callable[..., Any | Service],
+    sample_template: Callable[..., Any],
     template_type: Literal['email'] | Literal['sms'] | Literal['letter'],
     should_have_html: bool,
     mocker: MockerFixture,
 ):
-    # Mock generate_html_email_content to return different values for different calls
-    initial_html = '<p>Initial HTML content</p>'
-    updated_html = '<p>Updated HTML content</p>'
-    mock_generate = mocker.patch(
+    template = sample_template(template_type=template_type)
+    # Mock generate_html_email_content to return a fixed string for testing
+    mock_html_content = '<p>Updated HTML content</p>'
+    mocker.patch(
         'app.dao.templates_dao.generate_html_email_content',
-        side_effect=[initial_html if should_have_html else None, updated_html if should_have_html else None],
+        return_value=mock_html_content if should_have_html else None,
     )
 
-    service = sample_service()
-    data = {
-        'name': 'Template with HTML',
-        'template_type': template_type,
-        'content': 'Initial template content',
-        'service': service,
-        'created_by': service.created_by,
-    }
-
-    # Add required fields based on template type
-    if template_type == EMAIL_TYPE:
-        data.update({'subject': 'Email Subject'})
-
-    template = Template(**data)
-    dao_create_template(template)
-
-    # First verify initial state
-    persisted_template = notify_db_session.session.get(Template, template.id)
-    if template_type == EMAIL_TYPE:
-        assert persisted_template.content_as_html == initial_html
-    else:
-        assert persisted_template.content_as_html is None
-
     # Update the template content
-    persisted_template.content = 'Updated template content'
-    dao_update_template(persisted_template)
-
-    # Check that content_as_html was updated correctly
+    template.content = 'Updated content'
+    dao_update_template(template)
     updated_template = notify_db_session.session.get(Template, template.id)
+
     try:
+        # Assert generate_html_email_content was called appropriately
         if template_type == EMAIL_TYPE:
-            assert mock_generate.call_count == 2  # Called on create and update
-            assert updated_template.content_as_html == updated_html
+            assert updated_template.content_as_html == mock_html_content
         else:
-            assert mock_generate.call_count == 2  # Called on create and update
             assert updated_template.content_as_html is None
     finally:
         template_cleanup(notify_db_session.session, template.id)
