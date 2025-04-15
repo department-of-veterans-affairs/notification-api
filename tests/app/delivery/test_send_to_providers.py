@@ -1209,7 +1209,7 @@ def test_send_email_to_provider_includes_ga4_pixel_tracking_in_html_content(
     This test ensures the tracking pixel is correctly added to the email HTML body.
     """
     # Mock is_feature_enabled to return True for STORE_TEMPLATE_CONTENT
-    mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=True)
+    mocker.patch('app.feature_flags.is_feature_enabled', return_value=True)
 
     # Create test data
     template = sample_template(
