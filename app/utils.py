@@ -184,7 +184,7 @@ def get_logo_url(base_url, logo_file):
     return f'https://{bucket}.{domain}/{logo_file}'
 
 
-def get_html_email_options(template) -> Dict[str, Union[str, bool]]:
+def get_html_email_options(template, notification_id='xx_notification_id_xx') -> Dict[str, Union[str, bool]]:
     """
     Generate HTML email options dictionary for email rendering.
 
@@ -198,6 +198,7 @@ def get_html_email_options(template) -> Dict[str, Union[str, bool]]:
     Args:
         template: The template object that contains a reference to the service
                 with branding configuration
+        notification_id: The ID of the notification (default is a placeholder)
 
     Returns:
         Dict[str, Union[str, bool]]: A dictionary containing HTML email options including:
@@ -211,7 +212,7 @@ def get_html_email_options(template) -> Dict[str, Union[str, bool]]:
     """
     options_dict = {}
     if is_gapixel_enabled(current_app):
-        options_dict['ga4_open_email_event_url'] = build_dynamic_ga4_pixel_tracking_url('xx_notification_id_xx')
+        options_dict['ga4_open_email_event_url'] = build_dynamic_ga4_pixel_tracking_url(notification_id)
 
     service = template.service
     if service.email_branding is None:
