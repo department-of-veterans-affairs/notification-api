@@ -221,10 +221,6 @@ class TestDaoAddSmsSenderForService:
                 description='test',
             )
 
-    """
-    256Char - Its a dangerous business, Frodo, going out your door. You step onto the road, and if you dont keep your feet, theres no knowing where you might be swept off to. - One Ring to rule them all, One Ring to find them, One Ring to bring them all and in
-    """
-
     @pytest.mark.parametrize('rate_limit, rate_limit_interval', ([1, None], [None, 1]))
     def test_raises_exception_if_only_one_of_rate_limit_value_and_interval_provided(
         self,
