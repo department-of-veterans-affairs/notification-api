@@ -22,6 +22,7 @@ from app.constants import (
 from app.feature_flags import is_gapixel_enabled
 from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
 from app.feature_flags import is_feature_enabled, FeatureFlag
+from app.models import TemplateBase
 
 local_timezone = pytz.timezone(os.getenv('TIMEZONE', 'America/New_York'))
 
@@ -184,7 +185,9 @@ def get_logo_url(base_url, logo_file):
     return f'https://{bucket}.{domain}/{logo_file}'
 
 
-def get_html_email_options(template, notification_id='xx_notification_id_xx') -> Dict[str, Union[str, bool]]:
+def get_html_email_options(
+    template: TemplateBase, notification_id: str = 'xx_notification_id_xx'
+) -> Dict[str, Union[str, bool]]:
     """
     Generate HTML email options dictionary for email rendering.
 
