@@ -140,6 +140,7 @@ class TestDaoAddSmsSenderForService:
 
         assert len(service_sms_senders) == 1
 
+        # service_cleanup will handle Teardown
         new_sms_sender = dao_add_sms_sender_for_service(
             service_id=service.id,
             sms_sender='new_sms',
@@ -159,9 +160,10 @@ class TestDaoAddSmsSenderForService:
         provider = sample_provider()
         service = sample_service()
 
+        # service_cleanup will handle Teardown
         new_sms_sender = dao_add_sms_sender_for_service(
             service_id=service.id,
-            sms_sender='256Char - Its a dangerous business, Frodo, going out your door. You step onto the road, and if you dont keep your feet, theres no knowing where you might be swept off to. - One Ring to rule them all, One Ring to find them, One Ring to bring them all and in',
+            sms_sender='1' * 256,
             is_default=False,
             inbound_number_id=None,
             provider_id=provider.id,
@@ -180,6 +182,7 @@ class TestDaoAddSmsSenderForService:
         stmt = select(ServiceSmsSender).where(ServiceSmsSender.service_id == service.id)
         existing_sms_sender = notify_db_session.session.scalars(stmt).one()
 
+        # service_cleanup will handle Teardown
         new_sms_sender = dao_add_sms_sender_for_service(
             service_id=service.id,
             sms_sender='new_sms',
@@ -211,7 +214,7 @@ class TestDaoAddSmsSenderForService:
         with pytest.raises(DataError):
             dao_add_sms_sender_for_service(
                 service_id=service.id,
-                sms_sender='TooLongString288 - Its a dangerous business, Frodo, going out your door. You step onto the road, and if you dont keep your feet, theres no knowing where you might be swept off to. - One Ring to rule them all, One Ring to find them, One Ring to bring them all and in the darkness bind them',
+                sms_sender='1' * 257,
                 is_default=False,
                 inbound_number_id=None,
                 provider_id=provider.id,
