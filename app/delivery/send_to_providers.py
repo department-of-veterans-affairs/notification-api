@@ -151,7 +151,9 @@ def send_email_to_provider(notification: Notification):
                 html_content = re.sub(regex, str(value), html_content)
     else:
         html_email = HTMLEmailTemplate(
-            template_dict, values=personalisation_data, **get_html_email_options(notification.template, str(notification.id))
+            template_dict,
+            values=personalisation_data,
+            **get_html_email_options(notification.template, str(notification.id)),
         )
         html_content = str(html_email)
 
