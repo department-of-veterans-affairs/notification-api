@@ -24,5 +24,5 @@ class TestGA4PixelTracking:
 
     def test_ut_build_dynamic_ga4_pixel_tracking_url_correct_path(self, sample_notification):
         notification = sample_notification()
-        url = build_dynamic_ga4_pixel_tracking_url(notification.id)
-        assert f'ga4/open-email-tracking/{notification.id}' in url
+        url = build_dynamic_ga4_pixel_tracking_url(str(notification.id))
+        assert f'ga4/open-email-tracking/{str(notification.id)}' in url
