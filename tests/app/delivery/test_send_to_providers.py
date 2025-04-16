@@ -1209,8 +1209,8 @@ def test_send_email_to_provider_includes_ga4_pixel_tracking_in_html_content(
     """
     # Set up mocks
     pixel_url = 'https://test-api.va.gov/vanotify/ga4/open-email-tracking/xx_notification_id_xx'
-    mocker.patch('app.utils.is_feature_enabled', return_value=True)
-    mocker.patch('app.utils.is_gapixel_enabled', return_value=True)
+    mocker.patch('app.feature_flags.is_feature_enabled', return_value=True)
+    mocker.patch('app.feature_flags.is_gapixel_enabled', return_value=True)
     mocker.patch('app.googleanalytics.pixels.build_dynamic_ga4_pixel_tracking_url', return_value=pixel_url)
 
     # Create test data

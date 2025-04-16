@@ -124,7 +124,7 @@ def test_create_template_sets_content_as_html_for_email_only(
         'app.dao.templates_dao.generate_html_email_content',
         return_value=mock_html_content if should_have_html else None,
     )
-    mocker.patch('app.utils.is_feature_enabled', return_value=True)
+    mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=True)
 
     service = sample_service()
     template = sample_template(
@@ -167,6 +167,7 @@ def test_update_template_updates_content_as_html(
         'app.dao.templates_dao.generate_html_email_content',
         return_value=mock_html_content if should_have_html else None,
     )
+    mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=True)
 
     # Update the template content
     template.content = 'Updated content'
