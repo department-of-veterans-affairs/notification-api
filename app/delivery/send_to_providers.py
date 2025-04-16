@@ -137,7 +137,7 @@ def send_email_to_provider(notification: Notification):
 
     template_dict = dao_get_template_by_id(notification.template_id, notification.template_version).__dict__
     plain_text_email = PlainTextEmailTemplate(template_dict, values=personalisation_data)
-    # Check the STORE_TEMPLATE_CONTENT feature flag
+
     if is_feature_enabled(FeatureFlag.STORE_TEMPLATE_CONTENT):
         html_content = notification.template.html
         if html_content:
