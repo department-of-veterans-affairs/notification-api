@@ -155,6 +155,24 @@ class TestDaoAddSmsSenderForService:
 
         assert new_sms_sender in service_sms_senders_after_updates
 
+    def test_dao_add_sms_sender_256_char(self, notify_db_session, sample_provider, sample_service) -> None:
+        provider = sample_provider()
+        service = sample_service()
+
+        new_sms_sender = dao_add_sms_sender_for_service(
+            service_id=service.id,
+            sms_sender='256Char - Its a dangerous business, Frodo, going out your door. You step onto the road, and if you dont keep your feet, theres no knowing where you might be swept off to. - One Ring to rule them all, One Ring to find them, One Ring to bring them all and in',
+            is_default=False,
+            inbound_number_id=None,
+            provider_id=provider.id,
+            description='test',
+        )
+
+        stmt = select(ServiceSmsSender).where(ServiceSmsSender.service_id == service.id)
+        service_sms_senders_after_updates = notify_db_session.session.scalars(stmt).all()
+
+        assert new_sms_sender in service_sms_senders_after_updates
+
     def test_dao_switches_default(self, notify_db_session, sample_provider, sample_service) -> None:
         provider = sample_provider()
         service = sample_service()
@@ -199,6 +217,10 @@ class TestDaoAddSmsSenderForService:
                 provider_id=provider.id,
                 description='test',
             )
+
+    """
+    256Char - Its a dangerous business, Frodo, going out your door. You step onto the road, and if you dont keep your feet, theres no knowing where you might be swept off to. - One Ring to rule them all, One Ring to find them, One Ring to bring them all and in
+    """
 
     @pytest.mark.parametrize('rate_limit, rate_limit_interval', ([1, None], [None, 1]))
     def test_raises_exception_if_only_one_of_rate_limit_value_and_interval_provided(
