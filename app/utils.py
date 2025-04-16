@@ -21,7 +21,6 @@ from app.constants import (
 )
 from app.feature_flags import is_gapixel_enabled
 from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
-from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.models import TemplateBase
 
 local_timezone = pytz.timezone(os.getenv('TIMEZONE', 'America/New_York'))
@@ -253,8 +252,8 @@ def generate_html_email_content(template) -> Optional[str]:
              None otherwise
     """
 
-    # Only generate HTML content for email templates when the feature flag is enabled
-    if template.template_type == EMAIL_TYPE and is_feature_enabled(FeatureFlag.STORE_TEMPLATE_CONTENT):
+    content = None
+    if template.template_type == EMAIL_TYPE:
         template_object = HTMLEmailTemplate(
             {
                 'content': template.content,
@@ -262,6 +261,6 @@ def generate_html_email_content(template) -> Optional[str]:
             },
             **get_html_email_options(template),
         )
-        return str(template_object)
+        content = str(template_object)
 
-    return None
+    return content
