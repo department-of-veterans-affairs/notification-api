@@ -86,7 +86,7 @@ def test_add_service_sms_sender_returns_201_with_proper_data(admin_request, samp
     [(True, False, True), (False, True, True), (False, False, True), (True, True, False)],
     ids=['no_provider', 'no_description', 'no_provider_nor_description', 'sms_sender_too_long'],
 )
-def test_add_service_sms_sender_returns_400_error_when_missing_expected_data(
+def test_add_service_sms_sender_returns_400_error_with_invalid_request_data(
     admin_request,
     sample_provider,
     sample_service,

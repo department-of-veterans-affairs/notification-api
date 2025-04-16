@@ -1,5 +1,4 @@
 from flask import Blueprint, current_app, jsonify, request
-from sqlalchemy.exc import DataError
 
 from app.authentication.auth import validate_admin_auth
 from app.dao.services_dao import dao_fetch_service_by_id
@@ -10,7 +9,7 @@ from app.dao.service_sms_sender_dao import (
     dao_get_sms_senders_by_service_id,
     dao_update_service_sms_sender,
 )
-from app.errors import register_errors, InvalidRequest
+from app.errors import register_errors
 from app.schema_validation import validate
 from app.service.exceptions import (
     SmsSenderDefaultValidationException,
@@ -56,14 +55,7 @@ def get_service_sms_senders_for_service(service_id):
 @service_sms_sender_blueprint.route('', methods=['POST'])
 def add_service_sms_sender(service_id):
     form = validate(request.get_json(), add_service_sms_sender_request)
-    try:
-        new_sms_sender = dao_add_sms_sender_for_service(service_id=service_id, **form)
-    except DataError:
-        raise InvalidRequest(
-            status_code=400,
-            message='Invalid SMS sender data, double check provided fields. '
-            'e.g. sms_sender is <= 256 chars, provider_id is valid, etc.',
-        )
+    new_sms_sender = dao_add_sms_sender_for_service(service_id=service_id, **form)
     return jsonify(new_sms_sender.serialize()), 201
 
 
