@@ -6,6 +6,7 @@ import html
 import itertools
 import uuid
 
+from app.feature_flags import FeatureFlag, is_feature_enabled
 from flask import current_app, url_for
 
 from sqlalchemy import CheckConstraint, Index, UniqueConstraint, and_, select
@@ -532,7 +533,13 @@ class ServiceSmsSender(db.Model):
     rate_limit_interval = db.Column(db.Integer, nullable=True)
     service = db.relationship(Service, backref=db.backref('service_sms_senders', uselist=True))
     service_id = db.Column(UUID(as_uuid=True), db.ForeignKey('services.id'), index=True, nullable=False)
-    sms_sender: str = db.Column(db.String(12), nullable=False, doc="This is the sender's phone number.")
+    # sms_sender is intended to be used with boto3's send_text_message method as the OriginationIdentity parameter.
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint-sms-voice-v2/client/send_text_message.html
+    sms_sender: str = db.Column(
+        db.String(256),
+        nullable=False,
+        doc="This can be the sender's PhoneNumber, PhoneNumberId, PhoneNumberArn, SenderId, SenderIdArn, PoolId, or PoolArn.",
+    )
     sms_sender_specifics = db.Column(db.JSON(), doc='A placeholder for any service provider we might want to use.')
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.datetime.utcnow)
 
@@ -913,15 +920,17 @@ class TemplateBase(db.Model):
         pass
 
     @property
-    def html(self):
-        if self.content_as_html:
-            return self.content_as_html
-        else:
-            if self.template_type == EMAIL_TYPE:
-                template_object = HTMLEmailTemplate({'content': self.content, 'subject': self.subject})
-                return str(template_object)
+    def html(self) -> str:
+        content = None
+        if is_feature_enabled(FeatureFlag.STORE_TEMPLATE_CONTENT):
+            if self.content_as_html:
+                content = self.content_as_html
             else:
-                return None
+                if self.template_type == EMAIL_TYPE:
+                    template_object = HTMLEmailTemplate({'content': self.content, 'subject': self.subject})
+                    content = str(template_object)
+
+        return content
 
     def _as_utils_template(self):
         if self.template_type == EMAIL_TYPE:
