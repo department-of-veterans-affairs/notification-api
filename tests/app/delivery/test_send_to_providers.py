@@ -1240,3 +1240,49 @@ def test_send_email_to_provider_includes_ga4_pixel_tracking_in_html_content(
     assert expected_pixel_img in html_body, (
         f'GA4 pixel tracking image not found in HTML when feature enabled: {html_body}'
     )
+
+
+@pytest.mark.parametrize('store_content_flag', [True, False])
+def test_send_email_to_provider_html_body_is_always_string_type(
+    sample_api_key,
+    sample_notification,
+    sample_template,
+    mock_email_client,
+    mocker,
+    store_content_flag,
+):
+    """
+    Test that ensures the html_body parameter passed to send_email is always a string,
+    regardless of the template content or feature flags.
+    """
+    # Set up feature flag
+    mocker.patch('app.delivery.send_to_providers.is_feature_enabled', return_value=store_content_flag)
+
+    # Test with different template content scenarios
+    template = sample_template(
+        template_type=EMAIL_TYPE,
+        subject='Test Subject',
+        content='Test Content with ((placeholder))',
+        html='<p>HTML content with ((placeholder))</p>',
+    )
+
+    # Create notification with complex personalisation
+    db_notification = sample_notification(
+        template=template,
+        to_field='test@example.com',
+        personalisation={'placeholder': 'value with special chars: <>&"\''},
+        api_key=sample_api_key(service=template.service),
+    )
+
+    # Call the function under test
+    send_to_providers.send_email_to_provider(db_notification)
+
+    # Verify the call
+    mock_email_client.send_email.assert_called_once()
+    html_body = mock_email_client.send_email.call_args[1]['html_body']
+
+    # Check that html_body is actually a string
+    assert isinstance(html_body, str), f'html_body should be a string, got {type(html_body)} instead'
+
+    # Ensure html_body has content (not empty)
+    assert html_body, 'html_body should not be empty'

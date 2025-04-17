@@ -17,6 +17,8 @@ fileignoreconfig:
   checksum: 4e6e2fabf9630e9e0d26028818f41f34c065e80c223db34d35a1d1068c37a782
 - filename: poetry.lock
   checksum: 93b9aac800f82240d8b1fa135e47925d7237043a362455d1239fdd1c9d342ba9
+- filename: tests/app/delivery/test_send_to_providers.py
+  checksum: 7db1b20912c3f7a5cb366eb143cace80bfb406ca1af844e11022747e7311aea5
 - filename: tests/app/notifications/test_validators.py
   checksum: 7e95b0854fdc12ab60e97347f5e6498e99b29b9df3b635487ab89189ed11fabb
 - filename: tests/app/service/test_rest.py
