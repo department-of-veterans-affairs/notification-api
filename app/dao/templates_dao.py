@@ -58,6 +58,7 @@ def dao_create_template(template: Template):
 
     if is_feature_enabled(FeatureFlag.STORE_TEMPLATE_CONTENT):
         template.content_as_html = generate_html_email_content(template)
+        template.content_as_plain_text = None
 
     db.session.add(template)
 
