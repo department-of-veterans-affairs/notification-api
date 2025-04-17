@@ -139,7 +139,7 @@ def send_email_to_provider(notification: Notification):
     plain_text_email = PlainTextEmailTemplate(template_dict, values=personalisation_data)
 
     if is_feature_enabled(FeatureFlag.STORE_TEMPLATE_CONTENT):
-        html_content = notification.template.html
+        html_content = notification.template.html or ''
         if html_content:
             html_content = html_content.replace('xx_notification_id_xx', str(notification.id))
             for key, value in personalisation_data.items():
