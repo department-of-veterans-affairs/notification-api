@@ -914,7 +914,7 @@ class TemplateBase(db.Model):
         pass
 
     @property
-    def html(self):
+    def html(self) -> str:
         content = ''
         if is_feature_enabled(FeatureFlag.STORE_TEMPLATE_CONTENT):
             if self.content_as_html:
