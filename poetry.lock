@@ -2281,8 +2281,8 @@ statsd = ">=4.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
-reference = "HEAD"
-resolved_reference = "171a7ccb915a6b1d3dbe6f539363980b60f90c2b"
+reference = "188-bugfix-spaces-in-links"
+resolved_reference = "2e4c8f9faaa7d7513f3fc8a87767cf0408c631c7"
 
 [[package]]
 name = "notifications-python-client"
@@ -3876,4 +3876,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "30446e09da6261b842434ede036ec61e248e884d81ba5200f6351f59ab923cbd"
+content-hash = "eb4caaaef8f9d830fd71b8d4ff638cb9c2fc0f713a0f8cb4ad0cf6d935f7cc7c"
