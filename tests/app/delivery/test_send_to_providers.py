@@ -1196,6 +1196,7 @@ def test_template_or_service_provider_is_not_used_when_feature_flag_is_off(
     mock_load_provider.assert_not_called()
 
 
+@pytest.mark.parametrize('store_template_content_ff', [True, False])
 def test_send_email_to_provider_includes_ga4_pixel_tracking_in_html_content(
     sample_api_key,
     sample_notification,
@@ -1203,14 +1204,16 @@ def test_send_email_to_provider_includes_ga4_pixel_tracking_in_html_content(
     mock_email_client,
     notify_api,
     mocker,
+    store_template_content_ff,
 ):
     """
-    Test that emails sent through send_email_to_provider include a GA4 pixel tracking image in the HTML content.
+    Test that emails sent through send_email_to_provider include a GA4 pixel tracking image in the HTML content
+    when the feature flag is enabled.
     """
     # Set up mocks
     pixel_url = 'https://test-api.va.gov/vanotify/ga4/open-email-tracking/xx_notification_id_xx'
-    mocker.patch('app.feature_flags.is_feature_enabled', return_value=True)
-    mocker.patch('app.feature_flags.is_gapixel_enabled', return_value=True)
+
+    mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=store_template_content_ff)
     mocker.patch('app.googleanalytics.pixels.build_dynamic_ga4_pixel_tracking_url', return_value=pixel_url)
 
     # Create test data
@@ -1225,14 +1228,15 @@ def test_send_email_to_provider_includes_ga4_pixel_tracking_in_html_content(
         to_field='test@example.com',
         api_key=sample_api_key(service=template.service),
     )
-    expected_pixel_url = pixel_url.replace('xx_notification_id_xx', str(db_notification.id))
-    # Call the function under test
+
     send_to_providers.send_email_to_provider(db_notification)
 
-    # Get the HTML content that was sent to the email client
     mock_email_client.send_email.assert_called_once()
     html_body = mock_email_client.send_email.call_args[1]['html_body']
 
-    # Check for the GA4 pixel tracking image in the HTML
+    # Check for the GA4 pixel tracking image in the HTML content, regardless of the STORE_TEMPLATE_CONTENT feature flag
+    expected_pixel_url = pixel_url.replace('xx_notification_id_xx', str(db_notification.id))
     expected_pixel_img = f'<img id="ga4_open_email_event_url" src="{expected_pixel_url}"'
-    assert expected_pixel_img in html_body, f'GA4 pixel tracking image not found in HTML: {html_body}'
+    assert expected_pixel_img in html_body, (
+        f'GA4 pixel tracking image not found in HTML when feature enabled: {html_body}'
+    )
