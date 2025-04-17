@@ -54,10 +54,9 @@ def dao_create_template(template: Template):
         redacted_dict.update({'updated_by_id': template.created_by_id})
 
     template.template_redacted = TemplateRedacted(**redacted_dict)
-    template.content_as_plain_text = None
+
     if template.template_type == EMAIL_TYPE and is_feature_enabled(FeatureFlag.STORE_TEMPLATE_CONTENT):
-        html_content = generate_html_email_content(template)
-        template.content_as_html = html_content
+        template.content_as_html = generate_html_email_content(template)
 
     db.session.add(template)
 
