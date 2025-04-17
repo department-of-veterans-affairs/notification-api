@@ -40,5 +40,5 @@ check-dependencies: install-safety ## Scan dependencies for security vulnerabili
 	generate-version-file \
 	test \
 	clean \
-	check-vulnerabilities \
-	check-dependencies
+	check-vulnerabilities
+	# check-dependencies
