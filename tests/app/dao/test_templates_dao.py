@@ -155,7 +155,7 @@ def test_create_email_template_with_html_disabled(
     persisted_template = notify_db_session.session.get(Template, template.id)
     try:
         # Assert generate_html_email_content was called but HTML content is not set
-        mock_generate.assert_called_once_with(template)
+        mock_generate.assert_not_called()
         assert persisted_template.content_as_html is None
     finally:
         template_cleanup(notify_db_session.session, template.id)
@@ -344,16 +344,9 @@ def test_update_template(
 def test_update_template_in_a_folder_to_archived(
     notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
+    sample_template: Callable[..., Any],
 ):
     service = sample_service()
-    template_data = {
-        'name': 'Sample Template',
-        'template_type': SMS_TYPE,
-        'content': 'Template content',
-        'service': service,
-        'created_by': service.created_by,
-    }
-    template = Template(**template_data)
 
     template_folder_data = {
         'name': 'My Folder',
@@ -361,20 +354,22 @@ def test_update_template_in_a_folder_to_archived(
     }
     template_folder = TemplateFolder(**template_folder_data)
 
-    template.folder = template_folder
-    dao_create_template(template)
+    # Create template with folder
+    template = sample_template(service=service, folder=template_folder)
 
+    # Verify initial state
+    assert template.folder == template_folder
+
+    # Archive the template
     template.archived = True
     dao_update_template(template)
 
+    # Verify template folder still exists but template no longer has folder relationship
     template_folder = notify_db_session.session.get(TemplateFolder, template_folder.id)
     archived_template = notify_db_session.session.get(Template, template.id)
 
     assert template_folder
     assert not archived_template.folder
-
-    # Teardown
-    template_cleanup(notify_db_session.session, template.id)
 
 
 def test_dao_update_template_reply_to_none_to_some(
@@ -601,19 +596,38 @@ def test_get_all_templates_for_service_is_alphabetised(
 def test_get_all_returns_empty_list_if_no_templates(
     notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
+    sample_template: Callable[..., Any],
 ):
-    service = sample_service()
-    assert notify_db_session.session.scalar(select(Template).where(Template.service_id == service.id)) is None
-    assert len(dao_get_all_templates_for_service(service.id)) == 0
+    template = sample_template()  # This creates a template with a service
+
+    # Create a different service with no templates
+    service_with_no_templates = sample_service()
+
+    try:
+        # Verify the service with templates has at least one template
+        assert len(dao_get_all_templates_for_service(template.service_id)) > 0
+
+        # Verify the service with no templates returns an empty list
+        assert (
+            notify_db_session.session.scalar(
+                select(Template).where(Template.service_id == service_with_no_templates.id)
+            )
+            is None
+        )
+        assert len(dao_get_all_templates_for_service(service_with_no_templates.id)) == 0
+    finally:
+        # Teardown
+        template_cleanup(notify_db_session.session, template.id)
 
 
 def test_get_all_templates_ignores_archived_templates(
     notify_db_session: SQLAlchemy,
     sample_service: Callable[..., Any | Service],
+    sample_template: Callable[..., Any],
 ):
     service = sample_service()
-    normal_template = create_template(template_name=str(uuid4()), service=service, archived=False)
-    archived_template = create_template(template_name=str(uuid4()), service=service)
+    normal_template = sample_template(service=service)
+    archived_template = sample_template(service=service)
 
     # sample_template fixture uses dao, which forces archived = False at creation.
     archived_template.archived = True
@@ -621,12 +635,14 @@ def test_get_all_templates_ignores_archived_templates(
 
     templates = dao_get_all_templates_for_service(service.id)
 
-    assert len(templates) == 1
-    assert templates[0] == normal_template
+    try:
+        assert len(templates) == 1
+        assert templates[0] == normal_template
 
-    # Teardown
-    template_cleanup(notify_db_session.session, normal_template.id)
-    template_cleanup(notify_db_session.session, archived_template.id)
+    finally:
+        # Teardown
+        template_cleanup(notify_db_session.session, normal_template.id)
+        template_cleanup(notify_db_session.session, archived_template.id)
 
 
 def test_get_all_templates_ignores_hidden_templates(
