@@ -105,7 +105,6 @@ def test_create_template(
 
 def test_create_email_template_with_html_enabled(
     notify_db_session: SQLAlchemy,
-    sample_service: Callable[..., Any | Service],
     sample_template: Callable[..., Any],
     mocker: MockerFixture,
 ):
@@ -118,24 +117,17 @@ def test_create_email_template_with_html_enabled(
     )
     mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=True)
 
-    service = sample_service()
     template = sample_template(
         template_type=EMAIL_TYPE,
         content='Template with content',
-        service=service,
     )
-    persisted_template = notify_db_session.session.get(Template, template.id)
-    try:
-        # Assert generate_html_email_content was called and HTML content is set
-        mock_generate.assert_called_once_with(template)
-        assert persisted_template.content_as_html == mock_html_content
-    finally:
-        template_cleanup(notify_db_session.session, template.id)
+
+    mock_generate.assert_called_once_with(template)
+    assert template.content_as_html == mock_html_content
 
 
 def test_create_email_template_with_html_disabled(
     notify_db_session: SQLAlchemy,
-    sample_service: Callable[..., Any | Service],
     sample_template: Callable[..., Any],
     mocker: MockerFixture,
 ):
@@ -146,25 +138,19 @@ def test_create_email_template_with_html_disabled(
     )
     mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=False)
 
-    service = sample_service()
     template = sample_template(
         template_type=EMAIL_TYPE,
         content='Template with content',
-        service=service,
     )
     persisted_template = notify_db_session.session.get(Template, template.id)
-    try:
-        # Assert generate_html_email_content was called but HTML content is not set
-        mock_generate.assert_not_called()
-        assert persisted_template.content_as_html is None
-    finally:
-        template_cleanup(notify_db_session.session, template.id)
+    # Assert generate_html_email_content was called but HTML content is not set
+    mock_generate.assert_not_called()
+    assert persisted_template.content_as_html is None
 
 
 @pytest.mark.parametrize('feature_enabled', [True, False])
 def test_create_sms_template_content_as_html_always_none(
     notify_db_session: SQLAlchemy,
-    sample_service: Callable[..., Any | Service],
     sample_template: Callable[..., Any],
     mocker: MockerFixture,
     feature_enabled: bool,
@@ -177,24 +163,17 @@ def test_create_sms_template_content_as_html_always_none(
     # Set feature flag based on parameter
     mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=feature_enabled)
 
-    service = sample_service()
     template = sample_template(
         template_type=SMS_TYPE,
         content='Template with content',
-        service=service,
     )
-    persisted_template = notify_db_session.session.get(Template, template.id)
-    try:
-        # Assert generate_html_email_content was called but HTML content is not set for SMS
-        mock_generate.assert_not_called()
-        assert persisted_template.content_as_html is None
-    finally:
-        template_cleanup(notify_db_session.session, template.id)
+    # Assert generate_html_email_content was called but HTML content is not set for SMS
+    mock_generate.assert_not_called()
+    assert template.content_as_html is None
 
 
 def test_update_email_template_updates_content_as_html(
     notify_db_session: SQLAlchemy,
-    sample_service: Callable[..., Any | Service],
     sample_template: Callable[..., Any],
     mocker: MockerFixture,
 ):
@@ -207,17 +186,14 @@ def test_update_email_template_updates_content_as_html(
     mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=True)
     template = sample_template(template_type=EMAIL_TYPE)
 
-    try:
-        # Update the template content
-        template.content = 'Updated content'
-        dao_update_template(template)
-        updated_template = notify_db_session.session.get(Template, template.id)
+    # Update the template content
+    template.content = 'Updated content'
+    dao_update_template(template)
+    updated_template = notify_db_session.session.get(Template, template.id)
 
-        # Assert generate_html_email_content was called appropriately
-        mock_generate.assert_called_with(template)
-        assert updated_template.content_as_html == mock_html_content
-    finally:
-        template_cleanup(notify_db_session.session, template.id)
+    # Assert generate_html_email_content was called appropriately
+    mock_generate.assert_called_with(template)
+    assert updated_template.content_as_html == mock_html_content
 
 
 def test_update_email_template_without_html_feature(

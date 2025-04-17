@@ -18,11 +18,11 @@ class TestTemplateBase:
         mocker.patch('app.models.is_feature_enabled', return_value=feature_enabled)
         mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=feature_enabled)
         template = sample_template(template_type=EMAIL_TYPE)
+        template.content_as_html = '<p>Some HTML content</p>'
 
         if not feature_enabled:
             assert template.html is None
         else:
-            template.content_as_html = '<p>Some HTML content</p>'
             assert template.html == '<p>Some HTML content</p>'
 
     @pytest.mark.parametrize(
