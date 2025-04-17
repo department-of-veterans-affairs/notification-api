@@ -1257,13 +1257,12 @@ def test_send_email_to_provider_html_body_is_always_string_type(
     """
     # Set up feature flag
     mocker.patch('app.delivery.send_to_providers.is_feature_enabled', return_value=store_content_flag)
-
-    # Test with different template content scenarios
+    mocker.patch('app.dao.templates_dao.is_feature_enabled', return_value=store_content_flag)
+    mocker.patch('app.models.is_feature_enabled', return_value=store_content_flag)
     template = sample_template(
         template_type=EMAIL_TYPE,
         subject='Test Subject',
         content='Test Content with ((placeholder))',
-        html='<p>HTML content with ((placeholder))</p>',
     )
 
     # Create notification with complex personalisation
