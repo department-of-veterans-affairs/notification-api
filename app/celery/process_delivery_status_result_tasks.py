@@ -1,7 +1,6 @@
 import datetime
 import random
-from typing import Tuple, Union
-from uuid import UUID
+from typing import Tuple
 
 from app.celery.process_ses_receipts_tasks import check_and_queue_va_profile_notification_status_callback
 from celery import Task

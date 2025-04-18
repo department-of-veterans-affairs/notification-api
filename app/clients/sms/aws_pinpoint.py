@@ -92,13 +92,14 @@ class AwsPinpointClient(SmsClient):
         created_at=datetime.utcnow(),
         **kwargs,
     ):
-        from app import redis_store  # Avoid circular import
+        # Avoid circular imports
+        from app import redis_store
         from app.utils import get_redis_retry_key
 
         aws_phone_number = self.origination_number if sender is None else sender
         recipient_number = str(to)
 
-        # If this is not an SMS retry log how long it spent in our system before we sent it
+        # Log how long it spent in our system before we sent it if this is not an SMS retry
         if redis_store.get(get_redis_retry_key(reference)) is None:
             self.logger.info(
                 'Total time spent to send %s notification: %s seconds',

@@ -231,7 +231,7 @@ class TwilioSMSClient(SmsClient):
 
                     self.logger.info('Twilio sender has sms_sender_specifics')
 
-            # If this is not an SMS retry log how long it spent in our system before we sent it
+            # Log how long it spent in our system before we sent it if this is not an SMS retry
             if redis_store.get(get_redis_retry_key(reference)) is None:
                 self.logger.info(
                     'Total time spent to send %s notification: %s seconds',
