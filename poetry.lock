@@ -2281,8 +2281,8 @@ statsd = ">=4.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
-reference = "HEAD"
-resolved_reference = "171a7ccb915a6b1d3dbe6f539363980b60f90c2b"
+reference = "203-bug-nested-link-inside-block-quotes"
+resolved_reference = "9ed861e1fe07ae10afc6016e41bab4a290e4b9fa"
 
 [[package]]
 name = "notifications-python-client"
@@ -3876,4 +3876,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "30446e09da6261b842434ede036ec61e248e884d81ba5200f6351f59ab923cbd"
+content-hash = "d5734064097702f650e87571f91d4b8df252948b87ba1e75cb1e4b93538eae14"
