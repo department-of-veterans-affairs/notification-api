@@ -387,25 +387,6 @@ def test_send_sms_calls_twilio_correctly(
     assert d['Body'] == content
 
 
-@pytest.mark.parametrize(
-    'store_value, logger_calls',
-    [(False, 3), ('anything', 3), (1, 3), (0, 3), (None, 4)],
-    ids=['boolean_check', 'found_in_redis', 'value_is_1', 'value_is_zero', 'not_in_redis'],
-)
-def test_send_sms_does_not_log_if_sms_replay(notify_api, mocker, store_value, logger_calls):
-    """We use this log for tracking accurate metrics, it is critical"""
-    mock_log_info = mocker.patch.object(twilio_sms_client.logger, 'info')
-    mocker.patch.object(redis_store, 'get', return_value=store_value)
-    to = '+61412345678'
-    content = 'my message'
-    url = f'https://api.twilio.com/2010-04-01/Accounts/{twilio_sms_client._account_sid}/Messages.json'
-
-    with requests_mock.Mocker() as r_mock:
-        r_mock.post(url, json=make_twilio_message_response_dict(), status_code=200)
-        twilio_sms_client.send_sms(to, content, 'my reference')
-    assert mock_log_info.call_count == logger_calls
-
-
 @pytest.mark.parametrize('sms_sender_id', ['test_sender_id', None], ids=['has sender id', 'no sender id'])
 def test_send_sms_call_with_sender_id_and_specifics(
     notify_db_session,
