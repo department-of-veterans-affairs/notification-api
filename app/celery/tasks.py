@@ -576,3 +576,12 @@ def process_returned_letters_list(notification_references):
         updated_history,
         len(notification_references),
     )
+
+
+@notify_celery.task(name='send-va-onsite-notification-task')
+def send_va_onsite_notification_task(
+    va_profile_id: str,
+    template_id: str,
+    onsite_enabled: bool = False,
+):
+    current_app.logger.info('Purging onsite request')
