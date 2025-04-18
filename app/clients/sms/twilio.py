@@ -196,10 +196,13 @@ class TwilioSMSClient(SmsClient):
         Return: a string containing the Twilio message.sid
         """
         start_time = monotonic()
+        # Avoid circular imports
+        from app import redis_store
         from app.dao.service_sms_sender_dao import (
             dao_get_service_sms_sender_by_service_id_and_number,
             dao_get_service_sms_sender_by_id,
         )
+        from app.utils import get_redis_retry_key
 
         try:
             from_number = None
@@ -228,12 +231,13 @@ class TwilioSMSClient(SmsClient):
 
                     self.logger.info('Twilio sender has sms_sender_specifics')
 
-            # Log how long it spent in our system before we sent it
-            self.logger.info(
-                'Total time spent to send %s notification: %s seconds',
-                SMS_TYPE,
-                (datetime.utcnow() - created_at).total_seconds(),
-            )
+            # If this is not an SMS retry log how long it spent in our system before we sent it
+            if redis_store.get(get_redis_retry_key(reference)) is None:
+                self.logger.info(
+                    'Total time spent to send %s notification: %s seconds',
+                    SMS_TYPE,
+                    (datetime.utcnow() - created_at).total_seconds(),
+                )
 
             if messaging_service_sid is None:
                 # Make a request using a sender phone number.
