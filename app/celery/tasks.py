@@ -587,8 +587,14 @@ def send_va_onsite_notification_task(
 ):
     try:
         current_app.logger.info(
-            'Purging onsite request. Current chain: %s | va_profile_id: %s | template_id: %s | onsite_enabled: %s',
+            'Purging onsite request. Current chain: %s | retries: %s | delivery_info: %s | queue reply_to: %s | callbacks: %s | nesting: %s | properties: %s | va_profile_id: %s | template_id: %s | onsite_enabled: %s',
             task.request.chain,
+            task.request.retries,
+            task.request.delivery_info,
+            task.request.reply_to,
+            task.request.callbacks,
+            task.request.replaced_task_nesting,
+            task.request.properties,
             va_profile_id,
             template_id,
             onsite_enabled,
