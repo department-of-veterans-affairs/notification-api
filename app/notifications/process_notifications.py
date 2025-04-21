@@ -347,6 +347,7 @@ def send_to_queue_for_recipient_info_based_on_recipient_identifier(
     try:
         # This executes the task list.  Each task calls a function that makes a request to
         # the backend provider.
+        current_app.logger.info('Current task list: %s', tasks)
         chain(*tasks).apply_async()
     except Exception:
         current_app.logger.exception(
