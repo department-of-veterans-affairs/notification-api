@@ -578,10 +578,20 @@ def process_returned_letters_list(notification_references):
     )
 
 
-@notify_celery.task(name='send-va-onsite-notification-task')
+@notify_celery.task(name='send-va-onsite-notification-task', bind=True)
 def send_va_onsite_notification_task(
+    task,
     va_profile_id: str,
     template_id: str,
     onsite_enabled: bool = False,
 ):
-    current_app.logger.info('Purging onsite request')
+    try:
+        current_app.logger.info(
+            'Purging onsite request. Current chain: %s | va_profile_id: %s | template_id: %s | onsite_enabled: %s',
+            task.request.chain,
+            va_profile_id,
+            template_id,
+            onsite_enabled,
+        )
+    except Exception as e:
+        current_app.logger.info('Purging onsite request')
