@@ -266,11 +266,11 @@ def generate_html_email_content(template) -> Optional[str]:
     return content
 
 
-def get_redis_retry_key(notification_id: Union[str, UUID]) -> str:
+def get_redis_retry_key(notification_id: str | UUID) -> str:
     """This key is referenced in multiple places so warranted a function.
 
     Args:
-        notification_id (Union[str, UUID]): Notification object's id
+        notification_id (str | UUID): Notification object's id
 
     Returns:
         str: redis key for this notification
