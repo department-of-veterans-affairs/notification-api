@@ -69,14 +69,14 @@ def send_delivery_status_to_service(
     try:
         # calls the webhook / sqs callback to transmit message
         service_callback.send(payload=payload, logging_tags=logging_tags)
-    except RetryableException:
+    except RetryableException as e:
         try:
             current_app.logger.warning(
-                'Retrying: %s failed for %s, url %s.', self.name, logging_tags, service_callback.url
+                'Retrying: %s failed for %s, url %s. | Exception: %s', self.name, logging_tags, service_callback.url, e
             )
             raise AutoRetryException('Found RetryableException, autoretrying...')
         except self.MaxRetriesExceededError:
-            current_app.logger.error(
+            current_app.logger.exception(
                 'Retry: %s has retried the max num of times for %s, url %s.',
                 self.name,
                 logging_tags,
@@ -84,7 +84,7 @@ def send_delivery_status_to_service(
             )
             raise
     except NonRetryableException:
-        current_app.logger.critical(
+        current_app.logger.exception(
             'Not retrying: %s failed for %s, url: %s. ', self.name, logging_tags, service_callback.url
         )
         raise
