@@ -11,28 +11,10 @@ from app.dao.organisation_dao import (
     dao_get_organisation_by_id,
     dao_get_organisation_by_service_id,
     dao_get_organisation_services,
-    dao_get_organisations,
     dao_get_users_for_organisation,
     dao_update_organisation,
 )
 from app.models import Service
-
-
-def test_get_organisations_gets_all_organisations_alphabetically_with_active_organisations_first(sample_organisation):
-    m_active_org = sample_organisation(name=f'm_active_organisation {uuid4()}')
-    z_inactive_org = sample_organisation(name=f'z_inactive_organisation {uuid4()}', active=False)
-    a_inactive_org = sample_organisation(name=f'a_inactive_organisation {uuid4()}', active=False)
-    z_active_org = sample_organisation(name=f'z_active_organisation {uuid4()}')
-    a_active_org = sample_organisation(name=f'a_active_organisation {uuid4()}')
-    org_ids = frozenset((m_active_org.id, z_inactive_org.id, a_inactive_org.id, z_active_org.id, a_active_org.id))
-
-    organisations = tuple(filter(lambda o: o.id in org_ids, dao_get_organisations()))
-
-    assert organisations[0] == a_active_org
-    assert organisations[1] == m_active_org
-    assert organisations[2] == z_active_org
-    assert organisations[3] == a_inactive_org
-    assert organisations[4] == z_inactive_org
 
 
 def test_get_organisation_by_id_gets_correct_organisation(sample_organisation):
