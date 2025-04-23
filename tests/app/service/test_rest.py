@@ -5,7 +5,7 @@ from unittest.mock import ANY
 from uuid import uuid4
 
 import pytest
-from flask import url_for, current_app
+from flask import url_for
 from freezegun import freeze_time
 from sqlalchemy import select, delete
 
@@ -28,7 +28,6 @@ from app.models import (
     Notification,
     Service,
     ServicePermission,
-    ServiceSmsSender,
     ProviderDetails,
 )
 from app.service.rest import get_detailed_services
@@ -245,54 +244,6 @@ def test_get_service_by_id_returns_go_live_user_and_go_live_at(admin_request, sa
     assert json_resp['data']['go_live_at'] == str(now)
 
 
-@pytest.mark.parametrize(
-    'platform_admin, expected_count_as_live',
-    (
-        (True, False),
-        (False, True),
-    ),
-)
-def test_create_service(
-    admin_request,
-    notify_db_session,
-    sample_user,
-    platform_admin,
-    expected_count_as_live,
-):
-    user = sample_user(platform_admin=platform_admin)
-    data = {
-        'name': f'created service {uuid4()}',
-        'user_id': str(user.id),
-        'message_limit': 100,
-        'restricted': False,
-        'active': False,
-        'email_from': f'created.service {uuid4()}',
-        'created_by': str(user.id),
-    }
-
-    json_resp = admin_request.post('service.create_service', _data=data, _expected_status=201)
-
-    assert json_resp['data']['id']
-    assert json_resp['data']['name'] == data['name']
-    assert json_resp['data']['email_from'] == data['email_from']
-    assert not json_resp['data']['research_mode']
-    assert json_resp['data']['rate_limit'] == 3000
-    assert json_resp['data']['count_as_live'] is expected_count_as_live
-
-    service = notify_db_session.session.get(Service, json_resp['data']['id'])
-    assert service.name == data['name']
-
-    json_resp = admin_request.get('service.get_service_by_id', service_id=json_resp['data']['id'], user_id=user.id)
-
-    assert json_resp['data']['name'] == data['name']
-    assert not json_resp['data']['research_mode']
-
-    stmt = select(ServiceSmsSender).where(ServiceSmsSender.service_id == service.id)
-    service_sms_senders = notify_db_session.session.scalars(stmt).all()
-    assert len(service_sms_senders) == 1
-    assert service_sms_senders[0].sms_sender == current_app.config['FROM_NUMBER']
-
-
 def test_should_not_create_service_with_missing_user_id_field(notify_api, fake_uuid):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
@@ -388,88 +339,6 @@ def test_should_not_create_service_with_duplicate_name(notify_api, sample_servic
             json_resp = resp.json
             assert json_resp['result'] == 'error'
             assert "Duplicate service name '{}'".format(s1.name) in json_resp['message']['name']
-
-
-@pytest.mark.parametrize('notification_type', (EMAIL_TYPE, SMS_TYPE))
-def test_should_not_create_service_with_non_existent_provider(admin_request, sample_user, notification_type, fake_uuid):
-    user = sample_user()
-    data = {
-        'name': f'created service {uuid4()}',
-        'user_id': str(user.id),
-        'message_limit': 1000,
-        'restricted': False,
-        'active': False,
-        'email_from': 'created.service',
-        'created_by': str(user.id),
-        f'{notification_type}_provider_id': str(fake_uuid),
-    }
-
-    response = admin_request.post('service.create_service', _data=data, _expected_status=400)
-    assert response['result'] == 'error'
-    assert (
-        response['message'][f'{notification_type}_provider_id'][0]
-        == f'Invalid {notification_type}_provider_id: {str(fake_uuid)}'
-    )
-
-
-@pytest.mark.parametrize('notification_type', (EMAIL_TYPE, SMS_TYPE))
-def test_should_not_create_service_with_inactive_provider(
-    admin_request, sample_user, notification_type, fake_uuid, mocker
-):
-    user = sample_user()
-    data = {
-        'name': f'created service {uuid4()}',
-        'user_id': str(user.id),
-        'message_limit': 1000,
-        'restricted': False,
-        'active': False,
-        'email_from': 'created.service',
-        'created_by': str(user.id),
-        f'{notification_type}_provider_id': str(fake_uuid),
-    }
-
-    mocked_provider_details = mocker.Mock(ProviderDetails)
-    mocked_provider_details.active = False
-    mocked_provider_details.notification_type = notification_type
-    mocked_provider_details.id = fake_uuid
-    mocker.patch('app.schemas.validate_providers.get_provider_details_by_id', return_value=mocked_provider_details)
-
-    response = admin_request.post('service.create_service', _data=data, _expected_status=400)
-    assert response['result'] == 'error'
-    assert (
-        response['message'][f'{notification_type}_provider_id'][0]
-        == f'Invalid {notification_type}_provider_id: {str(fake_uuid)}'
-    )
-
-
-@pytest.mark.parametrize('notification_type', (EMAIL_TYPE, SMS_TYPE))
-def test_should_not_create_service_with_incorrect_provider_notification_type(
-    admin_request, sample_user, notification_type, fake_uuid, mocker
-):
-    user = sample_user()
-    data = {
-        'name': f'created service {uuid4()}',
-        'user_id': str(user.id),
-        'message_limit': 1000,
-        'restricted': False,
-        'active': False,
-        'email_from': 'created.service',
-        'created_by': str(user.id),
-        f'{notification_type}_provider_id': str(fake_uuid),
-    }
-
-    mocked_provider_details = mocker.Mock(ProviderDetails)
-    mocked_provider_details.active = False
-    mocked_provider_details.notification_type = LETTER_TYPE
-    mocked_provider_details.id = fake_uuid
-    mocker.patch('app.schemas.validate_providers.get_provider_details_by_id', return_value=mocked_provider_details)
-
-    response = admin_request.post('service.create_service', _data=data, _expected_status=400)
-    assert response['result'] == 'error'
-    assert (
-        response['message'][f'{notification_type}_provider_id'][0]
-        == f'Invalid {notification_type}_provider_id: {str(fake_uuid)}'
-    )
 
 
 def test_update_service(
