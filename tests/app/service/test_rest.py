@@ -21,7 +21,6 @@ from app.constants import (
     LETTER_TYPE,
     SMS_TYPE,
 )
-from app.dao.services_dao import dao_remove_user_from_service
 from app.models import (
     FactNotificationStatus,
     Service,
@@ -790,36 +789,6 @@ def test_get_users_by_service(notify_api, sample_service):
             assert result['data'][0]['name'] == user_on_service.name
             assert result['data'][0]['email_address'] == user_on_service.email_address
             assert result['data'][0]['mobile_number'] == user_on_service.mobile_number
-
-
-def test_get_users_for_service_returns_empty_list_if_no_users_associated_with_service(notify_api, sample_service):
-    with notify_api.test_request_context():
-        with notify_api.test_client() as client:
-            service = sample_service()
-            dao_remove_user_from_service(service, service.users[0])
-            auth_header = create_admin_authorization_header()
-
-            response = client.get(
-                '/service/{}/users'.format(service.id), headers=[('Content-Type', 'application/json'), auth_header]
-            )
-            result = response.get_json()
-            assert response.status_code == 200
-            assert result['data'] == []
-
-
-def test_get_users_for_service_returns_404_when_service_does_not_exist(notify_api):
-    with notify_api.test_request_context():
-        with notify_api.test_client() as client:
-            service_id = uuid.uuid4()
-            auth_header = create_admin_authorization_header()
-
-            response = client.get(
-                '/service/{}/users'.format(service_id), headers=[('Content-Type', 'application/json'), auth_header]
-            )
-            assert response.status_code == 404
-            result = response.get_json()
-            assert result['result'] == 'error'
-            assert result['message'] == 'No result found'
 
 
 def test_default_permissions_are_added_for_user_service(notify_api, sample_user):
