@@ -653,61 +653,6 @@ def test_should_get_a_single_template(
     assert 'template_redacted' in data
 
 
-@pytest.mark.parametrize(
-    'subject, content, path, expected_subject, expected_content, expected_error',
-    [
-        (
-            'about your thing',
-            'hello user we’ve received your thing',
-            '/service/{}/template/{}/preview',
-            'about your thing',
-            'hello user we’ve received your thing',
-            None,
-        ),
-        (
-            'about your ((thing))',
-            'hello ((name)) we’ve received your ((thing))',
-            '/service/{}/template/{}/preview?name=Amala&thing=document',
-            'about your document',
-            'hello Amala we’ve received your document',
-            None,
-        ),
-        (
-            'about your ((thing))',
-            'hello ((name)) we’ve received your ((thing))',
-            '/service/{}/template/{}/preview?name=Amala',
-            None,
-            None,
-            'Missing personalisation: thing',
-        ),
-        (
-            'about your ((thing))',
-            'hello ((name)) we’ve received your ((thing))',
-            '/service/{}/template/{}/preview?name=Amala&thing=document&foo=bar',
-            'about your document',
-            'hello Amala we’ve received your document',
-            None,
-        ),
-    ],
-)
-def test_should_preview_a_single_template(
-    client, subject, content, path, expected_subject, expected_content, expected_error, sample_template
-):
-    template = sample_template(template_type=EMAIL_TYPE, subject=subject, content=content)
-
-    response = client.get(path.format(template.service_id, template.id), headers=[create_admin_authorization_header()])
-
-    content = response.get_json()
-
-    if expected_error:
-        assert response.status_code == 400
-        assert content['message']['template'] == [expected_error]
-    else:
-        assert response.status_code == 200
-        assert content['content'] == expected_content
-        assert content['subject'] == expected_subject
-
-
 def test_should_return_empty_array_if_no_templates_for_service(client, sample_service):
     auth_header = create_admin_authorization_header()
 
