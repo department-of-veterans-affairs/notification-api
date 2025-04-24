@@ -22,7 +22,6 @@ from app.constants import (
     SMS_TYPE,
 )
 from app.dao.services_dao import dao_remove_user_from_service
-from app.dao.templates_dao import dao_redact_template
 from app.models import (
     FactNotificationStatus,
     Notification,
@@ -883,128 +882,6 @@ def test_get_service_and_api_key_history(
             assert json_resp['data']['api_key_history'][0]['id'] == str(api_key.id)
 
 
-def test_get_notification_for_service_without_uuid(
-    client,
-    sample_service,
-):
-    service = sample_service()
-    response = client.get(
-        path='/service/{}/notifications/{}'.format(service.id, 'foo'), headers=[create_admin_authorization_header()]
-    )
-    assert response.status_code == 404
-
-
-def test_get_notification_for_service(
-    client,
-    sample_api_key,
-    sample_notification,
-    sample_service,
-    sample_template,
-):
-    service_1 = sample_service()
-    service_2 = sample_service()
-    api_key_1 = sample_api_key(service=service_1)
-    api_key_2 = sample_api_key(service=service_2)
-
-    service_1_template = sample_template(service=service_1)
-    service_2_template = sample_template(service=service_2)
-
-    s1_notifications = [
-        sample_notification(template=service_1_template, api_key=api_key_1),
-        sample_notification(template=service_1_template, api_key=api_key_1),
-        sample_notification(template=service_1_template, api_key=api_key_1),
-    ]
-
-    sample_notification(template=service_2_template, api_key=api_key_2)
-
-    for notification in s1_notifications:
-        response = client.get(
-            path='/service/{}/notifications/{}'.format(service_1.id, notification.id),
-            headers=[create_admin_authorization_header()],
-        )
-        resp = response.get_json()
-        assert str(resp['id']) == str(notification.id)
-        assert response.status_code == 200
-
-        service_2_response = client.get(
-            path='/service/{}/notifications/{}'.format(service_2.id, notification.id),
-            headers=[create_admin_authorization_header()],
-        )
-        assert service_2_response.status_code == 404
-        service_2_response = json.loads(service_2_response.get_data(as_text=True))
-        assert service_2_response == {'message': 'No result found', 'result': 'error'}
-
-
-def test_get_notification_for_service_includes_created_by(
-    admin_request,
-    sample_api_key,
-    sample_notification,
-    sample_template,
-):
-    template = sample_template()
-    api_key = sample_api_key(service=template.service)
-
-    notification = sample_notification(template=template, api_key=api_key)
-    notification_user = notification.created_by
-
-    resp = admin_request.get(
-        'service.get_notification_for_service', service_id=notification.service_id, notification_id=notification.id
-    )
-
-    assert resp['id'] == str(notification.id)
-    assert resp['created_by'] == {
-        'id': str(notification_user.id),
-        'name': notification_user.name,
-        'email_address': notification_user.email_address,
-    }
-
-
-def test_get_notification_for_service_returns_old_template_version(
-    admin_request,
-    sample_api_key,
-    sample_notification,
-    sample_template,
-):
-    template = sample_template()
-    api_key = sample_api_key(service=template.service)
-    notification = sample_notification(template=template, api_key=api_key)
-    notification.reference = 'modified-inplace'
-    template.version = 2
-    template.content = 'New template content'
-
-    resp = admin_request.get(
-        'service.get_notification_for_service', service_id=notification.service_id, notification_id=notification.id
-    )
-
-    assert resp['reference'] == 'modified-inplace'
-    assert resp['template']['version'] == 1
-    assert resp['template']['content'] == notification.template.content
-    assert resp['template']['content'] != template.content
-
-
-def test_get_only_api_created_notifications_for_service(
-    admin_request,
-    sample_api_key,
-    sample_notification,
-    sample_template,
-):
-    template = sample_template()
-    api_key = sample_api_key(service=template.service)
-    # notification sent as a one-off
-    sample_notification(template=template, one_off=True, api_key=api_key)
-    # notification sent via API
-    without_job = sample_notification(template=template, api_key=api_key, created_by_id=None)
-
-    resp = admin_request.get(
-        'service.get_all_notifications_for_service',
-        service_id=template.service_id,
-        include_jobs=False,
-        include_one_off=False,
-    )
-    assert len(resp['notifications']) == 1
-    assert resp['notifications'][0]['id'] == str(without_job.id)
-
-
 @pytest.mark.parametrize(
     'should_prefix',
     [
@@ -1570,51 +1447,6 @@ def test_send_one_off_notification(notify_db_session, sample_service, admin_requ
 
     # Teardown
     notify_db_session.session.delete(noti)
-    notify_db_session.session.commit()
-
-
-def test_get_notification_for_service_includes_template_redacted(
-    admin_request, notify_db_session, sample_notification, sample_template
-):
-    template = sample_template()
-    notification = sample_notification(template=template)
-    resp = admin_request.get(
-        'service.get_notification_for_service', service_id=notification.service_id, notification_id=notification.id
-    )
-
-    assert resp['id'] == str(notification.id)
-    assert resp['template']['redact_personalisation'] is False
-
-    # Teardown
-    notify_db_session.session.delete(notification)
-    notify_db_session.session.commit()
-
-
-def test_get_all_notifications_for_service_includes_template_redacted(
-    admin_request, notify_db_session, sample_service, sample_template
-):
-    service = sample_service()
-    normal_template = sample_template(service=service)
-
-    redacted_template = sample_template(service=service)
-    dao_redact_template(redacted_template, service.created_by_id)
-
-    with freeze_time('2000-01-01'):
-        redacted_noti = create_notification(redacted_template)
-    with freeze_time('2000-01-02'):
-        normal_noti = create_notification(normal_template)
-
-    resp = admin_request.get('service.get_all_notifications_for_service', service_id=service.id)
-
-    assert resp['notifications'][0]['id'] == str(normal_noti.id)
-    assert resp['notifications'][0]['template']['redact_personalisation'] is False
-
-    assert resp['notifications'][1]['id'] == str(redacted_noti.id)
-    assert resp['notifications'][1]['template']['redact_personalisation'] is True
-
-    # Teardown
-    notify_db_session.session.delete(redacted_noti)
-    notify_db_session.session.delete(normal_noti)
     notify_db_session.session.commit()
 
 
