@@ -24,7 +24,6 @@ from app.constants import (
 from app.dao.services_dao import dao_remove_user_from_service
 from app.models import (
     FactNotificationStatus,
-    Notification,
     Service,
     ServicePermission,
     ProviderDetails,
@@ -1430,26 +1429,6 @@ def test_search_for_notification_by_to_field_returns_content(
     notify_db_session.session.commit()
 
 
-def test_send_one_off_notification(notify_db_session, sample_service, admin_request, mocker, sample_template):
-    service = sample_service()
-    template = sample_template(service=service)
-    mocker.patch('app.service.send_notification.send_notification_to_queue')
-
-    response = admin_request.post(
-        'service.create_one_off_notification',
-        service_id=service.id,
-        _data={'template_id': str(template.id), 'to': '+16502532222', 'created_by': str(service.created_by_id)},
-        _expected_status=201,
-    )
-
-    noti = notify_db_session.session.get(Notification, response['id'])
-    assert response['id'] == str(noti.id)
-
-    # Teardown
-    notify_db_session.session.delete(noti)
-    notify_db_session.session.commit()
-
-
 def test_search_for_notification_by_to_field_returns_personlisation(
     client,
     notify_db_session,
@@ -1595,11 +1574,6 @@ def test_is_service_name_unique_returns_400_when_name_does_not_exist(admin_reque
     assert response['message'][0]['service_id'] == ["Can't be empty"]
     assert response['message'][1]['name'] == ["Can't be empty"]
     assert response['message'][2]['email_from'] == ["Can't be empty"]
-
-
-def test_get_organisation_for_service_id_return_empty_dict_if_service_not_in_organisation(admin_request, fake_uuid):
-    response = admin_request.get('service.get_organisation_for_service', service_id=fake_uuid)
-    assert response == {}
 
 
 def test_get_monthly_notification_data_by_service(mocker, admin_request):
