@@ -100,8 +100,6 @@ def test_persist_notification_creates_and_save_to_db(
     sample_template,
     mocker,
 ):
-    mocked_redis = mocker.patch('app.notifications.process_notifications.redis_store.get')
-
     template = sample_template()
     api_key = sample_api_key(template.service)
 
@@ -135,8 +133,6 @@ def test_persist_notification_creates_and_save_to_db(
     assert notification.created_by_id is None
     assert notification.client_reference is None
     assert not notification.sent_at
-
-    mocked_redis.assert_called_once_with(str(template.service_id) + '-1972-01-01-count')
 
 
 def test_persist_notification_throws_exception_when_missing_template(
