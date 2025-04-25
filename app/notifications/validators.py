@@ -35,12 +35,21 @@ def check_service_over_api_rate_limit(
     service: Service,
     api_key: ApiKey,
 ):
+    """Check if the service has exceeded its API rate limit.
+
+    Args:
+        service (Service): The service object to check against.
+        api_key (ApiKey): The API key object to check against.
+
+    Raises:
+        RateLimitError: If the service has exceeded its API rate limit.
+    """
     if current_app.config['API_RATE_LIMIT_ENABLED'] and current_app.config['REDIS_ENABLED']:
         cache_key = rate_limit_cache_key(service.id, api_key.key_type)
         rate_limit = service.rate_limit
         interval = 60
         if redis_store.exceeded_rate_limit(cache_key, rate_limit, interval):
-            current_app.logger.info(f'service {service.id} has been rate limited for throughput')
+            current_app.logger.info('service %s (%s) has been rate limited for throughput', service.id, service.name)
             raise RateLimitError(rate_limit, interval, key_type=api_key.key_type)
 
 
