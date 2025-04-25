@@ -140,7 +140,7 @@ def redis_mock(mocker, request):
     if 'no_mock_redis' in request.keywords:
         return
     # Redis lookup in tests take 5 seconds to timeout
-    mocker.patch('app.notifications.process_notifications.redis_store.get', return_value=False)
+    mocker.patch('app.redis_store.get', return_value=None)
 
 
 @pytest.fixture
