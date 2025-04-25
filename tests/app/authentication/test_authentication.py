@@ -117,9 +117,7 @@ def test_should_not_allow_invalid_secret(client, sample_notification, sample_use
     token = create_jwt_token(secret='not-so-secret', client_id=str(service.id))
 
     notification = sample_notification()
-    response = client.get(
-        '/v2/notifications/{}'.format(notification.id), headers={'Authorization': 'Bearer {}'.format(token)}
-    )
+    response = client.get(f'/v2/notifications/{notification.id}', headers={'Authorization': f'Bearer {token}'})
 
     assert response.status_code == 403
     data = json.loads(response.get_data())
@@ -134,9 +132,7 @@ def test_should_allow_valid_token(client, sample_notification, sample_template, 
     template = sample_template(service=api_key.service)
     notification = sample_notification(template=template, api_key=api_key)
 
-    response = client.get(
-        '/v2/notifications/{}'.format(notification.id), headers={'Authorization': '{} {}'.format(scheme, token)}
-    )
+    response = client.get(f'/v2/notifications/{notification.id}', headers={'Authorization': f'{scheme} {token}'})
     assert response.status_code == 200
 
 
@@ -146,9 +142,7 @@ def test_should_not_allow_service_id_that_is_not_uuid(client, sample_notificatio
     token = create_jwt_token(secret=get_unsigned_secrets(service.id)[0], client_id=str('not-a-valid-uuid'))
     notification = sample_notification()
 
-    response = client.get(
-        '/v2/notifications/{}'.format(notification.id), headers={'Authorization': 'Bearer {}'.format(token)}
-    )
+    response = client.get(f'/v2/notifications/{notification.id}', headers={'Authorization': f'Bearer {token}'})
 
     assert response.status_code == 403
     assert response.get_json()['errors'][0]['message'] == 'Invalid token: service id is not the right data type'
@@ -163,9 +157,7 @@ def test_should_allow_valid_token_for_request_with_path_params_for_public_url(
     template = sample_template(service=service)
     notification = sample_notification(template=template)
 
-    response = client.get(
-        '/v2/notifications/{}'.format(notification.id), headers={'Authorization': 'Bearer {}'.format(token)}
-    )
+    response = client.get(f'/v2/notifications/{notification.id}', headers={'Authorization': f'Bearer {token}'})
     assert response.status_code == 200
 
 
@@ -191,7 +183,7 @@ def test_should_allow_valid_token_when_service_has_multiple_keys(
     template = sample_template(service=service)
     notification = sample_notification(template=template)
 
-    response = client.get('/v2/notifications/{}'.format(notification.id), headers={'Authorization': f'Bearer {token}'})
+    response = client.get(f'/v2/notifications/{notification.id}', headers={'Authorization': f'Bearer {token}'})
     assert response.status_code == 200
 
 
@@ -207,7 +199,7 @@ def test_authentication_passes_when_service_has_multiple_keys_some_expired(
     template = sample_template(service=service)
     notification = sample_notification(template=template)
 
-    response = client.get('/v2/notifications/{}'.format(notification.id), headers={'Authorization': f'Bearer {token}'})
+    response = client.get(f'/v2/notifications/{notification.id}', headers={'Authorization': f'Bearer {token}'})
     assert response.status_code == 200
 
 
@@ -268,9 +260,7 @@ def test_authentication_returns_error_when_service_doesnt_exit(
 
     template = sample_template(service=service)
     notification = sample_notification(template=template)
-    response = client.get(
-        '/v2/notifications/{}'.format(notification.id), headers={'Authorization': 'Bearer {}'.format(token)}
-    )
+    response = client.get(f'/v2/notifications/{notification.id}', headers={'Authorization': f'Bearer {token}'})
 
     assert response.status_code == 403
     error_message = json.loads(response.get_data())
@@ -296,9 +286,7 @@ def test_authentication_returns_error_when_service_inactive(
 
     template = sample_template(service=service)
     notification = sample_notification(template=template)
-    response = client.get(
-        '/v2/notifications/{}'.format(notification.id), headers={'Authorization': 'Bearer {}'.format(token)}
-    )
+    response = client.get(f'/v2/notifications/{notification.id}', headers={'Authorization': f'Bearer {token}'})
 
     assert response.status_code == 403
     error_message = json.loads(response.get_data())
@@ -327,9 +315,7 @@ def test_should_attach_the_current_api_key_to_current_app(
 
         template = sample_template(service=service)
         notification = sample_notification(template=template)
-        response = client.get(
-            '/v2/notifications/{}'.format(notification.id), headers={'Authorization': 'Bearer {}'.format(token)}
-        )
+        response = client.get(f'/v2/notifications/{notification.id}', headers={'Authorization': f'Bearer {token}'})
 
         assert response.status_code == 200
 
