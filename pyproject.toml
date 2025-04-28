@@ -14,7 +14,7 @@ poetry_version = "1.8.4"
 [tool.poetry.dependencies]
 python = "~3.10"
 # 3.11.16 is the most current but causes failures. Other versions were yanked. Fixed with issue #2386
-aiohttp = "3.11.12"
+aiohttp = "3.11.18"
 alembic-utils = "*"
 Authlib = "*"
 boto3 = "*"
