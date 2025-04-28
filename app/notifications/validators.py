@@ -95,13 +95,14 @@ def check_service_over_daily_message_limit(
             )
             raise TooManyRequestsError(service.message_limit)
 
-        elif round((int(service_stats) / service.message_limit), 1) * 100 > 75:
-            # only log if sent over 75% of the limit, and not already paseddaily limited
+        elif round((int(service_stats) / service.message_limit), 2) * 100 > 75:
+            # only log if sent over 75% of the limit, and not already over daily limit
             current_app.logger.info(
-                'service %s (%s) nearing daily limit %.1f%',
+                'service %s (%s) nearing daily limit %.1f%% of %s message limit',
                 service.id,
                 service.name,
-                (int(service_stats) / service.message_limit * 100),
+                round((int(service_stats) / service.message_limit), 2) * 100,
+                service.message_limit,
             )
 
         # increment the service stats in redis

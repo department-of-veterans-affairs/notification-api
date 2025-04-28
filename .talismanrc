@@ -13,6 +13,8 @@ fileignoreconfig:
   checksum: 43088cf568fd761f6b3a55be2525479e57f7e325427616bb220342416a630c3d
 - filename: cd/application-deployment/staging/staging.env
   checksum: 8cc5e0cbdb3066828cfc3bec1333f6ce1adab662a658276755992844fd54184c
+- filename: ci/.local.env
+  checksum: ebe3d5ba30e83d3be41fbd43b54755f58855ff8a20d2e172847575efb95fe3e7
 - filename: lambda_functions/va_profile/va_profile_opt_in_out_lambda.py
   checksum: 4e6e2fabf9630e9e0d26028818f41f34c065e80c223db34d35a1d1068c37a782
 - filename: poetry.lock
