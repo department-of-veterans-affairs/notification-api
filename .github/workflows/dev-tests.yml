@@ -33,9 +33,9 @@ jobs:
 
       - name: Compose build (with cache)
         run: |
-          docker compose --builder "${BUILDX_BUILDER}" \
+          docker compose \
             -f ci/docker-compose-ci.yml \
-            build
+            build --builder "${BUILDX_BUILDER}"
 
       - name: Run tests using docker-compose
         run: |
