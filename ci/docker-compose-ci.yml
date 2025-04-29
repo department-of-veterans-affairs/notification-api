@@ -4,6 +4,10 @@ services:
       context: ..
       dockerfile: ci/Dockerfile
       target: ci
+      cache-from:
+        - type=gha
+      cache-to:
+        - type=gha,mode=max
       args:
         POETRY_ARGS: --with static_tools,test
         FLASK_DEBUG: 1

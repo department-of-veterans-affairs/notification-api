@@ -23,6 +23,20 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+          driver-opts: image=moby/buildkit:latest
+  
+      - uses: crazy-max/ghaction-github-runtime@v3
+
+      - name: Compose build (with cache)
+        run: |
+          docker compose --builder "${BUILDX_BUILDER}" \
+            -f ci/docker-compose-ci.yml \
+            build
+
       - name: Run tests using docker-compose
         run: |
           # Start DB container
