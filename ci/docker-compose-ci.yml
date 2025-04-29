@@ -5,9 +5,9 @@ services:
       dockerfile: ci/Dockerfile
       target: ci
       cache_from:
-        - type=gha
+        - type=gha,url_v2=${ACTIONS_RESULTS_URL}
       cache_to:
-        - type=gha,mode=max
+        - type=gha,mode=max,url_v2=${ACTIONS_RESULTS_URL}
       args:
         POETRY_ARGS: --with static_tools,test
         FLASK_DEBUG: 1
