@@ -4,9 +4,9 @@ services:
       context: ..
       dockerfile: ci/Dockerfile
       target: ci
-      cache-from:
+      cache_from:
         - type=gha
-      cache-to:
+      cache_to:
         - type=gha,mode=max
       args:
         POETRY_ARGS: --with static_tools,test
