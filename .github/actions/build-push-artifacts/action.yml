@@ -45,5 +45,3 @@ runs:
         context: .
         push: true
         tags: ${{ steps.login-ecr-vaec.outputs.registry }}/notification_api:${{ inputs.ref }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
