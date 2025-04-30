@@ -4,6 +4,7 @@ from flask import (
     Blueprint,
     jsonify,
     request,
+    abort,
 )
 from flask_jwt_extended import current_user
 from sqlalchemy.exc import SQLAlchemyError
@@ -47,6 +48,19 @@ def fetch_service_callback(
     return jsonify(data=service_callback_api_schema.dump(service_callback)), 200
 
 
+@service_callback_blueprint.errorhandler(409)
+def handle_conflict(error):
+    return jsonify(message=str(error.description)), 409
+
+
+def check_existing_callback(service_id, callback_channel):
+    """Check if a service already has a callback of the specified channel type."""
+    existing_callbacks = get_service_callbacks(service_id)
+    for callback in existing_callbacks:
+        if callback.callback_channel == callback_channel:
+            abort(409, f'A {callback_channel} callback already exists for this service')
+
+
 @service_callback_blueprint.route('', methods=['POST'])
 def create_service_callback(service_id):
     data = request.get_json()
@@ -54,6 +68,9 @@ def create_service_callback(service_id):
     data['updated_by_id'] = current_user.id
     validate(data, create_service_callback_api_request_schema)
     require_admin_for_queue_callback(data)
+
+    # Check for existing callback of the same type
+    check_existing_callback(service_id, data['callback_channel'])
 
     new_service_callback = service_callback_api_schema.load(data)
 
