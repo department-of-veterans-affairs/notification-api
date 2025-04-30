@@ -40,10 +40,12 @@ def create_inbound_number():
         dao_create_inbound_number(inbound_number)
     except IntegrityError as e:
         # This is the path for a non-unique number.
-        error_data = [{
-            'error': 'IntegrityError',
-            'message': e._message(),
-        }]
+        error_data = [
+            {
+                'error': 'IntegrityError',
+                'message': e._message(),
+            }
+        ]
         return jsonify(errors=error_data), 400
 
     return jsonify(data=inbound_number.serialize()), 201
@@ -60,10 +62,12 @@ def update_inbound_number(inbound_number_id):
         inbound_number = dao_update_inbound_number(inbound_number_id, **data)
     except IntegrityError as e:
         # This is the path for a non-unique number.
-        error_data = [{
-            'error': 'IntegrityError',
-            'message': e._message(),
-        }]
+        error_data = [
+            {
+                'error': 'IntegrityError',
+                'message': e._message(),
+            }
+        ]
         return jsonify(errors=error_data), 400
 
     return jsonify(data=inbound_number.serialize()), 200
