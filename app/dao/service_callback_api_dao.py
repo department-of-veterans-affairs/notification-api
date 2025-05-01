@@ -92,7 +92,7 @@ def get_service_delivery_status_callback_api_for_service(
         return None
 
     return DeliveryStatusCallbackApiData(
-        id=service_callback.id,
+        id=str(service_callback.id),
         url=service_callback.url,
         bearer_token=service_callback.bearer_token,
         include_provider_payload=service_callback.include_provider_payload,
