@@ -51,11 +51,6 @@ def fetch_service_callback(
     return jsonify(data=service_callback_api_schema.dump(service_callback)), 200
 
 
-@service_callback_blueprint.errorhandler(409)
-def handle_conflict(error: Any) -> Tuple[Response, int]:
-    return jsonify(message=str(error.description)), 409
-
-
 def check_existing_callback(service_id: UUID, callback_channel: str) -> None:
     """Check if a service already has a callback of the specified channel type."""
     existing_callbacks = get_service_callbacks(service_id)
