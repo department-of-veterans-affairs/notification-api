@@ -2,7 +2,6 @@ import json
 import random
 import secrets
 from app import db
-from app.dao.email_branding_dao import dao_create_email_branding
 from app.dao.inbound_sms_dao import dao_create_inbound_sms
 from app.dao.invited_org_user_dao import save_invited_org_user
 from app.dao.invited_user_dao import save_invited_user
@@ -25,7 +24,6 @@ from app.models import (
     InboundNumber,
     Job,
     Notification,
-    EmailBranding,
     Organisation,
     Permission,
     Rate,
@@ -554,19 +552,6 @@ def create_service_callback_api(  # nosec
         )
     save_service_callback_api(service_callback_api)
     return service_callback_api
-
-
-def create_email_branding(colour='blue', logo='test_x2.png', name='test_org_1', text='DisplayName'):
-    data = {
-        'colour': colour,
-        'logo': logo,
-        'name': name,
-        'text': text,
-    }
-    email_branding = EmailBranding(**data)
-    dao_create_email_branding(email_branding)
-
-    return email_branding
 
 
 def create_rate(start_date, value, notification_type):

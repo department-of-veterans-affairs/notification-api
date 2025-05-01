@@ -29,7 +29,6 @@ from app.clients.sms.twilio import TwilioSMSClient
 from app.clients.sms.aws_pinpoint import AwsPinpointClient
 from app.clients.performance_platform.performance_platform_client import PerformancePlatformClient
 from app.feature_flags import FeatureFlag, is_feature_enabled
-from app.oauth.registry import oauth_registry
 from app.va.va_profile import VAProfileClient
 from app.va.mpi import MpiClient
 from app.va.vetext import VETextClient
@@ -199,8 +198,6 @@ def create_app(application):
         sms_provider_selection_strategy_label=application.config['SMS_PROVIDER_SELECTION_STRATEGY_LABEL'],
     )
 
-    oauth_registry.init_app(application)
-
     attachment_store.init_app(
         endpoint_url=application.config['AWS_S3_ENDPOINT_URL'],
         bucket=application.config['ATTACHMENTS_BUCKET'],
@@ -246,8 +243,6 @@ def register_blueprint(application):
     )
     from app.events.rest import events as events_blueprint
     from app.provider_details.rest import provider_details as provider_details_blueprint
-    from app.email_branding.rest import email_branding_blueprint
-    from app.api_key.rest import api_key_blueprint
     from app.inbound_number.rest import inbound_number_blueprint
     from app.inbound_sms.rest import inbound_sms as inbound_sms_blueprint
     from app.notifications.notifications_govdelivery_callback import (
@@ -262,10 +257,8 @@ def register_blueprint(application):
     from app.billing.rest import billing_blueprint
     from app.organisation.rest import organisation_blueprint
     from app.organisation.invite_rest import organisation_invite_blueprint
-    from app.complaint.complaint_rest import complaint_blueprint
     from app.platform_stats.rest import platform_stats_blueprint
     from app.template_folder.rest import template_folder_blueprint
-    from app.oauth.rest import oauth_blueprint
     from app.notifications.receive_notifications import receive_notifications_blueprint
     from app.communication_item.rest import communication_item_blueprint
 
@@ -281,9 +274,6 @@ def register_blueprint(application):
 
     status_blueprint.before_request(do_not_validate_auth)
     application.register_blueprint(status_blueprint)
-
-    oauth_blueprint.before_request(do_not_validate_auth)
-    application.register_blueprint(oauth_blueprint)
 
     govdelivery_callback_blueprint.before_request(do_not_validate_auth)
     application.register_blueprint(govdelivery_callback_blueprint)
@@ -315,12 +305,6 @@ def register_blueprint(application):
     provider_details_blueprint.before_request(validate_admin_auth)
     application.register_blueprint(provider_details_blueprint, url_prefix='/provider-details')
 
-    email_branding_blueprint.before_request(validate_admin_auth)
-    application.register_blueprint(email_branding_blueprint, url_prefix='/email-branding')
-
-    api_key_blueprint.before_request(validate_admin_auth)
-    application.register_blueprint(api_key_blueprint, url_prefix='/api-key')
-
     letter_job.before_request(validate_admin_auth)
     application.register_blueprint(letter_job)
 
@@ -336,9 +320,6 @@ def register_blueprint(application):
 
     organisation_invite_blueprint.before_request(validate_admin_auth)
     application.register_blueprint(organisation_invite_blueprint)
-
-    complaint_blueprint.before_request(validate_admin_auth)
-    application.register_blueprint(complaint_blueprint)
 
     application.register_blueprint(platform_stats_blueprint, url_prefix='/platform-stats')
 

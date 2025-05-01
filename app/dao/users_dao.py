@@ -2,12 +2,9 @@ from datetime import datetime, timedelta
 from typing import Optional
 import uuid
 
-from flask import current_app
 from random import SystemRandom
-from sqlalchemy import delete, func, or_, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import joinedload
-from sqlalchemy.orm.exc import FlushError, NoResultFound
-from sqlalchemy.exc import IntegrityError
 
 from app import db
 from app.constants import EMAIL_AUTH_TYPE
@@ -17,16 +14,7 @@ from app.dao.dao_utils import transactional
 from app.errors import InvalidRequest
 from app.models import VerifyCode
 from app.model import User
-from app.oauth.exceptions import IdpAssignmentException, IncorrectGithubIdException
 from app.utils import escape_special_characters
-
-
-def _remove_values_for_keys_if_present(
-    dict,
-    keys,
-):
-    for key in keys:
-        dict.pop(key, None)
 
 
 def create_secret_code():
@@ -167,73 +155,6 @@ def get_user_by_identity_provider_user_id(identity_provider_user_id):
     stmt = select(User).where(func.lower(User.identity_provider_user_id) == identity_provider_user_id.lower())
 
     return db.session.scalars(stmt).one()
-
-
-@transactional
-def update_user_identity_provider_user_id(
-    email,
-    identity_provider_user_id,
-):
-    email_matches_condition = func.lower(User.email_address) == func.lower(email)
-    id_matches_condition = func.lower(User.identity_provider_user_id) == func.lower(str(identity_provider_user_id))
-    stmt = select(User).where(or_(email_matches_condition, id_matches_condition))
-    user = db.session.scalars(stmt).one()
-
-    if user.identity_provider_user_id is None:
-        current_app.logger.info(
-            f'User {user.id} matched by email. Creating account with '
-            f'identity provider user id {user.identity_provider_user_id}'
-        )
-        user.identity_provider_user_id = identity_provider_user_id
-        db.session.add(user)
-    else:
-        if str(user.identity_provider_user_id) != str(identity_provider_user_id):
-            raise IncorrectGithubIdException(
-                f'User {user.id}: identity provider user id on user ({user.identity_provider_user_id})'
-                f' does not match id received from Github ({identity_provider_user_id})'
-            )
-
-        current_app.logger.info(f'User {user.id} matched by identity provider user id {user.identity_provider_user_id}')
-
-    return user
-
-
-def create_or_retrieve_user(
-    email_address,
-    identity_provider_user_id,
-    name,
-):
-    try:
-        return update_user_identity_provider_user_id(email_address, identity_provider_user_id)
-    except NoResultFound:
-        data = {'email_address': email_address, 'identity_provider_user_id': identity_provider_user_id, 'name': name}
-        user = User(**data)
-        save_model_user(user)
-
-        return user
-
-
-@transactional
-def retrieve_match_or_create_user(
-    email_address: str, name: str, identity_provider: str, identity_provider_user_id: str
-) -> User:
-    try:
-        user = User.find_by_idp(identity_provider, identity_provider_user_id)
-        return user
-    except NoResultFound:
-        try:
-            user = get_user_by_email(email_address)
-            user.add_idp(idp_name=identity_provider, idp_id=identity_provider_user_id)
-            user.save_to_db()
-            return user
-        except (IntegrityError, FlushError) as e:
-            raise IdpAssignmentException from e
-        except NoResultFound:
-            user = User(
-                idp_name=identity_provider, idp_id=identity_provider_user_id, name=name, email_address=email_address
-            )
-            user.save_to_db()
-            return user
 
 
 def increment_failed_login_count(user):
