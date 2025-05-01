@@ -35,7 +35,6 @@ def test_all_routes_have_authentication(client, mocker):
         '/internal/<generic>',
         '/internal/sleep',
         '/internal/502',
-        '/notifications/govdelivery',
         '/platform-stats/monthly',
     )
 

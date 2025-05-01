@@ -3,7 +3,7 @@ from sqlalchemy import asc, delete, desc, func, join, select, update
 from app import db
 from app.dao.dao_utils import transactional, version_class
 from app.model import User
-from app.models import Domain, InvitedOrganisationUser, Organisation, Service, user_to_organisation
+from app.models import Domain, Organisation, Service, user_to_organisation
 
 
 def dao_get_organisations():
@@ -97,10 +97,6 @@ def dao_add_service_to_organisation(
     service.crown = organisation.crown
 
     db.session.add(service)
-
-
-def dao_get_invited_organisation_user(user_id):
-    return db.session.scalars(select(InvitedOrganisationUser).where(InvitedOrganisationUser.id == user_id)).one()
 
 
 def dao_get_users_for_organisation(organisation_id):

@@ -235,31 +235,22 @@ def register_blueprint(application):
     from app.template.rest import template_blueprint
     from app.status.healthcheck import status as status_blueprint
     from app.job.rest import job_blueprint
-    from app.notifications.rest import notifications as notifications_blueprint
     from app.invite.rest import invite as invite_blueprint
-    from app.accept_invite.rest import accept_invite
     from app.template_statistics.rest import (
         template_statistics as template_statistics_blueprint,
     )
-    from app.events.rest import events as events_blueprint
     from app.provider_details.rest import provider_details as provider_details_blueprint
     from app.inbound_number.rest import inbound_number_blueprint
     from app.inbound_sms.rest import inbound_sms as inbound_sms_blueprint
-    from app.notifications.notifications_govdelivery_callback import (
-        govdelivery_callback_blueprint,
-    )
     from app.authentication.auth import (
         validate_admin_auth,
-        validate_service_api_key_auth,
         do_not_validate_auth,
     )
-    from app.letters.rest import letter_job
     from app.billing.rest import billing_blueprint
     from app.organisation.rest import organisation_blueprint
     from app.organisation.invite_rest import organisation_invite_blueprint
     from app.platform_stats.rest import platform_stats_blueprint
     from app.template_folder.rest import template_folder_blueprint
-    from app.notifications.receive_notifications import receive_notifications_blueprint
     from app.communication_item.rest import communication_item_blueprint
 
     application.register_blueprint(ga4_blueprint)
@@ -275,12 +266,6 @@ def register_blueprint(application):
     status_blueprint.before_request(do_not_validate_auth)
     application.register_blueprint(status_blueprint)
 
-    govdelivery_callback_blueprint.before_request(do_not_validate_auth)
-    application.register_blueprint(govdelivery_callback_blueprint)
-
-    notifications_blueprint.before_request(validate_service_api_key_auth)
-    application.register_blueprint(notifications_blueprint)
-
     job_blueprint.before_request(validate_admin_auth)
     application.register_blueprint(job_blueprint)
 
@@ -293,20 +278,11 @@ def register_blueprint(application):
     inbound_sms_blueprint.before_request(validate_admin_auth)
     application.register_blueprint(inbound_sms_blueprint)
 
-    accept_invite.before_request(validate_admin_auth)
-    application.register_blueprint(accept_invite, url_prefix='/invite')
-
     template_statistics_blueprint.before_request(validate_admin_auth)
     application.register_blueprint(template_statistics_blueprint)
 
-    events_blueprint.before_request(validate_admin_auth)
-    application.register_blueprint(events_blueprint)
-
     provider_details_blueprint.before_request(validate_admin_auth)
     application.register_blueprint(provider_details_blueprint, url_prefix='/provider-details')
-
-    letter_job.before_request(validate_admin_auth)
-    application.register_blueprint(letter_job)
 
     billing_blueprint.before_request(validate_admin_auth)
     application.register_blueprint(billing_blueprint)
@@ -325,8 +301,6 @@ def register_blueprint(application):
 
     template_folder_blueprint.before_request(validate_admin_auth)
     application.register_blueprint(template_folder_blueprint)
-
-    application.register_blueprint(receive_notifications_blueprint)
 
     communication_item_blueprint.before_request(validate_admin_auth)
     application.register_blueprint(communication_item_blueprint)

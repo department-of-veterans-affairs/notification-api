@@ -25,11 +25,6 @@ def get_invited_user(
     return db.session.scalars(stmt).one()
 
 
-def get_invited_user_by_id(invited_user_id):
-    stmt = select(InvitedUser).where(InvitedUser.id == invited_user_id)
-    return db.session.scalars(stmt).one()
-
-
 def get_invited_users_for_service(service_id):
     stmt = select(InvitedUser).where(InvitedUser.service_id == service_id)
     return db.session.scalars(stmt).all()
