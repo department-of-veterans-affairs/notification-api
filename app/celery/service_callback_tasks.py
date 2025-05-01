@@ -16,6 +16,7 @@ from app.constants import DATETIME_FORMAT, HTTP_TIMEOUT
 from app.dao.complaint_dao import fetch_complaint_by_id
 from app.dao.inbound_sms_dao import dao_get_inbound_sms_by_id
 from app.dao.service_callback_api_dao import (
+    DeliveryStatusCallbackApiData,
     get_service_delivery_status_callback_api_for_service,
     get_service_complaint_callback_api_for_service,
     get_service_inbound_sms_callback_api_for_service,
@@ -258,7 +259,7 @@ def send_inbound_sms_to_service(
 
 
 def create_delivery_status_callback_data(
-    notification: Notification, service_callback: ServiceCallback, provider_payload=None
+    notification: Notification, service_callback: DeliveryStatusCallbackApiData, provider_payload=None
 ):
     """Encrypt and return the delivery status message."""
 
@@ -339,11 +340,11 @@ def check_and_queue_service_callback_task(notification: Notification, payload=No
         payload = {}
 
     # queue callback task only if the service_callback_api exists
-    service_callback_api = get_service_delivery_status_callback_api_for_service(
+    service_callback_api: DeliveryStatusCallbackApiData | None = get_service_delivery_status_callback_api_for_service(
         service_id=notification.service_id, notification_status=notification.status
     )
 
-    if service_callback_api:
+    if service_callback_api is not None:
         # build dictionary for notification
         notification_data = create_delivery_status_callback_data(notification, service_callback_api, payload)
         send_delivery_status_to_service.apply_async(

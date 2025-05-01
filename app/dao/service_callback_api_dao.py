@@ -1,5 +1,7 @@
+from dataclasses import dataclass
 from datetime import datetime
 
+from cachetools import TTLCache, cached
 from sqlalchemy import select
 
 from app import db
@@ -64,17 +66,38 @@ def query_service_callback(
     return db.session.scalars(stmt).one()
 
 
+@dataclass
+class DeliveryStatusCallbackApiData:
+    id: str
+    url: str
+    bearer_token: str
+    include_provider_payload: bool
+    callback_type: str | None
+
+
+@cached(cache=TTLCache(maxsize=1024, ttl=600))
 def get_service_delivery_status_callback_api_for_service(
     service_id,
     notification_status,
-):
+) -> DeliveryStatusCallbackApiData | None:
     stmt = select(ServiceCallback).where(
         ServiceCallback.notification_statuses.contains([notification_status]),
         ServiceCallback.service_id == service_id,
         ServiceCallback.callback_type == DELIVERY_STATUS_CALLBACK_TYPE,
     )
 
-    return db.session.scalars(stmt).first()
+    service_callback = db.session.scalars(stmt).first()
+
+    if service_callback is None:
+        return None
+
+    return DeliveryStatusCallbackApiData(
+        id=service_callback.id,
+        url=service_callback.url,
+        bearer_token=service_callback.bearer_token,
+        include_provider_payload=service_callback.include_provider_payload,
+        callback_type=service_callback.callback_type,
+    )
 
 
 def get_service_complaint_callback_api_for_service(service_id):
