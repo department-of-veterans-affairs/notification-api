@@ -12,37 +12,26 @@ def mock_logger():
     return logger
 
 
-@pytest.mark.parametrize(
-    'apps, sids',
-    [
-        ([MobileAppType.VETEXT, MobileAppType.VA_FLAGSHIP_APP], ['sid1', 'sid2']),
-        ([MobileAppType.VETEXT], ['vetext_sid']),
-        ([MobileAppType.VA_FLAGSHIP_APP], ['flagsip_sid']),
-    ],
-)
 def test_registry_initilizes_mobile_apps(
     client,
     mocker,
-    apps,
-    sids,
     mock_logger,
 ):
-    for app, sid in zip(apps, sids):
-        mocker.patch.dict(os.environ, {f'{app.value}_SID': sid})
+    app = MobileAppType.VA_FLAGSHIP_APP
+    sid = 'flagsip_sid'
+    mocker.patch.dict(os.environ, {f'{app}_SID': sid})
 
     registry = MobileAppRegistry(mock_logger)
 
-    for app, sid in zip(apps, sids):
-        assert registry.get_app(app).sid == sid
-        assert app in registry.get_registered_apps()
+    assert registry.get_app(app).sid == sid
+    assert app in registry.get_registered_apps()
 
 
 @pytest.mark.parametrize(
     'env, registered_app',
     [
-        ({'VETEXT_SID': 'sid1', 'VA_FLAGSHIP_APP_SID': ''}, MobileAppType.VETEXT),
-        ({'VETEXT_SID': '', 'VA_FLAGSHIP_APP_SID': 'some_sid'}, MobileAppType.VA_FLAGSHIP_APP),
-        ({'VETEXT_SID': '', 'VA_FLAGSHIP_APP_SID': ''}, None),
+        ({'VA_FLAGSHIP_APP_SID': 'test_sid'}, MobileAppType.VA_FLAGSHIP_APP),
+        ({'VA_FLAGSHIP_APP_SID': ''}, None),
     ],
 )
 def test_registry_initilizes_only_apps_with_sids_in_env(

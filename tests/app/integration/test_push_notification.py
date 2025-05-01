@@ -39,7 +39,7 @@ def test_mobile_app_push_notification_delivered(
         'personalisation': {'%FOO%': 'bar'},
     }
 
-    mocker.patch.dict(os.environ, {'VETEXT_SID': '1234', 'VA_FLAGSHIP_APP_SID': '1234'})
+    mocker.patch.dict(os.environ, {'VA_FLAGSHIP_APP_SID': '1234'})
 
     response = client.post(
         url_for('v2_notifications.send_push_notification', service_id=service.id),
@@ -87,7 +87,7 @@ def test_mobile_app_push_notification_failed_validation(
     # Test mobile_app there and not there cases
     if app:
         push_request_body['mobile_app'] = 'VETEXT'
-        mocker.patch.dict(os.environ, {'VETEXT_SID': '1234', 'VA_FLAGSHIP_APP_SID': '1234'})
+        mocker.patch.dict(os.environ, {'VA_FLAGSHIP_APP_SID': '1234'})
 
     # Raise the appropriate exception at the correct function
     mocker.patch(f'app.v2.notifications.rest_push.{function}', side_effect=test_exception)
@@ -126,7 +126,7 @@ def test_mobile_app_push_notification_celery_exception(
         'personalisation': {'%FOO%': 'bar'},
     }
 
-    mocker.patch.dict(os.environ, {'VETEXT_SID': '1234', 'VA_FLAGSHIP_APP_SID': '1234'})
+    mocker.patch.dict(os.environ, {'VA_FLAGSHIP_APP_SID': '1234'})
 
     response = client.post(
         url_for('v2_notifications.send_push_notification', service_id=service.id),
