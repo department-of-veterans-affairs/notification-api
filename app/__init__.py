@@ -247,8 +247,6 @@ def register_blueprint(application):
         do_not_validate_auth,
     )
     from app.billing.rest import billing_blueprint
-    from app.organisation.rest import organisation_blueprint
-    from app.organisation.invite_rest import organisation_invite_blueprint
     from app.platform_stats.rest import platform_stats_blueprint
     from app.template_folder.rest import template_folder_blueprint
     from app.communication_item.rest import communication_item_blueprint
@@ -290,12 +288,6 @@ def register_blueprint(application):
     application.register_blueprint(service_callback_blueprint)
     application.register_blueprint(service_sms_sender_blueprint)
     application.register_blueprint(service_whitelist_blueprint)
-
-    organisation_blueprint.before_request(validate_admin_auth)
-    application.register_blueprint(organisation_blueprint, url_prefix='/organisations')
-
-    organisation_invite_blueprint.before_request(validate_admin_auth)
-    application.register_blueprint(organisation_invite_blueprint)
 
     application.register_blueprint(platform_stats_blueprint, url_prefix='/platform-stats')
 

@@ -3,7 +3,6 @@ import random
 import secrets
 from app import db
 from app.dao.inbound_sms_dao import dao_create_inbound_sms
-from app.dao.invited_org_user_dao import save_invited_org_user
 from app.dao.invited_user_dao import save_invited_user
 from app.dao.jobs_dao import dao_create_job
 from app.dao.notifications_dao import dao_create_notification, dao_created_scheduled_notification
@@ -41,7 +40,6 @@ from app.models import (
     LETTER_TYPE,
     KEY_TYPE_NORMAL,
     AnnualBilling,
-    InvitedOrganisationUser,
     FactBilling,
     FactNotificationStatus,
     Complaint,
@@ -685,16 +683,6 @@ def create_organisation(name='test_org_1', active=True, organisation_type=None, 
         create_domain(domain, organisation.id)
 
     return organisation
-
-
-def create_invited_org_user(organisation, invited_by, email_address='invite@example.com'):
-    invited_org_user = InvitedOrganisationUser(
-        email_address=email_address,
-        invited_by=invited_by,
-        organisation=organisation,
-    )
-    save_invited_org_user(invited_org_user)
-    return invited_org_user
 
 
 def create_daily_sorted_letter(
