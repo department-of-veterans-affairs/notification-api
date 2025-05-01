@@ -448,10 +448,11 @@ class TestCreateServiceCallback:
         assert response.status_code == 201
 
         # Try to create second webhook callback
-        data['url'] = 'https://another.service/delivery-receipt-endpoint'
+        new_data = data.copy()
+        new_data['url'] = 'https://another.service/delivery-receipt-endpoint'
         response = client.post(
             url_for('service_callback.create_service_callback', service_id=service.id),
-            data=json.dumps(data),
+            data=json.dumps(new_data),
             headers=[('Content-Type', 'application/json'), ('Authorization', f'Bearer {create_access_token(user)}')],
         )
 
