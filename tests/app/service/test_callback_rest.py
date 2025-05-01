@@ -439,6 +439,7 @@ class TestCreateServiceCallback:
             'callback_channel': WEBHOOK_CHANNEL_TYPE,
         }
 
+        # The sample_service() fixture cleanup will remove the webhook callback
         response = client.post(
             url_for('service_callback.create_service_callback', service_id=service.id),
             data=json.dumps(data),
@@ -458,6 +459,7 @@ class TestCreateServiceCallback:
 
         assert response.status_code == 409
         assert response.json['message'] == 'A webhook callback already exists for this service'
+        # The sample_service() fixture cleanup will remove any created callbacks
 
     def test_create_service_callback_returns_409_when_queue_callback_already_exists(
         self, client, sample_service, sample_user
@@ -473,6 +475,7 @@ class TestCreateServiceCallback:
             'callback_channel': QUEUE_CHANNEL_TYPE,
         }
 
+        # The sample_service() fixture cleanup will remove the queue callback
         response = client.post(
             url_for('service_callback.create_service_callback', service_id=service.id),
             data=json.dumps(data),
@@ -491,6 +494,7 @@ class TestCreateServiceCallback:
 
         assert response.status_code == 409
         assert response.json['message'] == 'A queue callback already exists for this service'
+        # The sample_service() fixture cleanup will remove any created callbacks
 
 
 class TestUpdateServiceCallback:
