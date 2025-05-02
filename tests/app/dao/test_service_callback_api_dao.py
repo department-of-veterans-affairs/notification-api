@@ -251,7 +251,7 @@ def test_get_service_delivery_status_callback_api_for_service(sample_service):
     result = get_service_delivery_status_callback_api_for_service(service.id, 'delivered')
     assert result.id == str(service_callback_api.id)
     assert result.url == service_callback_api.url
-    assert result.bearer_token == service_callback_api.bearer_token
+    assert result._bearer_token == service_callback_api._bearer_token
     assert result.include_provider_payload == service_callback_api.include_provider_payload
     assert result.callback_type == service_callback_api.callback_type
 
@@ -277,7 +277,7 @@ def test_existing_service_delivery_status_callback_api_by_status(
         )
         assert result.id == str(service_callback_api.id)
         assert result.url == service_callback_api.url
-        assert result.bearer_token == service_callback_api.bearer_token
+        assert result._bearer_token == service_callback_api._bearer_token
         assert result.include_provider_payload == service_callback_api.include_provider_payload
         assert result.callback_type == service_callback_api.callback_type
 

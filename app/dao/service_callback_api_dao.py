@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from cachetools import TTLCache, cached
+from cachetools import cached, TTLCache
 from sqlalchemy import select
 
 from app import db
@@ -70,7 +70,8 @@ def query_service_callback(
 class DeliveryStatusCallbackApiData:
     id: str
     url: str
-    bearer_token: str
+    # Note that _bearer_token is the encrypted value.
+    _bearer_token: str
     include_provider_payload: bool
     callback_type: str | None
 
@@ -94,7 +95,7 @@ def get_service_delivery_status_callback_api_for_service(
     return DeliveryStatusCallbackApiData(
         id=str(service_callback.id),
         url=service_callback.url,
-        bearer_token=service_callback.bearer_token,
+        _bearer_token=service_callback._bearer_token,
         include_provider_payload=service_callback.include_provider_payload,
         callback_type=service_callback.callback_type,
     )

@@ -275,7 +275,7 @@ def create_delivery_status_callback_data(
         'notification_sent_at': notification.sent_at.strftime(DATETIME_FORMAT) if notification.sent_at else None,
         'notification_type': notification.notification_type,
         'service_callback_api_url': service_callback.url,
-        'service_callback_api_bearer_token': service_callback.bearer_token,
+        'service_callback_api_bearer_token': encryption.decrypt(service_callback._bearer_token),
         'provider': notification.sent_by,
         'status_reason': notification.status_reason,
     }
