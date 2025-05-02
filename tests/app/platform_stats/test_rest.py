@@ -1,5 +1,6 @@
 from datetime import date, datetime
 
+import pytest
 from freezegun import freeze_time
 
 from app.constants import SMS_TYPE, EMAIL_TYPE, NOTIFICATION_DELIVERED
@@ -38,6 +39,7 @@ def test_get_platform_stats_validates_the_date(admin_request):
     assert response['errors'][0]['message'] == 'start_date month must be in 1..12'
 
 
+@pytest.mark.serial
 @freeze_time('1973-10-31 14:00')
 def test_get_platform_stats_with_real_query(
     admin_request,
@@ -57,6 +59,7 @@ def test_get_platform_stats_with_real_query(
     sample_notification(template=sms_template, created_at=datetime(1973, 10, 31, 12, 0, 0), status='delivered')
     sample_notification(template=email_template, created_at=datetime(1973, 10, 31, 13, 0, 0), status='delivered')
 
+    # Cannot be ran in parallel - has some sort of race condition
     response = admin_request.get(
         'platform_stats.get_platform_stats',
         start_date=date(1973, 10, 29),
