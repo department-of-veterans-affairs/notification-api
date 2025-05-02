@@ -1,13 +1,11 @@
 from datetime import date, datetime
 
-import pytest
 from freezegun import freeze_time
 
 from app.constants import SMS_TYPE, EMAIL_TYPE, NOTIFICATION_DELIVERED
-from app.errors import InvalidRequest
 from tests.app.factories.feature_flag import mock_feature_flag
 from app.feature_flags import FeatureFlag
-from app.platform_stats.rest import get_monthly_platform_stats, validate_date_range_is_within_a_financial_year
+from app.platform_stats.rest import get_monthly_platform_stats
 
 
 @freeze_time('2018-06-01')
@@ -134,50 +132,3 @@ def test_get_platform_stats_response_when_toggle_is_on(
     response = get_monthly_platform_stats()
 
     assert response.status_code == 200
-
-
-@pytest.mark.parametrize(
-    'start_date, end_date',
-    [
-        ('2019-04-01', '2019-06-30'),
-        ('2019-08-01', '2019-09-30'),
-        ('2019-01-01', '2019-03-31'),
-        ('2019-12-01', '2020-02-28'),
-    ],
-)
-def test_validate_date_range_is_within_a_financial_year(start_date, end_date):
-    validate_date_range_is_within_a_financial_year(start_date, end_date)
-
-
-@pytest.mark.parametrize(
-    'start_date, end_date',
-    [
-        ('2019-04-01', '2020-06-30'),
-        ('2019-01-01', '2019-04-30'),
-        ('2019-12-01', '2020-04-30'),
-        ('2019-03-31', '2019-04-01'),
-    ],
-)
-def test_validate_date_range_is_within_a_financial_year_raises(start_date, end_date):
-    with pytest.raises(expected_exception=InvalidRequest) as e:
-        validate_date_range_is_within_a_financial_year(start_date, end_date)
-    assert e.value.message == 'Date must be in a single financial year.'
-    assert e.value.status_code == 400
-
-
-def test_validate_date_is_within_a_financial_year_raises_validation_error():
-    start_date = '2019-08-01'
-    end_date = '2019-06-01'
-
-    with pytest.raises(expected_exception=InvalidRequest) as e:
-        validate_date_range_is_within_a_financial_year(start_date, end_date)
-    assert e.value.message == 'Start date must be before end date'
-    assert e.value.status_code == 400
-
-
-@pytest.mark.parametrize('start_date, end_date', [('22-01-2019', '2019-08-01'), ('2019-07-01', 'not-date')])
-def test_validate_date_is_within_a_financial_year_when_input_is_not_a_date(start_date, end_date):
-    with pytest.raises(expected_exception=InvalidRequest) as e:
-        validate_date_range_is_within_a_financial_year(start_date, end_date)
-    assert e.value.message == 'Input must be a date in the format: YYYY-MM-DD'
-    assert e.value.status_code == 400

@@ -235,7 +235,6 @@ def register_blueprint(application):
     from app.template.rest import template_blueprint
     from app.status.healthcheck import status as status_blueprint
     from app.job.rest import job_blueprint
-    from app.invite.rest import invite as invite_blueprint
     from app.template_statistics.rest import (
         template_statistics as template_statistics_blueprint,
     )
@@ -266,9 +265,6 @@ def register_blueprint(application):
 
     job_blueprint.before_request(validate_admin_auth)
     application.register_blueprint(job_blueprint)
-
-    invite_blueprint.before_request(validate_admin_auth)
-    application.register_blueprint(invite_blueprint)
 
     inbound_number_blueprint.before_request(validate_admin_auth)
     application.register_blueprint(inbound_number_blueprint)

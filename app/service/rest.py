@@ -34,7 +34,6 @@ from app.dao.fact_notification_status_dao import (
 from app.dao.organisation_dao import dao_get_organisation_by_service_id
 from app.dao.services_dao import (
     dao_add_user_to_service,
-    dao_create_service,
     dao_archive_service,
     dao_fetch_all_services,
     dao_fetch_all_services_by_user,
@@ -180,28 +179,6 @@ def get_service_notification_statistics(service_id):
             service_id, request.args.get('today_only') == 'True', int(request.args.get('limit_days', 7))
         )
     )
-
-
-@service_blueprint.route('', methods=['POST'])
-@requires_admin_auth()
-def create_service():
-    data = request.get_json()
-
-    if not data.get('user_id'):
-        errors = {'user_id': ['Missing data for required field.']}
-        raise InvalidRequest(errors, status_code=400)
-    data.pop('service_domain', None)
-    user = get_user_by_id(data.pop('user_id'))
-
-    # validate json with marshmallow
-    service_schema.load(data)
-
-    # unpack valid json into service object
-    valid_service = Service.from_json(data)
-
-    dao_create_service(valid_service, user)
-
-    return jsonify(data=service_schema.dump(valid_service)), 201
 
 
 @service_blueprint.route('/<uuid:service_id>', methods=['POST'])

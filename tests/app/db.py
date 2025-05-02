@@ -3,7 +3,6 @@ import random
 import secrets
 from app import db
 from app.dao.inbound_sms_dao import dao_create_inbound_sms
-from app.dao.invited_user_dao import save_invited_user
 from app.dao.jobs_dao import dao_create_job
 from app.dao.notifications_dao import dao_create_notification, dao_created_scheduled_notification
 from app.dao.organisation_dao import dao_create_organisation
@@ -43,7 +42,6 @@ from app.models import (
     FactBilling,
     FactNotificationStatus,
     Complaint,
-    InvitedUser,
     TemplateFolder,
     Domain,
     NotificationHistory,
@@ -995,26 +993,6 @@ def create_service_data_retention(service, notification_type='sms', days_of_rete
         service_id=service.id, notification_type=notification_type, days_of_retention=days_of_retention
     )
     return data_retention
-
-
-def create_invited_user(service=None, to_email_address=None):
-    if service is None:
-        service = create_service()
-    if to_email_address is None:
-        to_email_address = 'invited_user@digital.gov.uk'
-
-    from_user = service.users[0]
-
-    data = {
-        'service': service,
-        'email_address': to_email_address,
-        'from_user': from_user,
-        'permissions': 'send_messages,manage_service,manage_api_keys',
-        'folder_permissions': [str(uuid4()), str(uuid4())],
-    }
-    invited_user = InvitedUser(**data)
-    save_invited_user(invited_user)
-    return invited_user
 
 
 def create_template_folder(service, name='foo', parent=None):

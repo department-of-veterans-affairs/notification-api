@@ -32,7 +32,6 @@ from app.dao.services_dao import (
     dao_fetch_service_by_id,
     dao_fetch_all_services_by_user,
     dao_update_service,
-    delete_service_and_all_associated_db_objects,
     dao_fetch_stats_for_service,
     dao_fetch_todays_stats_for_service,
     fetch_todays_total_message_count,
@@ -45,21 +44,16 @@ from app.dao.services_dao import (
     dao_fetch_service_by_id_with_api_keys,
 )
 from app.dao.service_user_dao import dao_get_service_user, dao_update_service_user
-from app.dao.users_dao import save_model_user, create_user_code
+from app.dao.users_dao import save_model_user
 from app.models import (
     ApiKey,
-    InvitedUser,
-    Job,
     Notification,
     NotificationHistory,
     Permission,
     Service,
     ServicePermission,
     ServiceUser,
-    Template,
-    TemplateHistory,
     user_folder_permissions,
-    VerifyCode,
 )
 from app.model import User
 from tests.app.conftest import service_cleanup
@@ -70,8 +64,6 @@ from tests.app.db import (
     create_service_with_inbound_number,
     create_service_with_defined_sms_sender,
     create_template,
-    create_notification,
-    create_api_key,
     create_notification_history,
     create_annual_billing,
 )

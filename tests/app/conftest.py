@@ -33,7 +33,6 @@ from app.constants import (
     TEMPLATE_PROCESS_NORMAL,
     WEBHOOK_CHANNEL_TYPE,
 )
-from app.dao.invited_user_dao import save_invited_user
 from app.dao.organisation_dao import dao_create_organisation, dao_add_service_to_organisation
 from app.dao.service_data_retention_dao import insert_service_data_retention
 from app.dao.service_sms_sender_dao import (
@@ -55,7 +54,6 @@ from app.models import (
     InboundNumber,
     InboundSms,
     InvitedOrganisationUser,
-    InvitedUser,
     Job,
     LetterRate,
     LoginEvent,
@@ -1572,45 +1570,6 @@ def sample_notification_history(
 
     # Teardown
     stmt = delete(NotificationHistory).where(NotificationHistory.id.in_(created_notification_histories))
-    notify_db_session.session.execute(stmt)
-    notify_db_session.session.commit()
-
-
-@pytest.fixture
-def sample_invited_user(notify_db_session, sample_service):
-    created_invited_user_ids = []
-
-    def _sample_invited_user(service: Service = None, to_email_address: str = None, created_at: datetime = None):
-        if service is None:
-            service = sample_service(check_if_service_exists=True)
-
-        if to_email_address is None:
-            to_email_address = f'{uuid4()}@digital.gov.uk'
-
-        from_user = service.users[0]
-
-        data = {
-            'service': service,
-            'email_address': to_email_address,
-            'from_user': from_user,
-            'permissions': 'send_messages,manage_service,manage_api_keys',
-            'folder_permissions': ['folder_1_id', 'folder_2_id'],
-        }
-
-        if created_at is not None:
-            data['created_at'] = created_at
-
-        invited_user = InvitedUser(**data)
-        # commits the invited user
-        save_invited_user(invited_user)
-        created_invited_user_ids.append(invited_user.id)
-
-        return invited_user
-
-    yield _sample_invited_user
-
-    # Teardown
-    stmt = delete(InvitedUser).where(InvitedUser.id.in_(created_invited_user_ids))
     notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
 
