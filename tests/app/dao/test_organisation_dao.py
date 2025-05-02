@@ -5,7 +5,6 @@ from sqlalchemy import select
 from app.dao.organisation_dao import (
     dao_add_service_to_organisation,
     dao_get_organisation_by_email_address,
-    dao_get_organisation_by_service_id,
 )
 from app.models import Service
 
@@ -32,22 +31,6 @@ def test_add_service_to_organisation(notify_db_session, sample_service, sample_o
     assert notify_db_session.session.scalars(stmt).one().organisation_type == organisation.organisation_type
 
     assert service.organisation_id == organisation.id
-
-
-def test_get_organisation_by_service_id(sample_service, sample_organisation):
-    service = sample_service()
-    organisation = sample_organisation()
-    another_service = sample_service()
-    another_org = sample_organisation()
-
-    dao_add_service_to_organisation(service, organisation.id)
-    dao_add_service_to_organisation(another_service, another_org.id)
-
-    organisation_1 = dao_get_organisation_by_service_id(service.id)
-    organisation_2 = dao_get_organisation_by_service_id(another_service.id)
-
-    assert organisation_1 == organisation
-    assert organisation_2 == another_org
 
 
 def test_get_organisation_by_email_address_ignores_gsi_gov_uk(

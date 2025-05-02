@@ -234,7 +234,6 @@ def register_blueprint(application):
     from app.user.rest import user_blueprint
     from app.template.rest import template_blueprint
     from app.status.healthcheck import status as status_blueprint
-    from app.job.rest import job_blueprint
     from app.template_statistics.rest import (
         template_statistics as template_statistics_blueprint,
     )
@@ -247,7 +246,6 @@ def register_blueprint(application):
     )
     from app.billing.rest import billing_blueprint
     from app.platform_stats.rest import platform_stats_blueprint
-    from app.template_folder.rest import template_folder_blueprint
     from app.communication_item.rest import communication_item_blueprint
 
     application.register_blueprint(ga4_blueprint)
@@ -262,9 +260,6 @@ def register_blueprint(application):
 
     status_blueprint.before_request(do_not_validate_auth)
     application.register_blueprint(status_blueprint)
-
-    job_blueprint.before_request(validate_admin_auth)
-    application.register_blueprint(job_blueprint)
 
     inbound_number_blueprint.before_request(validate_admin_auth)
     application.register_blueprint(inbound_number_blueprint)
@@ -286,9 +281,6 @@ def register_blueprint(application):
     application.register_blueprint(service_whitelist_blueprint)
 
     application.register_blueprint(platform_stats_blueprint, url_prefix='/platform-stats')
-
-    template_folder_blueprint.before_request(validate_admin_auth)
-    application.register_blueprint(template_folder_blueprint)
 
     communication_item_blueprint.before_request(validate_admin_auth)
     application.register_blueprint(communication_item_blueprint)

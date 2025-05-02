@@ -1,4 +1,4 @@
-from sqlalchemy import desc, func, join, select
+from sqlalchemy import desc, func, select
 
 from app import db
 from app.dao.dao_utils import transactional, version_class
@@ -26,12 +26,6 @@ def dao_get_organisation_by_email_address(email_address):
             return db.session.scalars(stmt).one()
 
     return None
-
-
-def dao_get_organisation_by_service_id(service_id):
-    j_stmt = join(Organisation, Service)
-    stmt = select(Organisation).select_from(j_stmt).where(Service.id == service_id)
-    return db.session.scalar(stmt)
 
 
 @transactional

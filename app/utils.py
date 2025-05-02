@@ -7,7 +7,6 @@ from flask import current_app, url_for
 from notifications_utils.template import HTMLEmailTemplate, SMSMessageTemplate, WithSubjectTemplate, get_html_email_body
 from notifications_utils.url_safe_token import generate_token
 import pytz
-from sqlalchemy import func
 
 from app.constants import (
     BRANDING_BOTH,
@@ -109,21 +108,6 @@ def get_local_timezone_midnight_in_utc(date):
 def get_midnight_for_day_before(date):
     day_before = date - timedelta(1)
     return get_local_timezone_midnight_in_utc(day_before)
-
-
-def get_local_timezone_month_from_utc_column(column):
-    """
-    Where queries need to count notifications by month it needs to be
-    the month in BST (British Summer Time).
-    The database stores all timestamps as UTC without the timezone.
-     - First set the timezone on created_at to UTC
-     - then convert the timezone to BST (or America/New_York)
-     - lastly truncate the datetime to month with which we can group
-       queries
-    """
-    return func.date_trunc(
-        'month', func.timezone(os.getenv('TIMEZONE', 'America/New_York'), func.timezone('UTC', column))
-    )
 
 
 def get_public_notify_type_text(

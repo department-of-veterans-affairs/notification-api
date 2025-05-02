@@ -35,8 +35,6 @@ from app.dao.services_dao import (
     dao_fetch_stats_for_service,
     dao_fetch_todays_stats_for_service,
     fetch_todays_total_message_count,
-    dao_suspend_service,
-    dao_resume_service,
     dao_fetch_active_users_for_service,
     dao_fetch_service_by_inbound_number,
     get_services_by_partial_name,
@@ -46,7 +44,6 @@ from app.dao.services_dao import (
 from app.dao.service_user_dao import dao_get_service_user, dao_update_service_user
 from app.dao.users_dao import save_model_user
 from app.models import (
-    ApiKey,
     Notification,
     NotificationHistory,
     Permission,
@@ -1208,51 +1205,6 @@ def test_dao_fetch_todays_total_message_count_returns_0_when_no_messages_for_tod
     sample_service,
 ):
     assert fetch_todays_total_message_count(sample_service().id) == 0
-
-
-@freeze_time('2001-01-01T23:59:00')
-def test_dao_suspend_service_with_no_api_keys(
-    notify_db_session,
-    sample_service,
-):
-    service = sample_service()
-    dao_suspend_service(service.id)
-    service = notify_db_session.session.get(Service, service.id)
-    assert not service.active
-    assert service.api_keys == []
-
-
-@freeze_time('2001-01-01T23:59:00')
-def test_dao_suspend_service_marks_service_as_inactive_and_expires_api_keys(
-    notify_db_session,
-    sample_api_key,
-):
-    api_key = sample_api_key()
-    service = api_key.service
-    dao_suspend_service(service.id)
-    service = notify_db_session.session.get(Service, service.id)
-    assert not service.active
-
-    api_key = notify_db_session.session.get(ApiKey, api_key.id)
-    assert api_key.expiry_date == datetime(2001, 1, 1, 23, 59, 00)
-
-
-@freeze_time('2001-01-01T23:59:00')
-def test_dao_resume_service_marks_service_as_active_and_api_keys_are_still_revoked(
-    notify_db_session,
-    sample_api_key,
-):
-    api_key = sample_api_key()
-    service = api_key.service
-    dao_suspend_service(service.id)
-    service = notify_db_session.session.get(Service, service.id)
-    assert not service.active
-
-    dao_resume_service(service.id)
-    assert notify_db_session.session.get(Service, service.id).active
-
-    api_key = notify_db_session.session.get(ApiKey, api_key.id)
-    assert api_key.expiry_date == datetime(2001, 1, 1, 23, 59, 00)
 
 
 def test_dao_fetch_active_users_for_service_returns_active_only(

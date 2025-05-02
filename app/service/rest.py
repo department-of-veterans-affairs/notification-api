@@ -5,16 +5,12 @@ from uuid import UUID
 
 from flask import current_app, Blueprint, jsonify, request
 from flask.wrappers import Response
-from notifications_utils.letter_timings import letter_can_be_cancelled
-from notifications_utils.timezones import convert_utc_to_local_timezone
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, DataError
 from sqlalchemy.orm.exc import NoResultFound
 
 from app import db
 from app.authentication.auth import requires_admin_auth, requires_admin_auth_or_user_in_service
-from app.constants import LETTER_TYPE, NOTIFICATION_CANCELLED
-from app.dao import fact_notification_status_dao, notifications_dao
 from app.dao.api_key_dao import (
     get_model_api_key,
     save_model_api_key,
@@ -22,15 +18,10 @@ from app.dao.api_key_dao import (
     get_unsigned_secret,
     expire_api_key,
 )
-from app.dao.date_util import get_financial_year
 from app.dao.fact_notification_status_dao import (
-    fetch_notification_status_for_service_by_month,
-    fetch_notification_status_for_service_for_day,
     fetch_notification_status_for_service_for_today_and_7_previous_days,
     fetch_stats_for_all_services_by_date_range,
-    fetch_monthly_template_usage_for_service,
 )
-from app.dao.organisation_dao import dao_get_organisation_by_service_id
 from app.dao.services_dao import (
     dao_add_user_to_service,
     dao_fetch_all_services,
@@ -39,15 +30,12 @@ from app.dao.services_dao import (
     dao_fetch_service_by_id,
     dao_fetch_todays_stats_for_service,
     dao_fetch_todays_stats_for_all_services,
-    dao_resume_service,
     dao_remove_user_from_service,
-    dao_suspend_service,
     dao_update_service,
     get_services_by_partial_name,
 )
 from app.dao.users_dao import get_user_by_id
 from app.errors import InvalidRequest, register_errors
-from app.letters.utils import letter_print_day
 from app.models import (
     Permission,
     Service,
@@ -60,12 +48,9 @@ from app.service.sender import send_notification_to_service_users
 from app.schemas import (
     service_schema,
     api_key_schema,
-    notification_with_template_schema,
-    notifications_filter_schema,
     detailed_service_schema,
 )
 from app.user.users_schema import post_set_permissions_schema
-from app.utils import pagination_links
 
 CAN_T_BE_EMPTY_ERROR_MESSAGE = "Can't be empty"
 
@@ -404,137 +389,6 @@ def get_service_history(service_id):
     return jsonify(data=data)
 
 
-@service_blueprint.route('/<uuid:service_id>/notifications', methods=['GET'])
-@requires_admin_auth()
-def get_all_notifications_for_service(service_id):
-    data = notifications_filter_schema.load(request.args)
-    if data.get('to'):
-        notification_type = data.get('template_type')[0] if data.get('template_type') else None
-        return search_for_notification_by_to_field(
-            service_id=service_id,
-            search_term=data['to'],
-            statuses=data.get('status'),
-            notification_type=notification_type,
-        )
-    page = data['page'] if 'page' in data else 1
-    page_size = data['page_size'] if 'page_size' in data else current_app.config.get('PAGE_SIZE')
-    limit_days = data.get('limit_days')
-    include_jobs = data.get('include_jobs', True)
-    include_from_test_key = data.get('include_from_test_key', False)
-    include_one_off = data.get('include_one_off', True)
-
-    count_pages = data.get('count_pages', True)
-
-    pagination = notifications_dao.get_notifications_for_service(
-        service_id,
-        filter_dict=data,
-        page=page,
-        page_size=page_size,
-        count_pages=count_pages,
-        limit_days=limit_days,
-        include_jobs=include_jobs,
-        include_from_test_key=include_from_test_key,
-        include_one_off=include_one_off,
-    )
-
-    kwargs = request.args.to_dict()
-    kwargs['service_id'] = service_id
-
-    if data.get('format_for_csv'):
-        notifications = [notification.serialize_for_csv() for notification in pagination.items]
-    else:
-        notifications = notification_with_template_schema.dump(pagination.items, many=True)
-    return jsonify(
-        notifications=notifications,
-        page_size=page_size,
-        total=pagination.total,
-        links=pagination_links(pagination, '.get_all_notifications_for_service', **kwargs),
-    ), 200
-
-
-@service_blueprint.route('/<uuid:service_id>/notifications/<uuid:notification_id>', methods=['GET'])
-@requires_admin_auth()
-def get_notification_for_service(
-    service_id,
-    notification_id,
-):
-    notification = notifications_dao.get_notification_with_personalisation(
-        service_id,
-        notification_id,
-        key_type=None,
-    )
-    return jsonify(
-        notification_with_template_schema.dump(notification),
-    ), 200
-
-
-@service_blueprint.route('/<uuid:service_id>/notifications/<uuid:notification_id>/cancel', methods=['POST'])
-@requires_admin_auth()
-def cancel_notification_for_service(
-    service_id,
-    notification_id,
-):
-    notification = notifications_dao.get_notification_by_id(notification_id, service_id)
-
-    if not notification:
-        raise InvalidRequest('Notification not found', status_code=404)
-    elif notification.notification_type != LETTER_TYPE:
-        raise InvalidRequest('Notification cannot be cancelled - only letters can be cancelled', status_code=400)
-    elif not letter_can_be_cancelled(notification.status, notification.created_at):
-        print_day = letter_print_day(notification.created_at)
-
-        raise InvalidRequest(
-            'It’s too late to cancel this letter. Printing started {} at 5.30pm'.format(print_day), status_code=400
-        )
-
-    updated_notification = notifications_dao.update_notification_status_by_id(
-        notification_id,
-        NOTIFICATION_CANCELLED,
-    )
-
-    return jsonify(notification_with_template_schema.dump(updated_notification)), 200
-
-
-def search_for_notification_by_to_field(
-    service_id,
-    search_term,
-    statuses,
-    notification_type,
-):
-    results = notifications_dao.dao_get_notifications_by_to_field(
-        service_id=service_id, search_term=search_term, statuses=statuses, notification_type=notification_type
-    )
-    return jsonify(notifications=notification_with_template_schema.dump(results, many=True)), 200
-
-
-@service_blueprint.route('/<uuid:service_id>/notifications/monthly', methods=['GET'])
-@requires_admin_auth()
-def get_monthly_notification_stats(service_id):
-    # check service_id validity
-    dao_fetch_service_by_id(service_id)
-
-    try:
-        year = int(request.args.get('year', 'NaN'))
-    except ValueError:
-        raise InvalidRequest('Year must be a number', status_code=400)
-
-    start_date, end_date = get_financial_year(year)
-
-    data = statistics.create_empty_monthly_notification_status_stats_dict(year)
-
-    stats = fetch_notification_status_for_service_by_month(start_date, end_date, service_id)
-    statistics.add_monthly_notification_status_stats(data, stats)
-
-    now = datetime.utcnow()
-    if end_date > now:
-        todays_deltas = fetch_notification_status_for_service_for_day(
-            convert_utc_to_local_timezone(now), service_id=service_id
-        )
-        statistics.add_monthly_notification_status_stats(data, todays_deltas)
-
-    return jsonify(data=data)
-
-
 def get_detailed_service(
     service_id,
     today_only=False,
@@ -594,76 +448,11 @@ def get_detailed_services(
     return results
 
 
-@service_blueprint.route('/<uuid:service_id>/suspend', methods=['POST'])
-@requires_admin_auth()
-def suspend_service(service_id):
-    """
-    Suspending a service will mark the service as inactive and revoke API keys.
-    :param service_id:
-    :return:
-    """
-    service = dao_fetch_service_by_id(service_id)
-
-    if service.active:
-        dao_suspend_service(service.id)
-
-    return '', 204
-
-
-@service_blueprint.route('/<uuid:service_id>/resume', methods=['POST'])
-@requires_admin_auth()
-def resume_service(service_id):
-    """
-    Resuming a service that has been suspended will mark the service as active.
-    The service will need to re-create API keys
-    :param service_id:
-    :return:
-    """
-    service = dao_fetch_service_by_id(service_id)
-
-    if not service.active:
-        dao_resume_service(service.id)
-
-    return '', 204
-
-
-@service_blueprint.route('/<uuid:service_id>/notifications/templates_usage/monthly', methods=['GET'])
-@requires_admin_auth()
-def get_monthly_template_usage(service_id):
-    try:
-        start_date, end_date = get_financial_year(int(request.args.get('year', 'NaN')))
-        data = fetch_monthly_template_usage_for_service(start_date=start_date, end_date=end_date, service_id=service_id)
-        stats = list()
-        for i in data:
-            stats.append(
-                {
-                    'template_id': str(i.template_id),
-                    'name': i.name,
-                    'type': i.template_type,
-                    'month': i.month,
-                    'year': i.year,
-                    'count': i.count,
-                    'is_precompiled_letter': i.is_precompiled_letter,
-                }
-            )
-
-        return jsonify(stats=stats), 200
-    except ValueError:
-        raise InvalidRequest('Year must be a number', status_code=400)
-
-
 @service_blueprint.route('/<uuid:service_id>/send-notification', methods=['POST'])
 @requires_admin_auth()
 def create_one_off_notification(service_id):
     resp = send_one_off_notification(service_id, request.get_json())
     return jsonify(resp), 201
-
-
-@service_blueprint.route('/<uuid:service_id>/organisation', methods=['GET'])
-@requires_admin_auth()
-def get_organisation_for_service(service_id):
-    organisation = dao_get_organisation_by_service_id(service_id=service_id)
-    return jsonify(organisation.serialize() if organisation else {}), 200
 
 
 @service_blueprint.route('/unique', methods=['GET'])
@@ -679,17 +468,6 @@ def is_service_name_unique():
 
     result = not (name_exists or email_from_exists)
     return jsonify(result=result), 200
-
-
-@service_blueprint.route('/monthly-data-by-service')
-@requires_admin_auth()
-def get_monthly_notification_data_by_service():
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-
-    result = fact_notification_status_dao.fetch_monthly_notification_statuses_per_service(start_date, end_date)
-
-    return jsonify(result)
 
 
 def check_request_args(request):

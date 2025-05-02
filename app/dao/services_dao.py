@@ -12,7 +12,7 @@ from sqlalchemy.sql.expression import and_, asc, case
 
 from app import db
 from app.constants import DEFAULT_SERVICE_NOTIFICATION_PERMISSIONS, KEY_TYPE_TEST
-from app.dao.dao_utils import VersionOptions, get_reader_session, transactional, version_class
+from app.dao.dao_utils import get_reader_session, transactional, version_class
 from app.dao.organisation_dao import dao_get_organisation_by_email_address
 from app.dao.service_sms_sender_dao import insert_service_sms_sender
 from app.dao.service_user_dao import dao_get_service_user
@@ -438,31 +438,6 @@ def dao_fetch_todays_stats_for_all_services(
         stmt = stmt.where(Service.active)
 
     return db.session.execute(stmt).all()
-
-
-@transactional
-@version_class(
-    VersionOptions(ApiKey, must_write_history=False),
-    VersionOptions(Service),
-)
-def dao_suspend_service(service_id):
-    # have to eager load api keys so that we don't flush when we loop through them
-    # to ensure that db.session still contains the models when it comes to creating history objects
-    stmt = select(Service).options(joinedload(Service.api_keys)).where(Service.id == service_id)
-    service = db.session.scalars(stmt).unique().one()
-
-    for api_key in service.api_keys:
-        if not api_key.expiry_date or api_key.expiry_date > datetime.utcnow():
-            api_key.expiry_date = datetime.utcnow()
-
-    service.active = False
-
-
-@transactional
-@version_class(Service)
-def dao_resume_service(service_id):
-    service = db.session.get(Service, service_id)
-    service.active = True
 
 
 def dao_fetch_active_users_for_service(service_id):
