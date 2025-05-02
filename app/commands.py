@@ -40,7 +40,7 @@ from app.dao.services_dao import (
     dao_update_service,
 )
 from app.dao.templates_dao import dao_get_template_by_id
-from app.dao.users_dao import delete_model_user, delete_user_verify_codes, get_user_by_email
+from app.dao.users_dao import delete_model_user, delete_user_verify_codes
 from app.models import (
     PROVIDERS,
     Notification,
@@ -725,45 +725,6 @@ def populate_service_volume_intentions(file_name):
             service.volume_letter = columns[3]
             dao_update_service(service)
     print('populate-service-volume-intentions complete')
-
-
-@notify_command(name='populate-go-live')
-@click.option('-f', '--file_name', required=True, help='CSV file containing live service data')
-def populate_go_live(file_name):
-    # 0 - count, 1- Link, 2- Service ID, 3- DEPT, 4- Service Name, 5- Main contact,
-    # 6- Contact detail, 7-MOU, 8- LIVE date, 9- SMS, 10 - Email, 11 - Letters, 12 -CRM, 13 - Blue badge
-    import csv
-
-    print('Populate go live user and date')
-    with open(file_name, 'r') as f:
-        rows = csv.reader(
-            f,
-            quoting=csv.QUOTE_MINIMAL,
-            skipinitialspace=True,
-        )
-        print(next(rows))  # ignore header row
-        for index, row in enumerate(rows):
-            print(index, row)
-            service_id = row[2]
-            go_live_email = row[6]
-            go_live_date = datetime.strptime(row[8], '%d/%m/%Y') + timedelta(hours=12)
-            print(service_id, go_live_email, go_live_date)
-            try:
-                if go_live_email:
-                    go_live_user = get_user_by_email(go_live_email)
-                else:
-                    go_live_user = None
-            except NoResultFound:
-                print('No user found for email address: ', go_live_email)
-                continue
-            try:
-                service = dao_fetch_service_by_id(service_id)
-            except NoResultFound:
-                print('No service found for: ', service_id)
-                continue
-            service.go_live_user = go_live_user
-            service.go_live_at = go_live_date
-            dao_update_service(service)
 
 
 @notify_command(name='fix-billable-units')

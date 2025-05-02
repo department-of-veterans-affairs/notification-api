@@ -230,7 +230,6 @@ def register_blueprint(application):
     from app.service.rest import service_blueprint
     from app.service.callback_rest import service_callback_blueprint
     from app.service.sms_sender_rest import service_sms_sender_blueprint
-    from app.service.whitelist_rest import service_whitelist_blueprint
     from app.user.rest import user_blueprint
     from app.template.rest import template_blueprint
     from app.status.healthcheck import status as status_blueprint
@@ -278,7 +277,6 @@ def register_blueprint(application):
 
     application.register_blueprint(service_callback_blueprint)
     application.register_blueprint(service_sms_sender_blueprint)
-    application.register_blueprint(service_whitelist_blueprint)
 
     application.register_blueprint(platform_stats_blueprint, url_prefix='/platform-stats')
 
@@ -287,7 +285,6 @@ def register_blueprint(application):
 
 
 def register_v2_blueprints(application):
-    from app.v2.inbound_sms.get_inbound_sms import v2_inbound_sms_blueprint as get_inbound_sms
     from app.v2.notifications.post_notifications import v2_notification_blueprint as v2_notifications  # Get is the same
     from app.v2.notifications.get_notifications import v2_notification_blueprint as get_notifications
     from app.v2.templates.get_templates import v2_templates_blueprint as get_templates
@@ -305,9 +302,6 @@ def register_v2_blueprints(application):
     post_template.before_request(validate_service_api_key_auth)
     get_template.before_request(validate_service_api_key_auth)
     application.register_blueprint(post_template)
-
-    get_inbound_sms.before_request(validate_service_api_key_auth)
-    application.register_blueprint(get_inbound_sms)
 
 
 def register_v3_blueprints(application):

@@ -648,25 +648,6 @@ def test_update_service_should_404_if_id_is_invalid(notify_api):
             assert resp.status_code == 404
 
 
-def test_get_users_by_service(notify_api, sample_service):
-    with notify_api.test_request_context():
-        with notify_api.test_client() as client:
-            service = sample_service()
-            user_on_service = service.users[0]
-            auth_header = create_admin_authorization_header()
-
-            resp = client.get(
-                '/service/{}/users'.format(service.id), headers=[('Content-Type', 'application/json'), auth_header]
-            )
-
-            assert resp.status_code == 200
-            result = resp.json
-            assert len(result['data']) == 1
-            assert result['data'][0]['name'] == user_on_service.name
-            assert result['data'][0]['email_address'] == user_on_service.email_address
-            assert result['data'][0]['mobile_number'] == user_on_service.mobile_number
-
-
 # This test is just here verify get_service_and_api_key_history that is a temp solution
 # until proper ui is sorted out on admin app
 def test_get_service_and_api_key_history(

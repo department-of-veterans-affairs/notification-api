@@ -38,7 +38,6 @@ from app.dao.service_data_retention_dao import insert_service_data_retention
 from app.dao.service_sms_sender_dao import (
     dao_update_service_sms_sender,
 )
-from app.dao.users_dao import create_secret_code, create_user_code
 from app.dao.login_event_dao import save_login_event
 from app.dao.templates_dao import dao_create_template
 from app.model import IdentityProviderIdentifier, User
@@ -320,14 +319,6 @@ def sample_domain(notify_db_session):
         stmt = delete(Domain).where(Domain.domain == domain_domain)
         notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
-
-
-def create_code(notify_db_session, code_type, usr=None, code=None):
-    if code is None:
-        code = create_secret_code()
-    if usr is None:
-        usr = create_user()
-    return create_user_code(usr, code, code_type), code
 
 
 def create_user_model(

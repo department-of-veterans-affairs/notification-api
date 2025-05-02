@@ -140,14 +140,6 @@ def escape_special_characters(string):
     return string
 
 
-def update_dct_to_str(update_dct):
-    str = '\n'
-    for key in update_dct:
-        str += '- {}'.format(key.replace('_', ' '))
-        str += '\n'
-    return str
-
-
 def create_uuid() -> str:
     return str(uuid4())
 

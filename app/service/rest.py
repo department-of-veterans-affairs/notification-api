@@ -23,34 +23,25 @@ from app.dao.fact_notification_status_dao import (
     fetch_stats_for_all_services_by_date_range,
 )
 from app.dao.services_dao import (
-    dao_add_user_to_service,
     dao_fetch_all_services,
     dao_fetch_all_services_by_user,
-    dao_fetch_live_services_data,
     dao_fetch_service_by_id,
     dao_fetch_todays_stats_for_service,
     dao_fetch_todays_stats_for_all_services,
-    dao_remove_user_from_service,
     dao_update_service,
-    get_services_by_partial_name,
 )
-from app.dao.users_dao import get_user_by_id
 from app.errors import InvalidRequest, register_errors
 from app.models import (
-    Permission,
     Service,
     EmailBranding,
 )
-from app.schema_validation import validate
 from app.service import statistics
-from app.service.send_notification import send_one_off_notification
 from app.service.sender import send_notification_to_service_users
 from app.schemas import (
     service_schema,
     api_key_schema,
     detailed_service_schema,
 )
-from app.user.users_schema import post_set_permissions_schema
 
 CAN_T_BE_EMPTY_ERROR_MESSAGE = "Can't be empty"
 
@@ -108,25 +99,6 @@ def get_services():
     else:
         services = dao_fetch_all_services(only_active)
     data = service_schema.dump(services, many=True)
-    return jsonify(data=data)
-
-
-@service_blueprint.route('/find-services-by-name', methods=['GET'])
-@requires_admin_auth()
-def find_services_by_name():
-    service_name = request.args.get('service_name')
-    if not service_name:
-        errors = {'service_name': ['Missing data for required field.']}
-        raise InvalidRequest(errors, status_code=400)
-    fetched_services = get_services_by_partial_name(service_name)
-    data = [service.serialize_for_org_dashboard() for service in fetched_services]
-    return jsonify(data=data), 200
-
-
-@service_blueprint.route('/live-services-data', methods=['GET'])
-@requires_admin_auth()
-def get_live_services_data():
-    data = dao_fetch_live_services_data()
     return jsonify(data=data)
 
 
@@ -300,66 +272,13 @@ def get_api_keys(
     return jsonify(apiKeys=api_key_schema.dump(api_keys, many=True)), 200
 
 
-@service_blueprint.route('/<uuid:service_id>/users', methods=['GET'])
-@requires_admin_auth()
-def get_users_for_service(service_id):
-    fetched = dao_fetch_service_by_id(service_id)
-    return jsonify(data=[x.serialize() for x in fetched.users])
-
-
-@service_blueprint.route('/<uuid:service_id>/users/<user_id>', methods=['POST'])
-@requires_admin_auth()
-def add_user_to_service(
-    service_id,
-    user_id,
-):
-    service = dao_fetch_service_by_id(service_id)
-    user = get_user_by_id(user_id=user_id)
-
-    if user in service.users:
-        error = 'User id: {} already part of service id: {}'.format(user_id, service_id)
-        raise InvalidRequest(error, status_code=400)
-
-    data = request.get_json()
-    validate(data, post_set_permissions_schema)
-
-    permissions = [
-        Permission(service_id=service_id, user_id=user_id, permission=p['permission']) for p in data['permissions']
-    ]
-    folder_permissions = data.get('folder_permissions', [])
-
-    dao_add_user_to_service(service, user, permissions, folder_permissions)
-    data = service_schema.dump(service)
-    return jsonify(data=data), 201
-
-
-@service_blueprint.route('/<uuid:service_id>/users/<user_id>', methods=['DELETE'])
-@requires_admin_auth()
-def remove_user_from_service(
-    service_id,
-    user_id,
-):
-    service = dao_fetch_service_by_id(service_id)
-    user = get_user_by_id(user_id=user_id)
-    if user not in service.users:
-        error = 'User not found'
-        raise InvalidRequest(error, status_code=404)
-
-    elif len(service.users) == 1:
-        error = 'You cannot remove the only user for a service'
-        raise InvalidRequest(error, status_code=400)
-
-    dao_remove_user_from_service(service, user)
-    return jsonify({}), 204
-
-
 # This is placeholder get method until more thought
 # goes into how we want to fetch and view various items in history
 # tables. This is so product owner can pass stories as done.
 @service_blueprint.route('/<uuid:service_id>/history', methods=['GET'])
 @requires_admin_auth()
 def get_service_history(service_id):
-    from app.models import Service, ApiKey, TemplateHistory
+    from app.models import ApiKey, TemplateHistory
     from app.schemas import service_history_schema, api_key_history_schema, template_history_schema
 
     service_history_model = Service.get_history_model()
@@ -446,41 +365,3 @@ def get_detailed_services(
             }
         )
     return results
-
-
-@service_blueprint.route('/<uuid:service_id>/send-notification', methods=['POST'])
-@requires_admin_auth()
-def create_one_off_notification(service_id):
-    resp = send_one_off_notification(service_id, request.get_json())
-    return jsonify(resp), 201
-
-
-@service_blueprint.route('/unique', methods=['GET'])
-@requires_admin_auth()
-def is_service_name_unique():
-    service_id, name, email_from = check_request_args(request)
-
-    stmt = select(Service).where(Service.name == name)
-    name_exists = db.session.scalars(stmt).first()
-
-    stmt = select(Service).where(Service.email_from == email_from, Service.id != service_id)
-    email_from_exists = db.session.scalar(stmt)
-
-    result = not (name_exists or email_from_exists)
-    return jsonify(result=result), 200
-
-
-def check_request_args(request):
-    service_id = request.args.get('service_id')
-    name = request.args.get('name', None)
-    email_from = request.args.get('email_from', None)
-    errors = []
-    if not service_id:
-        errors.append({'service_id': [CAN_T_BE_EMPTY_ERROR_MESSAGE]})
-    if not name:
-        errors.append({'name': [CAN_T_BE_EMPTY_ERROR_MESSAGE]})
-    if not email_from:
-        errors.append({'email_from': [CAN_T_BE_EMPTY_ERROR_MESSAGE]})
-    if errors:
-        raise InvalidRequest(errors, status_code=400)
-    return service_id, name, email_from
