@@ -218,42 +218,6 @@ def dao_fetch_all_services_by_user(
 
 
 @transactional
-@version_class(
-    VersionOptions(ApiKey, must_write_history=False),
-    VersionOptions(Service),
-    VersionOptions(Template, history_class=TemplateHistory, must_write_history=False),
-)
-def dao_archive_service(service_id):
-    # TODO - this needs a unit test
-
-    # have to eager load templates and api keys so that we don't flush when we loop through them
-    # to ensure that db.session still contains the models when it comes to creating history objects
-    stmt = (
-        select(Service)
-        .options(
-            joinedload(Service.templates),
-            joinedload(Service.templates).joinedload(Template.template_redacted),
-            joinedload(Service.api_keys),
-        )
-        .where(Service.id == service_id)
-    )
-    service = db.session.scalars(stmt).unique().one()
-
-    time = datetime.utcnow().strftime('%Y-%m-%d_%H:%M:%S')
-    service.active = False
-    service.name = '_archived_' + time + '_' + service.name
-    service.email_from = '_archived_' + time + '_' + service.email_from
-
-    for template in service.templates:
-        if not template.archived:
-            template.archived = True
-
-    for api_key in service.api_keys:
-        if not api_key.expiry_date:
-            api_key.expiry_date = datetime.utcnow()
-
-
-@transactional
 @version_class(Service)
 def dao_create_service(
     service,

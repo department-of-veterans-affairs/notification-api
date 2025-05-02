@@ -23,7 +23,6 @@ from app.celery.nightly_tasks import send_total_sent_notifications_to_performanc
 from app.celery.service_callback_tasks import send_delivery_status_to_service
 from app.config import QueueNames
 from app.constants import NOTIFICATION_CREATED, KEY_TYPE_TEST, SMS_TYPE
-from app.dao.annual_billing_dao import dao_create_or_update_annual_billing_for_year
 from app.dao.fact_billing_dao import (
     delete_billing_data_for_service_for_day,
     fetch_billing_data_for_day,
@@ -195,37 +194,6 @@ def backfill_processing_time(
             )
         )
         send_processing_time_for_start_and_end(process_start_date, process_end_date)
-
-
-@notify_command(name='populate-annual-billing')
-@click.option(
-    '-y', '--year', required=True, type=int, help="""The year to populate the annual billing data for, i.e. 2019"""
-)
-def populate_annual_billing(year):
-    """
-    add annual_billing for given year.
-    """
-    sql = """
-        Select id from services where active = true
-        except
-        select service_id
-        from annual_billing
-        where financial_year_start = :year
-    """
-    services_without_annual_billing = db.session.execute(sql, {'year': year})
-    for row in services_without_annual_billing:
-        latest_annual_billing = """
-            Select free_sms_fragment_limit
-            from annual_billing
-            where service_id = :service_id
-            order by financial_year_start desc limit 1
-        """
-        free_allowance_rows = db.session.execute(latest_annual_billing, {'service_id': row.id})
-        free_allowance = [x[0] for x in free_allowance_rows]
-        print('create free limit of {} for service: {}'.format(free_allowance[0], row.id))
-        dao_create_or_update_annual_billing_for_year(
-            service_id=row.id, free_sms_fragment_limit=free_allowance[0], financial_year_start=int(year)
-        )
 
 
 @notify_command(name='list-routes')

@@ -34,7 +34,6 @@ from app.dao.fact_notification_status_dao import (
 from app.dao.organisation_dao import dao_get_organisation_by_service_id
 from app.dao.services_dao import (
     dao_add_user_to_service,
-    dao_archive_service,
     dao_fetch_all_services,
     dao_fetch_all_services_by_user,
     dao_fetch_live_services_data,
@@ -46,13 +45,6 @@ from app.dao.services_dao import (
     dao_suspend_service,
     dao_update_service,
     get_services_by_partial_name,
-)
-from app.dao.service_data_retention_dao import (
-    fetch_service_data_retention,
-    fetch_service_data_retention_by_id,
-    fetch_service_data_retention_by_notification_type,
-    insert_service_data_retention,
-    update_service_data_retention,
 )
 from app.dao.users_dao import get_user_by_id
 from app.errors import InvalidRequest, register_errors
@@ -66,10 +58,6 @@ from app.schema_validation import validate
 from app.service import statistics
 from app.service.send_notification import send_one_off_notification
 from app.service.sender import send_notification_to_service_users
-from app.service.service_data_retention_schema import (
-    add_service_data_retention_request,
-    update_service_data_retention_request,
-)
 from app.schemas import (
     service_schema,
     api_key_schema,
@@ -608,23 +596,6 @@ def get_detailed_services(
     return results
 
 
-@service_blueprint.route('/<uuid:service_id>/archive', methods=['POST'])
-@requires_admin_auth()
-def archive_service(service_id):
-    """
-    When a service is archived the service is made inactive, templates are archived and api keys are revoked.
-    There is no coming back from this operation.
-    :param service_id:
-    :return:
-    """
-    service = dao_fetch_service_by_id(service_id)
-
-    if service.active:
-        dao_archive_service(service.id)
-
-    return '', 204
-
-
 @service_blueprint.route('/<uuid:service_id>/suspend', methods=['POST'])
 @requires_admin_auth()
 def suspend_service(service_id):
@@ -710,76 +681,6 @@ def is_service_name_unique():
 
     result = not (name_exists or email_from_exists)
     return jsonify(result=result), 200
-
-
-@service_blueprint.route('/<uuid:service_id>/data-retention', methods=['GET'])
-@requires_admin_auth()
-def get_data_retention_for_service(service_id):
-    data_retention_list = fetch_service_data_retention(service_id)
-    return jsonify([data_retention.serialize() for data_retention in data_retention_list]), 200
-
-
-@service_blueprint.route('/<uuid:service_id>/data-retention/notification-type/<notification_type>', methods=['GET'])
-@requires_admin_auth()
-def get_data_retention_for_service_notification_type(
-    service_id,
-    notification_type,
-):
-    data_retention = fetch_service_data_retention_by_notification_type(service_id, notification_type)
-    return jsonify(data_retention.serialize() if data_retention else {}), 200
-
-
-@service_blueprint.route('/<uuid:service_id>/data-retention/<uuid:data_retention_id>', methods=['GET'])
-@requires_admin_auth()
-def get_data_retention_for_service_by_id(
-    service_id,
-    data_retention_id,
-):
-    data_retention = fetch_service_data_retention_by_id(service_id, data_retention_id)
-    return jsonify(data_retention.serialize() if data_retention else {}), 200
-
-
-@service_blueprint.route('/<uuid:service_id>/data-retention', methods=['POST'])
-@requires_admin_auth()
-def create_service_data_retention(service_id):
-    form = validate(request.get_json(), add_service_data_retention_request)
-    try:
-        new_data_retention = insert_service_data_retention(
-            service_id=service_id,
-            notification_type=form.get('notification_type'),
-            days_of_retention=form.get('days_of_retention'),
-        )
-    except IntegrityError:
-        raise InvalidRequest(
-            message='Service already has data retention for {} notification type'.format(form.get('notification_type')),
-            status_code=400,
-        )
-
-    return jsonify(result=new_data_retention.serialize()), 201
-
-
-@service_blueprint.route('/<uuid:service_id>/data-retention/<uuid:data_retention_id>', methods=['POST'])
-@requires_admin_auth()
-def modify_service_data_retention(
-    service_id,
-    data_retention_id,
-):
-    form = validate(request.get_json(), update_service_data_retention_request)
-
-    update_count = update_service_data_retention(
-        service_data_retention_id=data_retention_id,
-        service_id=service_id,
-        days_of_retention=form.get('days_of_retention'),
-    )
-    if update_count == 0:
-        raise InvalidRequest(
-            message='The service data retention for id: {} was not found for service: {}'.format(
-                data_retention_id, service_id
-            ),
-            status_code=404,
-        )
-
-    return '', 204
 
 
 @service_blueprint.route('/monthly-data-by-service')
