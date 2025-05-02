@@ -5,7 +5,6 @@ from uuid import UUID
 
 from flask import current_app, Blueprint, jsonify, request
 from flask.wrappers import Response
-from nanoid import generate
 from notifications_utils.letter_timings import letter_can_be_cancelled
 from notifications_utils.timezones import convert_utc_to_local_timezone
 from sqlalchemy import select
@@ -65,7 +64,6 @@ from app.schemas import (
     notifications_filter_schema,
     detailed_service_schema,
 )
-from app.smtp.aws import smtp_add
 from app.user.users_schema import post_set_permissions_schema
 from app.utils import pagination_links
 
@@ -692,23 +690,6 @@ def get_monthly_notification_data_by_service():
     result = fact_notification_status_dao.fetch_monthly_notification_statuses_per_service(start_date, end_date)
 
     return jsonify(result)
-
-
-@service_blueprint.route('/<uuid:service_id>/smtp', methods=['POST'])
-@requires_admin_auth()
-def create_smtp_relay(service_id):
-    service = dao_fetch_service_by_id(service_id)
-
-    alphabet = '1234567890abcdefghijklmnopqrstuvwxyz'
-
-    if service.smtp_user is None:
-        user_id = generate(alphabet, size=7)
-        credentials = smtp_add(user_id)
-        service.smtp_user = credentials['iam']
-        dao_update_service(service)
-        return jsonify(credentials), 201
-    else:
-        raise InvalidRequest(message='SMTP user already exists', status_code=500)
 
 
 def check_request_args(request):
