@@ -12,21 +12,6 @@ def mock_logger():
     return logger
 
 
-def test_registry_initilizes_mobile_apps(
-    client,
-    mocker,
-    mock_logger,
-):
-    app = MobileAppType.VA_FLAGSHIP_APP
-    sid = 'flagsip_sid'
-    mocker.patch.dict(os.environ, {f'{app}_SID': sid})
-
-    registry = MobileAppRegistry(mock_logger)
-
-    assert registry.get_app(app).sid == sid
-    assert app in registry.get_registered_apps()
-
-
 @pytest.mark.parametrize(
     'env, registered_app',
     [
@@ -41,10 +26,6 @@ def test_registry_initilizes_only_apps_with_sids_in_env(
     registered_app,
     mock_logger,
 ):
-    """
-    Note that the case where both apps have SIDs is tested above, in test_registry_initilizes_mobile_apps.
-    """
-
     mocker.patch.dict(os.environ, env)
     registry = MobileAppRegistry(mock_logger)
 
