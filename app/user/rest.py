@@ -29,27 +29,3 @@ def get_user(user_id=None):
     users = get_user_by_id(user_id=user_id)
     result = [x.serialize() for x in users] if isinstance(users, list) else users.serialize()
     return jsonify(data=result)
-
-
-def get_orgs_and_services(user):
-    return {
-        'organisations': [
-            {
-                'name': org.name,
-                'id': org.id,
-                'count_of_live_services': len(org.live_services),
-            }
-            for org in user.organisations
-            if org.active
-        ],
-        'services': [
-            {
-                'id': service.id,
-                'name': service.name,
-                'restricted': service.restricted,
-                'organisation': service.organisation.id if service.organisation else None,
-            }
-            for service in user.services
-            if service.active
-        ],
-    }
