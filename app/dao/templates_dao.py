@@ -186,12 +186,12 @@ def dao_get_number_of_templates_by_service_id_and_name(
     return db.session.scalar(stmt)
 
 
+@cached(cache=TTLCache(maxsize=1024, ttl=600))
 def dao_get_template_history_by_id(template_id, version) -> TemplateHistory:
     stmt = select(TemplateHistory).where(TemplateHistory.id == template_id, TemplateHistory.version == version)
     return db.session.scalars(stmt).one()
 
 
-# TODO - Update here
 def dao_get_template_by_id(
     template_id,
     version=None,
@@ -203,7 +203,6 @@ def dao_get_template_by_id(
         return dao_get_template_history_by_id(template_id, version)
 
 
-@cached(cache=TTLCache(maxsize=1024, ttl=600))
 def dao_get_all_templates_for_service(
     service_id,
     template_type=None,
