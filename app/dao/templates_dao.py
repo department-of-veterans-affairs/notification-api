@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 
+from cachetools import cached, TTLCache
 from sqlalchemy import asc, desc, func, select, update
 
 from app import db
@@ -185,18 +186,24 @@ def dao_get_number_of_templates_by_service_id_and_name(
     return db.session.scalar(stmt)
 
 
+def dao_get_template_history_by_id(template_id, version) -> TemplateHistory:
+    stmt = select(TemplateHistory).where(TemplateHistory.id == template_id, TemplateHistory.version == version)
+    return db.session.scalars(stmt).one()
+
+
+# TODO - Update here
 def dao_get_template_by_id(
     template_id,
     version=None,
 ) -> Template:
     if version is None:
         stmt = select(Template).where(Template.id == template_id)
+        return db.session.scalars(stmt).one()
     else:
-        stmt = select(TemplateHistory).where(TemplateHistory.id == template_id, TemplateHistory.version == version)
-
-    return db.session.scalars(stmt).one()
+        return dao_get_template_history_by_id(template_id, version)
 
 
+@cached(cache=TTLCache(maxsize=1024, ttl=600))
 def dao_get_all_templates_for_service(
     service_id,
     template_type=None,
