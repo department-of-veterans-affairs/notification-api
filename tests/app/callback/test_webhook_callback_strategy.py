@@ -8,8 +8,9 @@ from requests import RequestException
 from app import encryption
 from app.callback.webhook_callback_strategy import WebhookCallbackStrategy, generate_callback_signature
 from app.celery.exceptions import NonRetryableException, RetryableException
-from app.models import ApiKey#, ServiceCallback  TODO
+from app.models import ApiKey  # , ServiceCallback  TODO
 from app.models import DeliveryStatusCallbackApiData
+
 
 @pytest.fixture
 def sample_callback_data_v3():
@@ -32,6 +33,7 @@ def sample_callback_data_v3():
 def sample_delivery_status_callback_api_data():
     return DeliveryStatusCallbackApiData(
         id=str(uuid4()),
+        service_id=str(uuid4()),
         url='http://some_url',
         _bearer_token=encryption.encrypt('some token'),
         include_provider_payload=True,
@@ -51,7 +53,7 @@ def test_send_callback_returns_200_if_successful(notify_api, sample_delivery_sta
         WebhookCallbackStrategy.send_callback(
             callback=sample_delivery_status_callback_api_data,
             payload={'message': 'hello'},
-            logging_tags={'log': 'some log'}
+            logging_tags={'log': 'some log'},
         )
 
     assert request_mock.call_count == 1
@@ -70,7 +72,8 @@ def test_send_callback_increments_statsd_client_with_success(
         request_mock.post('http://some_url', json={}, status_code=200)
         WebhookCallbackStrategy.send_callback(
             callback=sample_delivery_status_callback_api_data,
-            payload={'message': 'hello'}, logging_tags={'log': 'some log'}
+            payload={'message': 'hello'},
+            logging_tags={'log': 'some log'},
         )
 
     mock_statsd_client.incr.assert_called_with(
@@ -86,7 +89,8 @@ def test_send_callback_raises_retryable_exception_with_status_code_above_500(
             request_mock.post('http://some_url', json={}, status_code=501)
             WebhookCallbackStrategy.send_callback(
                 callback=sample_delivery_status_callback_api_data,
-                payload={'message': 'hello'}, logging_tags={'log': 'some log'}
+                payload={'message': 'hello'},
+                logging_tags={'log': 'some log'},
             )
 
     assert '501 Server Error: None for url: http://some_url/' in str(e.value)
@@ -100,7 +104,8 @@ def test_send_callback_increments_statsd_client_with_retryable_error_for_status_
             request_mock.post('http://some_url', json={}, status_code=501)
             WebhookCallbackStrategy.send_callback(
                 callback=sample_delivery_status_callback_api_data,
-                payload={'message': 'hello'}, logging_tags={'log': 'some log'}
+                payload={'message': 'hello'},
+                logging_tags={'log': 'some log'},
             )
 
     mock_statsd_client.incr.assert_called_with(
@@ -115,7 +120,8 @@ def test_send_callback_raises_retryable_exception_with_request_exception(
     with pytest.raises(RetryableException):
         WebhookCallbackStrategy.send_callback(
             callback=sample_delivery_status_callback_api_data,
-            payload={'message': 'hello'}, logging_tags={'log': 'some log'}
+            payload={'message': 'hello'},
+            logging_tags={'log': 'some log'},
         )
 
 
@@ -126,7 +132,8 @@ def test_send_callback_increments_statsd_client_with_retryable_error_for_request
     with pytest.raises(RetryableException):
         WebhookCallbackStrategy.send_callback(
             callback=sample_delivery_status_callback_api_data,
-            payload={'message': 'hello'}, logging_tags={'log': 'some log'}
+            payload={'message': 'hello'},
+            logging_tags={'log': 'some log'},
         )
 
     mock_statsd_client.incr.assert_called_with(
@@ -142,7 +149,8 @@ def test_send_callback_raises_non_retryable_exception_with_status_code_404(
             request_mock.post('http://some_url', json={}, status_code=404)
             WebhookCallbackStrategy.send_callback(
                 callback=sample_delivery_status_callback_api_data,
-                payload={'message': 'hello'}, logging_tags={'log': 'some log'}
+                payload={'message': 'hello'},
+                logging_tags={'log': 'some log'},
             )
 
     assert '404 Client Error: None for url: http://some_url/' in str(e.value)
@@ -156,7 +164,8 @@ def test_send_callback_increments_statsd_client_with_non_retryable_error_for_sta
             request_mock.post('http://some_url', json={}, status_code=404)
             WebhookCallbackStrategy.send_callback(
                 callback=sample_delivery_status_callback_api_data,
-                payload={'message': 'hello'}, logging_tags={'log': 'some log'}
+                payload={'message': 'hello'},
+                logging_tags={'log': 'some log'},
             )
 
     mock_statsd_client.incr.assert_called_with(
