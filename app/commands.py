@@ -275,7 +275,7 @@ def replay_service_callbacks(
             'notification_sent_at': n.sent_at.strftime(DATETIME_FORMAT),
             'notification_type': n.notification_type,
             'service_callback_api_url': callback_api.url,
-            'service_callback_api_bearer_token': callback_api.bearer_token,
+            'service_callback_api_bearer_token': encryption.decrypt(callback_api._bearer_token),
         }
         encrypted_status_update = encryption.encrypt(data)
         send_delivery_status_to_service.apply_async(

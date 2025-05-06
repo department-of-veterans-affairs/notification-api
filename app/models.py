@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 import datetime
@@ -666,18 +667,20 @@ class ServiceCallback(db.Model, Versioned):
         if bearer_token:
             self._bearer_token = encryption.encrypt(str(bearer_token))
 
-    def send(
-        self,
-        payload: dict,
-        logging_tags: dict,
-    ):
-        from app.callback.queue_callback_strategy import QueueCallbackStrategy
-        from app.callback.webhook_callback_strategy import WebhookCallbackStrategy
 
-        callback_strategies = {WEBHOOK_CHANNEL_TYPE: WebhookCallbackStrategy, QUEUE_CHANNEL_TYPE: QueueCallbackStrategy}
+@dataclass
+class DeliveryStatusCallbackApiData:
+    """
+    Used for caching a ServiceCallback instance.
+    """
 
-        strategy = callback_strategies[self.callback_channel]
-        strategy.send_callback(self, payload, logging_tags)
+    id: str
+    url: str
+    # Note that _bearer_token is the encrypted value.
+    _bearer_token: str
+    include_provider_payload: bool
+    callback_channel: str
+    callback_type: str | None
 
 
 class ServiceCallbackType(db.Model):
