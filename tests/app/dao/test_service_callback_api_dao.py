@@ -232,12 +232,9 @@ def test_get_service_callback(
     service_callback = get_service_callback(service_callback.id)
 
     assert service_callback.id is not None
-    assert service_callback.service_id == service.id
-    assert service_callback.updated_by_id == service.users[0].id
+    assert service_callback.service_id == str(service.id)
     assert service_callback.url == 'https://some_service/callback_endpoint'
-    assert service_callback.bearer_token == 'some_unique_string'
-    assert service_callback._bearer_token != 'some_unique_string'
-    assert service_callback.updated_at is None
+    assert encryption.decrypt(service_callback._bearer_token) == 'some_unique_string'
 
     if payload_included:
         assert service_callback.include_provider_payload

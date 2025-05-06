@@ -56,13 +56,11 @@ from app.constants import (
     NOTIFICATION_TYPE,
     PERMISSION_LIST,
     PINPOINT_PROVIDER,
-    QUEUE_CHANNEL_TYPE,
     SES_PROVIDER,
     SMS_TYPE,
     SNS_PROVIDER,
     TEMPLATE_PROCESS_NORMAL,
     TEMPLATE_TYPES,
-    WEBHOOK_CHANNEL_TYPE,
     WHITELIST_RECIPIENT_TYPE,
 )
 from app.db import db
@@ -675,6 +673,7 @@ class DeliveryStatusCallbackApiData:
     """
 
     id: str
+    service_id: str
     url: str
     # Note that _bearer_token is the encrypted value.
     _bearer_token: str

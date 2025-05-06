@@ -57,6 +57,7 @@ def get_service_callback(service_callback_id) -> DeliveryStatusCallbackApiData:
 
     return DeliveryStatusCallbackApiData(
         id=str(service_callback.id),
+        service_id=str(service_callback.service_id),
         url=service_callback.url,
         _bearer_token=service_callback._bearer_token,
         include_provider_payload=service_callback.include_provider_payload,
@@ -93,6 +94,7 @@ def get_service_delivery_status_callback_api_for_service(
 
     return DeliveryStatusCallbackApiData(
         id=str(service_callback.id),
+        service_id=str(service_callback.service_id),
         url=service_callback.url,
         _bearer_token=service_callback._bearer_token,
         include_provider_payload=service_callback.include_provider_payload,
@@ -109,12 +111,26 @@ def get_service_complaint_callback_api_for_service(service_id):
     return db.session.scalars(stmt).first()
 
 
-def get_service_inbound_sms_callback_api_for_service(service_id):
+@cached(cache=TTLCache(maxsize=1024, ttl=600))
+def get_service_inbound_sms_callback_api_for_service(service_id) -> DeliveryStatusCallbackApiData | None:
     stmt = select(ServiceCallback).where(
         ServiceCallback.service_id == service_id, ServiceCallback.callback_type == INBOUND_SMS_CALLBACK_TYPE
     )
 
-    return db.session.scalars(stmt).first()
+    service_callback = db.session.scalars(stmt).first()
+
+    if service_callback is None:
+        return None
+
+    return DeliveryStatusCallbackApiData(
+        id=str(service_callback.id),
+        service_id=str(service_callback.service_id),
+        url=service_callback.url,
+        _bearer_token=service_callback._bearer_token,
+        include_provider_payload=service_callback.include_provider_payload,
+        callback_channel=service_callback.callback_channel,
+        callback_type=service_callback.callback_type,
+    )
 
 
 @transactional

@@ -13,7 +13,7 @@ from app.callback.queue_callback_strategy import QueueCallbackStrategy
 from app.callback.webhook_callback_strategy import generate_callback_signature, WebhookCallbackStrategy
 from app.celery.exceptions import AutoRetryException, NonRetryableException, RetryableException
 from app.config import QueueNames
-from app.constants import DATETIME_FORMAT, HTTP_TIMEOUT
+from app.constants import DATETIME_FORMAT, HTTP_TIMEOUT, QUEUE_CHANNEL_TYPE, WEBHOOK_CHANNEL_TYPE
 from app.dao.complaint_dao import fetch_complaint_by_id
 from app.dao.inbound_sms_dao import dao_get_inbound_sms_by_id
 from app.dao.service_callback_api_dao import (
@@ -224,8 +224,10 @@ def send_inbound_sms_to_service(
     inbound_sms_id,
     service_id,
 ):
-    service_callback = get_service_inbound_sms_callback_api_for_service(service_id=service_id)
-    if not service_callback:
+    service_callback: DeliveryStatusCallbackApiData | None = get_service_inbound_sms_callback_api_for_service(
+        service_id=service_id
+    )
+    if service_callback is None:
         current_app.logger.error(
             'could not send inbound sms to service "%s" because it does not have a callback API configured', service_id
         )
