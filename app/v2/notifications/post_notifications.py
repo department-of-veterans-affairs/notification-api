@@ -50,10 +50,7 @@ from app.utils import get_public_notify_type_text
 
 @v2_notification_blueprint.route('/<notification_type>', methods=['POST'])
 def post_notification(notification_type):  # noqa: C901
-    with tracer.trace("post_notification_1") as span:
-        span.set_tag("notification_type", notification_type)
-        span.set_tag("template_id", template.id)
-
+    with tracer.trace('post_notification_1') as span:
         created_at = datetime.now(timezone.utc)
         try:
             request_json = request.get_json()
@@ -93,10 +90,7 @@ def post_notification(notification_type):  # noqa: C901
             if not authenticated_service.has_permissions(SCHEDULE_NOTIFICATIONS):
                 raise BadRequestError(message='Cannot schedule notifications (this feature is invite-only)')
 
-    with tracer.trace("post_notification_2") as span:
-        span.set_tag("notification_type", notification_type)
-        span.set_tag("template_id", template.id)
-
+    with tracer.trace('post_notification_2') as span:
         template, template_with_content = validate_template(
             form['template_id'],
             strip_keys_from_personalisation_if_send_attach(form.get('personalisation', {})),
@@ -175,10 +169,10 @@ def process_sms_or_email_notification(
     reply_to_text=None,
     created_at: datetime | None = None,
 ):
-    with tracer.trace("process_sms_or_email_notification") as span:
-        span.set_tag("notification_type", notification_type)
-        span.set_tag("template_id", template.id)
-        span.set_tag("service_id", service.id)
+    with tracer.trace('process_sms_or_email_notification') as span:
+        span.set_tag('notification_type', notification_type)
+        span.set_tag('template_id', template.id)
+        span.set_tag('service_id', service.id)
 
         form_send_to = form['email_address' if (notification_type == EMAIL_TYPE) else 'phone_number']
 
