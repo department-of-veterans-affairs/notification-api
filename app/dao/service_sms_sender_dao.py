@@ -1,9 +1,10 @@
+from cachetools import cached
 from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import desc, select, update
 
-from app import db
+from app import db, ttl_cache
 from app.dao.dao_utils import transactional
 from app.exceptions import ArchiveValidationError
 from app.models import ProviderDetails, ServiceSmsSender, InboundNumber
@@ -27,6 +28,7 @@ def insert_service_sms_sender(
     db.session.add(new_sms_sender)
 
 
+@cached(ttl_cache)
 def dao_get_service_sms_sender_by_id(
     service_id,
     service_sms_sender_id,
@@ -50,6 +52,7 @@ def dao_get_sms_senders_by_service_id(service_id):
     return db.session.scalars(stmt).all()
 
 
+@cached(ttl_cache)
 def dao_get_service_sms_sender_by_service_id_and_number(
     service_id: str,
     number: str,

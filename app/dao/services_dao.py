@@ -10,7 +10,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.sql.expression import and_, asc, case
 
-from app import db
+from app import db, ttl_cache
 from app.constants import DEFAULT_SERVICE_NOTIFICATION_PERMISSIONS, KEY_TYPE_TEST
 from app.dao.dao_utils import VersionOptions, get_reader_session, transactional, version_class
 from app.dao.organisation_dao import dao_get_organisation_by_email_address
@@ -177,7 +177,7 @@ def dao_fetch_service_by_inbound_number(number):
     return db.session.execute(stmt).scalar_one_or_none()
 
 
-@cached(cache=TTLCache(maxsize=1024, ttl=600))
+@cached(ttl_cache)
 def dao_fetch_service_by_id_with_api_keys(
     service_id,
     only_active=False,

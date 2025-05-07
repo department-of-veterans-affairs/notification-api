@@ -11,7 +11,7 @@ from notifications_utils.recipients import (
 from notifications_utils.clients.redis import rate_limit_cache_key, daily_limit_cache_key
 from sqlalchemy.orm.exc import NoResultFound
 
-from app import redis_store
+from app import redis_store, ttl_cache
 from app.constants import (
     INTERNATIONAL_SMS_TYPE,
     SMS_TYPE,
@@ -257,7 +257,7 @@ def check_reply_to(
         return check_service_sms_sender_id(service_id, reply_to_id, type_)
 
 
-@cached(cache=TTLCache(maxsize=1024, ttl=600))
+@cached(ttl_cache)
 def check_service_sms_sender_id(
     service_id,
     sms_sender_id,

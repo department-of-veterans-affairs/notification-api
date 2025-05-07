@@ -1,6 +1,7 @@
 import os
 import random
 import string
+from cachetools import TTLCache
 
 from dotenv import load_dotenv
 from flask import request, g, jsonify, make_response
@@ -25,7 +26,7 @@ from app.clients.sms.firetext import FiretextClient
 from app.clients.sms.loadtesting import LoadtestingClient
 from app.clients.sms.mmg import MMGClient
 from app.clients.sms.aws_sns import AwsSnsClient
-from app.clients.sms.twilio import TwilioSMSClient
+from app.clients.sms.twilio import MockTwilioSMSClient, TwilioSMSClient
 from app.clients.sms.aws_pinpoint import AwsPinpointClient
 from app.clients.performance_platform.performance_platform_client import PerformancePlatformClient
 from app.feature_flags import FeatureFlag, is_feature_enabled
@@ -40,6 +41,7 @@ from app.mobile_app.mobile_app_registry import MobileAppRegistry
 
 load_dotenv()
 
+ttl_cache = TTLCache(maxsize=1024, ttl=7200)
 
 migrate = Migrate()
 ma = Marshmallow()
@@ -57,10 +59,13 @@ from app.clients.email.govdelivery_client import GovdeliveryClient  # noqa
 
 govdelivery_client = GovdeliveryClient()
 aws_sns_client = AwsSnsClient()
-twilio_sms_client = TwilioSMSClient(
-    account_sid=os.getenv('TWILIO_ACCOUNT_SID'),
-    auth_token=os.getenv('TWILIO_AUTH_TOKEN'),
-)
+
+twilio_sms_client = MockTwilioSMSClient()
+
+# twilio_sms_client = TwilioSMSClient(
+#     account_sid=os.getenv('TWILIO_ACCOUNT_SID'),
+#     auth_token=os.getenv('TWILIO_AUTH_TOKEN'),
+# )
 aws_pinpoint_client = AwsPinpointClient()
 sqs_client = SQSClient()
 zendesk_client = ZendeskClient()
