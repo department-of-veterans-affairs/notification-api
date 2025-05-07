@@ -60,12 +60,13 @@ from app.clients.email.govdelivery_client import GovdeliveryClient  # noqa
 govdelivery_client = GovdeliveryClient()
 aws_sns_client = AwsSnsClient()
 
-twilio_sms_client = MockTwilioSMSClient()
+# twilio_sms_client = MockTwilioSMSClient()
 
-# twilio_sms_client = TwilioSMSClient(
-#     account_sid=os.getenv('TWILIO_ACCOUNT_SID'),
-#     auth_token=os.getenv('TWILIO_AUTH_TOKEN'),
-# )
+twilio_sms_client = TwilioSMSClient(
+    account_sid=os.getenv('TWILIO_ACCOUNT_SID'),
+    auth_token=os.getenv('TWILIO_AUTH_TOKEN'),
+)
+
 aws_pinpoint_client = AwsPinpointClient()
 sqs_client = SQSClient()
 zendesk_client = ZendeskClient()
