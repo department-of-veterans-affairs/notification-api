@@ -26,7 +26,8 @@ from app.clients.sms.firetext import FiretextClient
 from app.clients.sms.loadtesting import LoadtestingClient
 from app.clients.sms.mmg import MMGClient
 from app.clients.sms.aws_sns import AwsSnsClient
-from app.clients.sms.twilio import MockTwilioSMSClient, TwilioSMSClient
+from app.clients.sms.twilio import TwilioSMSClient
+# from app.clients.sms.twilio import MockTwilioSMSClient
 from app.clients.sms.aws_pinpoint import AwsPinpointClient
 from app.clients.performance_platform.performance_platform_client import PerformancePlatformClient
 from app.feature_flags import FeatureFlag, is_feature_enabled
