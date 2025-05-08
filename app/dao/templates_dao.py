@@ -211,6 +211,7 @@ class TemplateHistoryData:
         provider_id=None,
         communication_item_id=None,
         redact_personalisation=False,
+        get_reply_to_text=None,
     ):
         # TemplateHistory attributes
         self.id = id
@@ -237,6 +238,8 @@ class TemplateHistoryData:
         self.provider_id = provider_id
         self.communication_item_id = communication_item_id
         self.redact_personalisation = redact_personalisation
+
+        self.get_reply_to_text = get_reply_to_text
 
 
 @cached(cache=TTLCache(maxsize=1024, ttl=600))
@@ -268,6 +271,7 @@ def dao_get_template_history_by_id(template_id, version) -> TemplateHistory | No
             provider_id=template_history_object.provider_id,
             communication_item_id=template_history_object.communication_item_id,
             redact_personalisation=getattr(template_history_object, 'redact_personalisation', False),
+            get_reply_to_text=template_history_object.get_reply_to_text,
         )
     return None
 
