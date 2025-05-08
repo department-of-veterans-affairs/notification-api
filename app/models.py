@@ -547,21 +547,42 @@ class ServiceSmsSender(db.Model):
 
     def serialize(self) -> dict[str, bool | int | str | None]:
         return {
-            'archived': self.archived,
-            'created_at': self.created_at.strftime(DATETIME_FORMAT),
-            'description': self.description,
             'id': str(self.id),
-            'inbound_number_id': str(self.inbound_number_id) if self.inbound_number_id else None,
             'is_default': self.is_default,
-            'provider_id': str(self.provider_id) if self.provider_id else None,
-            'provider_name': self.provider.display_name if self.provider else None,
-            'rate_limit': self.rate_limit if self.rate_limit else None,
-            'rate_limit_interval': self.rate_limit_interval if self.rate_limit_interval else None,
             'service_id': str(self.service_id),
             'sms_sender': self.sms_sender,
-            'sms_sender_specifics': self.sms_sender_specifics,
+            'inbound_number_id': str(self.inbound_number_id) if self.inbound_number_id else None,
+            'provider_id': str(self.provider_id) if self.provider_id else None,
+            'created_at': self.created_at.strftime(DATETIME_FORMAT) if self.created_at else None,
             'updated_at': self.updated_at.strftime(DATETIME_FORMAT) if self.updated_at else None,
+            'archived': self.archived,
+            'description': self.description,
+            'rate_limit': self.rate_limit,
+            'rate_limit_interval': self.rate_limit_interval,
+            'sms_sender_specifics': self.sms_sender_specifics,
         }
+
+
+@dataclass
+class ServiceSmsSenderData:
+    """
+    Used for caching a ServiceSmsSender instance.
+    """
+
+    id: str
+    service_id: str
+    sms_sender: str
+    is_default: bool
+    inbound_number_id: str | None
+    provider_id: str | None
+    archived: bool
+    description: str | None
+    rate_limit: int | None
+    rate_limit_interval: int | None
+    sms_sender_specifics: dict | None
+
+    def get_reply_to_text(self) -> str:
+        return self.sms_sender
 
 
 class ServicePermission(db.Model):

@@ -26,8 +26,7 @@ from app.clients.sms.firetext import FiretextClient
 from app.clients.sms.loadtesting import LoadtestingClient
 from app.clients.sms.mmg import MMGClient
 from app.clients.sms.aws_sns import AwsSnsClient
-from app.clients.sms.twilio import TwilioSMSClient
-# from app.clients.sms.twilio import MockTwilioSMSClient
+from app.clients.sms.twilio import TwilioSMSClient, MockTwilioSMSClient
 from app.clients.sms.aws_pinpoint import AwsPinpointClient
 from app.clients.performance_platform.performance_platform_client import PerformancePlatformClient
 from app.feature_flags import FeatureFlag, is_feature_enabled
@@ -40,8 +39,6 @@ from app.db import db
 from app.mobile_app.mobile_app_registry import MobileAppRegistry
 
 load_dotenv()
-
-ttl_cache = TTLCache(maxsize=1024, ttl=7200)
 
 migrate = Migrate()
 ma = Marshmallow()
@@ -60,12 +57,16 @@ from app.clients.email.govdelivery_client import GovdeliveryClient  # noqa
 govdelivery_client = GovdeliveryClient()
 aws_sns_client = AwsSnsClient()
 
-# twilio_sms_client = MockTwilioSMSClient()
-
-twilio_sms_client = TwilioSMSClient(
-    account_sid=os.getenv('TWILIO_ACCOUNT_SID'),
-    auth_token=os.getenv('TWILIO_AUTH_TOKEN'),
-)
+if os.getenv('USE_MOCK_TWILIO'):
+    twilio_sms_client = MockTwilioSMSClient(
+        account_sid=os.getenv('TWILIO_ACCOUNT_SID'),
+        auth_token=os.getenv('TWILIO_AUTH_TOKEN'),
+    )
+else:
+    twilio_sms_client = TwilioSMSClient(
+        account_sid=os.getenv('TWILIO_ACCOUNT_SID'),
+        auth_token=os.getenv('TWILIO_AUTH_TOKEN'),
+    )
 
 aws_pinpoint_client = AwsPinpointClient()
 sqs_client = SQSClient()
@@ -104,10 +105,10 @@ def create_app(application):
     if notify_environment == 'test':
         # Set the read-db to be the same as the write/default instance.
         application.config['SQLALCHEMY_BINDS'] = {'read-db': application.config['SQLALCHEMY_DATABASE_URI']}
-        assert application.config['SQLALCHEMY_DATABASE_URI'].endswith('notification_api'), (
+        assert application.config['SQLALCHEMY_DATABASE_URI'].endswith('_test'), (
             "Don't run tests against the main writer database."
         )
-        assert application.config['SQLALCHEMY_BINDS']['read-db'].endswith('notification_api'), (
+        assert application.config['SQLALCHEMY_BINDS']['read-db'].endswith('_test'), (
             "Don't run tests against the main reader database."
         )
 

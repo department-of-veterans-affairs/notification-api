@@ -1,7 +1,6 @@
 import base64
 import binascii
 
-from cachetools import TTLCache, cached
 from flask import current_app
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
 from notifications_utils.recipients import (
@@ -11,7 +10,7 @@ from notifications_utils.recipients import (
 from notifications_utils.clients.redis import rate_limit_cache_key, daily_limit_cache_key
 from sqlalchemy.orm.exc import NoResultFound
 
-from app import redis_store, ttl_cache
+from app import redis_store
 from app.constants import (
     INTERNATIONAL_SMS_TYPE,
     SMS_TYPE,
@@ -257,7 +256,6 @@ def check_reply_to(
         return check_service_sms_sender_id(service_id, reply_to_id, type_)
 
 
-@cached(ttl_cache)
 def check_service_sms_sender_id(
     service_id,
     sms_sender_id,

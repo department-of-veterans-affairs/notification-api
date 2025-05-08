@@ -9,6 +9,7 @@ from requests.exceptions import ConnectionError, ReadTimeout
 from twilio.rest import Client
 from twilio.rest.api.v2010.account.message import MessageInstance
 from twilio.base.exceptions import TwilioRestException
+from twilio.http.http_client import TwilioHttpClient
 
 from app.celery.exceptions import NonRetryableException, RetryableException
 from app.clients.sms import SmsClient, SmsStatusRecord, UNABLE_TO_TRANSLATE
@@ -450,3 +451,53 @@ class TwilioSMSClient(SmsClient):
             notify_delivery_status: TwilioStatus = self.twilio_notify_status_map[twilio_delivery_status]
 
         return notify_delivery_status.status, notify_delivery_status.status_reason
+
+
+class PrismClient(TwilioHttpClient):
+    """Custom Twilio HTTP Client that directs requests to the Prism mock server."""
+
+    def __init__(self, prism_url):
+        super().__init__()
+        self.prism_url = prism_url
+
+    def request(
+        self, method, url, params=None, data=None, headers=None, auth=None, timeout=None, allow_redirects=False
+    ):
+        """
+        Override the request method to redirect all Twilio API calls to the Prism mock server.
+        """
+        # Replace the Twilio API URL with our mock server URL
+        url = url.replace('https://api.twilio.com', self.prism_url)
+        return super().request(
+            method,
+            url,
+            params=params,
+            data=data,
+            headers=headers,
+            auth=auth,
+            timeout=timeout,
+            allow_redirects=allow_redirects,
+        )
+
+
+class MockTwilioSMSClient(TwilioSMSClient):
+    """A TwilioSMSClient that directs all API requests to a mock Twilio server."""
+
+    def __init__(
+        self,
+        account_sid='',
+        auth_token='',
+        mock_server_url='http://host.docker.internal:4010',
+        *args,
+        **kwargs,
+    ):
+        super().__init__(account_sid, auth_token, *args, **kwargs)
+        self.mock_server_url = mock_server_url
+
+        # Replace the Twilio client with one that uses our custom HTTP client
+        http_client = PrismClient(mock_server_url)
+        self._client = Client(account_sid, auth_token, http_client=http_client)
+
+    def init_app(self, logger, callback_notify_url_host, environment, *args, **kwargs):
+        super().init_app(logger, callback_notify_url_host, environment, *args, **kwargs)
+        self.logger.info(f'MockTwilioSMSClient initialized - redirecting API calls to {self.mock_server_url}')

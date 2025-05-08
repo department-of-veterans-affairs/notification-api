@@ -1,12 +1,12 @@
-from cachetools import cached
+from cachetools import TTLCache, cached
 from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import desc, select, update
 
-from app import db, ttl_cache
+from app import db
 from app.dao.dao_utils import transactional
-from app.models import ProviderDetails, ServiceSmsSender, InboundNumber
+from app.models import ProviderDetails, ServiceSmsSender, InboundNumber, ServiceSmsSenderData
 from app.service.exceptions import (
     SmsSenderDefaultValidationException,
     SmsSenderProviderValidationException,
@@ -27,18 +27,32 @@ def insert_service_sms_sender(
     db.session.add(new_sms_sender)
 
 
-@cached(ttl_cache)
+@cached(TTLCache(maxsize=1024, ttl=600))
 def dao_get_service_sms_sender_by_id(
     service_id,
     service_sms_sender_id,
-) -> ServiceSmsSender:
+) -> ServiceSmsSenderData:
     stmt = select(ServiceSmsSender).where(
         ServiceSmsSender.id == service_sms_sender_id,
         ServiceSmsSender.service_id == service_id,
         ServiceSmsSender.archived.is_(False),
     )
 
-    return db.session.scalars(stmt).one()
+    service_sender = db.session.scalars(stmt).one()
+
+    return ServiceSmsSenderData(
+        id=str(service_sender.id),
+        service_id=str(service_sender.service_id),
+        sms_sender=service_sender.sms_sender,
+        is_default=service_sender.is_default,
+        inbound_number_id=str(service_sender.inbound_number_id) if service_sender.inbound_number_id else None,
+        provider_id=str(service_sender.provider_id) if service_sender.provider_id else None,
+        archived=service_sender.archived,
+        description=service_sender.description,
+        rate_limit=service_sender.rate_limit,
+        rate_limit_interval=service_sender.rate_limit_interval,
+        sms_sender_specifics=service_sender.sms_sender_specifics,
+    )
 
 
 def dao_get_sms_senders_by_service_id(service_id):
@@ -51,12 +65,12 @@ def dao_get_sms_senders_by_service_id(service_id):
     return db.session.scalars(stmt).all()
 
 
-@cached(ttl_cache)
+@cached(TTLCache(maxsize=1024, ttl=600))
 def dao_get_service_sms_sender_by_service_id_and_number(
     service_id: str,
     number: str,
-) -> Optional[ServiceSmsSender]:
-    """Return an instance of ServiceSmsSender, if available."""
+) -> Optional[ServiceSmsSenderData]:
+    """Return an instance of ServiceSmsSenderData, if available."""
 
     stmt = select(ServiceSmsSender).where(
         ServiceSmsSender.service_id == service_id,
@@ -64,7 +78,24 @@ def dao_get_service_sms_sender_by_service_id_and_number(
         ServiceSmsSender.archived.is_(False),
     )
 
-    return db.session.scalars(stmt).first()
+    service_sender = db.session.scalars(stmt).first()
+
+    if not service_sender:
+        return None
+
+    return ServiceSmsSenderData(
+        id=str(service_sender.id),
+        service_id=str(service_sender.service_id),
+        sms_sender=service_sender.sms_sender,
+        is_default=service_sender.is_default,
+        inbound_number_id=str(service_sender.inbound_number_id) if service_sender.inbound_number_id else None,
+        provider_id=str(service_sender.provider_id) if service_sender.provider_id else None,
+        archived=service_sender.archived,
+        description=service_sender.description,
+        rate_limit=service_sender.rate_limit,
+        rate_limit_interval=service_sender.rate_limit_interval,
+        sms_sender_specifics=service_sender.sms_sender_specifics,
+    )
 
 
 @transactional
