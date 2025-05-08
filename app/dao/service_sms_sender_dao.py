@@ -5,6 +5,8 @@ from uuid import UUID
 from ddtrace import tracer
 from sqlalchemy import desc, select, update
 
+import logging
+
 from app import db
 from app.dao.dao_utils import transactional
 from app.models import ProviderDetails, ServiceSmsSender, InboundNumber, ServiceSmsSenderData, DATETIME_FORMAT
@@ -15,7 +17,31 @@ from app.service.exceptions import (
     SmsSenderRateLimitIntegrityException,
 )
 
-sms_sender_data_cache = TTLCache(maxsize=1024, ttl=600)
+
+class StatsTTLCache(TTLCache):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.hits = 0
+        self.misses = 0
+
+    def __getitem__(self, key):
+        try:
+            value = super().__getitem__(key)
+            self.hits += 1
+            return value
+        except KeyError:
+            self.misses += 1
+            raise
+
+
+# Use this instead of TTLCache
+sms_sender_data_cache = StatsTTLCache(maxsize=1024, ttl=600)
+
+
+def log_cache_stats(cache, func_name):
+    logging.info(
+        f'Cache stats for {func_name}: hits={cache.hits}, misses={cache.misses}, currsize={cache.currsize}, maxsize={cache.maxsize}'
+    )
 
 
 def insert_service_sms_sender(
@@ -35,6 +61,7 @@ def dao_get_service_sms_sender_by_id(
     service_id,
     service_sms_sender_id,
 ) -> ServiceSmsSenderData:
+    log_cache_stats(sms_sender_data_cache, 'dao_get_service_sms_sender_by_id')
     stmt = select(ServiceSmsSender).where(
         ServiceSmsSender.id == service_sms_sender_id,
         ServiceSmsSender.service_id == service_id,
@@ -63,6 +90,7 @@ def dao_get_service_sms_sender_by_id(
 @cached(sms_sender_data_cache)
 def dao_get_sms_senders_data_by_service_id(service_id):
     """Return a cached list of ServiceSmsSenderData objects for a given service_id."""
+    log_cache_stats(sms_sender_data_cache, 'dao_get_sms_senders_data_by_service_id')
     with tracer.trace('dao_get_sms_senders_by_service_id'):
         stmt = (
             select(ServiceSmsSender)
@@ -108,6 +136,7 @@ def dao_get_service_sms_sender_by_service_id_and_number(
     number: str,
 ) -> Optional[ServiceSmsSenderData]:
     """Return an instance of ServiceSmsSenderData, if available."""
+    log_cache_stats(sms_sender_data_cache, 'dao_get_service_sms_sender_by_service_id_and_number')
     with tracer.trace('dao_get_service_sms_sender_by_service_id_and_number'):
         stmt = select(ServiceSmsSender).where(
             ServiceSmsSender.service_id == service_id,
@@ -355,6 +384,7 @@ def _allocate_inbound_number_for_service(
 @cached(sms_sender_data_cache)
 def dao_get_default_service_sms_sender_by_service_id(service_id: str) -> Optional[ServiceSmsSenderData]:
     """Return the default ServiceSmsSenderData for a given service_id, or None if not found."""
+    log_cache_stats(sms_sender_data_cache, 'dao_get_default_service_sms_sender_by_service_id')
     with tracer.trace('dao_get_default_service_sms_sender_by_service_id'):
         stmt = select(ServiceSmsSender).where(
             ServiceSmsSender.service_id == service_id,
