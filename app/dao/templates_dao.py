@@ -19,6 +19,8 @@ from app.models import (
 )
 from app.utils import generate_html_email_content
 
+template_history_cache = TTLCache(maxsize=1024, ttl=600)
+
 
 @transactional
 @version_class(VersionOptions(Template, history_class=TemplateHistory))
@@ -242,7 +244,7 @@ class TemplateHistoryData:
         self.get_reply_to_text = get_reply_to_text
 
 
-@cached(cache=TTLCache(maxsize=1024, ttl=600))
+@cached(cache=template_history_cache)
 def dao_get_template_history_by_id(template_id, version) -> TemplateHistory | None:
     stmt = select(TemplateHistory).where(TemplateHistory.id == template_id, TemplateHistory.version == version)
     template_history_object = db.session.scalars(stmt).one()
