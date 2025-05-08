@@ -322,7 +322,7 @@ def get_reply_to_text(
     form,
     template,
 ):
-    with tracer.trace('get_reply_to_text', service='notify-api') as span:
+    with tracer.trace('get_reply_to_text') as span:
         span.set_tag('notification_type', notification_type)
         span.set_tag('template_id', template.id)
         span.set_tag('service_id', authenticated_service.id)

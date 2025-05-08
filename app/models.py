@@ -580,9 +580,28 @@ class ServiceSmsSenderData:
     rate_limit: int | None
     rate_limit_interval: int | None
     sms_sender_specifics: dict | None
+    created_at: str | None = None
+    updated_at: str | None = None
 
     def get_reply_to_text(self) -> str:
-        return self.sms_sender
+        return try_validate_and_format_phone_number(self.sms_sender)
+
+    def serialize(self) -> dict[str, bool | int | str | None]:
+        return {
+            'id': self.id,
+            'is_default': self.is_default,
+            'service_id': self.service_id,
+            'sms_sender': self.sms_sender,
+            'inbound_number_id': self.inbound_number_id,
+            'provider_id': self.provider_id,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at,
+            'archived': self.archived,
+            'description': self.description,
+            'rate_limit': self.rate_limit,
+            'rate_limit_interval': self.rate_limit_interval,
+            'sms_sender_specifics': self.sms_sender_specifics,
+        }
 
 
 class ServicePermission(db.Model):
@@ -1375,7 +1394,7 @@ class Notification(db.Model):
             'email': {
                 'failed': 'Failed',
                 'temporary-failure': 'Inbox not accepting messages right now',
-                'permanent-failure': 'Email address doesn’t exist',
+                'permanent-failure': "Email address doesn't exist",
                 'delivered': 'Delivered',
                 'sending': 'Sending',
                 'created': 'Sending',
@@ -1384,7 +1403,7 @@ class Notification(db.Model):
             'sms': {
                 'failed': 'Failed',
                 'temporary-failure': 'Phone not accepting messages right now',
-                'permanent-failure': 'Phone number doesn’t exist',
+                'permanent-failure': "Phone number doesn't exist",
                 'delivered': 'Delivered',
                 'sending': 'Sending',
                 'created': 'Sending',

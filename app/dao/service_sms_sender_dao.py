@@ -7,7 +7,7 @@ from sqlalchemy import desc, select, update
 
 from app import db
 from app.dao.dao_utils import transactional
-from app.models import ProviderDetails, ServiceSmsSender, InboundNumber, ServiceSmsSenderData
+from app.models import ProviderDetails, ServiceSmsSender, InboundNumber, ServiceSmsSenderData, DATETIME_FORMAT
 from app.service.exceptions import (
     SmsSenderDefaultValidationException,
     SmsSenderProviderValidationException,
@@ -38,7 +38,7 @@ def dao_get_service_sms_sender_by_id(
         ServiceSmsSender.service_id == service_id,
         ServiceSmsSender.archived.is_(False),
     )
-    with tracer.trace('dao_get_service_sms_sender_by_id', service='sms_sender_dao'):
+    with tracer.trace('dao_get_service_sms_sender_by_id'):
         service_sender = db.session.scalars(stmt).one()
 
         return ServiceSmsSenderData(
@@ -53,11 +53,13 @@ def dao_get_service_sms_sender_by_id(
             rate_limit=service_sender.rate_limit,
             rate_limit_interval=service_sender.rate_limit_interval,
             sms_sender_specifics=service_sender.sms_sender_specifics,
+            created_at=service_sender.created_at.strftime(DATETIME_FORMAT) if service_sender.created_at else None,
+            updated_at=service_sender.updated_at.strftime(DATETIME_FORMAT) if service_sender.updated_at else None,
         )
 
 
 def dao_get_sms_senders_by_service_id(service_id):
-    with tracer.trace('dao_get_sms_senders_by_service_id', service='sms_sender_dao'):
+    with tracer.trace('dao_get_sms_senders_by_service_id'):
         stmt = (
             select(ServiceSmsSender)
             .where(ServiceSmsSender.service_id == service_id, ServiceSmsSender.archived.is_(False))
@@ -73,7 +75,7 @@ def dao_get_service_sms_sender_by_service_id_and_number(
     number: str,
 ) -> Optional[ServiceSmsSenderData]:
     """Return an instance of ServiceSmsSenderData, if available."""
-    with tracer.trace('dao_get_service_sms_sender_by_service_id_and_number', service='sms_sender_dao'):
+    with tracer.trace('dao_get_service_sms_sender_by_service_id_and_number'):
         stmt = select(ServiceSmsSender).where(
             ServiceSmsSender.service_id == service_id,
             ServiceSmsSender.sms_sender == number,
@@ -97,6 +99,8 @@ def dao_get_service_sms_sender_by_service_id_and_number(
             rate_limit=service_sender.rate_limit,
             rate_limit_interval=service_sender.rate_limit_interval,
             sms_sender_specifics=service_sender.sms_sender_specifics,
+            created_at=service_sender.created_at.strftime(DATETIME_FORMAT) if service_sender.created_at else None,
+            updated_at=service_sender.updated_at.strftime(DATETIME_FORMAT) if service_sender.updated_at else None,
         )
 
 
