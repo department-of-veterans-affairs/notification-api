@@ -15,6 +15,8 @@ from app.service.exceptions import (
     SmsSenderRateLimitIntegrityException,
 )
 
+sms_sender_data_cache = TTLCache(maxsize=1024, ttl=600)
+
 
 def insert_service_sms_sender(
     service,
@@ -28,7 +30,7 @@ def insert_service_sms_sender(
     db.session.add(new_sms_sender)
 
 
-@cached(TTLCache(maxsize=1024, ttl=600))
+@cached(sms_sender_data_cache)
 def dao_get_service_sms_sender_by_id(
     service_id,
     service_sms_sender_id,
@@ -58,7 +60,7 @@ def dao_get_service_sms_sender_by_id(
         )
 
 
-@cached(TTLCache(maxsize=1024, ttl=600))
+@cached(sms_sender_data_cache)
 def dao_get_sms_senders_data_by_service_id(service_id):
     """Return a cached list of ServiceSmsSenderData objects for a given service_id."""
     with tracer.trace('dao_get_sms_senders_by_service_id'):
@@ -100,7 +102,7 @@ def dao_get_sms_senders_by_service_id(service_id):
         return db.session.scalars(stmt).all()
 
 
-@cached(TTLCache(maxsize=1024, ttl=600))
+@cached(sms_sender_data_cache)
 def dao_get_service_sms_sender_by_service_id_and_number(
     service_id: str,
     number: str,
@@ -350,7 +352,7 @@ def _allocate_inbound_number_for_service(
     return db.session.get(InboundNumber, inbound_number_id)
 
 
-@cached(TTLCache(maxsize=1024, ttl=600))
+@cached(sms_sender_data_cache)
 def dao_get_default_service_sms_sender_by_service_id(service_id: str) -> Optional[ServiceSmsSenderData]:
     """Return the default ServiceSmsSenderData for a given service_id, or None if not found."""
     with tracer.trace('dao_get_default_service_sms_sender_by_service_id'):
