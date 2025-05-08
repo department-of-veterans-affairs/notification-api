@@ -14,7 +14,7 @@ from app.dao.service_sms_sender_dao import (
     dao_add_sms_sender_for_service,
     dao_get_service_sms_sender_by_id,
     dao_get_service_sms_sender_by_service_id_and_number,
-    dao_get_sms_senders_by_service_id,
+    dao_get_sms_senders_data_by_service_id,
     dao_update_service_sms_sender,
     _validate_rate_limit,
 )
@@ -103,7 +103,7 @@ def test_dao_get_sms_senders_by_service_id(sample_provider, sample_service):
         description='test',
     )
 
-    sms_senders = dao_get_sms_senders_by_service_id(service_id=service.id)
+    sms_senders = dao_get_sms_senders_data_by_service_id(service_id=service.id)
 
     assert len(sms_senders) == 2
 
@@ -111,7 +111,7 @@ def test_dao_get_sms_senders_by_service_id(sample_provider, sample_service):
         if sms_sender.is_default:
             assert sms_sender.sms_sender == 'testing'
         else:
-            assert sms_sender == second_sender
+            assert sms_sender.id == str(second_sender.id)
 
 
 def test_dao_get_sms_senders_by_service_id_does_not_return_archived_senders(
@@ -122,10 +122,10 @@ def test_dao_get_sms_senders_by_service_id_does_not_return_archived_senders(
         service=service, sms_sender='second', is_default=False, archived=True
     )
 
-    sms_senders = dao_get_sms_senders_by_service_id(service_id=service.id)
+    sms_senders = dao_get_sms_senders_data_by_service_id(service_id=service.id)
 
     assert len(sms_senders) == 1
-    assert archived_sms_sender not in sms_senders
+    assert all(s.id != str(archived_sms_sender.id) for s in sms_senders)
 
 
 class TestDaoAddSmsSenderForService:
