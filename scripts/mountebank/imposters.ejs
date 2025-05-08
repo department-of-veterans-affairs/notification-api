@@ -1,60 +1,6 @@
 {
   "imposters": [
     {
-      "port": 7005,
-      "protocol": "http",
-      "name": "VAProfile",
-      "stubs": [
-         <% include stubs/vaprofile/emailBioStub200_OneEmail.ejs %>,
-         <% include stubs/vaprofile/emailBioStub200_TwoEmails.ejs %>,
-         <% include stubs/vaprofile/emailBioStub200_Core103.ejs %>,
-         <% include stubs/vaprofile/emailBioStub200_Rejected.ejs %>,
-         <% include stubs/vaprofile/emailBioStub200_CompletedFailure.ejs %>,
-         <% include stubs/vaprofile/emailBioStub400_Error.ejs %>,
-         <% include stubs/vaprofile/emailBioStub403_Error.ejs %>,
-         <% include stubs/vaprofile/emailBioStub404_Failure.ejs %>,
-         <% include stubs/vaprofile/emailBioStub404_Rejected.ejs %>,
-         <% include stubs/vaprofile/emailBioStub429_Retry.ejs %>,
-         <% include stubs/vaprofile/emailBioStub500_Retry.ejs %>,
-         <% include stubs/vaprofile/emailBioStub200_DuplicateEntries.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub200_CompletedFailure.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub200_Core103.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub200_CompletedFailure_2.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub200_OneHome.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub200_OneMobile.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub200_OneWork.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub200_Rejected.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub200_TwoHomes.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub200_TwoMobiles.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub400_Error.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub403_Error.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub404_Failure.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub404_Rejected.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub429_Retry.ejs %>,
-         <% include stubs/vaprofile/telephoneBioStub500_Retry.ejs %>,
-         <% include stubs/vaprofile/communicationPrefStub_VAProfileId_Allowed.ejs %>,
-         <% include stubs/vaprofile/communicationPrefStub_VAProfileId_NotAllowed.ejs %>,
-         <% include stubs/vaprofile/communicationPrefStub_VAProfileId_NoPermissions.ejs %>
-      ],
-      "defaultResponse": {
-        "statusCode": 200,
-        "headers": {
-          "connection": "open"
-        },
-        "body": {
-          "name": "va profile"
-        }
-      }
-    },
-    {
-      "port": 7006,
-      "protocol": "http",
-      "name": "Govdelivery",
-      "stubs": [
-        <% include stubs/govdelivery/govdelivery200.ejs %>
-      ]
-    },
-    {
       "port": 7007,
       "protocol": "http",
       "name": "MPI",
@@ -62,30 +8,7 @@
         "statusCode": 501
       },
       "stubs": [
-        <% include stubs/mpi/stub200Birl_OneVaProfile.ejs %>,
-        <% include stubs/mpi/stub200Icn_ActiveVaProfile_Single.ejs %>,
-        <% include stubs/mpi/stub200Icn_Error_IcnDoesNotExist.ejs %>,
-        <% include stubs/mpi/stub200Pid_ActiveVaProfile_Multiple.ejs %>,
-        <% include stubs/mpi/stub200Pid_ActiveVaProfile_Single.ejs %>,
-        <% include stubs/mpi/stub200Pid_Deceased.ejs %>,
-        <% include stubs/mpi/stub200Pid_Error_MviInvalidRequest.ejs %>,
-        <% include stubs/mpi/stub200Pid_Error_PidDoesNotExist.ejs %>,
-        <% include stubs/mpi/stub200Pid_NoActiveVaProfile.ejs %>,
-        <% include stubs/mpi/stub400Pid_Error.ejs %>,
-        <% include stubs/mpi/stub429Pid_Retry.ejs %>,
-        <% include stubs/mpi/stub500Pid_Retry.ejs %>
-      ]
-    },
-    {
-      "port": 7008,
-      "protocol": "http",
-      "name": "VEText",
-      "recordRequests": true,
-      "stubs": [
-        <% include stubs/vetext/pushNote400_InvalidApp.ejs %>,
-        <% include stubs/vetext/pushNote400_InvalidTemplate.ejs %>,
-        <% include stubs/vetext/pushNote500 %>,
-        <% include stubs/vetext/pushNote200.ejs %>
+        <% include stubs/mpi/stub200Pid_RegexAnyId.ejs %>
       ]
     }
   ]
