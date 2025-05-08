@@ -492,7 +492,7 @@ class MockTwilioSMSClient(TwilioSMSClient):
         **kwargs,
     ):
         if account_sid is None or auth_token is None:
-            raise ValueError("account_sid and auth_token must be provided for MockTwilioSMSClient")
+            raise ValueError('account_sid and auth_token must be provided for MockTwilioSMSClient')
         super().__init__(account_sid, auth_token, *args, **kwargs)
         self.mock_server_url = mock_server_url
 
