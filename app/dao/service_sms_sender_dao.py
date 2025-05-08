@@ -2,6 +2,7 @@ from cachetools import TTLCache, cached
 from typing import Optional
 from uuid import UUID
 
+from ddtrace import tracer
 from sqlalchemy import desc, select, update
 
 from app import db
@@ -37,32 +38,33 @@ def dao_get_service_sms_sender_by_id(
         ServiceSmsSender.service_id == service_id,
         ServiceSmsSender.archived.is_(False),
     )
+    with tracer.trace('dao_get_service_sms_sender_by_id', service='sms_sender_dao'):
+        service_sender = db.session.scalars(stmt).one()
 
-    service_sender = db.session.scalars(stmt).one()
-
-    return ServiceSmsSenderData(
-        id=str(service_sender.id),
-        service_id=str(service_sender.service_id),
-        sms_sender=service_sender.sms_sender,
-        is_default=service_sender.is_default,
-        inbound_number_id=str(service_sender.inbound_number_id) if service_sender.inbound_number_id else None,
-        provider_id=str(service_sender.provider_id) if service_sender.provider_id else None,
-        archived=service_sender.archived,
-        description=service_sender.description,
-        rate_limit=service_sender.rate_limit,
-        rate_limit_interval=service_sender.rate_limit_interval,
-        sms_sender_specifics=service_sender.sms_sender_specifics,
-    )
+        return ServiceSmsSenderData(
+            id=str(service_sender.id),
+            service_id=str(service_sender.service_id),
+            sms_sender=service_sender.sms_sender,
+            is_default=service_sender.is_default,
+            inbound_number_id=str(service_sender.inbound_number_id) if service_sender.inbound_number_id else None,
+            provider_id=str(service_sender.provider_id) if service_sender.provider_id else None,
+            archived=service_sender.archived,
+            description=service_sender.description,
+            rate_limit=service_sender.rate_limit,
+            rate_limit_interval=service_sender.rate_limit_interval,
+            sms_sender_specifics=service_sender.sms_sender_specifics,
+        )
 
 
 def dao_get_sms_senders_by_service_id(service_id):
-    stmt = (
-        select(ServiceSmsSender)
-        .where(ServiceSmsSender.service_id == service_id, ServiceSmsSender.archived.is_(False))
-        .order_by(desc(ServiceSmsSender.is_default))
-    )
+    with tracer.trace('dao_get_sms_senders_by_service_id', service='sms_sender_dao'):
+        stmt = (
+            select(ServiceSmsSender)
+            .where(ServiceSmsSender.service_id == service_id, ServiceSmsSender.archived.is_(False))
+            .order_by(desc(ServiceSmsSender.is_default))
+        )
 
-    return db.session.scalars(stmt).all()
+        return db.session.scalars(stmt).all()
 
 
 @cached(TTLCache(maxsize=1024, ttl=600))
@@ -71,31 +73,31 @@ def dao_get_service_sms_sender_by_service_id_and_number(
     number: str,
 ) -> Optional[ServiceSmsSenderData]:
     """Return an instance of ServiceSmsSenderData, if available."""
+    with tracer.trace('dao_get_service_sms_sender_by_service_id_and_number', service='sms_sender_dao'):
+        stmt = select(ServiceSmsSender).where(
+            ServiceSmsSender.service_id == service_id,
+            ServiceSmsSender.sms_sender == number,
+            ServiceSmsSender.archived.is_(False),
+        )
 
-    stmt = select(ServiceSmsSender).where(
-        ServiceSmsSender.service_id == service_id,
-        ServiceSmsSender.sms_sender == number,
-        ServiceSmsSender.archived.is_(False),
-    )
+        service_sender = db.session.scalars(stmt).first()
 
-    service_sender = db.session.scalars(stmt).first()
+        if not service_sender:
+            return None
 
-    if not service_sender:
-        return None
-
-    return ServiceSmsSenderData(
-        id=str(service_sender.id),
-        service_id=str(service_sender.service_id),
-        sms_sender=service_sender.sms_sender,
-        is_default=service_sender.is_default,
-        inbound_number_id=str(service_sender.inbound_number_id) if service_sender.inbound_number_id else None,
-        provider_id=str(service_sender.provider_id) if service_sender.provider_id else None,
-        archived=service_sender.archived,
-        description=service_sender.description,
-        rate_limit=service_sender.rate_limit,
-        rate_limit_interval=service_sender.rate_limit_interval,
-        sms_sender_specifics=service_sender.sms_sender_specifics,
-    )
+        return ServiceSmsSenderData(
+            id=str(service_sender.id),
+            service_id=str(service_sender.service_id),
+            sms_sender=service_sender.sms_sender,
+            is_default=service_sender.is_default,
+            inbound_number_id=str(service_sender.inbound_number_id) if service_sender.inbound_number_id else None,
+            provider_id=str(service_sender.provider_id) if service_sender.provider_id else None,
+            archived=service_sender.archived,
+            description=service_sender.description,
+            rate_limit=service_sender.rate_limit,
+            rate_limit_interval=service_sender.rate_limit_interval,
+            sms_sender_specifics=service_sender.sms_sender_specifics,
+        )
 
 
 @transactional

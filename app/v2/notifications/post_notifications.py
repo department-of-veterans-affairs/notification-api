@@ -50,111 +50,109 @@ from app.utils import get_public_notify_type_text
 
 @v2_notification_blueprint.route('/<notification_type>', methods=['POST'])
 def post_notification(notification_type):  # noqa: C901
-    with tracer.trace('post_notification_1') as span:
-        created_at = datetime.now(timezone.utc)
-        try:
-            request_json = request.get_json()
-        except werkzeug.exceptions.BadRequest as e:
-            raise BadRequestError(message=f'Error decoding arguments: {e.description}', status_code=400)
+    created_at = datetime.now(timezone.utc)
+    try:
+        request_json = request.get_json()
+    except werkzeug.exceptions.BadRequest as e:
+        raise BadRequestError(message=f'Error decoding arguments: {e.description}', status_code=400)
 
-        if notification_type == EMAIL_TYPE:
-            form = validate(request_json, post_email_request)
-        elif notification_type == SMS_TYPE:
-            form = validate(request_json, post_sms_request)
+    if notification_type == EMAIL_TYPE:
+        form = validate(request_json, post_email_request)
+    elif notification_type == SMS_TYPE:
+        form = validate(request_json, post_sms_request)
 
-            if form.get('sms_sender_id') is None:
-                # Use the service's default sms_sender.
-                for sender in authenticated_service.service_sms_senders:
-                    if sender.is_default:
-                        form['sms_sender_id'] = sender.id
-                        break
-                else:
-                    raise BadRequestError(
-                        message='You must supply a value for sms_sender_id, or the service must have a default.'
-                    )
-        elif notification_type == LETTER_TYPE:
-            form = validate(request_json, post_letter_request)
-        else:
-            abort(404)
-
-        if not authenticated_service.has_permissions(notification_type):
-            raise BadRequestError(
-                message='Service is not allowed to send {}'.format(
-                    get_public_notify_type_text(notification_type, plural=True)
+        if form.get('sms_sender_id') is None:
+            # Use the service's default sms_sender.
+            for sender in authenticated_service.service_sms_senders:
+                if sender.is_default:
+                    form['sms_sender_id'] = sender.id
+                    break
+            else:
+                raise BadRequestError(
+                    message='You must supply a value for sms_sender_id, or the service must have a default.'
                 )
+    elif notification_type == LETTER_TYPE:
+        form = validate(request_json, post_letter_request)
+    else:
+        abort(404)
+
+    if not authenticated_service.has_permissions(notification_type):
+        raise BadRequestError(
+            message='Service is not allowed to send {}'.format(
+                get_public_notify_type_text(notification_type, plural=True)
             )
-
-        scheduled_for = form.get('scheduled_for')
-
-        if scheduled_for is not None:
-            if not authenticated_service.has_permissions(SCHEDULE_NOTIFICATIONS):
-                raise BadRequestError(message='Cannot schedule notifications (this feature is invite-only)')
-
-    with tracer.trace('post_notification_2') as span:
-        template, template_with_content = validate_template(
-            form['template_id'],
-            strip_keys_from_personalisation_if_send_attach(form.get('personalisation', {})),
-            authenticated_service,
-            notification_type,
         )
 
-        check_rate_limiting(authenticated_service, api_user)
+    scheduled_for = form.get('scheduled_for')
 
-        onsite_enabled = template.onsite_notification
+    if scheduled_for is not None:
+        if not authenticated_service.has_permissions(SCHEDULE_NOTIFICATIONS):
+            raise BadRequestError(message='Cannot schedule notifications (this feature is invite-only)')
 
-        reply_to = get_reply_to_text(notification_type, form, template)
+    template, template_with_content = validate_template(
+        form['template_id'],
+        strip_keys_from_personalisation_if_send_attach(form.get('personalisation', {})),
+        authenticated_service,
+        notification_type,
+    )
 
-        if notification_type == LETTER_TYPE:
-            return jsonify(result='error', message='Not Implemented'), 501
+    check_rate_limiting(authenticated_service, api_user)
+
+    onsite_enabled = template.onsite_notification
+
+    reply_to = get_reply_to_text(notification_type, form, template)
+
+    if notification_type == LETTER_TYPE:
+        return jsonify(result='error', message='Not Implemented'), 501
+    else:
+        if 'email_address' in form or 'phone_number' in form:
+            notification = process_sms_or_email_notification(
+                form=form,
+                notification_type=notification_type,
+                api_key=api_user,
+                template=template,
+                service=authenticated_service,
+                reply_to_text=reply_to,
+                created_at=created_at,
+            )
         else:
-            if 'email_address' in form or 'phone_number' in form:
-                notification = process_sms_or_email_notification(
+            # This execution path uses a given recipient identifier to lookup the
+            # recipient's e-mail address or phone number.
+            if accept_recipient_identifiers_enabled():
+                notification = process_notification_with_recipient_identifier(
                     form=form,
                     notification_type=notification_type,
                     api_key=api_user,
                     template=template,
                     service=authenticated_service,
                     reply_to_text=reply_to,
+                    onsite_enabled=onsite_enabled,
                     created_at=created_at,
                 )
             else:
-                # This execution path uses a given recipient identifier to lookup the
-                # recipient's e-mail address or phone number.
-                if accept_recipient_identifiers_enabled():
-                    notification = process_notification_with_recipient_identifier(
-                        form=form,
-                        notification_type=notification_type,
-                        api_key=api_user,
-                        template=template,
-                        service=authenticated_service,
-                        reply_to_text=reply_to,
-                        onsite_enabled=onsite_enabled,
-                        created_at=created_at,
-                    )
-                else:
-                    current_app.logger.debug('Sending a notification without contact information is not implemented.')
-                    return jsonify(result='error', message='Not Implemented'), 501
+                current_app.logger.debug('Sending a notification without contact information is not implemented.')
+                return jsonify(result='error', message='Not Implemented'), 501
 
-            template_with_content.values = {k: '<redacted>' for k in notification.personalisation}
+        template_with_content.values = {k: '<redacted>' for k in notification.personalisation}
 
-        if notification_type == SMS_TYPE:
-            create_resp_partial = functools.partial(create_post_sms_response_from_notification, from_number=reply_to)
-        elif notification_type == EMAIL_TYPE:
-            create_resp_partial = functools.partial(
-                create_post_email_response_from_notification, subject=html.unescape(template_with_content.subject)
-            )
-        elif notification_type == LETTER_TYPE:
-            create_resp_partial = functools.partial(
-                create_post_letter_response_from_notification,
-                subject=template_with_content.subject,
-            )
-
-        resp = create_resp_partial(
-            notification=notification,
-            content=str(template_with_content),
-            url_root=request.url_root,
-            scheduled_for=scheduled_for,
+    if notification_type == SMS_TYPE:
+        create_resp_partial = functools.partial(create_post_sms_response_from_notification, from_number=reply_to)
+    elif notification_type == EMAIL_TYPE:
+        create_resp_partial = functools.partial(
+            create_post_email_response_from_notification, subject=html.unescape(template_with_content.subject)
         )
+    elif notification_type == LETTER_TYPE:
+        create_resp_partial = functools.partial(
+            create_post_letter_response_from_notification,
+            subject=template_with_content.subject,
+        )
+
+    resp = create_resp_partial(
+        notification=notification,
+        content=str(template_with_content),
+        url_root=request.url_root,
+        scheduled_for=scheduled_for,
+    )
 
     return jsonify(resp), 201
 
@@ -324,21 +322,25 @@ def get_reply_to_text(
     form,
     template,
 ):
-    reply_to = None
+    with tracer.trace('get_reply_to_text', service='notify-api') as span:
+        span.set_tag('notification_type', notification_type)
+        span.set_tag('template_id', template.id)
+        span.set_tag('service_id', authenticated_service.id)
+        reply_to = None
 
-    if notification_type == EMAIL_TYPE:
-        reply_to = template.reply_to_email
+        if notification_type == EMAIL_TYPE:
+            reply_to = template.reply_to_email
 
-    elif notification_type == SMS_TYPE:
-        sms_sender_id = check_service_sms_sender_id(
-            str(authenticated_service.id), form.get('sms_sender_id'), notification_type
-        )
-        if sms_sender_id:
-            reply_to = try_validate_and_format_phone_number(sms_sender_id)
-        else:
-            reply_to = template.get_reply_to_text()
+        elif notification_type == SMS_TYPE:
+            sms_sender_id = check_service_sms_sender_id(
+                str(authenticated_service.id), form.get('sms_sender_id'), notification_type
+            )
+            if sms_sender_id:
+                reply_to = try_validate_and_format_phone_number(sms_sender_id)
+            else:
+                reply_to = template.get_reply_to_text()
 
-    return reply_to
+        return reply_to
 
 
 def strip_keys_from_personalisation_if_send_attach(personalisation):
