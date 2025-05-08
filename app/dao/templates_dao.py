@@ -186,21 +186,104 @@ def dao_get_number_of_templates_by_service_id_and_name(
     return db.session.scalar(stmt)
 
 
+class TemplateHistoryData:
+    def __init__(
+        self,
+        id,
+        name,
+        template_type,
+        created_at,
+        updated_at,
+        content,
+        service_id,
+        subject,
+        postage,
+        created_by_id,
+        version,
+        archived,
+        process_type,
+        service_letter_contact_id,
+        content_as_html=None,
+        content_as_plain_text=None,
+        hidden=False,
+        onsite_notification=False,
+        reply_to_email=None,
+        provider_id=None,
+        communication_item_id=None,
+        redact_personalisation=False,
+    ):
+        # TemplateHistory attributes
+        self.id = id
+        self.name = name
+        self.template_type = template_type
+        self.created_at = created_at
+        self.updated_at = updated_at
+        self.content = content
+        self.service_id = service_id
+        self.subject = subject
+        self.postage = postage
+        self.created_by_id = created_by_id
+        self.version = version
+        self.archived = archived
+        self.process_type = process_type
+        self.service_letter_contact_id = service_letter_contact_id
+
+        # Additional attributes from TemplateBase
+        self.content_as_html = content_as_html
+        self.content_as_plain_text = content_as_plain_text
+        self.hidden = hidden
+        self.onsite_notification = onsite_notification
+        self.reply_to_email = reply_to_email
+        self.provider_id = provider_id
+        self.communication_item_id = communication_item_id
+        self.redact_personalisation = redact_personalisation
+
+
 @cached(cache=TTLCache(maxsize=1024, ttl=600))
-def dao_get_template_history_by_id(template_id, version) -> TemplateHistory:
+def dao_get_template_history_by_id(template_id, version) -> TemplateHistory | None:
     stmt = select(TemplateHistory).where(TemplateHistory.id == template_id, TemplateHistory.version == version)
-    return db.session.scalars(stmt).one()
+    template_history_object = db.session.scalars(stmt).one()
+
+    if template_history_object:
+        return TemplateHistoryData(
+            id=template_history_object.id,
+            name=template_history_object.name,
+            template_type=template_history_object.template_type,
+            created_at=template_history_object.created_at,
+            updated_at=template_history_object.updated_at,
+            content=template_history_object.content,
+            service_id=template_history_object.service_id,
+            subject=template_history_object.subject,
+            postage=template_history_object.postage,
+            created_by_id=template_history_object.created_by_id,
+            version=template_history_object.version,
+            archived=template_history_object.archived,
+            process_type=template_history_object.process_type,
+            service_letter_contact_id=template_history_object.service_letter_contact_id,
+            content_as_html=template_history_object.content_as_html,
+            content_as_plain_text=template_history_object.content_as_plain_text,
+            hidden=template_history_object.hidden,
+            onsite_notification=template_history_object.onsite_notification,
+            reply_to_email=template_history_object.reply_to_email,
+            provider_id=template_history_object.provider_id,
+            communication_item_id=template_history_object.communication_item_id,
+            redact_personalisation=getattr(template_history_object, 'redact_personalisation', False),
+        )
+    return None
 
 
 def dao_get_template_by_id(
     template_id,
     version=None,
-) -> Template:
-    if version is None:
-        stmt = select(Template).where(Template.id == template_id)
-        return db.session.scalars(stmt).one()
-    else:
-        return dao_get_template_history_by_id(template_id, version)
+) -> Template | TemplateHistoryData:
+    from ddtrace import tracer
+
+    with tracer.trace('post_notification_1'):
+        if version is None:
+            stmt = select(Template).where(Template.id == template_id)
+            return db.session.scalars(stmt).one()
+        else:
+            return dao_get_template_history_by_id(template_id, version)
 
 
 def dao_get_all_templates_for_service(
