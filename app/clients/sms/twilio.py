@@ -485,12 +485,14 @@ class MockTwilioSMSClient(TwilioSMSClient):
 
     def __init__(
         self,
-        account_sid='',
-        auth_token='',
+        account_sid=None,
+        auth_token=None,
         mock_server_url='http://host.docker.internal:4010',
         *args,
         **kwargs,
     ):
+        if account_sid is None or auth_token is None:
+            raise ValueError("account_sid and auth_token must be provided for MockTwilioSMSClient")
         super().__init__(account_sid, auth_token, *args, **kwargs)
         self.mock_server_url = mock_server_url
 
