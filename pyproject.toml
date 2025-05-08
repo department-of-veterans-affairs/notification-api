@@ -18,7 +18,7 @@ boto3 = "*"
 botocore = "*"
 cachelib = "*"
 cachetools = "*"
-celery = {extras = ["sqs"], version = "*"}
+celery = {extras = ["sqs"], version = "5.4.0"}
 click-datetime = "*"
 ddtrace = "*"
 docopt = "*"
