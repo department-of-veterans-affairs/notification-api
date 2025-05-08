@@ -453,6 +453,8 @@ class TwilioSMSClient(SmsClient):
         return notify_delivery_status.status, notify_delivery_status.status_reason
 
 
+# This is a custom HTTP client that redirects all Twilio API calls to the Prism mock server.
+# https://www.twilio.com/docs/openapi/mock-api-generation-with-twilio-openapi-spec#creating-and-running-stoplight-using-docker
 class PrismClient(TwilioHttpClient):
     """Custom Twilio HTTP Client that directs requests to the Prism mock server."""
 
@@ -487,7 +489,7 @@ class MockTwilioSMSClient(TwilioSMSClient):
         self,
         account_sid=None,
         auth_token=None,
-        mock_server_url='http://host.docker.internal:4010',
+        mock_server_url='http://twilio:4010',  # Default mock server URL of docker-compose-local service.
         *args,
         **kwargs,
     ):
