@@ -126,6 +126,7 @@ def dao_get_sms_senders_data_by_service_id(service_id):
         ]
 
 
+@cached(sms_sender_data_cache)
 def dao_get_sms_senders_by_service_id(service_id):
     """Return a list of ServiceSmsSender ORM objects for a given service_id. Not cached."""
     with tracer.trace('dao_get_sms_senders_by_service_id'):
