@@ -14,7 +14,7 @@ from app.dao.service_sms_sender_dao import (
     dao_add_sms_sender_for_service,
     dao_get_service_sms_sender_by_id,
     dao_get_service_sms_sender_by_service_id_and_number,
-    dao_get_sms_senders_by_service_id,
+    dao_get_sms_senders_data_by_service_id,
     dao_update_service_sms_sender,
     _validate_rate_limit,
 )
@@ -40,7 +40,7 @@ def test_dao_get_service_sms_sender_by_id(sample_provider, sample_service):
         description='test',
     )
 
-    service_sms_sender = dao_get_service_sms_sender_by_id(service_id=service.id, service_sms_sender_id=second_sender.id)
+    service_sms_sender = dao_get_service_sms_sender_by_id(str(service.id), str(second_sender.id))
 
     assert service_sms_sender.sms_sender == 'second'
     assert not service_sms_sender.is_default
@@ -68,7 +68,7 @@ def test_dao_get_service_sms_sender_by_id_with_sender_specifics(sample_provider,
         description='test',
     )
 
-    service_sms_sender = dao_get_service_sms_sender_by_id(service_id=service.id, service_sms_sender_id=second_sender.id)
+    service_sms_sender = dao_get_service_sms_sender_by_id(str(service.id), str(second_sender.id))
 
     assert service_sms_sender.sms_sender == 'second'
     assert not service_sms_sender.is_default
@@ -78,7 +78,7 @@ def test_dao_get_service_sms_sender_by_id_with_sender_specifics(sample_provider,
 def test_dao_get_service_sms_sender_by_id_raise_exception_when_not_found(sample_service):
     service = sample_service()
     with pytest.raises(expected_exception=SQLAlchemyError):
-        dao_get_service_sms_sender_by_id(service_id=service.id, service_sms_sender_id=uuid.uuid4())
+        dao_get_service_sms_sender_by_id(str(service.id), str(uuid.uuid4()))
 
 
 def test_dao_get_service_sms_senders_id_raises_exception_with_archived_sms_sender(sample_service):
@@ -87,7 +87,7 @@ def test_dao_get_service_sms_senders_id_raises_exception_with_archived_sms_sende
         service=service, sms_sender='second', is_default=False, archived=True
     )
     with pytest.raises(expected_exception=SQLAlchemyError):
-        dao_get_service_sms_sender_by_id(service_id=service.id, service_sms_sender_id=archived_sms_sender.id)
+        dao_get_service_sms_sender_by_id(str(service.id), str(archived_sms_sender.id))
 
 
 def test_dao_get_sms_senders_by_service_id(sample_provider, sample_service):
@@ -103,7 +103,7 @@ def test_dao_get_sms_senders_by_service_id(sample_provider, sample_service):
         description='test',
     )
 
-    sms_senders = dao_get_sms_senders_by_service_id(service_id=service.id)
+    sms_senders = dao_get_sms_senders_data_by_service_id(service_id=service.id)
 
     assert len(sms_senders) == 2
 
@@ -111,7 +111,7 @@ def test_dao_get_sms_senders_by_service_id(sample_provider, sample_service):
         if sms_sender.is_default:
             assert sms_sender.sms_sender == 'testing'
         else:
-            assert sms_sender == second_sender
+            assert sms_sender.id == str(second_sender.id)
 
 
 def test_dao_get_sms_senders_by_service_id_does_not_return_archived_senders(
@@ -122,10 +122,10 @@ def test_dao_get_sms_senders_by_service_id_does_not_return_archived_senders(
         service=service, sms_sender='second', is_default=False, archived=True
     )
 
-    sms_senders = dao_get_sms_senders_by_service_id(service_id=service.id)
+    sms_senders = dao_get_sms_senders_data_by_service_id(service_id=service.id)
 
     assert len(sms_senders) == 1
-    assert archived_sms_sender not in sms_senders
+    assert all(s.id != str(archived_sms_sender.id) for s in sms_senders)
 
 
 class TestDaoAddSmsSenderForService:
@@ -563,7 +563,15 @@ class TestGetSmsSenderByServiceIdAndNumber:
             service_id=service.id, number='+15551234567'
         )
 
-        assert found_sms_sender is sms_sender
+        assert found_sms_sender.id == str(sms_sender.id)
+        assert found_sms_sender.sms_sender == sms_sender.sms_sender
+        assert found_sms_sender.service_id == str(sms_sender.service_id)
+        assert found_sms_sender.is_default == sms_sender.is_default
+        assert found_sms_sender.archived == sms_sender.archived
+        assert found_sms_sender.description == sms_sender.description
+        assert found_sms_sender.rate_limit == sms_sender.rate_limit
+        assert found_sms_sender.rate_limit_interval == sms_sender.rate_limit_interval
+        assert found_sms_sender.sms_sender_specifics == sms_sender.sms_sender_specifics
 
 
 @pytest.mark.parametrize(

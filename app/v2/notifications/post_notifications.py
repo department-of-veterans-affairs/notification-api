@@ -3,6 +3,7 @@ import html
 from datetime import datetime, timezone
 
 import werkzeug
+from ddtrace import tracer
 from flask import request, jsonify, current_app, abort
 from notifications_utils.recipients import try_validate_and_format_phone_number
 
@@ -17,6 +18,7 @@ from app.constants import (
     LETTER_TYPE,
     UPLOAD_DOCUMENT,
 )
+from app.dao.service_sms_sender_dao import dao_get_default_service_sms_sender_by_service_id
 from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
 from app.notifications.process_notifications import (
     persist_notification,
@@ -29,7 +31,7 @@ from app.notifications.validators import (
     validate_and_format_recipient,
     check_rate_limiting,
     validate_template,
-    check_service_sms_sender_id,
+    get_service_sms_sender_number,
 )
 from app.schema_validation import validate
 from app.v2.errors import BadRequestError
@@ -166,54 +168,59 @@ def process_sms_or_email_notification(
     reply_to_text=None,
     created_at: datetime | None = None,
 ):
-    form_send_to = form['email_address' if (notification_type == EMAIL_TYPE) else 'phone_number']
+    with tracer.trace('process_sms_or_email_notification') as span:
+        span.set_tag('notification_type', notification_type)
+        span.set_tag('template_id', template.id)
+        span.set_tag('service_id', service.id)
 
-    send_to = validate_and_format_recipient(
-        send_to=form_send_to, key_type=api_key.key_type, service=service, notification_type=notification_type
-    )
+        form_send_to = form['email_address' if (notification_type == EMAIL_TYPE) else 'phone_number']
 
-    # Do not persist or send notification to the queue if it is a simulated recipient.
-    #
-    # TODO (tech debt) - This value is computed using a predetermined list of e-mail addresses defined
-    # to be for simulation.  A better approach might be to pass "simulated" as a parameter to
-    # process_sms_or_email_notification or to mock the undesired side-effects in test code.
-    simulated: bool = simulated_recipient(send_to, notification_type)
+        send_to = validate_and_format_recipient(
+            send_to=form_send_to, key_type=api_key.key_type, service=service, notification_type=notification_type
+        )
 
-    personalisation = process_document_uploads(form.get('personalisation'), service, simulated=simulated)
+        # Do not persist or send notification to the queue if it is a simulated recipient.
+        #
+        # TODO (tech debt) - This value is computed using a predetermined list of e-mail addresses defined
+        # to be for simulation.  A better approach might be to pass "simulated" as a parameter to
+        # process_sms_or_email_notification or to mock the undesired side-effects in test code.
+        simulated: bool = simulated_recipient(send_to, notification_type)
 
-    recipient_identifier = form.get('recipient_identifier')
-    notification = persist_notification(
-        template_id=template.id,
-        template_version=template.version,
-        recipient=form_send_to,
-        service_id=service.id,
-        personalisation=personalisation,
-        notification_type=notification_type,
-        api_key_id=api_key.id,
-        key_type=api_key.key_type,
-        client_reference=form.get('reference'),
-        simulated=simulated,
-        reply_to_text=reply_to_text,
-        recipient_identifier=recipient_identifier,
-        billing_code=form.get('billing_code'),
-        sms_sender_id=form.get('sms_sender_id'),
-        callback_url=form.get('callback_url'),
-        created_at=created_at,
-    )
+        personalisation = process_document_uploads(form.get('personalisation'), service, simulated=simulated)
 
-    if 'scheduled_for' in form:
-        persist_scheduled_notification(notification.id, form['scheduled_for'])
-    else:
-        if simulated:
-            current_app.logger.debug('POST simulated notification for id: %s', notification.id)
+        recipient_identifier = form.get('recipient_identifier')
+        notification = persist_notification(
+            template_id=template.id,
+            template_version=template.version,
+            recipient=form_send_to,
+            service_id=service.id,
+            personalisation=personalisation,
+            notification_type=notification_type,
+            api_key_id=api_key.id,
+            key_type=api_key.key_type,
+            client_reference=form.get('reference'),
+            simulated=simulated,
+            reply_to_text=reply_to_text,
+            recipient_identifier=recipient_identifier,
+            billing_code=form.get('billing_code'),
+            sms_sender_id=form.get('sms_sender_id'),
+            callback_url=form.get('callback_url'),
+            created_at=created_at,
+        )
+
+        if 'scheduled_for' in form:
+            persist_scheduled_notification(notification.id, form['scheduled_for'])
         else:
-            recipient_id_type = recipient_identifier.get('id_type') if recipient_identifier else None
-            send_notification_to_queue(
-                notification=notification,
-                research_mode=service.research_mode,
-                recipient_id_type=recipient_id_type,
-                sms_sender_id=form.get('sms_sender_id'),
-            )
+            if simulated:
+                current_app.logger.debug('POST simulated notification for id: %s', notification.id)
+            else:
+                recipient_id_type = recipient_identifier.get('id_type') if recipient_identifier else None
+                send_notification_to_queue(
+                    notification=notification,
+                    research_mode=service.research_mode,
+                    recipient_id_type=recipient_id_type,
+                    sms_sender_id=form.get('sms_sender_id'),
+                )
 
     return notification
 
@@ -316,21 +323,27 @@ def get_reply_to_text(
     form,
     template,
 ):
-    reply_to = None
+    with tracer.trace('get_reply_to_text') as span:
+        span.set_tag('notification_type', notification_type)
+        span.set_tag('template_id', template.id)
+        span.set_tag('service_id', authenticated_service.id)
+        reply_to = None
 
-    if notification_type == EMAIL_TYPE:
-        reply_to = template.reply_to_email
+        if notification_type == EMAIL_TYPE:
+            reply_to = template.reply_to_email
 
-    elif notification_type == SMS_TYPE:
-        sms_sender_id = check_service_sms_sender_id(
-            str(authenticated_service.id), form.get('sms_sender_id'), notification_type
-        )
-        if sms_sender_id:
-            reply_to = try_validate_and_format_phone_number(sms_sender_id)
-        else:
-            reply_to = template.get_reply_to_text()
+        elif notification_type == SMS_TYPE:
+            sms_sender_id = get_service_sms_sender_number(
+                str(authenticated_service.id), form.get('sms_sender_id'), notification_type
+            )
+            if sms_sender_id:
+                reply_to = try_validate_and_format_phone_number(sms_sender_id)
+            else:
+                # Get the default SMS sender reply_to
+                default_sms_sender = dao_get_default_service_sms_sender_by_service_id(authenticated_service.id)
+                try_validate_and_format_phone_number(default_sms_sender.sms_sender)
 
-    return reply_to
+        return reply_to
 
 
 def strip_keys_from_personalisation_if_send_attach(personalisation):

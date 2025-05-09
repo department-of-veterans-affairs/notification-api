@@ -67,19 +67,11 @@ services:
       timeout: 10s
       retries: 5
 
-  mountebank:
-    container_name: mountebank
-    image: bbyars/mountebank:2.4.0
-    volumes:
-      - ../scripts/mountebank:/mountebank
+  twilio:
+    image: stoplight/prism:4
     ports:
-      - 2525:2525
-      - 7005:7005
-      - 7006:7006
-      - 7007:7007
-      - 7008:7008
-    command: start --configfile /mountebank/imposters.ejs --allowInjection
-
+      - '4010:4010'
+    command: mock -h 0.0.0.0 https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_api_v2010.json
   redis:
     image: redis
     ports:
