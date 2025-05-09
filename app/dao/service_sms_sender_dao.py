@@ -6,7 +6,7 @@ from ddtrace import tracer
 from flask import current_app
 from sqlalchemy import desc, select, update
 
-from app import db
+from app import db, statsd_client
 from app.dao.dao_utils import transactional
 from app.models import ProviderDetails, ServiceSmsSender, InboundNumber, ServiceSmsSenderData, DATETIME_FORMAT
 from app.service.exceptions import (
@@ -19,6 +19,7 @@ from app.service.exceptions import (
 
 class StatsTTLCache(TTLCache):
     def __init__(self, *args, **kwargs):
+        self.namespace = kwargs.pop('namespace', 'statscache')
         super().__init__(*args, **kwargs)
         self.hits = 0
         self.misses = 0
@@ -27,15 +28,17 @@ class StatsTTLCache(TTLCache):
         try:
             value = super().__getitem__(key)
             self.hits += 1
+            statsd_client.incr(f'{self.namespace}.hits', 1)
             current_app.logger.debug('Cache hit for %s', key)
             return value
         except KeyError:
             self.misses += 1
+            statsd_client.incr(f'{self.namespace}.misses', 1)
             raise
 
 
 # Use this instead of TTLCache
-sms_sender_data_cache = StatsTTLCache(maxsize=1024, ttl=600)
+sms_sender_data_cache = StatsTTLCache(maxsize=1024, ttl=600, namespace='sms_sender_cache')
 
 
 def log_cache_stats(cache, func_name):
