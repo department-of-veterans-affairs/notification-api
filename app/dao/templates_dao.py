@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import asc, desc, func, select, update
-
+from sqlalchemy.orm import joinedload
 from app import db
 from app.constants import EMAIL_TYPE
 from app.dao.dao_utils import (
@@ -145,15 +145,29 @@ def dao_get_template_by_id_and_service_id(
     version=None,
 ) -> Template:
     if version is None:
-        stmt = select(Template).where(
-            Template.id == template_id, Template.hidden.is_(False), Template.service_id == service_id
+        stmt = (
+            select(Template)
+            .options(
+                joinedload('service').selectinload('service_sms_senders'),
+                joinedload('service').selectinload('permissions'),
+                joinedload('service').selectinload('whitelist'),
+            )
+            .where(Template.id == template_id, Template.hidden.is_(False), Template.service_id == service_id)
         )
     else:
-        stmt = select(TemplateHistory).where(
-            TemplateHistory.id == template_id,
-            TemplateHistory.hidden.is_(False),
-            TemplateHistory.service_id == service_id,
-            TemplateHistory.version == version,
+        stmt = (
+            select(TemplateHistory)
+            .options(
+                joinedload('service').selectinload('service_sms_senders'),
+                joinedload('service').selectinload('permissions'),
+                joinedload('service').selectinload('whitelist'),
+            )
+            .where(
+                TemplateHistory.id == template_id,
+                TemplateHistory.hidden.is_(False),
+                TemplateHistory.service_id == service_id,
+                TemplateHistory.version == version,
+            )
         )
 
     return db.session.scalars(stmt).one()

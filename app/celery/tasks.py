@@ -220,7 +220,8 @@ def save_sms(
         )
 
         sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-            notification.get(service_id), notification.get(reply_to_text)
+            notification.get(service_id),
+            str(notification.get(reply_to_text)),
         )
 
         if is_feature_enabled(FeatureFlag.SMS_SENDER_RATE_LIMIT_ENABLED) and sms_sender and sms_sender.rate_limit:

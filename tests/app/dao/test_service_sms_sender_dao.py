@@ -536,7 +536,7 @@ class TestGetSmsSenderByServiceIdAndNumber:
 
         service_without_sms_sender = sample_service()
         found_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-            service_id=service_without_sms_sender.id, number='+15551234567'
+            service_without_sms_sender.id, '+15551234567'
         )
 
         assert found_sms_sender is None
@@ -547,9 +547,7 @@ class TestGetSmsSenderByServiceIdAndNumber:
         notify_db_session.session.add(sms_sender)
         notify_db_session.session.commit()
 
-        found_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-            service_id=service.id, number='+15557654321'
-        )
+        found_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(service.id, '+15557654321')
 
         assert found_sms_sender is None
 
@@ -559,9 +557,7 @@ class TestGetSmsSenderByServiceIdAndNumber:
         notify_db_session.session.add(sms_sender)
         notify_db_session.session.commit()
 
-        found_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-            service_id=service.id, number='+15551234567'
-        )
+        found_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(service.id, number='+15551234567')
 
         assert found_sms_sender.id == str(sms_sender.id)
         assert found_sms_sender.sms_sender == sms_sender.sms_sender
