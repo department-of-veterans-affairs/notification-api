@@ -245,7 +245,7 @@ class TemplateHistoryData:
 
 
 @cached(cache=template_history_cache)
-def dao_get_template_history_by_id(template_id, version) -> TemplateHistoryData | None:
+def dao_get_template_history_by_id(template_id: str, version: str) -> TemplateHistoryData | None:
     stmt = select(TemplateHistory).where(TemplateHistory.id == template_id, TemplateHistory.version == version)
     template_history_object = db.session.scalars(stmt).first()
 
