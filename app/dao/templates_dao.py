@@ -245,11 +245,11 @@ class TemplateHistoryData:
 
 
 @cached(cache=template_history_cache)
-def dao_get_template_history_by_id(template_id, version) -> TemplateHistory | None:
+def dao_get_template_history_by_id(template_id, version) -> TemplateHistoryData | None:
     stmt = select(TemplateHistory).where(TemplateHistory.id == template_id, TemplateHistory.version == version)
-    template_history_object = db.session.scalars(stmt).one()
+    template_history_object = db.session.scalars(stmt).first()
 
-    if template_history_object:
+    if template_history_object is not None:
         return TemplateHistoryData(
             id=template_history_object.id,
             name=template_history_object.name,
