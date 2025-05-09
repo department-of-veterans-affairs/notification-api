@@ -18,6 +18,7 @@ from app.constants import (
     LETTER_TYPE,
     UPLOAD_DOCUMENT,
 )
+from app.dao.service_sms_sender_dao import dao_get_default_service_sms_sender_by_service_id
 from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
 from app.notifications.process_notifications import (
     persist_notification,
@@ -338,7 +339,9 @@ def get_reply_to_text(
             if sms_sender_id:
                 reply_to = try_validate_and_format_phone_number(sms_sender_id)
             else:
-                reply_to = template.get_reply_to_text()
+                # Get the default SMS sender reply_to
+                default_sms_sender = dao_get_default_service_sms_sender_by_service_id(authenticated_service.id)
+                try_validate_and_format_phone_number(default_sms_sender.sms_sender)
 
         return reply_to
 
