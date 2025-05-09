@@ -30,7 +30,7 @@ from app.notifications.validators import (
     validate_and_format_recipient,
     check_rate_limiting,
     validate_template,
-    check_service_sms_sender_id,
+    get_service_sms_sender_number,
 )
 from app.schema_validation import validate
 from app.v2.errors import BadRequestError
@@ -332,7 +332,7 @@ def get_reply_to_text(
             reply_to = template.reply_to_email
 
         elif notification_type == SMS_TYPE:
-            sms_sender_id = check_service_sms_sender_id(
+            sms_sender_id = get_service_sms_sender_number(
                 str(authenticated_service.id), form.get('sms_sender_id'), notification_type
             )
             if sms_sender_id:
