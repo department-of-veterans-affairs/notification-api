@@ -301,7 +301,7 @@ def _get_delivery_task(
             # Otherwise, get the first one from the service.
             if sms_sender_id is not None:
                 # This is an instance of ServiceSmsSender or None.
-                service_sms_sender = dao_get_service_sms_sender_by_id(notification.service_id, sms_sender_id)
+                service_sms_sender = dao_get_service_sms_sender_by_id(str(notification.service_id), str(sms_sender_id))
             else:
                 # This is an instance of ServiceSmsSender or None.
                 service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(

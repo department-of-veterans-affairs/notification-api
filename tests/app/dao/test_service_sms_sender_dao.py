@@ -40,7 +40,7 @@ def test_dao_get_service_sms_sender_by_id(sample_provider, sample_service):
         description='test',
     )
 
-    service_sms_sender = dao_get_service_sms_sender_by_id(service_id=service.id, service_sms_sender_id=second_sender.id)
+    service_sms_sender = dao_get_service_sms_sender_by_id(str(service.id), str(second_sender.id))
 
     assert service_sms_sender.sms_sender == 'second'
     assert not service_sms_sender.is_default
@@ -68,7 +68,7 @@ def test_dao_get_service_sms_sender_by_id_with_sender_specifics(sample_provider,
         description='test',
     )
 
-    service_sms_sender = dao_get_service_sms_sender_by_id(service_id=service.id, service_sms_sender_id=second_sender.id)
+    service_sms_sender = dao_get_service_sms_sender_by_id(str(service.id), str(second_sender.id))
 
     assert service_sms_sender.sms_sender == 'second'
     assert not service_sms_sender.is_default
@@ -78,7 +78,7 @@ def test_dao_get_service_sms_sender_by_id_with_sender_specifics(sample_provider,
 def test_dao_get_service_sms_sender_by_id_raise_exception_when_not_found(sample_service):
     service = sample_service()
     with pytest.raises(expected_exception=SQLAlchemyError):
-        dao_get_service_sms_sender_by_id(service_id=service.id, service_sms_sender_id=uuid.uuid4())
+        dao_get_service_sms_sender_by_id(str(service.id), str(uuid.uuid4()))
 
 
 def test_dao_get_service_sms_senders_id_raises_exception_with_archived_sms_sender(sample_service):
@@ -87,7 +87,7 @@ def test_dao_get_service_sms_senders_id_raises_exception_with_archived_sms_sende
         service=service, sms_sender='second', is_default=False, archived=True
     )
     with pytest.raises(expected_exception=SQLAlchemyError):
-        dao_get_service_sms_sender_by_id(service_id=service.id, service_sms_sender_id=archived_sms_sender.id)
+        dao_get_service_sms_sender_by_id(str(service.id), str(archived_sms_sender.id))
 
 
 def test_dao_get_sms_senders_by_service_id(sample_provider, sample_service):

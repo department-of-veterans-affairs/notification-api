@@ -117,7 +117,7 @@ def check_sms_sender_over_rate_limit(
         current_app.logger.info('Skipping sms sender rate limit check')
         return
 
-    sms_sender = dao_get_service_sms_sender_by_id(service_id, sms_sender.id)
+    sms_sender = dao_get_service_sms_sender_by_id(str(service_id), str(sms_sender.id))
     if current_app.config['REDIS_ENABLED']:
         current_app.logger.info('Checking sms sender rate limit')
         cache_key = sms_sender.sms_sender
@@ -254,7 +254,7 @@ def get_service_sms_sender_number(
 ):
     if sms_sender_id is not None:
         try:
-            return dao_get_service_sms_sender_by_id(service_id, sms_sender_id).sms_sender
+            return dao_get_service_sms_sender_by_id(str(service_id), str(sms_sender_id)).sms_sender
         except NoResultFound:
             message = f'sms_sender_id {sms_sender_id} does not exist in database for service id {service_id}'
             raise BadRequestError(message=message)

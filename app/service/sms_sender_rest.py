@@ -63,7 +63,7 @@ def get_service_sms_sender_by_id(
     service_id,
     sms_sender_id,
 ):
-    sms_sender = dao_get_service_sms_sender_by_id(service_id=service_id, service_sms_sender_id=sms_sender_id)
+    sms_sender = dao_get_service_sms_sender_by_id(str(service_id), str(sms_sender_id))
     return jsonify(sms_sender.serialize()), 200
 
 
