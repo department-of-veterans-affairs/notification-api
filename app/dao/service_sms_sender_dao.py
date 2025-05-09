@@ -3,9 +3,8 @@ from typing import Optional
 from uuid import UUID
 
 from ddtrace import tracer
+from flask import current_app
 from sqlalchemy import desc, select, update
-
-import logging
 
 from app import db
 from app.dao.dao_utils import transactional
@@ -28,6 +27,7 @@ class StatsTTLCache(TTLCache):
         try:
             value = super().__getitem__(key)
             self.hits += 1
+            current_app.logger.debug('Cache hit for %s', key)
             return value
         except KeyError:
             self.misses += 1
@@ -39,8 +39,13 @@ sms_sender_data_cache = StatsTTLCache(maxsize=1024, ttl=600)
 
 
 def log_cache_stats(cache, func_name):
-    logging.info(
-        f'Cache stats for {func_name}: hits={cache.hits}, misses={cache.misses}, currsize={cache.currsize}, maxsize={cache.maxsize}'
+    current_app.logger.debug(
+        'Cache stats for %s: hits=%s, misses=%s, currsize=%s, maxsize=%s',
+        func_name,
+        cache.hits,
+        cache.misses,
+        cache.currsize,
+        cache.maxsize,
     )
 
 
