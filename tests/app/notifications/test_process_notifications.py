@@ -964,7 +964,7 @@ def test_send_notification_to_queue_delayed_zero_delay(client, mock_sqs, mocker,
         is None
     )
 
-    debug_logger.assert_called_once()
+    assert debug_logger.call_count == 2
     start = monotonic()
 
     # MaxNumberOfMessages ranges from 1-10, want to ensure only one message was added to the queue
@@ -999,7 +999,7 @@ def test_send_notification_to_queue_delayed_nonzero_delay(client, mock_sqs, mock
         is None
     )
 
-    debug_logger.assert_called_once()
+    assert debug_logger.call_count == 2
 
     # MaxNumberOfMessages ranges from 1-10, want to ensure only one message was added to the queue
     messages = {}
@@ -1035,8 +1035,7 @@ def test_send_notification_to_queue_delayed_message_content(client, sample_notif
         delay_seconds=0,
     )
 
-    debug_logger.assert_called_once()
-
+    assert debug_logger.call_count == 2
     messages = sqs_client.receive_message(QueueUrl=q_url, MaxNumberOfMessages=1)
 
     message = messages.get('Messages')[0]
