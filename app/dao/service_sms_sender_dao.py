@@ -34,22 +34,12 @@ class StatsTTLCache(TTLCache):
         except KeyError:
             self.misses += 1
             statsd_client.incr(f'{self.namespace}.misses', 1)
+            current_app.logger.debug('Cache miss for %s', key)
             raise
 
 
 # Use this instead of TTLCache
 sms_sender_data_cache = StatsTTLCache(maxsize=1024, ttl=600, namespace='sms_sender_cache')
-
-
-def log_cache_stats(cache, func_name):
-    current_app.logger.debug(
-        'Cache stats for %s: hits=%s, misses=%s, currsize=%s, maxsize=%s',
-        func_name,
-        cache.hits,
-        cache.misses,
-        cache.currsize,
-        cache.maxsize,
-    )
 
 
 def insert_service_sms_sender(
@@ -69,7 +59,6 @@ def dao_get_service_sms_sender_by_id(
     service_id,
     service_sms_sender_id,
 ) -> ServiceSmsSenderData:
-    log_cache_stats(sms_sender_data_cache, 'dao_get_service_sms_sender_by_id')
     stmt = select(ServiceSmsSender).where(
         ServiceSmsSender.id == service_sms_sender_id,
         ServiceSmsSender.service_id == service_id,
@@ -98,7 +87,6 @@ def dao_get_service_sms_sender_by_id(
 @cached(sms_sender_data_cache)
 def dao_get_sms_senders_data_by_service_id(service_id):
     """Return a cached list of ServiceSmsSenderData objects for a given service_id."""
-    log_cache_stats(sms_sender_data_cache, 'dao_get_sms_senders_data_by_service_id')
     with tracer.trace('dao_get_sms_senders_by_service_id'):
         stmt = (
             select(ServiceSmsSender)
@@ -144,7 +132,6 @@ def dao_get_service_sms_sender_by_service_id_and_number(
     number: str,
 ) -> Optional[ServiceSmsSenderData]:
     """Return an instance of ServiceSmsSenderData, if available."""
-    log_cache_stats(sms_sender_data_cache, 'dao_get_service_sms_sender_by_service_id_and_number')
     with tracer.trace('dao_get_service_sms_sender_by_service_id_and_number'):
         stmt = select(ServiceSmsSender).where(
             ServiceSmsSender.service_id == service_id,
@@ -392,7 +379,6 @@ def _allocate_inbound_number_for_service(
 @cached(sms_sender_data_cache)
 def dao_get_default_service_sms_sender_by_service_id(service_id: str) -> Optional[ServiceSmsSenderData]:
     """Return the default ServiceSmsSenderData for a given service_id, or None if not found."""
-    log_cache_stats(sms_sender_data_cache, 'dao_get_default_service_sms_sender_by_service_id')
     with tracer.trace('dao_get_default_service_sms_sender_by_service_id'):
         stmt = select(ServiceSmsSender).where(
             ServiceSmsSender.service_id == service_id,
