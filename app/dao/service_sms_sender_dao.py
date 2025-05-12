@@ -5,7 +5,7 @@ from uuid import UUID
 from flask import current_app
 from sqlalchemy import desc, select, update
 
-from app import db, statsd_client
+from app import db
 from app.dao.dao_utils import transactional
 from app.models import ProviderDetails, ServiceSmsSender, InboundNumber, ServiceSmsSenderData, DATETIME_FORMAT
 from app.service.exceptions import (
@@ -27,12 +27,10 @@ class StatsTTLCache(TTLCache):
         try:
             value = super().__getitem__(key)
             self.hits += 1
-            statsd_client.incr(f'{self.namespace}.hits', 1)
             current_app.logger.debug('Cache hit for %s', key)
             return value
         except KeyError:
             self.misses += 1
-            statsd_client.incr(f'{self.namespace}.misses', 1)
             current_app.logger.debug('Cache miss for %s', key)
             raise
 
