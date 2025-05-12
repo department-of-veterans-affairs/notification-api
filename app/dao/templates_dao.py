@@ -3,14 +3,17 @@ from cachetools import cached, TTLCache
 from dataclasses import dataclass
 from datetime import datetime
 
+from notifications_utils.recipients import try_validate_and_format_phone_number
 from sqlalchemy import asc, desc, func, select, update
+
 from app import db
-from app.constants import EMAIL_TYPE
+from app.constants import EMAIL_TYPE, SMS_TYPE
 from app.dao.dao_utils import (
     transactional,
     version_class,
     VersionOptions,
 )
+from app.dao.services_dao import dao_fetch_service_by_id
 from app.feature_flags import FeatureFlag, is_feature_enabled
 from app.models import (
     Template,
@@ -47,9 +50,12 @@ class TemplateData:
     updated_at: datetime
 
     def get_reply_to_text(self):
-        # Return the service_letter_contact_id which appears to contain the SMS sender info
-        # based on the test that's failing
-        return self.service_letter_contact_id
+        reply_to_text = None
+        if self.template_type == SMS_TYPE:
+            service = dao_fetch_service_by_id(self.service_id)
+            reply_to_text = try_validate_and_format_phone_number(service.get_default_sms_sender())
+
+        return reply_to_text
 
 
 @transactional
@@ -268,7 +274,7 @@ def dao_get_number_of_templates_by_service_id_and_name(
             )
         )
 
-    return _convert_to_template_data(db.session.scalar(stmt))
+    return db.session.scalar(stmt)
 
 
 def dao_get_template_by_id(
@@ -280,7 +286,7 @@ def dao_get_template_by_id(
     else:
         stmt = select(TemplateHistory).where(TemplateHistory.id == template_id, TemplateHistory.version == version)
 
-    return _convert_to_template_data(db.session.scalars(stmt).one())
+    return db.session.scalars(stmt).one()
 
 
 def dao_get_all_templates_for_service(
