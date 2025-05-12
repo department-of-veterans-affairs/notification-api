@@ -14,7 +14,6 @@ from notifications_utils.recipients import (
 )
 from notifications_utils.timezones import convert_local_timezone_to_utc
 
-from app import db
 from app.celery import provider_tasks
 from app.celery.contact_information_tasks import lookup_contact_info
 from app.celery.lookup_va_profile_id_task import lookup_va_profile_id
@@ -148,9 +147,6 @@ def persist_notification(
 
         current_app.logger.info('%s %s created at %s', notification_type, notification_id, notification_created_at)
 
-    stmt = Notification.query.where(notification.id == notification_id)
-    test_notification_template_history = db.session.scalar(stmt).first()
-    current_app.logger.debug('Queries notification with notification.id %s', test_notification_template_history.id)
     return notification
 
 

@@ -7,6 +7,7 @@ import html
 import itertools
 import uuid
 
+from app.dao.templates_dao import dao_get_template_by_id
 from app.feature_flags import FeatureFlag, is_feature_enabled
 from flask import current_app, url_for
 
@@ -1168,7 +1169,7 @@ class Notification(db.Model):
     service = db.relationship('Service')
     template_id = db.Column(UUID(as_uuid=True), index=True, unique=False)
     template_version = db.Column(db.Integer, nullable=False)
-    template = db.relationship('TemplateHistory')
+    # template = db.relationship('TemplateHistory')
     api_key_id = db.Column(UUID(as_uuid=True), db.ForeignKey('api_keys.id'), index=True, unique=False)
     api_key = db.relationship('ApiKey')
     key_type = db.Column(db.String, db.ForeignKey('key_types.name'), index=True, unique=False, nullable=False)
@@ -1330,6 +1331,11 @@ class Notification(db.Model):
         if isinstance(status_or_statuses, str):
             return _substitute_status_str(status_or_statuses)
         return _substitute_status_seq(status_or_statuses)
+
+    @property
+    def template(self):
+        """Access template through Template DAO"""
+        return dao_get_template_by_id(self.template_id, self.template_version)
 
     @property
     def content(self):
