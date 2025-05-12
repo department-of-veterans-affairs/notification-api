@@ -2,9 +2,10 @@ import uuid
 from datetime import datetime
 
 from cachetools import cached, TTLCache
+from flask import current_app
 from sqlalchemy import asc, desc, func, select, update
 
-from app import db
+from app import db, statsd_client
 from app.constants import EMAIL_TYPE
 from app.dao.dao_utils import (
     transactional,
@@ -19,7 +20,29 @@ from app.models import (
 )
 from app.utils import generate_html_email_content
 
-template_history_cache = TTLCache(maxsize=1024, ttl=600)
+
+class StatsTTLCache(TTLCache):
+    def __init__(self, *args, **kwargs):
+        self.namespace = kwargs.pop('namespace', 'statscache')
+        super().__init__(*args, **kwargs)
+        self.hits = 0
+        self.misses = 0
+
+    def __getitem__(self, key):
+        try:
+            value = super().__getitem__(key)
+            self.hits += 1
+            statsd_client.incr(f'{self.namespace}.hits', 1)
+            current_app.logger.debug('TemplateHistory Cache hit for %s', key)
+            return value
+        except KeyError:
+            self.misses += 1
+            statsd_client.incr(f'{self.namespace}.misses', 1)
+            current_app.logger.debug('TemplateHistory Cache miss for %s', key)
+            raise
+
+
+template_history_cache = StatsTTLCache(maxsize=1024, ttl=600)
 
 
 @transactional
@@ -284,7 +307,7 @@ def dao_get_template_by_id(
 ) -> Template | TemplateHistoryData:
     from ddtrace import tracer
 
-    with tracer.trace('post_notification_1'):
+    with tracer.trace('dao_get_template_by_id', service='template_dao'):
         if version is None:
             stmt = select(Template).where(Template.id == template_id)
             return db.session.scalars(stmt).one()
