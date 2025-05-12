@@ -47,7 +47,7 @@ register_errors(service_sms_sender_blueprint)
 
 @service_sms_sender_blueprint.route('', methods=['GET'])
 def get_service_sms_senders_for_service(service_id):
-    sms_senders = dao_get_sms_senders_data_by_service_id(service_id=service_id)
+    sms_senders = dao_get_sms_senders_data_by_service_id(str(service_id))
     return jsonify([sms_sender.serialize() for sms_sender in sms_senders]), 200
 
 
