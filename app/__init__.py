@@ -39,6 +39,7 @@ from app.mobile_app.mobile_app_registry import MobileAppRegistry
 
 load_dotenv()
 
+
 migrate = Migrate()
 ma = Marshmallow()
 notify_celery = NotifyCelery()
@@ -55,7 +56,6 @@ from app.clients.email.govdelivery_client import GovdeliveryClient  # noqa
 
 govdelivery_client = GovdeliveryClient()
 aws_sns_client = AwsSnsClient()
-
 twilio_sms_client = TwilioSMSClient(
     account_sid=os.getenv('TWILIO_ACCOUNT_SID'),
     auth_token=os.getenv('TWILIO_AUTH_TOKEN'),
