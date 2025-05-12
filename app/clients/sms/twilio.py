@@ -218,7 +218,7 @@ class TwilioSMSClient(SmsClient):
             else:
                 # This is an instance of ServiceSmsSender or None.
                 service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-                    kwargs.get('service_id'), str(kwargs.get('sender'))
+                    str(kwargs.get('service_id')), str(kwargs.get('sender'))
                 )
 
             if service_sms_sender is not None:

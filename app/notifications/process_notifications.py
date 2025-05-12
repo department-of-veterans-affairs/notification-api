@@ -6,7 +6,6 @@ from datetime import datetime
 import boto3
 from botocore.exceptions import ClientError
 from celery import chain
-from ddtrace import tracer
 from flask import current_app, g
 
 from notifications_utils.recipients import (
@@ -291,31 +290,30 @@ def _get_delivery_task(
         queue = QueueNames.NOTIFY
 
     if notification.notification_type == SMS_TYPE:
-        with tracer.trace('_get_delivery_task'):
-            if not queue:
-                queue = QueueNames.SEND_SMS
+        if not queue:
+            queue = QueueNames.SEND_SMS
 
-            service_sms_sender = None
+        service_sms_sender = None
 
-            # Get the specific service_sms_sender if sms_sender_id is provided.
-            # Otherwise, get the first one from the service.
-            if sms_sender_id is not None:
-                # This is an instance of ServiceSmsSender or None.
-                service_sms_sender = dao_get_service_sms_sender_by_id(str(notification.service_id), str(sms_sender_id))
-            else:
-                # This is an instance of ServiceSmsSender or None.
-                service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-                    notification.service_id, notification.reply_to_text
-                )
+        # Get the specific service_sms_sender if sms_sender_id is provided.
+        # Otherwise, get the first one from the service.
+        if sms_sender_id is not None:
+            # This is an instance of ServiceSmsSender or None.
+            service_sms_sender = dao_get_service_sms_sender_by_id(str(notification.service_id), str(sms_sender_id))
+        else:
+            # This is an instance of ServiceSmsSender or None.
+            service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
+                notification.service_id, notification.reply_to_text
+            )
 
-            if (
-                is_feature_enabled(FeatureFlag.SMS_SENDER_RATE_LIMIT_ENABLED)
-                and service_sms_sender is not None
-                and service_sms_sender.rate_limit
-            ):
-                deliver_task = provider_tasks.deliver_sms_with_rate_limiting
-            else:
-                deliver_task = provider_tasks.deliver_sms
+        if (
+            is_feature_enabled(FeatureFlag.SMS_SENDER_RATE_LIMIT_ENABLED)
+            and service_sms_sender is not None
+            and service_sms_sender.rate_limit
+        ):
+            deliver_task = provider_tasks.deliver_sms_with_rate_limiting
+        else:
+            deliver_task = provider_tasks.deliver_sms
     elif notification.notification_type == EMAIL_TYPE:
         if not queue:
             queue = QueueNames.SEND_EMAIL

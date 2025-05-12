@@ -10,7 +10,7 @@ fileignoreconfig:
 - filename: app/service/rest.py
   checksum: 5e350e4556b9c78c11e06d98da61a238d5a4f6a8e04cee0c557995007dd2aeaf
 - filename: app/v2/notifications/post_notifications.py
-  checksum: 993bacaa87bca20ad42879dfcbcb7b28d5e55be338cf148f627861543f8df422
+  checksum: b52f923d90faa072095d5e4c2925bf588a3649846ac65e8ae36f285823b57965
 - filename: cd/application-deployment/dev/dev.env
   checksum: 250b2934c210f9cce3d7e037212102f3a46ad22469223f1480680f53c09ec5c9
 - filename: cd/application-deployment/perf/perf.env
@@ -25,8 +25,6 @@ fileignoreconfig:
   checksum: 4e6e2fabf9630e9e0d26028818f41f34c065e80c223db34d35a1d1068c37a782
 - filename: poetry.lock
   checksum: e3eff13565530661316fba6389eeffdfc973b27f50a20d1d931a3c6317584674
-- filename: app/notifications/validators.py
-  checksum: 7c3f9574dd8096863b53927723fccc75f8c0a27c06a2da09b277fbc8af7ba9ef
 - filename: tests/app/authentication/test_authentication.py
   checksum: f7091cd49ae042cb1a189d81e905c7595a822e5a6742624ed37a0ed7e1e05bb5
 - filename: tests/app/delivery/test_send_to_providers.py
