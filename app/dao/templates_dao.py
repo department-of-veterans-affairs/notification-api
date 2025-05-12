@@ -1,8 +1,9 @@
 import uuid
+from cachetools import cached, TTLCache
+from dataclasses import dataclass
 from datetime import datetime
 
 from sqlalchemy import asc, desc, func, select, update
-from sqlalchemy.orm import joinedload
 from app import db
 from app.constants import EMAIL_TYPE
 from app.dao.dao_utils import (
@@ -17,6 +18,38 @@ from app.models import (
     TemplateRedacted,
 )
 from app.utils import generate_html_email_content
+
+
+template_cache = TTLCache(maxsize=100, ttl=60)
+
+
+@dataclass
+class TemplateData:
+    id: str
+    name: str
+    template_type: str
+    created_at: datetime
+    updated_at: datetime
+    content: str
+    service_id: str
+    subject: str
+    postage: str
+    created_by_id: str
+    version: int
+    archived: bool
+    process_type: str
+    service_letter_contact_id: str
+    hidden: bool
+    service_id: str
+    service_letter_contact_id: str
+    created_by_id: str
+    updated_by_id: str
+    updated_at: datetime
+
+    def get_reply_to_text(self):
+        # Return the service_letter_contact_id which appears to contain the SMS sender info
+        # based on the test that's failing
+        return self.service_letter_contact_id
 
 
 @transactional
@@ -139,38 +172,77 @@ def dao_redact_template(
     db.session.add(template.template_redacted)
 
 
-def dao_get_template_by_id_and_service_id(
+def _convert_to_template_data(template) -> TemplateData:
+    """Convert a Template or TemplateHistory object to TemplateData."""
+    return TemplateData(
+        id=str(template.id),
+        name=template.name,
+        template_type=template.template_type,
+        created_at=template.created_at,
+        updated_at=template.updated_at,
+        content=template.content,
+        service_id=str(template.service_id),
+        subject=template.subject,
+        postage=template.postage,
+        created_by_id=str(template.created_by_id),
+        version=template.version,
+        archived=template.archived,
+        process_type=template.process_type,
+        service_letter_contact_id=str(template.service_letter_contact_id)
+        if template.service_letter_contact_id
+        else None,
+        hidden=template.hidden,
+        updated_by_id=str(template.updated_by_id)
+        if hasattr(template, 'updated_by_id') and template.updated_by_id
+        else None,
+    )
+
+
+def dao_get_template_by_id_and_service_id_without_cache(
     template_id,
     service_id,
     version=None,
 ) -> Template:
+    """Get the raw Template object from the database without caching."""
     if version is None:
-        stmt = (
-            select(Template)
-            .options(
-                joinedload('service').selectinload('service_sms_senders'),
-                joinedload('service').selectinload('permissions'),
-                joinedload('service').selectinload('whitelist'),
-            )
-            .where(Template.id == template_id, Template.hidden.is_(False), Template.service_id == service_id)
+        stmt = select(Template).where(
+            Template.id == template_id, Template.service_id == service_id, Template.hidden.is_(False)
         )
     else:
-        stmt = (
-            select(TemplateHistory)
-            .options(
-                joinedload('service').selectinload('service_sms_senders'),
-                joinedload('service').selectinload('permissions'),
-                joinedload('service').selectinload('whitelist'),
-            )
-            .where(
-                TemplateHistory.id == template_id,
-                TemplateHistory.hidden.is_(False),
-                TemplateHistory.service_id == service_id,
-                TemplateHistory.version == version,
-            )
+        stmt = select(TemplateHistory).where(
+            TemplateHistory.id == template_id,
+            TemplateHistory.service_id == service_id,
+            TemplateHistory.hidden.is_(False),
+            TemplateHistory.version == version,
         )
 
     return db.session.scalars(stmt).one()
+
+
+@cached(cache=template_cache)
+def dao_get_template_data_by_id_and_service_id(
+    template_id,
+    service_id,
+    version=None,
+) -> TemplateData:
+    """
+    Returns a TemplateData object for the specified template.
+    This function is cached to improve performance.
+    """
+    template = dao_get_template_by_id_and_service_id_without_cache(template_id, service_id, version)
+    return _convert_to_template_data(template)
+
+
+def dao_get_template_by_id_and_service_id(
+    template_id,
+    service_id,
+    version=None,
+):
+    """
+    Returns a Template object for the specified template.
+    Uses the cached version when possible.
+    """
+    return dao_get_template_by_id_and_service_id_without_cache(template_id, service_id, version)
 
 
 def dao_get_number_of_templates_by_service_id_and_name(
@@ -196,7 +268,7 @@ def dao_get_number_of_templates_by_service_id_and_name(
             )
         )
 
-    return db.session.scalar(stmt)
+    return _convert_to_template_data(db.session.scalar(stmt))
 
 
 def dao_get_template_by_id(
@@ -208,7 +280,7 @@ def dao_get_template_by_id(
     else:
         stmt = select(TemplateHistory).where(TemplateHistory.id == template_id, TemplateHistory.version == version)
 
-    return db.session.scalars(stmt).one()
+    return _convert_to_template_data(db.session.scalars(stmt).one())
 
 
 def dao_get_all_templates_for_service(

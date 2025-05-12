@@ -215,7 +215,7 @@ def validate_template(
     notification_type,
 ):
     try:
-        template = templates_dao.dao_get_template_by_id_and_service_id(template_id=template_id, service_id=service.id)
+        template = templates_dao.dao_get_template_by_id_and_service_id(template_id, service.id)
     except NoResultFound:
         # Putting this in the "message" would be a breaking change for API responses
         current_app.logger.info(
