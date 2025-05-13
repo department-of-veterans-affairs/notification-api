@@ -25,10 +25,12 @@ from app.constants import (
     LETTER_TYPE,
     NOTIFICATION_CREATED,
 )
+
 from app.dao.service_sms_sender_dao import (
     dao_get_service_sms_sender_by_id,
     dao_get_service_sms_sender_by_service_id_and_number,
 )
+from app.dao.templates_dao import dao_get_template_history_by_id
 from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
 from app.models import Notification, ScheduledNotification, RecipientIdentifier, Template
 from app.dao.notifications_dao import (
@@ -166,8 +168,7 @@ def send_notification_to_queue(
 
     if recipient_id_type:
         # This is a relationship to a TemplateHistory instance.
-        template = notification.template
-        # template = templates_dao.dao_get_template_history_by_id(notification.template_id, notification.template_version)
+        template = dao_get_template_history_by_id(notification.template_id, notification.template_version)
 
         # This is a nullable foreign key reference to a CommunicationItem instance UUID.
         communication_item_id = template.communication_item_id if template else None
