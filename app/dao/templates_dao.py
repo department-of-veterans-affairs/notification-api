@@ -2,10 +2,9 @@ import uuid
 from datetime import datetime
 
 from cachetools import cached, TTLCache
-from flask import current_app
 from sqlalchemy import asc, desc, func, select, update
 
-from app import db, statsd_client
+from app import db
 from app.constants import EMAIL_TYPE
 from app.dao.dao_utils import (
     transactional,
@@ -19,30 +18,6 @@ from app.models import (
     TemplateRedacted,
 )
 from app.utils import generate_html_email_content
-
-
-class StatsTTLCache(TTLCache):
-    def __init__(self, *args, **kwargs):
-        self.namespace = kwargs.pop('namespace', 'statscache')
-        super().__init__(*args, **kwargs)
-        self.hits = 0
-        self.misses = 0
-
-    def __getitem__(self, key):
-        try:
-            value = super().__getitem__(key)
-            self.hits += 1
-            statsd_client.incr(f'{self.namespace}.hits', 1)
-            current_app.logger.debug('TemplateHistory Cache hit for %s', key)
-            return value
-        except KeyError:
-            self.misses += 1
-            statsd_client.incr(f'{self.namespace}.misses', 1)
-            current_app.logger.debug('TemplateHistory Cache miss for %s', key)
-            raise
-
-
-template_history_cache = StatsTTLCache(maxsize=1024, ttl=600)
 
 
 @transactional
@@ -267,7 +242,7 @@ class TemplateHistoryData:
         self.get_reply_to_text = get_reply_to_text
 
 
-@cached(cache=template_history_cache)
+@cached(cache=TTLCache(maxsize=1024, ttl=600))
 def dao_get_template_history_by_id(template_id: str, version: str) -> TemplateHistoryData | None:
     stmt = select(TemplateHistory).where(TemplateHistory.id == template_id, TemplateHistory.version == version)
     template_history_object = db.session.scalars(stmt).first()
@@ -305,16 +280,13 @@ def dao_get_template_by_id(
     template_id,
     version=None,
 ) -> Template | TemplateHistoryData:
-    from ddtrace import tracer
-
-    with tracer.trace('dao_get_template_by_id', service='template_dao'):
-        if version is None:
-            stmt = select(Template).where(Template.id == template_id)
-            return db.session.scalars(stmt).one()
-        else:
-            template_id_str = str(template_id)
-            version_str = str(version)
-            return dao_get_template_history_by_id(template_id_str, version_str)
+    if version is None:
+        stmt = select(Template).where(Template.id == template_id)
+        return db.session.scalars(stmt).one()
+    else:
+        template_id_str = str(template_id)
+        version_str = str(version)
+        return dao_get_template_history_by_id(template_id_str, version_str)
 
 
 def dao_get_all_templates_for_service(
