@@ -87,16 +87,7 @@ def dao_fetch_service_by_id_with_api_keys(
 ) -> ServiceData:
     with get_reader_session() as session:
         # Constructing the query
-        stmt = (
-            select(Service)
-            .where(Service.id == service_id)
-            .options(
-                joinedload('api_keys'),
-                joinedload('permissions'),
-                joinedload('service_sms_senders'),
-                joinedload('whitelist'),
-            )
-        )
+        stmt = select(Service).where(Service.id == service_id).options(joinedload('api_keys'))
 
         if only_active:
             stmt = stmt.where(Service.active)
