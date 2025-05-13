@@ -168,7 +168,7 @@ def send_notification_to_queue(
 
     if recipient_id_type:
         # This is a relationship to a TemplateHistory instance.
-        template = dao_get_template_history_by_id(notification.template_id, notification.template_version)
+        template = dao_get_template_history_by_id(str(notification.template_id), str(notification.template_version))
 
         # This is a nullable foreign key reference to a CommunicationItem instance UUID.
         communication_item_id = template.communication_item_id if template else None
