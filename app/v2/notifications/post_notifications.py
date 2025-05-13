@@ -330,7 +330,7 @@ def get_reply_to_text(
             reply_to = try_validate_and_format_phone_number(sms_sender_id)
         else:
             # Get the default SMS sender reply_to
-            default_sms_sender = dao_get_default_service_sms_sender_by_service_id(authenticated_service.id)
+            default_sms_sender = dao_get_default_service_sms_sender_by_service_id(str(authenticated_service.id))
             try_validate_and_format_phone_number(default_sms_sender.sms_sender)
 
     return reply_to

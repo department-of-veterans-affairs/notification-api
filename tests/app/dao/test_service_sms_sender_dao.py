@@ -12,10 +12,12 @@ from sqlalchemy.exc import DataError, SQLAlchemyError
 
 from app.dao.service_sms_sender_dao import (
     dao_add_sms_sender_for_service,
+    dao_get_default_service_sms_sender_by_service_id,
     dao_get_service_sms_sender_by_id,
     dao_get_service_sms_sender_by_service_id_and_number,
     dao_get_sms_senders_data_by_service_id,
     dao_update_service_sms_sender,
+    sms_sender_data_cache,
     _validate_rate_limit,
 )
 from app.models import InboundNumber, ServiceSmsSender
@@ -103,7 +105,7 @@ def test_dao_get_sms_senders_by_service_id(sample_provider, sample_service):
         description='test',
     )
 
-    sms_senders = dao_get_sms_senders_data_by_service_id(service_id=service.id)
+    sms_senders = dao_get_sms_senders_data_by_service_id(str(service.id))
 
     assert len(sms_senders) == 2
 
@@ -122,7 +124,7 @@ def test_dao_get_sms_senders_by_service_id_does_not_return_archived_senders(
         service=service, sms_sender='second', is_default=False, archived=True
     )
 
-    sms_senders = dao_get_sms_senders_data_by_service_id(service_id=service.id)
+    sms_senders = dao_get_sms_senders_data_by_service_id(str(service.id))
 
     assert len(sms_senders) == 1
     assert all(s.id != str(archived_sms_sender.id) for s in sms_senders)
@@ -590,3 +592,160 @@ def test_validate_rate_limit(rate_limit, rate_limit_interval, raises_exception) 
             _validate_rate_limit(sms_sender, rate_limit, rate_limit_interval)
     else:
         assert _validate_rate_limit(sms_sender, rate_limit, rate_limit_interval) is None
+
+
+class TestSmsSenderCache:
+    def test_get_service_sms_sender_by_id_cache(self, mocker, notify_db_session, sample_service, sample_sms_sender):
+        service = sample_service()
+        sms_sender = service.service_sms_senders[0]
+        # Track original hit/miss counts
+        original_hits = sms_sender_data_cache.hits
+        original_misses = sms_sender_data_cache.misses
+
+        db_spy = mocker.spy(notify_db_session.session, 'scalars')
+
+        # First call - should be a cache miss and call the database
+        result1 = dao_get_service_sms_sender_by_id(str(service.id), str(sms_sender.id))
+
+        # Verify the result is correct
+        assert result1.id == str(sms_sender.id)
+        assert result1.sms_sender == sms_sender.sms_sender
+
+        # Verify it was a cache miss and database was called
+        assert sms_sender_data_cache.hits == original_hits
+        assert sms_sender_data_cache.misses == original_misses + 1
+        assert db_spy.call_count == 1
+
+        # Reset mock to track second call
+        db_spy.reset_mock()
+
+        # Second call with same parameters - should be a cache hit
+        result2 = dao_get_service_sms_sender_by_id(str(service.id), str(sms_sender.id))
+
+        # Verify the result is the same
+        assert result2.id == str(sms_sender.id)
+        assert result2.sms_sender == sms_sender.sms_sender
+
+        # Verify it was a cache hit and database wasn't called again
+        assert sms_sender_data_cache.hits == original_hits + 1
+        assert sms_sender_data_cache.misses == original_misses + 1
+        assert db_spy.call_count == 0
+
+    def test_dao_get_service_sms_sender_by_service_id_and_number_cache(
+        self, mocker, notify_db_session, sample_service, sample_sms_sender
+    ):
+        service = sample_service()
+        sms_sender = service.service_sms_senders[0]
+
+        # Track original hit/miss counts
+        original_hits = sms_sender_data_cache.hits
+        original_misses = sms_sender_data_cache.misses
+
+        db_spy = mocker.spy(notify_db_session.session, 'scalars')
+
+        # First call - should be a cache miss and call the database
+        result1 = dao_get_service_sms_sender_by_service_id_and_number(sms_sender.service_id, sms_sender.sms_sender)
+
+        # Verify the result is correct
+        assert result1.id == str(sms_sender.id)
+        assert result1.sms_sender == sms_sender.sms_sender
+
+        # Verify it was a cache miss and database was called
+        assert sms_sender_data_cache.hits == original_hits
+        assert sms_sender_data_cache.misses == original_misses + 1
+        assert db_spy.call_count == 1
+
+        # Reset mock to track second call
+        db_spy.reset_mock()
+
+        # Second call with same parameters - should be a cache hit
+        result2 = dao_get_service_sms_sender_by_service_id_and_number(sms_sender.service_id, sms_sender.sms_sender)
+
+        # Verify the result is the same
+        assert result2.id == str(sms_sender.id)
+        assert result2.sms_sender == sms_sender.sms_sender
+
+        # Verify it was a cache hit and database wasn't called again
+        assert sms_sender_data_cache.hits == original_hits + 1
+        assert sms_sender_data_cache.misses == original_misses + 1
+        assert db_spy.call_count == 0
+
+    def test_dao_get_sms_senders_data_by_service_id_cache(
+        self, mocker, notify_db_session, sample_service, sample_sms_sender
+    ):
+        service = sample_service()
+        sms_sender = service.service_sms_senders[0]
+
+        # Track original hit/miss counts
+        original_hits = sms_sender_data_cache.hits
+        original_misses = sms_sender_data_cache.misses
+
+        db_spy = mocker.spy(notify_db_session.session, 'scalars')
+
+        # First call - should be a cache miss and call the database
+        result1 = dao_get_sms_senders_data_by_service_id(str(service.id))
+
+        # Verify the result is correct
+        assert len(result1) == 1
+        assert result1[0].id == str(sms_sender.id)
+        assert result1[0].sms_sender == sms_sender.sms_sender
+
+        # Verify it was a cache miss and database was called
+        assert sms_sender_data_cache.hits == original_hits
+        assert sms_sender_data_cache.misses == original_misses + 1
+        assert db_spy.call_count == 1
+
+        # Reset mock to track second call
+        db_spy.reset_mock()
+
+        # Second call with same parameters - should be a cache hit
+        result2 = dao_get_sms_senders_data_by_service_id(str(service.id))
+
+        # Verify the result is the same
+        assert len(result2) == 1
+        assert result2[0].id == str(sms_sender.id)
+        assert result2[0].sms_sender == sms_sender.sms_sender
+
+        # Verify it was a cache hit and database wasn't called again
+        assert sms_sender_data_cache.hits == original_hits + 1
+        assert sms_sender_data_cache.misses == original_misses + 1
+        assert db_spy.call_count == 0
+
+    def test_dao_get_default_service_sms_sender_by_service_id_cache(
+        self, mocker, notify_db_session, sample_service, sample_sms_sender
+    ):
+        service = sample_service()
+        sms_sender = service.service_sms_senders[0]
+
+        # Track original hit/miss counts
+        original_hits = sms_sender_data_cache.hits
+        original_misses = sms_sender_data_cache.misses
+
+        db_spy = mocker.spy(notify_db_session.session, 'scalars')
+
+        # First call - should be a cache miss and call the database
+        result1 = dao_get_default_service_sms_sender_by_service_id(str(service.id))
+
+        # Verify the result is correct
+        assert result1.id == str(sms_sender.id)
+        assert result1.sms_sender == sms_sender.sms_sender
+
+        # Verify it was a cache miss and database was called
+        assert sms_sender_data_cache.hits == original_hits
+        assert sms_sender_data_cache.misses == original_misses + 1
+        assert db_spy.call_count == 1
+
+        # Reset mock to track second call
+        db_spy.reset_mock()
+
+        # Second call with same parameters - should be a cache hit
+        result2 = dao_get_default_service_sms_sender_by_service_id(str(service.id))
+
+        # Verify the result is the same
+        assert result2.id == str(sms_sender.id)
+        assert result2.sms_sender == sms_sender.sms_sender
+
+        # Verify it was a cache hit and database wasn't called again
+        assert sms_sender_data_cache.hits == original_hits + 1
+        assert sms_sender_data_cache.misses == original_misses + 1
+        assert db_spy.call_count == 0
