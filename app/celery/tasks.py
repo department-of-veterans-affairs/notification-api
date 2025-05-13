@@ -220,7 +220,7 @@ def save_sms(
         )
 
         sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-            str(notification.get(service_id)),
+            notification.get(service_id),
             str(notification.get(reply_to_text)),
         )
 

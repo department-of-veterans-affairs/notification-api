@@ -132,7 +132,11 @@ def dao_get_service_sms_sender_by_service_id_and_number(
         ServiceSmsSender.archived.is_(False),
     )
 
-    service_sender = db.session.scalars(stmt).first()
+    try:
+        service_sender = db.session.scalars(stmt).first()
+    except Exception as e:
+        current_app.logger.error(f'Error fetching SMS sender by service ID and number: {e}')
+        return None
 
     if not service_sender:
         return None
