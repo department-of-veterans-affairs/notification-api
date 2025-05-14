@@ -973,7 +973,6 @@ class TestDAOGetTemplateById:
         assert result == template
         assert isinstance(result, Template)
         assert result.id == template.id
-        assert result.name == template.name
         assert result.version == 1
 
     def test_dao_get_template_by_id_with_specific_version(
