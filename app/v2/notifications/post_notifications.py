@@ -323,11 +323,11 @@ def get_reply_to_text(
         reply_to = template.reply_to_email
 
     elif notification_type == SMS_TYPE:
-        sms_sender_id = get_service_sms_sender_number(
+        sms_sender_number = get_service_sms_sender_number(
             str(authenticated_service.id), form.get('sms_sender_id'), notification_type
         )
-        if sms_sender_id:
-            reply_to = try_validate_and_format_phone_number(sms_sender_id)
+        if sms_sender_number:
+            reply_to = try_validate_and_format_phone_number(sms_sender_number)
         else:
             # Get the default SMS sender reply_to
             default_sms_sender = dao_get_default_service_sms_sender_by_service_id(str(authenticated_service.id))
