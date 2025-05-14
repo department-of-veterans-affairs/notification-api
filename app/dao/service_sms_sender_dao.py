@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from typing import Optional
 from uuid import UUID
 
-from flask import current_app
 from sqlalchemy import desc, select, update
 
 from app import db
@@ -16,8 +15,6 @@ from app.service.exceptions import (
     SmsSenderRateLimitIntegrityException,
 )
 
-
-# Use this instead of TTLCache
 sms_sender_data_cache = TTLCache(maxsize=1024, ttl=timedelta(hours=12), timer=datetime.now)
 
 
@@ -114,15 +111,9 @@ def dao_get_service_sms_sender_by_service_id_and_number(
         ServiceSmsSender.archived.is_(False),
     )
 
-    try:
-        service_sender = db.session.scalars(stmt).first()
-    except Exception as e:
-        current_app.logger.error(f'Error fetching SMS sender by service ID and number: {e}')
-        return None
-
+    service_sender = db.session.scalars(stmt).first()
     if not service_sender:
         return None
-
     return ServiceSmsSenderData(
         id=str(service_sender.id),
         service_id=str(service_sender.service_id),
