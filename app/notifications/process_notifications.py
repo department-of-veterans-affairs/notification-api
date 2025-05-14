@@ -167,7 +167,7 @@ def send_notification_to_queue(
     tasks = []
 
     if recipient_id_type:
-        # This is a relationship to a TemplateHistory instance.
+        # This query uses the cached value of the template if available.
         template = dao_get_template_history_by_id(str(notification.template_id), str(notification.template_version))
 
         # This is a nullable foreign key reference to a CommunicationItem instance UUID.
