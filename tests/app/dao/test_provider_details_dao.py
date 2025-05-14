@@ -11,7 +11,6 @@ from app.constants import EMAIL_TYPE, PINPOINT_PROVIDER, SES_PROVIDER, SMS_TYPE,
 from app.dao.provider_details_dao import (
     dao_get_provider_stats,
     dao_get_provider_versions,
-    dao_get_sms_provider_with_equal_priority,
     dao_update_provider_details,
     get_active_providers_with_weights_by_notification_type,
     get_highest_priority_active_provider_by_notification_type,
@@ -383,17 +382,6 @@ def test_can_get_all_provider_history_with_newest_first(setup_sms_providers):
     versions = dao_get_provider_versions(current_provider.id)
     assert len(versions) == 2
     assert versions[0].version == 2
-
-
-@pytest.mark.serial
-def test_get_sms_provider_with_equal_priority_returns_provider(setup_equal_priority_sms_providers):
-    [current_provider, alternative_provider] = setup_equal_priority_sms_providers
-
-    conflicting_provider = dao_get_sms_provider_with_equal_priority(
-        current_provider.identifier, current_provider.priority
-    )
-
-    assert conflicting_provider.identifier == alternative_provider.identifier
 
 
 @pytest.mark.xfail(reason='#1631', run=False)

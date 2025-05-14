@@ -81,25 +81,6 @@ def dao_update_provider_details(provider_details):
     db.session.add(history)
 
 
-# TODO #962 - Should this be deleted? sms provider swap code
-def dao_get_sms_provider_with_equal_priority(
-    identifier,
-    priority,
-):
-    stmt = (
-        select(ProviderDetails)
-        .where(
-            ProviderDetails.identifier != identifier,
-            ProviderDetails.notification_type == SMS_TYPE,
-            ProviderDetails.priority == priority,
-            ProviderDetails.active.is_(True),
-        )
-        .order_by(asc(ProviderDetails.priority))
-    )
-
-    return db.session.scalars(stmt).first()
-
-
 def dao_get_provider_stats():
     # this query does not include the current day since the task to populate ft_billing runs overnight
 
