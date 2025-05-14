@@ -23,7 +23,7 @@ from app.models import (
 from app.utils import generate_html_email_content
 
 
-template_cache = TTLCache(maxsize=100, ttl=60)
+template_cache = TTLCache(maxsize=1024, ttl=600)  # Cache for 10 minutes
 
 
 @dataclass
