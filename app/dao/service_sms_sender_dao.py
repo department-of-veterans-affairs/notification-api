@@ -1,4 +1,5 @@
 from cachetools import TTLCache, cached
+from datetime import timedelta
 from typing import Optional
 from uuid import UUID
 
@@ -17,7 +18,7 @@ from app.service.exceptions import (
 
 
 # Use this instead of TTLCache
-sms_sender_data_cache = TTLCache(maxsize=1024, ttl=600)
+sms_sender_data_cache = TTLCache(maxsize=1024, ttl=timedelta(hours=12))
 
 
 def insert_service_sms_sender(
