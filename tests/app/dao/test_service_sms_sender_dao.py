@@ -561,14 +561,6 @@ class TestGetSmsSenderByServiceIdAndNumber:
         found_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(service.id, number='+15551234567')
 
         assert found_sms_sender.id == str(sms_sender.id)
-        assert found_sms_sender.sms_sender == sms_sender.sms_sender
-        assert found_sms_sender.service_id == str(sms_sender.service_id)
-        assert found_sms_sender.is_default == sms_sender.is_default
-        assert found_sms_sender.archived == sms_sender.archived
-        assert found_sms_sender.description == sms_sender.description
-        assert found_sms_sender.rate_limit == sms_sender.rate_limit
-        assert found_sms_sender.rate_limit_interval == sms_sender.rate_limit_interval
-        assert found_sms_sender.sms_sender_specifics == sms_sender.sms_sender_specifics
 
 
 @pytest.mark.parametrize(

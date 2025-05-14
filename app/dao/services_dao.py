@@ -82,7 +82,7 @@ def dao_fetch_service_by_inbound_number(number):
 
 @cached(TTLCache(maxsize=1024, ttl=600))
 def dao_fetch_service_by_id_with_api_keys(
-    service_id,
+    service_id: str,
     only_active=False,
 ) -> ServiceData:
     with get_reader_session() as session:

@@ -178,7 +178,7 @@ def dao_redact_template(
     db.session.add(template.template_redacted)
 
 
-def _convert_to_template_data(template) -> TemplateData:
+def _convert_to_template_data(template: Template) -> TemplateData:
     """Convert a Template or TemplateHistory object to TemplateData."""
     return TemplateData(
         id=str(template.id),
@@ -205,9 +205,9 @@ def _convert_to_template_data(template) -> TemplateData:
 
 
 def dao_get_template_by_id_and_service_id_without_cache(
-    template_id,
-    service_id,
-    version=None,
+    template_id: uuid.UUID,
+    service_id: uuid.UUID,
+    version: int = None,
 ) -> Template:
     """Get the raw Template object from the database without caching."""
     if version is None:
@@ -227,9 +227,9 @@ def dao_get_template_by_id_and_service_id_without_cache(
 
 @cached(cache=template_cache)
 def dao_get_template_data_by_id_and_service_id(
-    template_id,
-    service_id,
-    version=None,
+    template_id: uuid.UUID,
+    service_id: uuid.UUID,
+    version: int = None,
 ) -> TemplateData:
     """
     Returns a TemplateData object for the specified template.
@@ -240,9 +240,9 @@ def dao_get_template_data_by_id_and_service_id(
 
 
 def dao_get_template_by_id_and_service_id(
-    template_id,
-    service_id,
-    version=None,
+    template_id: uuid.UUID,
+    service_id: uuid.UUID,
+    version: int = None,
 ):
     """
     Returns a Template object for the specified template.

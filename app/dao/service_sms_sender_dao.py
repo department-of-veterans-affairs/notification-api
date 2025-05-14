@@ -32,8 +32,8 @@ def insert_service_sms_sender(
 
 @cached(sms_sender_data_cache)
 def dao_get_service_sms_sender_by_id(
-    service_id,
-    service_sms_sender_id,
+    service_id: str,
+    service_sms_sender_id: str,
 ) -> ServiceSmsSenderData:
     stmt = select(ServiceSmsSender).where(
         ServiceSmsSender.id == service_sms_sender_id,
@@ -60,7 +60,7 @@ def dao_get_service_sms_sender_by_id(
 
 
 @cached(sms_sender_data_cache)
-def dao_get_sms_senders_data_by_service_id(service_id):
+def dao_get_sms_senders_data_by_service_id(service_id: str) -> list[ServiceSmsSenderData]:
     """Return a cached list of ServiceSmsSenderData objects for a given service_id."""
     stmt = (
         select(ServiceSmsSender)
@@ -88,7 +88,7 @@ def dao_get_sms_senders_data_by_service_id(service_id):
     ]
 
 
-def dao_get_sms_senders_by_service_id(service_id):
+def dao_get_sms_senders_by_service_id(service_id: str) -> list[ServiceSmsSender]:
     """Return a list of ServiceSmsSender ORM objects for a given service_id. Not cached."""
     stmt = (
         select(ServiceSmsSender)
