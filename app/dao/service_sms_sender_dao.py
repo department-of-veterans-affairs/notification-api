@@ -16,27 +16,8 @@ from app.service.exceptions import (
 )
 
 
-class StatsTTLCache(TTLCache):
-    def __init__(self, *args, **kwargs):
-        self.namespace = kwargs.pop('namespace', 'statscache')
-        super().__init__(*args, **kwargs)
-        self.hits = 0
-        self.misses = 0
-
-    def __getitem__(self, key):
-        try:
-            value = super().__getitem__(key)
-            self.hits += 1
-            current_app.logger.debug('Cache hit for %s', key)
-            return value
-        except KeyError:
-            self.misses += 1
-            current_app.logger.debug('Cache miss for %s', key)
-            raise
-
-
 # Use this instead of TTLCache
-sms_sender_data_cache = StatsTTLCache(maxsize=1024, ttl=600, namespace='sms_sender_cache')
+sms_sender_data_cache = TTLCache(maxsize=1024, ttl=600)
 
 
 def insert_service_sms_sender(
