@@ -21,11 +21,6 @@ def get_provider_details_by_id(provider_details_id) -> Optional[ProviderDetails]
     return db.session.get(ProviderDetails, provider_details_id)
 
 
-def get_provider_details_by_identifier(identifier):
-    stmt = select(ProviderDetails).where(ProviderDetails.identifier == identifier)
-    return db.session.scalars(stmt).one()
-
-
 # TODO #962 - Should this be deleted? sms provider swap code
 def get_alternative_sms_provider(identifier: str) -> Optional[ProviderDetails]:
     """
@@ -68,40 +63,6 @@ def dao_get_provider_versions(provider_id):
     )
 
     return db.session.scalars(stmt).all()
-
-
-# TODO #962 - Should this be deleted? sms provider swap code
-@transactional
-def dao_toggle_sms_provider(identifier):
-    alternate_provider = get_alternative_sms_provider(identifier)
-    if alternate_provider is not None:
-        dao_switch_sms_provider_to_provider_with_identifier(alternate_provider.identifier)
-    else:
-        current_app.logger.warning('Cancelling switch from %s as there is no alternative provider.', identifier)
-
-
-# TODO #962 - Should this be deleted? sms provider swap code
-@transactional
-def dao_switch_sms_provider_to_provider_with_identifier(identifier):
-    new_provider = get_provider_details_by_identifier(identifier)
-
-    if provider_is_inactive(new_provider):
-        return
-
-    # Check first to see if there is another provider with the same priority
-    # as this needs to be updated differently
-    conflicting_provider = dao_get_sms_provider_with_equal_priority(new_provider.identifier, new_provider.priority)
-    providers_to_update = []
-
-    if conflicting_provider:
-        switch_providers(conflicting_provider, new_provider)
-    else:
-        current_provider = get_current_provider(SMS_TYPE)
-        if not provider_is_primary(current_provider, new_provider, identifier):
-            providers_to_update = switch_providers(current_provider, new_provider)
-
-        for provider in providers_to_update:
-            dao_update_provider_details(provider)
 
 
 def get_provider_details_by_notification_type(

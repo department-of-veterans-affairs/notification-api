@@ -272,6 +272,23 @@ class Organisation(db.Model):
         }
 
 
+@dataclass
+class ProviderDetailsData:
+    """
+    Used for caching a ProviderDetails instance.
+    """
+
+    # TODO
+    id: str
+    service_id: str
+    url: str
+    # Note that _bearer_token is the encrypted value.
+    _bearer_token: str
+    include_provider_payload: bool
+    callback_channel: str
+    callback_type: str | None
+
+
 class ProviderDetails(db.Model):
     __tablename__ = 'provider_details'
     NOTIFICATION_TYPE = [EMAIL_TYPE, SMS_TYPE, LETTER_TYPE]

@@ -20,9 +20,6 @@ from app.constants import (
 )
 from app.dao.notifications_dao import dao_update_notification
 from app.dao.provider_details_dao import (  # noqa F401
-    # This function isn't used in this module, but importing it here is still necessary because
-    # a unit test patches it.
-    dao_toggle_sms_provider,
     get_provider_details_by_id,
     get_provider_details_by_notification_type,
 )

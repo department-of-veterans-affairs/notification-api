@@ -12,14 +12,11 @@ from app.dao.provider_details_dao import (
     dao_get_provider_stats,
     dao_get_provider_versions,
     dao_get_sms_provider_with_equal_priority,
-    dao_switch_sms_provider_to_provider_with_identifier,
-    dao_toggle_sms_provider,
     dao_update_provider_details,
     get_active_providers_with_weights_by_notification_type,
     get_alternative_sms_provider,
     get_current_provider,
     get_highest_priority_active_provider_by_notification_type,
-    get_provider_details_by_identifier,
 )
 from app.models import (
     ProviderDetails,
@@ -140,18 +137,6 @@ def setup_equal_priority_sms_providers(restore_provider_details):
     restore_provider_details.session.add_all(providers)
     restore_provider_details.session.commit()
     return providers
-
-
-@pytest.mark.skip(reason="#1436 - This test doesn't have proper teardown.")
-def set_primary_sms_provider(identifier):
-    primary_provider = get_provider_details_by_identifier(identifier)
-    secondary_provider = get_alternative_sms_provider(identifier)
-
-    primary_provider.priority = 10
-    secondary_provider.priority = 20
-
-    dao_update_provider_details(primary_provider)
-    dao_update_provider_details(secondary_provider)
 
 
 def commit_to_db(restore_provider_details, *providers):
@@ -424,206 +409,6 @@ def test_get_alternative_sms_provider_returns_next_highest_priority_active_sms_p
 
         assert alternative_provider.identifier != provider.identifier
         assert alternative_provider.active
-
-
-@pytest.mark.xfail(reason='#1631', run=False)
-@pytest.mark.serial
-def test_switch_sms_provider_to_current_provider_does_not_switch(notify_user, sample_provider):
-    pinpoint_provider = sample_provider()
-    assert pinpoint_provider.notification_type == SMS_TYPE
-    assert pinpoint_provider.identifier == PINPOINT_PROVIDER
-    assert pinpoint_provider.priority == 10
-
-    sns_provider = sample_provider(identifier=SNS_PROVIDER, priority=11)
-    assert sns_provider.notification_type == SMS_TYPE
-    assert sns_provider.identifier == SNS_PROVIDER
-    assert sns_provider.priority == 11
-
-    assert get_current_provider(SMS_TYPE).id == pinpoint_provider.id
-
-    dao_switch_sms_provider_to_provider_with_identifier(SNS_PROVIDER)
-    new_provider = get_current_provider(SMS_TYPE)
-
-    assert new_provider.id == sns_provider.id
-    assert new_provider.identifier == SNS_PROVIDER
-
-
-@pytest.mark.xfail(reason='#1631', run=False)
-@pytest.mark.serial
-def test_switch_sms_provider_to_inactive_provider_does_not_switch(setup_sms_providers):
-    [inactive_provider, current_provider, _] = setup_sms_providers
-    assert get_current_provider(SMS_TYPE).identifier == current_provider.identifier
-
-    dao_switch_sms_provider_to_provider_with_identifier(inactive_provider.identifier)
-    new_provider = get_current_provider(SMS_TYPE)
-
-    assert new_provider.id == current_provider.id
-    assert new_provider.identifier == current_provider.identifier
-
-
-@pytest.mark.skip(reason='#962 - provider swap is not used')
-def test_toggle_sms_provider_should_not_switch_provider_if_no_alternate_provider(notify_api, mocker):
-    mocker.patch('app.dao.provider_details_dao.get_alternative_sms_provider', return_value=None)
-    mock_dao_switch_sms_provider_to_provider_with_identifier = mocker.patch(
-        'app.dao.provider_details_dao.dao_switch_sms_provider_to_provider_with_identifier'
-    )
-    dao_toggle_sms_provider('some-identifier')
-
-    mock_dao_switch_sms_provider_to_provider_with_identifier.assert_not_called()
-
-
-@pytest.mark.skip(reason='#962 - provider swap is not used')
-def test_toggle_sms_provider_switches_provider(mocker, sample_user, setup_sms_providers):
-    [inactive_provider, old_provider, alternative_provider] = setup_sms_providers
-    mocker.patch('app.provider_details.switch_providers.get_user_by_id', return_value=sample_user())
-    mocker.patch('app.dao.provider_details_dao.get_alternative_sms_provider', return_value=alternative_provider)
-    dao_toggle_sms_provider(old_provider.identifier)
-    new_provider = get_current_provider(SMS_TYPE)
-
-    assert new_provider.identifier != old_provider.identifier
-    assert new_provider.priority < old_provider.priority
-
-
-@pytest.mark.skip(reason='#962 - provider swap is not used')
-def test_toggle_sms_provider_switches_when_provider_priorities_are_equal(
-    mocker, sample_user, setup_equal_priority_sms_providers
-):
-    [old_provider, alternative_provider] = setup_equal_priority_sms_providers
-    mocker.patch('app.provider_details.switch_providers.get_user_by_id', return_value=sample_user())
-    mocker.patch('app.dao.provider_details_dao.get_alternative_sms_provider', return_value=alternative_provider)
-
-    dao_toggle_sms_provider(old_provider.identifier)
-    new_provider = get_current_provider(SMS_TYPE)
-
-    assert new_provider.identifier != old_provider.identifier
-    assert new_provider.priority < old_provider.priority
-    assert old_provider.priority == new_provider.priority + 10
-
-
-@pytest.mark.xfail(reason='#1631', run=False)
-@pytest.mark.serial
-def test_toggle_sms_provider_updates_provider_history(notify_db_session, mocker, sample_user, setup_sms_providers):
-    _, current_provider, alternative_provider = setup_sms_providers
-    mocker.patch('app.provider_details.switch_providers.get_user_by_id', return_value=sample_user())
-    mocker.patch('app.dao.provider_details_dao.get_alternative_sms_provider', return_value=alternative_provider)
-
-    # [ProviderDetailsHistory]
-    current_provider_history = dao_get_provider_versions(current_provider.id)
-    assert any(history.id == current_provider.id for history in current_provider_history)
-    current_version = current_provider.version
-    current_priority = current_provider.priority
-
-    # [ProviderDetailsHistory]
-    alternative_provider_history = dao_get_provider_versions(alternative_provider.id)
-    assert any(history.id == alternative_provider.id for history in alternative_provider_history)
-    alternative_version = alternative_provider.version
-    alternative_priority = alternative_provider.priority
-
-    # Switch provider from "current" to "alternative".  This should swap their priority.
-    dao_toggle_sms_provider(current_provider.identifier)
-
-    notify_db_session.session.refresh(current_provider)
-    notify_db_session.session.refresh(alternative_provider)
-
-    updated_current_provider_history = dao_get_provider_versions(current_provider.id)
-
-    # The old+current version is in history.
-    assert any(
-        (
-            history.id == current_provider.id
-            and history.version == current_version
-            and history.priority == current_priority
-        )
-        for history in updated_current_provider_history
-    )
-
-    # The updated+current version is in history.
-    assert any(
-        (
-            history.id == current_provider.id
-            and history.version == (current_version + 1)
-            and history.priority == alternative_priority
-        )
-        for history in updated_current_provider_history
-    )
-
-    updated_alternative_provider_history = dao_get_provider_versions(alternative_provider.id)
-
-    # The old+alternative version is in history.
-    assert any(
-        (
-            history.id == alternative_provider.id
-            and history.version == alternative_version
-            and history.priority == alternative_priority
-        )
-        for history in updated_alternative_provider_history
-    )
-
-    # The updated+alternative version is in history.
-    assert any(
-        (
-            history.id == alternative_provider.id
-            and history.version == (alternative_version + 1)
-            and history.priority == current_priority
-        )
-        for history in updated_alternative_provider_history
-    )
-
-
-@pytest.mark.skip(reason='#1631 - This test leaves a ProviderDetailsHistory instance that fails other tests.')
-@pytest.mark.serial
-def test_toggle_sms_provider_switches_provider_stores_notify_user_id(mocker, sample_user, setup_sms_providers):
-    user = sample_user()
-    _, current_provider, alternative_provider = setup_sms_providers
-    mocker.patch('app.provider_details.switch_providers.get_user_by_id', return_value=user)
-    mocker.patch('app.dao.provider_details_dao.get_alternative_sms_provider', return_value=alternative_provider)
-
-    # TODO 1631 - This seems to be creating an updated Twilio row in provider_details_history.
-    dao_toggle_sms_provider(current_provider.identifier)
-    new_provider = get_current_provider(SMS_TYPE)
-
-    assert current_provider.identifier != new_provider.identifier
-    assert new_provider.created_by.id == user.id
-    assert new_provider.created_by_id == user.id
-
-
-@pytest.mark.xfail(reason='#1631', run=False)
-@pytest.mark.serial
-def test_toggle_sms_provider_switches_provider_stores_notify_user_id_in_history(
-    notify_db_session, mocker, sample_user, setup_sms_providers
-):
-    user = sample_user()
-    _, old_provider, alternative_provider = setup_sms_providers
-    mocker.patch('app.provider_details.switch_providers.get_user_by_id', return_value=user)
-    mocker.patch('app.dao.provider_details_dao.get_alternative_sms_provider', return_value=alternative_provider)
-
-    dao_toggle_sms_provider(old_provider.identifier)
-    new_provider = get_current_provider(SMS_TYPE)
-
-    stmt = (
-        select(ProviderDetailsHistory)
-        .where(
-            ProviderDetailsHistory.identifier == old_provider.identifier,
-            ProviderDetailsHistory.version == old_provider.version,
-        )
-        .order_by(ProviderDetailsHistory.priority)
-    )
-    old_provider_from_history = notify_db_session.session.scalars(stmt).first()
-
-    stmt = (
-        select(ProviderDetailsHistory)
-        .where(
-            ProviderDetailsHistory.identifier == new_provider.identifier,
-            ProviderDetailsHistory.version == new_provider.version,
-        )
-        .order_by(ProviderDetailsHistory.priority)
-    )
-    new_provider_from_history = notify_db_session.session.scalars(stmt).first()
-
-    assert old_provider.version == old_provider_from_history.version
-    assert new_provider.version == new_provider_from_history.version
-    assert new_provider_from_history.created_by_id == user.id
-    assert old_provider_from_history.created_by_id == user.id
 
 
 @pytest.mark.skip(reason='#1436 - This test leaves a ProviderDetailsHistory instance that fails other tests.')

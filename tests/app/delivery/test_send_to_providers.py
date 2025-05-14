@@ -31,7 +31,6 @@ from app.constants import (
     SMS_TYPE,
 )
 from app.dao import notifications_dao
-from app.dao.provider_details_dao import dao_switch_sms_provider_to_provider_with_identifier
 from app.delivery import send_to_providers
 from app.delivery.send_to_providers import load_provider
 from app.exceptions import InactiveServiceException, InvalidProviderException
@@ -719,7 +718,10 @@ def test_should_send_sms_to_international_providers(
     mocker.patch('app.provider_details.switch_providers.get_user_by_id', return_value=sample_user())
     sample_provider(identifier=FIRETEXT_PROVIDER, supports_international=True)
     sample_provider(identifier=MMG_PROVIDER, supports_international=True)
-    dao_switch_sms_provider_to_provider_with_identifier(FIRETEXT_PROVIDER)
+
+    # TODO - Changes for #2249 deleted this function because it isn't used in the application.  If this
+    # test is unskipped, it will need to be refactored.
+    # dao_switch_sms_provider_to_provider_with_identifier(FIRETEXT_PROVIDER)
 
     service = sample_service(prefix_sms=True)
     template = sample_template(service=service, content='Hello (( Name))\nHere is <em>some HTML</em> & entities')
