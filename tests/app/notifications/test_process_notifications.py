@@ -1036,6 +1036,7 @@ def test_send_notification_to_queue_delayed_message_content(client, sample_notif
     )
 
     debug_logger.assert_called_once()
+
     messages = sqs_client.receive_message(QueueUrl=q_url, MaxNumberOfMessages=1)
 
     message = messages.get('Messages')[0]
