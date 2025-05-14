@@ -280,12 +280,7 @@ def _get_delivery_task(
     """
     The return value "deliver_task" is a function decorated to be a Celery task.
     """
-    if notification.notification_type == LETTER_TYPE:
-        # Letter notifications are sent to the SEND_LETTER queue.
-        deliver_task = provider_tasks.deliver_letter
-        queue = QueueNames.SEND_LETTER
-    else:
-        deliver_task = None
+
     if research_mode or notification.key_type == KEY_TYPE_TEST:
         queue = QueueNames.NOTIFY
 
