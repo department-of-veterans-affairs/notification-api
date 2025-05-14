@@ -35,7 +35,7 @@ from marshmallow import (
     post_dump,
     validate,
 )
-from marshmallow_sqlalchemy import auto_field, field_for  # TODO
+from marshmallow_sqlalchemy import field_for
 from notifications_utils.recipients import (
     validate_email_address,
     InvalidEmailError,
