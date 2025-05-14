@@ -3,6 +3,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 
+from cachetools import TTLCache, cached
 from sqlalchemy import asc, desc, func, select, update
 
 from app import db
@@ -24,6 +25,8 @@ from app.utils import generate_html_email_content
 from notifications_utils.recipients import try_validate_and_format_phone_number
 
 from typing import Optional, Any
+
+template_cache = TTLCache(maxsize=1024, ttl=600)  # Cache for 10 minutes
 
 
 @dataclass
@@ -54,9 +57,6 @@ class TemplateHistoryData:
     communication_item_id: Optional[Any] = None
     redact_personalisation: bool = False
     get_reply_to_text: Optional[Any] = None
-
-
-template_cache = TTLCache(maxsize=1024, ttl=600)  # Cache for 10 minutes
 
 
 @dataclass
