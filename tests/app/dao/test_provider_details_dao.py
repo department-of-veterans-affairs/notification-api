@@ -14,8 +14,6 @@ from app.dao.provider_details_dao import (
     dao_get_sms_provider_with_equal_priority,
     dao_update_provider_details,
     get_active_providers_with_weights_by_notification_type,
-    get_alternative_sms_provider,
-    get_current_provider,
     get_highest_priority_active_provider_by_notification_type,
 )
 from app.models import (
@@ -376,41 +374,6 @@ def test_updated_at(restore_provider_details, sample_provider):
     assert ses_history_new.updated_at is not None and ses_history_new.updated_at > ses_history_updated_at_initial
 
 
-@pytest.mark.xfail(reason='#1631', run=False)
-@pytest.mark.serial
-def test_update_sms_provider_to_inactive_sets_inactive(restore_provider_details, sample_provider):
-    sample_provider(notification_type=SMS_TYPE, identifier=SNS_PROVIDER, priority=10)
-    sample_provider(notification_type=SMS_TYPE, identifier=SES_PROVIDER, priority=15)
-
-    set_primary_sms_provider(SNS_PROVIDER)
-    primary_provider = get_current_provider(SMS_TYPE)
-    primary_provider.active = False
-
-    dao_update_provider_details(primary_provider)
-
-    assert not primary_provider.active
-
-
-@pytest.mark.xfail(reason='#1631', run=False)
-@pytest.mark.serial
-def test_get_current_sms_provider_returns_provider_highest_priority_active_provider(setup_sms_providers):
-    provider = get_current_provider(SMS_TYPE)
-    assert provider.identifier == setup_sms_providers[1].identifier
-
-
-@pytest.mark.serial
-def test_get_alternative_sms_provider_returns_next_highest_priority_active_sms_provider(setup_provider_details):
-    active_sms_providers = [
-        provider for provider in setup_provider_details if provider.notification_type == SMS_TYPE and provider.active
-    ]
-
-    for provider in active_sms_providers:
-        alternative_provider = get_alternative_sms_provider(provider.identifier)
-
-        assert alternative_provider.identifier != provider.identifier
-        assert alternative_provider.active
-
-
 @pytest.mark.skip(reason='#1436 - This test leaves a ProviderDetailsHistory instance that fails other tests.')
 @pytest.mark.serial
 def test_can_get_all_provider_history_with_newest_first(setup_sms_providers):
@@ -431,18 +394,6 @@ def test_get_sms_provider_with_equal_priority_returns_provider(setup_equal_prior
     )
 
     assert conflicting_provider.identifier == alternative_provider.identifier
-
-
-@pytest.mark.xfail(reason='#1631', run=False)
-@pytest.mark.serial
-def test_get_current_sms_provider_returns_active_only(
-    sample_provider,
-):
-    provider = sample_provider(notification_type=SMS_TYPE, active=False)
-    assert provider, 'Need one set'
-
-    new_current_provider = get_current_provider(SMS_TYPE)
-    assert new_current_provider is None
 
 
 @pytest.mark.xfail(reason='#1631', run=False)

@@ -21,40 +21,6 @@ def get_provider_details_by_id(provider_details_id) -> Optional[ProviderDetails]
     return db.session.get(ProviderDetails, provider_details_id)
 
 
-# TODO #962 - Should this be deleted? sms provider swap code
-def get_alternative_sms_provider(identifier: str) -> Optional[ProviderDetails]:
-    """
-    Return the highest priority SMS provider that doesn't match the given
-    identifier.
-
-    If this function is deleted, we don't have to worry about the below.
-    TODO #957 - This would be more elegant as a method on a custom query class for the ProviderDetails model.
-    https://stackoverflow.com/questions/15936111/sqlalchemy-can-you-add-custom-methods-to-the-query-object
-    """
-
-    stmt = (
-        select(ProviderDetails)
-        .where(
-            ProviderDetails.notification_type == SMS_TYPE,
-            ProviderDetails.active.is_(True),
-            ProviderDetails.identifier != identifier,
-        )
-        .order_by(asc(ProviderDetails.priority))
-    )
-
-    return db.session.scalars(stmt).first()
-
-
-def get_current_provider(notification_type):
-    stmt = (
-        select(ProviderDetails)
-        .where(ProviderDetails.notification_type == notification_type, ProviderDetails.active.is_(True))
-        .order_by(asc(ProviderDetails.priority))
-    )
-
-    return db.session.scalars(stmt).first()
-
-
 def dao_get_provider_versions(provider_id):
     stmt = (
         select(ProviderDetailsHistory)
