@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import dataclass
 from datetime import datetime
 
 from cachetools import cached, TTLCache
@@ -18,6 +19,38 @@ from app.models import (
     TemplateRedacted,
 )
 from app.utils import generate_html_email_content
+
+from typing import Optional, Any
+
+
+@dataclass
+class TemplateHistoryData:
+    # TemplateHistory attributes
+    id: str
+    name: str
+    template_type: str
+    created_at: datetime
+    updated_at: datetime
+    content: str
+    service_id: str
+    subject: Optional[str]
+    postage: Optional[str]
+    created_by_id: Optional[Any]
+    version: int
+    archived: bool
+    process_type: Optional[str]
+    service_letter_contact_id: Optional[Any]
+
+    # Additional attributes from TemplateBase
+    content_as_html: Optional[str] = None
+    content_as_plain_text: Optional[str] = None
+    hidden: bool = False
+    onsite_notification: bool = False
+    reply_to_email: Optional[str] = None
+    provider_id: Optional[Any] = None
+    communication_item_id: Optional[Any] = None
+    redact_personalisation: bool = False
+    get_reply_to_text: Optional[Any] = None
 
 
 @transactional
@@ -184,62 +217,6 @@ def dao_get_number_of_templates_by_service_id_and_name(
         )
 
     return db.session.scalar(stmt)
-
-
-class TemplateHistoryData:
-    def __init__(
-        self,
-        id,
-        name,
-        template_type,
-        created_at,
-        updated_at,
-        content,
-        service_id,
-        subject,
-        postage,
-        created_by_id,
-        version,
-        archived,
-        process_type,
-        service_letter_contact_id,
-        content_as_html=None,
-        content_as_plain_text=None,
-        hidden=False,
-        onsite_notification=False,
-        reply_to_email=None,
-        provider_id=None,
-        communication_item_id=None,
-        redact_personalisation=False,
-        get_reply_to_text=None,
-    ):
-        # TemplateHistory attributes
-        self.id = id
-        self.name = name
-        self.template_type = template_type
-        self.created_at = created_at
-        self.updated_at = updated_at
-        self.content = content
-        self.service_id = service_id
-        self.subject = subject
-        self.postage = postage
-        self.created_by_id = created_by_id
-        self.version = version
-        self.archived = archived
-        self.process_type = process_type
-        self.service_letter_contact_id = service_letter_contact_id
-
-        # Additional attributes from TemplateBase
-        self.content_as_html = content_as_html
-        self.content_as_plain_text = content_as_plain_text
-        self.hidden = hidden
-        self.onsite_notification = onsite_notification
-        self.reply_to_email = reply_to_email
-        self.provider_id = provider_id
-        self.communication_item_id = communication_item_id
-        self.redact_personalisation = redact_personalisation
-
-        self.get_reply_to_text = get_reply_to_text
 
 
 @cached(cache=TTLCache(maxsize=1024, ttl=600))
