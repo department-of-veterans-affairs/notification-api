@@ -988,7 +988,7 @@ class TestDAOGetTemplateById:
         assert result.version == 1
         assert result.content != 'Updated content'
 
-    def test_dao_get_template_by_id_with_version_none_returns_template_history_data(
+    def test_dao_get_template_by_id_with_invalid_version_returns_none(
         self,
         sample_template: Callable[..., Any],
     ):
@@ -1013,7 +1013,7 @@ class TestDAOGetTemplateById:
         result1 = dao_get_template_by_id(template.id, version=1)
         assert db_spy.call_count == 1
 
-        # Second call - should use cached result
+        # Second call - should use cached result, db call count does not increase
         result2 = dao_get_template_by_id(template.id, version=1)
         assert db_spy.call_count == 1
 

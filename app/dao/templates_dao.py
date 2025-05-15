@@ -5,7 +5,6 @@ from datetime import datetime
 
 from cachetools import TTLCache, cached
 from sqlalchemy import asc, desc, func, select, update
-from typing import Optional
 
 from app import db
 from app.constants import EMAIL_TYPE, SMS_TYPE
@@ -39,23 +38,23 @@ class TemplateHistoryData:
     content: str
     service_id: str
     subject: str | None
-    postage: Optional[str]
-    created_by_id: Optional[str]
+    postage: str | None
+    created_by_id: str | None
     version: int
     archived: bool
-    process_type: Optional[str]
-    service_letter_contact_id: Optional[str]
+    process_type: str | None
+    service_letter_contact_id: str | None
 
     # Additional attributes from TemplateBase
-    content_as_html: Optional[str] = None
-    content_as_plain_text: Optional[str] = None
+    content_as_html: str | None = None
+    content_as_plain_text: str | None = None
     hidden: bool = False
     onsite_notification: bool = False
-    reply_to_email: Optional[str] = None
-    provider_id: Optional[str] = None
-    communication_item_id: Optional[str] = None
+    reply_to_email: str | None = None
+    provider_id: str | None = None
+    communication_item_id: str | None = None
     redact_personalisation: bool = False
-    get_reply_to_text: Optional[str] = None
+    get_reply_to_text: str | None = None
 
 
 @dataclass
