@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import IntegrityError
 
+from app import db
 from app.dao.inbound_numbers_dao import (
     dao_create_inbound_number,
     dao_get_inbound_numbers,
@@ -82,8 +83,27 @@ def get_inbound_numbers_for_service(service_id):
 
 @inbound_number_blueprint.route('/<uuid:inbound_number_id>/off', methods=['POST'])
 def post_set_inbound_number_off(inbound_number_id):
-    dao_set_inbound_number_active_flag(inbound_number_id, active=False)
-    return jsonify(), 204
+    try:
+        inbound_number = db.session.get(InboundNumber, inbound_number_id)
+        if not inbound_number:
+            error_data = [
+                {
+                    'error': 'BadRequestError',
+                    'message': f'Inbound number with id {inbound_number_id} does not exist',
+                }
+            ]
+            return jsonify(errors=error_data), 400
+
+        dao_set_inbound_number_active_flag(inbound_number_id, active=False)
+        return jsonify(), 204
+    except Exception as e:
+        error_data = [
+            {
+                'error': 'InternalServerError',
+                'message': str(e),
+            }
+        ]
+        return jsonify(errors=error_data), 500
 
 
 @inbound_number_blueprint.route('/available', methods=['GET'])
