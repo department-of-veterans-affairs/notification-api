@@ -30,7 +30,7 @@ from app.dao.service_sms_sender_dao import (
     dao_get_service_sms_sender_by_id,
     dao_get_service_sms_sender_by_service_id_and_number,
 )
-from app.dao.templates_dao import dao_get_template_history_by_id
+from app.dao.templates_dao import TemplateHistoryData, dao_get_template_history_by_id
 from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
 from app.models import Notification, ScheduledNotification, RecipientIdentifier, Template
 from app.dao.notifications_dao import (
@@ -168,7 +168,9 @@ def send_notification_to_queue(
 
     if recipient_id_type:
         # This query uses the cached value of the template if available.
-        template: TemplateHistoryData | None = dao_get_template_history_by_id(str(notification.template_id), str(notification.template_version))
+        template: TemplateHistoryData | None = dao_get_template_history_by_id(
+            str(notification.template_id), str(notification.template_version)
+        )
 
         # This is a nullable foreign key reference to a CommunicationItem instance UUID.
         communication_item_id = None if (template is None) else template.communication_item_id
