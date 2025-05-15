@@ -979,6 +979,7 @@ class TestDAOGetTemplateById:
         template = sample_template()
 
         template.content = 'Updated content'
+        # This method has a @version_class which created another version in TemplatesHistory.
         dao_update_template(template)
 
         result = dao_get_template_by_id(template.id, version=1)
