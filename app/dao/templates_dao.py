@@ -38,7 +38,7 @@ class TemplateHistoryData:
     updated_at: datetime
     content: str
     service_id: str
-    subject: Optional[str]
+    subject: str | None
     postage: Optional[str]
     created_by_id: Optional[str]
     version: int
