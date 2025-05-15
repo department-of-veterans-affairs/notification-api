@@ -352,9 +352,7 @@ def dao_get_template_by_id(
         stmt = select(Template).where(Template.id == template_id)
         return db.session.scalars(stmt).one()
     else:
-        template_id_str = str(template_id)
-        version_str = str(version)
-        return dao_get_template_history_by_id(template_id_str, version_str)
+        return dao_get_template_history_by_id(str(template_id), str(version))
 
 
 def dao_get_all_templates_for_service(
