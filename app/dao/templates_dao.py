@@ -314,33 +314,34 @@ def dao_get_template_history_by_id(template_id: str, version: str) -> TemplateHi
     stmt = select(TemplateHistory).where(TemplateHistory.id == template_id, TemplateHistory.version == version)
     template_history_object = db.session.scalars(stmt).first()
 
-    if template_history_object is not None:
-        return TemplateHistoryData(
-            id=template_history_object.id,
-            name=template_history_object.name,
-            template_type=template_history_object.template_type,
-            created_at=template_history_object.created_at,
-            updated_at=template_history_object.updated_at,
-            content=template_history_object.content,
-            service_id=template_history_object.service_id,
-            subject=template_history_object.subject,
-            postage=template_history_object.postage,
-            created_by_id=template_history_object.created_by_id,
-            version=template_history_object.version,
-            archived=template_history_object.archived,
-            process_type=template_history_object.process_type,
-            service_letter_contact_id=template_history_object.service_letter_contact_id,
-            content_as_html=template_history_object.content_as_html,
-            content_as_plain_text=template_history_object.content_as_plain_text,
-            hidden=template_history_object.hidden,
-            onsite_notification=template_history_object.onsite_notification,
-            reply_to_email=template_history_object.reply_to_email,
-            provider_id=template_history_object.provider_id,
-            communication_item_id=template_history_object.communication_item_id,
-            redact_personalisation=getattr(template_history_object, 'redact_personalisation', False),
-            get_reply_to_text=template_history_object.get_reply_to_text,
-        )
-    return None
+    if template_history_object is None:
+        return None
+
+    return TemplateHistoryData(
+        id=template_history_object.id,
+        name=template_history_object.name,
+        template_type=template_history_object.template_type,
+        created_at=template_history_object.created_at,
+        updated_at=template_history_object.updated_at,
+        content=template_history_object.content,
+        service_id=template_history_object.service_id,
+        subject=template_history_object.subject,
+        postage=template_history_object.postage,
+        created_by_id=template_history_object.created_by_id,
+        version=template_history_object.version,
+        archived=template_history_object.archived,
+        process_type=template_history_object.process_type,
+        service_letter_contact_id=template_history_object.service_letter_contact_id,
+        content_as_html=template_history_object.content_as_html,
+        content_as_plain_text=template_history_object.content_as_plain_text,
+        hidden=template_history_object.hidden,
+        onsite_notification=template_history_object.onsite_notification,
+        reply_to_email=template_history_object.reply_to_email,
+        provider_id=template_history_object.provider_id,
+        communication_item_id=template_history_object.communication_item_id,
+        redact_personalisation=getattr(template_history_object, 'redact_personalisation', False),
+        get_reply_to_text=template_history_object.get_reply_to_text,
+    )
 
 
 def dao_get_template_by_id(
