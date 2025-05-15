@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import Optional, List
 
+from cachetools import cached, TTLCache
 from flask import current_app
 from notifications_utils.timezones import convert_utc_to_local_timezone
 from sqlalchemy import asc, desc, func, select
@@ -17,7 +17,13 @@ from app.model import User
 from app import db
 
 
-def get_provider_details_by_id(provider_details_id) -> Optional[ProviderDetails]:
+def get_provider_details_by_id(provider_details_id) -> ProviderDetails | None:
+    """
+    This function should not cache the database query because
+    app/dao/service_sms_sender_dao.py::dao_add_sms_sender_for_service
+    requires the return value to be a ProviderDetails instance.
+    """
+
     return db.session.get(ProviderDetails, provider_details_id)
 
 
@@ -31,34 +37,29 @@ def dao_get_provider_versions(provider_id):
     return db.session.scalars(stmt).all()
 
 
-def get_provider_details_by_notification_type(
-    notification_type,
-    supports_international=False,
-):
-    filters = [ProviderDetails.notification_type == notification_type]
-
-    if supports_international:
-        filters.append(ProviderDetails.supports_international == supports_international)
-
-    stmt = select(ProviderDetails).where(*filters).order_by(asc(ProviderDetails.priority))
-    return db.session.scalars(stmt).all()
-
-
-def get_highest_priority_active_provider_by_notification_type(
+@cached(cache=TTLCache(maxsize=1024, ttl=600))
+def get_highest_priority_active_provider_identifier_by_notification_type(
     notification_type: NotificationType, supports_international: bool = False
-) -> Optional[ProviderDetails]:
+) -> str | None:
+    """
+    Note that the highest priority provider is the one with the lowest value for "priority".
+    Lower values have higher precedence.
+    """
+
     filters = [ProviderDetails.notification_type == notification_type.value, ProviderDetails.active.is_(True)]
 
     if supports_international:
         filters.append(ProviderDetails.supports_international == supports_international)
 
     stmt = select(ProviderDetails).where(*filters).order_by(asc(ProviderDetails.priority))
-    return db.session.scalars(stmt).first()
+    provider_details = db.session.scalars(stmt).first()
+
+    return None if (provider_details is None) else provider_details.identifier
 
 
 def get_active_providers_with_weights_by_notification_type(
     notification_type: NotificationType, supports_international: bool = False
-) -> List[ProviderDetails]:
+) -> list[ProviderDetails]:
     filters = [
         ProviderDetails.notification_type == notification_type.value,
         ProviderDetails.load_balancing_weight.is_not(None),

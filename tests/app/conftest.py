@@ -1953,14 +1953,14 @@ def sample_rate(notify_db_session):
 @pytest.fixture
 def restore_provider_details(notify_db_session):
     """
-    Must be ran serial
+    Must be ran serial.
 
-    We view ProviderDetails as a static in notify_db_session, since we don't modify it... except we do, we updated
-    priority. This fixture is designed to be used in tests that will knowingly touch provider details, to restore them
+    We view ProviderDetails as a static in notify_db_session since we don't modify it . . . except we do.  We updated
+    priority. This fixture is designed to be used in tests that will knowingly touch provider details to restore them
     to previous state.
 
     Note: This doesn't technically require notify_db_session (only notify_db), but kept as a requirement to encourage
-    good usage.  If you're modifying ProviderDetails's state then it's good to clear down the rest of the DB too.
+    good usage.  If you're modifying ProviderDetails's state, it's good to clear down the rest of the DB too.
     """
 
     stmt = select(ProviderDetails)

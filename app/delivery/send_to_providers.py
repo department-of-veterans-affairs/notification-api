@@ -21,7 +21,7 @@ from app.constants import (
 from app.dao.notifications_dao import dao_update_notification
 from app.dao.provider_details_dao import (  # noqa F401
     get_provider_details_by_id,
-    get_provider_details_by_notification_type,
+    get_highest_priority_active_provider_identifier_by_notification_type,
 )
 from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import InactiveServiceException, InvalidProviderException, NotificationTechnicalFailureException
@@ -29,6 +29,7 @@ from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.models import (
     Notification,
     ProviderDetails,
+    ProviderDetailsData,
 )
 from app.service.utils import compute_source_email_address
 from app.utils import create_uuid, get_html_email_options
@@ -194,11 +195,6 @@ def update_notification_to_sending(
     dao_update_notification(notification)
 
 
-# TODO: remove this when provider strategy implemented
-def should_use_provider(provider):
-    return provider.active
-
-
 def load_provider(provider_id: str) -> ProviderDetails:
     provider_details = get_provider_details_by_id(provider_id)
     if provider_details is None:
@@ -238,25 +234,18 @@ def client_to_use(notification: Notification) -> Client | None:
                     load_provider(provider_id).identifier, notification.notification_type
                 )
 
-        # This is a list of ProviderDetails instances sorted by their "priority" attribute.
-        active_providers_in_order = [
-            p
-            for p in get_provider_details_by_notification_type(
-                notification.notification_type, notification.international
-            )
-            if should_use_provider(p)
-        ]
+        provider_identifier: str | None = get_highest_priority_active_provider_identifier_by_notification_type(
+            notification.notification_type, notification.international
+        )
 
-        if not active_providers_in_order:
+        if provider_identifier is None:
             current_app.logger.error(
                 '%s %s failed as no active providers', notification.notification_type, notification.id
             )
             raise RuntimeError(f'No active {notification.notification_type} providers')
 
         # This returns an instance of one of the classes defined in app/clients/.
-        return clients.get_client_by_name_and_type(
-            active_providers_in_order[0].identifier, notification.notification_type
-        )
+        return clients.get_client_by_name_and_type(provider_identifier, notification.notification_type)
     except ValueError:
         current_app.logger.exception("Couldn't retrieve a client for the given provider.")
         raise
