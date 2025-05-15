@@ -97,10 +97,11 @@ def post_set_inbound_number_off(inbound_number_id):
         dao_set_inbound_number_active_flag(inbound_number_id, active=False)
         return jsonify(), 204
     except Exception as e:
+        current_app.logger.error("An unexpected error occurred", exc_info=e)
         error_data = [
             {
                 'error': 'InternalServerError',
-                'message': str(e),
+                'message': 'An internal error has occurred. Please contact support if the issue persists.',
             }
         ]
         return jsonify(errors=error_data), 500
