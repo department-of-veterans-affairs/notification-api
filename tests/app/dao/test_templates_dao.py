@@ -1016,10 +1016,8 @@ class TestDAOGetTemplateById:
         result1 = dao_get_template_by_id(template.id, version=1)
         assert db_spy.call_count == 1
 
-        db_spy.reset_mock()
-
         # Second call - should use cached result
         result2 = dao_get_template_by_id(template.id, version=1)
-        assert db_spy.call_count == 0
+        assert db_spy.call_count == 1
 
         assert result1.id == result2.id
