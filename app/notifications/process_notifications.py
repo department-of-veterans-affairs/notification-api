@@ -171,7 +171,7 @@ def send_notification_to_queue(
         template = dao_get_template_history_by_id(str(notification.template_id), str(notification.template_version))
 
         # This is a nullable foreign key reference to a CommunicationItem instance UUID.
-        communication_item_id = template.communication_item_id if template else None
+        communication_item_id = None if (template is None) else template.communication_item_id
 
         if communication_item_id is not None:
             if recipient_id_type != IdentifierType.VA_PROFILE_ID.value:
