@@ -26,7 +26,7 @@ def dao_set_inbound_number_active_flag(
 ) -> None:
     inbound_number = db.session.get(InboundNumber, inbound_number_id)
     if not inbound_number:
-        raise ValueError(f'Inbound number with id {inbound_number_id} does not exist.')
+        raise ValueError(f'Inbound number with id {inbound_number_id} does not exist')
     inbound_number.active = active
 
     db.session.add(inbound_number)
