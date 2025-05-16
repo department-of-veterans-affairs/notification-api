@@ -46,14 +46,27 @@ class TestGetInboundNumbersForService:
 
 
 class TestSetInboundNumberOff:
-    def test_sets_inbound_number_active_flag_off(self, admin_request, mocker):
+    def test_sets_inbound_number_active_flag_off(self, admin_request, mocker, sample_service, sample_inbound_number):
         dao_set_inbound_number_active_flag = mocker.patch('app.inbound_number.rest.dao_set_inbound_number_active_flag')
 
-        inbound_number_id = uuid.uuid4()
+        service = sample_service()
+        inbound_number = sample_inbound_number(service_id=service.id)
         admin_request.post(
-            'inbound_number.post_set_inbound_number_off', _expected_status=204, inbound_number_id=inbound_number_id
+            'inbound_number.post_set_inbound_number_off', _expected_status=204, inbound_number_id=inbound_number.id
         )
-        dao_set_inbound_number_active_flag.assert_called_with(inbound_number_id, active=False)
+        dao_set_inbound_number_active_flag.assert_called_with(inbound_number.id, active=False)
+
+    def test_returns_400_when_inbound_number_does_not_exist(self, admin_request, mocker):
+        # Mock db.session.get to return None, simulating non-existent inbound number
+        mocker.patch('app.db.session.get', return_value=None)
+
+        non_existent_id = uuid.uuid4()
+        response = admin_request.post(
+            'inbound_number.post_set_inbound_number_off', _expected_status=400, inbound_number_id=non_existent_id
+        )
+
+        assert response['errors'][0]['error'] == 'BadRequestError'
+        assert f'Inbound number with id {non_existent_id} does not exist' in response['errors'][0]['message']
 
 
 @pytest.mark.serial

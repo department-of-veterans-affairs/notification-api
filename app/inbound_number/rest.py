@@ -81,8 +81,17 @@ def get_inbound_numbers_for_service(service_id):
 
 
 @inbound_number_blueprint.route('/<uuid:inbound_number_id>/off', methods=['POST'])
-def post_set_inbound_number_off(inbound_number_id):
-    dao_set_inbound_number_active_flag(inbound_number_id, active=False)
+def post_set_inbound_number_off(inbound_number_id: uuid.UUID):
+    try:
+        dao_set_inbound_number_active_flag(inbound_number_id, active=False)
+    except ValueError:
+        error_data = [
+            {
+                'error': 'BadRequestError',
+                'message': f'Inbound number with id {inbound_number_id} does not exist',
+            }
+        ]
+        return jsonify(errors=error_data), 400
     return jsonify(), 204
 
 
