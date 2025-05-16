@@ -1,4 +1,5 @@
 import copy
+from random import randint
 from uuid import UUID
 
 from celery import Task
@@ -111,7 +112,7 @@ def deliver_sms_with_rate_limiting(
         # be the phone number associated with the authenticated service's default SMS sender.  Ergo, the SMS sender
         # returned in the next line should be the correct SMS sender to test for a rate-limiting condition.
         sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
-            notification.service_id, notification.reply_to_text
+            notification.service_id, str(notification.reply_to_text)
         )
 
         check_sms_sender_over_rate_limit(notification.service_id, sms_sender)
@@ -119,14 +120,15 @@ def deliver_sms_with_rate_limiting(
         current_app.logger.info('Successfully sent sms with rate limiting for notification id: %s', notification_id)
 
     except RateLimitError:
-        retry_time = sms_sender.rate_limit_interval / sms_sender.rate_limit
+        # Floor it
+        retry_time = sms_sender.rate_limit_interval // sms_sender.rate_limit
         current_app.logger.info(
             'SMS notification delivery for id: %s failed due to rate limit being exceeded. Will retry in %s seconds.',
             notification_id,
             retry_time,
         )
-
-        task.retry(queue=QueueNames.RETRY, max_retries=None, countdown=retry_time)
+        # Retry after the interval and with jitter so many requests at the same time get spread out (non-exponential)
+        task.retry(queue=QueueNames.RETRY, max_retries=None, countdown=(retry_time + randint(0, retry_time)))  # nosec B311
 
     except Exception as e:
         _handle_delivery_failure(task, notification, 'deliver_sms_with_rate_limiting', e, notification_id, SMS_TYPE)

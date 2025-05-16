@@ -5,8 +5,8 @@ from datetime import datetime
 
 import boto3
 from botocore.exceptions import ClientError
-from flask import current_app, g
 from celery import chain
+from flask import current_app, g
 
 from notifications_utils.recipients import (
     ValidatedPhoneNumber,
@@ -25,10 +25,12 @@ from app.constants import (
     LETTER_TYPE,
     NOTIFICATION_CREATED,
 )
+
 from app.dao.service_sms_sender_dao import (
     dao_get_service_sms_sender_by_id,
     dao_get_service_sms_sender_by_service_id_and_number,
 )
+from app.dao.templates_dao import TemplateHistoryData, dao_get_template_history_by_id
 from app.feature_flags import accept_recipient_identifiers_enabled, is_feature_enabled, FeatureFlag
 from app.models import Notification, ScheduledNotification, RecipientIdentifier, Template
 from app.dao.notifications_dao import (
@@ -165,11 +167,13 @@ def send_notification_to_queue(
     tasks = []
 
     if recipient_id_type:
-        # This is a relationship to a TemplateHistory instance.
-        template = notification.template
+        # This query uses the cached value of the template if available.
+        template: TemplateHistoryData | None = dao_get_template_history_by_id(
+            str(notification.template_id), str(notification.template_version)
+        )
 
         # This is a nullable foreign key reference to a CommunicationItem instance UUID.
-        communication_item_id = template.communication_item_id if template else None
+        communication_item_id = None if (template is None) else template.communication_item_id
 
         if communication_item_id is not None:
             if recipient_id_type != IdentifierType.VA_PROFILE_ID.value:
@@ -294,7 +298,7 @@ def _get_delivery_task(
         # Otherwise, get the first one from the service.
         if sms_sender_id is not None:
             # This is an instance of ServiceSmsSender or None.
-            service_sms_sender = dao_get_service_sms_sender_by_id(notification.service_id, sms_sender_id)
+            service_sms_sender = dao_get_service_sms_sender_by_id(str(notification.service_id), str(sms_sender_id))
         else:
             # This is an instance of ServiceSmsSender or None.
             service_sms_sender = dao_get_service_sms_sender_by_service_id_and_number(
