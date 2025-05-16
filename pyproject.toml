@@ -52,7 +52,7 @@ twilio = "*"
 Unidecode = "*"
 validatesns = "*"
 Werkzeug = "*"
-notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git", branch = "ip/2981-update-action-link"}
+notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git"}
 
 [tool.poetry.group.test]
 optional = true
