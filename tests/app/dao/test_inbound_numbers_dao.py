@@ -65,7 +65,7 @@ class TestSetInboundNumberActiveFlag:
         non_existent_id = uuid4()
         with pytest.raises(ValueError) as e:
             dao_set_inbound_number_active_flag(non_existent_id, active=True)
-        assert str(e.value) == f'Inbound number with id {non_existent_id} does not exist.'
+        assert str(e.value) == f'Inbound number with id {non_existent_id} does not exist'
 
 
 def test_create_inbound_number(notify_db_session):
