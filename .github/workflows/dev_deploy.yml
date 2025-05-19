@@ -5,14 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        type: choice
+        type: environment
         description: Environment to deploy
         default: dev
-        options:
-          - dev
-          - perf
-          - staging
-          - prod
       ref:
         description: "Branch or Commit"
         default: main
