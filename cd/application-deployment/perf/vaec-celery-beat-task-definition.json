@@ -112,10 +112,6 @@
           "value": "perf-do-not-reply"
         },
         {
-          "name": "TEMPLATE_SERVICE_PROVIDERS_ENABLED",
-          "value": "True"
-        },
-        {
           "name": "PROVIDER_STRATEGIES_ENABLED",
           "value": "True"
         },

@@ -58,6 +58,8 @@ def send_sms_to_provider(
 
     # This is an instance of one of the classes defined in app/clients/.
     client = client_to_use(notification)
+    if client is None:
+        raise RuntimeError(f'Could not find a client for notification {notification.id}.')
 
     template_model = dao_get_template_by_id(notification.template_id, notification.template_version)
 
@@ -72,7 +74,6 @@ def send_sms_to_provider(
         notification.reference = create_uuid()
         update_notification_to_sending(notification, client)
         send_sms_response(client.get_name(), str(notification.id), notification.to, notification.reference)
-
     else:
         try:
             # Send a SMS message using the "to" attribute to specify the recipient.
@@ -85,10 +86,10 @@ def send_sms_to_provider(
                 sms_sender_id=sms_sender_id,
                 created_at=notification.created_at,
             )
-        except Exception as e:
+        except Exception:
             notification.billable_units = template.fragment_count
             dao_update_notification(notification)
-            raise e
+            raise
 
         notification.billable_units = template.fragment_count
         notification.reference = reference
@@ -225,27 +226,12 @@ def client_to_use(notification: Notification) -> Client | None:
             provider = provider_service.get_provider(notification)
             return clients.get_client_by_name_and_type(provider.identifier, notification.notification_type)
 
-        # This code is unreachable so long as PROVIDER_STRATEGIES_ENABLED is enabled for all environments
-        if is_feature_enabled(FeatureFlag.TEMPLATE_SERVICE_PROVIDERS_ENABLED):
-            provider_id = get_provider_id(notification)
-
-            if provider_id:
-                return clients.get_client_by_name_and_type(
-                    load_provider(provider_id).identifier, notification.notification_type
-                )
-
-        provider_identifier: str | None = get_highest_priority_active_provider_identifier_by_notification_type(
-            notification.notification_type, notification.international
+        # This code is unreachable so long as PROVIDER_STRATEGIES_ENABLED is enabled for all environments.
+        # There is no intent to change this because the logic will all be replaced by the ENP application.
+        current_app.logger.error(
+            '%s %s failed as no active providers', notification.notification_type, notification.id
         )
-
-        if provider_identifier is None:
-            current_app.logger.error(
-                '%s %s failed as no active providers', notification.notification_type, notification.id
-            )
-            raise RuntimeError(f'No active {notification.notification_type} providers')
-
-        # This returns an instance of one of the classes defined in app/clients/.
-        return clients.get_client_by_name_and_type(provider_identifier, notification.notification_type)
+        raise RuntimeError(f'No active {notification.notification_type} providers')
     except ValueError:
         current_app.logger.exception("Couldn't retrieve a client for the given provider.")
         raise

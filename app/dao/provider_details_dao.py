@@ -39,14 +39,14 @@ def dao_get_provider_versions(provider_id):
 
 @cached(cache=TTLCache(maxsize=1024, ttl=600))
 def get_highest_priority_active_provider_identifier_by_notification_type(
-    notification_type: NotificationType, supports_international: bool = False
+    notification_type: str, supports_international: bool = False
 ) -> str | None:
     """
     Note that the highest priority provider is the one with the lowest value for "priority".
     Lower values have higher precedence.
     """
 
-    filters = [ProviderDetails.notification_type == notification_type.value, ProviderDetails.active.is_(True)]
+    filters = [ProviderDetails.notification_type == notification_type, ProviderDetails.active.is_(True)]
 
     if supports_international:
         filters.append(ProviderDetails.supports_international == supports_international)

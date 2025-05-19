@@ -507,6 +507,7 @@ def sample_service(
         sms_sender=None,
         smtp_user=None,
         user=None,
+        sms_provider_id=None,
     ):
         # Handle where they are checking if it exists by name
         if check_if_service_exists and service_name is not None:
@@ -535,6 +536,7 @@ def sample_service(
             service_id=service_id,
             service_name=service_name,
             smtp_user=smtp_user,
+            sms_provider_id=sms_provider_id,
         )
         service.users.append(user)
 
@@ -570,6 +572,7 @@ def sample_service_helper(
     service_id=None,
     service_name=None,
     smtp_user=None,
+    sms_provider_id=None,
 ):
     service_name = service_name or f'sample service {uuid4()}'
     kwargs = locals()
@@ -744,6 +747,7 @@ def sample_template_helper(
     version=0,
     id=None,
     communication_item_id=None,
+    provider_id=None,
 ) -> dict:
     """
     Return a dictionary of data for creating a Template or TemplateHistory instance.
@@ -765,6 +769,7 @@ def sample_template_helper(
         'version': version,
         'id': id,
         'communication_item_id': communication_item_id,
+        'provider_id': provider_id,
     }
 
     if template_type == EMAIL_TYPE:
@@ -799,6 +804,7 @@ def sample_template(
         template_type=SMS_TYPE,
         user=None,
         version=0,
+        provider_id=None,
     ):
         # Mandatory arguments - ignore args
         if name is None:
@@ -831,6 +837,7 @@ def sample_template(
             version=version,
             id=id,
             communication_item_id=communication_item_id,
+            provider_id=provider_id,
         )
 
         if template_type == LETTER_TYPE:

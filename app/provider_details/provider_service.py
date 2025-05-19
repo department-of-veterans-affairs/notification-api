@@ -18,22 +18,6 @@ class ProviderService:
             NotificationType.SMS: None,
         }
 
-    def init_app(
-        self, email_provider_selection_strategy_label: str, sms_provider_selection_strategy_label: str
-    ) -> None:
-        try:
-            email_strategy = STRATEGY_REGISTRY[email_provider_selection_strategy_label]
-            sms_strategy = STRATEGY_REGISTRY[sms_provider_selection_strategy_label]
-        except KeyError as e:
-            [failed_key] = e.args
-            raise Exception(
-                f"Could not initialise ProviderService with strategy '{failed_key}' "
-                '- has the strategy been declared as a subclass of ProviderSelectionStrategyInterface?'
-            )
-        else:
-            self._strategies[NotificationType.EMAIL] = email_strategy
-            self._strategies[NotificationType.SMS] = sms_strategy
-
     @property
     def strategies(self):
         """This is a dictionary with notification types as the keys."""
@@ -109,7 +93,7 @@ class ProviderService:
         # The template provider_id is nullable foreign key (UUID).
         # TODO #957 - The field is nullable, but what does SQLAlchemy return?  An empty string?
         # Testing for None broke a user flows test; user flows is since removed but this is possibly an issue?
-        if notification.template.provider_id:
+        if notification.template.provider_id is not None:
             current_app.logger.debug(
                 'Found template provider ID %s, for notification %s', notification.template.provider_id, notification.id
             )
