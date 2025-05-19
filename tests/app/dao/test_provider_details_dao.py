@@ -178,12 +178,12 @@ class TestGetHighestPriorityActiveProviderByNotificationType:
         commit_to_db(restore_provider_details, email_provider, sms_provider)
 
         assert (
-            get_highest_priority_active_provider_identifier_by_notification_type(NotificationType.EMAIL)
+            get_highest_priority_active_provider_identifier_by_notification_type(NotificationType.EMAIL.value)
             == email_provider.identifier
         )
 
         assert (
-            get_highest_priority_active_provider_identifier_by_notification_type(NotificationType.SMS)
+            get_highest_priority_active_provider_identifier_by_notification_type(NotificationType.SMS.value)
             == sms_provider.identifier
         )
 
@@ -193,7 +193,7 @@ class TestGetHighestPriorityActiveProviderByNotificationType:
 
         commit_to_db(restore_provider_details, low_number_priority_provider, high_number_priority_provider)
 
-        actual_provider = get_highest_priority_active_provider_identifier_by_notification_type(self.default_type)
+        actual_provider = get_highest_priority_active_provider_identifier_by_notification_type(self.default_type.value)
         assert actual_provider == low_number_priority_provider.identifier
 
     def test_gets_active(self, restore_provider_details):
@@ -202,7 +202,7 @@ class TestGetHighestPriorityActiveProviderByNotificationType:
 
         commit_to_db(restore_provider_details, active_provider, inactive_provider)
 
-        actual_provider = get_highest_priority_active_provider_identifier_by_notification_type(self.default_type)
+        actual_provider = get_highest_priority_active_provider_identifier_by_notification_type(self.default_type.value)
         assert actual_provider == active_provider.identifier
 
     def test_gets_international(self, restore_provider_details):
@@ -211,7 +211,9 @@ class TestGetHighestPriorityActiveProviderByNotificationType:
 
         commit_to_db(restore_provider_details, international_provider, non_international_provider)
 
-        actual_provider = get_highest_priority_active_provider_identifier_by_notification_type(self.default_type, True)
+        actual_provider = get_highest_priority_active_provider_identifier_by_notification_type(
+            self.default_type.value, True
+        )
         assert actual_provider == international_provider.identifier
 
     def test_returns_none(self, restore_provider_details):
@@ -220,7 +222,7 @@ class TestGetHighestPriorityActiveProviderByNotificationType:
         commit_to_db(restore_provider_details, email_provider)
 
         actual_provider = get_highest_priority_active_provider_identifier_by_notification_type(
-            NotificationType.SMS, True
+            NotificationType.SMS.value, True
         )
         assert actual_provider is None
 

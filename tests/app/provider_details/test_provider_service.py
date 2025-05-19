@@ -140,9 +140,7 @@ class TestGetProvider:
 
         assert ProviderService._get_template_or_service_provider_id(notification) == expected_id
 
-    def test_no_strategy_for_notification_type_when_no_template_or_service_providers_sms(
-        self, notify_api, mocker
-    ):
+    def test_no_strategy_for_notification_type_when_no_template_or_service_providers_sms(self, notify_api, mocker):
         """
         For SMS messages, there is no fallback method if neither the notification's template
         nor the notification's service has an associated provider_id.
