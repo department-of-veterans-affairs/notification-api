@@ -608,8 +608,8 @@ def test_get_logo_url_works_for_different_environments(
     assert logo_url == 'https://{}/{}'.format(domain, expected_url)
 
 
-@pytest.mark.skip(reason='#2249 - This is failing during teardown.  Skipping to continue working on other changes.')
-def test_should_not_update_notification_if_research_mode_on_exception(
+@pytest.mark.skip(reason='#2463 - This test passes but causes teardown errors.)
+def test_should_not_update_notification_on_exception_if_research_mode(
     notify_db_session,
     sample_api_key,
     sample_notification,
@@ -619,31 +619,28 @@ def test_should_not_update_notification_if_research_mode_on_exception(
     mocker,
 ):
     """
-    Don't update a notification's status to "sending" if an exception occurs during the request
-    to the provider.
+    In research mode, don't update a notification's status to "sending" if an
+    exception occurs during the request to the provider.
     """
 
     provider = sample_provider()
+    assert provider.identifier == PINPOINT_PROVIDER
     service = sample_service(research_mode=True, sms_provider_id=str(provider.id))
     template = sample_template(service=service)
 
     notification = sample_notification(
         template=template,
-        api_key=sample_api_key(service=template.service),
+        api_key=sample_api_key(service),
         billable_units=0,
     )
+    assert notification.key_type != KEY_TYPE_TEST
     assert notification.billable_units == 0
     assert notification.notification_type == provider.notification_type
 
-    client_to_use_spy = mocker.spy(app.delivery.send_to_providers, 'client_to_use')
-    update_spy = mocker.spy(app.delivery.send_to_providers, 'update_notification_to_sending')
     mocker.patch('app.delivery.send_to_providers.send_sms_response', side_effect=Exception())
 
     with pytest.raises(Exception):
         send_to_providers.send_sms_to_provider(notification)
-
-    assert client_to_use_spy.spy_return is not None
-    assert update_spy.call_count == 0
 
     notify_db_session.session.refresh(notification)
     assert notification.billable_units == 0

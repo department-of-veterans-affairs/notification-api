@@ -12,7 +12,7 @@ def create_provider_rates(
 ):
     """
     #2249 Caching the ProviderDetails select query in this function is unnecessary.  This
-    function is only called via app/commands.py, which aren't used.
+    function is only called via app/commands.py, which isn't used.
     """
 
     stmt = select(ProviderDetails).where(ProviderDetails.identifier == provider_identifier)
