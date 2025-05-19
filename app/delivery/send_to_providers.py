@@ -228,9 +228,7 @@ def client_to_use(notification: Notification) -> Client | None:
 
         # This code is unreachable so long as PROVIDER_STRATEGIES_ENABLED is enabled for all environments.
         # There is no intent to change this because the logic will all be replaced by the ENP application.
-        current_app.logger.error(
-            '%s %s failed as no active providers', notification.notification_type, notification.id
-        )
+        current_app.logger.error('%s %s failed as no active providers', notification.notification_type, notification.id)
         raise RuntimeError(f'No active {notification.notification_type} providers')
     except ValueError:
         current_app.logger.exception("Couldn't retrieve a client for the given provider.")

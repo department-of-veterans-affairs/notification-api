@@ -23,10 +23,6 @@ class ProviderService:
         """This is a dictionary with notification types as the keys."""
         return self._strategies
 
-    def validate_strategies(self) -> None:
-        for notification_type, strategy in self.strategies.items():
-            strategy.validate(notification_type)
-
     def get_provider(
         self,
         notification: Notification,
