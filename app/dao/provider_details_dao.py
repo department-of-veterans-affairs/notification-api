@@ -19,7 +19,7 @@ from app import db
 
 def get_provider_details_by_id(provider_details_id) -> ProviderDetails | None:
     """
-    This function should not cache the database query because
+    #2249 This function should not cache the database query because
     app/dao/service_sms_sender_dao.py::dao_add_sms_sender_for_service
     requires the return value to be a ProviderDetails instance.
     """
@@ -55,22 +55,6 @@ def get_highest_priority_active_provider_identifier_by_notification_type(
     provider_details = db.session.scalars(stmt).first()
 
     return None if (provider_details is None) else provider_details.identifier
-
-
-def get_active_providers_with_weights_by_notification_type(
-    notification_type: NotificationType, supports_international: bool = False
-) -> list[ProviderDetails]:
-    filters = [
-        ProviderDetails.notification_type == notification_type.value,
-        ProviderDetails.load_balancing_weight.is_not(None),
-        ProviderDetails.active.is_(True),
-    ]
-
-    if supports_international:
-        filters.append(ProviderDetails.supports_international == supports_international)
-
-    stmt = select(ProviderDetails).where(*filters)
-    return db.session.scalars(stmt).all()
 
 
 @transactional

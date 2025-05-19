@@ -12,7 +12,6 @@ from app.dao.provider_details_dao import (
     dao_get_provider_stats,
     dao_get_provider_versions,
     dao_update_provider_details,
-    get_active_providers_with_weights_by_notification_type,
     get_highest_priority_active_provider_identifier_by_notification_type,
 )
 from app.models import (
@@ -225,76 +224,6 @@ class TestGetHighestPriorityActiveProviderByNotificationType:
             NotificationType.SMS.value, True
         )
         assert actual_provider is None
-
-
-@pytest.mark.serial
-class TestGetActiveProvidersWithWeightsByNotificationType:
-    default_type = NotificationType.EMAIL
-
-    @staticmethod
-    def provider_factory(
-        load_balancing_weight: int = 10,
-        notification_type: NotificationType = default_type,
-        active: bool = True,
-        supports_international: bool = True,
-    ) -> ProviderDetails:
-        return ProviderDetails(
-            **{
-                'display_name': 'foo',
-                'identifier': 'foo',
-                'priority': 10,
-                'load_balancing_weight': load_balancing_weight,
-                'notification_type': notification_type.value,
-                'active': active,
-                'supports_international': supports_international,
-            }
-        )
-
-    def test_gets_matching_type(self, restore_provider_details):
-        email_provider = self.provider_factory(notification_type=NotificationType.EMAIL)
-        sms_provider = self.provider_factory(notification_type=NotificationType.SMS)
-
-        commit_to_db(restore_provider_details, email_provider, sms_provider)
-
-        assert get_active_providers_with_weights_by_notification_type(NotificationType.EMAIL) == [email_provider]
-
-        assert get_active_providers_with_weights_by_notification_type(NotificationType.SMS) == [sms_provider]
-
-    def test_gets_weighted(self, restore_provider_details):
-        weighted_provider = self.provider_factory(load_balancing_weight=10)
-        unweighted_provider = self.provider_factory()
-        unweighted_provider.load_balancing_weight = None
-
-        commit_to_db(restore_provider_details, weighted_provider, unweighted_provider)
-
-        actual_providers = get_active_providers_with_weights_by_notification_type(self.default_type)
-        assert actual_providers == [weighted_provider]
-
-    def test_gets_active(self, restore_provider_details):
-        active_provider = self.provider_factory(active=True)
-        inactive_provider = self.provider_factory(active=False)
-
-        commit_to_db(restore_provider_details, active_provider, inactive_provider)
-
-        actual_providers = get_active_providers_with_weights_by_notification_type(self.default_type)
-        assert actual_providers == [active_provider]
-
-    def test_gets_international(self, restore_provider_details):
-        international_provider = self.provider_factory(supports_international=True)
-        non_international_provider = self.provider_factory(supports_international=False)
-
-        commit_to_db(restore_provider_details, international_provider, non_international_provider)
-
-        actual_providers = get_active_providers_with_weights_by_notification_type(self.default_type, True)
-        assert actual_providers == [international_provider]
-
-    def test_returns_empty_list(self, restore_provider_details):
-        email_provider = self.provider_factory(notification_type=NotificationType.EMAIL)
-
-        commit_to_db(restore_provider_details, email_provider)
-
-        actual_providers = get_active_providers_with_weights_by_notification_type(NotificationType.SMS)
-        assert actual_providers == []
 
 
 @pytest.mark.serial
