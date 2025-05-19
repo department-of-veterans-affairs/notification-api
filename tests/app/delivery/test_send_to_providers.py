@@ -608,7 +608,7 @@ def test_get_logo_url_works_for_different_environments(
     assert logo_url == 'https://{}/{}'.format(domain, expected_url)
 
 
-@pytest.mark.skip(reason='#2463 - This test passes but causes teardown errors.)
+@pytest.mark.skip(reason='#2463 - This test passes but causes teardown errors.')
 def test_should_not_update_notification_on_exception_if_research_mode(
     notify_db_session,
     sample_api_key,
