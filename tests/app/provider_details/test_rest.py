@@ -1,4 +1,5 @@
 import pytest
+from flask import json
 from freezegun import freeze_time
 from uuid import uuid4
 from werkzeug.http import http_date
@@ -57,7 +58,7 @@ def test_get_provider_contains_correct_fields(
 
     sample_provider()
     response = client.get('/provider-details', headers=[create_admin_authorization_header()])
-    json_resp = response.get_data(as_text=True))['provider_details']
+    json_resp = response.get_json()['provider_details']
     allowed_keys = {
         'id',
         'created_by_name',

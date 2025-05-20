@@ -28,7 +28,7 @@ def get_provider_details_by_id(provider_details_id) -> ProviderDetailsData | Non
         active=provider.active,
         display_name=provider.display_name,
         identifier=provider.identifier,
-        notification_type=provider.notification_type.value,
+        notification_type=provider.notification_type,
     )
 
 

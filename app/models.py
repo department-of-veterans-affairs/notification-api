@@ -561,6 +561,7 @@ class ServiceSmsSender(db.Model):
         provider = None
         if self.provider_id:
             from app.dao.provider_details_dao import get_provider_details_by_id  # Lazy import to avoid circular import
+
             provider = get_provider_details_by_id(self.provider_id)
         return {
             'id': str(self.id) if self.id else None,
@@ -607,6 +608,7 @@ class ServiceSmsSenderData:
         provider = None
         if self.provider_id:
             from app.dao.provider_details_dao import get_provider_details_by_id  # Lazy import to avoid circular import
+
             provider = get_provider_details_by_id(self.provider_id)
         return {
             'id': self.id,

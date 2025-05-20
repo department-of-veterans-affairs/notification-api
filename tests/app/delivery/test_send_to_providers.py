@@ -35,7 +35,6 @@ from app.constants import (
 from app.dao import notifications_dao
 from app.delivery import send_to_providers
 from app.exceptions import InactiveServiceException, InvalidProviderException
-from app.feature_flags import FeatureFlag
 from app.models import (
     EmailBranding,
     Notification,
@@ -1029,29 +1028,6 @@ def test_client_to_use_should_return_template_provider(
     assert client == mocked_client
 
 
-def test_uses_provider_service_if_enabled(notify_api, mocker, monkeypatch):
-    monkeypatch.setenv(FeatureFlag.PROVIDER_STRATEGIES_ENABLED.value, 'True')
-
-    mock_provider_service = mocker.Mock(ProviderService)
-    mock_provider = mocker.Mock(ProviderDetails, identifier='some-identifier')
-    mock_provider_service.get_provider.return_value = mock_provider
-    mocker.patch('app.delivery.send_to_providers.provider_service', new=mock_provider_service)
-
-    mocked_notification = mocker.Mock(Notification, notification_type=EMAIL_TYPE)
-
-    mocked_client = mocker.Mock(EmailClient)
-    mocked_get_client_by_name_and_type = mocker.patch(
-        'app.delivery.send_to_providers.clients.get_client_by_name_and_type', return_value=mocked_client
-    )
-
-    client = send_to_providers.client_to_use(mocked_notification)
-
-    mock_provider_service.get_provider.assert_called_once_with(mocked_notification)
-    mocked_get_client_by_name_and_type.assert_called_once_with(mock_provider.identifier, EMAIL_TYPE)
-
-    assert client == mocked_client
-
-
 def test_returns_service_provider_if_template_has_no_provider(
     notify_api,
     sample_provider,
@@ -1102,25 +1078,6 @@ def test_should_raise_exception_if_template_provider_is_inactive(
     notification = sample_notification(template=template)
 
     with pytest.raises(InvalidProviderException, match=f'provider {provider.display_name} is not active'):
-        send_to_providers.client_to_use(notification)
-
-
-def test_template_or_service_provider_is_not_used_when_feature_flag_is_off(
-    notify_api,
-    monkeypatch,
-    sample_provider,
-    sample_service,
-    sample_template,
-    sample_notification,
-):
-    monkeypatch.setenv(FeatureFlag.PROVIDER_STRATEGIES_ENABLED.value, 'False')
-
-    provider = sample_provider()
-    service = sample_service(sms_provider_id=str(provider.id))
-    template = sample_template(service=service)
-    notification = sample_notification(template=template)
-
-    with pytest.raises(RuntimeError):
         send_to_providers.client_to_use(notification)
 
 
