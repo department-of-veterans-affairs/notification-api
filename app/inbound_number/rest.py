@@ -10,7 +10,7 @@ from app.dao.inbound_numbers_dao import (
     dao_set_inbound_number_active_flag,
     dao_update_inbound_number,
 )
-from app.errors import register_errors
+from app.errors import register_errors, InvalidRequest
 from app.inbound_number.inbound_number_schema import (
     post_create_inbound_number_schema,
     post_update_inbound_number_schema,
@@ -86,13 +86,7 @@ def post_set_inbound_number_off(inbound_number_id: uuid.UUID):
     try:
         dao_set_inbound_number_active_flag(inbound_number_id, active=False)
     except ValueError:
-        error_data = [
-            {
-                'error': 'BadRequestError',
-                'message': f'Inbound number with id {inbound_number_id} does not exist',
-            }
-        ]
-        return jsonify(errors=error_data), 400
+        raise InvalidRequest(f'Inbound number with id {inbound_number_id} does not exist', 400)
     return jsonify(), 204
 
 

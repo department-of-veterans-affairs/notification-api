@@ -46,36 +46,31 @@ class TestGetInboundNumbersForService:
 
 
 class TestSetInboundNumberOff:
-    def test_sets_inbound_number_active_flag_off(self, admin_request, mocker):
+    def test_sets_inbound_number_active_flag_off(self, notify_db_session, admin_request, mocker, sample_inbound_number):
         """
         Test that the endpoint sets the active flag of an inbound number to False.
         """
-        dao_set_inbound_number_active_flag = mocker.patch(
-            'app.inbound_number.rest.dao_set_inbound_number_active_flag', return_value=None
-        )
-
-        inbound_number_id = uuid.uuid4()
+        inbound_number = sample_inbound_number()
         admin_request.post(
-            'inbound_number.post_set_inbound_number_off', _expected_status=204, inbound_number_id=inbound_number_id
+            'inbound_number.post_set_inbound_number_off', _expected_status=204, inbound_number_id=inbound_number.id
         )
-        dao_set_inbound_number_active_flag.assert_called_with(inbound_number_id, active=False)
+        inbound_number_from_db = notify_db_session.session.get(InboundNumber, inbound_number.id)
+        assert inbound_number_from_db.active is False
 
-    def test_returns_400_when_inbound_number_does_not_exist(self, admin_request, mocker):
+    def test_returns_400_when_inbound_number_does_not_exist(
+        self, notify_db_session, admin_request, mocker, sample_inbound_number
+    ):
         """
         Test that the endpoint returns a 400 error when the inbound number does not exist.
         """
-        error_message = 'Inbound number with id {} does not exist'
-        mocker.patch(
-            'app.inbound_number.rest.dao_set_inbound_number_active_flag', side_effect=ValueError(error_message)
-        )
-
-        non_existent_id = uuid.uuid4()
+        non_existent_id = str(uuid.uuid4())
+        error_message = f'Inbound number with id {non_existent_id} does not exist'
         response = admin_request.post(
             'inbound_number.post_set_inbound_number_off', _expected_status=400, inbound_number_id=non_existent_id
         )
 
-        assert response['errors'][0]['error'] == 'BadRequestError'
-        assert f'Inbound number with id {non_existent_id} does not exist' in response['errors'][0]['message']
+        assert response['result'] == 'error'
+        assert response['message'] == error_message
 
 
 @pytest.mark.serial
