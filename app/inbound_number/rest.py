@@ -85,8 +85,8 @@ def get_inbound_numbers_for_service(service_id):
 def post_set_inbound_number_off(inbound_number_id: uuid.UUID):
     try:
         dao_set_inbound_number_active_flag(inbound_number_id, active=False)
-    except ValueError:
-        raise InvalidRequest(f'Inbound number with id {inbound_number_id} does not exist', 400)
+    except ValueError as e:
+        raise InvalidRequest(str(e), status_code=400)
     return jsonify(), 204
 
 
