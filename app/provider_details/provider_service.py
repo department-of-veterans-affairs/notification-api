@@ -4,16 +4,11 @@ from app.dao.provider_details_dao import get_provider_details_by_id
 from app.exceptions import InvalidProviderException
 from app.models import Notification, ProviderDetails
 from app.notifications.notification_type import NotificationType
-from app.provider_details.provider_selection_strategy_interface import (
-    ProviderSelectionStrategyInterface,
-    STRATEGY_REGISTRY,
-)
-from typing import Type, Dict, Optional
 
 
 class ProviderService:
     def __init__(self):
-        self._strategies: Dict[NotificationType, Optional[Type[ProviderSelectionStrategyInterface]]] = {
+        self._strategies: dict[NotificationType, None] = {
             NotificationType.EMAIL: None,
             NotificationType.SMS: None,
         }
@@ -33,39 +28,17 @@ class ProviderService:
 
         # This is a UUID (ProviderDetails primary key).
         provider_id = self._get_template_or_service_provider_id(notification)
+        if provider_id is None:
+            raise InvalidProviderException('Could not determine a provider ID.')
+
         current_app.logger.debug(
             'Provider service getting provider for notification = %s, provider_id = %s', notification.id, provider_id
         )
 
-        if provider_id:
-            provider = get_provider_details_by_id(provider_id)
-        elif notification.notification_type != NotificationType.SMS:
-            # Use an alternative strategy to determine the provider.
-            provider_selection_strategy = self._strategies.get(NotificationType(notification.notification_type))
-            current_app.logger.debug(
-                'Provider selection strategy: %s, for notification: %s', provider_selection_strategy, notification.id
-            )
-            provider = (
-                None
-                if (provider_selection_strategy is None)
-                else provider_selection_strategy.get_provider(notification)
-            )
-
-            if provider is None and provider_selection_strategy is not None:
-                # This exception message is more detailed than the messages below.
-                raise InvalidProviderException(
-                    f'Could not determine a provider using strategy {provider_selection_strategy.get_label()}.'
-                )
-        else:
-            # Do not use any other criteria to determine the provider for SMS notifications.
-            # Unlike e-mail providers, which are basically fungible, SMS providers have more specific
-            # limitations that should preclude selecting different ones in an ad-hoc manner.
-            provider = None
+        provider = get_provider_details_by_id(provider_id)
 
         if provider is None:
-            if provider_id:
-                raise InvalidProviderException(f'The provider {provider_id} could not be found.')
-            raise InvalidProviderException('Could not determine a provider.')
+            raise InvalidProviderException(f'The provider {provider_id} could not be found.')
         elif not provider.active:
             raise InvalidProviderException(f'The provider {provider.display_name} is not active.')
 
@@ -74,10 +47,11 @@ class ProviderService:
             None if provider is None else provider.display_name,
             notification.id,
         )
+
         return provider
 
     @staticmethod
-    def _get_template_or_service_provider_id(notification: Notification) -> Optional[str]:
+    def _get_template_or_service_provider_id(notification: Notification) -> str | None:
         """
         Return a primary key (UUID) for an instance of ProviderDetails using this criteria:
             1. Use the notification template's provider_id first.

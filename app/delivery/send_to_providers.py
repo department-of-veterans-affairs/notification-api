@@ -19,18 +19,10 @@ from app.constants import (
     SMS_TYPE,
 )
 from app.dao.notifications_dao import dao_update_notification
-from app.dao.provider_details_dao import (  # noqa F401
-    get_provider_details_by_id,
-    get_highest_priority_active_provider_identifier_by_notification_type,
-)
 from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import InactiveServiceException, InvalidProviderException, NotificationTechnicalFailureException
 from app.feature_flags import is_feature_enabled, FeatureFlag
-from app.models import (
-    Notification,
-    ProviderDetails,
-    ProviderDetailsData,
-)
+from app.models import Notification, ProviderDetails
 from app.service.utils import compute_source_email_address
 from app.utils import create_uuid, get_html_email_options
 
@@ -196,16 +188,6 @@ def update_notification_to_sending(
     dao_update_notification(notification)
 
 
-def load_provider(provider_id: str) -> ProviderDetails:
-    provider_details = get_provider_details_by_id(provider_id)
-    if provider_details is None:
-        raise InvalidProviderException(f'provider {provider_id} could not be found')
-    elif not provider_details.active:
-        raise InvalidProviderException(f'provider {provider_id} is not active')
-    else:
-        return provider_details
-
-
 def client_to_use(notification: Notification) -> Client | None:
     """Return a subclass of Client to process a notification.
 
@@ -221,15 +203,8 @@ def client_to_use(notification: Notification) -> Client | None:
     """
 
     try:
-        # This is True in all environments - Will need unit tests rebuilt if we intend to use priority again.
-        if is_feature_enabled(FeatureFlag.PROVIDER_STRATEGIES_ENABLED):
-            provider = provider_service.get_provider(notification)
-            return clients.get_client_by_name_and_type(provider.identifier, notification.notification_type)
-
-        # This code is unreachable so long as PROVIDER_STRATEGIES_ENABLED is enabled for all environments.
-        # There is no intent to change this because the logic will all be replaced by the ENP application.
-        current_app.logger.error('%s %s failed as no active providers', notification.notification_type, notification.id)
-        raise RuntimeError(f'No active {notification.notification_type} providers')
+        provider = provider_service.get_provider(notification)
+        return clients.get_client_by_name_and_type(provider.identifier, notification.notification_type)
     except ValueError:
         current_app.logger.exception("Couldn't retrieve a client for the given provider.")
         raise

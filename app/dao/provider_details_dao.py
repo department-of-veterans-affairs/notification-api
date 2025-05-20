@@ -12,19 +12,24 @@ from app.provider_details.switch_providers import (
     provider_is_primary,
     switch_providers,
 )
-from app.models import FactBilling, ProviderDetails, ProviderDetailsHistory, SMS_TYPE
+from app.models import FactBilling, ProviderDetails, ProviderDetailsData, ProviderDetailsHistory, SMS_TYPE
 from app.model import User
 from app import db
 
 
-def get_provider_details_by_id(provider_details_id) -> ProviderDetails | None:
-    """
-    #2249 This function should not cache the database query because
-    app/dao/service_sms_sender_dao.py::dao_add_sms_sender_for_service
-    requires the return value to be a ProviderDetails instance.
-    """
+@cached(cache=TTLCache(maxsize=1024, ttl=600))
+def get_provider_details_by_id(provider_details_id) -> ProviderDetailsData | None:
+    provider = db.session.get(ProviderDetails, provider_details_id)
 
-    return db.session.get(ProviderDetails, provider_details_id)
+    if provider is None:
+        return None
+
+    return ProviderDetailsData(
+        active=provider.active,
+        display_name=provider.display_name,
+        identifier=provider.identifier,
+        notification_type=provider.notification_type.value,
+    )
 
 
 def dao_get_provider_versions(provider_id):

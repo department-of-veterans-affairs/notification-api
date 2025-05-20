@@ -3,36 +3,7 @@ import pytest
 from app.exceptions import InvalidProviderException
 from app.models import Notification, ProviderDetails, Template, Service
 from app.notifications.notification_type import NotificationType
-from app.provider_details.provider_selection_strategy_interface import ProviderSelectionStrategyInterface
 from app.provider_details.provider_service import ProviderService
-
-
-class ExampleStrategyOne(ProviderSelectionStrategyInterface):
-    @staticmethod
-    def get_label() -> str:
-        return 'EXAMPLE_STRATEGY_ONE'
-
-    @staticmethod
-    def validate(notification_type: NotificationType):
-        pass
-
-    @staticmethod
-    def get_provider(notification: Notification) -> ProviderDetails:
-        pass
-
-
-class ExampleStrategyTwo(ProviderSelectionStrategyInterface):
-    @staticmethod
-    def get_label() -> str:
-        return 'EXAMPLE_STRATEGY_TWO'
-
-    @staticmethod
-    def validate(notification_type: NotificationType):
-        pass
-
-    @staticmethod
-    def get_provider(notification: Notification) -> ProviderDetails:
-        pass
 
 
 class TestGetProvider:

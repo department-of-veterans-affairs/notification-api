@@ -34,7 +34,6 @@ from app.constants import (
 )
 from app.dao import notifications_dao
 from app.delivery import send_to_providers
-from app.delivery.send_to_providers import load_provider
 from app.exceptions import InactiveServiceException, InvalidProviderException
 from app.feature_flags import FeatureFlag
 from app.models import (
@@ -993,40 +992,6 @@ def test_notification_passes_if_message_contains_phone_number(
     mock_email_client.send_email.assert_called()
 
     assert notify_db_session.session.get(Notification, db_notification.id).status == NOTIFICATION_SENDING
-
-
-def test_load_provider_throws_exception_if_provider_is_inactive(
-    notify_api,
-    fake_uuid,
-    mocker,
-):
-    mocker.patch(
-        'app.delivery.send_to_providers.get_provider_details_by_id',
-        return_value=mocker.Mock(ProviderDetails, active=False),
-    )
-
-    with pytest.raises(InvalidProviderException, match=f'^provider {fake_uuid} is not active$'):
-        load_provider(fake_uuid)
-
-
-def test_load_provider_throws_exception_if_provider_is_not_found(fake_uuid, mocker):
-    mocker.patch('app.delivery.send_to_providers.get_provider_details_by_id', return_value=None)
-
-    with pytest.raises(InvalidProviderException, match=f'^provider {fake_uuid} could not be found'):
-        load_provider(fake_uuid)
-
-
-def test_load_provider_returns_provider_details_if_provider_is_active(
-    notify_api,
-    fake_uuid,
-    mocker,
-):
-    mocked_provider_details = mocker.Mock(ProviderDetails, active=True)
-
-    mocker.patch('app.delivery.send_to_providers.get_provider_details_by_id', return_value=mocked_provider_details)
-
-    provider_details = load_provider(fake_uuid)
-    assert provider_details == mocked_provider_details
 
 
 @pytest.mark.parametrize('client_type', [EMAIL_TYPE, SMS_TYPE])

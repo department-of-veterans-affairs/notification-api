@@ -112,10 +112,6 @@
           "value": "perf-do-not-reply"
         },
         {
-          "name": "PROVIDER_STRATEGIES_ENABLED",
-          "value": "True"
-        },
-        {
           "name": "SMS_SENDER_RATE_LIMIT_ENABLED",
           "value": "True"
         },
