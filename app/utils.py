@@ -20,9 +20,10 @@ from app.constants import (
     SMS_TYPE,
     UPLOAD_DOCUMENT,
 )
+from app.dao.email_branding_dao import EmailBrandingData
 from app.feature_flags import is_gapixel_enabled
 from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
-from app.models import EmailBranding, TemplateBase
+from app.models import Service, TemplateBase
 
 local_timezone = pytz.timezone(os.getenv('TIMEZONE', 'America/New_York'))
 
@@ -163,8 +164,20 @@ def get_logo_url(base_url, logo_file):
 
 
 @cached(cache=TTLCache(maxsize=1024, ttl=600))
-def get_email_branding(service) -> EmailBranding | None:
-    return service.email_branding
+def get_email_branding(service: Service) -> EmailBrandingData | None:
+    if service.email_branding is None:
+        return None
+
+    email_branding = service.email_branding
+
+    return EmailBrandingData(
+        id=email_branding.id,
+        name=email_branding.name,
+        brand_type=email_branding.brand_type,
+        colour=email_branding.colour,
+        logo=email_branding.logo,
+        text=email_branding.text,
+    )
 
 
 def get_html_email_options(
