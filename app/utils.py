@@ -207,19 +207,17 @@ def get_html_email_options(
         options_dict.update({'default_banner': True, 'brand_banner': False})
     else:
         logo_url = (
-            get_logo_url(current_app.config['ADMIN_BASE_URL'], service.email_branding.logo)
-            if service.email_branding.logo
-            else None
+            get_logo_url(current_app.config['ADMIN_BASE_URL'], email_branding.logo) if email_branding.logo else None
         )
 
         options_dict.update(
             {
-                'default_banner': service.email_branding.brand_type == BRANDING_BOTH,
-                'brand_banner': service.email_branding.brand_type == BRANDING_ORG_BANNER,
-                'brand_colour': service.email_branding.colour,
+                'default_banner': email_branding.brand_type == BRANDING_BOTH,
+                'brand_banner': email_branding.brand_type == BRANDING_ORG_BANNER,
+                'brand_colour': email_branding.colour,
                 'brand_logo': logo_url,
-                'brand_text': service.email_branding.text,
-                'brand_name': service.email_branding.name,
+                'brand_text': email_branding.text,
+                'brand_name': email_branding.name,
             }
         )
 
