@@ -22,7 +22,7 @@ from app.constants import (
 )
 from app.feature_flags import is_gapixel_enabled
 from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
-from app.models import TemplateBase, Service
+from app.models import EmailBranding, TemplateBase
 
 local_timezone = pytz.timezone(os.getenv('TIMEZONE', 'America/New_York'))
 
@@ -163,8 +163,8 @@ def get_logo_url(base_url, logo_file):
 
 
 @cached(cache=TTLCache(maxsize=1024, ttl=600))
-def get_email_branding(template) -> Service | None:
-    return template.service
+def get_email_branding(service) -> EmailBranding | None:
+    return service.email_branding
 
 
 def get_html_email_options(
@@ -199,9 +199,11 @@ def get_html_email_options(
     if is_gapixel_enabled(current_app):
         options_dict['ga4_open_email_event_url'] = build_dynamic_ga4_pixel_tracking_url(notification_id)
 
-    service = get_email_branding(template)
+    service = template.service
 
-    if service.email_branding is None:
+    email_branding = get_email_branding(service)
+
+    if email_branding is None:
         options_dict.update({'default_banner': True, 'brand_banner': False})
     else:
         logo_url = (
