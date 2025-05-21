@@ -1,7 +1,6 @@
 name: Cleanup AWS ECS Task Definitions
 
-permissions:
-  contents: read
+permissions: {} # no permissions needed
 
 on:
   schedule:

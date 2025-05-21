@@ -1,7 +1,6 @@
 name: Datadog image update
 
-permissions:
-  contents: read
+permissions: {} # no permissions needed
 
 on:
   workflow_dispatch:
