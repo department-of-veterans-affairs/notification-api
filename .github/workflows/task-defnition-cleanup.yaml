@@ -1,5 +1,8 @@
 name: Cleanup AWS ECS Task Definitions
 
+permissions:
+  contents: read
+
 on:
   schedule:
     - cron: '0 0 * * 0' # weekly -- Sunday at 00:00 UTC
