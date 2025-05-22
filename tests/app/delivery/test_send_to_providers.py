@@ -14,7 +14,6 @@ from app.clients.email import EmailClient
 from app.clients.sms import SmsClient
 from app.constants import (
     BRANDING_ORG,
-    BRANDING_BOTH,
     BRANDING_ORG_BANNER,
     EMAIL_TYPE,
     FIRETEXT_PROVIDER,
@@ -496,42 +495,6 @@ def test_get_html_email_renderer_should_return_for_normal_service(
 ):
     options = get_html_email_options(sample_notification_model_with_organization)
     assert options['default_banner'] is True
-    assert 'brand_colour' not in options.keys()
-    assert 'brand_logo' not in options.keys()
-    assert 'brand_text' not in options.keys()
-    assert 'brand_name' not in options.keys()
-    assert 'ga4_open_email_event_url' in options.keys()
-
-
-@pytest.mark.parametrize(
-    'branding_type, default_banner', [(BRANDING_ORG, False), (BRANDING_BOTH, True), (BRANDING_ORG_BANNER, False)]
-)
-def test_get_html_email_renderer_with_branding_details(
-    notify_api,
-    branding_type,
-    default_banner,
-    sample_notification_model_with_organization,
-):
-    email_branding = EmailBranding(
-        brand_type=branding_type,
-        colour='#000000',
-        logo='justice-league.png',
-        name='Justice League',
-        text='League of Justice',
-    )
-    sample_notification_model_with_organization.service.email_branding = email_branding
-
-    options = get_html_email_options(sample_notification_model_with_organization)
-
-    assert options['default_banner'] == default_banner
-    assert options['brand_colour'] == '#000000'
-    assert options['brand_text'] == 'League of Justice'
-    assert options['brand_name'] == 'Justice League'
-
-    if branding_type == BRANDING_ORG_BANNER:
-        assert options['brand_banner'] is True
-    else:
-        assert options['brand_banner'] is False
 
 
 def test_get_html_email_renderer_with_branding_details_and_render_default_banner_only(

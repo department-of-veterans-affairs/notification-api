@@ -4,7 +4,6 @@ from typing import Dict, Optional, Union
 from uuid import UUID, uuid4
 
 from flask import current_app, url_for
-
 from notifications_utils.template import HTMLEmailTemplate, SMSMessageTemplate, WithSubjectTemplate, get_html_email_body
 from notifications_utils.url_safe_token import generate_token
 import pytz
@@ -17,7 +16,6 @@ from app.constants import (
     SMS_TYPE,
     UPLOAD_DOCUMENT,
 )
-
 from app.feature_flags import is_gapixel_enabled
 from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
 
@@ -211,7 +209,7 @@ def generate_html_email_content(template) -> Optional[str]:
                 'content': template.content,
                 'subject': template.subject,
             },
-            **get_html_email_options(template),
+            **get_html_email_options(),
         )
         content = str(template_object)
 
