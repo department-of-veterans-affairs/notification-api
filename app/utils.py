@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from typing import Dict, Optional, Union
 from uuid import UUID, uuid4
 
-from cachetools import TTLCache, cached
 from flask import current_app, url_for
 
 from notifications_utils.template import HTMLEmailTemplate, SMSMessageTemplate, WithSubjectTemplate, get_html_email_body
@@ -11,8 +10,6 @@ from notifications_utils.url_safe_token import generate_token
 import pytz
 
 from app.constants import (
-    BRANDING_BOTH,
-    BRANDING_ORG_BANNER,
     EMAIL_TYPE,
     LETTER_TYPE,
     PRECOMPILED_LETTER,
@@ -20,10 +17,9 @@ from app.constants import (
     SMS_TYPE,
     UPLOAD_DOCUMENT,
 )
-from app.dao.email_branding_dao import EmailBrandingData
+
 from app.feature_flags import is_gapixel_enabled
 from app.googleanalytics.pixels import build_dynamic_ga4_pixel_tracking_url
-from app.models import Service, TemplateBase
 
 local_timezone = pytz.timezone(os.getenv('TIMEZONE', 'America/New_York'))
 
@@ -163,26 +159,7 @@ def get_logo_url(base_url, logo_file):
     return f'https://{bucket}.{domain}/{logo_file}'
 
 
-@cached(cache=TTLCache(maxsize=1024, ttl=600))
-def get_email_branding(service: Service) -> EmailBrandingData | None:
-    if service.email_branding is None:
-        return None
-
-    email_branding = service.email_branding
-
-    return EmailBrandingData(
-        id=email_branding.id,
-        name=email_branding.name,
-        brand_type=email_branding.brand_type,
-        colour=email_branding.colour,
-        logo=email_branding.logo,
-        text=email_branding.text,
-    )
-
-
-def get_html_email_options(
-    template: TemplateBase, notification_id: str = 'xx_notification_id_xx'
-) -> Dict[str, Union[str, bool]]:
+def get_html_email_options(notification_id: str = 'xx_notification_id_xx') -> Dict[str, Union[str, bool]]:
     """
     Generate HTML email options dictionary for email rendering.
 
@@ -212,29 +189,7 @@ def get_html_email_options(
     if is_gapixel_enabled(current_app):
         options_dict['ga4_open_email_event_url'] = build_dynamic_ga4_pixel_tracking_url(notification_id)
 
-    service = template.service
-
-    email_branding = get_email_branding(service)
-
-    if email_branding is None:
-        options_dict.update({'default_banner': True, 'brand_banner': False})
-    else:
-        logo_url = (
-            get_logo_url(current_app.config['ADMIN_BASE_URL'], email_branding.logo) if email_branding.logo else None
-        )
-
-        options_dict.update(
-            {
-                'default_banner': email_branding.brand_type == BRANDING_BOTH,
-                'brand_banner': email_branding.brand_type == BRANDING_ORG_BANNER,
-                'brand_colour': email_branding.colour,
-                'brand_logo': logo_url,
-                'brand_text': email_branding.text,
-                'brand_name': email_branding.name,
-            }
-        )
-
-    return options_dict
+    options_dict.update({'default_banner': True, 'brand_banner': False})
 
 
 def generate_html_email_content(template) -> Optional[str]:
