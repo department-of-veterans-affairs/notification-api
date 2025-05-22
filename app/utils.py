@@ -186,8 +186,8 @@ def get_html_email_options(notification_id: str = 'xx_notification_id_xx') -> Di
     options_dict = {}
     if is_gapixel_enabled(current_app):
         options_dict['ga4_open_email_event_url'] = build_dynamic_ga4_pixel_tracking_url(notification_id)
-
     options_dict.update({'default_banner': True, 'brand_banner': False})
+    return options_dict
 
 
 def generate_html_email_content(template) -> Optional[str]:

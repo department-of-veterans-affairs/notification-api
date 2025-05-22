@@ -13,8 +13,6 @@ from app import aws_sns_client, mmg_client, ProviderService
 from app.clients.email import EmailClient
 from app.clients.sms import SmsClient
 from app.constants import (
-    BRANDING_ORG,
-    BRANDING_ORG_BANNER,
     EMAIL_TYPE,
     FIRETEXT_PROVIDER,
     KEY_TYPE_NORMAL,
@@ -36,7 +34,6 @@ from app.delivery.send_to_providers import load_provider
 from app.exceptions import InactiveServiceException, InvalidProviderException
 from app.feature_flags import FeatureFlag
 from app.models import (
-    EmailBranding,
     Notification,
     ProviderDetails,
     Service,
@@ -506,48 +503,6 @@ def test_get_html_email_renderer_with_branding_details_and_render_default_banner
     options = get_html_email_options(sample_notification_model_with_organization)
 
     assert {'default_banner': True, 'brand_banner': False}.items() <= options.items()
-
-
-def test_get_html_email_renderer_prepends_logo_path(
-    notify_api,
-    sample_notification_model_with_organization,
-):
-    email_branding = EmailBranding(
-        brand_type=BRANDING_ORG,
-        colour='#000000',
-        logo='justice-league.png',
-        name='Justice League',
-        text='League of Justice',
-    )
-    sample_notification_model_with_organization.service.email_branding = email_branding
-
-    renderer = get_html_email_options(sample_notification_model_with_organization)
-    domain = 'https://dev-notifications-va-gov-assets.s3.amazonaws.com'
-    assert renderer['brand_logo'] == '{}{}'.format(domain, '/justice-league.png')
-
-
-def test_get_html_email_renderer_handles_email_branding_without_logo(
-    notify_api,
-    sample_notification_model_with_organization,
-):
-    email_branding = EmailBranding(
-        brand_type=BRANDING_ORG_BANNER,
-        colour='#000000',
-        logo=None,
-        name='Justice League',
-        text='League of Justice',
-    )
-
-    sample_notification_model_with_organization.service.email_branding = email_branding
-
-    renderer = get_html_email_options(sample_notification_model_with_organization)
-
-    assert renderer['default_banner'] is False
-    assert renderer['brand_banner'] is True
-    assert renderer['brand_logo'] is None
-    assert renderer['brand_text'] == 'League of Justice'
-    assert renderer['brand_colour'] == '#000000'
-    assert renderer['brand_name'] == 'Justice League'
 
 
 @pytest.mark.parametrize(
