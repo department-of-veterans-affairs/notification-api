@@ -12,7 +12,7 @@ fileignoreconfig:
 - filename: app/schemas.py
   checksum: 263db62e3a74db2cb8efa2a0088364950c790730abdb243ff206bc2988c246d8
 - filename: app/service/rest.py
-  checksum: 5e350e4556b9c78c11e06d98da61a238d5a4f6a8e04cee0c557995007dd2aeaf
+  checksum: c3a9cd974573609d05092e449ef86ae38b76ce4540cf8c22020424608316566e
 - filename: app/v2/notifications/post_notifications.py
   checksum: b52f923d90faa072095d5e4c2925bf588a3649846ac65e8ae36f285823b57965
 - filename: cd/application-deployment/dev/dev.env
@@ -41,6 +41,8 @@ fileignoreconfig:
   checksum: c26fd96b52dd1cfdab043cb589aee797646cc3eaa26dfa82d75433066209e9dc
 - filename: tests/app/service/test_rest.py
   checksum: b2126023c505e04dc66e4cc2be876c49daad154acd0c2ac63f03961e2ea8bef2
+- filename: tests/app/service/test_secret_generator.py
+  checksum: 1f84342c3a20bcfc0192a9bbe2c28fefd9decf01a7c9c3a2cba0286b6ad33caa
 - filename: tests/lambda_functions/nightly_stats_bigquery_upload/test_nightly_lambda.py
   checksum: db79656ed019ef873475215ad09a6c3cfedd6079bfafe6ab1e56754fcf50ebe4
 version: "1.0"
