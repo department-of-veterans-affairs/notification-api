@@ -28,7 +28,7 @@ fileignoreconfig:
 - filename: tests/app/authentication/test_authentication.py
   checksum: f7091cd49ae042cb1a189d81e905c7595a822e5a6742624ed37a0ed7e1e05bb5
 - filename: tests/app/dao/test_api_key_dao.py
-  checksum: b89de4dbd757eeafac99d19344e24451195257732a2435a3fcf107d8916271b5
+  checksum: fac529618d40d8db7895c8f721f8271edf3c20a076b04a11ed9490518c613667
 - filename: tests/app/delivery/test_send_to_providers.py
   checksum: 760da11876b82b4401f5b5ddec998f3b5756209984e49591c352c49cd7b83d27
 - filename: tests/app/notifications/test_validators.py

@@ -203,34 +203,29 @@ def test_save_api_key_should_generate_secret_with_expected_format(sample_service
 
 def test_save_api_key_with_uuid_generator_function_generates_uuid(notify_db_session, sample_service):
     """Test that when a UUID generator function is passed as parameter, the DAO uses it instead of the default random token generator."""
+    from unittest.mock import Mock
+
     service = sample_service()
     api_key = ApiKey(
         service=service, name='test api key with uuid secret', created_by=service.created_by, key_type=KEY_TYPE_NORMAL
     )
 
-    # Create a UUID generator function
-    def uuid_generator():
-        return str(uuid.uuid4())
-
-    # Track if the custom generator was called
-    generator_called = False
-
-    def tracked_uuid_generator():
-        nonlocal generator_called
-        generator_called = True
-        return str(uuid.uuid4())
+    # Create a mock UUID generator function that returns a predictable UUID
+    test_uuid = str(uuid.uuid4())
+    mock_uuid_generator = Mock(return_value=test_uuid)
 
     # This should fail until we implement the feature
-    save_model_api_key(api_key, secret_generator=tracked_uuid_generator)
+    save_model_api_key(api_key, secret_generator=mock_uuid_generator)
 
     try:
-        # Verify the generated secret is a valid UUID format
+        # Verify the generated secret matches the mock return value
+        assert api_key.secret == test_uuid
+        # Verify the mock generator function was called exactly once
+        mock_uuid_generator.assert_called_once()
+        # Verify the secret is a valid UUID format
         generated_uuid = uuid.UUID(api_key.secret)
         assert str(generated_uuid) == api_key.secret
-        # Verify the custom generator function was called
-        assert generator_called
         # Verify it's different from the typical random token format (should be much shorter)
-        assert api_key.secret is not None
         assert len(api_key.secret) == 36  # Standard UUID string length
     finally:
         # Teardown
