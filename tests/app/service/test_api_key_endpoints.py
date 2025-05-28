@@ -1,4 +1,5 @@
 import json
+import uuid
 from uuid import uuid4
 
 import pytest
@@ -337,8 +338,6 @@ def test_create_api_key_with_uuid_secret_type_returns_201(notify_api, notify_db_
             assert 'data' in json_resp
 
             # Verify the returned secret is a valid UUID format
-            import uuid
-
             try:
                 generated_uuid = uuid.UUID(json_resp['data'])
                 assert str(generated_uuid) == json_resp['data']
@@ -412,8 +411,6 @@ def test_create_api_key_without_secret_type_maintains_backward_compatibility(
             assert len(secret) >= 86  # Current default generates ~86+ chars
 
             # Verify it's not a UUID format
-            import uuid
-
             with pytest.raises(ValueError):
                 uuid.UUID(secret)
 
