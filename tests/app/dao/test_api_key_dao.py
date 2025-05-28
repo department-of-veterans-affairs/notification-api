@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import uuid
 
 import pytest
 from sqlalchemy import delete, func, select
@@ -198,3 +199,109 @@ def test_save_api_key_should_generate_secret_with_expected_format(sample_service
 
     assert api_key.secret is not None
     assert len(api_key.secret) >= 86
+
+
+def test_save_api_key_with_uuid_generator_function_generates_uuid(notify_db_session, sample_service):
+    """Test that when a UUID generator function is passed as parameter, the DAO uses it instead of the default random token generator."""
+    service = sample_service()
+    api_key = ApiKey(
+        service=service, name='test api key with uuid secret', created_by=service.created_by, key_type=KEY_TYPE_NORMAL
+    )
+
+    # Create a UUID generator function
+    def uuid_generator():
+        return str(uuid.uuid4())
+
+    # Track if the custom generator was called
+    generator_called = False
+
+    def tracked_uuid_generator():
+        nonlocal generator_called
+        generator_called = True
+        return str(uuid.uuid4())
+
+    # This should fail until we implement the feature
+    save_model_api_key(api_key, secret_generator=tracked_uuid_generator)
+
+    try:
+        # Verify the generated secret is a valid UUID format
+        generated_uuid = uuid.UUID(api_key.secret)
+        assert str(generated_uuid) == api_key.secret
+        # Verify the custom generator function was called
+        assert generator_called
+        # Verify it's different from the typical random token format (should be much shorter)
+        assert api_key.secret is not None
+        assert len(api_key.secret) == 36  # Standard UUID string length
+    finally:
+        # Teardown
+        ApiKeyHistory = ApiKey.get_history_model()
+        stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
+        notify_db_session.session.execute(stmt)
+
+        stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
+        notify_db_session.session.execute(stmt)
+        notify_db_session.session.commit()
+
+
+def test_save_api_key_with_custom_generator_function_uses_provided_function(notify_db_session, sample_service):
+    """Test that any callable secret generator function can be used, not just UUID generation."""
+    service = sample_service()
+    api_key = ApiKey(
+        service=service, name='test api key with custom secret', created_by=service.created_by, key_type=KEY_TYPE_NORMAL
+    )
+
+    # Create a custom generator function that returns a specific value
+    custom_secret = 'custom-test-secret-12345'
+    generator_called = False
+
+    def custom_generator():
+        nonlocal generator_called
+        generator_called = True
+        return custom_secret
+
+    # This should fail until we implement the feature
+    save_model_api_key(api_key, secret_generator=custom_generator)
+
+    try:
+        # Verify the saved key uses the custom function's output
+        assert api_key.secret == custom_secret
+        # Verify the custom function was called
+        assert generator_called
+    finally:
+        # Teardown
+        ApiKeyHistory = ApiKey.get_history_model()
+        stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
+        notify_db_session.session.execute(stmt)
+
+        stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
+        notify_db_session.session.execute(stmt)
+        notify_db_session.session.commit()
+
+
+def test_save_api_key_with_no_generator_function_maintains_default_behavior(notify_db_session, sample_service):
+    """Test that existing behavior remains unchanged when no generator function is provided."""
+    service = sample_service()
+    api_key = ApiKey(
+        service=service, name='test api key default behavior', created_by=service.created_by, key_type=KEY_TYPE_NORMAL
+    )
+
+    # Call without generator function parameter - should use existing behavior
+    save_model_api_key(api_key)
+
+    try:
+        # Verify default random token generation still works
+        assert api_key.secret is not None
+        # Verify secret uses current generator format (should be longer than UUID)
+        assert len(api_key.secret) >= 86  # Current default generates ~86+ chars
+        # Verify it's not a UUID format
+        with pytest.raises(ValueError):
+            uuid.UUID(api_key.secret)
+    finally:
+        # Teardown
+        ApiKeyHistory = ApiKey.get_history_model()
+        stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
+        notify_db_session.session.execute(stmt)
+
+        stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
+        notify_db_session.session.execute(stmt)
+        notify_db_session.session.commit()

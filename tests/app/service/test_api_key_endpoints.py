@@ -311,3 +311,119 @@ def test_get_api_keys_with_invalid_is_revoked_param(notify_api, notify_db_sessio
             assert response.status_code == 400
             json_resp = json.loads(response.get_data(as_text=True))
             assert json_resp['message'] == 'Invalid value for include_revoked'
+
+
+def test_create_api_key_with_uuid_secret_type_returns_201(notify_api, notify_db_session, sample_service):
+    """Test end-to-end happy path for requesting UUID-style secret generation through the REST API."""
+    with notify_api.test_request_context():
+        with notify_api.test_client() as client:
+            service = sample_service()
+            data = {
+                'secret_type': 'uuid',
+                'name': 'Integration Test Key',
+                'created_by': str(service.created_by.id),
+                'key_type': KEY_TYPE_NORMAL,
+            }
+            auth_header = create_admin_authorization_header()
+            response = client.post(
+                url_for('service.create_api_key', service_id=service.id),
+                data=json.dumps(data),
+                headers=[('Content-Type', 'application/json'), auth_header],
+            )
+
+            # This should fail until we implement the feature
+            assert response.status_code == 201
+            json_resp = json.loads(response.get_data(as_text=True))
+            assert 'data' in json_resp
+
+            # Verify the returned secret is a valid UUID format
+            import uuid
+
+            try:
+                generated_uuid = uuid.UUID(json_resp['data'])
+                assert str(generated_uuid) == json_resp['data']
+                assert len(json_resp['data']) == 36  # Standard UUID string length
+            except ValueError:
+                pytest.fail(f'Expected UUID format but got: {json_resp["data"]}')
+
+            # Cleanup - UUID test specific
+            saved_api_keys = get_model_api_keys(service.id)
+            if saved_api_keys:
+                saved_api_key = saved_api_keys[0]
+                # Clean up using same pattern as other tests
+                try:
+                    notify_db_session.session.delete(saved_api_key)
+                    notify_db_session.session.commit()
+                except Exception:
+                    pass  # Cleanup will be handled by fixtures
+
+
+def test_create_api_key_with_invalid_secret_type_returns_400(notify_api, sample_service):
+    """Test proper error handling when invalid secret type values are submitted via the API."""
+    with notify_api.test_request_context():
+        with notify_api.test_client() as client:
+            service = sample_service()
+            data = {
+                'secret_type': 'invalid_type',
+                'name': 'Test Key',
+                'created_by': str(service.created_by.id),
+                'key_type': KEY_TYPE_NORMAL,
+            }
+            auth_header = create_admin_authorization_header()
+            response = client.post(
+                url_for('service.create_api_key', service_id=service.id),
+                data=json.dumps(data),
+                headers=[('Content-Type', 'application/json'), auth_header],
+            )
+
+            # This should fail until we implement the feature
+            assert response.status_code == 400
+            json_resp = json.loads(response.get_data(as_text=True))
+            assert json_resp['result'] == 'error'
+            assert 'Invalid secret type' in json_resp['message'] or 'secret_type' in str(json_resp['message'])
+
+
+def test_create_api_key_without_secret_type_maintains_backward_compatibility(
+    notify_api, notify_db_session, sample_service
+):
+    """Test that existing API behavior remains unchanged for current consumers."""
+    with notify_api.test_request_context():
+        with notify_api.test_client() as client:
+            service = sample_service()
+            data = {
+                'name': 'Backward Compatible Test Key',
+                'created_by': str(service.created_by.id),
+                'key_type': KEY_TYPE_NORMAL,
+            }
+            auth_header = create_admin_authorization_header()
+            response = client.post(
+                url_for('service.create_api_key', service_id=service.id),
+                data=json.dumps(data),
+                headers=[('Content-Type', 'application/json'), auth_header],
+            )
+
+            assert response.status_code == 201
+            json_resp = json.loads(response.get_data(as_text=True))
+            assert 'data' in json_resp
+
+            # Verify secret is auto-generated using current random token method
+            secret = json_resp['data']
+            assert secret is not None
+            assert len(secret) >= 86  # Current default generates ~86+ chars
+
+            # Verify it's not a UUID format
+            import uuid
+
+            with pytest.raises(ValueError):
+                uuid.UUID(secret)
+
+            # Cleanup - backward compatibility test specific
+            saved_api_keys = get_model_api_keys(service.id)
+            if saved_api_keys:
+                saved_api_key = saved_api_keys[0]
+                # Clean up using same pattern as other tests
+                try:
+                    notify_db_session.session.delete(saved_api_key)
+                    notify_db_session.session.commit()
+                except Exception:
+                    pass  # Cleanup will be handled by fixtures
