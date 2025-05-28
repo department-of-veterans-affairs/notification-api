@@ -615,12 +615,19 @@ class TemplateHistorySchema(BaseSchema):
 class ApiKeySchema(BaseSchema):
     created_by = field_for(models.ApiKey, 'created_by', required=True)
     key_type = field_for(models.ApiKey, 'key_type', required=True)
+    secret_type = fields.Str(required=False, allow_none=True)
 
     class Meta:
         model = models.ApiKey
         exclude = ('service', '_secret')
         strict = True
         load_instance = True
+
+    @validates('secret_type')
+    def validate_secret_type(self, value, **kwargs):
+        if value is not None and value != 'uuid':
+            raise ValidationError("Invalid secret type: must be 'uuid'")
+        return value
 
 
 class JobSchema(BaseSchema):

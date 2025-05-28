@@ -7,6 +7,8 @@ fileignoreconfig:
   checksum: e6ffbab28f29de186ece73eda6602376e221e42d5bbfd8f25d9958dd3594e9af
 - filename: app/notifications/validators.py
   checksum: 7c3f9574dd8096863b53927723fccc75f8c0a27c06a2da09b277fbc8af7ba9ef
+- filename: app/schemas.py
+  checksum: 263db62e3a74db2cb8efa2a0088364950c790730abdb243ff206bc2988c246d8
 - filename: app/service/rest.py
   checksum: 5e350e4556b9c78c11e06d98da61a238d5a4f6a8e04cee0c557995007dd2aeaf
 - filename: app/v2/notifications/post_notifications.py
