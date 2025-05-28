@@ -34,7 +34,7 @@ fileignoreconfig:
 - filename: tests/app/notifications/test_validators.py
   checksum: 9dab7e3890137b515bf84f9ea587d79dbd5e63568ff9a72c3a404f7738c0b329
 - filename: tests/app/service/test_api_key_endpoints.py
-  checksum: 14c7ada5fa1473205c11646f7f786e662d24543633b9966241401a68c98be312
+  checksum: c26fd96b52dd1cfdab043cb589aee797646cc3eaa26dfa82d75433066209e9dc
 - filename: tests/app/service/test_rest.py
   checksum: b2126023c505e04dc66e4cc2be876c49daad154acd0c2ac63f03961e2ea8bef2
 - filename: tests/lambda_functions/nightly_stats_bigquery_upload/test_nightly_lambda.py
