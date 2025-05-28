@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import uuid
+from unittest.mock import Mock
 
 import pytest
 from sqlalchemy import delete, func, select
@@ -203,8 +204,6 @@ def test_save_api_key_should_generate_secret_with_expected_format(sample_service
 
 def test_save_api_key_with_uuid_generator_function_generates_uuid(notify_db_session, sample_service):
     """Test that when a UUID generator function is passed as parameter, the DAO uses it instead of the default random token generator."""
-    from unittest.mock import Mock
-
     service = sample_service()
     api_key = ApiKey(
         service=service, name='test api key with uuid secret', created_by=service.created_by, key_type=KEY_TYPE_NORMAL
@@ -245,23 +244,18 @@ def test_save_api_key_with_custom_generator_function_uses_provided_function(noti
         service=service, name='test api key with custom secret', created_by=service.created_by, key_type=KEY_TYPE_NORMAL
     )
 
-    # Create a custom generator function that returns a specific value
+    # Create a mock custom generator function that returns a specific value
     custom_secret = 'custom-test-secret-12345'
-    generator_called = False
-
-    def custom_generator():
-        nonlocal generator_called
-        generator_called = True
-        return custom_secret
+    mock_custom_generator = Mock(return_value=custom_secret)
 
     # This should fail until we implement the feature
-    save_model_api_key(api_key, secret_generator=custom_generator)
+    save_model_api_key(api_key, secret_generator=mock_custom_generator)
 
     try:
         # Verify the saved key uses the custom function's output
         assert api_key.secret == custom_secret
-        # Verify the custom function was called
-        assert generator_called
+        # Verify the mock generator function was called exactly once
+        mock_custom_generator.assert_called_once()
     finally:
         # Teardown
         ApiKeyHistory = ApiKey.get_history_model()
