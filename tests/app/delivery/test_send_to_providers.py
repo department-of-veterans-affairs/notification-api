@@ -9,7 +9,7 @@ from requests import HTTPError
 from sqlalchemy import select
 
 import app
-from app import aws_sns_client, mmg_client, ProviderService
+from app import aws_sns_client, mmg_client
 from app.clients.email import EmailClient
 from app.clients.sms import SmsClient
 from app.constants import (
@@ -34,9 +34,6 @@ from app.delivery import send_to_providers
 from app.exceptions import InactiveServiceException, InvalidProviderException
 from app.models import (
     Notification,
-    ProviderDetails,
-    Service,
-    Template,
     TemplateHistory,
 )
 from app.utils import get_html_email_options, get_logo_url
@@ -524,7 +521,7 @@ def test_get_logo_url_works_for_different_environments(
     assert logo_url == 'https://{}/{}'.format(domain, expected_url)
 
 
-@pytest.mark.skip(reason='#2463 - This test passes but causes teardown errors.')
+# @pytest.mark.skip(reason='#2463 - This test passes but causes teardown errors.')
 def test_should_not_update_notification_on_exception_if_research_mode(
     notify_db_session,
     sample_api_key,

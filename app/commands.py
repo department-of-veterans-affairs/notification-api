@@ -12,15 +12,12 @@ from flask import current_app, json
 from notifications_utils.template import SMSMessageTemplate
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.exc import NoResultFound
 from notifications_utils.statsd_decorators import statsd
 
-from app import db, encryption
-from app.constants import DATETIME_FORMAT
+from app import db
 from app.aws import s3
 from app.celery.tasks import record_daily_sorted_counts
 from app.celery.nightly_tasks import send_total_sent_notifications_to_performance_platform
-from app.celery.service_callback_tasks import send_delivery_status_to_service
 from app.config import QueueNames
 from app.constants import NOTIFICATION_CREATED, KEY_TYPE_TEST, SMS_TYPE
 from app.dao.fact_billing_dao import (
@@ -32,7 +29,6 @@ from app.dao.fact_billing_dao import (
 from app.dao.organisation_dao import dao_get_organisation_by_email_address, dao_add_service_to_organisation
 
 from app.dao.provider_rates_dao import create_provider_rates as dao_create_provider_rates
-from app.dao.service_callback_api_dao import get_service_delivery_status_callback_api_for_service
 from app.dao.services_dao import (
     delete_service_and_all_associated_db_objects,
     dao_fetch_all_services_by_user,
@@ -221,72 +217,6 @@ def insert_inbound_numbers_from_file(file_name):
         db.session.execute(sql.format(uuid.uuid4(), line.strip()))
         db.session.commit()
     file.close()
-
-
-@notify_command(name='replay-service-callbacks')
-@click.option(
-    '-f',
-    '--file_name',
-    required=True,
-    help="""Full path of the file to upload, file is a contains client references of
-              notifications that need the status to be sent to the service.""",
-)
-@click.option('-s', '--service_id', required=True, help="""The service that the callbacks are for""")
-def replay_service_callbacks(
-    file_name,
-    service_id,
-    notification_status,
-):
-    # not updated for notification callback_url as it doesn't appear to be used
-    print('Start send service callbacks for service: ', service_id)
-    callback_api: DeliveryStatusCallbackApiData | None = get_service_delivery_status_callback_api_for_service(
-        service_id=service_id, notification_status=notification_status
-    )
-    if callback_api is None:
-        print(f'Callback api was not found for service: {service_id}')
-        return
-
-    errors = []
-    notifications = []
-    file = open(file_name)
-
-    for ref in file:
-        stmt = select(Notification).where(Notification.client_reference == ref.strip())
-
-        try:
-            notification = db.session.scalars(stmt).one()
-            notifications.append(notification)
-        except NoResultFound:
-            errors.append(f'Reference: {ref} was not found in notifications.')
-
-    for e in errors:
-        print(e)
-    if errors:
-        raise Exception('Some notifications for the given references were not found')
-
-    for n in notifications:
-        data = {
-            'notification_id': str(n.id),
-            'notification_client_reference': n.client_reference,
-            'notification_to': n.to,
-            'notification_status': n.status,
-            'notification_created_at': n.created_at.strftime(DATETIME_FORMAT),
-            'notification_updated_at': n.updated_at.strftime(DATETIME_FORMAT),
-            'notification_sent_at': n.sent_at.strftime(DATETIME_FORMAT),
-            'notification_type': n.notification_type,
-            'service_callback_api_url': callback_api.url,
-            'service_callback_api_bearer_token': encryption.decrypt(callback_api._bearer_token),
-        }
-        encrypted_status_update = encryption.encrypt(data)
-        send_delivery_status_to_service.apply_async(
-            [callback_api.id, str(n.id), encrypted_status_update], queue=QueueNames.CALLBACKS
-        )
-
-    print(
-        'Replay service status for service: {}. Sent {} notification status updates to the queue'.format(
-            service_id, len(notifications)
-        )
-    )
 
 
 def setup_commands(application):

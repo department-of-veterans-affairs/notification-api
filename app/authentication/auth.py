@@ -68,6 +68,7 @@ def do_not_validate_auth():
 
 
 def validate_admin_auth():
+    current_app.logger.info('KWM %s', current_app.config.get('ADMIN_CLIENT_USER_NAME'))
     request_helper.check_proxy_header_before_request()
 
     auth_token = get_auth_token(request)
