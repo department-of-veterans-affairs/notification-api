@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm.exc import NoResultFound
 
-from app.constants import KEY_TYPE_NORMAL
+from app.constants import KEY_TYPE_NORMAL, SECRET_TYPE_DEFAULT
 from app.dao.api_key_dao import (
     get_model_api_key,
     save_model_api_key,
@@ -267,7 +267,7 @@ def test_save_api_key_with_default_generator_function_generates_default_token(no
     # Create a default generator function from get_secret_generator
     from app.service.rest import get_secret_generator
 
-    default_generator = get_secret_generator('default')
+    default_generator = get_secret_generator(SECRET_TYPE_DEFAULT)
 
     save_model_api_key(api_key, secret_generator=default_generator)
 

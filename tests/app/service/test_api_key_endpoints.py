@@ -7,7 +7,7 @@ from flask import url_for
 from sqlalchemy import delete, select, Table
 
 from app import db
-from app.constants import KEY_TYPE_NORMAL
+from app.constants import KEY_TYPE_NORMAL, SECRET_TYPE_DEFAULT, SECRET_TYPE_UUID
 from app.models import ApiKey
 from app.dao.api_key_dao import expire_api_key, get_model_api_keys
 from tests import create_admin_authorization_header
@@ -318,7 +318,7 @@ def test_create_api_key_with_uuid_secret_type_returns_201(client, notify_db_sess
     """Test end-to-end happy path for requesting UUID-style secret generation through the REST API."""
     service = sample_service()
     data = {
-        'secret_type': 'uuid',
+        'secret_type': SECRET_TYPE_UUID,
         'name': 'Integration Test Key',
         'created_by': str(service.created_by.id),
         'key_type': KEY_TYPE_NORMAL,
@@ -399,7 +399,7 @@ def test_create_api_key_with_default_secret_type_returns_201(client, notify_db_s
     """Test end-to-end happy path for requesting default-style secret generation through the REST API."""
     service = sample_service()
     data = {
-        'secret_type': 'default',
+        'secret_type': SECRET_TYPE_DEFAULT,
         'name': 'Default Test Key',
         'created_by': str(service.created_by.id),
         'key_type': KEY_TYPE_NORMAL,

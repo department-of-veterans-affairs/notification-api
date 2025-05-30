@@ -11,6 +11,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from app import db
 from app.authentication.auth import requires_admin_auth, requires_admin_auth_or_user_in_service
+from app.constants import SECRET_TYPE_DEFAULT, SECRET_TYPE_UUID
 from app.dao.api_key_dao import (
     get_model_api_key,
     save_model_api_key,
@@ -166,14 +167,14 @@ def get_secret_generator(secret_type: str | None):
     Returns:
         Callable[[], str] | None: Secret generator function or None for default behavior.
     """
-    if secret_type == 'uuid':  # nosec B105
+    if secret_type == SECRET_TYPE_UUID:  # nosec B105
 
         def uuid_secret_generator():
             return str(uuid4())
 
         return uuid_secret_generator
 
-    if secret_type == 'default':  # nosec B105
+    if secret_type == SECRET_TYPE_DEFAULT:  # nosec B105
 
         def default_secret_generator():
             import secrets

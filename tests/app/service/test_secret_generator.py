@@ -2,12 +2,13 @@
 
 from uuid import UUID
 
+from app.constants import SECRET_TYPE_DEFAULT, SECRET_TYPE_UUID
 from app.service.rest import get_secret_generator
 
 
 def test_get_secret_generator_with_uuid_returns_uuid_generator():
     """Test that requesting 'uuid' secret type returns a function that generates UUIDs."""
-    generator = get_secret_generator('uuid')
+    generator = get_secret_generator(SECRET_TYPE_UUID)
 
     assert generator is not None
     assert callable(generator)
@@ -24,7 +25,7 @@ def test_get_secret_generator_with_uuid_returns_uuid_generator():
 
 def test_get_secret_generator_with_default_returns_default_generator():
     """Test that requesting 'default' secret type returns a function that generates default tokens."""
-    generator = get_secret_generator('default')
+    generator = get_secret_generator(SECRET_TYPE_DEFAULT)
 
     assert generator is not None
     assert callable(generator)
@@ -62,7 +63,7 @@ def test_get_secret_generator_with_unknown_type_returns_none():
 
 def test_get_secret_generator_uuid_produces_unique_values():
     """Test that the UUID generator produces unique values on each call."""
-    generator = get_secret_generator('uuid')
+    generator = get_secret_generator(SECRET_TYPE_UUID)
 
     # Generate multiple UUIDs and ensure they're all different
     secrets = [generator() for _ in range(10)]
@@ -75,7 +76,7 @@ def test_get_secret_generator_uuid_produces_unique_values():
 
 def test_get_secret_generator_default_produces_unique_values():
     """Test that the default generator produces unique values on each call."""
-    generator = get_secret_generator('default')
+    generator = get_secret_generator(SECRET_TYPE_DEFAULT)
 
     # Generate multiple secrets and ensure they're all different
     secrets = [generator() for _ in range(10)]
