@@ -216,25 +216,9 @@ def test_save_api_key_with_uuid_generator_function_generates_uuid(notify_db_sess
     # This should fail until we implement the feature
     save_model_api_key(api_key, secret_generator=mock_uuid_generator)
 
-    try:
-        # Verify the generated secret matches the mock return value
-        assert api_key.secret == test_uuid
-        # Verify the mock generator function was called exactly once
-        mock_uuid_generator.assert_called_once()
-        # Verify the secret is a valid UUID format
-        generated_uuid = uuid.UUID(api_key.secret)
-        assert str(generated_uuid) == api_key.secret
-        # Verify it's different from the typical random token format (should be much shorter)
-        assert len(api_key.secret) == 36  # Standard UUID string length
-    finally:
-        # Teardown
-        ApiKeyHistory = ApiKey.get_history_model()
-        stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
-        notify_db_session.session.execute(stmt)
-
-        stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
-        notify_db_session.session.execute(stmt)
-        notify_db_session.session.commit()
+    # Verify the generated secret matches the mock return value
+    assert api_key.secret == test_uuid
+    mock_uuid_generator.assert_called_once()
 
 
 def test_save_api_key_with_custom_generator_function_uses_provided_function(notify_db_session, sample_service):
@@ -248,23 +232,10 @@ def test_save_api_key_with_custom_generator_function_uses_provided_function(noti
     custom_secret = 'custom-test-secret-12345'
     mock_custom_generator = Mock(return_value=custom_secret)
 
-    # This should fail until we implement the feature
     save_model_api_key(api_key, secret_generator=mock_custom_generator)
 
-    try:
-        # Verify the saved key uses the custom function's output
-        assert api_key.secret == custom_secret
-        # Verify the mock generator function was called exactly once
-        mock_custom_generator.assert_called_once()
-    finally:
-        # Teardown
-        ApiKeyHistory = ApiKey.get_history_model()
-        stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
-        notify_db_session.session.execute(stmt)
-
-        stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
-        notify_db_session.session.execute(stmt)
-        notify_db_session.session.commit()
+    assert api_key.secret == custom_secret
+    mock_custom_generator.assert_called_once()
 
 
 def test_save_api_key_with_no_generator_function_maintains_default_behavior(notify_db_session, sample_service):
@@ -277,20 +248,7 @@ def test_save_api_key_with_no_generator_function_maintains_default_behavior(noti
     # Call without generator function parameter - should use existing behavior
     save_model_api_key(api_key)
 
-    try:
-        # Verify default random token generation still works
-        assert api_key.secret is not None
-        # Verify secret uses current generator format (should be longer than UUID)
-        assert len(api_key.secret) >= 86  # Current default generates ~86+ chars
-        # Verify it's not a UUID format
-        with pytest.raises(ValueError):
-            uuid.UUID(api_key.secret)
-    finally:
-        # Teardown
-        ApiKeyHistory = ApiKey.get_history_model()
-        stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
-        notify_db_session.session.execute(stmt)
-
-        stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
-        notify_db_session.session.execute(stmt)
-        notify_db_session.session.commit()
+    assert api_key.secret is not None
+    assert len(api_key.secret) >= 86  # Current default generates ~86+ chars
+    with pytest.raises(ValueError):
+        uuid.UUID(api_key.secret)
