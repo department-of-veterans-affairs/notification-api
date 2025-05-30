@@ -12,6 +12,8 @@ from app.constants import (
     EMAIL_TYPE,
     LETTER_TYPE,
     NOTIFICATION_STATUS_TYPES_COMPLETED,
+    SECRET_TYPE_DEFAULT,
+    SECRET_TYPE_UUID,
     SERVICE_PERMISSION_TYPES,
     SMS_TYPE,
 )
@@ -625,8 +627,8 @@ class ApiKeySchema(BaseSchema):
 
     @validates('secret_type')
     def validate_secret_type(self, value, **kwargs):
-        if value is not None and value not in ('uuid', 'default'):
-            raise ValidationError("Invalid secret type: must be 'uuid' or 'default'")
+        if value is not None and value not in (SECRET_TYPE_UUID, SECRET_TYPE_DEFAULT):
+            raise ValidationError(f"Invalid secret type: must be '{SECRET_TYPE_UUID}' or '{SECRET_TYPE_DEFAULT}'")
         return value
 
 
