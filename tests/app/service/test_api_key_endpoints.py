@@ -330,7 +330,6 @@ def test_create_api_key_with_uuid_secret_type_returns_201(client, notify_db_sess
         headers=[('Content-Type', 'application/json'), auth_header],
     )
 
-    # This should fail until we implement the feature
     assert response.status_code == 201
     json_resp = json.loads(response.get_data(as_text=True))
     assert 'data' in json_resp
