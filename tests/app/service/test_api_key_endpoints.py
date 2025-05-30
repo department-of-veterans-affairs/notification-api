@@ -342,17 +342,6 @@ def test_create_api_key_with_uuid_secret_type_returns_201(client, notify_db_sess
     except ValueError:
         pytest.fail(f'Expected UUID format but got: {json_resp["data"]}')
 
-    # Cleanup - UUID test specific
-    saved_api_keys = get_model_api_keys(service.id)
-    if saved_api_keys:
-        saved_api_key = saved_api_keys[0]
-        # Clean up using same pattern as other tests
-        try:
-            notify_db_session.session.delete(saved_api_key)
-            notify_db_session.session.commit()
-        except Exception:
-            pass  # Cleanup will be handled by fixtures
-
 
 def test_create_api_key_with_invalid_secret_type_returns_400(client, sample_service):
     """Test proper error handling when invalid secret type values are submitted via the API."""
@@ -404,14 +393,3 @@ def test_create_api_key_without_secret_type_maintains_backward_compatibility(cli
     # Verify it's not a UUID format
     with pytest.raises(ValueError):
         uuid.UUID(secret)
-
-    # Cleanup - backward compatibility test specific
-    saved_api_keys = get_model_api_keys(service.id)
-    if saved_api_keys:
-        saved_api_key = saved_api_keys[0]
-        # Clean up using same pattern as other tests
-        try:
-            notify_db_session.session.delete(saved_api_key)
-            notify_db_session.session.commit()
-        except Exception:
-            pass  # Cleanup will be handled by fixtures
