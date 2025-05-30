@@ -161,7 +161,7 @@ def get_secret_generator(secret_type: str | None):
     """Get the appropriate secret generator function based on secret type.
 
     Args:
-        secret_type (str | None): The type of secret to generate. Currently supports 'uuid' or None.
+        secret_type (str | None): The type of secret to generate. Currently supports 'uuid', 'default', or None.
 
     Returns:
         Callable[[], str] | None: Secret generator function or None for default behavior.
@@ -172,6 +172,15 @@ def get_secret_generator(secret_type: str | None):
             return str(uuid4())
 
         return uuid_secret_generator
+
+    if secret_type == 'default':  # nosec B105
+
+        def default_secret_generator():
+            import secrets
+
+            return secrets.token_urlsafe(64)
+
+        return default_secret_generator
 
     return None
 

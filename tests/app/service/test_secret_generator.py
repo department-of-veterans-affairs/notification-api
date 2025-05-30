@@ -22,6 +22,26 @@ def test_get_secret_generator_with_uuid_returns_uuid_generator():
     assert str(parsed_uuid) == secret
 
 
+def test_get_secret_generator_with_default_returns_default_generator():
+    """Test that requesting 'default' secret type returns a function that generates default tokens."""
+    generator = get_secret_generator('default')
+
+    assert generator is not None
+    assert callable(generator)
+
+    # Test that the generator produces a string secret similar to the default behavior
+    secret = generator()
+    assert isinstance(secret, str)
+    assert len(secret) >= 86  # Default token_urlsafe(64) generates ~86+ chars
+
+    # Verify it's not a UUID format
+    try:
+        UUID(secret)
+        assert False, 'Default secret should not be a valid UUID'
+    except ValueError:
+        pass  # Expected - default secrets are not UUIDs
+
+
 def test_get_secret_generator_with_none_returns_none():
     """Test that requesting None secret type returns None."""
     generator = get_secret_generator(None)
@@ -51,3 +71,16 @@ def test_get_secret_generator_uuid_produces_unique_values():
     # Verify all are valid UUIDs
     for secret in secrets:
         UUID(secret)  # This will raise ValueError if invalid
+
+
+def test_get_secret_generator_default_produces_unique_values():
+    """Test that the default generator produces unique values on each call."""
+    generator = get_secret_generator('default')
+
+    # Generate multiple secrets and ensure they're all different
+    secrets = [generator() for _ in range(10)]
+    assert len(set(secrets)) == 10  # All should be unique
+
+    # Verify all have expected length
+    for secret in secrets:
+        assert len(secret) >= 86

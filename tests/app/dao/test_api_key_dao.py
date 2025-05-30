@@ -252,3 +252,29 @@ def test_save_api_key_with_no_generator_function_maintains_default_behavior(noti
     assert len(api_key.secret) >= 86  # Current default generates ~86+ chars
     with pytest.raises(ValueError):
         uuid.UUID(api_key.secret)
+
+
+def test_save_api_key_with_default_generator_function_generates_default_token(notify_db_session, sample_service):
+    """Test that when a default generator function is passed as parameter, the DAO uses it to generate a default token."""
+    service = sample_service()
+    api_key = ApiKey(
+        service=service,
+        name='test api key with default secret',
+        created_by=service.created_by,
+        key_type=KEY_TYPE_NORMAL,
+    )
+
+    # Create a default generator function from get_secret_generator
+    from app.service.rest import get_secret_generator
+
+    default_generator = get_secret_generator('default')
+
+    save_model_api_key(api_key, secret_generator=default_generator)
+
+    # Verify the generated secret matches default format (not UUID)
+    assert api_key.secret is not None
+    assert len(api_key.secret) >= 86  # Default token_urlsafe(64) generates ~86+ chars
+
+    # Verify it's not a UUID format
+    with pytest.raises(ValueError):
+        uuid.UUID(api_key.secret)

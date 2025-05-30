@@ -393,3 +393,33 @@ def test_create_api_key_without_secret_type_maintains_backward_compatibility(cli
     # Verify it's not a UUID format
     with pytest.raises(ValueError):
         uuid.UUID(secret)
+
+
+def test_create_api_key_with_default_secret_type_returns_201(client, notify_db_session, sample_service):
+    """Test end-to-end happy path for requesting default-style secret generation through the REST API."""
+    service = sample_service()
+    data = {
+        'secret_type': 'default',
+        'name': 'Default Test Key',
+        'created_by': str(service.created_by.id),
+        'key_type': KEY_TYPE_NORMAL,
+    }
+    auth_header = create_admin_authorization_header()
+    response = client.post(
+        url_for('service.create_api_key', service_id=service.id),
+        data=json.dumps(data),
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
+
+    assert response.status_code == 201
+    json_resp = json.loads(response.get_data(as_text=True))
+    assert 'data' in json_resp
+
+    # Verify the returned secret is in default format (not UUID)
+    secret = json_resp['data']
+    assert secret is not None
+    assert len(secret) >= 86  # Default token_urlsafe(64) generates ~86+ chars
+
+    # Verify it's not a UUID format
+    with pytest.raises(ValueError):
+        uuid.UUID(secret)

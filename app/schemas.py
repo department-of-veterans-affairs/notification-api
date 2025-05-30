@@ -625,8 +625,8 @@ class ApiKeySchema(BaseSchema):
 
     @validates('secret_type')
     def validate_secret_type(self, value, **kwargs):
-        if value is not None and value != 'uuid':
-            raise ValidationError("Invalid secret type: must be 'uuid'")
+        if value is not None and value not in ('uuid', 'default'):
+            raise ValidationError("Invalid secret type: must be 'uuid' or 'default'")
         return value
 
 
