@@ -61,15 +61,12 @@ class Pii(str):
 
     Attributes:
         level (PiiLevel): The impact level of the PII data, defaults to HIGH
-        redact_suffix (str): Text added after "redacted" in string representations
     """
 
     # Default to HIGH level of impact per the ADR
     level = PiiLevel.HIGH
 
-    # Default suffix to show after "redacted" in string representations
-    redact_suffix = ''
-
+    # Class name is used as the suffix after "redacted" in string representations
     def __new__(cls, value: str) -> 'Pii':
         """Create a new Pii instance with encrypted value.
 
@@ -86,7 +83,7 @@ class Pii(str):
             raise TypeError(
                 'Pii base class cannot be instantiated directly. '
                 'Please create a specific Pii subclass (e.g., PiiEmail, PiiSsn) '
-                "and define its 'level' and 'redact_suffix' attributes."
+                "and define its 'level' attribute if needed."
             )
 
         if value is None:
@@ -117,7 +114,7 @@ class Pii(str):
         """Return a string representation with redaction based on impact level.
 
         For LOW impact PII, returns the encrypted value.
-        For MODERATE and HIGH impact PII, returns "redacted" followed by redact_suffix.
+        For MODERATE and HIGH impact PII, returns "redacted" followed by the class name.
 
         Returns:
             str: String representation of the PII data
@@ -125,8 +122,9 @@ class Pii(str):
         if self.level == PiiLevel.LOW:
             return super().__str__()
         else:
-            suffix = f' {self.redact_suffix}' if self.redact_suffix else ''
-            return f'redacted{suffix}'
+            # Use the class name as the suffix
+            class_name = self.__class__.__name__
+            return f'redacted {class_name}'
 
     def __repr__(self) -> str:
         """Return a string representation suitable for debugging.
