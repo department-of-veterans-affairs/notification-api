@@ -81,18 +81,6 @@ class Pii(str):
         """
         return self.__class__._level
 
-    @classmethod
-    def get_level(cls) -> PiiLevel:
-        """Get the PII impact level for this class as a class method.
-
-        This method is useful for testing and other contexts where
-        an instance isn't available.
-
-        Returns:
-            PiiLevel: The PII impact level defined for this class
-        """
-        return cls._level
-
     # Class name is used as the suffix after "redacted" in string representations
     def __new__(cls, value: Optional[str]) -> 'Pii':
         """Create a new Pii instance with encrypted value.
