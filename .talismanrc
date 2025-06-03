@@ -15,6 +15,8 @@ fileignoreconfig:
   checksum: 7c3f9574dd8096863b53927723fccc75f8c0a27c06a2da09b277fbc8af7ba9ef
 - filename: app/pii.py
   checksum: 5b810b67b8b424cdc2b1acf6711aabb43eeeb12edaf57ea508fcb109561198ab
+- filename: app/pii/pii_base.py
+  checksum: 40ef77a60f137fd0555602abe5e3bab4d30947b2fe56d1a044541c217f4cf0f7
 - filename: app/schemas.py
   checksum: 868535a708972460e9bf565404c81a582e4eecca33047a0e71b18a5d2e6d6ffa
 - filename: app/service/rest.py
@@ -46,7 +48,7 @@ fileignoreconfig:
 - filename: tests/app/pii/__init__.py
   checksum: 978db2bc46b25d931e1ad1cdd813e18ffe26bb051860448e90c798c91b5e2850
 - filename: tests/app/pii/test_pii.py
-  checksum: 2b4c6644b7c1f3be4c84e3508b75caca6e01dcb7201d175120ef87e77ee5e1cf
+  checksum: 3e5b02324468506e7fba7d40572a49028e26081184abbd00b25221340b802a0a
 - filename: tests/app/service/test_api_key_endpoints.py
   checksum: 9419b40ea50f171b2f230617f813158f9559c3c57d607e3da417d7857e9504a9
 - filename: tests/app/service/test_rest.py
@@ -54,7 +56,7 @@ fileignoreconfig:
 - filename: tests/app/service/test_secret_generator.py
   checksum: e2ae9adcb65e9850f773f418c48eff6686ef945bc5606a5a7ecadb2212494419
 - filename: tests/app/test_pii.py
-  checksum: 3e690a4f11066c8b3729b2f536264b2b9a6ba25f63671fd93985d0aaea66e273
+  checksum: 5cc9330149731d580db4adf80c59b47b9f50731077c388811ba38ab227e0cec2
 - filename: tests/lambda_functions/nightly_stats_bigquery_upload/test_nightly_lambda.py
   checksum: db79656ed019ef873475215ad09a6c3cfedd6079bfafe6ab1e56754fcf50ebe4
 version: "1.0"

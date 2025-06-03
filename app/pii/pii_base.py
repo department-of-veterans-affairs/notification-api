@@ -13,32 +13,33 @@ Classes in this module follow guidance from:
 
 import os
 from enum import Enum
+from typing import ClassVar, Optional
 from cryptography.fernet import Fernet
 
 
 class PiiEncryption:
     """Singleton to manage encryption for PII data."""
 
-    _instance = None
-    _key = None
-    _fernet = None
+    _instance: Optional['PiiEncryption'] = None
+    _key: Optional[bytes] = None
+    _fernet: Optional[Fernet] = None
 
-    def __new__(cls):
+    def __new__(cls) -> 'PiiEncryption':
         if cls._instance is None:
             cls._instance = super(PiiEncryption, cls).__new__(cls)
         return cls._instance
 
     @classmethod
-    def get_fernet(cls):
+    def get_encryption(cls) -> Fernet:
         """Get or create a Fernet instance for encryption/decryption."""
         if cls._fernet is None:
             # Use environment variable or generate a new key
             # In production, this key should be managed securely
-            cls._key = os.environ.get('PII_ENCRYPTION_KEY')
-            if cls._key is None:
+            key_str = os.environ.get('PII_ENCRYPTION_KEY')
+            if key_str is None:
                 cls._key = Fernet.generate_key()
-            elif isinstance(cls._key, str):
-                cls._key = cls._key.encode()
+            else:
+                cls._key = key_str.encode() if isinstance(key_str, str) else key_str
 
             cls._fernet = Fernet(cls._key)
         return cls._fernet
@@ -64,14 +65,14 @@ class Pii(str):
     """
 
     # Default to HIGH level of impact per the ADR
-    level = PiiLevel.HIGH
+    level: ClassVar[PiiLevel] = PiiLevel.HIGH
 
     # Class name is used as the suffix after "redacted" in string representations
-    def __new__(cls, value: str) -> 'Pii':
+    def __new__(cls, value: Optional[str]) -> 'Pii':
         """Create a new Pii instance with encrypted value.
 
         Args:
-            value (str): The PII value to encrypt.
+            value (Optional[str]): The PII value to encrypt.
 
         Returns:
             Pii: A new Pii instance (of a subclass) with the value encrypted.
@@ -90,13 +91,14 @@ class Pii(str):
             value = ''
 
         # Get encryption singleton
-        fernet = PiiEncryption.get_fernet()
+        pii_encryption = PiiEncryption.get_encryption()
 
         # Encrypt the value
-        encrypted = fernet.encrypt(value.encode()).decode()
+        encrypted = pii_encryption.encrypt(value.encode()).decode()
 
         # Return a new string instance with the encrypted value
-        return super().__new__(cls, encrypted)
+        # Using type: ignore since the return type is actually the subclass type, not just 'Pii'
+        return super().__new__(cls, encrypted)  # type: ignore
 
     def get_pii(self) -> str:
         """Decrypt and return the PII value.
@@ -105,10 +107,10 @@ class Pii(str):
             str: The decrypted PII value
         """
         # Get encryption singleton
-        fernet = PiiEncryption.get_fernet()
+        pii_encryption = PiiEncryption.get_encryption()
 
         # Decrypt the value
-        return fernet.decrypt(self.encode()).decode()
+        return pii_encryption.decrypt(self.encode()).decode()
 
     def __str__(self) -> str:
         """Return a string representation with redaction based on impact level.
