@@ -128,11 +128,11 @@ class TestPii:
     def test_none_value_handled(self):
         """Test that None value is handled safely."""
 
-        class PiiDummyForNone(Pii):
+        class PiiClassForNone(Pii):
             level = PiiLevel.LOW
             redact_suffix = 'dummy_none'
 
-        pii = PiiDummyForNone(None)  # type: ignore
+        pii = PiiClassForNone(None)  # type: ignore
         assert pii.get_pii() == ''
 
 
