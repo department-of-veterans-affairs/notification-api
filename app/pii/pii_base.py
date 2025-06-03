@@ -61,11 +61,37 @@ class Pii(str):
     that redact the data based on its impact level.
 
     Attributes:
-        level (PiiLevel): The impact level of the PII data, defaults to HIGH
+        _level (ClassVar[PiiLevel]): The impact level of the PII data, defaults to HIGH.
+            This class variable should be overridden in subclasses to define the
+            appropriate PII level. It should not be modified after class definition.
     """
 
     # Default to HIGH level of impact per the ADR
-    level: ClassVar[PiiLevel] = PiiLevel.HIGH
+    _level: ClassVar[PiiLevel] = PiiLevel.HIGH
+
+    @property
+    def level(self) -> PiiLevel:
+        """Get the PII impact level for this class.
+
+        This property accesses the class-level _level attribute and ensures
+        that it cannot be modified at the instance level.
+
+        Returns:
+            PiiLevel: The PII impact level defined for this class
+        """
+        return self.__class__._level
+
+    @classmethod
+    def get_level(cls) -> PiiLevel:
+        """Get the PII impact level for this class as a class method.
+
+        This method is useful for testing and other contexts where
+        an instance isn't available.
+
+        Returns:
+            PiiLevel: The PII impact level defined for this class
+        """
+        return cls._level
 
     # Class name is used as the suffix after "redacted" in string representations
     def __new__(cls, value: Optional[str]) -> 'Pii':
@@ -84,7 +110,7 @@ class Pii(str):
             raise TypeError(
                 'Pii base class cannot be instantiated directly. '
                 'Please create a specific Pii subclass (e.g., PiiEmail, PiiSsn) '
-                "and define its 'level' attribute if needed."
+                "and override its '_level' class attribute if needed."
             )
 
         if value is None:
