@@ -11,6 +11,8 @@ fileignoreconfig:
   checksum: e6ffbab28f29de186ece73eda6602376e221e42d5bbfd8f25d9958dd3594e9af
 - filename: app/notifications/validators.py
   checksum: 7c3f9574dd8096863b53927723fccc75f8c0a27c06a2da09b277fbc8af7ba9ef
+- filename: app/pii.py
+  checksum: 5b810b67b8b424cdc2b1acf6711aabb43eeeb12edaf57ea508fcb109561198ab
 - filename: app/schemas.py
   checksum: 868535a708972460e9bf565404c81a582e4eecca33047a0e71b18a5d2e6d6ffa
 - filename: app/service/rest.py
@@ -45,6 +47,8 @@ fileignoreconfig:
   checksum: b2126023c505e04dc66e4cc2be876c49daad154acd0c2ac63f03961e2ea8bef2
 - filename: tests/app/service/test_secret_generator.py
   checksum: e2ae9adcb65e9850f773f418c48eff6686ef945bc5606a5a7ecadb2212494419
+- filename: tests/app/test_pii.py
+  checksum: 3e690a4f11066c8b3729b2f536264b2b9a6ba25f63671fd93985d0aaea66e273
 - filename: tests/lambda_functions/nightly_stats_bigquery_upload/test_nightly_lambda.py
   checksum: db79656ed019ef873475215ad09a6c3cfedd6079bfafe6ab1e56754fcf50ebe4
 version: "1.0"
