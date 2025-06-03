@@ -160,7 +160,7 @@ class TestPiiSubclassing:
     class PiiFirstName(Pii):
         _level: PiiLevel = PiiLevel.LOW  # Should not appear since it will log the encrypted value
 
-    class PiiVaProileId(Pii):
+    class PiiVaProfileId(Pii):
         _level: PiiLevel = PiiLevel.MODERATE
 
     class PiiIcn(Pii):
@@ -186,13 +186,13 @@ class TestPiiSubclassing:
         assert self.PiiFirstName._level == PiiLevel.LOW
 
     def test_va_profile_id_moderate_level_behavior(self):
-        """Test that PiiVaProileId (MODERATE level) shows redacted value and decrypts correctly."""
-        profile_id = self.PiiVaProileId('12345')
+        """Test that PiiVaProfileId (MODERATE level) shows redacted value and decrypts correctly."""
+        profile_id = self.PiiVaProfileId('12345')
         # For MODERATE level, str() should show 'redacted' with class name
-        assert str(profile_id) == 'redacted PiiVaProileId'
+        assert str(profile_id) == 'redacted PiiVaProfileId'
         # get_pii() should decrypt correctly
         assert profile_id.get_pii() == '12345'
-        assert self.PiiVaProileId._level == PiiLevel.MODERATE
+        assert self.PiiVaProfileId._level == PiiLevel.MODERATE
 
     def test_icn_high_level_behavior(self):
         """Test that PiiIcn (HIGH level by default) shows redacted value and decrypts correctly."""
@@ -209,7 +209,7 @@ class TestPiiSubclassing:
         """Test that subclasses handle None value correctly."""
         # Use None as a string value to pass type checking but test None handling in __new__
         first_name = self.PiiFirstName(None)  # type: ignore
-        profile_id = self.PiiVaProileId(None)  # type: ignore
+        profile_id = self.PiiVaProfileId(None)  # type: ignore
         icn = self.PiiIcn(None)  # type: ignore
 
         # All should return empty string when decrypting None
@@ -220,13 +220,13 @@ class TestPiiSubclassing:
         # LOW level should still show encrypted value (of empty string)
         assert 'redacted' not in str(first_name)
         # MODERATE and HIGH should show redacted
-        assert str(profile_id) == 'redacted PiiVaProileId'
+        assert str(profile_id) == 'redacted PiiVaProfileId'
         assert str(icn) == 'redacted PiiIcn'
 
     def test_repr_matches_str_in_subclasses(self):
         """Test that repr() matches str() in subclasses to prevent accidental exposure."""
         first_name = self.PiiFirstName('John')
-        profile_id = self.PiiVaProileId('12345')
+        profile_id = self.PiiVaProfileId('12345')
         icn = self.PiiIcn('67890')
 
         assert repr(first_name) == str(first_name)
