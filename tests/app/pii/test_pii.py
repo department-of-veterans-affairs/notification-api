@@ -13,6 +13,17 @@ def test_key():
     return b'VGhpcyBpcyBhbiAzMiBieXRlIGtleSBmb3IgdGVzdHM='
 
 
+@pytest.fixture
+def setup_encryption(test_key):
+    """Setup encryption with a consistent key for tests.
+
+    This fixture resets the PiiEncryption singleton to use a test key
+    for consistent encryption/decryption during tests.
+    """
+    with patch.object(PiiEncryption, '_key', test_key), patch.object(PiiEncryption, '_fernet', None):
+        yield
+
+
 class TestPiiEncryption:
     """Tests for the PiiEncryption class."""
 
@@ -22,17 +33,18 @@ class TestPiiEncryption:
         encryption2 = PiiEncryption()
         assert encryption1 is encryption2
 
-    def test_get_fernet_generates_key_if_not_exists(self):
+    def test_get_fernet_generates_key_if_not_exists(self, setup_encryption):
         """Test that get_fernet generates a key if one doesn't exist."""
-        with patch.object(PiiEncryption, '_fernet', None):
-            with patch.object(PiiEncryption, '_key', None):
-                with patch.dict(os.environ, {}, clear=True):
-                    fernet = PiiEncryption.get_fernet()
-                    assert fernet is not None
-                    assert PiiEncryption._key is not None
+        # Reset the key to None for this test
+        with patch.object(PiiEncryption, '_key', None):
+            with patch.dict(os.environ, {}, clear=True):
+                fernet = PiiEncryption.get_fernet()
+                assert fernet is not None
+                assert PiiEncryption._key is not None
 
     def test_get_fernet_uses_environment_variable(self, test_key):
         """Test that get_fernet uses the environment variable if available."""
+        # Reset the fernet and key for this test
         with patch.object(PiiEncryption, '_fernet', None):
             with patch.object(PiiEncryption, '_key', None):
                 with patch.dict(os.environ, {'PII_ENCRYPTION_KEY': test_key.decode()}):
@@ -40,12 +52,11 @@ class TestPiiEncryption:
                     assert fernet is not None
                     assert PiiEncryption._key == test_key
 
-    def test_get_fernet_caches_fernet_instance(self):
+    def test_get_fernet_caches_fernet_instance(self, setup_encryption):
         """Test that get_fernet caches the Fernet instance."""
-        with patch.object(PiiEncryption, '_fernet', None):
-            fernet1 = PiiEncryption.get_fernet()
-            fernet2 = PiiEncryption.get_fernet()
-            assert fernet1 is fernet2
+        fernet1 = PiiEncryption.get_fernet()
+        fernet2 = PiiEncryption.get_fernet()
+        assert fernet1 is fernet2
 
 
 class TestPiiLevel:
@@ -78,20 +89,16 @@ class TestPii:
 
         level = PiiLevel.HIGH  # Default to HIGH
 
-    def test_initialization_encrypts_value(self, test_key):
+    def test_initialization_encrypts_value(self, setup_encryption):
         """Test that initializing a Pii subclass encrypts the value."""
-        with patch.object(PiiEncryption, '_key', test_key):
-            with patch.object(PiiEncryption, '_fernet', None):
-                pii = self.PiiTest('test_value')
-                assert isinstance(pii, str)
-                assert pii != 'test_value'  # Value should be encrypted
+        pii = self.PiiTest('test_value')
+        assert isinstance(pii, str)
+        assert pii != 'test_value'  # Value should be encrypted
 
-    def test_get_pii_decrypts_value(self, test_key):
+    def test_get_pii_decrypts_value(self, setup_encryption):
         """Test that get_pii decrypts the value correctly."""
-        with patch.object(PiiEncryption, '_key', test_key):
-            with patch.object(PiiEncryption, '_fernet', None):
-                pii = self.PiiTest('test_value')
-                assert pii.get_pii() == 'test_value'
+        pii = self.PiiTest('test_value')
+        assert pii.get_pii() == 'test_value'
 
     def test_str_representation_high_impact(self):
         """Test that string representation is redacted for HIGH impact PII."""
@@ -105,15 +112,13 @@ class TestPii:
         pii.level = PiiLevel.MODERATE
         assert str(pii) == 'redacted PiiTest'
 
-    def test_str_representation_low_impact(self, test_key):
+    def test_str_representation_low_impact(self, setup_encryption):
         """Test that string representation shows encrypted value for LOW impact PII."""
-        with patch.object(PiiEncryption, '_key', test_key):
-            with patch.object(PiiEncryption, '_fernet', None):
-                pii = self.PiiTest('test_value')
-                pii.level = PiiLevel.LOW
-                encrypted_value = str(pii)
-                assert encrypted_value != 'test_value'  # Should be encrypted
-                assert 'redacted' not in encrypted_value
+        pii = self.PiiTest('test_value')
+        pii.level = PiiLevel.LOW
+        encrypted_value = str(pii)
+        assert encrypted_value != 'test_value'  # Should be encrypted
+        assert 'redacted' not in encrypted_value
 
     def test_repr_matches_str(self):
         """Test that repr() matches str() to prevent accidental exposure."""
@@ -149,11 +154,12 @@ class TestPiiSubclassing:
         # The VA has said ICNs are PII - defaults to HIGH level
         pass
 
+    # Use the module-level setup_encryption fixture with autouse
     @pytest.fixture(autouse=True)
-    def setup_encryption(self, test_key):
-        """Setup encryption with a consistent key for all tests in this class."""
-        with patch.object(PiiEncryption, '_key', test_key), patch.object(PiiEncryption, '_fernet', None):
-            yield
+    def use_setup_encryption(self, setup_encryption):
+        """Use the module-level setup_encryption fixture for all tests in this class."""
+        # The fixture yields automatically because we're using the module-level fixture
+        pass
 
     def test_firstname_low_level_behavior(self):
         """Test that PiiFirstName (LOW level) shows encrypted value and decrypts correctly."""
