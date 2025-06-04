@@ -103,7 +103,7 @@ class TestPii:
         """Test that initializing a Pii subclass encrypts the value."""
         pii = PiiHigh('test_value')
         assert isinstance(pii, str)
-        assert pii != 'test_value'  # Value should be encrypted
+        assert pii != 'test_value', 'Value should be encrypted'
 
     def test_get_pii_decrypts_value(self, setup_encryption):
         """Test that get_pii decrypts the value correctly."""
@@ -143,7 +143,6 @@ class TestPii:
         assert pii.get_pii() == ''
 
 
-# New test class for PII subclassing
 class TestPiiSubclassing:
     """Tests for Pii subclassing behavior."""
 
