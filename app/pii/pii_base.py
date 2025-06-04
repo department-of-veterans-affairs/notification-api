@@ -66,7 +66,6 @@ class Pii(str):
             appropriate PII level. It should not be modified after class definition.
     """
 
-    # Default to HIGH level of impact per the ADR
     _level: ClassVar[PiiLevel] = PiiLevel.HIGH
 
     @property
@@ -81,9 +80,9 @@ class Pii(str):
         """
         return self.__class__._level
 
-    # Class name is used as the suffix after "redacted" in string representations
     def __new__(cls, value: str | None) -> 'Pii':
         """Create a new Pii instance with encrypted value.
+        The class name is used as the suffix after "redacted" in string representations
 
         Args:
             value (str | None): The PII value to encrypt.

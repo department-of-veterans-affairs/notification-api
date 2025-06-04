@@ -6,23 +6,22 @@ from app.pii import PiiEncryption, PiiLevel, Pii
 
 
 # Helper classes for testing Pii functionality
-class PiiTest(Pii):
-    """Test subclass of Pii to test base functionality."""
+class PiiHigh(Pii):
+    """Test subclass of Pii with HIGH level protection."""
 
-    _level = PiiLevel.HIGH  # Default to HIGH
-
-
-class PiiFirstName(Pii):
-    _level: PiiLevel = PiiLevel.LOW  # Should not appear since it will log the encrypted value
+    _level = PiiLevel.HIGH
 
 
-class PiiVaProfileId(Pii):
-    _level: PiiLevel = PiiLevel.MODERATE
+class PiiModerate(Pii):
+    """Test subclass of Pii with MODERATE level protection."""
+
+    _level = PiiLevel.MODERATE
 
 
-class PiiIcn(Pii):
-    # The VA has said ICNs are PII - defaults to HIGH level
-    pass
+class PiiLow(Pii):
+    """Test subclass of Pii with LOW level protection."""
+
+    _level = PiiLevel.LOW
 
 
 @pytest.fixture
@@ -104,66 +103,45 @@ class TestPii:
 
     def test_initialization_encrypts_value(self, setup_encryption):
         """Test that initializing a Pii subclass encrypts the value."""
-        pii = PiiTest('test_value')
+        pii = PiiHigh('test_value')
         assert isinstance(pii, str)
         assert pii != 'test_value'  # Value should be encrypted
 
     def test_get_pii_decrypts_value(self, setup_encryption):
         """Test that get_pii decrypts the value correctly."""
-        pii = PiiTest('test_value')
+        pii = PiiHigh('test_value')
         assert pii.get_pii() == 'test_value'
 
     def test_str_representation_high_impact(self):
         """Test that string representation is redacted for HIGH impact PII."""
-
-        # Create a temporary subclass with HIGH level
-        class PiiHighTest(Pii):
-            _level = PiiLevel.HIGH
-
-        pii = PiiHighTest('test_value')
-        assert str(pii) == 'redacted PiiHighTest'
+        pii = PiiHigh('test_value')
+        assert str(pii) == 'redacted PiiHigh'
 
     def test_str_representation_moderate_impact(self):
         """Test that string representation is redacted for MODERATE impact PII."""
-
-        # Create a temporary subclass with MODERATE level
-        class PiiModerateTest(Pii):
-            _level = PiiLevel.MODERATE
-
-        pii = PiiModerateTest('test_value')
-        assert str(pii) == 'redacted PiiModerateTest'
+        pii = PiiModerate('test_value')
+        assert str(pii) == 'redacted PiiModerate'
 
     def test_str_representation_low_impact(self, setup_encryption):
         """Test that string representation shows encrypted value for LOW impact PII."""
-
-        # Create a temporary subclass with LOW level
-        class PiiLowTest(Pii):
-            _level = PiiLevel.LOW
-
-        pii = PiiLowTest('test_value')
+        pii = PiiLow('test_value')
         encrypted_value = str(pii)
         assert encrypted_value != 'test_value'  # Should be encrypted
         assert 'redacted' not in encrypted_value
 
     def test_repr_matches_str(self):
         """Test that repr() matches str() to prevent accidental exposure."""
-        # Use our defined test subclass
-        pii = PiiTest('test_value')
+        pii = PiiHigh('test_value')
         assert repr(pii) == str(pii)
 
     def test_class_name_in_string_representation(self):
         """Test that class name appears in string representation."""
-        # Use our defined test subclass which defaults to HIGH
-        pii = PiiTest('test_value')
-        assert str(pii) == 'redacted PiiTest'
+        pii = PiiHigh('test_value')
+        assert str(pii) == 'redacted PiiHigh'
 
     def test_none_value_handled(self):
         """Test that None value is handled safely."""
-
-        class PiiClassForNone(Pii):
-            _level = PiiLevel.LOW
-
-        pii = PiiClassForNone(None)  # type: ignore
+        pii = PiiLow(None)  # type: ignore
         assert pii.get_pii() == ''
 
 
@@ -179,60 +157,60 @@ class TestPiiSubclassing:
         pass
 
     def test_firstname_low_level_behavior(self):
-        """Test that PiiFirstName (LOW level) shows encrypted value and decrypts correctly."""
-        first_name = PiiFirstName('John')
+        """Test that LOW level shows encrypted value and decrypts correctly."""
+        first_name = PiiLow('John')
         # For LOW level, str() should show the encrypted value, not 'redacted'
         encrypted_value = str(first_name)
         assert encrypted_value != 'John'  # Should be encrypted
         assert 'redacted' not in encrypted_value  # Should not be redacted for LOW level
         # get_pii() should decrypt correctly
         assert first_name.get_pii() == 'John'
-        assert PiiFirstName._level == PiiLevel.LOW
+        assert PiiLow._level == PiiLevel.LOW
 
     def test_va_profile_id_moderate_level_behavior(self):
-        """Test that PiiVaProfileId (MODERATE level) shows redacted value and decrypts correctly."""
-        profile_id = PiiVaProfileId('12345')
+        """Test that MODERATE level shows redacted value and decrypts correctly."""
+        profile_id = PiiModerate('12345')
         # For MODERATE level, str() should show 'redacted' with class name
-        assert str(profile_id) == 'redacted PiiVaProfileId'
+        assert str(profile_id) == 'redacted PiiModerate'
         # get_pii() should decrypt correctly
         assert profile_id.get_pii() == '12345'
-        assert PiiVaProfileId._level == PiiLevel.MODERATE
+        assert PiiModerate._level == PiiLevel.MODERATE
 
     def test_icn_high_level_behavior(self):
-        """Test that PiiIcn (HIGH level by default) shows redacted value and decrypts correctly."""
-        icn = PiiIcn('67890')
+        """Test that HIGH level shows redacted value and decrypts correctly."""
+        icn = PiiHigh('67890')
         # For HIGH level, str() should show 'redacted' with class name
-        assert str(icn) == 'redacted PiiIcn'
+        assert str(icn) == 'redacted PiiHigh'
         # get_pii() should decrypt correctly
         assert icn.get_pii() == '67890'
-        # Verify the default level is HIGH
+        # Verify the level is HIGH
         assert icn.level == PiiLevel.HIGH
-        assert PiiIcn._level == PiiLevel.HIGH
+        assert PiiHigh._level == PiiLevel.HIGH
 
     def test_subclass_handles_none_value(self):
         """Test that subclasses handle None value correctly."""
         # Use None as a string value to pass type checking but test None handling in __new__
-        first_name = PiiFirstName(None)  # type: ignore
-        profile_id = PiiVaProfileId(None)  # type: ignore
-        icn = PiiIcn(None)  # type: ignore
+        low_pii = PiiLow(None)  # type: ignore
+        moderate_pii = PiiModerate(None)  # type: ignore
+        high_pii = PiiHigh(None)  # type: ignore
 
         # All should return empty string when decrypting None
-        assert first_name.get_pii() == ''
-        assert profile_id.get_pii() == ''
-        assert icn.get_pii() == ''
+        assert low_pii.get_pii() == ''
+        assert moderate_pii.get_pii() == ''
+        assert high_pii.get_pii() == ''
 
         # LOW level should still show encrypted value (of empty string)
-        assert 'redacted' not in str(first_name)
+        assert 'redacted' not in str(low_pii)
         # MODERATE and HIGH should show redacted
-        assert str(profile_id) == 'redacted PiiVaProfileId'
-        assert str(icn) == 'redacted PiiIcn'
+        assert str(moderate_pii) == 'redacted PiiModerate'
+        assert str(high_pii) == 'redacted PiiHigh'
 
     def test_repr_matches_str_in_subclasses(self):
         """Test that repr() matches str() in subclasses to prevent accidental exposure."""
-        first_name = PiiFirstName('John')
-        profile_id = PiiVaProfileId('12345')
-        icn = PiiIcn('67890')
+        low_pii = PiiLow('John')
+        moderate_pii = PiiModerate('12345')
+        high_pii = PiiHigh('67890')
 
-        assert repr(first_name) == str(first_name)
-        assert repr(profile_id) == str(profile_id)
-        assert repr(icn) == str(icn)
+        assert repr(low_pii) == str(low_pii)
+        assert repr(moderate_pii) == str(moderate_pii)
+        assert repr(high_pii) == str(high_pii)
