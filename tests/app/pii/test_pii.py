@@ -5,6 +5,26 @@ from unittest.mock import patch
 from app.pii import PiiEncryption, PiiLevel, Pii
 
 
+# Helper classes for testing Pii functionality
+class PiiTest(Pii):
+    """Test subclass of Pii to test base functionality."""
+
+    _level = PiiLevel.HIGH  # Default to HIGH
+
+
+class PiiFirstName(Pii):
+    _level: PiiLevel = PiiLevel.LOW  # Should not appear since it will log the encrypted value
+
+
+class PiiVaProfileId(Pii):
+    _level: PiiLevel = PiiLevel.MODERATE
+
+
+class PiiIcn(Pii):
+    # The VA has said ICNs are PII - defaults to HIGH level
+    pass
+
+
 @pytest.fixture
 def test_key():
     """Fixture to provide a consistent encryption key for tests."""
@@ -82,21 +102,15 @@ class TestPii:
         with pytest.raises(TypeError, match='Pii base class cannot be instantiated directly'):
             Pii('should_fail')
 
-    # Helper subclass for testing the Pii base class functionality
-    class PiiTest(Pii):
-        """Test subclass of Pii to test base functionality."""
-
-        _level = PiiLevel.HIGH  # Default to HIGH
-
     def test_initialization_encrypts_value(self, setup_encryption):
         """Test that initializing a Pii subclass encrypts the value."""
-        pii = self.PiiTest('test_value')
+        pii = PiiTest('test_value')
         assert isinstance(pii, str)
         assert pii != 'test_value'  # Value should be encrypted
 
     def test_get_pii_decrypts_value(self, setup_encryption):
         """Test that get_pii decrypts the value correctly."""
-        pii = self.PiiTest('test_value')
+        pii = PiiTest('test_value')
         assert pii.get_pii() == 'test_value'
 
     def test_str_representation_high_impact(self):
@@ -134,13 +148,13 @@ class TestPii:
     def test_repr_matches_str(self):
         """Test that repr() matches str() to prevent accidental exposure."""
         # Use our defined test subclass
-        pii = self.PiiTest('test_value')
+        pii = PiiTest('test_value')
         assert repr(pii) == str(pii)
 
     def test_class_name_in_string_representation(self):
         """Test that class name appears in string representation."""
         # Use our defined test subclass which defaults to HIGH
-        pii = self.PiiTest('test_value')
+        pii = PiiTest('test_value')
         assert str(pii) == 'redacted PiiTest'
 
     def test_none_value_handled(self):
@@ -157,16 +171,6 @@ class TestPii:
 class TestPiiSubclassing:
     """Tests for Pii subclassing behavior."""
 
-    class PiiFirstName(Pii):
-        _level: PiiLevel = PiiLevel.LOW  # Should not appear since it will log the encrypted value
-
-    class PiiVaProfileId(Pii):
-        _level: PiiLevel = PiiLevel.MODERATE
-
-    class PiiIcn(Pii):
-        # The VA has said ICNs are PII - defaults to HIGH level
-        pass
-
     # Use the module-level setup_encryption fixture with autouse
     @pytest.fixture(autouse=True)
     def use_setup_encryption(self, setup_encryption):
@@ -176,41 +180,41 @@ class TestPiiSubclassing:
 
     def test_firstname_low_level_behavior(self):
         """Test that PiiFirstName (LOW level) shows encrypted value and decrypts correctly."""
-        first_name = self.PiiFirstName('John')
+        first_name = PiiFirstName('John')
         # For LOW level, str() should show the encrypted value, not 'redacted'
         encrypted_value = str(first_name)
         assert encrypted_value != 'John'  # Should be encrypted
         assert 'redacted' not in encrypted_value  # Should not be redacted for LOW level
         # get_pii() should decrypt correctly
         assert first_name.get_pii() == 'John'
-        assert self.PiiFirstName._level == PiiLevel.LOW
+        assert PiiFirstName._level == PiiLevel.LOW
 
     def test_va_profile_id_moderate_level_behavior(self):
         """Test that PiiVaProfileId (MODERATE level) shows redacted value and decrypts correctly."""
-        profile_id = self.PiiVaProfileId('12345')
+        profile_id = PiiVaProfileId('12345')
         # For MODERATE level, str() should show 'redacted' with class name
         assert str(profile_id) == 'redacted PiiVaProfileId'
         # get_pii() should decrypt correctly
         assert profile_id.get_pii() == '12345'
-        assert self.PiiVaProfileId._level == PiiLevel.MODERATE
+        assert PiiVaProfileId._level == PiiLevel.MODERATE
 
     def test_icn_high_level_behavior(self):
         """Test that PiiIcn (HIGH level by default) shows redacted value and decrypts correctly."""
-        icn = self.PiiIcn('67890')
+        icn = PiiIcn('67890')
         # For HIGH level, str() should show 'redacted' with class name
         assert str(icn) == 'redacted PiiIcn'
         # get_pii() should decrypt correctly
         assert icn.get_pii() == '67890'
         # Verify the default level is HIGH
         assert icn.level == PiiLevel.HIGH
-        assert self.PiiIcn._level == PiiLevel.HIGH
+        assert PiiIcn._level == PiiLevel.HIGH
 
     def test_subclass_handles_none_value(self):
         """Test that subclasses handle None value correctly."""
         # Use None as a string value to pass type checking but test None handling in __new__
-        first_name = self.PiiFirstName(None)  # type: ignore
-        profile_id = self.PiiVaProfileId(None)  # type: ignore
-        icn = self.PiiIcn(None)  # type: ignore
+        first_name = PiiFirstName(None)  # type: ignore
+        profile_id = PiiVaProfileId(None)  # type: ignore
+        icn = PiiIcn(None)  # type: ignore
 
         # All should return empty string when decrypting None
         assert first_name.get_pii() == ''
@@ -225,9 +229,9 @@ class TestPiiSubclassing:
 
     def test_repr_matches_str_in_subclasses(self):
         """Test that repr() matches str() in subclasses to prevent accidental exposure."""
-        first_name = self.PiiFirstName('John')
-        profile_id = self.PiiVaProfileId('12345')
-        icn = self.PiiIcn('67890')
+        first_name = PiiFirstName('John')
+        profile_id = PiiVaProfileId('12345')
+        icn = PiiIcn('67890')
 
         assert repr(first_name) == str(first_name)
         assert repr(profile_id) == str(profile_id)
