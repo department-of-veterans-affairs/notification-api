@@ -5,6 +5,12 @@ from unittest.mock import patch
 from app.pii import PiiEncryption, PiiLevel, Pii
 
 
+# Constant test key for consistent encryption/decryption during tests
+# Using a fixed test key - this is only for testing and not a real secret
+# The value is the base64 encoding of "This is an 32 byte key for tests"
+TEST_KEY = b'VGhpcyBpcyBhbiAzMiBieXRlIGtleSBmb3IgdGVzdHM='
+
+
 # Helper classes for testing Pii functionality
 class PiiHigh(Pii):
     """Test subclass of Pii with HIGH level protection."""
@@ -25,21 +31,13 @@ class PiiLow(Pii):
 
 
 @pytest.fixture
-def test_key():
-    """Fixture to provide a consistent encryption key for tests."""
-    # Using a fixed test key - this is only for testing and not a real secret
-    # The value is the base64 encoding of "This is an 32 byte key for tests"
-    return b'VGhpcyBpcyBhbiAzMiBieXRlIGtleSBmb3IgdGVzdHM='
-
-
-@pytest.fixture
-def setup_encryption(test_key):
+def setup_encryption():
     """Setup encryption with a consistent key for tests.
 
     This fixture resets the PiiEncryption singleton to use a test key
     for consistent encryption/decryption during tests.
     """
-    with patch.object(PiiEncryption, '_key', test_key), patch.object(PiiEncryption, '_fernet', None):
+    with patch.object(PiiEncryption, '_key', TEST_KEY), patch.object(PiiEncryption, '_fernet', None):
         yield
 
 
@@ -61,14 +59,14 @@ class TestPiiEncryption:
                 assert pii_encryption is not None
                 assert PiiEncryption._key is not None
 
-    def test_get_encryption_uses_environment_variable(self, test_key):
+    def test_get_encryption_uses_environment_variable(self):
         """Test that get_encryption uses the environment variable if available."""
         with patch.object(PiiEncryption, '_fernet', None):
             with patch.object(PiiEncryption, '_key', None):
-                with patch.dict(os.environ, {'PII_ENCRYPTION_KEY': test_key.decode()}):
+                with patch.dict(os.environ, {'PII_ENCRYPTION_KEY': TEST_KEY.decode()}):
                     pii_encryption = PiiEncryption.get_encryption()
                     assert pii_encryption is not None
-                    assert PiiEncryption._key == test_key
+                    assert PiiEncryption._key == TEST_KEY
 
     def test_get_encryption_caches_fernet_instance(self, setup_encryption):
         """Test that get_encryption caches the Fernet instance."""
