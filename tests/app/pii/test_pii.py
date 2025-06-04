@@ -11,7 +11,6 @@ from app.pii import PiiEncryption, PiiLevel, Pii
 TEST_KEY = b'VGhpcyBpcyBhbiAzMiBieXRlIGtleSBmb3IgdGVzdHM='
 
 
-# Helper classes for testing Pii functionality
 class PiiHigh(Pii):
     """Test subclass of Pii with HIGH level protection."""
 
