@@ -13,16 +13,16 @@ Classes in this module follow guidance from:
 
 import os
 from enum import Enum
-from typing import ClassVar, Optional
+from typing import ClassVar
 from cryptography.fernet import Fernet
 
 
 class PiiEncryption:
     """Singleton to manage encryption for PII data."""
 
-    _instance: Optional['PiiEncryption'] = None
-    _key: Optional[bytes] = None
-    _fernet: Optional[Fernet] = None
+    _instance: 'PiiEncryption | None' = None
+    _key: bytes | None = None
+    _fernet: Fernet | None = None
 
     def __new__(cls) -> 'PiiEncryption':
         if cls._instance is None:
@@ -82,11 +82,11 @@ class Pii(str):
         return self.__class__._level
 
     # Class name is used as the suffix after "redacted" in string representations
-    def __new__(cls, value: Optional[str]) -> 'Pii':
+    def __new__(cls, value: str | None) -> 'Pii':
         """Create a new Pii instance with encrypted value.
 
         Args:
-            value (Optional[str]): The PII value to encrypt.
+            value (str | None): The PII value to encrypt.
 
         Returns:
             Pii: A new Pii instance (of a subclass) with the value encrypted.
