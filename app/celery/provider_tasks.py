@@ -56,6 +56,8 @@ def deliver_sms(
     notification_id,
     sms_sender_id=None,
 ):
+    current_app.logger.debug('celery request: %s', task.request)
+    current_app.logger.debug('celery request chain: %s', task.request.chain)
     current_app.logger.info('Start sending SMS for notification id: %s', notification_id)
 
     try:
