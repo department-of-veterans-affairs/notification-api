@@ -1,6 +1,3 @@
-import uuid
-from typing import List
-
 from sqlalchemy import select
 
 from app import db
