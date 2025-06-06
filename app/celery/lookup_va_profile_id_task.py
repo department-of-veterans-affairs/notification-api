@@ -36,6 +36,8 @@ def lookup_va_profile_id(
     self: Task,
     notification_id,
 ):
+    current_app.logger.debug('celery request: %s', self.request)
+    current_app.logger.debug('celery request chain: %s', self.request.chain)
     current_app.logger.info(f'Retrieving VA Profile ID from MPI for notification {notification_id}')
     notification = notifications_dao.get_notification_by_id(notification_id)
 
