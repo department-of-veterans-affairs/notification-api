@@ -22,10 +22,6 @@ class FeatureFlag(Enum):
     VA_SSO_ENABLED = 'VA_SSO_ENABLED'
 
 
-def accept_recipient_identifiers_enabled():
-    return is_feature_enabled(FeatureFlag.ACCEPT_RECIPIENT_IDENTIFIERS_ENABLED)
-
-
 def is_gapixel_enabled(current_app):
     return current_app.config.get('GOOGLE_ANALYTICS_ENABLED')
 

@@ -22,7 +22,7 @@ fileignoreconfig:
 - filename: app/service/rest.py
   checksum: 9356f75621f193fa7a57e35d9feb1e203ebc3d064436d5399e93dc12985d24c3
 - filename: app/v2/notifications/post_notifications.py
-  checksum: b52f923d90faa072095d5e4c2925bf588a3649846ac65e8ae36f285823b57965
+  checksum: bf52e118ca20ecd49d5696903fe49621b2e13ecd96847dc5aef8d8989ce82635
 - filename: cd/application-deployment/dev/dev.env
   checksum: 250b2934c210f9cce3d7e037212102f3a46ad22469223f1480680f53c09ec5c9
 - filename: cd/application-deployment/perf/perf.env

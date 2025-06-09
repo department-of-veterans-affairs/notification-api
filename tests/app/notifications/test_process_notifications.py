@@ -739,9 +739,7 @@ def test_persist_notification_persists_recipient_identifiers(
     id_value,
     sample_api_key,
     sample_template,
-    mocker,
 ):
-    mocker.patch('app.notifications.process_notifications.accept_recipient_identifiers_enabled', return_value=True)
     template = sample_template(template_type=notification_type)
     api_key = sample_api_key()
     recipient_identifier = {'id_type': id_type, 'id_value': id_value}
@@ -773,47 +771,6 @@ def test_persist_notification_persists_recipient_identifiers(
         stmt = delete(RecipientIdentifier).where(RecipientIdentifier.notification_id == notification_id)
         notify_db_session.session.execute(stmt)
         notify_db_session.session.commit()
-
-
-@pytest.mark.parametrize(
-    'recipient_identifiers_enabled, recipient_identifier',
-    [(True, None), (False, {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': 'foo'}), (False, None)],
-)
-def test_persist_notification_should_not_persist_recipient_identifier_if_none_present_or_toggle_off(
-    notify_db_session,
-    recipient_identifiers_enabled,
-    recipient_identifier,
-    sample_api_key,
-    sample_template,
-    mocker,
-):
-    mocker.patch(
-        'app.notifications.process_notifications.accept_recipient_identifiers_enabled',
-        return_value=recipient_identifiers_enabled,
-    )
-
-    template = sample_template()
-    api_key = sample_api_key(template.service)
-
-    # Cleaned by the template cleanup
-    notification = persist_notification(
-        template_id=template.id,
-        template_version=template.version,
-        service_id=api_key.service.id,
-        personalisation=None,
-        notification_type=EMAIL_TYPE,
-        api_key_id=api_key.id,
-        key_type=api_key.key_type,
-        recipient_identifier=recipient_identifier,
-    )
-
-    # Persisted correctly
-    assert notification.recipient_identifiers == {}
-
-    # DB stored correctly
-    notify_db_session.session.expire_all()
-    stmt = select(RecipientIdentifier).where(RecipientIdentifier.notification_id == notification.id)
-    assert notify_db_session.session.scalar(stmt) is None
 
 
 @pytest.mark.parametrize(
