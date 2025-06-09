@@ -123,7 +123,6 @@ def post_notification(notification_type):  # noqa: C901
                 template=template,
                 service=authenticated_service,
                 reply_to_text=reply_to,
-                onsite_enabled=onsite_enabled,
                 created_at=created_at,
             )
 
