@@ -773,6 +773,34 @@ def test_persist_notification_persists_recipient_identifiers(
         notify_db_session.session.commit()
 
 
+def test_persist_notification_should_not_persist_recipient_identifier_is_none(
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+):
+    template = sample_template()
+    api_key = sample_api_key(template.service)
+
+    # Cleaned by the template cleanup
+    notification = persist_notification(
+        template_id=template.id,
+        template_version=template.version,
+        service_id=api_key.service.id,
+        personalisation=None,
+        notification_type=EMAIL_TYPE,
+        api_key_id=api_key.id,
+        key_type=api_key.key_type,
+    )
+
+    # Persisted correctly
+    assert notification.recipient_identifiers == {}
+
+    # DB stored correctly
+    notify_db_session.session.expire_all()
+    stmt = select(RecipientIdentifier).where(RecipientIdentifier.notification_id == notification.id)
+    assert notify_db_session.session.scalar(stmt) is None
+
+
 @pytest.mark.parametrize(
     'id_type, notification_type, expected_tasks',
     [
