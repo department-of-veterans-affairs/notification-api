@@ -248,20 +248,24 @@ def statsd_http(namespace: str) -> Generator[None, None, None]:
     except Exception:
         elapsed_time = monotonic() - start_time
 
+        # namespace scoped http stats
         current_app.statsd_client.incr(f'http.{namespace}.exception')
-        current_app.statsd_client.incr('http.exception')
-
         current_app.statsd_client.timing(f'http.{namespace}.exception.elapsed_time', elapsed_time)
+
+        # aggregate http stats
+        current_app.statsd_client.incr('http.exception')
         current_app.statsd_client.timing('http.exception.elapsed_time', elapsed_time)
 
         raise
     else:
         elapsed_time = monotonic() - start_time
 
+        # namespace scoped http stats
         current_app.statsd_client.incr(f'http.{namespace}.success')
-        current_app.statsd_client.incr('http.success')
-
         current_app.statsd_client.timing(f'http.{namespace}.success.elapsed_time', elapsed_time)
+
+        # aggregate http stats
+        current_app.statsd_client.incr('http.success')
         current_app.statsd_client.timing('http.success.elapsed_time', elapsed_time)
 
         current_app.logger.debug(f'http.{namespace} block took {elapsed_time:.4f} seconds')
