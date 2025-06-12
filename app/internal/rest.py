@@ -19,6 +19,8 @@ from werkzeug.exceptions import UnsupportedMediaType
 from contextlib import suppress
 from flask import Blueprint, current_app, jsonify, request
 
+from app.utils import statsd_http
+
 
 internal_blueprint = Blueprint('internal', __name__, url_prefix='/internal')
 
@@ -37,25 +39,26 @@ def handler(generic):
           data. The status code is always 200.
 
     """
-    status_code = 200
-    request_attrs = (
-        'method',
-        'root_path',
-        'path',
-        'query_string',
-        'url_rule',
-        'trace_id',
-    )
-    logs = [f'{attr.upper()}: {getattr(request, attr)}' for attr in request_attrs if hasattr(request, attr)]
-    with suppress(UnsupportedMediaType):
-        logs.append(f'JSON: {request.json}')
-    headers_string = ', '.join([f'{key}: {value}' for key, value in request.headers.items()])
-    logs.append(f'HEADERS: {headers_string}')
-    current_app.logger.info('Generic Internal Request: %s', ' | '.join(logs))
-    if request.method == 'GET':
-        response_body = jsonify({generic: f'GET request received for endpoint {request.full_path}'})
-    else:
-        response_body = {generic: request.json}
+    with statsd_http('internal'):
+        status_code = 200
+        request_attrs = (
+            'method',
+            'root_path',
+            'path',
+            'query_string',
+            'url_rule',
+            'trace_id',
+        )
+        logs = [f'{attr.upper()}: {getattr(request, attr)}' for attr in request_attrs if hasattr(request, attr)]
+        with suppress(UnsupportedMediaType):
+            logs.append(f'JSON: {request.json}')
+        headers_string = ', '.join([f'{key}: {value}' for key, value in request.headers.items()])
+        logs.append(f'HEADERS: {headers_string}')
+        current_app.logger.info('Generic Internal Request: %s', ' | '.join(logs))
+        if request.method == 'GET':
+            response_body = jsonify({generic: f'GET request received for endpoint {request.full_path}'})
+        else:
+            response_body = {generic: request.json}
 
     return response_body, status_code
 

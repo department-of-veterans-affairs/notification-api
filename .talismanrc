@@ -63,4 +63,6 @@ fileignoreconfig:
   checksum: 5cc9330149731d580db4adf80c59b47b9f50731077c388811ba38ab227e0cec2
 - filename: tests/lambda_functions/nightly_stats_bigquery_upload/test_nightly_lambda.py
   checksum: db79656ed019ef873475215ad09a6c3cfedd6079bfafe6ab1e56754fcf50ebe4
+- filename: app/internal/rest.py
+  checksum: 3cd5816c1003f5ada6898f0fe1bcad29b1167bf595f43d31b7af4f297ede1f6e
 version: "1.0"
