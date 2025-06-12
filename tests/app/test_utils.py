@@ -82,24 +82,29 @@ def test_statsd_http_success_logs_stats(mocker):
     """Ensure statsd_http context manager logs success stats"""
     mock_app = mocker.Mock()
     mock_statsd = mocker.Mock()
+    mock_logger = mocker.Mock()
 
     with patch('app.utils.current_app', mock_app):
         mock_app.statsd_client = mock_statsd
+        mock_app.logger = mock_logger
 
         with statsd_http('test'):
             pass
 
         mock_statsd.incr.assert_any_call('http.test.success')
         mock_statsd.incr.assert_any_call('http.success')
+        mock_logger.debug.assert_called()
 
 
 def test_statsd_http_exception_logs_stats_and_reraises(mocker):
     """The statsd_http context manager should re-raise exceptions and log exception stats"""
     mock_app = mocker.Mock()
     mock_statsd = mocker.Mock()
+    mock_logger = mocker.Mock()
 
     with patch('app.utils.current_app', mock_app):
         mock_app.statsd_client = mock_statsd
+        mock_app.logger = mock_logger
 
         with pytest.raises(Exception, match='simulated failure'):
             with statsd_http('test'):
@@ -107,3 +112,4 @@ def test_statsd_http_exception_logs_stats_and_reraises(mocker):
 
         mock_statsd.incr.assert_any_call('http.test.exception')
         mock_statsd.incr.assert_any_call('http.exception')
+        mock_logger.warning.assert_called()

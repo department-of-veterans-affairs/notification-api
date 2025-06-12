@@ -109,7 +109,7 @@ class VAProfileClient:
         data = {'bios': [{'bioPath': 'contactInformation'}, {'bioPath': 'communicationPermissions'}]}
 
         try:
-            with statsd_http('get_profile'):
+            with statsd_http('va_profile.v3'):
                 response = requests.post(
                     url, json=data, cert=(self.ssl_cert_path, self.ssl_key_path), timeout=self.timeout
                 )

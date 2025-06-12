@@ -256,6 +256,8 @@ def statsd_http(namespace: str) -> Generator[None, None, None]:
         current_app.statsd_client.incr('http.exception')
         current_app.statsd_client.timing('http.exception.elapsed_time', elapsed_time)
 
+        current_app.logger.warning('http.%s block exception took %.4f seconds', namespace, elapsed_time)
+
         raise
     else:
         elapsed_time = monotonic() - start_time
@@ -268,4 +270,4 @@ def statsd_http(namespace: str) -> Generator[None, None, None]:
         current_app.statsd_client.incr('http.success')
         current_app.statsd_client.timing('http.success.elapsed_time', elapsed_time)
 
-        current_app.logger.debug(f'http.{namespace} block took {elapsed_time:.4f} seconds')
+        current_app.logger.debug('http.%s block took %.4f seconds', namespace, elapsed_time)
