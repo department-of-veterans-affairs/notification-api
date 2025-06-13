@@ -7,4 +7,6 @@ fileignoreconfig:
   checksum: 19b153b2b8fa249da07a3d18137b2acdc1a9512f47b62051cbcefae746948b57
 - filename: tests/app/service/test_api_key_endpoints.py
   checksum: 99250ca919071f099d527e11622d7ce0628adcfc281719af8bc12c54459d17e5
+- filename: app/va/va_profile/va_profile_client.py
+  checksum: 5ce33a28f24c276de20dddd83741f2c84a22ef369d79c28294ebe265c2207f03
 version: "1.0"
