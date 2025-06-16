@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Callable, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import select, and_, or_
 from sqlalchemy.orm.exc import NoResultFound
 
 from app import db
@@ -48,11 +48,18 @@ def update_api_key_expiry(
         expiry_date (datetime): The new expiry date for the API key
     """
     now = datetime.now(timezone.utc)
+
     stmt = select(ApiKey).where(
-        ApiKey.id == api_key_id,
-        ApiKey.service_id == service_id,
-        ApiKey.revoked.is_(False),
-        ApiKey.expiry_date > now,
+        and_(
+            ApiKey.id == api_key_id,
+            ApiKey.service_id == service_id,
+            ApiKey.revoked.is_(False),
+            or_(
+                # Allow updating expiry date if it's not set or is in the future (not expired)
+                ApiKey.expiry_date.is_(None),
+                ApiKey.expiry_date > now,
+            ),
+        )
     )
 
     api_key: ApiKey = db.session.scalars(stmt).one()

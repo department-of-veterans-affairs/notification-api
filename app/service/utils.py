@@ -56,7 +56,7 @@ def validate_expiry_date(expiry_date: str | None) -> datetime:
     """Validates the expiry date format, ensuring it is set to a future date, and returns a datetime object.
 
     Args:
-        expiry_date (str | None): The expiry date in 'YYYY-MM-DD' format. It could be none, but that raise an exception.
+        expiry_date (str | None): The expiry date in 'YYYY-MM-DD' format. If value is none, that raises an exception.
 
     Returns:
         datetime: The validated expiry date as a datetime object.

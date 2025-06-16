@@ -434,10 +434,12 @@ class TestApiKeyUpdates:
 
     update_key_url = 'service.update_api_key_expiry_date'
 
-    def test_update_api_key_expiry_happy_path(self, notify_api, notify_db_session, sample_api_key) -> None:
+    @pytest.mark.parametrize('with_expiry', [True, False])
+    def test_update_api_key_expiry_happy_path(self, notify_api, notify_db_session, sample_api_key, with_expiry) -> None:
         with notify_api.test_request_context():
             with notify_api.test_client() as client:
-                api_key = sample_api_key()
+                # test with and without expiry_date
+                api_key = sample_api_key(with_expiry=with_expiry)
 
                 payload = {'expiry_date': '2025-01-02'}
                 auth_header = create_admin_authorization_header()
