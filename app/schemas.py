@@ -529,9 +529,6 @@ class BaseTemplateSchema(BaseSchema):
     def get_reply_to(self, obj):
         return obj.reply_to
 
-    def get_reply_to_text(self, obj):
-        return obj.get_reply_to_text()
-
     class Meta:
         model = models.Template
         exclude = ('service_id', 'jobs', 'service_letter_contact_id')
