@@ -522,7 +522,6 @@ class NotificationModelSchema(BaseSchema):
 
 class BaseTemplateSchema(BaseSchema):
     reply_to = fields.Method('get_reply_to', allow_none=True, deserialize='set_reply_to')
-    reply_to_text = fields.Method('get_reply_to_text', allow_none=True, deserialize='set_reply_to')
 
     def set_reply_to(self, obj):
         return str(obj)
