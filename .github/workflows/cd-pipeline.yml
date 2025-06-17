@@ -20,7 +20,7 @@ permissions:
 on:
   push:
     branches:
-      - 1633-perms
+      - main
 
 jobs:
   prepare-deployment:
