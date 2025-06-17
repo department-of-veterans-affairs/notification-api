@@ -13,8 +13,6 @@ from app.models import ApiKey
 from app.dao.api_key_dao import expire_api_key, get_model_api_keys
 from tests import create_admin_authorization_header
 
-# add update tests
-
 
 def test_api_key_should_create_new_api_key_for_service(notify_api, notify_db_session, sample_service):
     """Test new API key is created with expected data."""
