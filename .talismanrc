@@ -9,4 +9,6 @@ fileignoreconfig:
   checksum: cccbd048518396c884e9c631bd9111dcd239bcbc50b9a572b709e00bb4c4a263
 - filename: tests/app/service/test_api_key_endpoints.py
   checksum: e46cc0b0e7b9afb0a1d30a1142f024091334d15b2292c43b76b7dcb35e64c5ad
+- filename: documents/postman/internal_api_developers/notification-api.postman_collection.json
+  checksum: 328646db8be291aaa50e8bf8631ccdc4ffb48a0c4690ee361fa0ddb785cd277f
 version: "1.0"

@@ -1070,6 +1070,18 @@ paths:
                   apiKeys:
                     type: object
                     $ref: "#/components/schemas/APIKey"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
