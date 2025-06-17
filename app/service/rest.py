@@ -268,20 +268,28 @@ def revoke_api_key(
 def update_api_key_expiry_date(
     service_id: UUID,
     api_key_id: UUID,
-) -> tuple[Response, Literal[202, 404]]:
+) -> tuple[Response, Literal[200, 400, 404]]:
     """Updates the expiry date of the API key for the given service and key id.
+
+    **Note**: The provided expiry_date is expected to be in the body of the request as a string in 'YYYY-MM-DD' format.
+    The expiry_date is assumed to be in UTC timezone, as it is not timezone aware.
 
     Args:
         service_id (UUID): The id of the service to which the soon to be updated key belongs
         api_key_id (UUID): The id of the key to updated
 
     Returns:
-        tuple[Response, Literal[202, 404]]: 202 Accepted
+        tuple[Response, Literal[200, 400, 404]]: 200 Okay
         - If the requested api key was found and updated.
 
     Raises:
-        InvalidRequest: 404 NoResultsFound
+        InvalidRequest:
+        400 InvalidRequest
+        - If the expiry_date is invalid format or in the past.
+        404 NoResultsFound
         - If the service or key is not found.
+        400 ValidationError
+        - If the expiry_date is not provided in the body of the request
     """
     request_data = request.get_json()
     validate(request_data, update_api_key_expiry_request)
