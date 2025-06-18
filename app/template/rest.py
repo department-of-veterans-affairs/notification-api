@@ -166,6 +166,7 @@ def update_template(
         raise InvalidRequest(errors, status_code=400)
 
     update_dict = template_schema.load(updated_template)
+
     dao_update_template(update_dict)
     return jsonify(data=template_schema.dump(update_dict)), 200
 
@@ -252,7 +253,6 @@ def _template_has_not_changed(
         'provider_id',
         'communication_item_id',
         'reply_to_email',
-        'reply_to_text',
     )
 
     try:
