@@ -736,6 +736,7 @@ def test_should_return_all_template_versions_for_service_and_template_id(client,
 def test_update_does_not_create_new_version_when_there_is_no_change(notify_db_session, client, sample_template):
     template = sample_template()
     assert template.version == 1
+
     auth_header = create_admin_authorization_header()
     data = {
         'template_type': template.template_type,
@@ -747,6 +748,7 @@ def test_update_does_not_create_new_version_when_there_is_no_change(notify_db_se
         headers=[('Content-Type', 'application/json'), auth_header],
     )
     assert resp.status_code == 200
+
     notify_db_session.session.refresh(template)
     assert template.version == 1
 
