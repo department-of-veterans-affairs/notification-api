@@ -127,9 +127,9 @@ def send_email_to_provider(notification: Notification):
             personalisation_data[key] = personalisation_data[key]['url']
 
     if is_feature_enabled(FeatureFlag.REVISED_TEMPLATE_RENDERING):
-        html_content, plain_text_content = _get_email_content(notification, personalisation_data)
+        html, plain_text = _get_email_content(notification, personalisation_data)
     else:
-        html_content, plain_text_content = _get_email_content_legacy(notification, personalisation_data)
+        html, plain_text = _get_email_content_legacy(notification, personalisation_data)
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
         notification.reference = create_uuid()
@@ -147,7 +147,7 @@ def send_email_to_provider(notification: Notification):
         reference = client.send_email(
             source=compute_source_email_address(service, client),
             to_addresses=validate_and_format_email_address(notification.to),
-            subject=plain_text_email.subject,
+            subject=notification.template.subject,
             body=plain_text,
             html_body=html,
             reply_to_address=validate_and_format_email_address(email_reply_to) if email_reply_to else None,
@@ -195,13 +195,16 @@ def _get_email_content_legacy(notification: Notification, personalization: dict[
     personalization substitutions before converting the markdown.
     """
 
+    # TODO - Is there a reason not to use notification.template.__dict__?  Is the version necessary here?
     template_dict = dao_get_template_by_id(notification.template_id, notification.template_version).__dict__
 
-    html = str(HTMLEmailTemplate(
-        template_dict,
-        personalization,
-        **get_html_email_options(str(notification.id)),
-    ))
+    html = str(
+        HTMLEmailTemplate(
+            template_dict,
+            personalization,
+            **get_html_email_options(str(notification.id)),
+        )
+    )
 
     plain_text = str(PlainTextEmailTemplate(template_dict, personalization))
 
