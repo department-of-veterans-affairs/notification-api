@@ -5,7 +5,12 @@ from flask import current_app
 
 from notifications_utils.recipients import ValidatedPhoneNumber, validate_and_format_email_address
 from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate, SMSMessageTemplate
-from notifications_utils.template2 import make_substitutions, render_html_email, render_notify_markdown
+from notifications_utils.template2 import (
+    make_substitutions,
+    make_substitutions_in_subject,
+    render_html_email,
+    render_notify_markdown,
+)
 
 from app import attachment_store, clients, statsd_client, provider_service
 from app.attachments.types import UploadedAttachmentMetadata
@@ -128,9 +133,9 @@ def send_email_to_provider(notification: Notification):
             personalisation_data[key] = personalisation_data[key]['url']
 
     if is_feature_enabled(FeatureFlag.REVISED_TEMPLATE_RENDERING):
-        html_content, plain_text_content = _get_email_content(notification, personalisation_data)
+        html, plain_text, subject = _get_email_content(notification, personalisation_data)
     else:
-        html_content, plain_text_content = _get_email_content_legacy(notification, personalisation_data)
+        html, plain_text, subject = _get_email_content_legacy(notification, personalisation_data)
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
         notification.reference = create_uuid()
@@ -157,7 +162,7 @@ def send_email_to_provider(notification: Notification):
         reference = client.send_email(
             source=compute_source_email_address(service, client),
             to_addresses=validate_and_format_email_address(notification.to),
-            subject=plain_text_email.subject,
+            subject=subject,
             body=plain_text,
             html_body=html,
             reply_to_address=validate_and_format_email_address(email_reply_to) if email_reply_to else None,
@@ -171,9 +176,10 @@ def send_email_to_provider(notification: Notification):
     statsd_client.timing('email.total-time', delta_milliseconds)
 
 
-def _get_email_content(notification: Notification, personalization: dict[str, str]) -> tuple[str, str]:
+def _get_email_content(notification: Notification, personalization: dict[str, str]) -> tuple[str, str, str]:
     """
-    Return the HTML and plain text body of an e-mail notification using the revised template rendering implementation.
+    Return the HTML body, plain text body, and subject of an e-mail notification using the revised template
+    rendering implementation.
     """
 
     if notification.template.html:
@@ -186,7 +192,7 @@ def _get_email_content(notification: Notification, personalization: dict[str, st
     options: dict = get_html_email_options(str(notification.id))
 
     # This function plugs the HTML content body into a Jinja2 template that includes branding and styling.
-    html = render_html_email(html, None, options['ga4_open_email_event_url'])
+    html = render_html_email(html, None, options.get('ga4_open_email_event_url'))
 
     if notification.template.plain_text:
         # The template, rendered as plain text, is stored in the database with placeholders intact.
@@ -195,27 +201,30 @@ def _get_email_content(notification: Notification, personalization: dict[str, st
         # Render the template, and make substitutions using personalizations, if any.
         plain_text = render_notify_markdown(notification.template.content, personalization, False)
 
-    return html, plain_text
+    subject = make_substitutions_in_subject(notification.template.subject, personalization)
+
+    return html, plain_text, subject
 
 
-def _get_email_content_legacy(notification: Notification, personalization: dict[str, str]) -> tuple[str, str]:
+def _get_email_content_legacy(notification: Notification, personalization: dict[str, str]) -> tuple[str, str, str]:
     """
-    Return the HTML and plain text body of an e-mail notification using the legacy template rendering implementation.
-    The legacy implementation does not support pre-rendering and caching templates because it requires making
-    personalization substitutions before converting the markdown.
+    Return the HTML body, plain text body, and subject of an e-mail notification using the legacy template rendering
+    implementation.  The legacy implementation does not support pre-rendering and caching templates because it requires
+    making personalization substitutions before converting the markdown.
     """
 
     template_dict = dao_get_template_by_id(notification.template_id, notification.template_version).__dict__
 
-    html = str(HTMLEmailTemplate(
-        template_dict,
-        personalization,
-        **get_html_email_options(str(notification.id)),
-    ))
+    html = str(
+        HTMLEmailTemplate(
+            template_dict,
+            personalization,
+            **get_html_email_options(str(notification.id)),
+        )
+    )
 
-    plain_text = str(PlainTextEmailTemplate(template_dict, personalization))
-
-    return html, plain_text
+    utils_template = PlainTextEmailTemplate(template_dict, personalization)
+    return html, str(utils_template), utils_template.subject
 
 
 def update_notification_to_sending(
