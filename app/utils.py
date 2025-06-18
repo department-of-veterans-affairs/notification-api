@@ -158,7 +158,7 @@ def get_logo_url(base_url, logo_file):
     return f'https://{bucket}.{domain}/{logo_file}'
 
 
-def get_html_email_options(notification_id: str = 'xx_notification_id_xx') -> Dict[str, Union[str, bool]]:
+def get_html_email_options(notification_id: str) -> Dict[str, Union[str, bool]]:
     """
     Generate HTML email options dictionary for email rendering.
 
