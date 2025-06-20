@@ -11,4 +11,14 @@ fileignoreconfig:
   checksum: e46cc0b0e7b9afb0a1d30a1142f024091334d15b2292c43b76b7dcb35e64c5ad
 - filename: documents/postman/internal_api_developers/notification-api.postman_collection.json
   checksum: 328646db8be291aaa50e8bf8631ccdc4ffb48a0c4690ee361fa0ddb785cd277f
+- filename: cd/application-deployment/dev/dev.env
+  checksum: 9629b3b96a7e63eecea3d79d0d8a078b0891c967849f1aa85f5c83003d443e39
+- filename: cd/application-deployment/perf/perf.env
+  checksum: 95ce732445e360b152ba5ecac890e8e4c6f9b2255c1d5a8eae623baaa2520c0b
+- filename: cd/application-deployment/prod/prod.env
+  checksum: 0b6cdbd7a12cf9ec84df904582a53c84a334ae0b2f145ae586ad23e738e4652c
+- filename: cd/application-deployment/staging/staging.env
+  checksum: 437c2a00d760b0fe16be4f5f821143b9f478f30e7a3a21ed48849aef5d292992
+- filename: poetry.lock
+  checksum: f2559574c2578082d120e9727025b19ec83fbdb77fec4c3600e5e104ecc12509
 version: "1.0"
