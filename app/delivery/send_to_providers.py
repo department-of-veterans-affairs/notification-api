@@ -163,7 +163,8 @@ def send_email_to_provider(notification: Notification):
 
 def _get_email_content(notification: Notification, personalization: dict[str, str]) -> tuple[str, str, str]:
     """
-    Return the HTML and plain text body of an e-mail notification using the revised template rendering implementation.
+    Return the HTML body, plain text body, and subject of an e-mail notification using the revised template
+    rendering implementation.
     """
 
     if notification.template.html:
@@ -176,7 +177,7 @@ def _get_email_content(notification: Notification, personalization: dict[str, st
     options: dict = get_html_email_options(str(notification.id))
 
     # This function plugs the HTML content body into a Jinja2 template that includes branding and styling.
-    html = render_html_email(html, None, options['ga4_open_email_event_url'])
+    html = render_html_email(html, None, options.get('ga4_open_email_event_url'))
 
     if notification.template.plain_text:
         # The template, rendered as plain text, is stored in the database with placeholders intact.
@@ -192,12 +193,11 @@ def _get_email_content(notification: Notification, personalization: dict[str, st
 
 def _get_email_content_legacy(notification: Notification, personalization: dict[str, str]) -> tuple[str, str, str]:
     """
-    Return the HTML and plain text body of an e-mail notification using the legacy template rendering implementation.
-    The legacy implementation does not support pre-rendering and caching templates because it requires making
-    personalization substitutions before converting the markdown.
+    Return the HTML body, plain text body, and subject of an e-mail notification using the legacy template rendering
+    implementation.  The legacy implementation does not support pre-rendering and caching templates because it requires
+    making personalization substitutions before converting the markdown.
     """
 
-    # TODO - Is there a reason not to use notification.template.__dict__?  Is the version necessary here?
     template_dict = dao_get_template_by_id(notification.template_id, notification.template_version).__dict__
 
     html = str(
