@@ -511,7 +511,7 @@ class Test(Development):
         'read-db': os.getenv('SQLALCHEMY_DATABASE_URI_READ', 'postgresql://postgres@localhost/notification_api')
     }
 
-    CELERY_SETTINGS = {'broker_url': 'you-forgot-to-mock-celery-in-your-tests://'}
+    # CELERY_SETTINGS = {'broker_url': 'you-forgot-to-mock-celery-in-your-tests://'}
 
     ANTIVIRUS_ENABLED = True
 
