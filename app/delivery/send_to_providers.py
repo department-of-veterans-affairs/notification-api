@@ -127,9 +127,9 @@ def send_email_to_provider(notification: Notification):
             personalisation_data[key] = personalisation_data[key]['url']
 
     if is_feature_enabled(FeatureFlag.REVISED_TEMPLATE_RENDERING):
-        html, plain_text = _get_email_content(notification, personalisation_data)
+        html, plain_text, subject = _get_email_content(notification, personalisation_data)
     else:
-        html, plain_text = _get_email_content_legacy(notification, personalisation_data)
+        html, plain_text, subject = _get_email_content_legacy(notification, personalisation_data)
 
     if service.research_mode or notification.key_type == KEY_TYPE_TEST:
         notification.reference = create_uuid()
@@ -147,7 +147,7 @@ def send_email_to_provider(notification: Notification):
         reference = client.send_email(
             source=compute_source_email_address(service, client),
             to_addresses=validate_and_format_email_address(notification.to),
-            subject=notification.template.subject,
+            subject=subject,
             body=plain_text,
             html_body=html,
             reply_to_address=validate_and_format_email_address(email_reply_to) if email_reply_to else None,
@@ -161,7 +161,7 @@ def send_email_to_provider(notification: Notification):
     statsd_client.timing('email.total-time', delta_milliseconds)
 
 
-def _get_email_content(notification: Notification, personalization: dict[str, str]) -> tuple[str, str]:
+def _get_email_content(notification: Notification, personalization: dict[str, str]) -> tuple[str, str, str]:
     """
     Return the HTML and plain text body of an e-mail notification using the revised template rendering implementation.
     """
@@ -185,10 +185,12 @@ def _get_email_content(notification: Notification, personalization: dict[str, st
         # Render the template, and make substitutions using personalizations, if any.
         plain_text = render_notify_markdown(notification.template.content, personalization, False)
 
-    return html, plain_text
+    subject = make_substitutions(notification.template.subject, personalization, True)
+
+    return html, plain_text, subject
 
 
-def _get_email_content_legacy(notification: Notification, personalization: dict[str, str]) -> tuple[str, str]:
+def _get_email_content_legacy(notification: Notification, personalization: dict[str, str]) -> tuple[str, str, str]:
     """
     Return the HTML and plain text body of an e-mail notification using the legacy template rendering implementation.
     The legacy implementation does not support pre-rendering and caching templates because it requires making
@@ -206,9 +208,8 @@ def _get_email_content_legacy(notification: Notification, personalization: dict[
         )
     )
 
-    plain_text = str(PlainTextEmailTemplate(template_dict, personalization))
-
-    return html, plain_text
+    utils_template = PlainTextEmailTemplate(template_dict, personalization)
+    return html, str(utils_template), utils_template.subject
 
 
 def update_notification_to_sending(
