@@ -113,7 +113,7 @@ def process_ses_results(
             SES_PROVIDER,
         )
     else:
-        _process_ses_results(task, celery_envelope)
+        return _process_ses_results(task, celery_envelope)
 
 
 def _validate_response(celery_envelope: str) -> SesResponse:
