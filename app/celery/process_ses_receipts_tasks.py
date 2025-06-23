@@ -11,6 +11,8 @@ from flask import (
     json,
 )
 from json import JSONDecodeError
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.sql.dml import Update
 
 from notifications_utils.statsd_decorators import statsd
@@ -90,25 +92,26 @@ def process_ses_results(
 
     if is_feature_enabled(FeatureFlag.EMAIL_DELIVERY_STATUS_OVERHAUL):
         # This is a general outline
-        try:
-            ses_response: SesResponse = _validate_response(celery_envelope)
-            notification: Notification | NotificationHistory = (
-                notifications_dao.dao_get_notification_history_by_reference(ses_response.reference)
-            )
-            status_record, where_clause = _handle_response(ses_response, notification)
-            notification: Notification = _update_ses_notification_by_ref(where_clause)
+        ses_response: SesResponse = _validate_response(celery_envelope)
+        db_notification: Notification | NotificationHistory = _get_notification(ses_response.reference)
+        current_app.logger.info(
+            'SES details for notification: %s | current status: %s | event_type: %s',
+            db_notification.id,
+            db_notification.status,
+            ses_response.event_type,
+            # Add the rest
+        )
+        status_record, where_clause = _handle_response(ses_response, db_notification)
+        notification: Notification = _update_notification_where(status_record, where_clause)
 
-            # log status_record details
-            _queue_callbacks(notification)
-            log_notification_total_time(
-                notification.id,
-                notification.created_at,
-                notification.status,
-                SES_PROVIDER,
-            )
-        except NonRetryableException:
-            current_app.logger.exception('Failed to handle incoming SES status update')
-            raise
+        # log status_record details
+        _queue_callbacks(notification)
+        log_notification_total_time(
+            notification.id,
+            notification.created_at,
+            notification.status,
+            SES_PROVIDER,
+        )
     else:
         _process_ses_results(task, celery_envelope)
 
@@ -132,6 +135,18 @@ def _validate_response(celery_envelope: str) -> SesResponse:
     return ses_resp
 
 
+def _get_notification(reference) -> Notification | NotificationHistory:
+    try:
+        notification: Notification | NotificationHistory = notifications_dao.dao_get_notification_history_by_reference(
+            reference
+        )
+    except (MultipleResultsFound, NoResultFound, SQLAlchemyError):
+        current_app.logger.exception('Unable to find SES reference: %s', reference)
+        raise
+
+    return notification
+
+
 def _handle_response(
     ses_response: SesResponse, notification: Notification | NotificationHistory
 ) -> Tuple[EmailStatusRecord, Update]:
@@ -140,18 +155,17 @@ def _handle_response(
     # The WHERE clause is made in each event handler and passes it to the update function
     # The alternative is one big clause, or duplicating the call each time
     if ses_response.event_type == SesEventType.BOUNCE:
-        status_record, where_clause = _handle_bounce_event(ses_response)
+        status_record, where_clause = _handle_bounce_event(ses_response, notification)
     elif ses_response.event_type == SesEventType.COMPLAINT:
-        status_record, where_clause = _handle_complaint_event(ses_response)
+        status_record, where_clause = _handle_complaint_event(ses_response, notification)
     elif ses_response.event_type == SesEventType.DELIVERED:
-        status_record, where_clause = _handle_delivered_event(ses_response)
+        status_record, where_clause = _handle_delivered_event(ses_response, notification)
     elif ses_response.event_type == SesEventType.OPEN:
-        status_record, where_clause = _handle_open_event(ses_response)
+        status_record, where_clause = _handle_open_event(ses_response, notification)
     elif ses_response.event_type == SesEventType.SEND:
-        status_record, where_clause = _handle_send_event(ses_response)
+        status_record, where_clause = _handle_send_event(ses_response, notification)
     elif ses_response.event_type == SesEventType.RENDERING_FAILURE:
-        status_record, where_clause = _handle_rendering_failure_event(ses_response)
-    status_record.notification = notification
+        status_record, where_clause = _handle_rendering_failure_event(ses_response, notification)
     return status_record, where_clause
 
 
@@ -188,8 +202,8 @@ def _handle_rendering_failure_event(ses_response: SesResponse) -> EmailStatusRec
     ...
 
 
-def _update_ses_notification_by_ref(status_record: EmailStatusRecord) -> Notification:
-    # Updates the notification based on status_record.where_clause
+def _update_notification_where(status_record: EmailStatusRecord, stmt: Update) -> Notification:
+    # Updates the Notification table based on status_record.where_clause, returns the current notification object
     ...
 
 
