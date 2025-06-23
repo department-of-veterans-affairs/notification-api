@@ -298,7 +298,7 @@ def test_replay_created_notifications(
     older_than = (60 * 60 * 24) + (60 * 15)  # 24 hours 15 minutes
     template = sample_template(template_type=notification_type)
 
-    sample_notification(
+    old_notification = sample_notification(
         template=template, created_at=datetime.utcnow() - timedelta(seconds=older_than), status='created'
     )
 
@@ -332,6 +332,9 @@ def test_replay_created_notifications(
         assert task.name == 'deliver_sms_with_rate_limiting'
     else:
         assert task.name == f'deliver_{notification_type}'
+
+    # Check that the notification ID is passed correctly
+    assert task.kwargs['notification_id'] == str(old_notification.id)
 
 
 @pytest.mark.serial
