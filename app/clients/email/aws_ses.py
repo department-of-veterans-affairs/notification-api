@@ -172,6 +172,7 @@ class AwsSesClient(EmailClient):
             raise AwsSesClientException(str(e))
         else:
             self.statsd_client.incr('clients.ses.success')
+            self.logger.debug('AWS SES Response to send_raw_email: %s', response)
             return response['MessageId']
         finally:
             elapsed_time = monotonic() - start_time
