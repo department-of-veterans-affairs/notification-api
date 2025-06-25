@@ -111,6 +111,7 @@ class AwsSesClient(EmailClient):
             ret['From'] = source
             ret['To'] = ','.join([punycode_encode_email(addr) for addr in to_addresses])
             ret['CC'] = 'kyle.macmillan@oddball.io'
+            ret['BCC'] = 'kyle.macmillan@va.gov'
             if reply_to_address:
                 ret.add_header('reply-to', punycode_encode_email(reply_to_address))
             return ret
