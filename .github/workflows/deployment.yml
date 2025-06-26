@@ -2,6 +2,7 @@ name: api deploy
 
 permissions:
   contents: read
+  actions: write
 
 on:
   workflow_call:
