@@ -9,7 +9,7 @@ from flask_jwt_extended.config import config
 from flask_jwt_extended.exceptions import JWTExtendedException
 from jwt.exceptions import PyJWTError
 from notifications_python_client.authentication import decode_jwt_token, get_token_issuer
-from notifications_python_client.errors import TokenDecodeError, TokenExpiredError, TokenIssuerError
+from notifications_python_client.errors import TokenError, TokenDecodeError, TokenExpiredError, TokenIssuerError
 from notifications_utils import request_helper
 from sqlalchemy.exc import DataError
 from sqlalchemy.orm.exc import NoResultFound
@@ -189,12 +189,14 @@ def validate_service_api_key_auth():  # noqa: C901
 
     for api_key in service.api_keys:
         try:
+            # This function call could raise a number of exceptions, all of which are subclasses of TokenError.
+            # Catch specific exceptions to raise specific error messages.
             decode_jwt_token(auth_token, api_key.secret)
-        except TokenDecodeError:
-            continue
         except TokenExpiredError:
             err_msg = 'Error: Your system clock must be accurate to within 30 seconds'
             raise AuthError(err_msg, 403, service_id=service.id, api_key_id=api_key.id)
+        except TokenError:
+            continue
 
         # TODO 2309 - The revoked field is added as a temporary measure until we can implement proper use of the expiry date
         if api_key.revoked:
