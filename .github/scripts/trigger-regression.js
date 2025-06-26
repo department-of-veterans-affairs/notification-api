@@ -15,11 +15,11 @@ const triggerAndWait = async ({ github, core }) => {
   const workflow_id = 'regression.yml'; // Replace with your workflow file name or ID
   const ref = 'main'; // The main branch. THIS IS THE REF of the REGRESSION repo!
   const isSmokeTest = inputs.smoke === 'true';
-  const jobName = `Test in ${ENVIRONMENT}${isSmokeTest ? ' (Smoke)' : ''}`; // Replace with the name of the job you want
+  const jobName = `Test in ${ENVIRONMENT}`; // Replace with the name of the job you want
 
   // Create a timestamp for workflow run tracking
   const triggerTimestamp = new Date().toISOString();
-  console.log(`Triggering ${isSmokeTest ? 'smoke test' : 'regression test'} workflow: ${workflow_id} on ${owner}/${repo}`);
+  console.log(`Triggering workflow: ${workflow_id} on ${owner}/${repo}`);
   await github.rest.actions.createWorkflowDispatch({
     owner,
     repo,
