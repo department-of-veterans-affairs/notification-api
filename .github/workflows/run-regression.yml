@@ -19,8 +19,8 @@ on:
       smoke:
         description: 'Run smoke tests only'
         required: false
-        type: boolean
-        default: false
+        type: string
+        default: "false"
   workflow_dispatch:
     inputs:
       environment:
@@ -30,8 +30,8 @@ on:
       smoke:
         description: 'Run smoke tests only'
         required: false
-        type: boolean
-        default: false
+        type: string
+        default: "false"
 
 jobs:
   trigger-regression-tests:
