@@ -252,5 +252,6 @@ def handle_admin_key(
         decode_jwt_token(auth_token, secret)
     except TokenExpiredError:
         raise AuthError('Invalid token: expired, check that your system clock is accurate', 403)
-    except TokenDecodeError:
+    except TokenError:
+        # TokenError is the base class for token decoding exceptions.
         raise AuthError('Invalid token: signature, api token is not valid', 403)
