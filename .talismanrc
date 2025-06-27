@@ -19,4 +19,6 @@ fileignoreconfig:
   checksum: 0c76ecd5fad032d0ca18240195095b586cdc40de38dd24837e2db869341cd64d
 - filename: cd/application-deployment/staging/staging.env
   checksum: abc1b8f1d1e7c14f79adc45d056285c0d554081095da87b85c5c8e937c55d042
+- filename: poetry.lock
+  checksum: c404c4229f4786d81d6db17d7cd9009266ef651bd596fff48f41a35d1ae39e00
 version: "1.0"
