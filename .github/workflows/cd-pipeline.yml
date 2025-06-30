@@ -20,7 +20,7 @@ permissions:
 on:
   push:
     branches:
-      - main
+      - 2428-cd-release-notes
 
 jobs:
   prepare-deployment:
@@ -109,7 +109,7 @@ jobs:
   #     lambdaDeploy: true
 
   create-release-notes:
-    needs: [create-and-post-tag, deploy-to-prod]
+    needs: [create-and-post-tag, deploy-to-staging]
     uses: ./.github/workflows/create-release-notes.yml
     secrets: inherit
     with:
