@@ -30,7 +30,7 @@ async function appendSummary(core, summaryContent) {
  * @param {string} repo - The repository name.
  * @returns {Promise<string>} - A promise resolving to the latest version from git tags.
  */
-async function getLatestVersionFromTags(github, owner, repo) {
+async function getLatestVersionFromReleases(github, owner, repo) {
   try {
     const { data: release } = await github.rest.repos.getLatestRelease({ owner, repo });
     if (/^\d+\.\d+\.\d+$/.test(release.tag_name)) {
@@ -45,5 +45,5 @@ async function getLatestVersionFromTags(github, owner, repo) {
 
 module.exports = {
   appendSummary,
-  getLatestVersionFromTags,
+  getLatestVersionFromReleases,
 };

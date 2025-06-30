@@ -1,6 +1,6 @@
 // createAndPostTag.js
 const { prData } = require('./prData');
-const { appendSummary, getLatestVersionFromTags } = require('./actionUtils');
+const { appendSummary, getLatestVersionFromReleases } = require('./actionUtils');
 
 /**
  * Creates a new git tag in the repository.
@@ -56,7 +56,7 @@ async function createAndPostTag(params) {
 
   try {
     // Retrieve the current release version from git tags, this will be used as the previousVersion
-    const previousVersion = await getLatestVersionFromTags(github, owner, repo);
+    const previousVersion = await getLatestVersionFromReleases(github, owner, repo);
 
     // Retrieve PR data to decide the new version tag
     const { mainBranchSha, newVersion } = await prData({

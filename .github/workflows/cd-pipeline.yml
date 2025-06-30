@@ -95,6 +95,7 @@ jobs:
     secrets: inherit
     with:
       previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
+      newVersion: ${{ needs.create-and-post-tag.outputs.newVersion }}
 
   deploy-to-staging:
     needs: [approval-deploy, create-and-post-tag]
