@@ -39,15 +39,23 @@ async function getLatestVersionFromTags(github, owner, repo) {
       per_page: 100,
     });
 
+    console.log(`Found ${tags.length} total tags`);
+    console.log('All tag names:', tags.map(t => t.name));
+
     // Extract just the names, keep only strict X.Y.Z, sort descending, grab first
-    const latest = tags
+    const versionTags = tags
       .map(t => t.name)
-      .filter(name => /^\d+\.\d+\.\d+$/.test(name))
+      .filter(name => /^\d+\.\d+\.\d+$/.test(name));
+    
+    console.log(`Found ${versionTags.length} version tags:`, versionTags);
+
+    const latest = versionTags
       .sort((a, b) =>
         // localeCompare with numeric sorting handles "10" > "2" correctly
         b.localeCompare(a, undefined, { numeric: true })
       )[0];
 
+    console.log('Latest version tag:', latest);
     return latest || '0.0.0';
   } catch (e) {
     console.error('Error fetching tags:', e);
