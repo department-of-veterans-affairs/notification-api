@@ -32,33 +32,13 @@ async function appendSummary(core, summaryContent) {
  */
 async function getLatestVersionFromTags(github, owner, repo) {
   try {
-    // Fetch up to 100 tags (default to empty array if no data)
-    const { data: tags = [] } = await github.rest.repos.listTags({
-      owner,
-      repo,
-      per_page: 100,
-    });
-
-    console.log(`Found ${tags.length} total tags`);
-    console.log('All tag names:', tags.map(t => t.name));
-
-    // Extract just the names, keep only strict X.Y.Z, sort descending, grab first
-    const versionTags = tags
-      .map(t => t.name)
-      .filter(name => /^\d+\.\d+\.\d+$/.test(name));
-    
-    console.log(`Found ${versionTags.length} version tags:`, versionTags);
-
-    const latest = versionTags
-      .sort((a, b) =>
-        // localeCompare with numeric sorting handles "10" > "2" correctly
-        b.localeCompare(a, undefined, { numeric: true })
-      )[0];
-
-    console.log('Latest version tag:', latest);
-    return latest || '0.0.0';
+    const { data: release } = await github.rest.repos.getLatestRelease({ owner, repo });
+    if (/^\d+\.\d+\.\d+$/.test(release.tag_name)) {
+      return release.tag_name;
+    }
+    return '0.0.0';
   } catch (e) {
-    console.error('Error fetching tags:', e);
+    console.error('Error fetching latest release:', e);
     return '0.0.0';
   }
 }
