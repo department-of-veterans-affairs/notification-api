@@ -80,7 +80,7 @@ jobs:
         run: echo "Deployment paused for manual approval to staging and production."
 
   pre-tag-summary:
-    needs: approval-deploy-perf
+    needs: approval-deploy
     uses: ./.github/workflows/pre-tag-summary.yml
     secrets: inherit
 
