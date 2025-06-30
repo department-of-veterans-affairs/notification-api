@@ -93,7 +93,7 @@ async function prData(params) {
 
   try {
     const pullRequestData = await fetchPullRequests(github, owner, repo, sha);
-    const currentVersion = getLatestVersionFromTags();
+    const currentVersion = await getLatestVersionFromTags(github, owner, repo);
     const mainBranchSha = await fetchMainBranchSha(github, owner, repo, sha);
 
     const labels = pullRequestData.data[0].labels;

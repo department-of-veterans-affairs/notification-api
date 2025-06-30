@@ -25,7 +25,7 @@ async function createReleaseNotes(params) {
 
   try {
     // Retrieve the current version from git tags
-    const currentVersion = getLatestVersionFromTags();
+    const currentVersion = await getLatestVersionFromTags(github, owner, repo);
 
     // Generate release notes comparing the current version to the previous version
     const releaseNotesResponse = await github.rest.repos.generateReleaseNotes({

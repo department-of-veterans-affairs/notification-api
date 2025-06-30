@@ -3,7 +3,6 @@
 // This module provides various utilities that are used by multiple other scripts
 
 const fs = require('fs'); // NodeJs module provides an API for interacting with the file system
-const { execSync } = require('child_process');
 
 /**
  * Appends a provided summary content to the GitHub step summary file.
@@ -24,20 +23,34 @@ async function appendSummary(core, summaryContent) {
 }
 
 /**
- * Retrieves the latest version from git tags using git describe.
+ * Retrieves the latest version from git tags using the GitHub API.
  * This eliminates the race condition by not relying on a shared environment variable.
- * @returns {string} - The latest version from git tags.
+ * @param {Object} github - The GitHub client instance.
+ * @param {string} owner - The owner of the GitHub repository.
+ * @param {string} repo - The repository name.
+ * @returns {Promise<string>} - A promise resolving to the latest version from git tags.
  */
-function getLatestVersionFromTags() {
+async function getLatestVersionFromTags(github, owner, repo) {
   try {
-    // Get the latest tag using git describe
-    const latestTag = execSync('git describe --tags `git rev-list --tags --max-count=1`', { encoding: 'utf8' }).trim();
-    
-    // Return the tag as-is (no "v" prefix to remove)
-    return latestTag;
-  } catch (error) {
-    console.error('Error fetching latest tag:', error);
-    // Fallback to 0.0.0 if there's an error or no tags exist
+    // Fetch up to 100 tags (default to empty array if no data)
+    const { data: tags = [] } = await github.rest.repos.listTags({
+      owner,
+      repo,
+      per_page: 100,
+    });
+
+    // Extract just the names, keep only strict X.Y.Z, sort descending, grab first
+    const latest = tags
+      .map(t => t.name)
+      .filter(name => /^\d+\.\d+\.\d+$/.test(name))
+      .sort((a, b) =>
+        // localeCompare with numeric sorting handles "10" > "2" correctly
+        b.localeCompare(a, undefined, { numeric: true })
+      )[0];
+
+    return latest || '0.0.0';
+  } catch (e) {
+    console.error('Error fetching tags:', e);
     return '0.0.0';
   }
 }

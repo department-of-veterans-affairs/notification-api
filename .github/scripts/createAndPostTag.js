@@ -56,7 +56,7 @@ async function createAndPostTag(params) {
 
   try {
     // Retrieve the current release version from git tags, this will be used as the previousVersion
-    const previousVersion = getLatestVersionFromTags();
+    const previousVersion = await getLatestVersionFromTags(github, owner, repo);
 
     // Retrieve PR data to decide the new version tag
     const { mainBranchSha, newVersion } = await prData({
