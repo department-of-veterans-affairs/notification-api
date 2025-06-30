@@ -3,6 +3,7 @@
 // This module provides various utilities that are used by multiple other scripts
 
 const fs = require('fs'); // NodeJs module provides an API for interacting with the file system
+const { execSync } = require('child_process');
 
 /**
  * Appends a provided summary content to the GitHub step summary file.
@@ -23,22 +24,25 @@ async function appendSummary(core, summaryContent) {
 }
 
 /**
- * Retrieves the current release version from a repository's actions secrets.
- * @param {Object} github - The GitHub client instance.
- * @param {string} owner - The owner of the GitHub repository.
- * @param {string} repo - The repository name.
- * @returns {Promise<string>} - A promise resolving to the current release version.
+ * Retrieves the latest version from git tags using git describe.
+ * This eliminates the race condition by not relying on a shared environment variable.
+ * @returns {string} - The latest version from git tags.
  */
-async function getReleaseVersionValue(github, owner, repo) {
-  const { data } = await github.rest.actions.getRepoVariable({
-    owner,
-    repo,
-    name: 'RELEASE_VERSION',
-  });
-  return data.value;
+function getLatestVersionFromTags() {
+  try {
+    // Get the latest tag using git describe
+    const latestTag = execSync('git describe --tags `git rev-list --tags --max-count=1`', { encoding: 'utf8' }).trim();
+    
+    // Return the tag as-is (no "v" prefix to remove)
+    return latestTag;
+  } catch (error) {
+    console.error('Error fetching latest tag:', error);
+    // Fallback to 0.0.0 if there's an error or no tags exist
+    return '0.0.0';
+  }
 }
 
 module.exports = {
   appendSummary,
-  getReleaseVersionValue,
+  getLatestVersionFromTags,
 };
