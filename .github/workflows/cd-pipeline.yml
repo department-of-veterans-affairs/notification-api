@@ -46,7 +46,7 @@ jobs:
           echo "Deployment paused for manual approval."
 
   build-push-artifacts:
-    needs: [approval-deploy-perf]
+    needs: approval-deploy-perf
     runs-on: ${{ vars.RUNS_ON }}
     steps:
       - name: Checkout Repo
@@ -62,7 +62,7 @@ jobs:
           role-to-assume: ${{ secrets.VAEC_DEPLOY_ROLE }}
 
   deploy-to-perf:
-    needs: [build-push-artifacts]
+    needs: build-push-artifacts
     uses: ./.github/workflows/deploy-release.yml
     secrets: inherit
     with:
@@ -89,6 +89,13 @@ jobs:
     uses: ./.github/workflows/create-and-post-tag.yml
     secrets: inherit
 
+  create-release-notes:
+    needs: create-and-post-tag
+    uses: ./.github/workflows/create-release-notes.yml
+    secrets: inherit
+    with:
+      previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
+
   deploy-to-staging:
     needs: [approval-deploy, create-and-post-tag]
     uses: ./.github/workflows/deploy-release.yml
@@ -107,13 +114,6 @@ jobs:
   #     environment: prod
   #     ref: ${{ github.sha }}
   #     lambdaDeploy: true
-
-  create-release-notes:
-    needs: [create-and-post-tag, deploy-to-staging]
-    uses: ./.github/workflows/create-release-notes.yml
-    secrets: inherit
-    with:
-      previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
 
   # send-slack-notifications:
   #   needs: [create-release-notes, create-and-post-tag]
