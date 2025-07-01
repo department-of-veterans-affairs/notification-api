@@ -20,7 +20,7 @@ permissions:
 on:
   push:
     branches:
-      - 2428-cd-release-notes
+      - main
 
 jobs:
   prepare-deployment:
