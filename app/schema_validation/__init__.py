@@ -81,7 +81,7 @@ def validate(
     # Ensure that json_to_validate is a dictionary
     if not isinstance(json_to_validate, dict):
         # Log the error, but not the payload itself, as it may contain sensitive information.
-        current_app.logger.warning('Validation failed: Payload is not a dictionary.')
+        current_app.logger.info('Validation failed: Payload is not a dictionary.')
         errors = [{'error': 'ValidationError', 'message': 'Payload is not a dictionary.'}]
         error_message = json.dumps({'status_code': 400, 'errors': errors})
         raise ValidationError(error_message)
@@ -90,7 +90,7 @@ def validate(
     errors = list(validator.iter_errors(json_to_validate))
     if len(errors) > 0:
         json_to_validate = _redact_sensitive_data(json_to_validate)
-
+        # Log the JSON object with redacted information
         current_app.logger.info('Validation failed for: %s', json_to_validate)
         raise ValidationError(build_error_message(errors))
 
@@ -107,7 +107,14 @@ def validate(
 def _redact_sensitive_data(
     json_to_validate: dict[str, int | str | dict[str, int | str]],
 ) -> dict[str, int | str | dict[str, int | str]]:
-    """Redact sensitive data from the JSON object."""
+    """Redact sensitive data from the JSON object.
+
+    Args:
+        json_to_validate (dict[str, int | str | dict[str, int | str]]): The JSON object to redact.
+
+    Returns:
+        (dict[str, int | str | dict[str, int | str]]) : The JSON object with sensitive data redacted.
+    """
     # Redact "personalisation"
     if 'personalisation' in json_to_validate:
         if isinstance(json_to_validate.get('personalisation'), dict):
