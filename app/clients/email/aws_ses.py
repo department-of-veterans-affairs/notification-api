@@ -186,6 +186,11 @@ class AwsSesClient(EmailClient):
             self.statsd_client.incr('clients.ses.error.invalid-email')
             raise InvalidEmailError('message: "{}"'.format(e.response['Error']['Message']))
         elif e.response['Error']['Code'] == 'Throttling' and 'Maximum sending rate exceeded' in str(e):
+            self.logger.warning('Encountered a Throttling error code from SES: %s', str(e))
+            self.statsd_client.incr('clients.ses.error.throttling')
+            raise AwsSesClientThrottlingSendRateException(str(e))
+        elif e.response['Error']['Code'] == 'ThrottlingException' and 'Maximum sending rate exceeded' in str(e):
+            self.logger.warning('Encountered a ThrottlingException error code from SES: %s', str(e))
             self.statsd_client.incr('clients.ses.error.throttling')
             raise AwsSesClientThrottlingSendRateException(str(e))
         else:
