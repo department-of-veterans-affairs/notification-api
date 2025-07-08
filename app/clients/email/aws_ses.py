@@ -191,6 +191,10 @@ class AwsSesClient(EmailClient):
         ):
             self.statsd_client.incr('clients.ses.error.throttling')
             raise AwsSesClientThrottlingSendRateException(str(e))
+        elif 'Throttling' in str(e):
+            # The elif above missed a throttle. AWS likely has two ways to throttle, or the one above is out of date
+            self.statsd_client.incr('clients.ses.error.throttling')
+            raise AwsSesClientThrottlingSendRateException(str(e))
         else:
             self.statsd_client.incr('clients.ses.error')
             raise AwsSesClientException(str(e))
