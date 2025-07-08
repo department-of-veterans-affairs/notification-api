@@ -185,14 +185,7 @@ class AwsSesClient(EmailClient):
         if e.response['Error']['Code'] == 'InvalidParameterValue':
             self.statsd_client.incr('clients.ses.error.invalid-email')
             raise InvalidEmailError('message: "{}"'.format(e.response['Error']['Message']))
-        elif (
-            e.response['Error']['Code'] == 'Throttling'
-            and e.response['Error']['Message'] == 'Maximum sending rate exceeded.'
-        ):
-            self.statsd_client.incr('clients.ses.error.throttling')
-            raise AwsSesClientThrottlingSendRateException(str(e))
-        elif 'Throttling' in str(e):
-            # The elif above missed a throttle. AWS likely has two ways to throttle, or the one above is out of date
+        elif e.response['Error']['Code'] == 'Throttling' and 'Maximum sending rate exceeded.' in str(e):
             self.statsd_client.incr('clients.ses.error.throttling')
             raise AwsSesClientThrottlingSendRateException(str(e))
         else:
