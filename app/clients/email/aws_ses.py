@@ -185,7 +185,7 @@ class AwsSesClient(EmailClient):
         if e.response['Error']['Code'] == 'InvalidParameterValue':
             self.statsd_client.incr('clients.ses.error.invalid-email')
             raise InvalidEmailError('message: "{}"'.format(e.response['Error']['Message']))
-        elif e.response['Error']['Code'] == 'Throttling' and 'Maximum sending rate exceeded.' in str(e):
+        elif e.response['Error']['Code'] == 'Throttling' and 'Maximum sending rate exceeded' in str(e):
             self.statsd_client.incr('clients.ses.error.throttling')
             raise AwsSesClientThrottlingSendRateException(str(e))
         else:
