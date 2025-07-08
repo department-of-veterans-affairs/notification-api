@@ -367,7 +367,7 @@ def test_should_retry_on_throttle(mocker):
     client = AwsSesClient()
     client.init_app('asdf', 'logger', mocker.Mock())
     e = botocore.exceptions.ClientError(
-        {'Error': {'Code': 'Throttline', 'Message': 'Maximum sending rate exceeded'}}, 'op name'
+        {'Error': {'Code': 'Throttling', 'Message': 'Maximum sending rate exceeded'}}, 'op name'
     )
     with pytest.raises(AwsSesClientThrottlingSendRateException):
         client._check_error_code(e, '1234')
