@@ -8,11 +8,11 @@ class PiiPid(Pii):
     _level: ClassVar[PiiLevel] = PiiLevel.LOW
 
     def get_identifier_type(self) -> IdentifierType:
-        return IndentifierType.PID
+        return IdentifierType.PID
 
 
 class PiiVaProfileID(Pii):
     _level: ClassVar[PiiLevel] = PiiLevel.LOW
 
     def get_identifier_type(self) -> IdentifierType:
-        return IndentifierType.VA_PROFILE_ID
+        return IdentifierType.VA_PROFILE_ID

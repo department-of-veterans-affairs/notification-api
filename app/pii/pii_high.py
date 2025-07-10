@@ -8,18 +8,18 @@ class PiiBirlsid(Pii):
     _level: ClassVar[PiiLevel] = PiiLevel.HIGH
 
     def get_identifier_type(self) -> IdentifierType:
-        return IndentifierType.BIRLSID
+        return IdentifierType.BIRLSID
 
 
 class PiiEdipi(Pii):
     _level: ClassVar[PiiLevel] = PiiLevel.HIGH
 
     def get_identifier_type(self) -> IdentifierType:
-        return IndentifierType.EDIPI
+        return IdentifierType.EDIPI
 
 
 class PiiIcn(Pii):
     _level: ClassVar[PiiLevel] = PiiLevel.HIGH
 
     def get_identifier_type(self) -> IdentifierType:
-        return IndentifierType.ICN
+        return IdentifierType.ICN
