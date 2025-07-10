@@ -2,7 +2,7 @@ import os
 import pytest
 from unittest.mock import patch
 
-from app.pii import PiiEncryption, PiiLevel, Pii
+from app.pii.pii_base import PiiEncryption, PiiLevel, Pii
 from app.va.identifier import IdentifierType
 
 
