@@ -6,7 +6,7 @@ in a secure manner, including encryption, redaction, and controlled access.
 
 from app.pii.pii_base import PiiEncryption, PiiLevel, Pii
 from app.pii.pii_high import PiiBirlsid, PiiEdipi, PiiIcn
-from app.pii.pii_high import PiiPid, PiiVaProfileID
+from app.pii.pii_low import PiiPid, PiiVaProfileID
 
 
 __all__ = [
