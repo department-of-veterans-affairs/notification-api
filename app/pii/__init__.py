@@ -6,4 +6,13 @@ in a secure manner, including encryption, redaction, and controlled access.
 
 from app.pii.pii_base import PiiEncryption, PiiLevel, Pii
 
-__all__ = ['PiiEncryption', 'PiiLevel', 'Pii']
+__all__ = [
+    'Pii',
+    'PiiBurlsid',
+    'PiiEdipi',
+    'PiiEncryption',
+    'PiiIcn',
+    'PiiLevel',
+    'PiiPid',
+    'PiiVaProfileID',
+]
