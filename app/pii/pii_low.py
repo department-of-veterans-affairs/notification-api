@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from app.pii.pii_base import Pii
+from app.pii.pii_base import Pii, PiiLevel
 from app.va.identifier import IdentifierType
 
 
