@@ -2,9 +2,9 @@ from app.pii.pii_base import Pii
 from app.va.identifier import IdentifierType
 
 
-class PiiBurlsid(Pii):
+class PiiBirlsid(Pii):
     def get_identifier_type(self) -> IdentifierType:
-        return IndentifierType.BURLSID
+        return IndentifierType.BIRLSID
 
 
 class PiiEdipi(Pii):
