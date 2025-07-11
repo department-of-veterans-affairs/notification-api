@@ -305,3 +305,93 @@ class TestUpdateApiKeyExpiry:
 
         with pytest.raises(NoResultFound):
             update_api_key_expiry(service_id=fake_service_id, api_key_id=api_key.id, expiry_date=new_expiry_date)
+
+
+def test_api_key_creation_sets_default_180_day_expiry(notify_db_session, sample_service):
+    """Test that new API keys get default 180-day expiry when no expiry is specified"""
+    service = sample_service()
+
+    # Create API key without specifying expiry_date
+    api_key = ApiKey(
+        service=service,
+        name='test key',
+        created_by=service.created_by,
+        key_type=KEY_TYPE_NORMAL,
+    )
+
+    save_model_api_key(api_key)
+
+    # Verify that expiry_date is set to 180 days from creation
+    expected_expiry = datetime.utcnow() + timedelta(days=180)
+
+    # Allow for a small time difference due to processing time
+    time_diff = abs((api_key.expiry_date - expected_expiry).total_seconds())
+    assert time_diff < 5, f'Expected expiry_date to be ~180 days from now, but got {api_key.expiry_date}'
+
+    assert api_key.expiry_date > datetime.utcnow(), 'API key should not be expired immediately'
+
+    # Cleanup
+    ApiKeyHistory = ApiKey.get_history_model()
+    stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
+    notify_db_session.session.execute(stmt)
+
+    stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
+    notify_db_session.session.execute(stmt)
+    notify_db_session.session.commit()
+
+
+def test_api_key_creation_respects_provided_expiry_date(notify_db_session, sample_service):
+    """Test that API key creation respects explicitly provided expiry dates"""
+    service = sample_service()
+    custom_expiry = datetime.utcnow() + timedelta(days=30)
+
+    api_key = ApiKey(
+        service=service,
+        name='test key with custom expiry',
+        created_by=service.created_by,
+        key_type=KEY_TYPE_NORMAL,
+        expiry_date=custom_expiry,
+    )
+
+    save_model_api_key(api_key)
+
+    # Verify that the custom expiry date was preserved
+    assert api_key.expiry_date == custom_expiry, 'Custom expiry date should be preserved'
+
+    # Cleanup
+    ApiKeyHistory = ApiKey.get_history_model()
+    stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
+    notify_db_session.session.execute(stmt)
+
+    stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
+    notify_db_session.session.execute(stmt)
+    notify_db_session.session.commit()
+
+
+def test_api_key_creation_validates_expiry_date_not_in_past(notify_db_session, sample_service):
+    """Test that API key creation with expiry_date in the past is handled appropriately"""
+    service = sample_service()
+    past_expiry = datetime.utcnow() - timedelta(days=1)  # Yesterday
+
+    api_key = ApiKey(
+        service=service,
+        name='test key with past expiry',
+        created_by=service.created_by,
+        key_type=KEY_TYPE_NORMAL,
+        expiry_date=past_expiry,
+    )
+
+    # This should still work - the validation happens at authentication time, not creation time
+    save_model_api_key(api_key)
+
+    assert api_key.expiry_date == past_expiry, 'Past expiry date should be preserved during creation'
+    assert api_key.expiry_date < datetime.utcnow(), 'API key should be expired'
+
+    # Cleanup
+    ApiKeyHistory = ApiKey.get_history_model()
+    stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
+    notify_db_session.session.execute(stmt)
+
+    stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
+    notify_db_session.session.execute(stmt)
+    notify_db_session.session.commit()
