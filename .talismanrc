@@ -18,11 +18,11 @@ fileignoreconfig:
 - filename: poetry.lock
   checksum: d0f4a99bd30ff79ca97ba120b0156295ed58699e26cd1ade9619de70415ef20b
 - filename: tests/app/authentication/test_authentication.py
-  checksum: 5e62420267c11aa66490672d1fbe537cdddb191997aa01cc4eccd42c26f655be
+  checksum: 75ce4ecbb6ef86dd06db54dcf66329b7749ff9024c7d88c218f43033d03deb73
 - filename: tests/app/conftest.py
   checksum: 2a7e0177e4db4954cfe6711cf9a38722ab4e6b0d434522453f6c12a9f5a02809
 - filename: tests/app/dao/test_api_key_dao.py
-  checksum: 6403a7bcc2a00cf56045503a170f6284c75fba78de81c34f5e3036b35214331e
+  checksum: 85adfc0462c0354d7078fbc21feeeba1b49a0fefd3463f7a830a9e7812b6caf8
 - filename: tests/app/db.py
   checksum: 01cc48ec42c0665091dd0ef8b8ee6430552344f0caa0c1c2b387b6adfdf5d62a
 - filename: tests/app/service/test_api_key_endpoints.py

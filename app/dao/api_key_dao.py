@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Callable, Optional
 from uuid import UUID, uuid4
 
@@ -29,10 +29,6 @@ def save_model_api_key(api_key: ApiKey, secret_generator: Optional[Callable[[], 
             api_key.secret = secret_generator()
         else:
             api_key.secret = secrets.token_urlsafe(64)
-
-    # Set default expiry date to 180 days from now if not already set
-    if api_key.expiry_date is None:
-        api_key.expiry_date = datetime.utcnow() + timedelta(days=180)
 
     db.session.add(api_key)
 

@@ -307,8 +307,8 @@ class TestUpdateApiKeyExpiry:
             update_api_key_expiry(service_id=fake_service_id, api_key_id=api_key.id, expiry_date=new_expiry_date)
 
 
-def test_api_key_creation_sets_default_180_day_expiry(notify_db_session, sample_service):
-    """Test that new API keys get default 180-day expiry when no expiry is specified"""
+def test_api_key_creation_does_not_set_automatic_expiry(notify_db_session, sample_service):
+    """Test that new API keys do not get automatic expiry dates when none is specified"""
     service = sample_service()
 
     # Create API key without specifying expiry_date
@@ -321,14 +321,8 @@ def test_api_key_creation_sets_default_180_day_expiry(notify_db_session, sample_
 
     save_model_api_key(api_key)
 
-    # Verify that expiry_date is set to 180 days from creation
-    expected_expiry = datetime.utcnow() + timedelta(days=180)
-
-    # Allow for a small time difference due to processing time
-    time_diff = abs((api_key.expiry_date - expected_expiry).total_seconds())
-    assert time_diff < 5, f'Expected expiry_date to be ~180 days from now, but got {api_key.expiry_date}'
-
-    assert api_key.expiry_date > datetime.utcnow(), 'API key should not be expired immediately'
+    # Verify that expiry_date is None (no automatic expiry set)
+    assert api_key.expiry_date is None, f'Expected expiry_date to be None, but got {api_key.expiry_date}'
 
     # Cleanup
     ApiKeyHistory = ApiKey.get_history_model()
