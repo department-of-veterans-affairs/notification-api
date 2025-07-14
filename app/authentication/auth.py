@@ -198,7 +198,6 @@ def validate_service_api_key_auth():  # noqa: C901
         except TokenError:
             continue
 
-        # The revoked field is added as a temporary measure until we can implement proper use of the expiry date
         if api_key.revoked:
             raise AuthError('Invalid token: API key revoked', 403, service_id=service.id, api_key_id=api_key.id)
 
