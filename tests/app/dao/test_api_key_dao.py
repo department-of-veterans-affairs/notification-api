@@ -307,7 +307,7 @@ class TestUpdateApiKeyExpiry:
             update_api_key_expiry(service_id=fake_service_id, api_key_id=api_key.id, expiry_date=new_expiry_date)
 
 
-def test_api_key_creation_does_not_set_automatic_expiry(notify_db_session, sample_service):
+def test_api_key_creation_does_not_set_automatic_expiry(sample_service):
     """Test that new API keys do not get automatic expiry dates when none is specified"""
     service = sample_service()
 
@@ -325,7 +325,7 @@ def test_api_key_creation_does_not_set_automatic_expiry(notify_db_session, sampl
     assert api_key.expiry_date is None, f'Expected expiry_date to be None, but got {api_key.expiry_date}'
 
 
-def test_api_key_creation_respects_provided_expiry_date(notify_db_session, sample_service):
+def test_api_key_creation_respects_provided_expiry_date(sample_service):
     """Test that API key creation respects explicitly provided expiry dates"""
     service = sample_service()
     custom_expiry = datetime.utcnow() + timedelta(days=30)
@@ -344,7 +344,7 @@ def test_api_key_creation_respects_provided_expiry_date(notify_db_session, sampl
     assert api_key.expiry_date == custom_expiry, 'Custom expiry date should be preserved'
 
 
-def test_api_key_creation_validates_expiry_date_not_in_past(notify_db_session, sample_service):
+def test_api_key_creation_validates_expiry_date_not_in_past(sample_service):
     """Test that API key creation with expiry_date in the past is handled appropriately"""
     service = sample_service()
     past_expiry = datetime.utcnow() - timedelta(days=1)  # Yesterday
