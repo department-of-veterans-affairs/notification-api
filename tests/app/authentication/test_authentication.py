@@ -427,7 +427,7 @@ def test_authentication_with_null_expiry_date_allows_request_with_warning(
     mock_logger = mocker.patch('app.authentication.auth.current_app.logger.warning')
 
     token = create_jwt_token(api_key.secret, client_id=str(service.id))
-    request.headers = {'Authorization': 'Bearer {}'.format(token)}
+    request.headers = {'Authorization': f'Bearer {token}'}
 
     # Should not raise an exception but should log a warning
     validate_service_api_key_auth()
