@@ -324,15 +324,6 @@ def test_api_key_creation_does_not_set_automatic_expiry(notify_db_session, sampl
     # Verify that expiry_date is None (no automatic expiry set)
     assert api_key.expiry_date is None, f'Expected expiry_date to be None, but got {api_key.expiry_date}'
 
-    # Cleanup
-    ApiKeyHistory = ApiKey.get_history_model()
-    stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
-    notify_db_session.session.execute(stmt)
-
-    stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
-    notify_db_session.session.execute(stmt)
-    notify_db_session.session.commit()
-
 
 def test_api_key_creation_respects_provided_expiry_date(notify_db_session, sample_service):
     """Test that API key creation respects explicitly provided expiry dates"""
@@ -351,15 +342,6 @@ def test_api_key_creation_respects_provided_expiry_date(notify_db_session, sampl
 
     # Verify that the custom expiry date was preserved
     assert api_key.expiry_date == custom_expiry, 'Custom expiry date should be preserved'
-
-    # Cleanup
-    ApiKeyHistory = ApiKey.get_history_model()
-    stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
-    notify_db_session.session.execute(stmt)
-
-    stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
-    notify_db_session.session.execute(stmt)
-    notify_db_session.session.commit()
 
 
 def test_api_key_creation_validates_expiry_date_not_in_past(notify_db_session, sample_service):
@@ -380,12 +362,3 @@ def test_api_key_creation_validates_expiry_date_not_in_past(notify_db_session, s
 
     assert api_key.expiry_date == past_expiry, 'Past expiry date should be preserved during creation'
     assert api_key.expiry_date < datetime.utcnow(), 'API key should be expired'
-
-    # Cleanup
-    ApiKeyHistory = ApiKey.get_history_model()
-    stmt = delete(ApiKeyHistory).where(ApiKeyHistory.id == api_key.id)
-    notify_db_session.session.execute(stmt)
-
-    stmt = delete(ApiKey).where(ApiKey.id == api_key.id)
-    notify_db_session.session.execute(stmt)
-    notify_db_session.session.commit()
