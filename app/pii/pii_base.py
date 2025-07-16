@@ -34,7 +34,7 @@ class PiiEncryption:
     @classmethod
     def get_encryption(cls) -> Fernet:
         """Get or create a Fernet instance for encryption/decryption.
-        
+
         Raises:
             ValueError: If PII_ENCRYPTION_KEY environment variable is not set.
         """
@@ -43,10 +43,10 @@ class PiiEncryption:
             key_str = os.environ.get('PII_ENCRYPTION_KEY')
             if key_str is None:
                 raise ValueError(
-                    "PII_ENCRYPTION_KEY environment variable is required. "
-                    "This key must be provided through AWS Parameter Store in production environments."
+                    'PII_ENCRYPTION_KEY environment variable is required. '
+                    'This key must be provided through AWS Parameter Store in production environments.'
                 )
-            
+
             # Key from SSM Parameter Store comes as string, encode to bytes
             cls._key = key_str.encode()
             cls._fernet = Fernet(cls._key)

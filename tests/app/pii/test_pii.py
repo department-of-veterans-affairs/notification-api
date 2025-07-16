@@ -48,9 +48,11 @@ def setup_encryption():
     This fixture resets the PiiEncryption singleton to use a test key
     for consistent encryption/decryption during tests.
     """
-    with patch.object(PiiEncryption, '_key', None), \
-         patch.object(PiiEncryption, '_fernet', None), \
-         patch.dict(os.environ, {'PII_ENCRYPTION_KEY': TEST_KEY.decode()}):
+    with (
+        patch.object(PiiEncryption, '_key', None),
+        patch.object(PiiEncryption, '_fernet', None),
+        patch.dict(os.environ, {'PII_ENCRYPTION_KEY': TEST_KEY.decode()}),
+    ):
         yield
 
 
@@ -68,7 +70,7 @@ class TestPiiEncryption:
         with patch.object(PiiEncryption, '_fernet', None):
             with patch.object(PiiEncryption, '_key', None):
                 with patch.dict(os.environ, {}, clear=True):
-                    with pytest.raises(ValueError, match="PII_ENCRYPTION_KEY environment variable is required"):
+                    with pytest.raises(ValueError, match='PII_ENCRYPTION_KEY environment variable is required'):
                         PiiEncryption.get_encryption()
 
     def test_get_encryption_uses_environment_variable(self):
