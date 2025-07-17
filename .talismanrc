@@ -26,7 +26,7 @@ fileignoreconfig:
 - filename: tests/app/db.py
   checksum: 01cc48ec42c0665091dd0ef8b8ee6430552344f0caa0c1c2b387b6adfdf5d62a
 - filename: tests/app/pii/test_pii.py
-  checksum: dff1b4e3f9b24c246ff2fdb92ca730894d8be1e66b384394e15616256635fe04
+  checksum: 3abe4e22e82706b7c9759efe50ca63851bb8f051ec4b373793911413f1a38e4e
 - filename: tests/app/service/test_api_key_endpoints.py
   checksum: e46cc0b0e7b9afb0a1d30a1142f024091334d15b2292c43b76b7dcb35e64c5ad
 - filename: tests/app/test_validate.py

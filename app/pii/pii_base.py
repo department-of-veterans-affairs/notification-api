@@ -15,6 +15,7 @@ import os
 from enum import Enum
 from typing import ClassVar
 from cryptography.fernet import Fernet
+from flask import current_app
 
 from app.va.identifier import IdentifierType
 
@@ -50,6 +51,7 @@ class PiiEncryption:
             # Key from SSM Parameter Store comes as string, encode to bytes
             cls._key = key_str.encode()
             cls._fernet = Fernet(cls._key)
+            current_app.logger.info('PII encryption initialized successfully using environment variable')
         return cls._fernet
 
 

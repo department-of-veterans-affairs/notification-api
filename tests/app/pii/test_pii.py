@@ -67,20 +67,24 @@ class TestPiiEncryption:
 
     def test_get_encryption_raises_error_when_key_missing(self):
         """Test that get_encryption raises ValueError when PII_ENCRYPTION_KEY is not set."""
-        with patch.object(PiiEncryption, '_fernet', None):
-            with patch.object(PiiEncryption, '_key', None):
-                with patch.dict(os.environ, {}, clear=True):
-                    with pytest.raises(ValueError, match='PII_ENCRYPTION_KEY environment variable is required'):
-                        PiiEncryption.get_encryption()
+        with (
+            patch.object(PiiEncryption, '_fernet', None),
+            patch.object(PiiEncryption, '_key', None),
+            patch.dict(os.environ, {}, clear=True),
+            pytest.raises(ValueError, match='PII_ENCRYPTION_KEY environment variable is required'),
+        ):
+            PiiEncryption.get_encryption()
 
     def test_get_encryption_uses_environment_variable(self):
         """Test that get_encryption uses the environment variable if available."""
-        with patch.object(PiiEncryption, '_fernet', None):
-            with patch.object(PiiEncryption, '_key', None):
-                with patch.dict(os.environ, {'PII_ENCRYPTION_KEY': TEST_KEY.decode()}):
-                    pii_encryption = PiiEncryption.get_encryption()
-                    assert pii_encryption is not None
-                    assert PiiEncryption._key == TEST_KEY
+        with (
+            patch.object(PiiEncryption, '_fernet', None),
+            patch.object(PiiEncryption, '_key', None),
+            patch.dict(os.environ, {'PII_ENCRYPTION_KEY': TEST_KEY.decode()}),
+        ):
+            pii_encryption = PiiEncryption.get_encryption()
+            assert pii_encryption is not None
+            assert PiiEncryption._key == TEST_KEY
 
     def test_get_encryption_caches_fernet_instance(self):
         """Test that get_encryption caches the Fernet instance."""
