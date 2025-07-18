@@ -16,7 +16,7 @@ fileignoreconfig:
 - filename: documents/postman/internal_api_developers/notification-api.postman_collection.json
   checksum: 328646db8be291aaa50e8bf8631ccdc4ffb48a0c4690ee361fa0ddb785cd277f
 - filename: poetry.lock
-  checksum: d0f4a99bd30ff79ca97ba120b0156295ed58699e26cd1ade9619de70415ef20b
+  checksum: f1477e47f4a7e6ea00e98d784aab8b939fb788d1aa54feba0f7986251f7aa801
 - filename: tests/app/authentication/test_authentication.py
   checksum: 75ce4ecbb6ef86dd06db54dcf66329b7749ff9024c7d88c218f43033d03deb73
 - filename: tests/app/conftest.py
