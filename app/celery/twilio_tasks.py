@@ -47,9 +47,8 @@ def update_twilio_status():
             updated_count += 1
         except NonRetryableException as e:
             current_app.logger.error(
-                '[TWILIO_STATUS_TASK] Rate limit hit, stopping batch. Updated %s/%s notifications. Error: %s',
-                updated_count,
-                len(notifications),
+                '[TWILIO_STATUS_TASK] Failed to update notification %s: %s due to rate limit, aborting.',
+                str(notification.id),
                 str(e),
             )
             break
