@@ -12,7 +12,6 @@ from app.models import Notification
 def _get_notifications() -> list:
     """Returns a list of notifications not in final state."""
 
-    current_app.logger.info('Getting notifications to update status')
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
     stmt = (
         select(Notification.id, Notification.status, Notification.reference)
@@ -36,18 +35,25 @@ def update_twilio_status():
     their status using the app's Twilio client.
     """
     notifications = _get_notifications()
-    current_app.logger.info('Found %s notifications to update', len(notifications))
+    current_app.logger.info('[TWILIO_STATUS_TASK] Processing %s notifications for status updates', len(notifications))
 
+    if not notifications:
+        return
+
+    updated_count = 0
     for notification in notifications:
-        current_app.logger.info('Updating notification %s with status %s', notification.id, notification.status)
         try:
             twilio_sms_client.update_notification_status_override(notification.reference)
+            updated_count += 1
         except NonRetryableException as e:
             current_app.logger.error(
-                'Failed to update notification %s: %s due to rate limit, aborting.', str(notification.id), str(e)
+                '[TWILIO_STATUS_TASK] Rate limit hit, stopping batch. Updated %s/%s notifications. Error: %s',
+                updated_count,
+                len(notifications),
+                str(e),
             )
             break
-        else:
-            current_app.logger.info('Notification %s updated', notification.id)
 
-    current_app.logger.info('Finished updating notifications')
+    current_app.logger.info(
+        '[TWILIO_STATUS_TASK] Completed. Updated %s/%s notifications', updated_count, len(notifications)
+    )
