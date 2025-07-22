@@ -37,6 +37,128 @@ servers:
       - dev-api
       default: api
 paths:
+  /organisations:
+    get:
+      summary: Get list of all organisations
+      tags:
+      - organisation
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganisationSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminAuthError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Create an organisation
+      tags:
+      - organisation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                active:
+                  nullable: true
+                  type: boolean
+                crown:
+                  type: boolean
+                name:
+                  type: string
+                organisation_type:
+                  type: string
+                  enum:
+                  - other
+              required:
+              - crown
+              - name
+              - organisation_type
+              type: object
+      responses:
+        '201':
+          description: CREATED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganisationDetails'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminAuthError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /organisations/{organisation_id}/:
+    get:
+      summary: Find organisation by id
+      tags:
+      - organisation
+      parameters:
+      - $ref: '#/components/parameters/OrganisationId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganisationDetails'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminAuthError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Update an organization
+      tags:
+      - organisation
+      parameters:
+      - $ref: '#/components/parameters/OrganisationId'
+      requestBody:
+        description: Include values in the request body to update them
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                active:
+                  nullable: true
+                  type: boolean
+                crown:
+                  nullable: true
+                  type: boolean
+                name:
+                  nullable: true
+                  type: string
+                organisation_type:
+                  type: string
+                  enum:
+                  - other
+      responses:
+        '204':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminAuthError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /user:
     post:
       summary: Create a user
@@ -413,6 +535,32 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /service/{service_id}/sms-sender/{sms-sender-id}/archive:
+    parameters:
+    - $ref: '#/components/parameters/ServiceId'
+    - $ref: '#/components/parameters/ServiceSmsSenderId'
+    post:
+      summary: Delete aka archive an sms sender
+      tags:
+      - sms sender
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ServiceSmsSender'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminAuthError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /service/{service_id}/callback:
     parameters:
     - $ref: '#/components/parameters/ServiceId'
@@ -659,6 +807,36 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /service/{service_id}/template/preview:
+    parameters:
+    - $ref: '#/components/parameters/ServiceId'
+    post:
+      summary: Cretate template html preview
+      tags:
+      - template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHTMLPreviewRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminAuthError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /service/{service_id}/template/{template_id}/stats:
     get:
       summary: Get usage statistics for a particular template on a service
@@ -861,6 +1039,55 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /service/{service_id}/api-key/{api_key_id}:
+    parameters:
+    - $ref: '#/components/parameters/ServiceId'
+    - $ref: '#/components/parameters/ApiKeyId'
+    post:
+      tags:
+      - api key
+      summary: Update API key expiry date
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                expiry_date:
+                  type: string
+                  format: date
+              required:
+              - expiry_date
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apiKeys:
+                    type: object
+                    $ref: '#/components/schemas/APIKey'
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AdminAuthError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /service/{service_id}/api-keys:
     parameters:
     - $ref: '#/components/parameters/ServiceId'
@@ -919,6 +1146,207 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '501':
           $ref: '#/components/responses/NotImplemented'
+  /v2/notifications/email:
+    post:
+      summary: Send an email notification
+      description: "### Required properties\n\n* `template_id` - The UUID of the template\n\
+        * `email_address` - The email address of the recipient\n* _or_ `recipient_identifier`\
+        \ - a VAPROFILEID, ICN, EDIPI, PID, or BIRLSID (see examples)\n\n### Optional\
+        \ properties\n\n* `billing_code` - A string to indicate your billing code\n\
+        * `callback_url` - An https URL; note that this overrides any service level\
+        \ callback\n* `personalisation` - A JSON object containing the fields needed\
+        \ to populate the notification template. See **Advanced Usage** section and\
+        \ **dynamic bullet list** example for details.\n* `reference` - A string to\
+        \ indicate any reference\n* `scheduled_for` - A datetime indicated when to\
+        \ send the notification (not available at this time)\n\n### Advanced usage\n\
+        \n  The `personalisation` JSON object allows for dynamic customization of\
+        \ the notification template by passing variables:\n\n  - **Keys**: Represent\
+        \ variable names defined in the notification template.\n  - **Values**: Specify\
+        \ the data to replace the variables. Values can be:\n    - **Strings**: Used\
+        \ for simple text replacement.\n    - **Lists**: Rendered as bulleted lists\
+        \ in the email notification.\n    ```\n"
+      security:
+      - serviceAuth: []
+      tags:
+      - notification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailNotificationRequest'
+            examples:
+              email:
+                value:
+                  template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  email_address: test@notification.com
+                  personalisation:
+                    full_name: John Smith
+                    claim_id: '123456'
+                  billing_code: string
+                  callback_url: https://staging-api.va.gov/vanotify/internal/swagger
+                  reference: string
+                  scheduled_for: string
+              recipient_identifier:
+                value:
+                  template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  recipient_identifier:
+                    id_type: ICN
+                    id_value: 1000000000V000000
+                  personalisation:
+                    full_name: John Smith
+                    claim_id: '123456'
+                  billing_code: string
+                  callback_url: https://staging-api.va.gov/vanotify/internal/swagger
+                  reference: string
+                  scheduled_for: string
+              dynamic bulleted list:
+                value:
+                  template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  email_address: test@notification.com
+                  personalisation:
+                    full_name: John Smith
+                    claim_id: '123456'
+                    tasks:
+                    - Task 1
+                    - Task 2
+                    - Task 3
+                  billing_code: string
+                  callback_url: https://staging-api.va.gov/vanotify/internal/swagger
+                  reference: string
+                  scheduled_for: string
+      responses:
+        '201':
+          description: CREATED
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Notification'
+                - type: object
+                  properties:
+                    content:
+                      type: object
+                      properties:
+                        body:
+                          type: string
+                        subject:
+                          type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ServiceAuthError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
+  /v2/notifications/sms:
+    post:
+      summary: Send an sms notification
+      description: '### Required properties
+
+
+        * `template_id` - The UUID of the template
+
+        * `phone_number` - The mobile phone number of the recipient
+
+        * _or_ `recipient_identifier` - a VAPROFILEID, ICN, EDIPI, PID, or BIRLSID
+        (see examples)
+
+
+        ### Optional properties
+
+
+        * `billing_code` - A string to indicate your billing code
+
+        * `callback_url` - An https URL; note that this overrides any service level
+        callback
+
+        * `personalisation` - If the template includes personalisation, the fields
+        to populate (see examples)
+
+        * `reference` - A string to indicate any reference
+
+        * `scheduled_for` - A datetime indicated when to send the notification (not
+        available at this time)
+
+        * `sms_sender_id` - A UUID; note that this overrides any service level sms
+        sender
+
+        '
+      security:
+      - serviceAuth: []
+      tags:
+      - notification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SMSNotificationRequest'
+            examples:
+              phone_number:
+                value:
+                  template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  phone_number: '+12125551212'
+                  personalisation:
+                    full_name: John Smith
+                    claim_id: '123456'
+                  billing_code: string
+                  callback_url: https://staging-api.va.gov/vanotify/internal/swagger
+                  reference: string
+                  scheduled_for: string
+                  sms_sender_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              recipient_identifier:
+                value:
+                  template_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  recipient_identifier:
+                    id_type: ICN
+                    id_value: 1000000000V000000
+                  personalisation:
+                    full_name: John Smith
+                    claim_id: '123456'
+                  billing_code: string
+                  callback_url: https://staging-api.va.gov/vanotify/internal/swagger
+                  reference: string
+                  scheduled_for: string
+                  sms_sender_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+      responses:
+        '201':
+          description: CREATED
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Notification'
+                - type: object
+                  properties:
+                    content:
+                      type: object
+                      properties:
+                        body:
+                          type: string
+                        from_number:
+                          type: string
+                          example: '+12025551212'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ServiceAuthError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v2/notifications/push:
     post:
       summary: Send a push notification to a mobile app

@@ -13,8 +13,14 @@ fileignoreconfig:
   checksum: 8d9d04039fc1a69294a7e47cf8975c340d6b01a28f0a3760b9c426dfee4bdea6
 - filename: cd/application-deployment/staging/staging.env
   checksum: fa0dfc9b70f400b3f1540b2db3e3537fd06b53f8b1a7753cd925c063eb3ede04
+- filename: documents/openapi/openapi.yaml.backup
+  checksum: cf2737abec32148fab04ec10ceba181ceeb8010642669ece3c4a97f0d6edf1ba
 - filename: documents/postman/internal_api_developers/notification-api.postman_collection.json
-  checksum: 328646db8be291aaa50e8bf8631ccdc4ffb48a0c4690ee361fa0ddb785cd277f
+  checksum: ce23e57993c6c8f1829ce91c0481db9561865b55e09a064666439749a87d8c95
+- filename: documents/postman/notification-api-simplified.postman_collection.json
+  checksum: ee1253aac222918c373ad3d391d5797160917d75408b88a291157f7c2cd6b8ec
+- filename: documents/postman/notification-api-simplified.postman_collection.json.backup
+  checksum: be62e5ab6206dcdca2fdb39c7cca39788116ee02abbbe14e3cadc726083ecdc5
 - filename: poetry.lock
   checksum: d0f4a99bd30ff79ca97ba120b0156295ed58699e26cd1ade9619de70415ef20b
 - filename: tests/app/authentication/test_authentication.py
