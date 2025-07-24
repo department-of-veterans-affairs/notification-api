@@ -880,6 +880,66 @@ paths:
           $ref: "#/components/responses/BadGateway"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /v2/notifications/email:
+    post:
+      summary: Send an e-mail notification
+      security:
+        - serviceAuth: []
+      tags:
+        - notification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailNotificationRequest"
+      responses:
+        "201":
+          description: CREATED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ServiceAuthError"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v2/notifications/sms:
+    post:
+      summary: Send a SMS notification
+      security:
+        - serviceAuth: []
+      tags:
+        - notification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SMSNotificationRequest"
+      responses:
+        "201":
+          description: CREATED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ServiceAuthError"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /v2/notifications/{notification_id}:
     get:
       summary: Get notification status and details
