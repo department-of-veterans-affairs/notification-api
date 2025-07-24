@@ -1,0 +1,32 @@
+import pytest
+from app.feature_flags import FeatureFlag, is_feature_enabled
+
+
+def test_service_allow_fallback_defaults_to_false(sample_service):
+    """Test that the allow_fallback field defaults to False"""
+    service = sample_service()
+    assert service.allow_fallback is False
+
+
+def test_service_allow_fallback_can_be_set_to_true(sample_service):
+    """Test that the allow_fallback field can be set to True"""
+    service = sample_service()
+    service.allow_fallback = True
+    assert service.allow_fallback is True
+
+
+def test_service_email_fallback_feature_flag_exists():
+    """Test that the SERVICE_EMAIL_FALLBACK_ENABLED feature flag exists"""
+    assert FeatureFlag.SERVICE_EMAIL_FALLBACK_ENABLED.value == 'SERVICE_EMAIL_FALLBACK_ENABLED'
+
+
+def test_service_email_fallback_feature_flag_is_disabled_by_default(mocker):
+    """Test that the SERVICE_EMAIL_FALLBACK_ENABLED feature flag is disabled by default"""
+    mocker.patch.dict('os.environ', {}, clear=True)
+    assert is_feature_enabled(FeatureFlag.SERVICE_EMAIL_FALLBACK_ENABLED) is False
+
+
+def test_service_email_fallback_feature_flag_can_be_enabled(mocker):
+    """Test that the SERVICE_EMAIL_FALLBACK_ENABLED feature flag can be enabled"""
+    mocker.patch.dict('os.environ', {'SERVICE_EMAIL_FALLBACK_ENABLED': 'True'})
+    assert is_feature_enabled(FeatureFlag.SERVICE_EMAIL_FALLBACK_ENABLED) is True
