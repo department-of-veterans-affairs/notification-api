@@ -1619,93 +1619,6 @@ components:
         result:
           type: string
           example: error
-    OrganisationSummary:
-      type: object
-      properties:
-        active:
-          nullable: true
-          type: boolean
-        count_of_live_services:
-          type: integer
-        domains:
-          items:
-            type: string
-          nullable: true
-          type: array
-        id:
-          $ref: "#/components/schemas/Id"
-        name:
-          type: string
-        organisation_type:
-          enum:
-            - other
-          type: string
-    OrganisationDetails:
-      type: object
-      allOf:
-        - $ref: "#/components/schemas/OrganisationSummary"
-      properties:
-        agreement_signed:
-          type: string
-          format: date-time
-          nullable: true
-        agreement_signed_at:
-          type: string
-          format: date-time
-          nullable: true
-        agreement_signed_by_id:
-          type: string
-          format: uuid
-          nullable: true
-        agreement_signed_on_behalf_of_email_address:
-          nullable: true
-          type: string
-        agreement_signed_on_behalf_of_name:
-          nullable: true
-          type: string
-        agreement_signed_version:
-          type: number
-        crown:
-          type: boolean
-        email_branding_id:
-          type: string
-          format: uuid
-          nullable: true
-        request_to_go_live_notes:
-          nullable: true
-          type: string
-    CreateUserRequest:
-      type: object
-      properties:
-        name:
-          type: string
-        password:
-          type: string
-        email_address:
-          type: string
-        mobile_number:
-          type: string
-          description: Required if auth_type is sms_auth
-          example: "+12025551212"
-        state:
-          type: string
-        user_permissions:
-          type: array
-          items:
-            type: string
-        auth_type:
-          type: string
-          description:
-            The auth type determines whether email address or mobile number
-            are required.
-          enum:
-            - sms_auth
-            - email_auth
-      required:
-        - name
-        - password
-        - email_address
-        - user_permissions
     ServiceCallback:
       type: object
       properties:
@@ -2033,7 +1946,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Id"
-    CreateTemplateRequest:
+    Template:
       type: object
       properties:
         content:
@@ -2064,37 +1977,6 @@ components:
           enum:
             - sms
             - email
-      required:
-        - name
-        - template_type
-        - content
-        - service
-        - created_by
-    CreateTemplateRequestSms:
-      type: object
-      allOf:
-        - $ref: "#/components/schemas/CreateTemplateRequest"
-      properties:
-        template_type:
-          type: string
-          enum:
-            - sms
-    CreateTemplateRequestEmail:
-      type: object
-      allOf:
-        - $ref: "#/components/schemas/CreateTemplateRequestSms"
-      properties:
-        template_type:
-          type: string
-          enum:
-            - email
-      required:
-        - subject
-    Template:
-      type: object
-      allOf:
-        - $ref: "#/components/schemas/CreateTemplateRequest"
-      properties:
         archived:
           type: boolean
         created_at:
@@ -2106,9 +1988,6 @@ components:
           type: boolean
         id:
           $ref: "#/components/schemas/Id"
-        provider_id:
-          type: string
-          nullable: true
         redact_personalisation:
           type: boolean
         reply_to:
@@ -2128,6 +2007,12 @@ components:
         content_as_plain_text:
           type: string
           nullable: true
+      required:
+        - name
+        - template_type
+        - content
+        - service
+        - created_by
     CreateHTMLPreviewRequest:
       type: object
       properties:
