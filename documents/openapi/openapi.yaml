@@ -2013,6 +2013,63 @@ components:
         - content
         - service
         - created_by
+    CreateTemplateRequest:
+      type: object
+      properties:
+        content:
+          type: string
+        created_by:
+          $ref: "#/components/schemas/Id"
+        name:
+          type: string
+        postage:
+          type: string
+        process_type:
+          type: string
+          enum:
+            - normal
+            - priority
+        provider_id:
+          type: string
+          nullable: true
+        communication_item_id:
+          type: string
+          nullable: true
+        service:
+          $ref: "#/components/schemas/Id"
+        subject:
+          type: string
+        template_type:
+          type: string
+          enum:
+            - sms
+            - email
+      required:
+        - name
+        - template_type
+        - content
+        - service
+        - created_by
+    CreateTemplateRequestSms:
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/CreateTemplateRequest"
+      properties:
+        template_type:
+          type: string
+          enum:
+            - sms
+    CreateTemplateRequestEmail:
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/CreateTemplateRequest"
+      properties:
+        template_type:
+          type: string
+          enum:
+            - email
+      required:
+        - subject
     CreateHTMLPreviewRequest:
       type: object
       properties:
