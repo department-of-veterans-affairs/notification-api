@@ -69,10 +69,7 @@ def check_service_over_daily_message_limit(
     """
     # Enforce daily message limit only when configured
     # and the service is not using a test key.
-    if (
-        current_app.config['REDIS_ENABLED']
-        and key_type != KEY_TYPE_TEST
-    ):
+    if current_app.config['REDIS_ENABLED'] and key_type != KEY_TYPE_TEST:
         cache_key = daily_limit_cache_key(service.id)
         service_stats = redis_store.get(cache_key)
 

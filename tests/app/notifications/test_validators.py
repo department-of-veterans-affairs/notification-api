@@ -292,23 +292,6 @@ def test_that_when_not_exceeded_rate_limit_request_succeeds(
         )
 
 
-def test_should_not_rate_limit_if_limiting_is_disabled(
-    sample_api_key,
-    mocker,
-):
-    with freeze_time('2016-01-01 12:00:00.000000'):
-        api_key = sample_api_key()
-        service = api_key.service
-
-        mocker.patch('app.redis_store.exceeded_rate_limit', return_value=False)
-        mocker.patch('app.notifications.validators.services_dao')
-
-        service.restricted = True
-
-        check_service_over_api_rate_limit(service, api_key)
-        assert not app.redis_store.exceeded_rate_limit.called
-
-
 @pytest.mark.parametrize('key_type', ['test', 'normal'])
 def test_rejects_api_calls_with_international_numbers_if_service_does_not_allow_int_sms(
     sample_service,

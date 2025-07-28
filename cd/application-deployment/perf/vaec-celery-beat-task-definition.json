@@ -104,10 +104,6 @@
           "value": "HIGHEST_PRIORITY"
         },
         {
-          "name": "CHECK_GITHUB_SCOPE_ENABLED",
-          "value": "False"
-        },
-        {
           "name": "REDIS_ENABLED",
           "value": "True"
         },
