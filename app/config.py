@@ -100,6 +100,8 @@ class Config(object):
     # URL of redis instance
     REDIS_URL = os.getenv('REDIS_URL')
     REDIS_ENABLED = os.getenv('REDIS_ENABLED') == 'True'
+    API_RATE_LIMIT_ENABLED = os.getenv('API_RATE_LIMIT_ENABLED', 'False') == 'True'
+    API_MESSAGE_LIMIT_ENABLED = os.getenv('API_MESSAGE_LIMIT_ENABLED', 'False') == 'True'
     EXPIRE_CACHE_TEN_MINUTES = 600
     EXPIRE_CACHE_EIGHT_DAYS = 8 * 24 * 60 * 60
 
@@ -426,7 +428,6 @@ class Config(object):
     SESSION_COOKIE_SAMESITE = 'Lax'
 
     # Google Analytics
-    GOOGLE_ANALYTICS_URL = os.getenv('GOOGLE_ANALYTICS_URL', 'https://www.google-analytics.com/collect')
     GA4_URL = os.getenv('GA4_URL', 'https://www.google-analytics.com/mp/collect')
     GA4_MEASUREMENT_ID = os.getenv('GA4_MEASUREMENT_ID', '')
     GA4_API_SECRET = os.getenv('GA4_API_SECRET', '')

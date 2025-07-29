@@ -42,7 +42,7 @@ def check_service_over_api_rate_limit(
     Raises:
         RateLimitError: If the service has exceeded its API rate limit.
     """
-    if current_app.config['REDIS_ENABLED']:
+    if current_app.config['API_RATE_LIMIT_ENABLED'] and current_app.config['REDIS_ENABLED']:
         cache_key = rate_limit_cache_key(service.id, api_key.key_type)
         rate_limit = service.rate_limit
         interval = 60
@@ -69,7 +69,11 @@ def check_service_over_daily_message_limit(
     """
     # Enforce daily message limit only when configured
     # and the service is not using a test key.
-    if current_app.config['REDIS_ENABLED'] and key_type != KEY_TYPE_TEST:
+    if (
+        current_app.config['API_MESSAGE_LIMIT_ENABLED']
+        and current_app.config['REDIS_ENABLED']
+        and key_type != KEY_TYPE_TEST
+    ):
         cache_key = daily_limit_cache_key(service.id)
         service_stats = redis_store.get(cache_key)
 
