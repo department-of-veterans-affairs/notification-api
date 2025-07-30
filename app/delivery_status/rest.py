@@ -15,8 +15,6 @@ def handler():
     Returns:
         tuple: JSON response body and HTTP status code 200.
     """
-    status_code = 200
-
     request_attrs = (
         'method',
         'root_path',
@@ -33,10 +31,4 @@ def handler():
 
     current_app.logger.info('PinpointV2 delivery-status request: %s', ' | '.join(logs))
 
-    try:
-        request_data = request.get_json(force=True)
-    except Exception as e:
-        current_app.logger.warning('Could not parse JSON: %s', e)
-        request_data = None
-
-    return jsonify({'delivery-status': request_data}), status_code
+    return jsonify({'status': 'received'}), 200

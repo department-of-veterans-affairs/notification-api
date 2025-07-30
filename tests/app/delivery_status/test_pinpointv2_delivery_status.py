@@ -3,20 +3,20 @@ from flask import url_for
 
 
 @pytest.mark.parametrize(
-    'query_string',
+    'post_json',
     [
-        ({'foo': 'bar'}, b'foo=bar'),
-        ({}, b''),
-        ({'foo': 'bar', 'baz': 'qux'}, b'foo=bar&baz=qux'),
+        {},
+        {'foo': 'bar'},
+        {'foo': 'bar', 'baz': 'qux'},
     ],
 )
-def test_post_delivery_status(client, mocker, query_string):
+def test_post_delivery_status(client, mocker, post_json):
     mock_logger = mocker.patch('app.delivery_status.rest.current_app.logger.info')
 
-    response = client.post(url_for('pinpoint_v2.handler', **query_string[0]), json={'key': 'value'})
+    response = client.post(url_for('pinpoint_v2.handler'), json=post_json)
 
     assert response.status_code == 200
-    assert response.json == {'delivery-status': {'key': 'value'}}
+    assert response.json == {'status': 'received'}
 
     actual = mock_logger.call_args_list[0].args[0]
     expected = 'PinpointV2 delivery-status request: %s'
