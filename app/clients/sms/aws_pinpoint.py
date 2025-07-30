@@ -170,6 +170,7 @@ class AwsPinpointClient(SmsClient):
                 DestinationPhoneNumber=recipient_number,
                 OriginationIdentity=aws_phone_number,
                 MessageBody=content,
+                ConfigurationSetName='dev-sms-configuration-set',  # TODO: temporarily hard-coded
             )
         else:
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint/client/send_messages.html#send-messages  # noqa
