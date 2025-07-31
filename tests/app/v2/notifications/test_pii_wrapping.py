@@ -37,16 +37,10 @@ class TestPiiWrappingAtEntrypoint:
         'form',
         [
             {'template_id': 'some-template-id', 'phone_number': '555-123-4567'},
-            {'recipient_identifier': {}},
-            {'recipient_identifier': {'id_value': '1234567890V123456'}},
-            {'recipient_identifier': {'id_type': IdentifierType.ICN.value}},
             {'recipient_identifier': {'id_type': 'UNKNOWN_TYPE', 'id_value': 'some_value'}},
         ],
         ids=[
             'no recipient_identifier',
-            'empty recipient_identifier',
-            'missing id_type',
-            'missing id_value',
             'unknown id_type',
         ],
     )

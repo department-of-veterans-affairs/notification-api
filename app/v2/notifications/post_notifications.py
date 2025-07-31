@@ -75,13 +75,19 @@ def wrap_recipient_identifier_in_pii(form: dict) -> dict:
         - PII instantiation errors are logged but don't prevent function completion
         - Only processes forms that contain recipient_identifier with both id_type and id_value
     """
-    recipient_identifier: dict | None = form.get('recipient_identifier')
+    recipient_identifier = form.get('recipient_identifier')
     if recipient_identifier is None:
         return form
 
-    # These values must be present to pass validation.
-    id_type: str = recipient_identifier['id_type']
-    id_value: str = recipient_identifier['id_value']
+    if not isinstance(recipient_identifier, dict):
+        return form
+
+    # Get values with .get() to avoid KeyError
+    id_type: str | None = recipient_identifier.get('id_type')
+    id_value: str | None = recipient_identifier.get('id_value')
+
+    if id_type is None or id_value is None:
+        return form
 
     # Map id_type to appropriate PII class
     pii_class_mapping: dict[str, type] = {
