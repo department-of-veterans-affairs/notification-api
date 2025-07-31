@@ -6,7 +6,7 @@ fileignoreconfig:
 - filename: app/schema_validation/__init__.py
   checksum: 2ed516f6558f85367a8bd377a0bf32ba39e10cc6c2db38744e8549cb83997519
 - filename: cd/application-deployment/dev/dev.env
-  checksum: 78e6008224045e8d4c93221d417f5948fb2f230e2369a6ce67db0bd3d138df5d
+  checksum: b277988076bc38cd292f7672f28a3ffd02d847f8e28460c78759ca3073ee48f3
 - filename: cd/application-deployment/perf/perf.env
   checksum: 71ffa1989d9adcf77b1450c1138066da2d6693fe28c2c7bff24497338dca92a0
 - filename: cd/application-deployment/staging/staging.env
@@ -53,4 +53,6 @@ fileignoreconfig:
   checksum: 259a7a5f2b60597be36e34676bc35a9cc9f83a6efcfa038fc6de7d5ec769b78a
 - filename: tests/app/notifications/test_validators.py
   checksum: aee86b735d3ad99a75c7b51da6fae7d4c460cadb7b30f07a8252a0c810cebbd5
+- filename: .github/workflows/deployment.yml
+  checksum: 69aad2d7368eb09c567eff03658641c8903a5c8d90319981b09298e5994b79db
 version: "1.0"
