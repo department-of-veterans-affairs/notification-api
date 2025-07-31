@@ -1,23 +1,19 @@
-import base64
-import json
-
 from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 
-from app import aws_pinpoint_client, notify_celery, statsd_client
-from app.celery.exceptions import AutoRetryException, NonRetryableException
-from app.clients.sms import SmsStatusRecord, UNABLE_TO_TRANSLATE
+from app import notify_celery
+from app.celery.exceptions import AutoRetryException
+from app.clients.sms import SmsStatusRecord
 from app.celery.process_delivery_status_result_tasks import (
     sms_attempt_retry,
     sms_status_update,
-    get_notification_platform_status,
 )
 from app.constants import STATUS_REASON_RETRYABLE
 
 
 @notify_celery.task(
     bind=True,
-    name='process-pinpoint-result',
+    name='process-pinpoint-v2-result',
     throws=(AutoRetryException,),
     autoretry_for=(AutoRetryException,),
     max_retries=585,
@@ -27,7 +23,8 @@ from app.constants import STATUS_REASON_RETRYABLE
 @statsd(namespace='tasks')
 def process_pinpoint_v2_receipt_results(
     self,
-    response,
+    sms_status_record: SmsStatusRecord,
+    event_timestamp: str,
 ) -> None:
     """
     Process a Pinpoint Voice SMS V2 SMS stream event.  Messages long enough to require multiple segments only
@@ -41,36 +38,17 @@ def process_pinpoint_v2_receipt_results(
     different than Notify's communication item preferences.  If a veteran opts-out at that level, Pinpoint
     should never receive input trying to send a message to the opted-out veteran.
     """
-    current_app.logger.debug('Pinpoint Incoming SMS Voice V2 update: %s', response)
-
-    try:
-        pinpoint_message = json.loads(base64.b64decode(response['Message']))
-        current_app.logger.debug('Pinpoint Incoming SMS Voice V2 update: %s', pinpoint_message)
-        event_type = pinpoint_message['event_type']
-        record_status = pinpoint_message['attributes']['record_status']
-    except (json.decoder.JSONDecodeError, ValueError, TypeError, KeyError) as e:
-        current_app.logger.exception('Unable to decode the incoming Pinpoint Incoming SMS Voice V2 message')
-
-        # TODO #2497
-        statsd_client.incr('clients.sms.pinpoint.status_update.error')
-        raise NonRetryableException(f'Found {type(e).__name__}, {UNABLE_TO_TRANSLATE}')
-
-    notification_platform_status: SmsStatusRecord = get_notification_platform_status(
-        aws_pinpoint_client, pinpoint_message
-    )
-
+    # TODO 2497 - Add back event type and record status
     current_app.logger.info(
-        'Processing Pinpoint Incoming SMS Voice V2 result. | reference: %s | event_type: %s | record_status: %s | '
+        'Processing Pinpoint Incoming SMS Voice V2 result. | reference: %s | '
         'message_parts: %s | price_millicents: %s | provider_updated_at: %s',
-        notification_platform_status.reference,
-        event_type,
-        record_status,
-        notification_platform_status.message_parts,
-        notification_platform_status.price_millicents,
-        notification_platform_status.provider_updated_at,
+        sms_status_record.reference,
+        sms_status_record.message_parts,
+        sms_status_record.price_millicents,
+        sms_status_record.provider_updated_at,
     )
 
-    if notification_platform_status.status_reason == STATUS_REASON_RETRYABLE:
-        sms_attempt_retry(notification_platform_status, pinpoint_message['event_timestamp'])
+    if sms_status_record.status_reason == STATUS_REASON_RETRYABLE:
+        sms_attempt_retry(sms_status_record, event_timestamp)
     else:
-        sms_status_update(notification_platform_status, pinpoint_message['event_timestamp'])
+        sms_status_update(sms_status_record, event_timestamp)
