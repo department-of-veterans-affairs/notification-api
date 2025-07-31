@@ -216,15 +216,15 @@ class TestPiiWrappingFeatureFlag:
     """Tests for the PII wrapping feature flag."""
 
     def test_pii_wrapping_feature_flag_is_disabled_by_default(self, mocker):
-        """Test that the PII_WRAPPING_AT_ENTRYPOINT_ENABLED feature flag is disabled by default."""
+        """Test that the PII_ENABLED feature flag is disabled by default."""
         mocker.patch.dict('os.environ', {}, clear=True)
         from app.feature_flags import is_feature_enabled, FeatureFlag
 
-        assert not is_feature_enabled(FeatureFlag.PII_WRAPPING_AT_ENTRYPOINT_ENABLED)
+        assert not is_feature_enabled(FeatureFlag.PII_ENABLED)
 
     def test_pii_wrapping_feature_flag_can_be_enabled(self, mocker):
-        """Test that the PII_WRAPPING_AT_ENTRYPOINT_ENABLED feature flag can be enabled."""
-        mocker.patch.dict('os.environ', {'PII_WRAPPING_AT_ENTRYPOINT_ENABLED': 'True'})
+        """Test that the PII_ENABLED feature flag can be enabled."""
+        mocker.patch.dict('os.environ', {'PII_ENABLED': 'True'})
         from app.feature_flags import is_feature_enabled, FeatureFlag
 
-        assert is_feature_enabled(FeatureFlag.PII_WRAPPING_AT_ENTRYPOINT_ENABLED)
+        assert is_feature_enabled(FeatureFlag.PII_ENABLED)

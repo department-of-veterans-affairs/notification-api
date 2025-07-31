@@ -60,7 +60,7 @@ def wrap_recipient_identifier_in_pii(form):
     Returns:
         The form with id_value wrapped in appropriate PII class
     """
-    if not is_feature_enabled(FeatureFlag.PII_WRAPPING_AT_ENTRYPOINT_ENABLED):
+    if not is_feature_enabled(FeatureFlag.PII_ENABLED):
         return form
 
     recipient_identifier = form.get('recipient_identifier')
