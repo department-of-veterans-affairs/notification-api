@@ -51,14 +51,29 @@ from app.utils import get_public_notify_type_text
 
 
 def wrap_recipient_identifier_in_pii(form):
-    """
-    Wrap the recipient identifier id_value in the appropriate PII class.
+    """Wrap the recipient identifier id_value in the appropriate PII class.
+
+    This function takes a form containing recipient identifier data and wraps
+    the id_value in the appropriate PII class based on the id_type. This provides
+    encryption and controlled access to personally identifiable information.
 
     Args:
-        form: The validated form data containing recipient_identifier
+        form (dict): The validated form data containing recipient_identifier.
+                    This dictionary may be modified in-place if a valid
+                    recipient_identifier with id_type and id_value is present.
 
     Returns:
-        The form with id_value wrapped in appropriate PII class
+        dict: The same form dictionary, potentially with the
+              recipient_identifier['id_value'] wrapped in an appropriate
+              PII class (PiiIcn, PiiEdipi, PiiBirlsid, PiiPid, or PiiVaProfileID).
+              If wrapping fails or required fields are missing, the form
+              is returned unchanged.
+
+    Note:
+        - The form parameter is modified in-place when PII wrapping occurs
+        - Unknown id_types are logged as warnings but don't raise exceptions
+        - PII instantiation errors are logged but don't prevent function completion
+        - Only processes forms that contain recipient_identifier with both id_type and id_value
     """
     recipient_identifier = form.get('recipient_identifier')
     if not recipient_identifier:
