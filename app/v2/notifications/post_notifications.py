@@ -79,11 +79,9 @@ def wrap_recipient_identifier_in_pii(form: dict) -> dict:
     if recipient_identifier is None:
         return form
 
-    id_type: str = recipient_identifier.get('id_type')
-    id_value: str = recipient_identifier.get('id_value')
-
-    if id_type is None or id_value is None:
-        return form
+    # These values must be present to pass validation.
+    id_type: str = recipient_identifier['id_type']
+    id_value: str = recipient_identifier['id_value']
 
     # Map id_type to appropriate PII class
     pii_class_mapping: dict[str, type] = {
