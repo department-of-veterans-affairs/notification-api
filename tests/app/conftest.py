@@ -84,6 +84,7 @@ from app.models import (
     user_to_organisation,
     UserServiceRoles,
 )
+from app.pii import PiiEncryption
 from app.va.va_profile import VAProfileClient
 
 from flask import current_app, url_for
@@ -120,7 +121,6 @@ def setup_encryption():
     This fixture resets the PiiEncryption singleton to use a test key
     for consistent encryption/decryption during tests.
     """
-    from app.pii import PiiEncryption
 
     with (
         patch.object(PiiEncryption, '_key', None),
