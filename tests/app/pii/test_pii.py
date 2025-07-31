@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from app.pii import PiiEncryption, PiiLevel, Pii
 from app.va.identifier import IdentifierType
+from tests.app.conftest import TEST_KEY
 
 
 class PiiHigh(Pii):
@@ -58,8 +59,6 @@ class TestPiiEncryption:
         # and resets the singleton state, so we can directly test
         pii_encryption = PiiEncryption.get_encryption()
         assert pii_encryption is not None
-        from tests.app.conftest import TEST_KEY
-
         assert PiiEncryption._key == TEST_KEY
 
     def test_get_encryption_caches_fernet_instance(self):
