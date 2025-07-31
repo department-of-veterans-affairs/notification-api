@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch
 
+from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.pii import PiiIcn, PiiEdipi, PiiBirlsid, PiiPid, PiiVaProfileID
 from app.va.identifier import IdentifierType
 from app.v2.notifications.post_notifications import wrap_recipient_identifier_in_pii
@@ -33,15 +34,21 @@ class TestPiiWrappingAtEntrypoint:
             assert result['recipient_identifier']['id_value'].get_pii() == id_value
 
     @pytest.mark.parametrize(
-        'form,description',
+        'form',
         [
-            ({'template_id': 'some-template-id', 'phone_number': '555-123-4567'}, 'no recipient_identifier'),
-            ({'recipient_identifier': {}}, 'empty recipient_identifier'),
-            ({'recipient_identifier': {'id_value': '1234567890V123456'}}, 'missing id_type'),
-            ({'recipient_identifier': {'id_type': IdentifierType.ICN.value}}, 'missing id_value'),
+            {'template_id': 'some-template-id', 'phone_number': '555-123-4567'},
+            {'recipient_identifier': {}},
+            {'recipient_identifier': {'id_value': '1234567890V123456'}},
+            {'recipient_identifier': {'id_type': IdentifierType.ICN.value}},
+        ],
+        ids=[
+            'no recipient_identifier',
+            'empty recipient_identifier',
+            'missing id_type',
+            'missing id_value',
         ],
     )
-    def test_wrap_recipient_identifier_edge_cases(self, notify_api, form, description):
+    def test_wrap_recipient_identifier_edge_cases(self, notify_api, form):
         """Test that edge cases are handled gracefully."""
         with notify_api.app_context():
             original_form = form.copy()
@@ -91,6 +98,5 @@ class TestPiiWrappingFeatureFlag:
     def test_pii_enabled_feature_flag(self, mocker, env_value, expected):
         """Test PII_ENABLED feature flag behavior."""
         mocker.patch.dict('os.environ', env_value, clear=True)
-        from app.feature_flags import is_feature_enabled, FeatureFlag
 
         assert is_feature_enabled(FeatureFlag.PII_ENABLED) == expected

@@ -114,7 +114,7 @@ MOCK_VA_PROFILE_URL = 'http://mock.vaprofile.va.gov'
 TEST_KEY = b'VGhpcyBpcyBhbiAzMiBieXRlIGtleSBmb3IgdGVzdHM='
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope='session', autouse=True)
 def setup_encryption():
     """Setup encryption with a consistent key for tests.
 
