@@ -30,130 +30,53 @@ def setup_encryption():
 class TestPiiWrappingAtEntrypoint:
     """Tests for PII wrapping functionality at system entry point."""
 
-    def test_wrap_recipient_identifier_feature_flag_disabled(self, notify_api):
-        """Test that PII wrapping is bypassed when feature flag is disabled."""
+    @pytest.mark.parametrize(
+        'id_type,id_value,expected_pii_class',
+        [
+            (IdentifierType.ICN.value, '1234567890V123456', PiiIcn),
+            (IdentifierType.EDIPI.value, '1234567890', PiiEdipi),
+            (IdentifierType.BIRLSID.value, 'BIRLSID123', PiiBirlsid),
+            (IdentifierType.PID.value, 'PID123456', PiiPid),
+            (IdentifierType.VA_PROFILE_ID.value, '12345', PiiVaProfileID),
+        ],
+    )
+    def test_wrap_recipient_identifier_all_types(self, notify_api, id_type, id_value, expected_pii_class):
+        """Test that all identifier types are wrapped in their corresponding PII classes."""
         with notify_api.app_context():
-            form = {'recipient_identifier': {'id_type': IdentifierType.ICN.value, 'id_value': '1234567890V123456'}}
+            form = {'recipient_identifier': {'id_type': id_type, 'id_value': id_value}}
 
-            with patch('app.v2.notifications.post_notifications.is_feature_enabled', return_value=False):
-                result = wrap_recipient_identifier_in_pii(form)
-
-            # Form should be unchanged when feature flag is disabled
-            assert result == form
-            assert isinstance(result['recipient_identifier']['id_value'], str)
-            assert result['recipient_identifier']['id_value'] == '1234567890V123456'
-
-    def test_wrap_recipient_identifier_feature_flag_enabled_icn(self, notify_api):
-        """Test that ICN is wrapped in PiiIcn when feature flag is enabled."""
-        with notify_api.app_context():
-            form = {'recipient_identifier': {'id_type': IdentifierType.ICN.value, 'id_value': '1234567890V123456'}}
-
-            with patch('app.v2.notifications.post_notifications.is_feature_enabled', return_value=True):
-                result = wrap_recipient_identifier_in_pii(form)
+            result = wrap_recipient_identifier_in_pii(form)
 
             # id_type should remain unchanged
-            assert result['recipient_identifier']['id_type'] == IdentifierType.ICN.value
+            assert result['recipient_identifier']['id_type'] == id_type
+            # id_value should be wrapped in the expected PII class
+            assert isinstance(result['recipient_identifier']['id_value'], expected_pii_class)
+            assert result['recipient_identifier']['id_value'].get_pii() == id_value
 
-            # id_value should be wrapped in PiiIcn
-            assert isinstance(result['recipient_identifier']['id_value'], PiiIcn)
-            assert result['recipient_identifier']['id_value'].get_pii() == '1234567890V123456'
-
-    def test_wrap_recipient_identifier_edipi(self, notify_api):
-        """Test that EDIPI is wrapped in PiiEdipi."""
+    @pytest.mark.parametrize(
+        'form,description',
+        [
+            ({'template_id': 'some-template-id', 'phone_number': '555-123-4567'}, 'no recipient_identifier'),
+            ({'recipient_identifier': {}}, 'empty recipient_identifier'),
+            ({'recipient_identifier': {'id_value': '1234567890V123456'}}, 'missing id_type'),
+            ({'recipient_identifier': {'id_type': IdentifierType.ICN.value}}, 'missing id_value'),
+        ],
+    )
+    def test_wrap_recipient_identifier_edge_cases(self, notify_api, form, description):
+        """Test that edge cases are handled gracefully."""
         with notify_api.app_context():
-            form = {'recipient_identifier': {'id_type': IdentifierType.EDIPI.value, 'id_value': '1234567890'}}
+            original_form = form.copy()
+            result = wrap_recipient_identifier_in_pii(form)
 
-            with patch('app.v2.notifications.post_notifications.is_feature_enabled', return_value=True):
-                result = wrap_recipient_identifier_in_pii(form)
-
-            assert result['recipient_identifier']['id_type'] == IdentifierType.EDIPI.value
-            assert isinstance(result['recipient_identifier']['id_value'], PiiEdipi)
-            assert result['recipient_identifier']['id_value'].get_pii() == '1234567890'
-
-    def test_wrap_recipient_identifier_birlsid(self, notify_api):
-        """Test that BIRLSID is wrapped in PiiBirlsid."""
-        with notify_api.app_context():
-            form = {'recipient_identifier': {'id_type': IdentifierType.BIRLSID.value, 'id_value': 'BIRLSID123'}}
-
-            with patch('app.v2.notifications.post_notifications.is_feature_enabled', return_value=True):
-                result = wrap_recipient_identifier_in_pii(form)
-
-            assert result['recipient_identifier']['id_type'] == IdentifierType.BIRLSID.value
-            assert isinstance(result['recipient_identifier']['id_value'], PiiBirlsid)
-            assert result['recipient_identifier']['id_value'].get_pii() == 'BIRLSID123'
-
-    def test_wrap_recipient_identifier_pid(self, notify_api):
-        """Test that PID is wrapped in PiiPid."""
-        with notify_api.app_context():
-            form = {'recipient_identifier': {'id_type': IdentifierType.PID.value, 'id_value': 'PID123456'}}
-
-            with patch('app.v2.notifications.post_notifications.is_feature_enabled', return_value=True):
-                result = wrap_recipient_identifier_in_pii(form)
-
-            assert result['recipient_identifier']['id_type'] == IdentifierType.PID.value
-            assert isinstance(result['recipient_identifier']['id_value'], PiiPid)
-            assert result['recipient_identifier']['id_value'].get_pii() == 'PID123456'
-
-    def test_wrap_recipient_identifier_va_profile_id(self, notify_api):
-        """Test that VA_PROFILE_ID is wrapped in PiiVaProfileID."""
-        with notify_api.app_context():
-            form = {'recipient_identifier': {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': '12345'}}
-
-            with patch('app.v2.notifications.post_notifications.is_feature_enabled', return_value=True):
-                result = wrap_recipient_identifier_in_pii(form)
-
-            assert result['recipient_identifier']['id_type'] == IdentifierType.VA_PROFILE_ID.value
-            assert isinstance(result['recipient_identifier']['id_value'], PiiVaProfileID)
-            assert result['recipient_identifier']['id_value'].get_pii() == '12345'
-
-    def test_wrap_recipient_identifier_no_recipient_identifier(self, notify_api):
-        """Test that form without recipient_identifier is unchanged."""
-        with notify_api.app_context():
-            form = {'template_id': 'some-template-id', 'phone_number': '555-123-4567'}
-
-            with patch('app.v2.notifications.post_notifications.is_feature_enabled', return_value=True):
-                result = wrap_recipient_identifier_in_pii(form)
-
-            assert result == form
-
-    def test_wrap_recipient_identifier_empty_recipient_identifier(self, notify_api):
-        """Test that empty recipient_identifier is handled gracefully."""
-        with notify_api.app_context():
-            form = {'recipient_identifier': {}}
-
-            with patch('app.v2.notifications.post_notifications.is_feature_enabled', return_value=True):
-                result = wrap_recipient_identifier_in_pii(form)
-
-            assert result == form
-
-    def test_wrap_recipient_identifier_missing_id_type(self, notify_api):
-        """Test that missing id_type is handled gracefully."""
-        with notify_api.app_context():
-            form = {'recipient_identifier': {'id_value': '1234567890V123456'}}
-
-            with patch('app.v2.notifications.post_notifications.is_feature_enabled', return_value=True):
-                result = wrap_recipient_identifier_in_pii(form)
-
-            assert result == form
-            assert result['recipient_identifier']['id_value'] == '1234567890V123456'
-
-    def test_wrap_recipient_identifier_missing_id_value(self, notify_api):
-        """Test that missing id_value is handled gracefully."""
-        with notify_api.app_context():
-            form = {'recipient_identifier': {'id_type': IdentifierType.ICN.value}}
-
-            with patch('app.v2.notifications.post_notifications.is_feature_enabled', return_value=True):
-                result = wrap_recipient_identifier_in_pii(form)
-
-            assert result == form
+            # Form should be unchanged for all edge cases
+            assert result == original_form
 
     def test_wrap_recipient_identifier_unknown_id_type(self, notify_api):
         """Test that unknown id_type is handled gracefully with warning log."""
         with notify_api.app_context():
             form = {'recipient_identifier': {'id_type': 'UNKNOWN_TYPE', 'id_value': 'some_value'}}
 
-            with patch('app.v2.notifications.post_notifications.is_feature_enabled', return_value=True):
-                result = wrap_recipient_identifier_in_pii(form)
+            result = wrap_recipient_identifier_in_pii(form)
 
             # Form should be unchanged for unknown id_type
             assert result == form
@@ -162,17 +85,26 @@ class TestPiiWrappingAtEntrypoint:
             # Core behavior verified - unknown id_type is handled gracefully
             # (Logging verification omitted due to test environment complexity)
 
+    def test_wrap_recipient_identifier_logging_success(self, notify_api):
+        """Test that successful PII wrapping works correctly."""
+        with notify_api.app_context():
+            form = {'recipient_identifier': {'id_type': IdentifierType.ICN.value, 'id_value': '1234567890V123456'}}
+
+            result = wrap_recipient_identifier_in_pii(form)
+
+            # Core behavior verified - successful PII wrapping works correctly
+            # Verify the PII object was created successfully
+            assert isinstance(result['recipient_identifier']['id_value'], PiiIcn)
+            assert result['recipient_identifier']['id_value'].get_pii() == '1234567890V123456'
+
     def test_wrap_recipient_identifier_pii_instantiation_error(self, notify_api):
         """Test that PII instantiation errors are handled gracefully."""
         with notify_api.app_context():
             form = {'recipient_identifier': {'id_type': IdentifierType.ICN.value, 'id_value': 'bad_value'}}
 
-            with (
-                patch('app.v2.notifications.post_notifications.is_feature_enabled', return_value=True),
-                patch(
-                    'app.v2.notifications.post_notifications.PiiIcn', side_effect=Exception('PII error')
-                ) as mock_pii_icn,
-            ):
+            with patch(
+                'app.v2.notifications.post_notifications.PiiIcn', side_effect=Exception('PII error')
+            ) as mock_pii_icn:
                 mock_pii_icn.__name__ = 'PiiIcn'
                 result = wrap_recipient_identifier_in_pii(form)
 
@@ -183,28 +115,12 @@ class TestPiiWrappingAtEntrypoint:
             # Core behavior verified - PII instantiation errors are handled gracefully
             # (Logging verification omitted due to test environment complexity)
 
-    def test_wrap_recipient_identifier_logging_success(self, notify_api):
-        """Test that successful PII wrapping is logged at debug level."""
-        with notify_api.app_context():
-            form = {'recipient_identifier': {'id_type': IdentifierType.ICN.value, 'id_value': '1234567890V123456'}}
-
-            with patch('app.v2.notifications.post_notifications.is_feature_enabled', return_value=True):
-                result = wrap_recipient_identifier_in_pii(form)
-
-            # Core behavior verified - successful PII wrapping works correctly
-            # Verify the PII object was created successfully
-            assert isinstance(result['recipient_identifier']['id_value'], PiiIcn)
-            assert result['recipient_identifier']['id_value'].get_pii() == '1234567890V123456'
-
     def test_pii_wrapping_uses_false_for_is_encrypted_parameter(self, notify_api):
         """Test that PII classes are instantiated with is_encrypted=False."""
         with notify_api.app_context():
             form = {'recipient_identifier': {'id_type': IdentifierType.ICN.value, 'id_value': '1234567890V123456'}}
 
-            with (
-                patch('app.v2.notifications.post_notifications.is_feature_enabled', return_value=True),
-                patch('app.v2.notifications.post_notifications.PiiIcn') as mock_pii_icn,
-            ):
+            with patch('app.v2.notifications.post_notifications.PiiIcn') as mock_pii_icn:
                 mock_pii_icn.__name__ = 'PiiIcn'
                 wrap_recipient_identifier_in_pii(form)
 
@@ -215,16 +131,17 @@ class TestPiiWrappingAtEntrypoint:
 class TestPiiWrappingFeatureFlag:
     """Tests for the PII wrapping feature flag."""
 
-    def test_pii_wrapping_feature_flag_is_disabled_by_default(self, mocker):
-        """Test that the PII_ENABLED feature flag is disabled by default."""
-        mocker.patch.dict('os.environ', {}, clear=True)
+    @pytest.mark.parametrize(
+        'env_value,expected',
+        [
+            ({}, False),  # disabled by default
+            ({'PII_ENABLED': 'True'}, True),  # can be enabled
+            ({'PII_ENABLED': 'False'}, False),  # can be explicitly disabled
+        ],
+    )
+    def test_pii_enabled_feature_flag(self, mocker, env_value, expected):
+        """Test PII_ENABLED feature flag behavior."""
+        mocker.patch.dict('os.environ', env_value, clear=True)
         from app.feature_flags import is_feature_enabled, FeatureFlag
 
-        assert not is_feature_enabled(FeatureFlag.PII_ENABLED)
-
-    def test_pii_wrapping_feature_flag_can_be_enabled(self, mocker):
-        """Test that the PII_ENABLED feature flag can be enabled."""
-        mocker.patch.dict('os.environ', {'PII_ENABLED': 'True'})
-        from app.feature_flags import is_feature_enabled, FeatureFlag
-
-        assert is_feature_enabled(FeatureFlag.PII_ENABLED)
+        assert is_feature_enabled(FeatureFlag.PII_ENABLED) == expected

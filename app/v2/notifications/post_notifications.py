@@ -60,9 +60,6 @@ def wrap_recipient_identifier_in_pii(form):
     Returns:
         The form with id_value wrapped in appropriate PII class
     """
-    if not is_feature_enabled(FeatureFlag.PII_ENABLED):
-        return form
-
     recipient_identifier = form.get('recipient_identifier')
     if not recipient_identifier:
         return form
@@ -144,7 +141,8 @@ def post_notification(notification_type):  # noqa: C901
             raise BadRequestError(message='Cannot schedule notifications (this feature is invite-only)')
 
     # Wrap PII in recipient_identifier if feature flag is enabled
-    form = wrap_recipient_identifier_in_pii(form)
+    if is_feature_enabled(FeatureFlag.PII_ENABLED):
+        form = wrap_recipient_identifier_in_pii(form)
 
     template, template_with_content = validate_template(
         form['template_id'],
