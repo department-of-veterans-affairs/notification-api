@@ -8,11 +8,11 @@ fileignoreconfig:
 - filename: cd/application-deployment/dev/dev.env
   checksum: b277988076bc38cd292f7672f28a3ffd02d847f8e28460c78759ca3073ee48f3
 - filename: cd/application-deployment/perf/perf.env
-  checksum: 71ffa1989d9adcf77b1450c1138066da2d6693fe28c2c7bff24497338dca92a0
-- filename: cd/application-deployment/staging/staging.env
-  checksum: e9c5429c1bf000aa36507d7d95eadc7f72e42cd854542577417c9014e10145de
+  checksum: 79ee53401842950ad5074bc9f45abe9e16a07bedb3f2e6e61a89674b24f4c47f
 - filename: cd/application-deployment/prod/prod.env
-  checksum: 8d9d04039fc1a69294a7e47cf8975c340d6b01a28f0a3760b9c426dfee4bdea6
+  checksum: 44363d13187fc824b70ce13ce327431505ebb39043be801c5a214d7bd6d1f9e3
+- filename: cd/application-deployment/staging/staging.env
+  checksum: f116032d46f936dd1d66026000dc83f6b15213339f631064bc1d37e1d9da6b7a
 - filename: documents/openapi/openapi.yaml.backup
   checksum: cf2737abec32148fab04ec10ceba181ceeb8010642669ece3c4a97f0d6edf1ba
 - filename: documents/postman/internal_api_developers/development.postman_environment.json
