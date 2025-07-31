@@ -134,15 +134,15 @@ def post_notification(notification_type):  # noqa: C901
             )
         )
 
+    # Wrap PII in recipient_identifier if feature flag is enabled
+    if is_feature_enabled(FeatureFlag.PII_ENABLED):
+        form = wrap_recipient_identifier_in_pii(form)
+
     scheduled_for = form.get('scheduled_for')
 
     if scheduled_for is not None:
         if not authenticated_service.has_permissions(SCHEDULE_NOTIFICATIONS):
             raise BadRequestError(message='Cannot schedule notifications (this feature is invite-only)')
-
-    # Wrap PII in recipient_identifier if feature flag is enabled
-    if is_feature_enabled(FeatureFlag.PII_ENABLED):
-        form = wrap_recipient_identifier_in_pii(form)
 
     template, template_with_content = validate_template(
         form['template_id'],

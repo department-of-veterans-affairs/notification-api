@@ -1,30 +1,9 @@
-import os
 import pytest
 from unittest.mock import patch
 
-from app.pii import PiiEncryption, PiiIcn, PiiEdipi, PiiBirlsid, PiiPid, PiiVaProfileID
+from app.pii import PiiIcn, PiiEdipi, PiiBirlsid, PiiPid, PiiVaProfileID
 from app.va.identifier import IdentifierType
 from app.v2.notifications.post_notifications import wrap_recipient_identifier_in_pii
-
-# Constant test key for consistent encryption/decryption during tests
-# Using a fixed test key - this is only for testing and not a real secret
-# The value is the base64 encoding of "This is an 32 byte key for tests"
-TEST_KEY = b'VGhpcyBpcyBhbiAzMiBieXRlIGtleSBmb3IgdGVzdHM='
-
-
-@pytest.fixture(autouse=True)
-def setup_encryption():
-    """Setup encryption with a consistent key for tests.
-
-    This fixture resets the PiiEncryption singleton to use a test key
-    for consistent encryption/decryption during tests.
-    """
-    with (
-        patch.object(PiiEncryption, '_key', None),
-        patch.object(PiiEncryption, '_fernet', None),
-        patch.dict(os.environ, {'PII_ENCRYPTION_KEY': TEST_KEY.decode()}),
-    ):
-        yield
 
 
 class TestPiiWrappingAtEntrypoint:
