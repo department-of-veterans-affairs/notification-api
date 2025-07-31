@@ -7,6 +7,9 @@ from flask import request, jsonify, current_app, abort
 from notifications_utils.recipients import try_validate_and_format_phone_number
 
 from app import api_user, authenticated_service, attachment_store
+from app.va.identifier import IdentifierType
+from app.feature_flags import is_feature_enabled, FeatureFlag
+from app.pii import PiiIcn, PiiEdipi, PiiBirlsid, PiiPid, PiiVaProfileID
 from app.attachments.mimetype import extract_and_validate_mimetype
 from app.attachments.store import AttachmentStoreError
 from app.attachments.types import UploadedAttachmentMetadata
@@ -45,6 +48,65 @@ from app.v2.notifications.notification_schemas import (
     post_letter_request,
 )
 from app.utils import get_public_notify_type_text
+
+
+def wrap_recipient_identifier_in_pii(form):
+    """
+    Wrap the recipient identifier id_value in the appropriate PII class.
+
+    Args:
+        form: The validated form data containing recipient_identifier
+
+    Returns:
+        The form with id_value wrapped in appropriate PII class
+    """
+    if not is_feature_enabled(FeatureFlag.PII_WRAPPING_AT_ENTRYPOINT_ENABLED):
+        return form
+
+    recipient_identifier = form.get('recipient_identifier')
+    if not recipient_identifier:
+        return form
+
+    id_type = recipient_identifier.get('id_type')
+    id_value = recipient_identifier.get('id_value')
+
+    if not id_type or not id_value:
+        return form
+
+    # Map id_type to appropriate PII class
+    pii_class_mapping = {
+        IdentifierType.ICN.value: PiiIcn,
+        IdentifierType.EDIPI.value: PiiEdipi,
+        IdentifierType.BIRLSID.value: PiiBirlsid,
+        IdentifierType.PID.value: PiiPid,
+        IdentifierType.VA_PROFILE_ID.value: PiiVaProfileID,
+    }
+
+    pii_class = pii_class_mapping.get(id_type)
+    if pii_class:
+        try:
+            # Wrap the id_value in the appropriate PII class
+            # Use False for is_encrypted since this is raw input data
+            form['recipient_identifier']['id_value'] = pii_class(id_value, False)
+            current_app.logger.debug(
+                'Wrapped recipient identifier id_value in %s for id_type %s',
+                pii_class.__name__,
+                id_type
+            )
+        except Exception as e:
+            current_app.logger.error(
+                'Failed to wrap recipient identifier in PII class %s: %s',
+                pii_class.__name__,
+                str(e)
+            )
+            # Continue without wrapping if PII instantiation fails
+    else:
+        current_app.logger.warning(
+            'Unknown id_type %s - cannot wrap in PII class',
+            id_type
+        )
+
+    return form
 
 
 @v2_notification_blueprint.route('/<notification_type>', methods=['POST'])
@@ -87,6 +149,9 @@ def post_notification(notification_type):  # noqa: C901
     if scheduled_for is not None:
         if not authenticated_service.has_permissions(SCHEDULE_NOTIFICATIONS):
             raise BadRequestError(message='Cannot schedule notifications (this feature is invite-only)')
+
+    # Wrap PII in recipient_identifier if feature flag is enabled
+    form = wrap_recipient_identifier_in_pii(form)
 
     template, template_with_content = validate_template(
         form['template_id'],
