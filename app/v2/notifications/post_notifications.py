@@ -50,7 +50,7 @@ from app.v2.notifications.notification_schemas import (
 from app.utils import get_public_notify_type_text
 
 
-def wrap_recipient_identifier_in_pii(form):
+def wrap_recipient_identifier_in_pii(form: dict) -> dict:
     """Wrap the recipient identifier id_value in the appropriate PII class.
 
     This function takes a form containing recipient identifier data and wraps
@@ -75,18 +75,18 @@ def wrap_recipient_identifier_in_pii(form):
         - PII instantiation errors are logged but don't prevent function completion
         - Only processes forms that contain recipient_identifier with both id_type and id_value
     """
-    recipient_identifier = form.get('recipient_identifier')
+    recipient_identifier: dict | None = form.get('recipient_identifier')
     if recipient_identifier is None:
         return form
 
-    id_type = recipient_identifier.get('id_type')
-    id_value = recipient_identifier.get('id_value')
+    id_type: str | None = recipient_identifier.get('id_type')
+    id_value: str | None = recipient_identifier.get('id_value')
 
     if id_type is None or id_value is None:
         return form
 
     # Map id_type to appropriate PII class
-    pii_class_mapping = {
+    pii_class_mapping: dict[str, type] = {
         IdentifierType.ICN.value: PiiIcn,
         IdentifierType.EDIPI.value: PiiEdipi,
         IdentifierType.BIRLSID.value: PiiBirlsid,
@@ -94,7 +94,7 @@ def wrap_recipient_identifier_in_pii(form):
         IdentifierType.VA_PROFILE_ID.value: PiiVaProfileID,
     }
 
-    pii_class = pii_class_mapping.get(id_type)
+    pii_class: type | None = pii_class_mapping.get(id_type)
     if pii_class is not None:
         try:
             # Wrap the id_value in the appropriate PII class
