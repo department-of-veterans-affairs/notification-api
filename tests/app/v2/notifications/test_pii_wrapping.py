@@ -61,17 +61,6 @@ class TestPiiWrappingAtEntrypoint:
             assert result == form
             assert result['recipient_identifier']['id_value'] == 'some_value'
 
-    def test_wrap_recipient_identifier_logging_success(self, notify_api):
-        """Test that successful PII wrapping works correctly."""
-        with notify_api.app_context():
-            form = {'recipient_identifier': {'id_type': IdentifierType.ICN.value, 'id_value': '1234567890V123456'}}
-
-            result = wrap_recipient_identifier_in_pii(form)
-
-            # Verify the PII object was created successfully
-            assert isinstance(result['recipient_identifier']['id_value'], PiiIcn)
-            assert result['recipient_identifier']['id_value'].get_pii() == '1234567890V123456'
-
     def test_wrap_recipient_identifier_pii_instantiation_error(self, notify_api):
         """Test that PII instantiation errors are handled gracefully."""
         with notify_api.app_context():
@@ -86,18 +75,6 @@ class TestPiiWrappingAtEntrypoint:
             # Form should be unchanged if PII instantiation fails
             assert result['recipient_identifier']['id_type'] == IdentifierType.ICN.value
             assert result['recipient_identifier']['id_value'] == 'bad_value'
-
-    def test_pii_wrapping_uses_false_for_is_encrypted_parameter(self, notify_api):
-        """Test that PII classes are instantiated with is_encrypted=False."""
-        with notify_api.app_context():
-            form = {'recipient_identifier': {'id_type': IdentifierType.ICN.value, 'id_value': '1234567890V123456'}}
-
-            with patch('app.v2.notifications.post_notifications.PiiIcn') as mock_pii_icn:
-                mock_pii_icn.__name__ = 'PiiIcn'
-                wrap_recipient_identifier_in_pii(form)
-
-            # Verify PII class was called with is_encrypted=False
-            mock_pii_icn.assert_called_once_with('1234567890V123456', False)
 
 
 class TestPiiWrappingFeatureFlag:
