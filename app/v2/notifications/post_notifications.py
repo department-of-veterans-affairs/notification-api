@@ -83,8 +83,8 @@ def wrap_recipient_identifier_in_pii(form: dict) -> dict:
         return form
 
     # Get values with .get() to avoid KeyError
-    id_type: str | None = recipient_identifier.get('id_type')
-    id_value: str | None = recipient_identifier.get('id_value')
+    id_type: str = recipient_identifier['id_type']
+    id_value: str = recipient_identifier['id_value']
 
     # Map id_type to appropriate PII class
     pii_class_mapping: dict[str, type] = {
