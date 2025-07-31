@@ -2627,8 +2627,8 @@ components:
       description:
         The format of this token is \"Bearer \<value\>\".  When you create an API key, you get the secret key in the
         response. This secret key should be used to generate a bearer token to send notifications and to request
-        notification status. You can find more at
-        <a href='https://docs.notifications.service.gov.uk/rest-api.html#headers'>Authentication headers</a>.
+        notification status. You can find more information at Wikipedia's
+        <a href='https://en.wikipedia.org/wiki/JSON_Web_Token'>JSON Web Token</a> page.
       type: http
       scheme: bearer
       bearerFormat: JWT
