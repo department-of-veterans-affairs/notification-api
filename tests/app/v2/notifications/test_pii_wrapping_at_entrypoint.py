@@ -82,9 +82,6 @@ class TestPiiWrappingAtEntrypoint:
             assert result == form
             assert result['recipient_identifier']['id_value'] == 'some_value'
 
-            # Core behavior verified - unknown id_type is handled gracefully
-            # (Logging verification omitted due to test environment complexity)
-
     def test_wrap_recipient_identifier_logging_success(self, notify_api):
         """Test that successful PII wrapping works correctly."""
         with notify_api.app_context():
@@ -92,7 +89,6 @@ class TestPiiWrappingAtEntrypoint:
 
             result = wrap_recipient_identifier_in_pii(form)
 
-            # Core behavior verified - successful PII wrapping works correctly
             # Verify the PII object was created successfully
             assert isinstance(result['recipient_identifier']['id_value'], PiiIcn)
             assert result['recipient_identifier']['id_value'].get_pii() == '1234567890V123456'
@@ -111,9 +107,6 @@ class TestPiiWrappingAtEntrypoint:
             # Form should be unchanged if PII instantiation fails
             assert result['recipient_identifier']['id_type'] == IdentifierType.ICN.value
             assert result['recipient_identifier']['id_value'] == 'bad_value'
-
-            # Core behavior verified - PII instantiation errors are handled gracefully
-            # (Logging verification omitted due to test environment complexity)
 
     def test_pii_wrapping_uses_false_for_is_encrypted_parameter(self, notify_api):
         """Test that PII classes are instantiated with is_encrypted=False."""
