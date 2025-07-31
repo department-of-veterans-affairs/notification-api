@@ -89,22 +89,15 @@ def wrap_recipient_identifier_in_pii(form):
             # Use False for is_encrypted since this is raw input data
             form['recipient_identifier']['id_value'] = pii_class(id_value, False)
             current_app.logger.debug(
-                'Wrapped recipient identifier id_value in %s for id_type %s',
-                pii_class.__name__,
-                id_type
+                'Wrapped recipient identifier id_value in %s for id_type %s', pii_class.__name__, id_type
             )
         except Exception as e:
             current_app.logger.error(
-                'Failed to wrap recipient identifier in PII class %s: %s',
-                pii_class.__name__,
-                str(e)
+                'Failed to wrap recipient identifier in PII class %s: %s', pii_class.__name__, str(e)
             )
             # Continue without wrapping if PII instantiation fails
     else:
-        current_app.logger.warning(
-            'Unknown id_type %s - cannot wrap in PII class',
-            id_type
-        )
+        current_app.logger.warning('Unknown id_type %s - cannot wrap in PII class', id_type)
 
     return form
 
