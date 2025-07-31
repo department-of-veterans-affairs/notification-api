@@ -40,33 +40,25 @@ class TestPiiWrappingAtEntrypoint:
             {'recipient_identifier': {}},
             {'recipient_identifier': {'id_value': '1234567890V123456'}},
             {'recipient_identifier': {'id_type': IdentifierType.ICN.value}},
+            {'recipient_identifier': {'id_type': 'UNKNOWN_TYPE', 'id_value': 'some_value'}},
         ],
         ids=[
             'no recipient_identifier',
             'empty recipient_identifier',
             'missing id_type',
             'missing id_value',
+            'unknown id_type',
         ],
     )
     def test_wrap_recipient_identifier_edge_cases(self, notify_api, form):
         """Test that edge cases are handled gracefully."""
         with notify_api.app_context():
+            # Make a shallow copy since wrap_recipient_identifier_in_pii may modify the form in-place.
             original_form = form.copy()
             result = wrap_recipient_identifier_in_pii(form)
 
             # Form should be unchanged for all edge cases
             assert result == original_form
-
-    def test_wrap_recipient_identifier_unknown_id_type(self, notify_api):
-        """Test that unknown id_type is handled gracefully with warning log."""
-        with notify_api.app_context():
-            form = {'recipient_identifier': {'id_type': 'UNKNOWN_TYPE', 'id_value': 'some_value'}}
-
-            result = wrap_recipient_identifier_in_pii(form)
-
-            # Form should be unchanged for unknown id_type
-            assert result == form
-            assert result['recipient_identifier']['id_value'] == 'some_value'
 
     def test_wrap_recipient_identifier_pii_instantiation_error(self, notify_api):
         """Test that PII instantiation errors are handled gracefully."""

@@ -76,13 +76,13 @@ def wrap_recipient_identifier_in_pii(form):
         - Only processes forms that contain recipient_identifier with both id_type and id_value
     """
     recipient_identifier = form.get('recipient_identifier')
-    if not recipient_identifier:
+    if recipient_identifier is None:
         return form
 
     id_type = recipient_identifier.get('id_type')
     id_value = recipient_identifier.get('id_value')
 
-    if not id_type or not id_value:
+    if id_type is None or id_value is None:
         return form
 
     # Map id_type to appropriate PII class
@@ -95,7 +95,7 @@ def wrap_recipient_identifier_in_pii(form):
     }
 
     pii_class = pii_class_mapping.get(id_type)
-    if pii_class:
+    if pii_class is not None:
         try:
             # Wrap the id_value in the appropriate PII class
             # Use False for is_encrypted since this is raw input data
