@@ -27,6 +27,10 @@ on:
         default: false
         required: false
         type: boolean
+      run_smoke_tests:
+        required: true
+        default: true
+        type: boolean
   workflow_call:
     inputs:
       environment:
@@ -108,6 +112,7 @@ jobs:
     with:
       environment: "${{ inputs.environment }}"
       ref: "${{ needs.setup-environment.outputs.git-hash }}"
+      run_smoke_tests: "${{ inputs.run_smoke_tests }}"
     secrets: inherit
 
   run-qa-suite:
