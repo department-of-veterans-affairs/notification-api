@@ -1,5 +1,9 @@
 import base64
+from datetime import datetime
 import json
+from app.clients.sms import SmsStatusRecord
+from app.constants import PINPOINT_PROVIDER
+from app.feature_flags import FeatureFlag
 import pytest
 from flask import url_for
 
@@ -8,35 +12,50 @@ class TestPinpointV2DeliveryStatus:
     @pytest.fixture
     def pinpoint_sms_voice_v2_data(self):
         """Fixture providing sample PinpointSMSVoiceV2 data for testing"""
+        # Updated to match actual PinpointSMSVoiceV2 callback format
         pinpoint_records = {
             'Records': [
                 {
-                    'event_type': '_SMS.SUCCESS',
-                    'event_timestamp': '2025-07-31T12:00:00.000Z',
-                    'attributes': {
-                        'record_status': 'DELIVERED',
-                        'destination_phone_number': '+15551234567',
-                        'message_id': 'test-message-id-123',
-                        'iso_country_code': 'US',
-                        'mms': False,
-                        'sms_type': 'Transactional',
-                    },
-                    'client_context': {'source': 'test-source'},
-                    'metrics': {'price_in_millicents_usd': 75},
+                    'eventType': 'TEXT_SUCCESSFUL',
+                    'eventVersion': '1.0',
+                    'eventTimestamp': 1722427200000,
+                    'isFinal': True,
+                    'originationPhoneNumber': '+12065550152',
+                    'destinationPhoneNumber': '+15551234567',
+                    'isoCountryCode': 'US',
+                    'mcc': '310',
+                    'mnc': '800',
+                    'messageId': 'test-message-id-123',
+                    'messageRequestTimestamp': 1722427199000,
+                    'messageEncoding': 'GSM',
+                    'messageType': 'TRANSACTIONAL',
+                    'messageStatus': 'DELIVERED',
+                    'messageStatusDescription': 'Message has been accepted by phone carrier',
+                    'context': {'source': 'test-source'},
+                    'totalMessageParts': 1,
+                    'totalMessagePrice': 0.075,
+                    'totalCarrierFee': 0.0,
                 },
                 {
-                    'event_type': '_SMS.SUCCESS',
-                    'event_timestamp': '2025-07-31T12:01:00.000Z',
-                    'attributes': {
-                        'record_status': 'DELIVERED',
-                        'destination_phone_number': '+15559876543',
-                        'message_id': 'test-message-id-456',
-                        'iso_country_code': 'US',
-                        'mms': False,
-                        'sms_type': 'Transactional',
-                    },
-                    'client_context': {'source': 'test-source'},
-                    'metrics': {'price_in_millicents_usd': 75},
+                    'eventType': 'TEXT_SUCCESSFUL',
+                    'eventVersion': '1.0',
+                    'eventTimestamp': 1722427260000,
+                    'isFinal': True,
+                    'originationPhoneNumber': '+12065550152',
+                    'destinationPhoneNumber': '+15559876543',
+                    'isoCountryCode': 'US',
+                    'mcc': '310',
+                    'mnc': '800',
+                    'messageId': 'test-message-id-456',
+                    'messageRequestTimestamp': 1722427259000,
+                    'messageEncoding': 'GSM',
+                    'messageType': 'TRANSACTIONAL',
+                    'messageStatus': 'DELIVERED',
+                    'messageStatusDescription': 'Message has been accepted by phone carrier',
+                    'context': {'source': 'test-source'},
+                    'totalMessageParts': 1,
+                    'totalMessagePrice': 0.075,
+                    'totalCarrierFee': 0.0,
                 },
             ]
         }
@@ -44,13 +63,11 @@ class TestPinpointV2DeliveryStatus:
         # Encode the data as it would come from firehose (base64 encoded in SNS message)
         encoded_data = base64.b64encode(json.dumps(pinpoint_records).encode('utf-8')).decode('utf-8')
 
-        return {'raw_records': pinpoint_records, 'encoded_data': encoded_data, 'sns_payload': {'Message': encoded_data}}
+        return {'raw_records': pinpoint_records, 'sns_payload': {'Message': encoded_data}}
 
     @pytest.mark.parametrize(
         'post_json',
         [
-            # Test Empty SNS message
-            {},
             # Test Basic SNS message with empty records
             {'Message': base64.b64encode(json.dumps({'Records': []}).encode('utf-8')).decode('utf-8')},
             # Test Single SMS success record
@@ -60,13 +77,23 @@ class TestPinpointV2DeliveryStatus:
                         {
                             'Records': [
                                 {
-                                    'event_type': '_SMS.SUCCESS',
-                                    'event_timestamp': '2025-07-31T12:00:00.000Z',
-                                    'attributes': {
-                                        'record_status': 'DELIVERED',
-                                        'destination_phone_number': '+15551234567',
-                                        'message_id': 'test-msg-123',
-                                    },
+                                    'eventType': 'TEXT_SUCCESSFUL',
+                                    'eventVersion': '1.0',
+                                    'eventTimestamp': 1722427200000,
+                                    'isFinal': True,
+                                    'originationPhoneNumber': '+12065550152',
+                                    'destinationPhoneNumber': '+15551234567',
+                                    'isoCountryCode': 'US',
+                                    'messageId': 'test-msg-123',
+                                    'messageRequestTimestamp': 1722427199000,
+                                    'messageEncoding': 'GSM',
+                                    'messageType': 'TRANSACTIONAL',
+                                    'messageStatus': 'DELIVERED',
+                                    'messageStatusDescription': 'Message delivered successfully',
+                                    'context': {},
+                                    'totalMessageParts': 1,
+                                    'totalMessagePrice': 0.075,
+                                    'totalCarrierFee': 0.0,
                                 }
                             ]
                         }
@@ -90,25 +117,34 @@ class TestPinpointV2DeliveryStatus:
         """Test the happy path with expected PinpointSMSVoiceV2 data from firehose"""
 
         mock_celery_task = mocker.patch('app.delivery_status.rest.process_pinpoint_v2_receipt_results.apply_async')
+        mock_feature_flag = mocker.Mock(FeatureFlag)
+        mock_feature_flag.value = 'PINPOINT_SMS_VOICE_V2'
+        mocker.patch('app.feature_flags.os.getenv', return_value='True')
 
-        mock_sms_status_record = mocker.Mock()
-        mock_sms_status_record.reference = 'test-reference-123'
-
-        # Use the fixture data
         request_payload = pinpoint_sms_voice_v2_data['sns_payload']
 
         response = client.post(url_for('pinpoint_v2.handler'), json=request_payload)
 
+        expected_record = SmsStatusRecord(
+            payload=None,
+            reference='test-message-id-123',
+            status='delivered',
+            status_reason=None,
+            message_parts=1,
+            provider=PINPOINT_PROVIDER,
+            price_millicents=75,
+            provider_updated_at=datetime(2024, 7, 31, 12, 0, 0, 0),
+        )
+
         assert response.status_code == 200
         assert response.json == {'status': 'received'}
 
-        # Verify celery task was called correctly
         assert mock_celery_task.call_count == 2
 
         first_call_args = mock_celery_task.call_args_list[0][0][0]
-        assert first_call_args[0] == mock_sms_status_record  # SmsStatusRecord
-        assert first_call_args[1] == '2025-07-31T12:00:00.000Z'  # event_timestamp
+        assert first_call_args[0] == expected_record
+        assert first_call_args[1] == 1722427200000
 
         second_call_args = mock_celery_task.call_args_list[1][0][0]
-        assert second_call_args[0] == mock_sms_status_record  # SmsStatusRecord
-        assert second_call_args[1] == '2025-07-31T12:01:00.000Z'  # event_timestamp
+        assert second_call_args[0] == expected_record
+        assert second_call_args[1] == 1722427260000

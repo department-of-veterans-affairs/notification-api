@@ -48,6 +48,6 @@ def handler():
 
     for record in records:
         notification_platform_status: SmsStatusRecord = get_notification_platform_status(aws_pinpoint_client, record)
-        process_pinpoint_v2_receipt_results.apply_async([notification_platform_status, record.get('event_timestamp')])
+        process_pinpoint_v2_receipt_results.apply_async([notification_platform_status, record.get('eventTimestamp')])
 
     return jsonify({'status': 'received'}), 200
