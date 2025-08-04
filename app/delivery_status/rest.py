@@ -1,8 +1,6 @@
 import base64
 import json
-from contextlib import suppress
 from flask import Blueprint, current_app, jsonify, request
-from werkzeug.exceptions import UnsupportedMediaType
 
 from app import aws_pinpoint_client
 from app.clients.sms import SmsStatusRecord
@@ -22,27 +20,11 @@ def handler():
     Returns:
         tuple: JSON response body and HTTP status code 200.
     """
-    # TODO 2497: using for debugging, need to remove
-    request_attrs = (
-        'method',
-        'root_path',
-        'path',
-        'url_rule',
-    )
-    logs = [f'{attr.upper()}: {getattr(request, attr, None)}' for attr in request_attrs]
 
-    with suppress(UnsupportedMediaType, Exception):
-        logs.append(f'JSON: {request.get_json(silent=True)}')
-
-    # TODO 2497: using for debugging, need to remove
-    headers_string = ', '.join([f'{key}: {value}' for key, value in request.headers.items()])
-    logs.append(f'HEADERS: {headers_string}')
-
-    current_app.logger.info('PinpointV2 delivery-status request: %s', ' | '.join(logs))
-
-    # TODO 2497: Add validation for request data
     request_data = request.get_json()
     decoded_json = json.loads(base64.b64decode(request_data['Message']).decode('utf-8'))
+
+    current_app.logger.debug('PinpointV2 delivery-status Request: %s', decoded_json)
 
     records = decoded_json.get('Records', [])
 

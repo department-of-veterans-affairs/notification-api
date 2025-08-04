@@ -30,19 +30,16 @@ def process_pinpoint_v2_receipt_results(
     Process a Pinpoint Voice SMS V2 SMS stream event.  Messages long enough to require multiple segments only
     result in one event that contains the aggregate cost.
 
-    Permissible event type and record status values are documented here:
-        https://docs.aws.amazon.com/pinpoint/latest/developerguide/event-streams-data-sms.html
-
-    An _SMS.OPTOUT event occurs when a veteran replies "STOP" to a text message.  An OPTED_OUT status occurs
-    when Pinpoint receives input from Notify, but the Veteran has opted-out at the Pinpoint level.  This is
-    different than Notify's communication item preferences.  If a veteran opts-out at that level, Pinpoint
-    should never receive input trying to send a message to the opted-out veteran.
+    Permissible event type and message status values are documented here:
+        https://docs.aws.amazon.com/sms-voice/latest/userguide/configuration-sets-event-types.html
     """
-    # TODO 2497 - Add back event type and record status
+
     current_app.logger.info(
-        'Processing Pinpoint Incoming SMS Voice V2 result. | reference: %s | '
+        'Processing Pinpoint Incoming SMS Voice V2 result. | reference: %s | status: %s | status_reason: %s | '
         'message_parts: %s | price_millicents: %s | provider_updated_at: %s',
         sms_status_record.reference,
+        sms_status_record.status,
+        sms_status_record.status_reason,
         sms_status_record.message_parts,
         sms_status_record.price_millicents,
         sms_status_record.provider_updated_at,

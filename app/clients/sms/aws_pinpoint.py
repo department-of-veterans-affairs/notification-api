@@ -280,8 +280,10 @@ class AwsPinpointClient(SmsClient):
             raise NonRetryableException(f'Incorrect datatype sent to pinpoint, {UNABLE_TO_TRANSLATE}')
 
         if is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2):
+            # TODO 2497: Add testing for new code path in translate_delivery_status
             # PinpointSMSVoiceV2 format
             # Handle phone number masking for PinpointSMSVoiceV2 format
+            # https://docs.aws.amazon.com/sms-voice/latest/userguide/configuration-sets-event-types.html
             if delivery_status_message.get('destinationPhoneNumber'):
                 delivery_status_message['destinationPhoneNumber'] = (
                     f'{delivery_status_message["destinationPhoneNumber"][:-4]}XXXX'
