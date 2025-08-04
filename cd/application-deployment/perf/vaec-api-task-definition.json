@@ -41,7 +41,7 @@
       "secrets": [
         {
           "name": "PINPOINT_FIREHOSE_API_KEY",
-          "valueFrom": "perf-pinpoint-firehose-api-key-20250708165132422300000002"
+          "valueFrom": "arn:aws-us-gov:secretsmanager:us-gov-west-1:171875617347:secret:perf-pinpoint-firehose-api-key-20250708165132422300000002-xhEQ4S"
         },
         {
           "name": "TWILIO_ACCOUNT_SID",
