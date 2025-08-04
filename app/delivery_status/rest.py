@@ -3,6 +3,7 @@ import json
 from flask import Blueprint, current_app, jsonify, request
 
 from app import aws_pinpoint_client
+from app.celery.exceptions import NonRetryableException
 from app.clients.sms import SmsStatusRecord
 from app.celery.process_delivery_status_result_tasks import get_notification_platform_status
 from app.celery.process_pinpoint_v2_receipts_tasks import process_pinpoint_v2_receipt_results
@@ -29,7 +30,17 @@ def handler():
     records = decoded_json.get('Records', [])
 
     for record in records:
-        notification_platform_status: SmsStatusRecord = get_notification_platform_status(aws_pinpoint_client, record)
+        try:
+            notification_platform_status: SmsStatusRecord = get_notification_platform_status(
+                aws_pinpoint_client, record
+            )
+        except NonRetryableException as e:
+            current_app.logger.error(
+                'Validation for Pinpoint SMS Voice V2 records failed: %s | Error: %s',
+                record.get('messageId', 'unknown messageId'),
+                str(e),
+            )
+            continue
         process_pinpoint_v2_receipt_results.apply_async([notification_platform_status, record.get('eventTimestamp')])
 
     return jsonify({'status': 'received'}), 200
