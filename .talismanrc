@@ -2,7 +2,9 @@ fileignoreconfig:
 - filename: .github/workflows/deployment.yml
   checksum: 3968c30477e26a632f8f24bcee18fd80dc10d6d3de2a3fc7205bd7cc4f860d7c
 - filename: app/authentication/auth.py
-  checksum: 0d31a30774f44280e8cc5268d6219bbb95e3010cf23ec42a0a5bf61e66387512
+  checksum: 90488ef0e7b4dd68c948adcc0cfddf4675618a826295bb0932137936cc0705e8
+- filename: app/config.py
+  checksum: e9240122afa5f540ce8a8e7920af27c9611a5f66390f3d9c8d084f0315acf6bd
 - filename: app/dao/api_key_dao.py
   checksum: 41f293bd2fec0848acbf931cdb67d0a04e8aa6d0a898b15c1caed7d7d36d33db
 - filename: app/delivery_status/rest.py
@@ -12,13 +14,15 @@ fileignoreconfig:
 - filename: app/schema_validation/__init__.py
   checksum: 2ed516f6558f85367a8bd377a0bf32ba39e10cc6c2db38744e8549cb83997519
 - filename: cd/application-deployment/dev/dev.env
-  checksum: a860082ee1a33825f366938fadc825b90dff487f7e64c8fbc0d6e40fc15bd13c
+  checksum: f5d3edbf8b025bc8c8970f99529c5aac93796373d7bf007ad51e936ac94761ec
 - filename: cd/application-deployment/perf/perf.env
-  checksum: 4ba964987a838c30d29b4bf99f60673305d0f8e092a8f97d10038494f9cb3c64
+  checksum: 55de50add501719c521520192a27f9c2e3ddd82aa0e562f1df535adb128214eb
 - filename: cd/application-deployment/prod/prod.env
-  checksum: 378292f5977a4f724447a5184c5b0ff2b1de3982cfc82d80c741c88162adae63
+  checksum: a56e937eada19f973d76da7696b772dce662169a3a9554e7648b99b9a5eb2b4c
 - filename: cd/application-deployment/staging/staging.env
-  checksum: aafb571f7e1fd7d58c56e41260c013f71a9c8fe537596f8ba4ebaafbb6e84bce
+  checksum: 80d84ae9cbf949a0fdf787ace80a877fb19d7cac41b64b3f03d34b9e72ff6f02
+- filename: cd/application-deployment/dev/vaec-api-task-definition.json
+  checksum: 8e1ab549625313d53c38a8e6feb58970dee920027efb4d343a164b461e8d05ea
 - filename: documents/openapi/openapi.yaml.backup
   checksum: cf2737abec32148fab04ec10ceba181ceeb8010642669ece3c4a97f0d6edf1ba
 - filename: documents/postman/internal_api_developers/development.postman_environment.json
