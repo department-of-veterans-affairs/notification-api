@@ -22,7 +22,7 @@ fileignoreconfig:
 - filename: cd/application-deployment/staging/staging.env
   checksum: 80d84ae9cbf949a0fdf787ace80a877fb19d7cac41b64b3f03d34b9e72ff6f02
 - filename: cd/application-deployment/dev/vaec-api-task-definition.json
-  checksum: 8e1ab549625313d53c38a8e6feb58970dee920027efb4d343a164b461e8d05ea
+  checksum: ae7a3c3994f5592d538e45d048f302bc17ecf1ab5080d6e45c2b17c02f44fc36
 - filename: documents/openapi/openapi.yaml.backup
   checksum: cf2737abec32148fab04ec10ceba181ceeb8010642669ece3c4a97f0d6edf1ba
 - filename: documents/postman/internal_api_developers/development.postman_environment.json
