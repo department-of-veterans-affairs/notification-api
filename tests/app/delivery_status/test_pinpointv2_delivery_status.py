@@ -64,7 +64,7 @@ class TestPinpointV2DeliveryStatus:
 
         return {'Message': encoded_data}
 
-    def test_post_delivery_status(self, client, mocker):
+    def test_post_delivery_status_no_records(self, client, mocker):
         mocker.patch('app.delivery_status.rest.process_pinpoint_v2_receipt_results.apply_async')
         mocker.patch('app.delivery_status.rest.get_notification_platform_status')
 
@@ -74,9 +74,7 @@ class TestPinpointV2DeliveryStatus:
         assert response.status_code == 200
         assert response.json == {'status': 'received'}
 
-    def test_post_delivery_status_happy_path_with_pinpoint_sms_voice_v2_data(
-        self, client, mocker, pinpoint_sms_voice_v2_data
-    ):
+    def test_post_delivery_status_multiple_records(self, client, mocker, pinpoint_sms_voice_v2_data):
         """Test the happy path with expected PinpointSMSVoiceV2 data from firehose"""
 
         mock_celery_task = mocker.patch('app.delivery_status.rest.process_pinpoint_v2_receipt_results.apply_async')
