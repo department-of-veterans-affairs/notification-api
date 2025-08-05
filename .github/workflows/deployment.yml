@@ -63,6 +63,7 @@ jobs:
 
   deploy-api:
     runs-on: ${{ vars.RUNS_ON }}
+    needs: [run-migrations]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -106,6 +107,7 @@ jobs:
 
   deploy-celery:
     runs-on: ${{ vars.RUNS_ON }}
+    needs: [run-migrations]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -149,6 +151,7 @@ jobs:
 
   deploy-celery-beat:
     runs-on: ${{ vars.RUNS_ON }}
+    needs: [run-migrations]
     steps:
       - uses: actions/checkout@v4
         with:
