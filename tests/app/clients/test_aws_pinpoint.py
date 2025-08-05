@@ -331,3 +331,26 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_successful(aws_pinpoint
     )
 
     assert result == expected
+
+
+def test_translate_delivery_status_pinpoint_sms_voice_v2_missing_required_fields(aws_pinpoint_client, mocker):
+    """Test translate_delivery_status raises NonRetryableException when required V2 fields are missing"""
+
+    mock_feature_flag = mocker.Mock(FeatureFlag)
+    mock_feature_flag.value = 'PINPOINT_SMS_VOICE_V2'
+    mocker.patch('app.feature_flags.os.getenv', return_value='True')
+
+    # V2 delivery status message with data but missing required fields (eventType and messageId)
+    v2_delivery_message = {
+        'messageStatus': 'DELIVERED',
+        'destinationPhoneNumber': '+1234567890',
+        'totalMessagePrice': 0.075,
+        'totalMessageParts': 1,
+        'eventTimestamp': 1722427200000,
+        'sourcePhoneNumber': '+19876543210',
+        'isoCountryCode': 'US',
+        'messageType': 'TRANSACTIONAL',
+    }
+
+    with pytest.raises(NonRetryableException):
+        aws_pinpoint_client.translate_delivery_status(v2_delivery_message)
