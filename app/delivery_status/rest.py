@@ -6,7 +6,7 @@ from app import aws_pinpoint_client
 from app.celery.exceptions import NonRetryableException
 from app.clients.sms import SmsStatusRecord
 from app.celery.process_delivery_status_result_tasks import get_notification_platform_status
-from app.celery.process_pinpoint_v2_receipts_tasks import process_pinpoint_v2_receipt_results
+from app.celery.process_pinpoint_v2_receipt_tasks import process_pinpoint_v2_receipt_results
 from app.config import QueueNames
 
 

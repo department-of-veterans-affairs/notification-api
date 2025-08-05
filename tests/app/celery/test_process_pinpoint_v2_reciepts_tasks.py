@@ -3,7 +3,7 @@ from datetime import datetime
 
 from app.clients.sms import SmsStatusRecord
 from app.constants import PINPOINT_PROVIDER, STATUS_REASON_RETRYABLE
-from app.celery.process_pinpoint_v2_receipts_tasks import process_pinpoint_v2_receipt_results
+from app.celery.process_pinpoint_v2_receipt_tasks import process_pinpoint_v2_receipt_results
 
 
 class TestProcessPinpointV2ReceiptResults:
