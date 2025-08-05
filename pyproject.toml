@@ -52,7 +52,7 @@ twilio = "*"
 Unidecode = "*"
 validatesns = "*"
 Werkzeug = "*"
-notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git", branch="218-template-rendering"}
+notification-utils = {git = "https://github.com/department-of-veterans-affairs/notification-utils.git", branch="248-jinja2"}
 
 [tool.poetry.group.test]
 optional = true

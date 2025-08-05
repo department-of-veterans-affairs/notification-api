@@ -2368,7 +2368,7 @@ files = [
 
 [[package]]
 name = "notification-utils"
-version = "2.6.0"
+version = "2.6.1"
 description = "Shared python code for VA Notify. Forked from https://github.com/cds-snc/notification-utils"
 optional = false
 python-versions = "*"
@@ -2398,8 +2398,8 @@ statsd = ">=4.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
-reference = "218-template-rendering"
-resolved_reference = "cf8c83428cd13d0e9bc87217a4486687d1434177"
+reference = "248-jinja2"
+resolved_reference = "21c58e33aedb11947f33bb14f66fc8a6860f1385"
 
 [[package]]
 name = "notifications-python-client"
@@ -4130,4 +4130,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.10"
-content-hash = "728301ec62a00171a905aa21ae97f012c107be8c085d408c2f8f4e8da6a07cb6"
+content-hash = "27698dbea905f5be7c1f82230c8628717c4d0721d2482cd31d6d69cc3e0262da"
