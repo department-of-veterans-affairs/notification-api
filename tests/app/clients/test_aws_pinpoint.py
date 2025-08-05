@@ -1,9 +1,15 @@
-import pytest
+from datetime import datetime
+
 import botocore
+from app.feature_flags import FeatureFlag
+import pytest
 
 from app.celery.exceptions import NonRetryableException, RetryableException
+from app.clients.sms import SmsStatusRecord
 from app.clients.sms.aws_pinpoint import AwsPinpointClient, AwsPinpointException
+from app.constants import NOTIFICATION_DELIVERED, PINPOINT_PROVIDER
 from app.exceptions import InvalidProviderException
+
 
 TEST_CONTENT = 'test content'
 TEST_ID = 'some-app-id'
@@ -291,3 +297,37 @@ def test_send_sms_post_message_request_raises_aws_exception(mocker, aws_pinpoint
     # Ensure it is converted to AwsPinpointException for exception handling in _handle_delivery_failure
     with pytest.raises(AwsPinpointException):
         aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
+
+
+def test_translate_delivery_status_pinpoint_sms_voice_v2_successful(aws_pinpoint_client, mocker):
+    """Test translate_delivery_status for PinpointSMSVoiceV2 format with successful delivery"""
+
+    mock_feature_flag = mocker.Mock(FeatureFlag)
+    mock_feature_flag.value = 'PINPOINT_SMS_VOICE_V2'
+    mocker.patch('app.feature_flags.os.getenv', return_value='True')
+
+    # Sample V2 delivery status message
+    v2_delivery_message = {
+        'eventType': '_SMS.SUCCESS',
+        'messageId': 'test-message-id-123',
+        'messageStatus': 'DELIVERED',
+        'destinationPhoneNumber': '+1234567890',
+        'totalMessagePrice': 0.075,
+        'totalMessageParts': 1,
+        'eventTimestamp': 1722427200000,
+    }
+
+    result = aws_pinpoint_client.translate_delivery_status(v2_delivery_message)
+
+    expected = SmsStatusRecord(
+        payload=None,
+        reference='test-message-id-123',
+        status=NOTIFICATION_DELIVERED,
+        status_reason=None,
+        provider=PINPOINT_PROVIDER,
+        message_parts=1,
+        price_millicents=75,
+        provider_updated_at=datetime(2024, 7, 31, 12, 0),
+    )
+
+    assert result == expected
