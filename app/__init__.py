@@ -238,6 +238,7 @@ def register_blueprint(application):
     from app.inbound_sms.rest import inbound_sms as inbound_sms_blueprint
     from app.authentication.auth import (
         validate_admin_auth,
+        validate_pinpoint_firehose_api_key,
         do_not_validate_auth,
     )
     from app.billing.rest import billing_blueprint
@@ -281,7 +282,7 @@ def register_blueprint(application):
     communication_item_blueprint.before_request(validate_admin_auth)
     application.register_blueprint(communication_item_blueprint)
 
-    # pinpoint_v2_blueprint.before_request(validate_pinpoint_firehose_api_key)
+    pinpoint_v2_blueprint.before_request(validate_pinpoint_firehose_api_key)
     application.register_blueprint(pinpoint_v2_blueprint)
 
 
