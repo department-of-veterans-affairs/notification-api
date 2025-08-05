@@ -67,7 +67,7 @@ jobs:
     with:
       environment: ${{ inputs.environment }}
       # smoke is 'false' in prod; 'true' otherwise
-      smoke: ${{ inputs.environment == 'prod' && 'false' || 'false' }}
+      smoke: ${{ inputs.environment == 'prod' && 'false' || 'true' }}
     secrets: inherit
 
   deploy-api:
