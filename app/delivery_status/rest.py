@@ -45,6 +45,7 @@ def handler():
         process_pinpoint_v2_receipt_results.apply_async(
             [notification_platform_status, record.get('eventTimestamp')],
             queue=QueueNames.NOTIFY,
+            serializer='pickle',
         )
 
     return jsonify({'status': 'received'}), 200
