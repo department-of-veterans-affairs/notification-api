@@ -7,7 +7,16 @@ import pytest
 from app.celery.exceptions import NonRetryableException, RetryableException
 from app.clients.sms import SmsStatusRecord
 from app.clients.sms.aws_pinpoint import AwsPinpointClient, AwsPinpointException
-from app.constants import NOTIFICATION_DELIVERED, PINPOINT_PROVIDER
+from app.constants import (
+    NOTIFICATION_DELIVERED,
+    NOTIFICATION_PERMANENT_FAILURE,
+    NOTIFICATION_TEMPORARY_FAILURE,
+    PINPOINT_PROVIDER,
+    STATUS_REASON_BLOCKED,
+    STATUS_REASON_INVALID_NUMBER,
+    STATUS_REASON_RETRYABLE,
+    STATUS_REASON_UNDELIVERABLE,
+)
 from app.exceptions import InvalidProviderException
 
 
@@ -308,7 +317,7 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_successful(aws_pinpoint
 
     # Sample V2 delivery status message
     v2_delivery_message = {
-        'eventType': '_SMS.SUCCESS',
+        'eventType': 'TEXT_SUCCESSFUL',
         'messageId': 'test-message-id-123',
         'messageStatus': 'DELIVERED',
         'destinationPhoneNumber': '+1234567890',
@@ -342,7 +351,7 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_missing_required_fields
 
     # V2 delivery status message with data but missing required fields (eventType and messageId)
     v2_delivery_message = {
-        'messageStatus': 'DELIVERED',
+        'messageStatus': 'TEXT_DELIVERED',
         'destinationPhoneNumber': '+1234567890',
         'totalMessagePrice': 0.075,
         'totalMessageParts': 1,
@@ -354,3 +363,58 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_missing_required_fields
 
     with pytest.raises(NonRetryableException):
         aws_pinpoint_client.translate_delivery_status(v2_delivery_message)
+
+
+# Test for PointpointSMSVoiceV2 event type and current status mapping
+# Tests pass, but we need to ensure that the event type and status mapping is correct.
+# This does not include all possible event types, but covers the main ones.
+# https://docs.aws.amazon.com/sms-voice/latest/userguide/configuration-sets-event-types.html
+@pytest.mark.skip(reason='##1829 - Skipping until we can confirm the event type and status mapping is correct')
+@pytest.mark.parametrize(
+    'event_type,message_status,expected_status,expected_status_reason',
+    [
+        ('TEXT_DELIVERED', 'DELIVERED', NOTIFICATION_DELIVERED, None),
+        ('TEXT_SUCCESSFUL', 'SUCCESSFUL', NOTIFICATION_DELIVERED, None),
+        ('TEXT_BLOCKED', 'BLOCKED', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_BLOCKED),
+        ('TEXT_INVALID', 'INVALID', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_INVALID_NUMBER),
+        ('TEXT_CARRIER_BLOCKED', 'CARRIER_BLOCKED', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_BLOCKED),
+        ('TEXT_SPAM', 'SPAM', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_BLOCKED),
+        ('TEXT_UNREACHABLE', 'UNREACHABLE', NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE),
+        ('TEXT_UNKNOWN', 'UNKNOWN', NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE),
+        ('TEXT_INVALID_MESSAGE', 'INVALID_MESSAGE', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_UNDELIVERABLE),
+    ],
+)
+def test_translate_delivery_status_pinpoint_sms_voice_v2_additional_events(
+    aws_pinpoint_client, mocker, event_type, message_status, expected_status, expected_status_reason
+):
+    """Test translate_delivery_status for additional PinpointSMSVoiceV2 event types"""
+
+    mock_feature_flag = mocker.Mock(FeatureFlag)
+    mock_feature_flag.value = 'PINPOINT_SMS_VOICE_V2'
+    mocker.patch('app.feature_flags.os.getenv', return_value='True')
+
+    # Sample V2 delivery status message with various event types
+    v2_delivery_message = {
+        'eventType': event_type,
+        'messageId': 'test-message-id-456',
+        'messageStatus': message_status,
+        'destinationPhoneNumber': '+1234567890',
+        'totalMessagePrice': 0.05,
+        'totalMessageParts': 1,
+        'eventTimestamp': 1722427200000,
+    }
+
+    result = aws_pinpoint_client.translate_delivery_status(v2_delivery_message)
+
+    expected = SmsStatusRecord(
+        payload=None,
+        reference='test-message-id-456',
+        status=expected_status,
+        status_reason=expected_status_reason,
+        provider=PINPOINT_PROVIDER,
+        message_parts=1,
+        price_millicents=50,
+        provider_updated_at=datetime(2024, 7, 31, 12, 0),
+    )
+
+    assert result == expected

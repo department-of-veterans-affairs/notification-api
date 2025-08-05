@@ -41,6 +41,8 @@ fileignoreconfig:
   checksum: 75ce4ecbb6ef86dd06db54dcf66329b7749ff9024c7d88c218f43033d03deb73
 - filename: tests/app/conftest.py
   checksum: 2703a8d6533ad7fc55650dfd22e72d483df1cdd7226b8368776faaabdb0885f4
+- filename: tests/app/clients/test_aws_pinpoint.py
+  checksum: df5d55fa1f3c06c82dc2a21f5174cb2273815708250ace045fab0069599966cd
 - filename: tests/app/dao/test_api_key_dao.py
   checksum: 85adfc0462c0354d7078fbc21feeeba1b49a0fefd3463f7a830a9e7812b6caf8
 - filename: tests/app/db.py
