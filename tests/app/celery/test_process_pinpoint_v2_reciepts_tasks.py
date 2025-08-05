@@ -37,8 +37,8 @@ class TestProcessPinpointV2ReceiptResults:
 
     def test_process_receipt_results_calls_sms_status_update(self, mocker, sample_sms_status_record):
         """Test that non-retryable status records call sms_status_update"""
-        mock_sms_status_update = mocker.patch('app.celery.process_pinpoint_v2_receipts_tasks.sms_status_update')
-        mock_sms_attempt_retry = mocker.patch('app.celery.process_pinpoint_v2_receipts_tasks.sms_attempt_retry')
+        mock_sms_status_update = mocker.patch('app.celery.process_pinpoint_v2_receipt_tasks.sms_status_update')
+        mock_sms_attempt_retry = mocker.patch('app.celery.process_pinpoint_v2_receipt_tasks.sms_attempt_retry')
 
         event_timestamp = '1722427200000'
 
@@ -49,8 +49,8 @@ class TestProcessPinpointV2ReceiptResults:
 
     def test_process_receipt_results_calls_sms_attempt_retry(self, mocker, retryable_sms_status_record):
         """Test that retryable status records call sms_attempt_retry"""
-        mock_sms_status_update = mocker.patch('app.celery.process_pinpoint_v2_receipts_tasks.sms_status_update')
-        mock_sms_attempt_retry = mocker.patch('app.celery.process_pinpoint_v2_receipts_tasks.sms_attempt_retry')
+        mock_sms_status_update = mocker.patch('app.celery.process_pinpoint_v2_receipt_tasks.sms_status_update')
+        mock_sms_attempt_retry = mocker.patch('app.celery.process_pinpoint_v2_receipt_tasks.sms_attempt_retry')
 
         event_timestamp = '1722427260000'
 
@@ -61,8 +61,8 @@ class TestProcessPinpointV2ReceiptResults:
 
     def test_process_receipt_results_with_different_status_reasons(self, mocker):
         """Test that different status reasons are handled correctly"""
-        mock_sms_status_update = mocker.patch('app.celery.process_pinpoint_v2_receipts_tasks.sms_status_update')
-        mock_sms_attempt_retry = mocker.patch('app.celery.process_pinpoint_v2_receipts_tasks.sms_attempt_retry')
+        mock_sms_status_update = mocker.patch('app.celery.process_pinpoint_v2_receipt_tasks.sms_status_update')
+        mock_sms_attempt_retry = mocker.patch('app.celery.process_pinpoint_v2_receipt_tasks.sms_attempt_retry')
 
         record_none = SmsStatusRecord(
             payload=None,
