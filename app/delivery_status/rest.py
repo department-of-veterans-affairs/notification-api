@@ -7,6 +7,7 @@ from app.celery.exceptions import NonRetryableException
 from app.clients.sms import SmsStatusRecord
 from app.celery.process_delivery_status_result_tasks import get_notification_platform_status
 from app.celery.process_pinpoint_v2_receipts_tasks import process_pinpoint_v2_receipt_results
+from app.config import QueueNames
 
 
 pinpoint_v2_blueprint = Blueprint('pinpoint_v2', __name__)
@@ -41,6 +42,9 @@ def handler():
                 str(e),
             )
             continue
-        process_pinpoint_v2_receipt_results.apply_async([notification_platform_status, record.get('eventTimestamp')])
+        process_pinpoint_v2_receipt_results.apply_async(
+            [notification_platform_status, record.get('eventTimestamp')],
+            queue=QueueNames.NOTIFY,
+        )
 
     return jsonify({'status': 'received'}), 200
