@@ -178,8 +178,13 @@ def send_email_to_provider(notification: Notification):
 
 def _get_email_content(notification: Notification, personalization: dict[str, str]) -> tuple[str, str, str]:
     """
-    Return the HTML body, plain text body, and subject of an e-mail notification using the revised template
-    rendering implementation.
+    Return the HTML body, plain text body, and subject of an e-mail notification using the revised template rendering
+    implementation.
+
+    Calls to make_substitutions, make_substitutions_in_subject, and render_notify_markdown could raise TypeError or
+    ValueError if there are missing personalization values.  However, exceptions are not caught here because upstream
+    code should have validated that all required value are present.  An exception in this function indicates a
+    programming error.
     """
 
     if notification.template.html:
