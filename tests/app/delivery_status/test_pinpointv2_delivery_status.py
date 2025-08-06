@@ -3,7 +3,9 @@ import json
 from datetime import datetime
 
 import pytest
+
 from flask import url_for
+import pytest
 
 from app.clients.sms import SmsStatusRecord
 from app.constants import PINPOINT_PROVIDER

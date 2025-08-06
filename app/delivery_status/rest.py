@@ -9,8 +9,11 @@ from app.celery.process_delivery_status_result_tasks import get_notification_pla
 from app.celery.process_pinpoint_v2_receipt_tasks import process_pinpoint_v2_receipt_results
 from app.config import QueueNames
 
+from app.errors import register_errors
+
 
 pinpoint_v2_blueprint = Blueprint('pinpoint_v2', __name__)
+register_errors(pinpoint_v2_blueprint)
 
 
 @pinpoint_v2_blueprint.route('/delivery-status/sms/pinpointv2', methods=['POST'])
