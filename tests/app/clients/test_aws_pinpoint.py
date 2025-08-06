@@ -369,7 +369,7 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_missing_required_fields
 # Tests pass, but we need to ensure that the event type and status mapping is correct.
 # This does not include all possible event types, but covers the main ones.
 # https://docs.aws.amazon.com/sms-voice/latest/userguide/configuration-sets-event-types.html
-@pytest.mark.skip(reason='##1829 - Skipping until we can confirm the event type and status mapping is correct')
+@pytest.mark.skip(reason='#1829 - Skipping until we can confirm the event type and status mapping is correct')
 @pytest.mark.parametrize(
     'event_type,message_status,expected_status,expected_status_reason',
     [
