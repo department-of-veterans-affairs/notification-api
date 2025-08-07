@@ -32,10 +32,12 @@ def handler():
     records = request_data.get('records', [])
 
     for record in records:
+        data = record['data']
+        decoded_record_data = json.loads(base64.b64decode(data).decode('utf-8'))
+
+        current_app.logger.debug('PinpointV2 decoded record data: %s', decoded_record_data)
+
         try:
-            data = record['data']
-            decoded_record_data = json.loads(base64.b64decode(data).decode('utf-8'))
-            current_app.logger.debug('PinpointV2 decoded record data: %s', decoded_record_data)
             notification_platform_status: SmsStatusRecord = get_notification_platform_status(
                 aws_pinpoint_client, decoded_record_data
             )
