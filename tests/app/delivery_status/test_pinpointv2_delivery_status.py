@@ -14,9 +14,9 @@ class TestPinpointV2DeliveryStatus:
     @pytest.fixture
     def pinpoint_sms_voice_v2_data(self):
         """Fixture providing sample PinpointSMSVoiceV2 data for testing"""
-        pinpoint_records = {
-            'Records': [
-                {
+        raw_records = [
+            {
+                'data': {
                     'eventType': 'TEXT_SUCCESSFUL',
                     'eventVersion': '1.0',
                     'eventTimestamp': 1722427200000,
@@ -36,8 +36,10 @@ class TestPinpointV2DeliveryStatus:
                     'totalMessageParts': 1,
                     'totalMessagePrice': 0.075,
                     'totalCarrierFee': 0.0,
-                },
-                {
+                }
+            },
+            {
+                'data': {
                     'eventType': 'TEXT_SUCCESSFUL',
                     'eventVersion': '1.0',
                     'eventTimestamp': 1722427260000,
@@ -57,21 +59,25 @@ class TestPinpointV2DeliveryStatus:
                     'totalMessageParts': 1,
                     'totalMessagePrice': 0.075,
                     'totalCarrierFee': 0.0,
-                },
-            ]
-        }
+                }
+            },
+        ]
 
-        # Encode the data as it would come from firehose (base64 encoded in SNS message)
-        encoded_data = base64.b64encode(json.dumps(pinpoint_records).encode('utf-8')).decode('utf-8')
+        # Create encoded records with only the 'data' field base64 encoded
+        encoded_records = []
+        for record in raw_records:
+            encoded_record = record.copy()
+            encoded_record['data'] = base64.b64encode(json.dumps(record['data']).encode('utf-8')).decode('utf-8')
+            encoded_records.append(encoded_record)
 
-        return {'raw_records': pinpoint_records, 'sns_payload': {'Message': encoded_data}}
+        return {'raw_records': raw_records, 'sns_payload': {'records': encoded_records}}
 
     def test_post_delivery_status_no_records(self, client, mocker):
         mocker.patch('app.delivery_status.rest.process_pinpoint_v2_receipt_results.apply_async')
         mocker.patch('app.delivery_status.rest.get_notification_platform_status')
 
-        post_json = {'Message': base64.b64encode(json.dumps({'Records': []}).encode('utf-8')).decode('utf-8')}
-        response = client.post(url_for('pinpoint_v2.handler'), json=post_json)
+        request_payload = {'records': []}
+        response = client.post(url_for('pinpoint_v2.handler'), json=request_payload)
 
         assert response.status_code == 200
         assert response.json == {'status': 'received'}
@@ -134,45 +140,82 @@ class TestPinpointV2DeliveryStatus:
         mock_celery_task = mocker.patch('app.delivery_status.rest.process_pinpoint_v2_receipt_results.apply_async')
         mock_logger = mocker.patch('app.delivery_status.rest.current_app.logger')
 
-        # Use the raw_records and modify them
-        modified_records = pinpoint_sms_voice_v2_data['raw_records'].copy()
-
-        # Make the second record invalid by removing required fields
-        modified_records['Records'][1] = {
-            'eventVersion': '1.0',
-            'eventTimestamp': 1722427260000,
-            'isFinal': True,
-            # Missing eventType and messageId - this will cause validation to fail
-        }
-
-        # Add a third valid record
-        modified_records['Records'].append(
+        # Create a mix of valid and invalid records
+        records = [
+            # Valid record 1
             {
-                'eventType': 'TEXT_SUCCESSFUL',
-                'eventVersion': '1.0',
-                'eventTimestamp': 1722427320000,
-                'isFinal': True,
-                'originationPhoneNumber': '+12065550152',
-                'destinationPhoneNumber': '+15559876543',
-                'isoCountryCode': 'US',
-                'mcc': '310',
-                'mnc': '800',
-                'messageId': 'test-message-id-789',
-                'messageRequestTimestamp': 1722427319000,
-                'messageEncoding': 'GSM',
-                'messageType': 'TRANSACTIONAL',
-                'messageStatus': 'DELIVERED',
-                'messageStatusDescription': 'Message has been accepted by phone carrier',
-                'context': {'source': 'test-source'},
-                'totalMessageParts': 1,
-                'totalMessagePrice': 0.075,
-                'totalCarrierFee': 0.0,
-            }
-        )
+                'data': base64.b64encode(
+                    json.dumps(
+                        {
+                            'eventType': 'TEXT_SUCCESSFUL',
+                            'eventVersion': '1.0',
+                            'eventTimestamp': 1722427200000,
+                            'isFinal': True,
+                            'originationPhoneNumber': '+12065550152',
+                            'destinationPhoneNumber': '+15551234567',
+                            'isoCountryCode': 'US',
+                            'mcc': '310',
+                            'mnc': '800',
+                            'messageId': 'test-message-id-123',
+                            'messageRequestTimestamp': 1722427199000,
+                            'messageEncoding': 'GSM',
+                            'messageType': 'TRANSACTIONAL',
+                            'messageStatus': 'DELIVERED',
+                            'messageStatusDescription': 'Message has been accepted by phone carrier',
+                            'context': {'source': 'test-source'},
+                            'totalMessageParts': 1,
+                            'totalMessagePrice': 0.075,
+                            'totalCarrierFee': 0.0,
+                        }
+                    ).encode('utf-8')
+                ).decode('utf-8')
+            },
+            # Invalid record - missing eventType and messageId
+            {
+                'data': base64.b64encode(
+                    json.dumps(
+                        {
+                            'eventVersion': '1.0',
+                            'eventTimestamp': 1722427260000,
+                            'isFinal': True,
+                            # Missing eventType and messageId - this will cause validation to fail
+                        }
+                    ).encode('utf-8')
+                ).decode('utf-8')
+            },
+            # Valid record 2
+            {
+                'data': base64.b64encode(
+                    json.dumps(
+                        {
+                            'eventType': 'TEXT_SUCCESSFUL',
+                            'eventVersion': '1.0',
+                            'eventTimestamp': 1722427320000,
+                            'isFinal': True,
+                            'originationPhoneNumber': '+12065550152',
+                            'destinationPhoneNumber': '+15559876543',
+                            'isoCountryCode': 'US',
+                            'mcc': '310',
+                            'mnc': '800',
+                            'messageId': 'test-message-id-789',
+                            'messageRequestTimestamp': 1722427319000,
+                            'messageEncoding': 'GSM',
+                            'messageType': 'TRANSACTIONAL',
+                            'messageStatus': 'DELIVERED',
+                            'messageStatusDescription': 'Message has been accepted by phone carrier',
+                            'context': {'source': 'test-source'},
+                            'totalMessageParts': 1,
+                            'totalMessagePrice': 0.075,
+                            'totalCarrierFee': 0.0,
+                        }
+                    ).encode('utf-8')
+                ).decode('utf-8')
+            },
+        ]
 
-        modified_payload = {'Message': base64.b64encode(json.dumps(modified_records).encode('utf-8')).decode('utf-8')}
+        request_payload = {'records': records}
 
-        response = client.post(url_for('pinpoint_v2.handler'), json=modified_payload)
+        response = client.post(url_for('pinpoint_v2.handler'), json=request_payload)
 
         assert response.status_code == 200
         assert response.json == {'status': 'received'}

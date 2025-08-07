@@ -22,28 +22,30 @@ def handler():
     Returns:
         tuple: JSON response body and HTTP status code 200.
     """
-
     request_data = request.get_json()
-    decoded_json = json.loads(base64.b64decode(request_data['Message']).decode('utf-8'))
 
-    current_app.logger.debug('PinpointV2 delivery-status Request: %s', decoded_json)
+    current_app.logger.debug('PinpointV2 delivery-status request: %s', request_data)
 
-    records = decoded_json.get('Records', [])
+    records = request_data.get('records', [])
 
     for record in records:
         try:
+            data = record['data']
+            decoded_record_data = json.loads(base64.b64decode(data).decode('utf-8'))
+            current_app.logger.debug('PinpointV2 decoded record data: %s', decoded_record_data)
             notification_platform_status: SmsStatusRecord = get_notification_platform_status(
-                aws_pinpoint_client, record
+                aws_pinpoint_client, decoded_record_data
             )
         except NonRetryableException as e:
             current_app.logger.error(
                 'Validation for Pinpoint SMS Voice V2 records failed: %s | Error: %s',
-                record.get('messageId', 'unknown messageId'),
+                decoded_record_data.get('messageId', 'unknown messageId'),
                 str(e),
             )
             continue
+
         process_pinpoint_v2_receipt_results.apply_async(
-            [notification_platform_status, record.get('eventTimestamp')],
+            [notification_platform_status, decoded_record_data.get('eventTimestamp')],
             queue=QueueNames.NOTIFY,
             serializer='pickle',
         )
