@@ -1,16 +1,16 @@
 import base64
 import json
+import time
+
 from flask import Blueprint, current_app, jsonify, request
 
 from app import aws_pinpoint_client
 from app.celery.exceptions import NonRetryableException
-from app.clients.sms import SmsStatusRecord
 from app.celery.process_delivery_status_result_tasks import get_notification_platform_status
 from app.celery.process_pinpoint_v2_receipt_tasks import process_pinpoint_v2_receipt_results
+from app.clients.sms import SmsStatusRecord
 from app.config import QueueNames
-
 from app.errors import register_errors
-
 
 pinpoint_v2_blueprint = Blueprint('pinpoint_v2', __name__)
 register_errors(pinpoint_v2_blueprint)
@@ -53,4 +53,9 @@ def handler():
             serializer='pickle',
         )
 
-    return jsonify({'status': 'received'}), 200
+    return jsonify(
+        {
+            'requestId': request_data.get('requestId'),
+            'timestamp': str(int(time.time() * 1000)),
+        }
+    ), 200
