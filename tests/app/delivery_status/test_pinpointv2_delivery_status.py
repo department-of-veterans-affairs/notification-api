@@ -77,7 +77,9 @@ class TestPinpointV2DeliveryStatus:
         mocker.patch('app.delivery_status.rest.get_notification_platform_status')
 
         request_payload = {'records': []}
-        response = client.post(url_for('pinpoint_v2.handler'), json=request_payload)
+        response = client.post(
+            url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'dev')]
+        )
 
         assert response.status_code == 200
         assert response.json == {'status': 'received'}
@@ -93,7 +95,9 @@ class TestPinpointV2DeliveryStatus:
 
         request_payload = pinpoint_sms_voice_v2_data['sns_payload']
 
-        response = client.post(url_for('pinpoint_v2.handler'), json=request_payload)
+        response = client.post(
+            url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'dev')]
+        )
 
         expected_record_1 = SmsStatusRecord(
             payload=None,
@@ -215,7 +219,9 @@ class TestPinpointV2DeliveryStatus:
 
         request_payload = {'records': records}
 
-        response = client.post(url_for('pinpoint_v2.handler'), json=request_payload)
+        response = client.post(
+            url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'dev')]
+        )
 
         assert response.status_code == 200
         assert response.json == {'status': 'received'}
