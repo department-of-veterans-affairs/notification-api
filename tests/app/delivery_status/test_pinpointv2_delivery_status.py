@@ -4,6 +4,7 @@ from datetime import datetime
 
 from flask import url_for
 import pytest
+from freezegun import freeze_time
 
 from app.clients.sms import SmsStatusRecord
 from app.constants import PINPOINT_PROVIDER
@@ -72,18 +73,20 @@ class TestPinpointV2DeliveryStatus:
 
         return {'raw_records': raw_records, 'sns_payload': {'records': encoded_records}}
 
+    @freeze_time('2025-08-07 10:30:00')
     def test_post_delivery_status_no_records(self, client, mocker):
         mocker.patch('app.delivery_status.rest.process_pinpoint_v2_receipt_results.apply_async')
         mocker.patch('app.delivery_status.rest.get_notification_platform_status')
 
-        request_payload = {'records': []}
+        request_payload = {'records': [], 'requestId': 'test-request-123'}
         response = client.post(
             url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'dev')]
         )
 
         assert response.status_code == 200
-        assert response.json == {'status': 'received'}
+        assert response.json == {'requestId': 'test-request-123', 'timestamp': '1754562600000'}
 
+    @freeze_time('2025-08-07 10:30:00')
     def test_post_delivery_status_multiple_records(self, client, mocker, pinpoint_sms_voice_v2_data):
         """Test the happy path with expected PinpointSMSVoiceV2 data from firehose"""
 
@@ -94,6 +97,7 @@ class TestPinpointV2DeliveryStatus:
         mocker.patch('app.feature_flags.os.getenv', return_value='True')
 
         request_payload = pinpoint_sms_voice_v2_data['sns_payload']
+        request_payload['requestId'] = 'test-request-456'
 
         response = client.post(
             url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'dev')]
@@ -122,7 +126,7 @@ class TestPinpointV2DeliveryStatus:
         )
 
         assert response.status_code == 200
-        assert response.json == {'status': 'received'}
+        assert response.json == {'requestId': 'test-request-456', 'timestamp': '1754562600000'}
 
         assert mock_celery_task.call_count == 2
 
@@ -134,6 +138,7 @@ class TestPinpointV2DeliveryStatus:
         assert second_call_args[0] == expected_record_2
         assert second_call_args[1] == 1722427260000
 
+    @freeze_time('2025-08-07 10:30:00')
     def test_post_delivery_status_with_validation_errors(self, client, mocker, pinpoint_sms_voice_v2_data, caplog):
         """Test that validation errors for individual records don't stop processing of other records"""
 
@@ -217,14 +222,14 @@ class TestPinpointV2DeliveryStatus:
             },
         ]
 
-        request_payload = {'records': records}
+        request_payload = {'records': records, 'requestId': 'test-request-789'}
 
         response = client.post(
             url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'dev')]
         )
 
         assert response.status_code == 200
-        assert response.json == {'status': 'received'}
+        assert response.json == {'requestId': 'test-request-789', 'timestamp': '1754562600000'}
 
         # Should have processed 2 valid records, skipped 1 invalid
         assert mock_celery_task.call_count == 2
