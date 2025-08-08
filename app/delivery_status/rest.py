@@ -33,6 +33,7 @@ def handler():
 
     for record in records:
         try:
+            # TODO #1832 - Handle sending 400 if Firehose need to retry
             data = record.get('data')
             decoded_record_data = json.loads(base64.b64decode(data).decode('utf-8'))
         except (KeyError, ValueError, json.JSONDecodeError, Exception) as e:
