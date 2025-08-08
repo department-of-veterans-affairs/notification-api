@@ -237,7 +237,55 @@ class TestPinpointV2DeliveryStatus:
         # Check that error was logged with unknown messageId
         assert mock_logger.error.call_count == 1
         assert mock_logger.error.call_args[0] == (
-            'Validation for Pinpoint SMS Voice V2 records failed: %s | Error: %s',
+            'Validation for PinpointV2 delivery-status records failed: %s | Error: %s',
             'unknown messageId',
             'Invalid PinpointSMSVoiceV2 message format, unable to translate delivery status',
         )
+
+    @freeze_time('2025-08-07 10:30:00')
+    def test_post_delivery_status_with_decoding_errors(self, client, mocker):
+        """Test that records with decoding errors are skipped and logged"""
+
+        mock_celery_task = mocker.patch('app.delivery_status.rest.process_pinpoint_v2_receipt_results.apply_async')
+        mock_get_notification_platform_status = mocker.patch(
+            'app.delivery_status.rest.get_notification_platform_status'
+        )
+        mock_logger = mocker.patch('app.delivery_status.rest.current_app.logger')
+
+        records = [
+            # Record missing 'data' field
+            {'other_field': 'value'},
+            # Record with invalid base64
+            {'data': 'invalid-base64'},
+            # Record with valid base64 but invalid JSON
+            {'data': base64.b64encode(b'invalid json').decode('utf-8')},
+        ]
+
+        request_payload = {'records': records, 'requestId': 'test-request-123'}
+
+        response = client.post(
+            url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'dev')]
+        )
+
+        assert response.status_code == 200
+        assert response.json == {'requestId': 'test-request-123', 'timestamp': '1754562600000'}
+
+        assert mock_logger.error.call_count == 3
+
+        error_calls = mock_logger.error.call_args_list
+
+        assert error_calls[0][0][0] == 'Failed to decode PinpointV2 delivery-status record data: %s | Error: %s'
+        assert error_calls[0][0][1] == {'other_field': 'value'}
+
+        assert error_calls[1][0][0] == 'Failed to decode PinpointV2 delivery-status record data: %s | Error: %s'
+        assert error_calls[1][0][1] == {'data': 'invalid-base64'}
+        assert 'Invalid base64-encoded string' in str(error_calls[1][0][2]) or 'Incorrect padding' in str(
+            error_calls[1][0][2]
+        )
+
+        assert error_calls[2][0][0] == 'Failed to decode PinpointV2 delivery-status record data: %s | Error: %s'
+        assert error_calls[2][0][1] == {'data': base64.b64encode(b'invalid json').decode('utf-8')}
+        assert 'Expecting value' in str(error_calls[2][0][2])
+
+        assert mock_celery_task.call_count == 0
+        assert mock_get_notification_platform_status.call_count == 0

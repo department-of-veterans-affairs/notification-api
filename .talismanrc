@@ -8,7 +8,7 @@ fileignoreconfig:
 - filename: app/dao/api_key_dao.py
   checksum: 41f293bd2fec0848acbf931cdb67d0a04e8aa6d0a898b15c1caed7d7d36d33db
 - filename: app/delivery_status/rest.py
-  checksum: 259a7a5f2b60597be36e34676bc35a9cc9f83a6efcfa038fc6de7d5ec769b78a
+  checksum: c41c997f21122c0290e69e03e7a43b968c85d2778088cdb87af027b18d4ecf93
 - filename: app/notifications/validators.py
   checksum: 88a4c4bc599d56b05dba3217ac8810b7c5d050ed2117b23b295f8eb180fcad2f
 - filename: app/schema_validation/__init__.py
@@ -58,7 +58,7 @@ fileignoreconfig:
 - filename: tests/app/db.py
   checksum: 01cc48ec42c0665091dd0ef8b8ee6430552344f0caa0c1c2b387b6adfdf5d62a
 - filename: tests/app/delivery_status/test_pinpointv2_delivery_status.py
-  checksum: e1f1561270cfcf67dc2c038f910f47eca64abffb213718345b7f24565ab921a0
+  checksum: a38445d5d7a10838c3e8ff193fd8e9ff8f66d849f01b411cac4ca8542d55a1d9
 - filename: tests/app/notifications/test_validators.py
   checksum: aee86b735d3ad99a75c7b51da6fae7d4c460cadb7b30f07a8252a0c810cebbd5
 - filename: tests/app/pii/test_pii.py

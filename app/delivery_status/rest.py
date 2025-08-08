@@ -32,10 +32,16 @@ def handler():
     records = request_data.get('records', [])
 
     for record in records:
-        data = record['data']
-        decoded_record_data = json.loads(base64.b64decode(data).decode('utf-8'))
+        try:
+            data = record.get('data')
+            decoded_record_data = json.loads(base64.b64decode(data).decode('utf-8'))
+        except (KeyError, ValueError, json.JSONDecodeError, Exception) as e:
+            current_app.logger.error(
+                'Failed to decode PinpointV2 delivery-status record data: %s | Error: %s', record, str(e)
+            )
+            continue
 
-        current_app.logger.debug('PinpointV2 decoded record data: %s', decoded_record_data)
+        current_app.logger.debug('PinpointV2 decoded PinpointV2 delivery-status record data: %s', decoded_record_data)
 
         try:
             notification_platform_status: SmsStatusRecord = get_notification_platform_status(
@@ -43,7 +49,7 @@ def handler():
             )
         except NonRetryableException as e:
             current_app.logger.error(
-                'Validation for Pinpoint SMS Voice V2 records failed: %s | Error: %s',
+                'Validation for PinpointV2 delivery-status records failed: %s | Error: %s',
                 decoded_record_data.get('messageId', 'unknown messageId'),
                 str(e),
             )
