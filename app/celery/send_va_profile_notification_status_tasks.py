@@ -55,7 +55,7 @@ def check_and_queue_va_profile_notification_status_callback(notification: Notifi
     autoretry_for=(AutoRetryException,),
     max_retries=60,
     retry_backoff=True,
-    retry_backoff_max=3600,
+    retry_backoff_max=300,
 )
 def send_notification_status_to_va_profile(notification_data: dict) -> None:
     """
