@@ -43,6 +43,9 @@ class WebhookCallbackStrategy(ServiceCallbackStrategyInterface):
         except RequestException as e:
             if not isinstance(e, HTTPError) or e.response.status_code >= 500:
                 statsd_client.incr(f'callback.webhook.{callback.callback_type}.retryable_error')
+                if 'vetext' in callback.url:
+                    current_app.logger.warning('Temporarily dropping retry attempts to vetext url: %s', callback.url)
+                    raise NonRetryableException(e)
                 raise RetryableException(e)
             else:
                 statsd_client.incr(f'callback.webhook.{callback.callback_type}.non_retryable_error')
