@@ -8,7 +8,7 @@ from app.celery.process_delivery_status_result_tasks import (
     sms_attempt_retry,
     sms_status_update,
 )
-from app.constants import STATUS_REASON_RETRYABLE
+from app.constants import CELERY_RETRY_BACKOFF_MAX, STATUS_REASON_RETRYABLE
 
 
 @notify_celery.task(
@@ -18,7 +18,7 @@ from app.constants import STATUS_REASON_RETRYABLE
     autoretry_for=(AutoRetryException,),
     max_retries=585,
     retry_backoff=True,
-    retry_backoff_max=300,
+    retry_backoff_max=CELERY_RETRY_BACKOFF_MAX,
 )
 @statsd(namespace='tasks')
 def process_pinpoint_v2_receipt_results(
