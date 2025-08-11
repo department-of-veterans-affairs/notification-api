@@ -1476,6 +1476,11 @@ def test_post_notification_encrypts_recipient_identifiers(
     sample_api_key,
     notification_type,
 ):
+    """
+    Note that the celery tasks that actually send a notification are mocked.  This is just a test
+    that new notification POST requests encrypt recipient identifiers in the database.
+    """
+
     mocker.patch('app.celery.lookup_va_profile_id_task.lookup_va_profile_id.apply_async')
     mocker.patch('app.celery.contact_information_tasks.lookup_contact_info.apply_async')
     mocker.patch.dict('os.environ', {'PII_ENABLED': 'True'})
@@ -1509,6 +1514,5 @@ def test_post_notification_encrypts_recipient_identifiers(
         assert va_profile_id != 'some va profile id', 'This value should be encrypted.'
         assert pii_va_Profile_id.get_pii() == 'some va profile id'
     finally:
-        stmt = delete(Notification).where(Notification.id == notification_id)
-        notify_db_session.session.execute(stmt)
+        notify_db_session.session.delete(notification)
         notify_db_session.session.commit()

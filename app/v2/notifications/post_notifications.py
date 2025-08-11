@@ -306,7 +306,6 @@ def process_notification_with_recipient_identifier(
     send_to_queue_for_recipient_info_based_on_recipient_identifier(
         notification=notification,
         id_type=form['recipient_identifier']['id_type'],
-        id_value=form['recipient_identifier']['id_value'],
         communication_item_id=template.communication_item_id,
     )
 

@@ -88,7 +88,7 @@ def persist_notification(
     billable_units=None,
     postage=None,
     template_postage=None,
-    recipient_identifier=None,
+    recipient_identifier: str | Pii = None,
     billing_code=None,
     sms_sender_id=None,
     callback_url=None,
@@ -328,7 +328,7 @@ def _get_delivery_task(
 
 
 def send_to_queue_for_recipient_info_based_on_recipient_identifier(
-    notification: Notification, id_type: str, id_value: str, communication_item_id: uuid
+    notification: Notification, id_type: str, communication_item_id: uuid
 ) -> None:
     """
     Create, enqueue, and asynchronously execute a Celery task to send a notification.
