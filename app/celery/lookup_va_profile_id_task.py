@@ -41,9 +41,8 @@ def lookup_va_profile_id(
     current_app.logger.info(f'Retrieving VA Profile ID from MPI for notification {notification_id}')
     notification = notifications_dao.get_notification_by_id(notification_id)
 
-    assert not notification.recipient_identifiers.get(IdentifierType.VA_PROFILE_ID.value), (
-        'The VA Profile ID is already known.'
-    )
+    if notification.recipient_identifiers.get(IdentifierType.VA_PROFILE_ID.value):
+        current_app.logger.warning('The VA Profile ID is already known.  This is an unnecessary lookup.')
 
     try:
         va_profile_id = mpi_client.get_va_profile_id(notification)
