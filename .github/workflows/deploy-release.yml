@@ -55,7 +55,7 @@ jobs:
     runs-on: ${{ vars.RUNS_ON }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.TAG }}
 
@@ -77,7 +77,7 @@ jobs:
     runs-on: ${{ vars.RUNS_ON }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.setup-environment.outputs.tag }}
       - name: Configure VAEC AWS Credentials
