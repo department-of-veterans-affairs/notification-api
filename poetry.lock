@@ -2399,7 +2399,7 @@ statsd = ">=4.0.1"
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
 reference = "248-jinja2"
-resolved_reference = "21c58e33aedb11947f33bb14f66fc8a6860f1385"
+resolved_reference = "229715bbc33b6eae36cc0fcf2ce118bc2ffe1d4b"
 
 [[package]]
 name = "notifications-python-client"
