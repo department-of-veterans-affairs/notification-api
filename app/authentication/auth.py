@@ -11,7 +11,6 @@ from flask_jwt_extended.exceptions import JWTExtendedException
 from jwt.exceptions import PyJWTError
 from notifications_python_client.authentication import decode_jwt_token, get_token_issuer
 from notifications_python_client.errors import TokenError, TokenDecodeError, TokenExpiredError, TokenIssuerError
-from notifications_utils import request_helper
 from sqlalchemy.exc import DataError
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -69,8 +68,6 @@ def do_not_validate_auth():
 
 
 def validate_admin_auth():
-    request_helper.check_proxy_header_before_request()
-
     auth_token = get_auth_token(request)
     client = __get_token_issuer(auth_token)
 
@@ -170,10 +167,11 @@ def requires_admin_auth():
 def validate_service_api_key_auth():  # noqa: C901
     # Set the id here for tracking purposes - becomes notification id
     g.request_id = str(uuid4())
-    request_helper.check_proxy_header_before_request()
 
     auth_token = get_auth_token(request)
     client = __get_token_issuer(auth_token)
+
+    g.service_id = client
 
     try:
         service = dao_fetch_service_by_id_with_api_keys(client)

@@ -43,6 +43,7 @@ from app.dao.templates_dao import dao_get_template_by_id
 from app.dao.users_dao import delete_model_user, delete_user_verify_codes
 from app.models import (
     PROVIDERS,
+    DeliveryStatusCallbackApiData,
     Notification,
     Organisation,
     Domain,
