@@ -109,7 +109,7 @@ class VAProfileClient:
         """
 
         # This value might be encrypted.  Unencrypted values should not be logged if PII_ENABLED is True.
-        initial_id = va_profile_id.value
+        initial_id = va_profile_id.id_value
 
         if is_feature_enabled(FeatureFlag.PII_ENABLED):
             # Decrypt the value.
@@ -143,7 +143,7 @@ class VAProfileClient:
             string representation of the most recently created mobile phone number, or None
         """
 
-        va_profile_id: int | None = contact_info.get("vaProfileId")
+        va_profile_id: int | None = contact_info.get('vaProfileId')
         if va_profile_id is not None and is_feature_enabled(FeatureFlag.PII_ENABLED):
             # Encrypt the value, which might be logged.
             va_profile_id = PiiVaProfileID(va_profile_id).get_encrypted_value()
