@@ -273,7 +273,7 @@ class VAProfileClient:
 
             va_profile_id_redacted = va_profile_id
             if is_feature_enabled(FeatureFlag.PII_ENABLED):
-                va_profile_id_redacted = PiiVaProfileID(va_profile_id).get_encrypted_value()
+                va_profile_id_redacted = PiiVaProfileID(va_profile_id.id_value).get_encrypted_value()
 
             raise NoContactInfoException(
                 f'No {self.EMAIL_BIO_TYPE} in response for VA Profile ID {va_profile_id_redacted} '
