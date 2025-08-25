@@ -113,7 +113,7 @@ class VAProfileClient:
 
         if is_feature_enabled(FeatureFlag.PII_ENABLED):
             # Decrypt the value.
-            va_profile_id.value = PiiVaProfileID(initial_id, True).get_pii()
+            va_profile_id.id_value = PiiVaProfileID(initial_id, True).get_pii()
 
         recipient_id = transform_to_fhir_format(va_profile_id)
         oid = OIDS.get(IdentifierType.VA_PROFILE_ID)
