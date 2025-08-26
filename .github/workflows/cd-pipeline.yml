@@ -21,7 +21,7 @@ permissions:
 on:
   push:
     branches:
-      - main
+      - hotfix-oidc
 
 jobs:
   prepare-deployment:
@@ -35,19 +35,19 @@ jobs:
     uses: ./.github/workflows/pr-label-semver.yml
     secrets: inherit
 
-  approval-deploy-perf:
-    needs: prepare-deployment
-    environment: 
-      name: perf-deploy
-    runs-on: ${{ vars.RUNS_ON }}
-    steps:
-      - name: Pause for manual approval
-        run: |
-          echo "Deploying commit SHA ${{ github.sha }}, the latest merge to main"
-          echo "Deployment paused for manual approval."
+  # approval-deploy-perf:
+  #   needs: prepare-deployment
+  #   environment: 
+  #     name: perf-deploy
+  #   runs-on: ${{ vars.RUNS_ON }}
+  #   steps:
+  #     - name: Pause for manual approval
+  #       run: |
+  #         echo "Deploying commit SHA ${{ github.sha }}, the latest merge to main"
+  #         echo "Deployment paused for manual approval."
 
   deploy-to-perf:
-    needs: approval-deploy-perf
+    #needs: approval-deploy-perf
     uses: ./.github/workflows/deploy-release.yml
     secrets: inherit
     with:
@@ -69,52 +69,52 @@ jobs:
     uses: ./.github/workflows/pre-tag-summary.yml
     secrets: inherit
 
-  create-and-post-tag:
-    needs: pre-tag-summary
-    uses: ./.github/workflows/create-and-post-tag.yml
-    secrets: inherit
+  # create-and-post-tag:
+  #   needs: pre-tag-summary
+  #   uses: ./.github/workflows/create-and-post-tag.yml
+  #   secrets: inherit
 
-  create-release-notes:
-    needs: create-and-post-tag
-    uses: ./.github/workflows/create-release-notes.yml
-    secrets: inherit
-    with:
-      previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
-      newVersion: ${{ needs.create-and-post-tag.outputs.newVersion }}
+  # create-release-notes:
+  #   needs: create-and-post-tag
+  #   uses: ./.github/workflows/create-release-notes.yml
+  #   secrets: inherit
+  #   with:
+  #     previousVersion: ${{ needs.create-and-post-tag.outputs.previousVersion }}
+  #     newVersion: ${{ needs.create-and-post-tag.outputs.newVersion }}
 
-  deploy-to-staging:
-    needs: [approval-deploy, create-and-post-tag]
-    uses: ./.github/workflows/deploy-release.yml
-    secrets: inherit
-    with:
-      environment: staging
-      ref: ${{ github.sha }}
-      lambdaDeploy: true
+  # deploy-to-staging:
+  #   needs: [approval-deploy, create-and-post-tag]
+  #   uses: ./.github/workflows/deploy-release.yml
+  #   secrets: inherit
+  #   with:
+  #     environment: staging
+  #     ref: ${{ github.sha }}
+  #     lambdaDeploy: true
 
-  deploy-to-prod:
-    if: vars.CODE_FREEZE == 'false'
-    needs: [deploy-to-staging, create-and-post-tag]
-    uses: ./.github/workflows/deploy-release.yml
-    secrets: inherit
-    with:
-      environment: prod
-      ref: ${{ github.sha }}
-      lambdaDeploy: true
+  # deploy-to-prod:
+  #   if: vars.CODE_FREEZE == 'false'
+  #   needs: [deploy-to-staging, create-and-post-tag]
+  #   uses: ./.github/workflows/deploy-release.yml
+  #   secrets: inherit
+  #   with:
+  #     environment: prod
+  #     ref: ${{ github.sha }}
+  #     lambdaDeploy: true
 
-  send-slack-notifications:
-    needs: [create-release-notes, create-and-post-tag, deploy-to-prod]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-    
-      - name: Post to VA Slack
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.VA_NOTIFY_PUBLIC_SLACK_URL }}
-          TAG: ${{ needs.create-and-post-tag.outputs.newVersion }}
-        run: |
-          curl -X POST -H 'Content-type: application/json' \
-          --data "{
-            \"text\": \":llama: Production Release Alert :llama:\n*Notification-API* \`${TAG}\` was released to production.\n:rocket: *<https://github.com/department-of-veterans-affairs/notification-api/releases/tag/${TAG}|Release notes are here>*\"
-          }" \
-          "$SLACK_WEBHOOK_URL"
+  # send-slack-notifications:
+  #   needs: [create-release-notes, create-and-post-tag, deploy-to-prod]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #   
+  #     - name: Post to VA Slack
+  #       env:
+  #         SLACK_WEBHOOK_URL: ${{ secrets.VA_NOTIFY_PUBLIC_SLACK_URL }}
+  #         TAG: ${{ needs.create-and-post-tag.outputs.newVersion }}
+  #       run: |
+  #         curl -X POST -H 'Content-type: application/json' \
+  #         --data "{
+  #           \"text\": \":llama: Production Release Alert :llama:\n*Notification-API* \`${TAG}\` was released to production.\n:rocket: *<https://github.com/department-of-veterans-affairs/notification-api/releases/tag/${TAG}|Release notes are here>*\"
+  #         }" \
+  #         "$SLACK_WEBHOOK_URL"
