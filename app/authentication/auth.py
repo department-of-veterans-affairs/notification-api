@@ -171,8 +171,6 @@ def validate_service_api_key_auth():  # noqa: C901
     auth_token = get_auth_token(request)
     client = __get_token_issuer(auth_token)
 
-    g.service_id = client
-
     try:
         service = dao_fetch_service_by_id_with_api_keys(client)
     except DataError:
