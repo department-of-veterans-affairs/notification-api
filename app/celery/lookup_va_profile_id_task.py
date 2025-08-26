@@ -10,9 +10,7 @@ from app.celery.exceptions import AutoRetryException
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.dao import notifications_dao
 from app.exceptions import NotificationTechnicalFailureException
-from app.feature_flags import FeatureFlag, is_feature_enabled
 from app.models import RecipientIdentifier
-from app.pii.pii_low import PiiVaProfileID
 from app.va.identifier import IdentifierType, UnsupportedIdentifierException
 from app.va.mpi import (
     MpiRetryableException,
