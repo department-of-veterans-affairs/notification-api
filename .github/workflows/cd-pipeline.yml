@@ -46,6 +46,20 @@ jobs:
   #         echo "Deploying commit SHA ${{ github.sha }}, the latest merge to main"
   #         echo "Deployment paused for manual approval."
 
+  build-push-artifacts:
+    #needs: approval-deploy-perf
+    runs-on: ${{ vars.RUNS_ON }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Build and Push Artifacts
+        uses: ./.github/actions/build-push-artifacts
+        with:
+          ref: ${{ github.sha }}
+          role-to-assume: ${{ secrets.OIDC_DEPLOY_ROLE_PREFIX }}-perf
+
   deploy-to-perf:
     #needs: approval-deploy-perf
     uses: ./.github/workflows/deploy-release.yml
