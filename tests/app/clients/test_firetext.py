@@ -87,7 +87,7 @@ def test_send_sms_raises_if_firetext_rejects_with_unexpected_data(mocker, mock_f
 
     assert exc.value.status_code == 400
     assert exc.value.text == '{"something": "gone bad"}'
-    assert type(exc.value.exception) == HTTPError
+    assert type(exc.value.exception) is HTTPError
 
 
 def test_send_sms_override_configured_shortcode_with_sender(mocker, mock_firetext_client):

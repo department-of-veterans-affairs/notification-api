@@ -75,7 +75,7 @@ def test_send_sms_raises_if_mmg_rejects(notify_api, mocker):
     assert exc.value.status_code == 400
     assert '"Error": 206' in exc.value.text
     assert '"Description": "Some kind of error"' in exc.value.text
-    assert type(exc.value.exception) == HTTPError
+    assert type(exc.value.exception) is HTTPError
 
 
 def test_send_sms_override_configured_shortcode_with_sender(notify_api, mocker):

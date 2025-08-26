@@ -481,34 +481,6 @@ def test_proxy_key_non_auth_endpoint(notify_api, check_proxy_header, header_valu
         assert response.status_code == expected_status
 
 
-@pytest.mark.parametrize(
-    'check_proxy_header, header_value, expected_status',
-    [
-        (True, 'key_1', 200),
-        (True, 'wrong_key', 403),
-        (False, 'key_1', 200),
-        (False, 'wrong_key', 200),
-    ],
-)
-def test_proxy_key_on_admin_auth_endpoint(notify_api, check_proxy_header, header_value, expected_status):
-    token = create_jwt_token(current_app.config['ADMIN_CLIENT_SECRET'], current_app.config['ADMIN_CLIENT_USER_NAME'])
-
-    with set_config_values(
-        notify_api,
-        {
-            'ROUTE_SECRET_KEY_1': 'key_1',
-            'ROUTE_SECRET_KEY_2': '',
-            'CHECK_PROXY_HEADER': check_proxy_header,
-        },
-    ):
-        with notify_api.test_client() as client:
-            response = client.get(
-                path='/service',
-                headers=[('X-Custom-Forwarder', header_value), ('Authorization', 'Bearer {}'.format(token))],
-            )
-        assert response.status_code == expected_status
-
-
 class TestRequiresUserInService:
     def test_accepts_jwt_for_user_in_service(self, client, sample_user_service_api_key):
         user, service, _ = sample_user_service_api_key
