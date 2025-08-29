@@ -128,14 +128,9 @@ recipient_identifier = {
     'required': ['id_type', 'id_value'],
 }
 
-ICN_recipient_identifier = {
-    'type': 'object',
-    'properties': {
-        'id_type': {'type': 'string', 'enum': [IdentifierType.ICN.value]},
-        'id_value': {'type': 'string'},
-    },
-    'required': ['id_type', 'id_value'],
-}
+# TODO - This can be a copy of the above with a const id_type value.
+ICN_recipient_identifier = recipient_identifier.copy()
+ICN_recipient_identifier['properties']['id_type'] = {'type': 'string', 'enum': [IdentifierType.ICN.value]}
 
 post_sms_request = {
     '$schema': 'http://json-schema.org/draft-04/schema#',

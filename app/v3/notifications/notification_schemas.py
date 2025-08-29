@@ -16,7 +16,10 @@ from app.va.identifier import IdentifierType
 recipient_identifier_schema = {
     '$schema': 'http://json-schema.org/draft/2020-12/schema',
     'type': 'object',
-    'properties': {'id_type': {'type': 'string', 'enum': IdentifierType.values()}, 'id_value': {'type': 'string'}},
+    'properties': {
+        'id_type': {'type': 'string', 'enum': IdentifierType.values()},
+        'id_value': {'type': 'string'}
+    },
     'required': ['id_type', 'id_value'],
 }
 

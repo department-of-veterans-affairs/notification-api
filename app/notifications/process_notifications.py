@@ -88,7 +88,7 @@ def persist_notification(
     billable_units=None,
     postage=None,
     template_postage=None,
-    recipient_identifier: str | Pii = None,
+    recipient_identifier: dict | None = None,
     billing_code=None,
     sms_sender_id=None,
     callback_url=None,
@@ -124,10 +124,13 @@ def persist_notification(
         callback_url=callback_url,
     )
 
-    if recipient_identifier:
-        # id_value is a string or Pii subclass instance.
+    if isinstance(recipient_identifier, dict):
+        # id_value is a non-empty string or Pii subclass instance.
         recipient_identifier_value = recipient_identifier['id_value']
-        if is_feature_enabled(FeatureFlag.PII_ENABLED) and isinstance(recipient_identifier_value, Pii):
+
+        if isinstance(recipient_identifier_value, Pii):
+            # Get the encrypted value, rather than the output of Pii.__str__, because the value needs to be
+            # decrypted and used downstream.
             recipient_identifier_value = recipient_identifier_value.get_encrypted_value()
 
         _recipient_identifier = RecipientIdentifier(
@@ -137,6 +140,8 @@ def persist_notification(
         )
 
         notification.recipient_identifiers.set(_recipient_identifier)
+    # Else, the recipient_identifier should be None for notifications sent with a phone number or
+    # e-mail address in the post data.
 
     if notification_type == SMS_TYPE and notification.to:
         validated_recipient = ValidatedPhoneNumber(recipient)

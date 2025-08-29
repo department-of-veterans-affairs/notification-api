@@ -100,6 +100,11 @@ class MpiClient:
         self,
         notification,
     ) -> str:
+        """
+        Return the active VA Profile ID value, or raise an exception.  If the feature flag PII_ENABLED
+        is True, the returned value is encrypted.
+        """
+
         if len(notification.recipient_identifiers) != 1:
             error_message = (
                 f'Unexpected number of recipient_identifiers in: {notification.recipient_identifiers.keys()}'
@@ -117,7 +122,7 @@ class MpiClient:
 
         response_json = self._make_request(fhir_identifier, notification.id, recipient_identifier.id_type)
 
-        # Protect PII that can be logged when errors happen
+        # Protect PII that can be logged when errors happen.
         fhir_identifier = '<redacted>' if recipient_identifier.id_type == IdentifierType.ICN.value else fhir_identifier
         self._assert_not_deceased(response_json, fhir_identifier)
         mpi_identifiers = response_json['identifier']
@@ -190,6 +195,11 @@ class MpiClient:
         identifiers,
         fhir_identifier,
     ) -> str:
+        """
+        Return the active VA Profile ID value, or raise an exception.  If the feature flag PII_ENABLED
+        is True, encrypt the value.
+        """
+
         active_va_profile_suffix = FHIR_FORMAT_SUFFIXES[IdentifierType.VA_PROFILE_ID] + '^A'
         va_profile_ids = [
             transform_from_fhir_format(identifier['value'])

@@ -90,9 +90,8 @@ def get_profile_result(
     Retrieve the result of looking up contact info from VA Profile.
 
     Args:
-        notification (Notification): The Notification object to get contact info and permissions for.
-        recipient_identifier (RecipientIdentifier): The VA profile ID to retrieve the profile for.
-            If the PII_ENABLED flag is true, this value is encrypted.
+        notification (Notification): The Notification object for which to get contact info and permissions
+        recipient_identifier (RecipientIdentifier): The VA profile ID for which to retrieve the profile
 
     Returns:
         VAProfileResult: The contact info result from VA Profile.
@@ -130,6 +129,7 @@ def handle_lookup_contact_info_exception(
     Returns:
         str or None: A message indicating the result of the exception handling, or None if no action is needed.
     """
+
     if isinstance(e, (Timeout, VAProfileRetryableException)):
         if can_retry(lookup_task.request.retries, lookup_task.max_retries, notification.id):
             current_app.logger.warning('Unable to get contact info for notification id: %s, retrying', notification.id)
