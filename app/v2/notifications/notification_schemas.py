@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from app.constants import (
     NOTIFICATION_STATUS_TYPES,
     TEMPLATE_TYPES,
@@ -128,8 +130,7 @@ recipient_identifier = {
     'required': ['id_type', 'id_value'],
 }
 
-# TODO - This can be a copy of the above with a const id_type value.
-ICN_recipient_identifier = recipient_identifier.copy()
+ICN_recipient_identifier = deepcopy(recipient_identifier)
 ICN_recipient_identifier['properties']['id_type'] = {'type': 'string', 'enum': [IdentifierType.ICN.value]}
 
 post_sms_request = {

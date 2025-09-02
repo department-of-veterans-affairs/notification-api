@@ -69,7 +69,7 @@ def wrap_recipient_identifier_in_pii(form: dict):
         - Only processes forms that contain recipient_identifier with both id_type and id_value
     """
 
-    # Raising KeyError is not a concern because the form data passed validation.
+    assert 'recipient_identifier' in form, 'The form should not have passed validation.'
     recipient_identifier = form['recipient_identifier']
     id_type: str = recipient_identifier['id_type']
     id_value: str = recipient_identifier['id_value']
@@ -93,10 +93,7 @@ def wrap_recipient_identifier_in_pii(form: dict):
             'Wrapped recipient identifier id_value in %s for id_type %s', pii_class.__name__, id_type
         )
     except Exception:
-        current_app.logger.exception(
-            'Failed to wrap recipient identifier in PII class %s',
-            pii_class.__name__
-        )
+        current_app.logger.exception('Failed to wrap recipient identifier in PII class %s', pii_class.__name__)
         # Continue without wrapping.
 
 
