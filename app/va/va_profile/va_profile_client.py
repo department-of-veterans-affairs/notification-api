@@ -146,7 +146,7 @@ class VAProfileClient:
         va_profile_id: int | None = contact_info.get('vaProfileId')
         if va_profile_id is not None and is_feature_enabled(FeatureFlag.PII_ENABLED):
             # Encrypt the value, which might be logged.  If this is logged, it will use the __str__ value.
-            va_profile_id = PiiVaProfileID(va_profile_id)
+            va_profile_id = PiiVaProfileID(str(va_profile_id))
 
         telephones: list[Telephone] = contact_info.get(self.PHONE_BIO_TYPE, [])
 
