@@ -254,6 +254,7 @@ def process_sms_or_email_notification(
             # Do not send a notification to a simulated recipient to the queue.
             current_app.logger.debug('POST simulated notification for id: %s', notification.id)
         else:
+            # id_type must be in the dictionary for validation to have passed.
             recipient_id_type = recipient_identifier['id_type'] if isinstance(recipient_identifier, dict) else None
             send_notification_to_queue(
                 notification=notification,
