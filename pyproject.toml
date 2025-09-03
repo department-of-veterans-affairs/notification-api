@@ -20,6 +20,7 @@ cachelib = "*"
 cachetools = "*"
 celery = {extras = ["sqs"], version = "5.4.0"}
 click-datetime = "*"
+# See ticket 2580 - Updating DDtrace dependency causes latency
 ddtrace = "3.10.3"
 docopt = "*"
 fido2 = "*"
