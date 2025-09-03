@@ -277,7 +277,8 @@ class AwsPinpointClient(SmsClient):
             self.logger.error('Did not receive pinpoint delivery status as a dict')
             raise NonRetryableException(f'Incorrect datatype sent to pinpoint, {UNABLE_TO_TRANSLATE}')
 
-        # check for feature flag and camelCase version attribute check added to allow continued V1 processing
+        # check for feature flag and camelCase eventVersion (V2 specific)
+        # The eventVersion attribute check is to allow continued V1 processing and can be removed with the feature flag
         if is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2) and 'eventVersion' in delivery_status_message:
             # PinpointSMSVoiceV2 format
             # Handle phone number masking for PinpointSMSVoiceV2 format
@@ -289,7 +290,6 @@ class AwsPinpointClient(SmsClient):
 
             self.logger.info('Translate raw delivery status PinpointSMSVoiceV2: %s', delivery_status_message)
 
-            # moved check for eventType to feature flag conditional until feature flag removed
             if 'eventType' not in delivery_status_message or 'messageId' not in delivery_status_message:
                 self.logger.error('Missing required V2 fields in message: %s', delivery_status_message)
                 raise NonRetryableException(f'Invalid PinpointSMSVoiceV2 message format, {UNABLE_TO_TRANSLATE}')
