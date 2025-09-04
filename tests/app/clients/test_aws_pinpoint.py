@@ -313,9 +313,7 @@ def test_send_sms_post_message_request_raises_aws_exception(mocker, aws_pinpoint
 def test_translate_delivery_status_pinpoint_sms_v1_successful(aws_pinpoint_client, mocker, pinpoint_v2_enabled):
     """Test translate_delivery_status for PinpointSMSV1 delivery status with and without PinpointSMSVoiceV2 feature enabled"""
 
-    mock_feature_flag = mocker.Mock(FeatureFlag)
-    mock_feature_flag.value = 'PINPOINT_SMS_VOICE_V2'
-    mocker.patch('app.feature_flags.os.getenv', return_value=pinpoint_v2_enabled)
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': str(pinpoint_v2_enabled)})
 
     # Sample V1 delivery status message
     v1_delivery_message = {
