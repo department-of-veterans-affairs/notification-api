@@ -120,12 +120,12 @@ class MpiClient:
         else:
             fhir_identifier = transform_to_fhir_format(recipient_identifier)
 
-        response_json = self._make_request(fhir_identifier, notification.id, recipient_identifier.id_type)
+        response_json: dict = self._make_request(fhir_identifier, notification.id, recipient_identifier.id_type)
 
         # Protect PII that can be logged when errors happen.
         fhir_identifier = '<redacted>' if recipient_identifier.id_type == IdentifierType.ICN.value else fhir_identifier
         self._assert_not_deceased(response_json, fhir_identifier)
-        mpi_identifiers = response_json['identifier']
+        mpi_identifiers: list[dict] = response_json['identifier']
 
         va_profile_id = self._get_active_va_profile_id(mpi_identifiers, fhir_identifier)
         self.statsd_client.incr('clients.mpi.get_va_profile_id.success')
@@ -136,7 +136,7 @@ class MpiClient:
         fhir_identifier: str,
         notification_id: UUID,
         id_type: str,
-    ):
+    ) -> dict:
         self.logger.debug('Querying MPI with %s for notification %s', fhir_identifier, notification_id)
         start_time = monotonic()
         try:

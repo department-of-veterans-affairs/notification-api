@@ -35,7 +35,13 @@ from app.va.mpi import (
 def lookup_va_profile_id(
     self: Task,
     notification_id,
-):
+) -> str:
+    """
+    Given an ID for a notification with a recipient ID that is not a VA Profile ID, make a call to MPI
+    to retrieve the avaialable identifiers, and return the VA Profile ID.  Also add a related
+    RecipientIdentifer instance in the database for the given notification ID.
+    """
+
     current_app.logger.info(f'Retrieving VA Profile ID from MPI for notification {notification_id}')
     notification = notifications_dao.get_notification_by_id(notification_id)
 
@@ -44,7 +50,7 @@ def lookup_va_profile_id(
 
     try:
         # If the PII_ENABLED flag is True, this is an encrypted value.
-        va_profile_id = mpi_client.get_va_profile_id(notification)
+        va_profile_id: str = mpi_client.get_va_profile_id(notification)
 
         notification.recipient_identifiers.set(
             RecipientIdentifier(
