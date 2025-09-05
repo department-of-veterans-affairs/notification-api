@@ -9,7 +9,7 @@ from notifications_utils.recipients import try_validate_and_format_phone_number
 from app import api_user, authenticated_service, attachment_store
 from app.va.identifier import IdentifierType
 from app.feature_flags import is_feature_enabled, FeatureFlag
-from app.pii import Pii, PiiIcn, PiiEdipi, PiiBirlsid, PiiPid, PiiVaProfileID
+from app.pii import get_pii_subclass, Pii, PiiIcn, PiiEdipi, PiiBirlsid, PiiPid, PiiVaProfileID
 from app.attachments.mimetype import extract_and_validate_mimetype
 from app.attachments.store import AttachmentStoreError
 from app.attachments.types import UploadedAttachmentMetadata
@@ -74,17 +74,7 @@ def wrap_recipient_identifier_in_pii(form: dict):
     id_type: str = recipient_identifier['id_type']
     id_value: str = recipient_identifier['id_value']
 
-    # Map id_type to appropriate PII class
-    pii_class_mapping = {
-        IdentifierType.ICN.value: PiiIcn,
-        IdentifierType.EDIPI.value: PiiEdipi,
-        IdentifierType.BIRLSID.value: PiiBirlsid,
-        IdentifierType.PID.value: PiiPid,
-        IdentifierType.VA_PROFILE_ID.value: PiiVaProfileID,
-    }
-
-    assert id_type in pii_class_mapping, 'The form should not have passed validation.'
-    pii_class = pii_class_mapping[id_type]
+    pii_class = get_pii_subclass(id_type)
 
     try:
         # Wrap the id_value in the appropriate PII class.  Use False for is_encrypted since this is raw input data.

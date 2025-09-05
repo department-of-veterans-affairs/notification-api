@@ -15,7 +15,7 @@ from app.va.mpi import (
     MpiNonRetryableException,
     NoSuchIdentifierException,
 )
-from app.pii import PiiVaProfileID
+from app.pii import PiiIcn, PiiVaProfileID
 
 
 def test_should_call_mpi_client_and_save_va_profile_id(notify_db_session, mocker, sample_notification):
@@ -323,6 +323,7 @@ def test_lookup_va_profile_id_encryption(notify_db_session, mocker, rmock, sampl
     be encrypted or not according to the PII_ENABLED feature flag.
     """
 
+    # Note that '1234' is assumed to be the encrypted value if pii_enabled is True.
     notification = sample_notification(recipient_identifiers=[{'id_type': IdentifierType.ICN.value, 'id_value': '1234'}])
     assert IdentifierType.VA_PROFILE_ID.value not in notification.recipient_identifiers
 
@@ -341,6 +342,9 @@ def test_lookup_va_profile_id_encryption(notify_db_session, mocker, rmock, sampl
     rmock.call_count == 1
 
     if pii_enabled:
+        # The ICN should be decrypted before the request is made to MPI.
+        assert PiiIcn('1234', True).get_pii() in rmock.request_history[0].url
+
         # The VA Profile ID should be encrypted.  First, decrypt it.
         assert PiiVaProfileID(va_profile_id, True).get_pii() == '5678'
         assert PiiVaProfileID(
@@ -348,5 +352,6 @@ def test_lookup_va_profile_id_encryption(notify_db_session, mocker, rmock, sampl
             True
         ).get_pii() == '5678'
     else:
+        assert '1234' in rmock.request_history[0].url
         assert va_profile_id == '5678'
         assert notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value == '5678'

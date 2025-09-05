@@ -9,7 +9,7 @@ from functools import reduce
 
 from app.constants import HTTP_TIMEOUT
 from app.feature_flags import FeatureFlag, is_feature_enabled
-from app.pii import PiiVaProfileID
+from app.pii import get_pii_subclass, PiiVaProfileID
 from app.utils import statsd_http
 from app.va.identifier import (
     IdentifierType,
@@ -115,6 +115,11 @@ class MpiClient:
         recipient_identifiers = notification.recipient_identifiers.values()
         recipient_identifier = next(iter(recipient_identifiers))
 
+        if is_feature_enabled(FeatureFlag.PII_ENABLED):
+            # Decrypt the recipient identifier.  The clear text value is needed to make a request to MPI.
+            pii_class = get_pii_subclass(recipient_identifier.id_type)
+            recipient_identifier.id_value = pii_class(recipient_identifier.id_value, True).get_pii()
+
         if is_fhir_format(recipient_identifier.id_value):
             fhir_identifier = recipient_identifier.id_value
         else:
@@ -122,8 +127,10 @@ class MpiClient:
 
         response_json: dict = self._make_request(fhir_identifier, notification.id, recipient_identifier.id_type)
 
-        # Protect PII that can be logged when errors happen.
-        fhir_identifier = '<redacted>' if recipient_identifier.id_type == IdentifierType.ICN.value else fhir_identifier
+        if is_feature_enabled(FeatureFlag.PII_ENABLED) or recipient_identifier.id_type == IdentifierType.ICN.value:
+            # Protect PII that can be logged when errors happen.
+            fhir_identifier = '<redacted>'
+
         self._assert_not_deceased(response_json, fhir_identifier)
         mpi_identifiers: list[dict] = response_json['identifier']
 
