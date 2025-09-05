@@ -39,10 +39,11 @@ class TestPiiWrappingAtEntrypoint:
             form = {'recipient_identifier': {'id_type': IdentifierType.ICN.value, 'id_value': 'bad_value'}}
 
             with patch(
-                'app.v2.notifications.post_notifications.PiiIcn', side_effect=Exception('PII error')
+                'app.pii.PiiIcn', side_effect=Exception('PII error')
             ) as mock_pii_icn:
                 mock_pii_icn.__name__ = 'PiiIcn'
                 wrap_recipient_identifier_in_pii(form)
+                mock_pii_icn.assert_called_once()
 
             # Form should be unchanged if PII instantiation fails
             assert form['recipient_identifier']['id_type'] == IdentifierType.ICN.value

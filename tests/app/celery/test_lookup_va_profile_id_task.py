@@ -324,7 +324,9 @@ def test_lookup_va_profile_id_encryption(notify_db_session, mocker, rmock, sampl
     """
 
     # Note that '1234' is assumed to be the encrypted value if pii_enabled is True.
-    notification = sample_notification(recipient_identifiers=[{'id_type': IdentifierType.ICN.value, 'id_value': '1234'}])
+    notification = sample_notification(
+        recipient_identifiers=[{'id_type': IdentifierType.ICN.value, 'id_value': '1234'}]
+    )
     assert IdentifierType.VA_PROFILE_ID.value not in notification.recipient_identifiers
 
     mocker.patch.dict('os.environ', {'PII_ENABLED': str(pii_enabled)})
@@ -347,10 +349,12 @@ def test_lookup_va_profile_id_encryption(notify_db_session, mocker, rmock, sampl
 
         # The VA Profile ID should be encrypted.  First, decrypt it.
         assert PiiVaProfileID(va_profile_id, True).get_pii() == '5678'
-        assert PiiVaProfileID(
-            notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value,
-            True
-        ).get_pii() == '5678'
+        assert (
+            PiiVaProfileID(
+                notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value, True
+            ).get_pii()
+            == '5678'
+        )
     else:
         assert '1234' in rmock.request_history[0].url
         assert va_profile_id == '5678'
