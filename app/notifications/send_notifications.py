@@ -8,12 +8,14 @@ from app.constants import KEY_TYPE_NORMAL, SMS_TYPE
 from app.dao.services_dao import dao_fetch_service_by_id
 from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import NotificationTechnicalFailureException
+from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.models import Service, Template
 from app.notifications.process_notifications import (
     persist_notification,
     send_notification_to_queue,
     send_to_queue_for_recipient_info_based_on_recipient_identifier,
 )
+from app.pii import get_pii_subclass
 
 
 def lookup_notification_sms_setup_data(
@@ -55,10 +57,10 @@ def send_notification_bypass_route(
     service: Service,
     template: Template,
     reply_to_text: str | None,
-    recipient: str = None,
-    personalisation: dict = None,
-    sms_sender_id: str = None,
-    recipient_item: dict = None,
+    recipient: str | None = None,
+    personalisation: dict | None = None,
+    sms_sender_id: str | None = None,
+    recipient_item: dict | None = None,
     api_key_type: str = KEY_TYPE_NORMAL,
     notification_id: UUID | None = None,
 ):
@@ -102,6 +104,9 @@ def send_notification_bypass_route(
                 'Error attempting to send notification using recipient_item. Must contain both "id_type" and "id_value"'
                 ' fields, but one or more are missing.'
             )
+        elif is_feature_enabled(FeatureFlag.PII_ENABLED):
+            pii_class = get_pii_subclass(recipient_item['id_type'])
+            recipient_item['id_value'] = pii_class(recipient_item['id_value'], False)
 
     # Use the service's default sms_sender if applicable
     if template.template_type == SMS_TYPE and sms_sender_id is None:

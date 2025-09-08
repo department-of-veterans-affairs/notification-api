@@ -177,6 +177,8 @@ def send_notification_to_queue(
 
     tasks = []
 
+    # TODO 2587 - Is this block necessary?  What is the point of looking up the VA Profile ID when the direct
+    # contact information is already available?
     if recipient_id_type:
         # This query uses the cached value of the template if available.
         template: TemplateHistoryData | None = dao_get_template_history_by_id(

@@ -245,6 +245,7 @@ def process_sms_or_email_notification(
             current_app.logger.debug('POST simulated notification for id: %s', notification.id)
         else:
             # id_type must be in the dictionary for validation to have passed.
+            # TODO 2587 - Is passing the recipient identifer necessary?
             recipient_id_type = recipient_identifier['id_type'] if isinstance(recipient_identifier, dict) else None
             send_notification_to_queue(
                 notification=notification,

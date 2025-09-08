@@ -52,7 +52,7 @@ def push_notification_helper(schema: dict):
     )
 
     try:
-        # Use the email queue for push to limit the number of empty queues.
+        # Use the e-mail queue for push to limit the number of empty queues.
         # As of 29 AUG 2025, there is no concern for encrypting recipient identifiers because push
         # notifications are not persisted in the database; they just pass through to Vetext.
         deliver_push.apply_async(
