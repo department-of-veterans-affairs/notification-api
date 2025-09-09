@@ -244,6 +244,7 @@ class AwsPinpointClient(SmsClient):
         Args:
             event_type (str): AWS event type
             record_status (str): Mapping of record status to notification status
+            is_final (bool): Pinpoint V2 isFinal attribute, default to True for V1 compatability
 
         Returns:
             tuple[str, str]: status and status_reason
