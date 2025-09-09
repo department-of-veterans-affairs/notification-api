@@ -32,8 +32,7 @@ set -euo pipefail
             then
                 # if that fails, try base64 decode first, then convert
                 if ! base64 -d "${cert}" | openssl x509 -inform der -outform pem -out "${cert}.crt"; then
-                    echo "Error: Failed to convert ${cert} to .crt file using base64 decode and openssl. \
-                    Please check the file format. Exiting."
+                    echo "Error: Failed to convert ${cert} to .crt file using base64 decode and openssl. Please check the file format. Exiting."
                     exit 1
                 fi
             fi
