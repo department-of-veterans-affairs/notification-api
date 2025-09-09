@@ -26,7 +26,10 @@ set -euo pipefail
         then
             cp "${cert}" "${cert}.crt"
         else
-            openssl x509 -in "${cert}" -inform der -outform pem -out "${cert}.crt"
+            if ! openssl x509 -in "${cert}" -inform der -outform pem -out "${cert}.crt";
+            then
+                base64 -d "${cert}" | openssl x509 -inform der -outform pem -out "${cert}.crt"
+            fi
         fi
         rm "${cert}"
     done
