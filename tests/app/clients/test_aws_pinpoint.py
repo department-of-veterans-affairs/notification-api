@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import botocore
-from app.feature_flags import FeatureFlag
 import pytest
 
 from app.celery.exceptions import NonRetryableException, RetryableException
@@ -364,9 +363,7 @@ def test_translate_delivery_status_pinpoint_sms_v1_successful(aws_pinpoint_clien
 def test_translate_delivery_status_pinpoint_sms_voice_v2_successful(aws_pinpoint_client, mocker):
     """Test translate_delivery_status for PinpointSMSVoiceV2 format with successful delivery"""
 
-    mock_feature_flag = mocker.Mock(FeatureFlag)
-    mock_feature_flag.value = 'PINPOINT_SMS_VOICE_V2'
-    mocker.patch('app.feature_flags.os.getenv', return_value='True')
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
     # Sample V2 delivery status message
     v2_delivery_message = {
@@ -400,9 +397,7 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_successful(aws_pinpoint
 def test_translate_delivery_status_pinpoint_sms_voice_v2_missing_required_fields(aws_pinpoint_client, mocker):
     """Test translate_delivery_status raises NonRetryableException when required V2 fields are missing"""
 
-    mock_feature_flag = mocker.Mock(FeatureFlag)
-    mock_feature_flag.value = 'PINPOINT_SMS_VOICE_V2'
-    mocker.patch('app.feature_flags.os.getenv', return_value='True')
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
     # V2 delivery status message with data but missing required fields (eventType and messageId)
     v2_delivery_message = {
@@ -421,11 +416,6 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_missing_required_fields
         aws_pinpoint_client.translate_delivery_status(v2_delivery_message)
 
 
-# Test for PointpointSMSVoiceV2 event type and current status mapping
-# Tests pass, but we need to ensure that the event type and status mapping is correct.
-# This does not include all possible event types, but covers the main ones.
-# https://docs.aws.amazon.com/sms-voice/latest/userguide/configuration-sets-event-types.html
-# @pytest.mark.skip(reason='#1829 - Skipping until we can confirm the event type and status mapping is correct')
 @pytest.mark.parametrize(
     'event_type, message_status, expected_status, expected_status_reason',
     [
@@ -447,13 +437,11 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_missing_required_fields
 def test_translate_delivery_status_pinpoint_sms_voice_v2_final_events(
     aws_pinpoint_client, mocker, event_type, message_status, expected_status, expected_status_reason
 ):
-    """Test translate_delivery_status for additional PinpointSMSVoiceV2 event types"""
+    """Test translate_delivery_status for PinpointSMSVoiceV2 event types for status events marked final"""
 
-    mock_feature_flag = mocker.Mock(FeatureFlag)
-    mock_feature_flag.value = 'PINPOINT_SMS_VOICE_V2'
-    mocker.patch('app.feature_flags.os.getenv', return_value='True')
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
-    # Sample V2 delivery status message with various event types
+    # Sample V2 delivery status message with various event types and isFinal True
     v2_delivery_message = {
         'eventType': event_type,
         'eventVersion': '1.0',
@@ -503,13 +491,18 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_final_events(
 def test_translate_delivery_status_pinpoint_sms_voice_v2_non_final_events(
     aws_pinpoint_client, mocker, event_type, message_status
 ):
-    """Test translate_delivery_status for additional PinpointSMSVoiceV2 event types"""
+    """Test translate_delivery_status for PinpointSMSVoiceV2 event types for status events marked non-final.
 
-    mock_feature_flag = mocker.Mock(FeatureFlag)
-    mock_feature_flag.value = 'PINPOINT_SMS_VOICE_V2'
-    mocker.patch('app.feature_flags.os.getenv', return_value='True')
+    PinpointSMSVoiceV2 adds an isFinal attribute to status update events.
+    isFinal: True if this is the final status for the message.
+    There are intermediate message statuses and it can take up to 72 hours for the final message status to be received.
 
-    # Sample V2 delivery status message with various event types
+    All non-final event messages should be interpreted as NOTIFICATION_SENDING to avoid premature notification status updates and callbacks
+    """
+
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
+
+    # Sample V2 delivery status message with various event types and isFinal False
     v2_delivery_message = {
         'eventType': event_type,
         'eventVersion': '1.0',
