@@ -340,8 +340,12 @@ def test_lookup_va_profile_id_encryption(notify_db_session, mocker, rmock, sampl
     rmock.get(requests_mock.ANY, json=mpi_response)
 
     va_profile_id = lookup_va_profile_id(notification.id)
-    notify_db_session.session.refresh(notification)
+
     rmock.call_count == 1
+    notify_db_session.session.refresh(notification)
+
+    # The ICN value should not change in the database.  If it was encrypted, it should remain encrypted.
+    assert notification.recipient_identifiers[IdentifierType.ICN.value].id_value == '1234'
 
     if pii_enabled:
         # The ICN should be decrypted before the request is made to MPI.
@@ -357,5 +361,6 @@ def test_lookup_va_profile_id_encryption(notify_db_session, mocker, rmock, sampl
         )
     else:
         assert '1234' in rmock.request_history[0].url
+
         assert va_profile_id == '5678'
         assert notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value == '5678'

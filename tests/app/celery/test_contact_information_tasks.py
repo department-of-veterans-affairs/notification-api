@@ -1,6 +1,7 @@
 import uuid
 
 import pytest
+import requests_mock
 from requests import Timeout
 
 from app.celery.contact_information_tasks import lookup_contact_info
@@ -8,6 +9,7 @@ from app.celery.exceptions import AutoRetryException
 from app.constants import EMAIL_TYPE, NOTIFICATION_PERMANENT_FAILURE, SMS_TYPE, STATUS_REASON_UNDELIVERABLE
 from app.exceptions import NotificationTechnicalFailureException
 from app.models import RecipientIdentifier
+from app.pii import PiiVaProfileID
 from app.va.identifier import IdentifierType
 from app.va.va_profile import (
     NoContactInfoException,
@@ -21,60 +23,60 @@ EXAMPLE_VA_PROFILE_ID = '135'
 notification_id = str(uuid.uuid4())
 
 
-def test_should_get_email_address_and_update_notification(client, mocker, sample_template, sample_notification):
-    template = sample_template(template_type=EMAIL_TYPE)
+@pytest.mark.parametrize('pii_enabled', [True, False])
+@pytest.mark.parametrize('template_type', [EMAIL_TYPE, SMS_TYPE])
+def test_lookup_contact_info(
+    notify_db_session, mocker, rmock, sample_template, sample_notification, template_type, pii_enabled
+):
+    template = sample_template(template_type=template_type)
     notification = sample_notification(
         template=template,
-        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}],
+        recipient_identifiers=[
+            # These values assumed to be encrypted if pii_enabled is True.
+            {'id_type': IdentifierType.ICN.value, 'id_value': '1234'},
+            {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': '5678'},
+        ],
     )
 
-    mocked_get_notification_by_id = mocker.patch(
-        'app.celery.contact_information_tasks.get_notification_by_id', return_value=notification
-    )
-    va_profile_result = VAProfileResult(recipient='test@test.org', communication_allowed=True, permission_message=None)
-
-    mocked_va_profile_client = mocker.Mock(VAProfileClient)
-    mocked_va_profile_client.get_email = mocker.Mock(return_value=va_profile_result)
-    mocker.patch('app.celery.contact_information_tasks.va_profile_client', new=mocked_va_profile_client)
-
-    mocked_update_notification = mocker.patch('app.celery.contact_information_tasks.dao_update_notification')
+    mocker.patch.dict('os.environ', {'PII_ENABLED': str(pii_enabled)})
+    va_profile_response = {
+        'profile': {
+            'contactInformation': {
+                'emails': [{'emailAddressText': 'test@va.gov'}],
+                'telephones': [
+                    {
+                        'areaCode': '555',
+                        'countryCode': '1',
+                        'phoneNumber': '1234567',
+                        'phoneType': 'mobile',
+                    }
+                ],
+            },
+            'communicationPermissions': [],
+        },
+    }
+    rmock.post(requests_mock.ANY, json=va_profile_response)
 
     lookup_contact_info(notification.id)
+    rmock.call_count == 1
 
-    mocked_get_notification_by_id.assert_called()
-    mocked_va_profile_client.get_email.assert_called_with(mocker.ANY, notification)
-    recipient_identifier = mocked_va_profile_client.get_email.call_args[0][0]
-    assert isinstance(recipient_identifier, RecipientIdentifier)
-    assert recipient_identifier.id_value == EXAMPLE_VA_PROFILE_ID
-    mocked_update_notification.assert_called_with(notification)
-    assert notification.to == 'test@test.org'
+    notify_db_session.session.refresh(notification)
 
+    if template_type == EMAIL_TYPE:
+        assert notification.to == 'test@va.gov'
+    else:
+        assert notification.to == '+15551234567'
 
-def test_should_get_phone_number_and_update_notification(client, mocker, sample_notification):
-    notification = sample_notification(
-        recipient_identifiers=[{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': EXAMPLE_VA_PROFILE_ID}]
-    )
-    assert notification.notification_type == SMS_TYPE
-    mocked_get_notification_by_id = mocker.patch(
-        'app.celery.contact_information_tasks.get_notification_by_id', return_value=notification
-    )
+    # The recipient identifier values in the database should not have changed.
+    assert notification.recipient_identifiers[IdentifierType.ICN.value].id_value == '1234'
+    assert notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value == '5678'
 
-    mocked_va_profile_client = mocker.Mock(VAProfileClient)
-    va_profile_result = VAProfileResult(recipient='+15555555555', communication_allowed=True, permission_message=None)
-    mocked_va_profile_client.get_telephone = mocker.Mock(return_value=va_profile_result)
-    mocker.patch('app.celery.contact_information_tasks.va_profile_client', new=mocked_va_profile_client)
-
-    mocked_update_notification = mocker.patch('app.celery.contact_information_tasks.dao_update_notification')
-
-    lookup_contact_info(notification.id)
-
-    mocked_get_notification_by_id.assert_called()
-    mocked_va_profile_client.get_telephone.assert_called_with(mocker.ANY, notification)
-    recipient_identifier = mocked_va_profile_client.get_telephone.call_args[0][0]
-    assert isinstance(recipient_identifier, RecipientIdentifier)
-    assert recipient_identifier.id_value == EXAMPLE_VA_PROFILE_ID
-    mocked_update_notification.assert_called_with(notification)
-    assert notification.to == '+15555555555'
+    # The unencrypted VA Profile ID value should be in the URL path of the request to VA Profile.
+    if pii_enabled:
+        decrypted_va_profile_id = PiiVaProfileID('5678', True).get_pii()
+    else:
+        decrypted_va_profile_id = '5678'
+    assert decrypted_va_profile_id in rmock.request_history[0].url
 
 
 def test_should_get_phone_number_and_update_notification_with_no_communication_item(

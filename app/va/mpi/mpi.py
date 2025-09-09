@@ -199,8 +199,8 @@ class MpiClient:
 
     def _get_active_va_profile_id(
         self,
-        identifiers,
-        fhir_identifier,
+        identifiers: list[dict],
+        fhir_identifier: str,
     ) -> str:
         """
         Return the active VA Profile ID value, or raise an exception.  If the feature flag PII_ENABLED
@@ -224,7 +224,7 @@ class MpiClient:
 
         if is_feature_enabled(FeatureFlag.PII_ENABLED):
             # Encrypt the value.
-            va_profile_ids[0] = PiiVaProfileID(va_profile_ids[0]).get_encrypted_value()
+            va_profile_ids[0] = PiiVaProfileID(va_profile_ids[0], False).get_encrypted_value()
 
         return va_profile_ids[0]
 
