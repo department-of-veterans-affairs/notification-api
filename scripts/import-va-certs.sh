@@ -29,6 +29,10 @@ set -euo pipefail
             if ! openssl x509 -in "${cert}" -inform der -outform pem -out "${cert}.crt";
             then
                 base64 -d "${cert}" | openssl x509 -inform der -outform pem -out "${cert}.crt"
+                if [ ! -s "${cert}.crt" ]; then
+                    echo "Error: Failed to convert ${cert} to .crt file. Please check the file format. Exiting."
+                    exit 1
+                fi
             fi
         fi
         rm "${cert}"
