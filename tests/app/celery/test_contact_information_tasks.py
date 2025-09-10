@@ -80,7 +80,6 @@ def test_lookup_contact_info(
     assert notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value == va_profile_id_value
 
 
-
 def test_should_get_phone_number_and_update_notification_with_no_communication_item(
     client, mocker, sample_notification
 ):
