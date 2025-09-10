@@ -75,4 +75,6 @@ fileignoreconfig:
   checksum: f365a7336c5105df6c11a6f95e765fe5079d0c3c97907e059dea5556a62ff494
 - filename: app/va/va_profile/va_profile_client.py
   checksum: 5c867bf817283bf50f2d974697c1c08d80976f37b1a1a13d0ba2e029536e9b2c
+- filename: app/pii/pii_base.py
+  checksum: 584cb03893d943c5f8504e5951128f17ce26cf9ffdfc51a29992d9e30e9a3d8b
 version: "1.0"

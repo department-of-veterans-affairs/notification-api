@@ -40,7 +40,7 @@ class PiiEncryption:
         """
         if cls._fernet is None:
             # Use environment variable - key must be provided in production
-            key_str = os.environ.get('PII_ENCRYPTION_KEY')
+            key_str = os.getenv('PII_ENCRYPTION_KEY')
             if key_str is None:
                 raise ValueError(
                     'PII_ENCRYPTION_KEY environment variable is required. '
