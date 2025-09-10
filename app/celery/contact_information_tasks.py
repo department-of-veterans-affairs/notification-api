@@ -76,7 +76,7 @@ def lookup_contact_info(
         'Using recipient identifier value %s %s to look up contact information for notification %s.',
         recipient_identifier['id_type'],
         recipient_identifier_value,
-        notification_id
+        notification_id,
     )
 
     try:

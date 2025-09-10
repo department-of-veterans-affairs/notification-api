@@ -136,7 +136,7 @@ def persist_notification(
                 'Persisting the encrypted recipient identifier value %s %s for notification %s.',
                 recipient_identifier['id_type'],
                 recipient_identifier_value,
-                notification_id
+                notification_id,
             )
 
         _recipient_identifier = RecipientIdentifier(
