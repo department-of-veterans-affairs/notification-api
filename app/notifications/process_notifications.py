@@ -132,6 +132,12 @@ def persist_notification(
             # Get the encrypted value, rather than the output of Pii.__str__, because the value needs to be
             # decrypted and used downstream.
             recipient_identifier_value = recipient_identifier_value.get_encrypted_value()
+            current_app.logger.debug(
+                'Persisting the encrypted recipient identifier value %s %s for notification %s.',
+                recipient_identifier['id_type'],
+                recipient_identifier_value,
+                notification_id
+            )
 
         _recipient_identifier = RecipientIdentifier(
             notification_id=notification_id,
