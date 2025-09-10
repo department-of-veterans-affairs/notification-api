@@ -59,7 +59,7 @@ def lookup_va_profile_id(
         )
         notifications_dao.dao_update_notification(notification)
         current_app.logger.info(
-            'Successfully updated notification %s with VA PROFILE ID %s', notification_id, va_profile_id
+            'Successfully updated notification %s with VA Profile ID %s', notification_id, va_profile_id
         )
 
         return va_profile_id

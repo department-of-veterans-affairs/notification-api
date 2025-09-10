@@ -113,9 +113,11 @@ class VAProfileClient:
 
         if is_feature_enabled(FeatureFlag.PII_ENABLED):
             # Decrypt the value.
-            va_profile_id.id_value = PiiVaProfileID(initial_id_value, True).get_pii()
+            id_value_decrypted = PiiVaProfileID(initial_id_value, True).get_pii()
+        else:
+            id_value_decrypted = initial_id_value
 
-        recipient_id = transform_to_fhir_format(va_profile_id)
+        recipient_id = transform_to_fhir_format(IdentifierType.VA_PROFILE_ID, id_value_decrypted)
         oid = OIDS.get(IdentifierType.VA_PROFILE_ID)
         url = f'{self.va_profile_url}/profile-service/profile/v3/{oid}/{recipient_id}'
         data = {'bios': [{'bioPath': 'contactInformation'}, {'bioPath': 'communicationPermissions'}]}

@@ -73,8 +73,7 @@ def lookup_contact_info(
     # If the PII_ENABLED flag is True, recipient_identifier.id_value is an encrypted value.
     recipient_identifier = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value]
     current_app.logger.debug(
-        'Using recipient identifier %s %s to look up contact information for notification %s.',
-        recipient_identifier.id_type,
+        'Using VA Profile ID %s to look up contact information for notification %s.',
         recipient_identifier.id_value,
         notification_id,
     )
@@ -82,6 +81,9 @@ def lookup_contact_info(
     try:
         result = get_profile_result(notification, recipient_identifier)
         notification.to = result.recipient
+        current_app.logger.debug(
+            'Looked up contact information %s for notification_id: %s.', notification.to, notification_id
+        )
 
         if not result.communication_allowed:
             # Raise an exception if this violates permissions.

@@ -118,12 +118,14 @@ class MpiClient:
         if is_feature_enabled(FeatureFlag.PII_ENABLED):
             # Decrypt the recipient identifier.  The clear text value is needed to make a request to MPI.
             pii_class = get_pii_subclass(recipient_identifier.id_type)
-            recipient_identifier.id_value = pii_class(recipient_identifier.id_value, True).get_pii()
+            id_value_decrypted = pii_class(recipient_identifier.id_value, True).get_pii()
+        else:
+            id_value_decrypted = recipient_identifier.id_value
 
         if is_fhir_format(recipient_identifier.id_value):
-            fhir_identifier = recipient_identifier.id_value
+            fhir_identifier = id_value_decrypted
         else:
-            fhir_identifier = transform_to_fhir_format(recipient_identifier)
+            fhir_identifier = transform_to_fhir_format(recipient_identifier.id_type, id_value_decrypted)
 
         response_json: dict = self._make_request(fhir_identifier, notification.id, recipient_identifier.id_type)
 
@@ -144,7 +146,12 @@ class MpiClient:
         notification_id: UUID,
         id_type: str,
     ) -> dict:
-        self.logger.debug('Querying MPI with %s for notification %s', fhir_identifier, notification_id)
+        """
+        Note that "fhir_identifier" contains an unencrypted recipient ID.  Do not log this value or include it
+        in a traceback message.
+        """
+
+        self.logger.debug('Querying MPI for notification %s', notification_id)
         start_time = monotonic()
         try:
             # Need to make the request with an expanded list of ciphers to make sure we can connect to MPI in Prod
@@ -189,7 +196,9 @@ class MpiClient:
             self._validate_response(
                 response.json(),
                 notification_id,
-                '<redacted>' if id_type == IdentifierType.ICN.value else fhir_identifier,
+                '<redacted>'
+                if (is_feature_enabled(FeatureFlag.PII_ENABLED) or id_type == IdentifierType.ICN.value)
+                else fhir_identifier,
             )
             self.statsd_client.incr('clients.mpi.success')
             return response.json()

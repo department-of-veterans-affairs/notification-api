@@ -40,28 +40,13 @@ class TestTransformToFhirFormat:
     def test_should_transform_recipient_identifier_to_mpi_acceptable_format(
         self, id_type, id_value, expected_fhir_format
     ):
-        recipient_identifier = RecipientIdentifier(notification_id='123456', id_type=id_type.value, id_value=id_value)
-        actual_fhir_format = transform_to_fhir_format(recipient_identifier)
-
+        actual_fhir_format = transform_to_fhir_format(id_type.value, id_value)
         assert actual_fhir_format == expected_fhir_format
 
     def test_should_throw_error_when_invalid_type(self):
-        recipient_identifier = RecipientIdentifier(notification_id='123456', id_type='unknown_type', id_value='123')
         with pytest.raises(UnsupportedIdentifierException) as e:
-            transform_to_fhir_format(recipient_identifier)
+            transform_to_fhir_format('unknown_type', '123')
         assert 'No identifier of type' in str(e.value)
-
-    def test_should_throw_error_when_no_mapping_for_type(self, mocker):
-        mock_identifier = mocker.Mock(IdentifierType)
-        mock_identifier.name = 'MOCKED_IDENTIFIER'
-        mock_identifier.value = 'mocked_value'
-        mocker.patch('app.va.identifier.IdentifierType', return_value=mock_identifier)
-        recipient_identifier = RecipientIdentifier(
-            notification_id='123456', id_type=mock_identifier.name, id_value=mock_identifier.value
-        )
-        with pytest.raises(UnsupportedIdentifierException) as e:
-            transform_to_fhir_format(recipient_identifier)
-        assert 'No mapping for identifier' in str(e.value)
 
 
 class TestTransformFromFhirFormat:
