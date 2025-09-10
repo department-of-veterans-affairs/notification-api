@@ -316,16 +316,17 @@ def test_should_permanently_fail_when_technical_failure_exception(client, mocker
 
 
 @pytest.mark.parametrize('pii_enabled', [True, False])
-def test_lookup_va_profile_id_encryption(notify_db_session, mocker, rmock, sample_notification, pii_enabled):
+def test_lookup_va_profile_id(notify_db_session, mocker, rmock, sample_notification, pii_enabled):
     """
     Given an ID for a notification that has a related recipient identifier, the Celery task lookup_va_profile_id should
     retrieve the associated VA Profile ID and add a new RecipientIdentifier instance to the database.  The value should
     be encrypted or not according to the PII_ENABLED feature flag.
     """
 
-    # Note that '1234' is assumed to be the encrypted value if pii_enabled is True.
+    icn_value = PiiIcn('1234').get_pii() if pii_enabled else '1234'
+
     notification = sample_notification(
-        recipient_identifiers=[{'id_type': IdentifierType.ICN.value, 'id_value': '1234'}]
+        recipient_identifiers=[{'id_type': IdentifierType.ICN.value, 'id_value': icn_value}]
     )
     assert IdentifierType.VA_PROFILE_ID.value not in notification.recipient_identifiers
 
@@ -341,17 +342,16 @@ def test_lookup_va_profile_id_encryption(notify_db_session, mocker, rmock, sampl
 
     va_profile_id = lookup_va_profile_id(notification.id)
 
-    rmock.call_count == 1
+    assert rmock.call_count == 1
+    assert '1234' in rmock.request_history[0].url
+
     notify_db_session.session.refresh(notification)
 
     # The ICN value should not change in the database.  If it was encrypted, it should remain encrypted.
-    assert notification.recipient_identifiers[IdentifierType.ICN.value].id_value == '1234'
+    assert notification.recipient_identifiers[IdentifierType.ICN.value].id_value == icn_value
 
     if pii_enabled:
-        # The ICN should be decrypted before the request is made to MPI.
-        assert PiiIcn('1234', True).get_pii() in rmock.request_history[0].url
-
-        # The VA Profile ID should be encrypted.  First, decrypt it.
+        # The VA Profile ID should be encrypted in the return value and the database.
         assert PiiVaProfileID(va_profile_id, True).get_pii() == '5678'
         assert (
             PiiVaProfileID(
@@ -360,7 +360,5 @@ def test_lookup_va_profile_id_encryption(notify_db_session, mocker, rmock, sampl
             == '5678'
         )
     else:
-        assert '1234' in rmock.request_history[0].url
-
         assert va_profile_id == '5678'
         assert notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value == '5678'

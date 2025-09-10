@@ -9,7 +9,7 @@ from app.celery.exceptions import AutoRetryException
 from app.constants import EMAIL_TYPE, NOTIFICATION_PERMANENT_FAILURE, SMS_TYPE, STATUS_REASON_UNDELIVERABLE
 from app.exceptions import NotificationTechnicalFailureException
 from app.models import RecipientIdentifier
-from app.pii import PiiVaProfileID
+from app.pii import PiiIcn, PiiVaProfileID
 from app.va.identifier import IdentifierType
 from app.va.va_profile import (
     NoContactInfoException,
@@ -28,13 +28,19 @@ notification_id = str(uuid.uuid4())
 def test_lookup_contact_info(
     notify_db_session, mocker, rmock, sample_template, sample_notification, template_type, pii_enabled
 ):
+    if pii_enabled:
+        icn_value = PiiIcn('1234').get_pii()
+        va_profile_id_value = PiiVaProfileID('5678').get_pii()
+    else:
+        icn_value = '1234'
+        va_profile_id_value = '5678'
+
     template = sample_template(template_type=template_type)
     notification = sample_notification(
         template=template,
         recipient_identifiers=[
-            # These values assumed to be encrypted if pii_enabled is True.
-            {'id_type': IdentifierType.ICN.value, 'id_value': '1234'},
-            {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': '5678'},
+            {'id_type': IdentifierType.ICN.value, 'id_value': icn_value},
+            {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': va_profile_id_value},
         ],
     )
 
@@ -58,7 +64,9 @@ def test_lookup_contact_info(
     rmock.post(requests_mock.ANY, json=va_profile_response)
 
     lookup_contact_info(notification.id)
-    rmock.call_count == 1
+
+    assert rmock.call_count == 1
+    assert '5678' in rmock.request_history[0].url
 
     notify_db_session.session.refresh(notification)
 
@@ -68,15 +76,9 @@ def test_lookup_contact_info(
         assert notification.to == '+15551234567'
 
     # The recipient identifier values in the database should not have changed.
-    assert notification.recipient_identifiers[IdentifierType.ICN.value].id_value == '1234'
-    assert notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value == '5678'
+    assert notification.recipient_identifiers[IdentifierType.ICN.value].id_value == icn_value
+    assert notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value == va_profile_id_value
 
-    # The unencrypted VA Profile ID value should be in the URL path of the request to VA Profile.
-    if pii_enabled:
-        decrypted_va_profile_id = PiiVaProfileID('5678', True).get_pii()
-    else:
-        decrypted_va_profile_id = '5678'
-    assert decrypted_va_profile_id in rmock.request_history[0].url
 
 
 def test_should_get_phone_number_and_update_notification_with_no_communication_item(
