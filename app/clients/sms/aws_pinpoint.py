@@ -303,7 +303,7 @@ class AwsPinpointClient(SmsClient):
 
             event_type = delivery_status_message['eventType']
             message_status = delivery_status_message['messageStatus']
-            is_final = delivery_status_message.get('isFinal', False)
+            is_final = delivery_status_message.get('isFinal', True)
             status, status_reason = self._get_aws_status(event_type, message_status, is_final)
 
             # Convert price from dollars to millicents for consistency

@@ -437,7 +437,12 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_missing_required_fields
 def test_translate_delivery_status_pinpoint_sms_voice_v2_final_events(
     aws_pinpoint_client, mocker, event_type, message_status, expected_status, expected_status_reason
 ):
-    """Test translate_delivery_status for PinpointSMSVoiceV2 event types for status events marked final"""
+    """Test translate_delivery_status for PinpointSMSVoiceV2 event types for status events marked final
+
+    PinpointSMSVoiceV2 adds an isFinal attribute to status update events.
+    isFinal: True if this is the final status for the message.
+    There are intermediate message statuses and it can take up to 72 hours for the final message status to be received.
+    """
 
     mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
@@ -522,6 +527,62 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_non_final_events(
         reference='test-message-id-456',
         status=NOTIFICATION_SENDING,
         status_reason=None,
+        provider=PINPOINT_PROVIDER,
+        message_parts=1,
+        price_millicents=50,
+        provider_updated_at=datetime(2024, 7, 31, 12, 0),
+    )
+
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    'event_type, message_status, expected_status, expected_status_reason',
+    [
+        ('TEXT_DELIVERED', 'DELIVERED', NOTIFICATION_DELIVERED, None),
+        ('TEXT_SUCCESSFUL', 'SUCCESSFUL', NOTIFICATION_DELIVERED, None),
+        ('TEXT_PENDING', 'PENDING', NOTIFICATION_SENDING, None),
+        ('TEXT_QUEUED', 'QUEUED', NOTIFICATION_SENDING, None),
+        ('TEXT_BLOCKED', 'BLOCKED', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_BLOCKED),
+        ('TEXT_INVALID', 'INVALID', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_INVALID_NUMBER),
+        ('TEXT_CARRIER_BLOCKED', 'CARRIER_BLOCKED', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_BLOCKED),
+        ('TEXT_SPAM', 'SPAM', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_BLOCKED),
+        ('TEXT_UNREACHABLE', 'UNREACHABLE', NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE),
+        ('TEXT_CARRIER_UNREACHABLE', 'CARRIER_UNREACHABLE', NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE),
+        ('TEXT_UNKNOWN', 'UNKNOWN', NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE),
+        ('TEXT_TTL_EXPIRED', 'TTL_EXPIRED', NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE),
+        ('TEXT_INVALID_MESSAGE', 'INVALID_MESSAGE', NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_UNDELIVERABLE),
+    ],
+)
+def test_translate_delivery_status_pinpoint_sms_voice_v2_default_final_events(
+    aws_pinpoint_client, mocker, event_type, message_status, expected_status, expected_status_reason
+):
+    """Test translate_delivery_status for PinpointSMSVoiceV2 event types for status events missing isFinal.
+
+    Event missing the isFinal attribute are assumed to be final to avoid marking notification SENDING/PENDING in error
+    """
+
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
+
+    # Sample V2 delivery status message with various event types and isFinal True
+    v2_delivery_message = {
+        'eventType': event_type,
+        'eventVersion': '1.0',
+        'messageId': 'test-message-id-456',
+        'messageStatus': message_status,
+        'destinationPhoneNumber': '+1234567890',
+        'totalMessagePrice': 0.05,
+        'totalMessageParts': 1,
+        'eventTimestamp': 1722427200000,
+    }
+
+    result = aws_pinpoint_client.translate_delivery_status(v2_delivery_message)
+
+    expected = SmsStatusRecord(
+        payload=None,
+        reference='test-message-id-456',
+        status=expected_status,
+        status_reason=expected_status_reason,
         provider=PINPOINT_PROVIDER,
         message_parts=1,
         price_millicents=50,
