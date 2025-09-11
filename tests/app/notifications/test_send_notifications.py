@@ -192,6 +192,7 @@ def test_send_notification_bypass_route_sms_with_recipient_item(
     )
 
     if pii_enabled:
+        assert persist_notification_mock.call_args.kwargs['recipient_identifier']['id_value'] != '1234'
         assert (
             PiiVaProfileID(
                 persist_notification_mock.call_args.kwargs['recipient_identifier']['id_value'], True

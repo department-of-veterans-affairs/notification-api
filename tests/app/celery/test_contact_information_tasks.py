@@ -29,8 +29,8 @@ def test_lookup_contact_info(
     notify_db_session, mocker, rmock, sample_template, sample_notification, template_type, pii_enabled
 ):
     if pii_enabled:
-        icn_value = PiiIcn('1234').get_pii()
-        va_profile_id_value = PiiVaProfileID('5678').get_pii()
+        icn_value = PiiIcn('1234').get_encrypted_value()
+        va_profile_id_value = PiiVaProfileID('5678').get_encrypted_value()
     else:
         icn_value = '1234'
         va_profile_id_value = '5678'

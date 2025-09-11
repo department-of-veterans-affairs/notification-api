@@ -90,8 +90,9 @@ class Pii(str):
         return self.__class__._level
 
     def __new__(cls, value: str, is_encrypted: bool = False) -> 'Pii':
-        """Create a new Pii instance with encrypted value.
-        The class name is used as the suffix after "redacted" in string representations
+        """Create a new Pii instance with encrypted value.  Note that calling this method multiple times with the same
+        value will yield different encrypted text each time, but all encrypted values should decrypt to the same plain
+        text.  The class name is used as the suffix after "redacted" in string representations.
 
         Args:
             value (str): The PII value to encrypt.
