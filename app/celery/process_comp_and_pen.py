@@ -34,7 +34,7 @@ def comp_and_pen_batch_process(records: list[dict[str, str]]) -> None:
         records (list[dict[str, str]]): The incoming records
     """
 
-    current_app.logger.debug(f'comp_and_pen_batch_process started for {len(records)} records.')
+    current_app.logger.debug('comp_and_pen_batch_process started for %s records.', len(records))
 
     try:
         # Grab all the necessary data
