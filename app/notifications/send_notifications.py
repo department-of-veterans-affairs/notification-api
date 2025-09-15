@@ -65,8 +65,10 @@ def send_notification_bypass_route(
     notification_id: UUID | None = None,
 ):
     """
-    This will create a notification and add it to the proper celery queue using the given parameters.
-    It will use `recipient_item` if provided, otherwise it uses `recipient`
+    Create a notification, and add it to the proper celery queue using the given parameters.
+    Use `recipient_item` if provided.  Otherwise, use `recipient`.
+
+    Note that recipient_item.id_value, if present, is PII.
 
     :param service: the service sending the notification
     :param template: the template to use to send the notification
@@ -78,6 +80,7 @@ def send_notification_bypass_route(
         Note: uses service default for sms notifications if not passed in
     :param recipient_item: a dictionary specifying 'id_type' and 'id_value'
     :param api_key_type: the api key type to use, default: 'normal'
+    :param notification_id: the ID to use for the notification that will be persisted (but isn't yet)
 
     Raises:
         NotificationTechnicalFailureException: if recipient and recipient_item are both None,
@@ -86,8 +89,8 @@ def send_notification_bypass_route(
 
     if recipient is None and recipient_item is None:
         current_app.logger.critical(
-            'Programming error attempting to use send_notification_bypass_route, both recipient and recipient_item are '
-            'None. Please check the code calling this function to ensure one of these fields is populated properly.'
+            'Programming error attempting to use send_notification_bypass_route.  Both recipient and recipient_item '
+            'are None.  Please check the code calling this function to ensure one of these fields is populated.'
         )
         raise NotificationTechnicalFailureException(
             'Cannot send notification without one of: recipient or recipient_item'
@@ -97,16 +100,17 @@ def send_notification_bypass_route(
         if not ('id_type' in recipient_item and 'id_value' in recipient_item):
             current_app.logger.critical(
                 'Error in send_notification_bypass_route attempting to send notification using recipient_item. '
-                'Must contain both "id_type" and "id_value" fields, but one or both are missing. recipient_item: %s',
-                recipient_item,
+                'Must contain both "id_type" and "id_value" fields, but one or both are missing.'
             )
             raise NotificationTechnicalFailureException(
                 'Error attempting to send notification using recipient_item. Must contain both "id_type" and "id_value"'
                 ' fields, but one or more are missing.'
             )
         elif is_feature_enabled(FeatureFlag.PII_ENABLED):
+            # Wrap the id_value in a PII subclass.  The downstream call to persist_notification will handle this
+            # correctly.
             pii_class = get_pii_subclass(recipient_item['id_type'])
-            recipient_item['id_value'] = pii_class(recipient_item['id_value'], False)
+            recipient_item['id_value'] = pii_class(recipient_item['id_value'])
 
     # Use the service's default sms_sender if applicable
     if template.template_type == SMS_TYPE and sms_sender_id is None:
