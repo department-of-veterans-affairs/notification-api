@@ -62,7 +62,7 @@ def recipient_identifier():
 
 @pytest.fixture(scope='module')
 def id_with_aaid(recipient_identifier):
-    return transform_to_fhir_format(recipient_identifier)
+    return transform_to_fhir_format(recipient_identifier.id_type.value, recipient_identifier.id_value)
 
 
 @pytest.fixture(scope='module')

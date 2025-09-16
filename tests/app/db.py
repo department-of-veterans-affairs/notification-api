@@ -280,7 +280,7 @@ def create_notification(  # noqa: C901
     reply_to_text=None,
     created_by_id=None,
     postage=None,
-    recipient_identifiers=None,
+    recipient_identifiers: list[dict[str, str]] | None = None,
     billing_code=None,
     sms_sender_id=None,
     callback_url=None,

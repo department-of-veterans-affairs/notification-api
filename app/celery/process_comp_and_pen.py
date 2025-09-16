@@ -13,6 +13,7 @@ from app.models import (
     Template,
 )
 from app.notifications.send_notifications import lookup_notification_sms_setup_data, send_notification_bypass_route
+from app.pii import PiiPid
 from app.va.identifier import IdentifierType
 
 
@@ -26,15 +27,17 @@ class DynamoRecord:
 @notify_celery.task(name='comp-and-pen-batch-process')
 @statsd(namespace='tasks')
 def comp_and_pen_batch_process(records: list[dict[str, str]]) -> None:
-    """Process batches of Comp and Pen notification requests.
+    """Process batches of Comp and Pen notification requests.  Note that the records contain plain text
+    recipient identifiers, which are PII.
 
     Args:
         records (list[dict[str, str]]): The incoming records
     """
-    current_app.logger.debug(f'comp_and_pen_batch_process records: {records}')
 
-    # Grab all the necessary data
+    current_app.logger.debug('comp_and_pen_batch_process started for %s records.', len(records))
+
     try:
+        # Grab all the necessary data
         service, template, sms_sender_id = lookup_notification_sms_setup_data(
             current_app.config['COMP_AND_PEN_SERVICE_ID'],
             current_app.config['COMP_AND_PEN_TEMPLATE_ID'],
@@ -72,7 +75,7 @@ def _send_comp_and_pen_sms(
         :param sms_sender_id (str): The ID of the SMS sender.
         :param reply_to_text (str): The text a Veteran can reply to.
         :param comp_and_pen_messages (list[DynamoRecord]): A list of DynamoRecord from the dynamodb table containing
-            the details needed to send the messages.
+            the details needed to send the messages.  This includes PII.
         :param perf_to_number (str): The recipient's phone number.
 
     Raises:
@@ -80,7 +83,7 @@ def _send_comp_and_pen_sms(
     """
 
     for item in comp_and_pen_messages:
-        current_app.logger.debug('sending - record from dynamodb: %s', item.participant_id)
+        current_app.logger.debug('sending - record from dynamodb: %s', str(PiiPid(item.participant_id)))
 
         # Use perf_to_number as the recipient if available. Otherwise, use vaprofile_id as recipient_item.
         recipient_item = (
@@ -108,7 +111,7 @@ def _send_comp_and_pen_sms(
             current_app.logger.exception(
                 'Error attempting to send Comp and Pen notification with '
                 'send_comp_and_pen_sms | record from dynamodb: %s',
-                item.participant_id,
+                str(PiiPid(item.participant_id)),
             )
         else:
             if perf_to_number is not None:
@@ -116,4 +119,6 @@ def _send_comp_and_pen_sms(
                     'Notification sent using Perf simulated number %s instead of vaprofile_id', perf_to_number
                 )
 
-            current_app.logger.info('Notification sent to queue for record from dynamodb: %s', item.participant_id)
+            current_app.logger.info(
+                'Notification sent to queue for record from dynamodb: %s', str(PiiPid(item.participant_id))
+            )

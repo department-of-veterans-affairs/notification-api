@@ -10,6 +10,7 @@ from app.constants import (
     NOTIFICATION_TEMPORARY_FAILURE,
     SMS_TYPE,
 )
+from app.feature_flags import FeatureFlag, is_feature_enabled
 from app.va.identifier import IdentifierType
 from tests import create_authorization_header
 
@@ -90,8 +91,18 @@ def test_get_notification_by_id_returns_200(
     assert response.get_json() == expected_response
 
 
+@pytest.mark.parametrize('pii_enabled', [True, False])
 @pytest.mark.parametrize(
-    'recipient_identifiers', [None, [{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': 'some vaprofileid'}]]
+    'recipient_identifiers',
+    [
+        None,
+        [{'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': '1234'}],
+        [{'id_type': IdentifierType.ICN.value, 'id_value': '1234'}],
+        [
+            {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': '1234'},
+            {'id_type': IdentifierType.ICN.value, 'id_value': '5678'},
+        ],
+    ],
 )
 def test_get_notification_by_id_with_placeholders_and_recipient_identifiers_returns_200(
     client,
@@ -99,6 +110,7 @@ def test_get_notification_by_id_with_placeholders_and_recipient_identifiers_retu
     sample_template,
     sample_notification,
     recipient_identifiers,
+    pii_enabled,
 ):
     template = sample_template(template_type=EMAIL_TYPE, content='Hello ((name))\nThis is an email from va.gov')
     notification = sample_notification(
@@ -122,6 +134,24 @@ def test_get_notification_by_id_with_placeholders_and_recipient_identifiers_retu
         'version': notification.serialize()['template']['version'],
         'uri': notification.serialize()['template']['uri'],
     }
+
+    expected_recipient_identifiers = []
+    if recipient_identifiers:
+        for recipient_identifier in recipient_identifiers:
+            if (
+                is_feature_enabled(FeatureFlag.PII_ENABLED)
+                or recipient_identifier['id_type'] == IdentifierType.ICN.value
+            ):
+                expected_id_value = '<redacted>'
+            else:
+                expected_id_value = recipient_identifier['id_value']
+
+            expected_recipient_identifiers.append(
+                {
+                    'id_type': recipient_identifier['id_type'],
+                    'id_value': expected_id_value,
+                }
+            )
 
     expected_response = {
         'id': str(notification.id),
@@ -149,7 +179,7 @@ def test_get_notification_by_id_with_placeholders_and_recipient_identifiers_retu
         'completed_at': notification.completed_at(),
         'scheduled_for': None,
         'postage': None,
-        'recipient_identifiers': recipient_identifiers if recipient_identifiers else [],
+        'recipient_identifiers': expected_recipient_identifiers,
         'billing_code': None,
         'sms_sender_id': None,
         'cost_in_millicents': 0.0,

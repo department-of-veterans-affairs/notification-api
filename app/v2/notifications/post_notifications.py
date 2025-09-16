@@ -9,7 +9,7 @@ from notifications_utils.recipients import try_validate_and_format_phone_number
 from app import api_user, authenticated_service, attachment_store
 from app.va.identifier import IdentifierType
 from app.feature_flags import is_feature_enabled, FeatureFlag
-from app.pii import PiiIcn, PiiEdipi, PiiBirlsid, PiiPid, PiiVaProfileID
+from app.pii import get_pii_subclass, Pii, PiiIcn, PiiEdipi, PiiBirlsid, PiiPid, PiiVaProfileID
 from app.attachments.mimetype import extract_and_validate_mimetype
 from app.attachments.store import AttachmentStoreError
 from app.attachments.types import UploadedAttachmentMetadata
@@ -69,41 +69,22 @@ def wrap_recipient_identifier_in_pii(form: dict):
         - Only processes forms that contain recipient_identifier with both id_type and id_value
     """
 
-    recipient_identifier = form.get('recipient_identifier')
-
-    if not isinstance(recipient_identifier, dict):
-        return
-
-    # Get values with .get() to avoid KeyError
+    assert 'recipient_identifier' in form, 'The form should not have passed validation.'
+    recipient_identifier = form['recipient_identifier']
     id_type: str = recipient_identifier['id_type']
     id_value: str = recipient_identifier['id_value']
 
-    # Map id_type to appropriate PII class
-    pii_class_mapping: dict[str, type] = {
-        IdentifierType.ICN.value: PiiIcn,
-        IdentifierType.EDIPI.value: PiiEdipi,
-        IdentifierType.BIRLSID.value: PiiBirlsid,
-        IdentifierType.PID.value: PiiPid,
-        IdentifierType.VA_PROFILE_ID.value: PiiVaProfileID,
-    }
+    pii_class = get_pii_subclass(id_type)
 
-    pii_class: type | None = pii_class_mapping.get(id_type)
-
-    if pii_class is not None:
-        try:
-            # Wrap the id_value in the appropriate PII class
-            # Use False for is_encrypted since this is raw input data
-            form['recipient_identifier']['id_value'] = pii_class(id_value, False)
-            current_app.logger.debug(
-                'Wrapped recipient identifier id_value in %s for id_type %s', pii_class.__name__, id_type
-            )
-        except Exception as e:
-            current_app.logger.error(
-                'Failed to wrap recipient identifier in PII class %s: %s', pii_class.__name__, str(e)
-            )
-            # Continue without wrapping if PII instantiation fails
-    else:
-        current_app.logger.warning('Unknown id_type %s - cannot wrap in PII class', id_type)
+    try:
+        # Wrap the id_value in the appropriate PII class.  Use False for is_encrypted since this is raw input data.
+        form['recipient_identifier']['id_value'] = pii_class(id_value, False)
+        current_app.logger.debug(
+            'Wrapped recipient identifier id_value in %s for id_type %s', pii_class.__name__, id_type
+        )
+    except Exception:
+        current_app.logger.exception('Failed to wrap recipient identifier in PII class %s', pii_class.__name__)
+        # Continue without wrapping.
 
 
 @v2_notification_blueprint.route('/<notification_type>', methods=['POST'])
@@ -141,7 +122,7 @@ def post_notification(notification_type):  # noqa: C901
             )
         )
 
-    if is_feature_enabled(FeatureFlag.PII_ENABLED):
+    if is_feature_enabled(FeatureFlag.PII_ENABLED) and 'recipient_identifier' in form:
         # This might modify the form by converting form['recipient_identifier']['id_value'] to a Pii subclass.
         wrap_recipient_identifier_in_pii(form)
 
@@ -164,31 +145,31 @@ def post_notification(notification_type):  # noqa: C901
 
     if notification_type == LETTER_TYPE:
         return jsonify(result='error', message='Not Implemented'), 501
-    else:
-        if 'email_address' in form or 'phone_number' in form:
-            notification = process_sms_or_email_notification(
-                form=form,
-                notification_type=notification_type,
-                api_key=api_user,
-                template=template,
-                service=authenticated_service,
-                reply_to_text=reply_to,
-                created_at=created_at,
-            )
-        else:
-            # This execution path uses a given recipient identifier to lookup the
-            # recipient's e-mail address or phone number.
-            notification = process_notification_with_recipient_identifier(
-                form=form,
-                notification_type=notification_type,
-                api_key=api_user,
-                template=template,
-                service=authenticated_service,
-                reply_to_text=reply_to,
-                created_at=created_at,
-            )
 
-        template_with_content.values = {k: '<redacted>' for k in notification.personalisation}
+    if 'email_address' in form or 'phone_number' in form:
+        notification = process_sms_or_email_notification(
+            form=form,
+            notification_type=notification_type,
+            api_key=api_user,
+            template=template,
+            service=authenticated_service,
+            reply_to_text=reply_to,
+            created_at=created_at,
+        )
+    else:
+        # This execution path uses a given recipient identifier to lookup the
+        # recipient's e-mail address or phone number.
+        notification = process_notification_with_recipient_identifier(
+            form=form,
+            notification_type=notification_type,
+            api_key=api_user,
+            template=template,
+            service=authenticated_service,
+            reply_to_text=reply_to,
+            created_at=created_at,
+        )
+
+    template_with_content.values = {k: '<redacted>' for k in notification.personalisation}
 
     if notification_type == SMS_TYPE:
         create_resp_partial = functools.partial(create_post_sms_response_from_notification, from_number=reply_to)
@@ -228,8 +209,6 @@ def process_sms_or_email_notification(
         send_to=form_send_to, key_type=api_key.key_type, service=service, notification_type=notification_type
     )
 
-    # Do not persist or send notification to the queue if it is a simulated recipient.
-    #
     # TODO (tech debt) - This value is computed using a predetermined list of e-mail addresses defined
     # to be for simulation.  A better approach might be to pass "simulated" as a parameter to
     # process_sms_or_email_notification or to mock the undesired side-effects in test code.
@@ -237,7 +216,8 @@ def process_sms_or_email_notification(
 
     personalisation = process_document_uploads(form.get('personalisation'), service, simulated=simulated)
 
-    recipient_identifier = form.get('recipient_identifier')
+    recipient_identifier: dict | None = form.get('recipient_identifier')
+
     notification = persist_notification(
         template_id=template.id,
         template_version=template.version,
@@ -261,9 +241,12 @@ def process_sms_or_email_notification(
         persist_scheduled_notification(notification.id, form['scheduled_for'])
     else:
         if simulated:
+            # Do not send a notification to a simulated recipient to the queue.
             current_app.logger.debug('POST simulated notification for id: %s', notification.id)
         else:
-            recipient_id_type = recipient_identifier.get('id_type') if recipient_identifier else None
+            # id_type must be in the dictionary for validation to have passed.
+            # TODO 2587 - Is passing the recipient identifer necessary?
+            recipient_id_type = recipient_identifier['id_type'] if isinstance(recipient_identifier, dict) else None
             send_notification_to_queue(
                 notification=notification,
                 research_mode=service.research_mode,
@@ -284,6 +267,7 @@ def process_notification_with_recipient_identifier(
     reply_to_text=None,
     created_at: datetime | None = None,
 ):
+    assert 'recipient_identifier' in form, 'programming error'
     personalisation = process_document_uploads(form.get('personalisation'), service)
 
     notification = persist_notification(
@@ -296,7 +280,7 @@ def process_notification_with_recipient_identifier(
         key_type=api_key.key_type,
         client_reference=form.get('reference'),
         reply_to_text=reply_to_text,
-        recipient_identifier=form.get('recipient_identifier'),
+        recipient_identifier=form['recipient_identifier'],
         billing_code=form.get('billing_code'),
         sms_sender_id=form.get('sms_sender_id'),
         callback_url=form.get('callback_url'),

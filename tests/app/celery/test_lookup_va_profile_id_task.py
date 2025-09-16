@@ -1,10 +1,11 @@
 import pytest
+import requests_mock
 
 from app.celery.exceptions import AutoRetryException
 from app.constants import NOTIFICATION_PERMANENT_FAILURE, STATUS_REASON_NO_ID_FOUND, STATUS_REASON_UNDELIVERABLE
 from app.exceptions import NotificationTechnicalFailureException
 from app.celery.lookup_va_profile_id_task import lookup_va_profile_id
-from app.va.identifier import IdentifierType, UnsupportedIdentifierException
+from app.va.identifier import FHIR_FORMAT_SUFFIXES, IdentifierType, UnsupportedIdentifierException
 from app.va.mpi import (
     IdentifierNotFound,
     MpiRetryableException,
@@ -14,6 +15,7 @@ from app.va.mpi import (
     MpiNonRetryableException,
     NoSuchIdentifierException,
 )
+from app.pii import PiiIcn, PiiVaProfileID
 
 
 def test_should_call_mpi_client_and_save_va_profile_id(notify_db_session, mocker, sample_notification):
@@ -311,3 +313,58 @@ def test_should_permanently_fail_when_technical_failure_exception(client, mocker
     )
 
     mocked_check_and_queue_callback_task.assert_called_with(notification)
+
+
+@pytest.mark.parametrize('pii_enabled', [True, False])
+def test_lookup_va_profile_id(notify_db_session, mocker, rmock, sample_notification, pii_enabled):
+    """
+    Given an ID for a notification that has a related recipient identifier, the Celery task lookup_va_profile_id should
+    retrieve the associated VA Profile ID and add a new RecipientIdentifier instance to the database.  The value should
+    be encrypted or not according to the PII_ENABLED feature flag.
+    """
+
+    icn_value = PiiIcn('1234').get_encrypted_value() if pii_enabled else '1234'
+
+    notification = sample_notification(
+        recipient_identifiers=[{'id_type': IdentifierType.ICN.value, 'id_value': icn_value}]
+    )
+    assert IdentifierType.VA_PROFILE_ID.value not in notification.recipient_identifiers
+
+    mocker.patch.dict('os.environ', {'PII_ENABLED': str(pii_enabled)})
+
+    # Simulate that MPI returns '5678' as the unencrypted VA Profile ID value.
+    mpi_response = {
+        'identifier': [
+            {
+                'value': '5678' + FHIR_FORMAT_SUFFIXES[IdentifierType.VA_PROFILE_ID] + '^A',
+            },
+        ]
+    }
+    rmock.get(requests_mock.ANY, json=mpi_response)
+
+    # This VA Profile ID value should be in the database after this call.  If PII_ENABLED is True,
+    # the value should be encrypted.
+    va_profile_id = lookup_va_profile_id(notification.id)
+
+    # The request to MPI should have contained the unencrypted ICN value.
+    assert '1234' in rmock.request_history[0].url
+    assert rmock.call_count == 1
+
+    notify_db_session.session.refresh(notification)
+
+    # The ICN value should not change in the database.  If it was encrypted, it should remain encrypted.
+    assert notification.recipient_identifiers[IdentifierType.ICN.value].id_value == icn_value
+
+    if pii_enabled:
+        # The return value and persisted value should be encrypted.  Decrypt them, and compare them to the known decrypted value.
+        assert va_profile_id != '5678', 'The encrypted value should not equal the unencrypted value.'
+        assert PiiVaProfileID(va_profile_id, True).get_pii() == '5678'
+        assert (
+            PiiVaProfileID(
+                notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value, True
+            ).get_pii()
+            == '5678'
+        )
+    else:
+        assert va_profile_id == '5678'
+        assert notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value == '5678'

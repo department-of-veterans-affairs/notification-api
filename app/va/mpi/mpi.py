@@ -9,7 +9,7 @@ from functools import reduce
 
 from app.constants import HTTP_TIMEOUT
 from app.feature_flags import FeatureFlag, is_feature_enabled
-from app.pii import PiiVaProfileID
+from app.pii import get_pii_subclass, PiiVaProfileID
 from app.utils import statsd_http
 from app.va.identifier import (
     IdentifierType,
@@ -100,6 +100,11 @@ class MpiClient:
         self,
         notification,
     ) -> str:
+        """
+        Return the active VA Profile ID value, or raise an exception.  If the feature flag PII_ENABLED
+        is True, the returned value is encrypted.
+        """
+
         if len(notification.recipient_identifiers) != 1:
             error_message = (
                 f'Unexpected number of recipient_identifiers in: {notification.recipient_identifiers.keys()}'
@@ -110,17 +115,26 @@ class MpiClient:
         recipient_identifiers = notification.recipient_identifiers.values()
         recipient_identifier = next(iter(recipient_identifiers))
 
-        if is_fhir_format(recipient_identifier.id_value):
-            fhir_identifier = recipient_identifier.id_value
+        if is_feature_enabled(FeatureFlag.PII_ENABLED):
+            # Decrypt the recipient identifier.  The clear text value is needed to make a request to MPI.
+            pii_class = get_pii_subclass(recipient_identifier.id_type)
+            id_value_decrypted = pii_class(recipient_identifier.id_value, True).get_pii()
         else:
-            fhir_identifier = transform_to_fhir_format(recipient_identifier)
+            id_value_decrypted = recipient_identifier.id_value
 
-        response_json = self._make_request(fhir_identifier, notification.id, recipient_identifier.id_type)
+        if is_fhir_format(recipient_identifier.id_value):
+            fhir_identifier = id_value_decrypted
+        else:
+            fhir_identifier = transform_to_fhir_format(recipient_identifier.id_type, id_value_decrypted)
 
-        # Protect PII that can be logged when errors happen
-        fhir_identifier = '<redacted>' if recipient_identifier.id_type == IdentifierType.ICN.value else fhir_identifier
+        response_json: dict = self._make_request(fhir_identifier, notification.id, recipient_identifier.id_type)
+
+        if is_feature_enabled(FeatureFlag.PII_ENABLED) or recipient_identifier.id_type == IdentifierType.ICN.value:
+            # Protect PII that can be logged when errors happen.
+            fhir_identifier = '<redacted>'
+
         self._assert_not_deceased(response_json, fhir_identifier)
-        mpi_identifiers = response_json['identifier']
+        mpi_identifiers: list[dict] = response_json['identifier']
 
         va_profile_id = self._get_active_va_profile_id(mpi_identifiers, fhir_identifier)
         self.statsd_client.incr('clients.mpi.get_va_profile_id.success')
@@ -131,8 +145,13 @@ class MpiClient:
         fhir_identifier: str,
         notification_id: UUID,
         id_type: str,
-    ):
-        self.logger.debug('Querying MPI with %s for notification %s', fhir_identifier, notification_id)
+    ) -> dict:
+        """
+        Note that "fhir_identifier" contains an unencrypted recipient ID.  Do not log this value or include it
+        in a traceback message.
+        """
+
+        self.logger.debug('Querying MPI for notification %s', notification_id)
         start_time = monotonic()
         try:
             # Need to make the request with an expanded list of ciphers to make sure we can connect to MPI in Prod
@@ -177,7 +196,9 @@ class MpiClient:
             self._validate_response(
                 response.json(),
                 notification_id,
-                '<redacted>' if id_type == IdentifierType.ICN.value else fhir_identifier,
+                '<redacted>'
+                if (is_feature_enabled(FeatureFlag.PII_ENABLED) or id_type == IdentifierType.ICN.value)
+                else fhir_identifier,
             )
             self.statsd_client.incr('clients.mpi.success')
             return response.json()
@@ -187,9 +208,14 @@ class MpiClient:
 
     def _get_active_va_profile_id(
         self,
-        identifiers,
-        fhir_identifier,
+        identifiers: list[dict],
+        fhir_identifier: str,
     ) -> str:
+        """
+        Return the active VA Profile ID value, or raise an exception.  If the feature flag PII_ENABLED
+        is True, encrypt the value.
+        """
+
         active_va_profile_suffix = FHIR_FORMAT_SUFFIXES[IdentifierType.VA_PROFILE_ID] + '^A'
         va_profile_ids = [
             transform_from_fhir_format(identifier['value'])
@@ -207,7 +233,7 @@ class MpiClient:
 
         if is_feature_enabled(FeatureFlag.PII_ENABLED):
             # Encrypt the value.
-            va_profile_ids[0] = PiiVaProfileID(va_profile_ids[0]).get_encrypted_value()
+            va_profile_ids[0] = PiiVaProfileID(va_profile_ids[0], False).get_encrypted_value()
 
         return va_profile_ids[0]
 

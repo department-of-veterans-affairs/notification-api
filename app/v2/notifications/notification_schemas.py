@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from app.constants import (
     NOTIFICATION_STATUS_TYPES,
     TEMPLATE_TYPES,
@@ -128,14 +130,8 @@ recipient_identifier = {
     'required': ['id_type', 'id_value'],
 }
 
-ICN_recipient_identifier = {
-    'type': 'object',
-    'properties': {
-        'id_type': {'type': 'string', 'enum': [IdentifierType.ICN.value]},
-        'id_value': {'type': 'string'},
-    },
-    'required': ['id_type', 'id_value'],
-}
+ICN_recipient_identifier = deepcopy(recipient_identifier)
+ICN_recipient_identifier['properties']['id_type'] = {'type': 'string', 'enum': [IdentifierType.ICN.value]}
 
 post_sms_request = {
     '$schema': 'http://json-schema.org/draft-04/schema#',

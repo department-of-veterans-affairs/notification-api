@@ -8,12 +8,14 @@ from app.constants import KEY_TYPE_NORMAL, SMS_TYPE
 from app.dao.services_dao import dao_fetch_service_by_id
 from app.dao.templates_dao import dao_get_template_by_id
 from app.exceptions import NotificationTechnicalFailureException
+from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.models import Service, Template
 from app.notifications.process_notifications import (
     persist_notification,
     send_notification_to_queue,
     send_to_queue_for_recipient_info_based_on_recipient_identifier,
 )
+from app.pii import get_pii_subclass
 
 
 def lookup_notification_sms_setup_data(
@@ -55,16 +57,18 @@ def send_notification_bypass_route(
     service: Service,
     template: Template,
     reply_to_text: str | None,
-    recipient: str = None,
-    personalisation: dict = None,
-    sms_sender_id: str = None,
-    recipient_item: dict = None,
+    recipient: str | None = None,
+    personalisation: dict | None = None,
+    sms_sender_id: str | None = None,
+    recipient_item: dict | None = None,
     api_key_type: str = KEY_TYPE_NORMAL,
     notification_id: UUID | None = None,
 ):
     """
-    This will create a notification and add it to the proper celery queue using the given parameters.
-    It will use `recipient_item` if provided, otherwise it uses `recipient`
+    Create a notification, and add it to the proper celery queue using the given parameters.
+    Use `recipient_item` if provided.  Otherwise, use `recipient`.
+
+    Note that recipient_item.id_value, if present, is PII.
 
     :param service: the service sending the notification
     :param template: the template to use to send the notification
@@ -76,6 +80,7 @@ def send_notification_bypass_route(
         Note: uses service default for sms notifications if not passed in
     :param recipient_item: a dictionary specifying 'id_type' and 'id_value'
     :param api_key_type: the api key type to use, default: 'normal'
+    :param notification_id: the ID to use for the notification that will be persisted (but isn't yet)
 
     Raises:
         NotificationTechnicalFailureException: if recipient and recipient_item are both None,
@@ -84,8 +89,8 @@ def send_notification_bypass_route(
 
     if recipient is None and recipient_item is None:
         current_app.logger.critical(
-            'Programming error attempting to use send_notification_bypass_route, both recipient and recipient_item are '
-            'None. Please check the code calling this function to ensure one of these fields is populated properly.'
+            'Programming error attempting to use send_notification_bypass_route.  Both recipient and recipient_item '
+            'are None.  Please check the code calling this function to ensure one of these fields is populated.'
         )
         raise NotificationTechnicalFailureException(
             'Cannot send notification without one of: recipient or recipient_item'
@@ -95,13 +100,17 @@ def send_notification_bypass_route(
         if not ('id_type' in recipient_item and 'id_value' in recipient_item):
             current_app.logger.critical(
                 'Error in send_notification_bypass_route attempting to send notification using recipient_item. '
-                'Must contain both "id_type" and "id_value" fields, but one or both are missing. recipient_item: %s',
-                recipient_item,
+                'Must contain both "id_type" and "id_value" fields, but one or both are missing.'
             )
             raise NotificationTechnicalFailureException(
                 'Error attempting to send notification using recipient_item. Must contain both "id_type" and "id_value"'
                 ' fields, but one or more are missing.'
             )
+        elif is_feature_enabled(FeatureFlag.PII_ENABLED):
+            # Wrap the id_value in a PII subclass.  The downstream call to persist_notification will handle this
+            # correctly.
+            pii_class = get_pii_subclass(recipient_item['id_type'])
+            recipient_item['id_value'] = pii_class(recipient_item['id_value'])
 
     # Use the service's default sms_sender if applicable
     if template.template_type == SMS_TYPE and sms_sender_id is None:
@@ -124,7 +133,20 @@ def send_notification_bypass_route(
     )
     current_app.logger.info('persist_notification took: %s seconds', monotonic() - start_time)
 
-    if recipient_item is not None:
+    if recipient_item is None:
+        current_app.logger.info(
+            'sending %s notification with send_notification_bypass_route via send_notification_to_queue, '
+            'notification id %s',
+            template.template_type,
+            notification.id,
+        )
+
+        send_notification_to_queue(
+            notification=notification,
+            research_mode=False,
+            sms_sender_id=sms_sender_id,
+        )
+    else:
         current_app.logger.info(
             'sending %s notification with send_notification_bypass_route via '
             'send_to_queue_for_recipient_info_based_on_recipient_identifier, notification id %s',
@@ -139,16 +161,3 @@ def send_notification_bypass_route(
             communication_item_id=template.communication_item_id,
         )
         current_app.logger.info('send_to_queue_for_recipient took: %s seconds', monotonic() - start_time)
-    else:
-        current_app.logger.info(
-            'sending %s notification with send_notification_bypass_route via send_notification_to_queue, '
-            'notification id %s',
-            template.template_type,
-            notification.id,
-        )
-
-        send_notification_to_queue(
-            notification=notification,
-            research_mode=False,
-            sms_sender_id=sms_sender_id,
-        )

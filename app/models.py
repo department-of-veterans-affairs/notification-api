@@ -1508,6 +1508,21 @@ class Notification(db.Model):
     def serialize(self):
         template_dict = {'version': self.template.version, 'id': self.template.id, 'uri': self.template.get_link()}
 
+        recipient_identifiers = [
+            {
+                'id_type': recipient_identifier.id_type,
+                'id_value': (
+                    '<redacted>'
+                    if (
+                        is_feature_enabled(FeatureFlag.PII_ENABLED)
+                        or (recipient_identifier.id_type == IdentifierType.ICN.value)
+                    )
+                    else recipient_identifier.id_value
+                ),
+            }
+            for recipient_identifier in self.recipient_identifiers.values()
+        ]
+
         serialized = {
             'id': self.id,
             'reference': self.client_reference,
@@ -1538,17 +1553,7 @@ class Notification(db.Model):
                 else None
             ),
             'postage': self.postage,
-            'recipient_identifiers': [
-                {
-                    'id_type': recipient_identifier.id_type,
-                    'id_value': (
-                        '<redacted>'
-                        if (recipient_identifier.id_type == IdentifierType.ICN.value)
-                        else recipient_identifier.id_value
-                    ),
-                }
-                for recipient_identifier in self.recipient_identifiers.values()
-            ],
+            'recipient_identifiers': recipient_identifiers,
             'billing_code': self.billing_code,
             'sms_sender_id': self.sms_sender_id,
             'segments_count': self.segments_count,

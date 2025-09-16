@@ -5,6 +5,7 @@ from app.constants import EMAIL_TYPE, KEY_TYPE_NORMAL, SMS_TYPE
 from app.exceptions import NotificationTechnicalFailureException
 from app.models import Service, Template
 from app.notifications.send_notifications import lookup_notification_sms_setup_data, send_notification_bypass_route
+from app.pii import PiiVaProfileID
 from app.va.identifier import IdentifierType
 
 
@@ -68,12 +69,15 @@ def test_send_notification_bypass_route_no_recipient(
     mocker,
     sample_template,
 ):
+    """
+    When recipient and recipient_item both are None, log a critical error.
+    """
+
     template: Template = sample_template()
     service: Service = template.service
     persist_notification_mock = mocker.patch('app.notifications.send_notifications.persist_notification')
     mock_logger = mocker.patch('app.notifications.send_notifications.current_app.logger.critical')
 
-    # Test the case where recipient and recipient_item are None, should log critical error.
     with pytest.raises(NotificationTechnicalFailureException):
         send_notification_bypass_route(
             service,
@@ -94,9 +98,13 @@ def test_send_notification_bypass_route_sms_with_recipient_and_default_sms_sende
     mocker,
     sample_notification,
 ):
+    """
+    Send an SMS notification using the default sms_sender_id.
+    """
+
     notification = sample_notification()
     template = notification.template
-    service: Service = notification.template.service
+    service = notification.template.service
     sender_number = service.get_default_sms_sender()
 
     persist_notification_mock = mocker.patch(
@@ -104,7 +112,6 @@ def test_send_notification_bypass_route_sms_with_recipient_and_default_sms_sende
     )
     send_notification_to_queue_mock = mocker.patch('app.notifications.send_notifications.send_notification_to_queue')
 
-    # Test sending an SMS notification using the default sms_sender_id when it's not provided
     send_notification_bypass_route(
         service=service,
         template=template,
@@ -138,9 +145,11 @@ def test_send_notification_bypass_route_sms_with_recipient_and_default_sms_sende
     )
 
 
+@pytest.mark.parametrize('pii_enabled', [True, False])
 def test_send_notification_bypass_route_sms_with_recipient_item(
     mocker,
     sample_notification,
+    pii_enabled,
 ):
     notification = sample_notification()
     template = notification.template
@@ -154,14 +163,15 @@ def test_send_notification_bypass_route_sms_with_recipient_item(
         'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier'
     )
 
-    recipient_item = {'id_type': 'VAPROFILEID', 'id_value': '1234'}
+    recipient_identifier = {'id_type': 'VAPROFILEID', 'id_value': '1234'}
+    mocker.patch.dict('os.environ', {'PII_ENABLED': str(pii_enabled)})
 
     # Test sending an SMS notification using the recipient_item
     send_notification_bypass_route(
         service=service,
         template=template,
         reply_to_text=sender_number,
-        recipient_item=recipient_item,
+        recipient_item=recipient_identifier,
         sms_sender_id='test_sms_sender',
     )
 
@@ -175,16 +185,27 @@ def test_send_notification_bypass_route_sms_with_recipient_item(
         notification_type=SMS_TYPE,
         api_key_id=None,
         key_type=KEY_TYPE_NORMAL,
-        recipient_identifier=recipient_item,
+        recipient_identifier=recipient_identifier,
         sms_sender_id='test_sms_sender',
         reply_to_text=sender_number,
         notification_id=None,
     )
 
+    if pii_enabled:
+        assert persist_notification_mock.call_args.kwargs['recipient_identifier']['id_value'] != '1234'
+        assert (
+            PiiVaProfileID(
+                persist_notification_mock.call_args.kwargs['recipient_identifier']['id_value'], True
+            ).get_pii()
+            == '1234'
+        )
+    else:
+        assert persist_notification_mock.call_args.kwargs['recipient_identifier']['id_value'] == '1234'
+
     # Assert that the notification was queued correctly, with expected params
     send_to_queue_for_recipient_info_based_on_recipient_identifier_mock.assert_called_with(
         notification=notification,
-        id_type=recipient_item['id_type'],
+        id_type=recipient_identifier['id_type'],
         communication_item_id=template.communication_item_id,
     )
 
@@ -238,9 +259,11 @@ def test_send_notification_bypass_route_email_with_recipient(
     )
 
 
+@pytest.mark.parametrize('pii_enabled', [True, False])
 def test_send_notification_bypass_route_email_with_recipient_item(
     mocker,
     sample_notification,
+    pii_enabled,
 ):
     notification = sample_notification(gen_type=EMAIL_TYPE)
     template: Template = notification.template
@@ -254,6 +277,7 @@ def test_send_notification_bypass_route_email_with_recipient_item(
         'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier'
     )
     recipient_item = {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': '1234'}
+    mocker.patch.dict('os.environ', {'PII_ENABLED': str(pii_enabled)})
 
     # Test sending an email notification, with recipient_item
     send_notification_bypass_route(
@@ -278,6 +302,16 @@ def test_send_notification_bypass_route_email_with_recipient_item(
         reply_to_text=reply_to,
         notification_id=None,
     )
+
+    if pii_enabled:
+        assert (
+            PiiVaProfileID(
+                persist_notification_mock.call_args.kwargs['recipient_identifier']['id_value'], True
+            ).get_pii()
+            == '1234'
+        )
+    else:
+        assert persist_notification_mock.call_args.kwargs['recipient_identifier']['id_value'] == '1234'
 
     # Assert that the notification was queued correctly, with the expected params
     send_to_queue_for_recipient_info_based_on_recipient_identifier_mock.assert_called_with(

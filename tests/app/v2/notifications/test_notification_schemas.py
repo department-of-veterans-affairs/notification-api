@@ -133,7 +133,7 @@ valid_json_with_optionals = {
         valid_json_with_optionals,
     ],
 )
-def test_post_sms_schema_is_valid(data):
+def test_post_sms_schema_is_valid(notify_api, data):
     assert validate(data, post_sms_request_schema) == data
 
 
@@ -196,7 +196,7 @@ def test_post_sms_schema_id_type_should_only_use_enum_values(client, id_type):
         'recipient_identifier': {'id_type': id_type, 'id_value': 'bar'},
         'template_id': str(uuid.uuid4()),
     }
-    if id_type in IdentifierType.values():
+    if id_type != 'INVALID':
         assert validate(id_type_as_parameter_json, post_sms_request_schema) == id_type_as_parameter_json
     else:
         with pytest.raises(ValidationError) as e:

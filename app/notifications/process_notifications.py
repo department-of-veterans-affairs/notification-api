@@ -88,7 +88,7 @@ def persist_notification(
     billable_units=None,
     postage=None,
     template_postage=None,
-    recipient_identifier: str | Pii = None,
+    recipient_identifier: dict | None = None,
     billing_code=None,
     sms_sender_id=None,
     callback_url=None,
@@ -124,11 +124,20 @@ def persist_notification(
         callback_url=callback_url,
     )
 
-    if recipient_identifier:
-        # id_value is a string or Pii subclass instance.
+    if isinstance(recipient_identifier, dict):
+        # id_value is a non-empty string or Pii subclass instance.
         recipient_identifier_value = recipient_identifier['id_value']
-        if is_feature_enabled(FeatureFlag.PII_ENABLED) and isinstance(recipient_identifier_value, Pii):
+
+        if isinstance(recipient_identifier_value, Pii):
+            # Get the encrypted value, rather than the output of Pii.__str__, because the value needs to be
+            # decrypted and used downstream.
             recipient_identifier_value = recipient_identifier_value.get_encrypted_value()
+            current_app.logger.debug(
+                'Persisting the encrypted recipient identifier value %s %s for notification %s.',
+                recipient_identifier['id_type'],
+                recipient_identifier_value,
+                notification_id,
+            )
 
         _recipient_identifier = RecipientIdentifier(
             notification_id=notification_id,
@@ -137,6 +146,8 @@ def persist_notification(
         )
 
         notification.recipient_identifiers.set(_recipient_identifier)
+    # Else, the recipient_identifier should be None for notifications sent with a phone number or
+    # e-mail address in the post data.
 
     if notification_type == SMS_TYPE and notification.to:
         validated_recipient = ValidatedPhoneNumber(recipient)
@@ -172,6 +183,10 @@ def send_notification_to_queue(
 
     tasks = []
 
+    # TODO 2587 - Is this block necessary?  What is the point of looking up the VA Profile ID when the direct
+    # contact information is already available?  This might be necessary because send_notification_bypass_route
+    # might call this function, but is send_notification_bypass_route used for anything other than Comp & Pen,
+    # which expects VA Profile IDs in the records retrived from DynamoDB?
     if recipient_id_type:
         # This query uses the cached value of the template if available.
         template: TemplateHistoryData | None = dao_get_template_history_by_id(

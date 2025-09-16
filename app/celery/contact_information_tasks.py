@@ -49,8 +49,8 @@ def lookup_contact_info(
     notification_id: str,
 ):
     """
-    Celery task to look up contact information (email/phone number) for a given notification.
-    Also check for related communication permissions.
+    Celery task to look up contact information (email/phone number) for a given notification using a
+    VA Profile ID.  Also check for related communication permissions.
 
     Args:
         self (Task): The Celery task instance.
@@ -69,14 +69,26 @@ def lookup_contact_info(
     current_app.logger.info('Looking up contact information for notification_id: %s.', notification_id)
 
     notification = get_notification_by_id(notification_id)
+
+    # If the PII_ENABLED flag is True, recipient_identifier.id_value is an encrypted value.
     recipient_identifier = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value]
+    current_app.logger.debug(
+        'Using VA Profile ID %s to look up contact information for notification %s.',
+        recipient_identifier.id_value,
+        notification_id,
+    )
 
     try:
         result = get_profile_result(notification, recipient_identifier)
         notification.to = result.recipient
+        current_app.logger.debug(
+            'Looked up contact information %s for notification_id: %s.', notification.to, notification_id
+        )
+
         if not result.communication_allowed:
+            # Raise an exception if this violates permissions.
             handle_communication_not_allowed(notification, recipient_identifier, result.permission_message)
-        # Otherwise, this communication is allowed. We will update the notification below and continue the chain.
+
         dao_update_notification(notification)
     except Exception as e:
         handle_lookup_contact_info_exception(self, notification, recipient_identifier, e)
@@ -90,9 +102,9 @@ def get_profile_result(
     Retrieve the result of looking up contact info from VA Profile.
 
     Args:
-        notification (Notification): The Notification object to get contact info and permissions for.
-        recipient_identifier (RecipientIdentifier): The VA profile ID to retrieve the profile for.
-            If the PII_ENABLED flag is true, this value is encrypted.
+        notification (Notification): The Notification object for which to get contact info and permissions
+        recipient_identifier (RecipientIdentifier): The VA profile ID for which to retrieve the profile.
+            If the PII_ENABLED flag is True, recipient_identifier.id_value is an encrypted value.
 
     Returns:
         VAProfileResult: The contact info result from VA Profile.
@@ -130,6 +142,7 @@ def handle_lookup_contact_info_exception(
     Returns:
         str or None: A message indicating the result of the exception handling, or None if no action is needed.
     """
+
     if isinstance(e, (Timeout, VAProfileRetryableException)):
         if can_retry(lookup_task.request.retries, lookup_task.max_retries, notification.id):
             current_app.logger.warning('Unable to get contact info for notification id: %s, retrying', notification.id)

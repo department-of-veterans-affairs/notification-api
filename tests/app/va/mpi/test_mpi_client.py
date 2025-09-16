@@ -127,7 +127,7 @@ class TestGetVaProfileId:
         assert actual_va_profile_id == EXPECTED_VA_PROFILE_ID
 
     def test_should_make_request_to_mpi_using_transformed_identifier_and_return_va_profile_id(
-        self, mpi_client, rmock, mocker, sample_notification_model_with_organization
+        self, notify_api, mpi_client, rmock, mocker, sample_notification_model_with_organization
     ):
         notification = sample_notification_model_with_organization
         recipient_identifier = sample_recipient_identifier()
@@ -148,7 +148,7 @@ class TestGetVaProfileId:
 
         actual_va_profile_id = mpi_client.get_va_profile_id(notification)
 
-        mocked_transform_to_fhir_format.assert_called_with(recipient_identifier)
+        mocked_transform_to_fhir_format.assert_called_with(recipient_identifier.id_type, recipient_identifier.id_value)
         assert rmock.called
         assert rmock.request_history[0].url == expected_url
         assert actual_va_profile_id == EXPECTED_VA_PROFILE_ID

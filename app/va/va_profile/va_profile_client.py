@@ -101,7 +101,7 @@ class VAProfileClient:
 
         Args:
             va_profile_id (RecipientIdentifier): The VA profile ID to retrieve the profile for.  If the PII_ENABLED
-                flag is true, this value is encrypted.
+                flag is true, the id_value attribute is encrypted.
 
         Returns:
             Profile: The profile information retrieved from the VA Profile service.  Note that the
@@ -109,13 +109,15 @@ class VAProfileClient:
         """
 
         # This value might be encrypted.  Unencrypted values should not be logged if PII_ENABLED is True.
-        initial_id = va_profile_id.id_value
+        initial_id_value = va_profile_id.id_value
 
         if is_feature_enabled(FeatureFlag.PII_ENABLED):
             # Decrypt the value.
-            va_profile_id.id_value = PiiVaProfileID(initial_id, True).get_pii()
+            id_value_decrypted = PiiVaProfileID(initial_id_value, True).get_pii()
+        else:
+            id_value_decrypted = initial_id_value
 
-        recipient_id = transform_to_fhir_format(va_profile_id)
+        recipient_id = transform_to_fhir_format(IdentifierType.VA_PROFILE_ID, id_value_decrypted)
         oid = OIDS.get(IdentifierType.VA_PROFILE_ID)
         url = f'{self.va_profile_url}/profile-service/profile/v3/{oid}/{recipient_id}'
         data = {'bios': [{'bioPath': 'contactInformation'}, {'bioPath': 'communicationPermissions'}]}
@@ -127,7 +129,7 @@ class VAProfileClient:
                 )
             response.raise_for_status()
         except (requests.HTTPError, requests.RequestException, requests.Timeout) as e:
-            self._handle_exceptions(initial_id, e)
+            self._handle_exceptions(initial_id_value, e)
 
         response_json: dict = response.json()
         return response_json.get('profile', {})
@@ -146,7 +148,7 @@ class VAProfileClient:
         va_profile_id: int | None = contact_info.get('vaProfileId')
         if va_profile_id is not None and is_feature_enabled(FeatureFlag.PII_ENABLED):
             # Encrypt the value, which might be logged.  If this is logged, it will use the __str__ value.
-            va_profile_id = PiiVaProfileID(va_profile_id)
+            va_profile_id = PiiVaProfileID(str(va_profile_id))
 
         telephones: list[Telephone] = contact_info.get(self.PHONE_BIO_TYPE, [])
 
@@ -201,7 +203,7 @@ class VAProfileClient:
 
         Args:
             va_profile_id (RecipientIdentifier): The VA profile ID to retrieve the telephone number for.  If the PII_ENABLED
-                flag is true, this value is encrypted.
+                flag is true, the id_value attribute is encrypted.
             notification (Notification): Notification object which contains needed default_send and communication_item details
 
         Returns:
@@ -239,7 +241,7 @@ class VAProfileClient:
 
         Args:
             va_profile_id (RecipientIdentifier): The VA profile ID to retrieve the email address for.  If the PII_ENABLED
-                flag is true, this value is encrypted.
+                flag is true, the id_value attribute is encrypted.
             notification (Notification): Notification object which contains needed default_send and communication_item details
 
         Returns:
@@ -249,6 +251,7 @@ class VAProfileClient:
             Property permission_message may contain an error message if the permission check encountered an exception.
         """
 
+        # The identifiers in the Profile instance are not encrypted.
         profile: Profile = self.get_profile(va_profile_id)
         communication_allowed = notification.default_send
         permission_message = None
@@ -271,12 +274,8 @@ class VAProfileClient:
             self.statsd_client.incr('clients.va-profile.get-email.failure')
             self.statsd_client.incr(f'clients.va-profile.get-{self.EMAIL_BIO_TYPE}.no-{self.EMAIL_BIO_TYPE}')
 
-            va_profile_id_redacted = va_profile_id
-            if is_feature_enabled(FeatureFlag.PII_ENABLED):
-                va_profile_id_redacted = PiiVaProfileID(va_profile_id.id_value).get_encrypted_value()
-
             raise NoContactInfoException(
-                f'No {self.EMAIL_BIO_TYPE} in response for VA Profile ID {va_profile_id_redacted} '
+                f'No {self.EMAIL_BIO_TYPE} in response for VA Profile ID {va_profile_id} '
                 f'with AuditId {contact_info.get(self.TX_AUDIT_ID)}'
             )
 

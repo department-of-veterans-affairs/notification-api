@@ -14,9 +14,9 @@ fileignoreconfig:
 - filename: app/schema_validation/__init__.py
   checksum: 2ed516f6558f85367a8bd377a0bf32ba39e10cc6c2db38744e8549cb83997519
 - filename: cd/application-deployment/dev/dev.env
-  checksum: 66a6a7c4359503312f83721c4936bf9091189aca4a202985a416592743469f0b
+  checksum: 81354b4c372a743b3e604698e96b2b12030d959c254e345c706732663bdaea65
 - filename: cd/application-deployment/perf/perf.env
-  checksum: 9d69b7e7e1c32782db4b053de3121dee4381dc438ab342bbcb94ae0d07ef9361
+  checksum: 5a27523bc08f26281a2858f0a6858e7d4fd81c16b4007242ac7c8c0c5c3244b3
 - filename: cd/application-deployment/prod/prod.env
   checksum: a56e937eada19f973d76da7696b772dce662169a3a9554e7648b99b9a5eb2b4c
 - filename: cd/application-deployment/staging/staging.env
@@ -71,6 +71,10 @@ fileignoreconfig:
   checksum: 4dcd257865daa286c737d6a76e141e8b9aee66c0642524447c394554643b7712
 - filename: tests/app/v2/notifications/test_post_notifications.py
   checksum: a12eb5a735321d8eaa8e2ff6af4e2dbd570a11f861213fd448b11cc2ee4cd8f9
+- filename: app/v2/notifications/post_notifications.py
+  checksum: f365a7336c5105df6c11a6f95e765fe5079d0c3c97907e059dea5556a62ff494
 - filename: app/va/va_profile/va_profile_client.py
   checksum: 5c867bf817283bf50f2d974697c1c08d80976f37b1a1a13d0ba2e029536e9b2c
+- filename: app/pii/pii_base.py
+  checksum: 584cb03893d943c5f8504e5951128f17ce26cf9ffdfc51a29992d9e30e9a3d8b
 version: "1.0"
