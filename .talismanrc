@@ -16,7 +16,7 @@ fileignoreconfig:
 - filename: cd/application-deployment/dev/dev.env
   checksum: 1b8e34d6b0aa8223d005df28e940aabca3dd342fbf48ec44599a017e0c16e2d5
 - filename: cd/application-deployment/perf/perf.env
-  checksum: 9d69b7e7e1c32782db4b053de3121dee4381dc438ab342bbcb94ae0d07ef9361
+  checksum: 316a966083219186460f65d5ceafc0a1eadbc6960e3d2c6bce7c935493912644
 - filename: cd/application-deployment/prod/prod.env
   checksum: a56e937eada19f973d76da7696b772dce662169a3a9554e7648b99b9a5eb2b4c
 - filename: cd/application-deployment/staging/staging.env
