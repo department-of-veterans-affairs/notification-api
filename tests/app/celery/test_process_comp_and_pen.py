@@ -1,30 +1,63 @@
 from unittest.mock import patch
 
 import pytest
+from sqlalchemy import delete, select
 from sqlalchemy.orm.exc import NoResultFound
 
 from app.celery.process_comp_and_pen import comp_and_pen_batch_process
 from app.exceptions import NotificationTechnicalFailureException
+from app.models import Notification
+from app.pii import PiiVaProfileID
+from app.va.identifier import IdentifierType
 
 
-def test_comp_and_pen_batch_process_happy_path(mocker, sample_template) -> None:
+# This test should create two new notifications, but there's no way to query by ID to retrieve them because
+# the IDs are set randomly down stream.
+@pytest.mark.serial
+@pytest.mark.parametrize('pii_enabled', [True, False])
+def test_comp_and_pen_batch_process_happy_path(notify_db_session, mocker, sample_template, pii_enabled) -> None:
+    """
+    Verify the code path from the invocation of comp_and_pen_batch_process to the downstream code that executes
+    Celery tasks with apply_async.  The code under test should create two Notification instances and their related
+    RecipientIdentifier instances.
+    """
+
     template = sample_template()
     mocker.patch(
         'app.celery.process_comp_and_pen.lookup_notification_sms_setup_data',
         return_value=(template.service, template, str(template.service.get_default_sms_sender_id())),
     )
+
+    mocker.patch.dict('os.environ', {'PII_ENABLED': str(pii_enabled)})
+
+    # This function executes Celery tasks using apply.async.
     mock_send = mocker.patch(
         'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier'
     )
+
+    mock_send_notification_to_queue = mocker.patch('app.notifications.send_notifications.send_notification_to_queue')
 
     records = [
         {'participant_id': '55', 'payment_amount': '55.56', 'vaprofile_id': '57'},
         {'participant_id': '42', 'payment_amount': '42.42', 'vaprofile_id': '43627'},
     ]
+
     comp_and_pen_batch_process(records)
 
-    # comp_and_pen_batch_process can fail without raising an exception, so test it called send_to_queue_for_recipient...
-    mock_send.call_count == len(records)
+    notifications = notify_db_session.session.scalars(select(Notification)).all()
+
+    try:
+        mock_send_notification_to_queue.assert_not_called(), 'This is the path for notifications with contact info.'
+        assert mock_send.call_count == len(records), 'Should have been called for each record.'
+        assert len(notifications) == len(records), 'Should have created a new notification for each record.'
+
+        for index, notification in enumerate(notifications):
+            assert len(notification.recipient_identifiers) == 1
+            va_profile_id = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value
+            decrypted_va_profile_id = PiiVaProfileID(va_profile_id, True).get_pii() if pii_enabled else va_profile_id
+            assert decrypted_va_profile_id == records[index]['vaprofile_id']
+    finally:
+        notify_db_session.session.execute(delete(Notification))
 
 
 def test_comp_and_pen_batch_process_perf_number_happy_path(mocker, sample_template) -> None:

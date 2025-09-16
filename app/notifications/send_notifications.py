@@ -133,7 +133,20 @@ def send_notification_bypass_route(
     )
     current_app.logger.info('persist_notification took: %s seconds', monotonic() - start_time)
 
-    if recipient_item is not None:
+    if recipient_item is None:
+        current_app.logger.info(
+            'sending %s notification with send_notification_bypass_route via send_notification_to_queue, '
+            'notification id %s',
+            template.template_type,
+            notification.id,
+        )
+
+        send_notification_to_queue(
+            notification=notification,
+            research_mode=False,
+            sms_sender_id=sms_sender_id,
+        )
+    else:
         current_app.logger.info(
             'sending %s notification with send_notification_bypass_route via '
             'send_to_queue_for_recipient_info_based_on_recipient_identifier, notification id %s',
@@ -148,16 +161,3 @@ def send_notification_bypass_route(
             communication_item_id=template.communication_item_id,
         )
         current_app.logger.info('send_to_queue_for_recipient took: %s seconds', monotonic() - start_time)
-    else:
-        current_app.logger.info(
-            'sending %s notification with send_notification_bypass_route via send_notification_to_queue, '
-            'notification id %s',
-            template.template_type,
-            notification.id,
-        )
-
-        send_notification_to_queue(
-            notification=notification,
-            research_mode=False,
-            sms_sender_id=sms_sender_id,
-        )

@@ -184,7 +184,9 @@ def send_notification_to_queue(
     tasks = []
 
     # TODO 2587 - Is this block necessary?  What is the point of looking up the VA Profile ID when the direct
-    # contact information is already available?
+    # contact information is already available?  This might be necessary because send_notification_bypass_route
+    # might call this function, but is send_notification_bypass_route used for anything other than Comp & Pen,
+    # which expects VA Profile IDs in the records retrived from DynamoDB?
     if recipient_id_type:
         # This query uses the cached value of the template if available.
         template: TemplateHistoryData | None = dao_get_template_history_by_id(
