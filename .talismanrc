@@ -20,7 +20,7 @@ fileignoreconfig:
 - filename: cd/application-deployment/prod/prod.env
   checksum: a56e937eada19f973d76da7696b772dce662169a3a9554e7648b99b9a5eb2b4c
 - filename: cd/application-deployment/staging/staging.env
-  checksum: 80d84ae9cbf949a0fdf787ace80a877fb19d7cac41b64b3f03d34b9e72ff6f02
+  checksum: 97bbcdc4f73850cd58aed24dbe57a2672282d7a9979058110df26eab38dfdd87
 - filename: cd/application-deployment/dev/vaec-api-task-definition.json
   checksum: ae7a3c3994f5592d538e45d048f302bc17ecf1ab5080d6e45c2b17c02f44fc36
 - filename: cd/application-deployment/prod/vaec-api-task-definition.json
