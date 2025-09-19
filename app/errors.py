@@ -4,7 +4,7 @@ from sqlalchemy.exc import DataError
 from sqlalchemy.orm.exc import NoResultFound
 from marshmallow import ValidationError
 from jsonschema import ValidationError as JsonSchemaValidationError
-from app.authentication.auth import AuthError
+from app.authentication.auth import AuthError, FirehoseAuthError
 from app.exceptions import ArchiveValidationError
 
 
@@ -112,6 +112,11 @@ def register_errors(blueprint):  # noqa: C901
     def not_implemented(e):
         current_app.logger.exception(e)
         return jsonify(result='error', message='Not Implemented'), 501
+
+    @blueprint.errorhandler(FirehoseAuthError)
+    def firehose_auth_error(error):
+        current_app.logger.info('FirehoseAuthError, error: %s', error)
+        return jsonify(error.to_dict_v2()), error.code
 
 
 def invalid_data_v2(error):

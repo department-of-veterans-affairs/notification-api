@@ -3,6 +3,7 @@ from datetime import datetime
 import hmac
 from typing import Callable
 from uuid import uuid4
+import time
 
 from flask import request, current_app, g
 from flask_jwt_extended import verify_jwt_in_request, current_user
@@ -49,6 +50,17 @@ class AuthError(Exception):
             error_message = 'Invalid token'
 
         return {'errors': [{'error': 'AuthError', 'message': error_message}]}
+
+
+class FirehoseAuthError(Exception):
+    def __init__(self, request_id, error_message, code):
+        self.request_id = request_id
+        self.error_message = error_message
+        self.code = code
+        self.timestamp = int(time.time() * 1000)
+
+    def to_dict_v2(self):
+        return {'status_code': self.code, 'errors': [{'error': 'FirehoseAuthError', 'message': self.error_message}]}
 
 
 def get_auth_token(req):
@@ -247,24 +259,23 @@ def handle_admin_key(
 
 def validate_pinpoint_firehose_api_key():
     firehose_request_id = request.headers.get('X-Amz-Firehose-Request-Id', 'unknown')
-    user_agent = request.headers.get('User-Agent', 'unknown')
 
-    current_app.logger.info(
-        'Firehose API key validation request - Request ID: %s, User-Agent: %s', firehose_request_id, user_agent
-    )
+    request_data = request.get_json()
+    request_body_id = request_data.get('requestId', firehose_request_id)
+
+    current_app.logger.info('Firehose API key validation request - Request ID: %s', firehose_request_id)
 
     api_key = request.headers.get('X-Amz-Firehose-Access-Key', None)
     if not api_key:
         current_app.logger.warning('Firehose API key missing - Request ID: %s', firehose_request_id)
-        # Return 401 so Firehose will retry - semantically correct for missing auth
-        raise AuthError('Unauthorized, api key must be provided', 401)
+        # Return 401 so Firehose will retry with key
+        raise FirehoseAuthError(
+            request_id=request_body_id, error_message='Unauthorized, api key must be provided', code=401
+        )
 
     if not hmac.compare_digest(api_key, current_app.config.get('AWS_PINPOINT_FIREHOSE_API_KEY')):
-        current_app.logger.warning(
-            'Firehose API key invalid - Request ID: %s',
-            firehose_request_id,
-        )
-        # Return 403 so Firehose will retry - semantically correct for invalid auth
-        raise AuthError('Invalid, api key is not valid', 403)
+        current_app.logger.warning('Firehose API key invalid - Request ID: %s', firehose_request_id)
+        # Return 403 so Firehose will retry with valid key
+        raise FirehoseAuthError(request_id=request_body_id, error_message='Invalid, api key is not valid', code=403)
 
     current_app.logger.info('Firehose API key validation successful - Request ID: %s', firehose_request_id)
