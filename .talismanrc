@@ -2,7 +2,7 @@ fileignoreconfig:
 - filename: .github/workflows/deployment.yml
   checksum: 3968c30477e26a632f8f24bcee18fd80dc10d6d3de2a3fc7205bd7cc4f860d7c
 - filename: app/authentication/auth.py
-  checksum: 90488ef0e7b4dd68c948adcc0cfddf4675618a826295bb0932137936cc0705e8
+  checksum: bb002a4c22e2c0d398cbcf6d9556967dd921a3afa1cfc77553c31ea8f3eea530
 - filename: app/config.py
   checksum: 9fdb58779702b0c101705671b34f6c337dc05afaff154b8fe878c98c2333d859
 - filename: app/dao/api_key_dao.py

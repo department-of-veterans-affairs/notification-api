@@ -246,9 +246,25 @@ def handle_admin_key(
 
 
 def validate_pinpoint_firehose_api_key():
+    firehose_request_id = request.headers.get('X-Amz-Firehose-Request-Id', 'unknown')
+    user_agent = request.headers.get('User-Agent', 'unknown')
+
+    current_app.logger.info(
+        'Firehose API key validation request - Request ID: %s, User-Agent: %s', firehose_request_id, user_agent
+    )
+
     api_key = request.headers.get('X-Amz-Firehose-Access-Key', None)
     if not api_key:
+        current_app.logger.warning('Firehose API key missing - Request ID: %s', firehose_request_id)
+        # Return 401 so Firehose will retry - semantically correct for missing auth
         raise AuthError('Unauthorized, api key must be provided', 401)
 
     if not hmac.compare_digest(api_key, current_app.config.get('AWS_PINPOINT_FIREHOSE_API_KEY')):
+        current_app.logger.warning(
+            'Firehose API key invalid - Request ID: %s',
+            firehose_request_id,
+        )
+        # Return 403 so Firehose will retry - semantically correct for invalid auth
         raise AuthError('Invalid, api key is not valid', 403)
+
+    current_app.logger.info('Firehose API key validation successful - Request ID: %s', firehose_request_id)

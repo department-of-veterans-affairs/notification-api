@@ -6,6 +6,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from app import aws_pinpoint_client
 from app.celery.exceptions import NonRetryableException
+from celery.exceptions import CeleryError
 from app.celery.process_delivery_status_result_tasks import get_notification_platform_status
 from app.celery.process_pinpoint_v2_receipt_tasks import process_pinpoint_v2_receipt_results
 from app.clients.sms import SmsStatusRecord
@@ -33,7 +34,6 @@ def handler():
 
     for record in records:
         try:
-            # TODO #1832 - Handle sending 400 if Firehose need to retry
             data = record.get('data')
             decoded_record_data = json.loads(base64.b64decode(data).decode('utf-8'))
         except (KeyError, ValueError, json.JSONDecodeError, Exception) as e:
@@ -56,11 +56,20 @@ def handler():
             )
             continue
 
-        process_pinpoint_v2_receipt_results.apply_async(
-            [notification_platform_status, decoded_record_data.get('eventTimestamp')],
-            queue=QueueNames.NOTIFY,
-            serializer='pickle',
-        )
+        try:
+            process_pinpoint_v2_receipt_results.apply_async(
+                [notification_platform_status, decoded_record_data.get('eventTimestamp')],
+                queue=QueueNames.NOTIFY,
+                serializer='pickle',
+            )
+        except CeleryError:
+            current_app.logger.error('Celery unavailable for record: %s', record)
+            return jsonify(
+                {
+                    'requestId': request_data.get('requestId'),
+                    'timestamp': str(int(time.time() * 1000)),
+                }
+            ), 400
 
     return jsonify(
         {
