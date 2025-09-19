@@ -59,8 +59,8 @@ class FirehoseAuthError(Exception):
         self.code = code
         self.timestamp = int(time.time() * 1000)
 
-    def to_dict_v2(self):
-        return {'status_code': self.code, 'errors': [{'error': 'FirehoseAuthError', 'message': self.error_message}]}
+    def response_body(self):
+        return {'requestId': self.request_id, 'timestamp': self.timestamp}
 
 
 def get_auth_token(req):

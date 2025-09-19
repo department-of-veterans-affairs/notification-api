@@ -24,7 +24,7 @@ def handler():
     Decodes request body and processes each record through Celery.
 
     Returns:
-        tuple: JSON response body and HTTP status code 200.
+        tuple: (json response, status code)
     """
     request_data = request.get_json()
 
@@ -69,13 +69,13 @@ def handler():
             return jsonify(
                 {
                     'requestId': request_data.get('requestId'),
-                    'timestamp': str(int(time.time() * 1000)),
+                    'timestamp': int(time.time() * 1000),
                 }
             ), 400
 
     return jsonify(
         {
             'requestId': request_data.get('requestId'),
-            'timestamp': str(int(time.time() * 1000)),
+            'timestamp': int(time.time() * 1000),
         }
     ), 200

@@ -116,7 +116,7 @@ def register_errors(blueprint):  # noqa: C901
     @blueprint.errorhandler(FirehoseAuthError)
     def firehose_auth_error(error):
         current_app.logger.info('FirehoseAuthError, error: %s', error)
-        return jsonify(error.to_dict_v2()), error.code
+        return jsonify(error.response_body()), error.code
 
 
 def invalid_data_v2(error):

@@ -85,7 +85,7 @@ class TestPinpointV2DeliveryStatus:
         )
 
         assert response.status_code == 200
-        assert response.json == {'requestId': 'test-request-123', 'timestamp': '1754562600000'}
+        assert response.json == {'requestId': 'test-request-123', 'timestamp': 1754562600000}
 
     @freeze_time('2025-08-07 10:30:00')
     def test_post_delivery_status_multiple_records(self, client, mocker, pinpoint_sms_voice_v2_data):
@@ -127,7 +127,7 @@ class TestPinpointV2DeliveryStatus:
         )
 
         assert response.status_code == 200
-        assert response.json == {'requestId': 'test-request-456', 'timestamp': '1754562600000'}
+        assert response.json == {'requestId': 'test-request-456', 'timestamp': 1754562600000}
 
         assert mock_celery_task.call_count == 2
 
@@ -230,7 +230,7 @@ class TestPinpointV2DeliveryStatus:
         )
 
         assert response.status_code == 200
-        assert response.json == {'requestId': 'test-request-789', 'timestamp': '1754562600000'}
+        assert response.json == {'requestId': 'test-request-789', 'timestamp': 1754562600000}
 
         # Should have processed 2 valid records, skipped 1 invalid
         assert mock_celery_task.call_count == 2
@@ -269,7 +269,7 @@ class TestPinpointV2DeliveryStatus:
         )
 
         assert response.status_code == 200
-        assert response.json == {'requestId': 'test-request-123', 'timestamp': '1754562600000'}
+        assert response.json == {'requestId': 'test-request-123', 'timestamp': 1754562600000}
 
         assert mock_logger.error.call_count == 3
 
@@ -306,7 +306,11 @@ class TestPinpointV2DeliveryStatus:
             url_for('pinpoint_v2.handler'),
             json=request_payload,
         )
+        response_data = response.get_json()
+
         assert response.status_code == 401
+        assert response_data['requestId'] == 'test-request-456'
+        assert response_data['timestamp'] == 1754562600000
 
     @freeze_time('2025-08-07 10:30:00')
     def test_post_delivery_status_bad_auth(self, client, mocker, pinpoint_sms_voice_v2_data):
@@ -322,7 +326,12 @@ class TestPinpointV2DeliveryStatus:
         response = client.post(
             url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'invalid')]
         )
+
+        response_data = response.get_json()
+
         assert response.status_code == 403
+        assert response_data['requestId'] == 'test-request-456'
+        assert response_data['timestamp'] == 1754562600000
 
     @freeze_time('2025-08-07 10:30:00')
     def test_post_delivery_status_celery_error(self, client, mocker, pinpoint_sms_voice_v2_data):
@@ -347,7 +356,7 @@ class TestPinpointV2DeliveryStatus:
         )
 
         assert response.status_code == 400
-        assert response.json == {'requestId': 'test-request-celery-error', 'timestamp': '1754562600000'}
+        assert response.json == {'requestId': 'test-request-celery-error', 'timestamp': 1754562600000}
 
         assert mock_celery_task.call_count == 1
 
