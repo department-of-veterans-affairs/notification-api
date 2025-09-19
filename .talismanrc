@@ -14,13 +14,13 @@ fileignoreconfig:
 - filename: app/schema_validation/__init__.py
   checksum: 2ed516f6558f85367a8bd377a0bf32ba39e10cc6c2db38744e8549cb83997519
 - filename: cd/application-deployment/dev/dev.env
-  checksum: 81354b4c372a743b3e604698e96b2b12030d959c254e345c706732663bdaea65
+  checksum: 8f3fa0f10d2d4e8b72c23137093339e4998bf3fcf5afd6213c3bc814ada20a74
 - filename: cd/application-deployment/perf/perf.env
-  checksum: 5a27523bc08f26281a2858f0a6858e7d4fd81c16b4007242ac7c8c0c5c3244b3
+  checksum: e454013f2a24dc23a83aa15af74a11d9662c5e41b0f26b0a2dde03f30aec820e
 - filename: cd/application-deployment/prod/prod.env
   checksum: a56e937eada19f973d76da7696b772dce662169a3a9554e7648b99b9a5eb2b4c
 - filename: cd/application-deployment/staging/staging.env
-  checksum: 80d84ae9cbf949a0fdf787ace80a877fb19d7cac41b64b3f03d34b9e72ff6f02
+  checksum: 97bbcdc4f73850cd58aed24dbe57a2672282d7a9979058110df26eab38dfdd87
 - filename: cd/application-deployment/dev/vaec-api-task-definition.json
   checksum: ae7a3c3994f5592d538e45d048f302bc17ecf1ab5080d6e45c2b17c02f44fc36
 - filename: cd/application-deployment/prod/vaec-api-task-definition.json
