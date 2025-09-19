@@ -5,6 +5,7 @@ from datetime import datetime
 from flask import url_for
 import pytest
 from freezegun import freeze_time
+from celery.exceptions import CeleryError
 
 from app.clients.sms import SmsStatusRecord
 from app.constants import PINPOINT_PROVIDER
@@ -84,7 +85,7 @@ class TestPinpointV2DeliveryStatus:
         )
 
         assert response.status_code == 200
-        assert response.json == {'requestId': 'test-request-123', 'timestamp': '1754562600000'}
+        assert response.json == {'requestId': 'test-request-123', 'timestamp': 1754562600000}
 
     @freeze_time('2025-08-07 10:30:00')
     def test_post_delivery_status_multiple_records(self, client, mocker, pinpoint_sms_voice_v2_data):
@@ -126,7 +127,7 @@ class TestPinpointV2DeliveryStatus:
         )
 
         assert response.status_code == 200
-        assert response.json == {'requestId': 'test-request-456', 'timestamp': '1754562600000'}
+        assert response.json == {'requestId': 'test-request-456', 'timestamp': 1754562600000}
 
         assert mock_celery_task.call_count == 2
 
@@ -139,7 +140,7 @@ class TestPinpointV2DeliveryStatus:
         assert second_call_args[1] == 1722427260000
 
     @freeze_time('2025-08-07 10:30:00')
-    def test_post_delivery_status_with_validation_errors(self, client, mocker, pinpoint_sms_voice_v2_data, caplog):
+    def test_post_delivery_status_with_validation_errors(self, client, mocker):
         """Test that validation errors for individual records don't stop processing of other records"""
 
         mock_feature_flag = mocker.Mock(FeatureFlag)
@@ -229,7 +230,7 @@ class TestPinpointV2DeliveryStatus:
         )
 
         assert response.status_code == 200
-        assert response.json == {'requestId': 'test-request-789', 'timestamp': '1754562600000'}
+        assert response.json == {'requestId': 'test-request-789', 'timestamp': 1754562600000}
 
         # Should have processed 2 valid records, skipped 1 invalid
         assert mock_celery_task.call_count == 2
@@ -268,7 +269,7 @@ class TestPinpointV2DeliveryStatus:
         )
 
         assert response.status_code == 200
-        assert response.json == {'requestId': 'test-request-123', 'timestamp': '1754562600000'}
+        assert response.json == {'requestId': 'test-request-123', 'timestamp': 1754562600000}
 
         assert mock_logger.error.call_count == 3
 
@@ -289,3 +290,78 @@ class TestPinpointV2DeliveryStatus:
 
         assert mock_celery_task.call_count == 0
         assert mock_get_notification_platform_status.call_count == 0
+
+    @freeze_time('2025-08-07 10:30:00')
+    def test_post_delivery_status_no_auth(self, client, mocker, pinpoint_sms_voice_v2_data):
+        """Test that requests with bad auth return 403 and do not process records"""
+
+        mock_feature_flag = mocker.Mock(FeatureFlag)
+        mock_feature_flag.value = 'PINPOINT_SMS_VOICE_V2'
+        mocker.patch('app.feature_flags.os.getenv', return_value='True')
+
+        request_payload = pinpoint_sms_voice_v2_data['sns_payload']
+        request_payload['requestId'] = 'test-request-456'
+
+        response = client.post(
+            url_for('pinpoint_v2.handler'),
+            json=request_payload,
+        )
+        response_data = response.get_json()
+
+        assert response.status_code == 401
+        assert response_data['requestId'] == 'test-request-456'
+        assert response_data['timestamp'] == 1754562600000
+
+    @freeze_time('2025-08-07 10:30:00')
+    def test_post_delivery_status_bad_auth(self, client, mocker, pinpoint_sms_voice_v2_data):
+        """Test that requests with bad auth return 401 and do not process records"""
+
+        mock_feature_flag = mocker.Mock(FeatureFlag)
+        mock_feature_flag.value = 'PINPOINT_SMS_VOICE_V2'
+        mocker.patch('app.feature_flags.os.getenv', return_value='True')
+
+        request_payload = pinpoint_sms_voice_v2_data['sns_payload']
+        request_payload['requestId'] = 'test-request-456'
+
+        response = client.post(
+            url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'invalid')]
+        )
+
+        response_data = response.get_json()
+
+        assert response.status_code == 403
+        assert response_data['requestId'] == 'test-request-456'
+        assert response_data['timestamp'] == 1754562600000
+
+    @freeze_time('2025-08-07 10:30:00')
+    def test_post_delivery_status_celery_error(self, client, mocker, pinpoint_sms_voice_v2_data):
+        """Test that CeleryError is handled properly and returns 400"""
+
+        mock_feature_flag = mocker.Mock(FeatureFlag)
+        mock_feature_flag.value = 'PINPOINT_SMS_VOICE_V2'
+        mocker.patch('app.feature_flags.os.getenv', return_value='True')
+
+        mock_celery_task = mocker.patch('app.delivery_status.rest.process_pinpoint_v2_receipt_results.apply_async')
+        mock_celery_task.side_effect = CeleryError('Celery is unavailable')
+
+        mock_logger = mocker.patch('app.delivery_status.rest.current_app.logger')
+
+        request_payload = {
+            'records': [pinpoint_sms_voice_v2_data['sns_payload']['records'][0]],
+            'requestId': 'test-request-celery-error',
+        }
+
+        response = client.post(
+            url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'dev')]
+        )
+
+        assert response.status_code == 400
+        assert response.json == {'requestId': 'test-request-celery-error', 'timestamp': 1754562600000}
+
+        assert mock_celery_task.call_count == 1
+
+        assert mock_logger.error.call_count == 1
+        assert mock_logger.error.call_args[0] == (
+            'Celery unavailable for record: %s',
+            pinpoint_sms_voice_v2_data['sns_payload']['records'][0],
+        )
