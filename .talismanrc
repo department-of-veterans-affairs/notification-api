@@ -58,7 +58,7 @@ fileignoreconfig:
 - filename: tests/app/db.py
   checksum: 01cc48ec42c0665091dd0ef8b8ee6430552344f0caa0c1c2b387b6adfdf5d62a
 - filename: tests/app/delivery_status/test_pinpointv2_delivery_status.py
-  checksum: a38445d5d7a10838c3e8ff193fd8e9ff8f66d849f01b411cac4ca8542d55a1d9
+  checksum: 7186e98430988a2c659a4db5952e8ec8eb7a7329e2bc320fbbad282231c78914
 - filename: tests/app/notifications/test_validators.py
   checksum: aee86b735d3ad99a75c7b51da6fae7d4c460cadb7b30f07a8252a0c810cebbd5
 - filename: tests/app/pii/test_pii.py
