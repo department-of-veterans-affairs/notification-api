@@ -53,9 +53,8 @@ class AuthError(Exception):
 
 
 class FirehoseAuthError(Exception):
-    def __init__(self, request_id, error_message, code):
+    def __init__(self, request_id, code):
         self.request_id = request_id
-        self.error_message = error_message
         self.code = code
         self.timestamp = int(time.time() * 1000)
 
@@ -258,24 +257,19 @@ def handle_admin_key(
 
 
 def validate_pinpoint_firehose_api_key():
-    firehose_request_id = request.headers.get('X-Amz-Firehose-Request-Id', 'unknown')
-
-    request_data = request.get_json()
-    request_body_id = request_data.get('requestId', firehose_request_id)
-
-    current_app.logger.info('Firehose API key validation request - Request ID: %s', firehose_request_id)
-
+    firehose_request_id = request.headers.get('X-Amz-Firehose-Request-Id', None)
     api_key = request.headers.get('X-Amz-Firehose-Access-Key', None)
-    if not api_key:
+
+    if api_key is None:
         current_app.logger.warning('Firehose API key missing - Request ID: %s', firehose_request_id)
         # Return 401 so Firehose will retry with key
-        raise FirehoseAuthError(
-            request_id=request_body_id, error_message='Unauthorized, api key must be provided', code=401
-        )
+        raise FirehoseAuthError(request_id=firehose_request_id, code=401)
+
+    current_app.logger.info('Firehose API key validation request - Request ID: %s', firehose_request_id)
 
     if not hmac.compare_digest(api_key, current_app.config.get('AWS_PINPOINT_FIREHOSE_API_KEY')):
         current_app.logger.warning('Firehose API key invalid - Request ID: %s', firehose_request_id)
         # Return 403 so Firehose will retry with valid key
-        raise FirehoseAuthError(request_id=request_body_id, error_message='Invalid, api key is not valid', code=403)
+        raise FirehoseAuthError(request_id=firehose_request_id, code=403)
 
     current_app.logger.info('Firehose API key validation successful - Request ID: %s', firehose_request_id)

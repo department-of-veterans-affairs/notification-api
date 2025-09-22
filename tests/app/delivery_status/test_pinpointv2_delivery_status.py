@@ -81,7 +81,9 @@ class TestPinpointV2DeliveryStatus:
 
         request_payload = {'records': [], 'requestId': 'test-request-123'}
         response = client.post(
-            url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'dev')]
+            url_for('pinpoint_v2.handler'),
+            json=request_payload,
+            headers=[('X-Amz-Firehose-Access-Key', 'dev'), ('X-Amz-Firehose-Request-Id', 'test-request-123')],
         )
 
         assert response.status_code == 200
@@ -101,7 +103,9 @@ class TestPinpointV2DeliveryStatus:
         request_payload['requestId'] = 'test-request-456'
 
         response = client.post(
-            url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'dev')]
+            url_for('pinpoint_v2.handler'),
+            json=request_payload,
+            headers=[('X-Amz-Firehose-Access-Key', 'dev'), ('X-Amz-Firehose-Request-Id', 'test-request-456')],
         )
 
         expected_record_1 = SmsStatusRecord(
@@ -226,7 +230,9 @@ class TestPinpointV2DeliveryStatus:
         request_payload = {'records': records, 'requestId': 'test-request-789'}
 
         response = client.post(
-            url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'dev')]
+            url_for('pinpoint_v2.handler'),
+            json=request_payload,
+            headers=[('X-Amz-Firehose-Access-Key', 'dev'), ('X-Amz-Firehose-Request-Id', 'test-request-789')],
         )
 
         assert response.status_code == 200
@@ -265,7 +271,9 @@ class TestPinpointV2DeliveryStatus:
         request_payload = {'records': records, 'requestId': 'test-request-123'}
 
         response = client.post(
-            url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'dev')]
+            url_for('pinpoint_v2.handler'),
+            json=request_payload,
+            headers=[('X-Amz-Firehose-Access-Key', 'dev'), ('X-Amz-Firehose-Request-Id', 'test-request-123')],
         )
 
         assert response.status_code == 200
@@ -304,6 +312,7 @@ class TestPinpointV2DeliveryStatus:
 
         response = client.post(
             url_for('pinpoint_v2.handler'),
+            headers=[('X-Amz-Firehose-Request-Id', 'test-request-456')],
             json=request_payload,
         )
         response_data = response.get_json()
@@ -324,7 +333,9 @@ class TestPinpointV2DeliveryStatus:
         request_payload['requestId'] = 'test-request-456'
 
         response = client.post(
-            url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'invalid')]
+            url_for('pinpoint_v2.handler'),
+            json=request_payload,
+            headers=[('X-Amz-Firehose-Access-Key', 'invalid-auth'), ('X-Amz-Firehose-Request-Id', 'test-request-456')],
         )
 
         response_data = response.get_json()
