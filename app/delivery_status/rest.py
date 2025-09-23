@@ -65,13 +65,13 @@ def handler():
         except CeleryError:
             current_app.logger.error('Celery unavailable for record: %s', record)
 
-            # Return 400 so Firehose will retry later when Celery is available
+            # Return 503 so Firehose will retry later when Celery is available
             return jsonify(
                 {
                     'requestId': request_data.get('requestId'),
                     'timestamp': int(time.time() * 1000),
                 }
-            ), 400
+            ), 503
 
     return jsonify(
         {

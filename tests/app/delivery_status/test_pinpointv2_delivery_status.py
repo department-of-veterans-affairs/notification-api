@@ -366,7 +366,7 @@ class TestPinpointV2DeliveryStatus:
             url_for('pinpoint_v2.handler'), json=request_payload, headers=[('X-Amz-Firehose-Access-Key', 'dev')]
         )
 
-        assert response.status_code == 400
+        assert response.status_code == 503
         assert response.json == {'requestId': 'test-request-celery-error', 'timestamp': 1754562600000}
 
         assert mock_celery_task.call_count == 1
