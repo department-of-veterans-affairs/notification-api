@@ -33,6 +33,7 @@ def push_notification_helper(schema: dict):
     Note that this helper cannot be called other than as part of a request because it accesses
     the Flask "request" instance.
     """
+
     if not authenticated_service.has_permissions(PUSH_TYPE):
         public_notify_type = get_public_notify_type_text(PUSH_TYPE, plural=True)
 
@@ -51,7 +52,9 @@ def push_notification_helper(schema: dict):
     )
 
     try:
-        # Choosing to use the email queue for push to limit the number of empty queues
+        # Use the e-mail queue for push to limit the number of empty queues.
+        # As of 29 AUG 2025, there is no concern for encrypting recipient identifiers because push
+        # notifications are not persisted in the database; they just pass through to Vetext.
         deliver_push.apply_async(
             args=(vetext_formatted_payload,),
             queue=QueueNames.SEND_EMAIL,
@@ -61,7 +64,8 @@ def push_notification_helper(schema: dict):
         response = jsonify(result='error', message='VA Notify service impaired, please try again'), 503
     else:
         response = jsonify(result='success'), 201
-    # Flask turns the tuple into a json and status_code
+
+    # Flask turns the tuple into a json and status_code.
     return response
 
 
@@ -69,17 +73,22 @@ def validate_push_payload(schema: dict[str, str]) -> V2PushPayload:
     """Validate an incoming push request.
 
     Args:
-        schema (dict[str, str]): The incoming request
+        schema (dict[str, str]): The JSON schema to use to validate the incoming request data
 
     Raises:
         BadRequestError: Failed validation
 
     Returns:
-        dict[str, str]: Validated request dictionary
+        dict[str, str]: Validated request data
     """
+
     try:
         req_json: dict[str, str] = validate(request.get_json(), schema)
+    except ValidationError as e:
+        current_app.logger.warning('Push request failed validation: %s', e)
+        raise e
 
+    try:
         # Validate the application they sent us is valid or use the default
         # We currenlty only support VA Flagship App, but this is a placeholder for future apps
         if 'mobile_app' in req_json:
@@ -89,11 +98,6 @@ def validate_push_payload(schema: dict[str, str]) -> V2PushPayload:
     except (KeyError, TypeError) as e:
         current_app.logger.warning('Push request failed validation due to mobile app setup: %s', e)
         raise BadRequestError(message=str(e), status_code=400)
-    except ValidationError as e:
-        current_app.logger.warning('Push request failed validation: %s', e)
-        error_data = json.loads(e.message)
-        error_data['errors'] = error_data['errors'][0]
-        raise e
 
     current_app.logger.info(
         'Push request validated successfully for %s with SID %s',
@@ -101,7 +105,8 @@ def validate_push_payload(schema: dict[str, str]) -> V2PushPayload:
         app_sid,
     )
 
-    # Use get() on optionals - schema validated it is correct
+    # Broadcast and non-broadcast push notifications both require template_id.  The other attributes are optional
+    # or depend on the type of push notification.
     payload = V2PushPayload(
         app_sid,
         req_json['template_id'],

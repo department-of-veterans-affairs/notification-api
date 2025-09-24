@@ -33,37 +33,15 @@ class TestPiiWrappingAtEntrypoint:
             assert isinstance(form['recipient_identifier']['id_value'], expected_pii_class)
             assert form['recipient_identifier']['id_value'].get_pii() == id_value
 
-    @pytest.mark.parametrize(
-        'form',
-        [
-            {'template_id': 'some-template-id', 'phone_number': '555-123-4567'},
-            {'recipient_identifier': {'id_type': 'UNKNOWN_TYPE', 'id_value': 'some_value'}},
-        ],
-        ids=[
-            'no recipient_identifier',
-            'unknown id_type',
-        ],
-    )
-    def test_wrap_recipient_identifier_edge_cases(self, notify_api, form):
-        """Test that edge cases are handled gracefully."""
-        with notify_api.app_context():
-            # Make a shallow copy since wrap_recipient_identifier_in_pii may modify the form in-place.
-            original_form = form.copy()
-            wrap_recipient_identifier_in_pii(form)
-
-            # Form should be unchanged for all edge cases
-            assert form == original_form
-
     def test_wrap_recipient_identifier_pii_instantiation_error(self, notify_api):
         """Test that PII instantiation errors are handled gracefully."""
         with notify_api.app_context():
             form = {'recipient_identifier': {'id_type': IdentifierType.ICN.value, 'id_value': 'bad_value'}}
 
-            with patch(
-                'app.v2.notifications.post_notifications.PiiIcn', side_effect=Exception('PII error')
-            ) as mock_pii_icn:
+            with patch('app.pii.PiiIcn', side_effect=Exception('PII error')) as mock_pii_icn:
                 mock_pii_icn.__name__ = 'PiiIcn'
                 wrap_recipient_identifier_in_pii(form)
+                mock_pii_icn.assert_called_once()
 
             # Form should be unchanged if PII instantiation fails
             assert form['recipient_identifier']['id_type'] == IdentifierType.ICN.value

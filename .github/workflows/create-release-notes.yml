@@ -23,11 +23,11 @@ jobs:
     outputs:
       releaseUrl: ${{ steps.create_notes.outputs.releaseUrl }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Create Release Notes
         id: create_notes
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           previousVersion: ${{ inputs.previousVersion }}
           newVersion: ${{ inputs.newVersion }}

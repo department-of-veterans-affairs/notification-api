@@ -14,13 +14,13 @@ fileignoreconfig:
 - filename: app/schema_validation/__init__.py
   checksum: 2ed516f6558f85367a8bd377a0bf32ba39e10cc6c2db38744e8549cb83997519
 - filename: cd/application-deployment/dev/dev.env
-  checksum: 66a6a7c4359503312f83721c4936bf9091189aca4a202985a416592743469f0b
+  checksum: 8f3fa0f10d2d4e8b72c23137093339e4998bf3fcf5afd6213c3bc814ada20a74
 - filename: cd/application-deployment/perf/perf.env
-  checksum: 9d69b7e7e1c32782db4b053de3121dee4381dc438ab342bbcb94ae0d07ef9361
+  checksum: e454013f2a24dc23a83aa15af74a11d9662c5e41b0f26b0a2dde03f30aec820e
 - filename: cd/application-deployment/prod/prod.env
   checksum: a56e937eada19f973d76da7696b772dce662169a3a9554e7648b99b9a5eb2b4c
 - filename: cd/application-deployment/staging/staging.env
-  checksum: 80d84ae9cbf949a0fdf787ace80a877fb19d7cac41b64b3f03d34b9e72ff6f02
+  checksum: 97bbcdc4f73850cd58aed24dbe57a2672282d7a9979058110df26eab38dfdd87
 - filename: cd/application-deployment/dev/vaec-api-task-definition.json
   checksum: ae7a3c3994f5592d538e45d048f302bc17ecf1ab5080d6e45c2b17c02f44fc36
 - filename: cd/application-deployment/prod/vaec-api-task-definition.json
@@ -46,7 +46,7 @@ fileignoreconfig:
 - filename: documents/postman/staging-simplified.postman_environment.json
   checksum: 099057c7329d7586b4aea2162dd746bf57b73404857bb78ee8496e1f0e5f41ef
 - filename: poetry.lock
-  checksum: 4dc88f1dcdf769264eb60c5f1d52e9734c6fff99b55e9d73c2b3371876975a9f
+  checksum: 3b109c306d391289f71725e78ed743b392c4dbf5717aa99f08943bbae0eab9ef
 - filename: tests/app/authentication/test_authentication.py
   checksum: 75ce4ecbb6ef86dd06db54dcf66329b7749ff9024c7d88c218f43033d03deb73
 - filename: tests/app/conftest.py
@@ -71,6 +71,10 @@ fileignoreconfig:
   checksum: 4dcd257865daa286c737d6a76e141e8b9aee66c0642524447c394554643b7712
 - filename: tests/app/v2/notifications/test_post_notifications.py
   checksum: a12eb5a735321d8eaa8e2ff6af4e2dbd570a11f861213fd448b11cc2ee4cd8f9
+- filename: app/v2/notifications/post_notifications.py
+  checksum: f365a7336c5105df6c11a6f95e765fe5079d0c3c97907e059dea5556a62ff494
 - filename: app/va/va_profile/va_profile_client.py
   checksum: 5c867bf817283bf50f2d974697c1c08d80976f37b1a1a13d0ba2e029536e9b2c
+- filename: app/pii/pii_base.py
+  checksum: 584cb03893d943c5f8504e5951128f17ce26cf9ffdfc51a29992d9e30e9a3d8b
 version: "1.0"

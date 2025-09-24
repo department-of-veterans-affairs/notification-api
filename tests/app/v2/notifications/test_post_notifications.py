@@ -1476,21 +1476,24 @@ def test_post_notification_encrypts_recipient_identifiers(
 ):
     """
     Note that the celery tasks that actually send a notification are mocked.  This is just a test
-    that new notification POST requests encrypt recipient identifiers in the database.
+    that new notification POST requests encrypt recipient identifiers in the database when the
+    notification is initially persisted.  Additional unit tests are needed to verify the value is
+    not changed downstream by a celery task.
     """
 
-    mocker.patch('app.celery.lookup_va_profile_id_task.lookup_va_profile_id.apply_async')
-    mocker.patch('app.celery.contact_information_tasks.lookup_contact_info.apply_async')
     mocker.patch.dict('os.environ', {'PII_ENABLED': 'True'})
 
     template = sample_template(template_type=notification_type)
     api_key = sample_api_key(service=template.service)
 
+    mocker.patch('app.celery.lookup_va_profile_id_task.lookup_va_profile_id.apply_async')
+    mocker.patch('app.celery.contact_information_tasks.lookup_contact_info.apply_async')
+
     data = {
         'template_id': template.id,
         'recipient_identifier': {
             'id_type': IdentifierType.VA_PROFILE_ID.value,
-            'id_value': 'some va profile id',
+            'id_value': '1234',
         },
     }
     auth_header = create_authorization_header(api_key)
@@ -1502,15 +1505,14 @@ def test_post_notification_encrypts_recipient_identifiers(
     )
 
     assert response.status_code == 201
+    notification = notify_db_session.session.get(Notification, response.get_json()['id'])
 
-    notification_id = response.get_json()['id']
-    notification = notify_db_session.session.get(Notification, notification_id)
     va_profile_id = notification.recipient_identifiers['VAPROFILEID'].id_value
-    pii_va_Profile_id = PiiVaProfileID(va_profile_id, True)
+    decrypted_va_Profile_id = PiiVaProfileID(va_profile_id, True).get_pii()
 
     try:
-        assert va_profile_id != 'some va profile id', 'This value should be encrypted.'
-        assert pii_va_Profile_id.get_pii() == 'some va profile id'
+        assert va_profile_id != '1234', 'This value should be encrypted.'
+        assert decrypted_va_Profile_id == '1234'
     finally:
         notify_db_session.session.delete(notification)
         notify_db_session.session.commit()

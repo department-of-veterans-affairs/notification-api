@@ -41,12 +41,12 @@ class UnsupportedIdentifierException(Exception):
     status_reason = STATUS_REASON_NO_PROFILE
 
 
-def transform_to_fhir_format(recipient_identifier):
+def transform_to_fhir_format(id_type, id_value):
     try:
-        identifier_type = IdentifierType(recipient_identifier.id_type)
-        return f'{recipient_identifier.id_value}{FHIR_FORMAT_SUFFIXES[identifier_type]}'
+        identifier_type = IdentifierType(id_type)
+        return f'{id_value}{FHIR_FORMAT_SUFFIXES[identifier_type]}'
     except ValueError as e:
-        raise UnsupportedIdentifierException(f'No identifier of type: {recipient_identifier.id_type}') from e
+        raise UnsupportedIdentifierException(f'No identifier of type: {id_type}') from e
     except KeyError as e:
         raise UnsupportedIdentifierException(f'No mapping for identifier: {identifier_type}') from e
 

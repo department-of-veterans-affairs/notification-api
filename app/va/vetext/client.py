@@ -60,6 +60,7 @@ class VETextClient:
         Args:
             payload (dict[str, str]): The data to send to VEText
         """
+
         self.logger.debug('VEText Payload information %s', payload)
         start_time = monotonic()
         try:
