@@ -36,7 +36,6 @@ from app.dao.service_sms_sender_dao import (
     dao_get_service_sms_sender_by_service_id_and_number,
 )
 from app.dao.templates_dao import TemplateHistoryData, dao_get_template_history_by_id
-from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.models import Notification, ScheduledNotification, RecipientIdentifier, Template
 from app.pii.pii_base import Pii
 from app.v2.errors import BadRequestError

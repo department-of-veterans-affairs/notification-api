@@ -7,9 +7,8 @@ from flask import request, jsonify, current_app, abort
 from notifications_utils.recipients import try_validate_and_format_phone_number
 
 from app import api_user, authenticated_service, attachment_store
-from app.va.identifier import IdentifierType
 from app.feature_flags import is_feature_enabled, FeatureFlag
-from app.pii import get_pii_subclass, Pii, PiiIcn, PiiEdipi, PiiBirlsid, PiiPid, PiiVaProfileID
+from app.pii import get_pii_subclass
 from app.attachments.mimetype import extract_and_validate_mimetype
 from app.attachments.store import AttachmentStoreError
 from app.attachments.types import UploadedAttachmentMetadata
