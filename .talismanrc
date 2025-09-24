@@ -1,6 +1,6 @@
 fileignoreconfig:
 - filename: .github/workflows/deployment.yml
-  checksum: 3968c30477e26a632f8f24bcee18fd80dc10d6d3de2a3fc7205bd7cc4f860d7c
+  checksum: 30a56163ff02807162de38bfbfc6451a2106ee149c997da1389dfe07e24169ac
 - filename: app/authentication/auth.py
   checksum: 1260d6b2000fb725d29a63421965d6fb8879b61352254cfa22b6e5d81d0d6726
 - filename: app/config.py
