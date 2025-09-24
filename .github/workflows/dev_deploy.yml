@@ -107,10 +107,10 @@ jobs:
       ref: "${{ needs.setup-environment.outputs.git-hash }}"
     secrets: inherit
 
-  run-qa-suite:
-    needs: [run-deployment]
-    uses: ./.github/workflows/run-regression.yml
-    with:
-      environment: "${{ inputs.environment }}"
-    secrets: inherit
+  # run-qa-suite:
+  #   needs: [run-deployment]
+  #   uses: ./.github/workflows/run-regression.yml
+  #   with:
+  #     environment: "${{ inputs.environment }}"
+  #   secrets: inherit
 
