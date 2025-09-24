@@ -301,7 +301,7 @@ class TestPinpointV2DeliveryStatus:
 
     @freeze_time('2025-08-07 10:30:00')
     def test_post_delivery_status_no_auth(self, client, mocker, pinpoint_sms_voice_v2_data):
-        """Test that requests with bad auth return 403 and do not process records"""
+        """Test that requests with no auth return 401 and do not process records"""
 
         mock_feature_flag = mocker.Mock(FeatureFlag)
         mock_feature_flag.value = 'PINPOINT_SMS_VOICE_V2'
