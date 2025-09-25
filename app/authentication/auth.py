@@ -54,6 +54,7 @@ class AuthError(Exception):
 
 class FirehoseAuthError(Exception):
     def __init__(self, request_id, code):
+        super().__init__(f'Firehose auth error: status code {code} for request {request_id}')
         self.request_id = request_id
         self.code = code
         self.timestamp = int(time.time() * 1000)
