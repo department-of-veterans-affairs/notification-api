@@ -3,6 +3,7 @@ from datetime import datetime
 import hmac
 from typing import Callable
 from uuid import uuid4
+import time
 
 from flask import request, current_app, g
 from flask_jwt_extended import verify_jwt_in_request, current_user
@@ -49,6 +50,17 @@ class AuthError(Exception):
             error_message = 'Invalid token'
 
         return {'errors': [{'error': 'AuthError', 'message': error_message}]}
+
+
+class FirehoseAuthError(Exception):
+    def __init__(self, request_id, code):
+        super().__init__(f'Firehose auth error: status code {code} for request {request_id}')
+        self.request_id = request_id
+        self.code = code
+        self.timestamp = int(time.time() * 1000)
+
+    def response_body(self):
+        return {'requestId': self.request_id, 'timestamp': self.timestamp}
 
 
 def get_auth_token(req):
@@ -246,9 +258,19 @@ def handle_admin_key(
 
 
 def validate_pinpoint_firehose_api_key():
+    firehose_request_id = request.headers.get('X-Amz-Firehose-Request-Id', None)
     api_key = request.headers.get('X-Amz-Firehose-Access-Key', None)
-    if not api_key:
-        raise AuthError('Unauthorized, api key must be provided', 401)
+
+    if api_key is None:
+        current_app.logger.warning('Firehose API key missing - Request ID: %s', firehose_request_id)
+        # Return 401 so Firehose will retry with key
+        raise FirehoseAuthError(request_id=firehose_request_id, code=401)
+
+    current_app.logger.info('Firehose API key validation request - Request ID: %s', firehose_request_id)
 
     if not hmac.compare_digest(api_key, current_app.config.get('AWS_PINPOINT_FIREHOSE_API_KEY')):
-        raise AuthError('Invalid, api key is not valid', 403)
+        current_app.logger.warning('Firehose API key invalid - Request ID: %s', firehose_request_id)
+        # Return 403 so Firehose will retry with valid key
+        raise FirehoseAuthError(request_id=firehose_request_id, code=403)
+
+    current_app.logger.info('Firehose API key validation successful - Request ID: %s', firehose_request_id)
