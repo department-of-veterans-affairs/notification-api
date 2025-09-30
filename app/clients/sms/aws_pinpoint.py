@@ -130,6 +130,14 @@ class AwsPinpointClient(SmsClient):
         except (botocore.exceptions.ClientError, Exception) as e:
             self.statsd_client.incr('clients.pinpoint.error')
             msg = str(e)
+
+            # Check for opt-out conflict (only for ClientError)
+            if isinstance(e, botocore.exceptions.ClientError):
+                error_code = e.response.get('Error', {}).get('Code', '')
+                if error_code == 'ConflictException' and 'DESTINATION_PHONE_NUMBER_OPTED_OUT' in msg:
+                    self.logger.warning('Phone number has opted out: %s', recipient_number)
+                    raise NonRetryableException(f'Phone number has opted out: {recipient_number}')
+
             if any(code in msg for code in AwsPinpointClient._retryable_v1_codes):
                 self.logger.warning('Encountered a Retryable exception: %s - %s', type(e).__class__.__name__, msg)
                 self.statsd_client.incr(f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{STATSD_RETRYABLE}.{aws_phone_number}')
