@@ -312,7 +312,7 @@ def test_send_sms_post_message_request_raises_aws_exception(mocker, aws_pinpoint
 def test_send_sms_handles_pinpoint_v2_conflict_exception(mocker, aws_pinpoint_client):
     """Test that PinpointV2 ConflictException is properly handled and raises NonRetryableException"""
 
-    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': True})
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
     error_response = {
         'Error': {
