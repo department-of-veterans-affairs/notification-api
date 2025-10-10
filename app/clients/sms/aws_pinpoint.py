@@ -277,7 +277,7 @@ class AwsPinpointClient(SmsClient):
         elif event_type == '_SMS.BUFFERED':
             status = NOTIFICATION_SENDING
             status_reason = None
-        elif is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2) and not is_final:
+        elif not is_final:
             # Treat Pinpoint V2 EUM non-final as sending to avoid premature status updates
             status = NOTIFICATION_SENDING
             status_reason = None

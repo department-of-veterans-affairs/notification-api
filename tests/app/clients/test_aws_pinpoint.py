@@ -397,8 +397,6 @@ def test_send_sms_handles_pinpoint_v2_conflict_exception(
 def test_translate_delivery_status_pinpoint_sms_v1_successful(aws_pinpoint_client, mocker, pinpoint_v2_enabled):
     """Test translate_delivery_status for PinpointSMSV1 delivery status with and without PinpointSMSVoiceV2 feature enabled"""
 
-    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': str(pinpoint_v2_enabled)})
-
     # Sample V1 delivery status message
     v1_delivery_message = {
         'event_type': '_SMS.SUCCESS',
@@ -446,8 +444,6 @@ def test_translate_delivery_status_pinpoint_sms_v1_successful(aws_pinpoint_clien
 
 def test_translate_delivery_status_pinpoint_sms_voice_v2_successful(aws_pinpoint_client, mocker):
     """Test translate_delivery_status for PinpointSMSVoiceV2 format with successful delivery"""
-
-    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
     # Sample V2 delivery status message
     v2_delivery_message = {
@@ -528,8 +524,6 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_final_events(
     There are intermediate message statuses and it can take up to 72 hours for the final message status to be received.
     """
 
-    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
-
     # Sample V2 delivery status message with various event types and isFinal True
     v2_delivery_message = {
         'eventType': event_type,
@@ -589,8 +583,6 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_non_final_events(
     All non-final event messages should be interpreted as NOTIFICATION_SENDING to avoid premature notification status updates and callbacks
     """
 
-    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
-
     # Sample V2 delivery status message with various event types and isFinal False
     v2_delivery_message = {
         'eventType': event_type,
@@ -645,8 +637,6 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_default_final_events(
 
     Event missing the isFinal attribute are assumed to be final to avoid marking notification SENDING/PENDING in error
     """
-
-    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
     # Sample V2 delivery status message with various event types and isFinal True
     v2_delivery_message = {
