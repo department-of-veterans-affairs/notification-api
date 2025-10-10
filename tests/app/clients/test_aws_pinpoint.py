@@ -268,33 +268,6 @@ def test_send_sms_post_message_request_validate_response_raises_exception(
         aws_pinpoint_client._validate_response(result, '123456')
 
 
-def test_send_sms_handles_conflict_exception(mocker, aws_pinpoint_client, pinpoint_v2_enabled):
-    """Test that PinpointV2 ConflictException is properly handled and raises NonRetryableException"""
-
-    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': str(pinpoint_v2_enabled)})
-
-    error_response = {
-        'Error': {
-            'Code': 'ConflictException',
-            'Message': 'Conflict occurred',
-        },
-        'Reason': 'OPTED_OUT',
-        'ResourceType': 'PhoneNumber',
-        'ResourceId': '+12345678901',
-    }
-
-    mock_exception = botocore.exceptions.ClientError(error_response, 'send_messages')
-
-    mocker.patch.object(
-        aws_pinpoint_client,
-        '_post_message_request',
-        side_effect=mock_exception,
-    )
-
-    with pytest.raises(NonRetryableException):
-        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
-
-
 @pytest.mark.parametrize('status', ('PERMANENT_FAILURE', 'OPT_OUT', 'DUPLICATE'))
 def test_send_sms_post_message_request_validate_response_raises_invalid_provider_exception(
     aws_pinpoint_client,
@@ -333,6 +306,33 @@ def test_send_sms_post_message_request_raises_aws_exception(mocker, aws_pinpoint
     )
     # Ensure it is converted to AwsPinpointException for exception handling in _handle_delivery_failure
     with pytest.raises(AwsPinpointException):
+        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
+
+
+def test_send_sms_handles_pinpoint_v2_conflict_exception(mocker, aws_pinpoint_client):
+    """Test that PinpointV2 ConflictException is properly handled and raises NonRetryableException"""
+
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': True})
+
+    error_response = {
+        'Error': {
+            'Code': 'ConflictException',
+            'Message': 'Conflict occurred',
+        },
+        'Reason': 'OPTED_OUT',
+        'ResourceType': 'PhoneNumber',
+        'ResourceId': '+12345678901',
+    }
+
+    mock_exception = botocore.exceptions.ClientError(error_response, 'send_messages')
+
+    mocker.patch.object(
+        aws_pinpoint_client,
+        '_post_message_request',
+        side_effect=mock_exception,
+    )
+
+    with pytest.raises(NonRetryableException):
         aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
 
 
