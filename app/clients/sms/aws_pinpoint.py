@@ -130,7 +130,8 @@ class AwsPinpointClient(SmsClient):
         except (botocore.exceptions.ClientError, Exception) as e:
             self.statsd_client.incr('clients.pinpoint.error')
             msg = str(e)
-            if isinstance(e, botocore.exceptions.ClientError):
+
+            if isinstance(e, botocore.exceptions.ClientError) and is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2):
                 error_code = e.response.get('Error', {}).get('Code', '')
 
                 if error_code == 'ConflictException':
