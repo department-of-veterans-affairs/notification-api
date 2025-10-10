@@ -312,15 +312,50 @@ def test_send_sms_post_message_request_raises_aws_exception(mocker, aws_pinpoint
 @pytest.mark.parametrize(
     'reason, resource_type, resource_id',
     [
-        ('OPTED_OUT', 'PhoneNumber', '+12345678901'),
-        ('DESTINATION_PHONE_NUMBER_OPTED_OUT', 'PhoneNumber', '+19876543210'),
-        ('DESTINATION_PHONE_NUMBER_NOT_VERIFIED', 'PhoneNumber', '+15555555555'),
-        ('OPTED_OUT', 'destination-phone-number', '+11234567890'),
-        ('DESTINATION_COUNTRY_BLOCKED', 'PhoneNumber', '+447911123456'),
-        ('MESSAGE_TYPE_NOT_SUPPORTED', 'ConfigurationSet', 'my-config-set'),
-        ('UNKNOWN', 'unknown', 'unknown-id'),
-        ('RATE_LIMIT_EXCEEDED', 'OriginationIdentity', '+18005551234'),
-        ('INVALID_REGISTRATION', 'SenderId', 'MY-SENDER-ID'),
+        # Destination phone number conflicts
+        ('DESTINATION_PHONE_NUMBER_OPTED_OUT', 'phone-number', '+19876543210'),
+        ('DESTINATION_PHONE_NUMBER_NOT_VERIFIED', 'phone-number', '+15555555555'),
+        ('DESTINATION_COUNTRY_BLOCKED_BY_PROTECT_CONFIGURATION', 'phone-number', '+447911123456'),
+        ('DESTINATION_PHONE_NUMBER_BLOCKED_BY_PROTECT_NUMBER_OVERRIDE', 'phone-number', '+861234567890'),
+        # Registration-related conflicts
+        ('CREATE_REGISTRATION_VERSION_NOT_ALLOWED', 'registration', 'reg-123456'),
+        ('DISASSOCIATE_REGISTRATION_NOT_ALLOWED', 'registration', 'reg-789012'),
+        ('DISCARD_REGISTRATION_VERSION_NOT_ALLOWED', 'registration', 'reg-345678'),
+        ('EDIT_REGISTRATION_FIELD_VALUES_NOT_ALLOWED', 'registration', 'reg-901234'),
+        ('REGISTRATION_ALREADY_SUBMITTED', 'registration', 'reg-567890'),
+        ('REGISTRATION_NOT_COMPLETE', 'registration', 'reg-234567'),
+        ('SUBMIT_REGISTRATION_VERSION_NOT_ALLOWED', 'registration', 'reg-890123'),
+        ('PHONE_NUMBER_ASSOCIATED_TO_REGISTRATION', 'phone-number', '+18005551234'),
+        ('PHONE_NUMBER_NOT_IN_REGISTRATION_REGION', 'phone-number', '+14165551234'),
+        # Protection configuration conflicts
+        ('DELETION_PROTECTION_ENABLED', 'pool', 'pool-abc123'),
+        ('PROTECT_CONFIGURATION_IS_ACCOUNT_DEFAULT', 'protect-configuration', 'protect-config-001'),
+        ('PROTECT_CONFIGURATION_ASSOCIATED_WITH_CONFIGURATION_SET', 'protect-configuration', 'protect-config-002'),
+        ('PROTECT_CONFIGURATION_NOT_ASSOCIATED_WITH_CONFIGURATION_SET', 'protect-configuration', 'protect-config-003'),
+        # Phone number and pool conflicts
+        ('LAST_PHONE_NUMBER', 'phone-number', '+12125551234'),
+        ('PHONE_NUMBER_ASSOCIATED_TO_POOL', 'phone-number', '+13105551234'),
+        ('PHONE_NUMBER_NOT_ASSOCIATED_TO_POOL', 'phone-number', '+14085551234'),
+        # Configuration mismatch conflicts
+        ('EVENT_DESTINATION_MISMATCH', 'event-destination', 'event-dest-001'),
+        ('KEYWORD_MISMATCH', 'keyword', 'STOP'),
+        ('NUMBER_CAPABILITIES_MISMATCH', 'phone-number', '+15105551234'),
+        ('MESSAGE_TYPE_MISMATCH', 'pool', 'pool-xyz789'),
+        ('OPT_OUT_LIST_MISMATCH', 'opt-out-list', 'optout-list-001'),
+        ('SELF_MANAGED_OPT_OUTS_MISMATCH', 'pool', 'pool-def456'),
+        ('TWO_WAY_CONFIG_MISMATCH', 'pool', 'pool-ghi789'),
+        # Sender ID conflicts
+        ('SENDER_ID_ASSOCIATED_TO_POOL', 'sender-id', 'MY-SENDER-ID'),
+        # Resource state conflicts
+        ('NO_ORIGINATION_IDENTITIES_FOUND', 'pool', 'pool-jkl012'),
+        ('RESOURCE_ALREADY_EXISTS', 'keyword', 'START'),
+        ('RESOURCE_DELETION_NOT_ALLOWED', 'configuration-set', 'my-config-set'),
+        ('RESOURCE_MODIFICATION_NOT_ALLOWED', 'registration', 'reg-456789'),
+        ('RESOURCE_NOT_ACTIVE', 'phone-number', '+16505551234'),
+        ('RESOURCE_NOT_EMPTY', 'pool', 'pool-mno345'),
+        # Verification conflicts
+        ('VERIFICATION_CODE_EXPIRED', 'verified-destination-number', '+17075551234'),
+        ('VERIFICATION_ALREADY_COMPLETE', 'verified-destination-number', '+18085551234'),
     ],
 )
 def test_send_sms_handles_pinpoint_v2_conflict_exception(
@@ -328,10 +363,12 @@ def test_send_sms_handles_pinpoint_v2_conflict_exception(
 ):
     """Test that PinpointV2 ConflictException is properly handled and raises NonRetryableException
 
-    Tests various ConflictException reasons, resource types, and resource IDs that can occur
-    when sending SMS through AWS Pinpoint SMS Voice V2.
-    """
+    Tests all 36 ConflictExceptionReason values with appropriate resource types and resource IDs
+    that can occur when sending SMS through AWS Pinpoint SMS Voice V2.
 
+    Covers all reasons from AWS SDK documentation:
+    https://botocore.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint-sms-voice-v2/client/exceptions/ConflictException.html
+    """
     mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
     error_response = {

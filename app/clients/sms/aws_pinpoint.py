@@ -135,9 +135,9 @@ class AwsPinpointClient(SmsClient):
                 error_code = e.response.get('Error', {}).get('Code', '')
 
                 if error_code == 'ConflictException':
-                    reason = e.response.get('Reason', 'UNKNOWN')
-                    resource_type = e.response.get('ResourceType', 'unknown')
-                    resource_id = e.response.get('ResourceId', 'unknown')
+                    reason = e.response.get('Reason')
+                    resource_type = e.response.get('ResourceType')
+                    resource_id = e.response.get('ResourceId')
 
                     self.logger.info(
                         'ConflictException sending SMS - Reason: %s, ResourceType: %s, ResourceId: %s, Recipient: %s',
@@ -146,9 +146,10 @@ class AwsPinpointClient(SmsClient):
                         resource_id,
                         recipient_number,
                     )
+
                     self.statsd_client.incr(f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.conflict.{reason.lower()}')
                     raise NonRetryableException(
-                        f'ConflictException: {reason} - ResourceType: {resource_type}, ResourceId: {resource_id}'
+                        f'PinPointV2 ConflictException: {reason} - ResourceType: {resource_type}, ResourceId: {resource_id}'
                     )
 
             if any(code in msg for code in AwsPinpointClient._retryable_v1_codes):
