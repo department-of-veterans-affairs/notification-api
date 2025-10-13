@@ -397,6 +397,8 @@ def test_send_sms_handles_pinpoint_v2_conflict_exception(
 def test_translate_delivery_status_pinpoint_sms_v1_successful(aws_pinpoint_client, mocker, pinpoint_v2_enabled):
     """Test translate_delivery_status for PinpointSMSV1 delivery status with and without PinpointSMSVoiceV2 feature enabled"""
 
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': str(pinpoint_v2_enabled)})
+
     # Sample V1 delivery status message
     v1_delivery_message = {
         'event_type': '_SMS.SUCCESS',
