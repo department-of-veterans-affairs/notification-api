@@ -691,15 +691,13 @@ def test_handle_delivery_failure_duplication_prevention(mock_log_critical, mock_
     mock_log_critical.assert_not_called()
 
 
-# @pytest.mark.skip(reason='#2604 - Issues mocking boto3 client method with side_effect')
 def test_handle_delivery_failure_pinpoint_v2_opt_out(
     notify_db_session,
     mocker,
-    sample_template,
-    sample_service,
-    sample_notification,
     sample_provider,
-    # notify_api,
+    sample_service,
+    sample_template,
+    sample_notification,
     aws_pinpoint_client,
 ):
     """
@@ -724,18 +722,6 @@ def test_handle_delivery_failure_pinpoint_v2_opt_out(
 
     botocore_client_error = botocore.exceptions.ClientError(error_response, 'send_text_message')
 
-    # First attempt to mock
-    # mocker.patch.object(
-    #     aws_pinpoint_client._pinpoint_sms_voice_v2_client,
-    #     'send_text_message',
-    #     side_effect=botocore_client_error,
-    # )
-
-    # Second attempt to mock - also does not work
-    # mocker.patch(
-    #     'app.clients.sms.aws_pinpoint.boto3.client'
-    # ).return_value.send_text_message.side_effect = botocore_client_error
-
     mocker.patch.dict(
         app.clients.sms_clients,
         {'pinpoint': aws_pinpoint_client},
@@ -753,11 +739,10 @@ def test_handle_delivery_failure_pinpoint_v2_opt_out(
 
     assert template.template_type == SMS_TYPE
 
-    with pytest.raises(NotificationTechnicalFailureException):
-        deliver_sms(notification.id)
+    deliver_sms(notification.id)
 
-    # notify_db_session.session.refresh(notification)
+    notify_db_session.session.refresh(notification)
 
-    # assert notification.status == NOTIFICATION_PERMANENT_FAILURE
-    # assert notification.status_reason == STATUS_REASON_BLOCKED
+    assert notification.status == NOTIFICATION_PERMANENT_FAILURE
+    assert notification.status_reason == STATUS_REASON_BLOCKED
     mocked_check_and_queue_callback_task.assert_called_once()
