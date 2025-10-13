@@ -233,6 +233,10 @@ def _handle_delivery_failure(  # noqa: C901 - too complex (11 > 10)
             # If sending through PinPointV2, ConflictException with reason DESTINATION_PHONE_NUMBER_OPTED_OUT
             # will return STATUS_REASON_BLOCKED.
             status_reason = STATUS_REASON_BLOCKED
+        elif 'opted_out' in str(e).lower():
+            # If sending through PinPointV2, ConflictException with reason DESTINATION_PHONE_NUMBER_OPTED_OUT
+            # will return STATUS_REASON_BLOCKED.
+            status_reason = STATUS_REASON_BLOCKED
         else:
             # Calling out this includes that are too long.
             # All other PinpointV2 ConflictException reasons are treated as undeliverable.
@@ -245,7 +249,8 @@ def _handle_delivery_failure(  # noqa: C901 - too complex (11 > 10)
             status_reason,
         )
         # Expected chain termination
-        celery_task.request.chain = None
+        # celery_task.request.chain = None
+        raise NotificationTechnicalFailureException from e
 
     elif isinstance(e, (NullValueForNonConditionalPlaceholderException, AttributeError, RuntimeError)):
         if 'Duplication prevention' in str(e):

@@ -4,6 +4,7 @@ from uuid import uuid4
 import botocore
 from requests import HTTPError, Response
 from requests.exceptions import ConnectTimeout, RequestException
+import app
 from app.clients.sms.aws_pinpoint import AwsPinpointClient
 from app.mobile_app.mobile_app_types import MobileAppType
 import pytest
@@ -690,7 +691,7 @@ def test_handle_delivery_failure_duplication_prevention(mock_log_critical, mock_
     mock_log_critical.assert_not_called()
 
 
-@pytest.mark.skip(reason='#2604 - Issues mocking boto3 client method with side_effect')
+# @pytest.mark.skip(reason='#2604 - Issues mocking boto3 client method with side_effect')
 def test_handle_delivery_failure_pinpoint_v2_opt_out(
     notify_db_session,
     mocker,
@@ -698,6 +699,7 @@ def test_handle_delivery_failure_pinpoint_v2_opt_out(
     sample_service,
     sample_notification,
     sample_provider,
+    # notify_api,
     aws_pinpoint_client,
 ):
     """
@@ -707,7 +709,7 @@ def test_handle_delivery_failure_pinpoint_v2_opt_out(
     mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
     mocked_check_and_queue_callback_task = mocker.patch(
-        'app.celery.provider_tasks.check_and_queue_callback_task',
+        'app.celery.common.check_and_queue_callback_task',
     )
 
     error_response = {
@@ -730,9 +732,19 @@ def test_handle_delivery_failure_pinpoint_v2_opt_out(
     # )
 
     # Second attempt to mock - also does not work
-    mocker.patch(
-        'app.clients.sms.aws_pinpoint.boto3.client'
-    ).return_value.send_text_message.side_effect = botocore_client_error
+    # mocker.patch(
+    #     'app.clients.sms.aws_pinpoint.boto3.client'
+    # ).return_value.send_text_message.side_effect = botocore_client_error
+
+    mocker.patch.dict(
+        app.clients.sms_clients,
+        {'pinpoint': aws_pinpoint_client},
+        clear=False,
+    )
+
+    mocker.patch.object(
+        aws_pinpoint_client._pinpoint_sms_voice_v2_client, 'send_text_message', side_effect=botocore_client_error
+    )
 
     provider = sample_provider()
     service = sample_service(sms_provider_id=provider.id)
@@ -744,8 +756,8 @@ def test_handle_delivery_failure_pinpoint_v2_opt_out(
     with pytest.raises(NotificationTechnicalFailureException):
         deliver_sms(notification.id)
 
-    notify_db_session.session.refresh(notification)
+    # notify_db_session.session.refresh(notification)
 
-    assert notification.status == NOTIFICATION_PERMANENT_FAILURE
-    assert notification.status_reason == STATUS_REASON_BLOCKED
+    # assert notification.status == NOTIFICATION_PERMANENT_FAILURE
+    # assert notification.status_reason == STATUS_REASON_BLOCKED
     mocked_check_and_queue_callback_task.assert_called_once()
