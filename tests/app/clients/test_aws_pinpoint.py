@@ -517,7 +517,7 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_missing_required_fields
     ],
 )
 def test_translate_delivery_status_pinpoint_sms_voice_v2_final_events(
-    aws_pinpoint_client, mocker, event_type, message_status, expected_status, expected_status_reason
+    aws_pinpoint_client, event_type, message_status, expected_status, expected_status_reason
 ):
     """Test translate_delivery_status for PinpointSMSVoiceV2 event types for status events marked final
 
@@ -574,7 +574,7 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_final_events(
     ],
 )
 def test_translate_delivery_status_pinpoint_sms_voice_v2_non_final_events(
-    aws_pinpoint_client, mocker, event_type, message_status
+    aws_pinpoint_client, event_type, message_status
 ):
     """Test translate_delivery_status for PinpointSMSVoiceV2 event types for status events marked non-final.
 
@@ -633,7 +633,7 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_non_final_events(
     ],
 )
 def test_translate_delivery_status_pinpoint_sms_voice_v2_default_final_events(
-    aws_pinpoint_client, mocker, event_type, message_status, expected_status, expected_status_reason
+    aws_pinpoint_client, event_type, message_status, expected_status, expected_status_reason
 ):
     """Test translate_delivery_status for PinpointSMSVoiceV2 event types for status events missing isFinal.
 

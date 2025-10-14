@@ -4,7 +4,6 @@ from uuid import uuid4
 import botocore
 from requests import HTTPError, Response
 from requests.exceptions import ConnectTimeout, RequestException
-import app
 from app.clients.sms.aws_pinpoint import AwsPinpointClient
 from app.mobile_app.mobile_app_types import MobileAppType
 import pytest
@@ -722,15 +721,11 @@ def test_handle_delivery_failure_pinpoint_v2_opt_out(
 
     botocore_client_error = botocore.exceptions.ClientError(error_response, 'send_text_message')
 
-    mocker.patch.dict(
-        app.clients.sms_clients,
-        {'pinpoint': aws_pinpoint_client},
-        clear=False,
-    )
-
     mocker.patch.object(
         aws_pinpoint_client._pinpoint_sms_voice_v2_client, 'send_text_message', side_effect=botocore_client_error
     )
+
+    mocker.patch('app.delivery.send_to_providers.client_to_use', return_value=aws_pinpoint_client)
 
     provider = sample_provider()
     service = sample_service(sms_provider_id=provider.id)
