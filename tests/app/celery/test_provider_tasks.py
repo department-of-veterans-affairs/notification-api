@@ -1,22 +1,25 @@
-from unittest.mock import patch
-from uuid import uuid4
-
 import botocore
+import pytest
+from collections import namedtuple
 from requests import HTTPError, Response
 from requests.exceptions import ConnectTimeout, RequestException
-from app.clients.sms.aws_pinpoint import AwsPinpointClient
-from app.mobile_app.mobile_app_types import MobileAppType
-import pytest
+from unittest.mock import patch
+from uuid import uuid4
+from venv import logger
+
+from notifications_utils.field import NullValueForNonConditionalPlaceholderException
+from notifications_utils.recipients import InvalidEmailError, InvalidPhoneError
 
 from app.celery.exceptions import AutoRetryException, NonRetryableException
 from app.celery.provider_tasks import (
+    _handle_delivery_failure,
     deliver_email,
     deliver_push,
     deliver_sms,
     deliver_sms_with_rate_limiting,
-    _handle_delivery_failure,
 )
 from app.clients.email.aws_ses import AwsSesClient, AwsSesClientThrottlingSendRateException
+from app.clients.sms.aws_pinpoint import AwsPinpointClient
 from app.constants import (
     EMAIL_TYPE,
     NOTIFICATION_CREATED,
@@ -27,33 +30,14 @@ from app.constants import (
     STATUS_REASON_UNREACHABLE,
 )
 from app.exceptions import (
-    NotificationTechnicalFailureException,
     InvalidProviderException,
+    NotificationTechnicalFailureException,
 )
+from app.mobile_app.mobile_app_types import MobileAppType
 from app.models import Notification
 from app.v2.errors import RateLimitError
-from collections import namedtuple
-from notifications_utils.field import NullValueForNonConditionalPlaceholderException
-from notifications_utils.recipients import InvalidEmailError, InvalidPhoneError
 
 from tests.app.clients.test_aws_pinpoint import TEST_ID
-
-
-@pytest.fixture
-def aws_pinpoint_client(notify_api, mocker):
-    with notify_api.app_context():
-        aws_pinpoint_client = AwsPinpointClient()
-        statsd_client = mocker.Mock()
-        logger = mocker.Mock()
-        aws_pinpoint_client.init_app(
-            aws_pinpoint_app_id=TEST_ID,
-            aws_pinpoint_v2_configset='dev',
-            aws_region='some-aws-region',
-            logger=logger,
-            origination_number='+10000000000',
-            statsd_client=statsd_client,
-        )
-        return aws_pinpoint_client
 
 
 def test_should_have_decorated_tasks_functions():
@@ -690,18 +674,30 @@ def test_handle_delivery_failure_duplication_prevention(mock_log_critical, mock_
     mock_log_critical.assert_not_called()
 
 
-def test_handle_delivery_failure_pinpoint_v2_opt_out(
+def test_deliver_sms_pinpoint_v2_opt_out(
     notify_db_session,
     mocker,
     sample_provider,
     sample_service,
     sample_template,
     sample_notification,
-    aws_pinpoint_client,
+    notify_api,
 ):
     """
     Pinpoint V2 opt-out NonRetryableExceptions should be marked as permanent failure with blocked status reason
     """
+
+    with notify_api.app_context():
+        aws_pinpoint_client = AwsPinpointClient()
+        statsd_client = mocker.Mock()
+        aws_pinpoint_client.init_app(
+            aws_pinpoint_app_id=TEST_ID,
+            aws_pinpoint_v2_configset='dev',
+            aws_region='some-aws-region',
+            logger=logger,
+            origination_number='+10000000000',
+            statsd_client=statsd_client,
+        )
 
     mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
