@@ -23,10 +23,10 @@ There are two options for running ad hoc tests.  Step 0 for either option is to 
 ### Option 1
 **Recommended** 
 
-2. Build application application by running `docker compose -f ci/docker-compose-local.yml build app`
-1. Run `docker compose -f ci/docker-compose-test.yml up -d`
-2. In a separate window run `docker exec -i -t test-api bash`
-3. Execute any command, such as `pytest --durations 10 tests/app/celery`
+1. Build application application by running `docker compose -f ci/docker-compose-local.yml build app`
+2. Run `docker compose -f ci/docker-compose-test.yml up -d`
+3. In a separate window run `docker exec -i -t test-api bash`
+4. Execute any command, such as `pytest --durations 10 tests/app/celery`
 
 
 ### Option 2
