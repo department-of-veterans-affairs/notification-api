@@ -139,7 +139,7 @@ class AwsPinpointClient(SmsClient):
                     resource_type = e.response.get('ResourceType')
                     resource_id = e.response.get('ResourceId')
 
-                    self.logger.info(
+                    self.logger.warning(
                         'ConflictException sending SMS - Reason: %s, ResourceType: %s, ResourceId: %s, Recipient: %s',
                         reason,
                         resource_type,
