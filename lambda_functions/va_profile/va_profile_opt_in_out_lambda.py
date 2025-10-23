@@ -24,6 +24,7 @@ import calendar
 import json
 import logging
 import os
+from os.path import isfile
 import ssl
 import sys
 from datetime import datetime, timezone
@@ -75,7 +76,12 @@ if NOTIFY_ENVIRONMENT == 'test':
 elif NOTIFY_ENVIRONMENT == 'prod':
     jwt_cert_path = '/opt/jwt/Profile_prod_public.pem'
 else:
-    jwt_cert_path = '/opt/jwt/Profile_2025_nonprod_public.pem'
+    if isfile('/opt/jwt/Profile_nonprod_public.pem'):
+        # For years newer than 2025
+        jwt_cert_path = '/opt/jwt/Profile_nonprod_public.pem'
+    else:
+        # TODO - Remove when no longer needed
+        jwt_cert_path = '/opt/jwt/Profile_2025_nonprod_public.pem'
 
 # Load VA Profile's public certificate used to verify JWT signatures for POST requests.
 # In deployment environments, the certificate should be available via a lambda layer.
