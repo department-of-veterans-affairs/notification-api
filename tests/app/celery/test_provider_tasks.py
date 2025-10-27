@@ -1,21 +1,25 @@
-from unittest.mock import patch
-from uuid import uuid4
-
 import botocore
+import pytest
+from collections import namedtuple
 from requests import HTTPError, Response
 from requests.exceptions import ConnectTimeout, RequestException
-from app.mobile_app.mobile_app_types import MobileAppType
-import pytest
+from unittest.mock import patch
+from uuid import uuid4
+from venv import logger
+
+from notifications_utils.field import NullValueForNonConditionalPlaceholderException
+from notifications_utils.recipients import InvalidEmailError, InvalidPhoneError
 
 from app.celery.exceptions import AutoRetryException, NonRetryableException
 from app.celery.provider_tasks import (
+    _handle_delivery_failure,
     deliver_email,
     deliver_push,
     deliver_sms,
     deliver_sms_with_rate_limiting,
-    _handle_delivery_failure,
 )
 from app.clients.email.aws_ses import AwsSesClient, AwsSesClientThrottlingSendRateException
+from app.clients.sms.aws_pinpoint import AwsPinpointClient
 from app.constants import (
     EMAIL_TYPE,
     NOTIFICATION_CREATED,
@@ -26,14 +30,14 @@ from app.constants import (
     STATUS_REASON_UNREACHABLE,
 )
 from app.exceptions import (
-    NotificationTechnicalFailureException,
     InvalidProviderException,
+    NotificationTechnicalFailureException,
 )
+from app.mobile_app.mobile_app_types import MobileAppType
 from app.models import Notification
 from app.v2.errors import RateLimitError
-from collections import namedtuple
-from notifications_utils.field import NullValueForNonConditionalPlaceholderException
-from notifications_utils.recipients import InvalidEmailError, InvalidPhoneError
+
+from tests.app.clients.test_aws_pinpoint import TEST_ID
 
 
 def test_should_have_decorated_tasks_functions():
@@ -668,3 +672,68 @@ def test_handle_delivery_failure_duplication_prevention(mock_log_critical, mock_
     # Assert an appropriate warning was logged and that the log_and_update function was not called
     mock_logger.assert_called_with('Attempted to send duplicate notification for: %s', notification_id)
     mock_log_critical.assert_not_called()
+
+
+def test_deliver_sms_pinpoint_v2_opt_out(
+    notify_db_session,
+    mocker,
+    sample_provider,
+    sample_service,
+    sample_template,
+    sample_notification,
+    notify_api,
+):
+    """
+    Pinpoint V2 opt-out NonRetryableExceptions should be marked as permanent failure with blocked status reason
+    """
+
+    with notify_api.app_context():
+        aws_pinpoint_client = AwsPinpointClient()
+        statsd_client = mocker.Mock()
+        aws_pinpoint_client.init_app(
+            aws_pinpoint_app_id=TEST_ID,
+            aws_pinpoint_v2_configset='dev',
+            aws_region='some-aws-region',
+            logger=logger,
+            origination_number='+10000000000',
+            statsd_client=statsd_client,
+        )
+
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
+
+    mocked_check_and_queue_callback_task = mocker.patch(
+        'app.celery.common.check_and_queue_callback_task',
+    )
+
+    error_response = {
+        'Error': {
+            'Code': 'ConflictException',
+            'Message': 'Conflict occurred',
+        },
+        'Reason': 'DESTINATION_PHONE_NUMBER_OPTED_OUT',
+        'ResourceType': 'phone-number',
+        'ResourceId': +19876543210,
+    }
+
+    botocore_client_error = botocore.exceptions.ClientError(error_response, 'send_text_message')
+
+    mocker.patch.object(
+        aws_pinpoint_client._pinpoint_sms_voice_v2_client, 'send_text_message', side_effect=botocore_client_error
+    )
+
+    mocker.patch('app.delivery.send_to_providers.client_to_use', return_value=aws_pinpoint_client)
+
+    provider = sample_provider()
+    service = sample_service(sms_provider_id=provider.id)
+    template = sample_template(service=service, provider_id=service.sms_provider_id)
+    notification = sample_notification(template=template)
+
+    assert template.template_type == SMS_TYPE
+
+    deliver_sms(notification.id)
+
+    notify_db_session.session.refresh(notification)
+
+    assert notification.status == NOTIFICATION_PERMANENT_FAILURE
+    assert notification.status_reason == STATUS_REASON_BLOCKED
+    mocked_check_and_queue_callback_task.assert_called_once()

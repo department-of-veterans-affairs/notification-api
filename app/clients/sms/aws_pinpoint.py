@@ -130,6 +130,28 @@ class AwsPinpointClient(SmsClient):
         except (botocore.exceptions.ClientError, Exception) as e:
             self.statsd_client.incr('clients.pinpoint.error')
             msg = str(e)
+
+            if isinstance(e, botocore.exceptions.ClientError) and is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2):
+                error_code = e.response.get('Error', {}).get('Code', '')
+
+                if error_code == 'ConflictException':
+                    reason = e.response.get('Reason')
+                    resource_type = e.response.get('ResourceType')
+                    resource_id = e.response.get('ResourceId')
+
+                    self.logger.warning(
+                        'ConflictException sending SMS - Reason: %s, ResourceType: %s, ResourceId: %s, Recipient: %s',
+                        reason,
+                        resource_type,
+                        resource_id,
+                        recipient_number,
+                    )
+
+                    self.statsd_client.incr(f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.conflict.{reason.lower()}')
+                    raise NonRetryableException(
+                        f'PinPointV2 ConflictException: {reason} - ResourceType: {resource_type}, ResourceId: {resource_id}'
+                    )
+
             if any(code in msg for code in AwsPinpointClient._retryable_v1_codes):
                 self.logger.warning('Encountered a Retryable exception: %s - %s', type(e).__class__.__name__, msg)
                 self.statsd_client.incr(f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{STATSD_RETRYABLE}.{aws_phone_number}')
@@ -255,7 +277,7 @@ class AwsPinpointClient(SmsClient):
         elif event_type == '_SMS.BUFFERED':
             status = NOTIFICATION_SENDING
             status_reason = None
-        elif is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2) and not is_final:
+        elif not is_final:
             # Treat Pinpoint V2 EUM non-final as sending to avoid premature status updates
             status = NOTIFICATION_SENDING
             status_reason = None
@@ -284,9 +306,8 @@ class AwsPinpointClient(SmsClient):
             self.logger.error('Did not receive pinpoint delivery status as a dict')
             raise NonRetryableException(f'Incorrect datatype sent to pinpoint, {UNABLE_TO_TRANSLATE}')
 
-        # check for feature flag and camelCase eventVersion (V2 specific)
-        # The eventVersion attribute check is to allow continued V1 processing and can be removed with the feature flag
-        if is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2) and 'eventVersion' in delivery_status_message:
+        # The eventVersion attribute check is to allow continued V1 processing
+        if 'eventVersion' in delivery_status_message:
             # PinpointSMSVoiceV2 format
             # Handle phone number masking for PinpointSMSVoiceV2 format
             # https://docs.aws.amazon.com/sms-voice/latest/userguide/configuration-sets-event-types.html

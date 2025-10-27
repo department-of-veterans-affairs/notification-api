@@ -309,6 +309,90 @@ def test_send_sms_post_message_request_raises_aws_exception(mocker, aws_pinpoint
         aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
 
 
+@pytest.mark.parametrize(
+    'reason, resource_type, resource_id',
+    [
+        # Destination phone number conflicts
+        ('DESTINATION_PHONE_NUMBER_OPTED_OUT', 'phone-number', '+19876543210'),
+        ('DESTINATION_PHONE_NUMBER_NOT_VERIFIED', 'phone-number', '+15555555555'),
+        ('DESTINATION_COUNTRY_BLOCKED_BY_PROTECT_CONFIGURATION', 'phone-number', '+447911123456'),
+        ('DESTINATION_PHONE_NUMBER_BLOCKED_BY_PROTECT_NUMBER_OVERRIDE', 'phone-number', '+861234567890'),
+        # Registration-related conflicts
+        ('CREATE_REGISTRATION_VERSION_NOT_ALLOWED', 'registration', 'reg-123456'),
+        ('DISASSOCIATE_REGISTRATION_NOT_ALLOWED', 'registration', 'reg-789012'),
+        ('DISCARD_REGISTRATION_VERSION_NOT_ALLOWED', 'registration', 'reg-345678'),
+        ('EDIT_REGISTRATION_FIELD_VALUES_NOT_ALLOWED', 'registration', 'reg-901234'),
+        ('REGISTRATION_ALREADY_SUBMITTED', 'registration', 'reg-567890'),
+        ('REGISTRATION_NOT_COMPLETE', 'registration', 'reg-234567'),
+        ('SUBMIT_REGISTRATION_VERSION_NOT_ALLOWED', 'registration', 'reg-890123'),
+        ('PHONE_NUMBER_ASSOCIATED_TO_REGISTRATION', 'phone-number', '+18005551234'),
+        ('PHONE_NUMBER_NOT_IN_REGISTRATION_REGION', 'phone-number', '+14165551234'),
+        # Protection configuration conflicts
+        ('DELETION_PROTECTION_ENABLED', 'pool', 'pool-abc123'),
+        ('PROTECT_CONFIGURATION_IS_ACCOUNT_DEFAULT', 'protect-configuration', 'protect-config-001'),
+        ('PROTECT_CONFIGURATION_ASSOCIATED_WITH_CONFIGURATION_SET', 'protect-configuration', 'protect-config-002'),
+        ('PROTECT_CONFIGURATION_NOT_ASSOCIATED_WITH_CONFIGURATION_SET', 'protect-configuration', 'protect-config-003'),
+        # Phone number and pool conflicts
+        ('LAST_PHONE_NUMBER', 'phone-number', '+12125551234'),
+        ('PHONE_NUMBER_ASSOCIATED_TO_POOL', 'phone-number', '+13105551234'),
+        ('PHONE_NUMBER_NOT_ASSOCIATED_TO_POOL', 'phone-number', '+14085551234'),
+        # Configuration mismatch conflicts
+        ('EVENT_DESTINATION_MISMATCH', 'event-destination', 'event-dest-001'),
+        ('KEYWORD_MISMATCH', 'keyword', 'STOP'),
+        ('NUMBER_CAPABILITIES_MISMATCH', 'phone-number', '+15105551234'),
+        ('MESSAGE_TYPE_MISMATCH', 'pool', 'pool-xyz789'),
+        ('OPT_OUT_LIST_MISMATCH', 'opt-out-list', 'optout-list-001'),
+        ('SELF_MANAGED_OPT_OUTS_MISMATCH', 'pool', 'pool-def456'),
+        ('TWO_WAY_CONFIG_MISMATCH', 'pool', 'pool-ghi789'),
+        # Sender ID conflicts
+        ('SENDER_ID_ASSOCIATED_TO_POOL', 'sender-id', 'MY-SENDER-ID'),
+        # Resource state conflicts
+        ('NO_ORIGINATION_IDENTITIES_FOUND', 'pool', 'pool-jkl012'),
+        ('RESOURCE_ALREADY_EXISTS', 'keyword', 'START'),
+        ('RESOURCE_DELETION_NOT_ALLOWED', 'configuration-set', 'my-config-set'),
+        ('RESOURCE_MODIFICATION_NOT_ALLOWED', 'registration', 'reg-456789'),
+        ('RESOURCE_NOT_ACTIVE', 'phone-number', '+16505551234'),
+        ('RESOURCE_NOT_EMPTY', 'pool', 'pool-mno345'),
+        # Verification conflicts
+        ('VERIFICATION_CODE_EXPIRED', 'verified-destination-number', '+17075551234'),
+        ('VERIFICATION_ALREADY_COMPLETE', 'verified-destination-number', '+18085551234'),
+    ],
+)
+def test_send_sms_handles_pinpoint_v2_conflict_exception(
+    mocker, aws_pinpoint_client, reason, resource_type, resource_id
+):
+    """Test that PinpointV2 ConflictException is properly handled and raises NonRetryableException
+
+    Tests all 36 ConflictExceptionReason values with appropriate resource types and resource IDs
+    that can occur when sending SMS through AWS Pinpoint SMS Voice V2.
+
+    Covers all reasons from AWS SDK documentation:
+    https://botocore.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint-sms-voice-v2/client/exceptions/ConflictException.html
+    """
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
+
+    error_response = {
+        'Error': {
+            'Code': 'ConflictException',
+            'Message': 'Conflict occurred',
+        },
+        'Reason': reason,
+        'ResourceType': resource_type,
+        'ResourceId': resource_id,
+    }
+
+    mock_exception = botocore.exceptions.ClientError(error_response, 'send_text_message')
+
+    mocker.patch.object(
+        aws_pinpoint_client,
+        '_post_message_request',
+        side_effect=mock_exception,
+    )
+
+    with pytest.raises(NonRetryableException):
+        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
+
+
 @pytest.mark.parametrize('pinpoint_v2_enabled', (False, True))
 def test_translate_delivery_status_pinpoint_sms_v1_successful(aws_pinpoint_client, mocker, pinpoint_v2_enabled):
     """Test translate_delivery_status for PinpointSMSV1 delivery status with and without PinpointSMSVoiceV2 feature enabled"""
@@ -362,8 +446,6 @@ def test_translate_delivery_status_pinpoint_sms_v1_successful(aws_pinpoint_clien
 
 def test_translate_delivery_status_pinpoint_sms_voice_v2_successful(aws_pinpoint_client, mocker):
     """Test translate_delivery_status for PinpointSMSVoiceV2 format with successful delivery"""
-
-    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
     # Sample V2 delivery status message
     v2_delivery_message = {
@@ -435,7 +517,7 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_missing_required_fields
     ],
 )
 def test_translate_delivery_status_pinpoint_sms_voice_v2_final_events(
-    aws_pinpoint_client, mocker, event_type, message_status, expected_status, expected_status_reason
+    aws_pinpoint_client, event_type, message_status, expected_status, expected_status_reason
 ):
     """Test translate_delivery_status for PinpointSMSVoiceV2 event types for status events marked final
 
@@ -443,8 +525,6 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_final_events(
     isFinal: True if this is the final status for the message.
     There are intermediate message statuses and it can take up to 72 hours for the final message status to be received.
     """
-
-    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
     # Sample V2 delivery status message with various event types and isFinal True
     v2_delivery_message = {
@@ -494,7 +574,7 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_final_events(
     ],
 )
 def test_translate_delivery_status_pinpoint_sms_voice_v2_non_final_events(
-    aws_pinpoint_client, mocker, event_type, message_status
+    aws_pinpoint_client, event_type, message_status
 ):
     """Test translate_delivery_status for PinpointSMSVoiceV2 event types for status events marked non-final.
 
@@ -504,8 +584,6 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_non_final_events(
 
     All non-final event messages should be interpreted as NOTIFICATION_SENDING to avoid premature notification status updates and callbacks
     """
-
-    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
     # Sample V2 delivery status message with various event types and isFinal False
     v2_delivery_message = {
@@ -555,14 +633,12 @@ def test_translate_delivery_status_pinpoint_sms_voice_v2_non_final_events(
     ],
 )
 def test_translate_delivery_status_pinpoint_sms_voice_v2_default_final_events(
-    aws_pinpoint_client, mocker, event_type, message_status, expected_status, expected_status_reason
+    aws_pinpoint_client, event_type, message_status, expected_status, expected_status_reason
 ):
     """Test translate_delivery_status for PinpointSMSVoiceV2 event types for status events missing isFinal.
 
     Event missing the isFinal attribute are assumed to be final to avoid marking notification SENDING/PENDING in error
     """
-
-    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
     # Sample V2 delivery status message with various event types and isFinal True
     v2_delivery_message = {
