@@ -20,16 +20,6 @@ docker compose -f ci/docker-compose-test.yml up
 
 There are two options for running ad hoc tests.  Step 0 for either option is to stop all running containers other than the database.
 
-### Option 1
-**Recommended** 
-
-1. Build application application by running `docker compose -f ci/docker-compose-local.yml build app`
-2. Run `docker compose -f ci/docker-compose-test.yml up -d`
-3. In a separate window run `docker exec -i -t test-api bash`
-4. Execute any command, such as `pytest --durations 10 tests/app/celery`
-
-
-### Option 2
 
 1. Start the Postgres (ci_db_1) container, if necessary: `docker start ci-db-1`.  All migrations should already be applied.
 2. Start a test container shell: `docker run --rm -it -v "$(pwd):/app" --env-file ci/.local.env --name ci-test --network ci_default test-notification-api bash`.  Note the use of the environment file.
