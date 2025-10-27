@@ -33,7 +33,6 @@ There are two options for running ad hoc tests.  Step 0 for either option is to 
 4. In a separate window run `docker exec -it ci-test-1 bash`
 5. Execute any command, such as `pytest --durations 10 tests/app/celery`
 
-
 ### Example
 
 This is an example of running a specific test in a test file from *within a test container shell*:
