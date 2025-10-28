@@ -31,8 +31,8 @@ on:
           - VetTextIncomingForwarder
           - SESCallback
           - TwoWaySMS
-          - PinPointCallback
-          - PinPointInboundSMS
+          - PinpointCallback
+          - PinpointInboundSMS
           - ProfileOptInOut
           - ProfileRemoveOldOptOuts
           - NightBigQueryUpload
