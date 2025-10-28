@@ -3,6 +3,8 @@ run-name: "Deploy ${{ inputs.lambda }} Lambda(s) to ${{ inputs.environment }}"
 
 permissions:
   contents: read
+  actions: write
+  id-token: write
 
 on:
   workflow_dispatch:
