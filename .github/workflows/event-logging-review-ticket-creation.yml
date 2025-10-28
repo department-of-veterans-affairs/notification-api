@@ -1,0 +1,45 @@
+name: Annual AU-02(e) Event Logging Review Ticket Creation
+
+permissions:
+  contents: read
+  issues: write
+
+on:
+  schedule:
+    - cron: "0 14 15 1 *" # Runs every year on Jan 15 at 09:00 ET (14:00 UTC)
+  workflow_dispatch:
+
+jobs:
+  create_issue:
+    runs-on: ${{ vars.RUNS_ON }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Check for existing open issue
+        id: check_issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh issue list --state open --json title -q '.[] | select(.title == "Annual AU-02(e) Event Logging Review")' | grep -q "Annual AU-02(e) Event Logging Review"; then
+            echo "issue_exists=true" >> $GITHUB_ENV
+          else
+            echo "issue_exists=false" >> $GITHUB_ENV
+          fi
+
+      - name: Create GitHub issue
+        if: env.issue_exists == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_URL=$(gh issue create \
+            --body-file "./.github/ISSUE_TEMPLATE/annual-au02-event-logging-review-template.md" \
+            --label "Notify" \
+            --label "QA" \
+            --title "Annual AU-02(e) Event Logging Review")
+
+          echo "issue_url=${ISSUE_URL}" >> $GITHUB_ENV
+
+      - name: Log existing issue status
+        if: env.issue_exists == 'true'
+        run: echo "Skipping creation; Annual AU-02(e) Event Logging Review issue is already open."
