@@ -8,10 +8,13 @@ on:
   schedule:
     - cron: "0 14 15 1 *" # Runs every year on Jan 15 at 09:00 ET (14:00 UTC)
   workflow_dispatch:
+  push:
+    branches:
+      - 1914-event-type-logging-cron-job
 
 jobs:
   create_issue:
-    runs-on: ${{ vars.RUNS_ON }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
