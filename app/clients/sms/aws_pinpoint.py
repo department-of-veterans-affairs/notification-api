@@ -134,22 +134,27 @@ class AwsPinpointClient(SmsClient):
             if isinstance(e, botocore.exceptions.ClientError) and is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2):
                 error_code = e.response.get('Error', {}).get('Code', '')
 
-                if error_code == 'ConflictException':
+                if error_code in ('ConflictException', 'ValidationException'):
                     reason = e.response.get('Reason')
                     resource_type = e.response.get('ResourceType')
                     resource_id = e.response.get('ResourceId')
 
+                    recipient_number = f'{recipient_number[:-4]}XXXX'
+
                     self.logger.warning(
-                        'ConflictException sending SMS - Reason: %s, ResourceType: %s, ResourceId: %s, Recipient: %s',
+                        '%s sending SMS - Reason: %s, ResourceType: %s, ResourceId: %s, Recipient: %s',
+                        error_code,
                         reason,
                         resource_type,
                         resource_id,
                         recipient_number,
                     )
 
-                    self.statsd_client.incr(f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.conflict.{reason.lower()}')
+                    self.statsd_client.incr(
+                        f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{error_code.lower()}.{reason.lower()}'
+                    )
                     raise NonRetryableException(
-                        f'PinPointV2 ConflictException: {reason} - ResourceType: {resource_type}, ResourceId: {resource_id}'
+                        f'PinPointV2 {error_code}: {reason} - ResourceType: {resource_type}, ResourceId: {resource_id}'
                     )
 
             if any(code in msg for code in AwsPinpointClient._retryable_v1_codes):
