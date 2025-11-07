@@ -393,6 +393,31 @@ def test_send_sms_handles_pinpoint_v2_conflict_exception(
         aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
 
 
+def test_send_sms_handles_pinpoint_v2_validation_exception(mocker, aws_pinpoint_client):
+    """Test that PinpointV2 ValidationException is properly handled and raises NonRetryableException"""
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
+
+    error_response = {
+        'Error': {
+            'Code': 'ValidationException',
+            'Message': 'INVALID_IDENTITY_FOR_DESTINATION_COUNTRY',
+        },
+        'Message': 'INVALID_IDENTITY_FOR_DESTINATION_COUNTRY',
+        'Reason': 'The origination identity you specified is not valid for the destination country.',
+    }
+
+    mock_exception = botocore.exceptions.ClientError(error_response, 'send_text_message')
+
+    mocker.patch.object(
+        aws_pinpoint_client,
+        '_post_message_request',
+        side_effect=mock_exception,
+    )
+
+    with pytest.raises(NonRetryableException):
+        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
+
+
 @pytest.mark.parametrize('pinpoint_v2_enabled', (False, True))
 def test_translate_delivery_status_pinpoint_sms_v1_successful(aws_pinpoint_client, mocker, pinpoint_v2_enabled):
     """Test translate_delivery_status for PinpointSMSV1 delivery status with and without PinpointSMSVoiceV2 feature enabled"""
