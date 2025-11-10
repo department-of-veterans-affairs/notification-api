@@ -408,14 +408,21 @@ def test_send_sms_handles_pinpoint_v2_validation_exception(mocker, aws_pinpoint_
 
     mock_exception = botocore.exceptions.ClientError(error_response, 'send_text_message')
 
+    # V2 send SMS throws validation exception
     mocker.patch.object(
-        aws_pinpoint_client,
-        '_post_message_request',
+        aws_pinpoint_client._pinpoint_sms_voice_v2_client,
+        'send_text_message',
         side_effect=mock_exception,
     )
 
-    with pytest.raises(NonRetryableException):
-        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
+    mocker.patch.object(
+        aws_pinpoint_client,
+        '_post_message_request_v1',
+    )
+
+    aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
+    # should fail over to V1 send SMS
+    aws_pinpoint_client._post_message_request_v1.assert_called_once()
 
 
 @pytest.mark.parametrize('pinpoint_v2_enabled', (False, True))

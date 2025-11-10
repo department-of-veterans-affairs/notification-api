@@ -74,6 +74,11 @@ class AwsPinpointClient(SmsClient):
         'ResourceNotFoundException',
     )
 
+    # dict {phonepoolid -> 10-DLC}
+    _v2_phonepool_to_10DLC_mapping = {
+        'pool1234': '+18005551212',
+    }
+
     def __init__(self):
         self.name = PINPOINT_PROVIDER
 
@@ -219,16 +224,17 @@ class AwsPinpointClient(SmsClient):
             except botocore.exceptions.ClientError as e:
                 # temporary fallback to V1 until V2 service issues resolved (PR and CA destination numbers)
                 error_code = e.response.get('Error', {}).get('Code', '')
-                if error_code in ('ConflictException', 'ValidationException'):
+                if error_code == 'ValidationException':
                     reason = e.response.get('Reason')
-                    recipient_number = f'{recipient_number[:-4]}XXXX'
+                    recipient_number_redacted = f'{recipient_number[:-4]}XXXX'
 
                     self.logger.warning(
                         '%s sending SMS | attempting v1 failover - Reason: %s, Recipient: %s',
                         error_code,
                         reason,
-                        recipient_number,
+                        recipient_number_redacted,
                     )
+
                     return self._post_message_request_v1(recipient_number, content, aws_phone_number)
                 else:
                     raise
@@ -245,6 +251,14 @@ class AwsPinpointClient(SmsClient):
     ):
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint/client/send_messages.html#send-messages  # noqa
         self.logger.debug('Sending an SMS notification with the Pinpoint client')
+
+        # check for aws_phone_number as phonepool, map to 10-DLC
+        # if it looks like a phone pool (string prefix) -> dict{phonepool: 10-DLC}
+        if aws_phone_number in self._v2_phonepool_to_10DLC_mapping:
+            aws_phone_number = self._v2_phonepool_to_10DLC_mapping[aws_phone_number]
+
+        # error handling for phone pool not in map
+        # NonRetryable
 
         message_request_payload = {
             'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
