@@ -65,6 +65,14 @@ class AwsPinpointClient(SmsClient):
     _retryable_v1_codes = ('429', '500', '502', '503', '504', '509')
     _retryable_v1_request_statuses = ('THROTTLED', 'TEMPORARY_FAILURE', 'UNKNOWN_FAILURE')
     _non_retryable_v1_request_statuses = ('PERMANENT_FAILURE', 'OPT_OUT', 'DUPLICATE')
+    _retryable_v2_exceptions = ('ThrottlingException', 'InternalServerException')
+    _non_retryable_v2_exceptions = (
+        'ValidationException',
+        'ConflictException',
+        'ServiceQuotaExceededException',
+        'AccessDeniedException',
+        'ResourceNotFoundException',
+    )
 
     def __init__(self):
         self.name = PINPOINT_PROVIDER
@@ -134,7 +142,7 @@ class AwsPinpointClient(SmsClient):
             if isinstance(e, botocore.exceptions.ClientError) and is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2):
                 error_code = e.response.get('Error', {}).get('Code', '')
 
-                if error_code in ('ConflictException', 'ValidationException'):
+                if error_code in self._non_retryable_v2_exceptions:
                     reason = e.response.get('Reason')
                     resource_type = e.response.get('ResourceType')
                     resource_id = e.response.get('ResourceId')
@@ -156,6 +164,12 @@ class AwsPinpointClient(SmsClient):
                     raise NonRetryableException(
                         f'PinPointV2 {error_code}: {reason} - ResourceType: {resource_type}, ResourceId: {resource_id}'
                     )
+                elif error_code in self._retryable_v2_exceptions:
+                    self.logger.warning('Encountered a Retryable exception: %s - %s', type(e).__class__.__name__, msg)
+                    self.statsd_client.incr(
+                        f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{STATSD_RETRYABLE}.{aws_phone_number}'
+                    )
+                    raise RetryableException from e
 
             if any(code in msg for code in AwsPinpointClient._retryable_v1_codes):
                 self.logger.warning('Encountered a Retryable exception: %s - %s', type(e).__class__.__name__, msg)
@@ -195,30 +209,57 @@ class AwsPinpointClient(SmsClient):
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint-sms-voice-v2/client/send_text_message.html  # noqa
             self.logger.debug('Sending an SMS notification with the PinpointSMSVoiceV2 client')
 
-            return self._pinpoint_sms_voice_v2_client.send_text_message(
-                DestinationPhoneNumber=recipient_number,
-                OriginationIdentity=aws_phone_number,
-                MessageBody=content,
-                ConfigurationSetName=self.aws_pinpoint_v2_configset,
-            )
+            try:
+                return self._pinpoint_sms_voice_v2_client.send_text_message(
+                    DestinationPhoneNumber=recipient_number,
+                    OriginationIdentity=aws_phone_number,
+                    MessageBody=content,
+                    ConfigurationSetName=self.aws_pinpoint_v2_configset,
+                )
+            except botocore.exceptions.ClientError as e:
+                # temporary fallback to V1 until V2 service issues resolved (PR and CA destination numbers)
+                error_code = e.response.get('Error', {}).get('Code', '')
+                if error_code in ('ConflictException', 'ValidationException'):
+                    reason = e.response.get('Reason')
+                    recipient_number = f'{recipient_number[:-4]}XXXX'
+
+                    self.logger.warning(
+                        '%s sending SMS | attempting v1 failover - Reason: %s, Recipient: %s',
+                        error_code,
+                        reason,
+                        recipient_number,
+                    )
+                    return self._post_message_request_v1(recipient_number, content, aws_phone_number)
+                else:
+                    raise
+            except Exception:
+                raise
         else:
-            # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint/client/send_messages.html#send-messages  # noqa
-            self.logger.debug('Sending an SMS notification with the Pinpoint client')
+            return self._post_message_request_v1(recipient_number, content, aws_phone_number)
 
-            message_request_payload = {
-                'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
-                'MessageConfiguration': {
-                    'SMSMessage': {
-                        'Body': content,
-                        'MessageType': 'TRANSACTIONAL',
-                        'OriginationNumber': aws_phone_number,
-                    }
-                },
-            }
+    def _post_message_request_v1(
+        self,
+        recipient_number,
+        content,
+        aws_phone_number,
+    ):
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint/client/send_messages.html#send-messages  # noqa
+        self.logger.debug('Sending an SMS notification with the Pinpoint client')
 
-            return self._pinpoint_client.send_messages(
-                ApplicationId=self.aws_pinpoint_app_id, MessageRequest=message_request_payload
-            )
+        message_request_payload = {
+            'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
+            'MessageConfiguration': {
+                'SMSMessage': {
+                    'Body': content,
+                    'MessageType': 'TRANSACTIONAL',
+                    'OriginationNumber': aws_phone_number,
+                }
+            },
+        }
+
+        return self._pinpoint_client.send_messages(
+            ApplicationId=self.aws_pinpoint_app_id, MessageRequest=message_request_payload
+        )
 
     def _validate_response(
         self,
