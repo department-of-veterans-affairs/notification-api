@@ -73,9 +73,16 @@ if NOTIFY_ENVIRONMENT != 'test' and not os.path.isdir(CA_PATH):
 if NOTIFY_ENVIRONMENT == 'test':
     jwt_cert_paths = ('tests/lambda_functions/va_profile/cert.pem',)
 elif NOTIFY_ENVIRONMENT == 'prod':
-    jwt_cert_paths = ('/opt/jwt/Profile_prod_public.pem',)
+    jwt_cert_paths = (
+        '/opt/jwt/Profile_prod_public.pem',
+        '/opt/jwt/Profile_prod_public_2026.pem',
+    )
 else:
-    jwt_cert_paths = ('/opt/jwt/Profile_nonprod_public.pem', '/opt/jwt/Profile_2025_nonprod_public.pem')
+    jwt_cert_paths = (
+        '/opt/jwt/Profile_nonprod_public.pem',
+        '/opt/jwt/Profile_2025_nonprod_public.pem',
+        '/opt/jwt/Profile_perf_public.pem',
+    )
 
 # Load VA Profile's public certificate used to verify JWT signatures for POST requests.
 # In deployment environments, the certificate should be available via a lambda layer.
