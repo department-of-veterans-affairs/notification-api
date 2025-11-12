@@ -309,72 +309,30 @@ def test_send_sms_post_message_request_raises_aws_exception(mocker, aws_pinpoint
         aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
 
 
+# TODO: Add ValidationException as non-retryable once AWS support issue resolved (Case ID 176252254206525)
 @pytest.mark.parametrize(
-    'reason, resource_type, resource_id',
+    'error_code, reason, resource_type, resource_id',
     [
-        # Destination phone number conflicts
-        ('DESTINATION_PHONE_NUMBER_OPTED_OUT', 'phone-number', '+19876543210'),
-        ('DESTINATION_PHONE_NUMBER_NOT_VERIFIED', 'phone-number', '+15555555555'),
-        ('DESTINATION_COUNTRY_BLOCKED_BY_PROTECT_CONFIGURATION', 'phone-number', '+447911123456'),
-        ('DESTINATION_PHONE_NUMBER_BLOCKED_BY_PROTECT_NUMBER_OVERRIDE', 'phone-number', '+861234567890'),
-        # Registration-related conflicts
-        ('CREATE_REGISTRATION_VERSION_NOT_ALLOWED', 'registration', 'reg-123456'),
-        ('DISASSOCIATE_REGISTRATION_NOT_ALLOWED', 'registration', 'reg-789012'),
-        ('DISCARD_REGISTRATION_VERSION_NOT_ALLOWED', 'registration', 'reg-345678'),
-        ('EDIT_REGISTRATION_FIELD_VALUES_NOT_ALLOWED', 'registration', 'reg-901234'),
-        ('REGISTRATION_ALREADY_SUBMITTED', 'registration', 'reg-567890'),
-        ('REGISTRATION_NOT_COMPLETE', 'registration', 'reg-234567'),
-        ('SUBMIT_REGISTRATION_VERSION_NOT_ALLOWED', 'registration', 'reg-890123'),
-        ('PHONE_NUMBER_ASSOCIATED_TO_REGISTRATION', 'phone-number', '+18005551234'),
-        ('PHONE_NUMBER_NOT_IN_REGISTRATION_REGION', 'phone-number', '+14165551234'),
-        # Protection configuration conflicts
-        ('DELETION_PROTECTION_ENABLED', 'pool', 'pool-abc123'),
-        ('PROTECT_CONFIGURATION_IS_ACCOUNT_DEFAULT', 'protect-configuration', 'protect-config-001'),
-        ('PROTECT_CONFIGURATION_ASSOCIATED_WITH_CONFIGURATION_SET', 'protect-configuration', 'protect-config-002'),
-        ('PROTECT_CONFIGURATION_NOT_ASSOCIATED_WITH_CONFIGURATION_SET', 'protect-configuration', 'protect-config-003'),
-        # Phone number and pool conflicts
-        ('LAST_PHONE_NUMBER', 'phone-number', '+12125551234'),
-        ('PHONE_NUMBER_ASSOCIATED_TO_POOL', 'phone-number', '+13105551234'),
-        ('PHONE_NUMBER_NOT_ASSOCIATED_TO_POOL', 'phone-number', '+14085551234'),
-        # Configuration mismatch conflicts
-        ('EVENT_DESTINATION_MISMATCH', 'event-destination', 'event-dest-001'),
-        ('KEYWORD_MISMATCH', 'keyword', 'STOP'),
-        ('NUMBER_CAPABILITIES_MISMATCH', 'phone-number', '+15105551234'),
-        ('MESSAGE_TYPE_MISMATCH', 'pool', 'pool-xyz789'),
-        ('OPT_OUT_LIST_MISMATCH', 'opt-out-list', 'optout-list-001'),
-        ('SELF_MANAGED_OPT_OUTS_MISMATCH', 'pool', 'pool-def456'),
-        ('TWO_WAY_CONFIG_MISMATCH', 'pool', 'pool-ghi789'),
-        # Sender ID conflicts
-        ('SENDER_ID_ASSOCIATED_TO_POOL', 'sender-id', 'MY-SENDER-ID'),
-        # Resource state conflicts
-        ('NO_ORIGINATION_IDENTITIES_FOUND', 'pool', 'pool-jkl012'),
-        ('RESOURCE_ALREADY_EXISTS', 'keyword', 'START'),
-        ('RESOURCE_DELETION_NOT_ALLOWED', 'configuration-set', 'my-config-set'),
-        ('RESOURCE_MODIFICATION_NOT_ALLOWED', 'registration', 'reg-456789'),
-        ('RESOURCE_NOT_ACTIVE', 'phone-number', '+16505551234'),
-        ('RESOURCE_NOT_EMPTY', 'pool', 'pool-mno345'),
-        # Verification conflicts
-        ('VERIFICATION_CODE_EXPIRED', 'verified-destination-number', '+17075551234'),
-        ('VERIFICATION_ALREADY_COMPLETE', 'verified-destination-number', '+18085551234'),
+        ('ConflictException', 'DESTINATION_PHONE_NUMBER_OPTED_OUT', 'phone-number', '+19876543210'),
+        ('ServiceQuotaExceededException', 'MONTHLY_SPEND_LIMIT_REACHED_FOR_TEXT', None, None),
+        ('AccessDeniedException', 'ACCOUNT_DISABLED', None, None),
+        ('ResourceNotFoundException', 'Resource not found', 'configuration-set', 'env-configuration-set'),
     ],
 )
-def test_send_sms_handles_pinpoint_v2_conflict_exception(
-    mocker, aws_pinpoint_client, reason, resource_type, resource_id
+def test_send_sms_handles_pinpoint_v2_nonretryable_exceptions(
+    mocker, aws_pinpoint_client, error_code, reason, resource_type, resource_id
 ):
-    """Test that PinpointV2 ConflictException is properly handled and raises NonRetryableException
+    """Test that PinpointV2 non-retryable errors are properly handled and raise NonRetryableException
 
-    Tests all 36 ConflictExceptionReason values with appropriate resource types and resource IDs
-    that can occur when sending SMS through AWS Pinpoint SMS Voice V2.
 
-    Covers all reasons from AWS SDK documentation:
-    https://botocore.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint-sms-voice-v2/client/exceptions/ConflictException.html
+    https://botocore.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint-sms-voice-v2.html
     """
     mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
     error_response = {
         'Error': {
-            'Code': 'ConflictException',
-            'Message': 'Conflict occurred',
+            'Code': error_code,
+            'Message': error_code,
         },
         'Reason': reason,
         'ResourceType': resource_type,
@@ -393,8 +351,51 @@ def test_send_sms_handles_pinpoint_v2_conflict_exception(
         aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
 
 
-def test_send_sms_handles_pinpoint_v2_validation_exception(mocker, aws_pinpoint_client):
-    """Test that PinpointV2 ValidationException is properly handled and raises NonRetryableException"""
+@pytest.mark.parametrize(
+    'error_code, reason, resource_type, resource_id',
+    [
+        ('ThrottlingException', 'Account throttled', None, None),
+        ('InternalServerException', 'Internal server error', None, None),
+    ],
+)
+def test_send_sms_handles_pinpoint_v2_retryable_exceptions(
+    mocker, aws_pinpoint_client, error_code, reason, resource_type, resource_id
+):
+    """Test that PinpointV2 ConflictException is properly handled and raises NonRetryableException
+
+    Tests all 36 ConflictExceptionReason values with appropriate resource types and resource IDs
+    that can occur when sending SMS through AWS Pinpoint SMS Voice V2.
+
+    Covers all reasons from AWS SDK documentation:
+    https://botocore.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint-sms-voice-v2/client/exceptions/ConflictException.html
+    """
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
+
+    error_response = {
+        'Error': {
+            'Code': error_code,
+            'Message': error_code,
+        },
+        'Reason': reason,
+        'ResourceType': resource_type,
+        'ResourceId': resource_id,
+    }
+
+    mock_exception = botocore.exceptions.ClientError(error_response, 'send_text_message')
+
+    mocker.patch.object(
+        aws_pinpoint_client,
+        '_post_message_request',
+        side_effect=mock_exception,
+    )
+
+    with pytest.raises(RetryableException):
+        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
+
+
+# TODO: Remove ValidationException fallback once AWS support issue resolved (Case ID 176252254206525)
+def test_send_sms_handles_pinpoint_v2_validation_exception_as_fallback(mocker, aws_pinpoint_client):
+    """Test that PinpointV2 ValidationException is properly handled and attempts V1 fallback"""
     mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 
     error_response = {
