@@ -426,6 +426,54 @@ def test_send_sms_handles_pinpoint_v2_validation_exception_as_fallback(mocker, a
     aws_pinpoint_client._post_message_request_v1.assert_called_once()
 
 
+# TODO: Temporary measure to ensure ValidationException fallback doesn't use phone pool with v1
+def test_send_sms_pinpoint_v1_maps_phonepool_to_10dlc(mocker, aws_pinpoint_client):
+    """Test that Pinpoint V1 maps phonepool to 10DLC"""
+
+    mocker.patch.dict(aws_pinpoint_client._v2_phonepool_to_10DLC_mapping, {'pool-1234': '+18005551212'})
+
+    # V2 send SMS throws validation exception
+    mocker.patch.object(
+        aws_pinpoint_client._pinpoint_client,
+        'send_messages',
+    )
+
+    message_request_payload = {
+        'Addresses': {TEST_RECIPIENT_NUMBER: {'ChannelType': 'SMS'}},
+        'MessageConfiguration': {
+            'SMSMessage': {
+                'Body': TEST_CONTENT,
+                'MessageType': 'TRANSACTIONAL',
+                'OriginationNumber': '+18005551212',
+            }
+        },
+    }
+
+    aws_pinpoint_client._post_message_request_v1(TEST_RECIPIENT_NUMBER, TEST_CONTENT, 'pool-1234')
+
+    aws_pinpoint_client.logger.warning.assert_not_called()
+    aws_pinpoint_client._pinpoint_client.send_messages.assert_called_with(
+        ApplicationId=aws_pinpoint_client.aws_pinpoint_app_id, MessageRequest=message_request_payload
+    )
+
+
+# TODO: Temporary measure to ensure ValidationException fallback doesn't use phone pool with v1
+def test_send_sms_pinpoint_v1_warns_on_unmapped_phonepool(mocker, aws_pinpoint_client):
+    """Test that Pinpoint V1 warns when using un-mapped phone pool"""
+
+    # V2 send SMS throws validation exception
+    mocker.patch.object(
+        aws_pinpoint_client._pinpoint_client,
+        'send_messages',
+    )
+
+    aws_pinpoint_client._post_message_request_v1(TEST_RECIPIENT_NUMBER, TEST_CONTENT, 'pool-not-in-mapping')
+
+    aws_pinpoint_client.logger.warning.assert_called_with(
+        'Attempt to send SMS via Pinpoint client using phone pool - %s', 'pool-not-in-mapping'
+    )
+
+
 @pytest.mark.parametrize('pinpoint_v2_enabled', (False, True))
 def test_translate_delivery_status_pinpoint_sms_v1_successful(aws_pinpoint_client, mocker, pinpoint_v2_enabled):
     """Test translate_delivery_status for PinpointSMSV1 delivery status with and without PinpointSMSVoiceV2 feature enabled"""

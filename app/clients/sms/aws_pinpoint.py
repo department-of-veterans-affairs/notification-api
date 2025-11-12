@@ -185,7 +185,8 @@ class AwsPinpointClient(SmsClient):
                 self.statsd_client.incr(f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{STATSD_FAILURE}.{aws_phone_number}')
                 raise AwsPinpointException(str(e))
         else:
-            if is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2):
+            # additional 'MessageId' check to support ValidationException fallback
+            if is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2) and 'MessageId' in response:
                 # The V2 response doesn't contain additional fields to validate.
                 aws_reference = response['MessageId']
             else:
@@ -254,11 +255,11 @@ class AwsPinpointClient(SmsClient):
 
         # check for aws_phone_number as phonepool, map to 10-DLC
         # if it looks like a phone pool (string prefix) -> dict{phonepool: 10-DLC}
-        if aws_phone_number in self._v2_phonepool_to_10DLC_mapping:
-            aws_phone_number = self._v2_phonepool_to_10DLC_mapping[aws_phone_number]
-
-        # error handling for phone pool not in map
-        # NonRetryable
+        if aws_phone_number.startswith('pool-'):
+            if aws_phone_number in self._v2_phonepool_to_10DLC_mapping:
+                aws_phone_number = self._v2_phonepool_to_10DLC_mapping[aws_phone_number]
+            else:
+                self.logger.warning('Attempt to send SMS via Pinpoint client using phone pool - %s', aws_phone_number)
 
         message_request_payload = {
             'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
