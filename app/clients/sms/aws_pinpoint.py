@@ -74,9 +74,12 @@ class AwsPinpointClient(SmsClient):
         'ResourceNotFoundException',
     )
 
-    # dict {phonepoolid -> 10-DLC}
+    # temporary mapping for V2 to V1 fallback support
     _v2_phonepool_to_10DLC_mapping = {
-        'pool1234': '+18005551212',
+        'pool-14ef7fd6c8f0456bbb526b0b9061b009': '+12029722096',
+        'pool-3ada915d3ca447d6ab21d1ed21e2ab9a': '+12023358766',
+        'pool-8f33a5a8754d4f7199a0647e25dee635': '+12023351580',
+        'pool-e0b4838bba604426b559419c3d6109d0': '+12029727455',
     }
 
     def __init__(self):
