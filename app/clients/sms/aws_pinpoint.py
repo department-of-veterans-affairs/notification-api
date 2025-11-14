@@ -235,7 +235,7 @@ class AwsPinpointClient(SmsClient):
                     and reason != 'DESTINATION_PHONE_NUMBER_OPTED_OUT'
                 ):
                     recipient_number_redacted = f'{recipient_number[:-4]}XXXX'
-                    request_id = e.respnse.get('ResponseMetadata', {}).get('RequestId')
+                    request_id = e.response.get('ResponseMetadata', {}).get('RequestId')
 
                     self.logger.warning(
                         '%s sending SMS | attempting v1 failover - Reason: %s, RequestID: %s, Recipient: %s',

@@ -310,6 +310,7 @@ def test_send_sms_post_message_request_raises_aws_exception(mocker, aws_pinpoint
 
 
 # TODO: Add ValidationException as non-retryable once AWS support issue resolved (Case ID 176252254206525)
+# Note: Fallback to V1 for any ConflictException other than DESTINATION_PHONE_NUMBER_OPTED_OUT
 @pytest.mark.parametrize(
     'error_code, reason, resource_type, resource_id',
     [
@@ -405,6 +406,39 @@ def test_send_sms_handles_pinpoint_v2_validation_exception_as_fallback(mocker, a
         },
         'Message': 'INVALID_IDENTITY_FOR_DESTINATION_COUNTRY',
         'Reason': 'The origination identity you specified is not valid for the destination country.',
+    }
+
+    mock_exception = botocore.exceptions.ClientError(error_response, 'send_text_message')
+
+    # V2 send SMS throws validation exception
+    mocker.patch.object(
+        aws_pinpoint_client._pinpoint_sms_voice_v2_client,
+        'send_text_message',
+        side_effect=mock_exception,
+    )
+
+    mocker.patch.object(
+        aws_pinpoint_client,
+        '_post_message_request_v1',
+    )
+
+    aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
+    # should fail over to V1 send SMS
+    aws_pinpoint_client._post_message_request_v1.assert_called_once()
+
+
+# TODO: Remove ConflictException fallback once AWS support issue resolved (Case ID 176252254206525)
+def test_send_sms_handles_pinpoint_v2_non_opt_out_conflict_exception_as_fallback(mocker, aws_pinpoint_client):
+    """Test that PinpointV2 ValidationException is properly handled and attempts V1 fallback"""
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
+
+    error_response = {
+        'Error': {
+            'Code': 'ConflictException',
+            'Message': 'NO_ORIGINATION_IDENTITIES_FOUND',
+        },
+        'Message': 'NO_ORIGINATION_IDENTITIES_FOUND',
+        'Reason': 'No origination entities found.',
     }
 
     mock_exception = botocore.exceptions.ClientError(error_response, 'send_text_message')
