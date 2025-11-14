@@ -80,6 +80,7 @@ class AwsPinpointClient(SmsClient):
         'pool-3ada915d3ca447d6ab21d1ed21e2ab9a': '+12023358766',
         'pool-8f33a5a8754d4f7199a0647e25dee635': '+12023351580',
         'pool-e0b4838bba604426b559419c3d6109d0': '+12029727455',
+        'pool-5d0cfe20895e47ac965fc06a265e87be': '+12564084541',
     }
 
     def __init__(self):
@@ -228,14 +229,19 @@ class AwsPinpointClient(SmsClient):
             except botocore.exceptions.ClientError as e:
                 # temporary fallback to V1 until V2 service issues resolved (PR and CA destination numbers)
                 error_code = e.response.get('Error', {}).get('Code', '')
-                if error_code == 'ValidationException':
-                    reason = e.response.get('Reason')
+                reason = e.response.get('Reason')
+                if (
+                    error_code in ('ValidationException', 'ConflictException')
+                    and reason != 'DESTINATION_PHONE_NUMBER_OPTED_OUT'
+                ):
                     recipient_number_redacted = f'{recipient_number[:-4]}XXXX'
+                    request_id = e.response.get('ResponseMetadata', {}).get('RequestId')
 
                     self.logger.warning(
-                        '%s sending SMS | attempting v1 failover - Reason: %s, Recipient: %s',
+                        '%s sending SMS | attempting v1 failover - Reason: %s, RequestID: %s, Recipient: %s',
                         error_code,
                         reason,
+                        request_id,
                         recipient_number_redacted,
                     )
 

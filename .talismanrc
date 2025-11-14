@@ -6,7 +6,7 @@ fileignoreconfig:
 - filename: app/authentication/auth.py
   checksum: 1260d6b2000fb725d29a63421965d6fb8879b61352254cfa22b6e5d81d0d6726
 - filename: app/clients/sms/aws_pinpoint.py
-  checksum: a9cdb14996d0de23d2a201c5524766d083ab0c98ec95bd994b98a179edb9170e
+  checksum: 37e90b46758c38621f6cc4a41830e14ac6895526033c66b60383cd3586e12da5
 - filename: app/config.py
   checksum: 9fdb58779702b0c101705671b34f6c337dc05afaff154b8fe878c98c2333d859
 - filename: app/dao/api_key_dao.py
