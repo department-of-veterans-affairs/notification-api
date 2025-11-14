@@ -22,7 +22,7 @@ fileignoreconfig:
 - filename: cd/application-deployment/perf/perf.env
   checksum: e454013f2a24dc23a83aa15af74a11d9662c5e41b0f26b0a2dde03f30aec820e
 - filename: cd/application-deployment/prod/prod.env
-  checksum: a56e937eada19f973d76da7696b772dce662169a3a9554e7648b99b9a5eb2b4c
+  checksum: d7facfb9c65d631001f4ec364062b8cec4adebc0ac1d5e08b6d394dc34321204
 - filename: cd/application-deployment/staging/staging.env
   checksum: 97bbcdc4f73850cd58aed24dbe57a2672282d7a9979058110df26eab38dfdd87
 - filename: cd/application-deployment/dev/vaec-api-task-definition.json
