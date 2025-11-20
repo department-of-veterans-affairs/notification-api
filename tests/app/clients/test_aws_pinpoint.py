@@ -83,7 +83,7 @@ def test_send_sms_successful_returns_aws_pinpoint_response_messageid(
 
 @pytest.mark.parametrize(
     'store_value, info_calls, warn_calls',
-    [(False, 1, 0), ('anything', 1, 0), (1, 1, 0), (0, 1, 0), (None, 1, 1)],
+    [(False, 2, 0), ('anything', 2, 0), (1, 2, 0), (0, 2, 0), (None, 2, 1)],
     ids=['boolean_check', 'found_in_redis', 'value_is_1', 'value_is_zero', 'not_in_redis'],
 )
 def test_send_sms_does_not_log_if_sms_replay(mocker, aws_pinpoint_client, store_value, info_calls, warn_calls):
