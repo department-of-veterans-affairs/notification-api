@@ -142,6 +142,8 @@ class AwsPinpointClient(SmsClient):
                 )
         start_time = monotonic()
 
+        self.logger.info('AWS Pinpoint SMS request using %s', aws_phone_number)
+
         try:
             response = self._post_message_request(recipient_number, content, aws_phone_number)
         except (botocore.exceptions.ClientError, Exception) as e:
