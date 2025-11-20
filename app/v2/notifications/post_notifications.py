@@ -7,9 +7,8 @@ from flask import request, jsonify, current_app, abort
 from notifications_utils.recipients import try_validate_and_format_phone_number
 
 from app import api_user, authenticated_service, attachment_store
-from app.va.identifier import IdentifierType
 from app.feature_flags import is_feature_enabled, FeatureFlag
-from app.pii import get_pii_subclass, Pii, PiiIcn, PiiEdipi, PiiBirlsid, PiiPid, PiiVaProfileID
+from app.pii import get_pii_subclass
 from app.attachments.mimetype import extract_and_validate_mimetype
 from app.attachments.store import AttachmentStoreError
 from app.attachments.types import UploadedAttachmentMetadata
@@ -90,6 +89,9 @@ def wrap_recipient_identifier_in_pii(form: dict):
 @v2_notification_blueprint.route('/<notification_type>', methods=['POST'])
 def post_notification(notification_type):  # noqa: C901
     created_at = datetime.now(timezone.utc)
+    current_app.logger.info(
+        'POST /v2/notifications/%s', notification_type, extra={'service_id': str(authenticated_service.id)}
+    )
     try:
         request_json = request.get_json()
     except werkzeug.exceptions.BadRequest as e:
@@ -110,6 +112,15 @@ def post_notification(notification_type):  # noqa: C901
                 raise BadRequestError(
                     message='You must supply a value for sms_sender_id, or the service must have a default.'
                 )
+        current_app.logger.info(
+            'POST /v2/notifications/sms using sms_sender_id: %s',
+            form['sms_sender_id'],
+            extra={
+                'service_id': str(authenticated_service.id),
+                'sms_sender_id': form.get('sms_sender_id'),
+                'template_id': form.get('template_id'),
+            },
+        )
     elif notification_type == LETTER_TYPE:
         form = validate(request_json, post_letter_request)
     else:
