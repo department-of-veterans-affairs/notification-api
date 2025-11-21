@@ -450,15 +450,18 @@ class AwsPinpointClient(SmsClient):
 
         Args:
             phone_number (str): The phone number or AWS phone pool ID to validate
+
+        Raises:
+            NonRetryableException: An invalid sender or phone-pool string pattern
         """
         phone_pool_pattern = r'^pool-[a-z0-9]+$'  # AWS Pinpoint phone pool ID format
-        if re.match(phone_pool_pattern, phone_number):
-            return True
 
         try:
             parsed_number = phonenumbers.parse(phone_number, None)
         except phonenumbers.NumberParseException:
-            return False
+            if not re.match(phone_pool_pattern, phone_number):
+                self.logger.critical('Invalid Pinpoint SMS sender number: %s', phone_number)
+                raise NonRetryableException(f'Invalid Pinpoint SMS sender number: {phone_number}')
 
         if not phonenumbers.is_valid_number(parsed_number):
             self.logger.critical('Invalid Pinpoint SMS sender number: %s', phone_number)
