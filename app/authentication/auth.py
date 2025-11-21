@@ -187,6 +187,8 @@ def validate_service_api_key_auth():  # noqa: C901
     auth_token = get_auth_token(request)
     client = __get_token_issuer(auth_token)
 
+    form = request.form.to_dict(flat=True)
+
     try:
         service = dao_fetch_service_by_id_with_api_keys(client)
     except DataError:
@@ -227,6 +229,10 @@ def validate_service_api_key_auth():  # noqa: C901
             service.name,
             api_key.id,
             request.headers.get('User-Agent'),
+            extra={
+                'sms_sender_id': form.get('sms_sender_id'),
+                'template_id': form.get('template_id'),
+            },
         )
         return
     else:
