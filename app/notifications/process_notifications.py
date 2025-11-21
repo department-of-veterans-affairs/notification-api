@@ -36,7 +36,6 @@ from app.dao.service_sms_sender_dao import (
     dao_get_service_sms_sender_by_service_id_and_number,
 )
 from app.dao.templates_dao import TemplateHistoryData, dao_get_template_history_by_id
-from app.feature_flags import is_feature_enabled, FeatureFlag
 from app.models import Notification, ScheduledNotification, RecipientIdentifier, Template
 from app.pii.pii_base import Pii
 from app.v2.errors import BadRequestError
@@ -210,10 +209,18 @@ def send_notification_to_queue(
     try:
         # This executes the task list.  Each task calls a function that makes a request to
         # the backend provider.
+        current_app.logger.info(
+            'Notification sent to %s queue: %s',
+            queue,
+            str(notification.id),
+            extra={'template_id': template.id, 'sms_sender_id': notification.sms_sender_id},
+        )
         chain(*tasks).apply_async()
     except Exception:
         current_app.logger.exception(
-            'apply_async failed in send_notification_to_queue for notification %s.', notification.id
+            'apply_async failed in send_notification_to_queue for notification %s.',
+            notification.id,
+            extra={'template_id': template.id, 'sms_sender_id': notification.sms_sender_id},
         )
         dao_delete_notification_by_id(notification.id)
         raise
@@ -397,3 +404,12 @@ def persist_scheduled_notification(
     scheduled_datetime = convert_local_timezone_to_utc(datetime.strptime(scheduled_for, '%Y-%m-%d %H:%M'))
     scheduled_notification = ScheduledNotification(notification_id=notification_id, scheduled_for=scheduled_datetime)
     dao_created_scheduled_notification(scheduled_notification)
+    current_app.logger.info(
+        'Scheduled notification %s for %s',
+        str(notification_id),
+        str(scheduled_datetime),
+        extra={
+            'template_id': scheduled_notification.notification.template_id,
+            'sms_sender_id': scheduled_notification.notification.sms_sender_id,
+        },
+    )
