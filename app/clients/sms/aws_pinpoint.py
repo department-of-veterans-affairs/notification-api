@@ -1,10 +1,12 @@
 from datetime import datetime
 from logging import Logger
+import re
 from time import monotonic
 
 import boto3
 import botocore
 import botocore.exceptions
+import phonenumbers
 
 from app.celery.exceptions import NonRetryableException, RetryableException
 from app.clients.sms import (
@@ -122,6 +124,8 @@ class AwsPinpointClient(SmsClient):
         from app.utils import get_redis_retry_key
 
         aws_phone_number = self.origination_number if sender is None else sender
+        self._validate_sender_phone_number(aws_phone_number)
+
         recipient_number = str(to)
 
         # Log how long it spent in our system before we sent it if this is not an SMS retry
@@ -271,6 +275,8 @@ class AwsPinpointClient(SmsClient):
                 aws_phone_number = self._v2_phonepool_to_10DLC_mapping[aws_phone_number]
             else:
                 self.logger.warning('Attempt to send SMS via Pinpoint client using phone pool - %s', aws_phone_number)
+
+        self.logger.info('AWS Pinpoint V1 SMS request using %s', aws_phone_number)
 
         message_request_payload = {
             'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
@@ -438,3 +444,25 @@ class AwsPinpointClient(SmsClient):
             price_in_millicents,
             timestamp,
         )
+
+    def _validate_sender_phone_number(self, phone_number: str):
+        """Validate phone number format for AWS Pinpoint origination number
+
+        Args:
+            phone_number (str): The phone number or AWS phone pool ID to validate
+
+        Raises:
+            NonRetryableException: An invalid sender or phone-pool string pattern
+        """
+        phone_pool_pattern = r'^pool-[a-z0-9]+$'  # AWS Pinpoint phone pool ID format
+
+        try:
+            parsed_number = phonenumbers.parse(phone_number, None)
+        except phonenumbers.NumberParseException:
+            if not re.match(phone_pool_pattern, phone_number):
+                self.logger.critical('Invalid Pinpoint SMS sender number: %s', phone_number)
+                raise NonRetryableException(f'Invalid Pinpoint SMS sender number: {phone_number}')
+        else:
+            if not phonenumbers.is_valid_number(parsed_number):
+                self.logger.critical('Invalid Pinpoint SMS sender number: %s', phone_number)
+                raise NonRetryableException(f'Invalid Pinpoint SMS sender number: {phone_number}')
