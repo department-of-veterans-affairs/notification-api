@@ -89,9 +89,6 @@ def wrap_recipient_identifier_in_pii(form: dict):
 @v2_notification_blueprint.route('/<notification_type>', methods=['POST'])
 def post_notification(notification_type):  # noqa: C901
     created_at = datetime.now(timezone.utc)
-    current_app.logger.info(
-        'POST /v2/notifications/%s', notification_type, extra={'service_id': str(authenticated_service.id)}
-    )
     try:
         request_json = request.get_json()
     except werkzeug.exceptions.BadRequest as e:
@@ -113,10 +110,9 @@ def post_notification(notification_type):  # noqa: C901
                     message='You must supply a value for sms_sender_id, or the service must have a default.'
                 )
         current_app.logger.info(
-            'POST /v2/notifications/sms using sms_sender_id: %s',
+            'SMS notification: POST /v2/notifications/sms received: %s',
             form['sms_sender_id'],
             extra={
-                'service_id': str(authenticated_service.id),
                 'sms_sender_id': form.get('sms_sender_id'),
                 'template_id': form.get('template_id'),
             },
@@ -246,6 +242,12 @@ def process_sms_or_email_notification(
         sms_sender_id=form.get('sms_sender_id'),
         callback_url=form.get('callback_url'),
         created_at=created_at,
+    )
+
+    current_app.logger.info(
+        'Created notification: %s',
+        str(notification.id),
+        extra={'template_id': template.id, 'sms_sender_id': form.get('sms_sender_id')},
     )
 
     if 'scheduled_for' in form:
