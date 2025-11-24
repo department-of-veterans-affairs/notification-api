@@ -29,7 +29,7 @@ def insert_service_sms_sender(
     db.session.add(new_sms_sender)
 
 
-# TODO: Re-enable caching after phone number migration is complete
+# TODO: 2641 Re-enable caching after phone number migration is complete
 # @cached(sms_sender_data_cache)
 def dao_get_service_sms_sender_by_id(
     service_id: str,
@@ -59,7 +59,7 @@ def dao_get_service_sms_sender_by_id(
     )
 
 
-# TODO: Re-enable caching after phone number migration is complete
+# TODO: 2641 Re-enable caching after phone number migration is complete
 # @cached(sms_sender_data_cache)
 def dao_get_sms_senders_data_by_service_id(service_id: str) -> list[ServiceSmsSenderData]:
     """Return a cached list of ServiceSmsSenderData objects for a given service_id."""
@@ -100,7 +100,7 @@ def dao_get_sms_senders_by_service_id(service_id: str) -> list[ServiceSmsSender]
     return db.session.scalars(stmt).all()
 
 
-# TODO: Re-enable caching after phone number migration is complete
+# TODO: 2641 Re-enable caching after phone number migration is complete
 # @cached(sms_sender_data_cache)
 def dao_get_service_sms_sender_by_service_id_and_number(
     service_id: str,

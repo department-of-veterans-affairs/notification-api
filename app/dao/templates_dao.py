@@ -255,6 +255,7 @@ def dao_get_template_by_id_and_service_id_without_cache(
     return db.session.scalars(stmt).one()
 
 
+# TODO: 2641 Re-enable caching after phone number migration is complete
 # @cached(cache=template_cache)
 def dao_get_template_data_by_id_and_service_id(
     template_id: uuid.UUID,
@@ -307,6 +308,7 @@ def dao_get_number_of_templates_by_service_id_and_name(
     return db.session.scalar(stmt)
 
 
+# TODO: 2641 Re-enable caching after phone number migration is complete
 # @cached(cache=TTLCache(maxsize=1024, ttl=600))
 def dao_get_template_history_by_id(template_id: str, version: str) -> TemplateHistoryData | None:
     stmt = select(TemplateHistory).where(TemplateHistory.id == template_id, TemplateHistory.version == version)
