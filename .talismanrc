@@ -52,7 +52,7 @@ fileignoreconfig:
 - filename: poetry.lock
   checksum: 3b109c306d391289f71725e78ed743b392c4dbf5717aa99f08943bbae0eab9ef
 - filename: tests/app/authentication/test_authentication.py
-  checksum: 75ce4ecbb6ef86dd06db54dcf66329b7749ff9024c7d88c218f43033d03deb73
+  checksum: 2dd17b97a2c879ac895e13273fa22fd7e56f890cc2f23e604ed2d62ebe2c57dd
 - filename: tests/app/conftest.py
   checksum: 2703a8d6533ad7fc55650dfd22e72d483df1cdd7226b8368776faaabdb0885f4
 - filename: tests/app/clients/test_aws_pinpoint.py

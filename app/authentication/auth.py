@@ -183,11 +183,9 @@ def validate_service_api_key_auth():  # noqa: C901
     # Set the id here for tracking purposes - becomes notification id
     g.request_id = str(uuid4())
     request_helper.check_proxy_header_before_request()
-
     auth_token = get_auth_token(request)
     client = __get_token_issuer(auth_token)
-
-    form = request.form.to_dict(flat=True)
+    data = request.get_json(silent=True) or {}
 
     try:
         service = dao_fetch_service_by_id_with_api_keys(client)
@@ -230,8 +228,8 @@ def validate_service_api_key_auth():  # noqa: C901
             api_key.id,
             request.headers.get('User-Agent'),
             extra={
-                'sms_sender_id': form.get('sms_sender_id'),
-                'template_id': form.get('template_id'),
+                'sms_sender_id': data.get('sms_sender_id'),
+                'template_id': data.get('template_id'),
             },
         )
         return

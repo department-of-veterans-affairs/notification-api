@@ -137,6 +137,65 @@ def test_should_allow_valid_token(client, sample_notification, sample_template, 
     assert response.status_code == 200
 
 
+def test_should_log_sms_sender_id_and_template_id_if_available(
+    client, sample_notification, sample_template, sample_user_service_api_key, mocker
+):
+    _, _, api_key = sample_user_service_api_key
+
+    mock_logger = mocker.patch('app.authentication.auth.current_app.logger')
+
+    token = __create_token(api_key.service_id)
+    template = sample_template(service=api_key.service)
+    sample_notification(template=template, api_key=api_key)
+
+    client.post(
+        '/v2/notifications/sms',
+        headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {token}'},
+        data=json.dumps(
+            {
+                'sms_sender_id': 12345,
+                'template_id': template.id,
+            }
+        ),
+    )
+
+    mock_logger.info.assert_any_call(
+        'API authorised for service %s (%s) with api key %s, using client %s',
+        api_key.service.id,
+        api_key.service.name,
+        api_key.id,
+        mocker.ANY,
+        extra={'sms_sender_id': 12345, 'template_id': str(template.id)},
+    )
+
+
+def test_should_not_log_sms_sender_id_and_template_id_if_not_available(
+    client, sample_notification, sample_template, sample_user_service_api_key, mocker
+):
+    _, _, api_key = sample_user_service_api_key
+
+    mock_logger = mocker.patch('app.authentication.auth.current_app.logger')
+
+    token = __create_token(api_key.service_id)
+    template = sample_template(service=api_key.service)
+    sample_notification(template=template, api_key=api_key)
+
+    client.post(
+        '/v2/notifications/sms',
+        headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {token}'},
+        data=json.dumps({}),
+    )
+
+    mock_logger.info.assert_any_call(
+        'API authorised for service %s (%s) with api key %s, using client %s',
+        api_key.service.id,
+        api_key.service.name,
+        api_key.id,
+        mocker.ANY,
+        extra={'sms_sender_id': None, 'template_id': None},
+    )
+
+
 def test_should_not_allow_service_id_that_is_not_uuid(client, sample_notification, sample_user_service_api_key):
     _, service, _ = sample_user_service_api_key
 
