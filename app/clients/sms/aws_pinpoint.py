@@ -456,12 +456,20 @@ class AwsPinpointClient(SmsClient):
         """
         phone_pool_pattern = r'^pool-[a-z0-9]+$'  # AWS Pinpoint phone pool ID format
 
+        if phone_number.isdigit() and 3 <= len(phone_number) <= 6:
+            # allow generic short-code pattern
+            return
+
+        if re.match(phone_pool_pattern, phone_number):
+            # allow phone pool pattern
+            return
+
+        # validate as a phone number
         try:
             parsed_number = phonenumbers.parse(phone_number, None)
         except phonenumbers.NumberParseException:
-            if not re.match(phone_pool_pattern, phone_number):
-                self.logger.critical('Invalid Pinpoint SMS sender number: %s', phone_number)
-                raise NonRetryableException(f'Invalid Pinpoint SMS sender number: {phone_number}')
+            self.logger.critical('Invalid Pinpoint SMS sender number: %s', phone_number)
+            raise NonRetryableException(f'Invalid Pinpoint SMS sender number: {phone_number}')
         else:
             if not phonenumbers.is_valid_number(parsed_number):
                 self.logger.critical('Invalid Pinpoint SMS sender number: %s', phone_number)
