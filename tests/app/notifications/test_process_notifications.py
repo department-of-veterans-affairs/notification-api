@@ -229,11 +229,11 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
     service = MockService(id=uuid.uuid4())
 
     MockSmsSender = namedtuple('ServiceSmsSender', ['service_id', 'sms_sender', 'rate_limit'])
-    sms_sender = MockSmsSender(service_id=service.id, sms_sender='+18888888888', rate_limit=None)
+    sms_sender = MockSmsSender(service_id=service.id, sms_sender='+18888888888', rate_limit=1)
 
     mocker.patch(
         'app.notifications.process_notifications.dao_get_service_sms_sender_by_service_id_and_number',
-        return_value=sms_sender,
+        return_value=None,
     )
 
     MockSmsSender = namedtuple('ServiceSmsSender', ['service_id', 'sms_sender', 'rate_limit'])
