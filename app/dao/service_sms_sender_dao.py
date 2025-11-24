@@ -346,7 +346,7 @@ def _allocate_inbound_number_for_service(
     return db.session.get(InboundNumber, inbound_number_id)
 
 
-# TODO: Re-enable caching after phone number migration is complete
+# TODO: 2641 Re-enable caching after phone number migration is complete
 # @cached(sms_sender_data_cache)
 def dao_get_default_service_sms_sender_by_service_id(service_id: str) -> ServiceSmsSenderData | None:
     """Return the default ServiceSmsSenderData for a given service_id, or None if not found."""
