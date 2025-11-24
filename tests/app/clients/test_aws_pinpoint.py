@@ -24,6 +24,7 @@ TEST_CONTENT = 'test content'
 TEST_ID = 'some-app-id'
 TEST_MESSAGE_ID = 'message-id'
 TEST_RECIPIENT_NUMBER = '+100000000'
+TEST_SENDER_NUMBER = '+12025550123'
 TEST_REFERENCE = 'test notification id'
 
 
@@ -38,7 +39,7 @@ def aws_pinpoint_client(notify_api, mocker):
             aws_pinpoint_v2_configset='dev',
             aws_region='some-aws-region',
             logger=logger,
-            origination_number='+10000000000',
+            origination_number=TEST_SENDER_NUMBER,
             statsd_client=statsd_client,
         )
         return aws_pinpoint_client
@@ -50,7 +51,7 @@ def pinpoint_client_mock(aws_pinpoint_client, mocker):
     return pinpoint_client_mock
 
 
-@pytest.mark.parametrize('sender', (None, '+12222222222'))
+@pytest.mark.parametrize('sender', (None, TEST_SENDER_NUMBER, 'pool-1234abcd'))
 @pytest.mark.parametrize('PINPOINT_SMS_VOICE_V2', ('False', 'True'))
 def test_send_sms_successful_returns_aws_pinpoint_response_messageid(
     PINPOINT_SMS_VOICE_V2, sender, mocker, aws_pinpoint_client, monkeypatch
@@ -79,6 +80,17 @@ def test_send_sms_successful_returns_aws_pinpoint_response_messageid(
 
     response = aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE, sender=sender)
     assert response == TEST_MESSAGE_ID
+
+
+@pytest.mark.parametrize('sender', ('+10000000000', 'bucket-1234abcd'))
+@pytest.mark.parametrize('PINPOINT_SMS_VOICE_V2', ('False', 'True'))
+def test_send_sms_throws_non_retryable_on_invalid_sender(
+    PINPOINT_SMS_VOICE_V2, sender, aws_pinpoint_client, monkeypatch
+):
+    monkeypatch.setenv('PINPOINT_SMS_VOICE_V2', PINPOINT_SMS_VOICE_V2)
+
+    with pytest.raises(NonRetryableException):
+        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE, sender=sender)
 
 
 @pytest.mark.parametrize(
@@ -151,8 +163,6 @@ def test_send_sms_returns_result_with_aws_pinpoint_error_delivery_status(
     This test is only applicable to the Pinpoint client (not V2).  The V2 client response does not contain
     this verbose response.
     """
-    opted_out_number = '+12222222222'
-
     pinpoint_client_mock.send_messages.return_value = {
         'MessageResponse': {
             'ApplicationId': TEST_ID,
@@ -169,7 +179,7 @@ def test_send_sms_returns_result_with_aws_pinpoint_error_delivery_status(
     }
 
     with pytest.raises(test_exception):
-        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE, sender=opted_out_number)
+        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE, sender=TEST_SENDER_NUMBER)
 
 
 @pytest.mark.parametrize('delivery_status', ['DUPLICATE', 'OPT_OUT', 'PERMANENT_FAILURE'])
@@ -180,8 +190,6 @@ def test_send_sms_returns_result_with_non_retryable_error_delivery_status(
     This test is only applicable to the Pinpoint client (not V2).  The V2 client response does not contain
     this verbose response.
     """
-    opted_out_number = '+12222222222'
-
     pinpoint_client_mock.send_messages.return_value = {
         'MessageResponse': {
             'ApplicationId': TEST_ID,
@@ -198,7 +206,7 @@ def test_send_sms_returns_result_with_non_retryable_error_delivery_status(
     }
 
     with pytest.raises(NonRetryableException):
-        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE, sender=opted_out_number)
+        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE, sender=TEST_SENDER_NUMBER)
 
 
 def test_send_sms_raises_invalid_provider_error_with_invalide_number(aws_pinpoint_client, pinpoint_client_mock):
@@ -207,7 +215,6 @@ def test_send_sms_raises_invalid_provider_error_with_invalide_number(aws_pinpoin
     this verbose response.
     """
     delivery_status = 'PERMANENT_FAILURE'
-    invalid_number = '+12223334444'
 
     pinpoint_client_mock.send_messages.return_value = {
         'MessageResponse': {
@@ -225,7 +232,7 @@ def test_send_sms_raises_invalid_provider_error_with_invalide_number(aws_pinpoin
     }
 
     with pytest.raises(InvalidProviderException):
-        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE, sender=invalid_number)
+        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE, sender=TEST_SENDER_NUMBER)
 
 
 @pytest.mark.parametrize('code', AwsPinpointClient._retryable_v1_codes)

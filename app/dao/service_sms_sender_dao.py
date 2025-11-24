@@ -1,4 +1,4 @@
-from cachetools import TTLCache, cached
+from cachetools import TTLCache
 from datetime import datetime, timedelta
 from uuid import UUID
 
@@ -29,7 +29,8 @@ def insert_service_sms_sender(
     db.session.add(new_sms_sender)
 
 
-@cached(sms_sender_data_cache)
+# TODO: 2641 Re-enable caching after phone number migration is complete
+# @cached(sms_sender_data_cache)
 def dao_get_service_sms_sender_by_id(
     service_id: str,
     service_sms_sender_id: str,
@@ -58,7 +59,8 @@ def dao_get_service_sms_sender_by_id(
     )
 
 
-@cached(sms_sender_data_cache)
+# TODO: 2641 Re-enable caching after phone number migration is complete
+# @cached(sms_sender_data_cache)
 def dao_get_sms_senders_data_by_service_id(service_id: str) -> list[ServiceSmsSenderData]:
     """Return a cached list of ServiceSmsSenderData objects for a given service_id."""
     stmt = (
@@ -98,7 +100,8 @@ def dao_get_sms_senders_by_service_id(service_id: str) -> list[ServiceSmsSender]
     return db.session.scalars(stmt).all()
 
 
-@cached(sms_sender_data_cache)
+# TODO: 2641 Re-enable caching after phone number migration is complete
+# @cached(sms_sender_data_cache)
 def dao_get_service_sms_sender_by_service_id_and_number(
     service_id: str,
     number: str,
@@ -343,7 +346,8 @@ def _allocate_inbound_number_for_service(
     return db.session.get(InboundNumber, inbound_number_id)
 
 
-@cached(sms_sender_data_cache)
+# TODO: 2641 Re-enable caching after phone number migration is complete
+# @cached(sms_sender_data_cache)
 def dao_get_default_service_sms_sender_by_service_id(service_id: str) -> ServiceSmsSenderData | None:
     """Return the default ServiceSmsSenderData for a given service_id, or None if not found."""
     stmt = select(ServiceSmsSender).where(

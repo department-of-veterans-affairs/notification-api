@@ -695,7 +695,7 @@ def test_deliver_sms_pinpoint_v2_opt_out(
             aws_pinpoint_v2_configset='dev',
             aws_region='some-aws-region',
             logger=logger,
-            origination_number='+10000000000',
+            origination_number='+12025550123',
             statsd_client=statsd_client,
         )
 
