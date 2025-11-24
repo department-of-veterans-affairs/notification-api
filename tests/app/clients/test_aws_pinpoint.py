@@ -95,7 +95,7 @@ def test_send_sms_throws_non_retryable_on_invalid_sender(
 
 @pytest.mark.parametrize(
     'store_value, info_calls, warn_calls',
-    [(False, 5, 0), ('anything', 5, 0), (1, 5, 0), (0, 5, 0), (None, 6, 1)],
+    [(False, 5, 0), ('anything', 5, 0), (1, 5, 0), (0, 5, 0), (None, 5, 1)],
     ids=['boolean_check', 'found_in_redis', 'value_is_1', 'value_is_zero', 'not_in_redis'],
 )
 def test_send_sms_does_not_log_if_sms_replay(mocker, aws_pinpoint_client, store_value, info_calls, warn_calls):
