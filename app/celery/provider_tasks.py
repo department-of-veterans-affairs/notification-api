@@ -56,7 +56,9 @@ def deliver_sms(
     notification_id,
     sms_sender_id=None,
 ):
-    current_app.logger.info('Start sending SMS for notification id: %s', notification_id)
+    current_app.logger.info(
+        'Start sending SMS for notification id: %s', notification_id, extra={'sms_sender_id': sms_sender_id}
+    )
 
     try:
         notification = notifications_dao.get_notification_by_id(notification_id)
@@ -69,7 +71,11 @@ def deliver_sms(
                 f'The "to" field was not set for notification {notification_id}.  This is a programming error.'
             )
         send_to_providers.send_sms_to_provider(notification, sms_sender_id)
-        current_app.logger.info('Successfully sent sms for notification id: %s', notification_id)
+        current_app.logger.info(
+            'Successfully sent sms for notification id: %s',
+            notification_id,
+            extra={'sms_sender_id': sms_sender_id, 'template_id': notification.template_id},
+        )
 
     except Exception as e:
         _handle_delivery_failure(task, notification, 'deliver_sms', e, notification_id, SMS_TYPE)
@@ -93,7 +99,11 @@ def deliver_sms_with_rate_limiting(
 ):
     from app.notifications.validators import check_sms_sender_over_rate_limit
 
-    current_app.logger.info('Start sending SMS with rate limiting for notification id: %s', notification_id)
+    current_app.logger.info(
+        'Start sending SMS with rate limiting for notification id: %s',
+        notification_id,
+        extra={'sms_sender_id': sms_sender_id},
+    )
 
     try:
         notification = notifications_dao.get_notification_by_id(notification_id)
@@ -117,7 +127,11 @@ def deliver_sms_with_rate_limiting(
 
         check_sms_sender_over_rate_limit(notification.service_id, sms_sender)
         send_to_providers.send_sms_to_provider(notification, sms_sender_id)
-        current_app.logger.info('Successfully sent sms with rate limiting for notification id: %s', notification_id)
+        current_app.logger.info(
+            'Successfully sent sms with rate limiting for notification id: %s',
+            notification_id,
+            extra={'sms_sender_id': sms_sender_id, 'template_id': notification.template_id},
+        )
 
     except RateLimitError:
         # Floor it
@@ -126,6 +140,7 @@ def deliver_sms_with_rate_limiting(
             'SMS notification delivery for id: %s failed due to rate limit being exceeded. Will retry in %s seconds.',
             notification_id,
             retry_time,
+            extra={'sms_sender_id': sms_sender_id, 'template_id': notification.template_id},
         )
         # Retry after the interval and with jitter so many requests at the same time get spread out (non-exponential)
         task.retry(queue=QueueNames.RETRY, max_retries=None, countdown=(retry_time + randint(0, retry_time)))  # nosec B311

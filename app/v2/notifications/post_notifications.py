@@ -123,6 +123,12 @@ def post_notification(notification_type):  # noqa: C901
         abort(404)
 
     if not authenticated_service.has_permissions(notification_type):
+        current_app.logger.warning(
+            'Service %s tried to send a %s notification but does not have permission',
+            str(authenticated_service.id),
+            notification_type,
+            extra={'sms_sender_id': form.get('sms_sender_id'), 'template_id': form.get('template_id')},
+        )
         raise BadRequestError(
             message='Service is not allowed to send {}'.format(
                 get_public_notify_type_text(notification_type, plural=True)
@@ -245,7 +251,7 @@ def process_sms_or_email_notification(
     )
 
     current_app.logger.info(
-        'Created notification: %s',
+        'Created notification with email or phone number: %s',
         str(notification.id),
         extra={'template_id': template.id, 'sms_sender_id': form.get('sms_sender_id')},
     )
@@ -255,7 +261,11 @@ def process_sms_or_email_notification(
     else:
         if simulated:
             # Do not send a notification to a simulated recipient to the queue.
-            current_app.logger.debug('POST simulated notification for id: %s', notification.id)
+            current_app.logger.debug(
+                'POST simulated notification for id: %s',
+                notification.id,
+                extra={'template_id': template.id, 'sms_sender_id': form.get('sms_sender_id')},
+            )
         else:
             # id_type must be in the dictionary for validation to have passed.
             # TODO 2587 - Is passing the recipient identifer necessary?
@@ -298,6 +308,12 @@ def process_notification_with_recipient_identifier(
         sms_sender_id=form.get('sms_sender_id'),
         callback_url=form.get('callback_url'),
         created_at=created_at,
+    )
+
+    current_app.logger.info(
+        'Created notification with recipient identifiers: %s',
+        str(notification.id),
+        extra={'template_id': template.id, 'sms_sender_id': form.get('sms_sender_id')},
     )
 
     send_to_queue_for_recipient_info_based_on_recipient_identifier(

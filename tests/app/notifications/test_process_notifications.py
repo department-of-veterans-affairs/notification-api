@@ -221,6 +221,7 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
     expected_tasks,
     mocker,
     sample_template,
+    sample_notification,
 ):
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
     template = sample_template(template_type=notification_type)
@@ -228,26 +229,20 @@ def test_send_notification_to_queue_with_no_recipient_identifiers(
     service = MockService(id=uuid.uuid4())
 
     MockSmsSender = namedtuple('ServiceSmsSender', ['service_id', 'sms_sender', 'rate_limit'])
-    sms_sender = MockSmsSender(service_id=service.id, sms_sender='+18888888888', rate_limit=1)
-
-    NotificationTuple = namedtuple(
-        'Notification', ['id', 'key_type', 'notification_type', 'created_at', 'template', 'service_id', 'reply_to_text']
-    )
+    sms_sender = MockSmsSender(service_id=service.id, sms_sender='+18888888888', rate_limit=None)
 
     mocker.patch(
-        'app.notifications.process_notifications.dao_get_service_sms_sender_by_service_id_and_number', return_value=None
+        'app.notifications.process_notifications.dao_get_service_sms_sender_by_service_id_and_number',
+        return_value=sms_sender,
     )
 
     MockSmsSender = namedtuple('ServiceSmsSender', ['service_id', 'sms_sender', 'rate_limit'])
     sms_sender = MockSmsSender(service_id=service.id, sms_sender='+18888888888', rate_limit=None)
 
-    notification = NotificationTuple(
-        id=uuid.uuid4(),
-        key_type=key_type,
-        notification_type=notification_type,
+    notification = sample_notification(
         created_at=datetime.datetime(1972, 11, 11, 16, 8, 18),
+        key_type=key_type,
         template=template,
-        service_id=service.id,
         reply_to_text=sms_sender.sms_sender,
     )
 
@@ -385,8 +380,8 @@ def test_send_notification_to_queue_with_recipient_identifiers(
     request_recipient_id_value,
     expected_tasks,
     mocker,
-    sample_communication_item,
     sample_template,
+    sample_notification,
 ):
     mocked_chain = mocker.patch('app.notifications.process_notifications.chain')
     template = sample_template(
@@ -404,40 +399,12 @@ def test_send_notification_to_queue_with_recipient_identifiers(
         'app.notifications.process_notifications.dao_get_service_sms_sender_by_service_id_and_number',
         return_value=sms_sender,
     )
-
-    TestNotification = namedtuple(
-        'Notification',
-        [
-            'id',
-            'key_type',
-            'notification_type',
-            'created_at',
-            'template',
-            'template_id',
-            'template_version',
-            'recipient_identifiers',
-            'service_id',
-            'reply_to_text',
-            'sms_sender',
-        ],
-    )
-    notification_id = uuid.uuid4()
-    notification = TestNotification(
-        id=notification_id,
-        key_type=key_type,
-        notification_type=notification_type,
+    notification = sample_notification(
         created_at=datetime.datetime(1972, 11, 11, 16, 8, 18),
+        key_type=key_type,
         template=template,
-        template_id=template.id,
-        template_version=template.version,
-        recipient_identifiers={
-            f'{request_recipient_id_type}': RecipientIdentifier(
-                notification_id=notification_id, id_type=request_recipient_id_type, id_value=request_recipient_id_value
-            )
-        },
-        service_id=service.id,
+        recipient_identifiers=[{'id_type': request_recipient_id_type, 'id_value': request_recipient_id_value}],
         reply_to_text=sms_sender.sms_sender,
-        sms_sender=sms_sender,
     )
 
     send_notification_to_queue(

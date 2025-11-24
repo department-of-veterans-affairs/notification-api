@@ -73,6 +73,12 @@ def send_sms_to_provider(
         send_sms_response(client.get_name(), str(notification.id), notification.to, notification.reference)
     else:
         try:
+            current_app.logger.info(
+                'Attempting to set SMS to provider %s for notification id: %s',
+                client.get_name(),
+                notification.id,
+                extra={'sms_sender_id': sms_sender_id, 'template_id': notification.template_id},
+            )
             # Send a SMS message using the "to" attribute to specify the recipient.
             reference = client.send_sms(
                 to=ValidatedPhoneNumber(notification.to).formatted,
@@ -82,6 +88,13 @@ def send_sms_to_provider(
                 service_id=notification.service_id,
                 sms_sender_id=sms_sender_id,
                 created_at=notification.created_at,
+                template_id=notification.template_id,
+            )
+            current_app.logger.info(
+                'SMS sent to provider %s for notification id: %s',
+                client.get_name(),
+                notification.id,
+                extra={'sms_sender_id': sms_sender_id, 'template_id': notification.template_id},
             )
         except Exception:
             notification.billable_units = template.fragment_count
@@ -91,7 +104,10 @@ def send_sms_to_provider(
         notification.billable_units = template.fragment_count
         notification.reference = reference
         update_notification_to_sending(notification, client)
-        current_app.logger.info(f'Saved provider reference: {reference} for notification id: {notification.id}')
+        current_app.logger.info(
+            f'Saved provider reference: {reference} for notification id: {notification.id}',
+            extra={'sms_sender_id': sms_sender_id, 'template_id': notification.template_id},
+        )
 
     delta_milliseconds = (datetime.utcnow() - notification.created_at).total_seconds() * 1000
     statsd_client.timing('sms.total-time', delta_milliseconds)

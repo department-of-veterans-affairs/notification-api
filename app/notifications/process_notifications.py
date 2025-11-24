@@ -205,7 +205,6 @@ def send_notification_to_queue(
     # https://docs.celeryq.dev/en/v4.4.7/userguide/canvas.html#immutability
     deliver_task, queue = _get_delivery_task(notification, research_mode, queue, sms_sender_id)
     tasks.append(deliver_task.si(notification_id=str(notification.id), sms_sender_id=sms_sender_id).set(queue=queue))
-
     try:
         # This executes the task list.  Each task calls a function that makes a request to
         # the backend provider.
@@ -213,20 +212,24 @@ def send_notification_to_queue(
             'Notification sent to %s queue: %s',
             queue,
             str(notification.id),
-            extra={'template_id': template.id, 'sms_sender_id': notification.sms_sender_id},
+            extra={'template_id': notification.template_id, 'sms_sender_id': notification.sms_sender_id},
         )
         chain(*tasks).apply_async()
     except Exception:
         current_app.logger.exception(
             'apply_async failed in send_notification_to_queue for notification %s.',
             notification.id,
-            extra={'template_id': template.id, 'sms_sender_id': notification.sms_sender_id},
+            extra={'template_id': notification.template_id, 'sms_sender_id': notification.sms_sender_id},
         )
         dao_delete_notification_by_id(notification.id)
         raise
 
     current_app.logger.debug(
-        '%s %s sent to the %s queue for delivery', notification.notification_type, notification.id, queue
+        '%s %s sent to the %s queue for delivery',
+        notification.notification_type,
+        notification.id,
+        queue,
+        extra={'sms_sender_id': notification.sms_sender_id, 'template_id': notification.template_id},
     )
 
 
@@ -370,11 +373,18 @@ def send_to_queue_for_recipient_info_based_on_recipient_identifier(
     try:
         # This executes the task list.  Each task calls a function that makes a request to
         # the backend provider.
+        current_app.logger.info(
+            'Notification with recipient identifier sent to %s queue: %s',
+            deliver_queue,
+            str(notification.id),
+            extra={'template_id': notification.template_id, 'sms_sender_id': notification.sms_sender_id},
+        )
         chain(*tasks).apply_async()
     except Exception:
         current_app.logger.exception(
             'apply_async failed in send_to_queue_for_recipient_info_based_on_recipient_identifier for notification %s.',
             notification.id,
+            extra={'template_id': notification.template_id, 'sms_sender_id': notification.sms_sender_id},
         )
         dao_delete_notification_by_id(notification.id)
         raise
@@ -408,8 +418,4 @@ def persist_scheduled_notification(
         'Scheduled notification %s for %s',
         str(notification_id),
         str(scheduled_datetime),
-        extra={
-            'template_id': scheduled_notification.notification.template_id,
-            'sms_sender_id': scheduled_notification.notification.sms_sender_id,
-        },
     )

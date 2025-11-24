@@ -65,6 +65,8 @@ fileignoreconfig:
   checksum: d3aca5128f8737f66364bf134de50badd3cc16bceb8ff8df83a5a37796c0c522
 - filename: tests/app/notifications/test_validators.py
   checksum: aee86b735d3ad99a75c7b51da6fae7d4c460cadb7b30f07a8252a0c810cebbd5
+- filename: tests/app/notifications/test_process_notifications.py
+  checksum: 4d94763735089cfb2886b959755ca8d03bcef234d7b4bb53b4f1fa6237aabf4f
 - filename: tests/app/pii/test_pii.py
   checksum: 179577f6d786debcf081f7c3f3f36a28776abdb6598d04c5fc97bb8391559880
 - filename: tests/app/service/test_api_key_endpoints.py

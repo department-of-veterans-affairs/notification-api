@@ -123,6 +123,14 @@ class AwsPinpointClient(SmsClient):
 
         aws_phone_number = self.origination_number if sender is None else sender
         recipient_number = str(to)
+        template_id = kwargs.get('template_id')
+        sms_sender_id = kwargs.get('sms_sender_id')
+
+        self.logger.info(
+            'Sending SMS via AWS Pinpoint for notification %s',
+            reference,
+            extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+        )
 
         # Log how long it spent in our system before we sent it if this is not an SMS retry
         if redis_store.get(get_redis_retry_key(reference)) is None:
@@ -133,12 +141,14 @@ class AwsPinpointClient(SmsClient):
                     INTERNAL_PROCESSING_LIMIT,
                     SMS_TYPE,
                     total_time,
+                    extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
                 )
             else:
                 self.logger.info(
                     'Total time spent to send %s notification: %s seconds',
                     SMS_TYPE,
                     total_time,
+                    extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
                 )
         start_time = monotonic()
 
