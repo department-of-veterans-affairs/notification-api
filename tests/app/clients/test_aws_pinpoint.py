@@ -25,6 +25,7 @@ TEST_ID = 'some-app-id'
 TEST_MESSAGE_ID = 'message-id'
 TEST_RECIPIENT_NUMBER = '+100000000'
 TEST_SENDER_NUMBER = '+12025550123'
+TEST_SENDER_SHORT_NUMBER = '12345'
 TEST_REFERENCE = 'test notification id'
 
 
@@ -51,7 +52,11 @@ def pinpoint_client_mock(aws_pinpoint_client, mocker):
     return pinpoint_client_mock
 
 
-@pytest.mark.parametrize('sender', (None, TEST_SENDER_NUMBER, 'pool-1234abcd'))
+@pytest.mark.parametrize(
+    'sender',
+    (None, TEST_SENDER_NUMBER, TEST_SENDER_SHORT_NUMBER, 'pool-1234abcd'),
+    ids=['no sender specified', '10DLC sender', 'short-code sender', 'phone-pool sender'],
+)
 @pytest.mark.parametrize('PINPOINT_SMS_VOICE_V2', ('False', 'True'))
 def test_send_sms_successful_returns_aws_pinpoint_response_messageid(
     PINPOINT_SMS_VOICE_V2, sender, mocker, aws_pinpoint_client, monkeypatch
@@ -82,7 +87,11 @@ def test_send_sms_successful_returns_aws_pinpoint_response_messageid(
     assert response == TEST_MESSAGE_ID
 
 
-@pytest.mark.parametrize('sender', ('+10000000000', 'bucket-1234abcd'))
+@pytest.mark.parametrize(
+    'sender',
+    ('+10000000000', 'bucket-1234abcd', '01', '0123456'),
+    ids=['invalid phone number', 'invalid phone-pool id', 'invalid short-code', 'invalid short-code'],
+)
 @pytest.mark.parametrize('PINPOINT_SMS_VOICE_V2', ('False', 'True'))
 def test_send_sms_throws_non_retryable_on_invalid_sender(
     PINPOINT_SMS_VOICE_V2, sender, aws_pinpoint_client, monkeypatch
