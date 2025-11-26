@@ -20,25 +20,29 @@ def test_ut_log_notification_total_time(
     notify_api,
     provider,
     mocker,
+    sample_notification,
 ):
     mock_logger = mocker.patch('app.celery.common.current_app.logger.info')
-    notification_id = uuid4()
+    notification = sample_notification()
     with freeze_time('2024-04-04 17:16:43'):
         created_at = datetime.fromisoformat('2024-04-04 17:16:41')
 
         log_notification_total_time(
-            notification_id=notification_id,
+            notification_id=notification.id,
             start_time=created_at,
             status=NOTIFICATION_DELIVERED,
             provider=provider,
+            sms_sender_id=notification.sms_sender_id,
+            template_id=notification.template_id,
         )
 
         mock_logger.assert_called_once_with(
             'notification %s took %ss total time to reach %s status - %s',
-            notification_id,
+            notification.id,
             (datetime.now() - created_at).total_seconds(),
             NOTIFICATION_DELIVERED,
             provider,
+            extra={'template_id': notification.template_id, 'sms_sender_id': notification.sms_sender_id},
         )
 
 

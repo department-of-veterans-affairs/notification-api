@@ -223,6 +223,7 @@ def validate_template(
             service.id,
             service.name,
             template_id,
+            extra={'template_id': template_id},
         )
         message = 'Template not found'
         raise BadRequestError(message=message, fields=[{'template': message}])
@@ -242,6 +243,7 @@ def validate_template(
             'The personalized message length is %s, which exceeds the 4 segments length of %s.',
             template_with_content.content_count,
             SMS_CHAR_COUNT_LIMIT,
+            extra={'template_id': template.id},
         )
     return template, template_with_content
 

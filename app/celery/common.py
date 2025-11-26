@@ -99,6 +99,8 @@ def log_notification_total_time(
     status: str,
     provider: str,
     event_timestamp: datetime | None = None,
+    sms_sender_id: UUID | None = None,
+    template_id: UUID | None = None,
 ) -> None:
     """Logs how long it took a notification to go from created to delivered"""
     if status == NOTIFICATION_DELIVERED:
@@ -118,4 +120,5 @@ def log_notification_total_time(
             corrected_total_time,
             status,
             provider,
+            extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
         )
