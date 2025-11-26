@@ -157,7 +157,11 @@ class AwsPinpointClient(SmsClient):
                 )
         start_time = monotonic()
 
-        self.logger.info('AWS Pinpoint SMS request using %s', aws_phone_number)
+        self.logger.info(
+            'AWS Pinpoint SMS request using %s',
+            aws_phone_number,
+            extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+        )
 
         try:
             response = self._post_message_request(
@@ -285,7 +289,9 @@ class AwsPinpointClient(SmsClient):
                         extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
                     )
 
-                    return self._post_message_request_v1(recipient_number, content, aws_phone_number)
+                    return self._post_message_request_v1(
+                        recipient_number, content, aws_phone_number, template_id, sms_sender_id
+                    )
                 else:
                     raise
             except Exception:
@@ -299,13 +305,17 @@ class AwsPinpointClient(SmsClient):
                 'PinpointSMSVoiceV2 feature flag not enabled, using Pinpoint V1 client',
                 extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
             )
-            return self._post_message_request_v1(recipient_number, content, aws_phone_number)
+            return self._post_message_request_v1(
+                recipient_number, content, aws_phone_number, template_id, sms_sender_id
+            )
 
     def _post_message_request_v1(
         self,
         recipient_number,
         content,
         aws_phone_number,
+        template_id=None,
+        sms_sender_id=None,
     ):
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint/client/send_messages.html#send-messages  # noqa
         self.logger.debug('Sending an SMS notification with the PinpointV1 client')
@@ -318,7 +328,7 @@ class AwsPinpointClient(SmsClient):
             else:
                 self.logger.warning('Attempt to send SMS via PinpointV1 client using phone pool - %s', aws_phone_number)
 
-        self.logger.info('AWS Pinpoint V1 SMS request using %s', aws_phone_number)
+        self.logger.info('AWS Pinpoint V1 SMS request using %s', aws_phone_number, extra={})
 
         message_request_payload = {
             'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
