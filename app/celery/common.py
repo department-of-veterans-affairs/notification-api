@@ -120,5 +120,5 @@ def log_notification_total_time(
             corrected_total_time,
             status,
             provider,
-            extra={'sms_sender_id': sms_sender_id, template_id: template_id},
+            extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
         )
