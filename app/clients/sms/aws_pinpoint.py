@@ -328,7 +328,11 @@ class AwsPinpointClient(SmsClient):
             else:
                 self.logger.warning('Attempt to send SMS via PinpointV1 client using phone pool - %s', aws_phone_number)
 
-        self.logger.info('AWS Pinpoint V1 SMS request using %s', aws_phone_number, extra={})
+        self.logger.info(
+            'AWS Pinpoint V1 SMS request using %s',
+            aws_phone_number,
+            extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+        )
 
         message_request_payload = {
             'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
