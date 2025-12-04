@@ -76,6 +76,7 @@ def test_should_send_personalised_template_to_correct_sms_provider_and_persist(
         service_id=ANY,
         sms_sender_id=ANY,
         created_at=db_notification.created_at,
+        template_id=db_notification.template_id,
     )
 
     notification = notify_db_session.session.get(Notification, db_notification.id)
@@ -260,6 +261,7 @@ def test_send_sms_should_use_template_version_from_notification_not_latest(
         service_id=ANY,
         sms_sender_id=ANY,
         created_at=db_notification.created_at,
+        template_id=db_notification.template_id,
     )
 
     persisted_notification = notifications_dao.get_notification_by_id(db_notification.id)
@@ -377,6 +379,7 @@ def test_should_send_sms_with_downgraded_content(
         service_id=ANY,
         sms_sender_id=ANY,
         created_at=db_notification.created_at,
+        template_id=db_notification.template_id,
     )
 
 
@@ -404,6 +407,7 @@ def test_send_sms_should_use_service_sms_sender(
         service_id=ANY,
         sms_sender_id=ANY,
         created_at=db_notification.created_at,
+        template_id=db_notification.template_id,
     )
 
 
@@ -750,6 +754,7 @@ def test_should_handle_sms_sender_and_prefix_message(
         service_id=ANY,
         sms_sender_id=ANY,
         created_at=notification.created_at,
+        template_id=notification.template_id,
     )
 
 

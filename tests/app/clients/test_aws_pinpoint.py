@@ -104,7 +104,7 @@ def test_send_sms_throws_non_retryable_on_invalid_sender(
 
 @pytest.mark.parametrize(
     'store_value, info_calls, warn_calls',
-    [(False, 3, 0), ('anything', 3, 0), (1, 3, 0), (0, 3, 0), (None, 3, 1)],
+    [(False, 5, 0), ('anything', 5, 0), (1, 5, 0), (0, 5, 0), (None, 5, 1)],
     ids=['boolean_check', 'found_in_redis', 'value_is_1', 'value_is_zero', 'not_in_redis'],
 )
 def test_send_sms_does_not_log_if_sms_replay(mocker, aws_pinpoint_client, store_value, info_calls, warn_calls):
@@ -520,7 +520,7 @@ def test_send_sms_pinpoint_v1_warns_on_unmapped_phonepool(mocker, aws_pinpoint_c
     aws_pinpoint_client._post_message_request_v1(TEST_RECIPIENT_NUMBER, TEST_CONTENT, 'pool-not-in-mapping')
 
     aws_pinpoint_client.logger.warning.assert_called_with(
-        'Attempt to send SMS via Pinpoint client using phone pool - %s', 'pool-not-in-mapping'
+        'Attempt to send SMS via PinpointV1 client using phone pool - %s', 'pool-not-in-mapping'
     )
 
 

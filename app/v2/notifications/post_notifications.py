@@ -7,9 +7,8 @@ from flask import request, jsonify, current_app, abort
 from notifications_utils.recipients import try_validate_and_format_phone_number
 
 from app import api_user, authenticated_service, attachment_store
-from app.va.identifier import IdentifierType
 from app.feature_flags import is_feature_enabled, FeatureFlag
-from app.pii import get_pii_subclass, Pii, PiiIcn, PiiEdipi, PiiBirlsid, PiiPid, PiiVaProfileID
+from app.pii import get_pii_subclass
 from app.attachments.mimetype import extract_and_validate_mimetype
 from app.attachments.store import AttachmentStoreError
 from app.attachments.types import UploadedAttachmentMetadata
@@ -110,12 +109,26 @@ def post_notification(notification_type):  # noqa: C901
                 raise BadRequestError(
                     message='You must supply a value for sms_sender_id, or the service must have a default.'
                 )
+        current_app.logger.info(
+            'SMS notification: POST /v2/notifications/sms received: %s',
+            form['sms_sender_id'],
+            extra={
+                'sms_sender_id': form.get('sms_sender_id'),
+                'template_id': form.get('template_id'),
+            },
+        )
     elif notification_type == LETTER_TYPE:
         form = validate(request_json, post_letter_request)
     else:
         abort(404)
 
     if not authenticated_service.has_permissions(notification_type):
+        current_app.logger.warning(
+            'Service %s tried to send a %s notification but does not have permission',
+            str(authenticated_service.id),
+            notification_type,
+            extra={'sms_sender_id': form.get('sms_sender_id'), 'template_id': form.get('template_id')},
+        )
         raise BadRequestError(
             message='Service is not allowed to send {}'.format(
                 get_public_notify_type_text(notification_type, plural=True)
@@ -237,12 +250,22 @@ def process_sms_or_email_notification(
         created_at=created_at,
     )
 
+    current_app.logger.info(
+        'Created notification with email or phone number: %s',
+        str(notification.id),
+        extra={'template_id': template.id, 'sms_sender_id': form.get('sms_sender_id')},
+    )
+
     if 'scheduled_for' in form:
         persist_scheduled_notification(notification.id, form['scheduled_for'])
     else:
         if simulated:
             # Do not send a notification to a simulated recipient to the queue.
-            current_app.logger.debug('POST simulated notification for id: %s', notification.id)
+            current_app.logger.debug(
+                'POST simulated notification for id: %s',
+                notification.id,
+                extra={'template_id': template.id, 'sms_sender_id': form.get('sms_sender_id')},
+            )
         else:
             # id_type must be in the dictionary for validation to have passed.
             # TODO 2587 - Is passing the recipient identifer necessary?
@@ -285,6 +308,12 @@ def process_notification_with_recipient_identifier(
         sms_sender_id=form.get('sms_sender_id'),
         callback_url=form.get('callback_url'),
         created_at=created_at,
+    )
+
+    current_app.logger.info(
+        'Created notification with recipient identifiers: %s',
+        str(notification.id),
+        extra={'template_id': template.id, 'sms_sender_id': form.get('sms_sender_id')},
     )
 
     send_to_queue_for_recipient_info_based_on_recipient_identifier(
