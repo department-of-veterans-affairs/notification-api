@@ -124,7 +124,6 @@ class AwsPinpointClient(SmsClient):
         from app.utils import get_redis_retry_key
 
         aws_phone_number = self.origination_number if sender is None else sender
-        self._validate_sender_phone_number(aws_phone_number)
 
         recipient_number = str(to)
 
@@ -136,6 +135,8 @@ class AwsPinpointClient(SmsClient):
             reference,
             extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
         )
+
+        self._validate_sender_phone_number(aws_phone_number)
 
         # Log how long it spent in our system before we sent it if this is not an SMS retry
         if redis_store.get(get_redis_retry_key(reference)) is None:
