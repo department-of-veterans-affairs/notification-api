@@ -337,6 +337,11 @@ def init_app(app):
             and app.config.get('MAX_CONTENT_LENGTH')
             and int(request.headers['Content-Length']) > app.config['MAX_CONTENT_LENGTH']
         ):
+            # log length and endpoint for debugging purposes
+            app.logger.error(
+                f'Payload too large. Endpoint: {request.endpoint} | '
+                f'Content length {request.headers.get("Content-Length", 0)} > {app.config.get("MAX_CONTENT_LENGTH", 0)} MB Max'
+            )
             raise RequestEntityTooLarge()
 
     @app.before_request
@@ -346,6 +351,7 @@ def init_app(app):
 
     @app.errorhandler(WerkzeugHTTPException)
     def werkzeug_exception(e):
+        app.logger.exception('Werkzeug HTTPException')
         return make_response(jsonify(result='error', message=e.description), e.code, e.get_headers())
 
     @app.errorhandler(404)
