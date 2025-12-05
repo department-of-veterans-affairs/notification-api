@@ -337,7 +337,11 @@ def init_app(app):
             and app.config.get('MAX_CONTENT_LENGTH')
             and int(request.headers['Content-Length']) > app.config['MAX_CONTENT_LENGTH']
         ):
-            app.logger.error('Payload too large')
+            # log length and endpoint for debugging purposes
+            app.logger.error(
+                f'Payload too large. Endpoint: {request.endpoint} | '
+                f'Content length {request.headers.get("Content-Length", 0)} > {app.config.get("MAX_CONTENT_LENGTH", 0)} MB Max'
+            )
             raise RequestEntityTooLarge()
 
     @app.before_request
