@@ -23,7 +23,7 @@ jobs:
     outputs:
       releaseUrl: ${{ steps.create_notes.outputs.releaseUrl }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Create Release Notes
         id: create_notes

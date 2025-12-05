@@ -10,7 +10,7 @@ jobs:
   check-pr-sem:
     runs-on: ${{ vars.RUNS_ON }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: PR Label Semver
         uses: actions/github-script@v8
         with:

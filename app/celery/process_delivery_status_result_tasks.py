@@ -219,6 +219,9 @@ def sms_status_update(
     notification = _get_notification(sms_status.reference, sms_status.provider, event_timestamp, event_in_seconds)
     last_updated_at = notification.updated_at
 
+    sms_sender_id = notification.sms_sender_id
+    template_id = notification.template_id
+
     current_app.logger.info(
         'Initial %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | service_id: %s | template_id: %s',
         sms_status.provider,
@@ -228,6 +231,7 @@ def sms_status_update(
         sms_status.status_reason,
         notification.service_id,
         notification.template_id,
+        extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
     )
 
     # Never include a status reason for a delivered notification.
@@ -258,6 +262,7 @@ def sms_status_update(
         notification.cost_in_millicents,
         notification.service_id,
         notification.template_id,
+        extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
     )
 
     log_notification_total_time(
@@ -266,6 +271,8 @@ def sms_status_update(
         sms_status.status,
         sms_status.provider,
         sms_status.provider_updated_at,
+        sms_sender_id=sms_sender_id,
+        template_id=template_id,
     )
 
     # Our clients are not prepared to deal with pinpoint payloads

@@ -124,9 +124,19 @@ class AwsPinpointClient(SmsClient):
         from app.utils import get_redis_retry_key
 
         aws_phone_number = self.origination_number if sender is None else sender
-        self._validate_sender_phone_number(aws_phone_number)
 
         recipient_number = str(to)
+
+        template_id = kwargs.get('template_id')
+        sms_sender_id = kwargs.get('sms_sender_id')
+
+        self.logger.info(
+            'Sending SMS via AWS Pinpoint for notification %s',
+            reference,
+            extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+        )
+
+        self._validate_sender_phone_number(aws_phone_number)
 
         # Log how long it spent in our system before we sent it if this is not an SMS retry
         if redis_store.get(get_redis_retry_key(reference)) is None:
@@ -137,19 +147,27 @@ class AwsPinpointClient(SmsClient):
                     INTERNAL_PROCESSING_LIMIT,
                     SMS_TYPE,
                     total_time,
+                    extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
                 )
             else:
                 self.logger.info(
                     'Total time spent to send %s notification: %s seconds',
                     SMS_TYPE,
                     total_time,
+                    extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
                 )
         start_time = monotonic()
 
-        self.logger.info('AWS Pinpoint SMS request using %s', aws_phone_number)
+        self.logger.info(
+            'AWS Pinpoint SMS request using %s',
+            aws_phone_number,
+            extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+        )
 
         try:
-            response = self._post_message_request(recipient_number, content, aws_phone_number)
+            response = self._post_message_request(
+                recipient_number, content, aws_phone_number, template_id, sms_sender_id
+            )
         except (botocore.exceptions.ClientError, Exception) as e:
             self.statsd_client.incr('clients.pinpoint.error')
             msg = str(e)
@@ -171,6 +189,7 @@ class AwsPinpointClient(SmsClient):
                         resource_type,
                         resource_id,
                         recipient_number,
+                        extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
                     )
 
                     self.statsd_client.incr(
@@ -180,18 +199,31 @@ class AwsPinpointClient(SmsClient):
                         f'PinPointV2 {error_code}: {reason} - ResourceType: {resource_type}, ResourceId: {resource_id}'
                     )
                 elif error_code in self._retryable_v2_exceptions:
-                    self.logger.warning('Encountered a Retryable exception: %s - %s', type(e).__class__.__name__, msg)
+                    self.logger.warning(
+                        'Encountered a Retryable exception: %s - %s',
+                        type(e).__class__.__name__,
+                        msg,
+                        extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+                    )
                     self.statsd_client.incr(
                         f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{STATSD_RETRYABLE}.{aws_phone_number}'
                     )
                     raise RetryableException from e
 
             if any(code in msg for code in AwsPinpointClient._retryable_v1_codes):
-                self.logger.warning('Encountered a Retryable exception: %s - %s', type(e).__class__.__name__, msg)
+                self.logger.warning(
+                    'Encountered a Retryable exception: %s - %s',
+                    type(e).__class__.__name__,
+                    msg,
+                    extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+                )
                 self.statsd_client.incr(f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{STATSD_RETRYABLE}.{aws_phone_number}')
                 raise RetryableException from e
             else:
-                self.logger.exception('Encountered an unexpected exception sending Pinpoint SMS')
+                self.logger.exception(
+                    'Encountered an unexpected exception sending Pinpoint SMS',
+                    extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+                )
                 self.statsd_client.incr(f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{STATSD_FAILURE}.{aws_phone_number}')
                 raise AwsPinpointException(str(e))
         else:
@@ -209,6 +241,7 @@ class AwsPinpointClient(SmsClient):
                 elapsed_time,
                 reference,
                 aws_reference,
+                extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
             )
             self.statsd_client.timing('clients.pinpoint.request-time', elapsed_time)
             self.statsd_client.incr('clients.pinpoint.success')
@@ -220,10 +253,15 @@ class AwsPinpointClient(SmsClient):
         recipient_number,
         content,
         aws_phone_number,
+        template_id=None,
+        sms_sender_id=None,
     ):
         if is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2):
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint-sms-voice-v2/client/send_text_message.html  # noqa
-            self.logger.debug('Sending an SMS notification with the PinpointSMSVoiceV2 client')
+            self.logger.info(
+                'Sending an SMS notification with the PinpointSMSVoiceV2 client',
+                extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+            )
 
             try:
                 return self._pinpoint_sms_voice_v2_client.send_text_message(
@@ -249,24 +287,39 @@ class AwsPinpointClient(SmsClient):
                         reason,
                         request_id,
                         recipient_number_redacted,
+                        extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
                     )
 
-                    return self._post_message_request_v1(recipient_number, content, aws_phone_number)
+                    return self._post_message_request_v1(
+                        recipient_number, content, aws_phone_number, template_id, sms_sender_id
+                    )
                 else:
                     raise
             except Exception:
+                self.logger.exception(
+                    'Unexpected exception sending PinpointSMSVoiceV2 SMS',
+                    extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+                )
                 raise
         else:
-            return self._post_message_request_v1(recipient_number, content, aws_phone_number)
+            self.logger.info(
+                'PinpointSMSVoiceV2 feature flag not enabled, using Pinpoint V1 client',
+                extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+            )
+            return self._post_message_request_v1(
+                recipient_number, content, aws_phone_number, template_id, sms_sender_id
+            )
 
     def _post_message_request_v1(
         self,
         recipient_number,
         content,
         aws_phone_number,
+        template_id=None,
+        sms_sender_id=None,
     ):
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint/client/send_messages.html#send-messages  # noqa
-        self.logger.debug('Sending an SMS notification with the Pinpoint client')
+        self.logger.debug('Sending an SMS notification with the PinpointV1 client')
 
         # check for aws_phone_number as phonepool, map to 10-DLC
         # if it looks like a phone pool (string prefix) -> dict{phonepool: 10-DLC}
@@ -274,9 +327,13 @@ class AwsPinpointClient(SmsClient):
             if aws_phone_number in self._v2_phonepool_to_10DLC_mapping:
                 aws_phone_number = self._v2_phonepool_to_10DLC_mapping[aws_phone_number]
             else:
-                self.logger.warning('Attempt to send SMS via Pinpoint client using phone pool - %s', aws_phone_number)
+                self.logger.warning('Attempt to send SMS via PinpointV1 client using phone pool - %s', aws_phone_number)
 
-        self.logger.info('AWS Pinpoint V1 SMS request using %s', aws_phone_number)
+        self.logger.info(
+            'AWS Pinpoint V1 SMS request using %s',
+            aws_phone_number,
+            extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+        )
 
         message_request_payload = {
             'Addresses': {recipient_number: {'ChannelType': 'SMS'}},
