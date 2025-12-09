@@ -344,8 +344,10 @@ def init_app(app):
 
             # log length and endpoint for debugging purposes
             app.logger.error(
-                f'Payload too large. Endpoint: {request.endpoint} | '
-                f'Content length {request_content_length_mb} MB > {max_content_length_mb} MB Max'
+                'Payload too large. Endpoint: %s | Content length %s MB > %s MB Max',
+                request.endpoint,
+                request_content_length_mb,
+                max_content_length_mb,
             )
             raise RequestEntityTooLarge()
 
