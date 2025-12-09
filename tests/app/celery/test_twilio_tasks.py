@@ -117,6 +117,8 @@ def test_update_twilio_status_exception(mocker, sample_notification):
     update_twilio_status()
 
     mock_logger.assert_called_once_with(
-        'Failed to update notification %s: %s due to rate limit, aborting.', str(notification_one.id), 'Test exception'
+        '[TWILIO_STATUS_TASK] Failed to update notification %s: %s due to rate limit, aborting.',
+        str(notification_one.id),
+        'Test exception',
     )
     mock_twilio_status_override.assert_called_once_with(notification_one.reference)
