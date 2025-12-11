@@ -82,7 +82,7 @@ fileignoreconfig:
 - filename: tests/app/test_validate.py
   checksum: 38948b94d8fdcdf64d3da02ffb50d170838ce783f3a1e3350b7b7bcdcb7cb1ca
 - filename: tests/app/user/test_rest.py
-  checksum: 97e7a6ff6bbb85d0e9e6b7b4aa94d969e194efa7cd743c28e6cb30c1d54ea0b9
+  checksum: 5116e6bb4cab38eb5cab76f537cf27af698176d06142fc9e67f28c0a8c04337c
 - filename: tests/app/v2/notifications/test_pii_wrapping_at_entrypoint.py
   checksum: 4dcd257865daa286c737d6a76e141e8b9aee66c0642524447c394554643b7712
 - filename: tests/app/v2/notifications/test_post_notifications.py

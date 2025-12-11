@@ -105,16 +105,12 @@ def test_get_user_with_permissions(
 
 def test_reset_user_password(
     admin_request,
-    sample_service,
-    sample_organisation,
+    sample_user,
 ):
     """
     Tests POST endpoint '/<user_id>/password' to reset user password.
     """
-    service = sample_service()
-    user = service.users[0]
-    org = sample_organisation()
-    user.organisations = [org]
+    user = sample_user()
     json_resp = admin_request.post('user.reset_user_password', user_id=user.id)
 
     password = json_resp['data']
@@ -125,21 +121,18 @@ def test_reset_user_password(
 def test_basic_auth(
     admin_request,
     client,
-    sample_service,
-    sample_organisation,
+    sample_user,
 ):
     """
-    Tests POST endpoint '/<user_id>/password' to reset user password.
+    Tests GET endpoint '/test'.
     """
-    service = sample_service()
-    user = service.users[0]
-    org = sample_organisation()
-    user.organisations = [org]
+    user = sample_user(platform_admin=True)
     json_resp = admin_request.post('user.reset_user_password', user_id=user.id)
 
     password = json_resp['data']
+    assert user.check_password(password)
 
-    header = create_admin_basic_authorization_header(user.id, password + 'an extra long password')
-    response = client.get(url_for('user.get_user_test'), headers=[header])
+    header = create_admin_basic_authorization_header(user.id, password)
+    response = client.get(url_for('user.test_user_password'), headers=[header])
 
     assert response.status_code == 200

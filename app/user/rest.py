@@ -1,7 +1,7 @@
-from flask import jsonify, Blueprint, current_app
+from flask import g, jsonify, Blueprint, current_app
 from sqlalchemy.exc import IntegrityError
 
-from app.authentication.auth import requires_admin_auth
+from app.authentication.auth import requires_admin_auth, requires_admin_basic_auth
 from app.dao.users_dao import (
     get_user_by_id,
     set_user_password,
@@ -40,3 +40,11 @@ def reset_user_password(user_id):
     user = get_user_by_id(user_id=user_id)
     password = set_user_password(user)
     return jsonify(data=password)
+
+
+# TODO: Remove once admin auth swapped over
+@user_blueprint.route('/test', methods=['GET'])
+@requires_admin_basic_auth()
+def test_user_password():
+    result = {'user_id': g.admin_user, 'service': g.service_id}
+    return jsonify(data=result)
