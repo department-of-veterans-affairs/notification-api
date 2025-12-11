@@ -358,6 +358,81 @@
       ]
     },
     {
+      "name": "test Basic-Auth",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "password",
+              "value": "{{user-password}}",
+              "type": "string"
+            },
+            {
+              "key": "username",
+              "value": "{{user-id}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": ""
+        },
+        "url": {
+          "raw": "{{notification-api-url}}/user/test",
+          "host": [
+            "{{notification-api-url}}"
+          ],
+          "path": [
+            "user",
+            "test"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
       "name": "reset user password",
       "event": [
         {
