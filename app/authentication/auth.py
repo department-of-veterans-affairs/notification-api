@@ -131,6 +131,12 @@ def validate_admin_basic_auth():
     g.admin_user = user_id
     g.service_id = current_app.config.get('ADMIN_CLIENT_USER_NAME')
 
+    current_app.logger.info(
+        'API authorized for admin user %s with basic-auth, using client %s',
+        user_id,
+        request.headers.get('User-Agent'),
+    )
+
 
 def validate_admin_auth():
     request_helper.check_proxy_header_before_request()
@@ -140,7 +146,12 @@ def validate_admin_auth():
 
     if client == current_app.config.get('ADMIN_CLIENT_USER_NAME'):
         g.service_id = current_app.config.get('ADMIN_CLIENT_USER_NAME')
-        return handle_admin_key(auth_token, current_app.config.get('ADMIN_CLIENT_SECRET'))
+        handle_admin_key(auth_token, current_app.config.get('ADMIN_CLIENT_SECRET'))
+        current_app.logger.info(
+            'API authorized for admin with JWT, using client %s',
+            request.headers.get('User-Agent'),
+        )
+        return
     else:
         raise AuthError('Unauthorized, admin authentication token required', 401)
 

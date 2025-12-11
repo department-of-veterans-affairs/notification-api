@@ -4,7 +4,7 @@ fileignoreconfig:
 - filename: .github/workflows/deployment.yml
   checksum: 44272d736424a12a9b8f5c23fb0b9cbba4befb91612fb793230329261bb369f9
 - filename: app/authentication/auth.py
-  checksum: 32737b4ef71f84fedd1a0d849691d6e5add12c372f963ff87eceddb8cf00c0f3
+  checksum: 25c56ecb421ad6aab9a803fccd981a7c019a3a8682447dd1a2a8f349e5d3b464
 - filename: app/clients/sms/aws_pinpoint.py
   checksum: 37e90b46758c38621f6cc4a41830e14ac6895526033c66b60383cd3586e12da5
 - filename: app/config.py
