@@ -117,6 +117,7 @@ class User(db.Model):
         if self.blocked:
             return False
 
+        # password must exist
         if self._password is None:
             return False
 

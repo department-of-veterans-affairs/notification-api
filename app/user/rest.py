@@ -42,7 +42,7 @@ def reset_user_password(user_id):
     return jsonify(data=password)
 
 
-# TODO: Remove once admin auth swapped over
+# TODO: API-2649 Remove once basic-auth utilized in other routes
 @user_blueprint.route('/test', methods=['GET'])
 @requires_admin_basic_auth()
 def test_user_password():

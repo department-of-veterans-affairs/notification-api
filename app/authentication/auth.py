@@ -84,14 +84,10 @@ def do_not_validate_auth():
 
 def validate_admin_basic_auth():
     """
-    Validate admin access using HTTP Basic Auth only.
+    Validate admin access using HTTP Basic Auth.
 
     Expects:
       - Authorization: Basic base64(user_id:password)
-
-    Behavior:
-      - If Basic is missing or invalid -> AuthError(401)
-      - On success, sets g.admin_user and g.service_id
     """
     # Preserve your proxy header checks
     request_helper.check_proxy_header_before_request()
