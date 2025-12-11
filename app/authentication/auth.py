@@ -4,6 +4,7 @@ import hmac
 from typing import Callable
 from uuid import uuid4
 import time
+import uuid
 
 from flask import request, current_app, g
 from flask_jwt_extended import verify_jwt_in_request, current_user
@@ -18,6 +19,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 
 from app.dao.services_dao import dao_fetch_service_by_id_with_api_keys
+from app.dao.users_dao import get_user_by_id
 
 
 class AuthError(Exception):
@@ -78,6 +80,56 @@ def get_auth_token(req):
 
 def do_not_validate_auth():
     pass
+
+
+def validate_admin_basic_auth():
+    """
+    Validate admin access using HTTP Basic Auth only.
+
+    Expects:
+      - Authorization: Basic base64(user_id:password)
+
+    Behavior:
+      - If Basic is missing or invalid -> AuthError(401)
+      - On success, sets g.admin_user and g.service_id
+    """
+    # Preserve your proxy header checks
+    request_helper.check_proxy_header_before_request()
+
+    auth = request.authorization
+
+    # No Authorization header or not Basic
+    if not auth or not auth.type or auth.type.lower() != 'basic':
+        raise AuthError('Unauthorized, basic authentication required', 401)
+
+    user_id = auth.username
+    password = auth.password
+
+    if not user_id or not password:
+        raise AuthError('Unauthorized, invalid basic auth credentials', 401)
+
+    try:
+        # ensure valid user_id format
+        uuid.UUID(user_id, version=4)
+    except ValueError:
+        raise AuthError('Unauthorized, invalid basic auth credentials', 401)
+
+    try:
+        user = get_user_by_id(user_id)
+    except NoResultFound:
+        raise AuthError('Unauthorized, invalid basic auth credentials', 401)
+
+    if not user.email_address or user.email_address.startswith('_archived_'):
+        raise AuthError('Unauthorized, invalid basic auth credentials', 401)
+
+    if not user.check_password(password):
+        raise AuthError('Unauthorized, invalid basic auth credentials', 401)
+
+    if not user.platform_admin:
+        raise AuthError('Unauthorized, admin authentication required', 401)
+
+    g.admin_user = user_id
+    g.service_id = current_app.config.get('ADMIN_CLIENT_USER_NAME')
 
 
 def validate_admin_auth():
@@ -172,6 +224,21 @@ def requires_admin_auth():
             **kwargs,
         ):
             validate_admin_auth()
+            return function(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def requires_admin_basic_auth():
+    def decorator(function):
+        @functools.wraps(function)
+        def wrapper(
+            *args,
+            **kwargs,
+        ):
+            validate_admin_basic_auth()
             return function(*args, **kwargs)
 
         return wrapper

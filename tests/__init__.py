@@ -1,3 +1,4 @@
+import base64
 from flask import current_app
 from notifications_python_client.authentication import create_jwt_token
 
@@ -13,6 +14,14 @@ def create_admin_authorization_header() -> str:
     secret = current_app.config['ADMIN_CLIENT_SECRET']
     token = create_jwt_token(secret=secret, client_id=client_id)
     return 'Authorization', f'Bearer {token}'
+
+
+def create_admin_basic_authorization_header(user: str, password: str) -> str:
+    """
+    Creates a basic auth header
+    """
+    authorization = base64.b64encode(f'{user}:{password}'.encode()).decode()
+    return 'Authorization', f'Basic {authorization}'
 
 
 def create_authorization_header(api_key: ApiKey) -> str:

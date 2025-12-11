@@ -1,8 +1,10 @@
 from flask import jsonify, Blueprint, current_app
 from sqlalchemy.exc import IntegrityError
 
+from app.authentication.auth import requires_admin_auth
 from app.dao.users_dao import (
     get_user_by_id,
+    set_user_password,
 )
 from app.errors import register_errors
 
@@ -25,7 +27,16 @@ def handle_integrity_error(exc):
 
 @user_blueprint.route('/<uuid:user_id>', methods=['GET'])
 @user_blueprint.route('', methods=['GET'])
+@requires_admin_auth()
 def get_user(user_id=None):
     users = get_user_by_id(user_id=user_id)
     result = [x.serialize() for x in users] if isinstance(users, list) else users.serialize()
     return jsonify(data=result)
+
+
+@user_blueprint.route('/<uuid:user_id>/password', methods=['POST'])
+@requires_admin_auth()
+def reset_user_password(user_id):
+    user = get_user_by_id(user_id=user_id)
+    password = set_user_password(user)
+    return jsonify(data=password)

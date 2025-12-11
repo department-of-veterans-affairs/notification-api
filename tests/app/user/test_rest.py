@@ -5,7 +5,7 @@ import pytest
 from flask import url_for
 
 from app.constants import DEFAULT_SERVICE_MANAGEMENT_PERMISSIONS, EMAIL_AUTH_TYPE
-from tests import create_admin_authorization_header
+from tests import create_admin_authorization_header, create_admin_basic_authorization_header
 
 
 def test_get_user_list(admin_request, sample_service):
@@ -101,3 +101,45 @@ def test_get_user_with_permissions(
     assert response.status_code == 200
     permissions = json.loads(response.get_data(as_text=True))['data']['permissions']
     assert user_perm in permissions[str(service.id)]
+
+
+def test_reset_user_password(
+    admin_request,
+    sample_service,
+    sample_organisation,
+):
+    """
+    Tests POST endpoint '/<user_id>/password' to reset user password.
+    """
+    service = sample_service()
+    user = service.users[0]
+    org = sample_organisation()
+    user.organisations = [org]
+    json_resp = admin_request.post('user.reset_user_password', user_id=user.id)
+
+    password = json_resp['data']
+
+    assert user.check_password(password)
+
+
+def test_basic_auth(
+    admin_request,
+    client,
+    sample_service,
+    sample_organisation,
+):
+    """
+    Tests POST endpoint '/<user_id>/password' to reset user password.
+    """
+    service = sample_service()
+    user = service.users[0]
+    org = sample_organisation()
+    user.organisations = [org]
+    json_resp = admin_request.post('user.reset_user_password', user_id=user.id)
+
+    password = json_resp['data']
+
+    header = create_admin_basic_authorization_header(user.id, password + 'an extra long password')
+    response = client.get(url_for('user.get_user_test'), headers=[header])
+
+    assert response.status_code == 200

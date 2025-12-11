@@ -1,6 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from random import SystemRandom
+import secrets
 from sqlalchemy import delete, func, select
 
 from app import db
@@ -97,3 +98,13 @@ def user_can_be_archived(user):
 def get_archived_email_address(email_address):
     date = datetime.utcnow().strftime('%Y-%m-%d')
     return '_archived_{}_{}'.format(date, email_address)
+
+
+def set_user_password(user: User):
+    # 54 bytes max (72 byte password) due to flask_bcrypt hashing limit of 72 bytes
+    password = secrets.token_urlsafe(54)
+    user.password = password
+    user.password_changed_at = datetime.now(timezone.utc)
+    db.session.commit()
+
+    return password
