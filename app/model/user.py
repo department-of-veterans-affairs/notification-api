@@ -117,7 +117,15 @@ class User(db.Model):
         if self.blocked:
             return False
 
-        return check_hash(password, self._password)
+        # password must exist
+        if self._password is None:
+            return False
+
+        try:
+            return check_hash(password, self._password)
+        except ValueError:
+            # password too long for hashing
+            return False
 
     def get_permissions(
         self,

@@ -12,6 +12,7 @@ from app import api_user
 from app.authentication.auth import (
     AuthError,
     validate_admin_auth,
+    validate_admin_basic_auth,
     validate_service_api_key_auth,
     requires_admin_auth_or_user_in_service,
     requires_user_in_service_or_admin,
@@ -26,8 +27,86 @@ from flask_jwt_extended import create_access_token
 from freezegun import freeze_time
 from jwt import ExpiredSignatureError
 from notifications_python_client.authentication import create_jwt_token
+from tests import create_admin_basic_authorization_header
 from tests.conftest import set_config, set_config_values
 from uuid import uuid4
+
+
+@pytest.mark.parametrize(
+    'headers',
+    [
+        {},
+        {'Authorization': 'Bearer 1234'},
+        {'Authorization': 'Basic not-base64'},
+    ],
+)
+def test_should_not_allow_request_with_no_basic_auth(client, headers):
+    request.headers = headers
+    with pytest.raises(AuthError) as exc:
+        validate_admin_basic_auth()
+    assert exc.value.short_message == 'Unauthorized, basic authentication required'
+
+
+@pytest.mark.parametrize(
+    'headers',
+    [
+        {'Authorization': 'Basic Og=='},
+        {'Authorization': 'Basic dXNlcg=='},
+        {'Authorization': 'Basic dXNlcjo='},
+        {'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='},
+        {'Authorization': 'Basic YjVkMTU4MDMtMTI4ZC00MjIyLWJkZjYtMTcwOWJiMDQ3YWExOnBhc3N3b3Jk'},
+    ],
+    ids=[
+        'no_user_or_password',
+        'user_no_colon',
+        'user_no_password',
+        'user_not_uuid',
+        'user_not_found',
+    ],
+)
+def test_should_not_allow_request_with_invalid_basic_auth(client, headers):
+    request.headers = headers
+    with pytest.raises(AuthError) as exc:
+        validate_admin_basic_auth()
+    assert exc.value.short_message == 'Unauthorized, invalid basic auth credentials'
+
+
+def test_should_not_allow_request_with_invalid_basic_auth_password(client, admin_request, sample_user):
+    user = sample_user()
+    admin_request.post('user.reset_user_password', user_id=user.id)
+
+    auth_header = create_admin_basic_authorization_header(user.id, 'bad password')
+    request.headers = dict((auth_header,))
+
+    with pytest.raises(AuthError) as exc:
+        validate_admin_basic_auth()
+    assert exc.value.short_message == 'Unauthorized, invalid basic auth credentials'
+
+
+def test_should_not_allow_request_with_basic_auth_non_admin(client, admin_request, sample_user):
+    user = sample_user(platform_admin=False)
+    json_resp = admin_request.post('user.reset_user_password', user_id=user.id)
+    password = json_resp['data']
+
+    auth_header = create_admin_basic_authorization_header(user.id, password)
+    request.headers = dict((auth_header,))
+
+    with pytest.raises(AuthError) as exc:
+        validate_admin_basic_auth()
+    assert exc.value.short_message == 'Unauthorized, admin authentication required'
+
+
+def test_should_not_allow_request_with_basic_auth_archived_user(client, admin_request, sample_user):
+    user = sample_user(email='_archived_2025-03-24_16:21:15_foo@bar.net')
+    json_resp = admin_request.post('user.reset_user_password', user_id=user.id)
+    password = json_resp['data']
+
+    auth_header = create_admin_basic_authorization_header(user.id, password)
+    request.headers = dict((auth_header,))
+
+    with pytest.raises(AuthError) as exc:
+        validate_admin_basic_auth()
+    assert exc.value.short_message == 'Unauthorized, invalid basic auth credentials'
 
 
 @pytest.mark.parametrize('auth_fn', [validate_service_api_key_auth, validate_admin_auth])
