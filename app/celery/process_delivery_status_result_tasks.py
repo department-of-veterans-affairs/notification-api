@@ -189,14 +189,14 @@ def _get_notification(
             if datetime.datetime.utcnow() - message_time < datetime.timedelta(minutes=5):
                 log_and_retry()
             else:
-                log_and_fail('Notification not found')
+                log_and_fail(f'Notification not found for {provider} reference')
         elif event_time_in_seconds < 300:
             # If it happened within the last 5 minutes
             log_and_retry()
         else:
-            log_and_fail('Notification not found')
+            log_and_fail(f'Notification not found for {provider} reference')
     except MultipleResultsFound:
-        log_and_fail('Multiple notifications found')
+        log_and_fail(f'Multiple notifications found for {provider} reference')
 
     return notification
 
