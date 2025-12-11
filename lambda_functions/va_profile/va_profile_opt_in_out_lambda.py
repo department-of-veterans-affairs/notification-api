@@ -74,8 +74,8 @@ if NOTIFY_ENVIRONMENT == 'test':
     jwt_cert_paths = ('tests/lambda_functions/va_profile/cert.pem',)
 elif NOTIFY_ENVIRONMENT == 'prod':
     jwt_cert_paths = (
-        '/opt/jwt/Profile_prod_public.pem',
         '/opt/jwt/Profile_prod_public_2026.pem',
+        '/opt/jwt/Profile_prod_public.pem',
     )
 else:
     jwt_cert_paths = (
