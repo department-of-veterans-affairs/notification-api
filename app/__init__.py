@@ -237,7 +237,7 @@ def register_blueprint(application):
     from app.inbound_number.rest import inbound_number_blueprint
     from app.inbound_sms.rest import inbound_sms as inbound_sms_blueprint
     from app.authentication.auth import (
-        validate_admin_auth,
+        validate_admin_basic_auth_with_fallback,
         validate_pinpoint_firehose_api_key,
         do_not_validate_auth,
     )
@@ -258,19 +258,19 @@ def register_blueprint(application):
     status_blueprint.before_request(do_not_validate_auth)
     application.register_blueprint(status_blueprint)
 
-    inbound_number_blueprint.before_request(validate_admin_auth)
+    inbound_number_blueprint.before_request(validate_admin_basic_auth_with_fallback)
     application.register_blueprint(inbound_number_blueprint)
 
-    inbound_sms_blueprint.before_request(validate_admin_auth)
+    inbound_sms_blueprint.before_request(validate_admin_basic_auth_with_fallback)
     application.register_blueprint(inbound_sms_blueprint)
 
-    template_statistics_blueprint.before_request(validate_admin_auth)
+    template_statistics_blueprint.before_request(validate_admin_basic_auth_with_fallback)
     application.register_blueprint(template_statistics_blueprint)
 
-    provider_details_blueprint.before_request(validate_admin_auth)
+    provider_details_blueprint.before_request(validate_admin_basic_auth_with_fallback)
     application.register_blueprint(provider_details_blueprint, url_prefix='/provider-details')
 
-    billing_blueprint.before_request(validate_admin_auth)
+    billing_blueprint.before_request(validate_admin_basic_auth_with_fallback)
     application.register_blueprint(billing_blueprint)
 
     application.register_blueprint(service_callback_blueprint)
@@ -278,7 +278,7 @@ def register_blueprint(application):
 
     application.register_blueprint(platform_stats_blueprint, url_prefix='/platform-stats')
 
-    communication_item_blueprint.before_request(validate_admin_auth)
+    communication_item_blueprint.before_request(validate_admin_basic_auth_with_fallback)
     application.register_blueprint(communication_item_blueprint)
 
     pinpoint_v2_blueprint.before_request(validate_pinpoint_firehose_api_key)

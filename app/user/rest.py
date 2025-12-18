@@ -1,7 +1,7 @@
-from flask import g, jsonify, Blueprint, current_app
+from flask import jsonify, Blueprint, current_app
 from sqlalchemy.exc import IntegrityError
 
-from app.authentication.auth import requires_admin_auth, requires_admin_basic_auth
+from app.authentication.auth import requires_admin_basic_auth, requires_admin_jwt_auth
 from app.dao.users_dao import (
     get_user_by_id,
     set_user_password,
@@ -27,7 +27,7 @@ def handle_integrity_error(exc):
 
 @user_blueprint.route('/<uuid:user_id>', methods=['GET'])
 @user_blueprint.route('', methods=['GET'])
-@requires_admin_auth()
+@requires_admin_basic_auth()
 def get_user(user_id=None):
     users = get_user_by_id(user_id=user_id)
     result = [x.serialize() for x in users] if isinstance(users, list) else users.serialize()
@@ -35,16 +35,9 @@ def get_user(user_id=None):
 
 
 @user_blueprint.route('/<uuid:user_id>/password', methods=['POST'])
-@requires_admin_auth()
+@requires_admin_jwt_auth()
+# explicitly use JWT admin auth for password reset
 def reset_user_password(user_id):
     user = get_user_by_id(user_id=user_id)
     password = set_user_password(user)
     return jsonify(data=password)
-
-
-# TODO: API-2649 Remove once basic-auth utilized in other routes
-@user_blueprint.route('/test', methods=['GET'])
-@requires_admin_basic_auth()
-def test_user_password():
-    result = {'user_id': g.admin_user, 'service': g.service_id}
-    return jsonify(data=result)

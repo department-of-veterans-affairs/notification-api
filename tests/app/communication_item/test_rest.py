@@ -178,8 +178,8 @@ def test_get_communication_item(admin_request, sample_communication_item):
 
 
 @pytest.mark.parametrize('communication_item_id', ["doesn't exist", '39247cfc-a52d-4b2b-b9a9-2ef8a20190cb'])
-def test_get_communication_item_not_found(notify_db_session, admin_request, communication_item_id):
-    response = admin_request.get(
+def test_get_communication_item_not_found(notify_db_session, admin_request_jwt, communication_item_id):
+    response = admin_request_jwt.get(
         'communication_item.get_communication_item', 404, communication_item_id=communication_item_id
     )
 
@@ -230,8 +230,8 @@ def test_partially_update_communication_item(admin_request, post_data, expected_
 
 
 @pytest.mark.parametrize('communication_item_id', ["doesn't exist", '39247cfc-a52d-4b2b-b9a9-2ef8a20190cb'])
-def test_partially_update_communication_item_not_found(notify_db_session, admin_request, communication_item_id):
-    admin_request.patch(
+def test_partially_update_communication_item_not_found(notify_db_session, admin_request_jwt, communication_item_id):
+    admin_request_jwt.patch(
         'communication_item.partially_update_communication_item',
         {'va_profile_item_id': 2},
         404,
@@ -257,8 +257,8 @@ def test_delete_communication_item(notify_db_session, admin_request, sample_comm
 
 
 @pytest.mark.parametrize('communication_item_id', ["doesn't exist", '39247cfc-a52d-4b2b-b9a9-2ef8a20190cb'])
-def test_delete_communication_item_not_found(notify_db_session, admin_request, communication_item_id):
-    response = admin_request.delete(
+def test_delete_communication_item_not_found(notify_db_session, admin_request_jwt, communication_item_id):
+    response = admin_request_jwt.delete(
         'communication_item.delete_communication_item', 404, communication_item_id=communication_item_id
     )
 

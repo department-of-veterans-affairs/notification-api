@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from app import api_user
 from app.authentication.auth import (
     AuthError,
-    validate_admin_auth,
+    validate_admin_jwt_auth,
     validate_admin_basic_auth,
     validate_service_api_key_auth,
     requires_admin_auth_or_user_in_service,
@@ -71,9 +71,9 @@ def test_should_not_allow_request_with_invalid_basic_auth(client, headers):
     assert exc.value.short_message == 'Unauthorized, invalid basic auth credentials'
 
 
-def test_should_not_allow_request_with_invalid_basic_auth_password(client, admin_request, sample_user):
+def test_should_not_allow_request_with_invalid_basic_auth_password(client, admin_request_jwt, sample_user):
     user = sample_user()
-    admin_request.post('user.reset_user_password', user_id=user.id)
+    admin_request_jwt.post('user.reset_user_password', user_id=user.id)
 
     auth_header = create_admin_basic_authorization_header(user.id, 'bad password')
     request.headers = dict((auth_header,))
@@ -83,9 +83,9 @@ def test_should_not_allow_request_with_invalid_basic_auth_password(client, admin
     assert exc.value.short_message == 'Unauthorized, invalid basic auth credentials'
 
 
-def test_should_not_allow_request_with_basic_auth_non_admin(client, admin_request, sample_user):
+def test_should_not_allow_request_with_basic_auth_non_admin(client, admin_request_jwt, sample_user):
     user = sample_user(platform_admin=False)
-    json_resp = admin_request.post('user.reset_user_password', user_id=user.id)
+    json_resp = admin_request_jwt.post('user.reset_user_password', user_id=user.id)
     password = json_resp['data']
 
     auth_header = create_admin_basic_authorization_header(user.id, password)
@@ -96,9 +96,9 @@ def test_should_not_allow_request_with_basic_auth_non_admin(client, admin_reques
     assert exc.value.short_message == 'Unauthorized, admin authentication required'
 
 
-def test_should_not_allow_request_with_basic_auth_archived_user(client, admin_request, sample_user):
+def test_should_not_allow_request_with_basic_auth_archived_user(client, admin_request_jwt, sample_user):
     user = sample_user(email='_archived_2025-03-24_16:21:15_foo@bar.net')
-    json_resp = admin_request.post('user.reset_user_password', user_id=user.id)
+    json_resp = admin_request_jwt.post('user.reset_user_password', user_id=user.id)
     password = json_resp['data']
 
     auth_header = create_admin_basic_authorization_header(user.id, password)
@@ -109,7 +109,7 @@ def test_should_not_allow_request_with_basic_auth_archived_user(client, admin_re
     assert exc.value.short_message == 'Unauthorized, invalid basic auth credentials'
 
 
-@pytest.mark.parametrize('auth_fn', [validate_service_api_key_auth, validate_admin_auth])
+@pytest.mark.parametrize('auth_fn', [validate_service_api_key_auth, validate_admin_jwt_auth])
 def test_should_not_allow_request_with_no_token(client, auth_fn):
     request.headers = {}
     with pytest.raises(AuthError) as exc:
@@ -117,7 +117,7 @@ def test_should_not_allow_request_with_no_token(client, auth_fn):
     assert exc.value.short_message == 'Unauthorized, authentication token must be provided'
 
 
-@pytest.mark.parametrize('auth_fn', [validate_service_api_key_auth, validate_admin_auth])
+@pytest.mark.parametrize('auth_fn', [validate_service_api_key_auth, validate_admin_jwt_auth])
 def test_should_not_allow_request_with_incorrect_header(client, auth_fn):
     request.headers = {'Authorization': 'Basic 1234'}
     with pytest.raises(AuthError) as exc:
@@ -125,7 +125,7 @@ def test_should_not_allow_request_with_incorrect_header(client, auth_fn):
     assert exc.value.short_message == 'Unauthorized, authentication bearer scheme must be used'
 
 
-@pytest.mark.parametrize('auth_fn', [validate_service_api_key_auth, validate_admin_auth])
+@pytest.mark.parametrize('auth_fn', [validate_service_api_key_auth, validate_admin_jwt_auth])
 def test_should_not_allow_request_with_incorrect_token(client, auth_fn):
     request.headers = {'Authorization': 'Bearer 1234'}
     with pytest.raises(AuthError) as exc:
@@ -133,7 +133,7 @@ def test_should_not_allow_request_with_incorrect_token(client, auth_fn):
     assert exc.value.short_message == 'Invalid token: signature, api token is not valid'
 
 
-@pytest.mark.parametrize('auth_fn', [validate_service_api_key_auth, validate_admin_auth])
+@pytest.mark.parametrize('auth_fn', [validate_service_api_key_auth, validate_admin_jwt_auth])
 def test_should_not_allow_request_with_no_iss(client, auth_fn):
     # code copied from notifications_python_client.authentication.py::create_jwt_token
     headers = {'typ': 'JWT', 'alg': 'HS256'}
@@ -172,7 +172,7 @@ def test_auth_should_not_allow_request_with_no_iat(client, sample_user_service_a
     assert exc.value.short_message == 'Invalid token: signature, api token not found'
 
 
-def test_admin_auth_should_not_allow_request_with_no_iat(client):
+def test_admin_jwt_auth_should_not_allow_request_with_no_iat(client):
     iss = current_app.config['ADMIN_CLIENT_USER_NAME']
 
     # code copied from notifications_python_client.authentication.py::create_jwt_token
@@ -187,7 +187,7 @@ def test_admin_auth_should_not_allow_request_with_no_iat(client):
 
     request.headers = {'Authorization': 'Bearer {}'.format(token)}
     with pytest.raises(AuthError) as exc:
-        validate_admin_auth()
+        validate_admin_jwt_auth()
     assert exc.value.short_message == 'Invalid token: signature, api token is not valid'
 
 
