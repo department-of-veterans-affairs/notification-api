@@ -2616,7 +2616,12 @@ components:
         filename:
           type: string
   securitySchemes:
-    adminAuth:
+    adminAuth_Basic:
+      description:
+        The user_id and password of a platform admin is used to generate this authentication.
+      type: http
+      scheme: basic
+    adminAuth_JWT:
       description:
         The admin user and secret are used to generate this authentication.  They
         are both defined as configuration parameters
@@ -2633,4 +2638,5 @@ components:
       scheme: bearer
       bearerFormat: JWT
 security:
-  - adminAuth: []
+  - adminAuth_Basic: []
+  - adminAuth_JWT: []

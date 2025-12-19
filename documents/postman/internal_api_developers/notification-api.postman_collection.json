@@ -396,7 +396,9 @@
 											"",
 											"pm.environment.set('jwt_signed', signedToken)"
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
 									}
 								},
 								{
@@ -409,23 +411,145 @@
 											"}",
 											""
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
 									}
 								}
 							],
 							"request": {
 								"auth": {
-									"type": "noauth"
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{jwt_signed}}",
+											"type": "string"
+										}
+									]
 								},
 								"method": "POST",
 								"header": [
 									{
 										"key": "Content-Type",
 										"value": "application/json"
-									},
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"mobile_app\": \"VA_FLAGSHIP_APP\",\n    \"template_id\": \"{{vetext-template-id}}\",\n    \"recipient_identifier\": {\n        \"id_type\": \"ICN\",\n        \"id_value\": \"{{icn}}\"\n    },\n    \"personalisation\": {\n        \"appointment_date\": \"bar\",\n        \"appointment_time\": \"foo\"\n    }\n}"
+								},
+								"url": {
+									"raw": "{{notification-api-url}}/v2/notifications/push",
+									"host": [
+										"{{notification-api-url}}"
+									],
+									"path": [
+										"v2",
+										"notifications",
+										"push"
+									]
+								},
+								"description": "api-key field combines key name, service id and secret:\n<key name>-<service id>-<secret>\nwhere secret is the return value when calling create api key\nThis is important as the jwt token for sending message should use service-id and service-api-key to generate the JWT bearer token"
+							},
+							"response": []
+						},
+						{
+							"name": "send push notification Copy",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"// JWT generation script adapted from",
+											"// https://gist.github.com/corbanb/",
+											"",
+											"var jwtSecret = pm.environment.get(\"service-api-key\");",
+											"",
+											"// Set headers for JWT",
+											"var header = {",
+											"\t'typ': 'JWT',",
+											"\t'alg': 'HS256'",
+											"};",
+											"",
+											"// Prepare timestamp in seconds",
+											"var currentTimestamp = Math.floor(Date.now() / 1000)",
+											"",
+											"var data = {",
+											"\t'iss': pm.environment.get(\"service-id\"),",
+											"\t'iat': currentTimestamp",
+											"}",
+											"",
+											"",
+											"function base64url(source) {",
+											"    // Encode in classical base64",
+											"    encodedSource = CryptoJS.enc.Base64.stringify(source)",
+											"    ",
+											"    // Remove padding equal characters",
+											"    encodedSource = encodedSource.replace(/=+$/, '')",
+											"    ",
+											"    // Replace characters according to base64url specifications",
+											"    encodedSource = encodedSource.replace(/\\+/g, '-')",
+											"    encodedSource = encodedSource.replace(/\\//g, '_')",
+											"    ",
+											"    return encodedSource",
+											"}",
+											"",
+											"// encode header",
+											"var stringifiedHeader = CryptoJS.enc.Utf8.parse(JSON.stringify(header))",
+											"var encodedHeader = base64url(stringifiedHeader)",
+											"",
+											"// encode data",
+											"var stringifiedData = CryptoJS.enc.Utf8.parse(JSON.stringify(data))",
+											"var encodedData = base64url(stringifiedData)",
+											"",
+											"// build token",
+											"var token = `${encodedHeader}.${encodedData}`",
+											"",
+											"// sign token",
+											"var signature = CryptoJS.HmacSHA256(token, jwtSecret)",
+											"signature = base64url(signature)",
+											"var signedToken = `${token}.${signature}`",
+											"",
+											"pm.environment.set('jwt_signed', signedToken)"
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code == 201) {",
+											"    var jsonData = pm.response.json(); ",
+											"    pm.environment.set(\"notification-id\", jsonData.id);",
+											"}",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{jwt_signed}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
 									{
-										"key": "Authorization",
-										"value": "Bearer {{jwt_signed}}"
+										"key": "Content-Type",
+										"value": "application/json"
 									}
 								],
 								"body": {
@@ -506,7 +630,9 @@
 											"",
 											"pm.environment.set('jwt_signed', signedToken)"
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
 									}
 								},
 								{
@@ -519,23 +645,28 @@
 											"}",
 											""
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
 									}
 								}
 							],
 							"request": {
 								"auth": {
-									"type": "noauth"
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{jwt_signed}}",
+											"type": "string"
+										}
+									]
 								},
 								"method": "POST",
 								"header": [
 									{
 										"key": "Content-Type",
 										"value": "application/json"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{jwt_signed}}"
 									}
 								],
 								"body": {
@@ -644,18 +775,20 @@
 							],
 							"request": {
 								"auth": {
-									"type": "noauth"
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{jwt_signed}}",
+											"type": "string"
+										}
+									]
 								},
 								"method": "POST",
 								"header": [
 									{
 										"key": "Content-Type",
 										"value": "application/json",
-										"type": "text"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{jwt_signed}}",
 										"type": "text"
 									}
 								],
@@ -737,7 +870,9 @@
 											"",
 											"pm.environment.set('jwt_signed', signedToken)"
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
 									}
 								},
 								{
@@ -749,24 +884,28 @@
 											"    pm.environment.set(\"notification-id\", jsonData.id);",
 											"}"
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
 									}
 								}
 							],
 							"request": {
 								"auth": {
-									"type": "noauth"
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{jwt_signed}}",
+											"type": "string"
+										}
+									]
 								},
 								"method": "POST",
 								"header": [
 									{
 										"key": "Content-Type",
 										"value": "application/json",
-										"type": "text"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{jwt_signed}}",
 										"type": "text"
 									}
 								],
@@ -853,7 +992,9 @@
 											"",
 											"pm.environment.set('jwt_signed', signedToken)"
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
 									}
 								},
 								{
@@ -866,23 +1007,28 @@
 											"}",
 											""
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
 									}
 								}
 							],
 							"request": {
 								"auth": {
-									"type": "noauth"
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{jwt_signed}}",
+											"type": "string"
+										}
+									]
 								},
 								"method": "POST",
 								"header": [
 									{
 										"key": "Content-Type",
 										"value": "application/json"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{jwt_signed}}"
 									}
 								],
 								"body": {
@@ -963,7 +1109,9 @@
 											"",
 											"pm.environment.set('jwt_signed', signedToken)"
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
 									}
 								},
 								{
@@ -976,23 +1124,28 @@
 											"}",
 											""
 										],
-										"type": "text/javascript"
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
 									}
 								}
 							],
 							"request": {
 								"auth": {
-									"type": "noauth"
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{jwt_signed}}",
+											"type": "string"
+										}
+									]
 								},
 								"method": "POST",
 								"header": [
 									{
 										"key": "Content-Type",
 										"value": "application/json"
-									},
-									{
-										"key": "Authorization",
-										"value": "Bearer {{jwt_signed}}"
 									}
 								],
 								"body": {
@@ -1075,7 +1228,9 @@
 									"",
 									"pm.environment.set('jwt_signed', signedToken)"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
 							}
 						},
 						{
@@ -1084,24 +1239,28 @@
 								"exec": [
 									""
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
 							}
 						}
 					],
 					"request": {
 						"auth": {
-							"type": "noauth"
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_signed}}",
+									"type": "string"
+								}
+							]
 						},
 						"method": "GET",
 						"header": [
 							{
 								"key": "Content-Type",
 								"value": "application/json",
-								"type": "text"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_signed}}",
 								"type": "text"
 							}
 						],
@@ -1846,7 +2005,60 @@
 									"listen": "prerequest",
 									"script": {
 										"exec": [
-											""
+											"// JWT generation script adapted from\r",
+											"// https://gist.github.com/corbanb/\r",
+											"\r",
+											"var jwtSecret = pm.environment.get('notification-client-secret') || ''\r",
+											"\r",
+											"// Set headers for JWT\r",
+											"var header = {\r",
+											"\t'typ': 'JWT',\r",
+											"\t'alg': 'HS256'\r",
+											"};\r",
+											"\r",
+											"// Prepare timestamp in seconds\r",
+											"var currentTimestamp = Math.floor(Date.now() / 1000)\r",
+											"\r",
+											"var data = {\r",
+											"\t'iss': pm.environment.get(\"notification-admin-id\") || '',\r",
+											"\t'iat': currentTimestamp,\r",
+											"\t'exp': currentTimestamp + 30, // expiry time is 30 seconds from time of creation\r",
+											"\t'jti': 'jwt_nonce'\r",
+											"}\r",
+											"\r",
+											"\r",
+											"function base64url(source) {\r",
+											"    // Encode in classical base64\r",
+											"    encodedSource = CryptoJS.enc.Base64.stringify(source)\r",
+											"    \r",
+											"    // Remove padding equal characters\r",
+											"    encodedSource = encodedSource.replace(/=+$/, '')\r",
+											"    \r",
+											"    // Replace characters according to base64url specifications\r",
+											"    encodedSource = encodedSource.replace(/\\+/g, '-')\r",
+											"    encodedSource = encodedSource.replace(/\\//g, '_')\r",
+											"    \r",
+											"    return encodedSource\r",
+											"}\r",
+											"\r",
+											"// encode header\r",
+											"var stringifiedHeader = CryptoJS.enc.Utf8.parse(JSON.stringify(header))\r",
+											"var encodedHeader = base64url(stringifiedHeader)\r",
+											"\r",
+											"// encode data\r",
+											"var stringifiedData = CryptoJS.enc.Utf8.parse(JSON.stringify(data))\r",
+											"var encodedData = base64url(stringifiedData)\r",
+											"\r",
+											"// build token\r",
+											"var token = `${encodedHeader}.${encodedData}`\r",
+											"\r",
+											"// sign token\r",
+											"var signature = CryptoJS.HmacSHA256(token, jwtSecret)\r",
+											"signature = base64url(signature)\r",
+											"var signedToken = `${token}.${signature}`\r",
+											"\r",
+											"pm.environment.set('jwt_signed', signedToken)\r",
+											"console.log('Signed and encoded JWT', signedToken)"
 										],
 										"type": "text/javascript",
 										"packages": {},
@@ -1867,16 +2079,11 @@
 							],
 							"request": {
 								"auth": {
-									"type": "basic",
-									"basic": [
+									"type": "bearer",
+									"bearer": [
 										{
-											"key": "password",
-											"value": "{{user-password}}",
-											"type": "string"
-										},
-										{
-											"key": "username",
-											"value": "{{user-id}}",
+											"key": "token",
+											"value": "{{jwt_signed}}",
 											"type": "string"
 										}
 									]
@@ -3091,10 +3298,6 @@
 							{
 								"key": "Content-Type",
 								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_signed}}"
 							}
 						],
 						"url": {
@@ -3145,10 +3348,6 @@
 							{
 								"key": "Content-Type",
 								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_signed}}"
 							}
 						],
 						"url": {
@@ -3200,10 +3399,6 @@
 							{
 								"key": "Content-Type",
 								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_signed}}"
 							}
 						],
 						"body": {
@@ -3868,16 +4063,22 @@
 					],
 					"request": {
 						"auth": {
-							"type": "noauth"
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "value",
+									"value": "{{AWS_FIREHOSE_API_KEY}}",
+									"type": "string"
+								},
+								{
+									"key": "key",
+									"value": "X-Amz-Firehose-Access-Key",
+									"type": "string"
+								}
+							]
 						},
 						"method": "POST",
-						"header": [
-							{
-								"key": "X-Amz-Firehose-Access-Key",
-								"value": "{{AWS_FIREHOSE_API_KEY}}",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"body": {
 							"mode": "raw",
 							"raw": "{\r\n    \"requestId\":\"cfc5ead3-57cc-48e9-9e57-53d6e105d7fa\",\r\n    \"timestamp\":1578090901599,\r\n    \"records\":[\r\n        {\"data\":\"eyJldmVudFR5cGUiOiJURVhUX0RFTElWRVJFRCIsImV2ZW50VmVyc2lvbiI6IjEuMCIsImV2ZW50VGltZXN0YW1wIjoxNzY1ODA3MjQ3OTA3LCJpc0ZpbmFsIjp0cnVlLCJvcmlnaW5hdGlvblBob25lTnVtYmVyIjoiNTMwNzkiLCJkZXN0aW5hdGlvblBob25lTnVtYmVyIjoiKzFYWFhZWVlaWlpaIiwiaXNvQ291bnRyeUNvZGUiOiJVUyIsImlzSW50ZXJuYXRpb25hbFNlbmQiOmZhbHNlLCJtY2MiOiIzMTAiLCJtbmMiOiI0MTAiLCJjYXJyaWVyTmFtZSI6IkFUXHUwMDI2VCBNb2JpbGl0eSIsIm1lc3NhZ2VJZCI6IjFkOWE3MjIwLThhNTEtNDRkYy04ZmVjLWFiMTllZDM5Nzc1MiIsIm1lc3NhZ2VSZXF1ZXN0VGltZXN0YW1wIjoxNzY1ODA3MjQxNjI3LCJtZXNzYWdlRW5jb2RpbmciOiJHU00iLCJtZXNzYWdlVHlwZSI6IlRSQU5TQUNUSU9OQUwiLCJtZXNzYWdlU3RhdHVzIjoiREVMSVZFUkVEIiwibWVzc2FnZVN0YXR1c0Rlc2NyaXB0aW9uIjoiTWVzc2FnZSBoYXMgYmVlbiBhY2NlcHRlZCBieSBwaG9uZSIsInRvdGFsTWVzc2FnZVBhcnRzIjozLCJ0b3RhbE1lc3NhZ2VQcmljZSI6MC4wMjEsInRvdGFsQ2FycmllckZlZSI6MC4wMDg2N30=\"}\r\n    ]\r\n}",

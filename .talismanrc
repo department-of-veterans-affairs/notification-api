@@ -44,7 +44,7 @@ fileignoreconfig:
 - filename: documents/postman/internal_api_developers/development.postman_environment.json
   checksum: 62ef8e7090c548a88470737346b46f408eeed603a8cc1fa61b22f9d8bb0b1e85
 - filename: documents/postman/internal_api_developers/notification-api.postman_collection.json
-  checksum: 31d1d22dab08562a57f85fa1db1072674e8f395c2cd6a34a62c84dbf09fce307
+  checksum: ebc315e127846bdfa8e067c7d3def0ffd65b98b18c46aebc8be0058e8d02d13e
 - filename: documents/postman/internal_api_developers/performance.postman_environment.json
   checksum: 6fa841197639515108be781c59bbf91a966eb2f8f38ec1a5be18cf7cea7554bb
 - filename: documents/postman/internal_api_developers/staging.postman_environment.json
