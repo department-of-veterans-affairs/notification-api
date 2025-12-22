@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app, jsonify, request
 
-from app.authentication.auth import validate_admin_auth
+from app.authentication.auth import validate_admin_basic_auth_with_fallback
 from app.dao.services_dao import dao_fetch_service_by_id
 from app.dao.service_sms_sender_dao import (
     dao_add_sms_sender_for_service,
@@ -29,7 +29,7 @@ def _validate_service_exists():
 service_sms_sender_blueprint = Blueprint(
     'service_sms_sender', __name__, url_prefix='/service/<uuid:service_id>/sms-sender'
 )
-service_sms_sender_blueprint.before_request(validate_admin_auth)
+service_sms_sender_blueprint.before_request(validate_admin_basic_auth_with_fallback)
 service_sms_sender_blueprint.before_request(_validate_service_exists)
 
 

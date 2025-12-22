@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError, DataError
 from sqlalchemy.orm.exc import NoResultFound
 
 from app import db
-from app.authentication.auth import requires_admin_auth, requires_admin_auth_or_user_in_service
+from app.authentication.auth import requires_admin_basic_auth, requires_admin_auth_or_user_in_service
 from app.constants import SECRET_TYPE_DEFAULT, SECRET_TYPE_UUID
 from app.dao.api_key_dao import (
     get_model_api_key,
@@ -74,7 +74,7 @@ def handle_integrity_error(exc):
 
 
 @service_blueprint.route('', methods=['GET'])
-@requires_admin_auth()
+@requires_admin_basic_auth()
 def get_services():
     only_active = request.args.get('only_active') == 'True'
     detailed = request.args.get('detailed') == 'True'
@@ -118,7 +118,7 @@ def get_service_by_id(service_id):
 
 
 @service_blueprint.route('/<uuid:service_id>/statistics')
-@requires_admin_auth()
+@requires_admin_basic_auth()
 def get_service_notification_statistics(service_id):
     return jsonify(
         data=get_service_statistics(
@@ -128,7 +128,7 @@ def get_service_notification_statistics(service_id):
 
 
 @service_blueprint.route('/<uuid:service_id>', methods=['POST'])
-@requires_admin_auth()
+@requires_admin_basic_auth()
 def update_service(service_id):
     req_json = request.get_json()
 
@@ -189,7 +189,7 @@ def get_secret_generator(secret_type: str | None):
 
 
 @service_blueprint.route('/<uuid:service_id>/api-key', methods=['POST'])
-@requires_admin_auth()
+@requires_admin_basic_auth()
 def create_api_key(service_id: UUID) -> tuple[Response, Literal[201, 400]]:
     """Create API key for the given service.
 
@@ -236,7 +236,7 @@ def create_api_key(service_id: UUID) -> tuple[Response, Literal[201, 400]]:
 
 
 @service_blueprint.route('/<uuid:service_id>/api-key/revoke/<uuid:api_key_id>', methods=['POST'])
-@requires_admin_auth()
+@requires_admin_basic_auth()
 def revoke_api_key(
     service_id: UUID,
     api_key_id: UUID,
@@ -264,7 +264,7 @@ def revoke_api_key(
 
 
 @service_blueprint.route('/<uuid:service_id>/api-key/<uuid:api_key_id>', methods=['POST'])
-@requires_admin_auth()
+@requires_admin_basic_auth()
 def update_api_key_expiry_date(
     service_id: UUID,
     api_key_id: UUID,
@@ -309,7 +309,7 @@ def update_api_key_expiry_date(
 
 @service_blueprint.route('/<uuid:service_id>/api-keys', methods=['GET'])
 @service_blueprint.route('/<uuid:service_id>/api-keys/<uuid:key_id>', methods=['GET'])
-@requires_admin_auth()
+@requires_admin_basic_auth()
 def get_api_keys(
     service_id: UUID,
     key_id: UUID | None = None,
@@ -356,7 +356,7 @@ def get_api_keys(
 # goes into how we want to fetch and view various items in history
 # tables. This is so product owner can pass stories as done.
 @service_blueprint.route('/<uuid:service_id>/history', methods=['GET'])
-@requires_admin_auth()
+@requires_admin_basic_auth()
 def get_service_history(service_id):
     from app.models import ApiKey, TemplateHistory
     from app.schemas import service_history_schema, api_key_history_schema, template_history_schema

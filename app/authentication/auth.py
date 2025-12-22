@@ -134,7 +134,7 @@ def validate_admin_basic_auth():
     )
 
 
-def validate_admin_auth():
+def validate_admin_jwt_auth():
     request_helper.check_proxy_header_before_request()
 
     auth_token = get_auth_token(request)
@@ -150,6 +150,18 @@ def validate_admin_auth():
         return
     else:
         raise AuthError('Unauthorized, admin authentication token required', 401)
+
+
+# TODO: API-2651 remove fallback to JWT auth after acceptable grace period
+def validate_admin_basic_auth_with_fallback():
+    try:
+        validate_admin_basic_auth()
+    except AuthError:
+        current_app.logger.exception(
+            'Admin basic-auth failed, attempting jwt fallback, using client %s',
+            request.headers.get('User-Agent'),
+        )
+        validate_admin_jwt_auth()
 
 
 def create_validator_for_user_in_service_or_admin(required_permission: str = None) -> Callable:
@@ -180,10 +192,23 @@ def create_validator_for_admin_auth_or_user_in_service(required_permission: str 
         try:
             validate = create_validator_for_user_in_service_or_admin(required_permission)
             validate()
-        except (JWTExtendedException, PyJWTError):
-            validate_admin_auth()
+        except (JWTExtendedException, PyJWTError, AuthError):
+            # TODO: API-2651 remove fallback to JWT auth after acceptable grace period, use validate_admin_basic_auth
+            validate_admin_basic_auth_with_fallback()
 
     return _validate_admin_auth_or_user_in_service
+
+
+# Allow JWT based admin auth for template preview endpoints used by Portal
+def create_validator_for_admin_auth_jwt_or_user_in_service(required_permission: str = None) -> Callable:
+    def _validate_admin_auth_jwt_or_user_in_service():
+        try:
+            validate = create_validator_for_user_in_service_or_admin(required_permission)
+            validate()
+        except (JWTExtendedException, PyJWTError, AuthError):
+            validate_admin_jwt_auth()
+
+    return _validate_admin_auth_jwt_or_user_in_service
 
 
 # Only new - user scoped JWT tokens
@@ -222,15 +247,33 @@ def requires_admin_auth_or_user_in_service(required_permission: str = None):
     return decorator
 
 
-# Only old - just admin client credentials auth
-def requires_admin_auth():
+# Try new user scoped JWT token or fallback to admin client jwt credentials auth
+def requires_admin_auth_jwt_or_user_in_service(required_permission: str = None):
     def decorator(function):
         @functools.wraps(function)
         def wrapper(
             *args,
             **kwargs,
         ):
-            validate_admin_auth()
+            validate = create_validator_for_admin_auth_jwt_or_user_in_service(required_permission)
+            validate()
+
+            return function(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+# Only old - just admin client credentials auth
+def requires_admin_jwt_auth():
+    def decorator(function):
+        @functools.wraps(function)
+        def wrapper(
+            *args,
+            **kwargs,
+        ):
+            validate_admin_jwt_auth()
             return function(*args, **kwargs)
 
         return wrapper
@@ -245,7 +288,8 @@ def requires_admin_basic_auth():
             *args,
             **kwargs,
         ):
-            validate_admin_basic_auth()
+            # TODO: API-2651 remove fallback to JWT auth after acceptable grace period, use validate_admin_basic_auth
+            validate_admin_basic_auth_with_fallback()
             return function(*args, **kwargs)
 
         return wrapper

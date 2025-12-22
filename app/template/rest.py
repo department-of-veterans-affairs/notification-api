@@ -12,7 +12,7 @@ from notifications_utils.template import HTMLEmailTemplate, SMSMessageTemplate
 from notifications_utils.template2 import render_html_email, render_notify_markdown
 from sqlalchemy.orm.exc import NoResultFound
 
-from app.authentication.auth import requires_admin_auth_or_user_in_service
+from app.authentication.auth import requires_admin_auth_jwt_or_user_in_service, requires_admin_auth_or_user_in_service
 from app.communication_item import validate_communication_items
 from app.constants import LETTER_TYPE, SECOND_CLASS, SMS_TYPE
 from app.dao.fact_notification_status_dao import fetch_template_usage_for_service_with_given_template
@@ -189,8 +189,9 @@ def get_template_by_id_and_service_id(
     return jsonify(data=data)
 
 
+# Portal requires client admin JWT auth
 @template_blueprint.route('/<template_id>/preview-html', methods=['GET'])
-@requires_admin_auth_or_user_in_service(required_permission='manage_templates')
+@requires_admin_auth_jwt_or_user_in_service(required_permission='manage_templates')
 def get_html_template(
     service_id,
     template_id,
@@ -210,8 +211,9 @@ def get_html_template(
     return jsonify(previewContent=html_email)
 
 
+# Portal requires client admin JWT auth
 @template_blueprint.route('/generate-preview', methods=['POST'])
-@requires_admin_auth_or_user_in_service(required_permission='manage_templates')
+@requires_admin_auth_jwt_or_user_in_service(required_permission='manage_templates')
 def generate_html_preview_for_template_content(service_id):
     """
     Portal uses this route for unsaved changes.

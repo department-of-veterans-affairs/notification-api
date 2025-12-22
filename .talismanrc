@@ -44,7 +44,7 @@ fileignoreconfig:
 - filename: documents/postman/internal_api_developers/development.postman_environment.json
   checksum: 62ef8e7090c548a88470737346b46f408eeed603a8cc1fa61b22f9d8bb0b1e85
 - filename: documents/postman/internal_api_developers/notification-api.postman_collection.json
-  checksum: c7ad8175981080a06c282b2edb4361a2ed9175369d4236d635ef7c0885b68960
+  checksum: 75f6d7d57bb6c478716026414fc1f632d5b4a40b5a7e022c9bbc7dc88e605ecf
 - filename: documents/postman/internal_api_developers/performance.postman_environment.json
   checksum: 6fa841197639515108be781c59bbf91a966eb2f8f38ec1a5be18cf7cea7554bb
 - filename: documents/postman/internal_api_developers/staging.postman_environment.json
@@ -60,9 +60,9 @@ fileignoreconfig:
 - filename: tests/__init__.py
   checksum: f5d40d69c58fab45f49d51a205eba2f33a4ef7fad37b48a863a02b03a2d0cbb0
 - filename: tests/app/authentication/test_authentication.py
-  checksum: 61b4f7ffc0bec2cb9fad37e977d52a7f61d23efea5470f19a8d4852425d9d962
+  checksum: 089820996b9a438b143860eeac2e1fb7cae879fc520ed9efae69ac9d68fdb374
 - filename: tests/app/conftest.py
-  checksum: 2703a8d6533ad7fc55650dfd22e72d483df1cdd7226b8368776faaabdb0885f4
+  checksum: f2c4f17bfa52823c32747fb11dbb8c96f43c2490ac2cffa16ffa57e7df55f3e5
 - filename: tests/app/clients/test_aws_pinpoint.py
   checksum: ea074fc541a229538237a3b14e4267bde39608c133c372e42bc506e84194ec7b
 - filename: tests/app/dao/test_api_key_dao.py
@@ -82,7 +82,7 @@ fileignoreconfig:
 - filename: tests/app/test_validate.py
   checksum: 38948b94d8fdcdf64d3da02ffb50d170838ce783f3a1e3350b7b7bcdcb7cb1ca
 - filename: tests/app/user/test_rest.py
-  checksum: 5116e6bb4cab38eb5cab76f537cf27af698176d06142fc9e67f28c0a8c04337c
+  checksum: 20e2b9ec4e0fdafff39c301d70f96805598879788b97774a8435c784fd28efc1
 - filename: tests/app/v2/notifications/test_pii_wrapping_at_entrypoint.py
   checksum: 4dcd257865daa286c737d6a76e141e8b9aee66c0642524447c394554643b7712
 - filename: tests/app/v2/notifications/test_post_notifications.py

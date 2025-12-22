@@ -2,7 +2,7 @@ from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 
-from app.authentication.auth import requires_admin_auth
+from app.authentication.auth import requires_admin_basic_auth
 from app.dao.fact_notification_status_dao import (
     fetch_notification_status_totals_for_all_services,
     fetch_delivered_notification_stats_by_month,
@@ -20,7 +20,7 @@ register_errors(platform_stats_blueprint)
 
 
 @platform_stats_blueprint.route('')
-@requires_admin_auth()
+@requires_admin_basic_auth()
 def get_platform_stats():
     if request.args:
         validate(request.args, platform_stats_request)

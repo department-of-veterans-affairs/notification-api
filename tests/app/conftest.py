@@ -40,6 +40,7 @@ from app.dao.service_sms_sender_dao import (
 )
 from app.dao.login_event_dao import save_login_event
 from app.dao.templates_dao import dao_create_template
+from app.dao.users_dao import set_user_password
 from app.model import IdentityProviderIdentifier, User
 from app.models import (
     ApiKey,
@@ -90,7 +91,7 @@ from flask import current_app, url_for
 from sqlalchemy import delete, update, select, Table
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm.session import make_transient
-from tests import create_admin_authorization_header
+from tests import create_admin_authorization_header, create_admin_basic_authorization_header
 from tests.app.db import (
     create_api_key,
     create_job,
@@ -2030,8 +2031,8 @@ def restore_provider_details(notify_db_session):
 
 
 @pytest.fixture
-def admin_request(client):
-    class AdminRequest:
+def admin_request_jwt(client):
+    class AdminRequestJWT:
         app = client.application
 
         @staticmethod
@@ -2070,6 +2071,56 @@ def admin_request(client):
             resp = client.delete(
                 url_for(endpoint, **(endpoint_kwargs or {})), headers=[create_admin_authorization_header()]
             )
+
+            assert resp.status_code == _expected_status
+            return resp.json if resp.get_data() else None
+
+    return AdminRequestJWT
+
+
+@pytest.fixture
+def admin_request(client, sample_user):
+    class AdminRequest:
+        app = client.application
+        user = sample_user(platform_admin=True)
+        user_password = set_user_password(user)
+
+        @staticmethod
+        def get(endpoint, _expected_status=200, **endpoint_kwargs):
+            auth_header = create_admin_basic_authorization_header(AdminRequest.user.id, AdminRequest.user_password)
+            resp = client.get(url_for(endpoint, **(endpoint_kwargs or {})), headers=[auth_header])
+
+            assert resp.status_code == _expected_status
+            return resp.json
+
+        @staticmethod
+        def post(endpoint, _data=None, _expected_status=200, **endpoint_kwargs):
+            auth_header = create_admin_basic_authorization_header(AdminRequest.user.id, AdminRequest.user_password)
+            resp = client.post(
+                url_for(endpoint, **(endpoint_kwargs or {})),
+                data=json.dumps(_data),
+                headers=[('Content-Type', 'application/json'), auth_header],
+            )
+
+            assert resp.status_code == _expected_status, resp.json
+            return resp.json if resp.get_data() else None
+
+        @staticmethod
+        def patch(endpoint, _data=None, _expected_status=200, **endpoint_kwargs):
+            auth_header = create_admin_basic_authorization_header(AdminRequest.user.id, AdminRequest.user_password)
+            resp = client.patch(
+                url_for(endpoint, **(endpoint_kwargs or {})),
+                data=json.dumps(_data),
+                headers=[('Content-Type', 'application/json'), auth_header],
+            )
+
+            assert resp.status_code == _expected_status
+            return resp.json if resp.get_data() else None
+
+        @staticmethod
+        def delete(endpoint, _expected_status=204, **endpoint_kwargs):
+            auth_header = create_admin_basic_authorization_header(AdminRequest.user.id, AdminRequest.user_password)
+            resp = client.delete(url_for(endpoint, **(endpoint_kwargs or {})), headers=[auth_header])
 
             assert resp.status_code == _expected_status
             return resp.json if resp.get_data() else None
