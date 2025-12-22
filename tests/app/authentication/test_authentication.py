@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from app import api_user
 from app.authentication.auth import (
     AuthError,
+    requires_admin_auth_jwt_or_user_in_service,
     validate_admin_jwt_auth,
     validate_admin_basic_auth,
     validate_service_api_key_auth,
@@ -793,6 +794,23 @@ class TestRequiresAdminAuthOrUserInService:
 
         assert error.value.code == 403
 
+    def test_accepts_admin(self, client, sample_user, admin_request_jwt):
+        user = sample_user(platform_admin=True)
+        json_resp = admin_request_jwt.post('user.reset_user_password', user_id=user.id)
+        password = json_resp['data']
+
+        @requires_admin_auth_or_user_in_service()
+        def endpoint_that_requires_admin_auth_or_permission_for_service():
+            pass
+
+        auth_header = create_admin_basic_authorization_header(user.id, password)
+
+        request.view_args['service_id'] = 'some-service-id'
+        request.headers = dict((auth_header,))
+
+        endpoint_that_requires_admin_auth_or_permission_for_service()
+
+    # TODO: API-2651 remove fallback to JWT auth after acceptable grace period
     @pytest.mark.parametrize('required_permission', PERMISSION_LIST)
     def test_accepts_admin_jwt(self, client, required_permission):
         @requires_admin_auth_or_user_in_service(required_permission=required_permission)
@@ -856,6 +874,40 @@ class TestRequiresAdminAuthOrUserInService:
 
         # Validate no errors
         endpoint_that_requires_permission_for_service()
+
+
+class TestRequiresAdminAuthJwtOrUserInService:
+    def test_rejects_jwt_without_permission_for_service(self, client, sample_user_service_api_key):
+        user, service, _ = sample_user_service_api_key
+
+        @requires_admin_auth_jwt_or_user_in_service(required_permission='some-required-permission')
+        def endpoint_that_requires_admin_auth_or_permission_for_service():
+            pass
+
+        token = create_access_token(identity=user)
+
+        request.view_args['service_id'] = service.id
+        request.headers = {'Authorization': 'Bearer {}'.format(token)}
+
+        with pytest.raises(AuthError) as error:
+            endpoint_that_requires_admin_auth_or_permission_for_service()
+
+        assert error.value.code == 403
+
+    @pytest.mark.parametrize('required_permission', PERMISSION_LIST)
+    def test_accepts_admin_jwt(self, client, required_permission):
+        @requires_admin_auth_jwt_or_user_in_service(required_permission=required_permission)
+        def endpoint_that_requires_admin_auth_or_permission_for_service():
+            pass
+
+        token = create_jwt_token(
+            current_app.config['ADMIN_CLIENT_SECRET'], current_app.config['ADMIN_CLIENT_USER_NAME']
+        )
+
+        request.view_args['service_id'] = 'some-service-id'
+        request.headers = {'Authorization': 'Bearer {}'.format(token)}
+
+        endpoint_that_requires_admin_auth_or_permission_for_service()
 
 
 def test_authentication_rejects_expired_api_key_via_expiry_date_not_revoked_flag(

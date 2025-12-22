@@ -60,7 +60,7 @@ fileignoreconfig:
 - filename: tests/__init__.py
   checksum: f5d40d69c58fab45f49d51a205eba2f33a4ef7fad37b48a863a02b03a2d0cbb0
 - filename: tests/app/authentication/test_authentication.py
-  checksum: 8be18cffc1e3e68abe4cc450db8fc2b33a8e5097d337a551bfa0c9f3e554b05e
+  checksum: 089820996b9a438b143860eeac2e1fb7cae879fc520ed9efae69ac9d68fdb374
 - filename: tests/app/conftest.py
   checksum: f2c4f17bfa52823c32747fb11dbb8c96f43c2490ac2cffa16ffa57e7df55f3e5
 - filename: tests/app/clients/test_aws_pinpoint.py
