@@ -92,6 +92,9 @@ def validate_admin_basic_auth():
     # Preserve your proxy header checks
     request_helper.check_proxy_header_before_request()
 
+    # Set the id here for tracking purposes
+    g.request_id = str(uuid4())
+
     auth = request.authorization
 
     # No Authorization header or not Basic
@@ -124,12 +127,12 @@ def validate_admin_basic_auth():
     if not user.platform_admin:
         raise AuthError('Unauthorized, admin authentication required', 401)
 
-    g.admin_user = user_id
+    g.admin_user = user.id
     g.service_id = current_app.config.get('ADMIN_CLIENT_USER_NAME')
 
     current_app.logger.info(
         'API authorized for admin user %s with basic-auth, using client %s',
-        user_id,
+        user.id,
         request.headers.get('User-Agent'),
     )
 

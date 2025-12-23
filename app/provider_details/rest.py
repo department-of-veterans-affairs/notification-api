@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
 from app.schemas import provider_details_schema, provider_details_history_schema
 from app.dao.provider_details_dao import (
@@ -57,6 +57,10 @@ def get_provider_versions(provider_details_id):
 def update_provider_details(provider_details_id):
     valid_keys = {'priority', 'created_by', 'active', 'load_balancing_weight'}
     req_json = request.get_json()
+
+    # use authenticated admin user if present for attribution
+    if hasattr(g, 'admin_user'):
+        req_json['created_by'] = g.admin_user
 
     invalid_keys = req_json.keys() - valid_keys
     if invalid_keys:

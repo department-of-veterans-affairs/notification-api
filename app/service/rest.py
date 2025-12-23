@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Literal
 from uuid import UUID, uuid4
 
-from flask import current_app, Blueprint, jsonify, request
+from flask import current_app, Blueprint, g, jsonify, request
 from flask.wrappers import Response
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, DataError
@@ -132,6 +132,10 @@ def get_service_notification_statistics(service_id):
 def update_service(service_id):
     req_json = request.get_json()
 
+    # use authenticated admin user if present for attribution
+    if hasattr(g, 'admin_user'):
+        req_json['created_by'] = g.admin_user
+
     fetched_service = dao_fetch_service_by_id(service_id)
     # Capture the status change here as Marshmallow changes this later
     service_going_live = fetched_service.restricted and not req_json.get('restricted', True)
@@ -208,8 +212,13 @@ def create_api_key(service_id: UUID) -> tuple[Response, Literal[201, 400]]:
 
     fetched_service = dao_fetch_service_by_id(service_id=service_id)
 
+    request_data = request.get_json()
+
+    # use authenticated admin user if present for attribution
+    if hasattr(g, 'admin_user'):
+        request_data['created_by'] = g.admin_user
+
     try:
-        request_data = request.get_json()
         valid_api_key = api_key_schema.load(request_data)
     except DataError:
         err_msg += ' DataError, ensure created_by user id is a valid uuid'
@@ -292,6 +301,11 @@ def update_api_key_expiry_date(
         - If the expiry_date is not provided in the body of the request
     """
     request_data = request.get_json()
+
+    # use authenticated admin user if present for attribution
+    if hasattr(g, 'admin_user'):
+        request_data['created_by'] = g.admin_user
+
     validate(request_data, update_api_key_expiry_request)
     expiry_date = request_data.get('expiry_date')
 

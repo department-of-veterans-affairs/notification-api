@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import (
     Blueprint,
     current_app,
+    g,
     jsonify,
     request,
 )
@@ -73,7 +74,11 @@ def create_template(service_id):
     permissions = fetched_service.permissions
 
     request_body = request.get_json()
-    if current_user:
+
+    # use authenticated admin user if present for attribution
+    if hasattr(g, 'admin_user'):
+        request_body['created_by'] = g.admin_user
+    elif current_user:
         request_body['created_by'] = str(current_user.id)
 
     template_json = validate(request_body, post_create_template_schema)
