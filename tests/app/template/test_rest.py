@@ -1040,6 +1040,49 @@ def test_should_create_template_without_created_by_using_current_user_id(
     notify_db_session.session.commit()
 
 
+def test_should_create_template_without_created_by_using_admin_user_id(
+    admin_request,
+    notify_db_session,
+    sample_service,
+):
+    service = sample_service(
+        service_name=f'sample service full permissions {uuid.uuid4()}',
+        service_permissions=set(SERVICE_PERMISSION_TYPES),
+        check_if_service_exists=False,
+    )
+
+    data = {
+        'name': 'my template',
+        'template_type': SMS_TYPE,
+        'content': 'template <b>content</b>',
+        'service': str(service.id),
+        'created_by': None,
+    }
+
+    response = admin_request.post(
+        'template.create_template',
+        service_id=service.id,
+        _data=data,
+        _expected_status=201,
+    )
+
+    assert response['data']['created_by'] == str(admin_request.user.id)
+
+    template = notify_db_session.session.get(Template, response['data']['id'])
+    from app.schemas import template_schema
+
+    assert sorted(response['data']) == sorted(template_schema.dump(template))
+
+    # Teardown
+    stmt = select(TemplateHistory).where(TemplateHistory.service_id == template.service_id)
+    for history in notify_db_session.session.scalars(stmt).all():
+        notify_db_session.session.delete(history)
+    template_redacted = notify_db_session.session.get(TemplateRedacted, template.id)
+    notify_db_session.session.delete(template_redacted)
+    notify_db_session.session.delete(template)
+    notify_db_session.session.commit()
+
+
 class TestGenerateHtmlPreviewForTemplateContent:
     def test_should_generate_html_preview_for_template_content(
         self,

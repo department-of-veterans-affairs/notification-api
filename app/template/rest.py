@@ -77,7 +77,7 @@ def create_template(service_id):
 
     # use authenticated admin user if present for attribution
     if g.admin_user_id:
-        request_body['created_by'] = g.admin_user_id
+        request_body['created_by'] = str(g.admin_user_id)
     elif current_user:
         request_body['created_by'] = str(current_user.id)
 

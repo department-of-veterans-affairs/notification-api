@@ -60,7 +60,7 @@ def update_provider_details(provider_details_id):
 
     # use authenticated admin user if present for attribution
     if g.admin_user_id:
-        req_json['created_by'] = g.admin_user_id
+        req_json['created_by'] = str(g.admin_user_id)
 
     invalid_keys = req_json.keys() - valid_keys
     if invalid_keys:
