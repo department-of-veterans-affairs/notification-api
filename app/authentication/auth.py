@@ -127,7 +127,7 @@ def validate_admin_basic_auth():
     if not user.platform_admin:
         raise AuthError('Unauthorized, admin authentication required', 401)
 
-    g.admin_user = user.id
+    g.admin_user_id = user.id
     g.service_id = current_app.config.get('ADMIN_CLIENT_USER_NAME')
 
     current_app.logger.info(

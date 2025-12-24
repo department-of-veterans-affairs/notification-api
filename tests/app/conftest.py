@@ -2078,7 +2078,7 @@ def admin_request_jwt(client):
     return AdminRequestJWT
 
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def admin_request(client, sample_user):
     class AdminRequest:
         app = client.application

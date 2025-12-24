@@ -76,8 +76,8 @@ def create_template(service_id):
     request_body = request.get_json()
 
     # use authenticated admin user if present for attribution
-    if hasattr(g, 'admin_user'):
-        request_body['created_by'] = g.admin_user
+    if g.admin_user_id:
+        request_body['created_by'] = g.admin_user_id
     elif current_user:
         request_body['created_by'] = str(current_user.id)
 

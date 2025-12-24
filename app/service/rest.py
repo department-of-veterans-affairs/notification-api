@@ -133,8 +133,8 @@ def update_service(service_id):
     req_json = request.get_json()
 
     # use authenticated admin user if present for attribution
-    if hasattr(g, 'admin_user'):
-        req_json['created_by'] = g.admin_user
+    if g.admin_user_id:
+        req_json['created_by'] = g.admin_user_id
 
     fetched_service = dao_fetch_service_by_id(service_id)
     # Capture the status change here as Marshmallow changes this later
@@ -215,8 +215,8 @@ def create_api_key(service_id: UUID) -> tuple[Response, Literal[201, 400]]:
     request_data = request.get_json()
 
     # use authenticated admin user if present for attribution
-    if hasattr(g, 'admin_user'):
-        request_data['created_by'] = g.admin_user
+    if g.admin_user_id:
+        request_data['created_by'] = g.admin_user_id
 
     try:
         valid_api_key = api_key_schema.load(request_data)
@@ -303,8 +303,8 @@ def update_api_key_expiry_date(
     request_data = request.get_json()
 
     # use authenticated admin user if present for attribution
-    if hasattr(g, 'admin_user'):
-        request_data['created_by'] = g.admin_user
+    if g.admin_user_id:
+        request_data['created_by'] = g.admin_user_id
 
     validate(request_data, update_api_key_expiry_request)
     expiry_date = request_data.get('expiry_date')
