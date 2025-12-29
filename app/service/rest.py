@@ -132,10 +132,6 @@ def get_service_notification_statistics(service_id):
 def update_service(service_id):
     req_json = request.get_json()
 
-    # use authenticated admin user if present for attribution
-    if g.admin_user_id:
-        req_json['created_by'] = str(g.admin_user_id)
-
     fetched_service = dao_fetch_service_by_id(service_id)
     # Capture the status change here as Marshmallow changes this later
     service_going_live = fetched_service.restricted and not req_json.get('restricted', True)
@@ -301,10 +297,6 @@ def update_api_key_expiry_date(
         - If the expiry_date is not provided in the body of the request
     """
     request_data = request.get_json()
-
-    # use authenticated admin user if present for attribution
-    if g.admin_user_id:
-        request_data['created_by'] = str(g.admin_user_id)
 
     validate(request_data, update_api_key_expiry_request)
     expiry_date = request_data.get('expiry_date')

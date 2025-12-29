@@ -49,6 +49,42 @@ def test_api_key_should_create_new_api_key_for_service(notify_api, notify_db_ses
             notify_db_session.session.commit()
 
 
+def test_should_create_new_api_key_for_service_created_by_admin(
+    notify_api, admin_request, notify_db_session, sample_service
+):
+    """Test new API key is created with expected data."""
+    service = sample_service()
+
+    data = {
+        'name': 'some secret name',
+        'created_by': str(service.created_by.id),
+        'key_type': KEY_TYPE_NORMAL,
+    }
+    response = admin_request.post(
+        'service.create_api_key',
+        service_id=service.id,
+        _data=data,
+        _expected_status=201,
+    )
+    assert 'data' in response
+
+    saved_api_keys: ApiKey = get_model_api_keys(service.id)
+    assert len(saved_api_keys) == 1
+
+    saved_api_key = saved_api_keys[0]
+    assert saved_api_key.service_id == service.id
+    assert saved_api_key.name == 'some secret name'
+    assert saved_api_key.expiry_date is not None
+    assert str(saved_api_key.created_by_id) == str(admin_request.user.id)
+
+    # Teardown
+    # No model for api_keys_history
+    ApiKeyHistory = Table('api_keys_history', ApiKey.get_history_model().metadata, autoload_with=db.engine)
+    notify_db_session.session.execute(delete(ApiKeyHistory).where(ApiKeyHistory.c.id == saved_api_key.id))
+    notify_db_session.session.delete(saved_api_key)
+    notify_db_session.session.commit()
+
+
 def test_api_key_should_return_error_when_service_does_not_exist(notify_api):
     with notify_api.test_request_context():
         with notify_api.test_client() as client:
