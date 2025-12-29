@@ -297,7 +297,6 @@ def update_api_key_expiry_date(
         - If the expiry_date is not provided in the body of the request
     """
     request_data = request.get_json()
-
     validate(request_data, update_api_key_expiry_request)
     expiry_date = request_data.get('expiry_date')
 
