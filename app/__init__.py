@@ -355,6 +355,11 @@ def init_app(app):
         g.start = monotonic()
         g.endpoint = request.endpoint
 
+    @app.before_request
+    def initialize_authentication():
+        g.api_user = None
+        g.admin_user_id = None
+
     @app.errorhandler(WerkzeugHTTPException)
     def werkzeug_exception(e):
         app.logger.exception('Werkzeug HTTPException')

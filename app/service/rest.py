@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Literal
 from uuid import UUID, uuid4
 
-from flask import current_app, Blueprint, jsonify, request
+from flask import current_app, Blueprint, g, jsonify, request
 from flask.wrappers import Response
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, DataError
@@ -208,8 +208,13 @@ def create_api_key(service_id: UUID) -> tuple[Response, Literal[201, 400]]:
 
     fetched_service = dao_fetch_service_by_id(service_id=service_id)
 
+    request_data = request.get_json()
+
+    # use authenticated admin user if present for attribution
+    if g.admin_user_id:
+        request_data['created_by'] = str(g.admin_user_id)
+
     try:
-        request_data = request.get_json()
         valid_api_key = api_key_schema.load(request_data)
     except DataError:
         err_msg += ' DataError, ensure created_by user id is a valid uuid'
