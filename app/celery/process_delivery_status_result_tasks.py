@@ -246,6 +246,7 @@ def sms_status_update(
             new_status_reason=sms_status.status_reason,
             segments_count=sms_status.message_parts,
             cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
+            provider_updated_at=sms_status.provider_updated_at,
         )
         statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
     except Exception:
@@ -390,12 +391,17 @@ def update_sms_retry_count(
     return int(value)
 
 
-def mark_retry_as_permanent_failure(notification: Notification, sms_status: SmsStatusRecord):
+def mark_retry_as_permanent_failure(
+    notification: Notification,
+    sms_status: SmsStatusRecord,
+    retry_count: int | None = None,
+):
     """Mark retry as permanent failure and attempt callbacks.
 
     Args:
         notfication (Notification): The notification that is not eligible for further retires
         sms_status (SmsStatusRecord): The status record update
+        retry_count (int | None): Retry attempt number, if supplied
 
     Raises:
         NonRetryableException: Unable update the notification
@@ -417,6 +423,8 @@ def mark_retry_as_permanent_failure(notification: Notification, sms_status: SmsS
             new_status_reason=sms_status.status_reason,
             segments_count=sms_status.message_parts,
             cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
+            provider_updated_at=sms_status.provider_updated_at,
+            retry_count=retry_count,
         )
         statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
     except Exception:
@@ -511,6 +519,8 @@ def sms_attempt_retry(
                 notification_type=notification.notification_type,
                 cost_in_millicents=notification.cost_in_millicents + sms_status.price_millicents,
                 segments_count=sms_status.message_parts,
+                provider_updated_at=sms_status.provider_updated_at,
+                retry_count=retry_count,
             )
         except Exception:
             statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
@@ -549,4 +559,4 @@ def sms_attempt_retry(
             retry_delay,
         )
     else:
-        mark_retry_as_permanent_failure(notification, sms_status)
+        mark_retry_as_permanent_failure(notification, sms_status, retry_count=retry_count)

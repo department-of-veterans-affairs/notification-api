@@ -306,6 +306,8 @@ def dao_update_sms_notification_delivery_status(
     new_status_reason: str | None,
     segments_count: int,
     cost_in_millicents: float,
+    provider_updated_at: datetime | None = None,
+    retry_count: int | None = None,
 ) -> Notification:
     """Update an SMS notification delivery status.
 
@@ -316,6 +318,8 @@ def dao_update_sms_notification_delivery_status(
         notification_id (UUID): The id to update
         new_status (str): The new status being set
         new_status_reason (str, optional): The new status reason beign set. Defaults to None.
+        provider_updated_at (datetime | None): Provider event timestamp, if supplied.
+        retry_count (int | None): Retry attempt number, if supplied.
 
     Returns:
         Notification: A Notification object
@@ -328,6 +332,10 @@ def dao_update_sms_notification_delivery_status(
             'segments_count': segments_count,
             'cost_in_millicents': cost_in_millicents,
         }
+        if provider_updated_at is not None:
+            stmt_values['provider_updated_at'] = provider_updated_at
+        if retry_count is not None:
+            stmt_values['retry_count'] = retry_count
 
         if new_status in FINAL_STATUS_STATES:
             notification = db.session.get(Notification, notification_id)
@@ -366,6 +374,8 @@ def dao_update_sms_notification_status_to_created_for_retry(
     notification_type: str,
     cost_in_millicents: float,
     segments_count: int,
+    provider_updated_at: datetime | None = None,
+    retry_count: int | None = None,
 ) -> Notification:
     """Update an SMS notification status to created for retry.
 
@@ -380,23 +390,31 @@ def dao_update_sms_notification_status_to_created_for_retry(
         notification_id (UUID): The id to update
         cost_in_millicents (float): The amount that charged to send the message (running total for retries)
         segments_count (int): The number of message parts that Amazon Pinpoint created in order to send the message.
+        provider_updated_at (datetime | None): Provider event timestamp, if supplied.
+        retry_count (int | None): Retry attempt number, if supplied.
 
     Returns:
         Notification: A Notification object
     """
 
     if notification_type == SMS_TYPE:
+        stmt_values = {
+            'status': NOTIFICATION_CREATED,
+            'status_reason': None,
+            'reference': None,
+            'cost_in_millicents': cost_in_millicents,
+            'segments_count': segments_count,
+        }
+        if provider_updated_at is not None:
+            stmt_values['provider_updated_at'] = provider_updated_at
+        if retry_count is not None:
+            stmt_values['retry_count'] = retry_count
+
         stmt = (
             update(Notification)
             .where(Notification.id == notification_id)
             .where(Notification.status == NOTIFICATION_SENDING)
-            .values(
-                status=NOTIFICATION_CREATED,
-                status_reason=None,
-                reference=None,
-                cost_in_millicents=cost_in_millicents,
-                segments_count=segments_count,
-            )
+            .values(**stmt_values)
         )
         current_app.logger.debug('sms delivery status statement: %s', stmt)
     else:
@@ -753,6 +771,8 @@ def insert_update_notification_history(
             'updated_at': stmt.excluded.updated_at,
             'sent_at': stmt.excluded.sent_at,
             'sent_by': stmt.excluded.sent_by,
+            'provider_updated_at': stmt.excluded.provider_updated_at,
+            'retry_count': stmt.excluded.retry_count,
         },
     )
     db.session.execute(stmt)

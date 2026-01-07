@@ -1758,6 +1758,33 @@ def test_update_notification_delivery_status_valid_updates(
     assert notification.status_reason == final_status_reason
 
 
+def test_update_notification_delivery_status_sets_retry_and_provider_updated_at(
+    sample_template,
+    sample_notification,
+):
+    provider_updated_at = datetime.utcnow()
+    retry_count = 2
+    notification: Notification = sample_notification(
+        template=sample_template(),
+        status=NOTIFICATION_SENDING,
+        status_reason='initial reason',
+    )
+
+    dao_update_sms_notification_delivery_status(
+        notification_id=notification.id,
+        notification_type=notification.notification_type,
+        new_status=NOTIFICATION_DELIVERED,
+        new_status_reason=None,
+        segments_count=1,
+        cost_in_millicents=0.0,
+        provider_updated_at=provider_updated_at,
+        retry_count=retry_count,
+    )
+
+    assert notification.provider_updated_at == provider_updated_at
+    assert notification.retry_count == retry_count
+
+
 @pytest.mark.parametrize(
     'current_status, new_status',
     [
@@ -1814,6 +1841,8 @@ def test_dao_update_sms_notification_status_to_created_for_retry_valid_update(
 ):
     initial_cost = 10.0
     final_cost = 30.0
+    provider_updated_at = datetime.utcnow()
+    retry_count = 3
 
     notification: Notification = sample_notification(
         status=NOTIFICATION_SENDING,
@@ -1828,6 +1857,8 @@ def test_dao_update_sms_notification_status_to_created_for_retry_valid_update(
         notification_type=notification.notification_type,
         cost_in_millicents=final_cost,
         segments_count=6,
+        provider_updated_at=provider_updated_at,
+        retry_count=retry_count,
     )
 
     assert notification.status == NOTIFICATION_CREATED
@@ -1835,6 +1866,8 @@ def test_dao_update_sms_notification_status_to_created_for_retry_valid_update(
     notification.cost_in_millicents
     assert notification.cost_in_millicents == final_cost
     assert notification.segments_count == 6
+    assert notification.provider_updated_at == provider_updated_at
+    assert notification.retry_count == retry_count
 
 
 @pytest.mark.parametrize(

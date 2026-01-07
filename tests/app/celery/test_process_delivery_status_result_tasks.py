@@ -324,18 +324,21 @@ def test_sms_status_update_notification_not_found(notify_api, mocker, sample_not
 
 def test_sms_status_delivered_status_reason_set_to_none(notify_api, mocker, sample_notification):
     notification = sample_notification(status_reason='test_sms_status_delivered_status_update', reference=str(uuid4()))
+    provider_updated_at = datetime.utcnow()
     sms_status = SmsStatusRecord(
         None,
         notification.reference,
         NOTIFICATION_DELIVERED,
         'ignored reason',
         TWILIO_PROVIDER,
+        provider_updated_at=provider_updated_at,
     )
     assert notification.status_reason == 'test_sms_status_delivered_status_update'
 
     sms_status_update(sms_status)
     notification = dao_get_notification_by_reference(notification.reference)
     assert notification.status_reason is None
+    assert notification.provider_updated_at == provider_updated_at
 
 
 def test_sms_status_provider_payload_set_to_none(notify_api, mocker, sample_notification):
@@ -812,12 +815,14 @@ def test_sms_attempt_retry_notification_update_if_retryable(mocker, sample_notif
     notification = sample_notification(
         status=NOTIFICATION_SENDING,
     )
+    provider_updated_at = datetime.utcnow()
     sms_status = SmsStatusRecord(
         None,
         notification.reference,
         NOTIFICATION_TEMPORARY_FAILURE,
         STATUS_REASON_RETRYABLE,
         PINPOINT_PROVIDER,
+        provider_updated_at=provider_updated_at,
     )
     mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
     mocker.patch('app.notifications.process_notifications.send_notification_to_queue_delayed')
@@ -828,6 +833,8 @@ def test_sms_attempt_retry_notification_update_if_retryable(mocker, sample_notif
     assert updated_notification.status == NOTIFICATION_CREATED
     assert updated_notification.status_reason is None
     assert updated_notification.reference is None
+    assert updated_notification.provider_updated_at == provider_updated_at
+    assert updated_notification.retry_count == 1
 
 
 @pytest.mark.parametrize('exception', [ValueError, TypeError, Exception])
@@ -857,7 +864,7 @@ def test_sms_attempt_retry_not_queued_if_retry_conditions_not_met(mocker, sample
     sms_status = SmsStatusRecord(
         None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
     )
-    mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count')
+    mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
     mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=False)
     mocked_send_notification_to_queue_delayed = mocker.patch(
         'app.notifications.process_notifications.send_notification_to_queue_delayed'
@@ -923,7 +930,7 @@ def test_sms_attempt_retry_notification_set_to_permanent_failure_when_retry_cond
     sms_status = SmsStatusRecord(
         None, notification.reference, NOTIFICATION_TEMPORARY_FAILURE, STATUS_REASON_RETRYABLE, PINPOINT_PROVIDER
     )
-    mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count')
+    mocker.patch('app.celery.process_delivery_status_result_tasks.update_sms_retry_count', return_value=1)
     mocker.patch('app.celery.process_delivery_status_result_tasks.can_retry_sms_request', return_value=False)
     mocker.patch('app.celery.process_delivery_status_result_tasks.check_and_queue_callback_task')
     mocker.patch(
