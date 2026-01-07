@@ -585,8 +585,6 @@ def test_validate_rate_limit(rate_limit, rate_limit_interval, raises_exception) 
         assert _validate_rate_limit(sms_sender, rate_limit, rate_limit_interval) is None
 
 
-# TODO: 2641 Re-enable caching after phone number migration is complete
-@pytest.mark.skip(reason='Caching temporarily disabled')
 class TestSmsSenderCache:
     def test_get_service_sms_sender_by_id_cache(self, mocker, notify_db_session, sample_service, sample_sms_sender):
         service = sample_service()
