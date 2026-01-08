@@ -24,6 +24,7 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
+          aws-region: us-gov-west-1
           role-to-assume: ${{ secrets.OIDC_DEPLOY_ROLE_PREFIX }}-${{ inputs.environment }}
           role-skip-session-tagging: true
           role-duration-seconds: 900
