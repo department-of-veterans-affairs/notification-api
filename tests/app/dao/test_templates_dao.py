@@ -999,8 +999,6 @@ class TestDAOGetTemplateById:
 
         assert result is None
 
-    # TODO: 2641 Re-enable caching after phone number migration is complete
-    @pytest.mark.skip(reason='Caching temporarily disabled')
     def test_dao_get_template_by_id_caching_behavior(
         self,
         notify_db_session: SQLAlchemy,
