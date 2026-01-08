@@ -27,8 +27,8 @@ from app.dao.notifications_dao import (
 from app.dao.users_dao import delete_codes_older_created_more_than_a_day_ago
 from app.models import Job
 from app.notifications.process_notifications import send_notification_to_queue
-from notifications_utils.statsd_decorators import statsd
 from app.v2.errors import JobIncompleteError
+from notifications_utils.statsd_decorators import statsd
 
 
 @notify_celery.task(name='run-scheduled-jobs')
