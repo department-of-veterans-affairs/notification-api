@@ -10,6 +10,12 @@ All JSON files can be imported into Postman individually.
 
 **Note:** While migrating from Notification-API to our Enterprise Notification Platform (ENP), these environment variable files contain variables for both applications.
 
+## Postman scripts
+
+The Postman Scripts use the environment variables and populate or update them as the scripts are executed.
+
+The basic environment variables are in this folder which you can import along with the scripts.  
+
 ## Importing Files
 
 1. Open Postman
