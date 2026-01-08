@@ -41,14 +41,14 @@ fileignoreconfig:
   checksum: 6808d6ce061a53ac8432d36f3b6d752c3be657e4f054905aba8e993306b97e86
 - filename: documents/openapi/openapi.yaml.backup
   checksum: cf2737abec32148fab04ec10ceba181ceeb8010642669ece3c4a97f0d6edf1ba
-- filename: documents/postman/internal_api_developers/development.postman_environment.json
-  checksum: 62ef8e7090c548a88470737346b46f408eeed603a8cc1fa61b22f9d8bb0b1e85
 - filename: documents/postman/internal_api_developers/notification-api.postman_collection.json
   checksum: 75f6d7d57bb6c478716026414fc1f632d5b4a40b5a7e022c9bbc7dc88e605ecf
+- filename: documents/postman/internal_api_developers/development.postman_environment.json
+  checksum: 18f69439340dcecfe536083beab96e9792aa3f9bb8b75ad3ba331600494da351
 - filename: documents/postman/internal_api_developers/performance.postman_environment.json
-  checksum: 6fa841197639515108be781c59bbf91a966eb2f8f38ec1a5be18cf7cea7554bb
+  checksum: 2c5b3782cfe4865a8e4dacbba8c9406dd67b03dc1f50717b504323fb1c0aef6b
 - filename: documents/postman/internal_api_developers/staging.postman_environment.json
-  checksum: d593b7d374ca1bfa9689678b1c008fea9b1679baca1875f5e446ffe9aa3597fe
+  checksum: f809a69ead6713f1003e08d0e6cf4aa8671fe4fe7e43e505cb8f65d7e29cc90e
 - filename: documents/postman/notification-api-simplified.postman_collection.json
   checksum: 33fd298271a40857cb7e58a1ec6de085844853efe11d88e673e7034339feff9d
 - filename: documents/postman/notification-api-simplified.postman_collection.json.backup
