@@ -10,6 +10,8 @@ from app.dao.dao_utils import get_reader_session
 from app.models import Notification, NotificationHistory, TemplateHistory
 from app.utils import statsd_http
 
+from notifications_utils.statsd_decorators import statsd
+
 
 def get_ga4_config() -> tuple:
     """
@@ -30,6 +32,7 @@ def get_ga4_config() -> tuple:
     retry_backoff=True,
     retry_backoff_max=60,
 )
+@statsd(namespace='tasks')
 def post_to_ga4(notification_id: str, event_name, event_source, event_medium) -> bool:
     """
     This celery task is used to post to Google Analytics 4. It is exercised when a veteran opens an e-mail.
