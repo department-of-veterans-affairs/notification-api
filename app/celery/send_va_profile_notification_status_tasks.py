@@ -7,6 +7,8 @@ from app.celery.exceptions import AutoRetryException
 from app.constants import CELERY_RETRY_BACKOFF_MAX, DATETIME_FORMAT
 from app.models import Notification
 
+from notifications_utils.statsd_decorators import statsd
+
 
 def check_and_queue_va_profile_notification_status_callback(notification: Notification) -> None:
     """
@@ -44,6 +46,7 @@ def check_and_queue_va_profile_notification_status_callback(notification: Notifi
     retry_backoff=True,
     retry_backoff_max=CELERY_RETRY_BACKOFF_MAX,
 )
+@statsd(namespace='tasks')
 def send_notification_status_to_va_profile(notification_data: dict) -> None:
     """
     This function calls the VAProfileClient method to send the information to VA Profile.

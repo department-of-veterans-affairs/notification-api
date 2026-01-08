@@ -8,6 +8,8 @@ from app.celery.exceptions import NonRetryableException
 from app.constants import NOTIFICATION_STATUS_TYPES_COMPLETED
 from app.models import Notification
 
+from notifications_utils.statsd_decorators import statsd
+
 
 def _get_notifications() -> list:
     """Returns a list of notifications not in final state."""
@@ -30,6 +32,7 @@ def _get_notifications() -> list:
 
 
 @notify_celery.task(name='update-twilio-status')
+@statsd(namespace='tasks')
 def update_twilio_status():
     """Update the status of notifications sent via Twilio. This task is scheduled to run every 5 minutes. It fetches
     notifications that are not in a final state, limited to the config setting TWILIO_STATUS_PAGE_SIZE, and updates

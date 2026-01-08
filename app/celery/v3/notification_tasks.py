@@ -24,6 +24,7 @@ from celery.utils.log import get_task_logger
 from datetime import datetime
 from flask import current_app
 from notifications_utils.recipients import validate_and_format_email_address
+from notifications_utils.statsd_decorators import statsd
 
 # from notifications_utils.template import HTMLEmailTemplate, PlainTextEmailTemplate
 from sqlalchemy import select
@@ -62,6 +63,7 @@ def get_default_sms_sender_id(service_id: str) -> tuple[str | None, str | None]:
 
 # TODO 1534 - Error handler for sqlalchemy.exc.IntegrityError.  This happens when a foreign key references a nonexistent ID.
 @notify_celery.task(serializer='json')
+@statsd(namespace='tasks')
 def v3_process_notification(  # noqa: C901
     request_data: dict,
     service_id: str,
@@ -172,6 +174,7 @@ def v3_process_notification(  # noqa: C901
     retry_backoff_max=60,
     max_retries=2886,
 )
+@statsd(namespace='tasks')
 def v3_send_email_notification(
     notification: Notification,
     template: Template,
@@ -244,6 +247,7 @@ def v3_send_email_notification(
     retry_backoff_max=60,
     max_retries=2886,
 )
+@statsd(namespace='tasks')
 def v3_send_sms_notification(
     notification: Notification,
     sender_phone_number: str,

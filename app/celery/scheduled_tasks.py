@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 
 from flask import current_app
-from notifications_utils.statsd_decorators import statsd
 from sqlalchemy import and_, select
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -29,6 +28,7 @@ from app.dao.users_dao import delete_codes_older_created_more_than_a_day_ago
 from app.models import Job
 from app.notifications.process_notifications import send_notification_to_queue
 from app.v2.errors import JobIncompleteError
+from notifications_utils.statsd_decorators import statsd
 
 
 @notify_celery.task(name='run-scheduled-jobs')

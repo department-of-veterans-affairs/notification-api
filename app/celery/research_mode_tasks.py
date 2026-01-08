@@ -8,6 +8,7 @@ from flask import current_app
 from requests import request, RequestException, HTTPError
 
 from notifications_utils.s3 import s3upload
+from notifications_utils.statsd_decorators import statsd
 
 from app import notify_celery
 from app.aws.s3 import file_exists
@@ -228,6 +229,7 @@ def pinpoint_notification_callback_record(
 
 
 @notify_celery.task(bind=True, name='create-fake-letter-response-file', max_retries=5, default_retry_delay=300)
+@statsd(namespace='tasks')
 def create_fake_letter_response_file(
     self,
     reference,
