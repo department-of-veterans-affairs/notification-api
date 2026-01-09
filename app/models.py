@@ -1242,7 +1242,7 @@ class Notification(db.Model):
     sent_by = db.Column(db.String, nullable=True)
     updated_at = db.Column(db.DateTime, index=False, unique=False, nullable=True, onupdate=datetime.datetime.utcnow)
     provider_updated_at = db.Column(db.DateTime, index=False, unique=False, nullable=True)
-    retry_count = db.Column(db.Integer, nullable=False, default=0)
+    retry_count = db.Column(db.Integer, nullable=True)
     status = db.Column(
         'notification_status',
         db.String,
@@ -1600,7 +1600,7 @@ class NotificationHistory(db.Model, HistoryModel):
     sent_by = db.Column(db.String, nullable=True)
     updated_at = db.Column(db.DateTime, index=False, unique=False, nullable=True, onupdate=datetime.datetime.utcnow)
     provider_updated_at = db.Column(db.DateTime, index=False, unique=False, nullable=True)
-    retry_count = db.Column(db.Integer, nullable=False, default=0)
+    retry_count = db.Column(db.Integer, nullable=True)
     status = db.Column(
         'notification_status',
         db.String,
