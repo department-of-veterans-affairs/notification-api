@@ -17,12 +17,6 @@ def upgrade():
     op.add_column('notification_history', sa.Column('retry_count', sa.Integer(), nullable=True))
     op.add_column('notification_history', sa.Column('provider_updated_at', sa.DateTime(), nullable=True))
 
-    op.execute('UPDATE notifications SET retry_count = 0')
-    op.execute('UPDATE notification_history SET retry_count = 0')
-
-    op.alter_column('notifications', 'retry_count', nullable=False, server_default='0')
-    op.alter_column('notification_history', 'retry_count', nullable=False, server_default='0')
-
 
 def downgrade():
     op.drop_column('notification_history', 'provider_updated_at')
