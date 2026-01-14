@@ -522,7 +522,7 @@ class AwsPinpointClient(SmsClient):
             # allow phone pool pattern
             return
 
-        if phone_number in current_app.config('AWS_PINPOINT_SENDER_IDS'):
+        if phone_number in current_app.config['AWS_PINPOINT_SENDER_IDS']:
             # allow sender id
             return
 

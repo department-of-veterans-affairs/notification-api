@@ -27,6 +27,7 @@ TEST_RECIPIENT_NUMBER = '+100000000'
 TEST_SENDER_NUMBER = '+12025550123'
 TEST_SENDER_SHORT_NUMBER = '12345'
 TEST_REFERENCE = 'test notification id'
+TEST_SENDER_ID = 'TESTSENDERID'
 
 
 @pytest.fixture
@@ -54,14 +55,15 @@ def pinpoint_client_mock(aws_pinpoint_client, mocker):
 
 @pytest.mark.parametrize(
     'sender',
-    (None, TEST_SENDER_NUMBER, TEST_SENDER_SHORT_NUMBER, 'pool-1234abcd'),
-    ids=['no sender specified', '10DLC sender', 'short-code sender', 'phone-pool sender'],
+    (None, TEST_SENDER_NUMBER, TEST_SENDER_SHORT_NUMBER, 'pool-1234abcd', TEST_SENDER_ID),
+    ids=['no sender specified', '10DLC sender', 'short-code sender', 'phone-pool sender', 'sender id'],
 )
 @pytest.mark.parametrize('PINPOINT_SMS_VOICE_V2', ('False', 'True'))
 def test_send_sms_successful_returns_aws_pinpoint_response_messageid(
     PINPOINT_SMS_VOICE_V2, sender, mocker, aws_pinpoint_client, monkeypatch
 ):
     monkeypatch.setenv('PINPOINT_SMS_VOICE_V2', PINPOINT_SMS_VOICE_V2)
+    mocker.patch('app.service.sender.current_app.config', {'AWS_PINPOINT_SENDER_IDS': [TEST_SENDER_ID]})
 
     if PINPOINT_SMS_VOICE_V2 == 'True':
         client_mock = mocker.patch.object(aws_pinpoint_client, '_pinpoint_sms_voice_v2_client', create=True)
@@ -89,7 +91,7 @@ def test_send_sms_successful_returns_aws_pinpoint_response_messageid(
 
 @pytest.mark.parametrize(
     'sender',
-    ('+10000000000', 'bucket-1234abcd', '01', '0123456', 'INVALID_SENDER'),
+    ('+10000000000', 'bucket-1234abcd', '01', '0123456', 'INVALID_SENDER_ID'),
     ids=[
         'invalid phone number',
         'invalid phone-pool id',
