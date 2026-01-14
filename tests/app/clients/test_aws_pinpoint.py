@@ -89,8 +89,14 @@ def test_send_sms_successful_returns_aws_pinpoint_response_messageid(
 
 @pytest.mark.parametrize(
     'sender',
-    ('+10000000000', 'bucket-1234abcd', '01', '0123456'),
-    ids=['invalid phone number', 'invalid phone-pool id', 'invalid short-code', 'invalid short-code'],
+    ('+10000000000', 'bucket-1234abcd', '01', '0123456', 'INVALID_SENDER'),
+    ids=[
+        'invalid phone number',
+        'invalid phone-pool id',
+        'invalid short-code',
+        'invalid short-code',
+        'invalid sender id',
+    ],
 )
 @pytest.mark.parametrize('PINPOINT_SMS_VOICE_V2', ('False', 'True'))
 def test_send_sms_throws_non_retryable_on_invalid_sender(

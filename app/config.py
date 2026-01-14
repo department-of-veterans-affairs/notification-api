@@ -151,6 +151,7 @@ class Config(object):
     AWS_PINPOINT_V2_CONFIGSET_NAME = os.getenv(
         'AWS_PINPOINT_V2_CONFIGSET_NAME', f'{env_name_map[NOTIFY_ENVIRONMENT]}-sms-configuration-set'
     )
+    AWS_PINPOINT_SENDER_IDS = json.loads(os.getenv('PINPOINT_SENDER_IDS', '[]'))
     AWS_SQS_URL = os.getenv('AWS_SQS_URL', '')
     NIGHTLY_STATS_BUCKET_NAME = os.getenv(
         'NIGHTLY_STATS_BUCKET_NAME', f'{env_name_map[NOTIFY_ENVIRONMENT]}-notifications-va-gov-nightly-stats'

@@ -6,6 +6,7 @@ from time import monotonic
 import boto3
 import botocore
 import botocore.exceptions
+from flask import current_app
 import phonenumbers
 
 from app.celery.exceptions import NonRetryableException, RetryableException
@@ -519,6 +520,10 @@ class AwsPinpointClient(SmsClient):
 
         if re.match(phone_pool_pattern, phone_number):
             # allow phone pool pattern
+            return
+
+        if phone_number in current_app.config('AWS_PINPOINT_SENDER_IDS'):
+            # allow sender id
             return
 
         # validate as a phone number
