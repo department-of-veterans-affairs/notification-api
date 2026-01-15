@@ -274,11 +274,12 @@ class AwsPinpointClient(SmsClient):
                 )
             except botocore.exceptions.ClientError as e:
                 # temporary fallback to V1 until V2 service issues resolved (PR and CA destination numbers)
+                # OPT_OUT and SENDER_ID errors are not retried in V1
                 error_code = e.response.get('Error', {}).get('Code', '')
                 reason = e.response.get('Reason')
-                if (
-                    error_code in ('ValidationException', 'ConflictException')
-                    and reason != 'DESTINATION_PHONE_NUMBER_OPTED_OUT'
+                if error_code in ('ValidationException', 'ConflictException') and reason not in (
+                    'DESTINATION_PHONE_NUMBER_OPTED_OUT',
+                    'SENDER_ID_NOT_SUPPORTED',
                 ):
                     recipient_number_redacted = f'{recipient_number[:-4]}XXXX'
                     request_id = e.response.get('ResponseMetadata', {}).get('RequestId')

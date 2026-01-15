@@ -334,7 +334,7 @@ def test_send_sms_post_message_request_raises_aws_exception(mocker, aws_pinpoint
 
 
 # TODO: Add ValidationException as non-retryable once AWS support issue resolved (Case ID 176252254206525)
-# Note: Fallback to V1 for any ConflictException other than DESTINATION_PHONE_NUMBER_OPTED_OUT
+# Note: Fallback to V1 for any ConflictException other than DESTINATION_PHONE_NUMBER_OPTED_OUT or SENDER_ID_NOT_SUPPORTED
 @pytest.mark.parametrize(
     'error_code, reason, resource_type, resource_id',
     [
@@ -342,6 +342,7 @@ def test_send_sms_post_message_request_raises_aws_exception(mocker, aws_pinpoint
         ('ServiceQuotaExceededException', 'MONTHLY_SPEND_LIMIT_REACHED_FOR_TEXT', None, None),
         ('AccessDeniedException', 'ACCOUNT_DISABLED', None, None),
         ('ResourceNotFoundException', 'Resource not found', 'configuration-set', 'env-configuration-set'),
+        ('ValidationException', 'SENDER_ID_NOT_SUPPORTED', None, None),
     ],
 )
 def test_send_sms_handles_pinpoint_v2_nonretryable_exceptions(
