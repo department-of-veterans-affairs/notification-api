@@ -44,6 +44,10 @@
           "valueFrom": "arn:aws-us-gov:secretsmanager:us-gov-west-1:171875617347:secret:prod-pinpoint-firehose-api-key-20250721174021860100000001-SAfqdV"
         },
         {
+          "name": "PINPOINT_SENDER_IDS",
+          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/prod/notification-api/pinpoint/sms-sender-ids"
+        },
+        {
           "name": "TWILIO_ACCOUNT_SID",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/prod/notification-api/twilio/account-sid"
         },
