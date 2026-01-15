@@ -42,6 +42,7 @@ def aws_pinpoint_client(notify_api, mocker):
             aws_region='some-aws-region',
             logger=logger,
             origination_number=TEST_SENDER_NUMBER,
+            sms_sender_ids=[TEST_SENDER_ID],
             statsd_client=statsd_client,
         )
         return aws_pinpoint_client
@@ -63,7 +64,6 @@ def test_send_sms_successful_returns_aws_pinpoint_response_messageid(
     PINPOINT_SMS_VOICE_V2, sender, mocker, aws_pinpoint_client, monkeypatch
 ):
     monkeypatch.setenv('PINPOINT_SMS_VOICE_V2', PINPOINT_SMS_VOICE_V2)
-    mocker.patch('app.service.sender.current_app.config', {'AWS_PINPOINT_SENDER_IDS': [TEST_SENDER_ID]})
 
     if PINPOINT_SMS_VOICE_V2 == 'True':
         client_mock = mocker.patch.object(aws_pinpoint_client, '_pinpoint_sms_voice_v2_client', create=True)

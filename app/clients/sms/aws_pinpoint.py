@@ -6,7 +6,6 @@ from time import monotonic
 import boto3
 import botocore
 import botocore.exceptions
-from flask import current_app
 import phonenumbers
 
 from app.celery.exceptions import NonRetryableException, RetryableException
@@ -96,6 +95,7 @@ class AwsPinpointClient(SmsClient):
         aws_region,
         logger,
         origination_number,
+        sms_sender_ids,
         statsd_client,
     ):
         self._pinpoint_client = boto3.client('pinpoint', region_name=aws_region)
@@ -105,6 +105,7 @@ class AwsPinpointClient(SmsClient):
         self.aws_region = aws_region
         self.origination_number = origination_number
         self.statsd_client = statsd_client
+        self.sms_sender_ids = sms_sender_ids
         self.logger: Logger = logger
 
     def get_name(self):
@@ -522,7 +523,7 @@ class AwsPinpointClient(SmsClient):
             # allow phone pool pattern
             return
 
-        if phone_number in current_app.config['AWS_PINPOINT_SENDER_IDS']:
+        if phone_number in self.sms_sender_ids:
             # allow sender id
             return
 
