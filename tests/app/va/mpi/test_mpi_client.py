@@ -1,7 +1,7 @@
 import pytest
 from copy import deepcopy
 
-from requests import RequestException
+import requests
 from requests_mock import ANY
 from requests.utils import quote
 
@@ -243,9 +243,9 @@ class TestGetVaProfileId:
     def test_should_throw_mpi_retryable_exception_when_request_exception_is_thrown(
         self, mpi_client, notification_with_recipient_identifier, mocker
     ):
-        mocker.patch('app.va.mpi.mpi.requests.session', side_effect=RequestException)
+        mocker.patch('app.va.mpi.mpi.requests.session', side_effect=requests.exceptions.InvalidURL)
 
         with pytest.raises(MpiRetryableException) as e:
             mpi_client.get_va_profile_id(notification_with_recipient_identifier)
 
-            assert e.value.failure_reason == 'MPI returned RequestException while querying for FHIR identifier'
+        assert e.value.failure_reason == 'MPI returned RequestException InvalidURL while querying for FHIR identifier'

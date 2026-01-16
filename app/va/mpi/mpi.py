@@ -188,9 +188,9 @@ class MpiClient:
                 raise exception from e
         except requests.RequestException as e:
             self.statsd_client.incr('clients.mpi.error.request_exception')
-            message = f'MPI returned RequestException while querying for FHIR identifier: {type(e).__name__}'
+            message = f'MPI returned RequestException {type(e).__name__} while querying for FHIR identifier'
             exception = MpiRetryableException(message)
-            exception.failure_reason = exception
+            exception.failure_reason = message
             raise exception from e
         else:
             self._validate_response(
