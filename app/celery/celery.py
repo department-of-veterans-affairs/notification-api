@@ -76,7 +76,7 @@ def make_task(app):
             elapsed_time = time.time() - self.start
 
             # ensure task will log exceptions to correct handlers
-            app.logger.exception('celery task failure: %s took %.4f seconds', self.name, elapsed_time)
+            app.logger.error('celery task failure: %s took %.4f seconds', self.name, elapsed_time)
             super().on_failure(exc, task_id, args, kwargs, einfo)
 
         def __call__(
