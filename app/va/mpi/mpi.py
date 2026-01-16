@@ -169,7 +169,7 @@ class MpiClient:
                 response.raise_for_status()
         except requests.HTTPError as e:
             self.statsd_client.incr(f'clients.mpi.error.{e.response.status_code}')
-            message = f'MPI returned {str(e)} while querying for notification {notification_id}'
+            message = f'MPI returned {e.response.status_code} while querying for notification {notification_id}'
 
             failure_reason = (
                 f'Received {responses[e.response.status_code]} HTTP error ({e.response.status_code}) while '
@@ -182,13 +182,13 @@ class MpiClient:
                 exception.failure_reason = failure_reason
                 raise exception from e
             else:
-                self.logger.exception(message)
+                self.logger.error(message)
                 exception = MpiNonRetryableException(message)
                 exception.failure_reason = failure_reason
                 raise exception from e
         except requests.RequestException as e:
             self.statsd_client.incr('clients.mpi.error.request_exception')
-            message = f'MPI returned RequestException while querying for FHIR identifier: {str(e)}'
+            message = f'MPI returned RequestException while querying for FHIR identifier: {type(e).__name__}'
             exception = MpiRetryableException(message)
             exception.failure_reason = exception
             raise exception from e
