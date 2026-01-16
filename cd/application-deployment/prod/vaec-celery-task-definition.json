@@ -23,7 +23,8 @@
         }
       ],
       "environment": [
-        { "name": "CELERY_CONCURRENCY", 
+        {
+          "name": "CELERY_CONCURRENCY",
           "value": "8"
         },
         {
@@ -107,7 +108,7 @@
         {
           "name": "VA_PROFILE_TOKEN",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/prod/notification-api/va-profile/auth-token"
-        }, 
+        },
         {
           "name": "VETEXT_USERNAME",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/prod/notification-api/vetext/user"
@@ -164,7 +165,7 @@
       "environment": [
         {
           "name": "DD_APM_NON_LOCAL_TRAFFIC",
-          "value": "true"
+          "value": "false"
         },
         {
           "name": "DD_LOGS_ENABLED",
@@ -188,7 +189,7 @@
         },
         {
           "name": "DD_APM_ENABLED",
-          "value": "true"
+          "value": "false"
         },
         {
           "name": "DD_ENV",
