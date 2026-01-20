@@ -96,7 +96,7 @@ def test_send_sms_successful_returns_aws_pinpoint_response_messageid(
         'invalid phone number',
         'invalid phone-pool id',
         'invalid short-code',
-        'invalid short-code',
+        'invalid short-code-length',
         'invalid sender id',
     ],
 )
