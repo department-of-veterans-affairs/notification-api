@@ -2542,8 +2542,8 @@ statsd = ">=4.0.1"
 [package.source]
 type = "git"
 url = "https://github.com/department-of-veterans-affairs/notification-utils.git"
-reference = "HEAD"
-resolved_reference = "6bbaad83759b0f064c070236626f33367e80cd05"
+reference = "sw-3560-email-graphic-update"
+resolved_reference = "f325723d62765d8863771f2a8570cf77e97a01a7"
 
 [[package]]
 name = "notifications-python-client"
@@ -4351,4 +4351,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.10"
-content-hash = "9dc689199acb99d952c3baded582eb29f4c5d5fb2e331c80b1d08761c140ca50"
+content-hash = "c18fb630d21291a6730b599fc1f44750495c71e5aaf043d530deb6da42403c17"
