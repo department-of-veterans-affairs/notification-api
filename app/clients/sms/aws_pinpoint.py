@@ -525,7 +525,7 @@ class AwsPinpointClient(SmsClient):
             return
 
         if phone_number in self.sms_sender_ids:
-            # allow sender id
+            # allow sender ID if included in whitelist
             return
 
         # validate as a phone number
