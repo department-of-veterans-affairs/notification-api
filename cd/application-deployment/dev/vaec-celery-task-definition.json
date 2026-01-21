@@ -65,6 +65,10 @@
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/dev/notification-api/granicus/token"
         },
         {
+          "name": "PINPOINT_SENDER_IDS",
+          "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/dev/notification-api/pinpoint/sms-sender-ids"
+        },
+        {
           "name": "REDIS_URL",
           "valueFrom": "arn:aws-us-gov:ssm:us-gov-west-1:171875617347:parameter/dev/notification-api/redis/url"
         },

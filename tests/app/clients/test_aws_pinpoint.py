@@ -27,6 +27,7 @@ TEST_RECIPIENT_NUMBER = '+100000000'
 TEST_SENDER_NUMBER = '+12025550123'
 TEST_SENDER_SHORT_NUMBER = '12345'
 TEST_REFERENCE = 'test notification id'
+TEST_SENDER_ID = 'TESTSENDERID'
 
 
 @pytest.fixture
@@ -41,6 +42,7 @@ def aws_pinpoint_client(notify_api, mocker):
             aws_region='some-aws-region',
             logger=logger,
             origination_number=TEST_SENDER_NUMBER,
+            sms_sender_ids=[TEST_SENDER_ID],
             statsd_client=statsd_client,
         )
         return aws_pinpoint_client
@@ -54,8 +56,8 @@ def pinpoint_client_mock(aws_pinpoint_client, mocker):
 
 @pytest.mark.parametrize(
     'sender',
-    (None, TEST_SENDER_NUMBER, TEST_SENDER_SHORT_NUMBER, 'pool-1234abcd'),
-    ids=['no sender specified', '10DLC sender', 'short-code sender', 'phone-pool sender'],
+    (None, TEST_SENDER_NUMBER, TEST_SENDER_SHORT_NUMBER, 'pool-1234abcd', TEST_SENDER_ID),
+    ids=['no sender specified', '10DLC sender', 'short-code sender', 'phone-pool sender', 'sender id'],
 )
 @pytest.mark.parametrize('PINPOINT_SMS_VOICE_V2', ('False', 'True'))
 def test_send_sms_successful_returns_aws_pinpoint_response_messageid(
@@ -89,8 +91,14 @@ def test_send_sms_successful_returns_aws_pinpoint_response_messageid(
 
 @pytest.mark.parametrize(
     'sender',
-    ('+10000000000', 'bucket-1234abcd', '01', '0123456'),
-    ids=['invalid phone number', 'invalid phone-pool id', 'invalid short-code', 'invalid short-code'],
+    ('+10000000000', 'bucket-1234abcd', '01', '0123456', 'INVALID_SENDER_ID'),
+    ids=[
+        'invalid phone number',
+        'invalid phone-pool id',
+        'invalid short-code',
+        'invalid short-code-length',
+        'invalid sender id',
+    ],
 )
 @pytest.mark.parametrize('PINPOINT_SMS_VOICE_V2', ('False', 'True'))
 def test_send_sms_throws_non_retryable_on_invalid_sender(
@@ -326,7 +334,7 @@ def test_send_sms_post_message_request_raises_aws_exception(mocker, aws_pinpoint
 
 
 # TODO: Add ValidationException as non-retryable once AWS support issue resolved (Case ID 176252254206525)
-# Note: Fallback to V1 for any ConflictException other than DESTINATION_PHONE_NUMBER_OPTED_OUT
+# Note: Fallback to V1 for any ConflictException other than DESTINATION_PHONE_NUMBER_OPTED_OUT or SENDER_ID_NOT_SUPPORTED
 @pytest.mark.parametrize(
     'error_code, reason, resource_type, resource_id',
     [
@@ -334,6 +342,7 @@ def test_send_sms_post_message_request_raises_aws_exception(mocker, aws_pinpoint
         ('ServiceQuotaExceededException', 'MONTHLY_SPEND_LIMIT_REACHED_FOR_TEXT', None, None),
         ('AccessDeniedException', 'ACCOUNT_DISABLED', None, None),
         ('ResourceNotFoundException', 'Resource not found', 'configuration-set', 'env-configuration-set'),
+        ('ValidationException', 'SENDER_ID_NOT_SUPPORTED', None, None),
     ],
 )
 def test_send_sms_handles_pinpoint_v2_nonretryable_exceptions(
