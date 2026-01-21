@@ -151,6 +151,7 @@ def create_app(application):
         application.config['AWS_REGION'],
         application.logger,
         application.config['FROM_NUMBER'],
+        application.config['AWS_PINPOINT_SENDER_IDS'],
         statsd_client,
     )
     sqs_client.init_app(application.config['AWS_REGION'], application.logger, statsd_client)

@@ -696,6 +696,7 @@ def test_deliver_sms_pinpoint_v2_opt_out(
             aws_region='some-aws-region',
             logger=logger,
             origination_number='+12025550123',
+            sms_sender_ids=[],
             statsd_client=statsd_client,
         )
 
@@ -736,4 +737,68 @@ def test_deliver_sms_pinpoint_v2_opt_out(
 
     assert notification.status == NOTIFICATION_PERMANENT_FAILURE
     assert notification.status_reason == STATUS_REASON_BLOCKED
+    mocked_check_and_queue_callback_task.assert_called_once()
+
+
+def test_deliver_sms_pinpoint_v2_sender_id_not_supported(
+    notify_db_session,
+    mocker,
+    sample_provider,
+    sample_service,
+    sample_template,
+    sample_notification,
+    notify_api,
+):
+    """
+    Pinpoint V2 sender-id-not-supported NonRetryableExceptions should be marked as permanent failure with undeliverable status reason
+    """
+
+    with notify_api.app_context():
+        aws_pinpoint_client = AwsPinpointClient()
+        statsd_client = mocker.Mock()
+        aws_pinpoint_client.init_app(
+            aws_pinpoint_app_id=TEST_ID,
+            aws_pinpoint_v2_configset='dev',
+            aws_region='some-aws-region',
+            logger=logger,
+            origination_number='+12025550123',
+            sms_sender_ids=[],
+            statsd_client=statsd_client,
+        )
+
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
+
+    mocked_check_and_queue_callback_task = mocker.patch(
+        'app.celery.common.check_and_queue_callback_task',
+    )
+
+    error_response = {
+        'Error': {
+            'Code': 'ValidationException',
+            'Message': 'Sender ID is not supported for this destination or configuration.',
+        },
+        'Reason': 'SENDER_ID_NOT_SUPPORTED',
+    }
+
+    botocore_client_error = botocore.exceptions.ClientError(error_response, 'send_text_message')
+
+    mocker.patch.object(
+        aws_pinpoint_client._pinpoint_sms_voice_v2_client, 'send_text_message', side_effect=botocore_client_error
+    )
+
+    mocker.patch('app.delivery.send_to_providers.client_to_use', return_value=aws_pinpoint_client)
+
+    provider = sample_provider()
+    service = sample_service(sms_provider_id=provider.id)
+    template = sample_template(service=service, provider_id=service.sms_provider_id)
+    notification = sample_notification(template=template)
+
+    assert template.template_type == SMS_TYPE
+
+    deliver_sms(notification.id)
+
+    notify_db_session.session.refresh(notification)
+
+    assert notification.status == NOTIFICATION_PERMANENT_FAILURE
+    assert notification.status_reason == STATUS_REASON_UNDELIVERABLE
     mocked_check_and_queue_callback_task.assert_called_once()
