@@ -95,6 +95,7 @@ class AwsPinpointClient(SmsClient):
         aws_region,
         logger,
         origination_number,
+        sms_sender_ids,
         statsd_client,
     ):
         self._pinpoint_client = boto3.client('pinpoint', region_name=aws_region)
@@ -104,6 +105,7 @@ class AwsPinpointClient(SmsClient):
         self.aws_region = aws_region
         self.origination_number = origination_number
         self.statsd_client = statsd_client
+        self.sms_sender_ids = sms_sender_ids
         self.logger: Logger = logger
 
     def get_name(self):
@@ -272,11 +274,12 @@ class AwsPinpointClient(SmsClient):
                 )
             except botocore.exceptions.ClientError as e:
                 # temporary fallback to V1 until V2 service issues resolved (PR and CA destination numbers)
+                # OPT_OUT and SENDER_ID errors are not retried in V1
                 error_code = e.response.get('Error', {}).get('Code', '')
                 reason = e.response.get('Reason')
-                if (
-                    error_code in ('ValidationException', 'ConflictException')
-                    and reason != 'DESTINATION_PHONE_NUMBER_OPTED_OUT'
+                if error_code in ('ValidationException', 'ConflictException') and reason not in (
+                    'DESTINATION_PHONE_NUMBER_OPTED_OUT',
+                    'SENDER_ID_NOT_SUPPORTED',
                 ):
                     recipient_number_redacted = f'{recipient_number[:-4]}XXXX'
                     request_id = e.response.get('ResponseMetadata', {}).get('RequestId')
@@ -519,6 +522,10 @@ class AwsPinpointClient(SmsClient):
 
         if re.match(phone_pool_pattern, phone_number):
             # allow phone pool pattern
+            return
+
+        if phone_number in self.sms_sender_ids:
+            # allow sender ID if included in whitelist
             return
 
         # validate as a phone number

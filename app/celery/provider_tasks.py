@@ -249,7 +249,8 @@ def _handle_delivery_failure(  # noqa: C901 - too complex (11 > 10)
             # will return STATUS_REASON_BLOCKED.
             status_reason = STATUS_REASON_BLOCKED
         else:
-            # All other PinpointV2 ConflictException reasons are treated as undeliverable.
+            # All other PinpointV2 ConflictException or ValidationException (SENDER_ID_NOT_SUPPORTED) reasons
+            # that have not failed over to v1 are treated as undeliverable.
             status_reason = STATUS_REASON_UNDELIVERABLE
 
         log_and_update_permanent_failure(
