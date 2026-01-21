@@ -1,35 +1,46 @@
 # Postman
 
-To download Postman, go [here](https://www.postman.com/downloads/). Postman allows you to send requests.
+To download Postman, go [here](https://www.postman.com/downloads/). Postman allows you to send requests to test API endpoints.
+
+## About 
+
+This directory contains the Notification-API Postman collection and environment variable files for Development, Performance, and Staging environments.
+
+All JSON files can be imported into Postman individually.
+
+**Note:** While migrating from Notification-API to our Enterprise Notification Platform (ENP), these environment variable files contain variables for both applications.
 
 ## Postman scripts
 
-The postman scripts use the environment variables and populate or update them as the scripts are executed.
+The Postman Scripts use the environment variables and populate or update them as the scripts are executed.
 
 The basic environment variables are in this folder which you can import along with the scripts.  
 
-## basic environment variables
+## Importing Files
 
-These environment variables should be defined before you can execute any of the scripts
-- notification-api
--- the DNS name of the Notification API URL. This is the AWS load balancer dns name.  If you run the notification API \
-on your local, then this should be a value recognized by postman such as localhost.
-Run the following command to get the value:
-```
-aws ssm get-parameter --name /dev/notification-api/api-host-name | jq '.Parameter.Value' -r
-```
-- notification-secret
--- the secret key that is used to generate JWT.  You can see its value at `arn:aws:ssm:<aws region>:<aws id>:parameter/dev/notification-api/admin-client-secret`.
-Run the following command to get the value:
-```
- aws ssm get-parameter --name /dev/notification-api/admin-client-secret --with-decryption | jq '.Parameter.Value' -r
-```
-- notification-admin-id
--- the admin id (found in `config.py`)
+1. Open Postman
+2. Click **Import** 
+3. Select the collection file: `notification-api.json`
+4. Import environment files one at a time:
+   - `development-environment.json`
+   - `performance-environment.json`
+   - `staging-environment.json`
 
-Some scripts depend on the environment variables set by other scripts.  So depends on your goal you might have to run \
-the scripts in the order they are listed in postman.
+## Environment Variables
 
-## Demo Data
+The Postman collection uses environment variables that are automatically populated or updated as requests are executed.
 
-When demoing, use the service and template listed in the Demo Data document of the team repo.
+### Admin Route Variables
+
+Required before executing admin routes:
+
+- **`notification-client-secret`** - Secret key used to generate JWT tokens. Found in AWS Parameter Store for the appropriate environment.
+- **`notification-admin-id`** - Admin user ID. Found in AWS Parameter Store for the appropriate environment.
+
+
+### Service Route Variables
+
+Required before executing service routes:
+
+- **`service-id`** - Individual service ID for a particular service. Found by logging into VANotify Portal as an Admin user.
+- **`service-api-key`** - Service API key. Created by Admin users through the "create api key for service" endpoint in the Notification-API collection.

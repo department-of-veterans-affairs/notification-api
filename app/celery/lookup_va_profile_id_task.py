@@ -98,7 +98,7 @@ def lookup_va_profile_id(
             f'Failed to retrieve VA Profile ID from MPI for notification: {notification_id} '
             'Notification has been updated to permanent-failure'
         )
-        current_app.logger.exception(message)
+        current_app.logger.error(message)
         notifications_dao.update_notification_status_by_id(
             notification_id, NOTIFICATION_PERMANENT_FAILURE, status_reason=STATUS_REASON_NO_ID_FOUND
         )
