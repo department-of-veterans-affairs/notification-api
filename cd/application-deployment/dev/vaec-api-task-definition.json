@@ -148,7 +148,7 @@
       "environment": [
         {
           "name": "DD_APM_NON_LOCAL_TRAFFIC",
-          "value": "false"
+          "value": "true"
         },
         {
           "name": "DD_LOGS_ENABLED",
@@ -172,7 +172,7 @@
         },
         {
           "name": "DD_APM_ENABLED",
-          "value": "false"
+          "value": "true"
         },
         {
           "name": "DD_ENV",
