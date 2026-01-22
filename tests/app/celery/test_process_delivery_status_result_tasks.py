@@ -780,6 +780,7 @@ def test_sms_attempt_retry_queued_if_retryable(mocker, sample_notification, retr
 
     sms_attempt_retry(sms_status)
 
+    assert notification.retry_count == 1
     mocked_send_notification_to_queue_delayed.assert_called()
 
 
@@ -825,6 +826,8 @@ def test_sms_attempt_retry_notification_update_if_retryable(mocker, sample_notif
     sms_attempt_retry(sms_status)
 
     updated_notification = get_notification_by_id(notification.id)
+
+    assert updated_notification.retry_count == 1
     assert updated_notification.status == NOTIFICATION_CREATED
     assert updated_notification.status_reason is None
     assert updated_notification.reference is None
@@ -848,6 +851,7 @@ def test_sms_attempt_retry_not_queued_if_exception_on_retry_count(mocker, sample
 
     sms_attempt_retry(sms_status)
 
+    assert notification.retry_count is None
     mocked_send_notification_to_queue_delayed.assert_not_called()
     mocked_mark_retry_as_permanent_failure.assert_called()
 
@@ -868,6 +872,7 @@ def test_sms_attempt_retry_not_queued_if_retry_conditions_not_met(mocker, sample
 
     sms_attempt_retry(sms_status)
 
+    assert notification.retry_count is None
     mocked_send_notification_to_queue_delayed.assert_not_called()
     mocked_mark_retry_as_permanent_failure.assert_called()
 
@@ -891,6 +896,8 @@ def test_sms_attempt_retry_not_requeued_if_notification_update_exception(mocker,
 
     with pytest.raises(Exception):
         sms_attempt_retry(sms_status)
+
+    assert notification.retry_count is None
     assert mocked_send_notification_to_queue_delayed.not_called()
 
 
@@ -913,6 +920,8 @@ def test_sms_attempt_retry_notification_update_exception(mocker, sample_notifica
 
     with pytest.raises(NonRetryableException):
         sms_attempt_retry(sms_status)
+
+    assert notification.retry_count is None
     assert mocked_mark_retry_as_permanent_failure.not_called()
 
 
@@ -931,7 +940,9 @@ def test_sms_attempt_retry_notification_set_to_permanent_failure_when_retry_cond
     )
 
     sms_attempt_retry(sms_status)
+
     updated_notification = get_notification_by_id(notification.id)
+    assert updated_notification.retry_count is None
     assert updated_notification.status == NOTIFICATION_PERMANENT_FAILURE
     assert updated_notification.status_reason == STATUS_REASON_UNDELIVERABLE
 
