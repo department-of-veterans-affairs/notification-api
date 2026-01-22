@@ -542,6 +542,7 @@ def sms_attempt_retry(
             )
         except Exception:
             raise NonRetryableException('Unable to queue notification for delivery retry')
+
         db_retry_count = dao_increment_notification_retry_count(notification.id)
         current_app.logger.info(
             'Notification id: %s has retry_count: %s',
