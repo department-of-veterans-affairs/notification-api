@@ -25,6 +25,7 @@ from app.constants import (
 )
 from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
+    dao_increment_notification_retry_count,
     dao_update_sms_notification_delivery_status,
     dao_update_sms_notification_status_to_created_for_retry,
 )
@@ -541,6 +542,12 @@ def sms_attempt_retry(
             )
         except Exception:
             raise NonRetryableException('Unable to queue notification for delivery retry')
+        db_retry_count = dao_increment_notification_retry_count(notification.id)
+        current_app.logger.info(
+            'Notification id: %s has retry_count: %s',
+            notification.id,
+            db_retry_count,
+        )
 
         current_app.logger.info(
             'Requeued notification for delayed %s delivery | notification_id: %s | retry_delay: %s seconds',
