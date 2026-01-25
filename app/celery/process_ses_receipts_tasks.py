@@ -236,8 +236,6 @@ def _process_ses_results(task, response):  # noqa: C901 (too complex 20 > 10)
         )
         return
 
-    provider_updated_at = iso8601.parse_date(ses_message['mail']['timestamp']).replace(tzinfo=None)
-
     try:
         if notification_type == 'Bounce':
             # Bounces have ran their course with AWS and should be considered done. Clients can retry soft bounces.
@@ -275,6 +273,15 @@ def _process_ses_results(task, response):  # noqa: C901 (too complex 20 > 10)
                     'notification not found for reference: %s (update to %s)', reference, incoming_status
                 )
             return
+
+        provider_updated_at = iso8601.parse_date(ses_message['mail']['timestamp']).replace(tzinfo=None)
+        if provider_updated_at:
+            current_app.logger.debug(
+                'Updating notification %s provider_updated_at to %s', notification.id, provider_updated_at
+            )
+            notifications_dao.dao_update_provider_updated_at(
+                notification_id=notification.id, provider_updated_at=provider_updated_at
+            )
 
         # Prevent regressing bounce status.  Note that this is a test of the existing status; not the new status.
         if notification.status_reason and (
@@ -328,9 +335,7 @@ def _process_ses_results(task, response):  # noqa: C901 (too complex 20 > 10)
             notifications_dao.duplicate_update_warning(notification, incoming_status)
             return
 
-        notifications_dao._update_notification_status(
-            notification=notification, status=incoming_status, provider_updated_at=provider_updated_at
-        )
+        notifications_dao._update_notification_status(notification=notification, status=incoming_status)
 
         if not aws_response_dict['success']:
             current_app.logger.info(

@@ -1044,6 +1044,21 @@ def dao_increment_notification_retry_count(notification_id: UUID) -> int:
     return result.scalar()
 
 
+def dao_update_provider_updated_at(notification_id: UUID, provider_updated_at: datetime) -> None:
+    """
+    Update the provider_updated_at field for a notification.
+
+    Args:
+        notification_id (UUID): The notification ID to update
+        provider_updated_at (datetime): The datetime to set as provider_updated_at
+    """
+    stmt = (
+        update(Notification).where(Notification.id == notification_id).values(provider_updated_at=provider_updated_at)
+    )
+
+    db.session.execute(stmt)
+
+
 def notifications_not_yet_sent(
     should_be_sending_after_seconds,
     notification_type,
