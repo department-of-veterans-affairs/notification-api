@@ -250,6 +250,7 @@ def sms_status_update(
             cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
             provider_updated_at=sms_status.provider_updated_at,
         )
+
         statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
     except Exception:
         statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')

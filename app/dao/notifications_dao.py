@@ -306,6 +306,7 @@ def dao_update_sms_notification_delivery_status(
     new_status_reason: str | None,
     segments_count: int,
     cost_in_millicents: float,
+    provider_updated_at: datetime = None,
 ) -> Notification:
     """Update an SMS notification delivery status.
 
@@ -316,6 +317,7 @@ def dao_update_sms_notification_delivery_status(
         notification_id (UUID): The id to update
         new_status (str): The new status being set
         new_status_reason (str, optional): The new status reason beign set. Defaults to None.
+        provider_updated_at (datetime, optional): The datetime the provider last updated the status. Defaults to None.
 
     Returns:
         Notification: A Notification object
@@ -327,6 +329,7 @@ def dao_update_sms_notification_delivery_status(
             'status_reason': new_status_reason,
             'segments_count': segments_count,
             'cost_in_millicents': cost_in_millicents,
+            'provider_updated_at': provider_updated_at,
         }
 
         if new_status in FINAL_STATUS_STATES:
