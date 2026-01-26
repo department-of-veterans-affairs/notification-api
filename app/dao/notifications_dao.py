@@ -1044,6 +1044,8 @@ def dao_increment_notification_retry_count(notification_id: UUID) -> int:
     return result.scalar()
 
 
+@statsd(namespace='dao')
+@transactional
 def dao_update_provider_updated_at(notification_id: UUID, provider_updated_at: datetime) -> None:
     """
     Update the provider_updated_at field for a notification.
