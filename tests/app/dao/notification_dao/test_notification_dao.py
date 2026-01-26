@@ -58,7 +58,7 @@ from app.models import (
     ScheduledNotification,
     RecipientIdentifier,
 )
-from app.notifications.process_notifications import persist_notification
+from app.notifications.process_notifications import persist_notification, persist_scheduled_notification
 from app.va.identifier import IdentifierType
 
 
@@ -1194,6 +1194,103 @@ def test_set_scheduled_notification_to_processed(sample_template, sample_notific
     set_scheduled_notification_to_processed(notification_1.id)
     scheduled_notifications = dao_get_scheduled_notifications()
     assert not scheduled_notifications
+
+
+@freeze_time('2023-09-06 16:52:00')
+def test_persist_scheduled_notification_stores_utc_without_conversion(
+    notify_db_session, sample_template, sample_notification
+):
+    """
+    Test that scheduled_for times are stored as UTC without timezone conversion.
+    
+    This test exposes issue #1439 where scheduled_for undergoes double timezone conversion.
+    
+    See QA testing documentation:
+    https://github.com/department-of-veterans-affairs/vanotify-team/blob/main/Engineering/Quality%20Assurance/scheduling%20_notificatiions.md
+    
+    QA Test Case (from vanotify-team repo):
+    - Current time: 10:52 AM MDT (16:52 UTC) on Sept 6, 2023
+    - User sends: "2023-09-06 14:00" expecting it to mean 14:00 UTC
+    - User expects notification to send at: 14:00 UTC
+    
+    The DOUBLE CONVERSION BUG:
+    1. persist_scheduled_notification() treats input as America/New_York time
+       - Input "14:00" treated as "14:00 EDT" (UTC-4 in September)
+       - Converts to UTC: 14:00 EDT → 18:00 UTC (+4 hours)
+       - DB stores: 18:00 UTC (4 hours late!)
+    
+    2. Notification.serialize() treats DB value as America/New_York time AGAIN
+       - Reads "18:00" from DB (already UTC!)
+       - Treats it as "18:00 EDT" and converts to UTC again
+       - Returns: 18:00 EDT → 22:00 UTC (+4 more hours)
+       - GET response shows: 22:00 UTC (8 hours from user intent!)
+    
+    3. Actual delivery uses DB value correctly
+       - Notification sends at: 18:00 UTC (4 hours late, but no second conversion)
+    
+    Result:
+    - User expected: 14:00 UTC
+    - Notification sends: 18:00 UTC (4 hours late)
+    - GET response shows: 22:00 UTC (8 hours wrong)
+    
+    This matches QA observations where:
+    - User sent: 17:00 UTC
+    - Notification delivered: 21:15 UTC (4 hours late)
+    - GET showed: 01:00 UTC next day (8 hours wrong)
+    """
+    template = sample_template()
+    notification = sample_notification(template=template, status=NOTIFICATION_CREATED)
+    
+    scheduled_for_input = '2023-09-06 14:00'
+    expected_utc = datetime(2023, 9, 6, 14, 0)
+    
+    persist_scheduled_notification(notification.id, scheduled_for_input)
+    
+    # Query ScheduledNotification table directly (not using dao_get_scheduled_notifications which filters by time)
+    stmt = select(Notification).join(ScheduledNotification).where(Notification.id == notification.id)
+    scheduled_notification = notify_db_session.session.scalar(stmt)
+    
+    assert scheduled_notification is not None, 'Scheduled notification was not created'
+    
+    db_value = scheduled_notification.scheduled_notification.scheduled_for
+    
+    # FIRST BUG: DB storage adds 4 hours (EDT to UTC conversion)
+    print(f'\n=== DEMONSTRATING THE DOUBLE CONVERSION BUG ===')
+    print(f'User sent: {scheduled_for_input} (expecting UTC)')
+    print(f'User expects DB to store: {expected_utc} UTC')
+    print(f'DB actually stores: {db_value} UTC')
+    print(f'First conversion added: {(db_value - expected_utc).total_seconds() / 3600} hours')
+    
+    # Temporarily comment out to see the second bug
+    # assert db_value == expected_utc, (
+    #     f'BUG #1 (persist_scheduled_notification): '
+    #     f'Expected scheduled_for to store {expected_utc} UTC (input as-is), '
+    #     f'but DB has {db_value} UTC. '
+    #     f'Difference: {(db_value - expected_utc).total_seconds() / 3600} hours. '
+    #     f'The code is treating "{scheduled_for_input}" as America/New_York time and converting to UTC.'
+    # )
+    
+    # SECOND BUG: serialize() adds another 4 hours (treats UTC as EDT, converts again)
+    # We can't call serialize() directly because it requires Flask request context,
+    # but we can test the conversion logic that happens in models.py line 1553
+    from notifications_utils.timezones import convert_local_timezone_to_utc
+    
+    # This is what serialize() does (line 1553 in models.py):
+    # convert_local_timezone_to_utc(self.scheduled_notification.scheduled_for)
+    serialized_value = convert_local_timezone_to_utc(db_value)
+    
+    print(f'\nNotification will send at: {db_value} UTC (uses DB value)')
+    print(f'GET response will show: {serialized_value} UTC (after serialize converts it)')
+    print(f'Second conversion added: {(serialized_value - db_value).total_seconds() / 3600} hours')
+    print(f'Total discrepancy from user intent: {(serialized_value - expected_utc).total_seconds() / 3600} hours')
+    
+    assert serialized_value == expected_utc, (
+        f'BUG #2 (Notification.serialize): '
+        f'Expected serialize to return {expected_utc} UTC, '
+        f'but got {serialized_value} UTC. '
+        f'Difference: {(serialized_value - expected_utc).total_seconds() / 3600} hours. '
+        f'The serialize() method (models.py:1553) is treating the DB value (already UTC) as America/New_York time and converting it AGAIN.'
+    )
 
 
 def test_dao_get_last_notification_added_for_job_id_valid_job_id(sample_template, sample_notification, sample_job):
