@@ -1752,6 +1752,7 @@ def test_update_notification_delivery_status_valid_updates(
         new_status_reason=final_status_reason,
         segments_count=1,
         cost_in_millicents=0.0,
+        provider_updated_at=datetime(2024, 1, 1, 12, 0, 0),
     )
 
     assert notification.status == new_status
@@ -1803,6 +1804,7 @@ def test_update_notification_delivery_status_invalid_updates(
         new_status_reason=status_reason,
         segments_count=1,
         cost_in_millicents=0.0,
+        provider_updated_at=datetime(2024, 1, 1, 12, 0, 0),
     )
 
     assert notification.status != new_status
