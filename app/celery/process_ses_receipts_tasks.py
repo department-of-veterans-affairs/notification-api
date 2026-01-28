@@ -112,7 +112,7 @@ def process_ses_results(
             SES_PROVIDER,
         )
     else:
-        return _process_ses_results(task, celery_envelope)
+        return _process_ses_results(task, celery_envelope, task.request.retries)
 
 
 def _validate_response(celery_envelope: str) -> SesResponse:
@@ -211,7 +211,7 @@ def _queue_callbacks(notification):
     check_and_queue_va_profile_notification_status_callback(notification)
 
 
-def _process_ses_results(task, response):  # noqa: C901 (too complex 20 > 10)
+def _process_ses_results(task, response, celery_retry_count):  # noqa: C901 (too complex 20 > 10)
     current_app.logger.debug('Full SES result response: %s', response)
 
     try:
@@ -273,6 +273,14 @@ def _process_ses_results(task, response):  # noqa: C901 (too complex 20 > 10)
                     'notification not found for reference: %s (update to %s)', reference, incoming_status
                 )
             return
+
+        if celery_retry_count > 0:
+            db_retry_count = notifications_dao.dao_increment_notification_retry_count(notification.id)
+            current_app.logger.info(
+                '_process_ses_results retry_attempt for notification %s, total retry_count now %s',
+                notification.id,
+                db_retry_count,
+            )
 
         # Prevent regressing bounce status.  Note that this is a test of the existing status; not the new status.
         if notification.status_reason and (
