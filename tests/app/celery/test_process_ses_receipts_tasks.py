@@ -62,7 +62,7 @@ def ses_notification_complaint_callback(reference):
                 'ses:source-ip': ['152.129.43.2'],
                 'ses:source-tls-version': ['TLSv1.3'],
             },
-            'timestamp': str(datetime.utcnow()),
+            'timestamp': datetime(2017, 11, 17, 12, 14, 1, 643000).isoformat(),
         },
     }
 
@@ -114,12 +114,14 @@ def test_process_ses_results_notification_delivery(notify_db_session, sample_tem
     )
     assert notification.status == NOTIFICATION_SENDING
     assert notification.status_reason == 'just because'
+    assert notification.provider_updated_at is None
 
     assert process_ses_receipts_tasks.process_ses_results(celery_envelope=ses_notification_callback(reference=ref))
 
     notify_db_session.session.refresh(notification)
     assert notification.status == NOTIFICATION_DELIVERED
     assert notification.status_reason is None
+    assert notification.provider_updated_at == datetime(2017, 11, 17, 12, 14, 1, 643000)
 
 
 def test_process_ses_results_notification_not_found(mocker):

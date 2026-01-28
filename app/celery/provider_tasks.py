@@ -56,6 +56,15 @@ def deliver_sms(
     notification_id,
     sms_sender_id=None,
 ):
+    if task.request.retries > 0:
+        db_retry_count = notifications_dao.dao_increment_notification_retry_count(notification_id)
+        current_app.logger.info(
+            'SMS retry attempt %s for notification %s, total retry_count now: %s',
+            task.request.retries,
+            notification_id,
+            db_retry_count,
+        )
+
     current_app.logger.info(
         'Start sending SMS for notification id: %s', notification_id, extra={'sms_sender_id': sms_sender_id}
     )
@@ -167,6 +176,15 @@ def deliver_email(
     notification_id: UUID,
     sms_sender_id: UUID = None,
 ):
+    if task.request.retries > 0:
+        db_retry_count = notifications_dao.dao_increment_notification_retry_count(notification_id)
+        current_app.logger.info(
+            'Email retry attempt %s for notification %s, total retry_count now: %s',
+            task.request.retries,
+            notification_id,
+            db_retry_count,
+        )
+
     current_app.logger.info('Start sending email for notification id: %s', notification_id)
 
     try:
@@ -183,10 +201,6 @@ def deliver_email(
         current_app.logger.info('Successfully sent email for notification id: %s', notification_id)
 
     except AwsSesClientThrottlingSendRateException as e:
-        db_retry_count = notifications_dao.dao_increment_notification_retry_count(notification_id)
-
-        current_app.logger.warning('Notification %s has retry_count %s', notification_id, db_retry_count)
-
         current_app.logger.warning(
             'Celery RETRY number %s: Email notification %s was rate limited by SES',
             task.request.retries,
@@ -288,10 +302,6 @@ def _handle_delivery_failure(  # noqa: C901 - too complex (11 > 10)
         # We retry everything because it ensures missed exceptions do not prevent notifications from going out. Logs are
         # checked daily and tickets opened for narrowing the not 'RetryableException's that make it this far.
         if can_retry(celery_task.request.retries, celery_task.max_retries, notification_id):
-            db_retry_count = notifications_dao.dao_increment_notification_retry_count(notification_id)
-
-            current_app.logger.warning('Notification %s has retry_count %s', notification_id, db_retry_count)
-
             current_app.logger.warning(
                 '%s unable to send for notification %s, retrying',
                 notification_type,

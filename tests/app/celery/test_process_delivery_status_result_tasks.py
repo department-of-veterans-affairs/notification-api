@@ -793,7 +793,7 @@ def test_mark_retry_as_permanent_failure_check_and_queue_va_profile_notification
 
 
 @pytest.mark.parametrize('retry_count', [value for value in range(CARRIER_SMS_MAX_RETRIES)])
-def test_sms_attempt_retry_queued_if_retryable(mocker, sample_notification, retry_count):
+def test_sms_attempt_retry_queued_if_retryable(notify_db_session, mocker, sample_notification, retry_count):
     notification = sample_notification(
         status=NOTIFICATION_SENDING,
     )
@@ -810,6 +810,8 @@ def test_sms_attempt_retry_queued_if_retryable(mocker, sample_notification, retr
     )
 
     sms_attempt_retry(sms_status)
+
+    notify_db_session.session.refresh(notification)
 
     assert notification.retry_count == 1
     mocked_send_notification_to_queue_delayed.assert_called()
@@ -838,6 +840,7 @@ def test_sms_attempt_retry_cost_updated_if_retryable(mocker, sample_notification
 
     updated_notification = get_notification_by_id(notification.id)
     assert updated_notification.cost_in_millicents == orig_cost + sms_status.price_millicents
+    assert updated_notification.retry_count == 1
 
 
 def test_sms_attempt_retry_notification_update_if_retryable(mocker, sample_notification):
