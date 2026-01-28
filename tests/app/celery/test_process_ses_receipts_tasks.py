@@ -1,4 +1,6 @@
 import json
+
+from celery import Task
 import pytest
 from datetime import datetime
 from freezegun import freeze_time
@@ -201,6 +203,28 @@ def test_process_ses_results_call_to_publish_complaint(sample_template, sample_n
         celery_envelope=ses_notification_complaint_callback(reference=notification.reference)
     )
     publish_complaint.assert_called_once()
+
+
+def test_process_ses_results_increments_retry_count(mocker, sample_template, sample_notification):
+    template = sample_template(template_type=EMAIL_TYPE)
+    ref = str(uuid4())
+    notification: Notification = sample_notification(
+        template=template,
+        reference=ref,
+        sent_at=datetime.utcnow(),
+        status=NOTIFICATION_SENDING,
+    )
+
+    assert notification.retry_count is None
+
+    mock_task = mocker.Mock(spec=Task)
+    mock_task.request.retries = 1
+
+    process_ses_receipts_tasks.process_ses_results.__wrapped__.__wrapped__(
+        mock_task,
+        celery_envelope=ses_notification_callback(reference=ref),
+    )
+    assert notification.retry_count == 1
 
 
 def test_remove_emails_from_complaint():
