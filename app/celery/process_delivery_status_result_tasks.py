@@ -232,6 +232,7 @@ def sms_status_update(
         sms_status.status_reason,
         notification.service_id,
         notification.template_id,
+        provider_updated_at=sms_status.provider_updated_at,
         extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
     )
 
@@ -247,6 +248,7 @@ def sms_status_update(
             new_status_reason=sms_status.status_reason,
             segments_count=sms_status.message_parts,
             cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
+            provider_updated_at=sms_status.provider_updated_at,
         )
         statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
     except Exception:
@@ -263,6 +265,7 @@ def sms_status_update(
         notification.cost_in_millicents,
         notification.service_id,
         notification.template_id,
+        notification.provider_updated_at,
         extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
     )
 
