@@ -1021,6 +1021,46 @@ def dao_get_last_notification_added_for_job_id(job_id):
     return last_notification_added
 
 
+@statsd(namespace='dao')
+@transactional
+def dao_increment_notification_retry_count(notification_id: UUID) -> int:
+    """
+    Increment the retry_count for a notification by 1.
+
+    Args:
+        notification_id (UUID): The notification ID to update
+
+    Returns:
+        int: The updated retry_count value
+    """
+    stmt = (
+        update(Notification)
+        .where(Notification.id == notification_id)
+        .values(retry_count=func.coalesce(Notification.retry_count, 0) + 1, updated_at=datetime.utcnow())
+        .returning(Notification.retry_count)
+    )
+
+    result = db.session.execute(stmt)
+    return result.scalar()
+
+
+@statsd(namespace='dao')
+@transactional
+def dao_update_provider_updated_at(notification_id: UUID, provider_updated_at: datetime) -> None:
+    """
+    Update the provider_updated_at field for a notification.
+
+    Args:
+        notification_id (UUID): The notification ID to update
+        provider_updated_at (datetime): The datetime to set as provider_updated_at
+    """
+    stmt = (
+        update(Notification).where(Notification.id == notification_id).values(provider_updated_at=provider_updated_at)
+    )
+
+    db.session.execute(stmt)
+
+
 def notifications_not_yet_sent(
     should_be_sending_after_seconds,
     notification_type,
