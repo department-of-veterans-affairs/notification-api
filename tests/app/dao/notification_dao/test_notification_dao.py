@@ -32,6 +32,8 @@ from app.dao.notifications_dao import (
     dao_delete_notification_by_id,
     dao_get_last_notification_added_for_job_id,
     dao_get_scheduled_notifications,
+    dao_increment_notification_retry_count,
+    dao_update_provider_updated_at,
     dao_update_sms_notification_delivery_status,
     dao_timeout_notifications,
     dao_update_notification,
@@ -1914,3 +1916,36 @@ def test_dao_update_notification_by_id(
     )
 
     assert notification.status != new_status
+
+
+def test_dao_increment_notification_retry_count(
+    sample_template,
+    sample_notification,
+):
+    notification = sample_notification(
+        template=sample_template(),
+        status=NOTIFICATION_TEMPORARY_FAILURE,
+    )
+
+    assert notification.retry_count is None
+
+    retry_count = dao_increment_notification_retry_count(notification.id)
+
+    assert retry_count == 1
+    assert notification.retry_count == 1
+
+
+def test_dao_update_provider_updated_at(
+    sample_template,
+    sample_notification,
+):
+    notification = sample_notification(
+        template=sample_template(),
+        status=NOTIFICATION_SENDING,
+    )
+
+    assert notification.provider_updated_at is None
+
+    dao_update_provider_updated_at(notification.id, datetime(2026, 1, 1, 12, 0, 0))
+
+    assert notification.provider_updated_at == datetime(2026, 1, 1, 12, 0, 0)
