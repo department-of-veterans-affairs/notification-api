@@ -274,6 +274,15 @@ def _process_ses_results(task, response, celery_retry_count):  # noqa: C901 (too
                 )
             return
 
+        provider_updated_at = iso8601.parse_date(ses_message['mail']['timestamp']).replace(tzinfo=None)
+        if provider_updated_at:
+            current_app.logger.debug(
+                'Updating notification %s provider_updated_at to %s', notification.id, provider_updated_at
+            )
+            notifications_dao.dao_update_provider_updated_at(
+                notification_id=notification.id, provider_updated_at=provider_updated_at
+            )
+
         if celery_retry_count > 0:
             db_retry_count = notifications_dao.dao_increment_notification_retry_count(notification.id)
             current_app.logger.info(
