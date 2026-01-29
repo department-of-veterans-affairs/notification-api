@@ -224,7 +224,7 @@ def sms_status_update(
     template_id = notification.template_id
 
     current_app.logger.info(
-        'Initial %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | service_id: %s | template_id: %s',
+        'Initial %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | service_id: %s | template_id: %s | provider_updated_at: %s',
         sms_status.provider,
         sms_status.reference,
         notification.id,
@@ -256,7 +256,7 @@ def sms_status_update(
         raise NonRetryableException('Unable to update notification')
 
     current_app.logger.info(
-        'Final %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | cost_in_millicents: %s | service_id: %s | template_id: %s',
+        'Final %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | cost_in_millicents: %s | service_id: %s | template_id: %s | provider_updated_at: %s',
         sms_status.provider,
         sms_status.reference,
         notification.id,
