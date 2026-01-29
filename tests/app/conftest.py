@@ -2423,23 +2423,10 @@ def dynamodb_mock():
                 'AttributeName': 'payment_id',
                 'AttributeType': 'N',
             },
-            {
-                'AttributeName': 'is_processed',
-                'AttributeType': 'S',
-            },
         ],
         'KeySchema': [
             {'AttributeName': 'participant_id', 'KeyType': 'HASH'},
             {'AttributeName': 'payment_id', 'KeyType': 'RANGE'},
-        ],
-        'GlobalSecondaryIndexes': [
-            {
-                'IndexName': 'is-processed-index',
-                'KeySchema': [{'AttributeName': 'is_processed', 'KeyType': 'HASH'}],
-                'Projection': {
-                    'ProjectionType': 'ALL',
-                },
-            },
         ],
         'BillingMode': 'PAY_PER_REQUEST',
     }
