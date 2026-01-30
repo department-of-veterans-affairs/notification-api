@@ -321,7 +321,9 @@ def dao_update_sms_notification_delivery_status(
     Returns:
         Notification: A Notification object
     """
-
+    current_app.logger.debug(
+        'notification_id: %s, new_status: %s, notification_type: %s', notification_id, new_status, notification_type
+    )
     if notification_type == SMS_TYPE:
         stmt_values = {
             'status': new_status,
@@ -352,6 +354,7 @@ def dao_update_sms_notification_delivery_status(
         )
 
     try:
+        current_app.logger.debug('Executing SMS delivery status update statement for notification %s', notification_id)
         db.session.execute(stmt)
         db.session.commit()
     except Exception:

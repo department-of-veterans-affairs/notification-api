@@ -240,6 +240,7 @@ def sms_status_update(
     if sms_status.status == NOTIFICATION_DELIVERED:
         sms_status.status_reason = None
 
+    current_app.app.logger.debug('sms record is: %s', sms_status)
     try:
         notification: Notification = dao_update_sms_notification_delivery_status(
             notification_id=notification.id,
@@ -250,6 +251,7 @@ def sms_status_update(
             cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
             provider_updated_at=sms_status.provider_updated_at,
         )
+        current_app.app.logger.debug('updated notification is: %s', notification)
         statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
     except Exception:
         statsd_client.incr(f'clients.sms.{sms_status.provider}.status_update.error')
