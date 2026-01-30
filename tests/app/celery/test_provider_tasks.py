@@ -1,4 +1,5 @@
 import botocore
+from celery import Task
 import pytest
 from collections import namedtuple
 from requests import HTTPError, Response
@@ -93,6 +94,86 @@ def test_should_add_to_retry_queue_if_notification_not_found_in_deliver_email_ta
         deliver_email(notification_id)
 
     send_email_to_provider.assert_not_called()
+
+
+def test_should_increment_retry_count_on_deliver_sms_task_retry(
+    notify_db_session,
+    mocker,
+    sample_template,
+    sample_notification,
+):
+    """Test that retry_count is incremented when deliver_sms is retrying"""
+    template = sample_template(template_type=SMS_TYPE)
+    notification = sample_notification(template=template)
+
+    mocker.patch('app.delivery.send_to_providers.send_sms_to_provider')
+    mock_task = mocker.Mock(spec=Task)
+    mock_task.request.retries = 1
+
+    deliver_sms.__wrapped__.__wrapped__(mock_task, notification.id)
+
+    notify_db_session.session.refresh(notification)
+    assert notification.retry_count == 1
+
+
+def test_should_not_increment_retry_count_on_first_attempt(
+    notify_db_session,
+    mocker,
+    sample_template,
+    sample_notification,
+):
+    """Test that retry_count is not incremented on first attempt of deliver_sms"""
+    template = sample_template(template_type=SMS_TYPE)
+    notification = sample_notification(template=template)
+
+    mocker.patch('app.delivery.send_to_providers.send_sms_to_provider')
+    mock_task = mocker.Mock(spec=Task)
+    mock_task.request.retries = 0
+
+    deliver_sms.__wrapped__.__wrapped__(mock_task, notification.id)
+
+    notify_db_session.session.refresh(notification)
+    assert notification.retry_count is None
+
+
+def test_should_increment_retry_count_on_deliver_email_task_retry(
+    notify_db_session,
+    mocker,
+    sample_template,
+    sample_notification,
+):
+    """Test that retry_count is incremented when deliver_email is retrying"""
+    template = sample_template(template_type=EMAIL_TYPE)
+    notification = sample_notification(template=template)
+
+    mocker.patch('app.delivery.send_to_providers.send_email_to_provider')
+    mock_task = mocker.Mock(spec=Task)
+    mock_task.request.retries = 1
+
+    deliver_email.__wrapped__.__wrapped__(mock_task, notification.id)
+
+    notify_db_session.session.refresh(notification)
+    assert notification.retry_count == 1
+
+
+def test_should_not_increment_retry_count_on_first_attempt_email(
+    notify_db_session,
+    mocker,
+    sample_template,
+    sample_notification,
+):
+    """Test that retry_count is not incremented on first attempt of deliver_email"""
+    template = sample_template(template_type=EMAIL_TYPE)
+    notification = sample_notification(template=template)
+
+    mocker.patch('app.delivery.send_to_providers.send_email_to_provider')
+    mock_task = mocker.Mock(spec=Task)
+    mock_task.request.retries = 0
+
+    deliver_email.__wrapped__.__wrapped__(mock_task, notification.id)
+
+    notify_db_session.session.refresh(notification)
+    assert notification.retry_count is None
 
 
 # DO THESE FOR THE 4 TYPES OF TASK
