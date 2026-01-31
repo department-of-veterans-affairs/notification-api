@@ -235,6 +235,7 @@ def _handle_delivery_failure(  # noqa: C901 - too complex (11 > 10)
         raise NotificationTechnicalFailureException from e
 
     elif isinstance(e, InvalidEmailError):
+        current_app.logger.exception('Encountered an InvalidEmailError')
         log_and_update_permanent_failure(
             notification_id,
             method_name,
