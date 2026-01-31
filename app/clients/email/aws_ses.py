@@ -162,6 +162,12 @@ class AwsSesClient(EmailClient):
                 attachment_part.add_header('Content-Disposition', 'attachment', filename=attachment['name'])
                 msg.attach(attachment_part)
 
+            self.logger.debug(
+                'Sending email via AWS SES: source= %s | raw_message= %s | kwargs= %s',
+                source,
+                msg.as_string(),
+                str(kwargs),
+            )
             response = self._client.send_raw_email(Source=source, RawMessage={'Data': msg.as_string()}, **kwargs)
         except botocore.exceptions.ClientError as e:
             self._check_error_code(e, to_addresses)
@@ -183,6 +189,7 @@ class AwsSesClient(EmailClient):
     ):
         # https://docs.aws.amazon.com/ses/latest/dg/manage-sending-quotas-errors.html#manage-sending-quotas-errors-api
         if e.response['Error']['Code'] == 'InvalidParameterValue':
+            self.logger.exception('Encountered an InvalidParameterValue error code from SES')
             self.statsd_client.incr('clients.ses.error.invalid-email')
             raise InvalidEmailError('message: "{}"'.format(e.response['Error']['Message']))
         elif e.response['Error']['Code'] == 'Throttling' and 'Maximum sending rate exceeded' in str(e):
