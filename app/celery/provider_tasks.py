@@ -56,6 +56,8 @@ def deliver_sms(
     notification_id,
     sms_sender_id=None,
 ):
+    current_app.logger.debug('deliver_sms celery task called with notification_id: %s', notification_id)
+    current_app.logger.debug('task.request is: %s', task.request)
     if task.request.retries > 0:
         db_retry_count = notifications_dao.dao_increment_notification_retry_count(notification_id)
         current_app.logger.info(
@@ -175,6 +177,8 @@ def deliver_email(
     notification_id: UUID,
     sms_sender_id: UUID = None,
 ):
+    current_app.logger.debug('deliver_email celery task called with notification_id: %s', notification_id)
+    current_app.logger.debug('task.request is: %s', task.request)
     if task.request.retries > 0:
         db_retry_count = notifications_dao.dao_increment_notification_retry_count(notification_id)
         current_app.logger.info(
