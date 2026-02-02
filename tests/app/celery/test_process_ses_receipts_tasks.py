@@ -203,26 +203,31 @@ def test_validate_response_rendering_failure_builds_event(mocker):
 @pytest.mark.parametrize(
     'envelope,expect_none,metric_name',
     [
+        # Unknown event type is ignored (legacy behavior)
         (
             _ses_minimal_envelope('NotARealEvent', 'ref'),
             True,
             'clients.ses.status_update.ignored',
         ),
+        # Message is not valid JSON
         (
             {'Message': 'not-json'},
             False,
             'clients.ses.status_update.error',
         ),
+        # Mail timestamp is present but invalid
         (
             _ses_minimal_envelope('Delivery', 'ref', mail_timestamp='not-a-date'),
             False,
             'clients.ses.status_update.error',
         ),
+        # Mail payload is missing entirely
         (
             {'Message': json.dumps({'eventType': 'Delivery'})},
             False,
             'clients.ses.status_update.error',
         ),
+        # Mail payload is missing messageId
         (
             {'Message': json.dumps({'eventType': 'Delivery', 'mail': {'timestamp': '2017-11-17T12:14:01.643Z'}})},
             False,
