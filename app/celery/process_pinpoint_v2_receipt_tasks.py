@@ -46,7 +46,7 @@ def process_pinpoint_v2_receipt_results(
     )
 
     current_app.logger.info(
-        'Sms status record provider_updated_at type: %s', type(sms_status_record.provider_updated_at)
+        'Sms status record provider_update_at type: %s', type(sms_status_record.provider_updated_at)
     )
 
     if sms_status_record.status_reason == STATUS_REASON_RETRYABLE:
