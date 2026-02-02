@@ -357,10 +357,7 @@ def dao_update_sms_notification_delivery_status(
         current_app.logger.debug('Executing SMS delivery status update statement for notification %s', notification_id)
         db.session.execute(stmt)
         db.session.commit()
-    except Exception as e:
-        current_app.logger.error(
-            'Exception occurred updating notification %s to status "%s": %s', notification_id, new_status, e
-        )
+    except Exception:
         current_app.logger.exception('Updating notification %s to status "%s" failed.', notification_id, new_status)
         db.session.rollback()
         raise
