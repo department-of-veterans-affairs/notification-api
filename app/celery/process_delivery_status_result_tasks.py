@@ -236,7 +236,7 @@ def sms_status_update(
         sms_status.status_reason,
         notification.service_id,
         notification.template_id,
-        provider_updated_at=sms_status.provider_updated_at,
+        sms_status.provider_updated_at,
         extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
     )
 
