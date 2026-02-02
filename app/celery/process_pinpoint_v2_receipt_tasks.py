@@ -54,8 +54,6 @@ def process_pinpoint_v2_receipt_results(
     else:
         try:
             sms_status_update(sms_status_record, event_timestamp)
-        except Exception as e:
-            current_app.logger.exception(
-                'Failed to update SMS status for reference: %s. Error: %s', sms_status_record.reference, e
-            )
+        except Exception:
+            current_app.logger.exception('Failed to update SMS status for reference: %s', sms_status_record.reference)
             raise NonRetryableException()
