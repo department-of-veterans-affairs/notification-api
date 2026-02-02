@@ -2,7 +2,7 @@ from flask import current_app
 from notifications_utils.statsd_decorators import statsd
 
 from app import notify_celery
-from app.celery.exceptions import AutoRetryException, NonRetryableException
+from app.celery.exceptions import AutoRetryException
 from app.clients.sms import SmsStatusRecord
 from app.celery.process_delivery_status_result_tasks import (
     sms_attempt_retry,
@@ -48,8 +48,4 @@ def process_pinpoint_v2_receipt_results(
     if sms_status_record.status_reason == STATUS_REASON_RETRYABLE:
         sms_attempt_retry(sms_status_record, event_timestamp)
     else:
-        try:
-            sms_status_update(sms_status_record, event_timestamp)
-        except Exception:
-            current_app.logger.exception('Failed to update SMS status for reference: %s', sms_status_record.reference)
-            raise NonRetryableException()
+        sms_status_update(sms_status_record, event_timestamp)
