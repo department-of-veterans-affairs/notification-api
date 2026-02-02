@@ -1,6 +1,7 @@
 import datetime
 import random
 
+
 from app.celery.process_ses_receipts_tasks import check_and_queue_va_profile_notification_status_callback
 from celery import Task
 from flask import current_app
@@ -217,7 +218,9 @@ def sms_status_update(
     Raises:
         NonRetryableException: Unable to update the notification
     """
+    current_app.logger.debug('Entering sms_status_update with sms_status: %s', sms_status)
     notification = _get_notification(sms_status.reference, sms_status.provider, event_timestamp, event_in_seconds)
+    current_app.logger.debug('retrieved notification: %s', notification)
     last_updated_at = notification.updated_at
 
     sms_sender_id = notification.sms_sender_id
