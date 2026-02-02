@@ -2066,17 +2066,29 @@ class VAProfileLocalCache(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     allowed = db.Column(db.Boolean, nullable=False)
-    va_profile_id = db.Column(db.BigInteger, nullable=False)
+    va_profile_id = db.Column(
+        db.BigInteger, nullable=False
+    )  # Unencrypted field (legacy implementation, slated for removal)
+    encrypted_va_profile_id = db.Column(db.Text, nullable=True)  # Encrypted field (new implementation)
     communication_item_id = db.Column(db.Integer, nullable=False)
     communication_channel_id = db.Column(db.Integer, nullable=False)
     source_datetime = db.Column(db.DateTime, nullable=False)
 
-    participant_id = db.Column(db.BigInteger, nullable=True)
+    participant_id = db.Column(
+        db.BigInteger, nullable=True
+    )  # Unencrypted field (legacy implementation, slated for removal)
+    encrypted_participant_id = db.Column(db.Text, nullable=True)  # Encrypted field (new implementation)
     has_duplicate_mappings = db.Column(db.Boolean, nullable=False, default=False)
     notification_id = db.Column(UUID(as_uuid=True), nullable=True)
 
     __table_args__ = (
-        UniqueConstraint('va_profile_id', 'communication_item_id', 'communication_channel_id', name='uix_veteran_id'),
+        UniqueConstraint(
+            'va_profile_id',
+            'encrypted_va_profile_id',
+            'communication_item_id',
+            'communication_channel_id',
+            name='uix_veteran_id',
+        ),
     )
 
 
