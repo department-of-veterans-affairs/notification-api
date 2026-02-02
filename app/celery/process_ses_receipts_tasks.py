@@ -236,7 +236,6 @@ def _validate_response(celery_envelope: dict) -> SesResponse | None:
         try:
             event_type = SesEventType(event_type_value)
         except ValueError:
-            # Legacy behavior: unknown event types are logged and ignored.
             current_app.logger.error('Unsupported SES eventType received. eventType=%s', event_type_value)
             statsd_client.incr('clients.ses.status_update.ignored')
             return None
