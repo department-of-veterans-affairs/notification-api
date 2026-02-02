@@ -1813,6 +1813,31 @@ def test_update_notification_delivery_status_invalid_updates(
     assert notification.status_reason == status_reason
 
 
+def test_dao_update_sms_delivery_status_no_provider_updated_at(
+    sample_template,
+    sample_notification,
+):
+    notification: Notification = sample_notification(
+        template=sample_template(),
+        status=NOTIFICATION_SENDING,
+    )
+
+    assert notification.status == NOTIFICATION_SENDING
+    assert notification.provider_updated_at is None
+
+    dao_update_sms_notification_delivery_status(
+        notification_id=notification.id,
+        notification_type=notification.notification_type,
+        new_status=NOTIFICATION_DELIVERED,
+        new_status_reason=None,
+        segments_count=1,
+        cost_in_millicents=0.0,
+    )
+
+    assert notification.status == NOTIFICATION_DELIVERED
+    assert notification.provider_updated_at is None
+
+
 def test_dao_update_sms_notification_status_to_created_for_retry_valid_update(
     sample_notification,
 ):
