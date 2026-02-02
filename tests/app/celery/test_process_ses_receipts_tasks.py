@@ -89,6 +89,7 @@ def _ses_minimal_envelope(
 
 
 def test_validate_response_missing_message_logs_and_raises(mocker, notify_api):
+    # Missing Message key should raise and emit error metric.
     mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
 
     with pytest.raises(NonRetryableException):
@@ -98,6 +99,7 @@ def test_validate_response_missing_message_logs_and_raises(mocker, notify_api):
 
 
 def test_validate_response_bounce_builds_event(mocker):
+    # Bounce payload builds SesBounce with expected fields.
     reference = str(uuid4())
     mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
     ses_response = process_ses_receipts_tasks._validate_response(ses_hard_bounce_callback(reference=reference))
@@ -111,6 +113,7 @@ def test_validate_response_bounce_builds_event(mocker):
 
 
 def test_validate_response_complaint_builds_event(mocker):
+    # Complaint payload builds SesComplaint with expected feedback id.
     reference = str(uuid4())
     mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
     ses_response = process_ses_receipts_tasks._validate_response(
@@ -135,6 +138,7 @@ def test_validate_response_complaint_builds_event(mocker):
 
 
 def test_validate_response_delivery_builds_event(mocker):
+    # Delivery payload builds SesDelivered with timestamp.
     reference = str(uuid4())
     mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
     ses_response = process_ses_receipts_tasks._validate_response(ses_notification_callback(reference=reference))
@@ -147,6 +151,7 @@ def test_validate_response_delivery_builds_event(mocker):
 
 
 def test_validate_response_open_builds_event(mocker):
+    # Open payload builds SesOpen with timestamp.
     reference = str(uuid4())
     mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
     ses_response = process_ses_receipts_tasks._validate_response(
@@ -165,6 +170,7 @@ def test_validate_response_open_builds_event(mocker):
 
 
 def test_validate_response_send_builds_event(mocker):
+    # Send payload builds SesSend with timestamp.
     reference = str(uuid4())
     mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
     ses_response = process_ses_receipts_tasks._validate_response(
@@ -183,6 +189,7 @@ def test_validate_response_send_builds_event(mocker):
 
 
 def test_validate_response_rendering_failure_builds_event(mocker):
+    # Rendering Failure payload builds SesRenderingFailure with timestamp.
     reference = str(uuid4())
     mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
     ses_response = process_ses_receipts_tasks._validate_response(
@@ -236,6 +243,7 @@ def test_validate_response_rendering_failure_builds_event(mocker):
     ],
 )
 def test_validate_response_failure_logs_and_metrics(mocker, notify_api, envelope, expect_none, metric_name):
+    # Validation failures emit the correct metric and either raise or return None.
     mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
 
     if expect_none:

@@ -274,7 +274,7 @@ def _get_mail_timestamp(ses_event: dict, mail: dict) -> datetime:
     try:
         return _parse_timestamp(mail_timestamp)
     except NonRetryableException:
-        current_app.logger.exception('SES response has invalid mail.timestamp. context=%s', _ses_log_context(ses_event))
+        current_app.logger.error('SES response has invalid mail.timestamp. context=%s', _ses_log_context(ses_event))
         raise
 
 
@@ -282,7 +282,7 @@ def _get_event(event_type: SesEventType, ses_event: dict) -> SesEvent:
     try:
         return _build_event(event_type, ses_event)
     except NonRetryableException:
-        current_app.logger.exception('Unable to build SES event. context=%s', _ses_log_context(ses_event))
+        current_app.logger.error('Unable to build SES event. context=%s', _ses_log_context(ses_event))
         raise
 
 
