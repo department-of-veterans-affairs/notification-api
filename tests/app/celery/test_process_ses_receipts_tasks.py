@@ -246,6 +246,7 @@ def test_validate_response_failure_logs_and_metrics(mocker, notify_api, envelope
 
     mock_statsd.incr.assert_called_with(metric_name)
 
+
 def test_process_ses_results_reference_none(mocker, notify_api):
     """Test that status notifications are not attempted if reference is None"""
     mock_logger = mocker.patch('app.celery.process_ses_receipts_tasks.current_app.logger')

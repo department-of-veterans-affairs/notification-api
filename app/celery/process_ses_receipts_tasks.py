@@ -209,72 +209,108 @@ def _ses_log_context(ses_event: dict | None) -> dict:
     }
 
 
+def _get_message(celery_envelope: dict) -> str:
+    message = celery_envelope.get('Message')
+    if message is None:
+        current_app.logger.error('SES response missing Message. envelope_fields=%s', list(celery_envelope.keys()))
+        raise NonRetryableException('Unable to find "Message" in SES response')
+    return message
+
+
+def _parse_ses_event(message: str) -> dict:
+    try:
+        ses_event = json.loads(message)
+    except JSONDecodeError as e:
+        current_app.logger.error('Error decoding SES results.')
+        raise NonRetryableException from e
+
+    if not isinstance(ses_event, dict):
+        current_app.logger.error('SES response is not a JSON object. type=%s', type(ses_event).__name__)
+        raise NonRetryableException('SES response is not a JSON object')
+
+    return ses_event
+
+
+def _get_event_type_value(ses_event: dict) -> str:
+    event_type_value = ses_event.get('eventType')
+    if event_type_value is None:
+        current_app.logger.error('SES response missing eventType. context=%s', _ses_log_context(ses_event))
+        raise NonRetryableException('SES response missing eventType')
+    return event_type_value
+
+
+def _get_event_type(event_type_value: str) -> SesEventType | None:
+    try:
+        return SesEventType(event_type_value)
+    except ValueError:
+        # Legacy behavior: unknown event types are logged and ignored.
+        current_app.logger.error('Unsupported SES eventType received. eventType=%s', event_type_value)
+        statsd_client.incr('clients.ses.status_update.ignored')
+        return None
+
+
+def _get_mail(ses_event: dict, event_type_value: str) -> dict:
+    mail = ses_event.get('mail')
+    if not mail:
+        current_app.logger.error('SES response missing mail. eventType=%s', event_type_value)
+        raise NonRetryableException('SES response missing mail')
+    return mail
+
+
+def _get_reference(ses_event: dict, mail: dict) -> str:
+    reference = mail.get('messageId')
+    if not reference:
+        current_app.logger.error('SES response missing mail.messageId. context=%s', _ses_log_context(ses_event))
+        raise NonRetryableException('SES response missing mail.messageId')
+    return reference
+
+
+def _get_mail_timestamp(ses_event: dict, mail: dict) -> datetime:
+    mail_timestamp = mail.get('timestamp')
+    if not mail_timestamp:
+        current_app.logger.error('SES response missing mail.timestamp. context=%s', _ses_log_context(ses_event))
+        raise NonRetryableException('SES response missing mail.timestamp')
+
+    try:
+        return _parse_timestamp(mail_timestamp)
+    except NonRetryableException:
+        current_app.logger.exception('SES response has invalid mail.timestamp. context=%s', _ses_log_context(ses_event))
+        raise
+
+
+def _get_event(event_type: SesEventType, ses_event: dict) -> SesEvent:
+    try:
+        return _build_event(event_type, ses_event)
+    except NonRetryableException:
+        current_app.logger.exception('Unable to build SES event. context=%s', _ses_log_context(ses_event))
+        raise
+
+
+def _translate_ses_response(celery_envelope: dict) -> SesResponse | None:
+    message = _get_message(celery_envelope)
+    ses_event = _parse_ses_event(message)
+    event_type_value = _get_event_type_value(ses_event)
+    event_type = _get_event_type(event_type_value)
+    if event_type is None:
+        return None
+    mail = _get_mail(ses_event, event_type_value)
+    reference = _get_reference(ses_event, mail)
+    mail_timestamp_dt = _get_mail_timestamp(ses_event, mail)
+    event = _get_event(event_type, ses_event)
+    return SesResponse(
+        event_type=event_type,
+        reference=reference,
+        mail=SesMail(timestamp=mail_timestamp_dt, reference=reference),
+        event=event,
+    )
+
+
 def _validate_response(celery_envelope: dict) -> SesResponse | None:
     # Tries to load the response. Validates all expected fields are available
     # Does not use get_aws_responses, uses dataclasses to map the data, with link(s) to the pages as comments
     # Maps EventType or logs and raises a non-retryable exception
     try:
-        message = celery_envelope.get('Message')
-        if message is None:
-            current_app.logger.error('SES response missing Message. keys=%s', list(celery_envelope.keys()))
-            raise NonRetryableException('Unable to find "Message" in SES response')
-        try:
-            ses_event = json.loads(message)
-        except JSONDecodeError as e:
-            current_app.logger.error('Error decoding SES results.')
-            raise NonRetryableException from e
-
-        if not isinstance(ses_event, dict):
-            current_app.logger.error('SES response is not a JSON object. type=%s', type(ses_event).__name__)
-            raise NonRetryableException('SES response is not a JSON object')
-
-        event_type_value = ses_event.get('eventType')
-        if event_type_value is None:
-            current_app.logger.error('SES response missing eventType. context=%s', _ses_log_context(ses_event))
-            raise NonRetryableException('SES response missing eventType')
-
-        try:
-            event_type = SesEventType(event_type_value)
-        except ValueError:
-            current_app.logger.error('Unsupported SES eventType received. eventType=%s', event_type_value)
-            statsd_client.incr('clients.ses.status_update.ignored')
-            return None
-
-        mail = ses_event.get('mail')
-        if not mail:
-            current_app.logger.error('SES response missing mail. eventType=%s', event_type_value)
-            raise NonRetryableException('SES response missing mail')
-
-        reference = mail.get('messageId')
-        if not reference:
-            current_app.logger.error('SES response missing mail.messageId. context=%s', _ses_log_context(ses_event))
-            raise NonRetryableException('SES response missing mail.messageId')
-
-        mail_timestamp = mail.get('timestamp')
-        if not mail_timestamp:
-            current_app.logger.error('SES response missing mail.timestamp. context=%s', _ses_log_context(ses_event))
-            raise NonRetryableException('SES response missing mail.timestamp')
-
-        try:
-            mail_timestamp_dt = _parse_timestamp(mail_timestamp)
-        except NonRetryableException:
-            current_app.logger.exception(
-                'SES response has invalid mail.timestamp. context=%s', _ses_log_context(ses_event)
-            )
-            raise
-
-        try:
-            event = _build_event(event_type, ses_event)
-        except NonRetryableException:
-            current_app.logger.exception('Unable to build SES event. context=%s', _ses_log_context(ses_event))
-            raise
-
-        response = SesResponse(
-            event_type=event_type,
-            reference=reference,
-            mail=SesMail(timestamp=mail_timestamp_dt, reference=reference),
-            event=event,
-        )
+        response = _translate_ses_response(celery_envelope)
     except NonRetryableException:
         statsd_client.incr('clients.ses.status_update.error')
         raise
@@ -283,6 +319,8 @@ def _validate_response(celery_envelope: dict) -> SesResponse | None:
         statsd_client.incr('clients.ses.status_update.error')
         raise
 
+    if response is None:
+        return None
     statsd_client.incr('clients.ses.status_update.success')
     return response
 

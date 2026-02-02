@@ -1,6 +1,5 @@
 import pytest
 
-from app.models import RecipientIdentifier
 from app.va.identifier import (
     is_fhir_format,
     IdentifierType,
