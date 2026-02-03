@@ -34,6 +34,5 @@ check-vulnerabilities: install-bandit ## Scan code for vulnerabilities and issue
 	clean \
 	check-vulnerabilities
 
-# Catch all pattern for env/ Makefile (developer quality-of-life implementation)
-env-%:
+env-%: ## Catch all pattern for env/ Makefile (developer quality-of-life implementation)
 	$(MAKE) -C env $*
