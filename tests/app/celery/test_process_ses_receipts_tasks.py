@@ -250,6 +250,26 @@ def test_validate_response_failure_logs_and_metrics(mocker, notify_api, envelope
     mock_statsd.incr.assert_called_with(metric_name)
 
 
+@pytest.mark.parametrize('flag_enabled,expect_legacy_called', [(False, True), (True, False)])
+def test_process_ses_results_feature_flag_branching(mocker, flag_enabled, expect_legacy_called):
+    """Feature flag toggles legacy vs new SES processing paths."""
+    mocker.patch('app.celery.process_ses_receipts_tasks.is_feature_enabled', return_value=flag_enabled)
+    mock_validate = mocker.patch('app.celery.process_ses_receipts_tasks._validate_response', return_value=None)
+    mock_legacy = mocker.patch('app.celery.process_ses_receipts_tasks._process_ses_results', return_value='legacy')
+    envelope = ses_notification_callback(reference=str(uuid4()))
+
+    result = process_ses_receipts_tasks.process_ses_results(celery_envelope=envelope)
+
+    if expect_legacy_called:
+        assert result == 'legacy'
+        mock_legacy.assert_called_once()
+        mock_validate.assert_not_called()
+    else:
+        assert result is None
+        mock_validate.assert_called_once()
+        mock_legacy.assert_not_called()
+
+
 def test_process_ses_results_reference_none(mocker, notify_api):
     """Test that status notifications are not attempted if reference is None"""
     mock_logger = mocker.patch('app.celery.process_ses_receipts_tasks.current_app.logger')
