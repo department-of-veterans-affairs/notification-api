@@ -1,3 +1,4 @@
+import copy
 import json
 import pytest
 from datetime import datetime
@@ -112,31 +113,6 @@ def test_validate_response_bounce_builds_event(mocker):
     mock_statsd.incr.assert_called_with('clients.ses.status_update.success')
 
 
-def test_validate_response_complaint_builds_event(mocker):
-    # Complaint payload builds SesComplaint with expected feedback id.
-    reference = str(uuid4())
-    mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
-    ses_response = process_ses_receipts_tasks._validate_response(
-        _ses_minimal_envelope(
-            'Complaint',
-            reference,
-            event_payload={
-                'complaint': {
-                    'feedbackId': reference,
-                    'complaintFeedbackType': 'abuse',
-                    'timestamp': '2017-11-17T12:14:03.646Z',
-                }
-            },
-        )
-    )
-
-    assert ses_response.event_type == process_ses_receipts_tasks.SesEventType.COMPLAINT
-    assert ses_response.reference == reference
-    assert isinstance(ses_response.event, process_ses_receipts_tasks.SesComplaint)
-    assert ses_response.event.feedback_id == reference
-    mock_statsd.incr.assert_called_with('clients.ses.status_update.success')
-
-
 def test_validate_response_delivery_builds_event(mocker):
     # Delivery payload builds SesDelivered with timestamp.
     reference = str(uuid4())
@@ -150,60 +126,77 @@ def test_validate_response_delivery_builds_event(mocker):
     mock_statsd.incr.assert_called_with('clients.ses.status_update.success')
 
 
-def test_validate_response_open_builds_event(mocker):
-    # Open payload builds SesOpen with timestamp.
-    reference = str(uuid4())
-    mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
-    ses_response = process_ses_receipts_tasks._validate_response(
-        _ses_minimal_envelope(
+@pytest.mark.parametrize(
+    'event_type_value,expected_event_type,expected_event_class,expected_attr,event_payload',
+    [
+        # Complaint payload builds SesComplaint with feedback id.
+        (
+            'Complaint',
+            process_ses_receipts_tasks.SesEventType.COMPLAINT,
+            process_ses_receipts_tasks.SesComplaint,
+            'feedback_id',
+            {
+                'complaint': {
+                    'feedbackId': 'REFERENCE',
+                    'complaintFeedbackType': 'abuse',
+                    'timestamp': '2017-11-17T12:14:03.646Z',
+                }
+            },
+        ),
+        # Open payload builds SesOpen with timestamp.
+        (
             'Open',
-            reference,
-            event_payload={'open': {'timestamp': '2017-11-17T12:14:03.646Z'}},
-        )
-    )
-
-    assert ses_response.event_type == process_ses_receipts_tasks.SesEventType.OPEN
-    assert ses_response.reference == reference
-    assert isinstance(ses_response.event, process_ses_receipts_tasks.SesOpen)
-    assert ses_response.event.timestamp is not None
-    mock_statsd.incr.assert_called_with('clients.ses.status_update.success')
-
-
-def test_validate_response_send_builds_event(mocker):
-    # Send payload builds SesSend with timestamp.
-    reference = str(uuid4())
-    mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
-    ses_response = process_ses_receipts_tasks._validate_response(
-        _ses_minimal_envelope(
+            process_ses_receipts_tasks.SesEventType.OPEN,
+            process_ses_receipts_tasks.SesOpen,
+            'timestamp',
+            {'open': {'timestamp': '2017-11-17T12:14:03.646Z'}},
+        ),
+        # Send payload builds SesSend with timestamp.
+        (
             'Send',
-            reference,
-            event_payload={'send': {'timestamp': '2017-11-17T12:14:03.646Z'}},
-        )
-    )
-
-    assert ses_response.event_type == process_ses_receipts_tasks.SesEventType.SEND
-    assert ses_response.reference == reference
-    assert isinstance(ses_response.event, process_ses_receipts_tasks.SesSend)
-    assert ses_response.event.timestamp is not None
-    mock_statsd.incr.assert_called_with('clients.ses.status_update.success')
-
-
-def test_validate_response_rendering_failure_builds_event(mocker):
-    # Rendering Failure payload builds SesRenderingFailure with timestamp.
+            process_ses_receipts_tasks.SesEventType.SEND,
+            process_ses_receipts_tasks.SesSend,
+            'timestamp',
+            {'send': {'timestamp': '2017-11-17T12:14:03.646Z'}},
+        ),
+        # Rendering Failure payload builds SesRenderingFailure with timestamp.
+        (
+            'Rendering Failure',
+            process_ses_receipts_tasks.SesEventType.RENDERING_FAILURE,
+            process_ses_receipts_tasks.SesRenderingFailure,
+            'timestamp',
+            {'failure': {'timestamp': '2017-11-17T12:14:03.646Z'}},
+        ),
+    ],
+)
+def test_validate_response_builds_event_for_event_type(
+    mocker,
+    event_type_value,
+    expected_event_type,
+    expected_event_class,
+    expected_attr,
+    event_payload,
+):
     reference = str(uuid4())
     mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
+    payload = copy.deepcopy(event_payload)
+    if payload.get('complaint', {}).get('feedbackId') == 'REFERENCE':
+        payload['complaint']['feedbackId'] = reference
     ses_response = process_ses_receipts_tasks._validate_response(
         _ses_minimal_envelope(
-            'Rendering Failure',
+            event_type_value,
             reference,
-            event_payload={'failure': {'timestamp': '2017-11-17T12:14:03.646Z'}},
+            event_payload=payload,
         )
     )
 
-    assert ses_response.event_type == process_ses_receipts_tasks.SesEventType.RENDERING_FAILURE
+    assert ses_response.event_type == expected_event_type
     assert ses_response.reference == reference
-    assert isinstance(ses_response.event, process_ses_receipts_tasks.SesRenderingFailure)
-    assert ses_response.event.timestamp is not None
+    assert isinstance(ses_response.event, expected_event_class)
+    if expected_attr == 'feedback_id':
+        assert ses_response.event.feedback_id == reference
+    else:
+        assert getattr(ses_response.event, expected_attr) is not None
     mock_statsd.incr.assert_called_with('clients.ses.status_update.success')
 
 

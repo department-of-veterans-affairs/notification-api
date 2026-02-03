@@ -126,8 +126,8 @@ def process_ses_results(
         # This is a general outline
         ses_response: SesResponse | None = _validate_response(celery_envelope)
         if ses_response is None:
-            # unknown or unsupported event type
-            return None
+            # unknown event types are logged as a warning
+            return
         db_notification: Notification | NotificationHistory = _get_notification(ses_response.reference)
         current_app.logger.info(
             'SES details for notification: %s | current status: %s | event_type: %s',
@@ -292,6 +292,11 @@ def _translate_ses_response(celery_envelope: dict) -> SesResponse | None:
     event_type_value = _get_event_type_value(ses_event)
     event_type = _get_event_type(event_type_value)
     if event_type is None:
+        current_app.logger.warning(
+            'Unsupported SES eventType received. context=%s',
+            _ses_log_context(ses_event),
+        )
+        # intentionally return early here to ignore unsupported event types.
         return None
     mail = _get_mail(ses_event, event_type_value)
     reference = _get_reference(ses_event, mail)
