@@ -152,6 +152,17 @@ def process_ses_results(
 
 
 def _parse_timestamp(value: str) -> datetime:
+    """Parse an ISO-8601 timestamp into a naive datetime.
+
+    Args:
+        value (str): ISO-8601 timestamp string.
+
+    Returns:
+        datetime: Parsed timestamp with tzinfo stripped.
+
+    Raises:
+        NonRetryableException: If the timestamp is invalid.
+    """
     try:
         return iso8601.parse_date(value).replace(tzinfo=None)
     except (iso8601.ParseError, TypeError, ValueError) as e:
@@ -159,13 +170,35 @@ def _parse_timestamp(value: str) -> datetime:
 
 
 def _parse_optional_timestamp(value: str | None) -> datetime | None:
+    """Parse an optional ISO-8601 timestamp.
+
+    Args:
+        value (str | None): Timestamp string or None.
+
+    Returns:
+        datetime | None: Parsed timestamp or None.
+    """
     if value is None:
         return None
     return _parse_timestamp(value)
 
 
 def _build_event(event_type: SesEventType, ses_event: dict) -> SesEvent:
-    # https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-examples.html
+    """Build a typed SES event payload from the raw event dict.
+
+    SES event payload examples:
+    https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-examples.html
+
+    Args:
+        event_type (SesEventType): SES event type.
+        ses_event (dict): Raw SES event payload.
+
+    Returns:
+        SesEvent: Parsed event dataclass.
+
+    Raises:
+        NonRetryableException: If required fields are missing.
+    """
     if event_type == SesEventType.BOUNCE:
         bounce = ses_event.get('bounce')
         if not bounce or not bounce.get('bounceType'):
@@ -199,6 +232,7 @@ def _build_event(event_type: SesEventType, ses_event: dict) -> SesEvent:
 
 
 def _ses_log_context(ses_event: dict | None) -> dict:
+    """Build log context from an SES event dict."""
     if not isinstance(ses_event, dict):
         return {}
     mail = ses_event.get('mail') or {}
@@ -210,6 +244,17 @@ def _ses_log_context(ses_event: dict | None) -> dict:
 
 
 def _get_message(celery_envelope: dict) -> str:
+    """Extract the SES Message string from a Celery envelope.
+
+    Args:
+        celery_envelope (dict): Celery task envelope.
+
+    Returns:
+        str: SES message payload string.
+
+    Raises:
+        NonRetryableException: If Message is missing.
+    """
     message = celery_envelope.get('Message')
     if message is None:
         current_app.logger.error('SES response missing Message. envelope_fields=%s', list(celery_envelope.keys()))
@@ -218,6 +263,17 @@ def _get_message(celery_envelope: dict) -> str:
 
 
 def _parse_ses_event(message: str) -> dict:
+    """Parse the SES message JSON into a dict.
+
+    Args:
+        message (str): SES message payload string.
+
+    Returns:
+        dict: Parsed SES event data.
+
+    Raises:
+        NonRetryableException: If JSON is invalid or not an object.
+    """
     try:
         ses_event = json.loads(message)
     except JSONDecodeError as e:
@@ -232,6 +288,17 @@ def _parse_ses_event(message: str) -> dict:
 
 
 def _get_event_type_value(ses_event: dict) -> str:
+    """Return the SES eventType string.
+
+    Args:
+        ses_event (dict): Parsed SES event data.
+
+    Returns:
+        str: eventType value.
+
+    Raises:
+        NonRetryableException: If eventType is missing.
+    """
     event_type_value = ses_event.get('eventType')
     if event_type_value is None:
         current_app.logger.error('SES response missing eventType. context=%s', _ses_log_context(ses_event))
@@ -240,6 +307,14 @@ def _get_event_type_value(ses_event: dict) -> str:
 
 
 def _get_event_type(event_type_value: str) -> SesEventType | None:
+    """Map an eventType string to SesEventType.
+
+    Args:
+        event_type_value (str): SES eventType value.
+
+    Returns:
+        SesEventType | None: Enum value or None if unsupported.
+    """
     try:
         return SesEventType(event_type_value)
     except ValueError:
@@ -250,6 +325,18 @@ def _get_event_type(event_type_value: str) -> SesEventType | None:
 
 
 def _get_mail(ses_event: dict, event_type_value: str) -> dict:
+    """Return the mail block from the SES event.
+
+    Args:
+        ses_event (dict): Parsed SES event data.
+        event_type_value (str): SES eventType value for logging.
+
+    Returns:
+        dict: mail block payload.
+
+    Raises:
+        NonRetryableException: If mail is missing.
+    """
     mail = ses_event.get('mail')
     if not mail:
         current_app.logger.error('SES response missing mail. eventType=%s', event_type_value)
@@ -258,6 +345,18 @@ def _get_mail(ses_event: dict, event_type_value: str) -> dict:
 
 
 def _get_reference(ses_event: dict, mail: dict) -> str:
+    """Return the SES messageId reference from mail.
+
+    Args:
+        ses_event (dict): Parsed SES event data.
+        mail (dict): mail block payload.
+
+    Returns:
+        str: messageId reference.
+
+    Raises:
+        NonRetryableException: If messageId is missing.
+    """
     reference = mail.get('messageId')
     if not reference:
         current_app.logger.error('SES response missing mail.messageId. context=%s', _ses_log_context(ses_event))
@@ -266,6 +365,18 @@ def _get_reference(ses_event: dict, mail: dict) -> str:
 
 
 def _get_mail_timestamp(ses_event: dict, mail: dict) -> datetime:
+    """Parse the mail timestamp from the SES event.
+
+    Args:
+        ses_event (dict): Parsed SES event data.
+        mail (dict): mail block payload.
+
+    Returns:
+        datetime: Parsed mail timestamp.
+
+    Raises:
+        NonRetryableException: If the timestamp is missing or invalid.
+    """
     mail_timestamp = mail.get('timestamp')
     if not mail_timestamp:
         current_app.logger.error('SES response missing mail.timestamp. context=%s', _ses_log_context(ses_event))
@@ -279,6 +390,18 @@ def _get_mail_timestamp(ses_event: dict, mail: dict) -> datetime:
 
 
 def _get_event(event_type: SesEventType, ses_event: dict) -> SesEvent:
+    """Build a typed event and emit context on failure.
+
+    Args:
+        event_type (SesEventType): SES event type.
+        ses_event (dict): Parsed SES event data.
+
+    Returns:
+        SesEvent: Parsed event dataclass.
+
+    Raises:
+        NonRetryableException: If building the event fails.
+    """
     try:
         return _build_event(event_type, ses_event)
     except NonRetryableException:
@@ -287,6 +410,14 @@ def _get_event(event_type: SesEventType, ses_event: dict) -> SesEvent:
 
 
 def _translate_ses_response(celery_envelope: dict) -> SesResponse | None:
+    """Translate a Celery envelope into a SesResponse.
+
+    Args:
+        celery_envelope (dict): Celery task envelope.
+
+    Returns:
+        SesResponse | None: Parsed response or None if unsupported.
+    """
     message = _get_message(celery_envelope)
     ses_event = _parse_ses_event(message)
     event_type_value = _get_event_type_value(ses_event)
@@ -311,9 +442,17 @@ def _translate_ses_response(celery_envelope: dict) -> SesResponse | None:
 
 
 def _validate_response(celery_envelope: dict) -> SesResponse | None:
-    # Tries to load the response. Validates all expected fields are available
-    # Does not use get_aws_responses, uses dataclasses to map the data, with link(s) to the pages as comments
-    # Maps EventType or logs and raises a non-retryable exception
+    """Validate a Celery envelope and return a parsed response.
+
+    Emits warning log for unsupported event types and raises on invalid payloads.
+    Emits statsd success/error metrics for validation outcomes.
+
+    Args:
+        celery_envelope (dict): Celery task envelope.
+
+    Returns:
+        SesResponse | None: Parsed response or None if unsupported.
+    """
     try:
         response = _translate_ses_response(celery_envelope)
     except NonRetryableException:

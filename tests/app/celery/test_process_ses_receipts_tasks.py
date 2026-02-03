@@ -77,6 +77,7 @@ def _ses_minimal_envelope(
     mail_timestamp: str = '2017-11-17T12:14:01.643Z',
     event_payload: dict | None = None,
 ):
+    """Return a minimal SES envelope with optional event payload."""
     ses_message = {
         'eventType': event_type,
         'mail': {
@@ -90,7 +91,7 @@ def _ses_minimal_envelope(
 
 
 def test_validate_response_missing_message_logs_and_raises(mocker, notify_api):
-    # Missing Message key should raise and emit error metric.
+    """Missing Message key raises and emits the error metric."""
     mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
 
     with pytest.raises(NonRetryableException):
@@ -100,7 +101,7 @@ def test_validate_response_missing_message_logs_and_raises(mocker, notify_api):
 
 
 def test_validate_response_bounce_builds_event(mocker):
-    # Bounce payload builds SesBounce with expected fields.
+    """Bounce payload builds SesBounce with expected fields."""
     reference = str(uuid4())
     mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
     ses_response = process_ses_receipts_tasks._validate_response(ses_hard_bounce_callback(reference=reference))
@@ -114,7 +115,7 @@ def test_validate_response_bounce_builds_event(mocker):
 
 
 def test_validate_response_delivery_builds_event(mocker):
-    # Delivery payload builds SesDelivered with timestamp.
+    """Delivery payload builds SesDelivered with timestamp."""
     reference = str(uuid4())
     mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
     ses_response = process_ses_receipts_tasks._validate_response(ses_notification_callback(reference=reference))
@@ -177,6 +178,7 @@ def test_validate_response_builds_event_for_event_type(
     expected_attr,
     event_payload,
 ):
+    """Supported event types build the expected payloads."""
     reference = str(uuid4())
     mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
     payload = copy.deepcopy(event_payload)
@@ -236,7 +238,7 @@ def test_validate_response_builds_event_for_event_type(
     ],
 )
 def test_validate_response_failure_logs_and_metrics(mocker, notify_api, envelope, expect_none, metric_name):
-    # Validation failures emit the correct metric and either raise or return None.
+    """Validation failures emit the correct metric and outcome."""
     mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
 
     if expect_none:
