@@ -170,49 +170,27 @@ class AwsPinpointClient(SmsClient):
             response = self._post_message_request(
                 recipient_number, content, aws_phone_number, template_id, sms_sender_id
             )
+        except botocore.exceptions.ParamValidationError as e:
+            # The risk of PII exposure logging validation error deemed low/negligable
+            self.statsd_client.incr('clients.pinpoint.error')
+
+            recipient_number = f'{recipient_number[:-4]}XXXX'
+
+            self.logger.exception(
+                '%s sending SMS - Recipient: %s, %s',
+                type(e).__class__.__name__,
+                recipient_number,
+                extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+            )
+            raise NonRetryableException from e
         except (botocore.exceptions.ClientError, Exception) as e:
             self.statsd_client.incr('clients.pinpoint.error')
             msg = str(e)
 
             if isinstance(e, botocore.exceptions.ClientError) and is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2):
-                error_code = e.response.get('Error', {}).get('Code', '')
+                self._handle_client_error(e, recipient_number, aws_phone_number, template_id, sms_sender_id)
 
-                if error_code in self._non_retryable_v2_exceptions:
-                    reason = e.response.get('Reason')
-                    resource_type = e.response.get('ResourceType')
-                    resource_id = e.response.get('ResourceId')
-
-                    recipient_number = f'{recipient_number[:-4]}XXXX'
-
-                    self.logger.warning(
-                        '%s sending SMS - Reason: %s, ResourceType: %s, ResourceId: %s, Recipient: %s',
-                        error_code,
-                        reason,
-                        resource_type,
-                        resource_id,
-                        recipient_number,
-                        extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
-                    )
-
-                    self.statsd_client.incr(
-                        f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{error_code.lower()}.{reason.lower()}'
-                    )
-                    raise NonRetryableException(
-                        f'PinPointV2 {error_code}: {reason} - ResourceType: {resource_type}, ResourceId: {resource_id}'
-                    )
-                elif error_code in self._retryable_v2_exceptions:
-                    self.logger.warning(
-                        'Encountered a Retryable exception: %s - %s',
-                        type(e).__class__.__name__,
-                        msg,
-                        extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
-                    )
-                    self.statsd_client.incr(
-                        f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{STATSD_RETRYABLE}.{aws_phone_number}'
-                    )
-                    raise RetryableException from e
-
-            if any(code in msg for code in AwsPinpointClient._retryable_v1_codes):
+            elif any(code in msg for code in AwsPinpointClient._retryable_v1_codes):
                 self.logger.warning(
                     'Encountered a Retryable exception: %s - %s',
                     type(e).__class__.__name__,
@@ -352,6 +330,76 @@ class AwsPinpointClient(SmsClient):
         return self._pinpoint_client.send_messages(
             ApplicationId=self.aws_pinpoint_app_id, MessageRequest=message_request_payload
         )
+
+    def _handle_client_error(
+        self,
+        error,
+        recipient_number,
+        aws_phone_number,
+        template_id=None,
+        sms_sender_id=None,
+    ) -> None:
+        """
+        Inspect a botocore ClientError raised during an SMS send attempt and
+        translate it into either a RetryableException or NonRetryableException.
+
+        This method centralizes AWS error handling logic for SMS delivery. Based on
+        the error code and context returned by AWS, the error is classified as:
+
+        - RetryableException: transient or recoverable conditions where a retry
+        may succeed (e.g., throttling, temporary service issues).
+        - NonRetryableException: permanent or validation-related conditions where
+        retrying would not succeed (e.g., invalid number, unsupported sender ID).
+
+        The method is also responsible for emitting sanitized logs and metrics
+        that do not expose PII/PHI while still providing useful operational
+        visibility into the failure.
+
+        Args:
+            error: The botocore ClientError instance raised by the AWS SDK.
+            recipient_number: The destination phone number for the SMS (used only
+                for sanitized logging/metrics).
+            aws_phone_number: The origination number or identity used to send the SMS.
+            template_id: Optional template identifier associated with the message.
+            sms_sender_id: Optional alphanumeric sender ID used for the message.
+
+        Raises:
+            RetryableException: If the error represents a condition that should be retried.
+            NonRetryableException: If the error represents a permanent failure that
+                should not be retried.
+        """
+        error_code = error.response.get('Error', {}).get('Code', '')
+
+        if error_code in self._non_retryable_v2_exceptions:
+            reason = error.response.get('Reason')
+            resource_type = error.response.get('ResourceType')
+            resource_id = error.response.get('ResourceId')
+
+            recipient_number = f'{recipient_number[:-4]}XXXX'
+
+            self.logger.warning(
+                '%s sending SMS - Reason: %s, ResourceType: %s, ResourceId: %s, Recipient: %s',
+                error_code,
+                reason,
+                resource_type,
+                resource_id,
+                recipient_number,
+                extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+            )
+
+            self.statsd_client.incr(f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{error_code.lower()}.{reason.lower()}')
+            raise NonRetryableException(
+                f'PinPointV2 {error_code}: {reason} - ResourceType: {resource_type}, ResourceId: {resource_id}'
+            )
+        elif error_code in self._retryable_v2_exceptions:
+            self.logger.warning(
+                'Encountered a Retryable exception: %s - %s',
+                type(error).__class__.__name__,
+                str(error),
+                extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+            )
+            self.statsd_client.incr(f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{STATSD_RETRYABLE}.{aws_phone_number}')
+            raise RetryableException from error
 
     def _validate_response(
         self,
