@@ -188,6 +188,8 @@ class AwsPinpointClient(SmsClient):
             msg = str(e)
 
             if isinstance(e, botocore.exceptions.ClientError) and is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2):
+                # attempt to handle known retryable and non-retryable exceptions
+                # processing continues if error not in `_retryable_v2_exceptions` or `_non_retryable_v2_exceptions`
                 self._handle_pinpoint_v2_client_errors(
                     e, recipient_number, aws_phone_number, template_id, sms_sender_id
                 )
