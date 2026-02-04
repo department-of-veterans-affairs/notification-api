@@ -267,11 +267,19 @@ def _process_ses_results(task, response, celery_retry_count):  # noqa: C901 (too
             # we expect results or no results but it could be multiple results
             message_time = iso8601.parse_date(ses_message['mail']['timestamp']).replace(tzinfo=None)
             if datetime.utcnow() - message_time < timedelta(minutes=5):
+                current_app.logger.info(
+                    'Retrying SES notification lookup for reference: %s. Sending to retry queue %s',
+                    reference,
+                    QueueNames.RETRY,
+                )
                 task.retry(queue=QueueNames.RETRY)
             else:
                 current_app.logger.warning(
                     'notification not found for reference: %s (update to %s)', reference, incoming_status
                 )
+            current_app.logger.info(
+                'General exception for dao_get_notification_by_reference for reference: %s', reference
+            )
             return
 
         provider_updated_at = iso8601.parse_date(ses_message['mail']['timestamp']).replace(tzinfo=None)
