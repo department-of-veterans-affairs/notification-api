@@ -2084,7 +2084,6 @@ class VAProfileLocalCache(db.Model):
     __table_args__ = (
         UniqueConstraint(
             'va_profile_id',
-            'encrypted_va_profile_id',
             'communication_item_id',
             'communication_channel_id',
             name='uix_veteran_id',
