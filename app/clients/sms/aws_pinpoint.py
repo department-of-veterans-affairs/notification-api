@@ -188,9 +188,11 @@ class AwsPinpointClient(SmsClient):
             msg = str(e)
 
             if isinstance(e, botocore.exceptions.ClientError) and is_feature_enabled(FeatureFlag.PINPOINT_SMS_VOICE_V2):
-                self._handle_client_error(e, recipient_number, aws_phone_number, template_id, sms_sender_id)
+                self._handle_pinpoint_v2_client_errors(
+                    e, recipient_number, aws_phone_number, template_id, sms_sender_id
+                )
 
-            elif any(code in msg for code in AwsPinpointClient._retryable_v1_codes):
+            if any(code in msg for code in AwsPinpointClient._retryable_v1_codes):
                 self.logger.warning(
                     'Encountered a Retryable exception: %s - %s',
                     type(e).__class__.__name__,
@@ -331,7 +333,7 @@ class AwsPinpointClient(SmsClient):
             ApplicationId=self.aws_pinpoint_app_id, MessageRequest=message_request_payload
         )
 
-    def _handle_client_error(
+    def _handle_pinpoint_v2_client_errors(
         self,
         error,
         recipient_number,
@@ -340,33 +342,28 @@ class AwsPinpointClient(SmsClient):
         sms_sender_id=None,
     ) -> None:
         """
-        Inspect a botocore ClientError raised during an SMS send attempt and
-        translate it into either a RetryableException or NonRetryableException.
+        Best-effort handler for AWS End User Messaging (Pinpoint v2) ClientError responses.
 
-        This method centralizes AWS error handling logic for SMS delivery. Based on
-        the error code and context returned by AWS, the error is classified as:
+        Examines the AWS error code in ``error.response['Error']['Code']`` and, for known
+        Pinpoint v2 error types, emits sanitized logs/metrics and raises a domain exception:
 
-        - RetryableException: transient or recoverable conditions where a retry
-        may succeed (e.g., throttling, temporary service issues).
-        - NonRetryableException: permanent or validation-related conditions where
-        retrying would not succeed (e.g., invalid number, unsupported sender ID).
+        - Raises NonRetryableException for codes in ``self._non_retryable_v2_exceptions``.
+        - Raises RetryableException for codes in ``self._retryable_v2_exceptions``.
 
-        The method is also responsible for emitting sanitized logs and metrics
-        that do not expose PII/PHI while still providing useful operational
-        visibility into the failure.
+        If the error code is not recognized (not present in either list), this method
+        returns without raising and leaves the caller to handle the error. This allows
+        handling legacy Pinpoint V1 errors that occur after a V2 to V1 fallback.
 
         Args:
-            error: The botocore ClientError instance raised by the AWS SDK.
-            recipient_number: The destination phone number for the SMS (used only
-                for sanitized logging/metrics).
-            aws_phone_number: The origination number or identity used to send the SMS.
-            template_id: Optional template identifier associated with the message.
-            sms_sender_id: Optional alphanumeric sender ID used for the message.
+            error: A botocore ClientError (or compatible object) with a ``response`` payload.
+            recipient_number: Destination phone number (used only in redacted form for logging).
+            aws_phone_number: Origination identity/number used for the request (used for metrics).
+            template_id: Optional template identifier for log context.
+            sms_sender_id: Optional sender ID for log context.
 
         Raises:
-            RetryableException: If the error represents a condition that should be retried.
-            NonRetryableException: If the error represents a permanent failure that
-                should not be retried.
+            NonRetryableException: For known permanent/validation failures (non-retryable codes).
+            RetryableException: For known transient failures (retryable codes).
         """
         error_code = error.response.get('Error', {}).get('Code', '')
 
