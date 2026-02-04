@@ -1,3 +1,4 @@
+import copy
 import json
 import pytest
 from datetime import datetime
@@ -6,6 +7,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from app.celery import process_ses_receipts_tasks
+from app.celery.exceptions import NonRetryableException
 from app.celery.research_mode_tasks import (
     ses_hard_bounce_callback,
     ses_notification_callback,
@@ -67,6 +69,205 @@ def ses_notification_complaint_callback(reference):
     }
 
     return {'Message': json.dumps(ses_message_body)}
+
+
+def _ses_minimal_envelope(
+    event_type: str,
+    reference: str,
+    mail_timestamp: str = '2017-11-17T12:14:01.643Z',
+    event_payload: dict | None = None,
+):
+    """Return a minimal SES envelope with optional event payload."""
+    ses_message = {
+        'eventType': event_type,
+        'mail': {
+            'messageId': reference,
+            'timestamp': mail_timestamp,
+        },
+    }
+    if event_payload:
+        ses_message.update(event_payload)
+    return {'Message': json.dumps(ses_message)}
+
+
+def test_validate_response_missing_message_logs_and_raises(mocker, notify_api):
+    """Missing Message key raises and emits the error metric."""
+    mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
+
+    with pytest.raises(NonRetryableException):
+        process_ses_receipts_tasks._validate_response({})
+
+    mock_statsd.incr.assert_called_with('clients.ses.status_update.error')
+
+
+def test_validate_response_bounce_builds_event(mocker):
+    """Bounce payload builds SesBounce with expected fields."""
+    reference = str(uuid4())
+    mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
+    ses_response = process_ses_receipts_tasks._validate_response(ses_hard_bounce_callback(reference=reference))
+
+    assert ses_response.event_type == process_ses_receipts_tasks.SesEventType.BOUNCE
+    assert ses_response.reference == reference
+    assert isinstance(ses_response.event, process_ses_receipts_tasks.SesBounce)
+    assert ses_response.event.bounce_type == 'Permanent'
+    assert ses_response.event.bounce_sub_type == 'General'
+    mock_statsd.incr.assert_called_with('clients.ses.status_update.success')
+
+
+def test_validate_response_delivery_builds_event(mocker):
+    """Delivery payload builds SesDelivered with timestamp."""
+    reference = str(uuid4())
+    mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
+    ses_response = process_ses_receipts_tasks._validate_response(ses_notification_callback(reference=reference))
+
+    assert ses_response.event_type == process_ses_receipts_tasks.SesEventType.DELIVERY
+    assert ses_response.reference == reference
+    assert isinstance(ses_response.event, process_ses_receipts_tasks.SesDelivered)
+    assert ses_response.event.timestamp is not None
+    mock_statsd.incr.assert_called_with('clients.ses.status_update.success')
+
+
+@pytest.mark.parametrize(
+    'event_type_value,expected_event_type,expected_event_class,expected_attr,event_payload',
+    [
+        # Complaint payload builds SesComplaint with feedback id.
+        (
+            'Complaint',
+            process_ses_receipts_tasks.SesEventType.COMPLAINT,
+            process_ses_receipts_tasks.SesComplaint,
+            'feedback_id',
+            {
+                'complaint': {
+                    'feedbackId': 'REFERENCE',
+                    'complaintFeedbackType': 'abuse',
+                    'timestamp': '2017-11-17T12:14:03.646Z',
+                }
+            },
+        ),
+        # Open payload builds SesOpen with timestamp.
+        (
+            'Open',
+            process_ses_receipts_tasks.SesEventType.OPEN,
+            process_ses_receipts_tasks.SesOpen,
+            'timestamp',
+            {'open': {'timestamp': '2017-11-17T12:14:03.646Z'}},
+        ),
+        # Send payload builds SesSend with timestamp.
+        (
+            'Send',
+            process_ses_receipts_tasks.SesEventType.SEND,
+            process_ses_receipts_tasks.SesSend,
+            'timestamp',
+            {'send': {'timestamp': '2017-11-17T12:14:03.646Z'}},
+        ),
+        # Rendering Failure payload builds SesRenderingFailure with timestamp.
+        (
+            'Rendering Failure',
+            process_ses_receipts_tasks.SesEventType.RENDERING_FAILURE,
+            process_ses_receipts_tasks.SesRenderingFailure,
+            'timestamp',
+            {'failure': {'timestamp': '2017-11-17T12:14:03.646Z'}},
+        ),
+    ],
+)
+def test_validate_response_builds_event_for_event_type(
+    mocker,
+    event_type_value,
+    expected_event_type,
+    expected_event_class,
+    expected_attr,
+    event_payload,
+):
+    """Supported event types build the expected payloads."""
+    reference = str(uuid4())
+    mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
+    payload = copy.deepcopy(event_payload)
+    if payload.get('complaint', {}).get('feedbackId') == 'REFERENCE':
+        payload['complaint']['feedbackId'] = reference
+    ses_response = process_ses_receipts_tasks._validate_response(
+        _ses_minimal_envelope(
+            event_type_value,
+            reference,
+            event_payload=payload,
+        )
+    )
+
+    assert ses_response.event_type == expected_event_type
+    assert ses_response.reference == reference
+    assert isinstance(ses_response.event, expected_event_class)
+    if expected_attr == 'feedback_id':
+        assert ses_response.event.feedback_id == reference
+    else:
+        assert getattr(ses_response.event, expected_attr) is not None
+    mock_statsd.incr.assert_called_with('clients.ses.status_update.success')
+
+
+@pytest.mark.parametrize(
+    'envelope,expect_none,metric_name',
+    [
+        # Unknown event type is ignored (legacy behavior)
+        (
+            _ses_minimal_envelope('NotARealEvent', 'ref'),
+            True,
+            'clients.ses.status_update.ignored',
+        ),
+        # Message is not valid JSON
+        (
+            {'Message': 'not-json'},
+            False,
+            'clients.ses.status_update.error',
+        ),
+        # Mail timestamp is present but invalid
+        (
+            _ses_minimal_envelope('Delivery', 'ref', mail_timestamp='not-a-date'),
+            False,
+            'clients.ses.status_update.error',
+        ),
+        # Mail payload is missing entirely
+        (
+            {'Message': json.dumps({'eventType': 'Delivery'})},
+            False,
+            'clients.ses.status_update.error',
+        ),
+        # Mail payload is missing messageId
+        (
+            {'Message': json.dumps({'eventType': 'Delivery', 'mail': {'timestamp': '2017-11-17T12:14:01.643Z'}})},
+            False,
+            'clients.ses.status_update.error',
+        ),
+    ],
+)
+def test_validate_response_failure_logs_and_metrics(mocker, notify_api, envelope, expect_none, metric_name):
+    """Validation failures emit the correct metric and outcome."""
+    mock_statsd = mocker.patch('app.celery.process_ses_receipts_tasks.statsd_client')
+
+    if expect_none:
+        assert process_ses_receipts_tasks._validate_response(envelope) is None
+    else:
+        with pytest.raises(NonRetryableException):
+            process_ses_receipts_tasks._validate_response(envelope)
+
+    mock_statsd.incr.assert_called_with(metric_name)
+
+
+@pytest.mark.parametrize('flag_enabled,expect_legacy_called', [(False, True), (True, False)])
+def test_process_ses_results_feature_flag_branching(mocker, flag_enabled, expect_legacy_called):
+    """Feature flag toggles legacy vs new SES processing paths."""
+    mocker.patch('app.celery.process_ses_receipts_tasks.is_feature_enabled', return_value=flag_enabled)
+    mock_validate = mocker.patch('app.celery.process_ses_receipts_tasks._validate_response', return_value=None)
+    mock_legacy = mocker.patch('app.celery.process_ses_receipts_tasks._process_ses_results', return_value='legacy')
+    envelope = ses_notification_callback(reference=str(uuid4()))
+
+    result = process_ses_receipts_tasks.process_ses_results(celery_envelope=envelope)
+
+    if expect_legacy_called:
+        assert result == 'legacy'
+        mock_legacy.assert_called_once()
+        mock_validate.assert_not_called()
+    else:
+        assert result is None
+        mock_validate.assert_called_once()
+        mock_legacy.assert_not_called()
 
 
 def test_process_ses_results_reference_none(mocker, notify_api):

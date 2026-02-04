@@ -1,5 +1,3 @@
-import json
-
 from celery.exceptions import CeleryError
 from jsonschema import ValidationError
 from kombu.exceptions import OperationalError

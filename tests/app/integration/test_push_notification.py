@@ -4,7 +4,6 @@ import os
 import pytest
 from celery.exceptions import CeleryError
 from flask import url_for
-from jsonschema import ValidationError
 from kombu.exceptions import OperationalError
 
 from app.constants import PUSH_TYPE
