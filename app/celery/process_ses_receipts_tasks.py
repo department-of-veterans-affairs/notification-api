@@ -247,11 +247,7 @@ def _process_ses_results(task, response, celery_retry_count):  # noqa: C901 (too
                 # we expect results or no results but it could be multiple results
                 message_time = iso8601.parse_date(ses_message['mail']['timestamp']).replace(tzinfo=None)
                 if datetime.utcnow() - message_time < timedelta(minutes=5):
-                    current_app.logger.warning(
-                        'notification not found for reference: %s (complaint), notification less than 5 minutes old. Retrying notification.',
-                        reference,
-                    )
-                    raise task.retry(queue=QueueNames.RETRY)
+                    task.retry(queue=QueueNames.RETRY)
                 else:
                     current_app.logger.warning('SES complaint: notification not found | reference: %s', reference)
                 return
@@ -271,12 +267,7 @@ def _process_ses_results(task, response, celery_retry_count):  # noqa: C901 (too
             # we expect results or no results but it could be multiple results
             message_time = iso8601.parse_date(ses_message['mail']['timestamp']).replace(tzinfo=None)
             if datetime.utcnow() - message_time < timedelta(minutes=5):
-                current_app.logger.warning(
-                    'notification not found for reference: %s (update to %s), notification less than 5 minutes old. Retrying notification.',
-                    reference,
-                    incoming_status,
-                )
-                raise task.retry(queue=QueueNames.RETRY)
+                task.retry(queue=QueueNames.RETRY)
             else:
                 current_app.logger.warning(
                     'notification not found for reference: %s (update to %s)', reference, incoming_status
@@ -387,8 +378,8 @@ def _process_ses_results(task, response, celery_retry_count):  # noqa: C901 (too
 
     except Exception:
         current_app.logger.exception(
-            'UnError processing SES results: reference: %s | notification_id: %s. Retrying notification.',
+            'Error processing SES results: reference: %s | notification_id: %s',
             notification.reference,
             notification.id,
         )
-        raise task.retry(queue=QueueNames.RETRY)
+        task.retry(queue=QueueNames.RETRY)
