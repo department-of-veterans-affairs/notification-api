@@ -16,7 +16,7 @@ from sqlalchemy.sql.dml import Update
 
 from notifications_utils.statsd_decorators import statsd
 
-from app import notify_celery
+from app import notify_celery, statsd_client
 from app.celery.common import log_notification_total_time
 from app.celery.exceptions import NonRetryableException
 from app.celery.send_va_profile_notification_status_tasks import check_and_queue_va_profile_notification_status_callback
@@ -46,7 +46,7 @@ from app.celery.service_callback_tasks import check_and_queue_callback_task
 class SesEventType(Enum):
     BOUNCE = 'Bounce'
     COMPLAINT = 'Complaint'
-    DELIVERED = 'Delivered'
+    DELIVERY = 'Delivery'
     OPEN = 'Open'
     SEND = 'Send'
     RENDERING_FAILURE = 'Rendering Failure'
@@ -63,16 +63,49 @@ class EmailStatusRecord:
 
 
 @dataclass
+class SesBounce:
+    bounce_type: str
+    bounce_sub_type: str | None = None
+
+
+@dataclass
+class SesComplaint:
+    feedback_type: str | None
+    feedback_id: str | None
+    timestamp: datetime | None
+
+
+@dataclass
+class SesDelivered:
+    timestamp: datetime | None
+
+
+@dataclass
+class SesOpen:
+    timestamp: datetime | None
+
+
+@dataclass
+class SesSend:
+    timestamp: datetime | None
+
+
+@dataclass
+class SesRenderingFailure:
+    timestamp: datetime | None
+
+
+SesEvent = SesBounce | SesComplaint | SesDelivered | SesOpen | SesSend | SesRenderingFailure
+
+
+@dataclass
 class SesResponse:
     """Represents all the relevant fields of an SES response."""
 
     event_type: SesEventType
     reference: str
-
-    def __init__(self, eventType: str, messageId: str, *args, **kwargs):
-        self.event_type = SesEventType(eventType)
-        self.reference = messageId
-        ...
+    mail: 'SesMail'
+    event: SesEvent
 
 
 @dataclass
@@ -91,7 +124,10 @@ def process_ses_results(
 
     if is_feature_enabled(FeatureFlag.EMAIL_DELIVERY_STATUS_OVERHAUL):
         # This is a general outline
-        ses_response: SesResponse = _validate_response(celery_envelope)
+        ses_response: SesResponse | None = _validate_response(celery_envelope)
+        if ses_response is None:
+            # unknown event types are logged as a warning
+            return
         db_notification: Notification | NotificationHistory = _get_notification(ses_response.reference)
         current_app.logger.info(
             'SES details for notification: %s | current status: %s | event_type: %s',
@@ -115,23 +151,322 @@ def process_ses_results(
         return _process_ses_results(task, celery_envelope, task.request.retries)
 
 
-def _validate_response(celery_envelope: str) -> SesResponse:
-    # Tries to load the response. Validates all expected fields are available
-    # Does not use get_aws_responses, uses dataclasses to map the data, with link(s) to the pages as comments
-    # Maps EventType or logs and raises a non-retryable exception
+def _parse_timestamp(value: str) -> datetime:
+    """Parse an ISO-8601 timestamp into a naive datetime.
+
+    Args:
+        value (str): ISO-8601 timestamp string.
+
+    Returns:
+        datetime: Parsed timestamp with tzinfo stripped.
+
+    Raises:
+        NonRetryableException: If the timestamp is invalid.
+    """
     try:
-        ses_event = json.loads(celery_envelope['Message'])
+        return iso8601.parse_date(value).replace(tzinfo=None)
+    except (iso8601.ParseError, TypeError, ValueError) as e:
+        raise NonRetryableException('Invalid SES timestamp') from e
+
+
+def _parse_optional_timestamp(value: str | None) -> datetime | None:
+    """Parse an optional ISO-8601 timestamp.
+
+    Args:
+        value (str | None): Timestamp string or None.
+
+    Returns:
+        datetime | None: Parsed timestamp or None.
+    """
+    if value is None:
+        return None
+    return _parse_timestamp(value)
+
+
+def _build_event(event_type: SesEventType, ses_event: dict) -> SesEvent:
+    """Build a typed SES event payload from the raw event dict.
+
+    SES event payload examples:
+    https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-examples.html
+
+    Args:
+        event_type (SesEventType): SES event type.
+        ses_event (dict): Raw SES event payload.
+
+    Returns:
+        SesEvent: Parsed event dataclass.
+
+    Raises:
+        NonRetryableException: If required fields are missing.
+    """
+    if event_type == SesEventType.BOUNCE:
+        bounce = ses_event.get('bounce')
+        if not bounce or not bounce.get('bounceType'):
+            raise NonRetryableException('SES bounce missing bounceType')
+        return SesBounce(
+            bounce_type=bounce['bounceType'],
+            bounce_sub_type=bounce.get('bounceSubType'),
+        )
+    if event_type == SesEventType.COMPLAINT:
+        complaint = ses_event.get('complaint')
+        if complaint is None:
+            raise NonRetryableException('SES complaint missing complaint data')
+        return SesComplaint(
+            feedback_type=complaint.get('complaintFeedbackType'),
+            feedback_id=complaint.get('feedbackId'),
+            timestamp=_parse_optional_timestamp(complaint.get('timestamp')),
+        )
+    if event_type == SesEventType.DELIVERY:
+        delivery = ses_event.get('delivery', {})
+        return SesDelivered(timestamp=_parse_optional_timestamp(delivery.get('timestamp')))
+    if event_type == SesEventType.OPEN:
+        open_event = ses_event.get('open', {})
+        return SesOpen(timestamp=_parse_optional_timestamp(open_event.get('timestamp')))
+    if event_type == SesEventType.SEND:
+        send = ses_event.get('send', {})
+        return SesSend(timestamp=_parse_optional_timestamp(send.get('timestamp')))
+    if event_type == SesEventType.RENDERING_FAILURE:
+        failure = ses_event.get('failure', {})
+        return SesRenderingFailure(timestamp=_parse_optional_timestamp(failure.get('timestamp')))
+    raise NonRetryableException('Unsupported SES event type')
+
+
+def _ses_log_context(ses_event: dict | None) -> dict:
+    """Build log context from an SES event dict."""
+    if not isinstance(ses_event, dict):
+        return {}
+    mail = ses_event.get('mail') or {}
+    return {
+        'event_type': ses_event.get('eventType'),
+        'message_id': mail.get('messageId'),
+        'mail_timestamp': mail.get('timestamp'),
+    }
+
+
+def _get_message(celery_envelope: dict) -> str:
+    """Extract the SES Message string from a Celery envelope.
+
+    Args:
+        celery_envelope (dict): Celery task envelope.
+
+    Returns:
+        str: SES message payload string.
+
+    Raises:
+        NonRetryableException: If Message is missing.
+    """
+    message = celery_envelope.get('Message')
+    if message is None:
+        current_app.logger.error('SES response missing Message. envelope_fields=%s', list(celery_envelope.keys()))
+        raise NonRetryableException('Unable to find "Message" in SES response')
+    return message
+
+
+def _parse_ses_event(message: str) -> dict:
+    """Parse the SES message JSON into a dict.
+
+    Args:
+        message (str): SES message payload string.
+
+    Returns:
+        dict: Parsed SES event data.
+
+    Raises:
+        NonRetryableException: If JSON is invalid or not an object.
+    """
+    try:
+        ses_event = json.loads(message)
     except JSONDecodeError as e:
-        current_app.logger.exception('Error decoding SES results: full response data: %s', celery_envelope)
+        current_app.logger.error('Error decoding SES results.')
         raise NonRetryableException from e
 
+    if not isinstance(ses_event, dict):
+        current_app.logger.error('SES response is not a JSON object. type=%s', type(ses_event).__name__)
+        raise NonRetryableException('SES response is not a JSON object')
+
+    return ses_event
+
+
+def _get_event_type_value(ses_event: dict) -> str:
+    """Return the SES eventType string.
+
+    Args:
+        ses_event (dict): Parsed SES event data.
+
+    Returns:
+        str: eventType value.
+
+    Raises:
+        NonRetryableException: If eventType is missing.
+    """
+    event_type_value = ses_event.get('eventType')
+    if event_type_value is None:
+        current_app.logger.error('SES response missing eventType. context=%s', _ses_log_context(ses_event))
+        raise NonRetryableException('SES response missing eventType')
+    return event_type_value
+
+
+def _get_event_type(event_type_value: str) -> SesEventType | None:
+    """Map an eventType string to SesEventType.
+
+    Args:
+        event_type_value (str): SES eventType value.
+
+    Returns:
+        SesEventType | None: Enum value or None if unsupported.
+    """
     try:
-        # Ensure event_type maps here. The point of validation is so downstream code does not have to cover it
-        ses_resp = SesResponse(event_type=SesEventType(ses_event.event_type))
-    except ValueError as e:
-        current_app.logger.exception('Unable to process SES response')
-        raise NonRetryableException from e
-    return ses_resp
+        return SesEventType(event_type_value)
+    except ValueError:
+        # Legacy behavior: unknown event types are logged and ignored.
+        current_app.logger.error('Unsupported SES eventType received. eventType=%s', event_type_value)
+        statsd_client.incr('clients.ses.status_update.ignored')
+        return None
+
+
+def _get_mail(ses_event: dict, event_type_value: str) -> dict:
+    """Return the mail block from the SES event.
+
+    Args:
+        ses_event (dict): Parsed SES event data.
+        event_type_value (str): SES eventType value for logging.
+
+    Returns:
+        dict: mail block payload.
+
+    Raises:
+        NonRetryableException: If mail is missing.
+    """
+    mail = ses_event.get('mail')
+    if not mail:
+        current_app.logger.error('SES response missing mail. eventType=%s', event_type_value)
+        raise NonRetryableException('SES response missing mail')
+    return mail
+
+
+def _get_reference(ses_event: dict, mail: dict) -> str:
+    """Return the SES messageId reference from mail.
+
+    Args:
+        ses_event (dict): Parsed SES event data.
+        mail (dict): mail block payload.
+
+    Returns:
+        str: messageId reference.
+
+    Raises:
+        NonRetryableException: If messageId is missing.
+    """
+    reference = mail.get('messageId')
+    if not reference:
+        current_app.logger.error('SES response missing mail.messageId. context=%s', _ses_log_context(ses_event))
+        raise NonRetryableException('SES response missing mail.messageId')
+    return reference
+
+
+def _get_mail_timestamp(ses_event: dict, mail: dict) -> datetime:
+    """Parse the mail timestamp from the SES event.
+
+    Args:
+        ses_event (dict): Parsed SES event data.
+        mail (dict): mail block payload.
+
+    Returns:
+        datetime: Parsed mail timestamp.
+
+    Raises:
+        NonRetryableException: If the timestamp is missing or invalid.
+    """
+    mail_timestamp = mail.get('timestamp')
+    if not mail_timestamp:
+        current_app.logger.error('SES response missing mail.timestamp. context=%s', _ses_log_context(ses_event))
+        raise NonRetryableException('SES response missing mail.timestamp')
+
+    try:
+        return _parse_timestamp(mail_timestamp)
+    except NonRetryableException:
+        current_app.logger.error('SES response has invalid mail.timestamp. context=%s', _ses_log_context(ses_event))
+        raise
+
+
+def _get_event(event_type: SesEventType, ses_event: dict) -> SesEvent:
+    """Build a typed event and emit context on failure.
+
+    Args:
+        event_type (SesEventType): SES event type.
+        ses_event (dict): Parsed SES event data.
+
+    Returns:
+        SesEvent: Parsed event dataclass.
+
+    Raises:
+        NonRetryableException: If building the event fails.
+    """
+    try:
+        return _build_event(event_type, ses_event)
+    except NonRetryableException:
+        current_app.logger.error('Unable to build SES event. context=%s', _ses_log_context(ses_event))
+        raise
+
+
+def _translate_ses_response(celery_envelope: dict) -> SesResponse | None:
+    """Translate a Celery envelope into a SesResponse.
+
+    Args:
+        celery_envelope (dict): Celery task envelope.
+
+    Returns:
+        SesResponse | None: Parsed response or None if unsupported.
+    """
+    message = _get_message(celery_envelope)
+    ses_event = _parse_ses_event(message)
+    event_type_value = _get_event_type_value(ses_event)
+    event_type = _get_event_type(event_type_value)
+    if event_type is None:
+        current_app.logger.warning(
+            'Unsupported SES eventType received. context=%s',
+            _ses_log_context(ses_event),
+        )
+        # intentionally return early here to ignore unsupported event types.
+        return None
+    mail = _get_mail(ses_event, event_type_value)
+    reference = _get_reference(ses_event, mail)
+    mail_timestamp_dt = _get_mail_timestamp(ses_event, mail)
+    event = _get_event(event_type, ses_event)
+    return SesResponse(
+        event_type=event_type,
+        reference=reference,
+        mail=SesMail(timestamp=mail_timestamp_dt, reference=reference),
+        event=event,
+    )
+
+
+def _validate_response(celery_envelope: dict) -> SesResponse | None:
+    """Validate a Celery envelope and return a parsed response.
+
+    Emits warning log for unsupported event types and raises on invalid payloads.
+    Emits statsd success/error metrics for validation outcomes.
+
+    Args:
+        celery_envelope (dict): Celery task envelope.
+
+    Returns:
+        SesResponse | None: Parsed response or None if unsupported.
+    """
+    try:
+        response = _translate_ses_response(celery_envelope)
+    except NonRetryableException:
+        statsd_client.incr('clients.ses.status_update.error')
+        raise
+    except Exception:
+        current_app.logger.exception('Unexpected error validating SES response')
+        statsd_client.incr('clients.ses.status_update.error')
+        raise
+
+    if response is None:
+        return None
+    statsd_client.incr('clients.ses.status_update.success')
+    return response
 
 
 def _get_notification(reference) -> Notification | NotificationHistory:
@@ -157,7 +492,7 @@ def _handle_response(
         status_record, where_clause = _handle_bounce_event(ses_response, notification)
     elif ses_response.event_type == SesEventType.COMPLAINT:
         status_record, where_clause = _handle_complaint_event(ses_response, notification)
-    elif ses_response.event_type == SesEventType.DELIVERED:
+    elif ses_response.event_type == SesEventType.DELIVERY:
         status_record, where_clause = _handle_delivered_event(ses_response, notification)
     elif ses_response.event_type == SesEventType.OPEN:
         status_record, where_clause = _handle_open_event(ses_response, notification)
