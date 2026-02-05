@@ -171,7 +171,7 @@ class AwsPinpointClient(SmsClient):
                 recipient_number, content, aws_phone_number, template_id, sms_sender_id
             )
         except botocore.exceptions.ParamValidationError as e:
-            # The risk of PII exposure logging validation error deemed low/negligable
+            # The risk of PII exposure logging validation error deemed low/negligible
             self.statsd_client.incr('clients.pinpoint.error')
             msg = str(e)
 
