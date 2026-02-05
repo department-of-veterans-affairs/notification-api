@@ -116,6 +116,30 @@ def test_should_increment_retry_count_on_deliver_sms_task_retry(
     assert notification.retry_count == 1
 
 
+def test_should_not_increment_retry_count_if_notification_id_does_not_exist(
+    mocker,
+    notify_db_session,
+):
+    """Test that function handles non-existent notification_id gracefully"""
+    mock_logger = mocker.patch('app.celery.tasks.current_app.logger')
+
+    mocker.patch('app.delivery.send_to_providers.send_sms_to_provider')
+    mock_task = mocker.Mock(spec=Task)
+    mock_task.request.retries = 1
+
+    non_existent_id = '12345678-1234-5678-1234-567812345678'
+
+    with pytest.raises(Exception):
+        deliver_sms.__wrapped__.__wrapped__(mock_task, non_existent_id)
+        mock_logger.info.assert_not_called()
+
+    notifications_with_retry_count = (
+        notify_db_session.session.query(Notification).filter(Notification.retry_count.isnot(None)).all()
+    )
+
+    assert len(notifications_with_retry_count) == 0
+
+
 def test_should_not_increment_retry_count_on_first_attempt(
     notify_db_session,
     mocker,
