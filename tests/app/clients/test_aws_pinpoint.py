@@ -377,24 +377,23 @@ def test_send_sms_handles_pinpoint_v2_nonretryable_exceptions(
         aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
 
 
-def test_send_sms_handles_botocore_param_validation_error_as_nonretryable(mocker, aws_pinpoint_client):
-    """Test that (Botocore) ParamValidationError when calling PinpointV2 properly handled and raises NonRetryableException.
+def test_send_sms_v2_handles_botocore_param_validation_error_as_nonretryable(mocker, aws_pinpoint_client):
+    """Test that when calling PinpointV2 a (Botocore) ParamValidationError id properly handled and raises NonRetryableException.
 
     This error results from Botocore pre-request parameter validation.
     - https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html#catching-exceptions-when-using-a-low-level-client
     """
+    mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
+
     mock_exception = botocore.exceptions.ParamValidationError(
         report='Parameter validation failed:\nInvalid type for parameter MessageRequest.MessageConfiguration.SMSMessage.Body'
     )
 
-    mocker.patch.object(
-        aws_pinpoint_client,
-        '_post_message_request',
-        side_effect=mock_exception,
-    )
+    client_mock = mocker.patch.object(aws_pinpoint_client, '_pinpoint_sms_voice_v2_client', create=True)
+    client_mock.send_text_message.side_effect = mock_exception
 
     with pytest.raises(NonRetryableException):
-        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
+        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, '', TEST_REFERENCE)
 
 
 @pytest.mark.parametrize(

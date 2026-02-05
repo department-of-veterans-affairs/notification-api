@@ -173,16 +173,17 @@ class AwsPinpointClient(SmsClient):
         except botocore.exceptions.ParamValidationError as e:
             # The risk of PII exposure logging validation error deemed low/negligable
             self.statsd_client.incr('clients.pinpoint.error')
+            msg = str(e)
 
             recipient_number = f'{recipient_number[:-4]}XXXX'
 
-            self.logger.exception(
-                '%s sending SMS - Recipient: %s, %s',
-                type(e).__class__.__name__,
+            self.logger.error(
+                'ParamValidationError attempting to send SMS - Recipient: %s, %s',
                 recipient_number,
+                msg,
                 extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
             )
-            raise NonRetryableException from e
+            raise NonRetryableException(msg)
         except (botocore.exceptions.ClientError, Exception) as e:
             self.statsd_client.incr('clients.pinpoint.error')
             msg = str(e)
@@ -254,6 +255,16 @@ class AwsPinpointClient(SmsClient):
                     MessageBody=content,
                     ConfigurationSetName=self.aws_pinpoint_v2_configset,
                 )
+            except botocore.exceptions.ParamValidationError:
+                recipient_number = f'{recipient_number[:-4]}XXXX'
+
+                self.logger.exception(
+                    'ParamValidationError attempting to send SMS - Recipient: %s',
+                    recipient_number,
+                    extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
+                )
+
+                raise
             except botocore.exceptions.ClientError as e:
                 # temporary fallback to V1 until V2 service issues resolved (PR and CA destination numbers)
                 # OPT_OUT and SENDER_ID errors are not retried in V1
