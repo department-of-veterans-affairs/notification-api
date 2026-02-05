@@ -56,6 +56,15 @@ def deliver_sms(
     notification_id,
     sms_sender_id=None,
 ):
+    if task.request.retries > 0:
+        db_retry_count = notifications_dao.dao_increment_notification_retry_count(notification_id)
+        if db_retry_count is not None:
+            current_app.logger.info(
+                'deliver_sms retry attempt for notification %s, total retry_count now: %s',
+                notification_id,
+                db_retry_count,
+            )
+
     current_app.logger.info(
         'Start sending SMS for notification id: %s', notification_id, extra={'sms_sender_id': sms_sender_id}
     )
@@ -167,6 +176,15 @@ def deliver_email(
     notification_id: UUID,
     sms_sender_id: UUID = None,
 ):
+    if task.request.retries > 0:
+        db_retry_count = notifications_dao.dao_increment_notification_retry_count(notification_id)
+        if db_retry_count is not None:
+            current_app.logger.info(
+                'deliver_email retry attempt for notification %s, total retry_count now: %s',
+                notification_id,
+                db_retry_count,
+            )
+
     current_app.logger.info('Start sending email for notification id: %s', notification_id)
 
     try:

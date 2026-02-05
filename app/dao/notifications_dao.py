@@ -306,6 +306,7 @@ def dao_update_sms_notification_delivery_status(
     new_status_reason: str | None,
     segments_count: int,
     cost_in_millicents: float,
+    provider_updated_at: datetime | None = None,
 ) -> Notification:
     """Update an SMS notification delivery status.
 
@@ -320,13 +321,16 @@ def dao_update_sms_notification_delivery_status(
     Returns:
         Notification: A Notification object
     """
-
+    current_app.logger.debug(
+        'notification_id: %s, new_status: %s, notification_type: %s', notification_id, new_status, notification_type
+    )
     if notification_type == SMS_TYPE:
         stmt_values = {
             'status': new_status,
             'status_reason': new_status_reason,
             'segments_count': segments_count,
             'cost_in_millicents': cost_in_millicents,
+            'provider_updated_at': provider_updated_at,
         }
 
         if new_status in FINAL_STATUS_STATES:
@@ -350,6 +354,7 @@ def dao_update_sms_notification_delivery_status(
         )
 
     try:
+        current_app.logger.debug('Executing SMS delivery status update statement for notification %s', notification_id)
         db.session.execute(stmt)
         db.session.commit()
     except Exception:
@@ -1019,6 +1024,46 @@ def dao_get_last_notification_added_for_job_id(job_id):
     stmt = select(Notification).where(Notification.job_id == job_id).order_by(Notification.job_row_number.desc())
     last_notification_added = db.session.scalars(stmt).first()
     return last_notification_added
+
+
+@statsd(namespace='dao')
+@transactional
+def dao_increment_notification_retry_count(notification_id: UUID) -> int:
+    """
+    Increment the retry_count for a notification by 1.
+
+    Args:
+        notification_id (UUID): The notification ID to update
+
+    Returns:
+        int: The updated retry_count value
+    """
+    stmt = (
+        update(Notification)
+        .where(Notification.id == notification_id)
+        .values(retry_count=func.coalesce(Notification.retry_count, 0) + 1, updated_at=datetime.utcnow())
+        .returning(Notification.retry_count)
+    )
+
+    result = db.session.execute(stmt)
+    return result.scalar()
+
+
+@statsd(namespace='dao')
+@transactional
+def dao_update_provider_updated_at(notification_id: UUID, provider_updated_at: datetime) -> None:
+    """
+    Update the provider_updated_at field for a notification.
+
+    Args:
+        notification_id (UUID): The notification ID to update
+        provider_updated_at (datetime): The datetime to set as provider_updated_at
+    """
+    stmt = (
+        update(Notification).where(Notification.id == notification_id).values(provider_updated_at=provider_updated_at)
+    )
+
+    db.session.execute(stmt)
 
 
 def notifications_not_yet_sent(

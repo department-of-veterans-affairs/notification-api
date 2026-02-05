@@ -148,7 +148,7 @@ def process_ses_results(
             SES_PROVIDER,
         )
     else:
-        return _process_ses_results(task, celery_envelope)
+        return _process_ses_results(task, celery_envelope, task.request.retries)
 
 
 def _parse_timestamp(value: str) -> datetime:
@@ -546,7 +546,7 @@ def _queue_callbacks(notification):
     check_and_queue_va_profile_notification_status_callback(notification)
 
 
-def _process_ses_results(task, response):  # noqa: C901 (too complex 20 > 10)
+def _process_ses_results(task, response, celery_retry_count):  # noqa: C901 (too complex 20 > 10)
     current_app.logger.debug('Full SES result response: %s', response)
 
     try:
@@ -602,12 +602,34 @@ def _process_ses_results(task, response):  # noqa: C901 (too complex 20 > 10)
             # we expect results or no results but it could be multiple results
             message_time = iso8601.parse_date(ses_message['mail']['timestamp']).replace(tzinfo=None)
             if datetime.utcnow() - message_time < timedelta(minutes=5):
+                current_app.logger.info(
+                    'Retrying SES notification lookup for reference: %s. Sending to retry queue %s',
+                    reference,
+                    QueueNames.RETRY,
+                )
                 task.retry(queue=QueueNames.RETRY)
             else:
                 current_app.logger.warning(
                     'notification not found for reference: %s (update to %s)', reference, incoming_status
                 )
             return
+
+        provider_updated_at = iso8601.parse_date(ses_message['mail']['timestamp']).replace(tzinfo=None)
+        if provider_updated_at:
+            current_app.logger.debug(
+                'Updating notification %s provider_updated_at to %s', notification.id, provider_updated_at
+            )
+            notifications_dao.dao_update_provider_updated_at(
+                notification_id=notification.id, provider_updated_at=provider_updated_at
+            )
+
+        if celery_retry_count > 0:
+            db_retry_count = notifications_dao.dao_increment_notification_retry_count(notification.id)
+            current_app.logger.info(
+                '_process_ses_results retry_attempt for notification %s, total retry_count now %s',
+                notification.id,
+                db_retry_count,
+            )
 
         # Prevent regressing bounce status.  Note that this is a test of the existing status; not the new status.
         if notification.status_reason and (

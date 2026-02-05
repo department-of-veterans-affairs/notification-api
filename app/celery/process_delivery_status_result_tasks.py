@@ -25,6 +25,7 @@ from app.constants import (
 )
 from app.dao.notifications_dao import (
     dao_get_notification_by_reference,
+    dao_increment_notification_retry_count,
     dao_update_sms_notification_delivery_status,
     dao_update_sms_notification_status_to_created_for_retry,
 )
@@ -223,7 +224,7 @@ def sms_status_update(
     template_id = notification.template_id
 
     current_app.logger.info(
-        'Initial %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | service_id: %s | template_id: %s',
+        'Initial %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | service_id: %s | template_id: %s | provider_updated_at: %s',
         sms_status.provider,
         sms_status.reference,
         notification.id,
@@ -231,6 +232,7 @@ def sms_status_update(
         sms_status.status_reason,
         notification.service_id,
         notification.template_id,
+        sms_status.provider_updated_at,
         extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
     )
 
@@ -246,6 +248,7 @@ def sms_status_update(
             new_status_reason=sms_status.status_reason,
             segments_count=sms_status.message_parts,
             cost_in_millicents=sms_status.price_millicents + notification.cost_in_millicents,
+            provider_updated_at=sms_status.provider_updated_at,
         )
         statsd_client.incr(f'clients.sms.{sms_status.provider}.delivery.status.{sms_status.status}')
     except Exception:
@@ -253,7 +256,7 @@ def sms_status_update(
         raise NonRetryableException('Unable to update notification')
 
     current_app.logger.info(
-        'Final %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | cost_in_millicents: %s | service_id: %s | template_id: %s',
+        'Final %s logic | reference: %s | notification_id: %s | status: %s | status_reason: %s | cost_in_millicents: %s | service_id: %s | template_id: %s | provider_updated_at: %s',
         sms_status.provider,
         sms_status.reference,
         notification.id,
@@ -262,6 +265,7 @@ def sms_status_update(
         notification.cost_in_millicents,
         notification.service_id,
         notification.template_id,
+        notification.provider_updated_at,
         extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
     )
 
@@ -541,6 +545,13 @@ def sms_attempt_retry(
             )
         except Exception:
             raise NonRetryableException('Unable to queue notification for delivery retry')
+
+        db_retry_count = dao_increment_notification_retry_count(notification.id)
+        current_app.logger.info(
+            'Notification id: %s has retry_count: %s',
+            notification.id,
+            db_retry_count,
+        )
 
         current_app.logger.info(
             'Requeued notification for delayed %s delivery | notification_id: %s | retry_delay: %s seconds',
