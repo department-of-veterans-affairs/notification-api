@@ -612,9 +612,6 @@ def _process_ses_results(task, response, celery_retry_count):  # noqa: C901 (too
                 current_app.logger.warning(
                     'notification not found for reference: %s (update to %s)', reference, incoming_status
                 )
-            current_app.logger.info(
-                'General exception for dao_get_notification_by_reference for reference: %s', reference
-            )
             return
 
         provider_updated_at = iso8601.parse_date(ses_message['mail']['timestamp']).replace(tzinfo=None)
