@@ -393,7 +393,7 @@ def test_send_sms_v2_handles_botocore_param_validation_error_as_nonretryable(moc
     client_mock.send_text_message.side_effect = mock_exception
 
     with pytest.raises(NonRetryableException):
-        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, '', TEST_REFERENCE)
+        aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
 
 
 @pytest.mark.parametrize(
