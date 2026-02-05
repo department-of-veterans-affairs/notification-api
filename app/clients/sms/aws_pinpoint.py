@@ -381,7 +381,7 @@ class AwsPinpointClient(SmsClient):
         error_code = error.response.get('Error', {}).get('Code', '')
 
         if error_code in self._non_retryable_v2_exceptions:
-            reason = error.response.get('Reason')
+            reason = error.response.get('Reason', 'unknown')
             resource_type = error.response.get('ResourceType')
             resource_id = error.response.get('ResourceId')
 

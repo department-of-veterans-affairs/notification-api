@@ -378,7 +378,7 @@ def test_send_sms_handles_pinpoint_v2_nonretryable_exceptions(
 
 
 def test_send_sms_v2_handles_botocore_param_validation_error_as_nonretryable(mocker, aws_pinpoint_client):
-    """Test that when calling PinpointV2 a (Botocore) ParamValidationError id properly handled and raises NonRetryableException.
+    """Test that when calling PinpointV2 a (Botocore) ParamValidationError is properly handled and raises NonRetryableException.
 
     This error results from Botocore pre-request parameter validation.
     - https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html#catching-exceptions-when-using-a-low-level-client
