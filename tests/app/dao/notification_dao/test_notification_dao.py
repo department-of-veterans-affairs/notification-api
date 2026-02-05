@@ -1962,6 +1962,12 @@ def test_dao_increment_notification_retry_count(
     assert notification.retry_count == 1
 
 
+def test_dao_increment_notification_retry_count_notification_does_not_exist():
+    retry_count = dao_increment_notification_retry_count('550e8400-e29b-41d4-a716-446655440000')
+
+    assert retry_count is None
+
+
 def test_dao_update_provider_updated_at(
     sample_template,
     sample_notification,
