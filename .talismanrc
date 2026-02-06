@@ -86,7 +86,7 @@ fileignoreconfig:
 - filename: tests/app/v2/notifications/test_pii_wrapping_at_entrypoint.py
   checksum: 4dcd257865daa286c737d6a76e141e8b9aee66c0642524447c394554643b7712
 - filename: tests/app/v2/notifications/test_post_notifications.py
-  checksum: a12eb5a735321d8eaa8e2ff6af4e2dbd570a11f861213fd448b11cc2ee4cd8f9
+  checksum: 16dd22f90e0a226e0800c160b1d22241a9a73f7ca8bd69a9f23afb01da9387bd
 - filename: app/v2/notifications/post_notifications.py
   checksum: f365a7336c5105df6c11a6f95e765fe5079d0c3c97907e059dea5556a62ff494
 - filename: app/va/va_profile/va_profile_client.py
