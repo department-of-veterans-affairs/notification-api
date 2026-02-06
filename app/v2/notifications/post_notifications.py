@@ -19,6 +19,7 @@ from app.constants import (
     LETTER_TYPE,
     UPLOAD_DOCUMENT,
 )
+from app.dao.templates_dao import dao_get_template_by_id
 from app.dao.service_sms_sender_dao import dao_get_default_service_sms_sender_by_service_id
 from app.notifications.process_notifications import (
     persist_notification,
@@ -46,7 +47,7 @@ from app.v2.notifications.notification_schemas import (
     post_email_request,
     post_letter_request,
 )
-from app.utils import get_public_notify_type_text
+from app.utils import get_public_notify_type_text, get_template_instance
 
 
 def wrap_recipient_identifier_in_pii(form: dict):
@@ -145,12 +146,31 @@ def post_notification(notification_type):  # noqa: C901
         if not authenticated_service.has_permissions(SCHEDULE_NOTIFICATIONS):
             raise BadRequestError(message='Cannot schedule notifications (this feature is invite-only)')
 
-    template, template_with_content = validate_template(
+    template = validate_template(
         form['template_id'],
         strip_keys_from_personalisation_if_send_attach(form.get('personalisation', {})),
         authenticated_service,
         notification_type,
     )
+
+    # Build response content from the versioned template snapshot so POST /v2/notifications
+    # matches GET /v2/notifications/{id} even if templates and templates_history drift.
+    history_template = dao_get_template_by_id(template.id, template.version)
+
+    # If the current template version has no history row, fail with the same API contract
+    # used for template lookup failures instead of allowing a DB integrity error later.
+    if history_template is None:
+        current_app.logger.error(
+            '%s Validation failure for service: %s (%s) template history missing for template: %s version: %s',
+            notification_type,
+            authenticated_service.id,
+            authenticated_service.name,
+            template.id,
+            template.version,
+            extra={'template_id': template.id},
+        )
+        message = 'Template not found'
+        raise BadRequestError(message=message, fields=[{'template': message}])
 
     check_rate_limiting(authenticated_service, api_user)
 
@@ -182,23 +202,25 @@ def post_notification(notification_type):  # noqa: C901
             created_at=created_at,
         )
 
-    template_with_content.values = {k: '<redacted>' for k in notification.personalisation}
+    history_template_with_content = get_template_instance(
+        history_template.__dict__, {k: '<redacted>' for k in notification.personalisation}
+    )
 
     if notification_type == SMS_TYPE:
         create_resp_partial = functools.partial(create_post_sms_response_from_notification, from_number=reply_to)
     elif notification_type == EMAIL_TYPE:
         create_resp_partial = functools.partial(
-            create_post_email_response_from_notification, subject=html.unescape(template_with_content.subject)
+            create_post_email_response_from_notification, subject=html.unescape(history_template_with_content.subject)
         )
     elif notification_type == LETTER_TYPE:
         create_resp_partial = functools.partial(
             create_post_letter_response_from_notification,
-            subject=template_with_content.subject,
+            subject=history_template_with_content.subject,
         )
 
     resp = create_resp_partial(
         notification=notification,
-        content=str(template_with_content),
+        content=str(history_template_with_content),
         url_root=request.url_root,
         scheduled_for=scheduled_for,
     )

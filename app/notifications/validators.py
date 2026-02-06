@@ -245,7 +245,7 @@ def validate_template(
             SMS_CHAR_COUNT_LIMIT,
             extra={'template_id': template.id},
         )
-    return template, template_with_content
+    return template
 
 
 def get_service_sms_sender_number(
