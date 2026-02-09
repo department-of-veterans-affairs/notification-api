@@ -13,22 +13,26 @@ from app.models import (
     Template,
 )
 from app.notifications.send_notifications import lookup_notification_sms_setup_data, send_notification_bypass_route
-from app.pii import PiiPid
+from app.pii import PiiPid, PiiVaProfileID
 from app.va.identifier import IdentifierType
 
 
 @dataclass
 class DynamoRecord:
-    participant_id: str
-    payment_amount: str
-    vaprofile_id: str
+    participant_id: str = None
+    payment_amount: str = None
+    vaprofile_id: str = None
+    encrypted_participant_id: str = None
+    encrypted_vaprofile_id: str = None
 
 
 @notify_celery.task(name='comp-and-pen-batch-process')
 @statsd(namespace='tasks')
 def comp_and_pen_batch_process(records: list[dict[str, str]]) -> None:
-    """Process batches of Comp and Pen notification requests.  Note that the records contain plain text
-    recipient identifiers, which are PII.
+    """Process batches of Comp and Pen notification requests.
+
+    Records may contain either unencrypted PII (participant_id, vaprofile_id) or
+    encrypted PII (encrypted_participant_id, encrypted_vaprofile_id).
 
     Args:
         records (list[dict[str, str]]): The incoming records
@@ -75,7 +79,7 @@ def _send_comp_and_pen_sms(
         :param sms_sender_id (str): The ID of the SMS sender.
         :param reply_to_text (str): The text a Veteran can reply to.
         :param comp_and_pen_messages (list[DynamoRecord]): A list of DynamoRecord from the dynamodb table containing
-            the details needed to send the messages.  This includes PII.
+            the details needed to send the messages. May contain encrypted or unencrypted PII.
         :param perf_to_number (str): The recipient's phone number.
 
     Raises:
@@ -83,17 +87,42 @@ def _send_comp_and_pen_sms(
     """
 
     for item in comp_and_pen_messages:
-        current_app.logger.debug('sending - record from dynamodb: %s', str(PiiPid(item.participant_id)))
+        try:
+            # Determine which fields to use - prefer encrypted fields if available
+            participant_id_value = (
+                item.encrypted_participant_id if item.encrypted_participant_id else item.participant_id
+            )
+            vaprofile_id_value = item.encrypted_vaprofile_id if item.encrypted_vaprofile_id else item.vaprofile_id
 
-        # Use perf_to_number as the recipient if available. Otherwise, use vaprofile_id as recipient_item.
-        recipient_item = (
-            None
-            if perf_to_number is not None
-            else {
-                'id_type': IdentifierType.VA_PROFILE_ID.value,
-                'id_value': item.vaprofile_id,
-            }
-        )
+            # Determine if values are encrypted
+            is_participant_encrypted = item.encrypted_participant_id is not None
+            is_vaprofile_encrypted = item.encrypted_vaprofile_id is not None
+
+            # Create PII objects
+            participant_id_pii = PiiPid(participant_id_value, is_encrypted=is_participant_encrypted)
+            vaprofile_id_pii = PiiVaProfileID(vaprofile_id_value, is_encrypted=is_vaprofile_encrypted)
+
+            current_app.logger.debug('sending - record from dynamodb: %s', str(participant_id_pii))
+
+            # Use perf_to_number as the recipient if available. Otherwise, use vaprofile_id as recipient_item.
+            # If using recipient_item, decrypt the vaprofile_id for the lookup
+            recipient_item = (
+                None
+                if perf_to_number is not None
+                else {
+                    'id_type': IdentifierType.VA_PROFILE_ID.value,
+                    'id_value': vaprofile_id_pii.get_pii(),
+                }
+            )
+
+        except Exception:
+            current_app.logger.exception(
+                'Error decrypting PII for Comp and Pen notification - skipping record. '
+                'Encrypted participant_id present: %s, Encrypted vaprofile_id present: %s',
+                item.encrypted_participant_id is not None,
+                item.encrypted_vaprofile_id is not None,
+            )
+            continue
 
         try:
             # call generic method to send messages
@@ -111,7 +140,7 @@ def _send_comp_and_pen_sms(
             current_app.logger.exception(
                 'Error attempting to send Comp and Pen notification with '
                 'send_comp_and_pen_sms | record from dynamodb: %s',
-                str(PiiPid(item.participant_id)),
+                str(participant_id_pii),
             )
         else:
             if perf_to_number is not None:
@@ -119,6 +148,4 @@ def _send_comp_and_pen_sms(
                     'Notification sent using Perf simulated number %s instead of vaprofile_id', perf_to_number
                 )
 
-            current_app.logger.info(
-                'Notification sent to queue for record from dynamodb: %s', str(PiiPid(item.participant_id))
-            )
+            current_app.logger.info('Notification sent to queue for record from dynamodb: %s', str(participant_id_pii))
