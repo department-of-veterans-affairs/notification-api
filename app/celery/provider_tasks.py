@@ -306,15 +306,27 @@ def _handle_delivery_failure(  # noqa: C901 - too complex (11 > 10)
         # We retry everything because it ensures missed exceptions do not prevent notifications from going out. Logs are
         # checked daily and tickets opened for narrowing the not 'RetryableException's that make it this far.
         if can_retry(celery_task.request.retries, celery_task.max_retries, notification_id):
-            current_app.logger.warning(
-                '%s unable to send for notification %s, retrying',
-                notification_type,
-                notification_id,
-            )
             if isinstance(e, RetryableException_NonPriority):
-                # max_retries=None causes Celery to NOT override valude defined in task
-                raise celery_task.retry(queue=QueueNames.RETRY, max_retries=None, countdown=0)
+                # SMS ClientError.ThrottlingException are auto-retried by botocore and could tie up workers
+                # Once the ClientError is finally raised, retry the task in the non-priority RETRY queue and worker pool
+
+                current_app.logger.warning(
+                    '%s unable to send for notification %s, retrying in non-priority worker pool',
+                    notification_type,
+                    notification_id,
+                )
+
+                # countdown computed using same exponential backoff that AutoRetry would use
+                countdown = min(celery_task.retry_backoff_max, 2**celery_task.request.retries)
+
+                # max_retries=None causes Celery to NOT override value defined in task
+                celery_task.retry(queue=QueueNames.RETRY, max_retries=None, countdown=countdown)
             else:
+                current_app.logger.warning(
+                    '%s unable to send for notification %s, retrying',
+                    notification_type,
+                    notification_id,
+                )
                 raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
 
         else:

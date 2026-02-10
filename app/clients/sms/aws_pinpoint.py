@@ -410,7 +410,8 @@ class AwsPinpointClient(SmsClient):
             )
             self.statsd_client.incr(f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{STATSD_RETRYABLE}.{aws_phone_number}')
             if error_code == 'ThrottlingException':
-                # signal that retry should be sent to a non-priority queue / worker pool
+                # ClientError.ThrottlingException are retried by botocore and could tie up workers
+                # Signal that retry should be sent to a non-priority queue / worker pool
                 raise RetryableException_NonPriority from error
             else:
                 raise RetryableException from error
