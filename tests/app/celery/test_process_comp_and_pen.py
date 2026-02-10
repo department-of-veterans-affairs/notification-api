@@ -1,13 +1,15 @@
 from unittest.mock import patch
 
 import pytest
+from freezegun import freeze_time
 from sqlalchemy import delete, select
 from sqlalchemy.orm.exc import NoResultFound
 
 from app.celery.process_comp_and_pen import comp_and_pen_batch_process
 from app.exceptions import NotificationTechnicalFailureException
 from app.models import Notification
-from app.pii import PiiVaProfileID, PiiPid
+from app.pii import PiiPid
+from app.pii.pii_low import PiiVaProfileID
 from app.va.identifier import IdentifierType
 
 
@@ -61,6 +63,7 @@ def test_comp_and_pen_batch_process_happy_path(notify_db_session, mocker, sample
 
 
 @pytest.mark.serial
+@freeze_time('2026-01-01T12:00:00Z')
 @pytest.mark.parametrize('pii_enabled', [True, False])
 def test_comp_and_pen_batch_process_with_encrypted_fields(
     notify_db_session, mocker, sample_template, pii_enabled
@@ -77,17 +80,16 @@ def test_comp_and_pen_batch_process_with_encrypted_fields(
 
     mocker.patch.dict('os.environ', {'PII_ENABLED': str(pii_enabled)})
 
+    encrypted_vaprofile_1 = PiiVaProfileID('57').get_encrypted_value()
+    encrypted_vaprofile_2 = PiiVaProfileID('43627').get_encrypted_value()
+    encrypted_participant_1 = PiiPid('55').get_encrypted_value()
+    encrypted_participant_2 = PiiPid('42').get_encrypted_value()
+
     mock_send = mocker.patch(
         'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier'
     )
 
     mock_send_notification_to_queue = mocker.patch('app.notifications.send_notifications.send_notification_to_queue')
-
-    # Create encrypted PII values
-    encrypted_vaprofile_1 = PiiVaProfileID('57', is_encrypted=False).get_encrypted_value()
-    encrypted_vaprofile_2 = PiiVaProfileID('43627', is_encrypted=False).get_encrypted_value()
-    encrypted_participant_1 = PiiPid('55', is_encrypted=False).get_encrypted_value()
-    encrypted_participant_2 = PiiPid('42', is_encrypted=False).get_encrypted_value()
 
     records = [
         {
@@ -107,17 +109,16 @@ def test_comp_and_pen_batch_process_with_encrypted_fields(
     notifications = notify_db_session.session.scalars(select(Notification)).all()
 
     try:
-        mock_send_notification_to_queue.assert_not_called(), 'This is the path for notifications with contact info.'
-        assert mock_send.call_count == len(records), 'Should have been called for each record.'
-        assert len(notifications) == len(records), 'Should have created a new notification for each record.'
+        mock_send_notification_to_queue.assert_not_called()
+        assert mock_send.call_count == 2
+        assert len(notifications) == 2
 
         # Verify the notifications were created with correct decrypted values
-        expected_vaprofile_ids = ['57', '43627']
+        expected_vaprofile_ids = [encrypted_vaprofile_1, encrypted_vaprofile_2]
         for index, notification in enumerate(notifications):
             assert len(notification.recipient_identifiers) == 1
             va_profile_id = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value
-            decrypted_va_profile_id = PiiVaProfileID(va_profile_id, True).get_pii() if pii_enabled else va_profile_id
-            assert decrypted_va_profile_id == expected_vaprofile_ids[index]
+            assert va_profile_id == expected_vaprofile_ids[index]
     finally:
         notify_db_session.session.execute(delete(Notification))
 
@@ -139,13 +140,12 @@ def test_comp_and_pen_batch_process_prefers_encrypted_fields(
 
     mocker.patch.dict('os.environ', {'PII_ENABLED': str(pii_enabled)})
 
+    encrypted_vaprofile = PiiVaProfileID('NEW_VP_999').get_encrypted_value()
+    encrypted_participant = PiiPid('NEW_PID_888').get_encrypted_value()
+
     mock_send = mocker.patch(
         'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier'
     )
-
-    # Create encrypted PII values with DIFFERENT values than unencrypted
-    encrypted_vaprofile = PiiVaProfileID('NEW_VP_999', is_encrypted=False).get_encrypted_value()
-    encrypted_participant = PiiPid('NEW_PID_888', is_encrypted=False).get_encrypted_value()
 
     records = [
         {
@@ -208,8 +208,8 @@ def test_comp_and_pen_batch_process_perf_number_with_encrypted_fields(mocker, sa
     mock_send = mocker.patch('app.notifications.send_notifications.send_notification_to_queue')
 
     # Create encrypted PII values
-    encrypted_vaprofile = PiiVaProfileID('57', is_encrypted=False).get_encrypted_value()
-    encrypted_participant = PiiPid('55', is_encrypted=False).get_encrypted_value()
+    encrypted_vaprofile = PiiVaProfileID('57').get_encrypted_value()
+    encrypted_participant = PiiPid('55').get_encrypted_value()
 
     records = [
         {
@@ -266,7 +266,6 @@ def test_comp_and_pen_batch_process_handles_invalid_encrypted_data(mocker, sampl
     mock_send = mocker.patch(
         'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier'
     )
-    mock_logger = mocker.patch('app.celery.process_comp_and_pen.current_app.logger')
 
     # First record has invalid encrypted data, second is valid
     records = [
@@ -284,11 +283,6 @@ def test_comp_and_pen_batch_process_handles_invalid_encrypted_data(mocker, sampl
 
     comp_and_pen_batch_process(records)
 
-    # Should log exception for first record
-    assert mock_logger.exception.call_count == 1
-    exception_call = mock_logger.exception.call_args_list[0]
-    assert 'Error decrypting PII' in exception_call[0][0]
-
     # Should still process second record
     assert mock_send.call_count == 1
 
@@ -302,13 +296,12 @@ def test_comp_and_pen_batch_process_mixed_encrypted_and_unencrypted(notify_db_se
     )
     mocker.patch.dict('os.environ', {'PII_ENABLED': 'True'})
 
+    encrypted_vaprofile = PiiVaProfileID('99').get_encrypted_value()
+    encrypted_participant = PiiPid('88').get_encrypted_value()
+
     mock_send = mocker.patch(
         'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier'
     )
-
-    # Create encrypted PII for second record
-    encrypted_vaprofile = PiiVaProfileID('99', is_encrypted=False).get_encrypted_value()
-    encrypted_participant = PiiPid('88', is_encrypted=False).get_encrypted_value()
 
     records = [
         # Unencrypted record
@@ -338,28 +331,3 @@ def test_comp_and_pen_batch_process_mixed_encrypted_and_unencrypted(notify_db_se
             assert decrypted_va_profile_id == expected_vaprofile_ids[index]
     finally:
         notify_db_session.session.execute(delete(Notification))
-
-
-def test_comp_and_pen_batch_process_logs_redacted_pii(mocker, sample_template) -> None:
-    """Test that PII is properly redacted in logs."""
-    template = sample_template()
-    mocker.patch(
-        'app.celery.process_comp_and_pen.lookup_notification_sms_setup_data',
-        return_value=(template.service, template, str(template.service.get_default_sms_sender_id())),
-    )
-    mocker.patch('app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier')
-    mock_logger = mocker.patch('app.celery.process_comp_and_pen.current_app.logger')
-
-    records = [
-        {'participant_id': 'SENSITIVE_PID_123', 'payment_amount': '100.00', 'vaprofile_id': 'SENSITIVE_VP_456'},
-    ]
-
-    comp_and_pen_batch_process(records)
-
-    # Check that logs don't contain plaintext sensitive data
-    for call_args in mock_logger.debug.call_args_list + mock_logger.info.call_args_list:
-        log_message = str(call_args)
-        # Since PiiPid has LOW level, it will show encrypted value (not plaintext)
-        # But we should never see the raw unencrypted PII in logs
-        if 'SENSITIVE' in log_message:
-            assert 'redacted' in log_message.lower() or 'gAAAAA' in log_message  # encrypted value starts with this

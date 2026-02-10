@@ -13,7 +13,8 @@ from app.models import (
     Template,
 )
 from app.notifications.send_notifications import lookup_notification_sms_setup_data, send_notification_bypass_route
-from app.pii import PiiPid, PiiVaProfileID
+from app.pii import PiiPid
+from app.pii.pii_low import PiiVaProfileID
 from app.va.identifier import IdentifierType
 
 
@@ -35,7 +36,7 @@ def comp_and_pen_batch_process(records: list[dict[str, str]]) -> None:
     encrypted PII (encrypted_participant_id, encrypted_vaprofile_id).
 
     Args:
-        records (list[dict[str, str]]): The incoming records
+        records (list[dict[str, str]]): The incoming records from SQS
     """
 
     current_app.logger.debug('comp_and_pen_batch_process started for %s records.', len(records))
@@ -80,7 +81,7 @@ def _send_comp_and_pen_sms(
         :param reply_to_text (str): The text a Veteran can reply to.
         :param comp_and_pen_messages (list[DynamoRecord]): A list of DynamoRecord from the dynamodb table containing
             the details needed to send the messages. May contain encrypted or unencrypted PII.
-        :param perf_to_number (str): The recipient's phone number.
+        :param perf_to_number (str): The recipient's phone number for performance testing.
 
     Raises:
         Exception: If there is an error while sending the SMS notification.
@@ -89,38 +90,34 @@ def _send_comp_and_pen_sms(
     for item in comp_and_pen_messages:
         try:
             # Determine which fields to use - prefer encrypted fields if available
-            participant_id_value = (
-                item.encrypted_participant_id if item.encrypted_participant_id else item.participant_id
+            # Both paths result in encrypted values
+            participant_id_pii = (
+                item.encrypted_participant_id
+                if item.encrypted_participant_id
+                else PiiPid(item.participant_id).get_encrypted_value()
             )
-            vaprofile_id_value = item.encrypted_vaprofile_id if item.encrypted_vaprofile_id else item.vaprofile_id
-
-            # Determine if values are encrypted
-            is_participant_encrypted = item.encrypted_participant_id is not None
-            is_vaprofile_encrypted = item.encrypted_vaprofile_id is not None
-
-            # Create PII objects
-            participant_id_pii = PiiPid(participant_id_value, is_encrypted=is_participant_encrypted)
-            vaprofile_id_pii = PiiVaProfileID(vaprofile_id_value, is_encrypted=is_vaprofile_encrypted)
-
-            current_app.logger.debug('sending - record from dynamodb: %s', str(participant_id_pii))
+            decrypted_vaprofile_id_value = (
+                PiiVaProfileID(item.encrypted_vaprofile_id).get_pii()
+                if item.encrypted_vaprofile_id
+                else item.vaprofile_id
+            )
+            breakpoint()
+            current_app.logger.debug(
+                'Sending Comp and Pen notification with encryptedparticipant_id: %s', participant_id_pii
+            )
 
             # Use perf_to_number as the recipient if available. Otherwise, use vaprofile_id as recipient_item.
-            # If using recipient_item, decrypt the vaprofile_id for the lookup
+            # Pass DECRYPTED value - send_notification_bypass_route will handle encryption
             recipient_item = (
                 None
                 if perf_to_number is not None
-                else {
-                    'id_type': IdentifierType.VA_PROFILE_ID.value,
-                    'id_value': vaprofile_id_pii.get_pii(),
-                }
+                else {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': decrypted_vaprofile_id_value}
             )
 
         except Exception:
             current_app.logger.exception(
-                'Error decrypting PII for Comp and Pen notification - skipping record. '
-                'Encrypted participant_id present: %s, Encrypted vaprofile_id present: %s',
-                item.encrypted_participant_id is not None,
-                item.encrypted_vaprofile_id is not None,
+                'Error decrypting PII for Comp and Pen notification - skipping record. Encrypted participant_id: %s',
+                item.encrypted_participant_id,
             )
             continue
 
