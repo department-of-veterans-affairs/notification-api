@@ -8,7 +8,7 @@ import botocore
 import botocore.exceptions
 import phonenumbers
 
-from app.celery.exceptions import NonRetryableException, RetryableException
+from app.celery.exceptions import NonRetryableException, RetryableException, RetryableException_NonPriority
 from app.clients.sms import (
     SmsClient,
     SmsClientResponseException,
@@ -409,7 +409,11 @@ class AwsPinpointClient(SmsClient):
                 extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
             )
             self.statsd_client.incr(f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{STATSD_RETRYABLE}.{aws_phone_number}')
-            raise RetryableException from error
+            if error_code == 'ThrottlingException':
+                # signal that retry should be sent to a non-priority queue / worker pool
+                raise RetryableException_NonPriority from error
+            else:
+                raise RetryableException from error
 
     def _validate_response(
         self,

@@ -15,7 +15,12 @@ from app.celery.common import (
     log_and_update_permanent_failure,
     log_and_update_critical_failure,
 )
-from app.celery.exceptions import AutoRetryException, NonRetryableException, RetryableException
+from app.celery.exceptions import (
+    AutoRetryException,
+    NonRetryableException,
+    RetryableException,
+    RetryableException_NonPriority,
+)
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.clients.email.aws_ses import AwsSesClientThrottlingSendRateException
 from app.config import QueueNames
@@ -306,7 +311,11 @@ def _handle_delivery_failure(  # noqa: C901 - too complex (11 > 10)
                 notification_type,
                 notification_id,
             )
-            raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
+            if isinstance(e, RetryableException_NonPriority):
+                # max_retries=None causes Celery to NOT override valude defined in task
+                raise celery_task.retry(queue=QueueNames.RETRY, max_retries=None, countdown=0)
+            else:
+                raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
 
         else:
             msg = handle_max_retries_exceeded(notification_id, method_name)
