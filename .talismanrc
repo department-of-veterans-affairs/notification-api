@@ -42,7 +42,7 @@ fileignoreconfig:
 - filename: documents/openapi/openapi.yaml.backup
   checksum: cf2737abec32148fab04ec10ceba181ceeb8010642669ece3c4a97f0d6edf1ba
 - filename: documents/postman/internal_api_developers/notification-api.postman_collection.json
-  checksum: 75f6d7d57bb6c478716026414fc1f632d5b4a40b5a7e022c9bbc7dc88e605ecf
+  checksum: 5d27fce14805ce36afa050bfe2d2901b617cbd5d7c58bed0717642087391e7b4
 - filename: documents/postman/internal_api_developers/development.postman_environment.json
   checksum: 18f69439340dcecfe536083beab96e9792aa3f9bb8b75ad3ba331600494da351
 - filename: documents/postman/internal_api_developers/performance.postman_environment.json
