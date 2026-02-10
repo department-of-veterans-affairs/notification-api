@@ -95,6 +95,8 @@ To support running locally, the repository includes a default `app/version.py` f
 
 Running `flask db migrate` on the container ci_app_1 errors because the files in the migrations folder are read-only. `ci/docker-compose-local-migrate.yml` is only for generating a new migration (flask db migrate) because it mounts the repo read/write.
 
+Migration connections enforce session timeouts to prevent long-running or lock-blocking operations: `lock_timeout` is 4000ms and `statement_timeout` is 15000ms. Migrations that exceed these limits will fail and should be rewritten using safe migration patterns (batch updates, backfills, etc.).
+
 Follow this procedure to create a database migration using Flask:
 
 1. Ensure all containers are stopped and that the notification_api image has been built
