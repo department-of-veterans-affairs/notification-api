@@ -213,9 +213,30 @@ def validate_template(
     service,
     notification_type,
 ):
-    try:
-        template = templates_dao.dao_get_template_by_id_and_service_id(template_id, service.id)
-    except NoResultFound:
+    """
+    Validate a template using the latest versioned history snapshot.
+
+    Resolves the template from templates_history for the given template and
+    service, then validates type, active status, and personalisation
+    placeholders against that snapshot.
+
+    Args:
+        template_id: Identifier of the template requested by the caller.
+        personalisation (dict): Personalisation values used for placeholder
+            validation.
+        service (Service): Authenticated service making the request.
+        notification_type (str): Notification type requested by the caller.
+
+    Returns:
+        TemplateHistoryData: Latest non-hidden history row for the template.
+
+    Raises:
+        BadRequestError: If template lookup fails, template type is invalid for
+            the notification, the template is deleted, or personalisation is
+            missing.
+    """
+    template = templates_dao.dao_get_latest_template_history_by_id_and_service_id(template_id, service.id)
+    if template is None:
         # Putting this in the "message" would be a breaking change for API responses
         current_app.logger.info(
             '%s Validation failure for service: %s (%s) template: %s not found',

@@ -13,6 +13,7 @@ from app.constants import EMAIL_TYPE, LETTER_TYPE, PINPOINT_PROVIDER, SES_PROVID
 from app.dao.templates_dao import (
     TemplateHistoryData,
     dao_create_template,
+    dao_get_latest_template_history_by_id_and_service_id,
     dao_get_template_by_id,
     dao_get_template_by_id_and_service_id,
     dao_get_all_templates_for_service,
@@ -1019,3 +1020,73 @@ class TestDAOGetTemplateById:
         assert db_spy.call_count == 1
 
         assert result1.id == result2.id
+
+
+class TestDAOGetLatestTemplateHistoryByIdAndServiceId:
+    def test_returns_current_version_history_row(
+        self,
+        sample_template: Callable[..., Any],
+    ):
+        # Build two versions and verify the DAO returns the newest history snapshot.
+        template = sample_template(content='Original content')
+        template.content = 'Updated content'
+        dao_update_template(template)
+
+        result = dao_get_latest_template_history_by_id_and_service_id(template.id, template.service_id)
+
+        assert isinstance(result, TemplateHistoryData)
+        assert result.id == template.id
+        assert result.version == template.version
+        assert result.content == 'Updated content'
+
+    def test_returns_latest_available_history_row_when_newest_version_missing(
+        self,
+        notify_db_session: SQLAlchemy,
+        sample_template: Callable[..., Any],
+    ):
+        # Create v1 and v2, then remove v2 to simulate drift where the latest
+        # history record is missing.
+        template = sample_template(content='Version 1 content')
+        template.content = 'Version 2 content'
+        dao_update_template(template)
+
+        # Simulate drift by deleting the newest history row.
+        newest_history = notify_db_session.session.scalar(
+            select(TemplateHistory).where(
+                TemplateHistory.id == template.id,
+                TemplateHistory.version == template.version,
+            )
+        )
+        assert newest_history is not None
+        notify_db_session.session.delete(newest_history)
+        notify_db_session.session.commit()
+
+        result = dao_get_latest_template_history_by_id_and_service_id(template.id, template.service_id)
+
+        # The DAO should fall back to the highest remaining history version.
+        assert result is not None
+        assert result.id == template.id
+        assert result.version == 1
+        assert result.content == 'Version 1 content'
+
+    def test_returns_none_when_no_history_rows_exist(
+        self,
+        notify_db_session: SQLAlchemy,
+        sample_template: Callable[..., Any],
+    ):
+        # Remove the only history row for the template.
+        template = sample_template()
+        current_history = notify_db_session.session.scalar(
+            select(TemplateHistory).where(
+                TemplateHistory.id == template.id,
+                TemplateHistory.version == template.version,
+            )
+        )
+        assert current_history is not None
+        notify_db_session.session.delete(current_history)
+        notify_db_session.session.commit()
+
+        result = dao_get_latest_template_history_by_id_and_service_id(template.id, template.service_id)
+
+        # No history means the DAO returns None and callers should handle 400s.
+        assert result is None

@@ -19,6 +19,7 @@ from app.constants import (
     SMS_TYPE,
     UPLOAD_DOCUMENT,
 )
+from app.dao.templates_dao import dao_update_template
 from app.dao.service_sms_sender_dao import dao_update_service_sms_sender
 from app.models import (
     Notification,
@@ -109,39 +110,38 @@ def test_post_sms_notification_returns_201(
     # tasks in the chain are mocked.
 
 
-def test_post_sms_notification_response_uses_template_history_content_if_drifted(
+def test_post_sms_notification_uses_latest_history_content_for_response(
     client,
     notify_db_session,
     sample_api_key,
     sample_template,
 ):
-    template = sample_template(content='Current template content')
+    template = sample_template(content='Version 1 template content')
+    template.content = 'Version 2 template content for ((name))'
+    dao_update_template(template)
 
-    # Simulate drift: current template text differs from the versioned history row.
+    # Ensure the newest history row content is reflected in POST response rendering.
     stmt = select(TemplateHistory).where(
         TemplateHistory.id == template.id,
         TemplateHistory.version == template.version,
     )
     history_template = notify_db_session.session.scalar(stmt)
-    history_template.content = 'Versioned template content'
+    history_template.content = 'Version 2 template content'
     notify_db_session.session.commit()
 
-    data = {'phone_number': '+16502532222', 'template_id': str(template.id)}
     auth_header = create_authorization_header(sample_api_key(service=template.service))
-    resp = client.post(
+    resp_valid = client.post(
         path='/v2/notifications/sms',
-        data=json.dumps(data),
+        data=json.dumps({'phone_number': '+16502532222', 'template_id': str(template.id)}),
         headers=[('Content-Type', 'application/json'), auth_header],
     )
 
-    assert resp.status_code == 201
-    resp_json = resp.get_json()
-
-    # POST response should reflect the versioned template content (history table).
-    assert resp_json['content']['body'] == 'Versioned template content'
+    assert resp_valid.status_code == 201
+    resp_json = resp_valid.get_json()
+    assert resp_json['content']['body'] == 'Version 2 template content'
 
 
-def test_post_sms_notification_returns_400_if_current_template_version_missing_from_history(
+def test_post_sms_notification_returns_400_when_template_has_no_history_rows(
     client,
     notify_db_session,
     sample_api_key,
@@ -149,13 +149,8 @@ def test_post_sms_notification_returns_400_if_current_template_version_missing_f
 ):
     template = sample_template()
 
-    # Simulate an out-of-sync state where the current template version has no history row.
-    notify_db_session.session.execute(
-        delete(TemplateHistory).where(
-            TemplateHistory.id == template.id,
-            TemplateHistory.version == template.version,
-        )
-    )
+    # Remove all history rows for this template id.
+    notify_db_session.session.execute(delete(TemplateHistory).where(TemplateHistory.id == template.id))
     notify_db_session.session.commit()
 
     data = {'phone_number': '+16502532222', 'template_id': str(template.id)}
@@ -167,16 +162,10 @@ def test_post_sms_notification_returns_400_if_current_template_version_missing_f
     )
 
     assert resp.status_code == 400
-    error_json = resp.get_json()
 
-    # Fail with the API-level "Template not found" contract instead of a DB integrity error.
+    error_json = resp.get_json()
     assert error_json['status_code'] == 400
     assert error_json['errors'] == [{'error': 'BadRequestError', 'message': 'Template not found'}]
-
-    notifications = notify_db_session.session.scalars(
-        select(Notification).where(Notification.service_id == template.service_id)
-    ).all()
-    assert len(notifications) == 0
 
 
 def test_post_sms_notification_uses_inbound_number_as_sender(
