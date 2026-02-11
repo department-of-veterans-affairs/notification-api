@@ -627,3 +627,24 @@ def test_send_delivery_status_from_notification_raises_non_retryable_exception(r
     rmock.post(callback_url, json=notification_data, status_code=status_code)
     with pytest.raises(NonRetryableException):
         send_delivery_status_from_notification(callback_signature, callback_url, notification_data, notification_id)
+
+
+def test_send_delivery_status_from_notification_handles_request_exception_with_no_response(mocker):
+    """Test that RequestException with response=None is handled correctly (operator precedence bug fix)."""
+    from requests import RequestException
+    
+    callback_signature = '6842b32e800372de4079e20d6e7e753bad182e44f7f3e19a46fd8509889a0014'
+    callback_url = 'https://test_url.com/'
+    notification_id = str(uuid.uuid4())
+    notification_data = {'callback_url': callback_url}
+
+    # Create a RequestException with response=None
+    exception = RequestException('Connection error')
+    exception.response = None
+    
+    # Mock the post method to raise this exception
+    mocker.patch('app.celery.service_callback_tasks.post', side_effect=exception)
+    
+    # This should raise NonRetryableException, not AttributeError
+    with pytest.raises(NonRetryableException):
+        send_delivery_status_from_notification(callback_signature, callback_url, notification_data, notification_id)
