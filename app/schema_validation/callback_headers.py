@@ -12,6 +12,9 @@ import re
 # RFC 7230 token characters: A-Z a-z 0-9 !#$%&'*+-.^_`|~
 _RFC7230_TOKEN_RE = re.compile(r"^[A-Za-z0-9!#$%&'*+\-.^_`|~]+$")
 
+# Reject control characters in header values (defense-in-depth against CRLF injection)
+_HEADER_VALUE_BAD_CHARS_RE = re.compile(r'[\r\n\x00]')
+
 MAX_HEADER_COUNT = 5
 MAX_HEADER_NAME_LENGTH = 256
 MAX_HEADER_VALUE_LENGTH = 1024
@@ -98,6 +101,10 @@ def validate_callback_headers(callback_headers, is_notification_level=False):
 
         if len(value) > MAX_HEADER_VALUE_LENGTH:
             errors.append(f'Header value for "{name}" exceeds maximum length of {MAX_HEADER_VALUE_LENGTH}')
+
+        # Value character safety (defense-in-depth against CRLF injection)
+        if _HEADER_VALUE_BAD_CHARS_RE.search(value):
+            errors.append(f'Header value for "{name}" contains invalid control characters')
 
         # Blocked names
         name_lower = name.lower()

@@ -728,3 +728,29 @@ def test_send_delivery_status_from_notification_without_custom_headers(rmock):
     assert sent_headers['Content-type'] == 'application/json'
     assert sent_headers['x-enp-signature'] == callback_signature
     assert 'x-api-key' not in sent_headers
+
+
+def test_send_delivery_status_from_notification_custom_headers_cannot_override_system_headers(rmock):
+    callback_signature = '6842b32e800372de4079e20d6e7e753bad182e44f7f3e19a46fd8509889a0014'
+    callback_url = 'https://test_url.com/'
+    notification_id = str(uuid.uuid4())
+    notification_data = {'callback_url': callback_url}
+    encrypted_callback_headers = encryption.encrypt({
+        'Content-Type': 'text/plain',
+        'x-enp-signature': 'overridden',
+        'X-Custom': 'allowed',
+    })
+
+    rmock.post(callback_url, json=notification_data, status_code=200)
+    send_delivery_status_from_notification(
+        callback_signature, callback_url, notification_data, notification_id,
+        encrypted_callback_headers=encrypted_callback_headers,
+    )
+
+    assert rmock.call_count == 1
+    sent_headers = rmock.request_history[0].headers
+    # System headers must not be overridden
+    assert sent_headers['Content-Type'] == 'application/json'
+    assert sent_headers['x-enp-signature'] == callback_signature
+    # Custom header that doesn't conflict is allowed
+    assert sent_headers['X-Custom'] == 'allowed'

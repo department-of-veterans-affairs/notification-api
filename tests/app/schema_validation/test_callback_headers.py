@@ -126,6 +126,23 @@ class TestValidateCallbackHeadersValue:
         errors = validate_callback_headers({'X-Custom': 'v' * (MAX_HEADER_VALUE_LENGTH + 1)})
         assert any('exceeds maximum length' in e for e in errors)
 
+    @pytest.mark.parametrize(
+        'bad_value',
+        [
+            'value\r\nX-Injected: evil',
+            'value\ninjected',
+            'value\rinjected',
+            'value\x00null',
+        ],
+    )
+    def test_value_with_control_characters_rejected(self, bad_value):
+        errors = validate_callback_headers({'X-Custom': bad_value})
+        assert any('invalid control characters' in e for e in errors)
+
+    def test_value_at_max_length_accepted(self):
+        errors = validate_callback_headers({'X-Custom': 'v' * MAX_HEADER_VALUE_LENGTH})
+        assert errors == []
+
 
 # ── validate_callback_headers: blocked header names ──────────────────────────
 
