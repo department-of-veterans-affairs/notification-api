@@ -3,6 +3,7 @@ from random import randint
 from uuid import UUID
 
 from celery import Task
+from celery.utils.time import get_exponential_backoff_interval
 from flask import current_app
 from notifications_utils.field import NullValueForNonConditionalPlaceholderException
 from notifications_utils.recipients import InvalidEmailError, InvalidPhoneError
@@ -310,13 +311,17 @@ def _handle_delivery_failure(  # noqa: C901 - too complex (11 > 10)
                 # This queue is serviced by the non-priority worker pool and lessens impact on priority tasks
 
                 current_app.logger.warning(
-                    '%s unable to send for notification %s, retrying in non-priority worker pool',
+                    '%s unable to send for notification %s, retrying in non-priority worker pool using queue: %s',
                     notification_type,
                     notification_id,
+                    QueueNames.RETRY,
                 )
 
                 # countdown computed using same exponential backoff that AutoRetry would use
-                countdown = min(celery_task.retry_backoff_max, 2**celery_task.request.retries)
+                factor = int(max(1.0, celery_task.retry_backoff))
+                countdown = get_exponential_backoff_interval(
+                    factor, celery_task.request.retries, celery_task.retry_backoff_max
+                )
 
                 # max_retries=None causes Celery to NOT override value defined in task
                 celery_task.retry(queue=QueueNames.RETRY, max_retries=None, countdown=countdown)
