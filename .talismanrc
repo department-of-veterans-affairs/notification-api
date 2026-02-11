@@ -78,7 +78,7 @@ fileignoreconfig:
 - filename: tests/app/notifications/test_process_notifications.py
   checksum: 4d94763735089cfb2886b959755ca8d03bcef234d7b4bb53b4f1fa6237aabf4f
 - filename: tests/app/pii/test_pii.py
-  checksum: fdf27705e42c37d5a17cc9ed7147781c6a00f4b8f0611461641a6357cffd0541
+  checksum: f620efeab6ca5af5cdfbb340a205895b2208e3fab85356441abee24646895814
 - filename: tests/app/service/test_api_key_endpoints.py
   checksum: cf28b1466647e455be6e17b0318af7a167b5d46138e81e3179189cab2c9c3767
 - filename: tests/app/test_validate.py
@@ -96,7 +96,7 @@ fileignoreconfig:
 - filename: lambda_functions/va_profile/va_profile_opt_in_out_lambda.py
   checksum: 9cdb7bf7610743d061cf653d4292be2a3966d428ae1234da56c8314e7699d096
 - filename: app/pii/pii_base.py
-  checksum: cc1b81dfa4dffa98944b509391decb08296b1d46b0ce009fc1e306a393b69ecc
+  checksum: a95e7b554c3895a140a9fddecb4139b4167e3a843e4dddb3987606d1d8b633f0
 - filename: migrations/env.py
   checksum: f1c6c3c65b1c1ac93d79cc3fe29d704416b6eca70054870991f786638563315e
 - filename: tests/lambda_functions/conftest.py

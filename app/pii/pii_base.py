@@ -71,10 +71,17 @@ class PiiHMAC:
             # Use environment variable - key must be provided in production
             key_str = os.getenv('PII_HMAC_KEY')
             if key_str is None:
-                raise ValueError(
-                    'PII_HMAC_KEY environment variable is required. '
-                    'This key must be provided through AWS Parameter Store in production environments.'
-                )
+                # Fallback to use 'PII_ENCRYPTION_KEY'
+                key_str = os.getenv('PII_ENCRYPTION_KEY')
+
+                if key_str is None:
+                    raise ValueError(
+                        'PII_HMAC_KEY is not found. PII_ENCRYPTION_KEY env variable is required, '
+                        'This key must be provided through AWS Parameter Store in production environments.'
+                    )
+
+                # Set os.env to use the same key for HMAC if PII_HMAC_KEY is not set, but PII_ENCRYPTION_KEY is set
+                os.environ['PII_HMAC_KEY'] = key_str
 
             # Key from SSM Parameter Store comes as string, encode to bytes
             cls._key = key_str.encode()

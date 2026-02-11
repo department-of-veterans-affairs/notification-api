@@ -87,12 +87,23 @@ class TestPiiHMAC:
         PiiHMAC._key = None
         with (
             patch.dict(os.environ, {}, clear=True),
-            pytest.raises(ValueError, match='PII_HMAC_KEY environment variable is required'),
+            pytest.raises(ValueError, match='PII_HMAC_KEY is not found. PII_ENCRYPTION_KEY env variable is required'),
         ):
             PiiHMAC._get_hmac_key()
 
-    def test_get_hmac_key_uses_environment_variable(self):
+    def test_get_hmac_key_uses_hmac_environment_variable(self):
         """Test that _get_hmac_key uses the environment variable if available."""
+        pii_hmac_key = PiiHMAC._get_hmac_key()
+        assert pii_hmac_key is not None
+        assert PiiHMAC._key == TEST_KEY
+
+    @pytest.mark.no_setup_hmac
+    def test_get_hmac_key_uses_encryption_environment_variable(self, monkeypatch):
+        """Test that _get_hmac_key uses the fallback environment variable if available."""
+        # Force missing PII_HMAC_KEY and set PII_ENCRYPTION_KEY to test fallback behavior
+        monkeypatch.delenv('PII_HMAC_KEY', raising=False)
+        monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_KEY.decode())
+
         pii_hmac_key = PiiHMAC._get_hmac_key()
         assert pii_hmac_key is not None
         assert PiiHMAC._key == TEST_KEY
