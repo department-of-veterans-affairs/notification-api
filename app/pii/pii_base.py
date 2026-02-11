@@ -15,6 +15,8 @@ import os
 from enum import Enum
 from typing import ClassVar
 from cryptography.fernet import Fernet
+from hmac import HMAC
+import hashlib
 
 from app.va.identifier import IdentifierType
 
@@ -51,6 +53,38 @@ class PiiEncryption:
             cls._key = key_str.encode()
             cls._fernet = Fernet(cls._key)
         return cls._fernet
+
+
+class PiiHMAC:
+    """Manages HMAC-SHA256 deterministic hashing for PII data."""
+
+    _key: bytes | None = None
+
+    @classmethod
+    def _get_hmac_key(cls) -> bytes:
+        """Get or create an HMAC instance for deterministic hashing.
+
+        Raises:
+            ValueError: If PII_HMAC_KEY environment variable is not set.
+        """
+        if cls._key is None:
+            # Use environment variable - key must be provided in production
+            key_str = os.getenv('PII_HMAC_KEY')
+            if key_str is None:
+                raise ValueError(
+                    'PII_HMAC_KEY environment variable is required. '
+                    'This key must be provided through AWS Parameter Store in production environments.'
+                )
+
+            # Key from SSM Parameter Store comes as string, encode to bytes
+            cls._key = key_str.encode()
+        return cls._key
+
+    @classmethod
+    def generate_hmac(cls, data: str) -> str:
+        """Generates HMAC-SHA256 for the given PII data."""
+        _hmac = HMAC(cls._get_hmac_key(), data.encode(), digestmod=hashlib.sha256)
+        return _hmac.hexdigest()
 
 
 class PiiLevel(Enum):
@@ -150,6 +184,13 @@ class Pii(str):
 
         # Decrypt the value
         return pii_encryption.decrypt(self.encode()).decode()
+
+    def get_hmac(self) -> str:
+        """
+        Get the HMAC (HMAC-SHA256) of the PII value for blind indexing.
+        Note: Currently only implemented for PiiVaProfileID
+        """
+        return PiiHMAC.generate_hmac(self.get_pii())
 
     def __str__(self) -> str:
         """Return a string representation with redaction based on impact level.

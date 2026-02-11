@@ -27,15 +27,19 @@ from lambda_functions.va_profile.va_profile_opt_in_out_lambda import (
     jwt_is_valid,
     va_profile_opt_in_out_lambda_handler,
 )
+from app.pii.pii_low import PiiVaProfileID
+from tests.lambda_functions.conftest import TEST_ENCRYPTION_KEY, TEST_HMAC_KEY
+
 
 # Base path for mocks
 LAMBDA_MODULE = 'lambda_functions.va_profile.va_profile_opt_in_out_lambda'
 
 # This is a call to a stored procedure.
 OPT_IN_OUT = text(
-    """\
-SELECT va_profile_opt_in_out(:va_profile_id, :communication_item_id, \
-:communication_channel_id, :allowed, :source_datetime);"""
+    'SELECT va_profile_opt_in_out('
+    ':va_profile_id, :encrypted_va_profile_id, '
+    ':encrypted_va_profile_id_blind_index, :communication_item_id, '
+    ':communication_channel_id, :allowed, :source_datetime);'
 )
 
 
@@ -49,6 +53,8 @@ def mock_env_vars(monkeypatch):
     monkeypatch.setenv('ALB_CERTIFICATE_ARN', 'mock_alb_certificate_arn')
     monkeypatch.setenv('ALB_PRIVATE_KEY_PATH', 'mock_alb_private_key_path')
     monkeypatch.setenv('VA_PROFILE_DOMAIN', 'mock_va_profile_domain')
+    monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
+    monkeypatch.setenv('PII_HMAC_KEY', TEST_HMAC_KEY)
 
 
 @pytest.fixture
@@ -201,15 +207,16 @@ def test_va_profile_cache_exists(notify_db_session):
     assert notify_db_session.engine.has_table('va_profile_local_cache')
 
 
-def test_va_profile_stored_function_older_date(notify_db_session, sample_va_profile_local_cache):
+def test_va_profile_stored_function_older_date(notify_db_session, sample_va_profile_local_cache, mock_env_vars):
     """
     If the given date is older than the existing date, no update should occur.
     """
 
     va_profile_local_cache = sample_va_profile_local_cache('2022-03-07T19:37:59.320Z', False)
-
     opt_in_out = OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
+        encrypted_va_profile_id=va_profile_local_cache.encrypted_va_profile_id,
+        encrypted_va_profile_id_blind_index=va_profile_local_cache.encrypted_va_profile_id_blind_index,
         communication_item_id=va_profile_local_cache.communication_item_id,
         communication_channel_id=va_profile_local_cache.communication_channel_id,
         allowed=True,
@@ -221,7 +228,7 @@ def test_va_profile_stored_function_older_date(notify_db_session, sample_va_prof
     assert not va_profile_local_cache.allowed, 'The veteran should still be opted-out.'
 
 
-def test_va_profile_stored_function_newer_date(notify_db_session, sample_va_profile_local_cache):
+def test_va_profile_stored_function_newer_date(notify_db_session, sample_va_profile_local_cache, mock_env_vars):
     """
     If the given date is newer than the existing date, an update should occur.
     """
@@ -231,6 +238,8 @@ def test_va_profile_stored_function_newer_date(notify_db_session, sample_va_prof
 
     opt_in_out = OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
+        encrypted_va_profile_id=va_profile_local_cache.encrypted_va_profile_id,
+        encrypted_va_profile_id_blind_index=va_profile_local_cache.encrypted_va_profile_id_blind_index,
         communication_item_id=va_profile_local_cache.communication_item_id,
         communication_channel_id=va_profile_local_cache.communication_channel_id,
         allowed=True,
@@ -242,12 +251,16 @@ def test_va_profile_stored_function_newer_date(notify_db_session, sample_va_prof
     assert va_profile_local_cache.source_datetime.month == 4, 'The date should have updated.'
 
 
-def test_va_profile_stored_function_new_row(notify_db_session):
+def test_va_profile_stored_function_new_row(notify_db_session, mock_env_vars):
     """
     Create a new row for a combination of identifiers not already in the database.
     """
 
-    va_profile_id = randint(1000, 100000)
+    _va_profile_id = randint(1000, 100000)
+    pii_va_profile_id = PiiVaProfileID(str(_va_profile_id))
+    va_profile_id = pii_va_profile_id.get_pii()
+    encrypted_va_profile_id = pii_va_profile_id.get_encrypted_value()
+    encrypted_va_profile_id_blind_index = pii_va_profile_id.get_hmac()
 
     stmt = (
         select(func.count())
@@ -263,6 +276,8 @@ def test_va_profile_stored_function_new_row(notify_db_session):
 
     opt_in_out = OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_id,
+        encrypted_va_profile_id=encrypted_va_profile_id,
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
         communication_item_id=5,
         communication_channel_id=1,
         allowed=True,
@@ -375,6 +390,7 @@ def test_va_profile_opt_in_out_lambda_handler_valid_dict(
     put_mock,
     get_integration_testing_public_cert_mock,
     post_opt_in_confirmation_mock_return,
+    mock_env_vars,
 ):
     """
     Test the VA Profile integration lambda by sending a valid request that should create
@@ -557,6 +573,7 @@ def test_va_profile_opt_in_out_lambda_handler_newer_date(
     put_mock,
     sample_va_profile_local_cache,
     post_opt_in_confirmation_mock_return,
+    mock_env_vars,
 ):
     """
     Test the VA Profile integration lambda by sending a valid request with a newer date.
@@ -618,7 +635,7 @@ def test_va_profile_opt_in_out_lambda_handler_KeyError1(jwt_encoded, put_mock, p
     put_mock.assert_called_once_with('txAuditId', expected_put_body)
 
 
-def test_va_profile_opt_in_out_lambda_handler_KeyError2(jwt_encoded, put_mock):
+def test_va_profile_opt_in_out_lambda_handler_KeyError2(jwt_encoded, put_mock, mock_env_vars):
     """
     Test the VA Profile integration lambda by inspecting the PUT request is initiates to
     VA Profile in response to a request.  This test should generate a KeyError in the handler
@@ -714,13 +731,7 @@ def test_va_profile_opt_in_out_lambda_handler_audit_id_mismatch(jwt_encoded, put
         (datetime(2024, 4, 11, 10, 1, tzinfo=timezone.utc), 'May'),  # After 11th 10:00 AM UTC
     ],
 )
-def test_va_profile_opt_in_out_lambda_handler(
-    notify_db_session,
-    jwt_encoded,
-    mock_env_vars,
-    mock_date,
-    expected_month,
-):
+def test_va_profile_opt_in_out_lambda_handler(notify_db_session, jwt_encoded, mock_env_vars, mock_date, expected_month):
     """
     When the lambda handler is invoked with a path that includes the URL parameter "integration_test",
     verification of the signature on POST request JWTs should use a certificate specifically for integration
@@ -810,7 +821,7 @@ def test_va_profile_opt_in_out_lambda_handler(
         body=json.dumps(
             {
                 'template_id': 'mock_template_id',
-                'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': str(va_profile_id)},
+                'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
                 'sms_sender_id': 'mock_sms_sender_id',
                 'personalisation': {'month-name': expected_month},
             }

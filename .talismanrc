@@ -94,5 +94,11 @@ fileignoreconfig:
 - filename: lambda_functions/va_profile/va_profile_opt_in_out_lambda.py
   checksum: 9cdb7bf7610743d061cf653d4292be2a3966d428ae1234da56c8314e7699d096
 - filename: app/pii/pii_base.py
-  checksum: 584cb03893d943c5f8504e5951128f17ce26cf9ffdfc51a29992d9e30e9a3d8b
+  checksum: cc1b81dfa4dffa98944b509391decb08296b1d46b0ce009fc1e306a393b69ecc
+- filename: migrations/env.py
+  checksum: f1c6c3c65b1c1ac93d79cc3fe29d704416b6eca70054870991f786638563315e
+- filename: tests/lambda_functions/conftest.py
+  checksum: 93731a9abd8208ad3d082179544b4620270891f9bfebce10045fc93958e0a3dd
+- filename: tests/lambda_functions/va_profile/test_va_profile_integration.py
+  checksum: 4cc0784321a6cff36db498b6deb73dcc04c362793fb6322794db24dc5b55d684
 version: "1.0"
