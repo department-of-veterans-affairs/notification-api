@@ -1,8 +1,10 @@
 # Manual Testing: Custom Callback Headers (ADR-001)
 
+> **Note:** This implementation is a **proposal / proof-of-concept**. It demonstrates the feasibility and design of custom callback headers for team review and discussion.
+
 ## Summary
 
-End-to-end manual testing confirmed that custom callback headers configured on a `ServiceCallback` are included in outgoing webhook POST requests to the consumer's endpoint. A notification was sent via the v2 API, Celery processed it and triggered the delivery status callback, and **webhook.site** received the request with the expected custom headers (`X-Api-Key` and `X-Correlation-Id`).
+End-to-end manual testing confirmed that this proof-of-concept implementation works as designed: custom callback headers configured on a `ServiceCallback` are included in outgoing webhook POST requests to the consumer's endpoint. A notification was sent via the v2 API, Celery processed it and triggered the delivery status callback, and **webhook.site** received the request with the expected custom headers (`X-Api-Key` and `X-Correlation-Id`).
 
 The test exercised the full production code path:
 1. API receives notification → persists to DB → queues to Celery
