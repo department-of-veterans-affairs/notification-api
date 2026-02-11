@@ -634,7 +634,6 @@ def save_notification_id_to_cache(va_profile_id: PiiVaProfileID, notification_id
         notification_id (str): The notification UUID.
         source_date (str): The source date associated with the opt-in/out action.
     """
-    # encrypted_va_profile_id = va_profile_id.get_encrypted_value()
     try:
         with db_connection.cursor() as cursor:
             # -- NOTE: Below is a temporary implementation to support legacy (unencrypted) VA Profile IDs in the cache.

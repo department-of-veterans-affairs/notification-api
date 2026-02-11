@@ -256,9 +256,8 @@ def test_va_profile_stored_function_new_row(notify_db_session, mock_env_vars):
     Create a new row for a combination of identifiers not already in the database.
     """
 
-    _va_profile_id = randint(1000, 100000)
-    pii_va_profile_id = PiiVaProfileID(str(_va_profile_id))
-    va_profile_id = pii_va_profile_id.get_pii()
+    va_profile_id = randint(1000, 100000)
+    pii_va_profile_id = PiiVaProfileID(str(va_profile_id))
     encrypted_va_profile_id = pii_va_profile_id.get_encrypted_value()
     encrypted_va_profile_id_blind_index = pii_va_profile_id.get_hmac()
 
@@ -285,6 +284,21 @@ def test_va_profile_stored_function_new_row(notify_db_session, mock_env_vars):
     )
 
     assert notify_db_session.session.scalar(opt_in_out), 'This should create a new row.'
+
+    # Verify the row contents by blind index
+    row = (
+        notify_db_session.session.query(VAProfileLocalCache)
+        .filter_by(
+            encrypted_va_profile_id_blind_index=pii_va_profile_id.get_hmac(),
+            communication_item_id=5,
+            communication_channel_id=1,
+        )
+        .one()
+    )
+
+    assert row.allowed is True
+    assert row.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_blind_index
+    assert row.va_profile_id == int(va_profile_id)
 
     # Verify one row was created using a delete statement that doubles as teardown.
     stmt = delete(VAProfileLocalCache).where(
@@ -612,7 +626,9 @@ def test_va_profile_opt_in_out_lambda_handler_newer_date(
     assert va_profile_local_cache.allowed, 'This should have been updated.'
 
 
-def test_va_profile_opt_in_out_lambda_handler_KeyError1(jwt_encoded, put_mock, post_opt_in_confirmation_mock_return):
+def test_va_profile_opt_in_out_lambda_handler_KeyError1(
+    jwt_encoded, put_mock, post_opt_in_confirmation_mock_return, mock_pii_env_vars
+):
     """
     Test the VA Profile integration lambda by inspecting the PUT request it initiates to
     VA Profile in response to a request.  This test should generate a KeyError in the handler
@@ -640,7 +656,7 @@ def test_va_profile_opt_in_out_lambda_handler_KeyError1(jwt_encoded, put_mock, p
     put_mock.assert_called_once_with('txAuditId', expected_put_body)
 
 
-def test_va_profile_opt_in_out_lambda_handler_KeyError2(jwt_encoded, put_mock, mock_env_vars):
+def test_va_profile_opt_in_out_lambda_handler_KeyError2(jwt_encoded, put_mock, mock_pii_env_vars):
     """
     Test the VA Profile integration lambda by inspecting the PUT request is initiates to
     VA Profile in response to a request.  This test should generate a KeyError in the handler
@@ -788,6 +804,7 @@ def test_va_profile_opt_in_out_lambda_handler(notify_db_session, jwt_encoded, mo
 
     # Setup new va_profile_id
     va_profile_id = randint(1000, 100000)
+    pii_va_profile_id = PiiVaProfileID(str(va_profile_id))
 
     # Check initial state in DB (there should be no records)
     stmt = (
@@ -835,6 +852,16 @@ def test_va_profile_opt_in_out_lambda_handler(notify_db_session, jwt_encoded, mo
     )
 
     # Verify that one row was created in the DB
+    # 1 - ENCRYPTED: Verify the row contents by blind index
+    stmt = select(VAProfileLocalCache).where(
+        VAProfileLocalCache.encrypted_va_profile_id_blind_index == pii_va_profile_id.get_hmac(),
+        VAProfileLocalCache.communication_item_id == 5,
+        VAProfileLocalCache.communication_channel_id == 1,
+        VAProfileLocalCache.notification_id == 'e7b8cdda-858e-4b6f-a7df-93a71a2edb1e',
+    )
+    assert notify_db_session.session.execute(stmt).scalar_one() is not None
+
+    # 2 - LEGACY: Verify the row contents by va_profile_id
     stmt = delete(VAProfileLocalCache).where(
         VAProfileLocalCache.va_profile_id == va_profile_id,
         VAProfileLocalCache.communication_item_id == 5,
@@ -842,4 +869,5 @@ def test_va_profile_opt_in_out_lambda_handler(notify_db_session, jwt_encoded, mo
         VAProfileLocalCache.notification_id == 'e7b8cdda-858e-4b6f-a7df-93a71a2edb1e',
     )
     assert notify_db_session.session.execute(stmt).rowcount == 1
+
     notify_db_session.session.commit()
