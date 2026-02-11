@@ -2,7 +2,7 @@ from __future__ import with_statement
 from alembic import context
 from alembic_utils.pg_function import PGFunction
 from alembic_utils.replaceable_entity import register_entities
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, text
 from logging.config import fileConfig
 
 # this is the Alembic Config object, which provides
@@ -109,6 +109,8 @@ def run_migrations_online():
                 poolclass=pool.NullPool)
 
     connection = engine.connect()
+    connection.execute(text("SET lock_timeout TO '4000ms'"))
+    connection.execute(text("SET statement_timeout TO '15000ms'"))
     context.configure(
                 connection=connection,
                 target_metadata=target_metadata,
