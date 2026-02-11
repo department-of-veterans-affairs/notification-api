@@ -181,9 +181,8 @@ The callback was received at webhook.site with both custom headers present:
 
 ### Screenshot
 
-<!-- Insert webhook.site screenshot showing the custom headers below -->
+<img width="1604" height="782" alt="Screenshot 2026-02-11 at 15 33 18" src="https://github.com/user-attachments/assets/d28049f4-0637-4437-82ab-b4f45dcbf8a7" />
 
-![webhook.site showing custom callback headers](screenshot-placeholder.png)
 
 ## Notes
 
