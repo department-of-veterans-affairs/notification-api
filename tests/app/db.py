@@ -522,6 +522,7 @@ def create_service_callback_api(  # nosec
     notification_statuses=NOTIFICATION_STATUS_TYPES_COMPLETED,
     callback_channel=WEBHOOK_CHANNEL_TYPE,
     include_provider_payload=False,
+    callback_headers=None,
 ):
     if callback_type == DELIVERY_STATUS_CALLBACK_TYPE:
         service_callback_api = ServiceCallback(
@@ -533,6 +534,7 @@ def create_service_callback_api(  # nosec
             notification_statuses=notification_statuses,
             callback_channel=callback_channel,
             include_provider_payload=include_provider_payload,
+            callback_headers=callback_headers,
         )
     else:
         service_callback_api = ServiceCallback(
@@ -543,6 +545,7 @@ def create_service_callback_api(  # nosec
             callback_type=callback_type,
             callback_channel=callback_channel,
             include_provider_payload=include_provider_payload,
+            callback_headers=callback_headers,
         )
     save_service_callback_api(service_callback_api)
     return service_callback_api

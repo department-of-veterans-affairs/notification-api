@@ -151,6 +151,7 @@ post_sms_request = {
         'sms_sender_id': nullable_uuid,
         'billing_code': {'type': ['string', 'null'], 'maxLength': 256},
         'callback_url': {'type': ['string', 'null'], 'format': 'uri', 'pattern': '^https.*', 'maxLength': 255},
+        'callback_headers': {'type': ['object', 'null'], 'additionalProperties': {'type': 'string'}},
     },
     # This is necessary to get the content of the message and who it's from.
     'required': ['template_id'],
@@ -200,6 +201,7 @@ post_email_request = {
         'scheduled_for': {'type': ['string', 'null'], 'format': 'datetime_within_next_day'},
         'billing_code': {'type': ['string', 'null'], 'maxLength': 256},
         'callback_url': {'type': ['string', 'null'], 'format': 'uri', 'pattern': '^https.*', 'maxLength': 255},
+        'callback_headers': {'type': ['object', 'null'], 'additionalProperties': {'type': 'string'}},
     },
     'required': ['template_id'],
     'anyOf': [{'required': ['email_address']}, {'required': ['recipient_identifier']}],

@@ -46,6 +46,7 @@ from app.v2.notifications.notification_schemas import (
     post_email_request,
     post_letter_request,
 )
+from app.schema_validation.callback_headers import validate_callback_headers
 from app.utils import get_public_notify_type_text
 
 
@@ -138,6 +139,15 @@ def post_notification(notification_type):  # noqa: C901
     if is_feature_enabled(FeatureFlag.PII_ENABLED) and 'recipient_identifier' in form:
         # This might modify the form by converting form['recipient_identifier']['id_value'] to a Pii subclass.
         wrap_recipient_identifier_in_pii(form)
+
+    # Validate callback_headers if provided
+    callback_headers = form.get('callback_headers')
+    if callback_headers:
+        if not form.get('callback_url'):
+            raise BadRequestError(message='callback_headers requires callback_url to be provided')
+        errors = validate_callback_headers(callback_headers, is_notification_level=True)
+        if errors:
+            raise BadRequestError(message='; '.join(errors))
 
     scheduled_for = form.get('scheduled_for')
 
@@ -247,6 +257,7 @@ def process_sms_or_email_notification(
         billing_code=form.get('billing_code'),
         sms_sender_id=form.get('sms_sender_id'),
         callback_url=form.get('callback_url'),
+        callback_headers=form.get('callback_headers'),
         created_at=created_at,
     )
 
@@ -307,6 +318,7 @@ def process_notification_with_recipient_identifier(
         billing_code=form.get('billing_code'),
         sms_sender_id=form.get('sms_sender_id'),
         callback_url=form.get('callback_url'),
+        callback_headers=form.get('callback_headers'),
         created_at=created_at,
     )
 

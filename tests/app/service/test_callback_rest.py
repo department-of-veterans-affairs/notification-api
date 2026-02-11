@@ -533,6 +533,80 @@ class TestCreateServiceCallback:
         assert response.json['message'] == 'A delivery_status callback already exists for this service'
         # The sample_service() fixture cleanup will remove any created callbacks
 
+    def test_create_service_callback_with_callback_headers(
+        self, client, sample_service, notify_db_session
+    ):
+        service = sample_service()
+        user = service.users[0]
+        data = {
+            'url': 'https://some.service/endpoint',
+            'bearer_token': 'some-unique-string',
+            'callback_type': DELIVERY_STATUS_CALLBACK_TYPE,
+            'callback_channel': WEBHOOK_CHANNEL_TYPE,
+            'callback_headers': {'x-api-key': 'my-key'},
+        }
+
+        response = client.post(
+            url_for('service_callback.create_service_callback', service_id=service.id),
+            data=json.dumps(data),
+            headers=[('Content-Type', 'application/json'), ('Authorization', f'Bearer {create_access_token(user)}')],
+        )
+
+        assert response.status_code == 201
+        resp_json = response.json['data']
+        assert resp_json['id']
+        # callback_headers is load_only so it should not appear in the response
+        assert 'callback_headers' not in resp_json
+        created = notify_db_session.session.get(ServiceCallback, resp_json['id'])
+        assert created._callback_headers is not None
+        assert created.callback_headers == {'x-api-key': 'my-key'}
+
+    def test_create_service_callback_with_invalid_callback_headers_returns_400(
+        self, client, sample_service
+    ):
+        service = sample_service()
+        user = service.users[0]
+        data = {
+            'url': 'https://some.service/endpoint',
+            'bearer_token': 'some-unique-string',
+            'callback_type': DELIVERY_STATUS_CALLBACK_TYPE,
+            'callback_channel': WEBHOOK_CHANNEL_TYPE,
+            'callback_headers': {'authorization': 'Bearer secret'},
+        }
+
+        response = client.post(
+            url_for('service_callback.create_service_callback', service_id=service.id),
+            data=json.dumps(data),
+            headers=[('Content-Type', 'application/json'), ('Authorization', f'Bearer {create_access_token(user)}')],
+        )
+
+        assert response.status_code == 400
+
+    def test_create_service_callback_with_empty_callback_headers_succeeds(
+        self, client, sample_service, notify_db_session
+    ):
+        service = sample_service()
+        user = service.users[0]
+        data = {
+            'url': 'https://some.service/endpoint',
+            'bearer_token': 'some-unique-string',
+            'callback_type': DELIVERY_STATUS_CALLBACK_TYPE,
+            'callback_channel': WEBHOOK_CHANNEL_TYPE,
+            'callback_headers': {},
+        }
+
+        response = client.post(
+            url_for('service_callback.create_service_callback', service_id=service.id),
+            data=json.dumps(data),
+            headers=[('Content-Type', 'application/json'), ('Authorization', f'Bearer {create_access_token(user)}')],
+        )
+
+        assert response.status_code == 201
+        resp_json = response.json['data']
+        created = notify_db_session.session.get(ServiceCallback, resp_json['id'])
+        # Empty dict is treated as no headers
+        assert created._callback_headers is None
+
 
 class TestUpdateServiceCallback:
     def test_update_service_callback_updates_url(
@@ -885,6 +959,35 @@ class TestUpdateServiceCallback:
             ],
         )
         assert response.status_code == 404
+
+    def test_update_service_callback_updates_callback_headers(
+        self,
+        client,
+        sample_service_callback,
+        sample_service,
+        notify_db_session,
+    ):
+        service = sample_service()
+        service_callback_api = sample_service_callback(service=service)
+        data = {
+            'callback_headers': {'x-custom-token': 'new-value'},
+        }
+
+        response = client.post(
+            url_for(
+                'service_callback.update_service_callback', service_id=service.id, callback_id=service_callback_api.id
+            ),
+            data=json.dumps(data),
+            headers=[
+                ('Content-Type', 'application/json'),
+                ('Authorization', f'Bearer {create_access_token(service.users[0])}'),
+            ],
+        )
+
+        assert response.status_code == 200
+        updated = notify_db_session.session.get(ServiceCallback, str(service_callback_api.id))
+        assert updated._callback_headers is not None
+        assert updated.callback_headers == {'x-custom-token': 'new-value'}
 
 
 class TestRemoveServiceCallback:

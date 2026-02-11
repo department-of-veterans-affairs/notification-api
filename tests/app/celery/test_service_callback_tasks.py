@@ -627,3 +627,104 @@ def test_send_delivery_status_from_notification_raises_non_retryable_exception(r
     rmock.post(callback_url, json=notification_data, status_code=status_code)
     with pytest.raises(NonRetryableException):
         send_delivery_status_from_notification(callback_signature, callback_url, notification_data, notification_id)
+
+
+def test_check_and_queue_notification_callback_task_includes_encrypted_callback_headers(mocker, sample_notification):
+    test_url = 'https://test_url.com'
+    encrypted_blob = encryption.encrypt({'x-api-key': 'key123'})
+
+    notification = sample_notification(callback_url=test_url)
+    notification._callback_headers = encrypted_blob
+
+    notification_data = {'callback_url': test_url}
+    callback_signature_value = '6842b32e800372de4079e20d6e7e753bad182e44f7f3e19a46fd8509889a0014'
+
+    mocker.patch(
+        'app.celery.service_callback_tasks.create_delivery_status_callback_data_v3',
+        return_value=notification_data,
+    )
+    mocker.patch(
+        'app.celery.service_callback_tasks.generate_callback_signature',
+        return_value=callback_signature_value,
+    )
+    mock_delivery_status_from_notification = mocker.patch(
+        'app.celery.service_callback_tasks.send_delivery_status_from_notification.apply_async'
+    )
+
+    check_and_queue_notification_callback_task(notification)
+
+    mock_delivery_status_from_notification.assert_called_once_with(
+        args=(),
+        kwargs={
+            'callback_signature': callback_signature_value,
+            'callback_url': test_url,
+            'notification_data': notification_data,
+            'notification_id': str(notification.id),
+            'encrypted_callback_headers': encrypted_blob,
+        },
+        queue=QueueNames.CALLBACKS,
+    )
+
+
+def test_check_and_queue_notification_callback_task_omits_encrypted_callback_headers_when_none(
+    mocker, sample_notification
+):
+    test_url = 'https://test_url.com'
+
+    notification = sample_notification(callback_url=test_url)
+    notification._callback_headers = None
+
+    notification_data = {'callback_url': test_url}
+    callback_signature_value = '6842b32e800372de4079e20d6e7e753bad182e44f7f3e19a46fd8509889a0014'
+
+    mocker.patch(
+        'app.celery.service_callback_tasks.create_delivery_status_callback_data_v3',
+        return_value=notification_data,
+    )
+    mocker.patch(
+        'app.celery.service_callback_tasks.generate_callback_signature',
+        return_value=callback_signature_value,
+    )
+    mock_delivery_status_from_notification = mocker.patch(
+        'app.celery.service_callback_tasks.send_delivery_status_from_notification.apply_async'
+    )
+
+    check_and_queue_notification_callback_task(notification)
+
+    call_kwargs = mock_delivery_status_from_notification.call_args[1]['kwargs']
+    assert 'encrypted_callback_headers' not in call_kwargs
+
+
+def test_send_delivery_status_from_notification_includes_custom_headers(rmock):
+    callback_signature = '6842b32e800372de4079e20d6e7e753bad182e44f7f3e19a46fd8509889a0014'
+    callback_url = 'https://test_url.com/'
+    notification_id = str(uuid.uuid4())
+    notification_data = {'callback_url': callback_url}
+    encrypted_callback_headers = encryption.encrypt({'x-api-key': 'key123'})
+
+    rmock.post(callback_url, json=notification_data, status_code=200)
+    send_delivery_status_from_notification(
+        callback_signature, callback_url, notification_data, notification_id,
+        encrypted_callback_headers=encrypted_callback_headers,
+    )
+
+    assert rmock.call_count == 1
+    assert rmock.request_history[0].headers['Content-type'] == 'application/json'
+    assert rmock.request_history[0].headers['x-enp-signature'] == callback_signature
+    assert rmock.request_history[0].headers['x-api-key'] == 'key123'
+
+
+def test_send_delivery_status_from_notification_without_custom_headers(rmock):
+    callback_signature = '6842b32e800372de4079e20d6e7e753bad182e44f7f3e19a46fd8509889a0014'
+    callback_url = 'https://test_url.com/'
+    notification_id = str(uuid.uuid4())
+    notification_data = {'callback_url': callback_url}
+
+    rmock.post(callback_url, json=notification_data, status_code=200)
+    send_delivery_status_from_notification(callback_signature, callback_url, notification_data, notification_id)
+
+    assert rmock.call_count == 1
+    sent_headers = rmock.request_history[0].headers
+    assert sent_headers['Content-type'] == 'application/json'
+    assert sent_headers['x-enp-signature'] == callback_signature
+    assert 'x-api-key' not in sent_headers
