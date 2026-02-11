@@ -406,13 +406,10 @@ def test_send_sms_v2_handles_botocore_param_validation_error_as_nonretryable(moc
 def test_send_sms_handles_pinpoint_v2_retryable_exceptions(
     mocker, aws_pinpoint_client, error_code, reason, resource_type, resource_id, expected_non_priority_flag
 ):
-    """Test that PinpointV2 ConflictException is properly handled and raises NonRetryableException
+    """Test that PinpointV2 retryable ClientErrors are properly handled and raise RetryableException
 
-    Tests all 36 ConflictExceptionReason values with appropriate resource types and resource IDs
-    that can occur when sending SMS through AWS Pinpoint SMS Voice V2.
-
-    Covers all reasons from AWS SDK documentation:
-    https://botocore.amazonaws.com/v1/documentation/api/latest/reference/services/pinpoint-sms-voice-v2/client/exceptions/ConflictException.html
+    ThrottlingException should also set a non-priority flag in the exception.
+    This flag serves as a recommendation that the exception handler retries in a non-priority queue
     """
     mocker.patch.dict('os.environ', {'PINPOINT_SMS_VOICE_V2': 'True'})
 

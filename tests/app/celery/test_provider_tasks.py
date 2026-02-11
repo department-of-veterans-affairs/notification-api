@@ -515,6 +515,7 @@ def test_deliver_sms_should_raise_autoretry_if_retryable_exception(
     mocker,
     sample_notification,
 ):
+    """Test that RetryableException raises AutoRetryxception to retry task"""
     notification = sample_notification()
 
     mocker.patch('app.delivery.send_to_providers.send_sms_to_provider', side_effect=RetryableException())
@@ -527,6 +528,7 @@ def test_deliver_sms_should_call_retry_if_nonpriority_retryable_exception(
     mocker,
     sample_notification,
 ):
+    """Test that non-priority RetryableException calls task.retry directly to reassign queue"""
     notification = sample_notification()
 
     client_error = botocore.exceptions.ClientError(

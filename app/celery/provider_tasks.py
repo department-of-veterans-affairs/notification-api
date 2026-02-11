@@ -306,8 +306,8 @@ def _handle_delivery_failure(  # noqa: C901 - too complex (11 > 10)
         # checked daily and tickets opened for narrowing the not 'RetryableException's that make it this far.
         if can_retry(celery_task.request.retries, celery_task.max_retries, notification_id):
             if isinstance(e, RetryableException) and e.use_non_priority_handling:
-                # SMS ClientError.ThrottlingException are auto-retried by botocore and could tie up workers
-                # Once the ClientError is finally raised, retry the task in the non-priority RETRY queue and worker pool
+                # Handle non-priority RetryableException by retrying in 'retry-tasks' queue
+                # This queue is serviced by the non-priority worker pool and lessens impact on priority tasks
 
                 current_app.logger.warning(
                     '%s unable to send for notification %s, retrying in non-priority worker pool',
