@@ -74,10 +74,10 @@ def upgrade():
 
         GET DIAGNOSTICS changed_backfill = ROW_COUNT;
         END IF;
-    RETURN (changed_upsert > 0)
+    RETURN (changed_upsert > 0);
             
         END;
-        $function$
+        $function$;
     """)
 
 

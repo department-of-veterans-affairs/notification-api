@@ -84,8 +84,8 @@ va_profile_opt_in_out = PGFunction(
 
         GET DIAGNOSTICS changed_backfill = ROW_COUNT;
         END IF;
-    RETURN (changed_upsert > 0)
-    END
+    RETURN (changed_upsert > 0);
+    END;
     $$
     LANGUAGE plpgsql
     """,
