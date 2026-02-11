@@ -4,10 +4,6 @@ class RetryableException(Exception):
         self.use_non_priority_handling = use_non_priority_handling
 
 
-class RetryableException_NonPriority(RetryableException):
-    pass
-
-
 class NonRetryableException(Exception):
     pass
 
