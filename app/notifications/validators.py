@@ -1,5 +1,6 @@
 import base64
 import binascii
+from typing import Any
 
 from flask import current_app
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
@@ -21,7 +22,7 @@ from app.constants import (
 )
 from app.dao import services_dao, templates_dao
 from app.dao.service_sms_sender_dao import dao_get_service_sms_sender_by_id
-from app.dao.templates_dao import dao_get_number_of_templates_by_service_id_and_name
+from app.dao.templates_dao import dao_get_number_of_templates_by_service_id_and_name, TemplateHistoryData
 from app.models import ApiKey, Service
 from app.service.utils import service_allowed_to_send_to
 from app.v2.errors import TooManyRequestsError, BadRequestError, RateLimitError
@@ -208,11 +209,11 @@ def validate_and_format_recipient(
 
 
 def validate_template(
-    template_id,
-    personalisation,
-    service,
-    notification_type,
-):
+    template_id: str,
+    personalisation: dict[str, Any],
+    service: Service,
+    notification_type: str,
+) -> TemplateHistoryData:
     """
     Validate a template using the latest versioned history snapshot.
 
@@ -221,7 +222,7 @@ def validate_template(
     placeholders against that snapshot.
 
     Args:
-        template_id: Identifier of the template requested by the caller.
+        template_id (str): Identifier of the template requested by the caller.
         personalisation (dict): Personalisation values used for placeholder
             validation.
         service (Service): Authenticated service making the request.

@@ -358,7 +358,7 @@ def dao_get_template_history_by_id(template_id: str, version: str) -> TemplateHi
 
 @cached(cache=TTLCache(maxsize=1024, ttl=600))
 def dao_get_latest_template_history_by_id_and_service_id(
-    template_id: uuid.UUID,
+    template_id: str,
     service_id: uuid.UUID,
 ) -> TemplateHistoryData | None:
     """
@@ -368,7 +368,7 @@ def dao_get_latest_template_history_by_id_and_service_id(
     available as the source of truth for send-time validation/rendering.
 
     Args:
-        template_id (uuid.UUID): Template identifier.
+        template_id (str): Template identifier.
         service_id (uuid.UUID): Service identifier that owns the template.
 
     Returns:

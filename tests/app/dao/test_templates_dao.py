@@ -1032,7 +1032,7 @@ class TestDAOGetLatestTemplateHistoryByIdAndServiceId:
         template.content = 'Updated content'
         dao_update_template(template)
 
-        result = dao_get_latest_template_history_by_id_and_service_id(template.id, template.service_id)
+        result = dao_get_latest_template_history_by_id_and_service_id(str(template.id), template.service_id)
 
         assert isinstance(result, TemplateHistoryData)
         assert result.id == template.id
@@ -1061,7 +1061,7 @@ class TestDAOGetLatestTemplateHistoryByIdAndServiceId:
         notify_db_session.session.delete(newest_history)
         notify_db_session.session.commit()
 
-        result = dao_get_latest_template_history_by_id_and_service_id(template.id, template.service_id)
+        result = dao_get_latest_template_history_by_id_and_service_id(str(template.id), template.service_id)
 
         # The DAO should fall back to the highest remaining history version.
         assert result is not None
@@ -1086,7 +1086,7 @@ class TestDAOGetLatestTemplateHistoryByIdAndServiceId:
         notify_db_session.session.delete(current_history)
         notify_db_session.session.commit()
 
-        result = dao_get_latest_template_history_by_id_and_service_id(template.id, template.service_id)
+        result = dao_get_latest_template_history_by_id_and_service_id(str(template.id), template.service_id)
 
         # No history means the DAO returns None and callers should handle 400s.
         assert result is None
