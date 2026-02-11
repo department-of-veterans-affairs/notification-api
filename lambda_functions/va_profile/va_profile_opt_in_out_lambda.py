@@ -56,7 +56,7 @@ OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s, %s, %s);"
 OPT_IN_OUT_ADD_NOTIFICATION_ID_ENCRYPTED_QUERY = """
     UPDATE va_profile_local_cache
     SET notification_id = %s
-    WHERE encrypted_va_profile_id = %s AND source_datetime = %s;
+    WHERE encrypted_va_profile_id_blind_index = %s AND source_datetime = %s;
 """
 # Legacy unencrypted va_profile_id version of the query
 OPT_IN_OUT_ADD_NOTIFICATION_ID_LEGACY_QUERY = """
@@ -213,44 +213,6 @@ def make_database_connection() -> Optional[psycopg2.extensions.connection]:
     return connection
 
 
-def execute_stored_function(bio: dict, put_body: dict, notification_id: str) -> None:
-    """TODO:"""
-    # We will temporarily store both encrypted and unencrypted vaProfileId in the local cache table
-    va_profile_id = PiiVaProfileID(str(bio['vaProfileId']))
-
-    # Stored function parameters:
-    params = (
-        va_profile_id.get_encrypted_value(),  # _encrypted_va_profile_id
-        bio['communicationItemId'],  # _communication_item_id
-        bio['communicationChannelId'],  # _communication_channel_name
-        bio['allowed'],  # _allowed
-        bio['sourceDate'],  # _source_datetime
-    )
-
-    logger.info(
-        'The request is an opt-%s.',
-        'in' if (str(bio['allowed']).lower() == 'true') else 'out',
-    )
-
-    global db_connection
-
-    if db_connection is None or db_connection.status != 0:
-        # Attempt to (re-)establish a database connection.
-        db_connection = make_database_connection()
-
-    if db_connection is None:
-        raise RuntimeError('No database connection.')
-
-    with db_connection.cursor() as c:
-        # https://www.psycopg.org/docs/cursor.html#cursor.execute
-        # Prioritize matching on encrypted va_profile_id
-        c.execute(OPT_IN_OUT_QUERY, params)
-        put_body['status'] = 'COMPLETED_SUCCESS' if c.fetchone()[0] else 'COMPLETED_NOOP'
-        db_connection.commit()
-
-    logger.debug('Executed the stored function.')
-
-
 def va_profile_opt_in_out_lambda_handler(  # noqa: C901
     event: dict,
     context,
@@ -360,7 +322,6 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
                 )
 
         logger.info('POST response: %s', post_response)
-
         return post_response
 
     # VA Profile filters on their end and should only sent us records that match a criteria.
@@ -381,7 +342,6 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
                 )
 
         logger.info('POST response: %s', post_response)
-
         return post_response
 
     try:
@@ -470,20 +430,17 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
 
             # Save notification_id from POST sms response if method returned
             # a value AND the response status code is 201.
-            # -- NOTE: I think we should lazily evaluate a property for Pii objects,
-            #  rather than calling get_encrypted_value() multiple times.
-            encrypted_va_profile_id = va_profile_id.get_encrypted_value()
             if response is None:
                 logger.critical(
                     'Could not send Comp and Pen opt-in confirmation to VAProfileId: %s. No response status or response body to record.',
-                    encrypted_va_profile_id,
+                    va_profile_id,
                 )
             elif response.status != 201:
                 response_data = response.read().decode()
                 response_json = json.loads(response_data)
                 logger.critical(
                     'Could not send Comp and Pen opt-in confirmation to VAProfileId: %s. Response status: %s, Response: %s',
-                    encrypted_va_profile_id,
+                    va_profile_id,
                     response.status,
                     response_data,
                 )
@@ -493,7 +450,7 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
                 notification_id = response_json['id']
                 logger.info(
                     'Sent Comp and Pen opt-in confirmation to VAProfileId: %s with notification_id: %s. Response status: %s',
-                    encrypted_va_profile_id,
+                    va_profile_id,
                     notification_id,
                     response.status,
                 )
@@ -502,7 +459,7 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
     except Exception as e:
         logger.critical(
             'Critical error during the process of sending a Comp and Pen Opt-in confirmation notification to VaProfileId: %s. Error: %s',
-            va_profile_id.get_encrypted_value(),
+            va_profile_id,
             e,
         )
 
@@ -600,9 +557,6 @@ def send_comp_and_pen_opt_in_confirmation(
     Args:
         va_profile_id (PiiVaProfileID): The PII-wrapped VA profile ID of the user the notification should be sent to.
     """
-    # Get the encrypted VA Profile ID for the notification recipient.
-    # encrypted_va_profile_id = va_profile_id.get_encrypted_value()
-
     try:
         # Personalization for opt-in confirmation notification SMS based on cutoff date
         # to enroll in monthly Comp and Pen notification
@@ -680,7 +634,7 @@ def save_notification_id_to_cache(va_profile_id: PiiVaProfileID, notification_id
         notification_id (str): The notification UUID.
         source_date (str): The source date associated with the opt-in/out action.
     """
-    encrypted_va_profile_id = va_profile_id.get_encrypted_value()
+    # encrypted_va_profile_id = va_profile_id.get_encrypted_value()
     try:
         with db_connection.cursor() as cursor:
             # -- NOTE: Below is a temporary implementation to support legacy (unencrypted) VA Profile IDs in the cache.
@@ -688,7 +642,7 @@ def save_notification_id_to_cache(va_profile_id: PiiVaProfileID, notification_id
             # Prioritize matching on encrypted va_profile_id
             cursor.execute(
                 OPT_IN_OUT_ADD_NOTIFICATION_ID_ENCRYPTED_QUERY,
-                (notification_id, encrypted_va_profile_id, source_date),
+                (notification_id, va_profile_id.get_hmac(), source_date),
             )
 
             # If no rows updated, fall back to legacy unencrypted va_profile_id
@@ -710,7 +664,7 @@ def save_notification_id_to_cache(va_profile_id: PiiVaProfileID, notification_id
             logger.info(
                 'Successfully updated VAProfileLocalCache with notification_id %s for va_profile_id %s.',
                 notification_id,
-                encrypted_va_profile_id,
+                va_profile_id,
             )
 
     except psycopg2.IntegrityError as e:
@@ -718,7 +672,7 @@ def save_notification_id_to_cache(va_profile_id: PiiVaProfileID, notification_id
         logger.error(
             'Failed to insert notification_id %s for va_profile_id %s. IntegrityError: %s',
             notification_id,
-            encrypted_va_profile_id,
+            va_profile_id,
             str(e),
         )
     except Exception as e:
@@ -726,7 +680,7 @@ def save_notification_id_to_cache(va_profile_id: PiiVaProfileID, notification_id
         logger.error(
             'An error occurred while attempting to update notification_id: %s for va_profile_id %s: %s',
             notification_id,
-            encrypted_va_profile_id,
+            va_profile_id,
             str(e),
         )
     finally:
