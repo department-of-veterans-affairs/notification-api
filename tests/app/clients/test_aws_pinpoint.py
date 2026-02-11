@@ -3,7 +3,7 @@ from datetime import datetime
 import botocore
 import pytest
 
-from app.celery.exceptions import NonRetryableException, RetryableException, RetryableException_NonPriority
+from app.celery.exceptions import NonRetryableException, RetryableException
 from app.clients.sms import SmsStatusRecord
 from app.clients.sms.aws_pinpoint import AwsPinpointClient, AwsPinpointException
 from app.constants import (
@@ -397,14 +397,14 @@ def test_send_sms_v2_handles_botocore_param_validation_error_as_nonretryable(moc
 
 
 @pytest.mark.parametrize(
-    'error_code, reason, resource_type, resource_id, exception',
+    'error_code, reason, resource_type, resource_id, expected_non_priority_flag',
     [
-        ('ThrottlingException', 'Account throttled', None, None, RetryableException_NonPriority),
-        ('InternalServerException', 'Internal server error', None, None, RetryableException),
+        ('ThrottlingException', 'Account throttled', None, None, True),
+        ('InternalServerException', 'Internal server error', None, None, False),
     ],
 )
 def test_send_sms_handles_pinpoint_v2_retryable_exceptions(
-    mocker, aws_pinpoint_client, error_code, reason, resource_type, resource_id, exception
+    mocker, aws_pinpoint_client, error_code, reason, resource_type, resource_id, expected_non_priority_flag
 ):
     """Test that PinpointV2 ConflictException is properly handled and raises NonRetryableException
 
@@ -434,8 +434,10 @@ def test_send_sms_handles_pinpoint_v2_retryable_exceptions(
         side_effect=mock_exception,
     )
 
-    with pytest.raises(exception):
+    with pytest.raises(RetryableException) as excinfo:
         aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
+
+    assert excinfo.value.use_non_priority_handling == expected_non_priority_flag
 
 
 # TODO: Remove ValidationException fallback once AWS support issue resolved (Case ID 176252254206525)

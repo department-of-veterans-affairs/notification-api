@@ -15,7 +15,6 @@ from app.celery.exceptions import (
     AutoRetryException,
     NonRetryableException,
     RetryableException,
-    RetryableException_NonPriority,
 )
 from app.celery.provider_tasks import (
     _handle_delivery_failure,
@@ -530,7 +529,20 @@ def test_deliver_sms_should_call_retry_if_nonpriority_retryable_exception(
 ):
     notification = sample_notification()
 
-    mocker.patch('app.delivery.send_to_providers.send_sms_to_provider', side_effect=RetryableException_NonPriority())
+    client_error = botocore.exceptions.ClientError(
+        {
+            'Error': {
+                'Code': 'ThrottlingException',
+                'Message': 'Maximum sending rate exceeded',
+            }
+        },
+        'SendTextMessage',
+    )
+
+    def raise_retryable_from_client_error(*args, **kwargs):
+        raise RetryableException(use_non_priority_handling=True) from client_error
+
+    mocker.patch('app.delivery.send_to_providers.send_sms_to_provider', side_effect=raise_retryable_from_client_error)
     mock_retry = mocker.patch('app.celery.provider_tasks.deliver_sms.retry')
 
     deliver_sms(notification.id)

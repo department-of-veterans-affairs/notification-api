@@ -8,7 +8,7 @@ import botocore
 import botocore.exceptions
 import phonenumbers
 
-from app.celery.exceptions import NonRetryableException, RetryableException, RetryableException_NonPriority
+from app.celery.exceptions import NonRetryableException, RetryableException
 from app.clients.sms import (
     SmsClient,
     SmsClientResponseException,
@@ -412,7 +412,7 @@ class AwsPinpointClient(SmsClient):
             if error_code == 'ThrottlingException':
                 # ClientError.ThrottlingException are retried by botocore and could tie up workers
                 # Signal that retry should be sent to a non-priority queue / worker pool
-                raise RetryableException_NonPriority from error
+                raise RetryableException(use_non_priority_handling=True) from error
             else:
                 raise RetryableException from error
 

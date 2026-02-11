@@ -19,7 +19,6 @@ from app.celery.exceptions import (
     AutoRetryException,
     NonRetryableException,
     RetryableException,
-    RetryableException_NonPriority,
 )
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.clients.email.aws_ses import AwsSesClientThrottlingSendRateException
@@ -306,7 +305,7 @@ def _handle_delivery_failure(  # noqa: C901 - too complex (11 > 10)
         # We retry everything because it ensures missed exceptions do not prevent notifications from going out. Logs are
         # checked daily and tickets opened for narrowing the not 'RetryableException's that make it this far.
         if can_retry(celery_task.request.retries, celery_task.max_retries, notification_id):
-            if isinstance(e, RetryableException_NonPriority):
+            if isinstance(e, RetryableException) and e.use_non_priority_handling:
                 # SMS ClientError.ThrottlingException are auto-retried by botocore and could tie up workers
                 # Once the ClientError is finally raised, retry the task in the non-priority RETRY queue and worker pool
 
