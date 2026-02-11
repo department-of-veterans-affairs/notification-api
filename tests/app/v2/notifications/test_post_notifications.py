@@ -19,7 +19,6 @@ from app.constants import (
     SMS_TYPE,
     UPLOAD_DOCUMENT,
 )
-from app.dao.templates_dao import dao_update_template
 from app.dao.service_sms_sender_dao import dao_update_service_sms_sender
 from app.models import (
     Notification,
@@ -110,24 +109,29 @@ def test_post_sms_notification_returns_201(
     # tasks in the chain are mocked.
 
 
-def test_post_sms_notification_uses_latest_history_content_for_response(
+def test_post_sms_notification_uses_latest_history_content_during_drift(
     client,
     notify_db_session,
     sample_api_key,
     sample_template,
 ):
-    template = sample_template(content='Version 1 template content')
-    template.content = 'Version 2 template content for ((name))'
-    dao_update_template(template)
+    history_content = 'Synced content from templates_history'
+    template = sample_template(content=history_content)
+    templates_content = 'DRIFT TEST - content from templates'
 
-    # Ensure the newest history row content is reflected in POST response rendering.
+    # Drift setup: update templates only (no history write), which mirrors the
+    # out-of-sync state caused by non-versioned external updates.
+    template.content = templates_content
+    notify_db_session.session.add(template)
+    notify_db_session.session.commit()
+
+    # Confirm the versioned history row is unchanged.
     stmt = select(TemplateHistory).where(
         TemplateHistory.id == template.id,
         TemplateHistory.version == template.version,
     )
     history_template = notify_db_session.session.scalar(stmt)
-    history_template.content = 'Version 2 template content'
-    notify_db_session.session.commit()
+    assert history_template.content == history_content
 
     auth_header = create_authorization_header(sample_api_key(service=template.service))
     resp_valid = client.post(
@@ -138,7 +142,7 @@ def test_post_sms_notification_uses_latest_history_content_for_response(
 
     assert resp_valid.status_code == 201
     resp_json = resp_valid.get_json()
-    assert resp_json['content']['body'] == 'Version 2 template content'
+    assert resp_json['content']['body'] == history_content
 
 
 def test_post_sms_notification_returns_400_when_template_has_no_history_rows(
