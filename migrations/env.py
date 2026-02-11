@@ -74,15 +74,17 @@ va_profile_opt_in_out = PGFunction(
      GET DIAGNOSTICS changed_upsert = ROW_COUNT;
 
     -- Backfill blind index for ALL rows for this va_profile_id
-    UPDATE va_profile_local_cache
-        SET
-            encrypted_va_profile_id = COALESCE(encrypted_va_profile_id, _encrypted_va_profile_id),
-            encrypted_va_profile_id_blind_index = COALESCE(encrypted_va_profile_id_blind_index, _encrypted_va_profile_id_blind_index)
-        WHERE va_profile_id = _va_profile_id
-            AND (encrypted_va_profile_id IS NULL OR encrypted_va_profile_id_blind_index IS NULL);
+    IF changed_upsert > 0 THEN
+        UPDATE va_profile_local_cache
+            SET
+                encrypted_va_profile_id = COALESCE(encrypted_va_profile_id, _encrypted_va_profile_id),
+                encrypted_va_profile_id_blind_index = COALESCE(encrypted_va_profile_id_blind_index, _encrypted_va_profile_id_blind_index)
+            WHERE va_profile_id = _va_profile_id
+                AND (encrypted_va_profile_id IS NULL OR encrypted_va_profile_id_blind_index IS NULL);
 
-    GET DIAGNOSTICS changed_backfill = ROW_COUNT;
-    RETURN (changed_upsert > 0) OR (changed_backfill > 0);
+        GET DIAGNOSTICS changed_backfill = ROW_COUNT;
+        END IF;
+    RETURN (changed_upsert > 0)
     END
     $$
     LANGUAGE plpgsql
