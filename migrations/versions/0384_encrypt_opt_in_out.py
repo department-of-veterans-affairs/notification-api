@@ -10,10 +10,11 @@ from alembic import op
 revision = '0384_encrypt_opt_in_out'
 down_revision = '0383_add_blind_index'
 
+
 def upgrade():
     op.execute(
-        "DROP FUNCTION IF EXISTS "
-        "va_profile_opt_in_out(integer, integer, integer, boolean, timestamp without time zone);"
+        'DROP FUNCTION IF EXISTS '
+        'va_profile_opt_in_out(integer, integer, integer, boolean, timestamp without time zone);'
     )
     op.execute("""
         CREATE OR REPLACE FUNCTION public.va_profile_opt_in_out(
@@ -82,8 +83,8 @@ def upgrade():
 
 def downgrade():
     op.execute(
-        "DROP FUNCTION IF EXISTS "
-        "va_profile_opt_in_out(integer, text, text, integer, integer, boolean, timestamp without time zone);"
+        'DROP FUNCTION IF EXISTS '
+        'va_profile_opt_in_out(integer, text, text, integer, integer, boolean, timestamp without time zone);'
     )
     op.execute("""
         CREATE OR REPLACE FUNCTION public.va_profile_opt_in_out(
