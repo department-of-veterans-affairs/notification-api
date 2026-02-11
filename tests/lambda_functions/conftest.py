@@ -2,32 +2,35 @@ from random import randint
 
 import pytest
 from sqlalchemy import delete
+import base64
 
 from app.models import VAProfileLocalCache
 from app.pii.pii_low import PiiVaProfileID
 
 
+# Helpers
+def generate_base64_test_key(value: str) -> str:
+    """Generates the base64 encoding of the input string value.
+
+    Note: This generates constant test key(s) for consistent encryption/decryption during tests
+    Using a fixed test key - this is only for testing and not a real sekret
+    """
+    return base64.b64encode(value.encode('utf-8')).decode('utf-8')
+
+
 # PII encryption test setup
-# Constant test key for consistent encryption/decryption during tests
-# Using a fixed test key - this is only for testing and not a real secret
-# The value is the base64 encoding of "This is an 32 byte key for tests"
-TEST_ENCRYPTION_KEY = 'VGhpcyBpcyBhbiAzMiBieXRlIGtleSBmb3IgdGVzdHM='
-# The value is the base64 encoding of "This is a second 32 byte key for HMAC tests"
-TEST_HMAC_KEY = 'VGhpcyBpcyBhIHNlY29uZCAzMiBieXRlIGtleSBmb3IgdGVzdHM='
+TEST_ENCRYPTION_KEY = generate_base64_test_key('This is an 32 byte key for tests')
+TEST_HMAC_KEY = generate_base64_test_key('This is a second 32 byte key for HMAC tests')
 
 
 @pytest.fixture
-def mock_pii_encryption_key(monkeypatch):
+def mock_pii_env_vars(monkeypatch):
     monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
-
-
-@pytest.fixture
-def mock_pii_hmac_key(monkeypatch):
     monkeypatch.setenv('PII_HMAC_KEY', TEST_HMAC_KEY)
 
 
 @pytest.fixture
-def sample_va_profile_local_cache(notify_db_session, mock_pii_encryption_key):
+def sample_va_profile_local_cache(notify_db_session, mock_pii_env_vars):
     created_va_profile_local_cache_ids = []
 
     def _sample_va_profile_local_cache(

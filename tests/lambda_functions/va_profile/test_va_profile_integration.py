@@ -532,7 +532,12 @@ def test_va_profile_opt_in_out_lambda_handler_new_row(
 
 @pytest.mark.serial
 def test_va_profile_opt_in_out_lambda_handler_older_date(
-    notify_db_session, jwt_encoded, put_mock, sample_va_profile_local_cache, post_opt_in_confirmation_mock_return
+    notify_db_session,
+    jwt_encoded,
+    put_mock,
+    sample_va_profile_local_cache,
+    post_opt_in_confirmation_mock_return,
+    mock_env_vars,
 ):
     """
     Test the VA Profile integration lambda by sending a valid request with an older date.

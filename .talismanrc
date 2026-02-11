@@ -98,7 +98,7 @@ fileignoreconfig:
 - filename: migrations/env.py
   checksum: f1c6c3c65b1c1ac93d79cc3fe29d704416b6eca70054870991f786638563315e
 - filename: tests/lambda_functions/conftest.py
-  checksum: 93731a9abd8208ad3d082179544b4620270891f9bfebce10045fc93958e0a3dd
+  checksum: 376dbed78a575355b6de0b3808febc03a2161eaffb68d6aca68123f254962469
 - filename: tests/lambda_functions/va_profile/test_va_profile_integration.py
   checksum: 4cc0784321a6cff36db498b6deb73dcc04c362793fb6322794db24dc5b55d684
 version: "1.0"
