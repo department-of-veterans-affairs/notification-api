@@ -37,8 +37,12 @@ class TestValidateCallbackHeadersValid:
             'a' * MAX_HEADER_NAME_LENGTH,
         ],
         ids=[
-            'mixed-case', 'simple', 'lowercase-dashed',
-            'all-rfc7230-special-chars', 'single-char', 'max-length',
+            'mixed-case',
+            'simple',
+            'lowercase-dashed',
+            'all-rfc7230-special-chars',
+            'single-char',
+            'max-length',
         ],
     )
     def test_valid_header_names(self, name):

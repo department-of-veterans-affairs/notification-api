@@ -40,12 +40,7 @@ BLOCKED_HEADER_PREFIXES = (
 )
 
 # Additional blocked names for notification-level callbacks
-NOTIFICATION_LEVEL_BLOCKED_NAMES = frozenset(
-    name.lower()
-    for name in (
-        'x-enp-signature',
-    )
-)
+NOTIFICATION_LEVEL_BLOCKED_NAMES = frozenset(name.lower() for name in ('x-enp-signature',))
 
 
 def validate_callback_headers(callback_headers, is_notification_level=False):

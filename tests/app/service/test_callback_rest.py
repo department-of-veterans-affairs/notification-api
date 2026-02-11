@@ -533,9 +533,7 @@ class TestCreateServiceCallback:
         assert response.json['message'] == 'A delivery_status callback already exists for this service'
         # The sample_service() fixture cleanup will remove any created callbacks
 
-    def test_create_service_callback_with_callback_headers(
-        self, client, sample_service, notify_db_session
-    ):
+    def test_create_service_callback_with_callback_headers(self, client, sample_service, notify_db_session):
         service = sample_service()
         user = service.users[0]
         data = {
@@ -561,9 +559,7 @@ class TestCreateServiceCallback:
         assert created._callback_headers is not None
         assert created.callback_headers == {'x-api-key': 'my-key'}
 
-    def test_create_service_callback_with_invalid_callback_headers_returns_400(
-        self, client, sample_service
-    ):
+    def test_create_service_callback_with_invalid_callback_headers_returns_400(self, client, sample_service):
         service = sample_service()
         user = service.users[0]
         data = {

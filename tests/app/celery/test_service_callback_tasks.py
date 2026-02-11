@@ -704,7 +704,10 @@ def test_send_delivery_status_from_notification_includes_custom_headers(rmock):
 
     rmock.post(callback_url, json=notification_data, status_code=200)
     send_delivery_status_from_notification(
-        callback_signature, callback_url, notification_data, notification_id,
+        callback_signature,
+        callback_url,
+        notification_data,
+        notification_id,
         encrypted_callback_headers=encrypted_callback_headers,
     )
 
@@ -735,15 +738,20 @@ def test_send_delivery_status_from_notification_custom_headers_cannot_override_s
     callback_url = 'https://test_url.com/'
     notification_id = str(uuid.uuid4())
     notification_data = {'callback_url': callback_url}
-    encrypted_callback_headers = encryption.encrypt({
-        'Content-Type': 'text/plain',
-        'x-enp-signature': 'overridden',
-        'X-Custom': 'allowed',
-    })
+    encrypted_callback_headers = encryption.encrypt(
+        {
+            'Content-Type': 'text/plain',
+            'x-enp-signature': 'overridden',
+            'X-Custom': 'allowed',
+        }
+    )
 
     rmock.post(callback_url, json=notification_data, status_code=200)
     send_delivery_status_from_notification(
-        callback_signature, callback_url, notification_data, notification_id,
+        callback_signature,
+        callback_url,
+        notification_data,
+        notification_id,
         encrypted_callback_headers=encrypted_callback_headers,
     )
 

@@ -500,9 +500,7 @@ class TestCallbackRoutingIntegration:
         mock_notification_path = mocker.patch(
             'app.celery.service_callback_tasks.check_and_queue_notification_callback_task'
         )
-        mock_service_path = mocker.patch(
-            'app.celery.service_callback_tasks.check_and_queue_service_callback_task'
-        )
+        mock_service_path = mocker.patch('app.celery.service_callback_tasks.check_and_queue_service_callback_task')
 
         check_and_queue_callback_task(notification)
 
@@ -521,9 +519,7 @@ class TestCallbackRoutingIntegration:
         mock_notification_path = mocker.patch(
             'app.celery.service_callback_tasks.check_and_queue_notification_callback_task'
         )
-        mock_service_path = mocker.patch(
-            'app.celery.service_callback_tasks.check_and_queue_service_callback_task'
-        )
+        mock_service_path = mocker.patch('app.celery.service_callback_tasks.check_and_queue_service_callback_task')
 
         check_and_queue_callback_task(notification)
 
@@ -561,9 +557,7 @@ class TestCallbackRoutingIntegration:
         )
 
         # Mock the celery apply_async to capture args
-        mock_apply_async = mocker.patch(
-            'app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async'
-        )
+        mock_apply_async = mocker.patch('app.celery.service_callback_tasks.send_delivery_status_to_service.apply_async')
 
         check_and_queue_callback_task(notification)
 
