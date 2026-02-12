@@ -51,7 +51,7 @@ COMP_AND_PEN_OPT_IN_TEMPLATE_ID = os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID')
 COMP_AND_PEN_SERVICE_ID = os.getenv('COMP_AND_PEN_SERVICE_ID')
 COMP_AND_PEN_SMS_SENDER_ID = os.getenv('COMP_AND_PEN_SMS_SENDER_ID')
 NOTIFY_ENVIRONMENT = os.getenv('NOTIFY_ENVIRONMENT')
-OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s, %s, %s);"""
+OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s, %s);"""
 # Temporarily supporting both
 OPT_IN_OUT_ADD_NOTIFICATION_ID_ENCRYPTED_QUERY = """
     UPDATE va_profile_local_cache
@@ -345,13 +345,12 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
         return post_response
 
     try:
-        # We will temporarily store both encrypted and unencrypted vaProfileId in the local cache table
+        # We will temporarily store both encrypted and HMAC-encrypted vaProfileId in the local cache table
         va_profile_id = PiiVaProfileID(str(bio['vaProfileId']))
 
         # Stored function parameters:
         params = (
             int(va_profile_id.get_pii()),  # _va_profile_id
-            va_profile_id.get_encrypted_value(),  # _encrypted_va_profile_id
             va_profile_id.get_hmac(),  # _encrypted_va_profile_id_blind_index
             bio['communicationItemId'],  # _communication_item_id
             bio['communicationChannelId'],  # _communication_channel_name

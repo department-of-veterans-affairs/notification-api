@@ -18,6 +18,7 @@ fileConfig(config.config_file_name)
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 from flask import current_app
+
 config.set_main_option('sqlalchemy.url', current_app.config.get('SQLALCHEMY_DATABASE_URI'))
 target_metadata = current_app.extensions['migrate'].db.metadata
 
@@ -32,9 +33,9 @@ target_metadata = current_app.extensions['migrate'].db.metadata
 #######################################################################
 
 va_profile_opt_in_out = PGFunction(
-  schema="public",
-  signature="va_profile_opt_in_out(_va_profile_id integer, _encrypted_va_profile_id text, _encrypted_va_profile_id_blind_index text, _communication_item_id integer, _communication_channel_id integer, _allowed Boolean, _source_datetime timestamp)",
-  definition="""\
+    schema='public',
+    signature='va_profile_opt_in_out(_va_profile_id integer, _encrypted_va_profile_id_blind_index text, _communication_item_id integer, _communication_channel_id integer, _allowed Boolean, _source_datetime timestamp)',
+    definition="""\
     RETURNS 
         boolean AS
     $$
@@ -43,8 +44,7 @@ va_profile_opt_in_out = PGFunction(
         changed_backfill int;
     BEGIN
     INSERT INTO va_profile_local_cache(
-        va_profile_id, 
-        encrypted_va_profile_id,
+        va_profile_id,
         encrypted_va_profile_id_blind_index,
         communication_item_id, 
         communication_channel_id, 
@@ -53,7 +53,6 @@ va_profile_opt_in_out = PGFunction(
     )
     VALUES(
         _va_profile_id, 
-        _encrypted_va_profile_id,
         _encrypted_va_profile_id_blind_index,
         _communication_item_id, 
         _communication_channel_id, 
@@ -69,33 +68,34 @@ va_profile_opt_in_out = PGFunction(
             AND va_profile_local_cache.va_profile_id = _va_profile_id
             AND va_profile_local_cache.communication_item_id = _communication_item_id
             AND va_profile_local_cache.communication_channel_id = _communication_channel_id;
-    
+
      GET DIAGNOSTICS changed_upsert = ROW_COUNT;
-     
+
     -- Backfill blind index for ALL rows for this va_profile_id
-    UPDATE va_profile_local_cache
-        SET
-            encrypted_va_profile_id = COALESCE(encrypted_va_profile_id, _encrypted_va_profile_id),
-            encrypted_va_profile_id_blind_index = COALESCE(encrypted_va_profile_id_blind_index, _encrypted_va_profile_id_blind_index)
-        WHERE va_profile_id = _va_profile_id
-            AND (encrypted_va_profile_id IS NULL OR encrypted_va_profile_id_blind_index IS NULL);
-    
-    GET DIAGNOSTICS changed_backfill = ROW_COUNT;
-    RETURN (changed_upsert > 0) OR (changed_backfill > 0);
-    END
+    IF changed_upsert > 0 THEN
+        UPDATE va_profile_local_cache
+            SET
+                encrypted_va_profile_id_blind_index = COALESCE(encrypted_va_profile_id_blind_index, _encrypted_va_profile_id_blind_index)
+            WHERE va_profile_id = _va_profile_id
+                AND encrypted_va_profile_id_blind_index IS NULL;
+
+        GET DIAGNOSTICS changed_backfill = ROW_COUNT;
+        END IF;
+    RETURN (changed_upsert > 0);
+    END;
     $$
     LANGUAGE plpgsql
-    """
-  )
+    """,
+)
 
 #######################################################################
 # Define and register the stored procedures for VA Profile integration.
 #######################################################################
 
 va_profile_remove_old_opt_outs = PGFunction(
-  schema="public",
-  signature="va_profile_remove_old_opt_outs()",
-  definition="""\
+    schema='public',
+    signature='va_profile_remove_old_opt_outs()',
+    definition="""\
 RETURNS void AS
   $$
 DELETE
@@ -104,12 +104,14 @@ WHERE allowed = False
 AND age(NOW(), source_datetime) > INTERVAL '24 hours';
 $$
 LANGUAGE sql
-"""
+""",
 )
 
 register_entities([va_profile_opt_in_out, va_profile_remove_old_opt_outs])
 
+
 #######################################################################
+
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
@@ -123,11 +125,12 @@ def run_migrations_offline():
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = config.get_main_option('sqlalchemy.url')
     context.configure(url=url)
 
     with context.begin_transaction():
         context.run_migrations()
+
 
 def run_migrations_online():
     """Run migrations in 'online' mode.
@@ -137,18 +140,13 @@ def run_migrations_online():
 
     """
     engine = engine_from_config(
-                config.get_section(config.config_ini_section),
-                prefix='sqlalchemy.',
-                poolclass=pool.NullPool)
+        config.get_section(config.config_ini_section), prefix='sqlalchemy.', poolclass=pool.NullPool
+    )
 
     connection = engine.connect()
     connection.execute(text("SET lock_timeout TO '4000ms'"))
     connection.execute(text("SET statement_timeout TO '15000ms'"))
-    context.configure(
-                connection=connection,
-                target_metadata=target_metadata,
-                compare_type=True
-                )
+    context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
 
     try:
         with context.begin_transaction():
@@ -156,8 +154,8 @@ def run_migrations_online():
     finally:
         connection.close()
 
+
 if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-
