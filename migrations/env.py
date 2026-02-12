@@ -77,7 +77,7 @@ va_profile_opt_in_out = PGFunction(
     IF changed_upsert > 0 THEN
         UPDATE va_profile_local_cache
             SET
-                encrypted_va_profile_id = COALESCE(encrypted_va_profile_id, _encrypted_va_profile_id)
+                encrypted_va_profile_id = COALESCE(encrypted_va_profile_id, _encrypted_va_profile_id),
                 encrypted_va_profile_id_blind_index = COALESCE(encrypted_va_profile_id_blind_index, _encrypted_va_profile_id_blind_index)
             WHERE va_profile_id = _va_profile_id
                 AND (encrypted_va_profile_id IS NULL OR encrypted_va_profile_id_blind_index IS NULL);
