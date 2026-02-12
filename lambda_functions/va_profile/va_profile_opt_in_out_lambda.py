@@ -49,7 +49,7 @@ COMP_AND_PEN_OPT_IN_TEMPLATE_ID = os.getenv('COMP_AND_PEN_OPT_IN_TEMPLATE_ID')
 COMP_AND_PEN_SERVICE_ID = os.getenv('COMP_AND_PEN_SERVICE_ID')
 COMP_AND_PEN_SMS_SENDER_ID = os.getenv('COMP_AND_PEN_SMS_SENDER_ID')
 NOTIFY_ENVIRONMENT = os.getenv('NOTIFY_ENVIRONMENT')
-OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s, %s, %s);"""
+OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s, %s);"""
 OPT_IN_OUT_ADD_NOTIFICATION_ID_QUERY = (
     """ UPDATE va_profile_local_cache SET notification_id = %s WHERE va_profile_id = %s AND source_datetime = %s; """
 )
@@ -337,7 +337,6 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
         # Stored function parameters:
         params = (
             bio['vaProfileId'],  # _va_profile_id
-            None,  # _encrypted_va_profile_id (PLACEHOLDER)
             None,  # _encrypted_va_profile_id_blind_index (PLACEHOLDER)
             bio['communicationItemId'],  # _communication_item_id
             bio['communicationChannelId'],  # _communication_channel_name

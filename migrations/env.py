@@ -34,7 +34,7 @@ target_metadata = current_app.extensions['migrate'].db.metadata
 
 va_profile_opt_in_out = PGFunction(
     schema='public',
-    signature='va_profile_opt_in_out(_va_profile_id integer, _encrypted_va_profile_id text, _encrypted_va_profile_id_blind_index text, _communication_item_id integer, _communication_channel_id integer, _allowed Boolean, _source_datetime timestamp)',
+    signature='va_profile_opt_in_out(_va_profile_id integer, _encrypted_va_profile_id_blind_index text, _communication_item_id integer, _communication_channel_id integer, _allowed Boolean, _source_datetime timestamp)',
     definition="""\
     RETURNS 
         boolean AS
@@ -44,8 +44,7 @@ va_profile_opt_in_out = PGFunction(
         changed_backfill int;
     BEGIN
     INSERT INTO va_profile_local_cache(
-        va_profile_id, 
-        encrypted_va_profile_id,
+        va_profile_id,
         encrypted_va_profile_id_blind_index,
         communication_item_id, 
         communication_channel_id, 
@@ -54,7 +53,6 @@ va_profile_opt_in_out = PGFunction(
     )
     VALUES(
         _va_profile_id, 
-        _encrypted_va_profile_id,
         _encrypted_va_profile_id_blind_index,
         _communication_item_id, 
         _communication_channel_id, 
@@ -77,10 +75,9 @@ va_profile_opt_in_out = PGFunction(
     IF changed_upsert > 0 THEN
         UPDATE va_profile_local_cache
             SET
-                encrypted_va_profile_id = COALESCE(encrypted_va_profile_id, _encrypted_va_profile_id),
                 encrypted_va_profile_id_blind_index = COALESCE(encrypted_va_profile_id_blind_index, _encrypted_va_profile_id_blind_index)
             WHERE va_profile_id = _va_profile_id
-                AND (encrypted_va_profile_id IS NULL OR encrypted_va_profile_id_blind_index IS NULL);
+                AND encrypted_va_profile_id_blind_index IS NULL;
 
         GET DIAGNOSTICS changed_backfill = ROW_COUNT;
         END IF;
