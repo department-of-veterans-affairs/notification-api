@@ -307,14 +307,8 @@ def dao_get_number_of_templates_by_service_id_and_name(
     return db.session.scalar(stmt)
 
 
-@cached(cache=TTLCache(maxsize=1024, ttl=600))
-def dao_get_template_history_by_id(template_id: str, version: str) -> TemplateHistoryData | None:
-    stmt = select(TemplateHistory).where(TemplateHistory.id == template_id, TemplateHistory.version == version)
-    template_history_object = db.session.scalars(stmt).first()
-
-    if template_history_object is None:
-        return None
-
+def _build_template_history_data(template_history_object: TemplateHistory) -> TemplateHistoryData:
+    """Convert a TemplateHistory ORM row to TemplateHistoryData."""
     return TemplateHistoryData(
         id=template_history_object.id,
         name=template_history_object.name,
@@ -339,6 +333,63 @@ def dao_get_template_history_by_id(template_id: str, version: str) -> TemplateHi
         redact_personalisation=getattr(template_history_object, 'redact_personalisation', False),
         get_reply_to_text=template_history_object.get_reply_to_text,
     )
+
+
+@cached(cache=TTLCache(maxsize=1024, ttl=600))
+def dao_get_template_history_by_id(template_id: str, version: str) -> TemplateHistoryData | None:
+    """
+    Return a specific TemplateHistoryData row by template id and version.
+
+    Args:
+        template_id (str): Template identifier.
+        version (str): Version number to fetch.
+
+    Returns:
+        TemplateHistoryData | None: Matching history row, or None if not found.
+    """
+    stmt = select(TemplateHistory).where(TemplateHistory.id == template_id, TemplateHistory.version == version)
+    template_history_object = db.session.scalars(stmt).first()
+
+    if template_history_object is None:
+        return None
+
+    return _build_template_history_data(template_history_object)
+
+
+@cached(cache=TTLCache(maxsize=1024, ttl=600))
+def dao_get_latest_template_history_by_id_and_service_id(
+    template_id: str,
+    service_id: uuid.UUID,
+) -> TemplateHistoryData | None:
+    """
+    Return the latest TemplateHistoryData row for a template within a service.
+
+    This intentionally reads from templates_history only, using the highest version
+    available as the source of truth for send-time validation/rendering.
+
+    Args:
+        template_id (str): Template identifier.
+        service_id (uuid.UUID): Service identifier that owns the template.
+
+    Returns:
+        TemplateHistoryData | None: Latest non-hidden history row, or None if
+            there are no history rows for the template/service pair.
+    """
+    stmt = (
+        select(TemplateHistory)
+        .where(
+            TemplateHistory.id == template_id,
+            TemplateHistory.service_id == service_id,
+            TemplateHistory.hidden.is_(False),
+        )
+        .order_by(desc(TemplateHistory.version))
+        .limit(1)
+    )
+    template_history_object = db.session.scalars(stmt).first()
+    if template_history_object is None:
+        return None
+
+    return _build_template_history_data(template_history_object)
 
 
 def dao_get_template_by_id(
