@@ -309,6 +309,80 @@ def test_va_profile_stored_function_new_row(notify_db_session, mock_env_vars):
     notify_db_session.session.commit()
 
 
+def test_va_profile_stored_function_backfill(notify_db_session, mock_env_vars):
+    """
+    When a row exists with va_profile_id but no encrypted values,
+    calling the stored function should backfill the encrypted columns.
+    """
+    va_profile_id = randint(1000, 100000)
+    pii_va_profile_id = PiiVaProfileID(str(va_profile_id))
+    encrypted_va_profile_id = pii_va_profile_id.get_encrypted_value()
+    encrypted_va_profile_id_blind_index = pii_va_profile_id.get_hmac()
+
+    # Insert a row WITHOUT encrypted values (simulating pre-migration data)
+    pre_migration_row = VAProfileLocalCache(
+        allowed=True,
+        va_profile_id=va_profile_id,
+        encrypted_va_profile_id=None,
+        encrypted_va_profile_id_blind_index=None,
+        communication_item_id=5,
+        communication_channel_id=1,
+        source_datetime='2022-02-07T19:37:59.320Z',
+    )
+    notify_db_session.session.add(pre_migration_row)
+    notify_db_session.session.commit()
+
+    # Confirm encrypted columns are NULL
+    row = (
+        notify_db_session.session.query(VAProfileLocalCache)
+        .filter_by(
+            va_profile_id=va_profile_id,
+            communication_item_id=5,
+            communication_channel_id=1,
+        )
+        .one()
+    )
+    assert row.encrypted_va_profile_id is None
+    assert row.encrypted_va_profile_id_blind_index is None
+
+    # Call the stored function WITH encrypted values (same va_profile_id, same source_datetime)
+    opt_in_out = OPT_IN_OUT.bindparams(
+        va_profile_id=va_profile_id,
+        encrypted_va_profile_id=encrypted_va_profile_id,
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
+        communication_item_id=5,
+        communication_channel_id=1,
+        allowed=True,
+        source_datetime='2025-02-07T19:37:59.320Z',
+    )
+    notify_db_session.session.scalar(opt_in_out)
+
+    # Verify the encrypted columns were backfilled
+    notify_db_session.session.expire_all()
+    row = (
+        notify_db_session.session.query(VAProfileLocalCache)
+        .filter_by(
+            encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
+            communication_item_id=5,
+            communication_channel_id=1,
+        )
+        .one()
+    )
+    assert row.encrypted_va_profile_id == encrypted_va_profile_id
+    assert row.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_blind_index
+    assert int(PiiVaProfileID(str(row.va_profile_id), is_encrypted=True).get_pii()) == va_profile_id
+    assert row.allowed is True
+
+    # Teardown
+    stmt = delete(VAProfileLocalCache).where(
+        VAProfileLocalCache.va_profile_id == va_profile_id,
+        VAProfileLocalCache.communication_item_id == 5,
+        VAProfileLocalCache.communication_channel_id == 1,
+    )
+    assert notify_db_session.session.execute(stmt).rowcount == 1
+    notify_db_session.session.commit()
+
+
 def test_jwt_is_valid(jwt_encoded, public_key):
     """
     Test the helper function used to determine if the JWT has a valid signature.
