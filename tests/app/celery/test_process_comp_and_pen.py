@@ -331,3 +331,25 @@ def test_comp_and_pen_batch_process_decryption_failure_continues(mocker, sample_
     assert mock_resolve.call_count == 2
     assert mock_bypass.call_count == 1, 'Only the second record should have been sent'
     mock_logger.exception.assert_called_once()
+
+
+def test_comp_and_pen_batch_process_missing_attribute(mocker, sample_template) -> None:
+    """When a required attribute is missing from the record, it should log an exception and skip that record."""
+    template = sample_template()
+    mocker.patch(
+        'app.celery.process_comp_and_pen.lookup_notification_sms_setup_data',
+        return_value=(template.service, template, str(template.service.get_default_sms_sender_id())),
+    )
+
+    mock_bypass = mocker.patch('app.celery.process_comp_and_pen.send_notification_bypass_route')
+    mock_logger = mocker.patch('app.celery.process_comp_and_pen.current_app.logger')
+
+    records = [
+        {'participant_id': '55', 'payment_amount': '55.56', 'vaprofile_id': '57'},
+        {'payment_amount': '42.42', 'vaprofile_id': '43627'},  # Missing participant_id
+    ]
+
+    comp_and_pen_batch_process(records)
+
+    assert mock_bypass.call_count == 1, 'Only the first record should have been sent'
+    mock_logger.exception.assert_called_once()
