@@ -6,7 +6,6 @@ Create Date: 2026-02-09 23:31:34.738331
 """
 
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = '0384_encrypt_opt_in_out'
