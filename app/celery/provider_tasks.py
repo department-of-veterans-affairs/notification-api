@@ -3,6 +3,7 @@ from random import randint
 from uuid import UUID
 
 from celery import Task
+from celery.utils.time import get_exponential_backoff_interval
 from flask import current_app
 from notifications_utils.field import NullValueForNonConditionalPlaceholderException
 from notifications_utils.recipients import InvalidEmailError, InvalidPhoneError
@@ -15,7 +16,11 @@ from app.celery.common import (
     log_and_update_permanent_failure,
     log_and_update_critical_failure,
 )
-from app.celery.exceptions import AutoRetryException, NonRetryableException, RetryableException
+from app.celery.exceptions import (
+    AutoRetryException,
+    NonRetryableException,
+    RetryableException,
+)
 from app.celery.service_callback_tasks import check_and_queue_callback_task
 from app.clients.email.aws_ses import AwsSesClientThrottlingSendRateException
 from app.config import QueueNames
@@ -301,12 +306,32 @@ def _handle_delivery_failure(  # noqa: C901 - too complex (11 > 10)
         # We retry everything because it ensures missed exceptions do not prevent notifications from going out. Logs are
         # checked daily and tickets opened for narrowing the not 'RetryableException's that make it this far.
         if can_retry(celery_task.request.retries, celery_task.max_retries, notification_id):
-            current_app.logger.warning(
-                '%s unable to send for notification %s, retrying',
-                notification_type,
-                notification_id,
-            )
-            raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
+            if isinstance(e, RetryableException) and e.use_non_priority_handling:
+                # Handle non-priority RetryableException by retrying in RETRY queue
+                # This queue is serviced by the non-priority worker pool and lessens impact on priority tasks
+
+                current_app.logger.warning(
+                    '%s unable to send for notification %s, retrying in non-priority worker pool using queue: %s',
+                    notification_type,
+                    notification_id,
+                    QueueNames.RETRY,
+                )
+
+                # countdown computed using same exponential backoff that AutoRetry would use
+                factor = int(max(1.0, celery_task.retry_backoff))
+                countdown = get_exponential_backoff_interval(
+                    factor, celery_task.request.retries, celery_task.retry_backoff_max
+                )
+
+                # max_retries=None causes Celery to NOT override value defined in task
+                celery_task.retry(queue=QueueNames.RETRY, max_retries=None, countdown=countdown)
+            else:
+                current_app.logger.warning(
+                    '%s unable to send for notification %s, retrying',
+                    notification_type,
+                    notification_id,
+                )
+                raise AutoRetryException(f'Found {type(e).__name__}, autoretrying...', e, e.args)
 
         else:
             msg = handle_max_retries_exceeded(notification_id, method_name)
