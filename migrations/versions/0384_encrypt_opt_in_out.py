@@ -47,15 +47,13 @@ def upgrade():
              
             -- Backfill blind index for ALL rows for this va_profile_id
         IF changed_upsert > 0 THEN UPDATE va_profile_local_cache
-            IF changed_upsert > 0 THEN
-                UPDATE va_profile_local_cache
-                SET encrypted_va_profile_id = COALESCE(encrypted_va_profile_id, _encrypted_va_profile_id),
-                    encrypted_va_profile_id_blind_index = COALESCE(encrypted_va_profile_id_blind_index, _encrypted_va_profile_id_blind_index)
-                WHERE va_profile_id = _va_profile_id
-                  AND (encrypted_va_profile_id IS NULL OR encrypted_va_profile_id_blind_index IS NULL);
+            SET encrypted_va_profile_id = COALESCE(encrypted_va_profile_id, _encrypted_va_profile_id), encrypted_va_profile_id_blind_index = COALESCE(encrypted_va_profile_id_blind_index, _encrypted_va_profile_id_blind_index)
+            WHERE va_profile_id = _va_profile_id
+            AND (encrypted_va_profile_id IS NULL OR encrypted_va_profile_id_blind_index IS NULL);
     
-                GET DIAGNOSTICS changed_backfill = ROW_COUNT;
-            END IF;
+            GET DIAGNOSTICS changed_backfill = ROW_COUNT;
+            RAISE NOTICE 'va_profile_opt_in_out backfill updated % row(s) for va_profile_id %', changed_backfill, _va_profile_id;
+        END IF;
         RETURN (changed_upsert > 0);
         END;
         $function$;
