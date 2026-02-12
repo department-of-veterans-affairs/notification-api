@@ -122,6 +122,19 @@ class TestResolvePiiForCompAndPen:
         with pytest.raises(ValueError, match='missing required'):
             _resolve_pii_for_comp_and_pen(item)
 
+    def test_mismatched_encrypted_fields_raises_value_error(self, mocker):
+        """When only one encrypted field is populated, raises ValueError."""
+        item = DynamoRecord(
+            payment_amount='10.00',
+            participant_id='55',
+            vaprofile_id='57',
+            encrypted_participant_id='enc_pid',
+            encrypted_vaprofile_id='',
+        )
+
+        with pytest.raises(ValueError, match='mismatched encrypted fields'):
+            _resolve_pii_for_comp_and_pen(item)
+
     def test_decryption_failure_raises(self, mocker):
         """When decryption fails, the error should propagate."""
         mocker.patch('app.celery.process_comp_and_pen.is_feature_enabled', return_value=False)
@@ -333,8 +346,8 @@ def test_comp_and_pen_batch_process_decryption_failure_continues(mocker, sample_
     mock_logger.exception.assert_called_once()
 
 
-def test_comp_and_pen_batch_process_missing_attribute(mocker, sample_template) -> None:
-    """When a required attribute is missing from the record, it should log an exception and skip that record."""
+def test_comp_and_pen_batch_process_only_one_encrypted_attribute(mocker, sample_template) -> None:
+    """When only one encrypted attribute is present, the error should be logged and processing should continue."""
     template = sample_template()
     mocker.patch(
         'app.celery.process_comp_and_pen.lookup_notification_sms_setup_data',
@@ -345,11 +358,22 @@ def test_comp_and_pen_batch_process_missing_attribute(mocker, sample_template) -
     mock_logger = mocker.patch('app.celery.process_comp_and_pen.current_app.logger')
 
     records = [
-        {'participant_id': '55', 'payment_amount': '55.56', 'vaprofile_id': '57'},
-        {'payment_amount': '42.42', 'vaprofile_id': '43627'},  # Missing participant_id
+        {
+            'participant_id': '42',
+            'payment_amount': '42.42',
+            'vaprofile_id': '43627',
+            'encrypted_participant_id': PiiPid('42').get_encrypted_value(),
+        },
+        {
+            'participant_id': '55',
+            'payment_amount': '55.56',
+            'vaprofile_id': '57',
+            'encrypted_vaprofile_id': PiiVaProfileID('57').get_encrypted_value(),
+            'encrypted_participant_id': PiiPid('55').get_encrypted_value(),
+        },
     ]
 
     comp_and_pen_batch_process(records)
 
     assert mock_bypass.call_count == 1, 'Only the first record should have been sent'
-    mock_logger.exception.assert_called_once()
+    mock_logger.exception.call_args[0][0].startswith('DynamoRecord has mismatched encrypted fields:')

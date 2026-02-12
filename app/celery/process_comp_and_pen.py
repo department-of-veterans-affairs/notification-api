@@ -81,10 +81,19 @@ def _resolve_pii_for_comp_and_pen(item: DynamoRecord) -> tuple[str | PiiPid, str
         ValueError: If required fields are missing or decryption fails.
     """
 
+    # Encrypted fields must be both present or both absent — the Glue script should always send them as a pair
+    if bool(item.encrypted_participant_id) != bool(item.encrypted_vaprofile_id):
+        raise ValueError(
+            'DynamoRecord has mismatched encrypted fields: '
+            f'encrypted_participant_id={"present" if item.encrypted_participant_id else "missing"}, '
+            f'encrypted_vaprofile_id={"present" if item.encrypted_vaprofile_id else "missing"}. '
+            'Both must be provided or both must be empty.'
+        )
+
     # Prefer encrypted fields if available
     raw_pid = item.encrypted_participant_id or item.participant_id
     raw_vaprofile = item.encrypted_vaprofile_id or item.vaprofile_id
-    is_encrypted = bool(item.encrypted_participant_id or item.encrypted_vaprofile_id)
+    is_encrypted = bool(item.encrypted_participant_id)
 
     if not raw_pid or not raw_vaprofile:
         raise ValueError('DynamoRecord missing required participant_id or vaprofile_id')
