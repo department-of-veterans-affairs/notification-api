@@ -2074,6 +2074,7 @@ class VAProfileLocalCache(db.Model):
     va_profile_id = db.Column(db.BigInteger, nullable=False)
 
     # Encrypted field (new implementation)
+    encrypted_va_profile_id = db.Column(db.Text, nullable=True)
     encrypted_va_profile_id_blind_index = db.Column(db.Text, nullable=True)
     communication_item_id = db.Column(db.Integer, nullable=False)
     communication_channel_id = db.Column(db.Integer, nullable=False)

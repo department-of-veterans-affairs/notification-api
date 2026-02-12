@@ -56,7 +56,7 @@ fileignoreconfig:
 - filename: documents/postman/staging-simplified.postman_environment.json
   checksum: 099057c7329d7586b4aea2162dd746bf57b73404857bb78ee8496e1f0e5f41ef
 - filename: migrations/env.py
-  checksum: 381ef3a3058dbc3424f5139374057afefec8e173f44c3317d029c9a4f85b8295
+  checksum: 89dc3fe8602ec384c68fa5c392277430ccbfe078e04c91abe3775936a795ec54
 - filename: poetry.lock
   checksum: 3ce567d5ff0d0cfec3666056e0d206444e0b6dec688b9937ae64b0045b6a1a33
 - filename: tests/__init__.py
