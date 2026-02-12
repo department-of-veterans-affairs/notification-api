@@ -6,7 +6,12 @@ class RetryableException(Exception):
     override the default behavior (e.g., route to a non-priority queue).
     """
 
-    def __init__(self, message='', *, use_non_priority_handling=False):
+    def __init__(
+        self,
+        message: str = '',
+        *,
+        use_non_priority_handling: bool = False,
+    ) -> None:
         super().__init__(message)
         self.use_non_priority_handling = use_non_priority_handling
 
