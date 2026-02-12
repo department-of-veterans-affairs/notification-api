@@ -46,7 +46,7 @@ from app.v2.notifications.notification_schemas import (
     post_email_request,
     post_letter_request,
 )
-from app.utils import get_public_notify_type_text
+from app.utils import get_public_notify_type_text, get_template_instance
 
 
 def wrap_recipient_identifier_in_pii(form: dict):
@@ -145,7 +145,7 @@ def post_notification(notification_type):  # noqa: C901
         if not authenticated_service.has_permissions(SCHEDULE_NOTIFICATIONS):
             raise BadRequestError(message='Cannot schedule notifications (this feature is invite-only)')
 
-    template, template_with_content = validate_template(
+    template = validate_template(
         form['template_id'],
         strip_keys_from_personalisation_if_send_attach(form.get('personalisation', {})),
         authenticated_service,
@@ -182,7 +182,9 @@ def post_notification(notification_type):  # noqa: C901
             created_at=created_at,
         )
 
-    template_with_content.values = {k: '<redacted>' for k in notification.personalisation}
+    template_with_content = get_template_instance(
+        template.__dict__, {k: '<redacted>' for k in notification.personalisation}
+    )
 
     if notification_type == SMS_TYPE:
         create_resp_partial = functools.partial(create_post_sms_response_from_notification, from_number=reply_to)
