@@ -409,7 +409,12 @@ class AwsPinpointClient(SmsClient):
                 extra={'sms_sender_id': sms_sender_id, 'template_id': template_id},
             )
             self.statsd_client.incr(f'{SMS_TYPE}.{PINPOINT_PROVIDER}_request.{STATSD_RETRYABLE}.{aws_phone_number}')
-            raise RetryableException from error
+            if error_code == 'ThrottlingException':
+                # ClientError.ThrottlingException is retried by botocore and could tie up workers
+                # Signal that our subsequent Celery task retry should be sent to a non-priority queue / worker pool
+                raise RetryableException(use_non_priority_handling=True) from error
+            else:
+                raise RetryableException from error
 
     def _validate_response(
         self,

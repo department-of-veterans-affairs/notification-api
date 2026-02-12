@@ -1,5 +1,6 @@
 import base64
 import binascii
+from typing import Any
 
 from flask import current_app
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
@@ -21,7 +22,7 @@ from app.constants import (
 )
 from app.dao import services_dao, templates_dao
 from app.dao.service_sms_sender_dao import dao_get_service_sms_sender_by_id
-from app.dao.templates_dao import dao_get_number_of_templates_by_service_id_and_name
+from app.dao.templates_dao import dao_get_number_of_templates_by_service_id_and_name, TemplateHistoryData
 from app.models import ApiKey, Service
 from app.service.utils import service_allowed_to_send_to
 from app.v2.errors import TooManyRequestsError, BadRequestError, RateLimitError
@@ -208,14 +209,35 @@ def validate_and_format_recipient(
 
 
 def validate_template(
-    template_id,
-    personalisation,
-    service,
-    notification_type,
-):
-    try:
-        template = templates_dao.dao_get_template_by_id_and_service_id(template_id, service.id)
-    except NoResultFound:
+    template_id: str,
+    personalisation: dict[str, Any],
+    service: Service,
+    notification_type: str,
+) -> TemplateHistoryData:
+    """
+    Validate a template using the latest versioned history snapshot.
+
+    Resolves the template from templates_history for the given template and
+    service, then validates type, active status, and personalisation
+    placeholders against that snapshot.
+
+    Args:
+        template_id (str): Identifier of the template requested by the caller.
+        personalisation (dict): Personalisation values used for placeholder
+            validation.
+        service (Service): Authenticated service making the request.
+        notification_type (str): Notification type requested by the caller.
+
+    Returns:
+        TemplateHistoryData: Latest non-hidden history row for the template.
+
+    Raises:
+        BadRequestError: If template lookup fails, template type is invalid for
+            the notification, the template is deleted, or personalisation is
+            missing.
+    """
+    template = templates_dao.dao_get_latest_template_history_by_id_and_service_id(template_id, service.id)
+    if template is None:
         # Putting this in the "message" would be a breaking change for API responses
         current_app.logger.info(
             '%s Validation failure for service: %s (%s) template: %s not found',
@@ -245,7 +267,7 @@ def validate_template(
             SMS_CHAR_COUNT_LIMIT,
             extra={'template_id': template.id},
         )
-    return template, template_with_content
+    return template
 
 
 def get_service_sms_sender_number(

@@ -42,7 +42,7 @@ fileignoreconfig:
 - filename: documents/openapi/openapi.yaml.backup
   checksum: cf2737abec32148fab04ec10ceba181ceeb8010642669ece3c4a97f0d6edf1ba
 - filename: documents/postman/internal_api_developers/notification-api.postman_collection.json
-  checksum: 75f6d7d57bb6c478716026414fc1f632d5b4a40b5a7e022c9bbc7dc88e605ecf
+  checksum: 5d27fce14805ce36afa050bfe2d2901b617cbd5d7c58bed0717642087391e7b4
 - filename: documents/postman/internal_api_developers/development.postman_environment.json
   checksum: 18f69439340dcecfe536083beab96e9792aa3f9bb8b75ad3ba331600494da351
 - filename: documents/postman/internal_api_developers/performance.postman_environment.json
@@ -92,9 +92,9 @@ fileignoreconfig:
 - filename: tests/app/v2/notifications/test_pii_wrapping_at_entrypoint.py
   checksum: 4dcd257865daa286c737d6a76e141e8b9aee66c0642524447c394554643b7712
 - filename: tests/app/v2/notifications/test_post_notifications.py
-  checksum: a12eb5a735321d8eaa8e2ff6af4e2dbd570a11f861213fd448b11cc2ee4cd8f9
+  checksum: 16dd22f90e0a226e0800c160b1d22241a9a73f7ca8bd69a9f23afb01da9387bd
 - filename: app/v2/notifications/post_notifications.py
-  checksum: f365a7336c5105df6c11a6f95e765fe5079d0c3c97907e059dea5556a62ff494
+  checksum: 70051a23564db86aca1c102f2b304bc14af9d4edc69ecdcea309b62e049d6a28
 - filename: app/va/va_profile/va_profile_client.py
   checksum: 5c867bf817283bf50f2d974697c1c08d80976f37b1a1a13d0ba2e029536e9b2c
 - filename: lambda_functions/va_profile/va_profile_opt_in_out_lambda.py
