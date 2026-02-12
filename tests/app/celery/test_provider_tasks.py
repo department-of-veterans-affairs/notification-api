@@ -11,7 +11,11 @@ from venv import logger
 from notifications_utils.field import NullValueForNonConditionalPlaceholderException
 from notifications_utils.recipients import InvalidEmailError, InvalidPhoneError
 
-from app.celery.exceptions import AutoRetryException, NonRetryableException
+from app.celery.exceptions import (
+    AutoRetryException,
+    NonRetryableException,
+    RetryableException,
+)
 from app.celery.provider_tasks import (
     _handle_delivery_failure,
     deliver_email,
@@ -505,6 +509,47 @@ def test_should_retry_on_throttle(mocker, code):
     )
     with pytest.raises(AwsSesClientThrottlingSendRateException):
         client._check_error_code(e, '1234')
+
+
+def test_deliver_sms_should_raise_autoretry_if_retryable_exception(
+    mocker,
+    sample_notification,
+):
+    """Test that RetryableException raises AutoRetryException to retry task"""
+    notification = sample_notification()
+
+    mocker.patch('app.delivery.send_to_providers.send_sms_to_provider', side_effect=RetryableException())
+
+    with pytest.raises(AutoRetryException):
+        deliver_sms(notification.id)
+
+
+def test_deliver_sms_should_call_retry_if_nonpriority_retryable_exception(
+    mocker,
+    sample_notification,
+):
+    """Test that non-priority RetryableException calls task.retry directly to reassign queue"""
+    notification = sample_notification()
+
+    client_error = botocore.exceptions.ClientError(
+        {
+            'Error': {
+                'Code': 'ThrottlingException',
+                'Message': 'Maximum sending rate exceeded',
+            }
+        },
+        'SendTextMessage',
+    )
+
+    def raise_retryable_from_client_error(*args, **kwargs):
+        raise RetryableException(use_non_priority_handling=True) from client_error
+
+    mocker.patch('app.delivery.send_to_providers.send_sms_to_provider', side_effect=raise_retryable_from_client_error)
+    mock_retry = mocker.patch('app.celery.provider_tasks.deliver_sms.retry')
+
+    deliver_sms(notification.id)
+
+    mock_retry.assert_called_once()
 
 
 def test_deliver_sms_with_rate_limiting_should_deliver_if_rate_limit_not_exceeded(
