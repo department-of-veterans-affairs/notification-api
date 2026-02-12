@@ -2065,7 +2065,7 @@ class VAProfileLocalCache(db.Model):
 
     Note: The encryoted_va_profile_blind_index exists to retain Fernet encryption while allowing for lookups by
     va_profile_id, which is necessary for backwards compatibility with existing data and to allow for a
-    smooth transition to the new encrypted_va_profile_id field.
+    smooth transition to the secure db encryption of the va_profile_id field.
     """
 
     id = db.Column(db.Integer, primary_key=True)

@@ -644,7 +644,8 @@ def save_notification_id_to_cache(va_profile_id: PiiVaProfileID, notification_id
             )
 
             # If no rows updated, fall back to legacy unencrypted va_profile_id
-            # -- Note: This is temporary and should be removed once encrypted_va_profile_id is fully implemented
+            # Note: This is temporary and should be removed
+            # once encrypted_va_profile_id_blind_index is fully implemented
             if cursor.rowcount == 0:
                 pii_va_profile_id = va_profile_id.get_pii()
                 cursor.execute(

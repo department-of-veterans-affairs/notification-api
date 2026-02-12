@@ -48,7 +48,6 @@ def sample_va_profile_local_cache(notify_db_session, mock_pii_env_vars):
         va_profile_local_cache = VAProfileLocalCache(
             allowed=allowed,
             va_profile_id=int(va_profile_id.get_pii()),
-            encrypted_va_profile_id=va_profile_id.get_encrypted_value(),
             encrypted_va_profile_id_blind_index=va_profile_id.get_hmac(),
             communication_item_id=communication_item_id,
             communication_channel_id=communication_channel_id,
