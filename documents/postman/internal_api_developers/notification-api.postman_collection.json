@@ -2061,6 +2061,139 @@
 							"response": []
 						},
 						{
+							"name": "get template version",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "password",
+											"value": "{{user-password}}",
+											"type": "string"
+										},
+										{
+											"key": "username",
+											"value": "{{user-id}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{notification-api-url}}/service/{{service-id}}/template/{{template-id}}/version/{{template-version}}",
+									"host": [
+										"{{notification-api-url}}"
+									],
+									"path": [
+										"service",
+										"{{service-id}}",
+										"template",
+										"{{template-id}}",
+										"version",
+										"{{template-version}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "get template versions",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "password",
+											"value": "{{user-password}}",
+											"type": "string"
+										},
+										{
+											"key": "username",
+											"value": "{{user-id}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{notification-api-url}}/service/{{service-id}}/template/{{template-id}}/versions",
+									"host": [
+										"{{notification-api-url}}"
+									],
+									"path": [
+										"service",
+										"{{service-id}}",
+										"template",
+										"{{template-id}}",
+										"versions"
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "get template stats",
 							"event": [
 								{
