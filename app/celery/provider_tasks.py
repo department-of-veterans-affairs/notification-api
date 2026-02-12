@@ -307,7 +307,7 @@ def _handle_delivery_failure(  # noqa: C901 - too complex (11 > 10)
         # checked daily and tickets opened for narrowing the not 'RetryableException's that make it this far.
         if can_retry(celery_task.request.retries, celery_task.max_retries, notification_id):
             if isinstance(e, RetryableException) and e.use_non_priority_handling:
-                # Handle non-priority RetryableException by retrying in 'retry-tasks' queue
+                # Handle non-priority RetryableException by retrying in RETRY queue
                 # This queue is serviced by the non-priority worker pool and lessens impact on priority tasks
 
                 current_app.logger.warning(
