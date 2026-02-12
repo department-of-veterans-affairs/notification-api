@@ -71,7 +71,7 @@ va_profile_opt_in_out = PGFunction(
             AND va_profile_local_cache.communication_item_id = _communication_item_id
             AND va_profile_local_cache.communication_channel_id = _communication_channel_id;
 
-     GET DIAGNOSTICS changed_upsert = ROW_COUNT;
+    GET DIAGNOSTICS changed_upsert = ROW_COUNT;
 
     -- Backfill blind index for ALL rows for this va_profile_id
     IF changed_upsert > 0 THEN
