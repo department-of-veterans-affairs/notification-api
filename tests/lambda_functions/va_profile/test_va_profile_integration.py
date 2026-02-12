@@ -26,8 +26,8 @@ from lambda_functions.va_profile.va_profile_opt_in_out_lambda import (
     generate_jwt,
     jwt_is_valid,
     va_profile_opt_in_out_lambda_handler,
+    EncryptedVAProfileId,
 )
-from app.pii.pii_low import PiiVaProfileID
 from tests.lambda_functions.conftest import TEST_ENCRYPTION_KEY, TEST_HMAC_KEY
 
 
@@ -256,9 +256,7 @@ def test_va_profile_stored_function_new_row(notify_db_session, mock_env_vars):
     """
 
     va_profile_id = randint(1000, 100000)
-    pii_va_profile_id = PiiVaProfileID(str(va_profile_id))
-    encrypted_va_profile_id = pii_va_profile_id.get_encrypted_value()
-    encrypted_va_profile_id_blind_index = pii_va_profile_id.get_hmac()
+    pii_va_profile_id = EncryptedVAProfileId(va_profile_id)
 
     stmt = (
         select(func.count())
@@ -274,8 +272,8 @@ def test_va_profile_stored_function_new_row(notify_db_session, mock_env_vars):
 
     opt_in_out = OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_id,
-        encrypted_va_profile_id=encrypted_va_profile_id,
-        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
+        encrypted_va_profile_id=pii_va_profile_id.encrypted_va_profile_id,
+        encrypted_va_profile_id_blind_index=pii_va_profile_id.encrypted_va_profile_id_blind_index,
         communication_item_id=5,
         communication_channel_id=1,
         allowed=True,
@@ -288,7 +286,7 @@ def test_va_profile_stored_function_new_row(notify_db_session, mock_env_vars):
     row = (
         notify_db_session.session.query(VAProfileLocalCache)
         .filter_by(
-            encrypted_va_profile_id_blind_index=pii_va_profile_id.get_hmac(),
+            encrypted_va_profile_id_blind_index=pii_va_profile_id.encrypted_va_profile_id_blind_index,
             communication_item_id=5,
             communication_channel_id=1,
         )
@@ -296,8 +294,8 @@ def test_va_profile_stored_function_new_row(notify_db_session, mock_env_vars):
     )
 
     assert row.allowed is True
-    assert row.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_blind_index
-    assert row.va_profile_id == int(va_profile_id)
+    assert row.encrypted_va_profile_id_blind_index == pii_va_profile_id.encrypted_va_profile_id_blind_index
+    assert row.va_profile_id == va_profile_id
 
     # Verify one row was created using a delete statement that doubles as teardown.
     stmt = delete(VAProfileLocalCache).where(
@@ -315,9 +313,7 @@ def test_va_profile_stored_function_backfill(notify_db_session, mock_env_vars):
     calling the stored function should backfill the encrypted columns.
     """
     va_profile_id = randint(1000, 100000)
-    pii_va_profile_id = PiiVaProfileID(str(va_profile_id))
-    encrypted_va_profile_id = pii_va_profile_id.get_encrypted_value()
-    encrypted_va_profile_id_blind_index = pii_va_profile_id.get_hmac()
+    pii_va_profile_id = EncryptedVAProfileId(va_profile_id)
 
     # Insert a row WITHOUT encrypted values (simulating pre-migration data)
     pre_migration_row = VAProfileLocalCache(
@@ -348,8 +344,8 @@ def test_va_profile_stored_function_backfill(notify_db_session, mock_env_vars):
     # Call the stored function WITH encrypted values (same va_profile_id, same source_datetime)
     opt_in_out = OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_id,
-        encrypted_va_profile_id=encrypted_va_profile_id,
-        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
+        encrypted_va_profile_id=pii_va_profile_id.encrypted_va_profile_id,
+        encrypted_va_profile_id_blind_index=pii_va_profile_id.encrypted_va_profile_id_blind_index,
         communication_item_id=5,
         communication_channel_id=1,
         allowed=True,
@@ -362,15 +358,15 @@ def test_va_profile_stored_function_backfill(notify_db_session, mock_env_vars):
     row = (
         notify_db_session.session.query(VAProfileLocalCache)
         .filter_by(
-            encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
+            encrypted_va_profile_id_blind_index=pii_va_profile_id.encrypted_va_profile_id_blind_index,
             communication_item_id=5,
             communication_channel_id=1,
         )
         .one()
     )
-    assert row.encrypted_va_profile_id == encrypted_va_profile_id
-    assert row.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_blind_index
-    assert int(PiiVaProfileID(str(row.va_profile_id), is_encrypted=True).get_pii()) == va_profile_id
+    assert row.encrypted_va_profile_id == pii_va_profile_id.encrypted_va_profile_id
+    assert row.encrypted_va_profile_id_blind_index == pii_va_profile_id.encrypted_va_profile_id_blind_index
+    assert pii_va_profile_id.get_pii() == va_profile_id
     assert row.allowed is True
 
     # Teardown
@@ -877,7 +873,7 @@ def test_va_profile_opt_in_out_lambda_handler(notify_db_session, jwt_encoded, mo
 
     # Setup new va_profile_id
     va_profile_id = randint(1000, 100000)
-    pii_va_profile_id = PiiVaProfileID(str(va_profile_id))
+    pii_va_profile_id = EncryptedVAProfileId(va_profile_id)
 
     # Check initial state in DB (there should be no records)
     stmt = (
@@ -925,12 +921,14 @@ def test_va_profile_opt_in_out_lambda_handler(notify_db_session, jwt_encoded, mo
     )
 
     # Verify that one row was created in the DB
+    notification_id = 'e7b8cdda-858e-4b6f-a7df-93a71a2edb1e'
     # 1 - ENCRYPTED: Verify the row contents by blind index
     stmt = select(VAProfileLocalCache).where(
-        VAProfileLocalCache.encrypted_va_profile_id_blind_index == pii_va_profile_id.get_hmac(),
+        VAProfileLocalCache.encrypted_va_profile_id_blind_index
+        == (pii_va_profile_id.encrypted_va_profile_id_blind_index),
         VAProfileLocalCache.communication_item_id == 5,
         VAProfileLocalCache.communication_channel_id == 1,
-        VAProfileLocalCache.notification_id == 'e7b8cdda-858e-4b6f-a7df-93a71a2edb1e',
+        VAProfileLocalCache.notification_id == notification_id,
     )
     assert notify_db_session.session.execute(stmt).scalar_one() is not None
 
@@ -939,7 +937,7 @@ def test_va_profile_opt_in_out_lambda_handler(notify_db_session, jwt_encoded, mo
         VAProfileLocalCache.va_profile_id == va_profile_id,
         VAProfileLocalCache.communication_item_id == 5,
         VAProfileLocalCache.communication_channel_id == 1,
-        VAProfileLocalCache.notification_id == 'e7b8cdda-858e-4b6f-a7df-93a71a2edb1e',
+        VAProfileLocalCache.notification_id == notification_id,
     )
     assert notify_db_session.session.execute(stmt).rowcount == 1
 

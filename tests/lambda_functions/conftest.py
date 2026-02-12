@@ -5,7 +5,7 @@ from sqlalchemy import delete
 import base64
 
 from app.models import VAProfileLocalCache
-from app.pii.pii_low import PiiVaProfileID
+from lambda_functions.va_profile.va_profile_opt_in_out_lambda import EncryptedVAProfileId
 
 
 # Helpers
@@ -43,12 +43,14 @@ def sample_va_profile_local_cache(notify_db_session, mock_pii_env_vars):
         """
         The combination of va_profile_id, communication_item_id, and communication_channel_id must be unique.
         """
-        va_profile_id_str: str = str((va_profile_id if (va_profile_id is not None) else randint(1000, 100000)))
-        va_profile_id = PiiVaProfileID(va_profile_id_str)
+        va_profile_id: int = va_profile_id if va_profile_id else randint(1000, 100000)
+        pii_va_profile_id: EncryptedVAProfileId = EncryptedVAProfileId(va_profile_id)
+
         va_profile_local_cache = VAProfileLocalCache(
             allowed=allowed,
-            va_profile_id=int(va_profile_id.get_pii()),
-            encrypted_va_profile_id_blind_index=va_profile_id.get_hmac(),
+            va_profile_id=va_profile_id,
+            encrypted_va_profile_id=pii_va_profile_id.encrypted_va_profile_id,
+            encrypted_va_profile_id_blind_index=pii_va_profile_id.encrypted_va_profile_id_blind_index,
             communication_item_id=communication_item_id,
             communication_channel_id=communication_channel_id,
             source_datetime=source_datetime,

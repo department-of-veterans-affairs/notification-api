@@ -116,20 +116,20 @@ class TestPiiHMAC:
 
     def test_generate_hmac_returns_hex_string(self):
         """Test that generate_hmac returns a hex digest string."""
-        result = PiiHMAC.generate_hmac('test_value')
+        result = PiiHMAC.get_hmac('test_value')
         assert isinstance(result, str)
         assert len(result) == 64
 
     def test_generate_hmac_is_deterministic(self):
         """Test that generate_hmac returns the same hash for the same input."""
-        result1 = PiiHMAC.generate_hmac('test_value')
-        result2 = PiiHMAC.generate_hmac('test_value')
+        result1 = PiiHMAC.get_hmac('test_value')
+        result2 = PiiHMAC.get_hmac('test_value')
         assert result1 == result2
 
     def test_generate_hmac_differs_for_different_inputs(self):
         """Test that generate_hmac returns different hashes for different inputs."""
-        result1 = PiiHMAC.generate_hmac('value_a')
-        result2 = PiiHMAC.generate_hmac('value_b')
+        result1 = PiiHMAC.get_hmac('value_a')
+        result2 = PiiHMAC.get_hmac('value_b')
         assert result1 != result2
 
 

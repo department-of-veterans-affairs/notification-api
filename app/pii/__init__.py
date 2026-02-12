@@ -4,7 +4,8 @@ This package provides classes and utilities for handling Personally Identifiable
 in a secure manner, including encryption, redaction, and controlled access.
 """
 
-from app.pii.pii_base import PiiEncryption, PiiLevel, Pii, PiiHMAC
+from app.pii.pii_encryption import PiiEncryption, PiiHMAC
+from app.pii.pii_base import PiiLevel, Pii
 from app.pii.pii_high import PiiBirlsid, PiiEdipi, PiiIcn
 from app.pii.pii_low import PiiPid, PiiVaProfileID
 from app.va.identifier import IdentifierType

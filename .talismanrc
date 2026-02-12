@@ -103,4 +103,6 @@ fileignoreconfig:
   checksum: 376dbed78a575355b6de0b3808febc03a2161eaffb68d6aca68123f254962469
 - filename: tests/lambda_functions/va_profile/test_va_profile_integration.py
   checksum: f80cf3e76db811019214addc0f6a029894b311d96d37d004d5fa09f69a89e310
+- filename: app/pii/pii_encryption.py
+  checksum: cd33331b9bf734ad566c46c676a4c99fc5b4596cee45460a88271160de9caf38
 version: "1.0"
