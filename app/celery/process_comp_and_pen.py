@@ -96,7 +96,7 @@ def _resolve_pii_for_comp_and_pen(item: DynamoRecord) -> tuple[str | PiiPid, str
         return PiiPid(raw_pid, is_encrypted=True), PiiVaProfileID(raw_vaprofile, is_encrypted=True)
 
     elif not pii_enabled and is_encrypted:
-        # Scenario 2: PII_ENABLEDFF OFF + encrypted fields → decrypt to plain strings
+        # Scenario 2: PII_ENABLED FF OFF + encrypted fields → decrypt to plain strings
         return PiiPid(raw_pid, is_encrypted=True).get_pii(), PiiVaProfileID(raw_vaprofile, is_encrypted=True).get_pii()
 
     elif pii_enabled and not is_encrypted:
