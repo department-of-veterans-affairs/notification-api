@@ -515,7 +515,7 @@ def test_deliver_sms_should_raise_autoretry_if_retryable_exception(
     mocker,
     sample_notification,
 ):
-    """Test that RetryableException raises AutoRetryxception to retry task"""
+    """Test that RetryableException raises AutoRetryException to retry task"""
     notification = sample_notification()
 
     mocker.patch('app.delivery.send_to_providers.send_sms_to_provider', side_effect=RetryableException())
