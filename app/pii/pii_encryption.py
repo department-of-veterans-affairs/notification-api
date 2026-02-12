@@ -1,6 +1,6 @@
 """Module for handling PII (Personally Identifiable Information) Encryption logic.
 
-This module provides a class for PII Fenert encryption. It implements encryption
+This module provides a class for PII Fernet encryption. It implements encryption
 for PII data.
 
 Classes in this module follow guidance from:
