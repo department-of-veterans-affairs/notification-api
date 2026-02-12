@@ -34,8 +34,8 @@ LAMBDA_MODULE = 'lambda_functions.va_profile.va_profile_opt_in_out_lambda'
 # This is a call to a stored procedure.
 OPT_IN_OUT = text(
     'SELECT va_profile_opt_in_out('
-    ':va_profile_id, :encrypted_va_profile_id_blind_index, :communication_item_id, '
-    ':communication_channel_id, :allowed, :source_datetime);'
+    ':va_profile_id, :encrypted_va_profile_id, :encrypted_va_profile_id_blind_index, '
+    ':communication_item_id, :communication_channel_id, :allowed, :source_datetime);'
 )
 
 
@@ -210,6 +210,7 @@ def test_va_profile_stored_function_older_date(notify_db_session, sample_va_prof
 
     opt_in_out = OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
+        encrypted_va_profile_id=None,
         encrypted_va_profile_id_blind_index=None,
         communication_item_id=va_profile_local_cache.communication_item_id,
         communication_channel_id=va_profile_local_cache.communication_channel_id,
@@ -232,6 +233,7 @@ def test_va_profile_stored_function_newer_date(notify_db_session, sample_va_prof
 
     opt_in_out = OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
+        encrypted_va_profile_id=None,
         encrypted_va_profile_id_blind_index=None,
         communication_item_id=va_profile_local_cache.communication_item_id,
         communication_channel_id=va_profile_local_cache.communication_channel_id,
@@ -265,6 +267,7 @@ def test_va_profile_stored_function_new_row(notify_db_session):
 
     opt_in_out = OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_id,
+        encrypted_va_profile_id=None,
         encrypted_va_profile_id_blind_index=None,
         communication_item_id=5,
         communication_channel_id=1,
