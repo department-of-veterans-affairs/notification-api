@@ -150,7 +150,7 @@ def _send_comp_and_pen_sms(
 
             current_app.logger.error(
                 'Error resolving PII for Comp and Pen record with encrypted participant_id: %s with %s',
-                raw_encrypted_pid if raw_encrypted_pid else 'unknown',
+                raw_encrypted_pid if raw_encrypted_pid else 'unknown or unencrypted participant_id',
                 str(e),
             )
             continue
