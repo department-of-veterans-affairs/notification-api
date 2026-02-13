@@ -24,6 +24,7 @@ from app.models import (
     Notification,
     RecipientIdentifier,
     ScheduledNotification,
+    TemplateHistory,
 )
 from app.pii.pii_low import PiiVaProfileID
 from app.schema_validation import validate
@@ -106,6 +107,69 @@ def test_post_sms_notification_returns_201(
         assert mock_deliver_sms.called
     # Else, for sending with a recipient ID, the delivery function won't get called because the preceeding
     # tasks in the chain are mocked.
+
+
+def test_post_sms_notification_uses_latest_history_content_during_drift(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+):
+    history_content = 'Synced content from templates_history'
+    template = sample_template(content=history_content)
+    templates_content = 'DRIFT TEST - content from templates'
+
+    # Drift setup: update templates only (no history write), which mirrors the
+    # out-of-sync state caused by non-versioned external updates.
+    template.content = templates_content
+    notify_db_session.session.add(template)
+    notify_db_session.session.commit()
+
+    # Confirm the versioned history row is unchanged.
+    stmt = select(TemplateHistory).where(
+        TemplateHistory.id == template.id,
+        TemplateHistory.version == template.version,
+    )
+    history_template = notify_db_session.session.scalar(stmt)
+    assert history_template.content == history_content
+
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
+    resp_valid = client.post(
+        path='/v2/notifications/sms',
+        data=json.dumps({'phone_number': '+16502532222', 'template_id': str(template.id)}),
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
+
+    assert resp_valid.status_code == 201
+    resp_json = resp_valid.get_json()
+    assert resp_json['content']['body'] == history_content
+
+
+def test_post_sms_notification_returns_400_when_template_has_no_history_rows(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+):
+    template = sample_template()
+
+    # Remove all history rows for this template id.
+    notify_db_session.session.execute(delete(TemplateHistory).where(TemplateHistory.id == template.id))
+    notify_db_session.session.commit()
+
+    data = {'phone_number': '+16502532222', 'template_id': str(template.id)}
+    auth_header = create_authorization_header(sample_api_key(service=template.service))
+    resp = client.post(
+        path='/v2/notifications/sms',
+        data=json.dumps(data),
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
+
+    assert resp.status_code == 400
+
+    error_json = resp.get_json()
+    assert error_json['status_code'] == 400
+    assert error_json['errors'] == [{'error': 'BadRequestError', 'message': 'Template not found'}]
 
 
 def test_post_sms_notification_uses_inbound_number_as_sender(

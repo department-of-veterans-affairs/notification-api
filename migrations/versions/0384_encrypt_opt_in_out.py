@@ -6,7 +6,6 @@ Create Date: 2026-02-09 23:31:34.738331
 """
 
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = '0384_encrypt_opt_in_out'
@@ -44,7 +43,7 @@ def upgrade():
                 AND va_profile_local_cache.communication_item_id = _communication_item_id
                 AND va_profile_local_cache.communication_channel_id = _communication_channel_id;
             
-             GET DIAGNOSTICS changed_upsert = ROW_COUNT;
+            GET DIAGNOSTICS changed_upsert = ROW_COUNT;
              
             -- Backfill blind index for ALL rows for this va_profile_id
         IF changed_upsert > 0 THEN UPDATE va_profile_local_cache
@@ -53,6 +52,7 @@ def upgrade():
             AND (encrypted_va_profile_id IS NULL OR encrypted_va_profile_id_blind_index IS NULL);
     
             GET DIAGNOSTICS changed_backfill = ROW_COUNT;
+            RAISE NOTICE 'va_profile_opt_in_out backfill updated % row(s) for va_profile_id %', changed_backfill, _va_profile_id;
         END IF;
         RETURN (changed_upsert > 0);
         END;
@@ -63,7 +63,7 @@ def upgrade():
 def downgrade():
     op.execute(
         'DROP FUNCTION IF EXISTS '
-        'va_profile_opt_in_out(integer, text, integer, integer, boolean, timestamp without time zone);'
+        'va_profile_opt_in_out(integer, text, text, integer, integer, boolean, timestamp without time zone);'
     )
     op.execute("""
         CREATE OR REPLACE FUNCTION public.va_profile_opt_in_out(
