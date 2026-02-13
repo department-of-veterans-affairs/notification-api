@@ -210,6 +210,46 @@ def test_send_notification_bypass_route_sms_with_recipient_item(
     )
 
 
+def test_send_notification_bypass_route_sms_with_pre_wrapped_pii_does_not_double_wrap(
+    mocker,
+    sample_notification,
+):
+    """When recipient_item id_value is already a Pii instance (e.g. from comp-and-pen),
+    send_notification_bypass_route should not re-wrap it."""
+
+    notification = sample_notification()
+    template = notification.template
+    service: Service = notification.template.service
+    sender_number = service.get_default_sms_sender()
+
+    mocker.patch.dict('os.environ', {'PII_ENABLED': 'True'})
+    persist_notification_mock = mocker.patch(
+        'app.notifications.send_notifications.persist_notification', return_value=notification
+    )
+    mocker.patch('app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier')
+    mock_get_pii_subclass = mocker.patch('app.notifications.send_notifications.get_pii_subclass')
+
+    # Pre-wrap the value as a PiiVaProfileID — simulating what comp-and-pen does
+    pre_wrapped_value = PiiVaProfileID('1234')
+    recipient_identifier = {'id_type': IdentifierType.VA_PROFILE_ID.value, 'id_value': pre_wrapped_value}
+
+    send_notification_bypass_route(
+        service=service,
+        template=template,
+        reply_to_text=sender_number,
+        recipient_item=recipient_identifier,
+        sms_sender_id='test_sms_sender',
+    )
+
+    # get_pii_subclass should NOT have been called — the value was already wrapped
+    mock_get_pii_subclass.assert_not_called()
+
+    # The id_value passed to persist_notification should be the same object, not re-wrapped
+    persisted_id_value = persist_notification_mock.call_args.kwargs['recipient_identifier']['id_value']
+    assert persisted_id_value is pre_wrapped_value
+    assert PiiVaProfileID(persisted_id_value, True).get_pii() == '1234'
+
+
 ##################################################
 # email tests
 ##################################################
