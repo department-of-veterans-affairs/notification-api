@@ -113,7 +113,7 @@ def _resolve_pii_for_comp_and_pen(item: DynamoRecord) -> tuple[str | PiiPid, str
         return PiiPid(raw_pid), PiiVaProfileID(raw_vaprofile)
 
     else:
-        # Scenario 4: PII_ENABLEDFF OFF + unencrypted fields → use as-is
+        # Scenario 4: PII_ENABLED FF OFF + unencrypted fields → use as-is
         return raw_pid, raw_vaprofile
 
 
