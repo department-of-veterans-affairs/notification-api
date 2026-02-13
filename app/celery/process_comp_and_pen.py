@@ -146,10 +146,12 @@ def _send_comp_and_pen_sms(
             resolved_pid, resolved_vaprofile = _resolve_pii_for_comp_and_pen(item)
         except (ValueError, Exception):
             raw_pid = item.encrypted_participant_id or item.participant_id
-            current_app.logger.exception(
-                'Error resolving PII for Comp and Pen record with participant_id: %s',
-                str(PiiPid(raw_pid)) if raw_pid else 'unknown',
+
+            # This log will be fully encrypted when we implement Glue Script sending encrypted data
+            current_app.logger.error(
+                'Error resolving PII for Comp and Pen record with participant_id: %s', raw_pid if raw_pid else 'unknown'
             )
+
             continue
 
         log_pid = resolved_pid if isinstance(resolved_pid, PiiPid) else PiiPid(str(resolved_pid))

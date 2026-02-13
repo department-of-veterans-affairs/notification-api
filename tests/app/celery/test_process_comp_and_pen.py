@@ -343,7 +343,7 @@ def test_comp_and_pen_batch_process_decryption_failure_continues(mocker, sample_
     # First record fails decryption, second succeeds
     assert mock_resolve.call_count == 2
     assert mock_bypass.call_count == 1, 'Only the second record should have been sent'
-    mock_logger.exception.assert_called_once()
+    mock_logger.error.assert_called_once()
 
 
 def test_comp_and_pen_batch_process_only_one_encrypted_attribute(mocker, sample_template) -> None:
@@ -376,4 +376,4 @@ def test_comp_and_pen_batch_process_only_one_encrypted_attribute(mocker, sample_
     comp_and_pen_batch_process(records)
 
     assert mock_bypass.call_count == 1, 'Only the first record should have been sent'
-    mock_logger.exception.call_args[0][0].startswith('DynamoRecord has mismatched encrypted fields:')
+    mock_logger.error.call_args[0][0].startswith('DynamoRecord has mismatched encrypted fields:')
