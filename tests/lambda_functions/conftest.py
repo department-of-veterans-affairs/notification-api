@@ -13,7 +13,7 @@ def generate_base64_test_key(value: str) -> str:
     """Generates the base64 encoding of the input string value.
 
     Note: This generates constant test key(s) for consistent encryption/decryption during tests
-    Using a fixed test key - this is only for testing and not a real sekret
+    Using a fixed test key - this is only for testing and not a real secret
     """
     return base64.b64encode(value.encode('utf-8')).decode('utf-8')
 
