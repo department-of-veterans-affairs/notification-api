@@ -146,12 +146,11 @@ def _send_comp_and_pen_sms(
         try:
             resolved_pid, resolved_vaprofile = _resolve_pii_for_comp_and_pen(item)
         except (ValueError, InvalidToken) as e:
-            raw_pid = item.encrypted_participant_id or item.participant_id
+            raw_encrypted_pid = item.encrypted_participant_id
 
-            # This log will be fully encrypted when we implement Glue Script sending encrypted data
             current_app.logger.error(
-                'Error resolving PII for Comp and Pen record with participant_id: %s with %s',
-                raw_pid if raw_pid else 'unknown',
+                'Error resolving PII for Comp and Pen record with encrypted participant_id: %s with %s',
+                raw_encrypted_pid if raw_encrypted_pid else 'unknown',
                 str(e),
             )
             continue
