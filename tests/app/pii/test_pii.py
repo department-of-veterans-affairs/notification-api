@@ -75,13 +75,13 @@ class TestPiiEncryption:
 class TestPiiHMAC:
     """Tests for the PiiHMAC class."""
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture()
     def setup_hmac(self, monkeypatch):
         """Reset PiiHMAC state and set env var for each test."""
         PiiHMAC._key = None
         monkeypatch.setenv('PII_HMAC_KEY', TEST_KEY.decode())
 
-    def test_get_hmac_key_raises_error_when_key_missing(self):
+    def test_get_hmac_key_raises_error_when_key_missing(self, setup_hmac):
         """Test that _get_hmac_key raises ValueError when PII_HMAC_KEY is not set."""
         # Reset cached key
         PiiHMAC._key = None
@@ -91,7 +91,7 @@ class TestPiiHMAC:
         ):
             PiiHMAC._get_hmac_key()
 
-    def test_get_hmac_key_uses_hmac_environment_variable(self):
+    def test_get_hmac_key_uses_hmac_environment_variable(self, setup_hmac):
         """Test that _get_hmac_key uses the environment variable if available."""
         pii_hmac_key = PiiHMAC._get_hmac_key()
         assert pii_hmac_key is not None
@@ -101,6 +101,7 @@ class TestPiiHMAC:
     def test_get_hmac_key_uses_encryption_environment_variable(self, monkeypatch):
         """Test that _get_hmac_key uses the fallback environment variable if available."""
         # Force missing PII_HMAC_KEY and set PII_ENCRYPTION_KEY to test fallback behavior
+        PiiHMAC._key = None
         monkeypatch.delenv('PII_HMAC_KEY', raising=False)
         monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_KEY.decode())
 
@@ -108,25 +109,25 @@ class TestPiiHMAC:
         assert pii_hmac_key is not None
         assert PiiHMAC._key == TEST_KEY
 
-    def test_get_hmac_key_caches_key(self):
+    def test_get_hmac_key_caches_key(self, setup_hmac):
         """Test that _get_hmac_key caches the key bytes."""
         key1 = PiiHMAC._get_hmac_key()
         key2 = PiiHMAC._get_hmac_key()
         assert key1 is key2
 
-    def test_generate_hmac_returns_hex_string(self):
+    def test_generate_hmac_returns_hex_string(self, setup_hmac):
         """Test that generate_hmac returns a hex digest string."""
         result = PiiHMAC.get_hmac('test_value')
         assert isinstance(result, str)
         assert len(result) == 64
 
-    def test_generate_hmac_is_deterministic(self):
+    def test_generate_hmac_is_deterministic(self, setup_hmac):
         """Test that generate_hmac returns the same hash for the same input."""
         result1 = PiiHMAC.get_hmac('test_value')
         result2 = PiiHMAC.get_hmac('test_value')
         assert result1 == result2
 
-    def test_generate_hmac_differs_for_different_inputs(self):
+    def test_generate_hmac_differs_for_different_inputs(self, setup_hmac):
         """Test that generate_hmac returns different hashes for different inputs."""
         result1 = PiiHMAC.get_hmac('value_a')
         result2 = PiiHMAC.get_hmac('value_b')
