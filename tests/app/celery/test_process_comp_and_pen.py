@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from cryptography.fernet import InvalidToken
 import pytest
 from sqlalchemy import delete, select
 from sqlalchemy.orm.exc import NoResultFound
@@ -138,18 +139,14 @@ class TestResolvePiiForCompAndPen:
     def test_decryption_failure_raises(self, mocker):
         """When decryption fails, the error should propagate."""
         mocker.patch('app.celery.process_comp_and_pen.is_feature_enabled', return_value=False)
-        mocker.patch(
-            'app.celery.process_comp_and_pen.PiiPid',
-            side_effect=Exception('Decryption failed'),
-        )
 
         item = DynamoRecord(
             payment_amount='10.00',
-            encrypted_participant_id='bad_encrypted_data',
-            encrypted_vaprofile_id='enc_va',
+            encrypted_participant_id='gAAAAABpjz3X2OlV3eHRzn4S-JkZ3ANAJN8RldugiWCSwszXaixEj4IFdvVpaVlYxxWcX99MKL0Zdw8OD-mPp2clrGb_B16VWA',
+            encrypted_vaprofile_id='gAAAAABpjz3X2OlV3eHRzn4S-JkZ3ANAJN8RldugiWCSwszXaixEj4IFdvVpaVlYxxWcX99MKL0Zdw8OD-mPp2clrGb_B16VWA==',
         )
 
-        with pytest.raises(Exception, match='Decryption failed'):
+        with pytest.raises(InvalidToken):
             _resolve_pii_for_comp_and_pen(item)
 
 
@@ -267,6 +264,44 @@ def test_comp_and_pen_batch_process_with_encrypted_fields(
         notify_db_session.session.execute(delete(Notification))
 
 
+def test_comp_and_pen_batch_process_prefers_encrypted_fields_when_both_present(
+    notify_db_session, mocker, sample_template
+) -> None:
+    """When both encrypted and unencrypted fields are present, the encrypted fields should be used."""
+    template = sample_template()
+    mocker.patch(
+        'app.celery.process_comp_and_pen.lookup_notification_sms_setup_data',
+        return_value=(template.service, template, str(template.service.get_default_sms_sender_id())),
+    )
+    mocker.patch.dict('os.environ', {'PII_ENABLED': str(True)})
+    mocker.patch('app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier')
+
+    encrypted_participant = PiiPid('55').get_encrypted_value()
+    encrypted_vaprofile = PiiVaProfileID('57').get_encrypted_value()
+
+    records = {
+        'payment_amount': '10.00',
+        'participant_id': 'mismatched_plain_pid',
+        'vaprofile_id': 'mismatched_plain_va',
+        'encrypted_participant_id': encrypted_participant,
+        'encrypted_vaprofile_id': encrypted_vaprofile,
+    }
+
+    comp_and_pen_batch_process([records])
+
+    notifications = notify_db_session.session.scalars(select(Notification)).all()
+
+    try:
+        assert len(notifications) == 1
+        assert len(notifications[0].recipient_identifiers) == 1
+        va_profile_id = notifications[0].recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value
+        decrypted_va_profile_id = PiiVaProfileID(va_profile_id, True).get_pii()
+        assert decrypted_va_profile_id == '57'
+        assert decrypted_va_profile_id != 'mismatched_plain_va'
+    finally:
+        notify_db_session.session.execute(delete(Notification))
+
+
 def test_comp_and_pen_batch_process_perf_number_happy_path(mocker, sample_template) -> None:
     template = sample_template()
     mocker.patch(
@@ -375,5 +410,5 @@ def test_comp_and_pen_batch_process_only_one_encrypted_attribute(mocker, sample_
 
     comp_and_pen_batch_process(records)
 
-    assert mock_bypass.call_count == 1, 'Only the first record should have been sent'
+    assert mock_bypass.call_count == 1, 'Only the second record should have been sent'
     mock_logger.error.call_args[0][0].startswith('DynamoRecord has mismatched encrypted fields:')
