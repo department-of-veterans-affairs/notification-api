@@ -79,7 +79,18 @@ jobs:
       - name: Package and deploy VA Profile opt-in/out lambda function
         if: ${{ (inputs.lambdaName == 'ProfileOptInOut') || (inputs.lambdaName == 'All') }}
         run: |
-          zip -j va_profile_opt_in_out_lambda va_profile/va_profile_opt_in_out_lambda.py ../app/pii/pii_encryption.py
+          # Stage files for zip packaging, preserving the app/pii/ directory structure
+          mkdir -p tmp/app/pii
+          cp lambda_functions/va_profile/va_profile_opt_in_out_lambda.py tmp/
+          # Copy pii_encryption.py file to staging directory
+          cp app/pii/pii_encryption.py tmp/app/pii/
+          # Modularize the staging directory
+          touch tmp/app/__init__.py
+          touch tmp/app/pii/__init__.py
+          # Zip the contents of the staging directory
+          cd tmp && zip -r ../va_profile_opt_in_out_lambda.zip .
+          cd ..
+          # Update function code with the new zip file
           aws lambda update-function-code --function-name project-${{ inputs.environment }}-va-profile-opt-in-out-lambda --zip-file fileb://va_profile_opt_in_out_lambda.zip
 
       - name: Package and deploy VA Profile remove old opt-outs lambda function
