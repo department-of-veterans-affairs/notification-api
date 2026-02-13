@@ -264,6 +264,7 @@ def test_comp_and_pen_batch_process_with_encrypted_fields(
         notify_db_session.session.execute(delete(Notification))
 
 
+@pytest.mark.serial
 def test_comp_and_pen_batch_process_prefers_encrypted_fields_when_both_present(
     notify_db_session, mocker, sample_template
 ) -> None:
