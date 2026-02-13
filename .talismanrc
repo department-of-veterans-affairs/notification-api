@@ -94,15 +94,17 @@ fileignoreconfig:
 - filename: app/va/va_profile/va_profile_client.py
   checksum: 5c867bf817283bf50f2d974697c1c08d80976f37b1a1a13d0ba2e029536e9b2c
 - filename: lambda_functions/va_profile/va_profile_opt_in_out_lambda.py
-  checksum: 9cdb7bf7610743d061cf653d4292be2a3966d428ae1234da56c8314e7699d096
+  checksum: f75205ef294e08b9c5d7a568dedb06a8a2abbd5998b459db6f34fb2c4146e5ef
 - filename: app/pii/pii_base.py
   checksum: a95e7b554c3895a140a9fddecb4139b4167e3a843e4dddb3987606d1d8b633f0
 - filename: migrations/env.py
   checksum: f1c6c3c65b1c1ac93d79cc3fe29d704416b6eca70054870991f786638563315e
 - filename: tests/lambda_functions/conftest.py
-  checksum: 376dbed78a575355b6de0b3808febc03a2161eaffb68d6aca68123f254962469
+  checksum: 8daedc9aab216a798a4dc181030c1d27b91951d0a221510d7b181339865a67ce
 - filename: tests/lambda_functions/va_profile/test_va_profile_integration.py
-  checksum: f80cf3e76db811019214addc0f6a029894b311d96d37d004d5fa09f69a89e310
+  checksum: f4c5ae956069cb580803d82ca01be639c7a4527d8dc6a0d85c7bf62072b447b9
 - filename: app/pii/pii_encryption.py
   checksum: 584cb03893d943c5f8504e5951128f17ce26cf9ffdfc51a29992d9e30e9a3d8b
+- filename: ci/.local.env
+  checksum: 18af10b56ddc6177c311840f70a4829648e356bc36de3723a3870015a97e2745
 version: "1.0"

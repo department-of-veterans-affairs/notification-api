@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from json import dumps, loads
 from random import randint
 from unittest.mock import Mock, patch
+import os
 
 import jwt
 import pytest
@@ -54,6 +55,7 @@ def mock_env_vars(monkeypatch):
     monkeypatch.setenv('VA_PROFILE_DOMAIN', 'mock_va_profile_domain')
     monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
     monkeypatch.setenv('PII_HMAC_KEY', TEST_HMAC_KEY)
+    monkeypatch.setenv('PII_ENCRYPTION_KEY_PATH', '/fake/path/to/pii_encryption_key')
 
 
 @pytest.fixture
@@ -272,8 +274,8 @@ def test_va_profile_stored_function_new_row(notify_db_session, mock_env_vars):
 
     opt_in_out = OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_id,
-        encrypted_va_profile_id=pii_va_profile_id.encrypted_va_profile_id,
-        encrypted_va_profile_id_blind_index=pii_va_profile_id.encrypted_va_profile_id_blind_index,
+        encrypted_va_profile_id=pii_va_profile_id.fernet_encryption,
+        encrypted_va_profile_id_blind_index=pii_va_profile_id.hmac_encryption,
         communication_item_id=5,
         communication_channel_id=1,
         allowed=True,
@@ -286,7 +288,7 @@ def test_va_profile_stored_function_new_row(notify_db_session, mock_env_vars):
     row = (
         notify_db_session.session.query(VAProfileLocalCache)
         .filter_by(
-            encrypted_va_profile_id_blind_index=pii_va_profile_id.encrypted_va_profile_id_blind_index,
+            encrypted_va_profile_id_blind_index=pii_va_profile_id.hmac_encryption,
             communication_item_id=5,
             communication_channel_id=1,
         )
@@ -294,7 +296,7 @@ def test_va_profile_stored_function_new_row(notify_db_session, mock_env_vars):
     )
 
     assert row.allowed is True
-    assert row.encrypted_va_profile_id_blind_index == pii_va_profile_id.encrypted_va_profile_id_blind_index
+    assert row.encrypted_va_profile_id_blind_index == pii_va_profile_id.hmac_encryption
     assert row.va_profile_id == va_profile_id
 
     # Verify one row was created using a delete statement that doubles as teardown.
@@ -344,8 +346,8 @@ def test_va_profile_stored_function_backfill(notify_db_session, mock_env_vars):
     # Call the stored function WITH encrypted values (same va_profile_id, same source_datetime)
     opt_in_out = OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_id,
-        encrypted_va_profile_id=pii_va_profile_id.encrypted_va_profile_id,
-        encrypted_va_profile_id_blind_index=pii_va_profile_id.encrypted_va_profile_id_blind_index,
+        encrypted_va_profile_id=pii_va_profile_id.fernet_encryption,
+        encrypted_va_profile_id_blind_index=pii_va_profile_id.hmac_encryption,
         communication_item_id=5,
         communication_channel_id=1,
         allowed=True,
@@ -358,14 +360,14 @@ def test_va_profile_stored_function_backfill(notify_db_session, mock_env_vars):
     row = (
         notify_db_session.session.query(VAProfileLocalCache)
         .filter_by(
-            encrypted_va_profile_id_blind_index=pii_va_profile_id.encrypted_va_profile_id_blind_index,
+            encrypted_va_profile_id_blind_index=pii_va_profile_id.hmac_encryption,
             communication_item_id=5,
             communication_channel_id=1,
         )
         .one()
     )
-    assert row.encrypted_va_profile_id == pii_va_profile_id.encrypted_va_profile_id
-    assert row.encrypted_va_profile_id_blind_index == pii_va_profile_id.encrypted_va_profile_id_blind_index
+    assert row.encrypted_va_profile_id == pii_va_profile_id.fernet_encryption
+    assert row.encrypted_va_profile_id_blind_index == pii_va_profile_id.hmac_encryption
     assert pii_va_profile_id.get_pii() == va_profile_id
     assert row.allowed is True
 
@@ -912,7 +914,7 @@ def test_va_profile_opt_in_out_lambda_handler(notify_db_session, jwt_encoded, mo
         body=json.dumps(
             {
                 'template_id': 'mock_template_id',
-                'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': va_profile_id},
+                'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': pii_va_profile_id.get_pii(to_str=True)},
                 'sms_sender_id': 'mock_sms_sender_id',
                 'personalisation': {'month-name': expected_month},
             }
@@ -924,8 +926,7 @@ def test_va_profile_opt_in_out_lambda_handler(notify_db_session, jwt_encoded, mo
     notification_id = 'e7b8cdda-858e-4b6f-a7df-93a71a2edb1e'
     # 1 - ENCRYPTED: Verify the row contents by blind index
     stmt = select(VAProfileLocalCache).where(
-        VAProfileLocalCache.encrypted_va_profile_id_blind_index
-        == (pii_va_profile_id.encrypted_va_profile_id_blind_index),
+        VAProfileLocalCache.encrypted_va_profile_id_blind_index == (pii_va_profile_id.hmac_encryption),
         VAProfileLocalCache.communication_item_id == 5,
         VAProfileLocalCache.communication_channel_id == 1,
         VAProfileLocalCache.notification_id == notification_id,
@@ -942,3 +943,78 @@ def test_va_profile_opt_in_out_lambda_handler(notify_db_session, jwt_encoded, mo
     assert notify_db_session.session.execute(stmt).rowcount == 1
 
     notify_db_session.session.commit()
+
+
+class TestEncryptedVaProfileId:
+    def test_str_returns_fernet_ciphertext(self, mock_env_vars):
+        obj = EncryptedVAProfileId(12345)
+        assert str(obj) == obj.fernet_encryption
+        assert isinstance(obj.fernet_encryption, str)
+        assert obj.fernet_encryption  # non-empty
+
+    def test_get_pii_roundtrip_int(self, mock_env_vars):
+        va_profile_id = 98765
+        obj = EncryptedVAProfileId(va_profile_id)
+        assert obj.get_pii() == va_profile_id
+        assert isinstance(obj.get_pii(), int)
+
+    def test_get_pii_roundtrip_str(self, mock_env_vars):
+        va_profile_id = 24680
+        obj = EncryptedVAProfileId(va_profile_id)
+        assert obj.get_pii(to_str=True) == str(va_profile_id)
+        assert isinstance(obj.get_pii(to_str=True), str)
+
+    def test_hmac_is_deterministic_for_same_input_and_key(self, mock_env_vars):
+        """
+        HMAC should be the same across instances for the same va_profile_id when the key is fixed.
+        """
+        a = EncryptedVAProfileId(11111)
+        b = EncryptedVAProfileId(11111)
+        assert a.hmac_encryption == b.hmac_encryption
+
+    def test_fernet_is_nondeterministic_by_default(self, mock_env_vars):
+        """
+        Fernet includes randomness/timestamp, so ciphertext should generally differ per encryption
+        even with same plaintext/key.
+        """
+        a = EncryptedVAProfileId(22222)
+        b = EncryptedVAProfileId(22222)
+
+        # Check uniqueness
+        assert a.fernet_encryption != b.fernet_encryption
+
+        # But both should decrypt to the same value
+        assert a.get_pii() == 22222
+        assert b.get_pii() == 22222
+
+    def test_decrypt_raises_if_ciphertext_tampered(self, mock_env_vars):
+        obj = EncryptedVAProfileId(44444)
+
+        # Tamper with ciphertext (keep it a string)
+        obj.fernet_encryption = obj.fernet_encryption[:-1] + ('A' if obj.fernet_encryption[-1] != 'A' else 'B')
+
+        with pytest.raises(Exception):
+            obj.get_pii()
+
+
+class TestPiiEncryptionKeyRetrieval:
+    """Test the PII encryption key retrieval logic in the lambda module."""
+
+    def test_pii_encryption_key_from_env_in_test_environment(self, monkeypatch):
+        """In test environment, PII_ENCRYPTION_KEY should be read directly from env."""
+        monkeypatch.setenv('NOTIFY_ENVIRONMENT', 'test')
+        monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
+        monkeypatch.setenv('PII_HMAC_KEY', TEST_HMAC_KEY)
+        monkeypatch.setenv('SQLALCHEMY_DATABASE_URI', 'postgresql://localhost/test')
+
+        importlib.reload(va_profile_opt_in_out_lambda)
+
+        assert os.environ['PII_ENCRYPTION_KEY'] == TEST_ENCRYPTION_KEY
+
+    def test_test_env_sets_pii_key_from_env(self, monkeypatch):
+        monkeypatch.setenv('NOTIFY_ENVIRONMENT', 'test')
+        monkeypatch.setenv('SQLALCHEMY_DATABASE_URI', 'postgresql://localhost/test')
+        monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
+
+        importlib.reload(va_profile_opt_in_out_lambda)
+        assert os.environ['PII_ENCRYPTION_KEY'] == TEST_ENCRYPTION_KEY

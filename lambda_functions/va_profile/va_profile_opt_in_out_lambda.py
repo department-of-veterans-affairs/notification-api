@@ -29,7 +29,7 @@ import sys
 from datetime import datetime, timezone
 from http.client import HTTPSConnection, HTTPResponse
 from tempfile import NamedTemporaryFile
-from typing import Optional
+from typing import Optional, Union
 
 import boto3
 import jwt
@@ -111,11 +111,13 @@ except (OSError, ValueError) as e:
 # access to VA Profile's private key.  This variable with be populated later if needed.
 integration_testing_public_cert = None
 
-# Get the database URI.
+# Get the database URI and PII encryption key.
 if NOTIFY_ENVIRONMENT == 'test':
     sqlalchemy_database_uri = os.getenv('SQLALCHEMY_DATABASE_URI')
+    pii_encryption_key = os.getenv('PII_ENCRYPTION_KEY')
 else:
     # This is an AWS deployment environment.
+    # -- database uri
     database_uri_path = os.getenv('DATABASE_URI_PATH')
     if database_uri_path is None:
         # Without this value, this code cannot know the path to the required
@@ -128,8 +130,20 @@ else:
     logger.debug('. . . Retrieved the database URI from SSM Parameter Store.')
     sqlalchemy_database_uri = ssm_response.get('Parameter', {}).get('Value')
 
+    # -- pii encryption key
+    pii_encryption_key_path = os.getenv('PII_ENCRYPTION_KEY_PATH')
+    if pii_encryption_key_path is None:
+        sys.exit('PII_ENCRYPTION_KEY_PATH is not set.  Check the Lambda console.')
+    logger.debug('Getting the PII encryption key from SSM Parameter Store . . .')
+    ssm_response: dict = ssm_client.get_parameter(Name=pii_encryption_key_path, WithDecryption=True)
+    logger.debug('. . . Retrieved the PII encryption key from SSM Parameter Store.')
+    pii_encryption_key = ssm_response.get('Parameter', {}).get('Value')
+
 if sqlalchemy_database_uri is None:
     sys.exit("Can't get the database URI.")
+
+# Set PII_ENCRYPTION_KEY
+os.environ['PII_ENCRYPTION_KEY'] = pii_encryption_key
 
 
 # Making PUT requests requires presenting client certificates for mTLS.  These are used programmatically via ssl.SSLContext.
@@ -205,14 +219,21 @@ class EncryptedVAProfileId:
         # We will store both encrypted and HMAC-encrypted vaProfileId in the local cache table
         # -- Fernet Encryption:
         self._fernet: Fernet = PiiEncryption.get_encryption()
-        self.encrypted_va_profile_id = self._fernet.encrypt(va_profile_id_str.encode()).decode()
+        self.fernet_encryption = self._fernet.encrypt(va_profile_id_str.encode()).decode()
 
         # -- HMAC Encryption: used to create a blind index for the va_profile_id
-        self.encrypted_va_profile_id_blind_index = PiiHMAC.get_hmac(va_profile_id_str)
+        self.hmac_encryption = PiiHMAC.get_hmac(va_profile_id_str)
 
-    def get_pii(self) -> int:
+    def __str__(self):
+        """Simple string represenation for logging"""
+        return self.fernet_encryption
+
+    def get_pii(self, to_str: bool = False) -> Union[int, str]:
         """Decrypt value for this VA Profile ID."""
-        return int(self._fernet.decrypt(self.encrypted_va_profile_id.encode()).decode())
+        _decrypted = self._fernet.decrypt(self.fernet_encryption.encode()).decode()
+        if to_str:
+            return _decrypted
+        return int(_decrypted)
 
 
 def make_database_connection() -> Optional[psycopg2.extensions.connection]:
@@ -378,8 +399,8 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
         # Stored function parameters:
         params = (
             _va_profile_id,  # _va_profile_id
-            va_profile_id.encrypted_va_profile_id,  # _encrypted_va_profile_id
-            va_profile_id.encrypted_va_profile_id_blind_index,  # _encrypted_va_profile_id_blind_index
+            va_profile_id.fernet_encryption,  # _encrypted_va_profile_id
+            va_profile_id.hmac_encryption,  # _encrypted_va_profile_id_blind_index
             bio['communicationItemId'],  # _communication_item_id
             bio['communicationChannelId'],  # _communication_channel_name
             bio['allowed'],  # _allowed
@@ -457,14 +478,14 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
             if response is None:
                 logger.critical(
                     'Could not send Comp and Pen opt-in confirmation to EncryptedVAProfileId: %s. No response status or response body to record.',
-                    va_profile_id.encrypted_va_profile_id,
+                    va_profile_id,
                 )
             elif response.status != 201:
                 response_data = response.read().decode()
                 response_json = json.loads(response_data)
                 logger.critical(
                     'Could not send Comp and Pen opt-in confirmation to EncryptedVAProfileId: %s. Response status: %s, Response: %s',
-                    va_profile_id.encrypted_va_profile_id,
+                    va_profile_id,
                     response.status,
                     response_data,
                 )
@@ -474,7 +495,7 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
                 notification_id = response_json['id']
                 logger.info(
                     'Sent Comp and Pen opt-in confirmation to EncryptedVAProfileId: %s with notification_id: %s. Response status: %s',
-                    va_profile_id.encrypted_va_profile_id,
+                    va_profile_id,
                     notification_id,
                     response.status,
                 )
@@ -483,7 +504,7 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
     except Exception as e:
         logger.critical(
             'Critical error during the process of sending a Comp and Pen Opt-in confirmation notification to VaProfileId: %s. Error: %s',
-            va_profile_id.encrypted_va_profile_id if va_profile_id else None,
+            va_profile_id if va_profile_id else None,
             e,
         )
 
@@ -572,12 +593,12 @@ def make_PUT_request(
         https_connection.close()
 
 
-def send_comp_and_pen_opt_in_confirmation(va_profile_id: EncryptedVAProfileId) -> HTTPResponse | None:
+def send_comp_and_pen_opt_in_confirmation(encrypted_va_profile_id: EncryptedVAProfileId) -> HTTPResponse | None:
     """
     Send an opt-in confirmation SMS notification based on user's VAProfile ID.
 
     Args:
-        encrypted_va_profile_id (str): The Fernet-encrypted VA profile ID of the user the notification should be sent to.
+        encrypted_va_profile_id (EncryptedVAProfileId): The Fernet-encrypted VA profile ID of the user the notification should be sent to.
     """
     try:
         # Personalization for opt-in confirmation notification SMS based on cutoff date
@@ -600,8 +621,8 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: EncryptedVAProfileId) -
             {
                 'template_id': COMP_AND_PEN_OPT_IN_TEMPLATE_ID,
                 'recipient_identifier': {
-                    'id_type': va_profile_id.identifier_type,
-                    'id_value': va_profile_id.get_pii(),
+                    'id_type': encrypted_va_profile_id.identifier_type,
+                    'id_value': encrypted_va_profile_id.get_pii(to_str=True),
                 },
                 'sms_sender_id': COMP_AND_PEN_SMS_SENDER_ID,
                 'personalisation': {'month-name': month_personalisation},
@@ -610,7 +631,7 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: EncryptedVAProfileId) -
 
         logger.debug(
             'Sending Comp and Pen opt-in confirmation SMS notification vaProfileId %s',
-            va_profile_id.encrypted_va_profile_id,
+            encrypted_va_profile_id,
         )
 
         conn = HTTPSConnection(VA_NOTIFY_DOMAIN, context=ssl_context)
@@ -641,13 +662,15 @@ def send_comp_and_pen_opt_in_confirmation(va_profile_id: EncryptedVAProfileId) -
     except Exception as e:
         logger.exception(
             'An error occurred while attempting to send Comp and Pen opt-in confirmation SMS notification to vaProfileId %s: %s',
-            va_profile_id.encrypted_va_profile_id,
+            encrypted_va_profile_id,
             e,
         )
     return None
 
 
-def save_notification_id_to_cache(va_profile_id: EncryptedVAProfileId, notification_id: str, source_date: str):
+def save_notification_id_to_cache(
+    encrypted_va_profile_id: EncryptedVAProfileId, notification_id: str, source_date: str
+):
     """
     Update the VAProfileLocalCache table by inserting the notification_id for the given va_profile_id.
 
@@ -663,14 +686,14 @@ def save_notification_id_to_cache(va_profile_id: EncryptedVAProfileId, notificat
             # Prioritize matching on encrypted va_profile_id
             cursor.execute(
                 OPT_IN_OUT_ADD_NOTIFICATION_ID_ENCRYPTED_QUERY,
-                (notification_id, va_profile_id.encrypted_va_profile_id_blind_index, source_date),
+                (notification_id, encrypted_va_profile_id.hmac_encryption, source_date),
             )
 
             # If no rows updated, fall back to legacy unencrypted va_profile_id
             # Note: This is temporary and should be removed
             # once encrypted_va_profile_id_blind_index is fully implemented
             if cursor.rowcount == 0:
-                pii_va_profile_id = va_profile_id.get_pii()
+                pii_va_profile_id = encrypted_va_profile_id.get_pii()
                 cursor.execute(
                     OPT_IN_OUT_ADD_NOTIFICATION_ID_LEGACY_QUERY,
                     (notification_id, pii_va_profile_id, source_date),
@@ -686,7 +709,7 @@ def save_notification_id_to_cache(va_profile_id: EncryptedVAProfileId, notificat
             logger.info(
                 'Successfully updated VAProfileLocalCache with notification_id %s for va_profile_id %s.',
                 notification_id,
-                va_profile_id.encrypted_va_profile_id,
+                encrypted_va_profile_id,
             )
 
     except psycopg2.IntegrityError as e:
@@ -694,7 +717,7 @@ def save_notification_id_to_cache(va_profile_id: EncryptedVAProfileId, notificat
         logger.error(
             'Failed to insert notification_id %s for va_profile_id %s. IntegrityError: %s',
             notification_id,
-            va_profile_id.encrypted_va_profile_id,
+            encrypted_va_profile_id,
             str(e),
         )
     except Exception as e:
@@ -702,7 +725,7 @@ def save_notification_id_to_cache(va_profile_id: EncryptedVAProfileId, notificat
         logger.error(
             'An error occurred while attempting to update notification_id: %s for va_profile_id %s: %s',
             notification_id,
-            va_profile_id.encrypted_va_profile_id,
+            encrypted_va_profile_id,
             str(e),
         )
     finally:
