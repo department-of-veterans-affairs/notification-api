@@ -675,7 +675,7 @@ def save_notification_id_to_cache(
     Update the VAProfileLocalCache table by inserting the notification_id for the given va_profile_id.
 
     Args:
-        va_profile_id (PiiVaProfileID): The PII-wrapped VA profile ID of the user the notification was sent to.
+        encrypted_va_profile_id (EncryptedVAProfileId): The PII-wrapped VA profile ID of the user the notification was sent to.
         notification_id (str): The notification UUID.
         source_date (str): The source date associated with the opt-in/out action.
     """
