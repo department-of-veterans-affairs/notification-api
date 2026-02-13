@@ -78,9 +78,6 @@ class PiiHMAC:
                         'This key must be provided through AWS Parameter Store in production environments.'
                     )
 
-                # Set os.env to use the same key for HMAC if PII_HMAC_KEY is not set, but PII_ENCRYPTION_KEY is set
-                os.environ['PII_HMAC_KEY'] = key_str
-
             # Key from SSM Parameter Store comes as string, encode to bytes
             cls._key = key_str.encode()
         return cls._key
