@@ -1,18 +1,155 @@
 from unittest.mock import patch
 
+from cryptography.fernet import InvalidToken
 import pytest
 from sqlalchemy import delete, select
 from sqlalchemy.orm.exc import NoResultFound
 
-from app.celery.process_comp_and_pen import comp_and_pen_batch_process
+from app.celery.process_comp_and_pen import (
+    DynamoRecord,
+    _resolve_pii_for_comp_and_pen,
+    comp_and_pen_batch_process,
+)
 from app.exceptions import NotificationTechnicalFailureException
 from app.models import Notification
-from app.pii import PiiVaProfileID
+from app.pii import Pii, PiiPid, PiiVaProfileID
 from app.va.identifier import IdentifierType
 
 
-# This test should create two new notifications, but there's no way to query by ID to retrieve them because
-# the IDs are set randomly down stream.
+class TestResolvePiiForCompAndPen:
+    """Tests for the 4-scenario PII resolution logic."""
+
+    def test_pii_enabled_ff_on_encrypted_fields(self, mocker):
+        """PII_ENABLED FF ON + encrypted fields → Pii objects with is_encrypted=True."""
+        mocker.patch('app.celery.process_comp_and_pen.is_feature_enabled', return_value=True)
+        mock_pii_pid = mocker.patch('app.celery.process_comp_and_pen.PiiPid')
+        mock_pii_va = mocker.patch('app.celery.process_comp_and_pen.PiiVaProfileID')
+
+        item = DynamoRecord(
+            payment_amount='10.00',
+            encrypted_participant_id='enc_pid',
+            encrypted_vaprofile_id='enc_va',
+        )
+
+        _resolve_pii_for_comp_and_pen(item)
+
+        mock_pii_pid.assert_called_once_with('enc_pid', is_encrypted=True)
+        mock_pii_va.assert_called_once_with('enc_va', is_encrypted=True)
+
+    def test_pii_enabled_ff_prefers_encrypted_over_unencrypted(self, mocker):
+        """When both encrypted and unencrypted fields are present, encrypted is preferred."""
+        mocker.patch('app.celery.process_comp_and_pen.is_feature_enabled', return_value=True)
+        mock_pii_pid = mocker.patch('app.celery.process_comp_and_pen.PiiPid')
+        mock_pii_va = mocker.patch('app.celery.process_comp_and_pen.PiiVaProfileID')
+
+        item = DynamoRecord(
+            payment_amount='10.00',
+            participant_id='plain_pid',
+            vaprofile_id='plain_va',
+            encrypted_participant_id='enc_pid',
+            encrypted_vaprofile_id='enc_va',
+        )
+
+        _resolve_pii_for_comp_and_pen(item)
+
+        mock_pii_pid.assert_called_once_with('enc_pid', is_encrypted=True)
+        mock_pii_va.assert_called_once_with('enc_va', is_encrypted=True)
+
+    def test_pii_enabled_ff_off_encrypted_fields(self, mocker):
+        """PII_ENABLED FF OFF + encrypted fields → decrypt to plain strings."""
+        mocker.patch('app.celery.process_comp_and_pen.is_feature_enabled', return_value=False)
+
+        mock_pid_instance = mocker.MagicMock()
+        mock_pid_instance.get_pii.return_value = 'decrypted_pid'
+        mock_pii_pid = mocker.patch('app.celery.process_comp_and_pen.PiiPid', return_value=mock_pid_instance)
+
+        mock_va_instance = mocker.MagicMock()
+        mock_va_instance.get_pii.return_value = 'decrypted_va'
+        mock_pii_va = mocker.patch('app.celery.process_comp_and_pen.PiiVaProfileID', return_value=mock_va_instance)
+
+        item = DynamoRecord(
+            payment_amount='10.00',
+            encrypted_participant_id='enc_pid',
+            encrypted_vaprofile_id='enc_va',
+        )
+
+        resolved_pid, resolved_va = _resolve_pii_for_comp_and_pen(item)
+
+        mock_pii_pid.assert_called_once_with('enc_pid', is_encrypted=True)
+        mock_pii_va.assert_called_once_with('enc_va', is_encrypted=True)
+        assert resolved_pid == 'decrypted_pid'
+        assert resolved_va == 'decrypted_va'
+
+    def test_pii_enabled_ff_on_unencrypted_fields(self, mocker):
+        """PII_ENABLED FF ON + unencrypted fields → encrypt by wrapping in Pii."""
+        mocker.patch('app.celery.process_comp_and_pen.is_feature_enabled', return_value=True)
+        mock_pii_pid = mocker.patch('app.celery.process_comp_and_pen.PiiPid')
+        mock_pii_va = mocker.patch('app.celery.process_comp_and_pen.PiiVaProfileID')
+
+        item = DynamoRecord(
+            payment_amount='10.00',
+            participant_id='plain_pid',
+            vaprofile_id='plain_va',
+        )
+
+        _resolve_pii_for_comp_and_pen(item)
+
+        mock_pii_pid.assert_called_once_with('plain_pid')
+        mock_pii_va.assert_called_once_with('plain_va')
+
+    def test_pii_enabled_ff_off_unencrypted_fields(self, mocker):
+        """PII_ENABLED FF OFF + unencrypted fields → plain strings as-is."""
+        mocker.patch('app.celery.process_comp_and_pen.is_feature_enabled', return_value=False)
+
+        item = DynamoRecord(
+            payment_amount='10.00',
+            participant_id='plain_pid',
+            vaprofile_id='plain_va',
+        )
+
+        resolved_pid, resolved_va = _resolve_pii_for_comp_and_pen(item)
+
+        assert resolved_pid == 'plain_pid'
+        assert resolved_va == 'plain_va'
+        assert not isinstance(resolved_pid, Pii)
+        assert not isinstance(resolved_va, Pii)
+
+    def test_missing_fields_raises_value_error(self, mocker):
+        """When neither encrypted nor unencrypted fields are present, raises ValueError."""
+        mocker.patch('app.celery.process_comp_and_pen.is_feature_enabled', return_value=False)
+
+        item = DynamoRecord(payment_amount='10.00')
+
+        with pytest.raises(ValueError, match='missing required'):
+            _resolve_pii_for_comp_and_pen(item)
+
+    def test_mismatched_encrypted_fields_raises_value_error(self, mocker):
+        """When only one encrypted field is populated, raises ValueError."""
+        item = DynamoRecord(
+            payment_amount='10.00',
+            participant_id='55',
+            vaprofile_id='57',
+            encrypted_participant_id='enc_pid',
+            encrypted_vaprofile_id='',
+        )
+
+        with pytest.raises(ValueError, match='mismatched encrypted fields'):
+            _resolve_pii_for_comp_and_pen(item)
+
+    def test_decryption_failure_raises(self, mocker):
+        """When decryption fails, the error should propagate."""
+        mocker.patch('app.celery.process_comp_and_pen.is_feature_enabled', return_value=False)
+
+        item = DynamoRecord(
+            payment_amount='10.00',
+            encrypted_participant_id='gAAAAABpjz3X2OlV3eHRzn4S-JkZ3ANAJN8RldugiWCSwszXaixEj4IFdvVpaVlYxxWcX99MKL0Zdw8OD-mPp2clrGb_B16VWA',
+            encrypted_vaprofile_id='gAAAAABpjz3X2OlV3eHRzn4S-JkZ3ANAJN8RldugiWCSwszXaixEj4IFdvVpaVlYxxWcX99MKL0Zdw8OD-mPp2clrGb_B16VWA==',
+        )
+
+        with pytest.raises(InvalidToken):
+            _resolve_pii_for_comp_and_pen(item)
+
+
 @pytest.mark.serial
 @pytest.mark.parametrize('pii_enabled', [True, False])
 def test_comp_and_pen_batch_process_happy_path(notify_db_session, mocker, sample_template, pii_enabled) -> None:
@@ -56,6 +193,111 @@ def test_comp_and_pen_batch_process_happy_path(notify_db_session, mocker, sample
             va_profile_id = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value
             decrypted_va_profile_id = PiiVaProfileID(va_profile_id, True).get_pii() if pii_enabled else va_profile_id
             assert decrypted_va_profile_id == records[index]['vaprofile_id']
+    finally:
+        notify_db_session.session.execute(delete(Notification))
+
+
+@pytest.mark.serial
+@pytest.mark.parametrize('pii_enabled', [True, False])
+def test_comp_and_pen_batch_process_with_encrypted_fields(
+    notify_db_session, mocker, sample_template, pii_enabled
+) -> None:
+    """
+    Verify that records with encrypted fields are handled correctly.
+    Encrypted fields should be preferred over unencrypted fields.
+    """
+
+    template = sample_template()
+    mocker.patch(
+        'app.celery.process_comp_and_pen.lookup_notification_sms_setup_data',
+        return_value=(template.service, template, str(template.service.get_default_sms_sender_id())),
+    )
+
+    mocker.patch.dict('os.environ', {'PII_ENABLED': str(pii_enabled)})
+
+    mock_send = mocker.patch(
+        'app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier'
+    )
+    mocker.patch('app.notifications.send_notifications.send_notification_to_queue')
+
+    # Pre-encrypt values so they can be decrypted downstream
+    encrypted_vaprofile_1 = PiiVaProfileID('57').get_encrypted_value()
+    encrypted_vaprofile_2 = PiiVaProfileID('43627').get_encrypted_value()
+    encrypted_pid_1 = PiiPid('55').get_encrypted_value()
+    encrypted_pid_2 = PiiPid('42').get_encrypted_value()
+
+    records = [
+        {
+            'participant_id': '55',
+            'payment_amount': '55.56',
+            'vaprofile_id': '57',
+            'encrypted_participant_id': encrypted_pid_1,
+            'encrypted_vaprofile_id': encrypted_vaprofile_1,
+        },
+        {
+            'participant_id': '42',
+            'payment_amount': '42.42',
+            'vaprofile_id': '43627',
+            'encrypted_participant_id': encrypted_pid_2,
+            'encrypted_vaprofile_id': encrypted_vaprofile_2,
+        },
+    ]
+
+    comp_and_pen_batch_process(records)
+
+    notifications = notify_db_session.session.scalars(select(Notification)).all()
+
+    try:
+        assert mock_send.call_count == len(records), 'Should have been called for each record.'
+        assert len(notifications) == len(records), 'Should have created a new notification for each record.'
+
+        original_vaprofile_ids = ['57', '43627']
+        for index, notification in enumerate(notifications):
+            assert len(notification.recipient_identifiers) == 1
+            va_profile_id = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value
+            if pii_enabled:
+                decrypted = PiiVaProfileID(va_profile_id, True).get_pii()
+            else:
+                decrypted = va_profile_id
+            assert decrypted == original_vaprofile_ids[index]
+    finally:
+        notify_db_session.session.execute(delete(Notification))
+
+
+def test_comp_and_pen_batch_process_prefers_encrypted_fields_when_both_present(
+    notify_db_session, mocker, sample_template
+) -> None:
+    """When both encrypted and unencrypted fields are present, the encrypted fields should be used."""
+    template = sample_template()
+    mocker.patch(
+        'app.celery.process_comp_and_pen.lookup_notification_sms_setup_data',
+        return_value=(template.service, template, str(template.service.get_default_sms_sender_id())),
+    )
+    mocker.patch.dict('os.environ', {'PII_ENABLED': str(True)})
+    mocker.patch('app.notifications.send_notifications.send_to_queue_for_recipient_info_based_on_recipient_identifier')
+
+    encrypted_participant = PiiPid('55').get_encrypted_value()
+    encrypted_vaprofile = PiiVaProfileID('57').get_encrypted_value()
+
+    records = {
+        'payment_amount': '10.00',
+        'participant_id': 'mismatched_plain_pid',
+        'vaprofile_id': 'mismatched_plain_va',
+        'encrypted_participant_id': encrypted_participant,
+        'encrypted_vaprofile_id': encrypted_vaprofile,
+    }
+
+    comp_and_pen_batch_process([records])
+
+    notifications = notify_db_session.session.scalars(select(Notification)).all()
+
+    try:
+        assert len(notifications) == 1
+        assert len(notifications[0].recipient_identifiers) == 1
+        va_profile_id = notifications[0].recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value
+        decrypted_va_profile_id = PiiVaProfileID(va_profile_id, True).get_pii()
+        assert decrypted_va_profile_id == '57'
+        assert decrypted_va_profile_id != 'mismatched_plain_va'
     finally:
         notify_db_session.session.execute(delete(Notification))
 
@@ -109,3 +351,64 @@ def test_comp_and_pen_batch_process_bypass_exception(mocker, sample_template) ->
     # comp_and_pen_batch_process can fail without raising an exception
     mock_logger.exception.assert_called_once()
     mock_logger.info.assert_not_called()
+
+
+def test_comp_and_pen_batch_process_decryption_failure_continues(mocker, sample_template) -> None:
+    """When decryption fails for a record, processing should continue with remaining records."""
+    template = sample_template()
+    mocker.patch(
+        'app.celery.process_comp_and_pen.lookup_notification_sms_setup_data',
+        return_value=(template.service, template, str(template.service.get_default_sms_sender_id())),
+    )
+
+    mock_resolve = mocker.patch(
+        'app.celery.process_comp_and_pen._resolve_pii_for_comp_and_pen',
+        side_effect=[Exception('Decryption failed'), ('resolved_pid', 'resolved_va')],
+    )
+    mock_bypass = mocker.patch('app.celery.process_comp_and_pen.send_notification_bypass_route')
+    mock_logger = mocker.patch('app.celery.process_comp_and_pen.current_app.logger')
+
+    records = [
+        {'participant_id': '55', 'payment_amount': '55.56', 'vaprofile_id': '57'},
+        {'participant_id': '42', 'payment_amount': '42.42', 'vaprofile_id': '43627'},
+    ]
+
+    comp_and_pen_batch_process(records)
+
+    # First record fails decryption, second succeeds
+    assert mock_resolve.call_count == 2
+    assert mock_bypass.call_count == 1, 'Only the second record should have been sent'
+    mock_logger.error.assert_called_once()
+
+
+def test_comp_and_pen_batch_process_only_one_encrypted_attribute(mocker, sample_template) -> None:
+    """When only one encrypted attribute is present, the error should be logged and processing should continue."""
+    template = sample_template()
+    mocker.patch(
+        'app.celery.process_comp_and_pen.lookup_notification_sms_setup_data',
+        return_value=(template.service, template, str(template.service.get_default_sms_sender_id())),
+    )
+
+    mock_bypass = mocker.patch('app.celery.process_comp_and_pen.send_notification_bypass_route')
+    mock_logger = mocker.patch('app.celery.process_comp_and_pen.current_app.logger')
+
+    records = [
+        {
+            'participant_id': '42',
+            'payment_amount': '42.42',
+            'vaprofile_id': '43627',
+            'encrypted_participant_id': PiiPid('42').get_encrypted_value(),
+        },
+        {
+            'participant_id': '55',
+            'payment_amount': '55.56',
+            'vaprofile_id': '57',
+            'encrypted_vaprofile_id': PiiVaProfileID('57').get_encrypted_value(),
+            'encrypted_participant_id': PiiPid('55').get_encrypted_value(),
+        },
+    ]
+
+    comp_and_pen_batch_process(records)
+
+    assert mock_bypass.call_count == 1, 'Only the second record should have been sent'
+    mock_logger.error.call_args[0][0].startswith('DynamoRecord has mismatched encrypted fields:')

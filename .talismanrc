@@ -77,6 +77,10 @@ fileignoreconfig:
   checksum: aee86b735d3ad99a75c7b51da6fae7d4c460cadb7b30f07a8252a0c810cebbd5
 - filename: tests/app/notifications/test_process_notifications.py
   checksum: 4d94763735089cfb2886b959755ca8d03bcef234d7b4bb53b4f1fa6237aabf4f
+- filename: tests/app/notifications/test_send_notifications.py
+  checksum: 834c0139eb2cdfec85144e543df095b36f67acf726e62e664d83ad373db00166
+- filename: tests/app/celery/test_process_comp_and_pen.py
+  checksum: e04a30f7026b0ed7fb9d138b617a5f7b53bec99c17ba3286d0a7e4ab48d84a9e
 - filename: tests/app/pii/test_pii.py
   checksum: ec61ccdbef75a819f292c1e46669582a9fbc68729edf7762f56742d84b41fef7
 - filename: tests/app/service/test_api_key_endpoints.py
@@ -104,7 +108,7 @@ fileignoreconfig:
 - filename: tests/lambda_functions/va_profile/test_va_profile_integration.py
   checksum: f4c5ae956069cb580803d82ca01be639c7a4527d8dc6a0d85c7bf62072b447b9
 - filename: app/pii/pii_encryption.py
-  checksum: 584cb03893d943c5f8504e5951128f17ce26cf9ffdfc51a29992d9e30e9a3d8b
+  checksum: 990dc841e6143b36c03647d3bee43871e62be8f5535f388878e5f74aeaa0237e
 - filename: ci/.local.env
   checksum: 18af10b56ddc6177c311840f70a4829648e356bc36de3723a3870015a97e2745
 version: "1.0"
