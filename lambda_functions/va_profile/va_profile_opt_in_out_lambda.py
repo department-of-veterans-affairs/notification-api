@@ -225,7 +225,7 @@ class EncryptedVAProfileId:
         self.hmac_encryption = PiiHMAC.get_hmac(va_profile_id_str)
 
     def __str__(self):
-        """Simple string represenation for logging"""
+        """Simple string representation for logging"""
         return self.fernet_encryption
 
     def get_pii(self, to_str: bool = False) -> Union[int, str]:
