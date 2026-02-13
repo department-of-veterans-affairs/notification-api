@@ -37,13 +37,7 @@ import psycopg2
 from botocore.exceptions import ClientError, ValidationError
 from cryptography.fernet import Fernet
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-
-try:
-    # Production Lambda environment
-    from pii_encryption import PiiEncryption, PiiHMAC
-except ImportError:
-    # Local testing environment
-    from app.pii.pii_encryption import PiiEncryption, PiiHMAC
+from app.pii.pii_encryption import PiiEncryption, PiiHMAC
 
 
 logger = logging.getLogger('VAProfileOptInOut')
