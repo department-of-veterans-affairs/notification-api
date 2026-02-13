@@ -14,8 +14,8 @@ Classes in this module follow guidance from:
 from enum import Enum
 from typing import ClassVar
 
-from app.va.identifier import IdentifierType
 from app.pii.pii_encryption import PiiEncryption
+from app.va.identifier import IdentifierType
 
 
 class PiiLevel(Enum):

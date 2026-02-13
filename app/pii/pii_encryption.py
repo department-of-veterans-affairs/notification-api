@@ -1,10 +1,7 @@
-"""TODO: update docstring
+"""Module for handling PII (Personally Identifiable Information) Encryption logic.
 
-Module for handling PII (Personally Identifiable Information) data.
-
-This module provides a base class for safely handling PII data, preventing accidental
-logging or exposure of sensitive information. It implements encryption for PII data
-and provides controlled methods to access the actual values when needed.
+This module provides a class for PII Fernet encryption. It implements encryption
+for PII data.
 
 Classes in this module follow guidance from:
 - NIST 800-122
