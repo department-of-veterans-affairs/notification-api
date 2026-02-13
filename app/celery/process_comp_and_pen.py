@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from uuid import uuid4
 
+from cryptography.fernet import InvalidToken
 from flask import current_app
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -144,14 +145,19 @@ def _send_comp_and_pen_sms(
     for item in comp_and_pen_messages:
         try:
             resolved_pid, resolved_vaprofile = _resolve_pii_for_comp_and_pen(item)
-        except (ValueError, Exception):
+        except (ValueError, InvalidToken) as e:
             raw_pid = item.encrypted_participant_id or item.participant_id
 
             # This log will be fully encrypted when we implement Glue Script sending encrypted data
             current_app.logger.error(
-                'Error resolving PII for Comp and Pen record with participant_id: %s', raw_pid if raw_pid else 'unknown'
+                'Error resolving PII for Comp and Pen record with participant_id: %s with %s',
+                raw_pid if raw_pid else 'unknown',
+                str(e),
             )
+            continue
 
+        except Exception:
+            current_app.logger.error('Unexpected error resolving PII for Comp and Pen record')
             continue
 
         log_pid = resolved_pid if isinstance(resolved_pid, PiiPid) else PiiPid(str(resolved_pid))
