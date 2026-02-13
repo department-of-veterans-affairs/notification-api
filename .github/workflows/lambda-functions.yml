@@ -81,10 +81,10 @@ jobs:
         run: |
           # Stage files for zip packaging, preserving the app/pii/ directory structure
           mkdir -p tmp/app/pii
-          cp lambda_functions/va_profile/va_profile_opt_in_out_lambda.py tmp/
+          cp va_profile/va_profile_opt_in_out_lambda.py tmp/
           # Copy pii_encryption.py file to staging directory
-          cp app/pii/pii_encryption.py tmp/app/pii/
-          # Modularize the staging directory
+          cp ../app/pii/pii_encryption.py tmp/app/pii/
+          # Initialize Python packages for lambda import
           touch tmp/app/__init__.py
           touch tmp/app/pii/__init__.py
           # Zip the contents of the staging directory
