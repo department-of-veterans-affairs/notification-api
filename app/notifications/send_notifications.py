@@ -15,6 +15,7 @@ from app.notifications.process_notifications import (
     send_notification_to_queue,
     send_to_queue_for_recipient_info_based_on_recipient_identifier,
 )
+from app.pii import Pii
 from app.pii import get_pii_subclass
 
 
@@ -107,10 +108,11 @@ def send_notification_bypass_route(
                 ' fields, but one or more are missing.'
             )
         elif is_feature_enabled(FeatureFlag.PII_ENABLED):
-            # Wrap the id_value in a PII subclass.  The downstream call to persist_notification will handle this
-            # correctly.
-            pii_class = get_pii_subclass(recipient_item['id_type'])
-            recipient_item['id_value'] = pii_class(recipient_item['id_value'])
+            # Only wrap the id_value in a PII subclass if it isn't already a Pii instance.
+            # Method comp_and_pen_batch_process already resolved PII upstream.
+            if not isinstance(recipient_item['id_value'], Pii):
+                pii_class = get_pii_subclass(recipient_item['id_type'])
+                recipient_item['id_value'] = pii_class(recipient_item['id_value'])
 
     # Use the service's default sms_sender if applicable
     if template.template_type == SMS_TYPE and sms_sender_id is None:
