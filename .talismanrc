@@ -82,7 +82,7 @@ fileignoreconfig:
 - filename: tests/app/celery/test_process_comp_and_pen.py
   checksum: e04a30f7026b0ed7fb9d138b617a5f7b53bec99c17ba3286d0a7e4ab48d84a9e
 - filename: tests/app/pii/test_pii.py
-  checksum: 9575eb876cc46a1c7d8b03229621cbd66ad041a94a786b1fcf9361bbb015d260
+  checksum: db702b912f3f69b8be298b6ca068082609f2980e381e8e37ffd117f13d2afd88
 - filename: tests/app/service/test_api_key_endpoints.py
   checksum: cf28b1466647e455be6e17b0318af7a167b5d46138e81e3179189cab2c9c3767
 - filename: tests/app/test_validate.py
