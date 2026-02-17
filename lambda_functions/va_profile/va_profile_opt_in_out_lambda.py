@@ -708,11 +708,18 @@ def save_notification_id_to_cache(
                 )
 
             db_connection.commit()
-            logger.info(
-                'Successfully updated VAProfileLocalCache with notification_id %s for va_profile_id %s.',
-                notification_id,
-                encrypted_va_profile_id,
-            )
+            if cursor.rowcount > 0:
+                logger.info(
+                    'Successfully updated VAProfileLocalCache with notification_id %s for va_profile_id %s.',
+                    notification_id,
+                    encrypted_va_profile_id,
+                )
+            else:
+                logger.info(
+                    'No matching record found in VAProfileLocalCache to update with notification_id %s for va_profile_id %s.',
+                    notification_id,
+                    encrypted_va_profile_id,
+                )
 
     except psycopg2.IntegrityError as e:
         db_connection.rollback()
