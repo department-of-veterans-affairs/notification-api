@@ -6,6 +6,7 @@ import base64
 
 from app.models import VAProfileLocalCache
 from lambda_functions.va_profile.va_profile_opt_in_out_lambda import EncryptedVAProfileId
+from app.pii import PiiHMAC
 
 
 # Helpers
@@ -27,6 +28,13 @@ TEST_HMAC_KEY = generate_base64_test_key('This is a second 32 byte key for HMAC 
 def mock_pii_env_vars(monkeypatch):
     monkeypatch.setenv('PII_ENCRYPTION_KEY_PATH', '/fake/path/to/pii_encryption_key')
     monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
+    monkeypatch.setenv('PII_HMAC_KEY', TEST_HMAC_KEY)
+
+
+@pytest.fixture()
+def setup_hmac(monkeypatch):
+    """Reset PiiHMAC state and set env var for each test."""
+    PiiHMAC._key = None
     monkeypatch.setenv('PII_HMAC_KEY', TEST_HMAC_KEY)
 
 

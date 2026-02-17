@@ -142,6 +142,9 @@ else:
 if sqlalchemy_database_uri is None:
     sys.exit("Can't get the database URI.")
 
+if pii_encryption_key is None:
+    sys.exit("Can't get the PII encryption key.")
+
 # Set PII_ENCRYPTION_KEY
 os.environ['PII_ENCRYPTION_KEY'] = pii_encryption_key
 
@@ -694,16 +697,15 @@ def save_notification_id_to_cache(
             # once encrypted_va_profile_id_blind_index is fully implemented
             if cursor.rowcount == 0:
                 pii_va_profile_id = encrypted_va_profile_id.get_pii()
+                logger.info(
+                    'Attempting to update VAProfileLocalCache for notification_id %s using legacy va_profile_id %s',
+                    notification_id,
+                    pii_va_profile_id,
+                )
                 cursor.execute(
                     OPT_IN_OUT_ADD_NOTIFICATION_ID_LEGACY_QUERY,
                     (notification_id, pii_va_profile_id, source_date),
                 )
-                if cursor.rowcount > 0:
-                    logger.info(
-                        'Updated VAProfileLocalCache for notification_id %s using legacy va_profile_id %s',
-                        notification_id,
-                        pii_va_profile_id,
-                    )
 
             db_connection.commit()
             logger.info(

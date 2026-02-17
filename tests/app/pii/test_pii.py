@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from app.pii import PiiEncryption, PiiLevel, Pii, PiiHMAC
 from app.va.identifier import IdentifierType
-from tests.app.conftest import TEST_KEY
+from tests.lambda_functions.conftest import TEST_ENCRYPTION_KEY, TEST_HMAC_KEY
 
 
 class PiiHigh(Pii):
@@ -63,7 +63,7 @@ class TestPiiEncryption:
         # and resets the singleton state, so we can directly test
         pii_encryption = PiiEncryption.get_encryption()
         assert pii_encryption is not None
-        assert PiiEncryption._key == TEST_KEY
+        assert PiiEncryption._key == TEST_ENCRYPTION_KEY.encode()
 
     def test_get_encryption_caches_fernet_instance(self):
         """Test that get_encryption caches the Fernet instance."""
@@ -74,12 +74,6 @@ class TestPiiEncryption:
 
 class TestPiiHMAC:
     """Tests for the PiiHMAC class."""
-
-    @pytest.fixture()
-    def setup_hmac(self, monkeypatch):
-        """Reset PiiHMAC state and set env var for each test."""
-        PiiHMAC._key = None
-        monkeypatch.setenv('PII_HMAC_KEY', TEST_KEY.decode())
 
     def test_get_hmac_key_raises_error_when_key_missing(self, setup_hmac):
         """Test that _get_hmac_key raises ValueError when PII_HMAC_KEY is not set."""
@@ -95,19 +89,18 @@ class TestPiiHMAC:
         """Test that _get_hmac_key uses the environment variable if available."""
         pii_hmac_key = PiiHMAC._get_hmac_key()
         assert pii_hmac_key is not None
-        assert PiiHMAC._key == TEST_KEY
+        assert PiiHMAC._key == TEST_HMAC_KEY.encode()
 
-    @pytest.mark.no_setup_hmac
     def test_get_hmac_key_uses_encryption_environment_variable(self, monkeypatch):
         """Test that _get_hmac_key uses the fallback environment variable if available."""
         # Force missing PII_HMAC_KEY and set PII_ENCRYPTION_KEY to test fallback behavior
         PiiHMAC._key = None
         monkeypatch.delenv('PII_HMAC_KEY', raising=False)
-        monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_KEY.decode())
+        monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
 
         pii_hmac_key = PiiHMAC._get_hmac_key()
         assert pii_hmac_key is not None
-        assert PiiHMAC._key == TEST_KEY
+        assert PiiHMAC._key == TEST_ENCRYPTION_KEY.encode()
 
     def test_get_hmac_key_caches_key(self, setup_hmac):
         """Test that _get_hmac_key caches the key bytes."""
