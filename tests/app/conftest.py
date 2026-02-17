@@ -84,7 +84,7 @@ from app.models import (
     user_to_organisation,
     UserServiceRoles,
 )
-from app.pii import PiiEncryption
+from app.pii import PiiEncryption, PiiHMAC
 from app.va.va_profile import VAProfileClient
 
 from flask import current_app, url_for
@@ -2578,3 +2578,10 @@ def sample_user_session(notify_db):
     yield _sample_user
 
     user_cleanup(created_user_ids, notify_db.session)
+
+
+@pytest.fixture()
+def setup_hmac(monkeypatch):
+    """Reset PiiHMAC state and set env var for each test."""
+    PiiHMAC._key = None
+    monkeypatch.setenv('PII_HMAC_KEY', TEST_KEY.decode())

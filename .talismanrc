@@ -64,7 +64,7 @@ fileignoreconfig:
 - filename: tests/app/authentication/test_authentication.py
   checksum: 089820996b9a438b143860eeac2e1fb7cae879fc520ed9efae69ac9d68fdb374
 - filename: tests/app/conftest.py
-  checksum: f2c4f17bfa52823c32747fb11dbb8c96f43c2490ac2cffa16ffa57e7df55f3e5
+  checksum: 801f0c7f275b0d1bb0e73d3864b0117444bce0b878026c82433d83e33349730d
 - filename: tests/app/clients/test_aws_pinpoint.py
   checksum: ea074fc541a229538237a3b14e4267bde39608c133c372e42bc506e84194ec7b
 - filename: tests/app/dao/test_api_key_dao.py
@@ -82,7 +82,7 @@ fileignoreconfig:
 - filename: tests/app/celery/test_process_comp_and_pen.py
   checksum: e04a30f7026b0ed7fb9d138b617a5f7b53bec99c17ba3286d0a7e4ab48d84a9e
 - filename: tests/app/pii/test_pii.py
-  checksum: db702b912f3f69b8be298b6ca068082609f2980e381e8e37ffd117f13d2afd88
+  checksum: 2ecf6e3585d4024a5913cefa72012d6a7fbd943a8333e9961faef8bfe8752f71
 - filename: tests/app/service/test_api_key_endpoints.py
   checksum: cf28b1466647e455be6e17b0318af7a167b5d46138e81e3179189cab2c9c3767
 - filename: tests/app/test_validate.py
