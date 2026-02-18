@@ -251,15 +251,25 @@ def test_comp_and_pen_batch_process_with_encrypted_fields(
         assert mock_send.call_count == len(records), 'Should have been called for each record.'
         assert len(notifications) == len(records), 'Should have created a new notification for each record.'
 
-        original_vaprofile_ids = ['57', '43627']
-        for index, notification in enumerate(notifications):
+        original_vaprofile_ids = {'57', '43627'}
+
+        # Create set to avoid flaky test due to order of notifications returned from DB - order is not guaranteed and not important for this test
+        actual_vaprofile_ids = set()
+
+        for notification in notifications:
+            # Each notification should have exactly one recipient identifier, and it should be VA_PROFILE_ID.
             assert len(notification.recipient_identifiers) == 1
+            assert set(notification.recipient_identifiers.keys()) == {IdentifierType.VA_PROFILE_ID.value}
             va_profile_id = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value
             if pii_enabled:
                 decrypted = PiiVaProfileID(va_profile_id, True).get_pii()
             else:
                 decrypted = va_profile_id
-            assert decrypted == original_vaprofile_ids[index]
+
+            # Add decrypted va_profile_id to set of actual va_profile_ids for comparison against original va_profile_ids
+            actual_vaprofile_ids.add(decrypted)
+
+        assert actual_vaprofile_ids == original_vaprofile_ids
     finally:
         notify_db_session.session.execute(delete(Notification))
 
