@@ -2062,6 +2062,10 @@ class CommunicationItem(db.Model):
 class VAProfileLocalCache(db.Model):
     """
     VA Notify caches person IDs to lighten the load on the MPI databse.
+
+    Note: The encrypted_va_profile_blind_index exists to retain Fernet encryption while allowing for lookups by
+    va_profile_id, which is necessary for backwards compatibility with existing data and to allow for a
+    smooth transition to the secure db encryption of the va_profile_id field.
     """
 
     id = db.Column(db.Integer, primary_key=True)
@@ -2090,6 +2094,16 @@ class VAProfileLocalCache(db.Model):
             'communication_channel_id',
             name='uix_veteran_id',
         ),
+        # Future unique constraint, when va_profile_id is removed from this model.
+        # TODO: Uncomment this UniqueConstraint when the legacy va_profile_id field is removed.
+        # ==============================================================
+        # UniqueConstraint(
+        #     'encrypted_va_profile_id_blind_index',
+        #     'communication_item_id',
+        #     'communication_channel_id',
+        #     name='uix_veteran_id',
+        # ),
+        # ==============================================================
     )
 
 
