@@ -257,6 +257,9 @@ def test_comp_and_pen_batch_process_with_encrypted_fields(
         actual_vaprofile_ids = set()
 
         for notification in notifications:
+            # Each notification should have exactly one recipient identifier, and it should be VA_PROFILE_ID.
+            assert len(notification.recipient_identifiers) == 1
+            assert set(notification.recipient_identifiers.keys()) == {IdentifierType.VA_PROFILE_ID.value}
             va_profile_id = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value
             if pii_enabled:
                 decrypted = PiiVaProfileID(va_profile_id, True).get_pii()
