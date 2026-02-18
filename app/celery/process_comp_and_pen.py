@@ -165,14 +165,19 @@ def _send_comp_and_pen_sms(
         )
 
         # Use perf_to_number as the recipient if available. Otherwise, use vaprofile_id as recipient_item.
-        recipient_item = (
-            None
-            if perf_to_number is not None
-            else {
-                'id_type': IdentifierType.VA_PROFILE_ID.value,
-                'id_value': resolved_vaprofile,
-            }
-        )
+        # recipient_item = (
+        #     None
+        #     if perf_to_number is not None
+        #     else {
+        #         'id_type': IdentifierType.VA_PROFILE_ID.value,
+        #         'id_value': resolved_vaprofile,
+        #     }
+        # )
+
+        recipient_item = {
+            'id_type': IdentifierType.VA_PROFILE_ID.value,
+            'id_value': resolved_vaprofile,
+        }
 
         try:
             send_notification_bypass_route(
