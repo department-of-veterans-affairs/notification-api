@@ -376,6 +376,18 @@ def test_send_sms_handles_pinpoint_v2_nonretryable_exceptions(
     with pytest.raises(NonRetryableException):
         aws_pinpoint_client.send_sms(TEST_RECIPIENT_NUMBER, TEST_CONTENT, TEST_REFERENCE)
 
+    log_method = (
+        aws_pinpoint_client.logger.error
+        if error_code == 'ServiceQuotaExceededException'
+        else aws_pinpoint_client.logger.warning
+    )
+    log_calls = log_method.call_args_list
+    assert any(
+        call[0][0] == '%s sending SMS - Reason: %s, ResourceType: %s, ResourceId: %s, Recipient: %s'
+        and call[0][1] == error_code
+        for call in log_calls
+    )
+
 
 def test_send_sms_v2_handles_botocore_param_validation_error_as_nonretryable(mocker, aws_pinpoint_client):
     """Test that when calling PinpointV2 a (Botocore) ParamValidationError is properly handled and raises NonRetryableException.
