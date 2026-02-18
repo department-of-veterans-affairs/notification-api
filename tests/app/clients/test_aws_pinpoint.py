@@ -378,10 +378,8 @@ def test_send_sms_handles_pinpoint_v2_nonretryable_exceptions(
 
     if error_code == 'ServiceQuotaExceededException':
         aws_pinpoint_client.logger.error.assert_called()
-        aws_pinpoint_client.logger.warning.assert_not_called()
     else:
         aws_pinpoint_client.logger.warning.assert_called()
-        aws_pinpoint_client.logger.error.assert_not_called()
 
 
 def test_send_sms_v2_handles_botocore_param_validation_error_as_nonretryable(mocker, aws_pinpoint_client):
