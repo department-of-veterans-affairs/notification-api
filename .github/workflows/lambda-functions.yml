@@ -92,8 +92,7 @@ jobs:
           cd ..
           # Update function code with the new zip file
           aws lambda update-function-code --function-name project-${{ inputs.environment }}-va-profile-opt-in-out-lambda --zip-file fileb://va_profile_opt_in_out_lambda.zip
-          # Clean up temporary staging directory
-          rm -rf tmp
+
       - name: Package and deploy VA Profile remove old opt-outs lambda function
         if: ${{ (inputs.lambdaName == 'ProfileRemoveOldOptOuts') || (inputs.lambdaName == 'All') }}
         run: |

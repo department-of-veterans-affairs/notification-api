@@ -10,7 +10,7 @@ from lambda_functions.va_profile_remove_old_opt_outs.va_profile_remove_old_opt_o
 
 @pytest.mark.serial
 @pytest.mark.parametrize('method', ['stored_procedure', 'lambda_handler'])
-def test_remove_opted_out_records_query(notify_db_session, sample_va_profile_local_cache, method, mock_pii_env_vars):
+def test_remove_opted_out_records_query(notify_db_session, sample_va_profile_local_cache, method):
     """
     If the difference between the current time and source_datetime is greater than 24 hours,
     the stored function should delete opt-out records.
