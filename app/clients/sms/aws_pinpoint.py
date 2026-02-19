@@ -387,7 +387,9 @@ class AwsPinpointClient(SmsClient):
 
             recipient_number = f'{recipient_number[:-4]}XXXX'
 
-            self.logger.warning(
+            # Log quota errors as ERROR for better monitoring/alerting; other non-retryable errors as WARNING
+            log_method = self.logger.error if error_code == 'ServiceQuotaExceededException' else self.logger.warning
+            log_method(
                 '%s sending SMS - Reason: %s, ResourceType: %s, ResourceId: %s, Recipient: %s',
                 error_code,
                 reason,
