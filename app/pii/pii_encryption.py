@@ -10,12 +10,7 @@ Classes in this module follow guidance from:
 - VA Documents
 """
 
-# Builtins
 import os
-from hmac import HMAC
-import hashlib
-
-# Dependencies
 from cryptography.fernet import Fernet
 
 
@@ -51,39 +46,3 @@ class PiiEncryption:
             cls._key = key_str.encode()
             cls._fernet = Fernet(cls._key)
         return cls._fernet
-
-
-class PiiHMAC:
-    """Manages HMAC-SHA256 deterministic hashing for PII data."""
-
-    _key: bytes | None = None
-
-    @classmethod
-    def _get_hmac_key(cls) -> bytes:
-        """Get or create an HMAC instance for deterministic hashing.
-
-        Raises:
-            ValueError: If PII_HMAC_KEY environment variable is not set.
-        """
-        if cls._key is None:
-            # Use environment variable - key must be provided in production
-            key_str = os.getenv('PII_HMAC_KEY')
-            if key_str is None:
-                # Fallback to use 'PII_ENCRYPTION_KEY'
-                key_str = os.getenv('PII_ENCRYPTION_KEY')
-
-                if key_str is None:
-                    raise ValueError(
-                        'PII_HMAC_KEY is not found. PII_ENCRYPTION_KEY env variable is required, '
-                        'This key must be provided through AWS Parameter Store in production environments.'
-                    )
-
-            # Key from SSM Parameter Store comes as string, encode to bytes
-            cls._key = key_str.encode()
-        return cls._key
-
-    @classmethod
-    def get_hmac(cls, data: str) -> str:
-        """Generates HMAC-SHA256 for the given PII data."""
-        _hmac = HMAC(cls._get_hmac_key(), data.encode(), digestmod=hashlib.sha256)
-        return _hmac.hexdigest()

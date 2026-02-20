@@ -56,7 +56,7 @@ fileignoreconfig:
 - filename: documents/postman/staging-simplified.postman_environment.json
   checksum: 099057c7329d7586b4aea2162dd746bf57b73404857bb78ee8496e1f0e5f41ef
 - filename: migrations/env.py
-  checksum: 89dc3fe8602ec384c68fa5c392277430ccbfe078e04c91abe3775936a795ec54
+  checksum: f91e70b1564f83c0553cf16ef10e88a4b860616a913487f99284e96a33d5e3f6
 - filename: poetry.lock
   checksum: 3ce567d5ff0d0cfec3666056e0d206444e0b6dec688b9937ae64b0045b6a1a33
 - filename: tests/__init__.py
@@ -64,7 +64,7 @@ fileignoreconfig:
 - filename: tests/app/authentication/test_authentication.py
   checksum: 089820996b9a438b143860eeac2e1fb7cae879fc520ed9efae69ac9d68fdb374
 - filename: tests/app/conftest.py
-  checksum: 801f0c7f275b0d1bb0e73d3864b0117444bce0b878026c82433d83e33349730d
+  checksum: f2c4f17bfa52823c32747fb11dbb8c96f43c2490ac2cffa16ffa57e7df55f3e5
 - filename: tests/app/clients/test_aws_pinpoint.py
   checksum: ea074fc541a229538237a3b14e4267bde39608c133c372e42bc506e84194ec7b
 - filename: tests/app/dao/test_api_key_dao.py
@@ -82,7 +82,7 @@ fileignoreconfig:
 - filename: tests/app/celery/test_process_comp_and_pen.py
   checksum: e04a30f7026b0ed7fb9d138b617a5f7b53bec99c17ba3286d0a7e4ab48d84a9e
 - filename: tests/app/pii/test_pii.py
-  checksum: 2ecf6e3585d4024a5913cefa72012d6a7fbd943a8333e9961faef8bfe8752f71
+  checksum: 179577f6d786debcf081f7c3f3f36a28776abdb6598d04c5fc97bb8391559880
 - filename: tests/app/service/test_api_key_endpoints.py
   checksum: cf28b1466647e455be6e17b0318af7a167b5d46138e81e3179189cab2c9c3767
 - filename: tests/app/test_validate.py
@@ -98,17 +98,9 @@ fileignoreconfig:
 - filename: app/va/va_profile/va_profile_client.py
   checksum: 5c867bf817283bf50f2d974697c1c08d80976f37b1a1a13d0ba2e029536e9b2c
 - filename: lambda_functions/va_profile/va_profile_opt_in_out_lambda.py
-  checksum: f75205ef294e08b9c5d7a568dedb06a8a2abbd5998b459db6f34fb2c4146e5ef
+  checksum: 9cdb7bf7610743d061cf653d4292be2a3966d428ae1234da56c8314e7699d096
 - filename: app/pii/pii_base.py
-  checksum: a95e7b554c3895a140a9fddecb4139b4167e3a843e4dddb3987606d1d8b633f0
-- filename: migrations/env.py
-  checksum: f1c6c3c65b1c1ac93d79cc3fe29d704416b6eca70054870991f786638563315e
-- filename: tests/lambda_functions/conftest.py
-  checksum: 3426a26db7271dc6c8691a75ac167b972c210cadcf545ae669d65764a8921104
-- filename: tests/lambda_functions/va_profile/test_va_profile_integration.py
-  checksum: f4c5ae956069cb580803d82ca01be639c7a4527d8dc6a0d85c7bf62072b447b9
+  checksum: 584cb03893d943c5f8504e5951128f17ce26cf9ffdfc51a29992d9e30e9a3d8b
 - filename: app/pii/pii_encryption.py
   checksum: 990dc841e6143b36c03647d3bee43871e62be8f5535f388878e5f74aeaa0237e
-- filename: ci/.local.env
-  checksum: 18af10b56ddc6177c311840f70a4829648e356bc36de3723a3870015a97e2745
 version: "1.0"
