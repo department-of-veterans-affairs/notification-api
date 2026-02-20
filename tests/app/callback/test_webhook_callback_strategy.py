@@ -199,3 +199,83 @@ def test_callback_signature_length(
         {'data': 'test'},
     )
     assert len(signature) == 64  # Expected length from HMAC-SHA256
+
+
+def test_send_callback_includes_custom_headers(notify_api):
+    custom_headers = {'X-Api-Key': 'my-key', 'X-Correlation-Id': 'abc-123'}
+    callback = DeliveryStatusCallbackApiData(
+        id=str(uuid4()),
+        service_id=str(uuid4()),
+        url='http://some_url',
+        _bearer_token=encryption.encrypt('some token'),
+        include_provider_payload=True,
+        callback_channel='some-channel',
+        callback_type='some-type',
+        _callback_headers=encryption.encrypt(custom_headers),
+    )
+
+    with requests_mock.Mocker() as request_mock:
+        request_mock.post('http://some_url', json={}, status_code=200)
+        WebhookCallbackStrategy.send_callback(
+            callback=callback,
+            payload={'message': 'hello'},
+            logging_tags={'log': 'some log'},
+        )
+
+    assert request_mock.call_count == 1
+    sent_headers = request_mock.request_history[0].headers
+    assert sent_headers['X-Api-Key'] == 'my-key'
+    assert sent_headers['X-Correlation-Id'] == 'abc-123'
+    # System headers should still be present
+    assert sent_headers['Content-Type'] == 'application/json'
+    assert sent_headers['Authorization'] == 'Bearer some token'
+
+
+def test_send_callback_without_custom_headers(notify_api, sample_delivery_status_callback_api_data):
+    with requests_mock.Mocker() as request_mock:
+        request_mock.post('http://some_url', json={}, status_code=200)
+        WebhookCallbackStrategy.send_callback(
+            callback=sample_delivery_status_callback_api_data,
+            payload={'message': 'hello'},
+            logging_tags={'log': 'some log'},
+        )
+
+    assert request_mock.call_count == 1
+    sent_headers = request_mock.request_history[0].headers
+    assert sent_headers['Content-Type'] == 'application/json'
+    assert sent_headers['Authorization'] == 'Bearer some token'
+    assert 'X-Api-Key' not in sent_headers
+
+
+def test_send_callback_custom_headers_do_not_override_system_headers(notify_api):
+    custom_headers = {
+        'Content-Type': 'text/plain',
+        'Authorization': 'Bearer evil-token',
+        'X-Custom': 'allowed',
+    }
+    callback = DeliveryStatusCallbackApiData(
+        id=str(uuid4()),
+        service_id=str(uuid4()),
+        url='http://some_url',
+        _bearer_token=encryption.encrypt('legit-token'),
+        include_provider_payload=True,
+        callback_channel='some-channel',
+        callback_type='some-type',
+        _callback_headers=encryption.encrypt(custom_headers),
+    )
+
+    with requests_mock.Mocker() as request_mock:
+        request_mock.post('http://some_url', json={}, status_code=200)
+        WebhookCallbackStrategy.send_callback(
+            callback=callback,
+            payload={'message': 'hello'},
+            logging_tags={'log': 'some log'},
+        )
+
+    assert request_mock.call_count == 1
+    sent_headers = request_mock.request_history[0].headers
+    # System headers must NOT be overridden
+    assert sent_headers['Content-Type'] == 'application/json'
+    assert sent_headers['Authorization'] == 'Bearer legit-token'
+    # Non-system custom header should still be present
+    assert sent_headers['X-Custom'] == 'allowed'

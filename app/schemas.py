@@ -424,8 +424,9 @@ class ServiceCallbackSchema(BaseSchema):
             'callback_type',
             'callback_channel',
             'include_provider_payload',
+            'callback_headers',
         )
-        load_only = ['_bearer_token', 'bearer_token']
+        load_only = ['_bearer_token', 'bearer_token', '_callback_headers', 'callback_headers']
         strict = True
         load_instance = True
 
