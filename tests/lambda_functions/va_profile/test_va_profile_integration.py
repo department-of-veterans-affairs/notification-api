@@ -10,7 +10,7 @@ import importlib
 import json
 from datetime import datetime, timedelta, timezone
 from json import dumps, loads
-from random import randint
+from random import randint, sample
 from unittest.mock import Mock, patch
 
 import jwt
@@ -35,6 +35,12 @@ LAMBDA_MODULE = 'lambda_functions.va_profile.va_profile_opt_in_out_lambda'
 OPT_IN_OUT = text(
     """\
 SELECT va_profile_opt_in_out(:va_profile_id, :communication_item_id, \
+:communication_channel_id, :allowed, :source_datetime);"""
+)
+ENCRYPTED_OPT_IN_OUT = text(
+    """\
+SELECT encrypted_va_profile_opt_in_out(:va_profile_id, :encrypted_va_profile_id, \
+:encrypted_va_profile_id_blind_index, :communication_item_id, \
 :communication_channel_id, :allowed, :source_datetime);"""
 )
 
@@ -279,6 +285,184 @@ def test_va_profile_stored_function_new_row(notify_db_session):
     )
     assert notify_db_session.session.execute(stmt).rowcount == 1
     notify_db_session.session.commit()
+
+
+def test_encrypted_va_profile_stored_function_older_date(notify_db_session, sample_va_profile_local_cache):
+    """
+    If the given date is older than the existing date, no update should occur.
+    """
+
+    va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-03-07T19:37:59.320Z', allowed=False)
+
+    # Test values
+    encrypted_va_profile_id = 'test_encrypted_va_profile_id'
+    encrypted_va_profile_id_blind_index = 'test_encrypted_va_profile_id_blind_index'
+
+    encrypted_opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
+        va_profile_id=va_profile_local_cache.va_profile_id,
+        encrypted_va_profile_id=encrypted_va_profile_id,
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
+        communication_item_id=va_profile_local_cache.communication_item_id,
+        communication_channel_id=va_profile_local_cache.communication_channel_id,
+        allowed=True,
+        source_datetime='2022-02-07T19:37:59.320Z',  # Older date
+    )
+
+    assert not notify_db_session.session.scalar(encrypted_opt_in_out), 'The date is older than the existing entry.'
+    notify_db_session.session.refresh(va_profile_local_cache)
+    assert not va_profile_local_cache.allowed, 'The veteran should still be opted-out.'
+
+
+def test_encrypted_va_profile_stored_function_newer_date(notify_db_session, sample_va_profile_local_cache):
+    """
+    If the given date is newer than the existing date, an update should occur.
+    """
+
+    va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-03-07T19:37:59.320Z', allowed=False)
+
+    # Test values
+    encrypted_va_profile_id = 'test_encrypted_va_profile_id'
+    encrypted_va_profile_id_blind_index = 'test_encrypted_va_profile_id_blind_index'
+
+    encrypted_opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
+        va_profile_id=va_profile_local_cache.va_profile_id,
+        encrypted_va_profile_id=encrypted_va_profile_id,
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
+        communication_item_id=va_profile_local_cache.communication_item_id,
+        communication_channel_id=va_profile_local_cache.communication_channel_id,
+        allowed=True,
+        source_datetime='2022-04-07T19:37:59.320Z',  # Newer date
+    )
+
+    assert notify_db_session.session.scalar(encrypted_opt_in_out), 'The date is newer than the existing entry.'
+    notify_db_session.session.refresh(va_profile_local_cache)
+    assert va_profile_local_cache.source_datetime.month == 4, 'The date should have updated.'
+
+
+def test_encrypted_va_profile_stored_function_new_row(notify_db_session):
+    """
+    Create a new row for a combination of identifiers not already in the database.
+    """
+
+    va_profile_id = randint(1000, 100000)
+    encrypted_va_profile_id = 'test_encrypted_va_profile_id'
+    encrypted_va_profile_id_blind_index = 'test_encrypted_va_profile_id_blind_index'
+
+    stmt = (
+        select(func.count())
+        .select_from(VAProfileLocalCache)
+        .where(
+            VAProfileLocalCache.va_profile_id == va_profile_id,
+            VAProfileLocalCache.encrypted_va_profile_id == encrypted_va_profile_id,
+            VAProfileLocalCache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_blind_index,
+            VAProfileLocalCache.communication_item_id == 5,
+            VAProfileLocalCache.communication_channel_id == 1,
+        )
+    )
+
+    assert notify_db_session.session.scalar(stmt) == 0
+
+    opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
+        va_profile_id=va_profile_id,
+        encrypted_va_profile_id=encrypted_va_profile_id,
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
+        communication_item_id=5,
+        communication_channel_id=1,
+        allowed=True,
+        source_datetime='2022-02-07T19:37:59.320Z',
+    )
+
+    assert notify_db_session.session.scalar(opt_in_out), 'This should create a new row.'
+
+    # Verify one row was created using a delete statement that doubles as teardown.
+    stmt = delete(VAProfileLocalCache).where(
+        VAProfileLocalCache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_blind_index,
+        VAProfileLocalCache.communication_item_id == 5,
+        VAProfileLocalCache.communication_channel_id == 1,
+    )
+    assert notify_db_session.session.execute(stmt).rowcount == 1
+    notify_db_session.session.commit()
+
+
+def test_encrypted_and_raw_va_profile_stored_func(notify_db_session):
+    """
+    Verify that the raw (OPT_IN_OUT) and encrypted (ENCRYPTED_OPT_IN_OUT) stored functions
+    can independently create rows without interfering with each other.
+    """
+    session = notify_db_session.session
+
+    va_profile_id_1, va_profile_id_2 = sample(range(1000, 100000), 2)
+    encrypted_va_profile_id = 'test_encrypted_va_profile_id'
+    encrypted_va_profile_id_blind_index = 'test_encrypted_va_profile_id_blind_index'
+
+    raw_params = dict(
+        va_profile_id=va_profile_id_1,
+        communication_item_id=5,
+        communication_channel_id=1,
+        allowed=True,
+        source_datetime='2022-02-07T19:37:59.320Z',
+    )
+    encrypted_params = dict(
+        va_profile_id=va_profile_id_2,
+        encrypted_va_profile_id=encrypted_va_profile_id,
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
+        communication_item_id=6,
+        communication_channel_id=2,
+        allowed=True,
+        source_datetime='2023-02-07T19:37:59.320Z',
+    )
+
+    raw_filters = [
+        VAProfileLocalCache.va_profile_id == raw_params['va_profile_id'],
+        VAProfileLocalCache.communication_item_id == raw_params['communication_item_id'],
+        VAProfileLocalCache.communication_channel_id == raw_params['communication_channel_id'],
+    ]
+    encrypted_filters = [
+        VAProfileLocalCache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_blind_index,
+        VAProfileLocalCache.communication_item_id == encrypted_params['communication_item_id'],
+        VAProfileLocalCache.communication_channel_id == encrypted_params['communication_channel_id'],
+    ]
+
+    # Check that rows do not yet exist
+    assert session.scalar(select(func.count()).select_from(VAProfileLocalCache).where(*raw_filters)) == 0
+    assert session.scalar(select(func.count()).select_from(VAProfileLocalCache).where(*encrypted_filters)) == 0
+
+    # Run both stored functions
+    assert session.scalar(OPT_IN_OUT.bindparams(**raw_params)), 'OPT_IN_OUT should create a new row.'
+    assert session.scalar(ENCRYPTED_OPT_IN_OUT.bindparams(**encrypted_params)), (
+        'ENCRYPTED_OPT_IN_OUT should create a new row.',
+    )
+
+    # Assert + teardown: each function created exactly one row
+    assert session.execute(delete(VAProfileLocalCache).where(*raw_filters)).rowcount == 1
+    assert session.execute(delete(VAProfileLocalCache).where(*encrypted_filters)).rowcount == 1
+
+    session.commit()
+
+
+def test_encrypted_stored_function_matches_on_id_with_null_blind_index(
+    notify_db_session, sample_va_profile_local_cache
+):
+    """
+    When the existing row has no blind index, the update should match on va_profile_id.
+    """
+    va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-03-07T19:37:59.320Z', allowed=False)
+
+    encrypted_opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
+        va_profile_id=va_profile_local_cache.va_profile_id,
+        encrypted_va_profile_id='test_encrypted_va_profile_id',
+        encrypted_va_profile_id_blind_index='test_encrypted_va_profile_id_blind_index',
+        communication_item_id=va_profile_local_cache.communication_item_id,
+        communication_channel_id=va_profile_local_cache.communication_channel_id,
+        allowed=True,
+        source_datetime='2022-04-07T19:37:59.320Z',
+    )
+
+    assert notify_db_session.session.scalar(encrypted_opt_in_out), (
+        'Should match on va_profile_id when blind index is null.'
+    )
+    notify_db_session.session.refresh(va_profile_local_cache)
+    assert va_profile_local_cache.allowed, 'The veteran should now be opted-in.'
 
 
 def test_jwt_is_valid(jwt_encoded, public_key):
