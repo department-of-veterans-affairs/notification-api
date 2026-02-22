@@ -22,7 +22,7 @@ def upgrade():
         INSERT INTO va_profile_local_cache(va_profile_id, encrypted_va_profile_id, encrypted_va_profile_id_blind_index, communication_item_id, communication_channel_id, source_datetime, allowed)
             VALUES (_va_profile_id, _encrypted_va_profile_id, _encrypted_va_profile_id_blind_index, _communication_item_id, _communication_channel_id, _source_datetime, _allowed) 
             ON CONFLICT ON CONSTRAINT uix_veteran_id DO UPDATE
-            SET allowed = _allowed, source_datetime = _source_datetime
+            SET allowed = _allowed, source_datetime = _source_datetime, encrypted_va_profile_id_blind_index = _encrypted_va_profile_id_blind_index, encrypted_va_profile_id = COALESCE(_encrypted_va_profile_id, va_profile_local_cache.encrypted_va_profile_id)
             WHERE _source_datetime > va_profile_local_cache.source_datetime
                 AND (
                     va_profile_local_cache.encrypted_va_profile_id_blind_index = _encrypted_va_profile_id_blind_index
