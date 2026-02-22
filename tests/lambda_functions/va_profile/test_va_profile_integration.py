@@ -319,6 +319,10 @@ def test_encrypted_va_profile_stored_function_newer_date(notify_db_session, samp
     """
 
     va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-03-07T19:37:59.320Z', allowed=False)
+    assert va_profile_local_cache.encrypted_va_profile_id is None, 'encrypted_va_profile_id should be null.'
+    assert va_profile_local_cache.encrypted_va_profile_id_blind_index is None, (
+        'encrypted_va_profile_id_blind_index should be null.'
+    )
 
     # Test values
     encrypted_va_profile_id = 'test_encrypted_va_profile_id'
@@ -337,6 +341,12 @@ def test_encrypted_va_profile_stored_function_newer_date(notify_db_session, samp
     assert notify_db_session.session.scalar(encrypted_opt_in_out), 'The date is newer than the existing entry.'
     notify_db_session.session.refresh(va_profile_local_cache)
     assert va_profile_local_cache.source_datetime.month == 4, 'The date should have updated.'
+    assert va_profile_local_cache.encrypted_va_profile_id == encrypted_va_profile_id, (
+        'The encrypted_va_profile_id should have updated.'
+    )
+    assert va_profile_local_cache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_blind_index, (
+        'The encrypted_va_profile_id_blind_index should have updated.'
+    )
 
 
 def test_encrypted_va_profile_stored_function_new_row(notify_db_session):
