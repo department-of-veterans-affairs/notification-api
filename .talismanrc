@@ -58,7 +58,7 @@ fileignoreconfig:
 - filename: migrations/env.py
   checksum: f91e70b1564f83c0553cf16ef10e88a4b860616a913487f99284e96a33d5e3f6
 - filename: poetry.lock
-  checksum: 260b29860ee95c1ebe7cba30e79bc0bfcd95fcaef64dce6da570f50d6185edf2
+  checksum: c3cae1edf72ae517aece637fea9b459bddb00d05d240afb087dff938b55b0236
 - filename: tests/__init__.py
   checksum: f5d40d69c58fab45f49d51a205eba2f33a4ef7fad37b48a863a02b03a2d0cbb0
 - filename: tests/app/authentication/test_authentication.py
