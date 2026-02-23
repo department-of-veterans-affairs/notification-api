@@ -55,8 +55,9 @@ def test_put_attachment(store):
         ContentType='application/pdf',
         Key=Matcher(
             'attachment key',
-            lambda attachment_key: attachment_key.startswith(f'{service_id}/')
-            and len(attachment_key.split('/')[-1]) == 36,
+            lambda attachment_key: (
+                attachment_key.startswith(f'{service_id}/') and len(attachment_key.split('/')[-1]) == 36
+            ),
         ),
         SSECustomerKey=base64.b64decode(ret.encryption_key),
         SSECustomerAlgorithm='AES256',
@@ -75,8 +76,9 @@ def test_put_attachment_attach_tmp_dir(store):
         ContentType='application/pdf',
         Key=Matcher(
             'attachment key',
-            lambda attachment_key: attachment_key.startswith(f'tmp/{service_id}/')
-            and len(attachment_key.split('/')[-1]) == 36,
+            lambda attachment_key: (
+                attachment_key.startswith(f'tmp/{service_id}/') and len(attachment_key.split('/')[-1]) == 36
+            ),
         ),
         SSECustomerKey=base64.b64decode(ret.encryption_key),
         SSECustomerAlgorithm='AES256',
