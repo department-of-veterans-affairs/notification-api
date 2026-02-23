@@ -7,6 +7,8 @@ created or updated; otherwise, False.
 """
 
 import importlib
+import os
+import hashlib
 import json
 from datetime import datetime, timedelta, timezone
 from json import dumps, loads
@@ -203,6 +205,12 @@ def create_event(
     }
 
 
+def generate_random_sha256() -> str:
+    """Generate a random SHA-256 hash string.
+    This is used for generating random blind index values in tests."""
+    return hashlib.sha256(os.urandom(32)).hexdigest()
+
+
 def test_va_profile_cache_exists(notify_db_session):
     assert notify_db_session.engine.has_table('va_profile_local_cache')
 
@@ -295,8 +303,8 @@ def test_encrypted_va_profile_stored_function_older_date(notify_db_session, samp
     va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-03-07T19:37:59.320Z', allowed=False)
 
     # Test values
-    encrypted_va_profile_id = 'test_encrypted_va_profile_id'
-    encrypted_va_profile_id_blind_index = 'test_encrypted_va_profile_id_blind_index'
+    encrypted_va_profile_id = generate_random_sha256()
+    encrypted_va_profile_id_blind_index = generate_random_sha256()
 
     encrypted_opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
@@ -325,8 +333,8 @@ def test_encrypted_va_profile_stored_function_newer_date(notify_db_session, samp
     )
 
     # Test values
-    encrypted_va_profile_id = 'test_encrypted_va_profile_id'
-    encrypted_va_profile_id_blind_index = 'test_encrypted_va_profile_id_blind_index'
+    encrypted_va_profile_id = generate_random_sha256()
+    encrypted_va_profile_id_blind_index = generate_random_sha256()
 
     encrypted_opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
@@ -355,8 +363,8 @@ def test_encrypted_va_profile_stored_function_new_row(notify_db_session):
     """
 
     va_profile_id = randint(1000, 100000)
-    encrypted_va_profile_id = 'test_encrypted_va_profile_id'
-    encrypted_va_profile_id_blind_index = 'test_encrypted_va_profile_id_blind_index'
+    encrypted_va_profile_id = generate_random_sha256()
+    encrypted_va_profile_id_blind_index = generate_random_sha256()
 
     stmt = (
         select(func.count())
@@ -402,8 +410,8 @@ def test_encrypted_and_raw_va_profile_stored_func(notify_db_session):
     session = notify_db_session.session
 
     va_profile_id_1, va_profile_id_2 = sample(range(1000, 100000), 2)
-    encrypted_va_profile_id = 'test_encrypted_va_profile_id'
-    encrypted_va_profile_id_blind_index = 'test_encrypted_va_profile_id_blind_index'
+    encrypted_va_profile_id = generate_random_sha256()
+    encrypted_va_profile_id_blind_index = generate_random_sha256()
 
     raw_params = dict(
         va_profile_id=va_profile_id_1,
@@ -460,8 +468,8 @@ def test_encrypted_stored_function_matches_on_id_with_null_blind_index(
 
     encrypted_opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
-        encrypted_va_profile_id='test_encrypted_va_profile_id',
-        encrypted_va_profile_id_blind_index='test_encrypted_va_profile_id_blind_index',
+        encrypted_va_profile_id=generate_random_sha256(),
+        encrypted_va_profile_id_blind_index=generate_random_sha256(),
         communication_item_id=va_profile_local_cache.communication_item_id,
         communication_channel_id=va_profile_local_cache.communication_channel_id,
         allowed=True,
