@@ -440,7 +440,7 @@ def test_encrypted_and_raw_va_profile_stored_func(notify_db_session):
     # Run both stored functions
     assert session.scalar(OPT_IN_OUT.bindparams(**raw_params)), 'OPT_IN_OUT should create a new row.'
     assert session.scalar(ENCRYPTED_OPT_IN_OUT.bindparams(**encrypted_params)), (
-        'ENCRYPTED_OPT_IN_OUT should create a new row.',
+        'ENCRYPTED_OPT_IN_OUT should create a new row.'
     )
 
     # Assert + teardown: each function created exactly one row

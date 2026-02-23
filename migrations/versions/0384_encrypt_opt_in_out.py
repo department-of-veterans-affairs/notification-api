@@ -1,4 +1,4 @@
-"""Update va_profile_opt_in_out stored function to accept encrypted_va_profile_id
+"""Add encrypted_va_profile_opt_in_out stored function.
 
 Revision ID: 0384_encrypt_opt_in_out
 Revises: 0383_add_blind_index
