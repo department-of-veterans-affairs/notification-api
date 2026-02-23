@@ -22,14 +22,33 @@ def upgrade():
         INSERT INTO va_profile_local_cache(va_profile_id, encrypted_va_profile_id, encrypted_va_profile_id_blind_index, communication_item_id, communication_channel_id, source_datetime, allowed)
             VALUES (_va_profile_id, _encrypted_va_profile_id, _encrypted_va_profile_id_blind_index, _communication_item_id, _communication_channel_id, _source_datetime, _allowed) 
             ON CONFLICT ON CONSTRAINT uix_veteran_id DO UPDATE
-            SET allowed = _allowed, source_datetime = _source_datetime, encrypted_va_profile_id_blind_index = _encrypted_va_profile_id_blind_index, encrypted_va_profile_id = COALESCE(_encrypted_va_profile_id, va_profile_local_cache.encrypted_va_profile_id)
-            WHERE _source_datetime > va_profile_local_cache.source_datetime
+            SET allowed = EXCLUDED.allowed, source_datetime = EXCLUDED.source_datetime,
+                -- Only "upgrade" encrypted fields when NOT a blind-index match
+                encrypted_va_profile_id =
+                    CASE
+                        WHEN va_profile_local_cache.encrypted_va_profile_id_blind_index
+                             = EXCLUDED.encrypted_va_profile_id_blind_index
+                        THEN va_profile_local_cache.encrypted_va_profile_id
+                        ELSE EXCLUDED.encrypted_va_profile_id
+                    END,
+            
+                encrypted_va_profile_id_blind_index =
+                    CASE
+                        WHEN va_profile_local_cache.encrypted_va_profile_id_blind_index = EXCLUDED.encrypted_va_profile_id_blind_index
+                        THEN va_profile_local_cache.encrypted_va_profile_id_blind_index
+                        ELSE EXCLUDED.encrypted_va_profile_id_blind_index
+                    END
+            WHERE
+                EXCLUDED.source_datetime > va_profile_local_cache.source_datetime
+                AND va_profile_local_cache.communication_item_id = EXCLUDED.communication_item_id
+                AND va_profile_local_cache.communication_channel_id = EXCLUDED.communication_channel_id
                 AND (
-                    va_profile_local_cache.encrypted_va_profile_id_blind_index = _encrypted_va_profile_id_blind_index
-                    OR (va_profile_local_cache.encrypted_va_profile_id_blind_index IS NULL AND va_profile_local_cache.va_profile_id = _va_profile_id)
-                )
-                AND va_profile_local_cache.communication_item_id = _communication_item_id
-                AND va_profile_local_cache.communication_channel_id = _communication_channel_id;
+                    -- blind-index match
+                    va_profile_local_cache.encrypted_va_profile_id_blind_index = EXCLUDED.encrypted_va_profile_id_blind_index
+                    OR
+                    -- fallback match by va_profile_id
+                    va_profile_local_cache.va_profile_id = EXCLUDED.va_profile_id
+                );
         GET DIAGNOSTICS number_of_changed_records = ROW_COUNT; 
         RETURN number_of_changed_records > 0;
         END;
