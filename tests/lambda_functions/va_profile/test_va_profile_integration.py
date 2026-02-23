@@ -12,7 +12,6 @@ from datetime import datetime, timedelta, timezone
 from json import dumps, loads
 from random import randint
 from unittest.mock import Mock, patch
-import os
 
 import jwt
 import pytest
@@ -27,19 +26,16 @@ from lambda_functions.va_profile.va_profile_opt_in_out_lambda import (
     generate_jwt,
     jwt_is_valid,
     va_profile_opt_in_out_lambda_handler,
-    EncryptedVAProfileId,
 )
-from tests.lambda_functions.conftest import TEST_ENCRYPTION_KEY, TEST_HMAC_KEY
-
 
 # Base path for mocks
 LAMBDA_MODULE = 'lambda_functions.va_profile.va_profile_opt_in_out_lambda'
 
 # This is a call to a stored procedure.
 OPT_IN_OUT = text(
-    'SELECT va_profile_opt_in_out('
-    ':va_profile_id, :encrypted_va_profile_id, :encrypted_va_profile_id_blind_index, '
-    ':communication_item_id, :communication_channel_id, :allowed, :source_datetime);'
+    """\
+SELECT va_profile_opt_in_out(:va_profile_id, :communication_item_id, \
+:communication_channel_id, :allowed, :source_datetime);"""
 )
 
 
@@ -53,9 +49,6 @@ def mock_env_vars(monkeypatch):
     monkeypatch.setenv('ALB_CERTIFICATE_ARN', 'mock_alb_certificate_arn')
     monkeypatch.setenv('ALB_PRIVATE_KEY_PATH', 'mock_alb_private_key_path')
     monkeypatch.setenv('VA_PROFILE_DOMAIN', 'mock_va_profile_domain')
-    monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
-    monkeypatch.setenv('PII_HMAC_KEY', TEST_HMAC_KEY)
-    monkeypatch.setenv('PII_ENCRYPTION_KEY_PATH', '/fake/path/to/pii_encryption_key')
 
 
 @pytest.fixture
@@ -208,16 +201,15 @@ def test_va_profile_cache_exists(notify_db_session):
     assert notify_db_session.engine.has_table('va_profile_local_cache')
 
 
-def test_va_profile_stored_function_older_date(notify_db_session, sample_va_profile_local_cache, mock_env_vars):
+def test_va_profile_stored_function_older_date(notify_db_session, sample_va_profile_local_cache):
     """
     If the given date is older than the existing date, no update should occur.
     """
 
     va_profile_local_cache = sample_va_profile_local_cache('2022-03-07T19:37:59.320Z', False)
+
     opt_in_out = OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
-        encrypted_va_profile_id=va_profile_local_cache.encrypted_va_profile_id,
-        encrypted_va_profile_id_blind_index=va_profile_local_cache.encrypted_va_profile_id_blind_index,
         communication_item_id=va_profile_local_cache.communication_item_id,
         communication_channel_id=va_profile_local_cache.communication_channel_id,
         allowed=True,
@@ -229,7 +221,7 @@ def test_va_profile_stored_function_older_date(notify_db_session, sample_va_prof
     assert not va_profile_local_cache.allowed, 'The veteran should still be opted-out.'
 
 
-def test_va_profile_stored_function_newer_date(notify_db_session, sample_va_profile_local_cache, mock_env_vars):
+def test_va_profile_stored_function_newer_date(notify_db_session, sample_va_profile_local_cache):
     """
     If the given date is newer than the existing date, an update should occur.
     """
@@ -239,8 +231,6 @@ def test_va_profile_stored_function_newer_date(notify_db_session, sample_va_prof
 
     opt_in_out = OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
-        encrypted_va_profile_id=va_profile_local_cache.encrypted_va_profile_id,
-        encrypted_va_profile_id_blind_index=va_profile_local_cache.encrypted_va_profile_id_blind_index,
         communication_item_id=va_profile_local_cache.communication_item_id,
         communication_channel_id=va_profile_local_cache.communication_channel_id,
         allowed=True,
@@ -252,13 +242,12 @@ def test_va_profile_stored_function_newer_date(notify_db_session, sample_va_prof
     assert va_profile_local_cache.source_datetime.month == 4, 'The date should have updated.'
 
 
-def test_va_profile_stored_function_new_row(notify_db_session, mock_env_vars):
+def test_va_profile_stored_function_new_row(notify_db_session):
     """
     Create a new row for a combination of identifiers not already in the database.
     """
 
     va_profile_id = randint(1000, 100000)
-    pii_va_profile_id = EncryptedVAProfileId(va_profile_id)
 
     stmt = (
         select(func.count())
@@ -274,8 +263,6 @@ def test_va_profile_stored_function_new_row(notify_db_session, mock_env_vars):
 
     opt_in_out = OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_id,
-        encrypted_va_profile_id=pii_va_profile_id.fernet_encryption,
-        encrypted_va_profile_id_blind_index=pii_va_profile_id.hmac_encryption,
         communication_item_id=5,
         communication_channel_id=1,
         allowed=True,
@@ -284,94 +271,7 @@ def test_va_profile_stored_function_new_row(notify_db_session, mock_env_vars):
 
     assert notify_db_session.session.scalar(opt_in_out), 'This should create a new row.'
 
-    # Verify the row contents by blind index
-    row = (
-        notify_db_session.session.query(VAProfileLocalCache)
-        .filter_by(
-            encrypted_va_profile_id_blind_index=pii_va_profile_id.hmac_encryption,
-            communication_item_id=5,
-            communication_channel_id=1,
-        )
-        .one()
-    )
-
-    assert row.allowed is True
-    assert row.encrypted_va_profile_id_blind_index == pii_va_profile_id.hmac_encryption
-    assert row.va_profile_id == va_profile_id
-
     # Verify one row was created using a delete statement that doubles as teardown.
-    stmt = delete(VAProfileLocalCache).where(
-        VAProfileLocalCache.va_profile_id == va_profile_id,
-        VAProfileLocalCache.communication_item_id == 5,
-        VAProfileLocalCache.communication_channel_id == 1,
-    )
-    assert notify_db_session.session.execute(stmt).rowcount == 1
-    notify_db_session.session.commit()
-
-
-def test_va_profile_stored_function_backfill(notify_db_session, mock_env_vars):
-    """
-    When a row exists with va_profile_id but no encrypted values,
-    calling the stored function should backfill the encrypted columns.
-    """
-    va_profile_id = randint(1000, 100000)
-    pii_va_profile_id = EncryptedVAProfileId(va_profile_id)
-
-    # Insert a row WITHOUT encrypted values (simulating pre-migration data)
-    pre_migration_row = VAProfileLocalCache(
-        allowed=True,
-        va_profile_id=va_profile_id,
-        encrypted_va_profile_id=None,
-        encrypted_va_profile_id_blind_index=None,
-        communication_item_id=5,
-        communication_channel_id=1,
-        source_datetime='2022-02-07T19:37:59.320Z',
-    )
-    notify_db_session.session.add(pre_migration_row)
-    notify_db_session.session.commit()
-
-    # Confirm encrypted columns are NULL
-    row = (
-        notify_db_session.session.query(VAProfileLocalCache)
-        .filter_by(
-            va_profile_id=va_profile_id,
-            communication_item_id=5,
-            communication_channel_id=1,
-        )
-        .one()
-    )
-    assert row.encrypted_va_profile_id is None
-    assert row.encrypted_va_profile_id_blind_index is None
-
-    # Call the stored function WITH encrypted values (same va_profile_id, same source_datetime)
-    opt_in_out = OPT_IN_OUT.bindparams(
-        va_profile_id=va_profile_id,
-        encrypted_va_profile_id=pii_va_profile_id.fernet_encryption,
-        encrypted_va_profile_id_blind_index=pii_va_profile_id.hmac_encryption,
-        communication_item_id=5,
-        communication_channel_id=1,
-        allowed=True,
-        source_datetime='2025-02-07T19:37:59.320Z',
-    )
-    notify_db_session.session.scalar(opt_in_out)
-
-    # Verify the encrypted columns were backfilled
-    notify_db_session.session.expire_all()
-    row = (
-        notify_db_session.session.query(VAProfileLocalCache)
-        .filter_by(
-            encrypted_va_profile_id_blind_index=pii_va_profile_id.hmac_encryption,
-            communication_item_id=5,
-            communication_channel_id=1,
-        )
-        .one()
-    )
-    assert row.encrypted_va_profile_id == pii_va_profile_id.fernet_encryption
-    assert row.encrypted_va_profile_id_blind_index == pii_va_profile_id.hmac_encryption
-    assert pii_va_profile_id.get_pii() == va_profile_id
-    assert row.allowed is True
-
-    # Teardown
     stmt = delete(VAProfileLocalCache).where(
         VAProfileLocalCache.va_profile_id == va_profile_id,
         VAProfileLocalCache.communication_item_id == 5,
@@ -475,7 +375,6 @@ def test_va_profile_opt_in_out_lambda_handler_valid_dict(
     put_mock,
     get_integration_testing_public_cert_mock,
     post_opt_in_confirmation_mock_return,
-    mock_env_vars,
 ):
     """
     Test the VA Profile integration lambda by sending a valid request that should create
@@ -617,12 +516,7 @@ def test_va_profile_opt_in_out_lambda_handler_new_row(
 
 @pytest.mark.serial
 def test_va_profile_opt_in_out_lambda_handler_older_date(
-    notify_db_session,
-    jwt_encoded,
-    put_mock,
-    sample_va_profile_local_cache,
-    post_opt_in_confirmation_mock_return,
-    mock_env_vars,
+    notify_db_session, jwt_encoded, put_mock, sample_va_profile_local_cache, post_opt_in_confirmation_mock_return
 ):
     """
     Test the VA Profile integration lambda by sending a valid request with an older date.
@@ -663,7 +557,6 @@ def test_va_profile_opt_in_out_lambda_handler_newer_date(
     put_mock,
     sample_va_profile_local_cache,
     post_opt_in_confirmation_mock_return,
-    mock_env_vars,
 ):
     """
     Test the VA Profile integration lambda by sending a valid request with a newer date.
@@ -697,9 +590,7 @@ def test_va_profile_opt_in_out_lambda_handler_newer_date(
     assert va_profile_local_cache.allowed, 'This should have been updated.'
 
 
-def test_va_profile_opt_in_out_lambda_handler_KeyError1(
-    jwt_encoded, put_mock, post_opt_in_confirmation_mock_return, mock_pii_env_vars
-):
+def test_va_profile_opt_in_out_lambda_handler_KeyError1(jwt_encoded, put_mock, post_opt_in_confirmation_mock_return):
     """
     Test the VA Profile integration lambda by inspecting the PUT request it initiates to
     VA Profile in response to a request.  This test should generate a KeyError in the handler
@@ -727,7 +618,7 @@ def test_va_profile_opt_in_out_lambda_handler_KeyError1(
     put_mock.assert_called_once_with('txAuditId', expected_put_body)
 
 
-def test_va_profile_opt_in_out_lambda_handler_KeyError2(jwt_encoded, put_mock, mock_pii_env_vars):
+def test_va_profile_opt_in_out_lambda_handler_KeyError2(jwt_encoded, put_mock):
     """
     Test the VA Profile integration lambda by inspecting the PUT request is initiates to
     VA Profile in response to a request.  This test should generate a KeyError in the handler
@@ -823,7 +714,13 @@ def test_va_profile_opt_in_out_lambda_handler_audit_id_mismatch(jwt_encoded, put
         (datetime(2024, 4, 11, 10, 1, tzinfo=timezone.utc), 'May'),  # After 11th 10:00 AM UTC
     ],
 )
-def test_va_profile_opt_in_out_lambda_handler(notify_db_session, jwt_encoded, mock_env_vars, mock_date, expected_month):
+def test_va_profile_opt_in_out_lambda_handler(
+    notify_db_session,
+    jwt_encoded,
+    mock_env_vars,
+    mock_date,
+    expected_month,
+):
     """
     When the lambda handler is invoked with a path that includes the URL parameter "integration_test",
     verification of the signature on POST request JWTs should use a certificate specifically for integration
@@ -875,7 +772,6 @@ def test_va_profile_opt_in_out_lambda_handler(notify_db_session, jwt_encoded, mo
 
     # Setup new va_profile_id
     va_profile_id = randint(1000, 100000)
-    pii_va_profile_id = EncryptedVAProfileId(va_profile_id)
 
     # Check initial state in DB (there should be no records)
     stmt = (
@@ -914,7 +810,7 @@ def test_va_profile_opt_in_out_lambda_handler(notify_db_session, jwt_encoded, mo
         body=json.dumps(
             {
                 'template_id': 'mock_template_id',
-                'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': pii_va_profile_id.get_pii(to_str=True)},
+                'recipient_identifier': {'id_type': 'VAPROFILEID', 'id_value': str(va_profile_id)},
                 'sms_sender_id': 'mock_sms_sender_id',
                 'personalisation': {'month-name': expected_month},
             }
@@ -923,98 +819,11 @@ def test_va_profile_opt_in_out_lambda_handler(notify_db_session, jwt_encoded, mo
     )
 
     # Verify that one row was created in the DB
-    notification_id = 'e7b8cdda-858e-4b6f-a7df-93a71a2edb1e'
-    # 1 - ENCRYPTED: Verify the row contents by blind index
-    stmt = select(VAProfileLocalCache).where(
-        VAProfileLocalCache.encrypted_va_profile_id_blind_index == (pii_va_profile_id.hmac_encryption),
-        VAProfileLocalCache.communication_item_id == 5,
-        VAProfileLocalCache.communication_channel_id == 1,
-        VAProfileLocalCache.notification_id == notification_id,
-    )
-    assert notify_db_session.session.execute(stmt).scalar_one() is not None
-
-    # 2 - LEGACY: Verify the row contents by va_profile_id
     stmt = delete(VAProfileLocalCache).where(
         VAProfileLocalCache.va_profile_id == va_profile_id,
         VAProfileLocalCache.communication_item_id == 5,
         VAProfileLocalCache.communication_channel_id == 1,
-        VAProfileLocalCache.notification_id == notification_id,
+        VAProfileLocalCache.notification_id == 'e7b8cdda-858e-4b6f-a7df-93a71a2edb1e',
     )
     assert notify_db_session.session.execute(stmt).rowcount == 1
-
     notify_db_session.session.commit()
-
-
-class TestEncryptedVaProfileId:
-    def test_str_returns_fernet_ciphertext(self, mock_env_vars):
-        obj = EncryptedVAProfileId(12345)
-        assert str(obj) == obj.fernet_encryption
-        assert isinstance(obj.fernet_encryption, str)
-        assert obj.fernet_encryption  # non-empty
-
-    def test_get_pii_roundtrip_int(self, mock_env_vars):
-        va_profile_id = 98765
-        obj = EncryptedVAProfileId(va_profile_id)
-        assert obj.get_pii() == va_profile_id
-        assert isinstance(obj.get_pii(), int)
-
-    def test_get_pii_roundtrip_str(self, mock_env_vars):
-        va_profile_id = 24680
-        obj = EncryptedVAProfileId(va_profile_id)
-        assert obj.get_pii(to_str=True) == str(va_profile_id)
-        assert isinstance(obj.get_pii(to_str=True), str)
-
-    def test_hmac_is_deterministic_for_same_input_and_key(self, mock_env_vars):
-        """
-        HMAC should be the same across instances for the same va_profile_id when the key is fixed.
-        """
-        a = EncryptedVAProfileId(11111)
-        b = EncryptedVAProfileId(11111)
-        assert a.hmac_encryption == b.hmac_encryption
-
-    def test_fernet_is_nondeterministic_by_default(self, mock_env_vars):
-        """
-        Fernet includes randomness/timestamp, so ciphertext should generally differ per encryption
-        even with same plaintext/key.
-        """
-        a = EncryptedVAProfileId(22222)
-        b = EncryptedVAProfileId(22222)
-
-        # Check uniqueness
-        assert a.fernet_encryption != b.fernet_encryption
-
-        # But both should decrypt to the same value
-        assert a.get_pii() == 22222
-        assert b.get_pii() == 22222
-
-    def test_decrypt_raises_if_ciphertext_tampered(self, mock_env_vars):
-        obj = EncryptedVAProfileId(44444)
-
-        # Tamper with ciphertext (keep it a string)
-        obj.fernet_encryption = obj.fernet_encryption[:-1] + ('A' if obj.fernet_encryption[-1] != 'A' else 'B')
-
-        with pytest.raises(Exception):
-            obj.get_pii()
-
-
-class TestPiiEncryptionKeyRetrieval:
-    """Test the PII encryption key retrieval logic in the lambda module."""
-
-    def test_pii_encryption_key_from_env_in_test_environment(self, monkeypatch):
-        """In test environment, PII_ENCRYPTION_KEY should be read directly from env."""
-        monkeypatch.setenv('NOTIFY_ENVIRONMENT', 'test')
-        monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
-        monkeypatch.setenv('PII_HMAC_KEY', TEST_HMAC_KEY)
-        monkeypatch.setenv('SQLALCHEMY_DATABASE_URI', 'postgresql://localhost/test')
-
-        importlib.reload(va_profile_opt_in_out_lambda)
-
-        assert os.environ['PII_ENCRYPTION_KEY'] == TEST_ENCRYPTION_KEY
-
-    def test_test_env_sets_pii_key_from_env(self, monkeypatch):
-        monkeypatch.setenv('NOTIFY_ENVIRONMENT', 'test')
-        monkeypatch.setenv('SQLALCHEMY_DATABASE_URI', 'postgresql://localhost/test')
-        monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
-
-        importlib.reload(va_profile_opt_in_out_lambda)
-        assert os.environ['PII_ENCRYPTION_KEY'] == TEST_ENCRYPTION_KEY

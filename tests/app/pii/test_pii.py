@@ -2,7 +2,7 @@ import os
 import pytest
 from unittest.mock import patch
 
-from app.pii import PiiEncryption, PiiLevel, Pii, PiiHMAC
+from app.pii import PiiEncryption, PiiLevel, Pii
 from app.va.identifier import IdentifierType
 from tests.app.conftest import TEST_KEY
 
@@ -70,61 +70,6 @@ class TestPiiEncryption:
         pii_encryption1 = PiiEncryption.get_encryption()
         pii_encryption2 = PiiEncryption.get_encryption()
         assert pii_encryption1 is pii_encryption2
-
-
-class TestPiiHMAC:
-    """Tests for the PiiHMAC class."""
-
-    def test_get_hmac_key_raises_error_when_key_missing(self):
-        """Test that _get_hmac_key raises ValueError when PII_HMAC_KEY is not set."""
-        # Reset cached key
-        PiiHMAC._key = None
-        with (
-            patch.dict(os.environ, {}, clear=True),
-            pytest.raises(ValueError, match='PII_HMAC_KEY is not found. PII_ENCRYPTION_KEY env variable is required'),
-        ):
-            PiiHMAC._get_hmac_key()
-
-    def test_get_hmac_key_uses_hmac_environment_variable(self):
-        """Test that _get_hmac_key uses the environment variable if available."""
-        pii_hmac_key = PiiHMAC._get_hmac_key()
-        assert pii_hmac_key is not None
-        assert PiiHMAC._key == TEST_KEY
-
-    def test_get_hmac_key_uses_encryption_environment_variable(self, monkeypatch):
-        """Test that _get_hmac_key uses the fallback environment variable if available."""
-        # Force missing PII_HMAC_KEY and set PII_ENCRYPTION_KEY to test fallback behavior
-        PiiHMAC._key = None
-        monkeypatch.delenv('PII_HMAC_KEY', raising=False)
-        monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_KEY.decode())
-
-        pii_hmac_key = PiiHMAC._get_hmac_key()
-        assert pii_hmac_key is not None
-        assert PiiHMAC._key == TEST_KEY
-
-    def test_get_hmac_key_caches_key(self):
-        """Test that _get_hmac_key caches the key bytes."""
-        key1 = PiiHMAC._get_hmac_key()
-        key2 = PiiHMAC._get_hmac_key()
-        assert key1 is key2
-
-    def test_generate_hmac_returns_hex_string(self):
-        """Test that generate_hmac returns a hex digest string."""
-        result = PiiHMAC.get_hmac('test_value')
-        assert isinstance(result, str)
-        assert len(result) == 64
-
-    def test_generate_hmac_is_deterministic(self):
-        """Test that generate_hmac returns the same hash for the same input."""
-        result1 = PiiHMAC.get_hmac('test_value')
-        result2 = PiiHMAC.get_hmac('test_value')
-        assert result1 == result2
-
-    def test_generate_hmac_differs_for_different_inputs(self):
-        """Test that generate_hmac returns different hashes for different inputs."""
-        result1 = PiiHMAC.get_hmac('value_a')
-        result2 = PiiHMAC.get_hmac('value_b')
-        assert result1 != result2
 
 
 class TestPiiLevel:
