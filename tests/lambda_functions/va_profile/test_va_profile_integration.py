@@ -520,7 +520,12 @@ def test_encrypted_va_profile_stored_function_matching_blind_index_updates(
     When the existing row already has a blind index and it matches the incoming value,
     allowed and source_datetime should update but encrypted fields should remain unchanged.
     """
-    va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-03-07T19:37:59.320Z', allowed=False)
+    va_profile_local_cache = sample_va_profile_local_cache(
+        source_datetime='2022-03-07T19:37:59.320Z',
+        allowed=False,
+        encrypted_va_profile_id=generate_random_sha256(),
+        encrypted_va_profile_id_blind_index=generate_random_sha256(),
+    )
     original_encrypted_va_profile_id = va_profile_local_cache.encrypted_va_profile_id
     original_blind_index = va_profile_local_cache.encrypted_va_profile_id_blind_index
 
@@ -552,7 +557,12 @@ def test_encrypted_va_profile_stored_function_matching_blind_index_stale_date(
     """
     When the blind index matches but the incoming date is stale, no update should occur.
     """
-    va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-03-07T19:37:59.320Z', allowed=False)
+    va_profile_local_cache = sample_va_profile_local_cache(
+        source_datetime='2022-03-07T19:37:59.320Z',
+        allowed=False,
+        encrypted_va_profile_id=generate_random_sha256(),
+        encrypted_va_profile_id_blind_index=generate_random_sha256(),
+    )
 
     encrypted_opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
