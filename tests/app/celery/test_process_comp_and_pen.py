@@ -181,7 +181,9 @@ def test_comp_and_pen_batch_process_happy_path(notify_db_session, mocker, sample
 
     comp_and_pen_batch_process(records)
 
-    notifications = notify_db_session.session.scalars(select(Notification)).all()
+    notifications = notify_db_session.session.scalars(
+        select(Notification).where(Notification.service_id == template.service.id)
+    ).all()
 
     try:
         mock_send_notification_to_queue.assert_not_called(), 'This is the path for notifications with contact info.'
@@ -194,7 +196,7 @@ def test_comp_and_pen_batch_process_happy_path(notify_db_session, mocker, sample
             decrypted_va_profile_id = PiiVaProfileID(va_profile_id, True).get_pii() if pii_enabled else va_profile_id
             assert decrypted_va_profile_id == records[index]['vaprofile_id']
     finally:
-        notify_db_session.session.execute(delete(Notification))
+        notify_db_session.session.execute(delete(Notification).where(Notification.service_id == template.service.id))
 
 
 @pytest.mark.serial
