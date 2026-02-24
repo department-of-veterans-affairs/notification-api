@@ -65,7 +65,7 @@ LANGUAGE plpgsql
 AS $$
 DECLARE number_of_changed_records Int;
 BEGIN
-
+-- Try to INSERT new record
 INSERT INTO va_profile_local_cache(
     va_profile_id,
     encrypted_va_profile_id,
@@ -84,34 +84,37 @@ VALUES (
     _source_datetime,
     _allowed
 )
+-- Must have unique combo of (va_profile_id, communication_item_id, communication_channel_id)
+-- If this unique combo already exists -> UPDATE
 ON CONFLICT ON CONSTRAINT uix_veteran_id DO UPDATE
+-- Given satisfied WHERE clause below, always SET (allowed, source_datetime)
 SET allowed = EXCLUDED.allowed, source_datetime = EXCLUDED.source_datetime,
-    -- Only "upgrade" encrypted fields when NOT a blind-index match
+    -- conditionally SET (encrypted_va_profile_id, encrypted_va_profile_id_blind_index)
+    -- Only UPGRADE encrypted fields when NOT a blind-index match
+    -- NOTE: these fields are nullable, so we consider the following:
+    -- MATCH on blind-index = same underlying plaintext = no re-encryption needed, keep existing.
+    -- NO MATCH on blind index = record is being migrated to a new encryption key
     encrypted_va_profile_id =
         CASE
+            -- if MATCH on blind-index, then keep the existing encrypted_va_profile_id (no change)
             WHEN va_profile_local_cache.encrypted_va_profile_id_blind_index
                  = EXCLUDED.encrypted_va_profile_id_blind_index
             THEN va_profile_local_cache.encrypted_va_profile_id
+            -- if NO MATCH on blind-index, then use the new encrypted_va_profile_id (update)
             ELSE EXCLUDED.encrypted_va_profile_id
         END,
 
     encrypted_va_profile_id_blind_index =
         CASE
+            -- if MATCH on blind-index, then keep the existing encrypted_va_profile_id (no change)
             WHEN va_profile_local_cache.encrypted_va_profile_id_blind_index = EXCLUDED.encrypted_va_profile_id_blind_index
             THEN va_profile_local_cache.encrypted_va_profile_id_blind_index
+            -- if NO MATCH on blind-index, then use the new encrypted_va_profile_id_blind_index (update)
             ELSE EXCLUDED.encrypted_va_profile_id_blind_index
         END
 WHERE
-    EXCLUDED.source_datetime > va_profile_local_cache.source_datetime
-    AND va_profile_local_cache.communication_item_id = EXCLUDED.communication_item_id
-    AND va_profile_local_cache.communication_channel_id = EXCLUDED.communication_channel_id
-    AND (
-        -- blind-index match
-        va_profile_local_cache.encrypted_va_profile_id_blind_index = EXCLUDED.encrypted_va_profile_id_blind_index
-        OR
-        -- fallback match by va_profile_id
-        va_profile_local_cache.va_profile_id = EXCLUDED.va_profile_id
-    );
+    -- UPDATE only if source_datetime is newer than existing
+    EXCLUDED.source_datetime > va_profile_local_cache.source_datetime;
 GET DIAGNOSTICS number_of_changed_records = ROW_COUNT;
 RETURN number_of_changed_records > 0;
 END
