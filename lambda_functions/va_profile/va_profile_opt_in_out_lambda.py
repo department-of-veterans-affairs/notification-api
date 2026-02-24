@@ -459,12 +459,18 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
             logger.debug('Executing the encrypted_opt_in_out query . . .')
             c.execute(ENCRYPTED_OPT_IN_OUT_QUERY, params.get_encrypted_opt_in_out_query_params())
 
+            # Check if any records were updated by the encrypted query
+            result = c.fetchone()
+            was_updated = result[0] if result else False
+
             # If no records updated, fall back to legacy query for backwards compatibility
-            if c.rowcount == 0:
+            if not was_updated:
                 logger.debug('No records updated, executing opt_in_out query to ensure backwards compatibility . . .')
                 c.execute(OPT_IN_OUT_QUERY, params.get_opt_in_out_query_params())
+                result = c.fetchone()
+                was_updated = result[0] if result else False
 
-            status = 'COMPLETED_SUCCESS' if c.rowcount > 0 else 'COMPLETED_NOOP'
+            status = 'COMPLETED_SUCCESS' if was_updated else 'COMPLETED_NOOP'
             put_body['status'] = status
             db_connection.commit()
 
@@ -730,9 +736,10 @@ def save_notification_id_to_cache(
                 ENCRYPTED_OPT_IN_OUT_ADD_NOTIFICATION_ID_QUERY,
                 (notification_id, encrypted_va_profile_id.hmac_encryption, source_date),
             )
+            was_updated = cursor.rowcount > 0
 
             # If no records updated, fall back to legacy query for backwards compatibility
-            if cursor.rowcount == 0:
+            if not was_updated:
                 logger.debug(
                     'No records updated, executing legacy opt_in_out_add_notification_id query '
                     'to ensure backwards compatibility . . .'
@@ -741,19 +748,20 @@ def save_notification_id_to_cache(
                     OPT_IN_OUT_ADD_NOTIFICATION_ID_QUERY,
                     (notification_id, encrypted_va_profile_id.get_pii(), source_date),
                 )
+                was_updated = cursor.rowcount > 0
 
             db_connection.commit()
 
-            if cursor.rowcount == 0:
+            if was_updated:
                 logger.info(
-                    'No matching record found in VAProfileLocalCache to update with '
-                    'notification_id %s for va_profile_id %s.',
+                    'Successfully updated VAProfileLocalCache with notification_id %s for va_profile_id %s.',
                     notification_id,
                     encrypted_va_profile_id,
                 )
             else:
                 logger.info(
-                    'Successfully updated VAProfileLocalCache with notification_id %s for va_profile_id %s.',
+                    'No matching record found in VAProfileLocalCache to update with '
+                    'notification_id %s for va_profile_id %s.',
                     notification_id,
                     encrypted_va_profile_id,
                 )
