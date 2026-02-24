@@ -82,7 +82,7 @@ fileignoreconfig:
 - filename: tests/app/celery/test_process_comp_and_pen.py
   checksum: e04a30f7026b0ed7fb9d138b617a5f7b53bec99c17ba3286d0a7e4ab48d84a9e
 - filename: tests/app/pii/test_pii.py
-  checksum: 179577f6d786debcf081f7c3f3f36a28776abdb6598d04c5fc97bb8391559880
+  checksum: 2ecf6e3585d4024a5913cefa72012d6a7fbd943a8333e9961faef8bfe8752f71
 - filename: tests/app/service/test_api_key_endpoints.py
   checksum: cf28b1466647e455be6e17b0318af7a167b5d46138e81e3179189cab2c9c3767
 - filename: tests/app/test_validate.py
@@ -98,9 +98,19 @@ fileignoreconfig:
 - filename: app/va/va_profile/va_profile_client.py
   checksum: 5c867bf817283bf50f2d974697c1c08d80976f37b1a1a13d0ba2e029536e9b2c
 - filename: lambda_functions/va_profile/va_profile_opt_in_out_lambda.py
-  checksum: 9cdb7bf7610743d061cf653d4292be2a3966d428ae1234da56c8314e7699d096
+  checksum: 04ff183f6b994f40adbd0094f164b6eb8a3ed7ad42fa28d0e523b11f9acb723f
 - filename: app/pii/pii_base.py
   checksum: 584cb03893d943c5f8504e5951128f17ce26cf9ffdfc51a29992d9e30e9a3d8b
 - filename: app/pii/pii_encryption.py
-  checksum: 990dc841e6143b36c03647d3bee43871e62be8f5535f388878e5f74aeaa0237e
+  checksum: f0a66f3c43af3b9ede5801d5fb0d32f36bdd9794d2334149981c50e1ce2f8e65
+- filename: ci/.local.env
+  checksum: 18af10b56ddc6177c311840f70a4829648e356bc36de3723a3870015a97e2745
+- filename: tests/lambda_functions/conftest.py
+  checksum: baa13dfa1eca2dc966f65bc8efe1ca64c768472dadb801ae168ba33a948f5abe
+- filename: tests/lambda_functions/va_profile/test_va_profile_integration.py
+  checksum: 648ad9dd3dea07b73c62e9bf11ed746492ab4310bbf303573837bfd60cbad407
+- filename: tests/lambda_functions/va_profile/test_va_profile_integration.py
+  checksum: cfd2fd5542075ad74607bf9a77a86de01b474dcfccdf0928763d3598fe370ee3
+- filename: lambda_functions/va_profile/va_profile_opt_in_out_lambda.py
+  checksum: 3613cd2317e096a6da8af16ea1d80e1fad00223b976f21ec04a5ae64613df67c
 version: "1.0"
