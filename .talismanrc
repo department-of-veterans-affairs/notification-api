@@ -108,9 +108,7 @@ fileignoreconfig:
 - filename: tests/lambda_functions/conftest.py
   checksum: baa13dfa1eca2dc966f65bc8efe1ca64c768472dadb801ae168ba33a948f5abe
 - filename: tests/lambda_functions/va_profile/test_va_profile_integration.py
-  checksum: 648ad9dd3dea07b73c62e9bf11ed746492ab4310bbf303573837bfd60cbad407
-- filename: tests/lambda_functions/va_profile/test_va_profile_integration.py
-  checksum: cfd2fd5542075ad74607bf9a77a86de01b474dcfccdf0928763d3598fe370ee3
+  checksum: d2615670e4a594e06cfe5a2fc2d2dad0567e33a059aeaae68e346b3da2532750
 - filename: lambda_functions/va_profile/va_profile_opt_in_out_lambda.py
   checksum: 3613cd2317e096a6da8af16ea1d80e1fad00223b976f21ec04a5ae64613df67c
 version: "1.0"

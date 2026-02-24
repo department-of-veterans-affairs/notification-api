@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from json import dumps, loads
 from random import randint, sample
 from unittest.mock import Mock, patch
+import os
 
 import jwt
 import pytest
@@ -27,6 +28,7 @@ from lambda_functions.va_profile.va_profile_opt_in_out_lambda import (
     jwt_is_valid,
     va_profile_opt_in_out_lambda_handler,
     EncryptedVAProfileId,
+    save_notification_id_to_cache,
 )
 from tests.lambda_functions.conftest import TEST_ENCRYPTION_KEY, TEST_HMAC_KEY
 
@@ -1143,6 +1145,7 @@ def test_va_profile_opt_in_out_lambda_handler(
 
     # Setup new va_profile_id
     va_profile_id = randint(1000, 100000)
+    encrypted_va_profile_id = EncryptedVAProfileId(va_profile_id)
 
     # Check initial state in DB (there should be no records)
     stmt = (
@@ -1175,6 +1178,7 @@ def test_va_profile_opt_in_out_lambda_handler(
     mock_put_instance.request.assert_called_once()
 
     # Assert POST request to VANotify was made with correct parameters, including the expected month
+    # Assert POST request to VANotify was made with correct parameters, including the expected month
     mock_post_instance.request.assert_called_once_with(
         'POST',
         '/v2/notifications/sms',
@@ -1190,11 +1194,140 @@ def test_va_profile_opt_in_out_lambda_handler(
     )
 
     # Verify that one row was created in the DB
+    notification_id = 'e7b8cdda-858e-4b6f-a7df-93a71a2edb1e'
+    # 1 - ENCRYPTED: Verify the row contents by blind index
+    stmt = select(VAProfileLocalCache).where(
+        VAProfileLocalCache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id.hmac_encryption,
+        VAProfileLocalCache.communication_item_id == 5,
+        VAProfileLocalCache.communication_channel_id == 1,
+        VAProfileLocalCache.notification_id == notification_id,
+    )
+    assert notify_db_session.session.execute(stmt).scalar_one() is not None
+
+    # 2 - LEGACY: Verify the row contents by va_profile_id
     stmt = delete(VAProfileLocalCache).where(
         VAProfileLocalCache.va_profile_id == va_profile_id,
         VAProfileLocalCache.communication_item_id == 5,
         VAProfileLocalCache.communication_channel_id == 1,
-        VAProfileLocalCache.notification_id == 'e7b8cdda-858e-4b6f-a7df-93a71a2edb1e',
+        VAProfileLocalCache.notification_id == notification_id,
     )
     assert notify_db_session.session.execute(stmt).rowcount == 1
+
     notify_db_session.session.commit()
+
+
+def test_save_notification_id_encrypted_query_blind_index_matches(
+    notify_db_session, sample_va_profile_local_cache, mock_lambda_db_connection
+):
+    """
+    When a row with a matching blind index exists, the encrypted UPDATE query should
+    set notification_id and the legacy query should never run.
+    """
+
+    va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-04-07T19:37:59.320Z', allowed=True)
+    encrypted_va_profile_id = EncryptedVAProfileId(va_profile_local_cache.va_profile_id)
+
+    notify_db_session.session.commit()
+
+    notification_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+    save_notification_id_to_cache(encrypted_va_profile_id, notification_id, '2022-04-07T19:37:59.320Z')
+    notify_db_session.session.expire(va_profile_local_cache)
+
+    notify_db_session.session.refresh(va_profile_local_cache)
+    assert str(va_profile_local_cache.notification_id) == notification_id
+
+
+def test_save_notification_id_falls_back_to_legacy_when_no_blind_index(
+    notify_db_session, sample_va_profile_local_cache, mock_lambda_db_connection
+):
+    """
+    When the row has no blind index (legacy row), the encrypted UPDATE finds nothing
+    and the legacy UPDATE matches on va_profile_id instead.
+    """
+    va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-04-07T19:37:59.320Z', allowed=True)
+    va_profile_local_cache.encrypted_va_profile_id = None
+    va_profile_local_cache.encrypted_va_profile_id_blind_index = None
+    notify_db_session.session.commit()
+
+    encrypted_id = EncryptedVAProfileId(va_profile_local_cache.va_profile_id)
+
+    notification_id = 'aaaaaaaa-0000-0000-0000-000000000002'
+    save_notification_id_to_cache(encrypted_id, notification_id, '2022-04-07T19:37:59.320Z')
+
+    notify_db_session.session.refresh(va_profile_local_cache)
+    assert str(va_profile_local_cache.notification_id) == notification_id
+
+
+class TestEncryptedVaProfileId:
+    def test_str_returns_fernet_ciphertext(self, mock_env_vars):
+        obj = EncryptedVAProfileId(12345)
+        assert str(obj) == obj.fernet_encryption
+        assert isinstance(obj.fernet_encryption, str)
+        assert obj.fernet_encryption  # non-empty
+
+    def test_get_pii_roundtrip_int(self, mock_env_vars):
+        va_profile_id = 98765
+        obj = EncryptedVAProfileId(va_profile_id)
+        assert obj.get_pii() == va_profile_id
+        assert isinstance(obj.get_pii(), int)
+
+    def test_get_pii_roundtrip_str(self, mock_env_vars):
+        va_profile_id = 24680
+        obj = EncryptedVAProfileId(va_profile_id)
+        assert obj.get_pii(to_str=True) == str(va_profile_id)
+        assert isinstance(obj.get_pii(to_str=True), str)
+
+    def test_hmac_is_deterministic_for_same_input_and_key(self, mock_env_vars):
+        """
+        HMAC should be the same across instances for the same va_profile_id when the key is fixed.
+        """
+        a = EncryptedVAProfileId(11111)
+        b = EncryptedVAProfileId(11111)
+        assert a.hmac_encryption == b.hmac_encryption
+
+    def test_fernet_is_nondeterministic_by_default(self, mock_env_vars):
+        """
+        Fernet includes randomness/timestamp, so ciphertext should generally differ per encryption
+        even with same plaintext/key.
+        """
+        a = EncryptedVAProfileId(22222)
+        b = EncryptedVAProfileId(22222)
+
+        # Check uniqueness
+        assert a.fernet_encryption != b.fernet_encryption
+
+        # But both should decrypt to the same value
+        assert a.get_pii() == 22222
+        assert b.get_pii() == 22222
+
+    def test_decrypt_raises_if_ciphertext_tampered(self, mock_env_vars):
+        obj = EncryptedVAProfileId(44444)
+
+        # Tamper with ciphertext (keep it a string)
+        obj.fernet_encryption = obj.fernet_encryption[:-1] + ('A' if obj.fernet_encryption[-1] != 'A' else 'B')
+
+        with pytest.raises(Exception):
+            obj.get_pii()
+
+
+class TestPiiEncryptionKeyRetrieval:
+    """Test the PII encryption key retrieval logic in the lambda module."""
+
+    def test_pii_encryption_key_from_env_in_test_environment(self, monkeypatch):
+        """In test environment, PII_ENCRYPTION_KEY should be read directly from env."""
+        monkeypatch.setenv('NOTIFY_ENVIRONMENT', 'test')
+        monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
+        monkeypatch.setenv('PII_HMAC_KEY', TEST_HMAC_KEY)
+        monkeypatch.setenv('SQLALCHEMY_DATABASE_URI', 'postgresql://localhost/test')
+
+        importlib.reload(va_profile_opt_in_out_lambda)
+
+        assert os.environ['PII_ENCRYPTION_KEY'] == TEST_ENCRYPTION_KEY
+
+    def test_test_env_sets_pii_key_from_env(self, monkeypatch):
+        monkeypatch.setenv('NOTIFY_ENVIRONMENT', 'test')
+        monkeypatch.setenv('SQLALCHEMY_DATABASE_URI', 'postgresql://localhost/test')
+        monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
+
+        importlib.reload(va_profile_opt_in_out_lambda)
+        assert os.environ['PII_ENCRYPTION_KEY'] == TEST_ENCRYPTION_KEY

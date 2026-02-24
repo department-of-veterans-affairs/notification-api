@@ -7,6 +7,7 @@ import base64
 
 from app.models import VAProfileLocalCache
 from lambda_functions.va_profile.va_profile_opt_in_out_lambda import EncryptedVAProfileId
+from unittest.mock import Mock, patch
 
 
 # Helpers
@@ -70,3 +71,42 @@ def sample_va_profile_local_cache(notify_db_session, mock_pii_env_vars):
     stmt = delete(VAProfileLocalCache).where(VAProfileLocalCache.id.in_(created_va_profile_local_cache_ids))
     notify_db_session.session.execute(stmt)
     notify_db_session.session.commit()
+
+
+@pytest.fixture
+def mock_lambda_db_connection(notify_db_session):
+    raw_conn = notify_db_session.session.connection().connection.driver_connection
+    with patch('lambda_functions.va_profile.va_profile_opt_in_out_lambda.db_connection', raw_conn):
+        yield raw_conn
+
+
+@pytest.fixture
+def patch_https():
+    """Factory fixture that patches HTTPSConnection and returns (mock_put, mock_post)."""
+
+    def _patch_https(
+        put_status=200,
+        post_status=201,
+        post_body=b'{"id":"e7b8cdda-858e-4b6f-a7df-93a71a2edb1e"}',
+    ):
+        mock_put = Mock()
+        mock_put_response = Mock()
+        mock_put_response.status = put_status
+        mock_put_response.headers = {'Content-Type': 'application/json'}
+        mock_put_response.read.return_value = b'{"dateTime":"2022-04-07T19:37:59.320Z","status":"COMPLETED_SUCCESS"}'
+        mock_put.getresponse.return_value = mock_put_response
+
+        mock_post = Mock()
+        mock_post_response = Mock()
+        mock_post_response.status = post_status
+        mock_post_response.read.return_value = post_body
+        mock_post.getresponse.return_value = mock_post_response
+
+        patch(
+            'lambda_functions.va_profile.va_profile_opt_in_out_lambda.HTTPSConnection',
+            side_effect=[mock_put, mock_post],
+        ).start()
+
+        return mock_put, mock_post
+
+    return _patch_https
