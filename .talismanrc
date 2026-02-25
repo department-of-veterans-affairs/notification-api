@@ -80,7 +80,7 @@ fileignoreconfig:
 - filename: tests/app/notifications/test_send_notifications.py
   checksum: 834c0139eb2cdfec85144e543df095b36f67acf726e62e664d83ad373db00166
 - filename: tests/app/celery/test_process_comp_and_pen.py
-  checksum: e04a30f7026b0ed7fb9d138b617a5f7b53bec99c17ba3286d0a7e4ab48d84a9e
+  checksum: ba45557ab3db01e920d6a145933cb81d27edd1b82409d116a43cf8feef6da7a8
 - filename: tests/app/pii/test_pii.py
   checksum: 2ecf6e3585d4024a5913cefa72012d6a7fbd943a8333e9961faef8bfe8752f71
 - filename: tests/app/service/test_api_key_endpoints.py

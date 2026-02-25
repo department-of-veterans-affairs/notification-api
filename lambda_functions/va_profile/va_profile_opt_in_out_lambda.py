@@ -30,7 +30,6 @@ from datetime import datetime, timezone
 from http.client import HTTPSConnection, HTTPResponse
 from tempfile import NamedTemporaryFile
 from typing import Optional, Union, Any
-from dataclasses import dataclass
 
 import boto3
 import jwt
@@ -54,7 +53,6 @@ COMP_AND_PEN_SERVICE_ID = os.getenv('COMP_AND_PEN_SERVICE_ID')
 COMP_AND_PEN_SMS_SENDER_ID = os.getenv('COMP_AND_PEN_SMS_SENDER_ID')
 NOTIFY_ENVIRONMENT = os.getenv('NOTIFY_ENVIRONMENT')
 ENCRYPTED_OPT_IN_OUT_QUERY = """SELECT encrypted_va_profile_opt_in_out(%s, %s, %s, %s, %s, %s, %s);"""
-OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s);"""
 
 # Temporarily supporting both encrypted and unencrypted versions of the query
 # -- Legacy unencrypted query
@@ -235,47 +233,6 @@ class EncryptedVAProfileId:
         return int(_decrypted)
 
 
-@dataclass
-class OptInOutParams:
-    va_profile_id: EncryptedVAProfileId
-    communication_item_id: int
-    communication_channel_id: int
-    allowed: bool
-    source_datetime: str
-
-    @classmethod
-    def load(cls, bio: dict) -> 'OptInOutParams':
-        return OptInOutParams(
-            va_profile_id=EncryptedVAProfileId(bio['vaProfileId']),
-            communication_item_id=bio['communicationItemId'],
-            communication_channel_id=bio['communicationChannelId'],
-            allowed=bio['allowed'],
-            source_datetime=bio['sourceDate'],
-        )
-
-    def get_opt_in_out_query_params(self) -> tuple:
-        """Return the parameters for the opt_in_out query as a tuple."""
-        return (
-            self.va_profile_id.get_pii(),  # _va_profile_id
-            self.communication_item_id,  # _communication_item_id
-            self.communication_channel_id,  # _communication_channel_id
-            self.allowed,  # _allowed
-            self.source_datetime,  # _source_datetime
-        )
-
-    def get_encrypted_opt_in_out_query_params(self) -> tuple:
-        """Return the parameters for the opt_in_out query as a tuple."""
-        return (
-            self.va_profile_id.get_pii(),  # _va_profile_id
-            self.va_profile_id.fernet_encryption,  # _encrypted_va_profile_id
-            self.va_profile_id.hmac_encryption,  # _encrypted_va_profile_id_blind_index
-            self.communication_item_id,  # _communication_item_id
-            self.communication_channel_id,  # _communication_channel_id
-            self.allowed,  # _allowed
-            self.source_datetime,  # _source_datetime
-        )
-
-
 def make_database_connection() -> Optional[psycopg2.extensions.connection]:
     """
     Return a connection to the database, or return None.
@@ -430,15 +387,24 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
         logger.info('POST response: %s', post_response)
         return post_response
 
-    params: Optional[OptInOutParams] = None
-
     try:
-        # Load OptInOutParams from the request body.
-        params = OptInOutParams.load(bio)
+        # Initialize  from the request body.
+        encrypted_va_profile_id = EncryptedVAProfileId(bio['vaProfileId'])
+
+        # Set params
+        params = (
+            encrypted_va_profile_id.get_pii(),  # _va_profile_id
+            encrypted_va_profile_id.fernet_encryption,  # _encrypted_va_profile_id
+            encrypted_va_profile_id.hmac_encryption,  # _encrypted_va_profile_id_blind_index
+            bio['communicationItemId'],  # _communication_item_id
+            bio['communicationChannelId'],  # _communication_channel_id
+            bio['allowed'],  # _allowed
+            bio['sourceDate'],  # _source_datetime
+        )
 
         logger.info(
             'The request is an opt-%s.',
-            'in' if (str(params.allowed).lower() == 'true') else 'out',
+            'in' if (str(bio['allowed']).lower() == 'true') else 'out',
         )
 
         global db_connection
@@ -455,18 +421,11 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
             # NOTE: Below is a temporary implementation to support legacy (unencrypted) VA Profile IDs in the cache.
             # Try the encrypted query first
             logger.debug('Executing the encrypted_opt_in_out query . . .')
-            c.execute(ENCRYPTED_OPT_IN_OUT_QUERY, params.get_encrypted_opt_in_out_query_params())
+            c.execute(ENCRYPTED_OPT_IN_OUT_QUERY, params)
 
             # Check if any records were updated by the encrypted query
             result = c.fetchone()
             was_updated = result[0] if result else False
-
-            # If no records updated, fall back to legacy query for backwards compatibility
-            if not was_updated:
-                logger.debug('No records updated, executing opt_in_out query to ensure backwards compatibility . . .')
-                c.execute(OPT_IN_OUT_QUERY, params.get_opt_in_out_query_params())
-                result = c.fetchone()
-                was_updated = result[0] if result else False
 
             status = 'COMPLETED_SUCCESS' if was_updated else 'COMPLETED_NOOP'
             put_body['status'] = status
@@ -516,22 +475,24 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
     try:
         # Send Comp and Pen Opt-In confirmation if anticipated status code still 200
         # And if Opt-In confirmation (bio['allowed'] == True)
-        if post_response['statusCode'] == 200 and params is not None and params.allowed:
-            response = send_comp_and_pen_opt_in_confirmation(params.va_profile_id)
+        if post_response['statusCode'] == 200 and bio['allowed']:
+            # Note: previous try logic ensures that either encrypted_va_profile_id is defined or post_response
+            # status code is not 200, so this line should not raise an error
+            response = send_comp_and_pen_opt_in_confirmation(encrypted_va_profile_id)  # noqa: F823
 
             # Save notification_id from POST sms response if method returned
             # a value AND the response status code is 201.
             if response is None:
                 logger.critical(
                     'Could not send Comp and Pen opt-in confirmation to EncryptedVAProfileId: %s. No response status or response body to record.',
-                    params.va_profile_id,
+                    encrypted_va_profile_id,
                 )
             elif response.status != 201:
                 response_data = response.read().decode()
                 response_json = json.loads(response_data)
                 logger.critical(
                     'Could not send Comp and Pen opt-in confirmation to EncryptedVAProfileId: %s. Response status: %s, Response: %s',
-                    params.va_profile_id,
+                    encrypted_va_profile_id,
                     response.status,
                     response_data,
                 )
@@ -542,16 +503,18 @@ def va_profile_opt_in_out_lambda_handler(  # noqa: C901
 
                 logger.info(
                     'Sent Comp and Pen opt-in confirmation to EncryptedVAProfileId: %s with notification_id: %s. Response status: %s',
-                    params.va_profile_id,
+                    encrypted_va_profile_id,
                     notification_id,
                     response.status,
                 )
-                save_notification_id_to_cache(params.va_profile_id, notification_id, bio['sourceDate'])
+                save_notification_id_to_cache(encrypted_va_profile_id, notification_id, bio['sourceDate'])
 
     except Exception as e:
+        # Note: previous try logic ensures that either encrypted_va_profile_id is defined or post_response
+        # status code is not 200, so this line should not raise an error
         logger.critical(
             'Critical error during the process of sending a Comp and Pen Opt-in confirmation notification to EncryptedVAProfileId: %s. Error: %s',
-            params.va_profile_id if params else None,
+            encrypted_va_profile_id,  # noqa: F823
             e,
         )
 
