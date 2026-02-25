@@ -1255,6 +1255,8 @@ def test_save_notification_id_falls_back_to_legacy_when_no_blind_index(
 
     notify_db_session.session.refresh(va_profile_local_cache)
     assert str(va_profile_local_cache.notification_id) == notification_id
+    assert va_profile_local_cache.encrypted_va_profile_id == encrypted_id.fernet_encryption
+    assert va_profile_local_cache.encrypted_va_profile_id_blind_index == encrypted_id.hmac_encryption
 
 
 class TestEncryptedVaProfileId:
