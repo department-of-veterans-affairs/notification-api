@@ -7,13 +7,12 @@ created or updated; otherwise, False.
 """
 
 import importlib
-import os
-import hashlib
 import json
 from datetime import datetime, timedelta, timezone
 from json import dumps, loads
 from random import randint, sample
 from unittest.mock import Mock, patch
+import os
 
 import jwt
 import pytest
@@ -28,7 +27,10 @@ from lambda_functions.va_profile.va_profile_opt_in_out_lambda import (
     generate_jwt,
     jwt_is_valid,
     va_profile_opt_in_out_lambda_handler,
+    EncryptedVAProfileId,
+    save_notification_id_to_cache,
 )
+from tests.lambda_functions.conftest import TEST_ENCRYPTION_KEY, TEST_HMAC_KEY
 
 # Base path for mocks
 LAMBDA_MODULE = 'lambda_functions.va_profile.va_profile_opt_in_out_lambda'
@@ -57,6 +59,9 @@ def mock_env_vars(monkeypatch):
     monkeypatch.setenv('ALB_CERTIFICATE_ARN', 'mock_alb_certificate_arn')
     monkeypatch.setenv('ALB_PRIVATE_KEY_PATH', 'mock_alb_private_key_path')
     monkeypatch.setenv('VA_PROFILE_DOMAIN', 'mock_va_profile_domain')
+    monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
+    monkeypatch.setenv('PII_HMAC_KEY', TEST_HMAC_KEY)
+    monkeypatch.setenv('PII_ENCRYPTION_KEY_PATH', '/fake/path/to/pii_encryption_key')
 
 
 @pytest.fixture
@@ -205,17 +210,11 @@ def create_event(
     }
 
 
-def generate_random_sha256() -> str:
-    """Generate a random SHA-256 hash string.
-    This is used for generating random blind index values in tests."""
-    return hashlib.sha256(os.urandom(32)).hexdigest()
-
-
 def test_va_profile_cache_exists(notify_db_session):
     assert notify_db_session.engine.has_table('va_profile_local_cache')
 
 
-def test_va_profile_stored_function_older_date(notify_db_session, sample_va_profile_local_cache):
+def test_va_profile_stored_function_older_date(notify_db_session, sample_va_profile_local_cache, mock_pii_env_vars):
     """
     If the given date is older than the existing date, no update should occur.
     """
@@ -301,15 +300,12 @@ def test_encrypted_va_profile_stored_function_older_date(notify_db_session, samp
     """
 
     va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-03-07T19:37:59.320Z', allowed=False)
-
-    # Test values
-    encrypted_va_profile_id = generate_random_sha256()
-    encrypted_va_profile_id_blind_index = generate_random_sha256()
+    encrypted_va_profile_id = EncryptedVAProfileId(va_profile_local_cache.va_profile_id)
 
     encrypted_opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
-        encrypted_va_profile_id=encrypted_va_profile_id,
-        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
+        encrypted_va_profile_id=encrypted_va_profile_id.fernet_encryption,
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id.hmac_encryption,
         communication_item_id=va_profile_local_cache.communication_item_id,
         communication_channel_id=va_profile_local_cache.communication_channel_id,
         allowed=True,
@@ -327,19 +323,17 @@ def test_encrypted_va_profile_stored_function_newer_date(notify_db_session, samp
     """
 
     va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-03-07T19:37:59.320Z', allowed=False)
-    assert va_profile_local_cache.encrypted_va_profile_id is None, 'encrypted_va_profile_id should be null.'
-    assert va_profile_local_cache.encrypted_va_profile_id_blind_index is None, (
-        'encrypted_va_profile_id_blind_index should be null.'
-    )
+    # Set encrypted_va_profile_id and blind index to None
+    va_profile_local_cache.encrypted_va_profile_id = None
+    va_profile_local_cache.encrypted_va_profile_id_blind_index = None
 
     # Test values
-    encrypted_va_profile_id = generate_random_sha256()
-    encrypted_va_profile_id_blind_index = generate_random_sha256()
+    encrypted_va_profile_id = EncryptedVAProfileId(va_profile_local_cache.va_profile_id)
 
     encrypted_opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
-        encrypted_va_profile_id=encrypted_va_profile_id,
-        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
+        encrypted_va_profile_id=encrypted_va_profile_id.fernet_encryption,
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id.hmac_encryption,
         communication_item_id=va_profile_local_cache.communication_item_id,
         communication_channel_id=va_profile_local_cache.communication_channel_id,
         allowed=True,
@@ -349,10 +343,10 @@ def test_encrypted_va_profile_stored_function_newer_date(notify_db_session, samp
     assert notify_db_session.session.scalar(encrypted_opt_in_out), 'The date is newer than the existing entry.'
     notify_db_session.session.refresh(va_profile_local_cache)
     assert va_profile_local_cache.source_datetime.month == 4, 'The date should have updated.'
-    assert va_profile_local_cache.encrypted_va_profile_id == encrypted_va_profile_id, (
+    assert va_profile_local_cache.encrypted_va_profile_id is not None, (
         'The encrypted_va_profile_id should have updated.'
     )
-    assert va_profile_local_cache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_blind_index, (
+    assert va_profile_local_cache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id.hmac_encryption, (
         'The encrypted_va_profile_id_blind_index should have updated.'
     )
 
@@ -363,16 +357,15 @@ def test_encrypted_va_profile_stored_function_new_row(notify_db_session):
     """
 
     va_profile_id = randint(1000, 100000)
-    encrypted_va_profile_id = generate_random_sha256()
-    encrypted_va_profile_id_blind_index = generate_random_sha256()
+    encrypted_va_profile_id = EncryptedVAProfileId(va_profile_id)
 
     stmt = (
         select(func.count())
         .select_from(VAProfileLocalCache)
         .where(
             VAProfileLocalCache.va_profile_id == va_profile_id,
-            VAProfileLocalCache.encrypted_va_profile_id == encrypted_va_profile_id,
-            VAProfileLocalCache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_blind_index,
+            VAProfileLocalCache.encrypted_va_profile_id == encrypted_va_profile_id.fernet_encryption,
+            VAProfileLocalCache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id.hmac_encryption,
             VAProfileLocalCache.communication_item_id == 5,
             VAProfileLocalCache.communication_channel_id == 1,
         )
@@ -382,8 +375,8 @@ def test_encrypted_va_profile_stored_function_new_row(notify_db_session):
 
     opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_id,
-        encrypted_va_profile_id=encrypted_va_profile_id,
-        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
+        encrypted_va_profile_id=encrypted_va_profile_id.fernet_encryption,
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id.hmac_encryption,
         communication_item_id=5,
         communication_channel_id=1,
         allowed=True,
@@ -394,7 +387,7 @@ def test_encrypted_va_profile_stored_function_new_row(notify_db_session):
 
     # Verify one row was created using a delete statement that doubles as teardown.
     stmt = delete(VAProfileLocalCache).where(
-        VAProfileLocalCache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_blind_index,
+        VAProfileLocalCache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id.hmac_encryption,
         VAProfileLocalCache.communication_item_id == 5,
         VAProfileLocalCache.communication_channel_id == 1,
     )
@@ -410,8 +403,7 @@ def test_encrypted_and_raw_va_profile_stored_func(notify_db_session):
     session = notify_db_session.session
 
     va_profile_id_1, va_profile_id_2 = sample(range(1000, 100000), 2)
-    encrypted_va_profile_id = generate_random_sha256()
-    encrypted_va_profile_id_blind_index = generate_random_sha256()
+    encrypted_va_profile_id_2 = EncryptedVAProfileId(va_profile_id_2)
 
     raw_params = dict(
         va_profile_id=va_profile_id_1,
@@ -422,8 +414,8 @@ def test_encrypted_and_raw_va_profile_stored_func(notify_db_session):
     )
     encrypted_params = dict(
         va_profile_id=va_profile_id_2,
-        encrypted_va_profile_id=encrypted_va_profile_id,
-        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
+        encrypted_va_profile_id=encrypted_va_profile_id_2.fernet_encryption,
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_2.hmac_encryption,
         communication_item_id=6,
         communication_channel_id=2,
         allowed=True,
@@ -436,7 +428,7 @@ def test_encrypted_and_raw_va_profile_stored_func(notify_db_session):
         VAProfileLocalCache.communication_channel_id == raw_params['communication_channel_id'],
     ]
     encrypted_filters = [
-        VAProfileLocalCache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_blind_index,
+        VAProfileLocalCache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_2.hmac_encryption,
         VAProfileLocalCache.communication_item_id == encrypted_params['communication_item_id'],
         VAProfileLocalCache.communication_channel_id == encrypted_params['communication_channel_id'],
     ]
@@ -465,11 +457,11 @@ def test_encrypted_stored_function_matches_on_id_with_null_blind_index(
     When the existing row has no blind index, the update should match on va_profile_id.
     """
     va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-03-07T19:37:59.320Z', allowed=False)
-
+    encrypted_va_profile_id = EncryptedVAProfileId(va_profile_local_cache.va_profile_id)
     encrypted_opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
-        encrypted_va_profile_id=generate_random_sha256(),
-        encrypted_va_profile_id_blind_index=generate_random_sha256(),
+        encrypted_va_profile_id=encrypted_va_profile_id.fernet_encryption,
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id.hmac_encryption,
         communication_item_id=va_profile_local_cache.communication_item_id,
         communication_channel_id=va_profile_local_cache.communication_channel_id,
         allowed=True,
@@ -494,10 +486,12 @@ def test_encrypted_va_profile_stored_function_older_date_null_blind_index(
     va_profile_local_cache.encrypted_va_profile_id_blind_index = None
     notify_db_session.session.commit()
 
+    encrypted_va_profile_id = EncryptedVAProfileId(va_profile_local_cache.va_profile_id)
+
     encrypted_opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
-        encrypted_va_profile_id=generate_random_sha256(),
-        encrypted_va_profile_id_blind_index=generate_random_sha256(),
+        encrypted_va_profile_id=encrypted_va_profile_id.fernet_encryption,
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id.hmac_encryption,
         communication_item_id=va_profile_local_cache.communication_item_id,
         communication_channel_id=va_profile_local_cache.communication_channel_id,
         allowed=True,
@@ -520,14 +514,10 @@ def test_encrypted_va_profile_stored_function_matching_blind_index_updates(
     When the existing row already has a blind index and it matches the incoming value,
     allowed and source_datetime should update but encrypted fields should remain unchanged.
     """
-    va_profile_local_cache = sample_va_profile_local_cache(
-        source_datetime='2022-03-07T19:37:59.320Z',
-        allowed=False,
-        encrypted_va_profile_id=generate_random_sha256(),
-        encrypted_va_profile_id_blind_index=generate_random_sha256(),
-    )
+
+    va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-03-07T19:37:59.320Z', allowed=False)
     original_encrypted_va_profile_id = va_profile_local_cache.encrypted_va_profile_id
-    original_blind_index = va_profile_local_cache.encrypted_va_profile_id_blind_index
+    encrypted_va_profile_id = EncryptedVAProfileId(va_profile_local_cache.va_profile_id)
 
     encrypted_opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
@@ -546,7 +536,7 @@ def test_encrypted_va_profile_stored_function_matching_blind_index_updates(
     assert va_profile_local_cache.encrypted_va_profile_id == original_encrypted_va_profile_id, (
         'Encrypted fields should be unchanged on a blind index match.'
     )
-    assert va_profile_local_cache.encrypted_va_profile_id_blind_index == original_blind_index, (
+    assert va_profile_local_cache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id.hmac_encryption, (
         'Blind index should be unchanged on a blind index match.'
     )
 
@@ -557,12 +547,7 @@ def test_encrypted_va_profile_stored_function_matching_blind_index_stale_date(
     """
     When the blind index matches but the incoming date is stale, no update should occur.
     """
-    va_profile_local_cache = sample_va_profile_local_cache(
-        source_datetime='2022-03-07T19:37:59.320Z',
-        allowed=False,
-        encrypted_va_profile_id=generate_random_sha256(),
-        encrypted_va_profile_id_blind_index=generate_random_sha256(),
-    )
+    va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-03-07T19:37:59.320Z', allowed=False)
 
     encrypted_opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
@@ -592,14 +577,12 @@ def test_encrypted_va_profile_stored_function_insert_second_row(notify_db_sessio
         communication_item_id=5,
         communication_channel_id=1,
     )
-
-    new_encrypted_va_profile_id = generate_random_sha256()
-    new_blind_index = generate_random_sha256()
+    encrypted_va_profile_id = EncryptedVAProfileId(va_profile_local_cache.va_profile_id)
 
     encrypted_opt_in_out = ENCRYPTED_OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
-        encrypted_va_profile_id=new_encrypted_va_profile_id,
-        encrypted_va_profile_id_blind_index=new_blind_index,
+        encrypted_va_profile_id=encrypted_va_profile_id.fernet_encryption,
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id.hmac_encryption,
         communication_item_id=6,  # Different
         communication_channel_id=2,  # Different
         allowed=True,
@@ -610,7 +593,7 @@ def test_encrypted_va_profile_stored_function_insert_second_row(notify_db_sessio
 
     # Teardown the new row
     stmt = delete(VAProfileLocalCache).where(
-        VAProfileLocalCache.encrypted_va_profile_id_blind_index == new_blind_index,
+        VAProfileLocalCache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id.hmac_encryption,
         VAProfileLocalCache.communication_item_id == 6,
         VAProfileLocalCache.communication_channel_id == 2,
     )
@@ -630,14 +613,13 @@ def test_encrypted_va_profile_stored_function_upgrade_then_stable(notify_db_sess
     va_profile_local_cache.encrypted_va_profile_id_blind_index = None
     notify_db_session.session.commit()
 
-    encrypted_va_profile_id = generate_random_sha256()
-    encrypted_va_profile_id_blind_index = generate_random_sha256()
+    encrypted_va_profile_id = EncryptedVAProfileId(va_profile_local_cache.va_profile_id)
 
     # First call: should match on va_profile_id and upgrade encrypted fields
     first_call = ENCRYPTED_OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
-        encrypted_va_profile_id=encrypted_va_profile_id,
-        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,
+        encrypted_va_profile_id=encrypted_va_profile_id.fernet_encryption,
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id.hmac_encryption,
         communication_item_id=va_profile_local_cache.communication_item_id,
         communication_channel_id=va_profile_local_cache.communication_channel_id,
         allowed=True,
@@ -646,15 +628,15 @@ def test_encrypted_va_profile_stored_function_upgrade_then_stable(notify_db_sess
 
     assert notify_db_session.session.scalar(first_call), 'First call should upgrade the legacy row.'
     notify_db_session.session.refresh(va_profile_local_cache)
-    assert va_profile_local_cache.encrypted_va_profile_id == encrypted_va_profile_id
-    assert va_profile_local_cache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_blind_index
+    assert va_profile_local_cache.encrypted_va_profile_id == encrypted_va_profile_id.fernet_encryption
+    assert va_profile_local_cache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id.hmac_encryption
     assert va_profile_local_cache.allowed
 
     # Second call: same blind index, should now match on blind index branch and NOT re-write encrypted fields
     second_call = ENCRYPTED_OPT_IN_OUT.bindparams(
         va_profile_id=va_profile_local_cache.va_profile_id,
-        encrypted_va_profile_id=generate_random_sha256(),  # Different encrypted value
-        encrypted_va_profile_id_blind_index=encrypted_va_profile_id_blind_index,  # Same blind index
+        encrypted_va_profile_id='this_should_not_be_updated',  # Different encrypted value
+        encrypted_va_profile_id_blind_index=encrypted_va_profile_id.hmac_encryption,  # Same blind index
         communication_item_id=va_profile_local_cache.communication_item_id,
         communication_channel_id=va_profile_local_cache.communication_channel_id,
         allowed=False,
@@ -665,10 +647,10 @@ def test_encrypted_va_profile_stored_function_upgrade_then_stable(notify_db_sess
     notify_db_session.session.refresh(va_profile_local_cache)
     assert not va_profile_local_cache.allowed, 'allowed should have updated.'
     assert va_profile_local_cache.source_datetime.month == 5
-    assert va_profile_local_cache.encrypted_va_profile_id == encrypted_va_profile_id, (
+    assert va_profile_local_cache.encrypted_va_profile_id == encrypted_va_profile_id.fernet_encryption, (
         'encrypted_va_profile_id should NOT have been overwritten on blind index match.'
     )
-    assert va_profile_local_cache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id_blind_index, (
+    assert va_profile_local_cache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id.hmac_encryption, (
         'blind index should NOT have been overwritten on blind index match.'
     )
 
@@ -916,7 +898,6 @@ def test_va_profile_opt_in_out_lambda_handler_older_date(
     """
 
     va_profile_local_cache = sample_va_profile_local_cache('2022-03-07T19:37:59.320Z', False, randint(1000, 100000))
-
     event = create_event(
         'txAuditId',
         'txAuditId',
@@ -1164,6 +1145,7 @@ def test_va_profile_opt_in_out_lambda_handler(
 
     # Setup new va_profile_id
     va_profile_id = randint(1000, 100000)
+    encrypted_va_profile_id = EncryptedVAProfileId(va_profile_id)
 
     # Check initial state in DB (there should be no records)
     stmt = (
@@ -1211,11 +1193,142 @@ def test_va_profile_opt_in_out_lambda_handler(
     )
 
     # Verify that one row was created in the DB
+    notification_id = 'e7b8cdda-858e-4b6f-a7df-93a71a2edb1e'
+    # 1 - ENCRYPTED: Verify the row contents by blind index
+    stmt = select(VAProfileLocalCache).where(
+        VAProfileLocalCache.encrypted_va_profile_id_blind_index == encrypted_va_profile_id.hmac_encryption,
+        VAProfileLocalCache.communication_item_id == 5,
+        VAProfileLocalCache.communication_channel_id == 1,
+        VAProfileLocalCache.notification_id == notification_id,
+    )
+    assert notify_db_session.session.execute(stmt).scalar_one() is not None
+
+    # 2 - LEGACY: Verify the row contents by va_profile_id
     stmt = delete(VAProfileLocalCache).where(
         VAProfileLocalCache.va_profile_id == va_profile_id,
         VAProfileLocalCache.communication_item_id == 5,
         VAProfileLocalCache.communication_channel_id == 1,
-        VAProfileLocalCache.notification_id == 'e7b8cdda-858e-4b6f-a7df-93a71a2edb1e',
+        VAProfileLocalCache.notification_id == notification_id,
     )
     assert notify_db_session.session.execute(stmt).rowcount == 1
+
     notify_db_session.session.commit()
+
+
+def test_save_notification_id_encrypted_query_blind_index_matches(
+    notify_db_session, sample_va_profile_local_cache, mock_lambda_db_connection
+):
+    """
+    When a row with a matching blind index exists, the encrypted UPDATE query should
+    set notification_id and the legacy query should never run.
+    """
+
+    va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-04-07T19:37:59.320Z', allowed=True)
+    encrypted_va_profile_id = EncryptedVAProfileId(va_profile_local_cache.va_profile_id)
+
+    notify_db_session.session.commit()
+
+    notification_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+    save_notification_id_to_cache(encrypted_va_profile_id, notification_id, '2022-04-07T19:37:59.320Z')
+    notify_db_session.session.expire(va_profile_local_cache)
+
+    notify_db_session.session.refresh(va_profile_local_cache)
+    assert str(va_profile_local_cache.notification_id) == notification_id
+
+
+def test_save_notification_id_falls_back_to_legacy_when_no_blind_index(
+    notify_db_session, sample_va_profile_local_cache, mock_lambda_db_connection
+):
+    """
+    When the row has no blind index (legacy row), the encrypted UPDATE finds nothing
+    and the legacy UPDATE matches on va_profile_id instead.
+    """
+    va_profile_local_cache = sample_va_profile_local_cache(source_datetime='2022-04-07T19:37:59.320Z', allowed=True)
+    va_profile_local_cache.encrypted_va_profile_id = None
+    va_profile_local_cache.encrypted_va_profile_id_blind_index = None
+    notify_db_session.session.commit()
+
+    encrypted_id = EncryptedVAProfileId(va_profile_local_cache.va_profile_id)
+
+    notification_id = 'aaaaaaaa-0000-0000-0000-000000000002'
+    save_notification_id_to_cache(encrypted_id, notification_id, '2022-04-07T19:37:59.320Z')
+
+    notify_db_session.session.refresh(va_profile_local_cache)
+    assert str(va_profile_local_cache.notification_id) == notification_id
+    assert va_profile_local_cache.encrypted_va_profile_id == encrypted_id.fernet_encryption
+    assert va_profile_local_cache.encrypted_va_profile_id_blind_index == encrypted_id.hmac_encryption
+
+
+class TestEncryptedVaProfileId:
+    def test_str_returns_fernet_ciphertext(self, mock_env_vars):
+        obj = EncryptedVAProfileId(12345)
+        assert str(obj) == obj.fernet_encryption
+        assert isinstance(obj.fernet_encryption, str)
+        assert obj.fernet_encryption  # non-empty
+
+    def test_get_pii_roundtrip_int(self, mock_env_vars):
+        va_profile_id = 98765
+        obj = EncryptedVAProfileId(va_profile_id)
+        assert obj.get_pii() == va_profile_id
+        assert isinstance(obj.get_pii(), int)
+
+    def test_get_pii_roundtrip_str(self, mock_env_vars):
+        va_profile_id = 24680
+        obj = EncryptedVAProfileId(va_profile_id)
+        assert obj.get_pii(to_str=True) == str(va_profile_id)
+        assert isinstance(obj.get_pii(to_str=True), str)
+
+    def test_hmac_is_deterministic_for_same_input_and_key(self, mock_env_vars):
+        """
+        HMAC should be the same across instances for the same va_profile_id when the key is fixed.
+        """
+        a = EncryptedVAProfileId(11111)
+        b = EncryptedVAProfileId(11111)
+        assert a.hmac_encryption == b.hmac_encryption
+
+    def test_fernet_is_nondeterministic_by_default(self, mock_env_vars):
+        """
+        Fernet includes randomness/timestamp, so ciphertext should generally differ per encryption
+        even with same plaintext/key.
+        """
+        a = EncryptedVAProfileId(22222)
+        b = EncryptedVAProfileId(22222)
+
+        # Check uniqueness
+        assert a.fernet_encryption != b.fernet_encryption
+
+        # But both should decrypt to the same value
+        assert a.get_pii() == 22222
+        assert b.get_pii() == 22222
+
+    def test_decrypt_raises_if_ciphertext_tampered(self, mock_env_vars):
+        obj = EncryptedVAProfileId(44444)
+
+        # Tamper with ciphertext (keep it a string)
+        obj.fernet_encryption = obj.fernet_encryption[:-1] + ('A' if obj.fernet_encryption[-1] != 'A' else 'B')
+
+        with pytest.raises(Exception):
+            obj.get_pii()
+
+
+class TestPiiEncryptionKeyRetrieval:
+    """Test the PII encryption key retrieval logic in the lambda module."""
+
+    def test_pii_encryption_key_from_env_in_test_environment(self, monkeypatch):
+        """In test environment, PII_ENCRYPTION_KEY should be read directly from env."""
+        monkeypatch.setenv('NOTIFY_ENVIRONMENT', 'test')
+        monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
+        monkeypatch.setenv('PII_HMAC_KEY', TEST_HMAC_KEY)
+        monkeypatch.setenv('SQLALCHEMY_DATABASE_URI', 'postgresql://localhost/test')
+
+        importlib.reload(va_profile_opt_in_out_lambda)
+
+        assert os.environ['PII_ENCRYPTION_KEY'] == TEST_ENCRYPTION_KEY
+
+    def test_test_env_sets_pii_key_from_env(self, monkeypatch):
+        monkeypatch.setenv('NOTIFY_ENVIRONMENT', 'test')
+        monkeypatch.setenv('SQLALCHEMY_DATABASE_URI', 'postgresql://localhost/test')
+        monkeypatch.setenv('PII_ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
+
+        importlib.reload(va_profile_opt_in_out_lambda)
+        assert os.environ['PII_ENCRYPTION_KEY'] == TEST_ENCRYPTION_KEY

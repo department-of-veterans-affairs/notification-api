@@ -2062,6 +2062,11 @@ class CommunicationItem(db.Model):
 class VAProfileLocalCache(db.Model):
     """
     VA Notify caches person IDs to lighten the load on the MPI databse.
+
+    Note: The encrypted_va_profile_blind_index stores an HMAC-SHA256-based deterministic hash of the va_profile_id to
+    allow lookups, while encrypted_va_profile_id uses Fernet for secure, non-deterministic encryption and cannot be
+    used directly for equality queries.
+
     """
 
     id = db.Column(db.Integer, primary_key=True)
