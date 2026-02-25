@@ -58,9 +58,7 @@ OPT_IN_OUT_QUERY = """SELECT va_profile_opt_in_out(%s, %s, %s, %s, %s);"""
 
 # Temporarily supporting both encrypted and unencrypted versions of the query
 # -- Legacy unencrypted query
-OPT_IN_OUT_ADD_NOTIFICATION_ID_QUERY = (
-    """UPDATE va_profile_local_cache SET notification_id = %s WHERE va_profile_id = %s AND source_datetime = %s;"""
-)
+OPT_IN_OUT_ADD_NOTIFICATION_ID_QUERY = """UPDATE va_profile_local_cache SET notification_id = %s, encrypted_va_profile_id = %s, encrypted_va_profile_id_blind_index = %s WHERE va_profile_id = %s AND source_datetime = %s;"""
 # -- Encrypted version query
 ENCRYPTED_OPT_IN_OUT_ADD_NOTIFICATION_ID_QUERY = """UPDATE va_profile_local_cache SET notification_id = %s WHERE encrypted_va_profile_id_blind_index = %s AND source_datetime = %s;"""
 VA_PROFILE_DOMAIN = os.getenv('VA_PROFILE_DOMAIN')
@@ -746,7 +744,13 @@ def save_notification_id_to_cache(
                 )
                 cursor.execute(
                     OPT_IN_OUT_ADD_NOTIFICATION_ID_QUERY,
-                    (notification_id, encrypted_va_profile_id.get_pii(), source_date),
+                    (
+                        notification_id,
+                        encrypted_va_profile_id.fernet_encryption,
+                        encrypted_va_profile_id.hmac_encryption,
+                        encrypted_va_profile_id.get_pii(),
+                        source_date,
+                    ),
                 )
                 was_updated = cursor.rowcount > 0
 
