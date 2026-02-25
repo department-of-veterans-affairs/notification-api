@@ -260,7 +260,7 @@ class OptInOutParams:
         return (
             self.va_profile_id.get_pii(),  # _va_profile_id
             self.communication_item_id,  # _communication_item_id
-            self.communication_channel_id,  # _communciation_channel_id
+            self.communication_channel_id,  # _communication_channel_id
             self.allowed,  # _allowed
             self.source_datetime,  # _source_datetime
         )
@@ -272,7 +272,7 @@ class OptInOutParams:
             self.va_profile_id.fernet_encryption,  # _encrypted_va_profile_id
             self.va_profile_id.hmac_encryption,  # _encrypted_va_profile_id_blind_index
             self.communication_item_id,  # _communication_item_id
-            self.communication_channel_id,  # _communciation_channel_id
+            self.communication_channel_id,  # _communication_channel_id
             self.allowed,  # _allowed
             self.source_datetime,  # _source_datetime
         )

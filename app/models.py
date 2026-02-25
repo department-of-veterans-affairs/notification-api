@@ -2063,9 +2063,10 @@ class VAProfileLocalCache(db.Model):
     """
     VA Notify caches person IDs to lighten the load on the MPI databse.
 
-    Note: The encrypted_va_profile_blind_index exists to retain Fernet encryption while allowing for lookups by
-    va_profile_id, which is necessary for backwards compatibility with existing data and to allow for a
-    smooth transition to the secure db encryption of the va_profile_id field.
+    Note: The encrypted_va_profile_blind_index stores an HMAC-SHA256-based deterministic hash of the va_profile_id to
+    allow lookups, while encrypted_va_profile_id uses Fernet for secure, non-deterministic encryption and cannot be
+    used directly for equality queries.
+
     """
 
     id = db.Column(db.Integer, primary_key=True)

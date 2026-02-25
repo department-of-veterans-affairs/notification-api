@@ -1178,7 +1178,6 @@ def test_va_profile_opt_in_out_lambda_handler(
     mock_put_instance.request.assert_called_once()
 
     # Assert POST request to VANotify was made with correct parameters, including the expected month
-    # Assert POST request to VANotify was made with correct parameters, including the expected month
     mock_post_instance.request.assert_called_once_with(
         'POST',
         '/v2/notifications/sms',
