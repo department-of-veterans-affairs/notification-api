@@ -52,7 +52,7 @@ except (TypeError, ValueError):
 ################################################################################################
 if os.getenv('NOTIFY_ENVIRONMENT') == 'test':
     sqlalchemy_database_uri = os.getenv('SQLALCHEMY_DATABASE_URI')
-    client_auth_token = 'test'
+    client_auth_token = 'test'  # nosec: only used for testing
 else:
     database_uri_path = os.getenv('DATABASE_URI_PATH')
     if database_uri_path is None:
@@ -115,8 +115,9 @@ else:
             db_connection.close()
 
     # Create the mapping table with a generator expression.
+    # lstrip('+') to normalize numbers that may or may not have a leading '+'.
     two_way_sms_table_dict = {
-        n: {
+        n.lstrip('+'): {
             'service_id': s,
             'url_endpoint': u,
             'self_managed': sm,
@@ -190,7 +191,8 @@ def notify_incoming_sms_handler(
         # Else, the message has all the required fields.
 
         # destinationNumber is the 10DLC Pinpoint number to which the end user responded.
-        two_way_record = two_way_sms_table_dict.get(inbound_sms['destinationNumber'])
+        # lstrip('+') to normalize the Pinpoint number for lookup.
+        two_way_record = two_way_sms_table_dict.get(inbound_sms['destinationNumber'].lstrip('+'))
         if two_way_record is None:
             # Dead letter
             logger.error('Unable to find a two_way_record for %s.', inbound_sms.get('destinationNumber', 'unknown'))
@@ -266,7 +268,7 @@ def forward_to_service(
 
     global client_auth_token
 
-    if client_auth_token != 'test':
+    if client_auth_token != 'test':  # nosec: used to determine whether or not to use testing value
         try:
             client_auth_token = get_ssm_param_info(client_api_auth_ssm_path=auth_parameter)
         except Exception as e:

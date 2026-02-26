@@ -13,6 +13,7 @@ import boto3
 
 LAMBDA_MODULE = 'lambda_functions.two_way_sms.two_way_sms_v2'
 DESTINATION_NUMBER = '+12222222222'
+DESTINATION_NUMBER_NORMALIZED = '12222222222'
 INVALID_EVENT = {}
 INVALID_EVENT_BODY = {'Records': [{'no_body': {}}]}
 VALID_EVENT = {
@@ -21,6 +22,26 @@ VALID_EVENT = {
             'messageId': 'c5fd0ef6-1145-4ba3-9612-1d8fa7ec6e73',
             'receiptHandle': 'handlesig==',
             'body': '{\n "Type" : "Notification",\n "MessageId" : "guid",\n "TopicArn" : "notify-incoming-sms",\n "Message" : "{\\"originationNumber\\":\\"+11111111111\\",\\"destinationNumber\\":\\"+12222222222\\",\\"messageKeyword\\":\\"KEYWORD_171875617347\\",\\"messageBody\\":\\"Test message\\",\\"inboundMessageId\\":\\"messageid\\"}",\n "Timestamp" : "2022-12-02T04:16:59.606Z",\n "SignatureVersion" : "1",\n "Signature" : "somesig==",\n "SigningCertURL" : "https://someurl/some.pem",\n "UnsubscribeURL" : "https://someurl/?Action=Unsubscribe&SubscriptionArn=notify-incoming-sms"\n}',
+            'attributes': {
+                'ApproximateReceiveCount': '1',
+                'SentTimestamp': '1669954619628',
+                'SenderId': '280946605409',
+                'ApproximateFirstReceiveTimestamp': '1669954619630',
+            },
+            'messageAttributes': {},
+            'md5OfBody': 'somevalue',
+            'eventSource': 'aws:sqs',
+            'eventSourceARN': 'notify-incoming-sms',
+            'awsRegion': 'some-region',  # noqa
+        }
+    ]
+}
+VALID_EVENT_NO_PLUS = {
+    'Records': [
+        {
+            'messageId': 'c5fd0ef6-1145-4ba3-9612-1d8fa7ec6e73',
+            'receiptHandle': 'handlesig==',
+            'body': '{\n "Type" : "Notification",\n "MessageId" : "guid",\n "TopicArn" : "notify-incoming-sms",\n "Message" : "{\\"originationNumber\\":\\"+11111111111\\",\\"destinationNumber\\":\\"12222222222\\",\\"messageKeyword\\":\\"KEYWORD_171875617347\\",\\"messageBody\\":\\"Test message\\",\\"inboundMessageId\\":\\"messageid\\"}",\n "Timestamp" : "2022-12-02T04:16:59.606Z",\n "SignatureVersion" : "1",\n "Signature" : "somesig==",\n "SigningCertURL" : "https://someurl/some.pem",\n "UnsubscribeURL" : "https://someurl/?Action=Unsubscribe&SubscriptionArn=notify-incoming-sms"\n}',
             'attributes': {
                 'ApproximateReceiveCount': '1',
                 'SentTimestamp': '1669954619628',
@@ -192,11 +213,12 @@ def test_notify_incoming_sms_handler_failed_request(mocker):
     )
     mocker.patch(
         f'{LAMBDA_MODULE}.two_way_sms_table_dict',
-        return_value={
-            DESTINATION_NUMBER: {
+        {
+            DESTINATION_NUMBER_NORMALIZED: {
                 'service_id': 'someserviceid',
                 'url_endpoint': 'https://someurl.com',
                 'self_managed': False,
+                'auth_parameter': 'auth_param',
             }
         },
     )
@@ -213,7 +235,7 @@ def test_notify_incoming_sms_handler_phonenumber_not_found_keyerror(mocker):
     # trigger the key not existing
     mocker.patch(
         f'{LAMBDA_MODULE}.two_way_sms_table_dict',
-        {'+123': {'service_id': 'someserviceid', 'url_endpoint': 'https://someurl.com', 'self_managed': False}},
+        {'123': {'service_id': 'someserviceid', 'url_endpoint': 'https://someurl.com', 'self_managed': False}},
     )
 
     response = notify_incoming_sms_handler(VALID_EVENT, None)
@@ -228,10 +250,11 @@ def test_notify_incoming_sms_handler_phonenumber_not_found_exception(mocker):
     mocker.patch(
         f'{LAMBDA_MODULE}.two_way_sms_table_dict',
         {
-            DESTINATION_NUMBER: {
+            DESTINATION_NUMBER_NORMALIZED: {
                 'service_id': 'someserviceid',
                 'url_endpoint': 'https://someurl.com',
                 'self_managed': False,
+                'auth_parameter': 'auth_param',
             }
         },
     )
@@ -243,3 +266,32 @@ def test_notify_incoming_sms_handler_phonenumber_not_found_exception(mocker):
 
     assert response['statusCode'] == 200
     sqs_mock.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    'event',
+    [VALID_EVENT, VALID_EVENT_NO_PLUS],
+    ids=['destination_with_plus', 'destination_without_plus'],
+)
+def test_notify_incoming_sms_handler_matches_number_regardless_of_plus(mocker, event):
+    """Verify the handler matches destination numbers with or without a leading '+' prefix."""
+
+    sqs_mock = mocker.patch(f'{LAMBDA_MODULE}.push_to_sqs')
+    forward_mock = mocker.patch(f'{LAMBDA_MODULE}.forward_to_service', return_value=True)
+    mocker.patch(
+        f'{LAMBDA_MODULE}.two_way_sms_table_dict',
+        {
+            DESTINATION_NUMBER_NORMALIZED: {
+                'service_id': 'someserviceid',
+                'url_endpoint': 'https://someurl.com',
+                'self_managed': False,
+                'auth_parameter': 'auth_param',
+            }
+        },
+    )
+
+    response = notify_incoming_sms_handler(event, None)
+
+    assert response['statusCode'] == 200
+    forward_mock.assert_called_once()
+    sqs_mock.assert_not_called()
