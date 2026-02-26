@@ -181,20 +181,32 @@ def test_comp_and_pen_batch_process_happy_path(notify_db_session, mocker, sample
 
     comp_and_pen_batch_process(records)
 
-    notifications = notify_db_session.session.scalars(select(Notification)).all()
+    notifications = notify_db_session.session.scalars(
+        select(Notification).where(Notification.service_id == template.service.id)
+    ).all()
 
     try:
         mock_send_notification_to_queue.assert_not_called(), 'This is the path for notifications with contact info.'
         assert mock_send.call_count == len(records), 'Should have been called for each record.'
         assert len(notifications) == len(records), 'Should have created a new notification for each record.'
+        original_vaprofile_ids = {'57', '43627'}
 
-        for index, notification in enumerate(notifications):
+        # Create set to avoid flaky test due to order of notifications returned from DB
+        actual_vaprofile_ids = set()
+
+        for notification in notifications:
             assert len(notification.recipient_identifiers) == 1
+            assert set(notification.recipient_identifiers.keys()) == {IdentifierType.VA_PROFILE_ID.value}
             va_profile_id = notification.recipient_identifiers[IdentifierType.VA_PROFILE_ID.value].id_value
-            decrypted_va_profile_id = PiiVaProfileID(va_profile_id, True).get_pii() if pii_enabled else va_profile_id
-            assert decrypted_va_profile_id == records[index]['vaprofile_id']
+            if pii_enabled:
+                decrypted = PiiVaProfileID(va_profile_id, True).get_pii()
+            else:
+                decrypted = va_profile_id
+            # Add decrypted va_profile_id to set of actual va_profile_ids for comparison against original
+            actual_vaprofile_ids.add(decrypted)
+        assert actual_vaprofile_ids == original_vaprofile_ids
     finally:
-        notify_db_session.session.execute(delete(Notification))
+        notify_db_session.session.execute(delete(Notification).where(Notification.service_id == template.service.id))
 
 
 @pytest.mark.serial
