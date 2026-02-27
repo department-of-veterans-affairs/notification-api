@@ -198,6 +198,18 @@ class TestFormatVetextPayload:
         }
         assert formatted_payload == expected_formatted_payload
 
+    def test_format_icn_strips_fhir_suffix(self):
+        fhir_icn = '1008^NI^200M^USVHA'
+        payload = V2PushPayload(DEFAULT_MOBILE_APP_TYPE, 'any_template_id', icn=fhir_icn)
+        formatted_payload = VETextClient.format_for_vetext(payload)
+        expected_formatted_payload = {
+            'appSid': DEFAULT_MOBILE_APP_TYPE,
+            'icn': '1008',
+            'personalization': None,
+            'templateSid': 'any_template_id',
+        }
+        assert formatted_payload == expected_formatted_payload
+
 
 class TestSendPushNotification:
     @pytest.fixture

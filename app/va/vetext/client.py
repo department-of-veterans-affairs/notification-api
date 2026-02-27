@@ -49,7 +49,9 @@ class VETextClient:
             formatted_payload['topicSid'] = payload.topic_sid
         else:
             # Strip FHIR format suffix if present before sending to VEText
-            icn = transform_from_fhir_format(payload.icn) if is_fhir_format(payload.icn) else payload.icn
+            icn = payload.icn
+            if icn is not None and is_fhir_format(payload.icn):
+                icn = transform_from_fhir_format(payload.icn)
             formatted_payload['icn'] = icn
 
         return formatted_payload
