@@ -10,6 +10,7 @@ from notifications_utils.clients.statsd.statsd_client import StatsdClient
 from app.celery.exceptions import NonRetryableException, RetryableException
 from app.utils import statsd_http
 from app.v2.dataclasses import V2PushPayload
+from app.va.identifier import is_fhir_format, transform_from_fhir_format
 
 
 class Credentials(TypedDict):
@@ -47,7 +48,9 @@ class VETextClient:
         if payload.is_broadcast():
             formatted_payload['topicSid'] = payload.topic_sid
         else:
-            formatted_payload['icn'] = payload.icn
+            # Strip FHIR format suffix if present before sending to VEText
+            icn = transform_from_fhir_format(payload.icn) if is_fhir_format(payload.icn) else payload.icn
+            formatted_payload['icn'] = icn
 
         return formatted_payload
 
