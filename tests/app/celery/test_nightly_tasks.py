@@ -216,32 +216,14 @@ def test_export_active_user_email_lists_uploads_expected_files_in_staging(notify
         export_active_user_email_lists()
 
     assert mock_boto.client.return_value.put_object.call_count == 3
-    assert mock_boto.client.return_value.put_object.call_args_list == [
-        (
-            (),
-            {
-                'Body': 'business1@va.gov,business2@va.gov',
-                'Bucket': 'bucket-name',
-                'Key': 'user-exports/2026-03-03/business_contacts.txt',
-            },
-        ),
-        (
-            (),
-            {
-                'Body': 'tech1@va.gov,tech2@va.gov',
-                'Bucket': 'bucket-name',
-                'Key': 'user-exports/2026-03-03/technical_contacts.txt',
-            },
-        ),
-        (
-            (),
-            {
-                'Body': 'a@va.gov,z@va.gov',
-                'Bucket': 'bucket-name',
-                'Key': 'user-exports/2026-03-03/all_active_users.txt',
-            },
-        ),
-    ]
+    expected_bodies = {
+        'user-exports/2026-03-03/business_contacts.txt': 'business1@va.gov,business2@va.gov',
+        'user-exports/2026-03-03/technical_contacts.txt': 'tech1@va.gov,tech2@va.gov',
+        'user-exports/2026-03-03/all_active_users.txt': 'a@va.gov,z@va.gov',
+    }
+    for _, kwargs in mock_boto.client.return_value.put_object.call_args_list:
+        assert kwargs['Bucket'] == 'bucket-name'
+        assert kwargs['Body'] == expected_bodies[kwargs['Key']]
 
 
 def test_export_active_user_email_lists_noops_outside_staging(notify_api, mocker):

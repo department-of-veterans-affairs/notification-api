@@ -111,8 +111,4 @@ fileignoreconfig:
   checksum: d2615670e4a594e06cfe5a2fc2d2dad0567e33a059aeaae68e346b3da2532750
 - filename: tests/lambda_functions/two_way_sms/test_two_way_sms_v2.py
   checksum: 295c93e5a929ea3d7afbea720dd5edcf435b0a96fe260b7538951f1f5c25a648
-- filename: app/celery/nightly_tasks.py
-  checksum: ecafceaba59ef27575a09026f4d89b3ae706368e3bea6a5b7a91704cbfc092d1
-- filename: tests/app/celery/test_nightly_tasks.py
-  checksum: 84d71b68c76f444f9233b3de0567b66429f823104ef8bd5056d15f84ae8ffabf
 version: "1.0"
