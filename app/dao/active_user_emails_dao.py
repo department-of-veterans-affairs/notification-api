@@ -6,6 +6,7 @@ from app.model import User
 
 
 def get_active_business_contact_emails():
+    """Return distinct email addresses for users with active business_contact role assignments."""
     stmt = (
         select(User.email_address)
         .join(UserServiceRoles)
@@ -20,6 +21,7 @@ def get_active_business_contact_emails():
 
 
 def get_active_technical_contact_emails():
+    """Return distinct email addresses for users with active technical_contact role assignments."""
     stmt = (
         select(User.email_address)
         .join(UserServiceRoles)
@@ -34,6 +36,7 @@ def get_active_technical_contact_emails():
 
 
 def get_all_active_user_emails():
+    """Return distinct email addresses for all active users regardless of role assignment."""
     stmt = (
         select(User.email_address)
         .where(

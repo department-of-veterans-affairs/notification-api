@@ -160,6 +160,7 @@ class Config(object):
     CSV_UPLOAD_BUCKET_NAME = os.getenv(
         'CSV_UPLOAD_BUCKET_NAME', f'{env_name_map[NOTIFY_ENVIRONMENT]}-notifications-csv-upload'
     )
+    USER_EXPORT_BUCKET_NAME = os.getenv('USER_EXPORT_BUCKET_NAME', f'vanotify-{NOTIFY_ENVIRONMENT}-users-export')
     ASSET_UPLOAD_BUCKET_NAME = os.getenv('ASSET_UPLOAD_BUCKET_NAME', 'dev-notifications-va-gov-assets')
     ASSET_DOMAIN = os.getenv('ASSET_DOMAIN', 's3.amazonaws.com')
     INVITATION_EXPIRATION_DAYS = 2
@@ -305,6 +306,11 @@ class Config(object):
             'send-daily-performance-platform-stats': {
                 'task': 'send-daily-performance-platform-stats',
                 'schedule': crontab(hour=2, minute=0),
+                'options': {'queue': QueueNames.PERIODIC},
+            },
+            'export-active-user-email-lists': {
+                'task': 'export-active-user-email-lists',
+                'schedule': crontab(hour=3, minute=00),
                 'options': {'queue': QueueNames.PERIODIC},
             },
             'remove_transformed_dvla_files': {

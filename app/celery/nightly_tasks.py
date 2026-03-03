@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+import boto3
 import pytz
 from flask import current_app
 from notifications_utils.statsd_decorators import statsd
@@ -16,11 +17,21 @@ from app.dao.notifications_dao import (
     dao_timeout_notifications,
     delete_notifications_older_than_retention_by_type,
 )
+from app.dao.active_user_emails_dao import (
+    get_active_business_contact_emails,
+    get_active_technical_contact_emails,
+    get_all_active_user_emails,
+)
 from app.exceptions import NotificationTechnicalFailureException
 from app.models import Notification
 from app.performance_platform import total_sent_notifications, processing_time
 from app.cronitor import cronitor
 from app.utils import get_local_timezone_midnight_in_utc
+
+
+def _format_export_email_list(emails: list[str]) -> str:
+    """Return a deterministic comma-separated list of email addresses for copy/paste usage."""
+    return ','.join(sorted(emails))
 
 
 @notify_celery.task(name='remove_sms_email_jobs')
@@ -139,6 +150,39 @@ def send_daily_performance_platform_stats(date=None):
     if performance_platform_client.active:
         send_total_sent_notifications_to_performance_platform(bst_date=date)
         processing_time.send_processing_time_to_performance_platform(bst_date=date)
+
+
+@notify_celery.task(name='export-active-user-email-lists')
+@cronitor('export-active-user-email-lists')
+@statsd(namespace='tasks')
+def export_active_user_email_lists():
+    """Export active business, technical, and all-user email lists to S3 once per day in staging."""
+    if current_app.config['NOTIFY_ENVIRONMENT'] != 'staging':
+        current_app.logger.info('Skipping export-active-user-email-lists task outside staging environment')
+        return
+
+    today_string = datetime.utcnow().date().isoformat()
+
+    export_files = {
+        f'user-exports/{today_string}/business_contacts.txt': _format_export_email_list(
+            get_active_business_contact_emails()
+        ),
+        f'user-exports/{today_string}/technical_contacts.txt': _format_export_email_list(
+            get_active_technical_contact_emails()
+        ),
+        f'user-exports/{today_string}/all_active_users.txt': _format_export_email_list(get_all_active_user_emails()),
+    }
+
+    client = boto3.client('s3', endpoint_url=current_app.config['AWS_S3_ENDPOINT_URL'])
+
+    for key, body in export_files.items():
+        client.put_object(Body=body, Bucket=current_app.config['USER_EXPORT_BUCKET_NAME'], Key=key)
+
+    current_app.logger.info(
+        'export-active-user-email-lists complete: %s files uploaded for %s',
+        len(export_files),
+        today_string,
+    )
 
 
 def send_total_sent_notifications_to_performance_platform(bst_date):
