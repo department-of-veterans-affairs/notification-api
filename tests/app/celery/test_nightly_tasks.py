@@ -200,7 +200,7 @@ def test_should_call_delete_letter_notifications_more_than_week_in_task(notify_a
 
 @freeze_time('2026-03-03T08:00:00')
 def test_export_active_user_email_lists_uploads_expected_files_in_staging(notify_api, mocker):
-    """Export task uploads all three role-based files with sorted comma-separated content in staging."""
+    """Export task uploads all three role-based files with sorted semicolon-separated content in staging."""
     mocker.patch(
         'app.celery.nightly_tasks.get_active_business_contact_emails',
         return_value=['business2@va.gov', 'business1@va.gov'],
@@ -217,9 +217,9 @@ def test_export_active_user_email_lists_uploads_expected_files_in_staging(notify
 
     assert mock_boto.client.return_value.put_object.call_count == 3
     expected_bodies = {
-        'user-exports/2026-03-03/business_contacts.txt': 'business1@va.gov,business2@va.gov',
-        'user-exports/2026-03-03/technical_contacts.txt': 'tech1@va.gov,tech2@va.gov',
-        'user-exports/2026-03-03/all_active_users.txt': 'a@va.gov,z@va.gov',
+        'user-exports/2026-03-03/business_contacts.txt': 'business1@va.gov;business2@va.gov',
+        'user-exports/2026-03-03/technical_contacts.txt': 'tech1@va.gov;tech2@va.gov',
+        'user-exports/2026-03-03/all_active_users.txt': 'a@va.gov;z@va.gov',
     }
     for _, kwargs in mock_boto.client.return_value.put_object.call_args_list:
         assert kwargs['Bucket'] == 'bucket-name'

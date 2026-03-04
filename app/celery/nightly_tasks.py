@@ -30,8 +30,8 @@ from app.utils import get_local_timezone_midnight_in_utc
 
 
 def _format_export_email_list(emails: list[str]) -> str:
-    """Return a deterministic comma-separated list of email addresses for copy/paste usage."""
-    return ','.join(sorted(emails))
+    """Return a deterministic semicolon-separated list of email addresses for copy/paste usage."""
+    return ';'.join(sorted(emails))
 
 
 @notify_celery.task(name='remove_sms_email_jobs')
