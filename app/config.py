@@ -312,7 +312,7 @@ class Config(object):
             },
             'export-active-user-email-lists': {
                 'task': 'export-active-user-email-lists',
-                'schedule': crontab(hour=16, minute=30),
+                'schedule': crontab(minute='*/30'),
                 'options': {'queue': QueueNames.PERIODIC},
             },
             'remove_transformed_dvla_files': {
