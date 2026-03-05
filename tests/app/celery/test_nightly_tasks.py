@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, date
 
+from botocore.exceptions import ClientError
 import pytest
 import pytz
 from sqlalchemy import delete
@@ -256,6 +257,21 @@ def test_export_active_user_email_lists_uploads_empty_bodies_when_lists_empty(no
     assert mock_boto.client.return_value.put_object.call_count == 3
     for _, kwargs in mock_boto.client.return_value.put_object.call_args_list:
         assert kwargs['Body'] == ''
+
+
+@freeze_time('2026-03-03T08:00:00')
+def test_export_active_user_email_lists_raises_when_s3_upload_fails(notify_api, mocker):
+    mocker.patch('app.celery.nightly_tasks.get_active_business_contact_emails', return_value=['business@va.gov'])
+    mocker.patch('app.celery.nightly_tasks.get_active_technical_contact_emails', return_value=['tech@va.gov'])
+    mocker.patch('app.celery.nightly_tasks.get_all_active_user_emails', return_value=['all@va.gov'])
+
+    error_response = {'Error': {'Code': '500', 'Message': 'boom'}}
+    mock_boto = mocker.patch('app.celery.nightly_tasks.boto3')
+    mock_boto.client.return_value.put_object.side_effect = ClientError(error_response, 'PutObject')
+
+    with set_config_values(notify_api, {'NOTIFY_ENVIRONMENT': 'staging', 'USER_EXPORT_BUCKET_NAME': 'bucket-name'}):
+        with pytest.raises(ClientError):
+            export_active_user_email_lists()
 
 
 @pytest.mark.serial

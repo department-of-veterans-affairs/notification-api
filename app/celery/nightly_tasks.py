@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 import boto3
+from botocore.exceptions import ClientError
 import pytz
 from flask import current_app
 from notifications_utils.statsd_decorators import statsd
@@ -32,6 +33,20 @@ from app.utils import get_local_timezone_midnight_in_utc
 def _format_export_email_list(emails: list[str]) -> str:
     """Return a deterministic semicolon-separated list of email addresses for copy/paste usage."""
     return ';'.join(sorted(emails))
+
+
+def _upload_user_export_files_to_s3(export_files: dict[str, str]) -> None:
+    client = boto3.client('s3', endpoint_url=current_app.config['AWS_S3_ENDPOINT_URL'])
+
+    try:
+        for txt_key, body in export_files.items():
+            client.put_object(Body=body, Bucket=current_app.config['USER_EXPORT_BUCKET_NAME'], Key=txt_key)
+    except ClientError:
+        current_app.logger.exception(
+            'export-active-user-email-lists failed uploading files to bucket %s',
+            current_app.config['USER_EXPORT_BUCKET_NAME'],
+        )
+        raise
 
 
 @notify_celery.task(name='remove_sms_email_jobs')
@@ -173,10 +188,7 @@ def export_active_user_email_lists():
         f'user-exports/{today_string}/all_active_users.txt': _format_export_email_list(get_all_active_user_emails()),
     }
 
-    client = boto3.client('s3', endpoint_url=current_app.config['AWS_S3_ENDPOINT_URL'])
-
-    for key, body in export_files.items():
-        client.put_object(Body=body, Bucket=current_app.config['USER_EXPORT_BUCKET_NAME'], Key=key)
+    _upload_user_export_files_to_s3(export_files)
 
     current_app.logger.info(
         'export-active-user-email-lists complete: %s files uploaded for %s',
