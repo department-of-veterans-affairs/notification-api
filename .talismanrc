@@ -5,6 +5,8 @@ fileignoreconfig:
   checksum: 44272d736424a12a9b8f5c23fb0b9cbba4befb91612fb793230329261bb369f9
 - filename: app/authentication/auth.py
   checksum: 25c56ecb421ad6aab9a803fccd981a7c019a3a8682447dd1a2a8f349e5d3b464
+- filename: app/celery/nightly_tasks.py
+  checksum: a8463db80924625300fc84970974e506ff378fedd268c3173d4a19a01e716f16
 - filename: app/clients/sms/aws_pinpoint.py
   checksum: 37e90b46758c38621f6cc4a41830e14ac6895526033c66b60383cd3586e12da5
 - filename: app/config.py

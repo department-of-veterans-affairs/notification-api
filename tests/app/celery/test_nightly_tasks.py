@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, date
 
+from botocore.exceptions import ClientError
 import pytest
 import pytz
 from sqlalchemy import delete
@@ -16,6 +17,7 @@ from app.celery.nightly_tasks import (
     delete_inbound_sms,
     delete_letter_notifications_older_than_retention,
     delete_sms_notifications_older_than_retention,
+    export_active_user_email_lists,
     raise_alert_if_letter_notifications_still_sending,
     remove_letter_csv_files,
     remove_sms_email_csv_files,
@@ -47,6 +49,7 @@ from tests.app.db import (
 from app.models import FactNotificationStatus
 
 from tests.app.conftest import datetime_in_past
+from tests.conftest import set_config_values
 
 
 def mock_s3_get_list_match(bucket_name, subfolder='', suffix='', last_modified=None):
@@ -194,6 +197,81 @@ def test_should_call_delete_letter_notifications_more_than_week_in_task(notify_a
     mocked = mocker.patch('app.celery.nightly_tasks.delete_notifications_older_than_retention_by_type')
     delete_letter_notifications_older_than_retention()
     mocked.assert_called_once_with(LETTER_TYPE)
+
+
+@freeze_time('2026-03-03T08:00:00')
+def test_export_active_user_email_lists_uploads_expected_files_in_staging(notify_api, mocker):
+    """Export task uploads all three role-based files with sorted semicolon-separated content in staging."""
+    mocker.patch(
+        'app.celery.nightly_tasks.get_active_business_contact_emails',
+        return_value=['business2@va.gov', 'business1@va.gov'],
+    )
+    mocker.patch(
+        'app.celery.nightly_tasks.get_active_technical_contact_emails',
+        return_value=['tech2@va.gov', 'tech1@va.gov'],
+    )
+    mocker.patch('app.celery.nightly_tasks.get_all_active_user_emails', return_value=['z@va.gov', 'a@va.gov'])
+    mock_boto = mocker.patch('app.celery.nightly_tasks.boto3')
+
+    with set_config_values(notify_api, {'NOTIFY_ENVIRONMENT': 'staging', 'USER_EXPORT_BUCKET_NAME': 'bucket-name'}):
+        export_active_user_email_lists()
+
+    assert mock_boto.client.return_value.put_object.call_count == 3
+    expected_bodies = {
+        'user-exports/2026-03-03/business_contacts.txt': 'business1@va.gov;business2@va.gov',
+        'user-exports/2026-03-03/technical_contacts.txt': 'tech1@va.gov;tech2@va.gov',
+        'user-exports/2026-03-03/all_active_users.txt': 'a@va.gov;z@va.gov',
+    }
+    for _, kwargs in mock_boto.client.return_value.put_object.call_args_list:
+        assert kwargs['Bucket'] == 'bucket-name'
+        assert kwargs['Body'] == expected_bodies[kwargs['Key']]
+
+
+def test_export_active_user_email_lists_noops_outside_staging(notify_api, mocker):
+    """Export task exits without DAO or S3 calls when environment is not staging."""
+    mock_business = mocker.patch('app.celery.nightly_tasks.get_active_business_contact_emails')
+    mock_tech = mocker.patch('app.celery.nightly_tasks.get_active_technical_contact_emails')
+    mock_all = mocker.patch('app.celery.nightly_tasks.get_all_active_user_emails')
+    mock_boto = mocker.patch('app.celery.nightly_tasks.boto3')
+
+    with set_config_values(notify_api, {'NOTIFY_ENVIRONMENT': 'development'}):
+        export_active_user_email_lists()
+
+    mock_business.assert_not_called()
+    mock_tech.assert_not_called()
+    mock_all.assert_not_called()
+    mock_boto.client.return_value.put_object.assert_not_called()
+
+
+@freeze_time('2026-03-03T08:00:00')
+def test_export_active_user_email_lists_uploads_empty_bodies_when_lists_empty(notify_api, mocker):
+    """Export task still uploads expected files with empty bodies when no emails are returned."""
+    mocker.patch('app.celery.nightly_tasks.get_active_business_contact_emails', return_value=[])
+    mocker.patch('app.celery.nightly_tasks.get_active_technical_contact_emails', return_value=[])
+    mocker.patch('app.celery.nightly_tasks.get_all_active_user_emails', return_value=[])
+    mock_boto = mocker.patch('app.celery.nightly_tasks.boto3')
+
+    with set_config_values(notify_api, {'NOTIFY_ENVIRONMENT': 'staging', 'USER_EXPORT_BUCKET_NAME': 'bucket-name'}):
+        export_active_user_email_lists()
+
+    assert mock_boto.client.return_value.put_object.call_count == 3
+    for _, kwargs in mock_boto.client.return_value.put_object.call_args_list:
+        assert kwargs['Body'] == ''
+
+
+@freeze_time('2026-03-03T08:00:00')
+def test_export_active_user_email_lists_raises_when_s3_upload_fails(notify_api, mocker):
+    mocker.patch('app.celery.nightly_tasks.get_active_business_contact_emails', return_value=['business@va.gov'])
+    mocker.patch('app.celery.nightly_tasks.get_active_technical_contact_emails', return_value=['tech@va.gov'])
+    mocker.patch('app.celery.nightly_tasks.get_all_active_user_emails', return_value=['all@va.gov'])
+
+    error_response = {'Error': {'Code': '500', 'Message': 'boom'}}
+    mock_boto = mocker.patch('app.celery.nightly_tasks.boto3')
+    mock_boto.client.return_value.put_object.side_effect = ClientError(error_response, 'PutObject')
+
+    with set_config_values(notify_api, {'NOTIFY_ENVIRONMENT': 'staging', 'USER_EXPORT_BUCKET_NAME': 'bucket-name'}):
+        with pytest.raises(ClientError):
+            export_active_user_email_lists()
 
 
 @pytest.mark.serial
