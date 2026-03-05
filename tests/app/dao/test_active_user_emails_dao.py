@@ -228,3 +228,126 @@ def test_email_values_are_returned_as_is_for_invalid_email_strings(
         assert 'not-an-email' in all_active_emails
     finally:
         _cleanup_user_service_roles(notify_db_session, role_ids)
+
+
+@pytest.mark.serial
+def test_get_active_business_contact_emails_lowercases_and_deduplicates_mixed_case_addresses(
+    notify_db_session,
+    sample_service,
+    sample_user,
+):
+    role_ids = []
+    service = sample_service()
+    lower_user = sample_user(email='john@va.gov')
+    mixed_user = sample_user(email='John@VA.gov')
+
+    role_ids.append(_add_user_service_role(notify_db_session, lower_user.id, service.id, 'business_contact').id)
+    role_ids.append(_add_user_service_role(notify_db_session, mixed_user.id, service.id, 'business_contact').id)
+
+    try:
+        emails = get_active_business_contact_emails()
+        assert emails == ['john@va.gov']
+    finally:
+        _cleanup_user_service_roles(notify_db_session, role_ids)
+
+
+@pytest.mark.serial
+def test_get_active_technical_contact_emails_lowercases_and_deduplicates_mixed_case_addresses(
+    notify_db_session,
+    sample_service,
+    sample_user,
+):
+    role_ids = []
+    service = sample_service()
+    upper_user = sample_user(email='JANE@VA.GOV')
+    mixed_user = sample_user(email='Jane@va.gov')
+
+    role_ids.append(_add_user_service_role(notify_db_session, upper_user.id, service.id, 'technical_contact').id)
+    role_ids.append(_add_user_service_role(notify_db_session, mixed_user.id, service.id, 'technical_contact').id)
+
+    try:
+        emails = get_active_technical_contact_emails()
+        assert emails == ['jane@va.gov']
+    finally:
+        _cleanup_user_service_roles(notify_db_session, role_ids)
+
+
+@pytest.mark.serial
+def test_get_all_active_user_emails_lowercases_and_deduplicates_mixed_case_addresses(
+    sample_user,
+):
+    sample_user(email='ALICE@VA.GOV', state='active')
+    sample_user(email='Alice@va.gov', state='active')
+
+    emails = get_all_active_user_emails()
+
+    assert emails.count('alice@va.gov') == 1
+
+
+@pytest.mark.serial
+def test_user_email_appears_in_role_specific_and_all_active_lists(
+    notify_db_session,
+    sample_service,
+    sample_user,
+):
+    role_ids = []
+    user = sample_user(email='unique@va.gov', state='active')
+    service = sample_service()
+
+    role_ids.append(_add_user_service_role(notify_db_session, user.id, service.id, 'business_contact').id)
+
+    try:
+        business_emails = get_active_business_contact_emails()
+        all_active_emails = get_all_active_user_emails()
+
+        assert 'unique@va.gov' in business_emails
+        assert 'unique@va.gov' in all_active_emails
+    finally:
+        _cleanup_user_service_roles(notify_db_session, role_ids)
+
+
+@pytest.mark.serial
+def test_get_active_user_email_queries_exclude_archived_prefixed_emails(
+    notify_db_session,
+    sample_service,
+    sample_user,
+):
+    role_ids = []
+    service = sample_service()
+
+    active_business_user = sample_user(email='business-ok@va.gov', state='active')
+    active_technical_user = sample_user(email='technical-ok@va.gov', state='active')
+    archived_business_user = sample_user(email='_archived-business@va.gov', state='active')
+    archived_technical_user = sample_user(email='_ARCHIVED-technical@va.gov', state='active')
+
+    role_ids.append(
+        _add_user_service_role(notify_db_session, active_business_user.id, service.id, 'business_contact').id
+    )
+    role_ids.append(
+        _add_user_service_role(notify_db_session, active_technical_user.id, service.id, 'technical_contact').id
+    )
+    role_ids.append(
+        _add_user_service_role(notify_db_session, archived_business_user.id, service.id, 'business_contact').id
+    )
+    role_ids.append(
+        _add_user_service_role(notify_db_session, archived_technical_user.id, service.id, 'technical_contact').id
+    )
+
+    try:
+        business_emails = get_active_business_contact_emails()
+        technical_emails = get_active_technical_contact_emails()
+        all_active_emails = get_all_active_user_emails()
+
+        assert 'business-ok@va.gov' in business_emails
+        assert '_archived-business@va.gov' not in business_emails
+
+        assert 'technical-ok@va.gov' in technical_emails
+        assert '_archived-technical@va.gov' not in technical_emails
+
+        assert 'business-ok@va.gov' in all_active_emails
+        assert 'technical-ok@va.gov' in all_active_emails
+        assert '_archived-business@va.gov' not in all_active_emails
+        assert '_archived-technical@va.gov' not in all_active_emails
+        assert '_archived-all@va.gov' not in all_active_emails
+    finally:
+        _cleanup_user_service_roles(notify_db_session, role_ids)
