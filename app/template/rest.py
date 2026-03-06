@@ -142,6 +142,11 @@ def update_template(
         # Don't update anything else.
         return redact_template(fetched_template, data)
 
+    if 'created_by' in data:
+        message = 'Not permitted to be updated'
+        errors = {'created_by': [message]}
+        raise InvalidRequest(errors, status_code=400)
+
     if 'reply_to' in data:
         check_reply_to(service_id, data.get('reply_to'), fetched_template.template_type)
         updated = dao_update_template_reply_to(template_id=template_id, reply_to=data.get('reply_to'))

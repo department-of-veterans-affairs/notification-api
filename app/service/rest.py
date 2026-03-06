@@ -132,6 +132,11 @@ def get_service_notification_statistics(service_id):
 def update_service(service_id):
     req_json = request.get_json()
 
+    if 'created_by' in req_json:
+        message = 'Not permitted to be updated'
+        errors = {'created_by': [message]}
+        raise InvalidRequest(errors, status_code=400)
+
     fetched_service = dao_fetch_service_by_id(service_id)
     # Capture the status change here as Marshmallow changes this later
     service_going_live = fetched_service.restricted and not req_json.get('restricted', True)

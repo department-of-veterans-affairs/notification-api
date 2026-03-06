@@ -394,7 +394,7 @@ def test_should_be_error_on_update_if_no_permission(
     service = sample_service(user=user, service_permissions=permissions)
     template = sample_template(service=service, template_type=template_type)
 
-    data = {'content': 'new template content', 'created_by': str(user.id)}
+    data = {'content': 'new template content'}
 
     data = json.dumps(data)
     auth_header = create_admin_authorization_header()
@@ -470,7 +470,7 @@ def test_must_have_a_subject_on_an_email_or_letter_template(client, sample_user,
     assert json_resp['errors'][0]['message'] == 'subject is a required property'
 
 
-def test_update_should_update_a_template(client, sample_user, sample_service, sample_template):
+def test_update_should_update_a_template(client, sample_service, sample_template):
     service = sample_service(service_permissions=[SMS_TYPE])
     template = sample_template(service=service, template_type=SMS_TYPE)
 
@@ -478,7 +478,6 @@ def test_update_should_update_a_template(client, sample_user, sample_service, sa
     data = json.dumps(
         {
             'content': new_content,
-            'created_by': str(sample_user().id),
         }
     )
 
@@ -507,7 +506,6 @@ def test_should_be_able_to_archive_template(notify_db_session, client, sample_te
         'content': template.content,
         'archived': True,
         'service': str(template.service.id),
-        'created_by': str(template.created_by.id),
     }
 
     json_data = json.dumps(data)
@@ -687,7 +685,6 @@ def test_update_400_for_over_limit_content(client, sample_template):
                 random.choice(string.ascii_uppercase + string.digits)
                 for _ in range(SMS_CHAR_COUNT_LIMIT + 1)  # nosec
             ),
-            'created_by': str(template.created_by_id),
         }
     )
     auth_header = create_admin_authorization_header()
@@ -701,6 +698,21 @@ def test_update_400_for_over_limit_content(client, sample_template):
     assert ('Content has a character count greater than the limit of {}').format(SMS_CHAR_COUNT_LIMIT) in json_resp[
         'message'
     ]['content']
+
+
+def test_update_400_if_created_by_is_in_payload(client, sample_template, sample_user):
+    template = sample_template()
+    other_user = sample_user()
+
+    auth_header = create_admin_authorization_header()
+    resp = client.post(
+        f'/service/{template.service.id}/template/{template.id}',
+        headers=[('Content-Type', 'application/json'), auth_header],
+        data=json.dumps({'content': 'new content', 'created_by': str(other_user.id)}),
+    )
+
+    assert resp.status_code == 400
+    assert resp.get_json() == {'result': 'error', 'message': {'created_by': ['Not permitted to be updated']}}
 
 
 def test_should_return_all_template_versions_for_service_and_template_id(client, notify_db_session, sample_template):

@@ -133,7 +133,7 @@ class TestUpdate:
         assert resp_json['result'] == 'error'
         assert resp.status_code == 400
 
-    def test_update_provider_should_store_user_id(
+    def test_update_provider_should_not_allow_created_by_update(
         self,
         client,
         sample_provider,
@@ -148,11 +148,11 @@ class TestUpdate:
             headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
             data=json.dumps({'created_by': user_update.id, 'active': False}),
         )
-        assert update_resp_1.status_code == 200
-        update_resp_1 = update_resp_1.get_json()['provider_details']
-        assert update_resp_1['identifier'] == provider.identifier
-        assert not update_resp_1['active']
-        assert not provider.active
+        assert update_resp_1.status_code == 400
+        update_resp_1 = update_resp_1.get_json()
+        assert update_resp_1 == {'result': 'error', 'message': {'created_by': ['Not permitted to be updated']}}
+        assert provider.active
+        assert provider.created_by_id == user_start.id
 
     def test_should_be_able_to_update_load_balancing_weight(
         self,
