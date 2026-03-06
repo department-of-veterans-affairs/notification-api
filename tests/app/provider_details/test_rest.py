@@ -154,6 +154,24 @@ class TestUpdate:
         assert provider.active
         assert provider.created_by_id == user_start.id
 
+    @pytest.mark.parametrize('payload', ['null', '[]'])
+    def test_update_provider_returns_400_for_non_object_json_payload(
+        self,
+        client,
+        sample_provider,
+        payload,
+    ):
+        provider = sample_provider()
+
+        resp = client.post(
+            '/provider-details/{}'.format(provider.id),
+            headers=[('Content-Type', 'application/json'), create_admin_authorization_header()],
+            data=payload,
+        )
+
+        assert resp.status_code == 400
+        assert resp.get_json() == {'result': 'error', 'message': {'request': ['JSON payload must be an object']}}
+
     def test_should_be_able_to_update_load_balancing_weight(
         self,
         client,

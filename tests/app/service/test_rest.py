@@ -256,6 +256,21 @@ def test_should_not_allow_updating_service_created_by(admin_request, sample_serv
     assert response == {'result': 'error', 'message': {'created_by': ['Not permitted to be updated']}}
 
 
+@pytest.mark.parametrize('payload', ['null', '[]'])
+def test_update_service_returns_400_for_non_object_json_payload(client, sample_service, payload):
+    service = sample_service()
+    auth_header = create_admin_authorization_header()
+
+    resp = client.post(
+        f'/service/{service.id}',
+        data=payload,
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
+
+    assert resp.status_code == 400
+    assert resp.get_json() == {'result': 'error', 'message': {'request': ['JSON payload must be an object']}}
+
+
 def test_update_service_with_valid_provider(
     notify_api,
     admin_request,

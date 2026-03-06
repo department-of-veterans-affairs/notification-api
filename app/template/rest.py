@@ -136,7 +136,11 @@ def update_template(
 
         raise InvalidRequest(errors, 403)
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        errors = {'request': ['JSON payload must be an object']}
+        raise InvalidRequest(errors, status_code=400)
 
     if data.get('redact_personalisation') is True:
         # Don't update anything else.

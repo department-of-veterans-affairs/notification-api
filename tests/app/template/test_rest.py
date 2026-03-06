@@ -715,6 +715,21 @@ def test_update_400_if_created_by_is_in_payload(client, sample_template, sample_
     assert resp.get_json() == {'result': 'error', 'message': {'created_by': ['Not permitted to be updated']}}
 
 
+@pytest.mark.parametrize('payload', ['null', '[]'])
+def test_update_template_returns_400_for_non_object_json_payload(client, sample_template, payload):
+    template = sample_template()
+    auth_header = create_admin_authorization_header()
+
+    resp = client.post(
+        f'/service/{template.service.id}/template/{template.id}',
+        headers=[('Content-Type', 'application/json'), auth_header],
+        data=payload,
+    )
+
+    assert resp.status_code == 400
+    assert resp.get_json() == {'result': 'error', 'message': {'request': ['JSON payload must be an object']}}
+
+
 def test_should_return_all_template_versions_for_service_and_template_id(client, notify_db_session, sample_template):
     template = sample_template()
     original_content = template.content

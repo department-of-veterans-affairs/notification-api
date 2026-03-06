@@ -130,7 +130,11 @@ def get_service_notification_statistics(service_id):
 @service_blueprint.route('/<uuid:service_id>', methods=['POST'])
 @requires_admin_basic_auth()
 def update_service(service_id):
-    req_json = request.get_json()
+    req_json = request.get_json(silent=True)
+
+    if not isinstance(req_json, dict):
+        errors = {'request': ['JSON payload must be an object']}
+        raise InvalidRequest(errors, status_code=400)
 
     if 'created_by' in req_json:
         message = 'Not permitted to be updated'
@@ -141,7 +145,7 @@ def update_service(service_id):
     # Capture the status change here as Marshmallow changes this later
     service_going_live = fetched_service.restricted and not req_json.get('restricted', True)
     current_data = service_schema.dump(fetched_service)
-    current_data.update(request.get_json())
+    current_data.update(req_json)
 
     service = service_schema.load(current_data)
 
