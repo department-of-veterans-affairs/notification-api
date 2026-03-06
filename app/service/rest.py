@@ -8,6 +8,7 @@ from flask.wrappers import Response
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, DataError
 from sqlalchemy.orm.exc import NoResultFound
+from marshmallow import ValidationError
 
 from app import db
 from app.authentication.auth import requires_admin_basic_auth, requires_admin_auth_or_user_in_service
@@ -45,6 +46,7 @@ from app.schemas import (
     service_schema,
     api_key_schema,
     detailed_service_schema,
+    service_update_request_schema,
 )
 from app.service.utils import validate_expiry_date
 
@@ -131,15 +133,10 @@ def get_service_notification_statistics(service_id):
 @requires_admin_basic_auth()
 def update_service(service_id):
     req_json = request.get_json(silent=True)
-
-    if not isinstance(req_json, dict):
-        errors = {'request': ['JSON payload must be an object']}
-        raise InvalidRequest(errors, status_code=400)
-
-    if 'created_by' in req_json:
-        message = 'Not permitted to be updated'
-        errors = {'created_by': [message]}
-        raise InvalidRequest(errors, status_code=400)
+    try:
+        service_update_request_schema.load(req_json)
+    except ValidationError as exc:
+        raise InvalidRequest(exc.messages, status_code=400)
 
     fetched_service = dao_fetch_service_by_id(service_id)
     # Capture the status change here as Marshmallow changes this later

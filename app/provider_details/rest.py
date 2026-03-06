@@ -1,6 +1,11 @@
 from flask import Blueprint, jsonify, request
+from marshmallow import ValidationError
 
-from app.schemas import provider_details_schema, provider_details_history_schema
+from app.schemas import (
+    provider_details_schema,
+    provider_details_history_schema,
+    provider_details_update_request_schema,
+)
 from app.dao.provider_details_dao import (
     dao_update_provider_details,
     dao_get_provider_stats,
@@ -54,18 +59,11 @@ def get_provider_versions(provider_details_id):
 
 @provider_details.route('/<uuid:provider_details_id>', methods=['POST'])
 def update_provider_details(provider_details_id):
-    valid_keys = {'priority', 'active', 'load_balancing_weight'}
     req_json = request.get_json(silent=True)
-
-    if not isinstance(req_json, dict):
-        errors = {'request': ['JSON payload must be an object']}
-        raise InvalidRequest(errors, status_code=400)
-
-    invalid_keys = req_json.keys() - valid_keys
-    if invalid_keys:
-        message = 'Not permitted to be updated'
-        errors = {key: [message] for key in invalid_keys}
-        raise InvalidRequest(errors, status_code=400)
+    try:
+        provider_details_update_request_schema.load(req_json)
+    except ValidationError as exc:
+        raise InvalidRequest(exc.messages, status_code=400)
 
     provider = db.session.get(ProviderDetails, provider_details_id)
 

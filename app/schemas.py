@@ -28,6 +28,7 @@ from app.utils import get_template_instance
 from datetime import date, datetime, timedelta
 from flask_marshmallow.fields import fields
 from marshmallow import (
+    INCLUDE,
     post_load,
     ValidationError,
     validates,
@@ -1059,6 +1060,58 @@ class CommunicationItemSchema(BaseSchema):
         strict = True
 
 
+class ServiceUpdateRequestSchema(ma.Schema):
+    class Meta:
+        unknown = INCLUDE
+
+    @pre_load
+    def validate_request_payload(self, in_data, **kwargs):
+        if not isinstance(in_data, dict):
+            raise ValidationError({'request': ['JSON payload must be an object']})
+        return in_data
+
+    @validates_schema(pass_original=True)
+    def validate_immutable_fields(self, data, original_data, **kwargs):
+        if 'created_by' in original_data:
+            raise ValidationError({'created_by': ['Not permitted to be updated']})
+
+
+class TemplateUpdateRequestSchema(ma.Schema):
+    class Meta:
+        unknown = INCLUDE
+
+    @pre_load
+    def validate_request_payload(self, in_data, **kwargs):
+        if not isinstance(in_data, dict):
+            raise ValidationError({'request': ['JSON payload must be an object']})
+        return in_data
+
+    @validates_schema(pass_original=True)
+    def validate_immutable_fields(self, data, original_data, **kwargs):
+        is_redact_request = original_data.get('redact_personalisation') is True
+        if 'created_by' in original_data and not is_redact_request:
+            raise ValidationError({'created_by': ['Not permitted to be updated']})
+
+
+class ProviderDetailsUpdateRequestSchema(ma.Schema):
+    class Meta:
+        unknown = INCLUDE
+
+    _allowed_fields = {'priority', 'active', 'load_balancing_weight'}
+
+    @pre_load
+    def validate_request_payload(self, in_data, **kwargs):
+        if not isinstance(in_data, dict):
+            raise ValidationError({'request': ['JSON payload must be an object']})
+        return in_data
+
+    @validates_schema(pass_original=True)
+    def validate_allowed_fields(self, data, original_data, **kwargs):
+        invalid_keys = original_data.keys() - self._allowed_fields
+        if invalid_keys:
+            raise ValidationError({key: ['Not permitted to be updated'] for key in invalid_keys})
+
+
 # should not be used on its own for dumping - only for loading
 create_user_schema = UserSchema()
 user_update_schema_load_json = UserUpdateAttributeSchema(load_json=True, partial=True)
@@ -1092,3 +1145,6 @@ day_schema = DaySchema()
 unarchived_template_schema = UnarchivedTemplateSchema()
 service_callback_api_schema = ServiceCallbackSchema()
 communication_item_schema = CommunicationItemSchema()
+service_update_request_schema = ServiceUpdateRequestSchema()
+template_update_request_schema = TemplateUpdateRequestSchema()
+provider_details_update_request_schema = ProviderDetailsUpdateRequestSchema()

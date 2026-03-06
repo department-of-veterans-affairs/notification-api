@@ -8,6 +8,7 @@ from flask import (
     request,
 )
 from flask_jwt_extended import current_user
+from marshmallow import ValidationError
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
 from notifications_utils.template import HTMLEmailTemplate, SMSMessageTemplate
 from notifications_utils.template2 import render_html_email, render_notify_markdown
@@ -35,7 +36,7 @@ from app.models import Template
 from app.notifications.validators import service_has_permission, check_reply_to, template_name_already_exists_on_service
 from app.provider_details import validate_providers
 from app.schema_validation import validate
-from app.schemas import template_schema, template_history_schema
+from app.schemas import template_schema, template_history_schema, template_update_request_schema
 from app.template.template_schemas import post_create_template_schema, template_stats_request
 from app.utils import get_public_notify_type_text
 
@@ -138,18 +139,14 @@ def update_template(
 
     data = request.get_json(silent=True)
 
-    if not isinstance(data, dict):
-        errors = {'request': ['JSON payload must be an object']}
-        raise InvalidRequest(errors, status_code=400)
+    try:
+        template_update_request_schema.load(data)
+    except ValidationError as exc:
+        raise InvalidRequest(exc.messages, status_code=400)
 
     if data.get('redact_personalisation') is True:
         # Don't update anything else.
         return redact_template(fetched_template, data)
-
-    if 'created_by' in data:
-        message = 'Not permitted to be updated'
-        errors = {'created_by': [message]}
-        raise InvalidRequest(errors, status_code=400)
 
     if 'reply_to' in data:
         check_reply_to(service_id, data.get('reply_to'), fetched_template.template_type)
