@@ -139,7 +139,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Service"
+              $ref: "#/components/schemas/UpdateServiceRequest"
       responses:
         "200":
           description: OK
@@ -536,6 +536,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
     post:
       summary: Update a template
+      description: created_by is immutable for standard updates and only accepted for redact_personalisation requests.
       tags:
         - template
       requestBody:
@@ -543,7 +544,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateTemplateRequest"
+              oneOf:
+                - $ref: "#/components/schemas/UpdateTemplateRequest"
+                - $ref: "#/components/schemas/RedactTemplateRequest"
       responses:
         "200":
           description: OK
@@ -2049,6 +2052,103 @@ components:
         - template_type
         - content
         - service
+        - created_by
+    UpdateServiceRequest:
+      type: object
+      properties:
+        active:
+          type: boolean
+        consent_to_research:
+          type: boolean
+          nullable: true
+        count_as_live:
+          type: boolean
+        crown:
+          type: boolean
+          nullable: true
+        email_branding:
+          $ref: "#/components/schemas/Id"
+        email_from:
+          type: string
+          format: email
+        email_provider_id:
+          type: string
+          nullable: true
+        message_limit:
+          type: integer
+        name:
+          type: string
+        organisation_id:
+          type: string
+          format: uuid
+          nullable: true
+        organisation_type:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        prefix_sms:
+          type: boolean
+        purchase_order_number:
+          type: string
+          nullable: true
+        rate_limit:
+          type: number
+          nullable: true
+        research_mode:
+          type: boolean
+        restricted:
+          type: boolean
+        sms_provider_id:
+          type: string
+          nullable: true
+        volume_email:
+          type: integer
+          nullable: true
+        volume_letter:
+          type: integer
+          nullable: true
+        volume_sms:
+          type: integer
+          nullable: true
+    UpdateTemplateRequest:
+      type: object
+      properties:
+        archived:
+          type: boolean
+        communication_item_id:
+          type: string
+          nullable: true
+        content:
+          type: string
+        name:
+          type: string
+        postage:
+          type: string
+        process_type:
+          type: string
+          enum:
+            - normal
+            - priority
+        provider_id:
+          type: string
+          nullable: true
+        reply_to:
+          $ref: "#/components/schemas/Id"
+        subject:
+          type: string
+    RedactTemplateRequest:
+      type: object
+      properties:
+        redact_personalisation:
+          type: boolean
+          enum:
+            - true
+        created_by:
+          $ref: "#/components/schemas/Id"
+      required:
+        - redact_personalisation
         - created_by
     CreateTemplateRequestSms:
       type: object
