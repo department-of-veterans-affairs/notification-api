@@ -1,12 +1,16 @@
 from flask import Blueprint, jsonify, request
+from marshmallow import ValidationError
 
-from app.schemas import provider_details_schema, provider_details_history_schema
+from app.schemas import (
+    provider_details_schema,
+    provider_details_history_schema,
+    provider_details_update_request_schema,
+)
 from app.dao.provider_details_dao import (
     dao_update_provider_details,
     dao_get_provider_stats,
     dao_get_provider_versions,
 )
-from app.dao.users_dao import get_user_by_id
 from app.db import db
 from app.errors import register_errors, InvalidRequest
 from app.models import ProviderDetails
@@ -55,22 +59,13 @@ def get_provider_versions(provider_details_id):
 
 @provider_details.route('/<uuid:provider_details_id>', methods=['POST'])
 def update_provider_details(provider_details_id):
-    valid_keys = {'priority', 'created_by', 'active', 'load_balancing_weight'}
-    req_json = request.get_json()
-
-    invalid_keys = req_json.keys() - valid_keys
-    if invalid_keys:
-        message = 'Not permitted to be updated'
-        errors = {key: [message] for key in invalid_keys}
-        raise InvalidRequest(errors, status_code=400)
+    req_json = request.get_json(silent=True)
+    try:
+        provider_details_update_request_schema.load(req_json)
+    except ValidationError as exc:
+        raise InvalidRequest(exc.messages, status_code=400)
 
     provider = db.session.get(ProviderDetails, provider_details_id)
-
-    # Handle created_by differently due to how history entry is created
-    if 'created_by' in req_json:
-        user = get_user_by_id(req_json['created_by'])
-        provider.created_by_id = user.id
-        req_json.pop('created_by')
 
     for key in req_json:
         setattr(provider, key, req_json[key])

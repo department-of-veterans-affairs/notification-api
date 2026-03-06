@@ -8,6 +8,7 @@ from flask import (
     request,
 )
 from flask_jwt_extended import current_user
+from marshmallow import ValidationError
 from notifications_utils import SMS_CHAR_COUNT_LIMIT
 from notifications_utils.template import HTMLEmailTemplate, SMSMessageTemplate
 from notifications_utils.template2 import render_html_email, render_notify_markdown
@@ -35,7 +36,7 @@ from app.models import Template
 from app.notifications.validators import service_has_permission, check_reply_to, template_name_already_exists_on_service
 from app.provider_details import validate_providers
 from app.schema_validation import validate
-from app.schemas import template_schema, template_history_schema
+from app.schemas import template_schema, template_history_schema, template_update_request_schema
 from app.template.template_schemas import post_create_template_schema, template_stats_request
 from app.utils import get_public_notify_type_text
 
@@ -136,7 +137,12 @@ def update_template(
 
         raise InvalidRequest(errors, 403)
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
+
+    try:
+        template_update_request_schema.load(data)
+    except ValidationError as exc:
+        raise InvalidRequest(exc.messages, status_code=400)
 
     if data.get('redact_personalisation') is True:
         # Don't update anything else.
