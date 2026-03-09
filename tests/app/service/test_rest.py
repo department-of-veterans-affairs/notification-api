@@ -224,7 +224,6 @@ def test_update_service(
     data = {
         'name': f'updated service name {uuid4()}',
         'email_from': 'updated.service.name',
-        'created_by': str(service.created_by.id),
         'organisation_type': 'other',
     }
 
@@ -241,6 +240,35 @@ def test_update_service(
     assert result['data']['email_from'] == 'updated.service.name'
     assert result['data']['organisation_type'] == 'other'
     assert result['data']['email_branding'] is None
+
+
+def test_should_not_allow_updating_service_created_by(admin_request, sample_service, sample_user):
+    service = sample_service()
+    new_user = sample_user()
+
+    response = admin_request.post(
+        'service.update_service',
+        service_id=service.id,
+        _data={'created_by': str(new_user.id)},
+        _expected_status=400,
+    )
+
+    assert response == {'result': 'error', 'message': {'created_by': ['Not permitted to be updated']}}
+
+
+@pytest.mark.parametrize('payload', ['null', '[]'])
+def test_update_service_returns_400_for_non_object_json_payload(client, sample_service, payload):
+    service = sample_service()
+    auth_header = create_admin_authorization_header()
+
+    resp = client.post(
+        f'/service/{service.id}',
+        data=payload,
+        headers=[('Content-Type', 'application/json'), auth_header],
+    )
+
+    assert resp.status_code == 400
+    assert resp.get_json() == {'result': 'error', 'message': {'request': ['JSON payload must be an object']}}
 
 
 def test_update_service_with_valid_provider(
@@ -332,7 +360,6 @@ def test_cant_update_service_org_type_to_random_value(client, sample_service):
     data = {
         'name': 'updated service name',
         'email_from': 'updated.service.name',
-        'created_by': str(service.created_by.id),
         'organisation_type': 'foo',
     }
 

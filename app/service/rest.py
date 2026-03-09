@@ -8,6 +8,7 @@ from flask.wrappers import Response
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, DataError
 from sqlalchemy.orm.exc import NoResultFound
+from marshmallow import ValidationError
 
 from app import db
 from app.authentication.auth import requires_admin_basic_auth, requires_admin_auth_or_user_in_service
@@ -45,6 +46,7 @@ from app.schemas import (
     service_schema,
     api_key_schema,
     detailed_service_schema,
+    service_update_request_schema,
 )
 from app.service.utils import validate_expiry_date
 
@@ -130,13 +132,17 @@ def get_service_notification_statistics(service_id):
 @service_blueprint.route('/<uuid:service_id>', methods=['POST'])
 @requires_admin_basic_auth()
 def update_service(service_id):
-    req_json = request.get_json()
+    req_json = request.get_json(silent=True)
+    try:
+        service_update_request_schema.load(req_json)
+    except ValidationError as exc:
+        raise InvalidRequest(exc.messages, status_code=400)
 
     fetched_service = dao_fetch_service_by_id(service_id)
     # Capture the status change here as Marshmallow changes this later
     service_going_live = fetched_service.restricted and not req_json.get('restricted', True)
     current_data = service_schema.dump(fetched_service)
-    current_data.update(request.get_json())
+    current_data.update(req_json)
 
     service = service_schema.load(current_data)
 
