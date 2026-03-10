@@ -91,6 +91,7 @@ def persist_notification(
     billing_code=None,
     sms_sender_id=None,
     callback_url=None,
+    callback_headers=None,
 ) -> Notification:
     notification_created_at = created_at or datetime.utcnow()
 
@@ -121,6 +122,7 @@ def persist_notification(
         billing_code=billing_code,
         sms_sender_id=sms_sender_id,
         callback_url=callback_url,
+        callback_headers=callback_headers,
     )
 
     if isinstance(recipient_identifier, dict):

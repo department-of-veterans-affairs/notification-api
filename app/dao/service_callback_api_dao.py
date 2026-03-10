@@ -63,6 +63,7 @@ def get_service_callback(service_callback_id) -> DeliveryStatusCallbackApiData:
         include_provider_payload=service_callback.include_provider_payload,
         callback_channel=service_callback.callback_channel,
         callback_type=service_callback.callback_type,
+        _callback_headers=service_callback._callback_headers,
     )
 
 
@@ -100,6 +101,7 @@ def get_service_delivery_status_callback_api_for_service(
         include_provider_payload=service_callback.include_provider_payload,
         callback_channel=service_callback.callback_channel,
         callback_type=service_callback.callback_type,
+        _callback_headers=service_callback._callback_headers,
     )
 
 
@@ -130,6 +132,7 @@ def get_service_inbound_sms_callback_api_for_service(service_id) -> DeliveryStat
         include_provider_payload=service_callback.include_provider_payload,
         callback_channel=service_callback.callback_channel,
         callback_type=service_callback.callback_type,
+        _callback_headers=service_callback._callback_headers,
     )
 
 

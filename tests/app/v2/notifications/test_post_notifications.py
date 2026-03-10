@@ -1618,3 +1618,74 @@ def test_post_notification_missing_email_personalization(
     assert response_json['message'].startswith('Missing personalisation: ')
     assert 'name' in response_json['message']
     assert 'dessert' in response_json['message']
+
+
+def test_post_email_notification_with_callback_headers_and_no_callback_url_returns_400(
+    client,
+    sample_api_key,
+    sample_template,
+):
+    template = sample_template(template_type=EMAIL_TYPE)
+    data = {
+        'email_address': 'test@test.com',
+        'template_id': str(template.id),
+        'callback_headers': {'x-api-key': 'some-key'},
+    }
+
+    response = post_send_notification(client, sample_api_key(service=template.service), EMAIL_TYPE, data)
+
+    assert response.status_code == 400
+    error_json = response.get_json()
+    assert error_json['status_code'] == 400
+    assert {
+        'error': 'BadRequestError',
+        'message': 'callback_headers requires callback_url to be provided',
+    } in error_json['errors']
+
+
+def test_post_email_notification_with_invalid_callback_headers_returns_400(
+    client,
+    sample_api_key,
+    sample_template,
+):
+    template = sample_template(template_type=EMAIL_TYPE)
+    data = {
+        'email_address': 'test@test.com',
+        'template_id': str(template.id),
+        'callback_url': 'https://example.com/callback',
+        'callback_headers': {'authorization': 'bad'},
+    }
+
+    response = post_send_notification(client, sample_api_key(service=template.service), EMAIL_TYPE, data)
+
+    assert response.status_code == 400
+    error_json = response.get_json()
+    assert error_json['status_code'] == 400
+    assert any('authorization' in e['message'] and 'not allowed' in e['message'] for e in error_json['errors'])
+
+
+def test_post_sms_notification_with_valid_callback_headers_succeeds(
+    client,
+    notify_db_session,
+    sample_api_key,
+    sample_template,
+    mock_deliver_sms,
+):
+    template = sample_template()
+    data = {
+        'phone_number': '+16502532222',
+        'template_id': str(template.id),
+        'callback_url': 'https://example.com/callback',
+        'callback_headers': {'x-api-key': 'some-key'},
+    }
+
+    response = post_send_notification(client, sample_api_key(service=template.service), SMS_TYPE, data)
+
+    assert response.status_code == 201
+    resp_json = response.get_json()
+    assert validate(resp_json, post_sms_response) == resp_json
+
+    notification = notify_db_session.session.scalar(
+        select(Notification).where(Notification.service_id == template.service_id)
+    )
+    assert notification.callback_url == 'https://example.com/callback'

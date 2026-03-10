@@ -262,6 +262,7 @@ def sample_service_callback(notify_db_session, sample_service):
         callback_channel: str = WEBHOOK_CHANNEL_TYPE,
         notification_statuses: list = None,
         include_provider_payload: bool = False,
+        callback_headers: dict = None,
     ):
         # notification_statuses or NOTIFICATION_STATUS_TYPES
         service = service or sample_service()
@@ -276,6 +277,9 @@ def sample_service_callback(notify_db_session, sample_service):
             'callback_channel': callback_channel,
             'include_provider_payload': include_provider_payload,
         }
+
+        if callback_headers:
+            data['callback_headers'] = callback_headers
 
         # Logic in the model dictates only callback type of DELIVERY_STATUS_CALLBACK_TYPE may have notification_statuses
         if data['callback_type'] == DELIVERY_STATUS_CALLBACK_TYPE:

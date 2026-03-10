@@ -37,6 +37,7 @@ from app.models import (
     DeliveryStatusCallbackApiData,
     Template,
 )
+from app.schema_validation.callback_headers import merge_callback_headers
 from app.utils import statsd_http
 
 
@@ -409,6 +410,7 @@ def send_delivery_status_from_notification(
     callback_url: str,
     notification_data: dict[str, str],
     notification_id: str,
+    encrypted_callback_headers: str | None = None,
 ) -> None:
     """
     Send a delivery status notification to the given callback URL.
@@ -417,20 +419,30 @@ def send_delivery_status_from_notification(
         callback_signature (str): Signature for the callback
         callback_url (str): URL to send the callback to
         notification_data (dict[str, str]): Data to send in the callback
+        notification_id (str): The notification ID for logging
+        encrypted_callback_headers (str | None): Encrypted custom headers, or None
 
     Raises:
         AutoRetryException: If the request should be retried
         NonRetryableException: If the request should not be retried
     """
+    system_headers = {
+        'Content-Type': 'application/json',
+        'x-enp-signature': callback_signature,
+    }
+
+    custom_headers = None
+    if encrypted_callback_headers:
+        custom_headers = encryption.decrypt(encrypted_callback_headers)
+
+    headers = merge_callback_headers(system_headers, custom_headers)
+
     try:
         with statsd_http('send_delivery_status_from_notification'):
             response = post(
                 url=callback_url,
                 data=json.dumps(notification_data),
-                headers={
-                    'Content-Type': 'application/json',
-                    'x-enp-signature': callback_signature,
-                },
+                headers=headers,
                 timeout=HTTP_TIMEOUT,
             )
         response.raise_for_status()
@@ -482,14 +494,20 @@ def check_and_queue_notification_callback_task(notification: Notification) -> No
 
     callback_signature = generate_callback_signature(notification.api_key_id, notification_data)
 
+    kwargs = {
+        'callback_signature': callback_signature,
+        'callback_url': notification.callback_url,
+        'notification_data': notification_data,
+        'notification_id': str(notification.id),
+    }
+
+    # Encrypt callback_headers before passing through Celery/SQS
+    if notification._callback_headers:
+        kwargs['encrypted_callback_headers'] = notification._callback_headers
+
     send_delivery_status_from_notification.apply_async(
         args=(),
-        kwargs={
-            'callback_signature': callback_signature,
-            'callback_url': notification.callback_url,
-            'notification_data': notification_data,
-            'notification_id': str(notification.id),
-        },
+        kwargs=kwargs,
         queue=QueueNames.CALLBACKS,
     )
 

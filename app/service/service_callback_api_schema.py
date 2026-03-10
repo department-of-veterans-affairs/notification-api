@@ -1,6 +1,11 @@
 from app.constants import NOTIFICATION_STATUS_TYPES_COMPLETED, CALLBACK_CHANNEL_TYPES, SERVICE_CALLBACK_TYPES
 from app.schema_validation.definitions import https_url
 
+_callback_headers_schema = {
+    'type': 'object',
+    'additionalProperties': {'type': 'string'},
+}
+
 create_service_callback_api_request_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'POST service callback/inbound api schema',
@@ -13,6 +18,7 @@ create_service_callback_api_request_schema = {
         'callback_type': {'enum': SERVICE_CALLBACK_TYPES},
         'callback_channel': {'enum': CALLBACK_CHANNEL_TYPES},
         'include_provider_payload': {'type': 'boolean'},
+        'callback_headers': _callback_headers_schema,
     },
     'required': ['url', 'callback_channel', 'callback_type'],
 }
@@ -29,11 +35,13 @@ update_service_callback_api_request_schema = {
         'callback_type': {'enum': SERVICE_CALLBACK_TYPES},
         'callback_channel': {'enum': CALLBACK_CHANNEL_TYPES},
         'include_provider_payload': {'type': 'boolean'},
+        'callback_headers': _callback_headers_schema,
     },
     'anyOf': [
         {'required': ['url']},
         {'required': ['bearer_token']},
         {'required': ['notification_statuses']},
         {'required': ['include_provider_payload']},
+        {'required': ['callback_headers']},
     ],
 }

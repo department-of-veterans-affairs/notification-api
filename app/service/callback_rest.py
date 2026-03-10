@@ -22,6 +22,7 @@ from app.dao.service_callback_api_dao import (
 )
 from app.errors import register_errors
 from app.schema_validation import validate
+from app.schema_validation.callback_headers import validate_callback_headers
 from app.schemas import service_callback_api_schema
 from app.service.service_callback_api_schema import (
     update_service_callback_api_request_schema,
@@ -69,6 +70,12 @@ def create_service_callback(service_id: UUID) -> tuple[Response, int]:
     validate(data, create_service_callback_api_request_schema)
     require_admin_for_queue_callback(data)
 
+    # Validate callback_headers if provided
+    if 'callback_headers' in data and data['callback_headers']:
+        errors = validate_callback_headers(data['callback_headers'])
+        if errors:
+            abort(400, '; '.join(errors))
+
     # Check for existing callback of the same type
     check_existing_callback(service_id, data['callback_channel'], data['callback_type'])
 
@@ -93,6 +100,12 @@ def update_service_callback(
 
     validate(data, update_service_callback_api_request_schema)
     current_service_callback = query_service_callback(service_id, callback_id)
+
+    # Validate callback_headers if provided
+    if 'callback_headers' in data and data['callback_headers']:
+        errors = validate_callback_headers(data['callback_headers'])
+        if errors:
+            abort(400, '; '.join(errors))
 
     require_admin_for_queue_callback({**service_callback_api_schema.dump(current_service_callback), **data})
 

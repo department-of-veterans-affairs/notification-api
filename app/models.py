@@ -704,6 +704,7 @@ class ServiceCallback(db.Model, Versioned):
     notification_statuses = db.Column('notification_statuses', JSONB, nullable=True)
     callback_channel = db.Column(db.String(), db.ForeignKey('service_callback_channel.channel'), nullable=False)
     include_provider_payload = db.Column(db.Boolean, nullable=False, default=False)
+    _callback_headers = db.Column('callback_headers', db.String(), nullable=True)
 
     __table_args__ = (
         UniqueConstraint('service_id', 'callback_type', name='uix_service_callback_type'),
@@ -724,6 +725,19 @@ class ServiceCallback(db.Model, Versioned):
         if bearer_token:
             self._bearer_token = encryption.encrypt(str(bearer_token))
 
+    @property
+    def callback_headers(self):
+        if self._callback_headers:
+            return encryption.decrypt(self._callback_headers)
+        return None
+
+    @callback_headers.setter
+    def callback_headers(self, headers):
+        if headers:
+            self._callback_headers = encryption.encrypt(headers)
+        else:
+            self._callback_headers = None
+
 
 @dataclass
 class DeliveryStatusCallbackApiData:
@@ -739,6 +753,8 @@ class DeliveryStatusCallbackApiData:
     include_provider_payload: bool
     callback_channel: str
     callback_type: str | None
+    # Encrypted callback headers blob, or None
+    _callback_headers: str | None = None
 
 
 class ServiceCallbackType(db.Model):
@@ -1284,6 +1300,7 @@ class Notification(db.Model):
     postage = db.Column(db.String, nullable=True)
     billing_code = db.Column(db.String(256), nullable=True)
     callback_url = db.Column(db.String(255), nullable=True)
+    _callback_headers = db.Column('callback_headers', db.String(), nullable=True)
 
     CheckConstraint(
         """
@@ -1338,6 +1355,19 @@ class Notification(db.Model):
         personalisation,
     ):
         self._personalisation = encryption.encrypt(personalisation or {})
+
+    @property
+    def callback_headers(self):
+        if self._callback_headers:
+            return encryption.decrypt(self._callback_headers)
+        return None
+
+    @callback_headers.setter
+    def callback_headers(self, headers):
+        if headers:
+            self._callback_headers = encryption.encrypt(headers)
+        else:
+            self._callback_headers = None
 
     def completed_at(self):
         if self.status in NOTIFICATION_STATUS_TYPES_COMPLETED:
