@@ -443,7 +443,7 @@ def send_delivery_status_from_notification(
         # retryable error codes:
         #   429: Too Many Requests
         #   5xx: Server Error
-        if e.response is not None and e.response.status_code == 429 or e.response.status_code >= 500:
+        if e.response is not None and (e.response.status_code == 429 or e.response.status_code >= 500):
             current_app.logger.warning(
                 'Retryable error sending callback for notification %s, url %s | status code: %s, exception: %s',
                 notification_id,
