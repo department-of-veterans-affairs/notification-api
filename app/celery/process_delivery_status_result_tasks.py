@@ -280,7 +280,7 @@ def sms_status_update(
     )
 
     statsd_client.incr(
-        f'sms.segments_sent.service_id.{notification.service_id}',
+        f'sms.segments_sent.{sms_status.provider}.{notification.service_id}.{notification.template_id}',
         count=sms_status.message_parts,
     )
 
