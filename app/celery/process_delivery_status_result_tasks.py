@@ -279,6 +279,11 @@ def sms_status_update(
         template_id=template_id,
     )
 
+    statsd_client.incr(
+        f'sms.segments_sent.service_id.{notification.service_id}',
+        count=sms_status.message_parts,
+    )
+
     # Our clients are not prepared to deal with pinpoint payloads
     if not _get_include_payload_status(notification):
         sms_status.payload = None
