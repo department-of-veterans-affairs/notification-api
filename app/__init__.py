@@ -3,6 +3,7 @@ import random
 import string
 
 from dotenv import load_dotenv
+from ddtrace.statsd import DogStatsd
 from flask import request, g, jsonify, make_response
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
@@ -40,6 +41,24 @@ from app.mobile_app.mobile_app_registry import MobileAppRegistry
 load_dotenv()
 
 
+class DogStatsdClient:
+    def __init__(self):
+        self.active = False
+        self._client = None
+
+    def init_app(self, app):
+        self.active = app.config.get('STATSD_ENABLED')
+        if self.active:
+            self._client = DogStatsd(
+                host=app.config.get('STATSD_HOST'),
+                port=app.config.get('STATSD_PORT'),
+            )
+
+    def incr(self, metric, count=1, tags=None):
+        if self.active:
+            self._client.increment(metric, value=count, tags=tags)
+
+
 migrate = Migrate()
 ma = Marshmallow()
 notify_celery = NotifyCelery()
@@ -64,6 +83,7 @@ aws_pinpoint_client = AwsPinpointClient()
 sqs_client = SQSClient()
 zendesk_client = ZendeskClient()
 statsd_client = StatsdClient()
+dogstatsd_client = DogStatsdClient()
 redis_store = RedisClient()
 performance_platform_client = PerformancePlatformClient()
 va_profile_client = VAProfileClient()
@@ -116,6 +136,7 @@ def create_app(application):
     ma.init_app(application)
     zendesk_client.init_app(application)
     statsd_client.init_app(application)
+    dogstatsd_client.init_app(application)
     logging.init_app(application, statsd_client)
     firetext_client.init_app(application, statsd_client=statsd_client)
     loadtest_client.init_app(application, statsd_client=statsd_client)
