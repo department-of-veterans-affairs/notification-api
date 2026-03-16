@@ -1,6 +1,7 @@
 import datetime
 import random
 
+from app import dogstatsd_client
 from app.celery.process_ses_receipts_tasks import check_and_queue_va_profile_notification_status_callback
 from celery import Task
 from flask import current_app
@@ -277,6 +278,16 @@ def sms_status_update(
         sms_status.provider_updated_at,
         sms_sender_id=sms_sender_id,
         template_id=template_id,
+    )
+
+    dogstatsd_client.incr(
+        'sms.segments_sent',
+        count=sms_status.message_parts,
+        tags=[
+            f'service_id:{notification.service_id}',
+            f'template_id:{notification.template_id}',
+            f'provider:{sms_status.provider}',
+        ],
     )
 
     # Our clients are not prepared to deal with pinpoint payloads
