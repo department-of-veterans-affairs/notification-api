@@ -1,7 +1,7 @@
 import datetime
 import random
 
-from app.init import dogstatsd_client
+from app import dogstatsd_client
 from app.celery.process_ses_receipts_tasks import check_and_queue_va_profile_notification_status_callback
 from celery import Task
 from flask import current_app

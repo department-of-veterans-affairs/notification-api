@@ -3,7 +3,7 @@ import random
 import string
 
 from dotenv import load_dotenv
-from ddtrace.statsd import DogStatsd
+from datadog import DogStatsd
 from flask import request, g, jsonify, make_response
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
